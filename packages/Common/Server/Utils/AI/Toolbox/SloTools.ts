@@ -188,11 +188,31 @@ const NOT_VISIBLE_WIDGET_VALUE: string = "not visible to you";
 const BURN_RATE_RULES_READ_LIMIT: number = 25;
 
 /*
- * Travels with the result when it lists recommended rules the SLO is
- * missing, so the model never reports one of them as a rule that is set up.
+ * The recommended burn-rate rules (Fast burn, Slow burn, Slow leak) this SLO
+ * does not have, scaled to its window, as a note rather than rows: they are
+ * not records of the SLO, and the model must never report one as a rule that
+ * is set up. An SLO created before Slow leak existed is missing it.
  */
-const MISSING_RECOMMENDED_RULES_NOTE: string =
-  'Note: rows with record "missingRecommendedBurnRateRule" are burn-rate rules OneUptime recommends for every SLO (Fast burn and Slow burn page, Slow leak raises a low-severity ticket) that this SLO does not have yet, scaled to its window. They are not configured and never fire. Add them on the SLO\'s Burn Rate Rules page with Add recommended rules.\n';
+function getMissingRecommendedRulesNote(
+  missing: Array<SloRecommendedBurnRateRule>,
+): string {
+  if (missing.length === 0) {
+    return "";
+  }
+
+  const rules: string = missing
+    .map((rule: SloRecommendedBurnRateRule): string => {
+      const severity: string =
+        rule.alertSeverity === SloRecommendedAlertSeverity.LeastSevere
+          ? "least"
+          : "most";
+
+      return `${rule.name} (burn rate ${rule.burnRateThreshold}x over ${rule.longWindowInMinutes} minutes, confirmed over ${rule.shortWindowInMinutes} minutes; raises an alert at the project's ${severity} severe alert severity and declares no incident; waits ${rule.refireSuppressionMinutes ?? rule.longWindowInMinutes} minutes after an alert resolves before raising another)`;
+    })
+    .join("; ");
+
+  return `Note: this SLO does not have ${missing.length === 1 ? "this burn-rate rule" : "these burn-rate rules"} OneUptime recommends for every SLO (Fast burn and Slow burn page someone; Slow leak is a low-severity ticket for a slow, steady burn), scaled to its window: ${rules}. ${missing.length === 1 ? "It is" : "They are"} not set up and never fire. Anyone who can create SLO burn rate rules can add ${missing.length === 1 ? "it" : "them"} on the SLO's Burn Rate Rules page with Add recommended rules.\n`;
+}
 
 /*
  * Label names for the monitor rule descriptions. Legacy rules carry their
@@ -609,7 +629,9 @@ export const QuerySlosTool: ObservabilityTool = {
        * read the limit cut short, a rule that is there could read as missing.
        */
       const missingRecommendedRules: Array<SloRecommendedBurnRateRule> =
-        slo && areBurnRateRulesVisible && rules.length < BURN_RATE_RULES_READ_LIMIT
+        slo &&
+        areBurnRateRulesVisible &&
+        rules.length < BURN_RATE_RULES_READ_LIMIT
           ? getMissingSloRecommendedBurnRateRules({
               window: {
                 windowType: slo.windowType,
@@ -619,32 +641,13 @@ export const QuerySlosTool: ObservabilityTool = {
             })
           : [];
 
-      for (const missing of missingRecommendedRules) {
-        rows.push({
-          record: "missingRecommendedBurnRateRule",
-          name: missing.name,
-          burnRateThreshold: missing.burnRateThreshold,
-          longWindowInMinutes: missing.longWindowInMinutes,
-          shortWindowInMinutes: missing.shortWindowInMinutes,
-          // Empty suppression is one long window, as the worker reads it.
-          refireSuppressionMinutes:
-            missing.refireSuppressionMinutes ?? missing.longWindowInMinutes,
-          createsAlert: true,
-          alertSeverity:
-            missing.alertSeverity === SloRecommendedAlertSeverity.LeastSevere
-              ? "the project's least severe alert severity"
-              : "the project's most severe alert severity",
-          createsIncident: false,
-        });
-      }
-
       const serialized: SerializedResult =
         ToolResultSerializer.serializeRows(rows);
 
       return {
         dataForLlm:
           rows.length > 0
-            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${missingRecommendedRules.length > 0 ? MISSING_RECOMMENDED_RULES_NOTE : ""}${COMPLIANCE_NOTE}${serialized.text}`
+            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${getMissingRecommendedRulesNote(missingRecommendedRules)}${COMPLIANCE_NOTE}${serialized.text}`
             : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `SLO ${slo?.name || sloId.toString()}`,
