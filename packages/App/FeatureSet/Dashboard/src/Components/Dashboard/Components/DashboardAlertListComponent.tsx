@@ -43,6 +43,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Color from "Common/Types/Color";
 import { getSeverityPillProps } from "../Utils/SeverityPillStyle";
+import DashboardWidgetIds from "Common/Utils/Dashboard/DashboardWidgetIds";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useDashboardListWidgetSort, {
@@ -77,14 +78,24 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
   const viewMode: ResourceListViewMode =
     props.component.arguments.viewMode === "honeycomb" ? "honeycomb" : "list";
   const stateFilter: string | undefined = props.component.arguments.stateFilter;
-  const severityIds: Array<string> | undefined =
-    props.component.arguments.severityIds;
-  const stateIds: Array<string> | undefined =
-    props.component.arguments.stateIds;
-  const monitorIds: Array<string> | undefined =
-    props.component.arguments.monitorIds;
-  const labelIds: Array<string> | undefined =
-    props.component.arguments.labelIds;
+  /*
+   * Each id as the id it names: text, or an ObjectID stored as its JSON,
+   * revived or not (DashboardWidgetIds, issue #6328). Compared as stored,
+   * an ObjectID matched none of the states a state filter reads, and the
+   * list dropped every state.
+   */
+  const severityIds: Array<string> | undefined = DashboardWidgetIds.readIdList(
+    props.component.arguments.severityIds,
+  );
+  const stateIds: Array<string> | undefined = DashboardWidgetIds.readIdList(
+    props.component.arguments.stateIds,
+  );
+  const monitorIds: Array<string> | undefined = DashboardWidgetIds.readIdList(
+    props.component.arguments.monitorIds,
+  );
+  const labelIds: Array<string> | undefined = DashboardWidgetIds.readIdList(
+    props.component.arguments.labelIds,
+  );
 
   const severityIdsKey: string = (severityIds || []).join(",");
   const stateIdsKey: string = (stateIds || []).join(",");

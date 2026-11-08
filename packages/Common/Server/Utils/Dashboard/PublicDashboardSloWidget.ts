@@ -10,6 +10,7 @@ import {
   SloWidgetSource,
   SloWidgetSourceState,
 } from "../../../Utils/Dashboard/SloWidgetSource";
+import DashboardWidgetIds from "../../../Utils/Dashboard/DashboardWidgetIds";
 
 /*
  * The stored configuration of ONE SLO widget, read back from the dashboard's
@@ -151,14 +152,10 @@ export default class PublicDashboardSloWidget {
      * validated strictly. A malformed id (a number, an array, a non-UUID)
      * must fail closed — it must never fall through to the variable binding,
      * which would widen a widget its author pinned to one SLO into one that
-     * serves whichever SLO a viewer names.
+     * serves whichever SLO a viewer names. Absent is read as the page reads
+     * it (DashboardWidgetIds.isAbsent, as resolveSloWidgetSource does).
      */
-    const isIdAbsent: boolean =
-      storedId === undefined ||
-      storedId === null ||
-      (typeof storedId === "string" && storedId.trim().length === 0);
-
-    if (!isIdAbsent) {
+    if (!DashboardWidgetIds.isAbsent(storedId)) {
       return {
         kind: PublicDashboardSloWidgetTargetKind.Pinned,
         serviceLevelObjectiveId:
@@ -177,10 +174,11 @@ export default class PublicDashboardSloWidget {
       throw new BadDataException(PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE);
     }
 
-    if (
-      typeof storedVariableId !== "string" ||
-      storedVariableId.length > MAX_VARIABLE_ID_LENGTH
-    ) {
+    // Text, or an ObjectID stored as its JSON, as the page reads it.
+    const variableId: string | null =
+      DashboardWidgetIds.readId(storedVariableId);
+
+    if (variableId === null || variableId.length > MAX_VARIABLE_ID_LENGTH) {
       throw new BadDataException(
         "Dashboard widget serviceLevelObjectiveVariableId is invalid.",
       );
@@ -188,7 +186,7 @@ export default class PublicDashboardSloWidget {
 
     // The same resolution the browser renders with (SloWidgetSource).
     const source: SloWidgetSource = resolveSloWidgetSource({
-      serviceLevelObjectiveVariableId: storedVariableId,
+      serviceLevelObjectiveVariableId: variableId,
       variables: variables,
     });
 
@@ -223,15 +221,23 @@ export default class PublicDashboardSloWidget {
    * The SLO the widget's author picked IS the authorization decision: the id
    * comes only from stored config, never from the request, so this endpoint
    * can never be pointed at another SLO in the project.
+   *
+   * Read as the page reads it (DashboardWidgetIds): text, or an ObjectID
+   * stored as its JSON, revived or not. The page draws that SLO, signed in
+   * and here, so its numbers and history are served as for the same id
+   * stored as text (issue #6328); before, both routes refused it while the
+   * page fell over. Anything that names no id - a number, a list, another
+   * typed value - is still refused.
    */
   private static readServiceLevelObjectiveId(
     argumentsObject: Record<string, unknown>,
   ): ObjectID {
-    const serviceLevelObjectiveId: unknown =
-      argumentsObject["serviceLevelObjectiveId"];
+    const serviceLevelObjectiveId: string | null = DashboardWidgetIds.readId(
+      argumentsObject["serviceLevelObjectiveId"],
+    );
 
     if (
-      typeof serviceLevelObjectiveId !== "string" ||
+      serviceLevelObjectiveId === null ||
       serviceLevelObjectiveId.trim().length === 0
     ) {
       throw new BadDataException(PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE);
