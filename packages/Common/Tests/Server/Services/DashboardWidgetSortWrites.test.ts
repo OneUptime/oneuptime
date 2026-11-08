@@ -28,7 +28,9 @@ import DashboardMonitorListComponentUtil from "../../../Utils/Dashboard/Componen
 import {
   getDashboardWidgetSortComponentTypes,
   getDashboardWidgetSortValues,
+  readDashboardWidgetSavedSort,
 } from "../../../Utils/Dashboard/DashboardWidgetSorts";
+import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -315,5 +317,312 @@ describe("a dashboard created with widget sorts", () => {
     expect(
       (served?.components[0]?.arguments as JSONObject | undefined)?.["sort"],
     ).toBe("status:desc");
+  });
+});
+
+/*
+ * Issue #6315. A widget's arguments can be written as JSON text - by the API,
+ * Terraform, a workflow or a script - and every board reads them as the
+ * object that text says (StoredDashboardViewConfig.withArgumentsRead). The
+ * write check read only object arguments, so an invalid sort there was
+ * stored without a word while the same sort in object arguments was
+ * refused. It now reads them as the board does.
+ */
+describe("a widget's sort in arguments written as JSON text (issue #6315)", () => {
+  // The widget as a write can hold it: its arguments encoded as JSON text.
+  function textWidget(
+    componentType: string,
+    widgetArguments: JSONObject,
+  ): JSONObject {
+    return {
+      ...widget(componentType, {}),
+      arguments: JSON.stringify(widgetArguments),
+    };
+  }
+
+  test.each(
+    getDashboardWidgetSortComponentTypes().map(
+      (componentType: DashboardComponentType) => {
+        return [componentType];
+      },
+    ),
+  )(
+    "every sort a %s offers is saved, its arguments written as text",
+    (componentType: DashboardComponentType) => {
+      for (const sort of getDashboardWidgetSortValues(componentType)) {
+        expect(
+          refusal({
+            dashboardViewConfig: configWith([textWidget(componentType, { sort })]),
+          }),
+        ).toBeNull();
+      }
+    },
+  );
+
+  test.each(
+    getDashboardWidgetSortComponentTypes().map(
+      (componentType: DashboardComponentType) => {
+        return [componentType];
+      },
+    ),
+  )(
+    "a sort a %s cannot be sorted by is refused in text arguments exactly as in object arguments",
+    (componentType: DashboardComponentType) => {
+      for (const sort of [
+        "nonsense:desc",
+        "status:worst",
+        "STATUS:DESC",
+        "status",
+        42,
+        { column: "status", direction: "desc" },
+        ["status", "desc"],
+        true,
+      ]) {
+        const asObject: string | null = refusal({
+          dashboardViewConfig: configWith([
+            widget(componentType, { sort: sort as unknown as string }),
+          ]),
+        });
+        const asText: string | null = refusal({
+          dashboardViewConfig: configWith([
+            textWidget(componentType, { sort: sort as unknown as string }),
+          ]),
+        });
+
+        expect([sort, asObject]).toEqual([
+          sort,
+          expect.stringContaining("components[0].arguments.sort must be one of"),
+        ]);
+        expect([sort, asText]).toEqual([sort, asObject]);
+      }
+    },
+  );
+
+  test("the refusal names the widget and the sorts it takes", () => {
+    expect(
+      refusal({
+        dashboardViewConfig: configWith([
+          textWidget(DashboardComponentType.IncidentList, {
+            sort: "severity:desc",
+          }),
+          textWidget(DashboardComponentType.MonitorList, {
+            sort: "phase:desc",
+          }),
+        ]),
+      }),
+    ).toBe(
+      "dashboardViewConfig.components[1].arguments.sort must be one of name:asc, name:desc, status:asc, status:desc, type:asc or type:desc, or left out for the widget's own order (name:asc).",
+    );
+  });
+
+  test("a widget saved without a sort, or with none, in text arguments is saved: its own order", () => {
+    for (const widgetArguments of [{}, { sort: null }, { sort: "" }]) {
+      expect(
+        refusal({
+          dashboardViewConfig: configWith([
+            textWidget(DashboardComponentType.MonitorList, widgetArguments),
+          ]),
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("a metric or Data Source table's sort in text arguments is checked for its shape", () => {
+    expect(
+      refusal({
+        dashboardViewConfig: configWith([
+          textWidget(DashboardComponentType.Table, { sort: "col:3f2a:desc" }),
+          textWidget(DashboardComponentType.DataSourceTable, {
+            sort: "revenue:desc",
+          }),
+        ]),
+      }),
+    ).toBeNull();
+
+    expect(
+      refusal({
+        dashboardViewConfig: configWith([
+          textWidget(DashboardComponentType.DataSourceTable, {
+            sort: "revenue",
+          }),
+        ]),
+      }),
+    ).toContain("must be a column and a direction");
+  });
+
+  test("a widget that does not sort, or that this version does not know, is stored as sent with text arguments too", () => {
+    expect(
+      refusal({
+        dashboardViewConfig: configWith([
+          textWidget(DashboardComponentType.Chart, { sort: "anything" }),
+          textWidget("SomethingFromANewerVersion", { sort: "x:y" }),
+        ]),
+      }),
+    ).toBeNull();
+  });
+
+  test("text that says no object is no arguments, and so no sort: it is stored as sent", () => {
+    for (const text of [
+      JSON.stringify(JSON.stringify({ sort: "phase:worst" })),
+      '{"sort": "phase:worst"',
+      '[{"sort": "phase:worst"}]',
+      '"phase:worst"',
+      "  ",
+      "",
+    ]) {
+      expect([
+        text,
+        refusal({
+          dashboardViewConfig: configWith([
+            { ...widget(DashboardComponentType.MonitorList, {}), arguments: text },
+          ]),
+        }),
+      ]).toEqual([text, null]);
+    }
+  });
+
+  test("the board reads the sort the check reads: the one in text arguments, and none from text that says no object", () => {
+    const read: (arguments_: unknown) => unknown = (
+      arguments_: unknown,
+    ): unknown => {
+      const config: DashboardViewConfig = StoredDashboardViewConfig.read(
+        configWith([
+          {
+            ...widget(DashboardComponentType.MonitorList, {}),
+            arguments: arguments_ as JSONObject,
+          },
+        ]),
+      );
+
+      return readDashboardWidgetSavedSort(
+        DashboardComponentType.MonitorList,
+        config.components[0]?.arguments,
+      );
+    };
+
+    expect(read(JSON.stringify({ sort: "status:desc" }))).toEqual({
+      column: "status",
+      direction: "desc",
+    });
+    expect(read(JSON.stringify(JSON.stringify({ sort: "status:desc" })))).toBeNull();
+    expect(read('{"sort": "status:desc"')).toBeNull();
+  });
+
+  test("in every shape a write can hold the widget in: as text, in its envelope, in a list written as text, in a config stored as text", () => {
+    const bad: JSONObject = textWidget(DashboardComponentType.HostList, {
+      sort: "cpu:desc",
+    });
+    const configs: Array<unknown> = [
+      configWith([bad]),
+      configWith([JSON.stringify(bad) as unknown as JSONObject]),
+      configWith([{ _type: "DashboardComponent", value: bad }]),
+      configWith([
+        { _type: "DashboardComponent", value: JSON.stringify(bad) },
+      ]),
+      { ...configWith([]), components: JSON.stringify([bad]) },
+      { _type: "DashboardViewConfig", value: configWith([bad]) },
+      JSON.stringify(configWith([bad])),
+    ];
+
+    for (const config of configs) {
+      expect(getDashboardViewConfigProblem(config)).toContain(
+        "components[0].arguments.sort must be one of",
+      );
+    }
+  });
+
+  test("a create and an update with such a sort are refused, and with a sort the widget takes are not", async () => {
+    type Check = (write: unknown) => Promise<void>;
+
+    const hooks: {
+      checkCreateBeforeReferences: Check;
+      checkUpdateBeforeReferences: Check;
+    } = DashboardService as unknown as {
+      checkCreateBeforeReferences: Check;
+      checkUpdateBeforeReferences: Check;
+    };
+
+    const dashboard: Dashboard = new Dashboard();
+    dashboard.dashboardViewConfig = configWith([
+      textWidget(DashboardComponentType.MonitorList, { sort: "uptime:desc" }),
+    ]) as unknown as DashboardViewConfig;
+
+    await expect(
+      hooks.checkCreateBeforeReferences({
+        data: dashboard,
+        props: { isRoot: true },
+      } as CreateBy<Dashboard>),
+    ).rejects.toThrow("components[0].arguments.sort must be one of");
+
+    dashboard.dashboardViewConfig = configWith([
+      textWidget(DashboardComponentType.MonitorList, { sort: "status:desc" }),
+    ]) as unknown as DashboardViewConfig;
+
+    await hooks.checkCreateBeforeReferences({
+      data: dashboard,
+      props: { isRoot: true },
+    } as CreateBy<Dashboard>);
+
+    await expect(
+      hooks.checkUpdateBeforeReferences({
+        query: {},
+        data: {
+          dashboardViewConfig: configWith([
+            textWidget(DashboardComponentType.KubernetesPodList, {
+              sort: "phase:worst",
+            }),
+          ]),
+        },
+        props: { isRoot: true },
+      } as unknown as UpdateBy<Dashboard>),
+    ).rejects.toThrow("components[0].arguments.sort must be one of");
+
+    await hooks.checkUpdateBeforeReferences({
+      query: {},
+      data: {
+        dashboardViewConfig: configWith([
+          textWidget(DashboardComponentType.KubernetesPodList, {
+            sort: "phase:desc",
+          }),
+        ]),
+      },
+      props: { isRoot: true },
+    } as unknown as UpdateBy<Dashboard>);
+  });
+
+  test("a dashboard created with a sort in text arguments keeps its config exactly as it was sent", async () => {
+    type CreateHook = (createBy: CreateBy<Dashboard>) => Promise<{
+      createBy: CreateBy<Dashboard>;
+    }>;
+
+    const onBeforeCreate: CreateHook = (
+      DashboardService as unknown as { onBeforeCreate: CreateHook }
+    ).onBeforeCreate.bind(DashboardService);
+
+    const monitorList: JSONObject = JSON.parse(
+      JSON.stringify(DashboardMonitorListComponentUtil.getDefaultComponent()),
+    );
+    monitorList["arguments"] = JSON.stringify({
+      ...(monitorList["arguments"] as JSONObject),
+      sort: "status:desc",
+    });
+
+    const sent: JSONObject = configWith([monitorList]);
+    const dashboard: Dashboard = new Dashboard();
+    dashboard.projectId = ObjectID.generate();
+    dashboard.name = "NOC wall";
+    dashboard.dashboardViewConfig = JSON.parse(
+      JSON.stringify(sent),
+    ) as unknown as DashboardViewConfig;
+
+    const result: { createBy: CreateBy<Dashboard> } = await onBeforeCreate({
+      data: dashboard,
+      props: { isRoot: true },
+      miscDataProps: {},
+    } as unknown as CreateBy<Dashboard>);
+
+    expect(
+      JSON.parse(JSON.stringify(result.createBy.data.dashboardViewConfig)),
+    ).toEqual(sent);
   });
 });
