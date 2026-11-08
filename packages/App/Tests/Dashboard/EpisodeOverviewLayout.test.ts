@@ -71,6 +71,8 @@ interface EpisodePage {
   membership: string;
   membershipModel: string;
   memberSortField: string;
+  // The rule its first member is picked by (EpisodeFirstMember).
+  firstMember: string;
   countLabel: string;
   countField: string;
   cardTitle: string;
@@ -103,6 +105,7 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     membership: "INCIDENT_EPISODE_MEMBERSHIP",
     membershipModel: "IncidentEpisodeMember",
     memberSortField: "declaredAt",
+    firstMember: "INCIDENT_EPISODE_FIRST_MEMBER",
     countLabel: "Incidents",
     countField: "incidentCount",
     cardTitle: "Incidents in this episode",
@@ -132,6 +135,7 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     membership: "ALERT_EPISODE_MEMBERSHIP",
     membershipModel: "AlertEpisodeMember",
     memberSortField: "createdAt",
+    firstMember: "ALERT_EPISODE_FIRST_MEMBER",
     countLabel: "Alerts",
     countField: "alertCount",
     cardTitle: "Alerts in this episode",
@@ -350,9 +354,28 @@ describe("episode overview layout", () => {
         `modelType: ${page.memberModel}, query: { ${page.episodeIdField}`,
       );
       expect(source).not.toContain(`episodeIdField="${page.episodeIdField}"`);
+
+      /*
+       * The telemetry's first member, by the rule the episode's Root Cause
+       * page picks it by too (issue #6320): its earliest started member, by
+       * the membership.
+       */
       expect(source).toContain(
-        `fetchEpisodeMembers<${page.memberModel}, ${page.membershipModel}>({ episodeId: modelId, membership: ${page.membership}, modelType: ${page.memberModel},`,
+        `fetchFirstEpisodeMember<${page.memberModel}, ${page.membershipModel}>({ episodeId: modelId, kind: ${page.firstMember},`,
       );
+      expect(source).not.toContain("fetchEpisodeMembers<");
+
+      const firstMember: string = readSquashed(
+        "Components/EpisodeView/EpisodeFirstMember.ts",
+      );
+
+      expect(firstMember).toContain(
+        `${page.firstMember}: EpisodeFirstMemberKind< ${page.memberModel}, ${page.membershipModel} > = { membership: ${page.membership}, modelType: ${page.memberModel}, startedAtField: "${page.memberSortField}", };`,
+      );
+      expect(firstMember).toContain(
+        "await fetchEpisodeMembers< TMember, TMembership >({ episodeId: data.episodeId, membership: data.kind.membership, modelType: data.kind.modelType, select: data.select, sortField: data.kind.startedAtField, sortOrder: SortOrder.Ascending, limit: 1, });",
+      );
+      expect(firstMember).not.toContain("ModelAPI");
 
       const card: string = readSquashed(
         "Components/EpisodeView/EpisodeMembersCard.tsx",

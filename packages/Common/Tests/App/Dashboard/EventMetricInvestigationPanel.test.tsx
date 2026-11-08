@@ -499,7 +499,7 @@ describe("an episode's snapshot", () => {
         snapshotWindow={EVALUATED}
         seriesSummary=""
         eventNoun="incident"
-        metricSubject={EventMetricSubject.IncidentEpisode}
+        subject={EventMetricSubject.IncidentEpisode}
         startedAt={STARTED_AT}
         stateTimeline={TIMELINE.slice(0, 2)}
         states={STATES}
@@ -511,6 +511,11 @@ describe("an episode's snapshot", () => {
       screen.getByTestId("metric-investigation-time-button"),
     ).toHaveTextContent("Around the start");
     expect(lastCharts?.timeReferenceLines?.[0]?.subtitle).toBe("This episode");
+    // Its charts are its first incident's, and it says so (issue #6320).
+    expect(
+      screen.getByText("Metrics related to this episode's first incident."),
+    ).toBeVisible();
+    expect(screen.queryByText("Metrics related to this incident.")).toBeNull();
 
     const input: Record<string, unknown> =
       eventLinesInputs[eventLinesInputs.length - 1]!;
@@ -518,7 +523,7 @@ describe("an episode's snapshot", () => {
     expect(input["excludedIncidentIds"]).toBeUndefined();
   });
 
-  test("an alert episode reads as one without saying which", async () => {
+  test("an alert episode reads as an episode of alerts, its charts its first alert's", async () => {
     render(
       <TelemetrySnapshotPanel
         telemetryQuery={metricQuery()}
@@ -536,6 +541,43 @@ describe("an episode's snapshot", () => {
         screen.getByTestId("metric-investigation-time-dropdown"),
       ).getByText("Around this episode"),
     ).toBeVisible();
-    expect(screen.getByText("Metrics for this alert.")).toBeVisible();
+    expect(
+      screen.getByText("Metrics for this episode's first alert."),
+    ).toBeVisible();
+    expect(screen.queryByText("Metrics for this alert.")).toBeNull();
   });
+
+  test.each([
+    [
+      "incident" as const,
+      EventMetricSubject.IncidentEpisode,
+      "Metrics related to this episode's first incident, scoped to the affected series (resource.host.name = prod-01).",
+    ],
+    [
+      "alert" as const,
+      EventMetricSubject.AlertEpisode,
+      "Metrics for this episode's first alert, scoped to the affected series (resource.host.name = prod-01).",
+    ],
+  ])(
+    "an %s episode's charts narrowed to its first member's series say so, in the episode's words",
+    async (
+      eventNoun: "incident" | "alert",
+      subject: EventMetricSubject,
+      description: string,
+    ) => {
+      render(
+        <TelemetrySnapshotPanel
+          telemetryQuery={metricQuery()}
+          snapshotWindow={EVALUATED}
+          seriesSummary="resource.host.name = prod-01"
+          eventNoun={eventNoun}
+          subject={subject}
+          startedAt={STARTED_AT}
+        />,
+      );
+      await metricsShown();
+
+      expect(screen.getByText(description)).toBeVisible();
+    },
+  );
 });
