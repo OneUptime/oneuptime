@@ -71,6 +71,8 @@ En endring av disse innstillingene trer i kraft innen ett minutt.
 
 Filtrer etter **Ressurstype**, **Ressursnavn**, **Handling**, **Bruker-e-post** eller **Tid**. En endring viser bare feltene som ble endret, før og etter, og en lagring som ikke endrer noe, legger ikke til noen oppføring.
 
+En ressurs uten eget navn får navn etter det som navngir den i OneUptime: et unntak etter typen og begynnelsen av meldingen, med ID-er, adresser og alt som ligner en hemmelighet maskert, en kjøring av en runbook etter runbooken, og en mal eller et domene etter sitt eget navn.
+
 Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har også sin egen side **Revisjonslogger** i en sammenslått seksjon av sidemenyen, som **Avansert**. Den viser bare den ressursens oppføringer, sammen med oppføringene for det som hører til den: siden til et SLO viser også reglene og eierne.
 
 ## Hva som registreres

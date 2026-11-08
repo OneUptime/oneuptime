@@ -71,6 +71,8 @@ Uma mudança nessas configurações vale em até um minuto.
 
 Filtre por **Tipo de recurso**, **Nome do recurso**, **Ação**, **E-mail do Usuário** ou **Hora**. Uma alteração lista só os campos que mudaram, antes e depois, e um salvamento que não muda nada não adiciona entrada.
 
+Um recurso sem nome próprio recebe o nome do que o nomeia no OneUptime: uma exceção, pelo seu tipo e pelo início da sua mensagem, com ids, endereços e tudo o que pareça um segredo mascarados; uma execução de runbook, pelo seu runbook; e um modelo ou um domínio, pelo seu próprio nome.
+
 Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recursos também têm a própria página **Registros de auditoria**, em uma seção recolhida do menu lateral deles, como **Avançado**. Ela lista só as entradas daquele recurso, junto com as do que pertence a ele: a página de um SLO mostra também as regras e os proprietários dele.
 
 ## O que é registrado

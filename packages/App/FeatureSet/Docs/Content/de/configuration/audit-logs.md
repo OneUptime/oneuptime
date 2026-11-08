@@ -71,6 +71,8 @@ Eine Änderung dieser Einstellungen gilt innerhalb einer Minute.
 
 Filtern Sie nach **Ressourcentyp**, **Ressourcenname**, **Aktion**, **Benutzer-E-Mail** oder **Zeit**. Eine Änderung listet nur die geänderten Felder, vorher und nachher, und ein Speichern, das nichts ändert, erzeugt keinen Eintrag.
 
+Eine Ressource ohne eigenen Namen wird nach dem benannt, was sie in OneUptime benennt: eine Ausnahme nach ihrem Typ und dem Anfang ihrer Meldung, wobei IDs, Adressen und alles, was wie ein Geheimnis aussieht, maskiert werden, ein Runbook-Lauf nach seinem Runbook und eine Vorlage oder eine Domain nach ihrem eigenen Namen.
+
 Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen haben auch eine eigene Seite **Audit-Protokolle**, in einem eingeklappten Abschnitt ihres Seitenmenüs wie **Erweitert**. Sie listet nur die Einträge dieser Ressource, mit denen dessen, was zu ihr gehört: Die Seite eines SLO zeigt auch seine Regeln und Owners.
 
 ## Was erfasst wird

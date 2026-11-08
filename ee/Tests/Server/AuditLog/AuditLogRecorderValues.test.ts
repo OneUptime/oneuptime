@@ -6,6 +6,7 @@ import {
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import DatabaseService from "Common/Server/Services/DatabaseService";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -14,6 +15,8 @@ import MessageQueueOwnerUser from "Common/Models/DatabaseModels/MessageQueueOwne
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
+import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
+import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import ToolImportRecord from "Common/Models/DatabaseModels/ToolImportRecord";
 import User from "Common/Models/DatabaseModels/User";
@@ -720,5 +723,119 @@ describe("the change that turns audit logging on or off", () => {
     });
 
     expect(inserted).toHaveLength(0);
+  });
+});
+
+/*
+ * What names the entry of a row with no name of its own (issue #6287):
+ * every exception's entry in the project-wide audit log read "Unnamed".
+ */
+describe("a row named by other columns than a name", () => {
+  function exception(data: {
+    type?: string;
+    message?: string;
+  }): TelemetryException {
+    const item: TelemetryException = new TelemetryException(RECORD_ID);
+    item.projectId = PROJECT_ID;
+
+    if (data.type !== undefined) {
+      item.exceptionType = data.type;
+    }
+
+    if (data.message !== undefined) {
+      item.message = data.message;
+    }
+
+    return item;
+  }
+
+  async function resolve(before: TelemetryException): Promise<void> {
+    await recorder.recordUpdate({
+      model: new TelemetryException(),
+      before,
+      updatedFields: { isResolved: true },
+      itemId: RECORD_ID,
+      props: USER_PROPS,
+    });
+  }
+
+  test("an exception is named by its type and the start of its message", async () => {
+    await resolve(
+      exception({
+        type: "TypeError",
+        message:
+          "Cannot read properties of undefined (reading 'map')\n    at render (app.js:1:1)",
+      }),
+    );
+
+    expect(onlyEntry().resourceName).toBe(
+      "TypeError: Cannot read properties of undefined (reading 'map')",
+    );
+  });
+
+  test("never with an id, an address or anything that looks like a secret", async () => {
+    await resolve(
+      exception({
+        type: "AuthError",
+        message:
+          "order 550e8400-e29b-41d4-a716-446655440000 by ada@example.com from 203.0.113.7 sent Bearer abcdefghijklmnop1234567890",
+      }),
+    );
+
+    const name: string = onlyEntry().resourceName!;
+
+    expect(name.startsWith("AuthError: order ")).toBe(true);
+    expect(name).not.toContain("550e8400-e29b-41d4-a716-446655440000");
+    expect(name).not.toContain("ada@example.com");
+    expect(name).not.toContain("203.0.113.7");
+    expect(name).not.toContain("abcdefghijklmnop1234567890");
+  });
+
+  test("a row handed over with only its id is named from the row, read in its project", async () => {
+    const findOneBy: jest.SpyInstance = jest
+      .spyOn(DatabaseService.prototype, "findOneBy")
+      .mockImplementation((async () => {
+        return exception({
+          type: "TimeoutError",
+          message: "upstream timed out",
+        });
+      }) as never);
+
+    await resolve(exception({}));
+
+    expect(onlyEntry().resourceName).toBe("TimeoutError: upstream timed out");
+
+    const query: Record<string, unknown> = (
+      findOneBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
+    expect(String(query["_id"])).toBe(RECORD_ID.toString());
+  });
+
+  test("a read that fails records the entry without a name", async () => {
+    jest
+      .spyOn(DatabaseService.prototype, "findOneBy")
+      .mockRejectedValue(new Error("database down"));
+
+    await resolve(exception({}));
+
+    expect(onlyEntry().resourceName).toBeUndefined();
+  });
+
+  test("a runbook run is named by its runbook", async () => {
+    const run: RunbookExecution = new RunbookExecution(RECORD_ID);
+    run.projectId = PROJECT_ID;
+    run.runbookNameSnapshot = "Restart the API";
+
+    await recorder.recordUpdate({
+      model: new RunbookExecution(),
+      before: run,
+      updatedFields: { completedAt: new Date("2026-11-08T10:00:00.000Z") },
+      itemId: RECORD_ID,
+      props: USER_PROPS,
+    });
+
+    expect(onlyEntry().resourceName).toBe("Restart the API");
   });
 });

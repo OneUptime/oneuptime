@@ -71,6 +71,8 @@ A change to these settings applies within a minute.
 
 Filter by **Resource Type**, **Resource Name**, **Action**, **User Email** or **Time**. An update lists only the fields that changed, before and after, and a save that changes nothing adds no entry.
 
+A resource with no name of its own is named by what names it in OneUptime: an exception by its type and the start of its message, with ids, addresses and anything that looks like a secret masked, a runbook run by its runbook, and a template or a domain by its own name.
+
 Monitors, incidents, alerts, status pages, SLOs and many other resources also have an **Audit Logs** page of their own, in a folded section of their side menu such as **Advanced**. It lists only that resource's entries, with those of what belongs to it: an SLO's page shows its rules and owners too.
 
 ## What is recorded
