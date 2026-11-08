@@ -18,6 +18,7 @@ import {
   RumApplicationArrivalFacts,
   RumSignalDiagnosis,
   diagnoseRumSignal,
+  getWebVitalsCheckWindow,
 } from "./RumSignalDiagnosis";
 import {
   getRumApplicationArrivalFacts,
@@ -184,6 +185,14 @@ const SetupCheckRow: FunctionComponent<RowProps> = (
   );
 };
 
+interface DiagnoseOptions {
+  otherNamesArrive?: boolean;
+  // Exceptions: kept for all time, so none means none ever.
+  recordsAllTime?: boolean;
+  // Web Vitals: the date its own read vouches for.
+  since?: Date;
+}
+
 function arrivalOf(
   application: RumApplication | null,
   applicationFailed: boolean,
@@ -217,7 +226,7 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
     : "browser";
   const facts: RumApplicationArrivalFacts = application
     ? getRumApplicationArrivalFacts(application)
-    : { anythingArrived: false, replayOnly: false };
+    : { anythingArrived: false, lastHeardFromAt: null, replayOnly: false };
   const trackedSince: Date | null = toDateOrNull(
     application?.signalArrivalsTrackedSince,
   );
@@ -225,10 +234,10 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
 
   const diagnose: (
     lastArrival: RumSignalArrivalRead | null,
-    options?: { otherNamesArrive?: boolean; recordsAllTime?: boolean },
+    options?: DiagnoseOptions,
   ) => RumSignalDiagnosis = (
     lastArrival: RumSignalArrivalRead | null,
-    options?: { otherNamesArrive?: boolean; recordsAllTime?: boolean },
+    options?: DiagnoseOptions,
   ): RumSignalDiagnosis => {
     // Nothing is known of the app until its record is read.
     if (!application && !reads.applicationFailed) {
@@ -242,12 +251,21 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
 
     return diagnoseRumSignal({
       lastArrival: lastArrival,
-      trackedSince: options?.recordsAllTime ? null : trackedSince,
+      trackedSince: options?.recordsAllTime
+        ? null
+        : options?.since || trackedSince,
       otherNamesArrive: options?.otherNamesArrive,
       app: facts,
       now,
     });
   };
+
+  const vitalsWindow: { otherNamesArrive: boolean; since: Date } =
+    getWebVitalsCheckWindow({
+      metricsLastReceivedAt: toDateOrNull(application?.metricsLastReceivedAt),
+      trackedSince,
+      now,
+    });
 
   const rows: Array<{
     signal: RumSetupCheckSignal;
@@ -300,9 +318,8 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
       line: getRumSetupCheckLine({
         signal: "webVitals",
         diagnosis: diagnose(reads.newestWebVital, {
-          otherNamesArrive: Boolean(
-            toDateOrNull(application?.metricsLastReceivedAt),
-          ),
+          otherNamesArrive: vitalsWindow.otherNamesArrive,
+          since: vitalsWindow.since,
         }),
         client,
         translator,

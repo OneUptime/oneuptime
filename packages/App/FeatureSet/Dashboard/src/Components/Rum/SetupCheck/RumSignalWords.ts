@@ -88,6 +88,10 @@ export const LOGS_QUIET_TITLE: string = translationKey(
 export const LOGS_QUIET_DETAIL: string = translationKey(
   "The last log arrived {{time}}.",
 );
+// The app as a whole is silent: nothing of any kind since {{date}}.
+export const APP_SILENT_DETAIL: string = translationKey(
+  "Nothing has arrived from this app since {{date}}.",
+);
 
 export const EXCEPTIONS_NOT_SET_UP_TITLE: string = translationKey(
   "Exceptions aren't set up",
@@ -195,6 +199,9 @@ export const ROW_RECEIVING: string = translationKey(
 );
 export const ROW_QUIET: string = translationKey(
   "Quiet. The latest came in {{time}}.",
+);
+export const ROW_APP_SILENT: string = translationKey(
+  "Quiet. Nothing has arrived from this app since {{date}}.",
 );
 export const ROW_NOT_SET_UP: string = translationKey(
   "Not set up. Nothing has arrived yet.",
@@ -330,6 +337,24 @@ export function getRumSignalEmptyCopy(data: {
       return null;
 
     case "quiet": {
+      // The whole app is silent: since when, and where to look.
+      if (!diagnosis.lastArrivalAt && diagnosis.since) {
+        return {
+          title: translate(
+            translator,
+            isExceptions ? EXCEPTIONS_QUIET_TITLE : LOGS_QUIET_TITLE,
+          ),
+          detail: translator.translateTemplate(APP_SILENT_DETAIL, {
+            date: formatSinceDate(diagnosis.since, now),
+          }),
+          action: {
+            kind: "documentation",
+            label: translate(translator, SEE_SETUP_STEPS),
+          },
+          helpLink: helpLink(translator),
+        };
+      }
+
       const range: RangeStartAndEndDateTime | null = diagnosis.widerRange;
       const rangeLabel: string | undefined = range
         ? SHOW_RANGE_ACTIONS[range.range]
@@ -532,7 +557,11 @@ export function getRumSetupCheckLine(data: {
           ? translator.translateTemplate(ROW_QUIET, {
               time: fromNow(diagnosis.lastArrivalAt, now),
             })
-          : translate(translator, ROW_CHECKING),
+          : diagnosis.since
+            ? translator.translateTemplate(ROW_APP_SILENT, {
+                date: formatSinceDate(diagnosis.since, now),
+              })
+            : translate(translator, ROW_CHECKING),
       };
 
     case "not-set-up": {

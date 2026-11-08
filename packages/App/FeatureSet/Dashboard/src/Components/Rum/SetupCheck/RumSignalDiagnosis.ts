@@ -16,7 +16,11 @@ import { pickWiderRange } from "../../SessionReplay/SessionReplayEmptyReason";
  *   receiving    - something arrived in the range on screen (the setup
  *                  check, with no range: in the past 24 hours);
  *   quiet        - nothing in the range, but it has arrived before: when
- *                  the last one did, and a longer range that shows it;
+ *                  the last one did, and a longer range that shows it.
+ *                  Also when nothing at all has arrived from the app
+ *                  since its arrivals were first kept: the app is silent,
+ *                  whether this signal was set up cannot be told, and
+ *                  `since` says when the app was last heard from;
  *   not-set-up   - it has never arrived (since the application's arrivals
  *                  are kept, `since`) while the app reports other things -
  *                  the signal is not set up, or, for the SDK cause, only
@@ -66,6 +70,11 @@ export type RumSignalNotSetUpCause = "signal" | "sdk" | "names";
 export interface RumApplicationArrivalFacts {
   // Anything at all has arrived: telemetry (lastSeenAt) or a recording.
   anythingArrived: boolean;
+  /*
+   * When anything last arrived (lastSeenAt, which telemetry and recordings
+   * both refresh, or the newest recording), null for never.
+   */
+  lastHeardFromAt: Date | null;
   /*
    * Recordings arrive but the OpenTelemetry SDK has never reported
    * (isReplayOnlyInstrumented).
@@ -120,7 +129,10 @@ export interface RumSignalDiagnosis {
   cause?: RumSignalNotSetUpCause | undefined;
   // quiet, and receiving in the setup check: when the newest arrived.
   lastArrivalAt: Date | null;
-  // not-set-up: "nothing since this date"; null for "nothing yet".
+  /*
+   * not-set-up: "nothing since this date"; null for "nothing yet". quiet
+   * with no lastArrivalAt: when the silent app was last heard from.
+   */
   since: Date | null;
   // quiet: the narrowest longer named range that shows the last arrival.
   widerRange: RangeStartAndEndDateTime | null;
@@ -144,6 +156,14 @@ export const RUM_SETUP_CHECK_RECENT_WINDOW_MS: number = DAY_MS;
  */
 export const RUM_WEB_VITALS_LOOKBACK_DAYS: number = 30;
 
+/*
+ * How far apart lastSeenAt and the arrival stamps can drift for an app
+ * that is sending: each is written at most once per fence window (five
+ * minutes and a little), so an app last heard from this long before its
+ * arrivals were first kept has been silent since, not merely unstamped.
+ */
+export const RUM_SIGNAL_STAMP_TOLERANCE_MS: number = 15 * 60 * 1000;
+
 function toTime(value: Date | null | undefined): number | null {
   if (!value) {
     return null;
@@ -152,6 +172,38 @@ function toTime(value: Date | null | undefined): number | null {
   const ms: number = value.getTime();
 
   return Number.isNaN(ms) ? null : ms;
+}
+
+/*
+ * What the Web Vitals row can vouch for. It reads the metric rows of the
+ * past 30 days, not a stamp of its own, so:
+ *
+ * - other metrics arrive only when the application's metrics stamp falls
+ *   inside those 30 days - a vitals read that finds none then means the
+ *   names, not the pipeline;
+ * - "nothing since" is the start of those 30 days, or the date its
+ *   arrivals are kept from when that is earlier and no metric at all has
+ *   arrived since: the stamp vouches for that much more.
+ */
+export function getWebVitalsCheckWindow(data: {
+  metricsLastReceivedAt: Date | null;
+  trackedSince: Date | null;
+  now: Date;
+}): { otherNamesArrive: boolean; since: Date } {
+  const now: number = toTime(data.now) || 0;
+  const lookbackStart: number = now - RUM_WEB_VITALS_LOOKBACK_DAYS * DAY_MS;
+  const metricsAt: number | null = toTime(data.metricsLastReceivedAt);
+  const trackedSince: number | null = toTime(data.trackedSince);
+
+  const otherNamesArrive: boolean =
+    metricsAt !== null && metricsAt >= lookbackStart;
+
+  const since: number =
+    metricsAt === null && trackedSince !== null
+      ? Math.min(trackedSince, lookbackStart)
+      : lookbackStart;
+
+  return { otherNamesArrive, since: new Date(since) };
 }
 
 /*
@@ -273,6 +325,22 @@ export function diagnoseRumSignal(
     return { ...none, state: "not-arriving" };
   }
 
+  /*
+   * Nothing at all has arrived since this signal's arrivals were first
+   * kept (an app that stopped before the upgrade that added them): "not
+   * set up" cannot be told from silence, so say since when it is silent.
+   */
+  const trackedSince: number | null = toTime(input.trackedSince);
+  const lastHeardFrom: number | null = toTime(input.app.lastHeardFromAt);
+
+  if (
+    trackedSince !== null &&
+    lastHeardFrom !== null &&
+    trackedSince - lastHeardFrom > RUM_SIGNAL_STAMP_TOLERANCE_MS
+  ) {
+    return { ...none, state: "quiet", since: input.app.lastHeardFromAt };
+  }
+
   if (input.otherNamesArrive) {
     return { ...none, state: "not-set-up", cause: "names" };
   }
@@ -281,9 +349,6 @@ export function diagnoseRumSignal(
     ...none,
     state: "not-set-up",
     cause: "signal",
-    since:
-      input.trackedSince && toTime(input.trackedSince) !== null
-        ? input.trackedSince
-        : null,
+    since: trackedSince !== null ? input.trackedSince : null,
   };
 }

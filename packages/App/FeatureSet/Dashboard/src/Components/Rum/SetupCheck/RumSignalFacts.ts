@@ -43,11 +43,20 @@ export function toDateOrNull(value: unknown): Date | null {
 export function getRumApplicationArrivalFacts(
   app: RumApplication,
 ): RumApplicationArrivalFacts {
+  const lastSeenAt: Date | null = toDateOrNull(app.lastSeenAt);
+  const lastChunkAt: Date | null = toDateOrNull(
+    app.sessionReplayLastChunkReceivedAt,
+  );
+  const lastHeardFromAt: Date | null =
+    lastSeenAt && lastChunkAt
+      ? lastSeenAt.getTime() >= lastChunkAt.getTime()
+        ? lastSeenAt
+        : lastChunkAt
+      : lastSeenAt || lastChunkAt;
+
   return {
-    anythingArrived: Boolean(
-      toDateOrNull(app.lastSeenAt) ||
-        toDateOrNull(app.sessionReplayLastChunkReceivedAt),
-    ),
+    anythingArrived: lastHeardFromAt !== null,
+    lastHeardFromAt,
     replayOnly: isReplayOnlyInstrumented(app),
   };
 }
