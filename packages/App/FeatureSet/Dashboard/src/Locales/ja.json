@@ -46429,5 +46429,19 @@
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
   "Only chart this metric from these services.": "Only chart this metric from these services.",
   "Record Version": "Record Version",
-  "Changes saved after this was proposed were kept": "この提案の後に保存された変更は保持されました"
+  "Changes saved after this was proposed were kept": "この提案の後に保存された変更は保持されました",
+  "Data has arrived from this function in the last 15 minutes.": "過去 15 分以内にこの関数からデータが届いています。",
+  "Data has arrived from this service in the last 30 minutes.": "過去 30 分以内にこのサービスからデータが届いています。",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "データは関数の実行時に送信されます。一度呼び出してから、数分後にこのページを更新してください。最初のデータが届くと、関数は「データ受信中」に切り替わります。",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "この関数からはまだデータが届いていません。OpenTelemetry SDK をセットアップして関数を呼び出してください — 数分で完了します。",
+  "No invocations in the last 15 minutes": "過去 15 分間呼び出しなし",
+  "No recent data": "最近のデータなし",
+  "No recent invocations": "最近の呼び出しなし",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "この関数からはまだ何も届いていません。関数に OpenTelemetry SDK を追加して一度呼び出してください。手順はドキュメントタブに記載されています。",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "このサービスからはまだ何も届いていません。service.name をこのサービスの名前と完全に一致させて、OpenTelemetry データを送信してください。",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "過去 15 分間、何も届いていません。関数は実行中にだけデータを送信するため、スケジュール実行の合間など、呼び出されていないときはこれが普通です。実行されているはずの場合は、概要に確認すべき点が表示されます。",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "過去 30 分間、何も届いていません。リクエストを処理している間だけデータを送信するサービスは、誰も呼び出さないときは静かになります。リクエストを処理しているはずの場合は、サービスが実行中で、この service.name で引き続き OneUptime にテレメトリを送信していることを確認してください。",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime がこの関数から最後にデータを受信したのは {{lastHeard}} です。実行中にだけデータを送信するため、スケジュール実行の合間など、呼び出されていないときはこれが普通です。",
+  "Status shows \"No recent invocations\" while the function runs": "関数が実行されているのにステータスが「最近の呼び出しなし」と表示される",
+  "What to check if it should be running": "実行されているはずの場合に確認すること"
 }

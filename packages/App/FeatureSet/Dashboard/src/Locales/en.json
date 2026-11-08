@@ -46429,5 +46429,19 @@
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
   "Only chart this metric from these services.": "Only chart this metric from these services.",
   "Record Version": "Record Version",
-  "Changes saved after this was proposed were kept": "Changes saved after this was proposed were kept"
+  "Changes saved after this was proposed were kept": "Changes saved after this was proposed were kept",
+  "Data has arrived from this function in the last 15 minutes.": "Data has arrived from this function in the last 15 minutes.",
+  "Data has arrived from this service in the last 30 minutes.": "Data has arrived from this service in the last 30 minutes.",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.",
+  "No invocations in the last 15 minutes": "No invocations in the last 15 minutes",
+  "No recent data": "No recent data",
+  "No recent invocations": "No recent invocations",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.",
+  "Status shows \"No recent invocations\" while the function runs": "Status shows \"No recent invocations\" while the function runs",
+  "What to check if it should be running": "What to check if it should be running"
 }
