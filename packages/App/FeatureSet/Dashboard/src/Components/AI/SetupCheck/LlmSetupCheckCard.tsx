@@ -153,8 +153,7 @@ const Group: FunctionComponent<{
             className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
             data-testid={`${props.dataTestId}-action`}
           >
-            {translator.translateText(props.action.title) ||
-              props.action.title}
+            {translator.translateText(props.action.title) || props.action.title}
             <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
           </button>
         ) : (
@@ -244,8 +243,7 @@ const LlmSetupCheckCard: FunctionComponent<ComponentProps> = (
       return metric.points > 0 && metric.source !== LlmMetricSource.GenAi;
     });
 
-    const connections: Array<LlmSetupCheckConnection> =
-      check.connections || [];
+    const connections: Array<LlmSetupCheckConnection> = check.connections || [];
     const accounts: Array<LlmSetupCheckConnection> = connections.filter(
       (connection: LlmSetupCheckConnection): boolean => {
         return connection.kind === "provider-account";
@@ -259,9 +257,7 @@ const LlmSetupCheckCard: FunctionComponent<ComponentProps> = (
 
     const renderConnection: (
       connection: LlmSetupCheckConnection,
-    ) => ReactElement = (
-      connection: LlmSetupCheckConnection,
-    ): ReactElement => {
+    ) => ReactElement = (connection: LlmSetupCheckConnection): ReactElement => {
       return (
         <div
           key={connection.connectionId}

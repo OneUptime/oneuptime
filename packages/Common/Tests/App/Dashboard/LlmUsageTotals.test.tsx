@@ -322,9 +322,7 @@ describe("the totals of a coding-assistant fleet (metrics only)", () => {
     expect(asked.range.startValue.toISOString()).toBe(
       "2026-10-03T00:00:00.000Z",
     );
-    expect(asked.range.endValue.toISOString()).toBe(
-      "2026-10-10T00:00:00.000Z",
-    );
+    expect(asked.range.endValue.toISOString()).toBe("2026-10-10T00:00:00.000Z");
   });
 
   test("tokens from spans, cost from metrics: each falls back on its own", async () => {

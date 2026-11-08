@@ -103,7 +103,9 @@ export default class LlmMetricUsageUtil {
    * The attribute keys that name a group, preferred first: the read takes
    * the first one a point carries. [] when nothing is grouped.
    */
-  public static getGroupKeys(dimension: LlmMetricUsageDimension): Array<string> {
+  public static getGroupKeys(
+    dimension: LlmMetricUsageDimension,
+  ): Array<string> {
     switch (dimension) {
       case LlmMetricUsageDimension.Employee:
         return [...LlmMetricUserAttributeKeys];
@@ -169,7 +171,10 @@ export default class LlmMetricUsageUtil {
    */
   public static fold(
     rows: Array<LlmMetricUsageRow>,
-    options?: { grouped?: boolean | undefined; truncated?: boolean | undefined },
+    options?: {
+      grouped?: boolean | undefined;
+      truncated?: boolean | undefined;
+    },
   ): LlmMetricUsageResponse {
     const totals: LlmMetricUsageFigures = emptyLlmMetricUsageFigures();
     const groups: Map<string, LlmMetricUsageGroup> = new Map<

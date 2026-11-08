@@ -17,7 +17,10 @@ import { getLlmProviderStoredValues } from "../../../Types/Telemetry/LlmProvider
 import LlmMetricUsageUtil, {
   LlmMetricUsageRow,
 } from "../../../Utils/Telemetry/LlmMetricUsage";
-import { DbJSONResponse, Results } from "../../Services/AnalyticsDatabaseService";
+import {
+  DbJSONResponse,
+  Results,
+} from "../../Services/AnalyticsDatabaseService";
 import MetricService from "../../Services/MetricService";
 import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
@@ -211,7 +214,9 @@ export default class LlmMetricUsageReader {
         "if(aggregationTemporality = 'Cumulative', cityHash64(mapKeys(attributes), mapValues(attributes)), 0), " +
         "if(aggregationTemporality = 'Cumulative', startTimeUnixNano, 0)",
     );
-    statement.append(") GROUP BY metric, groupKey, tokenType ORDER BY value DESC");
+    statement.append(
+      ") GROUP BY metric, groupKey, tokenType ORDER BY value DESC",
+    );
     statement.append(
       SQL` LIMIT ${{
         type: TableColumnType.Number,

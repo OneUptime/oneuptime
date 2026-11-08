@@ -53,8 +53,9 @@ describe("the conventions' names", () => {
 
   test("every provider account's GenAI name is one of them", () => {
     for (const definition of LlmConnectionCatalog) {
-      expect(normalizeLlmProvider({ reported: definition.genAiProviderName }))
-        .toBe(definition.genAiProviderName);
+      expect(
+        normalizeLlmProvider({ reported: definition.genAiProviderName }),
+      ).toBe(definition.genAiProviderName);
     }
   });
 
@@ -118,10 +119,7 @@ describe("normalizeLlmProvider", () => {
       ["contoso.services.ai.azure.com", LLM_PROVIDER_AZURE_OPENAI],
       ["contoso.openai.azure.us", LLM_PROVIDER_AZURE_OPENAI],
       ["contoso.openai.azure.cn", LLM_PROVIDER_AZURE_OPENAI],
-      [
-        "my-model.eastus2.models.ai.azure.com",
-        LLM_PROVIDER_AZURE_AI_INFERENCE,
-      ],
+      ["my-model.eastus2.models.ai.azure.com", LLM_PROVIDER_AZURE_AI_INFERENCE],
       ["models.inference.ai.azure.com", LLM_PROVIDER_AZURE_AI_INFERENCE],
     ])("server.address %s", (host: string, provider: string) => {
       expect(
@@ -133,10 +131,7 @@ describe("normalizeLlmProvider", () => {
       expect(
         normalizeLlmProvider({
           reported: "openai",
-          addresses: [
-            "",
-            "https://contoso.services.ai.azure.com/openai/v1/",
-          ],
+          addresses: ["", "https://contoso.services.ai.azure.com/openai/v1/"],
         }),
       ).toBe(LLM_PROVIDER_AZURE_OPENAI);
     });
@@ -217,14 +212,16 @@ describe("getLlmEndpointHost", () => {
 describe("the AI provider an address belongs to", () => {
   test("every exact host", () => {
     for (const host of Object.keys(LLM_PROVIDER_EXACT_HOSTS)) {
-      expect(getLlmProviderOfAddress(host)).toBe(LLM_PROVIDER_EXACT_HOSTS[host]);
+      expect(getLlmProviderOfAddress(host)).toBe(
+        LLM_PROVIDER_EXACT_HOSTS[host],
+      );
     }
   });
 
   test("Vertex AI's regional and Bedrock's runtime endpoints", () => {
-    expect(getLlmProviderOfAddress("us-central1-aiplatform.googleapis.com")).toBe(
-      "gcp.vertex_ai",
-    );
+    expect(
+      getLlmProviderOfAddress("us-central1-aiplatform.googleapis.com"),
+    ).toBe("gcp.vertex_ai");
     expect(
       getLlmProviderOfAddress("bedrock-runtime.us-east-1.amazonaws.com"),
     ).toBe("aws.bedrock");

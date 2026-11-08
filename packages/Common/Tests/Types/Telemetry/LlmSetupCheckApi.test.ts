@@ -144,14 +144,17 @@ describe("readLlmSetupCheckResponse", () => {
     ["a string", "check"],
     ["a list", [1, 2]],
     ["a number", 7],
-  ])("%s reads as a check with no part read", (_name: string, value: unknown) => {
-    expect(readLlmSetupCheckResponse(value)).toEqual({
-      checkedAt: new Date(0).toISOString(),
-      apps: null,
-      metrics: null,
-      connections: null,
-    });
-  });
+  ])(
+    "%s reads as a check with no part read",
+    (_name: string, value: unknown) => {
+      expect(readLlmSetupCheckResponse(value)).toEqual({
+        checkedAt: new Date(0).toISOString(),
+        apps: null,
+        metrics: null,
+        connections: null,
+      });
+    },
+  );
 
   test("a full answer reads back as it was sent", () => {
     const sent: LlmSetupCheckResponse = {
@@ -288,9 +291,12 @@ describe("readLlmSetupCheckResponse", () => {
 
   test("a project's connections are not cut to the list limit", () => {
     const read: LlmSetupCheckResponse = readLlmSetupCheckResponse({
-      connections: Array.from({ length: 30 }, (_value: unknown, index: number) => {
-        return { connectionId: `c-${index}` };
-      }),
+      connections: Array.from(
+        { length: 30 },
+        (_value: unknown, index: number) => {
+          return { connectionId: `c-${index}` };
+        },
+      ),
     });
 
     expect(read.connections).toHaveLength(30);
@@ -343,8 +349,9 @@ describe("readLlmSetupCheckResponse", () => {
 
   test("a metric source it does not know is the conventions' metrics", () => {
     expect(
-      readLlmSetupCheckResponse({ metrics: [{ source: "windsurf", points: 3 }] })
-        .metrics?.[0]?.source,
+      readLlmSetupCheckResponse({
+        metrics: [{ source: "windsurf", points: 3 }],
+      }).metrics?.[0]?.source,
     ).toBe(LlmMetricSource.GenAi);
   });
 

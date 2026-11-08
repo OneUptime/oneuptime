@@ -26,13 +26,12 @@ export enum LlmMetricUsageDimension {
   Model = "model",
 }
 
-export const ALL_LLM_METRIC_USAGE_DIMENSIONS: Array<LlmMetricUsageDimension> =
-  [
-    LlmMetricUsageDimension.None,
-    LlmMetricUsageDimension.Employee,
-    LlmMetricUsageDimension.Team,
-    LlmMetricUsageDimension.Model,
-  ];
+export const ALL_LLM_METRIC_USAGE_DIMENSIONS: Array<LlmMetricUsageDimension> = [
+  LlmMetricUsageDimension.None,
+  LlmMetricUsageDimension.Employee,
+  LlmMetricUsageDimension.Team,
+  LlmMetricUsageDimension.Model,
+];
 
 export interface LlmMetricUsageRequestBody {
   startTime: string;
@@ -76,11 +75,13 @@ export function emptyLlmMetricUsageFigures(): LlmMetricUsageFigures {
 export function readLlmMetricUsageDimension(
   value: unknown,
 ): LlmMetricUsageDimension {
-  return ALL_LLM_METRIC_USAGE_DIMENSIONS.find(
-    (dimension: LlmMetricUsageDimension): boolean => {
-      return dimension === value;
-    },
-  ) || LlmMetricUsageDimension.None;
+  return (
+    ALL_LLM_METRIC_USAGE_DIMENSIONS.find(
+      (dimension: LlmMetricUsageDimension): boolean => {
+        return dimension === value;
+      },
+    ) || LlmMetricUsageDimension.None
+  );
 }
 
 function readFigures(value: unknown): LlmMetricUsageFigures {

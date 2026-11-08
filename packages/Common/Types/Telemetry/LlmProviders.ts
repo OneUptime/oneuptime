@@ -334,8 +334,7 @@ export function getLlmProviderStoredValues(
     return [];
   }
 
-  const definition: LlmProviderDefinition | undefined =
-    findDefinition(trimmed);
+  const definition: LlmProviderDefinition | undefined = findDefinition(trimmed);
 
   if (!definition) {
     return [trimmed];

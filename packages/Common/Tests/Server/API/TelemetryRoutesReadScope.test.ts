@@ -2264,9 +2264,9 @@ describe("the AI / LLM metric usage route", () => {
       body: { dimension: "everything" },
     });
 
-    expect(
-      (read.mock.calls[0]![0] as { dimension: string }).dimension,
-    ).toBe("none");
+    expect((read.mock.calls[0]![0] as { dimension: string }).dimension).toBe(
+      "none",
+    );
   });
 
   test("no range reads the past week", async () => {

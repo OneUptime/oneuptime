@@ -726,9 +726,8 @@ describe("an empty list says why, from the setup check", () => {
 
     expect(setupCheckCalls()).toHaveLength(1);
 
-    const check: JSONObject = (
-      setupCheckCalls()[0]![0] as { data: JSONObject }
-    ).data;
+    const check: JSONObject = (setupCheckCalls()[0]![0] as { data: JSONObject })
+      .data;
     const list: JSONObject = bodies()[0]!;
 
     expect(

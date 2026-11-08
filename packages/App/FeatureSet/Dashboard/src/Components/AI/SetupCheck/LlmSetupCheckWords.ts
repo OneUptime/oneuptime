@@ -343,7 +343,9 @@ export function getWidenTitle(
   });
 }
 
-function uniqueTitles(connections: Array<LlmSetupCheckConnection>): Array<string> {
+function uniqueTitles(
+  connections: Array<LlmSetupCheckConnection>,
+): Array<string> {
   return Array.from(
     new Set<string>(
       connections.map((connection: LlmSetupCheckConnection): string => {
@@ -471,24 +473,23 @@ export const TOOL_CHATS: PluralTemplate = {
  * something else in them: OpenAI's reports leave out Azure OpenAI, and
  * Azure's need a role where the resources are.
  */
-export const PROVIDER_READS: Partial<Record<LlmConnectionProvider, string>> =
-  {
-    [LlmConnectionProvider.OpenAI]: translationKey(
-      "Reads the usage of API calls made with your OpenAI organization's keys. Azure OpenAI and ChatGPT use are not in it.",
-    ),
-    [LlmConnectionProvider.AzureOpenAI]: translationKey(
-      "Reads Azure Monitor's token counts of every Azure OpenAI and Foundry resource the app registration can see.",
-    ),
-    [LlmConnectionProvider.Anthropic]: translationKey(
-      "Reads the usage of Claude API calls made with your organization's keys. Claude.ai chats are not in it.",
-    ),
-    [LlmConnectionProvider.AwsBedrock]: translationKey(
-      "Reads CloudWatch's Bedrock metrics in the Regions you named.",
-    ),
-    [LlmConnectionProvider.GoogleVertexAI]: translationKey(
-      "Reads Cloud Monitoring's Vertex AI metrics of the project.",
-    ),
-  };
+export const PROVIDER_READS: Partial<Record<LlmConnectionProvider, string>> = {
+  [LlmConnectionProvider.OpenAI]: translationKey(
+    "Reads the usage of API calls made with your OpenAI organization's keys. Azure OpenAI and ChatGPT use are not in it.",
+  ),
+  [LlmConnectionProvider.AzureOpenAI]: translationKey(
+    "Reads Azure Monitor's token counts of every Azure OpenAI and Foundry resource the app registration can see.",
+  ),
+  [LlmConnectionProvider.Anthropic]: translationKey(
+    "Reads the usage of Claude API calls made with your organization's keys. Claude.ai chats are not in it.",
+  ),
+  [LlmConnectionProvider.AwsBedrock]: translationKey(
+    "Reads CloudWatch's Bedrock metrics in the Regions you named.",
+  ),
+  [LlmConnectionProvider.GoogleVertexAI]: translationKey(
+    "Reads Cloud Monitoring's Vertex AI metrics of the project.",
+  ),
+};
 
 /*
  * The apps a sentence names: up to three by name; with more, or with one
@@ -569,7 +570,10 @@ export function getAppsLines(data: {
               providers: composedValue((sentence: Translator): string => {
                 return formatNameList(providerNames, "and", sentence);
               }),
-              time: OneUptimeDate.fromNow(new Date(apps.newestCallAt), data.now),
+              time: OneUptimeDate.fromNow(
+                new Date(apps.newestCallAt),
+                data.now,
+              ),
             })
           : undefined,
     });
@@ -579,7 +583,8 @@ export function getAppsLines(data: {
         key: "apps-content",
         tone: "warning",
         text:
-          translator.translateText(CONTENT_NOT_RECORDED) || CONTENT_NOT_RECORDED,
+          translator.translateText(CONTENT_NOT_RECORDED) ||
+          CONTENT_NOT_RECORDED,
         detail: apps.contentInLogs
           ? translator.translateText(CONTENT_IN_LOGS) || CONTENT_IN_LOGS
           : translator.translateText(CONTENT_HOW) || CONTENT_HOW,

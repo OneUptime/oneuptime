@@ -66,9 +66,9 @@ export function getSendCallsRoute(): Route {
 }
 
 export function getProviderUsageRoute(): Route {
-  return new Route(getLlmPageRoute(PageMap.LLM_USAGE).toString()).addQueryParams(
-    { source: "providers" },
-  );
+  return new Route(
+    getLlmPageRoute(PageMap.LLM_USAGE).toString(),
+  ).addQueryParams({ source: "providers" });
 }
 
 const ACTION_ICONS: Record<LlmEmptyViewAction, IconProp> = {

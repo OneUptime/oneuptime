@@ -95,7 +95,9 @@ describe("the statement", () => {
     expect(sql).toContain(
       "SELECT metric, groupKey, tokenType, sum(increase) AS value FROM (SELECT name AS metric, ",
     );
-    expect(sql).toContain(") GROUP BY metric, groupKey, tokenType ORDER BY value DESC");
+    expect(sql).toContain(
+      ") GROUP BY metric, groupKey, tokenType ORDER BY value DESC",
+    );
   });
 
   test("the group is the first of the dimension's keys a point carries", () => {
@@ -116,8 +118,8 @@ describe("the statement", () => {
   });
 
   test("an ungrouped read groups by nothing", () => {
-    const ungrouped: string = LlmMetricUsageReader.buildStatement(query())
-      .query;
+    const ungrouped: string =
+      LlmMetricUsageReader.buildStatement(query()).query;
 
     expect(ungrouped).toContain("SELECT name AS metric, '' AS groupKey, ");
   });
@@ -163,9 +165,7 @@ describe("the scopes", () => {
       query({ llmSystem: "az.ai.openai" }),
     );
 
-    expect(statement.query).toContain(
-      "AND (attributes['gen_ai.system'] IN (",
-    );
+    expect(statement.query).toContain("AND (attributes['gen_ai.system'] IN (");
     expect(statement.query).toContain(
       "OR attributes['gen_ai.provider.name'] IN (",
     );
@@ -274,10 +274,11 @@ describe("read", () => {
 
     expect(usage.totals.costUsd).toBeCloseTo(15, 10);
     expect(usage.totals.inputTokens).toBe(40000);
-    expect(usage.groups.map((group: { key: string }) => group.key)).toEqual([
-      "ana@example.com",
-      "bo@example.com",
-    ]);
+    expect(
+      usage.groups.map((group: { key: string }) => {
+        return group.key;
+      }),
+    ).toEqual(["ana@example.com", "bo@example.com"]);
     expect(usage.truncated).toBe(false);
   });
 
@@ -291,9 +292,8 @@ describe("read", () => {
       },
     ]);
 
-    const usage: LlmMetricUsageResponse = await LlmMetricUsageReader.read(
-      query(),
-    );
+    const usage: LlmMetricUsageResponse =
+      await LlmMetricUsageReader.read(query());
 
     expect(usage.groups).toEqual([]);
     expect(usage.totals.costUsd).toBe(1);

@@ -151,15 +151,13 @@ describe("the range that holds the newest call", () => {
     expect(getWidenTitle({ range: TimeRange.PAST_ONE_MONTH }, ENGLISH)).toBe(
       "Show the past month",
     );
-    expect(
-      getWidenTitle({ range: TimeRange.PAST_THREE_MONTHS }, ENGLISH),
-    ).toBe("Show the past 3 months");
+    expect(getWidenTitle({ range: TimeRange.PAST_THREE_MONTHS }, ENGLISH)).toBe(
+      "Show the past 3 months",
+    );
 
     const startTime: Date = new Date("2026-06-01T10:00:00.000Z");
 
-    expect(
-      getWidenTitle({ range: TimeRange.CUSTOM, startTime }, ENGLISH),
-    ).toBe(
+    expect(getWidenTitle({ range: TimeRange.CUSTOM, startTime }, ENGLISH)).toBe(
       `Show from ${OneUptimeDate.getDateAsCompactLocalString(startTime, {
         onlyShowDate: true,
       })}`,
@@ -423,15 +421,17 @@ describe("a connection that is not working", () => {
       failing: boolean,
     ) => {
       expect(
-        isConnectionFailing(connection({ lastError: "HTTP 403", ...overrides })),
+        isConnectionFailing(
+          connection({ lastError: "HTTP 403", ...overrides }),
+        ),
       ).toBe(failing);
     },
   );
 
   test("no error is never failing; a connection turned off is never failing", () => {
-    expect(isConnectionFailing(connection({ lastSuccessfulReadAt: null }))).toBe(
-      false,
-    );
+    expect(
+      isConnectionFailing(connection({ lastSuccessfulReadAt: null })),
+    ).toBe(false);
     expect(
       isConnectionFailing(
         connection({
@@ -523,9 +523,7 @@ describe("the Setup check card: your apps", () => {
       }),
     );
 
-    expect(lines[0]!.text).toBe(
-      "1 AI call in the past 7 days, from checkout.",
-    );
+    expect(lines[0]!.text).toBe("1 AI call in the past 7 days, from checkout.");
     expect(lines[0]!.detail).toBeUndefined();
   });
 
@@ -619,9 +617,7 @@ describe("the Setup check card: your apps", () => {
   test("calls before the past week: when the newest arrived", () => {
     const newest: Date = daysAgo(12);
 
-    expect(
-      appsLines(apps({ newestCallAt: newest.toISOString() })),
-    ).toEqual([
+    expect(appsLines(apps({ newestCallAt: newest.toISOString() }))).toEqual([
       {
         key: "apps-quiet",
         tone: "warning",
@@ -1023,21 +1019,24 @@ describe("the setup check in every language", () => {
     expect(english.join(" ")).not.toContain("{{");
   });
 
-  test.each(LANGUAGES)("%s reads every sentence in its own words", (language: string) => {
-    const sentences: Array<string> = sentencesIn(translatorFor(language));
+  test.each(LANGUAGES)(
+    "%s reads every sentence in its own words",
+    (language: string) => {
+      const sentences: Array<string> = sentencesIn(translatorFor(language));
 
-    expect(sentences).toHaveLength(english.length);
+      expect(sentences).toHaveLength(english.length);
 
-    sentences.forEach((sentence: string, index: number) => {
-      // The values are in: no placeholder is left.
-      expect(sentence).not.toContain("{{");
-      // Looked up, so never the English sentence.
-      expect({ index, sentence }).not.toEqual({
-        index,
-        sentence: english[index],
+      sentences.forEach((sentence: string, index: number) => {
+        // The values are in: no placeholder is left.
+        expect(sentence).not.toContain("{{");
+        // Looked up, so never the English sentence.
+        expect({ index, sentence }).not.toEqual({
+          index,
+          sentence: english[index],
+        });
       });
-    });
-  });
+    },
+  );
 
   test.each(LANGUAGES)(
     "%s keeps the values a sentence carries",

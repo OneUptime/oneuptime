@@ -100,7 +100,11 @@ jest.mock("../../../UI/Utils/Navigation", () => {
         return navigateMock(...args);
       },
       getCurrentRoute: () => {
-        return { toString: () => "/dashboard" };
+        return {
+          toString: () => {
+            return "/dashboard";
+          },
+        };
       },
       getQueryStringByName: () => {
         return null;
@@ -278,9 +282,9 @@ describe("a call's model", () => {
       columnByTitle("Model").getElement!(span),
     );
 
-    expect(
-      rendered.getByTestId("llm-call-served-model"),
-    ).toHaveTextContent("gpt-4o-2024-08-06");
+    expect(rendered.getByTestId("llm-call-served-model")).toHaveTextContent(
+      "gpt-4o-2024-08-06",
+    );
   });
 
   test.each([
@@ -345,9 +349,9 @@ describe("how long a call took", () => {
   ])("%d ns reads %s", async (nanos: number, text: string) => {
     await renderTable();
 
-    expect(
-      cellText("Duration", spanWith({ durationUnixNano: nanos })),
-    ).toBe(text);
+    expect(cellText("Duration", spanWith({ durationUnixNano: nanos }))).toBe(
+      text,
+    );
     expect(
       columnByTitle("Duration").getExportValue!(
         spanWith({ durationUnixNano: nanos }),
@@ -360,9 +364,9 @@ describe("how long a call took", () => {
     async (nanos: number | undefined) => {
       await renderTable();
 
-      expect(
-        cellText("Duration", spanWith({ durationUnixNano: nanos })),
-      ).toBe("—");
+      expect(cellText("Duration", spanWith({ durationUnixNano: nanos }))).toBe(
+        "—",
+      );
       expect(
         columnByTitle("Duration").getExportValue!(
           spanWith({ durationUnixNano: nanos }),

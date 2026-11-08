@@ -224,7 +224,12 @@ describe("tokens, by each tool's token types", () => {
   });
 
   test("a metric name never reaches the object prototype", () => {
-    for (const name of ["constructor", "__proto__", "toString", "hasOwnProperty"]) {
+    for (const name of [
+      "constructor",
+      "__proto__",
+      "toString",
+      "hasOwnProperty",
+    ]) {
       expect(getLlmMetricTokenDirection(name, "cacheRead")).toBeNull();
     }
   });
@@ -388,15 +393,15 @@ describe("the keys a group is read from", () => {
     expect(
       LlmMetricUsageUtil.getGroupKeys(LlmMetricUsageDimension.Employee),
     ).toEqual(LlmMetricUserAttributeKeys);
-    expect(LlmMetricUsageUtil.getGroupKeys(LlmMetricUsageDimension.Team)).toEqual(
-      LlmMetricTeamAttributeKeys,
-    );
+    expect(
+      LlmMetricUsageUtil.getGroupKeys(LlmMetricUsageDimension.Team),
+    ).toEqual(LlmMetricTeamAttributeKeys);
     expect(
       LlmMetricUsageUtil.getGroupKeys(LlmMetricUsageDimension.Model),
     ).toEqual(LlmMetricModelAttributeKeys);
-    expect(LlmMetricUsageUtil.getGroupKeys(LlmMetricUsageDimension.None)).toEqual(
-      [],
-    );
+    expect(
+      LlmMetricUsageUtil.getGroupKeys(LlmMetricUsageDimension.None),
+    ).toEqual([]);
   });
 
   test("Cursor's email names a person before any id", () => {

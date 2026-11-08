@@ -114,8 +114,9 @@ describe("a budget's scope as the reader's query", () => {
     expect(
       LlmMetricSpend.toReadQuery(scope({ llmUserId: "u-1" })).llmUser,
     ).toBe("u-1");
-    expect(LlmMetricSpend.toReadQuery(scope({ llmTeam: "platform" })).llmTeam)
-      .toBe("platform");
+    expect(
+      LlmMetricSpend.toReadQuery(scope({ llmTeam: "platform" })).llmTeam,
+    ).toBe("platform");
   });
 
   test("a budget never asks for groups: one total is all it compares", () => {
@@ -127,7 +128,9 @@ describe("a budget's scope as the reader's query", () => {
 
 describe("getCostInUSD", () => {
   test("is the reader's cost total", async () => {
-    readSpy.mockResolvedValue(usage({ costUsd: 12.75, hasCost: true }) as never);
+    readSpy.mockResolvedValue(
+      usage({ costUsd: 12.75, hasCost: true }) as never,
+    );
 
     await expect(LlmMetricSpend.getCostInUSD(scope())).resolves.toBe(12.75);
     expect(lastQuery().projectId).toBe(PROJECT_ID);

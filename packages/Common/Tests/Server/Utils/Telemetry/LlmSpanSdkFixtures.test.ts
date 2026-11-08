@@ -139,8 +139,10 @@ const FIXTURES: Array<Fixture> = [
     },
   },
   {
-    // opentelemetry-instrumentation-openai-v2 on the 1.30 conventions; its
-    // content goes to log events, so the span holds none.
+    /*
+     * opentelemetry-instrumentation-openai-v2 on the 1.30 conventions; its
+     * content goes to log events, so the span holds none.
+     */
     sdk: "Python OpenTelemetry openai-v2 (1.30 conventions)",
     attributes: {
       "gen_ai.system": "openai",
@@ -165,8 +167,10 @@ const FIXTURES: Array<Fixture> = [
     },
   },
   {
-    // @opentelemetry/instrumentation-openai: always "openai", the Azure host
-    // in server.address.
+    /*
+     * @opentelemetry/instrumentation-openai: always "openai", the Azure host
+     * in server.address.
+     */
     sdk: "OpenTelemetry JavaScript instrumentation-openai, Azure OpenAI",
     attributes: {
       "gen_ai.system": "openai",
@@ -321,8 +325,10 @@ const FIXTURES: Array<Fixture> = [
     },
   },
   {
-    // The same SDK with content recording off: its choice event carries
-    // only the finish reason and index, and the answer is not "empty".
+    /*
+     * The same SDK with content recording off: its choice event carries
+     * only the finish reason and index, and the answer is not "empty".
+     */
     sdk: "Azure AI Inference SDK, content not recorded",
     attributes: {
       "gen_ai.system": "az.ai.inference",
@@ -398,12 +404,15 @@ const FIXTURES: Array<Fixture> = [
     },
   },
   {
-    // OpenLLMetry (Python): a Foundry endpoint it names "openai", the base
-    // URL in gen_ai.openai.api_base.
+    /*
+     * OpenLLMetry (Python): a Foundry endpoint it names "openai", the base
+     * URL in gen_ai.openai.api_base.
+     */
     sdk: "OpenLLMetry, Microsoft Foundry endpoint",
     attributes: {
       "gen_ai.provider.name": "openai",
-      "gen_ai.openai.api_base": "https://contoso.services.ai.azure.com/openai/v1/",
+      "gen_ai.openai.api_base":
+        "https://contoso.services.ai.azure.com/openai/v1/",
       "llm.request.type": "chat",
       "gen_ai.request.model": "gpt-4.1-mini",
       "gen_ai.response.model": "gpt-4.1-mini-2025-04-14",
@@ -453,8 +462,10 @@ const FIXTURES: Array<Fixture> = [
     },
   },
   {
-    // OpenLLMetry (JavaScript): gen_ai.provider.name and the current
-    // conventions' message attributes.
+    /*
+     * OpenLLMetry (JavaScript): gen_ai.provider.name and the current
+     * conventions' message attributes.
+     */
     sdk: "OpenLLMetry JavaScript, Azure OpenAI",
     attributes: {
       "gen_ai.provider.name": "azure.ai.openai",
@@ -464,7 +475,10 @@ const FIXTURES: Array<Fixture> = [
       "gen_ai.usage.input_tokens": 90,
       "gen_ai.usage.output_tokens": 30,
       "gen_ai.input.messages": messages([
-        { role: "user", parts: [{ type: "text", content: "Reset my password" }] },
+        {
+          role: "user",
+          parts: [{ type: "text", content: "Reset my password" }],
+        },
       ]),
       "gen_ai.output.messages": messages([
         {
@@ -666,9 +680,11 @@ describe("Azure's AI Inference message events", () => {
       ],
     });
 
-    const parts: Array<{ type: LlmMessagePartType; toolName?: string }> = (
-      content.output[0]?.parts || []
-    ) as Array<{ type: LlmMessagePartType; toolName?: string }>;
+    const parts: Array<{ type: LlmMessagePartType; toolName?: string }> =
+      (content.output[0]?.parts || []) as Array<{
+        type: LlmMessagePartType;
+        toolName?: string;
+      }>;
 
     expect(
       parts.some((part: { type: LlmMessagePartType }): boolean => {

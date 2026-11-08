@@ -379,7 +379,9 @@ export function getLlmMetricTokenDirection(
   const name: string = metricName.trim().toLowerCase();
 
   // A metric name is outside text: never read Object.prototype through it.
-  if (!Object.prototype.hasOwnProperty.call(LlmMetricInputCacheTokenTypes, name)) {
+  if (
+    !Object.prototype.hasOwnProperty.call(LlmMetricInputCacheTokenTypes, name)
+  ) {
     return null;
   }
 

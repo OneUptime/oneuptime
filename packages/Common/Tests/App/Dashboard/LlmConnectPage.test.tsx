@@ -1196,8 +1196,7 @@ describe("the setup check", () => {
     });
 
     expect(
-      check.compareDocumentPosition(ways) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      check.compareDocumentPosition(ways) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

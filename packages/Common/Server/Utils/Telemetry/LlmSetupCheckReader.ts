@@ -35,7 +35,10 @@ import {
   normalizeLlmProvider,
 } from "../../../Types/Telemetry/LlmProviders";
 import LlmMetricUsageUtil from "../../../Utils/Telemetry/LlmMetricUsage";
-import { DbJSONResponse, Results } from "../../Services/AnalyticsDatabaseService";
+import {
+  DbJSONResponse,
+  Results,
+} from "../../Services/AnalyticsDatabaseService";
 import { IS_ANSWER_SQL } from "../../Services/LlmConversationService";
 import LlmObservabilityConnectionService from "../../Services/LlmObservabilityConnectionService";
 import LogService from "../../Services/LogService";
@@ -482,8 +485,7 @@ export default class LlmSetupCheckReader {
       SQL` AND time >= ${{
         type: TableColumnType.DateTime64,
         value: new Date(
-          query.now.getTime() -
-            LLM_SETUP_CHECK_PROVIDER_USAGE_DAYS * DAY_IN_MS,
+          query.now.getTime() - LLM_SETUP_CHECK_PROVIDER_USAGE_DAYS * DAY_IN_MS,
         ),
       }} AND time <= ${{
         type: TableColumnType.DateTime64,
@@ -702,7 +704,7 @@ export default class LlmSetupCheckReader {
           ? Math.max(0, Math.round(resources))
           : null,
       readSince: !isTool && readSince ? toIsoOrNull(readSince) : null,
-      callsRecently: isTool ? (data.toolCallsRecently ?? 0) : null,
+      callsRecently: isTool ? data.toolCallsRecently ?? 0 : null,
     };
   }
 
@@ -960,10 +962,14 @@ export default class LlmSetupCheckReader {
     return {
       checkedAt: query.now.toISOString(),
       apps: apps,
-      metrics: metricRows ? LlmSetupCheckReader.toMetricSources(metricRows) : null,
+      metrics: metricRows
+        ? LlmSetupCheckReader.toMetricSources(metricRows)
+        : null,
       connections: connections
         ? connections.map(
-            (connection: LlmObservabilityConnection): LlmSetupCheckConnection => {
+            (
+              connection: LlmObservabilityConnection,
+            ): LlmSetupCheckConnection => {
               const serviceId: string =
                 connection.serviceId?.toString().toLowerCase() || "";
 

@@ -234,7 +234,7 @@ const usageMetrics: Array<MetricFixture> = [
   ...cumulative({
     name: "claude_code.cost.usage",
     totals: [40, 41.5, 44],
-    firstAt: now - 1 * DAY,
+    firstAt: now - DAY,
     startedAt: now - 10 * DAY,
     attributes: { ...BEN, "session.id": "s9" },
   }),
@@ -301,7 +301,10 @@ const usageMetrics: Array<MetricFixture> = [
     value: 0.5,
     at: now - DAY,
     temporality: null,
-    attributes: { "user.id": "u-77", "gen_ai.provider.name": "azure.ai.openai" },
+    attributes: {
+      "user.id": "u-77",
+      "gen_ai.provider.name": "azure.ai.openai",
+    },
   },
   {
     name: "gen_ai.client.cost",
@@ -555,8 +558,9 @@ const checkMetrics: Array<MetricFixture> = [
     serviceId: accountService,
     name: LLM_PROVIDER_COST_METRIC_NAME,
     value: 12.5,
-    at: new Date(new Date(now - 2 * DAY).toISOString().substring(0, 10))
-      .getTime(),
+    at: new Date(
+      new Date(now - 2 * DAY).toISOString().substring(0, 10),
+    ).getTime(),
     attributes: { [LLM_CONNECTION_ID_ATTRIBUTE]: ACCOUNT_CONNECTION },
   },
   {
@@ -945,10 +949,11 @@ integration("GenAI metric usage and the setup check against ClickHouse", () => {
       // Apps send calls: nothing is looked for in plain HTTP spans.
       expect(check.apps!.uninstrumented).toBeNull();
 
-      const tool: LlmSetupCheckConnection | undefined =
-        check.connections?.find((item: LlmSetupCheckConnection) => {
+      const tool: LlmSetupCheckConnection | undefined = check.connections?.find(
+        (item: LlmSetupCheckConnection) => {
           return item.connectionId === TOOL_CONNECTION;
-        });
+        },
+      );
 
       expect(tool?.kind).toBe("company-tool");
       expect(tool?.callsRecently).toBe(2);
@@ -1034,9 +1039,8 @@ integration("GenAI metric usage and the setup check against ClickHouse", () => {
     test("coding tools by their metrics of the past week", async () => {
       wireConnections([]);
 
-      const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read(
-        checkQuery(),
-      );
+      const check: LlmSetupCheckResponse =
+        await LlmSetupCheckReader.read(checkQuery());
 
       const sources: Array<LlmMetricSource> = (check.metrics || []).map(
         (metric: { source: LlmMetricSource }) => {
@@ -1084,9 +1088,8 @@ integration("GenAI metric usage and the setup check against ClickHouse", () => {
         }),
       ]);
 
-      const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read(
-        checkQuery(),
-      );
+      const check: LlmSetupCheckResponse =
+        await LlmSetupCheckReader.read(checkQuery());
 
       const account: LlmSetupCheckConnection | undefined =
         check.connections?.find((item: LlmSetupCheckConnection) => {

@@ -826,7 +826,9 @@ describe("the snippets for your apps", () => {
   test(".NET turns the OpenAI library's OpenTelemetry on and exports its source and meter", () => {
     const dotnet: string = codeOf("dotnet");
 
-    expect(dotnet).toContain("dotnet add package OpenTelemetry.Extensions.Hosting");
+    expect(dotnet).toContain(
+      "dotnet add package OpenTelemetry.Extensions.Hosting",
+    );
     expect(dotnet).toContain(
       "dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol",
     );
@@ -848,7 +850,9 @@ describe("the snippets for your apps", () => {
       "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar",
     );
     expect(java).toContain("java -javaagent:opentelemetry-javaagent.jar");
-    expect(noteOf("java")).toContain("as log events, which conversations do not show");
+    expect(noteOf("java")).toContain(
+      "as log events, which conversations do not show",
+    );
   });
 
   test("the any-language snippet says Python's instrumentations take span_only", () => {

@@ -43,7 +43,9 @@ const TOOL_SERVICE: ObjectID = new ObjectID("9900000000000000000000c1");
 const NOW: Date = new Date("2026-11-04T12:00:00.000Z");
 const DAY: number = 24 * 60 * 60 * 1000;
 
-function query(overrides: Partial<LlmSetupCheckQuery> = {}): LlmSetupCheckQuery {
+function query(
+  overrides: Partial<LlmSetupCheckQuery> = {},
+): LlmSetupCheckQuery {
   return {
     projectId: PROJECT,
     now: NOW,
@@ -99,8 +101,12 @@ describe("the AI calls read", () => {
     expect(sql).toContain(") AS callsRecently, ");
     expect(sql).toContain(") AS callsInWindow, ");
     expect(sql).toContain(") AS answersRecently, ");
-    expect(sql).toContain("AND llmUserMessagePreview != '') AS answersWithContent");
-    expect(sql).toContain("toUnixTimestamp(max(startTime)) * 1000 AS newestAtMs");
+    expect(sql).toContain(
+      "AND llmUserMessagePreview != '') AS answersWithContent",
+    );
+    expect(sql).toContain(
+      "toUnixTimestamp(max(startTime)) * 1000 AS newestAtMs",
+    );
     expect(sql).toContain("GROUP BY serviceId, provider");
   });
 
@@ -300,8 +306,11 @@ describe("folding the AI calls", () => {
     });
 
     expect(apps.callsRecently).toBe(42);
-    expect(apps.services.map((service: { serviceId: string }) => service.serviceId))
-      .toEqual([SERVICE_B.toString(), SERVICE_A.toString()]);
+    expect(
+      apps.services.map((service: { serviceId: string }) => {
+        return service.serviceId;
+      }),
+    ).toEqual([SERVICE_B.toString(), SERVICE_A.toString()]);
     // az.ai.openai and azure.ai.openai are one provider.
     expect(apps.providers).toEqual([
       { name: "openai", calls: 30 },
@@ -405,7 +414,11 @@ describe("folding the other parts", () => {
   test("uninstrumented rows name their provider; a host of none is dropped", () => {
     expect(
       LlmSetupCheckReader.toUninstrumented([
-        { serviceId: SERVICE_A.toString(), host: "api.openai.com", calls: "12" },
+        {
+          serviceId: SERVICE_A.toString(),
+          host: "api.openai.com",
+          calls: "12",
+        },
         {
           serviceId: SERVICE_A.toString(),
           host: "contoso.openai.azure.com",
@@ -595,27 +608,27 @@ describe("read", () => {
       }) as never);
 
     return {
-      span: jest
-        .spyOn(SpanService, "executeQuery")
-        .mockImplementation(((statement: Statement) => {
-          return reply(
-            served.spans ? served.spans(statement.query) : ([] as Array<JSONObject>),
-          );
-        }) as never),
-      metric: jest
-        .spyOn(MetricService, "executeQuery")
-        .mockImplementation(((statement: Statement) => {
-          return reply(
-            served.metrics
-              ? served.metrics(statement.query)
-              : ([] as Array<JSONObject>),
-          );
-        }) as never),
-      log: jest
-        .spyOn(LogService, "executeQuery")
-        .mockImplementation((() => {
-          return reply(served.logs || []);
-        }) as never),
+      span: jest.spyOn(SpanService, "executeQuery").mockImplementation(((
+        statement: Statement,
+      ) => {
+        return reply(
+          served.spans
+            ? served.spans(statement.query)
+            : ([] as Array<JSONObject>),
+        );
+      }) as never),
+      metric: jest.spyOn(MetricService, "executeQuery").mockImplementation(((
+        statement: Statement,
+      ) => {
+        return reply(
+          served.metrics
+            ? served.metrics(statement.query)
+            : ([] as Array<JSONObject>),
+        );
+      }) as never),
+      log: jest.spyOn(LogService, "executeQuery").mockImplementation((() => {
+        return reply(served.logs || []);
+      }) as never),
     };
   }
 
@@ -639,7 +652,8 @@ describe("read", () => {
       },
     });
 
-    const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read(query());
+    const check: LlmSetupCheckResponse =
+      await LlmSetupCheckReader.read(query());
 
     expect(check.apps!.callsRecently).toBe(12);
     // Only the calls read: the newest-before, uninstrumented and log reads are not needed.
@@ -669,7 +683,8 @@ describe("read", () => {
       },
     });
 
-    const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read(query());
+    const check: LlmSetupCheckResponse =
+      await LlmSetupCheckReader.read(query());
 
     expect(spies.span).toHaveBeenCalledTimes(3);
     expect(check.apps!.newestCallAt).toBe(
@@ -703,7 +718,8 @@ describe("read", () => {
       logs: [{ found: 1 }],
     });
 
-    const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read(query());
+    const check: LlmSetupCheckResponse =
+      await LlmSetupCheckReader.read(query());
 
     expect(spies.log).toHaveBeenCalledTimes(1);
     expect(check.apps!.contentInLogs).toBe(true);
@@ -758,7 +774,8 @@ describe("read", () => {
       connections: new Error("You do not have permission"),
     });
 
-    const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read(query());
+    const check: LlmSetupCheckResponse =
+      await LlmSetupCheckReader.read(query());
 
     expect(check.apps).toBeNull();
     expect(check.connections).toBeNull();
@@ -817,18 +834,23 @@ describe("read", () => {
       },
     });
 
-    const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read(query());
+    const check: LlmSetupCheckResponse =
+      await LlmSetupCheckReader.read(query());
 
     const byName: Map<string, LlmSetupCheckConnection> = new Map(
       check.connections!.map(
-        (connection: LlmSetupCheckConnection): [string, LlmSetupCheckConnection] => {
+        (
+          connection: LlmSetupCheckConnection,
+        ): [string, LlmSetupCheckConnection] => {
           return [connection.name, connection];
         },
       ),
     );
 
     expect(byName.get("Claude")!.callsRecently).toBe(9);
-    expect(byName.get("OpenAI")!.newestUsageAt).toBe("2026-11-01T00:00:00.000Z");
+    expect(byName.get("OpenAI")!.newestUsageAt).toBe(
+      "2026-11-01T00:00:00.000Z",
+    );
     // The tool's imported chats are not counted as an app's AI calls.
     expect(check.apps!.callsRecently).toBe(0);
   });

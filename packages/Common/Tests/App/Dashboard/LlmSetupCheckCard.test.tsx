@@ -179,7 +179,9 @@ describe("the Setup check card while it reads, and when it cannot", () => {
     expect(screen.getByTestId("llm-setup-check-error")).toHaveTextContent(
       "The setup check could not be read. Check again in a moment.",
     );
-    expect(screen.queryByTestId("llm-setup-check-apps")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-setup-check-apps"),
+    ).not.toBeInTheDocument();
   });
 
   test("Check again reads it again", async () => {

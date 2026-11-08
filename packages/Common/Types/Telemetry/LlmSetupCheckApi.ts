@@ -255,9 +255,7 @@ function readApps(value: unknown): LlmSetupCheckApps | null {
     uninstrumented: Array.isArray(object["uninstrumented"])
       ? readList(
           object["uninstrumented"],
-          (
-            item: Record<string, unknown>,
-          ): LlmSetupCheckUninstrumentedCalls => {
+          (item: Record<string, unknown>): LlmSetupCheckUninstrumentedCalls => {
             return {
               serviceId: readString(item["serviceId"]),
               host: readString(item["host"]),

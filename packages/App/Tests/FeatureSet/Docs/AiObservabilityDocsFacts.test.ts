@@ -1424,7 +1424,9 @@ describe("the AI / LLM Observability page: what is arriving, and from where", ()
       }
     }
 
-    expect(steps).toContain("dotnet add package OpenTelemetry.Extensions.Hosting");
+    expect(steps).toContain(
+      "dotnet add package OpenTelemetry.Extensions.Hosting",
+    );
     expect(snippets).toContain(
       "dotnet add package OpenTelemetry.Extensions.Hosting",
     );
@@ -1502,9 +1504,7 @@ describe("the AI / LLM Observability page: what is arriving, and from where", ()
 
   it("reads the message a gen_ai.event.content JSON carries", () => {
     expect(LlmEventContentAttributeKey).toBe("gen_ai.event.content");
-    expect(
-      section(page, "Where prompts and answers are read from"),
-    ).toContain(
+    expect(section(page, "Where prompts and answers are read from")).toContain(
       "with the message in `gen_ai.event.content` when Azure's AI Inference SDK or Semantic Kernel sent them",
     );
   });
@@ -1813,11 +1813,13 @@ describe("the Claude Code page", () => {
     ]);
 
     for (const cache of ["cacheRead", "cacheCreation"]) {
-      expect(
-        getLlmMetricTokenDirection("claude_code.token.usage", cache),
-      ).toBe("input");
+      expect(getLlmMetricTokenDirection("claude_code.token.usage", cache)).toBe(
+        "input",
+      );
       // Another tool's cache types are not Claude Code's: left out.
-      expect(getLlmMetricTokenDirection("cursor.token.usage", cache)).toBeNull();
+      expect(
+        getLlmMetricTokenDirection("cursor.token.usage", cache),
+      ).toBeNull();
     }
 
     expect(page).toContain(

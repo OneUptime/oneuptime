@@ -613,7 +613,12 @@ describe("LlmMetricConventions — cache tokens that are input", () => {
   });
 
   test("Claude Code's cache kinds are input on its metric, in any case", () => {
-    for (const value of ["cacheRead", "cacheCreation", "CACHEREAD", " cacheCreation "]) {
+    for (const value of [
+      "cacheRead",
+      "cacheCreation",
+      "CACHEREAD",
+      " cacheCreation ",
+    ]) {
       expect(getLlmMetricTokenDirection("claude_code.token.usage", value)).toBe(
         "input",
       );
@@ -624,9 +629,9 @@ describe("LlmMetricConventions — cache tokens that are input", () => {
     expect(getLlmMetricTokenDirection("claude_code.token.usage", "input")).toBe(
       "input",
     );
-    expect(getLlmMetricTokenDirection("claude_code.token.usage", "output")).toBe(
-      "output",
-    );
+    expect(
+      getLlmMetricTokenDirection("claude_code.token.usage", "output"),
+    ).toBe("output");
   });
 
   test("on any other metric a cache kind counts nothing", () => {
@@ -636,8 +641,11 @@ describe("LlmMetricConventions — cache tokens that are input", () => {
       "codex.turn.token_usage",
     ]) {
       for (const value of ["cacheRead", "cache_read", "cached_input"]) {
-        expect({ metric, value, direction: getLlmMetricTokenDirection(metric, value) })
-          .toEqual({ metric, value, direction: null });
+        expect({
+          metric,
+          value,
+          direction: getLlmMetricTokenDirection(metric, value),
+        }).toEqual({ metric, value, direction: null });
       }
     }
   });
@@ -650,9 +658,9 @@ describe("LlmMetricConventions — cache tokens that are input", () => {
 
   test("nothing in, nothing out", () => {
     expect(getLlmMetricTokenDirection(undefined, "cacheRead")).toBeNull();
-    expect(getLlmMetricTokenDirection("claude_code.token.usage", undefined)).toBe(
-      null,
-    );
+    expect(
+      getLlmMetricTokenDirection("claude_code.token.usage", undefined),
+    ).toBe(null);
     expect(getLlmMetricTokenDirection(null, null)).toBeNull();
   });
 });
