@@ -46441,6 +46441,7 @@
   "Data has arrived from this service in the last 30 minutes.": "過去 30 分以内にこのサービスからデータが届いています。",
   "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "データは関数の実行時に送信されます。一度呼び出してから、数分後にこのページを更新してください。最初のデータが届くと、関数は「データ受信中」に切り替わります。",
   "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "AI はワークフローのステップを読まずにこの変更を作成したため、見ていないステップを削除または変更する可能性があります。",
   "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "この関数からはまだデータが届いていません。OpenTelemetry SDK をセットアップして関数を呼び出してください — 数分で完了します。",
   "No invocations in the last 15 minutes": "過去 15 分間呼び出しなし",
   "No recent data": "最近のデータなし",
@@ -46451,5 +46452,6 @@
   "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "過去 30 分間、何も届いていません。リクエストを処理している間だけデータを送信するサービスは、誰も呼び出さないときは静かになります。リクエストを処理しているはずの場合は、サービスが実行中で、この service.name で引き続き OneUptime にテレメトリを送信していることを確認してください。",
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime がこの関数から最後にデータを受信したのは {{lastHeard}} です。実行中にだけデータを送信するため、スケジュール実行の合間など、呼び出されていないときはこれが普通です。",
   "Status shows \"No recent invocations\" while the function runs": "関数が実行されているのにステータスが「最近の呼び出しなし」と表示される",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "この変更は、AI がワークフローを読んだ後に保存された内容を元に戻します: {{steps}}。",
   "What to check if it should be running": "実行されているはずの場合に確認すること"
 }

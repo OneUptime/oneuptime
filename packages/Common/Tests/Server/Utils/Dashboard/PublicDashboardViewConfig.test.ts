@@ -2,13 +2,18 @@ import { describe, expect, it } from "@jest/globals";
 import PublicDashboardViewConfig from "../../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
 import DashboardComponentType, {
   DataSourceComponentTypes,
+  MetricComponentTypes,
 } from "../../../../Types/Dashboard/DashboardComponentType";
 import DashboardBaseComponent from "../../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import DashboardVariable from "../../../../Types/Dashboard/DashboardVariable";
 import DashboardViewConfig, {
   AutoRefreshInterval,
 } from "../../../../Types/Dashboard/DashboardViewConfig";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import { JSONObject, ObjectType } from "../../../../Types/JSON";
+import JSONFunctions from "../../../../Types/JSONFunctions";
 import ObjectID from "../../../../Types/ObjectID";
+import StoredDashboardViewConfig from "../../../../Utils/Dashboard/StoredDashboardViewConfig";
 
 /*
  * A public dashboard is served to viewers who never authenticated, so
@@ -647,5 +652,390 @@ describe("PublicDashboardViewConfig", () => {
         expect(sanitize(value)!.components).toEqual([]);
       },
     );
+  });
+
+  /*
+   * Issue #6297: the public metric routes read the config the public page
+   * draws - what /view-config serves, read as the page reads it - and from
+   * it only the settings of the widgets that chart metrics, through one
+   * walk. These pin each piece on its own.
+   */
+  describe("what the public page draws (issue #6297)", () => {
+    const CHART_ARGUMENTS: () => JSONObject = (): JSONObject => {
+      return {
+        chartTitle: "Latency",
+        metricQueryConfig: {
+          metricQueryData: {
+            filterData: {
+              metricName: "http.server.duration",
+              telemetryServiceIds: [
+                {
+                  _type: "ObjectID",
+                  value: "0f8fad5b-d9cb-469f-a165-70867728950e",
+                },
+              ],
+              attributes: {
+                "host.name": { _type: "Includes", value: ["web-1"] },
+              },
+            },
+          },
+        },
+      };
+    };
+
+    const storedWidget: (
+      componentType: string,
+      widgetArguments?: unknown,
+    ) => JSONObject = (
+      componentType: string,
+      widgetArguments?: unknown,
+    ): JSONObject => {
+      return {
+        _type: "DashboardComponent",
+        componentId: ObjectID.generate().toString(),
+        componentType: componentType,
+        topInDashboardUnits: 0,
+        leftInDashboardUnits: 0,
+        widthInDashboardUnits: 6,
+        heightInDashboardUnits: 4,
+        ...(widgetArguments === undefined
+          ? {}
+          : { arguments: widgetArguments as JSONObject }),
+      };
+    };
+
+    // What the public page draws: the served config, sent as JSON, read.
+    const pageDraws: (stored: unknown) => DashboardViewConfig = (
+      stored: unknown,
+    ): DashboardViewConfig => {
+      const served: DashboardViewConfig | null =
+        PublicDashboardViewConfig.sanitize(stored as DashboardViewConfig);
+
+      return StoredDashboardViewConfig.read(
+        JSON.parse(
+          JSON.stringify(
+            JSONFunctions.serialize(served as unknown as JSONObject),
+          ),
+        ),
+      );
+    };
+
+    describe("getDrawnConfig", () => {
+      it("is what the page draws of the served config, every widget in every shape it is stored in", () => {
+        const chart: JSONObject = storedWidget(
+          DashboardComponentType.Chart,
+          CHART_ARGUMENTS(),
+        );
+        const stored: JSONObject = {
+          _type: "DashboardViewConfig",
+          heightInDashboardUnits: 24,
+          components: [
+            chart,
+            JSON.stringify(
+              storedWidget(DashboardComponentType.Value, CHART_ARGUMENTS()),
+            ),
+            {
+              _type: "DashboardComponent",
+              value: JSON.stringify(
+                storedWidget(DashboardComponentType.Gauge, CHART_ARGUMENTS()),
+              ),
+            },
+            {
+              ...storedWidget(DashboardComponentType.Table),
+              arguments: JSON.stringify({ tableTitle: "Hosts" }),
+            },
+            storedWidget(DashboardComponentType.DataSourceChart, {
+              queries: [{ query: "SELECT secret" }],
+            }),
+            "not a widget",
+          ],
+          variables: JSON.stringify([
+            {
+              id: "cluster",
+              name: "cluster",
+              type: "Telemetry Attribute",
+              attributeKey: "k8s.cluster.name",
+            },
+          ]),
+        };
+
+        for (const shape of [
+          stored,
+          JSON.stringify(stored),
+          { _type: "DashboardViewConfig", value: stored },
+          { ...stored, components: JSON.stringify(stored["components"]) },
+        ]) {
+          const drawn: DashboardViewConfig =
+            PublicDashboardViewConfig.getDrawnConfig(shape);
+
+          expect(drawn).toEqual(pageDraws(shape));
+          expect(
+            drawn.components.map((component: DashboardBaseComponent) => {
+              return component.componentType;
+            }),
+          ).toEqual([
+            DashboardComponentType.Chart,
+            DashboardComponentType.Value,
+            DashboardComponentType.Gauge,
+            DashboardComponentType.Table,
+          ]);
+          expect(drawn.components[3]!.arguments).toEqual({
+            tableTitle: "Hosts",
+          });
+          expect(
+            drawn.variables!.map(
+              (variable: DashboardVariable): string | undefined => {
+                return variable.attributeKey;
+              },
+            ),
+          ).toEqual(["k8s.cluster.name"]);
+          expect(JSON.stringify(drawn)).not.toContain("SELECT secret");
+        }
+      });
+
+      it("deserializes every widget as the page does", () => {
+        const drawn: DashboardViewConfig =
+          PublicDashboardViewConfig.getDrawnConfig({
+            components: [
+              storedWidget(DashboardComponentType.Chart, CHART_ARGUMENTS()),
+              storedWidget(
+                DashboardComponentType.Chart,
+                JSON.stringify(CHART_ARGUMENTS()),
+              ),
+            ],
+          });
+
+        for (const component of drawn.components) {
+          const filterData: JSONObject = (
+            (
+              (component.arguments as JSONObject)[
+                "metricQueryConfig"
+              ] as JSONObject
+            )["metricQueryData"] as JSONObject
+          )["filterData"] as JSONObject;
+
+          expect(
+            (filterData["telemetryServiceIds"] as Array<unknown>)[0],
+          ).toBeInstanceOf(ObjectID);
+          expect(
+            (filterData["attributes"] as JSONObject)["host.name"],
+          ).toBeInstanceOf(Includes);
+        }
+      });
+
+      it.each([null, undefined, "", "text", 42, [], {}])(
+        "draws nothing out of %p",
+        (stored: unknown) => {
+          const drawn: DashboardViewConfig =
+            PublicDashboardViewConfig.getDrawnConfig(stored);
+
+          expect(drawn.components).toEqual([]);
+          expect(drawn.variables).toBeUndefined();
+        },
+      );
+
+      it("leaves the stored value as it was", () => {
+        const stored: JSONObject = {
+          components: [
+            storedWidget(
+              DashboardComponentType.Chart,
+              JSON.stringify(CHART_ARGUMENTS()),
+            ),
+          ],
+        };
+        const before: string = JSON.stringify(stored);
+
+        PublicDashboardViewConfig.getDrawnConfig(stored);
+
+        expect(JSON.stringify(stored)).toBe(before);
+      });
+    });
+
+    describe("getMetricWidgetSettings", () => {
+      it("is the arguments of the chart, value, gauge and table widgets, in order, as drawn", () => {
+        const drawn: DashboardViewConfig =
+          PublicDashboardViewConfig.getDrawnConfig({
+            components: [
+              storedWidget(DashboardComponentType.Text, { text: "Hello" }),
+              storedWidget(DashboardComponentType.Table, { tableTitle: "1" }),
+              storedWidget(DashboardComponentType.Chart, { chartTitle: "2" }),
+              storedWidget(DashboardComponentType.IncidentList, {
+                title: "Incidents",
+              }),
+              storedWidget(DashboardComponentType.Gauge, { gaugeTitle: "3" }),
+              storedWidget(DashboardComponentType.Value, { title: "4" }),
+              storedWidget(DashboardComponentType.DataSourceValue, {
+                title: "Data Source",
+              }),
+            ],
+          });
+
+        expect(
+          PublicDashboardViewConfig.getMetricWidgetSettings(drawn),
+        ).toEqual([
+          { tableTitle: "1" },
+          { chartTitle: "2" },
+          { gaugeTitle: "3" },
+          { title: "4" },
+        ]);
+      });
+
+      it("gives a metric widget saved without arguments an empty set, as the page draws it", () => {
+        expect(
+          PublicDashboardViewConfig.getMetricWidgetSettings(
+            PublicDashboardViewConfig.getDrawnConfig({
+              components: [storedWidget(DashboardComponentType.Chart)],
+            }),
+          ),
+        ).toEqual([{}]);
+      });
+
+      it("matches each widget type exactly, and reads every type that charts metrics and none other", () => {
+        for (const componentType of [
+          ...Object.values(DashboardComponentType),
+          " Chart ",
+          "chart",
+          "CHART",
+          "HostMetricChart",
+          "constructor",
+          "__proto__",
+        ]) {
+          const settings: Array<JSONObject> =
+            PublicDashboardViewConfig.getMetricWidgetSettings(
+              PublicDashboardViewConfig.getDrawnConfig({
+                components: [storedWidget(componentType, { marker: 1 })],
+              }),
+            );
+
+          expect([componentType, settings.length]).toEqual([
+            componentType,
+            (MetricComponentTypes as ReadonlyArray<string>).includes(
+              componentType,
+            )
+              ? 1
+              : 0,
+          ]);
+        }
+
+        expect([...MetricComponentTypes].sort()).toEqual(
+          [
+            DashboardComponentType.Chart,
+            DashboardComponentType.Gauge,
+            DashboardComponentType.Table,
+            DashboardComponentType.Value,
+          ].sort(),
+        );
+
+        // None of them is a Data Source widget the sanitizer drops.
+        for (const componentType of MetricComponentTypes) {
+          expect(DataSourceComponentTypes).not.toContain(componentType);
+        }
+      });
+    });
+
+    describe("forEachSettingsObject", () => {
+      const visited: (value: unknown) => Array<Record<string, unknown>> = (
+        value: unknown,
+      ): Array<Record<string, unknown>> => {
+        const objects: Array<Record<string, unknown>> = [];
+
+        PublicDashboardViewConfig.forEachSettingsObject(
+          value,
+          (settings: Record<string, unknown>): void => {
+            objects.push(settings);
+          },
+        );
+
+        return objects;
+      };
+
+      it("visits every plain object at any depth, through lists and objects, each before what it holds", () => {
+        const inner: JSONObject = { name: "inner" };
+        const listed: JSONObject = { name: "listed", inner: inner };
+        const root: JSONObject = {
+          name: "root",
+          list: [1, "two", listed, [[{ name: "deep" }]]],
+        };
+
+        expect(
+          visited([root]).map((settings: Record<string, unknown>) => {
+            return settings["name"];
+          }),
+        ).toEqual(["root", "listed", "inner", "deep"]);
+      });
+
+      it("never walks into a deserialized value: an ObjectID, a query operator, a date", () => {
+        const values: Array<unknown> = [
+          new ObjectID("0f8fad5b-d9cb-469f-a165-70867728950e"),
+          new Includes([{ metricName: "inside" } as unknown as string]),
+          new Date(),
+        ];
+
+        expect(visited({ values: values })).toEqual([{ values: values }]);
+      });
+
+      it("never reads a value under a __proto__ key, which JSON keeps as an ordinary key", () => {
+        const parsed: JSONObject = JSON.parse(
+          '{"name": "root", "__proto__": {"name": "smuggled"}}',
+        ) as JSONObject;
+
+        expect(Object.keys(parsed)).toContain("__proto__");
+        expect(
+          visited(parsed).map((settings: Record<string, unknown>) => {
+            return settings["name"];
+          }),
+        ).toEqual(["root"]);
+      });
+
+      it.each([null, undefined, 0, "text", true])(
+        "visits nothing in %p",
+        (value: unknown) => {
+          expect(visited(value)).toEqual([]);
+        },
+      );
+    });
+
+    describe("isSettingsObject and getSettingsKeys", () => {
+      it("a plain object, from JSON or the deserializer, is settings; nothing else is", () => {
+        const nullPrototype: Record<string, unknown> = Object.create(null);
+
+        for (const [value, expected] of [
+          [{}, true],
+          [{ a: 1 }, true],
+          [JSON.parse('{"a": 1}'), true],
+          [JSONFunctions.deserialize({ a: { b: 1 } } as JSONObject), true],
+          [nullPrototype, true],
+          [[], false],
+          [null, false],
+          [undefined, false],
+          ["text", false],
+          [7, false],
+          [new ObjectID("0f8fad5b-d9cb-469f-a165-70867728950e"), false],
+          [new Includes(["a"]), false],
+          [new Date(), false],
+        ] as Array<[unknown, boolean]>) {
+          expect([
+            value,
+            PublicDashboardViewConfig.isSettingsObject(value),
+          ]).toEqual([value, expected]);
+        }
+      });
+
+      it("the keys are each own key but __proto__", () => {
+        const parsed: Record<string, unknown> = JSON.parse(
+          '{"b": 1, "__proto__": {"c": 2}, "a": 3}',
+        ) as Record<string, unknown>;
+
+        expect(PublicDashboardViewConfig.getSettingsKeys(parsed)).toEqual([
+          "b",
+          "a",
+        ]);
+        expect(
+          PublicDashboardViewConfig.getSettingsKeys(
+            Object.create({ inherited: true }) as Record<string, unknown>,
+          ),
+        ).toEqual([]);
+      });
+    });
   });
 });

@@ -251,6 +251,8 @@ export const AI_ACTION_LINES: {
   workflowAddsSteps: string;
   workflowRemovesSteps: string;
   workflowChangesSteps: string;
+  workflowUndoesSavedSince: string;
+  workflowNotRead: string;
   workflowIsOn: string;
 } = {
   // A new incident's or alert's resources: "Linked to host "test01"."
@@ -280,6 +282,19 @@ export const AI_ACTION_LINES: {
   workflowAddsSteps: translationKey("Adds {{steps}}."),
   workflowRemovesSteps: translationKey("Removes {{steps}}."),
   workflowChangesSteps: translationKey("Changes {{steps}}."),
+  /*
+   * The workflow was saved after Ask AI last saw its steps, and the change
+   * would undo some of that save, by the steps it touches (issue #6291):
+   * written from what Ask AI saw, it takes their step out again or puts an
+   * old setting back.
+   */
+  workflowUndoesSavedSince: translationKey(
+    "This change undoes what was saved after Ask AI read the workflow: {{steps}}.",
+  ),
+  // Ask AI never saw the workflow's steps, and the change touches some of them.
+  workflowNotRead: translationKey(
+    "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.",
+  ),
   workflowIsOn: translationKey(
     "This workflow is on, so its next run uses the change.",
   ),

@@ -683,4 +683,207 @@ describe("DashboardAPI public Data Source strip", () => {
       },
     );
   });
+
+  /*
+   * Issue #6297: the overview summarises the widgets as the public page
+   * draws them, in every shape they can be stored in, and lists exactly the
+   * metrics the public metric routes serve - those of the chart, value,
+   * gauge and table widgets the page draws.
+   */
+  describe("overview summaries are what the public page draws (issue #6297)", () => {
+    type ShapeFunction = (widgets: Array<JSONObject>) => unknown;
+
+    const SHAPES: Array<[string, ShapeFunction]> = [
+      [
+        "as an object",
+        (widgets: Array<JSONObject>): unknown => {
+          return widgets;
+        },
+      ],
+      [
+        "as JSON text",
+        (widgets: Array<JSONObject>): unknown => {
+          return widgets.map((widget: JSONObject): string => {
+            return JSON.stringify(widget);
+          });
+        },
+      ],
+      [
+        "in the envelope, its value as JSON text",
+        (widgets: Array<JSONObject>): unknown => {
+          return widgets.map((widget: JSONObject): JSONObject => {
+            return {
+              _type: "DashboardComponent",
+              value: JSON.stringify(widget),
+            };
+          });
+        },
+      ],
+      [
+        "in a widget list written as JSON text",
+        (widgets: Array<JSONObject>): unknown => {
+          return JSON.stringify(widgets);
+        },
+      ],
+      [
+        "with its arguments as JSON text",
+        (widgets: Array<JSONObject>): unknown => {
+          return widgets.map((widget: JSONObject): JSONObject => {
+            return {
+              ...widget,
+              arguments: JSON.stringify(widget["arguments"]),
+            };
+          });
+        },
+      ],
+    ];
+
+    const chartArguments: JSONObject = {
+      chartTitle: PUBLIC_CHART_TITLE,
+      chartDescription: "Per host",
+      metricQueryConfigs: [
+        {
+          metricQueryData: {
+            filterData: { metricName: PUBLIC_METRIC_NAME },
+          },
+        },
+      ],
+    };
+
+    it.each(OVERVIEW_ROUTES)(
+      "$name summarises a widget in every shape as drawn, and lists its metric",
+      async (route: PublicConfigRoute) => {
+        for (const [label, shape] of SHAPES) {
+          jest.clearAllMocks();
+
+          dashboard.dashboardViewConfig = {
+            _type: "DashboardViewConfig",
+            heightInDashboardUnits: 24,
+            components: shape([
+              buildWidget(DashboardComponentType.Chart, chartArguments).widget,
+              buildWidget(DashboardComponentType.DataSourceChart, {
+                chartTitle: DATA_SOURCE_TITLE_SECRET,
+                metricQueryConfigs: [
+                  {
+                    metricQueryData: {
+                      filterData: { metricName: "data.source.metric" },
+                    },
+                  },
+                ],
+              }).widget,
+            ]),
+          } as unknown as DashboardViewConfig;
+
+          await callRoute(route);
+
+          const body: JSONObject = getResponseBody();
+
+          expect([label, body["components"]]).toEqual([
+            label,
+            [
+              {
+                componentType: DashboardComponentType.Chart,
+                title: PUBLIC_CHART_TITLE,
+                description: "Per host",
+                text: null,
+                metricNames: [PUBLIC_METRIC_NAME],
+              },
+            ],
+          ]);
+          expect([label, body["metricsUsed"]]).toEqual([
+            label,
+            [PUBLIC_METRIC_NAME],
+          ]);
+          expect(JSON.stringify(body)).not.toContain(DATA_SOURCE_TITLE_SECRET);
+        }
+      },
+    );
+
+    it.each(OVERVIEW_ROUTES)(
+      "$name lists no metric of a widget that charts none, or of a type the page does not draw",
+      async (route: PublicConfigRoute) => {
+        const queryOf: (metricName: string) => JSONObject = (
+          metricName: string,
+        ): JSONObject => {
+          return {
+            metricQueryConfig: {
+              metricQueryData: { filterData: { metricName: metricName } },
+            },
+          };
+        };
+
+        setDashboardWidgets([
+          buildWidget(DashboardComponentType.Text, {
+            text: PUBLIC_TEXT,
+            ...queryOf("text.metric"),
+          }).widget,
+          {
+            ...buildWidget(DashboardComponentType.Chart, queryOf("gone.metric"))
+              .widget,
+            componentType: "HostMetricChart",
+          },
+          buildWidget(DashboardComponentType.Value, {
+            title: "CPU",
+            ...queryOf(PUBLIC_METRIC_NAME),
+          }).widget,
+        ]);
+
+        await callRoute(route);
+
+        const body: JSONObject = getResponseBody();
+
+        expect(body["metricsUsed"]).toEqual([PUBLIC_METRIC_NAME]);
+        expect(
+          (body["components"] as unknown as Array<JSONObject>).map(
+            (summary: JSONObject): Array<unknown> => {
+              return [
+                summary["componentType"],
+                summary["title"],
+                summary["text"],
+                summary["metricNames"],
+              ];
+            },
+          ),
+        ).toEqual([
+          [DashboardComponentType.Text, null, PUBLIC_TEXT, []],
+          ["HostMetricChart", null, null, []],
+          [DashboardComponentType.Value, "CPU", null, [PUBLIC_METRIC_NAME]],
+        ]);
+      },
+    );
+
+    it.each(OVERVIEW_ROUTES)(
+      "$name summarises nothing that is no widget, and serves the config as /view-config does",
+      async (route: PublicConfigRoute) => {
+        const widget: JSONObject = buildWidget(
+          DashboardComponentType.Chart,
+          chartArguments,
+        ).widget;
+
+        setDashboardWidgets([
+          null as unknown as JSONObject,
+          7 as unknown as JSONObject,
+          [] as unknown as JSONObject,
+          JSON.stringify(JSON.stringify(widget)) as unknown as JSONObject,
+          widget,
+        ]);
+
+        await callRoute(route);
+
+        const body: JSONObject = getResponseBody();
+
+        expect(
+          (body["components"] as unknown as Array<JSONObject>).map(
+            (summary: JSONObject): unknown => {
+              return summary["componentType"];
+            },
+          ),
+        ).toEqual([DashboardComponentType.Chart]);
+        expect(body["metricsUsed"]).toEqual([PUBLIC_METRIC_NAME]);
+
+        // The served config is the sanitized one, entries as stored.
+        expect(getServedComponents(body).length).toBe(5);
+      },
+    );
+  });
 });
