@@ -46454,7 +46454,6 @@
   "Status shows \"No recent invocations\" while the function runs": "Статус «Нет недавних вызовов», хотя функция выполняется",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Это изменение отменяет то, что было сохранено после того, как ИИ прочитал рабочий процесс: {{steps}}.",
   "What to check if it should be running": "Что проверить, если функция должна работать",
-  ".NET": ".NET",
   "AI calls come from your apps": "ИИ-вызовы приходят из ваших приложений",
   "Checking what your AI is sending…": "Проверяем, что отправляет ваш ИИ…",
   "Connect one": "Подключить",

@@ -83,7 +83,7 @@ OneUptime は、テレメトリが届いた時点で、呼び出しを行った�
 
 | 列 | キー (優先順) |
 | --- | --- |
-| 従業員 | `user.email`、`user.id`、`user.account_uuid`、`user.account_id`、`cursor.user.id` |
+| 従業員 | `user.email`、`cursor.user.email`、`user.id`、`user.account_uuid`、`user.account_id`、`cursor.user.id` |
 | チーム / コストセンター | `team.id`、`team`、`cost_center`、`department`、`cursor.team.id` |
 | モデル | `gen_ai.request.model`、`model`、`cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime は、トークンを `gen_ai.client.token.usage`、`gen_ai.client.tok
 数値を読む前に知っておくべきことが 2 つあります。
 
 - **`gemini_cli.token.usage` は意図的に除外しています。** Gemini CLI はトークンを独自のメトリクスと `gen_ai.client.token.usage` の 2 回送るため、両方を読むと 2 倍になります。トークンは `gen_ai.client.token.usage` から 1 回だけ数えます。Gemini CLI はコストのメトリクスを送らないため、各呼び出しに料金を付けるにはトレースを有効にしてください。
-- **数えるのは入力と出力のトークンだけです。** トークンの種類は `gen_ai.token.type`、`llm.token.type`、`type`、`cursor.token.type`、`token_type` から読み取り、`input` と `output` (または古い `prompt` と `completion`) だけを数えます。キャッシュの読み書き、Codex の `total` (ほかの値の繰り返し)、`reasoning_output` (`output` の一部) は除外するため、メトリクスから得た合計は、ツールが送るすべての値の和より小さくなります。
+- **数えるのは入力と出力のトークンだけです。** トークンの種類は `gen_ai.token.type`、`llm.token.type`、`type`、`cursor.token.type`、`token_type` から読み取り、`input` と `output` (または古い `prompt` と `completion`) だけを数えます。ただし Claude Code の `cacheRead` と `cacheCreation` は、その `input` に含まれないため入力として数えます。そのほかのキャッシュの読み書き、Codex の `total` (ほかの値の繰り返し)、`reasoning_output` (`output` の一部) は除外するため、メトリクスから得た合計は、ツールが送るすべての値の和より小さくなります。
 
 ## 使用量タブ
 

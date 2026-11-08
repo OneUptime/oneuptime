@@ -46454,7 +46454,6 @@
   "Status shows \"No recent invocations\" while the function runs": "函数在运行时，状态却显示“近期无调用”",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "此更改会撤销 AI 读取工作流之后保存的内容：{{steps}}。",
   "What to check if it should be running": "如果它本应在运行，需要检查什么",
-  ".NET": ".NET",
   "AI calls come from your apps": "AI 调用来自你的应用",
   "Checking what your AI is sending…": "正在检查你的 AI 发送了什么…",
   "Connect one": "连接一个",

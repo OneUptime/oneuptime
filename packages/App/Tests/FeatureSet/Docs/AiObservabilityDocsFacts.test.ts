@@ -61,8 +61,17 @@ import {
   LlmUserEmailBaseAttributeKeys,
   LlmUserIdAttributeKeys,
   LlmUserIdBaseAttributeKeys,
+  LlmEndpointAddressAttributeKeys,
+  LlmEventContentAttributeKey,
   RESOURCE_ATTRIBUTE_KEY_PREFIX,
 } from "Common/Types/Telemetry/LlmConventions";
+import {
+  getAzureLlmProviderOfAddress,
+  getLlmProviderOfAddress,
+  getLlmProviderTitle,
+  normalizeLlmProvider,
+} from "Common/Types/Telemetry/LlmProviders";
+import { LlmEmptyViewFindingKey } from "Common/Types/Telemetry/LlmSetupCheckApi";
 import {
   LlmCostCatalogUtil,
   LlmModelPrice as CatalogPrice,
@@ -79,6 +88,9 @@ import {
   LlmTokenTypeAttributeKeys,
   LlmTokenUsageMetricNames,
   MICRO_USD_TO_USD,
+  LlmMetricInputCacheTokenTypes,
+  LlmMetricUserAttributeKeys,
+  getLlmMetricTokenDirection,
   getLlmTokenDirection,
 } from "Common/Types/Telemetry/LlmMetricConventions";
 import LlmConversationReplay, {
@@ -162,6 +174,16 @@ const SOURCES: Record<string, string> = {
   telemetryApi: "packages/Common/Server/API/TelemetryAPI.ts",
   projectService: "packages/Common/Server/Services/ProjectService.ts",
   homeAiPage: "packages/Home/Views/ai-observability.ejs",
+  setupCheckCard: `${DASHBOARD}/Components/AI/SetupCheck/LlmSetupCheckCard.tsx`,
+  setupCheckWords: `${DASHBOARD}/Components/AI/SetupCheck/LlmSetupCheckWords.ts`,
+  emptyViewDiagnosis: `${DASHBOARD}/Components/AI/SetupCheck/LlmEmptyViewDiagnosis.ts`,
+  conversationsView: `${DASHBOARD}/Components/LlmConversations/LlmConversationsView.tsx`,
+  setupCheckReader:
+    "packages/Common/Server/Utils/Telemetry/LlmSetupCheckReader.ts",
+  metricUsageReader:
+    "packages/Common/Server/Utils/Telemetry/LlmMetricUsageReader.ts",
+  metricUsage: "packages/Common/Utils/Telemetry/LlmMetricUsage.ts",
+  metricSpend: "packages/Common/Server/Utils/Telemetry/LlmMetricSpend.ts",
 };
 
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
@@ -187,7 +209,7 @@ const CATALOG_SECTION: RegExp = /\/\/ ---- ([^-]+?)(?: \([^)]*\))? ----/g;
 const LINE_BREAK: RegExp = /\n/;
 // A breakdown of the Usage tab that the metrics can fill.
 const METRIC_FALLBACK_DIMENSION: RegExp =
-  /metricAttributeKeys: LlmMetric\w+AttributeKeys,/g;
+  /metricDimension: LlmMetricUsageDimension\.\w+,/g;
 // A breakdown of the Usage tab that says why the metrics cannot fill it.
 const NO_METRIC_SIGNAL_NOTE: RegExp = /noMetricSignalNote: translationKey\(/g;
 // Where a Dashboard path on these pages starts: a menu the product has.
@@ -829,18 +851,22 @@ describe("the AI / LLM Observability page", () => {
     // Tokens fall back when both span sums are 0, cost when the span cost is.
     expect(totals).toContain("if (spanInput === 0 && spanOutput === 0) {");
     expect(totals).toContain("if (spanCost === 0) {");
-    expect(totals).toContain("LlmMetricQuery.buildMicroUsdCostQuery");
+    // One read of the metric usage route; Codex's micro-USD scaled apart.
+    expect(totals).toContain("await fetchLlmMetricUsage({");
+    expect(source("metricUsage")).toContain("MICRO_USD_TO_USD");
     expect(rowNamed(rows, "Input and output tokens")[2]).toBe(
       "The spans' token totals are both 0",
     );
     expect(rowNamed(rows, "Cost (USD)")[2]).toBe("The spans' cost total is 0");
 
     // A breakdown falls back only when it found no span rows, and only three can.
-    expect(usage).toContain(
-      "if (metricAttributeKeys && allRows.length === 0) {",
-    );
+    expect(usage).toContain("if (metricDimension && allRows.length === 0) {");
     expect(rowNamed(rows, "**Employee**, **Team**, **Model** tables")[2]).toBe(
       "That table found no span rows",
+    );
+    // Cost, and the tokens a person's metrics counted; never a call count.
+    expect(rowNamed(rows, "**Employee**, **Team**, **Model** tables")[1]).toBe(
+      "Cost, and tokens where the metrics count them; the calls cell shows `—`",
     );
     expect(usage.match(METRIC_FALLBACK_DIMENSION)).toHaveLength(3);
     expect(usage.match(NO_METRIC_SIGNAL_NOTE)).toHaveLength(2);
@@ -1263,6 +1289,248 @@ describe("the AI / LLM Observability page", () => {
   });
 });
 
+/*
+ * #5776: a project whose OpenAI and Azure OpenAI accounts were connected
+ * and working had empty Conversations and Calls, and nothing said why. The
+ * page now says what each way in fills, how the setup check reads what is
+ * arriving, how .NET and Java apps send their calls, where each
+ * instrumentation records what was said, and how a provider is named and an
+ * Azure call priced. Each claim, held to the code that makes it true.
+ */
+describe("the AI / LLM Observability page: what is arriving, and from where", () => {
+  const page: string = englishPage(LLM);
+
+  it("says provider accounts and coding assistants fill Usage, never Conversations or Calls", () => {
+    expect(page).toContain(
+      "Provider accounts and coding assistants bring usage and cost, never a call: they fill **Usage**, and **Conversations** and **Calls** stay empty until your apps send their AI calls or a company AI tool is connected.",
+    );
+    // The check's finding for that project, word for word on the views.
+    expect(source("setupCheckWords")).toContain(
+      "connected provider accounts report usage and cost by day, never a call or a conversation",
+    );
+  });
+
+  it("names the setup check as Connect draws it, at the top, with Check again", () => {
+    const card: string = source("setupCheckCard");
+    const connect: string = source("connect");
+
+    expect(card).toContain('translationKey("Setup check")');
+    expect(card).toContain('title: translationKey("Check again")');
+    // Above the three ways' tabs.
+    expect(connect.indexOf("<LlmSetupCheckCard")).toBeGreaterThan(-1);
+    expect(connect.indexOf("<LlmSetupCheckCard")).toBeLessThan(
+      connect.indexOf('title="Your apps"'),
+    );
+    expect(page).toContain(
+      "The **Setup check** at the top of **Connect** says what each way in is bringing right now, and **Check again** reads it again.",
+    );
+  });
+
+  it("says an empty Conversations or Calls list leads with the same finding", () => {
+    expect(source("conversationsView")).toContain("getLlmEmptyViewState(");
+    expect(source("callsTable")).toContain("getLlmEmptyViewState(");
+    expect(source("emptyViewDiagnosis")).toContain("diagnoseEmptyLlmView(");
+    expect(page).toContain(
+      "An empty **Conversations** or **Calls** list leads with the same finding, and a button for what to do next.",
+    );
+  });
+
+  it("lists what the check finds, each a finding the views lead with or a line of the card", () => {
+    const rows: Array<Array<string>> = rowsOf(page, "Check what is arriving");
+    const words: string = source("setupCheckWords");
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual([
+      "No app has sent an AI call",
+      "An app calls an AI provider's API, and no GenAI instrumentation records it",
+      "Calls arrive without prompts or answers",
+      "The calls are just outside the time range",
+      "A provider account reads no usage",
+    ]);
+
+    // The findings behind them.
+    for (const key of [
+      LlmEmptyViewFindingKey.Nothing,
+      LlmEmptyViewFindingKey.Uninstrumented,
+      LlmEmptyViewFindingKey.CallsOutsideWindow,
+      LlmEmptyViewFindingKey.ProviderAccountsOnly,
+    ]) {
+      expect(Object.values(LlmEmptyViewFindingKey)).toContain(key);
+    }
+
+    expect(words).toContain(
+      '"No app has sent an AI call yet. Calls and conversations come from your apps."',
+    );
+    expect(words).toContain(
+      "and no GenAI instrumentation recorded those calls",
+    );
+    expect(words).toContain(
+      "Prompts and answers aren't recorded, so conversations show each call's time, tokens and cost but not what was said.",
+    );
+    expect(words).toContain("Your apps' newest AI call was {{time}}.");
+    expect(words).toContain(
+      "No Azure OpenAI or Foundry resource found: give the app registration the Monitoring Reader role where they are.",
+    );
+  });
+
+  it("names hosts the check recognizes as AI providers' APIs", () => {
+    const hosts: Array<string> = codeSpans(
+      rowNamed(
+        rowsOf(page, "Check what is arriving"),
+        "An app calls an AI provider's API, and no GenAI instrumentation records it",
+      )[1] as string,
+    );
+
+    expect(hosts).toEqual([
+      "api.openai.com",
+      "*.openai.azure.com",
+      "*.services.ai.azure.com",
+    ]);
+    expect(getLlmProviderOfAddress("api.openai.com")).toBe("openai");
+    expect(getAzureLlmProviderOfAddress("contoso.openai.azure.com")).toBe(
+      "azure.ai.openai",
+    );
+    expect(getAzureLlmProviderOfAddress("contoso.services.ai.azure.com")).toBe(
+      "azure.ai.openai",
+    );
+    // The check reads plain HTTP client spans, not AI ones.
+    expect(source("setupCheckReader")).toContain(
+      "kind = 'SPAN_KIND_CLIENT' AND isLlmSpan = 0",
+    );
+  });
+
+  it("gives .NET and Java the snippets Connect gives them", () => {
+    const steps: string = section(page, "Send your AI calls");
+    const snippets: string = source("appsSnippets");
+    const fences: Array<{ lang: string; code: string }> =
+      scanMarkdown(steps).fences;
+    const csharp: { lang: string; code: string } | undefined = fences.find(
+      (fence: { lang: string }): boolean => {
+        return fence.lang === "csharp";
+      },
+    );
+
+    expect(csharp).toBeDefined();
+
+    for (const line of csharp!.code.split("\n")) {
+      if (line.trim()) {
+        expect({ line, inSnippet: snippets.includes(line) }).toEqual({
+          line,
+          inSnippet: true,
+        });
+      }
+    }
+
+    expect(steps).toContain("dotnet add package OpenTelemetry.Extensions.Hosting");
+    expect(snippets).toContain(
+      "dotnet add package OpenTelemetry.Extensions.Hosting",
+    );
+    expect(steps).toContain(
+      "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar",
+    );
+    expect(snippets).toContain(
+      "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar",
+    );
+    expect(steps).toContain("java -javaagent:opentelemetry-javaagent.jar");
+    expect(snippets).toContain("java -javaagent:opentelemetry-javaagent.jar");
+    expect(steps).toContain("@tab .NET");
+    expect(steps).toContain("@tab Java");
+  });
+
+  it("says where each instrumentation records what was said, as the Connect notes do", () => {
+    const snippets: string = source("appsSnippets");
+
+    expect(page).toContain(
+      "Python's OpenTelemetry instrumentation records it there with `span_only`; the JavaScript and Java instrumentations, and Python's with `true`, send it as log events, which conversations do not read, and the **Setup check** says so.",
+    );
+    expect(snippets).toContain("span_only instead of true");
+    expect(snippets).toContain(
+      "It sends prompts and answers as log events, which conversations do not show",
+    );
+    expect(snippets).toContain("UseOpenTelemetry and EnableSensitiveData");
+    // The check looks for GenAI events on the logs signal.
+    expect(source("setupCheckReader")).toContain(
+      "public static buildContentInLogsStatement(",
+    );
+  });
+
+  it("stores a provider under the conventions' name, Azure found by its address", () => {
+    for (const [sent, stored] of [
+      ["az.ai.openai", "azure.ai.openai"],
+      ["azure_openai", "azure.ai.openai"],
+      ["az.ai.inference", "azure.ai.inference"],
+      ["OpenAI", "openai"],
+    ]) {
+      expect(normalizeLlmProvider({ reported: sent })).toBe(stored);
+      expect(page).toContain(`\`${sent}\``);
+    }
+
+    expect(LlmEndpointAddressAttributeKeys).toEqual([
+      "server.address",
+      "gen_ai.openai.api_base",
+    ]);
+    expect(
+      normalizeLlmProvider({
+        reported: "openai",
+        addresses: ["contoso.openai.azure.com"],
+      }),
+    ).toBe("azure.ai.openai");
+    expect(
+      normalizeLlmProvider({
+        reported: "openai",
+        addresses: ["https://contoso.services.ai.azure.com/openai/v1/"],
+      }),
+    ).toBe("azure.ai.openai");
+    expect(page).toContain(
+      "by its `server.address` or OpenLLMetry's `gen_ai.openai.api_base`, is stored as `azure.ai.openai`.",
+    );
+  });
+
+  it("says Calls shows the provider by name, and an Azure call's served model under its deployment", () => {
+    const calls: string = source("callsTable");
+
+    expect(getLlmProviderTitle("azure.ai.openai")).toBe("Azure OpenAI");
+    expect(calls).toContain("getLlmProviderTitle(");
+    expect(calls).toContain('data-testid="llm-call-served-model"');
+    expect(page).toContain(
+      "**Calls** shows the provider by name, and an Azure deployment's call shows the deployment it asked for with, under it, the model that served it and prices it.",
+    );
+  });
+
+  it("reads the message a gen_ai.event.content JSON carries", () => {
+    expect(LlmEventContentAttributeKey).toBe("gen_ai.event.content");
+    expect(
+      section(page, "Where prompts and answers are read from"),
+    ).toContain(
+      "with the message in `gen_ai.event.content` when Azure's AI Inference SDK or Semantic Kernel sent them",
+    );
+  });
+
+  it("says a token or cost metric counts the way a counter counts", () => {
+    expect(source("metricUsageReader")).toContain(
+      "if(aggregationTemporality = 'Cumulative', cityHash64(mapKeys(attributes), mapValues(attributes)), 0)",
+    );
+    expect(source("budgetEvaluator")).toContain("LlmMetricSpend");
+    expect(page).toContain(
+      "a cumulative counter, the OpenTelemetry SDKs' default, counts what it grew by in the time range, each series on its own, so a running total exported every minute is counted once. Budgets count GenAI metrics the same way.",
+    );
+  });
+
+  it("troubleshoots connected accounts and empty views, and an Azure call priced by its served model", () => {
+    expect(page).toContain(
+      ":::details Provider accounts are connected, but Conversations and Calls are empty",
+    );
+    expect(page).toContain(
+      "An Azure OpenAI call is priced by the model that served it, `gen_ai.response.model`: when its span names none, price the deployment's name.",
+    );
+    // The served model is priced before the requested one.
+    expect(source("llmSpan")).toContain("llmResponseModel");
+  });
+});
+
 describe("the AI Coding Assistants page", () => {
   const page: string = englishPage(ASSISTANTS);
 
@@ -1437,6 +1705,9 @@ describe("the AI Coding Assistants page", () => {
     expect(metrics).toContain(
       "The token type is read from `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` or `token_type`",
     );
+    expect(metrics).toContain(
+      "with Claude Code's `cacheRead` and `cacheCreation` as input, since its `input` leaves them out",
+    );
     expect(LlmTokenTypeAttributeKeys).toEqual([
       "gen_ai.token.type",
       "llm.token.type",
@@ -1508,10 +1779,12 @@ describe("the Claude Code page", () => {
   });
 
   it("reads the employee from user.email first, then user.id, as the metric keys are ordered", () => {
-    expect(LlmMetricUserBaseAttributeKeys.slice(0, 2)).toEqual([
-      "user.email",
-      "user.id",
-    ]);
+    // The keys a Claude Code point can carry: Cursor's own are not among them.
+    expect(
+      LlmMetricUserBaseAttributeKeys.filter((key: string): boolean => {
+        return !key.startsWith("cursor.");
+      }).slice(0, 2),
+    ).toEqual(["user.email", "user.id"]);
     expect(page).toContain("**The employee is `user.email`.**");
     expect(page).toContain(
       "Without an email, each install shows as its own row.",
@@ -1531,13 +1804,38 @@ describe("the Claude Code page", () => {
     expect(LlmMetricModelBaseAttributeKeys).toContain("model");
   });
 
-  it("counts only the input and output token types, not the camelCase cache types", () => {
+  it("counts the camelCase cache types as input, since Claude Code's input leaves them out", () => {
     expect(getLlmTokenDirection("input")).toBe("input");
     expect(getLlmTokenDirection("output")).toBe("output");
-    expect(getLlmTokenDirection("cacheRead")).toBeNull();
-    expect(getLlmTokenDirection("cacheCreation")).toBeNull();
+    expect(LlmMetricInputCacheTokenTypes["claude_code.token.usage"]).toEqual([
+      "cacheread",
+      "cachecreation",
+    ]);
+
+    for (const cache of ["cacheRead", "cacheCreation"]) {
+      expect(
+        getLlmMetricTokenDirection("claude_code.token.usage", cache),
+      ).toBe("input");
+      // Another tool's cache types are not Claude Code's: left out.
+      expect(getLlmMetricTokenDirection("cursor.token.usage", cache)).toBeNull();
+    }
+
     expect(page).toContain(
-      "OneUptime's token totals count only `input` and `output`.",
+      "Claude Code's `input` leaves them out, so OneUptime counts them as input tokens too.",
+    );
+  });
+
+  it("says the Usage tab and budgets count a delta and a cumulative counter each the way it counts", () => {
+    const reader: string = source("metricUsageReader");
+
+    expect(reader).toContain(
+      "if(aggregationTemporality = 'Cumulative', greatest(max(value) - if(min(startTime) >= ",
+    );
+    expect(reader).toContain("0, min(value)), 0), sum(value)) AS increase");
+    // Budgets read the metrics through the same reader.
+    expect(source("metricSpend")).toContain("LlmMetricUsageReader");
+    expect(page).toContain(
+      "OneUptime's Usage tab and budgets count both: a delta by adding its points up, a cumulative counter by what it grew in the time range.",
     );
   });
 
@@ -1596,28 +1894,34 @@ describe("the Cursor page", () => {
     );
   });
 
-  it("reads Cursor's user, team and model, and not yet its email", () => {
+  it("reads Cursor's email first, then its user id, and its team and model", () => {
     expect(LlmMetricUserBaseAttributeKeys).toContain("cursor.user.id");
     expect(LlmMetricTeamBaseAttributeKeys).toContain("cursor.team.id");
     expect(LlmMetricModelBaseAttributeKeys).toContain("cursor.model.name");
     expect(LlmTokenTypeAttributeKeys).toContain("cursor.token.type");
 
     /*
-     * The page says OneUptime does not read cursor.user.email yet. When an
-     * identity list starts reading it, this fails: then say so on the
-     * Cursor and AI Coding Assistants pages, in every language.
+     * #5776: the metric identity reads cursor.user.email, before
+     * cursor.user.id, with the resource. prefix too. Cursor sends metrics and
+     * log events, no GenAI spans, so the spans' identity keys need neither.
      */
-    for (const keys of [
-      LlmUserIdAttributeKeys,
-      LlmUserEmailAttributeKeys,
-      LlmMetricUserBaseAttributeKeys,
-    ]) {
-      expect(keys).not.toContain("cursor.user.email");
-      expect(keys).not.toContain("resource.cursor.user.email");
-    }
+    const email: number =
+      LlmMetricUserBaseAttributeKeys.indexOf("cursor.user.email");
+
+    expect(email).toBeGreaterThan(-1);
+    expect(email).toBeLessThan(
+      LlmMetricUserBaseAttributeKeys.indexOf("cursor.user.id"),
+    );
+    expect(LlmMetricUserAttributeKeys).toContain("resource.cursor.user.email");
 
     expect(page).toContain(
-      "Cursor can also send `cursor.user.email`, but OneUptime does not read it yet",
+      "OneUptime reads `cursor.user.email` as the employee when Cursor sends it, `cursor.user.id` when it does not",
+    );
+    expect(page).toContain(
+      "| **Employee** | Yes, by `cursor.user.email`, else `cursor.user.id` |",
+    );
+    expect(page).toContain(
+      "That is `cursor.user.id`, read when Cursor sends no `cursor.user.email`.",
     );
   });
 

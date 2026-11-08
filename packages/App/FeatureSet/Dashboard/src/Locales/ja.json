@@ -46454,7 +46454,6 @@
   "Status shows \"No recent invocations\" while the function runs": "関数が実行されているのにステータスが「最近の呼び出しなし」と表示される",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "この変更は、AI がワークフローを読んだ後に保存された内容を元に戻します: {{steps}}。",
   "What to check if it should be running": "実行されているはずの場合に確認すること",
-  ".NET": ".NET",
   "AI calls come from your apps": "AI 呼び出しは自社アプリから届きます",
   "Checking what your AI is sending…": "AI が送信している内容を確認中…",
   "Connect one": "接続する",

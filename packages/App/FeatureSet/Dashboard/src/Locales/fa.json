@@ -46454,7 +46454,6 @@
   "Status shows \"No recent invocations\" while the function runs": "با اینکه تابع اجرا می‌شود، وضعیت «بدون فراخوانی اخیر» را نشان می‌دهد",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "این تغییر آنچه را که پس از خواندن گردش کار توسط هوش مصنوعی ذخیره شد پس می‌گیرد: {{steps}}.",
   "What to check if it should be running": "اگر باید در حال اجرا باشد، چه چیزی را بررسی کنید",
-  ".NET": ".NET",
   "AI calls come from your apps": "فراخوانی‌های هوش مصنوعی از برنامه‌های شما می‌آیند",
   "Checking what your AI is sending…": "در حال بررسی آنچه هوش مصنوعی شما می‌فرستد…",
   "Connect one": "اتصال یکی",

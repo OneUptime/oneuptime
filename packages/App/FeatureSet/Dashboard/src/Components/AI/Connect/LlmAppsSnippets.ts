@@ -110,7 +110,8 @@ const client = new OpenAI();
   },
   {
     key: "dotnet",
-    title: translationKey(".NET"),
+    // As the telemetry guides' language picker names it.
+    title: translationKey(".NET / C#"),
     note: translationKey(
       "The OpenAI and Azure.AI.OpenAI libraries trace their calls, to OpenAI, Azure OpenAI and Microsoft Foundry, once their OpenTelemetry switch is on. They record no prompts or answers: apps on Microsoft.Extensions.AI record them with UseOpenTelemetry and EnableSensitiveData.",
     ),

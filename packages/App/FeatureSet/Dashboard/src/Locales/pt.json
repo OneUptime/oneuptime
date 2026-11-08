@@ -46454,7 +46454,6 @@
   "Status shows \"No recent invocations\" while the function runs": "O status mostra \"Sem invocações recentes\" enquanto a função é executada",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Esta alteração desfaz o que foi salvo depois que a IA leu o workflow: {{steps}}.",
   "What to check if it should be running": "O que verificar se ela deveria estar em execução",
-  ".NET": ".NET",
   "AI calls come from your apps": "As chamadas de IA vêm dos seus aplicativos",
   "Checking what your AI is sending…": "Verificando o que sua IA está enviando…",
   "Connect one": "Conectar uma",

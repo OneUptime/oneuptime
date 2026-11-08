@@ -108,10 +108,10 @@ Every record carries these resource attributes:
 
 ## Employee attribution
 
-**Cursor names a person by `cursor.user.id`, an integer only Cursor can turn into a name, and often leaves it out for cloud agents.** OneUptime reads it as the employee, and `cursor.team.id` as the team, so the **Usage** tab ranks people and teams with no setup, but people show as integers.
+**Cursor names a person by `cursor.user.id`, an integer only Cursor can turn into a name, and often leaves it out for cloud agents.** OneUptime reads `cursor.user.email` as the employee when Cursor sends it, `cursor.user.id` when it does not, and `cursor.team.id` as the team, so the **Usage** tab ranks people and teams with no setup; people without an email show as integers.
 
 - Both arrive as resource attributes (`resource.cursor.user.id`, `resource.cursor.team.id`), which OneUptime reads.
-- Cursor can also send `cursor.user.email`, but OneUptime does not read it yet, so the employee email column stays empty for Cursor.
+- `cursor.user.email` is read before `cursor.user.id`, so a person Cursor names by email shows by email.
 - `gen_ai.user`, `llm.user` and LiteLLM's end-user ids are never read as the employee: they name your customers, not your staff. See [Employee and team attribution](/docs/telemetry/ai-coding-assistants#employee-and-team-attribution).
 
 ### Where Cursor shows up in the Usage tab
@@ -120,7 +120,7 @@ Cursor sends metrics and no GenAI spans, and the metrics only fill in for spans:
 
 | Breakdown | For Cursor |
 | --- | --- |
-| **Employee** | Yes, by `cursor.user.id` |
+| **Employee** | Yes, by `cursor.user.email`, else `cursor.user.id` |
 | **Team** | Yes, by `cursor.team.id` |
 | **Model** | Yes, by `cursor.model.name` |
 | **Provider** | No: Cursor never says which provider served a call |
@@ -167,7 +167,7 @@ The project also receives GenAI spans with cost, so the Cursor metrics are not r
 :::
 
 :::details People show as numbers
-That is `cursor.user.id`: the only person id OneUptime reads from Cursor today. Map it to names with Cursor's Admin API.
+That is `cursor.user.id`, read when Cursor sends no `cursor.user.email`. Map it to names with Cursor's Admin API.
 :::
 
 ## Next steps

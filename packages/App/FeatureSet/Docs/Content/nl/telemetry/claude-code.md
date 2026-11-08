@@ -161,7 +161,7 @@ Elke metriek is een teller, en draagt de standaardattributen naast zijn eigen at
 
 De standaardattributen zijn `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` en `terminal.type`, plus je `OTEL_RESOURCE_ATTRIBUTES`. Sommige kun je uitzetten: zie [Houd het metriekvolume laag](#houd-het-metriekvolume-laag).
 
-- De cachetokentypes zijn in camelCase: `cacheRead` en `cacheCreation`. De tokentotalen van OneUptime tellen alleen `input` en `output`.
+- De cachetokentypes zijn in camelCase: `cacheRead` en `cacheCreation`. De `input` van Claude Code laat ze weg, dus OneUptime telt ze ook als invoertokens.
 - Op de kosten- en tokenmetrieken staan de namen van je eigen agents en MCP-servers, en van plugins en skills van derden, als `custom` of `third-party`, tenzij `OTEL_LOG_TOOL_DETAILS=1` is ingesteld (Claude Code 2.1.273 of later).
 
 ## Events
@@ -220,7 +220,7 @@ Claude Code stuurt standaard deltametrieken: elk datapunt is de toename sinds de
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Zet `cumulative` alleen vast als elke exporter in je organisatie het gebruikt, en meng de twee niet binnen een vloot.
+Zet `cumulative` alleen vast als elke exporter in je organisatie het gebruikt, en meng de twee niet binnen een vloot. Het tabblad Gebruik en de budgetten van OneUptime tellen beide: een delta door zijn punten op te tellen, een cumulatieve teller naar hoeveel hij in de periode groeide.
 
 ## Traces (bèta)
 

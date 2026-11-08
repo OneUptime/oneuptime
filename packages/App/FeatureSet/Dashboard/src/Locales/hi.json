@@ -46454,7 +46454,6 @@
   "Status shows \"No recent invocations\" while the function runs": "फ़ंक्शन चल रहा है, फिर भी स्थिति \"हाल में कोई इन्वोकेशन नहीं\" दिखाती है",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "यह बदलाव उसे पूर्ववत कर देता है जो AI के वर्कफ़्लो पढ़ने के बाद सहेजा गया था: {{steps}}।",
   "What to check if it should be running": "अगर इसे चलना चाहिए तो क्या जाँचें",
-  ".NET": ".NET",
   "AI calls come from your apps": "AI कॉल आपके ऐप्स से आती हैं",
   "Checking what your AI is sending…": "जाँच रहे हैं कि आपका AI क्या भेज रहा है…",
   "Connect one": "एक कनेक्ट करें",

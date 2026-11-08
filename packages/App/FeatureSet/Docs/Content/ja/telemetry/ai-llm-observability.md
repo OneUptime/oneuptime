@@ -47,6 +47,20 @@ flowchart TB
 | **AI プロバイダーのアカウント** | OpenAI、Anthropic、Azure、Bedrock、Vertex AI の各アカウントの日ごとの使用量とコスト | 読み取り専用の認証情報だけでコードは不要: [AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts) |
 | **社内の AI ツール** | 社員が Claude Enterprise や Microsoft 365 Copilot に尋ねた内容 (ユーザー別) | 読み取り専用の認証情報だけでコードは不要: [社内の AI ツール](/docs/telemetry/ai-company-tools) |
 
+プロバイダー アカウントとコーディング アシスタントが届けるのは使用量とコストで、呼び出しは届けません。これらが埋めるのは **使用量** で、 **会話** と **呼び出し** は、アプリが AI 呼び出しを送信するか社内の AI ツールを接続するまで空のままです。どの方法で何が届くかは [届いているものを確認する](#届いているものを確認する) でわかります。
+
+## 届いているものを確認する
+
+**接続** の上部にある **セットアップ チェック** は、それぞれの方法で今何が届いているかを示し、 **再確認** で読み直します。 **会話** や **呼び出し** の一覧が空のときも、同じ結果と次に行うことのボタンが先頭に表示されます。
+
+| 見つかるもの | 行うこと |
+| --- | --- |
+| どのアプリも AI 呼び出しを送信していない | [AI の呼び出しを送信する](#ai-の呼び出しを送信する)。接続済みのプロバイダー アカウントが届けるのは日ごとの使用量とコストで、呼び出しは届けません |
+| アプリが AI プロバイダーの API を呼び出しているのに、GenAI インストルメンテーションが記録していない | アプリの言語向けに追加してください。チェックは、アプリの HTTP クライアント スパンが `api.openai.com`、`*.openai.azure.com`、`*.services.ai.azure.com`、またはほかの AI プロバイダーの API に向かっているのを見つけました |
+| 呼び出しは届くが、プロンプトも回答もない | スパンに [やり取りの内容を記録する](#やり取りの内容を記録する)。ログ イベントとして送られたプロンプトと回答は表示されません |
+| 呼び出しが期間のすぐ外にある | 一覧に、最新の呼び出しを含む期間が表示されます |
+| プロバイダー アカウントが使用量を読み取れない | その行には、使用量があった最後の日か、最初に読み取った日が表示されます。リソースが見つからない Azure 接続には、リソースがある場所での Monitoring Reader が必要です |
+
 ## 始める前に
 
 - テレメトリの取り込みキーを作成できる OneUptime プロジェクト。
@@ -94,6 +108,25 @@ traceloop.initialize({
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
+@tab .NET
+```bash
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
+```
+
+```csharp
+// Before any OpenAI or Azure OpenAI client is created:
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource("OpenAI.*").AddOtlpExporter())
+    .WithMetrics(metrics => metrics.AddMeter("OpenAI.*").AddOtlpExporter());
+```
+@tab Java
+```bash
+curl -L -O https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+java -javaagent:opentelemetry-javaagent.jar -jar my-ai-agent.jar
+```
 @tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
@@ -102,6 +135,8 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
 :::
+
+どれも OpenAI、Azure OpenAI、Microsoft Foundry への呼び出しを同じようにトレースします。.NET と Java では OpenTelemetry SDK タブの変数も設定してください。OpenAI と Azure.AI.OpenAI ライブラリはスイッチをオンにすると呼び出しをトレースし、Java エージェントは OpenAI Java SDK をトレースします。
 
 OneUptime をセルフホストしている場合は、`https://oneuptime.com/otlp` の代わりに `https://YOUR-ONEUPTIME-HOST/otlp` を使います。モデルを 1 回呼び出すと、その呼び出しが **呼び出し** に表示されます。
 
@@ -114,6 +149,8 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
 新しい OpenTelemetry のインストルメンテーションは、`true` の代わりに `span_only`、`event_only`、`span_and_event` を受け付けます。内容が記録されていなくても、会話にはタイミング、コスト、問題が表示されます。プロンプトには機密データが含まれることがあります。保存前にマスクする方法は [プライバシーとマスキング](#プライバシーとマスキング) で説明しています。
+
+会話が読み取るのは、呼び出しのスパンに記録された内容です。Python 用の OpenTelemetry インストルメンテーションは `span_only` でスパンに記録します。JavaScript と Java 用のインストルメンテーション、および `true` を指定した Python 用は、これをログ イベントとして送信し、会話はそれを読み取りません。そのことは **セットアップ チェック** に表示されます。Azure の AI Inference SDK は `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` でスパンに記録し、Microsoft.Extensions.AI は `EnableSensitiveData` で記録します。.NET 用の OpenAI ライブラリは何も記録しません。
 
 ### 呼び出しを会話にまとめる
 
@@ -225,11 +262,13 @@ flowchart TB
 | 入力と出力のトークン | 両方の合計 | スパンのトークン合計がどちらも 0 |
 | コスト (USD) | コスト。Codex のマイクロ USD 単位のコストは USD に換算 | スパンのコスト合計が 0 |
 | LLM の呼び出し | なし。スパンのみ | — |
-| **従業員** 、 **チーム** 、 **モデル** の表 | コストのみ。呼び出しとトークンのセルは `—` を表示 | その表にスパンの行がない |
+| **従業員** 、 **チーム** 、 **モデル** の表 | コストと、メトリクスが数えたトークン。呼び出しのセルは `—` を表示 | その表にスパンの行がない |
 | **プロバイダー** 、 **アプリケーション / サービス** の表 | なし。スパンのみ | — |
 | 会話 | なし。会話はスパンから組み立てられる | — |
 
 メトリクスから取った数値には **GenAI メトリクスから** と表示されます。**呼び出し** に対応する行がないためです。そのため、GenAI スパンが数値を報告した時点で、メトリクスだけを送るツールの分は表示されなくなります。そのようなツールの支出を単独で見るには、GenAI スパンが届かない専用のプロジェクトに送ってください。
+
+トークンやコストのメトリクスはカウンターです。デルタ カウンターはポイントを合計し、累積カウンター (OpenTelemetry SDK の既定) は期間内に増えた量をシリーズごとに数えるため、毎分エクスポートされる累計も一度だけ数えられます。予算も GenAI メトリクスを同じ方法で数えます。
 
 ## 呼び出しのコスト
 
@@ -302,6 +341,8 @@ OneUptime は OpenTelemetry の GenAI 規約に加えて、OpenLLMetry、OpenInf
 
 これらの値のいずれか、または `gen_ai.`、`llm.`、`traceloop.` で始まる属性を持つスパンは、AI 呼び出しとして数えられます。合計が報告されない場合、合計トークンは入力と出力の和になります。`gen_ai.usage.total_tokens` と `gen_ai.usage.cost` のキーは規約に含まれず、規約はどちらも定義していませんが、一般的なインストルメンテーションが送るため OneUptime は読み取ります。
 
+プロバイダーは、届いた表記にかかわらず規約の名前で保存されます。`az.ai.openai` と `azure_openai` は `azure.ai.openai`、`az.ai.inference` は `azure.ai.inference`、`OpenAI` は `openai` として保存されます。OpenAI SDK が `openai` と名付けても、Azure OpenAI または Microsoft Foundry のエンドポイントに送った呼び出しは、その `server.address` か OpenLLMetry の `gen_ai.openai.api_base` から判断して `azure.ai.openai` として保存されます。 **呼び出し** ではプロバイダーが名前で表示され、Azure のデプロイの呼び出しには、要求したデプロイと、その下に呼び出しを処理して料金を決めたモデルが表示されます。
+
 入力トークンには、規約の数え方どおり、キャッシュのトークンも含まれます。スパンのキャッシュの数が入力の数より大きい場合、入力の数はそれを含んでいないため、OneUptime が加算します。Claude Code のトレースのベータは `gen_ai.usage.*` のキーを送りません。モデル名を持つスパンでは、OneUptime は `input_tokens`、`output_tokens`、`cache_read_tokens`、`cache_creation_tokens` を読み取り、2 つのキャッシュの数を、それを含まない `input_tokens` に加算します。
 
 ID のキー (誰が呼び出したか、そのチーム) は [従業員とチームへの帰属](/docs/telemetry/ai-coding-assistants#従業員とチームへの帰属) に一覧があります。
@@ -312,11 +353,15 @@ ID のキー (誰が呼び出したか、そのチーム) は [従業員とチ�
 
 - `gen_ai.client.inference.operation.details` イベント。
 - `gen_ai.input.messages`、`gen_ai.output.messages`、`gen_ai.system_instructions` 属性。
-- 古いロール別のイベント: `gen_ai.system.message`、`gen_ai.user.message`、`gen_ai.assistant.message`、`gen_ai.tool.message`、`gen_ai.choice`。
+- 古いロール別のイベント: `gen_ai.system.message`、`gen_ai.user.message`、`gen_ai.assistant.message`、`gen_ai.tool.message`、`gen_ai.choice`。Azure の AI Inference SDK や Semantic Kernel が送った場合、メッセージは `gen_ai.event.content` に入ります。
 - インデックス付きの属性: OpenLLMetry の `gen_ai.prompt.N.content` と `gen_ai.completion.N.content`、OpenInference の `llm.input_messages.N.message.content` と `llm.output_messages.N.message.content`。
 - `gen_ai.prompt`、`gen_ai.completion`、`ai.prompt.messages`、`ai.response.text`、`input.value`、`output.value` 内のメッセージ配列。
 
 ## トラブルシューティング
+
+:::details プロバイダー アカウントを接続したのに、会話と呼び出しが空のまま
+プロバイダー アカウントが届けるのは日ごとの使用量とコストで、呼び出しや会話は届けません。それらはアプリから届きます。 **接続** の **セットアップ チェック** で AI 呼び出しを送信しているアプリがあるかを確認し、[AI の呼び出しを送信する](#ai-の呼び出しを送信する) のとおりに送信してください。
+:::
 
 :::details 呼び出しは届くが、会話にテキストが表示されない
 インストルメンテーションが内容を記録していません。[やり取りの内容を記録する](#やり取りの内容を記録する) のとおりに有効にしてください。それより前の呼び出しはテキストなしのままです。
@@ -327,11 +372,11 @@ ID のキー (誰が呼び出したか、そのチーム) は [従業員とチ�
 :::
 
 :::details 呼び出しにトークンは表示されるが、コストが $0
-モデルが組み込みの料金表にないか、スパンがモデルを示していません。 **料金** タブでモデルの料金を追加してください。それ以降に届いた呼び出しに料金が付きます。
+モデルが組み込みの料金表にないか、スパンがモデルを示していません。 **料金** タブでモデルの料金を追加してください。それ以降に届いた呼び出しに料金が付きます。Azure OpenAI の呼び出しには、処理したモデル `gen_ai.response.model` の料金が付きます。スパンにモデルがない場合は、デプロイ名に料金を設定してください。
 :::
 
-:::details 使用量タブに「GenAI メトリクスから」と表示され、呼び出しとトークンが `—` になる
-数値は、メトリクスを送り GenAI スパンを送らないツール (コーディングアシスタントなど) から来ています。メトリクスはコストを持ちますが呼び出しごとの詳細を持たないため、これらのセルは空のままです。[スパンが優先され、メトリクスが補う](#スパンが優先されメトリクスが補う)を参照してください。
+:::details 使用量タブに「GenAI メトリクスから」と表示され、呼び出しが `—` になる
+数値は、メトリクスを送り GenAI スパンを送らないツール (コーディングアシスタントなど) から来ています。メトリクスはコストとトークンを持ちますが呼び出しごとの詳細を持たないため、呼び出しのセルは空のままです。[スパンが優先され、メトリクスが補う](#スパンが優先されメトリクスが補う)を参照してください。
 :::
 
 :::details 予算のモニターが 2 つの状態の間を行き来する

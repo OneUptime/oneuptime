@@ -46454,7 +46454,6 @@
   "Status shows \"No recent invocations\" while the function runs": "Statusen visar \"Inga anrop nyligen\" medan funktionen körs",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Den här ändringen gör ogjort det som sparades efter att AI läste arbetsflödet: {{steps}}.",
   "What to check if it should be running": "Vad du ska kontrollera om den borde köras",
-  ".NET": ".NET",
   "AI calls come from your apps": "AI-anrop kommer från dina appar",
   "Checking what your AI is sending…": "Kontrollerar vad din AI skickar…",
   "Connect one": "Anslut en",
