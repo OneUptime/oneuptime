@@ -169,7 +169,7 @@ Se você conectou um espaço de trabalho, os respondedores nunca precisam sair d
 Três detalhes que vale conhecer:
 
 - **Proteção contra duplicatas** — cada nota registra a mensagem do Slack de onde veio (`postedFromSlackMessageId`, no formato `channel_id:message_ts`), então várias pessoas reagindo à mesma mensagem geram uma nota, não cinco.
-- **As notas ecoam** — publicar qualquer um dos dois tipos de nota também envia uma mensagem para o canal do incidente conectado, porque o item de feed da nota é criado com a notificação do espaço de trabalho ativada.
+- **As notas ecoam** — publicar qualquer um dos dois tipos de nota também envia uma mensagem para o canal do incidente conectado, porque o item de feed da nota é criado com a notificação do espaço de trabalho ativada. Uma nota pública que aguarda aprovação é enviada para lá depois de publicada: veja [Aprovação de notas públicas](#aprovação-de-notas-públicas).
 - **Publicada como a pessoa que pediu** — uma nota da caixa de diálogo ou de uma reação é publicada com as permissões do OneUptime dessa pessoa, então ela precisa da permissão para publicar esse tipo de nota no incidente. Quando é recusada, a pessoa é informada do motivo — em uma mensagem direta no Slack, e na conversa no Microsoft Teams (na thread da mensagem, para uma reação) — e nada é publicado.
 
 ## Quando uma nota pública realmente chega aos assinantes
@@ -239,6 +239,32 @@ Só a notificação de «criado» do incidente é retomada de onde parou: ela gu
 Uma atualização enviada não é oferecida de novo: edite a nota com a caixa marcada para enviar o texto mais recente, ou reenvie a própria nota. Se a notificação original ainda não foi enviada, nenhuma atualização separada sai — a original leva a edição. Se ela estiver sendo enviada naquele momento, a atualização espera que termine e então sai. A caixa e o **Tentar notificação novamente** da atualização exigem as mesmas permissões que enviar de novo a notificação da nota; sem elas, você ainda pode editar a nota, sem notificar ninguém. Veja [Assinantes e comunicados](/docs/status-pages/subscribers#avisar-os-assinantes-sobre-uma-edição).
 
 A mensagem que os assinantes realmente recebem vem de um modelo por página de status e por canal — e-mail, SMS, Slack e Microsoft Teams têm cada um seu próprio modelo para o evento **Subscriber Incident Note Created**, com variáveis para o nome e a URL da página de status, o link de detalhes, os recursos afetados, a severidade e o título do incidente, o corpo da nota, os rótulos do incidente, suas páginas de status afetadas e seus campos personalizados, e um link de cancelamento da assinatura por assinante. As mensagens padrão de e-mail, Slack e Microsoft Teams também listam os campos personalizados do incidente marcados com **Incluir nas notificações aos assinantes**, com seus valores atuais. Veja [Assinantes e comunicados](/docs/status-pages/subscribers) para saber como esses modelos e canais são configurados.
+
+## Aprovação de notas públicas
+
+Um projeto pode exigir que suas notas públicas sejam aprovadas antes que os clientes as leiam, para que alguém revise uma atualização, por exemplo sobre uma violação de segurança, antes que ela saia. A aprovação fica desativada até que um proprietário ou administrador do projeto a ative e escolha quem aprova: em **Incidentes → Configurações → Aprovação de notas públicas** para incidentes e episódios de incidente, e em **Manutenção programada → Configurações → Aprovação de notas públicas** para eventos de manutenção programada. Veja [Aprovação de notas públicas](/docs/incidents/settings#aprovação-de-notas-públicas).
+
+Enquanto ela está ativada, o editor diz que a nota é publicada depois de aprovada e indica quem a aprova, e **Publicar atualização** passa a ser **Enviar para aprovação**. A nota é salva com o selo **Aguardando aprovação** e mostra abaixo dele quem pode aprová-la e, quando há várias etapas, qual ela aguarda. Até ser aprovada, uma nota:
+
+- não aparece em nenhuma página de status, nem em nenhum dos feeds RSS e Atom delas;
+- não avisa nenhum assinante: a notificação dela sai quando ela é publicada, se **Notificar os assinantes da página de status** estava marcado. Veja [Notas públicas aguardando aprovação](/docs/status-pages/subscribers#notas-públicas-aguardando-aprovação);
+- não é publicada nos canais do Slack, do Microsoft Teams ou do Mattermost do incidente, e os proprietários dele só ficam sabendo dela quando ela é publicada;
+- não inicia nenhum fluxo de trabalho e fica de fora do que o OneUptime AI lê, então nunca aparece numa nota redigida;
+- mostra suas imagens só aos membros do projeto.
+
+Toda nota pública nova aguarda, seja onde for escrita: no painel, pela API, por um fluxo de trabalho ou pelo OneUptime AI, pelo Slack, pelo Microsoft Teams ou pelo Mattermost, pelo lembrete de uma regra de SLA ou com uma mudança de estado.
+
+**Aprovar e rejeitar.** As pessoas que a etapa aguardada por uma nota nomeia, e os membros das equipes que ela nomeia, veem **Aprovar** e **Rejeitar** na nota, e são avisados de que ela aguarda pelas configurações de notificação que escolheram: veja [Aprovação de notas públicas](/docs/notifications/notification-settings#aprovação-de-notas-públicas). Na última etapa, **Aprovar** passa a ser **Aprovar e publicar**, e a nota é publicada na hora, com a data do momento em que é publicada, a menos que o horário dela tenha sido escolhido quando foi escrita. Depois de publicada, ela traz o selo **Aprovado** e uma linha que diz quem a aprovou, e a entrada dela no feed e a mensagem dela nos canais do incidente terminam com os mesmos nomes. **Rejeitar** pergunta **Por que você está rejeitando?**, e quem escreveu a nota vê o motivo. Ninguém aprova nem rejeita uma nota que enviou, ninguém aprova duas etapas da mesma nota, e uma chave de API não aprova nada: quem aprova são pessoas.
+
+**Enviar de novo.** Uma nota rejeitada continua fora das páginas de status, marcada como **Rejeitado**. Quem pode editá-la pode alterá-la, ou enviá-la como está com **Enviar novamente para aprovação**; nos dois casos a aprovação recomeça da primeira etapa. Editar uma nota que ainda aguarda também reinicia a aprovação dela: uma aprovação vale para as palavras que lhe foram apresentadas.
+
+**Editar uma nota publicada.** Uma edição também aguarda. O formulário de edição diz isso, e **Enviar edição para aprovação** a salva. As páginas de status continuam mostrando a nota como foi aprovada, a nota mostra a edição em **Edição proposta**, marcada como **Edição aguardando aprovação** ou, depois de rejeitada, **Edição rejeitada**, e **Retirar edição** a descarta. Os arquivos de uma nota publicada não podem mudar enquanto a aprovação estiver ativada: publique uma nota nova com os arquivos. Uma edição enviada enquanto alguém decide sobre a nota não é salva: atualize a página e faça a edição de novo.
+
+**Desativar a aprovação.** A partir daí, as notas novas são publicadas assim que são postadas. Uma nota que ainda aguardava, ou que foi rejeitada, oferece **Publicar agora** a quem pode editá-la, o que a publica como está, sem aprovação, e o feed registra isso.
+
+**Pelo Slack, pelo Microsoft Teams e pelo Mattermost.** O formulário para adicionar uma nota diz que uma nota pública é publicada na página de status depois de aprovada. Quem envia uma fica sabendo que ela foi enviada para aprovação e quem ela aguarda: numa mensagem que só essa pessoa vê no Slack e no Mattermost, e na conversa no Microsoft Teams. Uma nota salva a partir de uma reação 📣 ou 📢 diz o mesmo na sua confirmação. O canal fica sabendo da nota quando ela é publicada.
+
+O feed registra cada etapa como uma entrada `PublicNoteApproval`: uma nota enviada para aprovação, aprovada ou rejeitada, uma edição retirada ou uma nota publicada sem aprovação. Essas entradas não são publicadas nos canais de chat; a nota publicada, sim.
 
 ## O feed do incidente
 

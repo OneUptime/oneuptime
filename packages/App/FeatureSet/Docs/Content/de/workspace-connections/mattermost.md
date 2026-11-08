@@ -131,7 +131,7 @@ Die Nachrichten von OneUptime tragen Schaltflächen und ein Menü **More actions
 | **Vorfallsepisode, Warnungsepisode** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Geplante Wartung** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** und **Execute On-Call Policy** öffnen ein Formular in Mattermost. Eine Notiz zu einem Vorfall oder einem geplanten Wartungsereignis kann öffentlich sein, also auf der Statusseite erscheinen, oder privat; eine Notiz zu einem privaten Vorfall ist immer privat, und eine zu einer Warnung ebenfalls immer. Jede Nachricht hat außerdem einen Link, der ihren Datensatz in OneUptime öffnet, für alles andere.
+**Add Note**, **Change State**, **Change Severity** und **Execute On-Call Policy** öffnen ein Formular in Mattermost. Eine Notiz zu einem Vorfall oder einem geplanten Wartungsereignis kann öffentlich sein, also auf der Statusseite erscheinen, oder privat; eine Notiz zu einem privaten Vorfall ist immer privat, und eine zu einer Warnung ebenfalls immer. Jede Nachricht hat außerdem einen Link, der ihren Datensatz in OneUptime öffnet, für alles andere. Wenn öffentliche Notizen im Projekt eine Genehmigung brauchen, wartet eine öffentliche Notiz aus dem Formular darauf, und eine Nachricht, die nur Sie sehen, sagt, auf wen sie wartet: siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen).
 
 Ist Ihr Mattermost-Konto noch nicht verbunden, sagt Ihnen eine Schaltfläche das, mit einem Link zu **Benutzereinstellungen** > **Arbeitsbereich** > **Mattermost**. Verbinden Sie Ihr Konto und drücken Sie die Schaltfläche dann erneut.
 

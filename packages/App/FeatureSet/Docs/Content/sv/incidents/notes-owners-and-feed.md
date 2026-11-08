@@ -169,7 +169,7 @@ Har du anslutit en arbetsyta behöver de som ingriper aldrig lämna kanalen. Bå
 Tre detaljer som är värda att känna till:
 
 - **Skydd mot dubbletter** — varje anteckning registrerar Slack-meddelandet som den kom från (`postedFromSlackMessageId`, i formatet `channel_id:message_ts`), så att flera personer som reagerar på samma meddelande ger en anteckning, inte fem.
-- **Anteckningar ekar tillbaka** — att publicera båda sorternas anteckningar skickar också ett meddelande in i den anslutna incidentkanalen, eftersom anteckningens flödespost skapas med aviseringar till arbetsytan påslagna.
+- **Anteckningar ekar tillbaka** — att publicera båda sorternas anteckningar skickar också ett meddelande in i den anslutna incidentkanalen, eftersom anteckningens flödespost skapas med aviseringar till arbetsytan påslagna. En offentlig anteckning som väntar på godkännande skickas dit när den har publicerats: se [Godkännande av offentliga anteckningar](#godkännande-av-offentliga-anteckningar).
 - **Publicerad som den som frågade** — en anteckning från dialogen eller från en reaktion publiceras med den personens OneUptime-behörigheter, så den kräver personens behörighet att publicera den sortens anteckning på incidenten. Avvisas den får personen veta varför — i ett direktmeddelande i Slack, och i konversationen i Microsoft Teams (i meddelandets tråd, vid en reaktion) — och inget publiceras.
 
 ## När en offentlig anteckning faktiskt når prenumeranterna
@@ -239,6 +239,32 @@ Bara incidentens avisering 'skapad' fortsätter där den stannade: den håller r
 En skickad uppdatering erbjuds inte igen: redigera anteckningen med kryssrutan ikryssad för att skicka den senaste texten, eller skicka själva anteckningen igen. Har den ursprungliga aviseringen inte skickats än går ingen separat uppdatering ut — den ursprungliga tar med sig redigeringen. Håller den på att skickas just då väntar uppdateringen tills den är klar och går sedan ut. Kryssrutan och uppdateringens **Försök med meddelandet igen** kräver samma behörigheter som att skicka anteckningens avisering igen; utan dem kan du fortfarande redigera anteckningen, utan att meddela någon. Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers#avisera-prenumeranter-om-en-redigering).
 
 Det faktiska meddelandet som prenumeranterna får byggs med en mall per statussida och per kanal — e-post, sms, Slack och Microsoft Teams har var sin mall för händelsen **Subscriber Incident Note Created**, med variabler för statussidans namn och URL, länken till detaljerna, de berörda resurserna, incidentens allvarlighetsgrad och titel, anteckningens text, incidentens etiketter, berörda statussidor och anpassade fält, och en avregistreringslänk per prenumerant. Standardmeddelandena via e-post, i Slack och i Microsoft Teams visar också incidentens anpassade fält som är markerade med **Ta med i aviseringar till prenumeranter**, med deras aktuella värden. Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers) för hur de mallarna och kanalerna konfigureras.
+
+## Godkännande av offentliga anteckningar
+
+Ett projekt kan låta sina offentliga anteckningar godkännas innan kunderna läser dem, så att någon kontrollerar en uppdatering, till exempel om ett säkerhetsintrång, innan den går ut. Godkännande är avstängt tills en projektägare eller -administratör slår på det och väljer vem som godkänner: under **Incidenter → Inställningar → Godkännande av offentliga anteckningar** för incidenter och incidentepisoder, och under **Schemalagt underhåll → Inställningar → Godkännande av offentliga anteckningar** för schemalagda underhållshändelser. Se [Godkännande av offentliga anteckningar](/docs/incidents/settings#godkännande-av-offentliga-anteckningar).
+
+Medan det är påslaget säger redigeraren att anteckningen publiceras när den har godkänts och nämner vem som godkänner den, och **Publicera uppdatering** blir **Skicka för godkännande**. Anteckningen sparas med märket **Väntar på godkännande** och visar under det vem som kan godkänna den och, när det finns flera steg, vilket den väntar på. Tills den har godkänts gäller för en anteckning att den:
+
+- inte visas på någon statussida och inte i något av deras RSS- och Atom-flöden;
+- inte meddelar någon prenumerant: dess avisering skickas när den publiceras, om **Avisera statussidans prenumeranter** var ikryssad. Se [Offentliga anteckningar som väntar på godkännande](/docs/status-pages/subscribers#offentliga-anteckningar-som-väntar-på-godkännande);
+- inte publiceras i incidentens Slack-, Microsoft Teams- eller Mattermost-kanaler, och att dess ägare får veta om den först när den har publicerats;
+- inte startar något arbetsflöde och hålls utanför det OneUptime AI läser, så att den aldrig dyker upp i en utkastanteckning;
+- bara visar sina bilder för projektets medlemmar.
+
+Varje ny offentlig anteckning väntar, var den än skrivs: i instrumentpanelen, via API:et, av ett arbetsflöde eller OneUptime AI, från Slack, Microsoft Teams eller Mattermost, av en SLA-regels påminnelse eller tillsammans med ett tillståndsbyte.
+
+**Godkänna och avvisa.** De personer som steget en anteckning väntar på nämner, och medlemmarna i de team det nämner, ser **Godkänn** och **Avvisa** på anteckningen och får veta att den väntar genom de aviseringsinställningar de har valt: se [Godkännande av offentliga anteckningar](/docs/notifications/notification-settings#godkännande-av-offentliga-anteckningar). På det sista steget heter **Godkänn** i stället **Godkänn och publicera**, och anteckningen publiceras direkt, daterad till ögonblicket den publiceras, om inte dess tid valdes när den skrevs. När den har publicerats bär den märket **Godkänd** och en rad som nämner vem som godkände den, och dess post i flödet och dess meddelande i incidentens kanaler slutar med samma namn. **Avvisa** frågar **Varför avvisar du den?**, och den som skrev anteckningen ser skälet. Ingen godkänner eller avvisar en anteckning som de själva har skickat, ingen godkänner två steg av samma anteckning, och en API-nyckel godkänner ingenting: godkännare är människor.
+
+**Skicka den igen.** En avvisad anteckning hålls borta från statussidor, märkt **Avvisad**. Den som får redigera den kan ändra den eller skicka den som den är med **Skicka för godkännande igen**; i båda fallen börjar dess godkännande om från det första steget. Att redigera en anteckning som fortfarande väntar startar också om dess godkännande: ett godkännande gäller de ord det fick sig förelagda.
+
+**Redigera en publicerad anteckning.** En redigering väntar också. Redigeringsformuläret säger det, och **Skicka redigering för godkännande** sparar den. Statussidor fortsätter att visa anteckningen som den godkändes, anteckningen visar redigeringen under **Föreslagen redigering**, märkt **Redigering väntar på godkännande** eller, när den har avvisats, **Redigering avvisad**, och **Dra tillbaka redigering** kastar den. Filerna på en publicerad anteckning kan inte ändras medan godkännande är påslaget: publicera i stället en ny anteckning med filerna. En redigering som skickas medan någon tar ställning till anteckningen sparas inte: ladda om sidan och gör den igen.
+
+**Stänga av godkännande.** Från och med då publiceras nya anteckningar så snart de skrivs in. En anteckning som fortfarande väntade eller avvisades erbjuder **Publicera nu** till dem som får redigera den, vilket publicerar den som den är, utan godkännande, och flödet säger det.
+
+**Från Slack, Microsoft Teams och Mattermost.** Formuläret för att lägga till en anteckning säger att en offentlig anteckning publiceras på statussidan när den har godkänts. Den som skickar en får veta att den har skickats för godkännande och vem den väntar på: i ett meddelande som bara den personen ser i Slack och Mattermost, och i konversationen i Microsoft Teams. En anteckning som sparas från en 📣- eller 📢-reaktion säger samma sak i sin bekräftelse. Kanalen får höra om anteckningen när den publiceras.
+
+Flödet registrerar varje steg som en post av typen `PublicNoteApproval`: en anteckning skickad för godkännande, godkänd eller avvisad, en tillbakadragen redigering eller en anteckning publicerad utan godkännande. Dessa poster publiceras inte i chattkanaler; den publicerade anteckningen gör det.
 
 ## Incidentens flöde
 

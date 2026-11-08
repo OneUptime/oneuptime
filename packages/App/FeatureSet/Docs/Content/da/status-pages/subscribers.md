@@ -329,6 +329,14 @@ Via API'et sender du valget ved siden af de felter, du ændrer, i `miscDataProps
 
 som brødtekst til `PUT /api/status-page-announcement/<announcement-id>` (eller `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Udelad `miscDataProps`, og redigeringen er stille, som før.
 
+### Offentlige noter, der venter på godkendelse
+
+Et projekt kan få offentlige noter godkendt, før de offentliggøres: se [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter). En note, der venter, giver ingen abonnent besked. Dens notifikation sendes, når den offentliggøres, ligesom for en note, der slås op i det øjeblik, og kun hvis dens valg ved **Underret statussideabonnenter** siger det; en afvist note sendes aldrig. Indtil da har den ingen notifikation at prøve igen eller sende igen.
+
+En redigering af en offentliggjort note venter også. Var **Underret abonnenter om denne opdatering** markeret, sendes dens opdatering, når redigeringen er godkendt, og aldrig, hvis redigeringen afvises eller trækkes tilbage.
+
+Et tilstandsskift, der sendes med en offentlig note, som venter på godkendelse, bæres ikke af noten: tilstandsskiftet giver selv abonnenterne besked, som det ville uden note, og noten følger efter, når den er offentliggjort.
+
 ## Sproget i beskeder til abonnenter
 
 Hver abonnent får sine beskeder på sit eget sprog: den e-mail eller sms, der bekræfter abonnementet, velkomsten og linket til at administrere det, hver notifikation om en hændelse, en hændelsesepisode, en planlagt vedligeholdelsesbegivenhed eller en meddelelse, via e-mail, sms, Slack og Microsoft Teams, og e-mailrapporten.

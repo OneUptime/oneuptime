@@ -169,7 +169,7 @@ Har du forbundet et arbejdsområde, behøver de, der reagerer, aldrig at forlade
 Tre detaljer, der er værd at kende:
 
 - **Beskyttelse mod dubletter** — hver note registrerer den Slack-besked, den kom fra (`postedFromSlackMessageId`, i formatet `channel_id:message_ts`), så flere personer, der reagerer på den samme besked, giver én note, ikke fem.
-- **Noter vender tilbage** — at slå begge slags noter op sender også en besked ind i den forbundne hændelseskanal, fordi notens feedpost oprettes med notifikation til arbejdsområdet slået til.
+- **Noter vender tilbage** — at slå begge slags noter op sender også en besked ind i den forbundne hændelseskanal, fordi notens feedpost oprettes med notifikation til arbejdsområdet slået til. En offentlig note, der venter på godkendelse, sendes derind, når den er offentliggjort: se [Godkendelse af offentlige noter](#godkendelse-af-offentlige-noter).
 - **Slået op som den, der bad om det** — en note fra dialogen eller fra en reaktion slås op med den persons OneUptime-tilladelser, så det kræver vedkommendes tilladelse til at slå den slags note op på hændelsen. Afvises den, får vedkommende at vide hvorfor — i en direkte besked i Slack og i samtalen i Microsoft Teams (i beskedens tråd, ved en reaktion) — og intet slås op.
 
 ## Hvornår en offentlig note faktisk når abonnenterne
@@ -239,6 +239,32 @@ Kun hændelsens notifikation 'oprettet' fortsætter, hvor den stoppede: den hold
 En sendt opdatering tilbydes ikke igen: rediger noten med afkrydsningsfeltet markeret for at sende den seneste tekst, eller send selve noten igen. Er den oprindelige notifikation ikke sendt endnu, går der ingen separat opdatering ud — den oprindelige tager redigeringen med. Er den ved at blive sendt lige da, venter opdateringen, til den er færdig, og går så ud. Afkrydsningsfeltet og opdateringens **Prøv meddelelse igen** kræver de samme tilladelser som at sende notens notifikation igen; uden dem kan du stadig redigere noten uden at give nogen besked. Se [Abonnenter og meddelelser](/docs/status-pages/subscribers#giv-abonnenter-besked-om-en-redigering).
 
 Den faktiske besked, abonnenterne får, bygges med en skabelon pr. statusside og pr. kanal — e-mail, SMS, Slack og Microsoft Teams har hver deres skabelon til begivenheden **Subscriber Incident Note Created**, med variabler for statussidens navn og URL, linket til detaljerne, de berørte ressourcer, hændelsens alvorsgrad og titel, notens tekst, hændelsens etiketter, berørte statussider og brugerdefinerede felter samt et afmeldingslink pr. abonnent. Standardbeskederne pr. e-mail, i Slack og i Microsoft Teams viser også hændelsens brugerdefinerede felter, der er markeret med **Medtag i abonnentnotifikationer**, med deres aktuelle værdier. Se [Abonnenter og meddelelser](/docs/status-pages/subscribers) for, hvordan de skabeloner og kanaler sættes op.
+
+## Godkendelse af offentlige noter
+
+Et projekt kan få sine offentlige noter godkendt, før kunderne læser dem, så nogen tjekker en opdatering, for eksempel om et sikkerhedsbrud, før den går ud. Godkendelse er slået fra, indtil en projektejer eller -administrator slår den til og vælger, hvem der godkender: under **Hændelser → Indstillinger → Godkendelse af offentlige noter** for hændelser og hændelsesepisoder, og under **Planlagt vedligeholdelse → Indstillinger → Godkendelse af offentlige noter** for planlagte vedligeholdelsesbegivenheder. Se [Godkendelse af offentlige noter](/docs/incidents/settings#godkendelse-af-offentlige-noter).
+
+Mens den er slået til, siger editoren, at noten offentliggøres, når den er godkendt, og nævner, hvem der godkender den, og **Slå opdatering op** bliver til **Send til godkendelse**. Noten gemmes med mærket **Venter på godkendelse** og viser under det, hvem der kan godkende den, og ved flere trin, hvilket den venter på. Indtil den er godkendt, gælder det for en note, at den:
+
+- ikke vises på nogen statusside og ikke i nogen af deres RSS- og Atom-feeds;
+- ikke giver nogen abonnent besked: dens notifikation sendes, når den offentliggøres, hvis **Giv abonnenter på statussiden besked** var markeret. Se [Offentlige noter, der venter på godkendelse](/docs/status-pages/subscribers#offentlige-noter-der-venter-på-godkendelse);
+- ikke slås op i hændelsens Slack-, Microsoft Teams- eller Mattermost-kanaler, og at dens ejere først får besked om den, når den er offentliggjort;
+- ikke starter nogen workflow og holdes uden for det, OneUptime AI læser, så den aldrig dukker op i en udkastnote;
+- kun viser sine billeder til projektets medlemmer.
+
+Enhver ny offentlig note venter, uanset hvor den skrives: i dashboardet, gennem API'et, af en workflow eller OneUptime AI, fra Slack, Microsoft Teams eller Mattermost, af en SLA-regels påmindelse eller sammen med et tilstandsskift.
+
+**Godkende og afvise.** De personer, som det trin, en note venter på, nævner, og medlemmerne af de teams, det nævner, ser **Godkend** og **Afvis** på noten og får besked om, at den venter, gennem de notifikationsindstillinger, de har valgt: se [Godkendelse af offentlige noter](/docs/notifications/notification-settings#godkendelse-af-offentlige-noter). På det sidste trin hedder **Godkend** i stedet **Godkend og offentliggør**, og noten offentliggøres med det samme, dateret til det øjeblik, den offentliggøres, medmindre dens tidspunkt blev valgt, da den blev skrevet. Når den er offentliggjort, bærer den mærket **Godkendt** og en linje, der nævner, hvem der godkendte den, og dens post i feedet og dens besked i hændelsens kanaler slutter med de samme navne. **Afvis** spørger **Hvorfor afviser du den?**, og den, der skrev noten, ser begrundelsen. Ingen godkender eller afviser en note, de selv har sendt, ingen godkender to trin af den samme note, og en API-nøgle godkender intet: godkendere er mennesker.
+
+**Send den igen.** En afvist note holdes væk fra statussider, markeret **Afvist**. Den, der må redigere den, kan ændre den eller sende den, som den er, med **Send til godkendelse igen**; i begge tilfælde begynder dens godkendelse forfra fra det første trin. At redigere en note, der stadig venter, starter også dens godkendelse forfra: en godkendelse gælder de ord, den fik forelagt.
+
+**Rediger en offentliggjort note.** En redigering venter også. Redigeringsformularen siger det, og **Send redigering til godkendelse** gemmer den. Statussider bliver ved med at vise noten, som den blev godkendt, noten viser redigeringen under **Foreslået redigering**, markeret **Redigering venter på godkendelse** eller, når den er afvist, **Redigering afvist**, og **Træk redigering tilbage** kasserer den. Filerne på en offentliggjort note kan ikke ændres, mens godkendelse er slået til: slå i stedet en ny note op med filerne. En redigering, der sendes, mens nogen tager stilling til noten, gemmes ikke: genindlæs siden, og lav den igen.
+
+**Slå godkendelse fra.** Fra da af offentliggøres nye noter, så snart de slås op. En note, der stadig ventede eller blev afvist, tilbyder **Offentliggør nu** til dem, der må redigere den, hvilket offentliggør den, som den er, uden godkendelse, og feedet siger det.
+
+**Fra Slack, Microsoft Teams og Mattermost.** Formularen til at tilføje en note siger, at en offentlig note slås op på statussiden, når den er godkendt. Den, der sender en, får at vide, at den er sendt til godkendelse, og hvem den venter på: i en besked, kun vedkommende kan se, i Slack og Mattermost, og i samtalen i Microsoft Teams. En note, der gemmes fra en 📣- eller 📢-reaktion, siger det samme i sin bekræftelse. Kanalen hører om noten, når den offentliggøres.
+
+Feedet registrerer hvert trin som en post af typen `PublicNoteApproval`: en note sendt til godkendelse, godkendt eller afvist, en trukket redigering eller en note offentliggjort uden godkendelse. Disse poster slås ikke op i chatkanaler; den offentliggjorte note gør.
 
 ## Hændelsens feed
 

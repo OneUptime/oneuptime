@@ -156,7 +156,7 @@ OneUptime 이 인시던트, 경고, 에피소드, 예정된 유지 관리 이벤
 | 반응 | 저장 형식 |
 | --- | --- |
 | 📌 또는 📍 | 팀만 볼 수 있는 비공개 메모 |
-| 📣 또는 📢 | 상태 페이지에 표시되는 공개 메모. 인시던트와 예정된 유지 관리 이벤트만 해당합니다. 비공개 인시던트에서는 비공개 노트가 되며, 확인 메시지가 그 이유를 알려 줍니다. |
+| 📣 또는 📢 | 상태 페이지에 표시되는 공개 메모. 인시던트와 예정된 유지 관리 이벤트만 해당합니다. 비공개 인시던트에서는 비공개 노트가 되며, 확인 메시지가 그 이유를 알려 줍니다. 프로젝트의 공개 메모에 승인이 필요하면 승인된 뒤에 표시되며, 확인 메시지가 누구를 기다리는지 알려 줍니다. [공개 노트 승인](/docs/incidents/notes-owners-and-feed#공개-노트-승인)을 참고하세요. |
 
 메모에는 Microsoft Teams 에서 보이던 그대로의 메시지가 담깁니다. 서식, 링크와 코드, 이름으로 표시된 멘션된 사람, 그리고 파일과 이미지로 가는 링크입니다. 공개 메모에는 파일과 이미지가 빠집니다. 팀에서만 열리기 때문입니다.
 
@@ -266,7 +266,7 @@ OneUptime 카드의 버튼은 개인 채팅, 채널, 그룹 채팅 어디서든 
 
 - **사용할 수 있는 사람.** OneUptime 에서 같은 변경을 할 수 있는 사람입니다. 인시던트를 인지, 해결하거나 상태를 변경하려면 그 상태를 변경할 권한이 필요합니다. **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **인시던트 관리자**, **인시던트 구성원**, 또는 사용자 지정 역할의 **Create Incident State Timeline** 입니다. 경고, 에피소드, 예정된 유지 관리 이벤트에는 각 종류에 맞는 같은 권한 (예: **Create Alert State Timeline** ) 이 필요하고, 메모에는 그 종류의 메모를 게시할 권한이 필요합니다. OneUptime 의 상태 패널과 마찬가지로, 인시던트나 경고 자체를 편집할 권한은 요구하지 않습니다. 그 밖의 사람에게는 그렇게 알리며 아무것도 바뀌지 않습니다.
 - **대상 레코드.** OneUptime 에서와 마찬가지로 그 사람이 읽을 수 있는 레코드입니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 인시던트, 경고, 에피소드, 이벤트입니다. 다른 레코드의 버튼은 이유를 알려 주며 아무것도 바뀌지 않습니다. 그 사람의 역할이 미치지 않는 인시던트에서는 "your access in this project does not include this incident. Ask a project admin for access to it.", 그 사람이 소유자가 아닌 비공개 인시던트에서는 "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.", 그 사이 삭제된 인시던트에서는 "the incident was not found. It may have been deleted." 라는 응답이 옵니다. OneUptime Cloud 에서는 프로젝트의 플랜에 포함되지 않은 변경은 필요한 플랜과 함께 거부됩니다.
-- **Change State 가 제공하는 것.** 그 사람이 읽을 수 있는 상태 중 레코드가 다음으로 옮겨 갈 수 있는 상태를 프로젝트의 순서대로 제공합니다. 현재 상태보다 앞선 상태는 없습니다. 이는 인시던트, 경고, 예정된 유지 관리 이벤트와 마찬가지로 에피소드에도 적용되는데, 상태 변경으로 레코드가 목록의 위쪽으로 되돌아가는 일은 없기 때문입니다 ( [순서는 표시 취향이 아니라 실제 제약입니다](/docs/incidents/states-and-severities#순서는-표시-취향이-아니라-실제-제약입니다) 참조). 읽을 수 있는 상태가 하나도 없으면 봇은 "No incident states are available to you in this project. Ask a project admin for access to them." 라고 말하고, 레코드가 도달할 수 있는 마지막 상태에 있으면 "There is no later state to move this incident to." 라고 말합니다. 어느 경우에도 빈 카드는 표시되지 않습니다.
+- **Change State 가 제공하는 것.** 그 사람이 읽을 수 있는 상태 중 레코드가 다음으로 옮겨 갈 수 있는 상태를 프로젝트의 순서대로 제공합니다. 현재 상태보다 앞선 상태는 없습니다. 이는 인시던트, 경고, 예정된 유지 관리 이벤트와 마찬가지로 에피소드에도 적용되는데, 상태 변경으로 레코드가 목록에서 다시 위로 올라가는 일은 없기 때문입니다([순서는 실제 제약입니다](/docs/incidents/states-and-severities#순서는-표시-취향이-아니라-실제-제약입니다) 참고). 읽을 수 있는 상태가 하나도 없으면 봇은 "No incident states are available to you in this project. Ask a project admin for access to them." 라고 말하고, 레코드가 도달할 수 있는 마지막 상태에 있으면 "There is no later state to move this incident to." 라고 말합니다. 어느 경우에도 빈 카드는 표시되지 않습니다.
 - **비공개 인시던트의 Add Note.** 비공개 인시던트에는 공개 노트를 추가할 수 없으므로, 카드는 노트 유형을 묻지 않고 비공개 노트를 추가합니다. 비공개가 되기 전에 보낸 카드도 비공개 노트를 추가하고, 그렇다고 알려 줍니다. [비공개 인시던트에는 비공개 노트만](/docs/incidents/notes-owners-and-feed#비공개-인시던트에는-비공개-노트만) 섹션을 참고하세요.
 - **Escalate.** 카드의 **Escalate** 는 카드가 다루는 인시던트, 경고, 에피소드에 대해 그 온콜 정책을, 누른 사람으로서 **Execute On-Call Policy** 와 같은 권한으로 실행합니다. 그중 어느 것도 다루지 않는 카드에는 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 라는 응답이 오며, 아무도 호출되지 않습니다.
 - **답변을 받는 곳.** 같은 대화 (채널에서는 카드의 스레드) 에서 그 사람을 멘션하는 답글로 받으므로 Microsoft Teams 가 그 사람에게 알립니다. 너무 늦게 누른 버튼은 누가 언제 먼저 했는지 알려 줍니다. 예: "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."

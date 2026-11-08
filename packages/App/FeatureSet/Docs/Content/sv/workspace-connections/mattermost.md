@@ -131,7 +131,7 @@ OneUptimes meddelanden har knappar, och en meny **More actions** för det som f�
 | **Incidentepisod, larmepisod** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Schemalagt underhåll** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** och **Execute On-Call Policy** öppnar ett formulär i Mattermost. En anteckning på en incident eller en schemalagd underhållshändelse kan vara offentlig, och visas då på statussidan, eller privat; en anteckning på en privat incident är alltid privat, och en anteckning på ett larm är också alltid privat. Varje meddelande har också en länk som öppnar dess post i OneUptime, för allt annat.
+**Add Note**, **Change State**, **Change Severity** och **Execute On-Call Policy** öppnar ett formulär i Mattermost. En anteckning på en incident eller en schemalagd underhållshändelse kan vara offentlig, och visas då på statussidan, eller privat; en anteckning på en privat incident är alltid privat, och en anteckning på ett larm är också alltid privat. Varje meddelande har också en länk som öppnar dess post i OneUptime, för allt annat. När projektets offentliga anteckningar kräver godkännande väntar en offentlig anteckning från formuläret på det, och ett meddelande som bara du ser säger vem den väntar på: se [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar).
 
 Om ditt Mattermost-konto inte är anslutet än säger en knapp det, med en länk till **Användarinställningar** > **Arbetsyta** > **Mattermost**. Anslut ditt konto och tryck sedan på knappen igen.
 

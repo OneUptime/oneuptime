@@ -94,6 +94,10 @@ Estos recordatorios son para tu equipo. Los recordatorios que reciben los suscri
 
 **Mantenimiento programado → Ajustes → Plantillas de notas** guarda textos listos para las actualizaciones de mantenimiento. La tarjeta **Plantillas de notas públicas o privadas para eventos de mantenimiento programado** los lista; **Crear Plantilla de nota de mantenimiento programado** pide un **Nombre de la plantilla**, una **Descripción de la plantilla** y la **Nota**. Se ofrece una plantilla cuando alguien escribe una nota pública o privada en un evento y cuando cambia su estado, y su texto se puede editar antes de publicarlo. A diferencia de las plantillas de notas de incidentes, las plantillas de notas de mantenimiento no rellenan variables.
 
+### Aprobación de notas públicas
+
+**Mantenimiento programado → Ajustes → Aprobación de notas públicas** hace que las notas públicas de los eventos de mantenimiento programado se aprueben antes de publicarse. Funciona como la página de los incidentes, con su propio interruptor y sus propios pasos: activa **Exigir aprobación antes de publicar las notas públicas** y elige quién aprueba en **Quién aprueba**. Así, las notas de mantenimiento pueden necesitar aprobación mientras las de incidentes no, o aprobarlas otras personas. Solo **Propietario del proyecto** y **Administrador del proyecto** pueden cambiarla. Consulta [Aprobación de notas públicas](/docs/incidents/settings#aprobación-de-notas-públicas) para los pasos, y [Aprobación de notas públicas](/docs/incidents/notes-owners-and-feed#aprobación-de-notas-públicas) para lo que hace una nota mientras espera.
+
 ### Campos personalizados
 
 **Mantenimiento programado → Ajustes → Campos personalizados** añade campos propios a cada evento, como una solicitud de cambio o un nivel de cliente. Rellénalos en la página **Campos personalizados** de un evento, o mediante la API como `customFields`. Un campo puede copiar su valor de un campo personalizado de un monitor en lugar de escribirse: consulta [Campos copiados de un monitor](/docs/incidents/settings#campos-copiados-de-un-monitor), que funciona igual para los eventos.

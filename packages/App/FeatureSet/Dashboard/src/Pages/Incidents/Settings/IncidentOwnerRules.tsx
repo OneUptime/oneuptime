@@ -85,12 +85,14 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
 ): ReactElement => {
   /*
    * Who owns each rule - who alone may change it, not the owners it adds to
-   * incidents: its column, its form field and its row locks.
+   * incidents: its column, its form field and its row locks, and on the
+   * rule's own page its Edit and Delete locks.
    */
   const owningTeams: RuleOwningTeamsTable<IncidentOwnerRule> =
     useRuleOwningTeams<IncidentOwnerRule>({
       ruleModelType: IncidentOwnerRule,
       owningTeamModelType: IncidentOwnerRuleOwningTeam,
+      viewRuleId: props.viewRuleId,
     });
 
   return (
@@ -100,6 +102,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
       getEditDisabledReason={owningTeams.getEditDisabledReason}
       getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
       onEditFormItemFetched={owningTeams.onEditFormItemFetched}
+      ruleOwnership={owningTeams.viewRuleOwnership}
       viewRuleId={props.viewRuleId}
       listRoute={RuleViewPageUtil.getListRoute(
         PageMap.INCIDENTS_SETTINGS_OWNER_RULES,

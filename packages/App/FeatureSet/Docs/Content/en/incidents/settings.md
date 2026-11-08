@@ -164,6 +164,25 @@ The same list, button and `{{` come with the other templates that have variables
 
 Note templates surface where you actually need them: the **Acknowledge Incident** and **Resolve Incident** confirmation dialogs both offer **Select Note Template** above the **Public Note** field, folded under **Add a public note**. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for how public and private notes differ.
 
+## Public note approval
+
+**Public Note Approval** has public notes on incidents and incident episodes approved before they are published, for the updates that need a second pair of eyes before customers read them. It is off in every project until you turn it on.
+
+:::steps
+1. Go to **Incidents → Settings → Public Note Approval** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Under **Who Approves**, click **Add Approval Step** and pick the step's **Approvers**: people, teams or both, any one of whom can approve a note for the step. A **Name**, such as Legal, is optional: notes waiting for the step show it.
+3. Turn on **Require approval before public notes are published**. From then on, a new public note, and an edit of a published one, waits until it is approved.
+:::
+
+Most projects need one step. Add another when a note needs a second approval, for example from your legal team after your support lead. Steps are approved in the order of the list, which you drag to reorder, and a note is published when the last one approves it.
+
+- **Every step names somebody.** A step needs at least one person or team, and approval cannot be turned on until a step names somebody.
+- **The last step stays while approval is on.** To delete it, turn approval off first, or add another step.
+- **Changes count at once.** Who may approve is read when somebody decides. Adding a person to a step, or to a team a step names, lets them decide on the notes already waiting; taking them off takes that away. A note keeps the approvals it has.
+- **Nobody approves their own note, or two steps of one note.** Whoever sent a note for approval cannot approve or reject it, and whoever approved one of its steps cannot approve another.
+
+Only project owners and admins can change these settings, and everyone who reads the notes can see who approves them. **Scheduled Maintenance → Settings → Public Note Approval** is the same page for scheduled maintenance events, with a switch and steps of its own. What a note does while it waits, and how approvers decide, is under [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
+
 ## Postmortem templates
 
 A postmortem template is the skeleton of the write-up you produce after an incident — your headings, your prompts, your standing questions — so every review in the project follows the same shape.

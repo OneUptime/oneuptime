@@ -131,7 +131,7 @@ OneUptime 의 메시지에는 버튼과, 덜 쓰이는 작업을 위한 **More a
 | **인시던트 에피소드, 경고 에피소드** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **예정된 유지 관리** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity**, **Execute On-Call Policy** 는 Mattermost 에서 양식을 엽니다. 인시던트나 예정된 유지 관리 이벤트의 메모는 상태 페이지에 표시되는 공개 메모일 수도 있고 비공개 메모일 수도 있습니다. 비공개 인시던트의 메모는 항상 비공개이며, 경고의 메모도 항상 비공개입니다. 모든 메시지에는 OneUptime 에서 해당 레코드를 여는 링크도 있어, 그 밖의 모든 작업은 거기서 할 수 있습니다.
+**Add Note**, **Change State**, **Change Severity**, **Execute On-Call Policy** 는 Mattermost 에서 양식을 엽니다. 인시던트나 예정된 유지 관리 이벤트의 메모는 상태 페이지에 표시되는 공개 메모일 수도 있고 비공개 메모일 수도 있습니다. 비공개 인시던트의 메모는 항상 비공개이며, 경고의 메모도 항상 비공개입니다. 모든 메시지에는 OneUptime 에서 해당 레코드를 여는 링크도 있어, 그 밖의 모든 작업은 거기서 할 수 있습니다. 프로젝트의 공개 메모에 승인이 필요하면 양식에서 보낸 공개 메모는 승인을 기다리며, 나만 보는 메시지가 누구를 기다리는지 알려 줍니다. [공개 노트 승인](/docs/incidents/notes-owners-and-feed#공개-노트-승인)을 참고하세요.
 
 Mattermost 계정이 아직 연결되어 있지 않으면 버튼이 **사용자 설정** > **워크스페이스** > **Mattermost** 링크와 함께 그렇다고 알려 줍니다. 계정을 연결한 다음 버튼을 다시 누르세요.
 
