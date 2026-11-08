@@ -4,7 +4,7 @@ Les budgets d'erreur vous disent où vous en êtes ; les règles de taux de cons
 
 :::cards
 - [Comment une règle décide](#comment-une-règle-décide-de-se-déclencher): Deux fenêtres, toutes deux au-dessus du seuil.
-- [Règles par défaut](#règles-par-défaut): Fast burn et Slow burn, adaptées à la fenêtre du SLO.
+- [Règles par défaut](#règles-par-défaut): Fast burn, Slow burn et Slow leak, adaptées à la fenêtre du SLO.
 - [Créer une règle](#créer-ou-modifier-une-règle): Cinq étapes sur la page Règles de taux de consommation du SLO.
 - [Variables de modèle](#ce-que-dit-chaque-alerte-et-chaque-incident): Écrivez vos propres titres et descriptions.
 :::
@@ -46,18 +46,21 @@ flowchart TB
     short -->|"Oui"| fire["Déclencher l'alerte,<br/>déclarer l'incident,<br/>ou les deux"]
 ```
 
-Une règle ne peut pas se déclencher tant que le SLO n'a pas une fenêtre longue complète d'historique de surveillance : sinon, la toute première vérification ratée d'un moniteur, divisée par quelques minutes d'historique, donnerait un taux de consommation énorme. Un nouveau SLO ne peut donc pas déclencher sa règle **Fast burn** pendant sa première heure, ni sa règle **Slow burn** pendant ses six premières. Si un SLO n'a plus autant d'historique plus tard, par exemple après le remplacement de ses moniteurs par de nouveaux, la règle résout ce qu'elle a d'ouvert au lieu de le laisser en suspens. Une règle ne se déclenche pas non plus tant que l'un des moniteurs du SLO est en maintenance planifiée : voir [Maintenance planifiée](#maintenance-planifiée).
+Une règle ne peut pas se déclencher tant que le SLO n'a pas une fenêtre longue complète d'historique de surveillance : sinon, la toute première vérification ratée d'un moniteur, divisée par quelques minutes d'historique, donnerait un taux de consommation énorme. Un nouveau SLO ne peut donc pas déclencher sa règle **Fast burn** pendant sa première heure, ni sa règle **Slow burn** pendant ses six premières, ni sa règle **Slow leak** pendant ses trois premiers jours. Si un SLO n'a plus autant d'historique plus tard, par exemple après le remplacement de ses moniteurs par de nouveaux, la règle résout ce qu'elle a d'ouvert au lieu de le laisser en suspens. Une règle ne se déclenche pas non plus tant que l'un des moniteurs du SLO est en maintenance planifiée : voir [Maintenance planifiée](#maintenance-planifiée).
 
 ## Règles par défaut
 
-Chaque nouveau SLO reçoit deux règles de taux de consommation. Pour une fenêtre de 30 jours :
+Chaque nouveau SLO reçoit trois règles de taux de consommation. Pour une fenêtre de 30 jours :
 
 | Règle | Seuil | Fenêtre longue | Fenêtre courte | Se déclenche quand |
 | --- | --- | --- | --- | --- |
 | **Fast burn** | 14.4× | 1 heure | 5 minutes | Environ 2 % du budget est consommé en une heure : il serait épuisé en environ 2 jours. |
 | **Slow burn** | 6× | 6 heures | 30 minutes | Environ 5 % du budget est consommé en six heures : il serait épuisé en environ 5 jours. |
+| **Slow leak** | 1× | 3 jours | 6 heures | Environ 10 % du budget est consommé en trois jours : il serait épuisé d'ici la fin de la fenêtre. |
 
-Les seuils de 14.4× et 6× sont calculés pour un budget de 30 jours, OneUptime les adapte donc à la fenêtre de votre SLO. Chaque règle signifie toujours « 2 % du budget en 1 heure » ou « 5 % du budget en 6 heures » :
+Fast burn et Slow burn servent à alerter quelqu'un : elles déclenchent une alerte à la gravité d'alerte la plus élevée du projet. Slow leak sert de ticket : elle déclenche son alerte à la gravité d'alerte la plus basse du projet. Elle repère une consommation régulière qui n'atteint jamais le seuil des deux autres : à 3×, le budget d'un SLO à 99,9 % est épuisé en 10 jours, et pourtant seule Slow leak se déclenche. Après la résolution de son alerte, elle attend 24 heures, et non sa fenêtre longue de 3 jours, avant d'en déclencher une autre.
+
+Les seuils sont calculés pour un budget de 30 jours, OneUptime les adapte donc à la fenêtre de votre SLO. Fast burn et Slow burn signifient toujours « 2 % du budget en 1 heure » et « 5 % du budget en 6 heures » :
 
 | Fenêtre du SLO | Seuil Fast burn | Seuil Slow burn |
 | --- | --- | --- |
@@ -66,7 +69,22 @@ Les seuils de 14.4× et 6× sont calculés pour un budget de 30 jours, OneUptime
 | 30 jours | 14.4× | 6× |
 | 90 jours | 43.2× | 18× |
 
-Les SLO par mois calendaire reçoivent les valeurs de 30 jours. Les deux règles déclenchent une alerte à la gravité d'alerte la plus élevée du projet, avec le titre et la description intégrés, la résolvent automatiquement et n'ajoutent ni propriétaires ni étiquettes. Elles ne déclarent pas d'incidents, une mise à niveau de OneUptime ne se met donc jamais à déclarer des incidents à votre place. Modifiez-les, supprimez-les ou ajoutez les vôtres.
+Slow leak signifie toujours « 10 % du budget sur sa fenêtre longue ». Sur une fenêtre de 30 jours ou plus, ses fenêtres restent de 3 jours et 6 heures et son seuil augmente avec la fenêtre. Sur une fenêtre plus courte, sa fenêtre longue vaut un dixième de la fenêtre du SLO et sa fenêtre courte un douzième de celle-ci, son seuil reste donc à 1×. Si sa fenêtre longue restait à 3 jours, son seuil passerait sous 1× et elle se déclencherait pour un SLO en bonne voie d'atteindre son objectif.
+
+| Fenêtre du SLO | Seuil Slow leak | Fenêtre longue | Fenêtre courte |
+| --- | --- | --- | --- |
+| 7 jours | 1× | 16,8 heures | 84 minutes |
+| 28 jours | 1× | 2,8 jours | 5,6 heures |
+| 30 jours | 1× | 3 jours | 6 heures |
+| 90 jours | 3× | 3 jours | 6 heures |
+
+Les SLO par mois calendaire reçoivent les valeurs de 30 jours. Les règles utilisent le titre et la description intégrés, résolvent leurs alertes automatiquement et n'ajoutent ni propriétaires ni étiquettes. Aucune d'elles ne déclare d'incident, une mise à niveau de OneUptime ne se met donc jamais à déclarer des incidents à votre place. Modifiez-les, supprimez-les ou ajoutez les vôtres.
+
+### Ajouter les règles recommandées à un SLO existant
+
+Les SLO créés avant l'arrivée de Slow leak n'ont que Fast burn et Slow burn : une mise à niveau de OneUptime n'ajoute jamais d'elle-même une règle qui se mettrait à déclencher des alertes. Tant qu'il manque à un SLO l'une des trois règles par défaut, sa page **Règles de taux de consommation** affiche **Ajouter les règles recommandées**. Cliquez dessus pour voir exactement ce qui sera ajouté, adapté à la fenêtre du SLO, puis confirmez. Seules les règles manquantes sont ajoutées, et cliquer de nouveau n'ajoute rien.
+
+Une règle compte comme présente quand le SLO a une règle du même nom, ou une règle avec la même fenêtre longue, qu'elle soit activée ou non. Une règle par défaut que vous avez renommée ou ajustée n'est donc jamais ajoutée deux fois. Il vous faut la permission de créer des règles de taux de consommation de SLO. Chaque règle ajoutée ainsi est publiée dans le fil d'activité du SLO et enregistrée dans ses journaux d'audit, comme une règle que vous créez vous-même.
 
 ## Créer ou modifier une règle
 
@@ -108,7 +126,7 @@ Chaque réponse à **Quand elle se déclenche** ouvre quelque chose. L'API refus
 Le tableau des règles affiche, pour chaque règle, son seuil, ses fenêtres et sa suppression, ce qu'elle déclare (et si l'alerte ou l'incident n'est résolu qu'à la main, ou est privé), ses gravités, ses politiques d'astreinte, ses propriétaires et ses étiquettes.
 
 > [!TIP]
-> Un bon départ : gardez les deux règles par défaut, envoyez la règle de consommation rapide à votre politique d'astreinte qui alerte, avec une gravité élevée, et laissez la règle de consommation lente déclencher une alerte de gravité plus basse pour les heures de bureau. Si votre équipe gère tout par des incidents, choisissez **Déclarer un incident** pour la règle de consommation rapide, ou **Les deux** pour recevoir aussi une alerte.
+> Un bon départ : gardez les trois règles par défaut, envoyez la règle de consommation rapide à votre politique d'astreinte qui alerte, avec une gravité élevée, laissez la règle de consommation lente déclencher une alerte de gravité plus basse pour les heures de bureau, et faites de la règle de fuite lente un ticket pour l'équipe responsable. Si votre équipe gère tout par des incidents, choisissez **Déclarer un incident** pour la règle de consommation rapide, ou **Les deux** pour recevoir aussi une alerte.
 
 ## Ce qu'une règle déclare
 
@@ -191,7 +209,7 @@ Les étiquettes, les équipes propriétaires et les politiques d'astreinte doive
 
 - **La résolution suit la fenêtre longue.** Avec la résolution automatique activée (par défaut), OneUptime résout l'alerte et l'incident d'une règle dès que le taux de consommation sur la fenêtre longue repasse sous le seuil. Résoudre sur la fenêtre courte ferait osciller : une panne récurrente serait résolue après cinq minutes calmes et alerterait de nouveau toute la nuit.
 - **Résolution automatique désactivée.** Désactivez **Résoudre automatiquement l'alerte** ou **Résoudre automatiquement l'incident**, et cet enregistrement reste ouvert jusqu'à ce que quelqu'un le résolve, même une fois la consommation rétablie. La règle n'en ouvre pas un autre par-dessus, et une fois qu'il est résolu à la main et que la fenêtre longue est sous le seuil, la règle peut se déclencher de nouveau après sa suppression.
-- **Suppression des redéclenchements.** Après la résolution d'un enregistrement, la règle ne déclare plus ce type d'enregistrement pendant la période de suppression, par défaut la durée de la fenêtre longue. Cela laisse à un système qui se rétablit le temps de le faire sans alerter sur le bruit qui reste.
+- **Suppression des redéclenchements.** Après la résolution d'un enregistrement, la règle ne déclare plus ce type d'enregistrement pendant la période de suppression, par défaut la durée de la fenêtre longue. Cela laisse à un système qui se rétablit le temps de le faire sans alerter sur le bruit qui reste. Slow leak est créée avec 24 heures au lieu de sa fenêtre longue de 3 jours, une fuite qui revient est donc signalée de nouveau dès le lendemain.
 
 Certains changements résolvent toujours ce qu'une règle a d'ouvert, quels que soient ses réglages de résolution automatique, pour que rien ne continue d'escalader pour une règle qui ne peut plus le justifier :
 
@@ -212,7 +230,7 @@ Le **Fil d'activité** du SLO publie chaque alerte qu'une règle déclenche et c
 ## Dépannage
 
 :::details Une règle ne s'est pas déclenchée juste après la création du SLO
-Une règle ne se déclenche qu'une fois que le SLO a une fenêtre longue complète d'historique de surveillance : une heure pour la règle de consommation rapide par défaut, six heures pour la règle de consommation lente.
+Une règle ne se déclenche qu'une fois que le SLO a une fenêtre longue complète d'historique de surveillance : une heure pour la règle de consommation rapide par défaut, six heures pour la règle de consommation lente et trois jours pour la règle de fuite lente, ou un dixième de la fenêtre du SLO quand celle-ci fait moins de 30 jours.
 :::
 
 :::details Une alerte a été résolue alors que la panne continuait

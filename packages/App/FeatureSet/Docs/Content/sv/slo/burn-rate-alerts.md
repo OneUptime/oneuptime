@@ -4,7 +4,7 @@ Felbudgetar talar om var du står; regler för förbrukningstakt talar om när d
 
 :::cards
 - [Hur en regel bestämmer sig](#hur-en-regel-bestämmer-sig-för-att-utlösas): Två fönster, båda över tröskeln.
-- [Standardregler](#standardregler): Fast burn och Slow burn, anpassade till SLO:ets fönster.
+- [Standardregler](#standardregler): Fast burn, Slow burn och Slow leak, anpassade till SLO:ets fönster.
 - [Skapa en regel](#skapa-eller-redigera-en-regel): Fem steg på SLO:ets sida Burn Rate Rules.
 - [Mallvariabler](#vad-varje-larm-och-incident-säger): Skriv egna rubriker och beskrivningar.
 :::
@@ -46,18 +46,21 @@ flowchart TB
     short -->|"Ja"| fire["Utlös larmet,<br/>deklarera incidenten<br/>eller båda"]
 ```
 
-En regel kan inte utlösas förrän SLO:et har ett helt långt fönster med övervakningshistorik: annars skulle en monitors allra första misslyckade kontroll, delad med några minuters historik, ge en enorm förbrukningstakt. Ett nytt SLO kan därför inte utlösa sin regel **Fast burn** under den första timmen, och inte heller sin regel **Slow burn** under de första sex. Om ett SLO senare inte längre har så mycket historik, till exempel efter att dess monitorer bytts ut mot nya, löser regeln det den hade öppnat i stället för att lämna det hängande. En regel utlöses inte heller medan någon av SLO:ets monitorer är under planerat underhåll: se [Planerat underhåll](#planerat-underhåll).
+En regel kan inte utlösas förrän SLO:et har ett helt långt fönster med övervakningshistorik: annars skulle en monitors allra första misslyckade kontroll, delad med några minuters historik, ge en enorm förbrukningstakt. Ett nytt SLO kan därför inte utlösa sin regel **Fast burn** under den första timmen, sin regel **Slow burn** under de första sex eller sin regel **Slow leak** under de första tre dagarna. Om ett SLO senare inte längre har så mycket historik, till exempel efter att dess monitorer bytts ut mot nya, löser regeln det den hade öppnat i stället för att lämna det hängande. En regel utlöses inte heller medan någon av SLO:ets monitorer är under planerat underhåll: se [Planerat underhåll](#planerat-underhåll).
 
 ## Standardregler
 
-Varje nytt SLO får två regler för förbrukningstakt. För ett fönster på 30 dagar:
+Varje nytt SLO får tre regler för förbrukningstakt. För ett fönster på 30 dagar:
 
 | Regel | Tröskel | Långt fönster | Kort fönster | Utlöses när |
 | --- | --- | --- | --- | --- |
 | **Fast burn** | 14.4× | 1 timme | 5 minuter | Ungefär 2 % av budgeten förbrukas på en timme: den skulle vara slut på ungefär 2 dagar. |
 | **Slow burn** | 6× | 6 timmar | 30 minuter | Ungefär 5 % av budgeten förbrukas på sex timmar: den skulle vara slut på ungefär 5 dagar. |
+| **Slow leak** | 1× | 3 dagar | 6 timmar | Ungefär 10 % av budgeten förbrukas på tre dagar: den skulle vara slut när fönstret är över. |
 
-Trösklarna 14.4× och 6× är beräknade för en budget på 30 dagar, så OneUptime anpassar dem till ditt SLO:s fönster. Varje regel betyder alltid ”2 % av budgeten på 1 timme” eller ”5 % av budgeten på 6 timmar”:
+Fast burn och Slow burn är till för att larma folk: de utlöser ett larm med projektets högsta allvarlighetsgrad för larm. Slow leak är ett ärende: den utlöser sitt larm med projektets lägsta allvarlighetsgrad för larm. Den fångar en jämn förbrukning som är för låg för de andra två: vid 3× är en budget på 99,9 % slut på 10 dagar, men ändå utlöses bara Slow leak. När dess larm har lösts väntar den 24 timmar, inte sitt långa fönster på 3 dagar, innan den utlöser ett nytt.
+
+Trösklarna är beräknade för en budget på 30 dagar, så OneUptime anpassar dem till ditt SLO:s fönster. Fast burn och Slow burn betyder alltid ”2 % av budgeten på 1 timme” och ”5 % av budgeten på 6 timmar”:
 
 | SLO:ets fönster | Tröskel för Fast burn | Tröskel för Slow burn |
 | --- | --- | --- |
@@ -66,7 +69,22 @@ Trösklarna 14.4× och 6× är beräknade för en budget på 30 dagar, så OneUp
 | 30 dagar | 14.4× | 6× |
 | 90 dagar | 43.2× | 18× |
 
-SLO:er med kalendermånad får värdena för 30 dagar. Båda reglerna utlöser ett larm med projektets högsta allvarlighetsgrad för larm, med standardrubriken och -beskrivningen, löser det automatiskt och lägger inte till några ägare eller etiketter. De deklarerar inga incidenter, så en uppgradering av OneUptime börjar aldrig deklarera incidenter åt dig. Redigera dem, radera dem eller lägg till egna.
+Slow leak betyder alltid ”10 % av budgeten på dess långa fönster”. För ett fönster på 30 dagar eller mer förblir dess långa och korta fönster 3 dagar och 6 timmar, och dess tröskel växer med fönstret. För ett kortare fönster är dess långa fönster en tiondel av SLO:ets fönster och dess korta fönster en tolftedel av det, så att dess tröskel ligger kvar på 1×. Om det långa fönstret låg kvar på 3 dagar skulle tröskeln hamna under 1×, och regeln skulle utlösas för ett SLO som är på väg att nå sitt mål.
+
+| SLO:ets fönster | Tröskel för Slow leak | Långt fönster | Kort fönster |
+| --- | --- | --- | --- |
+| 7 dagar | 1× | 16,8 timmar | 84 minuter |
+| 28 dagar | 1× | 2,8 dagar | 5,6 timmar |
+| 30 dagar | 1× | 3 dagar | 6 timmar |
+| 90 dagar | 3× | 3 dagar | 6 timmar |
+
+SLO:er med kalendermånad får värdena för 30 dagar. Reglerna använder standardrubriken och -beskrivningen, löser sina larm automatiskt och lägger inte till några ägare eller etiketter. Ingen av dem deklarerar en incident, så en uppgradering av OneUptime börjar aldrig deklarera incidenter åt dig. Redigera dem, radera dem eller lägg till egna.
+
+### Lägg till de rekommenderade reglerna i ett befintligt SLO
+
+SLO:er som skapades innan Slow leak fanns har bara Fast burn och Slow burn: en uppgradering av OneUptime lägger aldrig till en regel som skulle börja utlösa larm av sig själv. Så länge ett SLO saknar någon av de tre standardreglerna visas **Lägg till rekommenderade regler** på dess sida **Förbrukningstaktsregler**. Klicka på den för att se exakt vad den lägger till, anpassat till SLO:ets fönster, och bekräfta. Den lägger bara till de regler som saknas, och klickar du på den igen läggs inget till.
+
+En regel anses redan finnas när SLO:et har en regel med samma namn, eller en med samma långa fönster, oavsett om den är påslagen eller avstängd. En standardregel som du har bytt namn på eller justerat läggs alltså aldrig till två gånger. Du behöver behörighet att skapa SLO-regler för förbrukningstakt. Varje regel som den lägger till publiceras i SLO:ets flöde och registreras i dess granskningsloggar, precis som en regel som du skapar själv.
 
 ## Skapa eller redigera en regel
 
@@ -108,7 +126,7 @@ Varje svar på **När den utlöses** öppnar något. API:et avvisar en regel som
 Regeltabellen visar för varje regel tröskeln, fönstren och undertryckningen, vad den deklarerar (och om larmet eller incidenten bara löses för hand, eller är privat), allvarlighetsgraderna, jourpolicyerna, ägarna och etiketterna.
 
 > [!TIP]
-> En bra början: behåll de två standardreglerna, skicka regeln för snabb förbrukning till den jourpolicy som larmar folk, med hög allvarlighetsgrad, och låt regeln för långsam förbrukning utlösa ett larm med lägre allvarlighetsgrad för kontorstid. Arbetar ditt team med incidenter väljer du **Deklarera en incident** för regeln för snabb förbrukning, eller **Båda** för att också få ett larm.
+> En bra början: behåll de tre standardreglerna, skicka regeln för snabb förbrukning till den jourpolicy som larmar folk, med hög allvarlighetsgrad, låt regeln för långsam förbrukning utlösa ett larm med lägre allvarlighetsgrad för kontorstid, och låt regeln för långsamt läckage vara ett ärende för det ansvariga teamet. Arbetar ditt team med incidenter väljer du **Deklarera en incident** för regeln för snabb förbrukning, eller **Båda** för att också få ett larm.
 
 ## Vad en regel deklarerar
 
@@ -191,7 +209,7 @@ Etiketter, ägarteam och jourpolicyer måste höra till SLO:ets projekt.
 
 - **Lösningen följer det långa fönstret.** Med automatisk lösning påslagen (standard) löser OneUptime en regels larm och incident så snart det långa fönstrets förbrukningstakt sjunker under tröskeln. Att lösa på det korta fönstret skulle ge fladder: ett återkommande avbrott skulle lösas efter fem lugna minuter och larma folk igen hela natten.
 - **Automatisk lösning avstängd.** Stäng av **Lös larm automatiskt** eller **Lös incident automatiskt**, så förblir den posten öppen tills någon löser den, även efter att förbrukningen har återhämtat sig. Regeln öppnar inte en ny ovanpå den, och när den har lösts för hand och det långa fönstret ligger under tröskeln kan regeln utlösas igen efter sin undertryckning.
-- **Undertryckning av nya utlösningar.** När en post har lösts deklarerar regeln inte den typen av post igen under undertryckningsperioden, som standard det långa fönstrets längd. På så sätt får ett system som återhämtar sig tid att göra det utan att larma någon för det brus som finns kvar.
+- **Undertryckning av nya utlösningar.** När en post har lösts deklarerar regeln inte den typen av post igen under undertryckningsperioden, som standard det långa fönstrets längd. På så sätt får ett system som återhämtar sig tid att göra det utan att larma någon för det brus som finns kvar. Slow leak skapas med en undertryckning på 24 timmar i stället för sitt långa fönster på 3 dagar, så att en läcka som kommer tillbaka rapporteras igen nästa dag.
 
 Vissa ändringar löser alltid det som en regel har öppnat, oavsett vad dess inställningar för automatisk lösning säger, så att inget fortsätter att eskalera för en regel som inte längre kan motivera det:
 
@@ -212,7 +230,7 @@ SLO:ets **Feed** publicerar varje larm som en regel utlöser och varje incident 
 ## Felsökning
 
 :::details En regel utlöstes inte direkt efter att SLO:et skapades
-En regel utlöses bara när SLO:et har ett helt långt fönster med övervakningshistorik: en timme för standardregeln för snabb förbrukning, sex timmar för den för långsam förbrukning.
+En regel utlöses bara när SLO:et har ett helt långt fönster med övervakningshistorik: en timme för standardregeln för snabb förbrukning, sex timmar för den för långsam förbrukning och tre dagar för den för långsamt läckage, eller en tiondel av SLO:ets fönster när det är kortare än 30 dagar.
 :::
 
 :::details Ett larm löstes medan avbrottet fortfarande pågick

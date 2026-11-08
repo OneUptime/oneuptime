@@ -84,7 +84,7 @@ Alles wat bepaalt hoe de SLO meet, begint met een standaardwaarde die u later wi
 | Downtime-statussen | Alle niet-operationele statussen van het project | **Instellingen** → **Downtimeberekening** |
 | Modus voor meerdere monitoren | **Willekeurige monitor uitgevallen** | **Instellingen** → **Downtimeberekening** |
 | Evaluatie | Aan | **Instellingen** → **Evaluatie** |
-| Regels voor verbruikssnelheid | Een regel **Fast burn** en een regel **Slow burn**, afgestemd op het venster | **Verbruikssnelheidsregels** |
+| Regels voor verbruikssnelheid | Een regel **Fast burn**, een regel **Slow burn** en een regel **Slow leak**, afgestemd op het venster | **Verbruikssnelheidsregels** |
 
 ## Waaruit een SLO bestaat
 
@@ -176,13 +176,13 @@ Het **Overzicht** beantwoordt "zitten we binnen het budget?", van boven naar ben
 - **De kerncijfers**:
   - **SLI**: het deel goede tijd in het venster, en hoeveel het boven of onder het doel zit.
   - **Foutbudget over**: een percentage, een duur zoals "12m 30s left of 43m 12s" en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget exceeded** en met hoeveel.
-  - **Verbruikssnelheid**: hoe snel het budget wordt uitgegeven over de laatste 60 minuten, de periode die de standaardregel voor snel verbruik gebruikt. Wordt oranje boven 1× en rood, met **Regeldrempel bereikt**, bij de laagste drempel van de ingeschakelde regels voor verbruikssnelheid van de SLO.
+  - **Verbruikssnelheid**: hoe snel het budget wordt uitgegeven over de laatste 60 minuten, de periode die de standaardregel voor snel verbruik gebruikt. Wordt oranje boven 1× en rood, met **Regeldrempel bereikt**, bij de laagste drempel van de ingeschakelde regels voor verbruikssnelheid van de SLO die 6 uur of minder terugkijken. Een uur zegt weinig over een regel die dagen terugkijkt, zoals **Slow leak**, dus wordt ze niet met zo'n regel vergeleken.
   - **Resterende looptijd van budget**: hoelang het budget in dit tempo meegaat. Zie [Foutbudgetten](/docs/slo/error-budget#looptijd-van-het-budget).
 - **Burn-down van foutbudget**: het resterende budget over het huidige venster. Zie [Foutbudgetten](/docs/slo/error-budget#verbranding-van-het-foutbudget).
 - **Recente activiteit**: de nieuwste items in de feed van de SLO.
 - **SLO-details**: de naam, de beschrijving en de labels, de enige instellingen die op het overzicht worden bewerkt.
 - **Open waarschuwingen en incidenten**: wat de regels voor verbruikssnelheid op dit moment open hebben.
-- **Burn rate rules**: de drempel van elke ingeschakelde regel naast de huidige verbruikssnelheid, en wat de regel meldt.
+- **Burn rate rules**: de drempel van elke ingeschakelde regel naast de huidige verbruikssnelheid, voor regels die 6 uur of minder terugkijken, en wat de regel meldt.
 
 ### Instellingen
 

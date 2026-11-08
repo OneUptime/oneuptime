@@ -4,7 +4,7 @@ Foutbudgetten vertellen u waar u staat; regels voor verbruikssnelheid vertellen 
 
 :::cards
 - [Hoe een regel beslist](#hoe-een-regel-beslist-af-te-gaan): Twee vensters, allebei boven de drempel.
-- [Standaardregels](#standaardregels): Fast burn en Slow burn, afgestemd op het venster van de SLO.
+- [Standaardregels](#standaardregels): Fast burn, Slow burn en Slow leak, afgestemd op het venster van de SLO.
 - [Een regel maken](#een-regel-maken-of-bewerken): Vijf stappen op de pagina Burn Rate Rules van de SLO.
 - [Sjabloonvariabelen](#wat-elke-waarschuwing-en-elk-incident-zegt): Schrijf uw eigen titels en beschrijvingen.
 :::
@@ -46,18 +46,21 @@ flowchart TB
     short -->|"Ja"| fire["Waarschuwing geven,<br/>incident melden<br/>of allebei"]
 ```
 
-Een regel kan pas afgaan als de SLO een volledig lang venster aan bewakingsgeschiedenis heeft: anders zou de allereerste mislukte controle van een monitor, gedeeld door een paar minuten geschiedenis, een enorme verbruikssnelheid opleveren. Een nieuwe SLO kan zijn regel **Fast burn** dus niet in het eerste uur laten afgaan, en zijn regel **Slow burn** niet in de eerste zes. Heeft een SLO later niet meer zoveel geschiedenis, bijvoorbeeld nadat zijn monitoren zijn vervangen door nieuwe, dan lost de regel op wat hij had geopend in plaats van het te laten hangen. Een regel gaat ook niet af terwijl een van de monitoren van de SLO in gepland onderhoud is: zie [Gepland onderhoud](#gepland-onderhoud).
+Een regel kan pas afgaan als de SLO een volledig lang venster aan bewakingsgeschiedenis heeft: anders zou de allereerste mislukte controle van een monitor, gedeeld door een paar minuten geschiedenis, een enorme verbruikssnelheid opleveren. Een nieuwe SLO kan zijn regel **Fast burn** dus niet in het eerste uur laten afgaan, zijn regel **Slow burn** niet in de eerste zes en zijn regel **Slow leak** niet in de eerste drie dagen. Heeft een SLO later niet meer zoveel geschiedenis, bijvoorbeeld nadat zijn monitoren zijn vervangen door nieuwe, dan lost de regel op wat hij had geopend in plaats van het te laten hangen. Een regel gaat ook niet af terwijl een van de monitoren van de SLO in gepland onderhoud is: zie [Gepland onderhoud](#gepland-onderhoud).
 
 ## Standaardregels
 
-Elke nieuwe SLO krijgt twee regels voor verbruikssnelheid. Voor een venster van 30 dagen:
+Elke nieuwe SLO krijgt drie regels voor verbruikssnelheid. Voor een venster van 30 dagen:
 
 | Regel | Drempel | Lang venster | Kort venster | Gaat af als |
 | --- | --- | --- | --- | --- |
 | **Fast burn** | 14.4× | 1 uur | 5 minuten | Ongeveer 2% van het budget in een uur opgaat: het zou in ongeveer 2 dagen op zijn. |
 | **Slow burn** | 6× | 6 uur | 30 minuten | Ongeveer 5% van het budget in zes uur opgaat: het zou in ongeveer 5 dagen op zijn. |
+| **Slow leak** | 1× | 3 dagen | 6 uur | Ongeveer 10% van het budget in drie dagen opgaat: het zou tegen het einde van het venster op zijn. |
 
-De drempels van 14.4× en 6× zijn berekend voor een budget van 30 dagen, dus OneUptime stemt ze af op het venster van uw SLO. Elke regel betekent altijd "2% van het budget in 1 uur" of "5% van het budget in 6 uur":
+Fast burn en Slow burn zijn oproepen: ze geven een waarschuwing met de hoogste waarschuwingsernst van het project. Slow leak is een ticket: hij geeft zijn waarschuwing met de laagste waarschuwingsernst van het project. Hij vangt een gestaag verbruik op dat de andere twee nooit bereiken: bij 3× is een budget van 99,9% in 10 dagen op, en toch gaat alleen Slow leak af. Nadat zijn waarschuwing is opgelost, wacht hij 24 uur, niet zijn lange venster van 3 dagen, voordat hij een nieuwe geeft.
+
+De drempels zijn berekend voor een budget van 30 dagen, dus OneUptime stemt ze af op het venster van uw SLO. Fast burn en Slow burn betekenen altijd "2% van het budget in 1 uur" en "5% van het budget in 6 uur":
 
 | Venster van de SLO | Drempel Fast burn | Drempel Slow burn |
 | --- | --- | --- |
@@ -66,7 +69,22 @@ De drempels van 14.4× en 6× zijn berekend voor een budget van 30 dagen, dus On
 | 30 dagen | 14.4× | 6× |
 | 90 dagen | 43.2× | 18× |
 
-SLO's met een kalendermaand krijgen de waarden van 30 dagen. Beide regels geven een waarschuwing met de hoogste waarschuwingsernst van het project, met de standaardtitel en -beschrijving, lossen die automatisch op en voegen geen eigenaren of labels toe. Ze melden geen incidenten, dus een upgrade van OneUptime begint nooit voor u incidenten te melden. Bewerk ze, verwijder ze of voeg uw eigen regels toe.
+Slow leak betekent altijd "10% van het budget in zijn lange venster". Bij een venster van 30 dagen of meer blijven zijn vensters 3 dagen en 6 uur en groeit zijn drempel mee met het venster. Bij een korter venster is zijn lange venster een tiende van het venster van de SLO en zijn korte venster een twaalfde daarvan, zodat zijn drempel op 1× blijft. Bleef het lange venster op 3 dagen, dan zou de drempel onder 1× zakken en zou de regel afgaan bij een SLO die op koers ligt om zijn doel te halen.
+
+| Venster van de SLO | Drempel Slow leak | Lang venster | Kort venster |
+| --- | --- | --- | --- |
+| 7 dagen | 1× | 16.8 uur | 84 minuten |
+| 28 dagen | 1× | 2.8 dagen | 5.6 uur |
+| 30 dagen | 1× | 3 dagen | 6 uur |
+| 90 dagen | 3× | 3 dagen | 6 uur |
+
+SLO's met een kalendermaand krijgen de waarden van 30 dagen. De regels gebruiken de standaardtitel en -beschrijving, lossen hun waarschuwingen automatisch op en voegen geen eigenaren of labels toe. Geen ervan meldt een incident, dus een upgrade van OneUptime begint nooit voor u incidenten te melden. Bewerk ze, verwijder ze of voeg uw eigen regels toe.
+
+### De aanbevolen regels toevoegen aan een bestaande SLO
+
+SLO's die zijn aangemaakt voordat Slow leak bestond, hebben alleen Fast burn en Slow burn: een upgrade van OneUptime voegt nooit een regel toe die uit zichzelf waarschuwingen zou gaan geven. Zolang een SLO een van de drie standaardregels mist, toont zijn pagina **Verbruikssnelheidsregels** de knop **Aanbevolen regels toevoegen**. Klik erop om precies te zien wat hij toevoegt, afgestemd op het venster van de SLO, en bevestig. Hij voegt alleen de ontbrekende regels toe, en nog een keer klikken voegt niets toe.
+
+Een regel telt als al aanwezig wanneer de SLO een regel met dezelfde naam heeft, of een met hetzelfde lange venster, of die nu aan of uit staat. Een standaardregel die u hebt hernoemd of bijgesteld, wordt dus nooit twee keer toegevoegd. U hebt toestemming nodig om SLO-regels voor verbruikssnelheid aan te maken. Elke regel die de knop toevoegt, wordt in de feed van de SLO gepubliceerd en vastgelegd in zijn auditlogboeken, net als een regel die u zelf aanmaakt.
 
 ## Een regel maken of bewerken
 
@@ -108,7 +126,7 @@ Elk antwoord op **Wanneer hij afgaat** opent iets. De API weigert een regel die 
 De regeltabel toont voor elke regel de drempel, de vensters en de onderdrukking, wat hij meldt (en of de waarschuwing of het incident alleen met de hand wordt opgelost, of privé is), de ernstniveaus, het bereikbaarheidsbeleid, de eigenaren en de labels.
 
 > [!TIP]
-> Een goed begin: houd de twee standaardregels, stuur de regel voor snel verbruik met een hoge ernst naar uw bereikbaarheidsbeleid dat mensen oproept, en laat de regel voor langzaam verbruik een waarschuwing met lagere ernst geven voor kantooruren. Werkt uw team met incidenten, kies dan **Een incident melden** voor de regel voor snel verbruik, of **Beide** om ook een waarschuwing te krijgen.
+> Een goed begin: houd de drie standaardregels, stuur de regel voor snel verbruik met een hoge ernst naar uw bereikbaarheidsbeleid dat mensen oproept, laat de regel voor langzaam verbruik een waarschuwing met lagere ernst geven voor kantooruren, en laat de regel voor een langzaam lek een ticket blijven voor het verantwoordelijke team. Werkt uw team met incidenten, kies dan **Een incident melden** voor de regel voor snel verbruik, of **Beide** om ook een waarschuwing te krijgen.
 
 ## Wat een regel meldt
 
@@ -191,7 +209,7 @@ Labels, eigenaarsteams en bereikbaarheidsbeleid moeten bij het project van de SL
 
 - **Oplossen volgt het lange venster.** Met automatisch oplossen aan (de standaard) lost OneUptime de waarschuwing en het incident van een regel op zodra de verbruikssnelheid van het lange venster onder de drempel zakt. Oplossen op het korte venster zou heen en weer springen: een terugkerende storing zou na vijf rustige minuten worden opgelost en de hele nacht opnieuw mensen oproepen.
 - **Automatisch oplossen uit.** Zet **Waarschuwing automatisch oplossen** of **Incident automatisch oplossen** uit en dat record blijft open tot iemand het oplost, ook nadat het verbruik is hersteld. De regel opent er geen tweede bovenop, en zodra het met de hand is opgelost en het lange venster onder de drempel zit, kan de regel na zijn onderdrukking weer afgaan.
-- **Onderdrukking van nieuwe meldingen.** Nadat een record is opgelost, meldt de regel dat soort record niet opnieuw tijdens de onderdrukkingsperiode, standaard de lengte van het lange venster. Zo krijgt een systeem dat herstelt de tijd om te herstellen zonder mensen op te roepen voor de ruis die overblijft.
+- **Onderdrukking van nieuwe meldingen.** Nadat een record is opgelost, meldt de regel dat soort record niet opnieuw tijdens de onderdrukkingsperiode, standaard de lengte van het lange venster. Zo krijgt een systeem dat herstelt de tijd om te herstellen zonder mensen op te roepen voor de ruis die overblijft. Slow leak wordt aangemaakt met 24 uur in plaats van zijn lange venster van 3 dagen, zodat een lek dat terugkomt de volgende dag weer wordt gesignaleerd.
 
 Sommige wijzigingen lossen altijd op wat een regel heeft geopend, wat de instellingen voor automatisch oplossen ook zeggen, zodat niets blijft escaleren voor een regel die het niet meer kan rechtvaardigen:
 
@@ -212,7 +230,7 @@ De **Feed** van de SLO publiceert elke waarschuwing die een regel geeft en elk i
 ## Problemen oplossen
 
 :::details Een regel ging niet af direct nadat de SLO was aangemaakt
-Een regel gaat pas af als de SLO een volledig lang venster aan bewakingsgeschiedenis heeft: een uur voor de standaardregel voor snel verbruik, zes uur voor die voor langzaam verbruik.
+Een regel gaat pas af als de SLO een volledig lang venster aan bewakingsgeschiedenis heeft: een uur voor de standaardregel voor snel verbruik, zes uur voor die voor langzaam verbruik en drie dagen voor die voor een langzaam lek, of een tiende van het venster van de SLO als dat korter is dan 30 dagen.
 :::
 
 :::details Een waarschuwing werd opgelost terwijl de storing nog bezig was

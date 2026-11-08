@@ -243,8 +243,8 @@ describe("SloBurnRateRulesSummaryCard", () => {
     buildRule({
       name: "Quiet",
       burnRateThreshold: 3,
-      longWindowInMinutes: 1440,
-      shortWindowInMinutes: 120,
+      longWindowInMinutes: 240,
+      shortWindowInMinutes: 20,
     }),
     buildRule({
       name: "Switched off",
@@ -327,6 +327,85 @@ describe("SloBurnRateRulesSummaryCard", () => {
     expect(within(slow!).getByText("At threshold")).toBeInTheDocument();
     expect(within(quiet!).getByText("At threshold")).toBeInTheDocument();
     expect(within(fast!).getByText("6× now")).toBeInTheDocument();
+  });
+
+  /*
+   * The last hour says nothing about a rule that looks back days: the
+   * default slow-leak rule fires at 1x over 3 days, and any hour that burned
+   * at all would fill its bar and read "At threshold".
+   */
+  test("does not compare the last hour with a rule that looks back more than 6 hours, and says so", () => {
+    const slowLeak: ServiceLevelObjectiveBurnRateRule = buildRule({
+      name: "Slow leak",
+      burnRateThreshold: 1,
+      longWindowInMinutes: 4320,
+      shortWindowInMinutes: 360,
+      shouldCreateAlert: true,
+    });
+
+    renderInRouter(
+      <SloBurnRateRulesSummaryCard
+        sloId={SLO_ID}
+        rules={[rules[0]!, rules[1]!, slowLeak]}
+        currentBurnRate={6}
+        error=""
+      />,
+    );
+
+    const [fast, slow, leak]: Array<HTMLElement> =
+      screen.getAllByTestId("slo-burn-rule-row");
+
+    expect(within(leak!).getByText("At 1× or faster over 3d and 6h")).toBeInTheDocument();
+    expect(within(leak!).queryByRole("progressbar")).toBeNull();
+    expect(within(leak!).queryByText("At threshold")).toBeNull();
+    expect(within(leak!).queryByText("6× now")).toBeNull();
+    expect(within(leak!).getByText("Raises alert")).toBeInTheDocument();
+
+    // The page tiers are still compared.
+    expect(within(fast!).getByRole("progressbar")).toBeInTheDocument();
+    expect(within(slow!).getByText("At threshold")).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        /Rules that look back more than 6h are not compared with it\./,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("says nothing about uncompared rules when every rule is compared", () => {
+    renderInRouter(
+      <SloBurnRateRulesSummaryCard
+        sloId={SLO_ID}
+        rules={rules}
+        currentBurnRate={6}
+        error=""
+      />,
+    );
+
+    expect(
+      screen.queryByText(/are not compared with it/),
+    ).toBeNull();
+  });
+
+  test("a rule of exactly 6 hours is still compared", () => {
+    renderInRouter(
+      <SloBurnRateRulesSummaryCard
+        sloId={SLO_ID}
+        rules={[
+          buildRule({
+            name: "Six hours",
+            burnRateThreshold: 2,
+            longWindowInMinutes: 360,
+            shortWindowInMinutes: 30,
+          }),
+        ]}
+        currentBurnRate={2}
+        error=""
+      />,
+    );
+
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    expect(screen.getByText("At threshold")).toBeInTheDocument();
   });
 
   test("an unevaluated burn shows a dash and flags nothing", () => {

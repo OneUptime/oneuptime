@@ -4,7 +4,7 @@ Fehlerbudgets sagen Ihnen, wo Sie stehen; Burn-Rate-Regeln sagen Ihnen, wann Sie
 
 :::cards
 - [Wie eine Regel entscheidet](#wie-eine-regel-entscheidet-auszulösen): Zwei Zeitfenster, beide über dem Schwellenwert.
-- [Standardregeln](#standardregeln): Fast burn und Slow burn, an das Zeitfenster des SLO angepasst.
+- [Standardregeln](#standardregeln): Fast burn, Slow burn und Slow leak, an das Zeitfenster des SLO angepasst.
 - [Eine Regel erstellen](#eine-regel-erstellen-oder-bearbeiten): Fünf Schritte auf der Seite Burn-Rate-Regeln des SLO.
 - [Vorlagenvariablen](#was-jede-warnung-und-jeder-vorfall-sagt): Eigene Titel und Beschreibungen schreiben.
 :::
@@ -46,18 +46,21 @@ flowchart TB
     short -->|"Ja"| fire["Warnung auslösen,<br/>Vorfall melden<br/>oder beides"]
 ```
 
-Eine Regel kann erst auslösen, wenn das SLO ein volles langes Zeitfenster an Überwachungsverlauf hat: Sonst würde die allererste fehlgeschlagene Prüfung eines Monitors, geteilt durch wenige Minuten Verlauf, als riesige Burn-Rate gelten. Ein neues SLO kann seine Regel **Fast burn** also in der ersten Stunde nicht auslösen und seine Regel **Slow burn** nicht in den ersten sechs. Hat ein SLO später nicht mehr so viel Verlauf, etwa nachdem seine Monitore durch neue ersetzt wurden, löst die Regel auf, was sie offen hat, statt es hängen zu lassen. Eine Regel löst auch nicht aus, solange einer der Monitore des SLO in einer geplanten Wartung ist: siehe [Geplante Wartung](#geplante-wartung).
+Eine Regel kann erst auslösen, wenn das SLO ein volles langes Zeitfenster an Überwachungsverlauf hat: Sonst würde die allererste fehlgeschlagene Prüfung eines Monitors, geteilt durch wenige Minuten Verlauf, als riesige Burn-Rate gelten. Ein neues SLO kann seine Regel **Fast burn** also in der ersten Stunde nicht auslösen, seine Regel **Slow burn** nicht in den ersten sechs und seine Regel **Slow leak** nicht in den ersten drei Tagen. Hat ein SLO später nicht mehr so viel Verlauf, etwa nachdem seine Monitore durch neue ersetzt wurden, löst die Regel auf, was sie offen hat, statt es hängen zu lassen. Eine Regel löst auch nicht aus, solange einer der Monitore des SLO in einer geplanten Wartung ist: siehe [Geplante Wartung](#geplante-wartung).
 
 ## Standardregeln
 
-Jedes neue SLO bekommt zwei Burn-Rate-Regeln. Für ein 30-Tage-Zeitfenster:
+Jedes neue SLO bekommt drei Burn-Rate-Regeln. Für ein 30-Tage-Zeitfenster:
 
 | Regel | Schwellenwert | Langes Zeitfenster | Kurzes Zeitfenster | Löst aus, wenn |
 | --- | --- | --- | --- | --- |
 | **Fast burn** | 14.4× | 1 Stunde | 5 Minuten | Etwa 2 % des Budgets in einer Stunde verbrennen: Es wäre in etwa 2 Tagen aufgebraucht. |
 | **Slow burn** | 6× | 6 Stunden | 30 Minuten | Etwa 5 % des Budgets in sechs Stunden verbrennen: Es wäre in etwa 5 Tagen aufgebraucht. |
+| **Slow leak** | 1× | 3 Tage | 6 Stunden | Etwa 10 % des Budgets in drei Tagen verbrennen: Es wäre bis zum Ende des Zeitfensters aufgebraucht. |
 
-Die Schwellenwerte 14.4× und 6× sind für ein 30-Tage-Budget berechnet, deshalb passt OneUptime sie an das Zeitfenster Ihres SLO an. Jede Regel bedeutet immer „2 % des Budgets in 1 Stunde“ oder „5 % des Budgets in 6 Stunden“:
+Fast burn und Slow burn sind zum Alarmieren gedacht: Sie lösen eine Warnung mit dem schwersten Warnungsschweregrad des Projekts aus. Slow leak ist als Ticket gedacht: Die Regel löst ihre Warnung mit dem niedrigsten Warnungsschweregrad des Projekts aus. Sie erfasst einen stetigen Verbrauch, der die Schwellenwerte der beiden anderen nie erreicht: Bei 3× ist das Budget eines SLO mit 99,9 % in 10 Tagen aufgebraucht, und doch löst nur Slow leak aus. Nachdem ihre Warnung aufgelöst ist, wartet sie 24 Stunden, nicht ihr langes Zeitfenster von 3 Tagen, bevor sie eine weitere auslöst.
+
+Die Schwellenwerte sind für ein 30-Tage-Budget berechnet, deshalb passt OneUptime sie an das Zeitfenster Ihres SLO an. Fast burn und Slow burn bedeuten immer „2 % des Budgets in 1 Stunde“ und „5 % des Budgets in 6 Stunden“:
 
 | SLO-Zeitfenster | Schwellenwert Fast burn | Schwellenwert Slow burn |
 | --- | --- | --- |
@@ -66,7 +69,22 @@ Die Schwellenwerte 14.4× und 6× sind für ein 30-Tage-Budget berechnet, deshal
 | 30 Tage | 14.4× | 6× |
 | 90 Tage | 43.2× | 18× |
 
-Kalendermonat-SLOs bekommen die Werte für 30 Tage. Die beiden Regeln lösen eine Warnung mit dem schwersten Warnungsschweregrad des Projekts aus, mit dem eingebauten Titel und der eingebauten Beschreibung, lösen sie automatisch auf und fügen keine Eigentümer oder Beschriftungen hinzu. Sie melden keine Vorfälle, ein Upgrade von OneUptime fängt also nie an, in Ihrem Namen Vorfälle zu melden. Bearbeiten oder löschen Sie sie, oder fügen Sie eigene hinzu.
+Die Regel Slow leak bedeutet immer „10 % des Budgets in ihrem langen Zeitfenster“. Bei einem Zeitfenster von 30 Tagen oder mehr bleiben ihre Zeitfenster bei 3 Tagen und 6 Stunden, und ihr Schwellenwert wächst mit dem Zeitfenster. Bei einem kürzeren Zeitfenster ist ihr langes Zeitfenster ein Zehntel des SLO-Zeitfensters und ihr kurzes Zeitfenster ein Zwölftel davon, sodass ihr Schwellenwert bei 1× bleibt. Bliebe ihr langes Zeitfenster bei 3 Tagen, fiele ihr Schwellenwert unter 1×, und sie würde bei einem SLO auslösen, das auf dem besten Weg ist, sein Ziel zu erreichen.
+
+| SLO-Zeitfenster | Schwellenwert Slow leak | Langes Zeitfenster | Kurzes Zeitfenster |
+| --- | --- | --- | --- |
+| 7 Tage | 1× | 16,8 Stunden | 84 Minuten |
+| 28 Tage | 1× | 2,8 Tage | 5,6 Stunden |
+| 30 Tage | 1× | 3 Tage | 6 Stunden |
+| 90 Tage | 3× | 3 Tage | 6 Stunden |
+
+Kalendermonat-SLOs bekommen die Werte für 30 Tage. Die Regeln verwenden den eingebauten Titel und die eingebaute Beschreibung, lösen ihre Warnungen automatisch auf und fügen keine Eigentümer oder Beschriftungen hinzu. Keine von ihnen meldet einen Vorfall, ein Upgrade von OneUptime fängt also nie an, in Ihrem Namen Vorfälle zu melden. Bearbeiten oder löschen Sie sie, oder fügen Sie eigene hinzu.
+
+### Die empfohlenen Regeln zu einem bestehenden SLO hinzufügen
+
+SLOs, die erstellt wurden, bevor es Slow leak gab, haben nur Fast burn und Slow burn: Ein Upgrade von OneUptime fügt nie von sich aus eine Regel hinzu, die anfangen würde, Warnungen auszulösen. Solange einem SLO eine der drei Standardregeln fehlt, zeigt seine Seite **Burn-Rate-Regeln** die Schaltfläche **Empfohlene Regeln hinzufügen**. Klicken Sie darauf, um genau zu sehen, was sie hinzufügt, an das Zeitfenster des SLO angepasst, und bestätigen Sie. Sie fügt nur die fehlenden Regeln hinzu, und ein erneuter Klick fügt nichts hinzu.
+
+Eine Regel gilt als vorhanden, wenn das SLO eine Regel mit demselben Namen hat oder eine mit demselben langen Zeitfenster, ob sie ein- oder ausgeschaltet ist. Eine Standardregel, die Sie umbenannt oder angepasst haben, wird also nie doppelt hinzugefügt. Sie brauchen die Berechtigung, SLO-Burn-Rate-Regeln zu erstellen. Jede so hinzugefügte Regel erscheint im Feed des SLO und wird in seinen Audit-Protokollen festgehalten, wie eine Regel, die Sie selbst erstellen.
 
 ## Eine Regel erstellen oder bearbeiten
 
@@ -108,7 +126,7 @@ Jede Antwort auf **Wenn sie auslöst** öffnet etwas. Die API lehnt eine Regel a
 Die Regeltabelle zeigt für jede Regel ihren Schwellenwert, ihre Zeitfenster und die Unterdrückung, was sie meldet (und ob die Warnung oder der Vorfall nur von Hand aufgelöst wird oder privat ist), ihre Schweregrade, Bereitschaftsrichtlinien, Eigentümer und Beschriftungen.
 
 > [!TIP]
-> Ein guter Anfang: Behalten Sie die beiden Standardregeln, schicken Sie die Fast-Burn-Regel mit hohem Schweregrad an Ihre alarmierende Bereitschaftsrichtlinie, und lassen Sie die Slow-Burn-Regel eine Warnung mit niedrigerem Schweregrad für die Arbeitszeit auslösen. Arbeitet Ihr Team alles über Vorfälle ab, wählen Sie bei der Fast-Burn-Regel **Vorfall melden**, oder **Beide**, um zusätzlich eine Warnung zu bekommen.
+> Ein guter Anfang: Behalten Sie die drei Standardregeln, schicken Sie die Fast-Burn-Regel mit hohem Schweregrad an Ihre alarmierende Bereitschaftsrichtlinie, lassen Sie die Slow-Burn-Regel eine Warnung mit niedrigerem Schweregrad für die Arbeitszeit auslösen, und belassen Sie die Slow-Leak-Regel als Ticket für das zuständige Team. Arbeitet Ihr Team alles über Vorfälle ab, wählen Sie bei der Fast-Burn-Regel **Vorfall melden**, oder **Beide**, um zusätzlich eine Warnung zu bekommen.
 
 ## Was eine Regel meldet
 
@@ -191,7 +209,7 @@ Beschriftungen, Eigentümer-Teams und Bereitschaftsrichtlinien müssen zum Proje
 
 - **Die Auflösung folgt dem langen Zeitfenster.** Mit eingeschaltetem automatischem Auflösen (dem Standard) löst OneUptime die Warnung und den Vorfall einer Regel auf, sobald die Burn-Rate im langen Zeitfenster unter den Schwellenwert fällt. Eine Auflösung nach dem kurzen Zeitfenster würde flattern: Ein wiederkehrender Ausfall würde nach fünf ruhigen Minuten aufgelöst und die ganze Nacht erneut alarmieren.
 - **Automatisches Auflösen aus.** Schalten Sie **Warnung automatisch beheben** oder **Vorfall automatisch beheben** aus, bleibt dieser Datensatz offen, bis ihn jemand auflöst, auch nachdem sich der Verbrauch erholt hat. Die Regel öffnet keinen weiteren darüber, und sobald er von Hand aufgelöst ist und das lange Zeitfenster unter dem Schwellenwert liegt, kann die Regel nach ihrer Unterdrückung wieder auslösen.
-- **Unterdrückung erneuter Auslösung.** Nachdem ein Datensatz aufgelöst ist, meldet die Regel diese Art von Datensatz für die Dauer der Unterdrückung nicht erneut, standardmäßig die Länge des langen Zeitfensters. Das gibt einem sich erholenden System Raum zur Erholung, ohne wegen des restlichen Rauschens zu alarmieren.
+- **Unterdrückung erneuter Auslösung.** Nachdem ein Datensatz aufgelöst ist, meldet die Regel diese Art von Datensatz für die Dauer der Unterdrückung nicht erneut, standardmäßig die Länge des langen Zeitfensters. Das gibt einem sich erholenden System Raum zur Erholung, ohne wegen des restlichen Rauschens zu alarmieren. Die Regel Slow leak wird mit 24 Stunden statt ihres langen Zeitfensters von 3 Tagen erstellt, ein Leck, das zurückkehrt, wird also am nächsten Tag erneut gemeldet.
 
 Manche Änderungen lösen immer auf, was eine Regel offen hat, unabhängig von ihren Einstellungen zum automatischen Auflösen, damit nichts weiter eskaliert für eine Regel, die es nicht mehr rechtfertigen kann:
 
@@ -212,7 +230,7 @@ Der **Feed** des SLO zeigt jede Warnung, die eine Regel auslöst, und jeden Vorf
 ## Fehlerbehebung
 
 :::details Eine Regel hat direkt nach dem Erstellen des SLO nicht ausgelöst
-Eine Regel löst erst aus, wenn das SLO ein volles langes Zeitfenster an Überwachungsverlauf hat: eine Stunde für die standardmäßige Fast-Burn-Regel, sechs Stunden für die Slow-Burn-Regel.
+Eine Regel löst erst aus, wenn das SLO ein volles langes Zeitfenster an Überwachungsverlauf hat: eine Stunde für die standardmäßige Fast-Burn-Regel, sechs Stunden für die Slow-Burn-Regel und drei Tage für die Slow-Leak-Regel, oder ein Zehntel des SLO-Zeitfensters, wenn dieses kürzer als 30 Tage ist.
 :::
 
 :::details Eine Warnung wurde aufgelöst, während der Ausfall noch andauerte

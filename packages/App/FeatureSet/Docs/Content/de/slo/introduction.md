@@ -84,7 +84,7 @@ Alles, was bestimmt, wie das SLO misst, startet mit einem Standardwert, den Sie 
 | Ausfall-Status | Jedem nicht betriebsbereiten Status des Projekts | **Einstellungen** → **Berechnung der Ausfallzeit** |
 | Multi-Monitor-Modus | **Beliebiger Monitor ausgefallen** | **Einstellungen** → **Berechnung der Ausfallzeit** |
 | Auswertung | Ein | **Einstellungen** → **Auswertung** |
-| Burn-Rate-Regeln | Einer Regel **Fast burn** und einer Regel **Slow burn**, an das Zeitfenster angepasst | **Burn-Rate-Regeln** |
+| Burn-Rate-Regeln | Einer Regel **Fast burn**, einer Regel **Slow burn** und einer Regel **Slow leak**, an das Zeitfenster angepasst | **Burn-Rate-Regeln** |
 
 ## Woraus ein SLO besteht
 
@@ -176,13 +176,13 @@ Die **Übersicht** beantwortet „Sind wir im Budget?“, von oben nach unten:
 - **Die wichtigsten Kennzahlen**:
   - **SLI**: der Anteil guter Zeit im Zeitfenster und wie weit er über oder unter dem Ziel liegt.
   - **Verbleibendes Fehlerbudget**: ein Prozentsatz, eine Dauer wie "12m 30s left of 43m 12s" und ein Balken mit einer Markierung an der Risikoschwelle. Ist das Budget überzogen, zeigt die Kachel **Budget exceeded** und um wie viel.
-  - **Burn-Rate**: wie schnell das Budget in den letzten 60 Minuten verbraucht wird, dem Rückblick, den die standardmäßige Fast-Burn-Regel verwendet. Sie wird über 1× gelb und rot, mit **Regelschwellenwert erreicht**, beim niedrigsten Schwellenwert der aktivierten Burn-Rate-Regeln des SLO.
+  - **Burn-Rate**: wie schnell das Budget in den letzten 60 Minuten verbraucht wird, dem Rückblick, den die standardmäßige Fast-Burn-Regel verwendet. Sie wird über 1× gelb und rot, mit **Regelschwellenwert erreicht**, beim niedrigsten Schwellenwert der aktivierten Burn-Rate-Regeln des SLO, die 6 Stunden oder weniger zurückblicken. Eine Stunde sagt wenig über eine Regel aus, die Tage zurückblickt, etwa **Slow leak**, deshalb wird sie nicht mit einer solchen Regel verglichen.
   - **Budget-Reichweite**: wie lange das Budget bei diesem Tempo reicht. Siehe [Fehlerbudgets](/docs/slo/error-budget#budget-reichweite).
 - **Fehlerbudget-Burn-down**: das verbleibende Budget über das aktuelle Zeitfenster. Siehe [Fehlerbudgets](/docs/slo/error-budget#fehlerbudget-burn-down).
 - **Neueste Aktivität**: die letzten Einträge im Feed des SLO.
 - **SLO-Details**: Name, Beschreibung und Beschriftungen, die einzigen Einstellungen, die auf der Übersicht bearbeitet werden.
 - **Offene Warnungen & Vorfälle**: was die Burn-Rate-Regeln gerade offen haben.
-- **Burn-Rate-Regeln**: der Schwellenwert jeder aktivierten Regel neben der aktuellen Burn-Rate und was die Regel meldet.
+- **Burn-Rate-Regeln**: der Schwellenwert jeder aktivierten Regel neben der aktuellen Burn-Rate, für Regeln, die 6 Stunden oder weniger zurückblicken, und was die Regel meldet.
 
 ### Einstellungen
 

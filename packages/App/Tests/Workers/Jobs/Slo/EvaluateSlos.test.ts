@@ -399,6 +399,14 @@ import Color from "Common/Types/Color";
 import LabelService from "Common/Server/Services/LabelService";
 import OnCallDutyPolicyService from "Common/Server/Services/OnCallDutyPolicyService";
 import ProjectScopedReferenceValidator from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
+import {
+  SLO_FAST_BURN_RULE_NAME,
+  SLO_SLOW_BURN_RULE_NAME,
+  SLO_SLOW_LEAK_RULE_NAME,
+  SloRecommendedAlertSeverity,
+  SloRecommendedBurnRateRule,
+  getSloRecommendedBurnRateRules,
+} from "Common/Utils/Slo/SloRecommendedBurnRateRules";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/Slo/EvaluateSlos";
@@ -5976,6 +5984,444 @@ describe("Slo:EvaluateSlos worker", () => {
           sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo,
         ).toHaveBeenCalledTimes(1);
       });
+    });
+  });
+  /*
+   * The default slow-leak rule: the SRE Workbook's ticket tier, 10% of the
+   * budget over 3 days at 1x, confirmed over 6 hours. Driven here as the SLO
+   * is seeded - all three default rules side by side - so each test also
+   * pins what the two page tiers do with the same burn.
+   */
+  describe("burn rate rules: the slow-leak ticket tier", () => {
+    const FAST_RULE_ID: ObjectID = new ObjectID("rule-fast-burn");
+    const SLOW_RULE_ID: ObjectID = new ObjectID("rule-slow-burn");
+    const LEAK_RULE_ID: ObjectID = new ObjectID("rule-slow-leak");
+    const LEAST_SEVERE_ID: ObjectID = new ObjectID("severity-least-severe");
+
+    const RULE_IDS: Record<string, ObjectID> = {
+      [SLO_FAST_BURN_RULE_NAME]: FAST_RULE_ID,
+      [SLO_SLOW_BURN_RULE_NAME]: SLOW_RULE_ID,
+      [SLO_SLOW_LEAK_RULE_NAME]: LEAK_RULE_ID,
+    };
+
+    // The three default rules a 99.9% / 30-day SLO is created with.
+    function seededRules(
+      overrides: Record<string, Partial<ServiceLevelObjectiveBurnRateRule>> = {},
+      windowDays: number = 30,
+    ): Array<ServiceLevelObjectiveBurnRateRule> {
+      return getSloRecommendedBurnRateRules({
+        windowType: SloWindowType.Rolling,
+        windowDays: windowDays,
+      }).map(
+        (
+          recommended: SloRecommendedBurnRateRule,
+        ): ServiceLevelObjectiveBurnRateRule => {
+          const rule: ServiceLevelObjectiveBurnRateRule =
+            new ServiceLevelObjectiveBurnRateRule(RULE_IDS[recommended.name]!);
+          rule.projectId = PROJECT_ID;
+          rule.serviceLevelObjectiveId = SLO_ID;
+          rule.name = recommended.name;
+          rule.isEnabled = true;
+          rule.burnRateThreshold = recommended.burnRateThreshold;
+          rule.longWindowInMinutes = recommended.longWindowInMinutes;
+          rule.shortWindowInMinutes = recommended.shortWindowInMinutes;
+
+          if (recommended.refireSuppressionMinutes !== null) {
+            rule.refireSuppressionMinutes =
+              recommended.refireSuppressionMinutes;
+          }
+
+          rule.alertSeverityId =
+            recommended.alertSeverity ===
+            SloRecommendedAlertSeverity.LeastSevere
+              ? LEAST_SEVERE_ID
+              : SEVERITY_ID;
+          rule.onCallDutyPolicies = [];
+          rule.incidentOnCallDutyPolicies = [];
+
+          Object.assign(rule, overrides[recommended.name] || {});
+
+          return rule;
+        },
+      );
+    }
+
+    /*
+     * A steady burn: from `fromHoursAgo` on, the monitor is down for
+     * `downSecondsPerOutage` at the start of every `everyMinutes` (an hour
+     * unless said), until `stoppedHoursAgo` - its last outage starts one
+     * period before that - or now.
+     *
+     * At 99.9% the budget allows 3.6 seconds of downtime an hour, so 11
+     * seconds an hour is a steady 3.06x - a budget gone in under 10 days -
+     * and 3 seconds an hour is 0.83x, on track to meet the objective.
+     */
+    function steadyBurn(data: {
+      fromHoursAgo: number;
+      downSecondsPerOutage: number;
+      everyMinutes?: number | undefined;
+      stoppedHoursAgo?: number | undefined;
+    }): Array<MonitorStatusTimeline> {
+      const rows: Array<MonitorStatusTimeline> = [];
+      const every: number = data.everyMinutes ?? 60;
+      const lastMinutesAgo: number = (data.stoppedHoursAgo ?? 0) * 60 + every;
+
+      for (
+        let minutes: number = data.fromHoursAgo * 60;
+        minutes >= lastMinutesAgo;
+        minutes -= every
+      ) {
+        const downFrom: Date = minutesAgo(minutes);
+        const downTo: Date = new Date(
+          downFrom.getTime() + data.downSecondsPerOutage * 1000,
+        );
+
+        rows.push(down(downFrom, downTo));
+        rows.push(
+          up(
+            downTo,
+            minutes - every < lastMinutesAgo
+              ? undefined
+              : minutesAgo(minutes - every),
+          ),
+        );
+      }
+
+      return rows;
+    }
+
+    function stubSteadyBurn(data: {
+      fromHoursAgo: number;
+      downSecondsPerOutage: number;
+      everyMinutes?: number | undefined;
+      stoppedHoursAgo?: number | undefined;
+    }): void {
+      stubTimelines({ [MONITOR_A_ID.toString()]: steadyBurn(data) });
+    }
+
+    function stubThirtyDaySlo(): void {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({ targetPercentage: 99.9, windowDays: 30 }),
+      ]);
+    }
+
+    // The rules a tick stamped as having opened an alert.
+    function rulesThatRaisedAnAlert(): Array<string> {
+      return burnRuleService.updateOneById.mock.calls
+        .filter((call: Array<unknown>): boolean => {
+          return Object.prototype.hasOwnProperty.call(
+            (call[0] as UpdateCallArgs).data,
+            "lastAlertCreatedAt",
+          );
+        })
+        .map((call: Array<unknown>): string => {
+          return (call[0] as UpdateCallArgs).id.toString();
+        });
+    }
+
+    beforeEach(() => {
+      stubThirtyDaySlo();
+    });
+
+    test("a steady 3x burn of a 99.9% / 30-day SLO raises a Slow leak alert, which Fast burn and Slow burn never would", async () => {
+      burnRuleService.findBy.mockResolvedValue(seededRules());
+      stubSteadyBurn({ fromHoursAgo: 240, downSecondsPerOutage: 11 });
+
+      await runWorkerTick();
+
+      // One alert, for the ticket tier only.
+      expect(rulesThatRaisedAnAlert()).toEqual([LEAK_RULE_ID.toString()]);
+      expect(createdAlert().title).toContain("Slow leak");
+    });
+
+    test("the Slow leak alert is a ticket: raised at the project's least severe severity, with no incident declared", async () => {
+      burnRuleService.findBy.mockResolvedValue(seededRules());
+      stubSteadyBurn({ fromHoursAgo: 240, downSecondsPerOutage: 11 });
+
+      await runWorkerTick();
+
+      expect(createdAlert().alertSeverityId?.toString()).toBe(
+        LEAST_SEVERE_ID.toString(),
+      );
+      expect(incidentService.create).not.toHaveBeenCalled();
+      // It names its own severity: the project-wide fallback is never asked for.
+      expect(severityService.findOneBy).not.toHaveBeenCalled();
+    });
+
+    test("a burn under 1x - on track to meet the objective - fires nothing", async () => {
+      burnRuleService.findBy.mockResolvedValue(seededRules());
+      stubSteadyBurn({ fromHoursAgo: 240, downSecondsPerOutage: 3 });
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(rulesThatRaisedAnAlert()).toEqual([]);
+    });
+
+    test("a burn that stopped hours ago is held back by the 6-hour short window", async () => {
+      burnRuleService.findBy.mockResolvedValue(seededRules());
+      // 3x for days, but nothing in the last 7 hours: the 3-day window still reads 2.76x.
+      stubSteadyBurn({
+        fromHoursAgo: 240,
+        downSecondsPerOutage: 11,
+        stoppedHoursAgo: 7,
+      });
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+    });
+
+    test("an open Slow leak alert is held, not resolved, while only the short window has recovered", async () => {
+      burnRuleService.findBy.mockResolvedValue(
+        seededRules({
+          [SLO_SLOW_LEAK_RULE_NAME]: { lastAlertCreatedAt: daysAgo(2) },
+        }),
+      );
+      stubSteadyBurn({
+        fromHoursAgo: 240,
+        downSecondsPerOutage: 11,
+        stoppedHoursAgo: 7,
+      });
+
+      await runWorkerTick();
+
+      expect(burnRuleService.resolveOpenAlertsForRule).not.toHaveBeenCalled();
+      expect(alertService.create).not.toHaveBeenCalled();
+    });
+
+    test("an open Slow leak alert resolves once the 3-day burn is back under 1x", async () => {
+      burnRuleService.findBy.mockResolvedValue(
+        seededRules({
+          [SLO_SLOW_LEAK_RULE_NAME]: { lastAlertCreatedAt: daysAgo(2) },
+        }),
+      );
+      stubSteadyBurn({ fromHoursAgo: 240, downSecondsPerOutage: 3 });
+
+      await runWorkerTick();
+
+      expect(burnRuleService.resolveOpenAlertsForRule).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          burnRuleService.resolveOpenAlertsForRule.mock.calls[0]![0] as {
+            burnRateRuleId: ObjectID;
+          }
+        ).burnRateRuleId.toString(),
+      ).toBe(LEAK_RULE_ID.toString());
+    });
+
+    test("a new SLO cannot fire Slow leak before it has three days of history", async () => {
+      burnRuleService.findBy.mockResolvedValue(seededRules());
+      // The same 3x burn, measured for two days only.
+      stubSteadyBurn({ fromHoursAgo: 48, downSecondsPerOutage: 11 });
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(
+        (logger as unknown as { debug: jest.Mock }).debug.mock.calls.some(
+          (call: Array<unknown>): boolean => {
+            return String(call[0]).includes(
+              "not enough history to evaluate a 4320-minute burn window",
+            );
+          },
+        ),
+      ).toBe(true);
+    });
+
+    test("with just over three days of history the same burn fires", async () => {
+      burnRuleService.findBy.mockResolvedValue(seededRules());
+      stubSteadyBurn({ fromHoursAgo: 73, downSecondsPerOutage: 11 });
+
+      await runWorkerTick();
+
+      expect(rulesThatRaisedAnAlert()).toEqual([LEAK_RULE_ID.toString()]);
+    });
+
+    /*
+     * A 7-day SLO's slow leak looks back a tenth of its window, 16.8 hours,
+     * confirmed over 84 minutes, at 1x. One second of downtime every 12
+     * minutes is a steady 1.39x: over Slow leak's 1x, under the 7-day Slow
+     * burn's 1.4x and Fast burn's 3.36x.
+     */
+    test("a 7-day SLO's slow leak looks back 16.8 hours, and fires once the SLO has that much history", async () => {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({ targetPercentage: 99.9, windowDays: 7 }),
+      ]);
+      burnRuleService.findBy.mockResolvedValue(seededRules({}, 7));
+      stubSteadyBurn({
+        fromHoursAgo: 17,
+        downSecondsPerOutage: 1,
+        everyMinutes: 12,
+      });
+
+      await runWorkerTick();
+
+      expect(rulesThatRaisedAnAlert()).toEqual([LEAK_RULE_ID.toString()]);
+    });
+
+    test("a 7-day SLO's slow leak waits for its 16.8 hours of history, not three days", async () => {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({ targetPercentage: 99.9, windowDays: 7 }),
+      ]);
+      burnRuleService.findBy.mockResolvedValue(seededRules({}, 7));
+      stubSteadyBurn({
+        fromHoursAgo: 16,
+        downSecondsPerOutage: 1,
+        everyMinutes: 12,
+      });
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(
+        (logger as unknown as { debug: jest.Mock }).debug.mock.calls.some(
+          (call: Array<unknown>): boolean => {
+            return String(call[0]).includes(
+              "not enough history to evaluate a 1008-minute burn window",
+            );
+          },
+        ),
+      ).toBe(true);
+    });
+
+    /*
+     * Time-based SLIs have no sample count - every second of the window is a
+     * sample - so the worker does not read the column at all, and a Slow
+     * leak rule someone gave one fires on the same burn.
+     */
+    test("a minimum sample count does not hold back a time-based SLI's slow leak", async () => {
+      burnRuleService.findBy.mockResolvedValue(
+        seededRules({
+          [SLO_SLOW_LEAK_RULE_NAME]: { minimumSampleCount: 1000000000 },
+        }),
+      );
+      stubSteadyBurn({ fromHoursAgo: 240, downSecondsPerOutage: 11 });
+
+      await runWorkerTick();
+
+      expect(rulesThatRaisedAnAlert()).toEqual([LEAK_RULE_ID.toString()]);
+
+      const select: Record<string, unknown> = (
+        burnRuleService.findBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select["minimumSampleCount"]).toBeUndefined();
+      expect(select["refireSuppressionMinutes"]).toBe(true);
+    });
+
+    test("waits its 24 hours of re-fire suppression after an alert resolves", async () => {
+      burnRuleService.findBy.mockResolvedValue(
+        seededRules({
+          [SLO_SLOW_LEAK_RULE_NAME]: {
+            lastAlertCreatedAt: daysAgo(3),
+            lastAlertResolvedAt: hoursAgo(23),
+          },
+        }),
+      );
+      stubSteadyBurn({ fromHoursAgo: 240, downSecondsPerOutage: 11 });
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(
+        (logger as unknown as { debug: jest.Mock }).debug.mock.calls.some(
+          (call: Array<unknown>): boolean => {
+            return String(call[0]).includes(
+              "within the 1440-minute re-fire suppression window",
+            );
+          },
+        ),
+      ).toBe(true);
+    });
+
+    test("raises the next alert once those 24 hours have passed", async () => {
+      burnRuleService.findBy.mockResolvedValue(
+        seededRules({
+          [SLO_SLOW_LEAK_RULE_NAME]: {
+            lastAlertCreatedAt: daysAgo(3),
+            lastAlertResolvedAt: hoursAgo(25),
+          },
+        }),
+      );
+      stubSteadyBurn({ fromHoursAgo: 240, downSecondsPerOutage: 11 });
+
+      await runWorkerTick();
+
+      expect(rulesThatRaisedAnAlert()).toEqual([LEAK_RULE_ID.toString()]);
+    });
+
+    /*
+     * Why the seeded rule carries 24 hours: left empty, the suppression is
+     * one long window - three days - and a leak that came back the next day
+     * would go unreported for two more.
+     */
+    test("left at the column default, the same rule would stay quiet for its whole 3-day long window", async () => {
+      const rules: Array<ServiceLevelObjectiveBurnRateRule> = seededRules({
+        [SLO_SLOW_LEAK_RULE_NAME]: {
+          lastAlertCreatedAt: daysAgo(3),
+          lastAlertResolvedAt: hoursAgo(25),
+        },
+      });
+      rules[2]!.refireSuppressionMinutes = undefined;
+      burnRuleService.findBy.mockResolvedValue(rules);
+      stubSteadyBurn({ fromHoursAgo: 240, downSecondsPerOutage: 11 });
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+    });
+
+    test("on a rolling 30-day SLO it reads no history beyond the compliance window", async () => {
+      burnRuleService.findBy.mockResolvedValue(seededRules());
+      stubSteadyBurn({ fromHoursAgo: 240, downSecondsPerOutage: 11 });
+
+      await runWorkerTick();
+
+      const fetchArgs: { query: { endsAt: unknown } } = timelineService
+        .findAllBy.mock.calls[0]![0] as { query: { endsAt: unknown } };
+
+      // The 30-day window starts further back than the 3-day long window.
+      expect(boundDateOf(fetchArgs.query.endsAt).getTime()).toBe(
+        daysAgo(30).getTime(),
+      );
+    });
+
+    /*
+     * The one place the 3-day window costs a read: at the start of a
+     * calendar month the burn window reaches back past the 1st, so the fetch
+     * takes up to three days of the month before - never more.
+     */
+    test("on the 1st of a calendar month it reads back exactly three days before now", async () => {
+      const firstOfMonth: Date = new Date("2026-07-01T12:00:00.000Z");
+
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(firstOfMonth);
+      jest
+        .spyOn(OneUptimeDate, "getCurrentMomentDate")
+        .mockImplementation(() => {
+          return Moment(firstOfMonth);
+        });
+
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({
+          targetPercentage: 99.9,
+          windowType: SloWindowType.CalendarMonth,
+          timezone: "UTC",
+        }),
+      ]);
+      burnRuleService.findBy.mockResolvedValue(seededRules());
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(40))] });
+
+      await runWorkerTick();
+
+      const fetchArgs: { query: { endsAt: unknown } } = timelineService
+        .findAllBy.mock.calls[0]![0] as { query: { endsAt: unknown } };
+
+      expect(boundDateOf(fetchArgs.query.endsAt).getTime()).toBe(
+        firstOfMonth.getTime() - 3 * 24 * 60 * 60 * 1000,
+      );
     });
   });
 });
