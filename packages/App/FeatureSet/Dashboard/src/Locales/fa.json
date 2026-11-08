@@ -46503,11 +46503,13 @@
   "The matched text looks like a secret or personal data, so it was not kept.": "متن منطبق شبیه یک راز یا داده شخصی است، برای همین نگه داشته نشد.",
   "The monitor keeps no response content on its incidents and alerts.": "این مانیتور محتوای پاسخ را در حوادث و هشدارهایش نگه نمی‌دارد.",
   "This criteria has more filters than are shown here.": "این معیار فیلترهای بیشتری از آنچه اینجا نشان داده شده دارد.",
-  "What this monitor's incidents and alerts keep of the check that opened them.": "آنچه حوادث و هشدارهای این مانیتور از بررسی‌ای که آن‌ها را باز کرد نگه می‌دارند.",
-  "What this monitor's incidents and alerts keep of the request that opened them.": "آنچه حوادث و هشدارهای این مانیتور از درخواستی که آن‌ها را باز کرد نگه می‌دارند.",
   "not found": "پیدا نشد",
   "{{criteria}} matched when all of its filters did.": "{{criteria}} برقرار شد، چون همه فیلترهایش برقرار بودند.",
   "{{criteria}} matched when one of its filters did.": "{{criteria}} برقرار شد، چون یکی از فیلترهایش برقرار بود.",
   "{{criteria}} matched.": "{{criteria}} برقرار شد.",
-  "{{step}} of {{count}}": "{{step}} از {{count}}"
+  "{{step}} of {{count}}": "{{step}} از {{count}}",
+  "The monitor keeps no request content on its incidents and alerts.": "این مانیتور محتوای درخواست را در حوادث و هشدارهایش نگه نمی‌دارد.",
+  "Secrets and personal data in the request are masked.": "اسرار و داده‌های شخصی در درخواست پوشانده می‌شوند.",
+  "Turn this off for a monitor whose responses are sensitive.": "برای مانیتوری که پاسخ‌هایش حساس است، این را خاموش کنید.",
+  "Turn this off for a monitor whose requests are sensitive.": "برای مانیتوری که درخواست‌هایش حساس است، این را خاموش کنید."
 }

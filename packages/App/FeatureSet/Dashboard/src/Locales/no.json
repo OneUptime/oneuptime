@@ -46503,11 +46503,13 @@
   "The matched text looks like a secret or personal data, so it was not kept.": "Den funne teksten ser ut som en hemmelighet eller personopplysninger, så den ble ikke tatt vare på.",
   "The monitor keeps no response content on its incidents and alerts.": "Overvåkeren beholder ikke svarinnhold på hendelsene og varslene sine.",
   "This criteria has more filters than are shown here.": "Disse kriteriene har flere filtre enn det som vises her.",
-  "What this monitor's incidents and alerts keep of the check that opened them.": "Hva hendelsene og varslene til denne overvåkeren beholder av sjekken som åpnet dem.",
-  "What this monitor's incidents and alerts keep of the request that opened them.": "Hva hendelsene og varslene til denne overvåkeren beholder av forespørselen som åpnet dem.",
   "not found": "ikke funnet",
   "{{criteria}} matched when all of its filters did.": "{{criteria}} ble oppfylt da alle filtrene var oppfylt.",
   "{{criteria}} matched when one of its filters did.": "{{criteria}} ble oppfylt da ett av filtrene var oppfylt.",
   "{{criteria}} matched.": "{{criteria}} ble oppfylt.",
-  "{{step}} of {{count}}": "{{step}} av {{count}}"
+  "{{step}} of {{count}}": "{{step}} av {{count}}",
+  "The monitor keeps no request content on its incidents and alerts.": "Overvåkeren beholder ikke forespørselsinnhold på hendelsene og varslene sine.",
+  "Secrets and personal data in the request are masked.": "Hemmeligheter og personopplysninger i forespørselen er maskert.",
+  "Turn this off for a monitor whose responses are sensitive.": "Slå dette av for en overvåker med sensitive svar.",
+  "Turn this off for a monitor whose requests are sensitive.": "Slå dette av for en overvåker med sensitive forespørsler."
 }

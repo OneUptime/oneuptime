@@ -22,11 +22,17 @@ export interface ResponseContentSwitchCopyForType {
   offDescription: string;
 }
 
+/*
+ * The card's line says when to turn the switch off; the switch's own line
+ * says what it keeps either way - and that secrets are masked, since a
+ * phone shows the switch's line and not the card's.
+ */
+
 // A Website or API monitor reads the response it gets.
 export const RESPONSE_CONTENT_SWITCH_COPY: ResponseContentSwitchCopyForType = {
   cardTitle: translationKey("Response content"),
   cardDescription: translationKey(
-    "What this monitor's incidents and alerts keep of the check that opened them.",
+    "Turn this off for a monitor whose responses are sensitive.",
   ),
   switchTitle: translationKey("Keep response content on incidents and alerts"),
   onDescription: translationKey(
@@ -41,7 +47,7 @@ export const RESPONSE_CONTENT_SWITCH_COPY: ResponseContentSwitchCopyForType = {
 export const REQUEST_CONTENT_SWITCH_COPY: ResponseContentSwitchCopyForType = {
   cardTitle: translationKey("Request content"),
   cardDescription: translationKey(
-    "What this monitor's incidents and alerts keep of the request that opened them.",
+    "Turn this off for a monitor whose requests are sensitive.",
   ),
   switchTitle: translationKey("Keep request content on incidents and alerts"),
   onDescription: translationKey(

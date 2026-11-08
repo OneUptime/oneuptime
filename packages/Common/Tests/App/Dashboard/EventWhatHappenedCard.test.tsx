@@ -608,7 +608,13 @@ describe("how the monitor decided, under the root cause", () => {
     expect(
       screen.getByRole("heading", { name: "Evaluation details" }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("evaluation-facts")).toHaveTextContent("503");
+    // Folded, it says why: the filter that matched and what it found.
+    expect(screen.getByTestId("evaluation-filter-title")).toHaveTextContent(
+      "Response Status Code Greater Than 499",
+    );
+    expect(screen.getByTestId("evaluation-filter-actual")).toHaveTextContent(
+      "Actual503",
+    );
   });
 
   test("an incident from before the details were kept shows none", () => {

@@ -46503,11 +46503,13 @@
   "The matched text looks like a secret or personal data, so it was not kept.": "일치한 텍스트가 시크릿이나 개인 정보로 보여 보관하지 않았습니다.",
   "The monitor keeps no response content on its incidents and alerts.": "이 모니터는 인시던트와 알림에 응답 내용을 보관하지 않습니다.",
   "This criteria has more filters than are shown here.": "이 기준에는 여기에 표시된 것보다 많은 필터가 있습니다.",
-  "What this monitor's incidents and alerts keep of the check that opened them.": "이 모니터의 인시던트와 알림이 자신을 생성한 확인에서 보관하는 내용입니다.",
-  "What this monitor's incidents and alerts keep of the request that opened them.": "이 모니터의 인시던트와 알림이 자신을 생성한 요청에서 보관하는 내용입니다.",
   "not found": "찾을 수 없음",
   "{{criteria}} matched when all of its filters did.": "모든 필터가 일치하여 {{criteria}} 기준이 충족되었습니다.",
   "{{criteria}} matched when one of its filters did.": "필터 중 하나가 일치하여 {{criteria}} 기준이 충족되었습니다.",
   "{{criteria}} matched.": "{{criteria}} 기준이 충족되었습니다.",
-  "{{step}} of {{count}}": "{{step}}/{{count}}"
+  "{{step}} of {{count}}": "{{step}}/{{count}}",
+  "The monitor keeps no request content on its incidents and alerts.": "이 모니터는 인시던트와 알림에 요청 내용을 보관하지 않습니다.",
+  "Secrets and personal data in the request are masked.": "요청의 시크릿과 개인 정보는 가려집니다.",
+  "Turn this off for a monitor whose responses are sensitive.": "응답이 민감한 모니터에서는 이 설정을 끕니다.",
+  "Turn this off for a monitor whose requests are sensitive.": "요청이 민감한 모니터에서는 이 설정을 끕니다."
 }

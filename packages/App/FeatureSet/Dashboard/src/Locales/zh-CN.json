@@ -46503,11 +46503,13 @@
   "The matched text looks like a secret or personal data, so it was not kept.": "匹配的文本看起来像密钥或个人数据，因此未保留。",
   "The monitor keeps no response content on its incidents and alerts.": "该监视器不会在其事件和警报中保留响应内容。",
   "This criteria has more filters than are shown here.": "此标准的过滤器比这里显示的更多。",
-  "What this monitor's incidents and alerts keep of the check that opened them.": "此监视器的事件和警报从触发它们的检查中保留的内容。",
-  "What this monitor's incidents and alerts keep of the request that opened them.": "此监视器的事件和警报从触发它们的请求中保留的内容。",
   "not found": "未找到",
   "{{criteria}} matched when all of its filters did.": "所有过滤器都匹配，因此满足了 {{criteria}}。",
   "{{criteria}} matched when one of its filters did.": "其中一个过滤器匹配，因此满足了 {{criteria}}。",
   "{{criteria}} matched.": "已满足 {{criteria}}。",
-  "{{step}} of {{count}}": "第 {{step}} 步，共 {{count}} 步"
+  "{{step}} of {{count}}": "第 {{step}} 步，共 {{count}} 步",
+  "The monitor keeps no request content on its incidents and alerts.": "该监视器不会在其事件和警报中保留请求内容。",
+  "Secrets and personal data in the request are masked.": "请求中的密钥和个人数据已被遮盖。",
+  "Turn this off for a monitor whose responses are sensitive.": "监视器的响应较为敏感时，请关闭此项。",
+  "Turn this off for a monitor whose requests are sensitive.": "监视器收到的请求较为敏感时，请关闭此项。"
 }

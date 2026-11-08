@@ -46503,11 +46503,13 @@
   "The matched text looks like a secret or personal data, so it was not kept.": "मेल खाया टेक्स्ट सीक्रेट या व्यक्तिगत डेटा जैसा दिखता है, इसलिए उसे नहीं रखा गया।",
   "The monitor keeps no response content on its incidents and alerts.": "यह मॉनिटर अपनी घटनाओं और अलर्ट पर प्रतिक्रिया सामग्री नहीं रखता।",
   "This criteria has more filters than are shown here.": "इस मानदंड में यहाँ दिखाए गए से अधिक फ़िल्टर हैं।",
-  "What this monitor's incidents and alerts keep of the check that opened them.": "इस मॉनिटर की घटनाएं और अलर्ट उन्हें खोलने वाली जाँच से क्या रखते हैं।",
-  "What this monitor's incidents and alerts keep of the request that opened them.": "इस मॉनिटर की घटनाएं और अलर्ट उन्हें खोलने वाले अनुरोध से क्या रखते हैं।",
   "not found": "नहीं मिला",
   "{{criteria}} matched when all of its filters did.": "{{criteria}} पूरा हुआ क्योंकि इसके सभी फ़िल्टर मेल खाए।",
   "{{criteria}} matched when one of its filters did.": "{{criteria}} पूरा हुआ क्योंकि इसका एक फ़िल्टर मेल खाया।",
   "{{criteria}} matched.": "{{criteria}} पूरा हुआ।",
-  "{{step}} of {{count}}": "{{count}} में से {{step}}"
+  "{{step}} of {{count}}": "{{count}} में से {{step}}",
+  "The monitor keeps no request content on its incidents and alerts.": "यह मॉनिटर अपनी घटनाओं और अलर्ट पर अनुरोध सामग्री नहीं रखता।",
+  "Secrets and personal data in the request are masked.": "अनुरोध में सीक्रेट और व्यक्तिगत डेटा छिपाए जाते हैं।",
+  "Turn this off for a monitor whose responses are sensitive.": "जिस मॉनिटर की प्रतिक्रियाएँ संवेदनशील हों, उसके लिए इसे बंद करें।",
+  "Turn this off for a monitor whose requests are sensitive.": "जिस मॉनिटर के अनुरोध संवेदनशील हों, उसके लिए इसे बंद करें।"
 }

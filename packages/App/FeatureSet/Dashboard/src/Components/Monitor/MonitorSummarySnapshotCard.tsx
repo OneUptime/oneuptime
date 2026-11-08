@@ -24,7 +24,7 @@ import React, {
   useState,
 } from "react";
 import SummaryInfo from "./SummaryView/SummaryInfo";
-import { RESPONSE_CONTENT_NOT_KEPT } from "../EventView/EventEvaluationDetailsCopy";
+import { getContentNotKeptNote } from "../EventView/EventEvaluationDetailsCopy";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -188,13 +188,16 @@ const MonitorSummarySnapshotCard: FunctionComponent<ComponentProps> = (
           {/*
            * The monitor keeps no response content on its incidents and
            * alerts (its Settings page): the body was left out on purpose.
+           * An Incoming Request monitor's is the request it received.
            */}
           {snapshot.isResponseContentOmitted && (
             <div
               data-testid="monitor-summary-response-content-omitted"
               className="text-sm text-gray-500"
             >
-              {translator.translateText(RESPONSE_CONTENT_NOT_KEPT)}
+              {translator.translateText(
+                getContentNotKeptNote(snapshot.monitorType),
+              )}
             </div>
           )}
         </div>

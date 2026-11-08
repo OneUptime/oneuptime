@@ -61,6 +61,10 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
 import { getTableColumns } from "../../../Types/Database/TableColumn";
+import {
+  DASHBOARD_LANGUAGES,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 
 const MONITOR_ID: string = "8d8d8d8d-0000-4000-8000-0000000000cc";
 
@@ -252,6 +256,47 @@ describe("the monitor types whose checks carry no body", () => {
       MonitorType.API,
       MonitorType.IncomingRequest,
     ]);
+  });
+});
+
+describe("the words", () => {
+  test("the card's line says when to turn it off; the switch's own line says what is kept, masked - a phone shows only that one", () => {
+    expect(RESPONSE_CONTENT_SWITCH_COPY.cardDescription).toBe(
+      "Turn this off for a monitor whose responses are sensitive.",
+    );
+    expect(REQUEST_CONTENT_SWITCH_COPY.cardDescription).toBe(
+      "Turn this off for a monitor whose requests are sensitive.",
+    );
+
+    for (const copy of [
+      RESPONSE_CONTENT_SWITCH_COPY,
+      REQUEST_CONTENT_SWITCH_COPY,
+    ]) {
+      expect(
+        copy.onDescription.endsWith("with secrets and personal data masked."),
+      ).toBe(true);
+      expect(
+        copy.offDescription.startsWith("Incidents and alerts keep no "),
+      ).toBe(true);
+    }
+  });
+
+  test("every line of the card is in each of the Dashboard's languages", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      for (const copy of [
+        RESPONSE_CONTENT_SWITCH_COPY,
+        REQUEST_CONTENT_SWITCH_COPY,
+      ]) {
+        for (const text of Object.values(copy)) {
+          expect(`${language}: ${locale[text] ? "has" : "lacks"} ${text}`).toBe(
+            `${language}: has ${text}`,
+          );
+          expect(locale[text]).not.toBe(text);
+        }
+      }
+    }
   });
 });
 

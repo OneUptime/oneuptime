@@ -46503,11 +46503,13 @@
   "The matched text looks like a secret or personal data, so it was not kept.": "Найденный текст похож на секрет или персональные данные, поэтому он не сохранён.",
   "The monitor keeps no response content on its incidents and alerts.": "Монитор не сохраняет содержимое ответов в своих инцидентах и оповещениях.",
   "This criteria has more filters than are shown here.": "У этого критерия больше фильтров, чем показано здесь.",
-  "What this monitor's incidents and alerts keep of the check that opened them.": "Что инциденты и оповещения этого монитора сохраняют из проверки, которая их открыла.",
-  "What this monitor's incidents and alerts keep of the request that opened them.": "Что инциденты и оповещения этого монитора сохраняют из запроса, который их открыл.",
   "not found": "не найдено",
   "{{criteria}} matched when all of its filters did.": "Критерий {{criteria}} выполнен: выполнились все его фильтры.",
   "{{criteria}} matched when one of its filters did.": "Критерий {{criteria}} выполнен: выполнился один из его фильтров.",
   "{{criteria}} matched.": "Критерий {{criteria}} выполнен.",
-  "{{step}} of {{count}}": "{{step}} из {{count}}"
+  "{{step}} of {{count}}": "{{step}} из {{count}}",
+  "The monitor keeps no request content on its incidents and alerts.": "Монитор не сохраняет содержимое запросов в своих инцидентах и оповещениях.",
+  "Secrets and personal data in the request are masked.": "Секреты и персональные данные в запросе скрыты.",
+  "Turn this off for a monitor whose responses are sensitive.": "Отключите это для монитора, ответы которого конфиденциальны.",
+  "Turn this off for a monitor whose requests are sensitive.": "Отключите это для монитора, запросы которого конфиденциальны."
 }

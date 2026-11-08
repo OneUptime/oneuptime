@@ -46503,11 +46503,13 @@
   "The matched text looks like a secret or personal data, so it was not kept.": "一致したテキストはシークレットまたは個人データのようなので、保持されませんでした。",
   "The monitor keeps no response content on its incidents and alerts.": "このモニターは、インシデントとアラートにレスポンスの内容を保持しません。",
   "This criteria has more filters than are shown here.": "この条件には、ここに表示されている以上のフィルターがあります。",
-  "What this monitor's incidents and alerts keep of the check that opened them.": "このモニターのインシデントとアラートが、それらを作成したチェックから保持する内容です。",
-  "What this monitor's incidents and alerts keep of the request that opened them.": "このモニターのインシデントとアラートが、それらを作成したリクエストから保持する内容です。",
   "not found": "見つかりません",
   "{{criteria}} matched when all of its filters did.": "すべてのフィルターが一致したため、{{criteria}} に一致しました。",
   "{{criteria}} matched when one of its filters did.": "フィルターの 1 つが一致したため、{{criteria}} に一致しました。",
   "{{criteria}} matched.": "{{criteria}} に一致しました。",
-  "{{step}} of {{count}}": "{{step}} / {{count}}"
+  "{{step}} of {{count}}": "{{step}} / {{count}}",
+  "The monitor keeps no request content on its incidents and alerts.": "このモニターは、インシデントとアラートにリクエストの内容を保持しません。",
+  "Secrets and personal data in the request are masked.": "リクエスト内のシークレットと個人データはマスクされます。",
+  "Turn this off for a monitor whose responses are sensitive.": "レスポンスに機密性の高い内容が含まれるモニターでは、オフにします。",
+  "Turn this off for a monitor whose requests are sensitive.": "リクエストに機密性の高い内容が含まれるモニターでは、オフにします。"
 }

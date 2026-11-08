@@ -46503,11 +46503,13 @@
   "The matched text looks like a secret or personal data, so it was not kept.": "De gevonden tekst lijkt op een geheim of persoonsgegevens en is daarom niet bewaard.",
   "The monitor keeps no response content on its incidents and alerts.": "De monitor bewaart geen antwoordinhoud bij zijn incidenten en waarschuwingen.",
   "This criteria has more filters than are shown here.": "Deze criteria hebben meer filters dan hier worden getoond.",
-  "What this monitor's incidents and alerts keep of the check that opened them.": "Wat de incidenten en waarschuwingen van deze monitor bewaren van de controle die ze opende.",
-  "What this monitor's incidents and alerts keep of the request that opened them.": "Wat de incidenten en waarschuwingen van deze monitor bewaren van het verzoek dat ze opende.",
   "not found": "niet gevonden",
   "{{criteria}} matched when all of its filters did.": "{{criteria}} werd voldaan toen al zijn filters voldaan waren.",
   "{{criteria}} matched when one of its filters did.": "{{criteria}} werd voldaan toen een van zijn filters voldaan was.",
   "{{criteria}} matched.": "{{criteria}} werd voldaan.",
-  "{{step}} of {{count}}": "{{step}} van {{count}}"
+  "{{step}} of {{count}}": "{{step}} van {{count}}",
+  "The monitor keeps no request content on its incidents and alerts.": "De monitor bewaart geen verzoekinhoud bij zijn incidenten en waarschuwingen.",
+  "Secrets and personal data in the request are masked.": "Geheimen en persoonsgegevens in het verzoek worden gemaskeerd.",
+  "Turn this off for a monitor whose responses are sensitive.": "Schakel dit uit voor een monitor waarvan de antwoorden gevoelig zijn.",
+  "Turn this off for a monitor whose requests are sensitive.": "Schakel dit uit voor een monitor waarvan de verzoeken gevoelig zijn."
 }

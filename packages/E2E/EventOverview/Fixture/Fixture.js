@@ -154,12 +154,14 @@
  *            three teams and three people, more than its header names.
  *   ?commander= none: nobody holds Incident Commander on Incident #1042
  *            or Incident Episode #12 (Maya Chen does by default).
- *   ?what=   default | empty | long
+ *   ?what=   default | empty | long | monitor
  *            What Incident #1042 says happened. "empty": no description and
  *            no root cause. "long": a description and a root cause in
  *            markdown, each longer than the What happened card shows before
- *            Show more, whatever the state.
- *   ?evaluation= default | many | long | off | none
+ *            Show more, whatever the state. "monitor": the root cause the
+ *            monitor wrote when it declared the incident, as the server
+ *            writes it (MonitorCriteriaEvaluator), whatever the state.
+ *   ?evaluation= default | many | long | off | offline | logs | none
  *            What the monitor's evaluation said when it opened Incident
  *            #1042 and Alert #311 (Incident.evaluationDetails,
  *            Alert.evaluationDetails), under the What happened card's root
@@ -168,8 +170,11 @@
  *            Any with four filters, one that did not match, a JavaScript
  *            expression's values and a header's. "long": long values - a URL,
  *            a JSON path, an excerpt, a sentence. "off": a monitor that keeps
- *            no response content. "none": no details, as an incident from
- *            before they were kept.
+ *            no response content. "offline": a Website check that could not
+ *            connect - Is Online False, and the probe's account of why.
+ *            "logs": a Logs monitor's criteria, whose filter only the
+ *            evaluation's sentence describes (#1042 only).
+ *            "none": no details, as an incident from before they were kept.
  *   ?lang=   one of the Dashboard's languages (de, fr, ja, ...): the page
  *            reads that language's words, fetched from the Dashboard's own
  *            locale files (server.js serves them).
@@ -901,12 +906,12 @@ const ownersMode = OWNERS_MODES.includes(params.get("owners"))
 // ?commander=none: nobody holds Incident Commander on #1042 or episode #12.
 const commanderMode = params.get("commander") === "none" ? "none" : "default";
 // ?evaluation=: what the monitor's evaluation said (see the header).
-const EVALUATION_MODES = ["many", "long", "off", "none"];
+const EVALUATION_MODES = ["many", "long", "off", "offline", "logs", "none"];
 const evaluationMode = EVALUATION_MODES.includes(params.get("evaluation"))
   ? params.get("evaluation")
   : "default";
 // ?what=: what incident #1042 says happened, for the What happened card.
-const WHAT_MODES = ["empty", "long"];
+const WHAT_MODES = ["empty", "long", "monitor"];
 const whatMode = WHAT_MODES.includes(params.get("what"))
   ? params.get("what")
   : "default";
@@ -1929,6 +1934,72 @@ function incidentEvaluationDetails() {
     },
   };
 
+  /*
+   * The check could not connect: the most common reason a monitor opens an
+   * incident. Is Online False matched, and the probe said why.
+   */
+  if (evaluationMode === "offline") {
+    return {
+      version: 1,
+      monitorType: "Website",
+      evaluatedAt: at("18:01").toISOString(),
+      probeName: "eu-west-1 probe",
+      criteriaId: "criteria-checkout-offline",
+      criteriaName: "Checkout is offline",
+      filterCondition: "Any",
+      request: { url: "https://shop.acme-commerce.example/checkout" },
+      response: {
+        responseTimeInMs: 10004,
+        isOnline: false,
+        isTimeout: true,
+        failureCause:
+          "Request timed out after 10 seconds: no response from shop.acme-commerce.example:443.",
+      },
+      filters: [
+        {
+          checkOn: "Is Online",
+          filterType: "False",
+          met: true,
+          message: "Monitor reported offline status at 14/09/2026 18:01:04.",
+          actual: "false",
+        },
+        {
+          checkOn: "Response Status Code",
+          filterType: "Greater Than",
+          value: 499,
+          met: false,
+          message:
+            "Response Status Code was not reported, so the condition could not be checked.",
+        },
+      ],
+    };
+  }
+
+  /*
+   * A Logs monitor: no request, no response, and nothing the section reads
+   * from a body - the filter's own sentence says what it found.
+   */
+  if (evaluationMode === "logs") {
+    return {
+      version: 1,
+      monitorType: "Logs",
+      evaluatedAt: at("18:01").toISOString(),
+      criteriaId: "criteria-checkout-errors",
+      criteriaName: "Checkout logs errors",
+      filterCondition: "All",
+      filters: [
+        {
+          checkOn: "Log Count",
+          filterType: "Greater Than",
+          value: 100,
+          met: true,
+          message:
+            "Log Count was 412 in the last 5 minutes, above the 100 threshold.",
+        },
+      ],
+    };
+  }
+
   if (evaluationMode === "off") {
     return {
       ...base,
@@ -2028,8 +2099,7 @@ function incidentEvaluationDetails() {
             isCutAtStart: true,
             isCutAtEnd: true,
           },
-          message:
-            "Response body contains degraded. The response was 48,213 characters long; only the part around the match is kept.",
+          message: "Response body contains degraded.",
         },
         slow,
       ],
@@ -2108,14 +2178,38 @@ const MAIN_INCIDENT_DESCRIPTION =
     : whatMode === "long"
       ? "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe, and the synthetic checkout journey began timing out a minute later.\n\nWhat customers saw:\n\n- Checkout spun for up to 30 seconds before the payment step loaded.\n- About 4% of orders were abandoned at the payment step between 17:58 and 18:12.\n- Order confirmation emails were delayed by up to 6 minutes.\n\nSupport received 41 tickets about slow checkout in the same window, most of them from the EU storefront."
       : "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.";
+/*
+ * The root cause the monitor wrote when it declared #1042, as
+ * MonitorCriteriaEvaluator writes one for an API monitor's criteria: its
+ * name, each filter's sentence, the request and what came back.
+ */
+const MONITOR_WRITTEN_ROOT_CAUSE = [
+  "**Created because the following criteria was met**:",
+  "",
+  "**Criteria Name**: Checkout is slow",
+  "",
+  "**Filter Conditions Met**: All filters met.",
+  "- All values of Response Time (in ms) over the last 5 minutes ranged from 2,180 ms to 2,412 ms across all 3 readings, above the 2000 threshold.",
+  "- Response body contains degraded.",
+  "",
+  "**Request Details**",
+  "- Destination: https://api.acme-commerce.example/api/checkout/health?region=eu&api_key=[REDACTED]",
+  "- Request Method: POST",
+  "",
+  "**Response Snapshot**",
+  "- Response Status Code: 200",
+  "- Response Time: 2412 ms",
+].join("\n");
 const MAIN_INCIDENT_ROOT_CAUSE =
   whatMode === "empty"
     ? undefined
-    : whatMode === "long"
-      ? "Release 2026.09.14-2 of checkout-api started at 17:52 with `DB_POOL_MAX=10` instead of 40: the value came from a staging override that the release pipeline copied into the production manifest.\n\nUnder the evening load, checkout requests queued for a connection to orders-db and p95 latency passed 2s. The same pool exhaustion caused #1017, #1029 and #1036.\n\nContributing factors:\n\n1. The release check compares image tags, not environment values.\n2. The pool size alert fires only at 100% use, after requests already wait.\n3. Rolling back took 12 minutes because the previous image had been pruned."
-      : isResolved
-        ? "checkout-api 2026.09.14-2 started with DB_POOL_MAX=10 (was 40). Rolled back at 18:10."
-        : undefined;
+    : whatMode === "monitor"
+      ? MONITOR_WRITTEN_ROOT_CAUSE
+      : whatMode === "long"
+        ? "Release 2026.09.14-2 of checkout-api started at 17:52 with `DB_POOL_MAX=10` instead of 40: the value came from a staging override that the release pipeline copied into the production manifest.\n\nUnder the evening load, checkout requests queued for a connection to orders-db and p95 latency passed 2s. The same pool exhaustion caused #1017, #1029 and #1036.\n\nContributing factors:\n\n1. The release check compares image tags, not environment values.\n2. The pool size alert fires only at 100% use, after requests already wait.\n3. Rolling back took 12 minutes because the previous image had been pruned."
+        : isResolved
+          ? "checkout-api 2026.09.14-2 started with DB_POOL_MAX=10 (was 40). Rolled back at 18:10."
+          : undefined;
 const mainIncident = defineIncident({
   number: INCIDENT_NUMBER,
   numbering: numberedAs("incident", INCIDENT_NUMBER),
