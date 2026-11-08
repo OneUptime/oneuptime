@@ -62,7 +62,14 @@ export const CRITERIA_GROUPS_POSTMORTEMS_PAGES: ReadonlyArray<CriteriaGroupsPost
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     // The "⋯" that opens a row's menu, drawn the same in every language.
-    [CRITERIA_AND_STATUSES]: ["Is Online", "All Values", "⋯"],
+    [CRITERIA_AND_STATUSES]: [
+      "Is Online",
+      "All Values",
+      "⋯",
+      // What an incident or alert keeps of the check: two filter types.
+      "Response Header Value",
+      "JavaScript Expression",
+    ],
     [POSTMORTEMS]: [
       "Standard Postmortem",
       "Detailed Technical Postmortem",
@@ -82,6 +89,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Several probes.",
     "A parent monitor that is down.",
     "Scheduled maintenance.",
+    // What an incident or alert keeps of the check.
+    "The field.",
+    "The values.",
+    "An excerpt.",
     // Archiving a monitor status.
     "Nobody can pick it again.",
     "Archived statuses are listed apart",
