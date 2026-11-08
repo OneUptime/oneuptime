@@ -13,6 +13,7 @@ import {
   SloWidgetSourceState,
 } from "../../../Utils/Dashboard/SloWidgetSource";
 import { describe, expect, test } from "@jest/globals";
+import ObjectID from "../../../Types/ObjectID";
 
 /*
  * resolveSloWidgetSource is the ONE decision about which objective a dashboard
@@ -347,5 +348,102 @@ describe("resolveSloWidgetSource", () => {
         "More than one SLO is named “Checkout API”",
       );
     });
+  });
+});
+
+/*
+ * Issue #6328: the API, Terraform, a workflow or a script can store an SLO
+ * widget's SLO - or the variable it follows - as an ObjectID's JSON, which
+ * every board revives into an ObjectID. Trimming one threw, and the widget
+ * fell into its error boundary; both public routes refused it. The ids are
+ * read as the ids they name (DashboardWidgetIds), here as on the page.
+ */
+describe("resolveSloWidgetSource reads its ids in every encoding (issue #6328)", () => {
+  test.each([
+    ["text", SLO_ID],
+    ["a revived ObjectID", new ObjectID(SLO_ID)],
+    ["an ObjectID's JSON", { _type: "ObjectID", value: SLO_ID }],
+    ["an ObjectID's JSON with spaces", { _type: "ObjectID", value: ` ${SLO_ID} ` }],
+  ])("pins the SLO stored as %s", (_name: string, storedId: unknown) => {
+    expect(
+      resolveSloWidgetSource({
+        serviceLevelObjectiveId: storedId,
+        serviceLevelObjectiveVariableId: VARIABLE_ID,
+        variables: [buildVariable({ selectedValue: "Checkout" })],
+      }),
+    ).toEqual({
+      state: SloWidgetSourceState.Pinned,
+      serviceLevelObjectiveId: SLO_ID,
+    });
+  });
+
+  test.each([
+    ["a number", 42],
+    ["zero", 0],
+    ["false", false],
+    ["a list", [SLO_ID]],
+    ["an object", { id: SLO_ID }],
+    ["another typed value's JSON", { _type: "Name", value: SLO_ID }],
+  ])(
+    "reads an id stored as %s as no SLO selected, and never follows the variable instead",
+    (_name: string, storedId: unknown) => {
+      expect(
+        resolveSloWidgetSource({
+          serviceLevelObjectiveId: storedId,
+          serviceLevelObjectiveVariableId: VARIABLE_ID,
+          variables: [buildVariable({ selectedValue: "Checkout" })],
+        }),
+      ).toEqual({ state: SloWidgetSourceState.Unconfigured });
+    },
+  );
+
+  test.each([
+    ["nothing", undefined],
+    ["null", null],
+    ["empty text", ""],
+    ["an ObjectID's JSON with no id", { _type: "ObjectID", value: "  " }],
+  ])(
+    "reads an id stored as %s as no pin, so the widget follows its variable",
+    (_name: string, storedId: unknown) => {
+      expect(
+        resolveSloWidgetSource({
+          serviceLevelObjectiveId: storedId,
+          serviceLevelObjectiveVariableId: VARIABLE_ID,
+          variables: [buildVariable({ selectedValue: "Checkout" })],
+        }),
+      ).toEqual({
+        state: SloWidgetSourceState.FollowsSelection,
+        sloName: "Checkout",
+      });
+    },
+  );
+
+  test.each([
+    ["a revived ObjectID", new ObjectID(SLO_ID)],
+    ["an ObjectID's JSON", { _type: "ObjectID", value: SLO_ID }],
+  ])(
+    "follows the variable it names as %s",
+    (_name: string, storedVariableId: unknown) => {
+      expect(
+        resolveSloWidgetSource({
+          serviceLevelObjectiveVariableId: storedVariableId,
+          variables: [buildVariable({ id: SLO_ID, selectedValue: "Checkout" })],
+        }),
+      ).toEqual({
+        state: SloWidgetSourceState.FollowsSelection,
+        sloName: "Checkout",
+      });
+    },
+  );
+
+  test("reads a variable id that names no variable as no binding, rather than throw", () => {
+    for (const storedVariableId of [42, [VARIABLE_ID], { id: VARIABLE_ID }]) {
+      expect(
+        resolveSloWidgetSource({
+          serviceLevelObjectiveVariableId: storedVariableId,
+          variables: [buildVariable({ selectedValue: "Checkout" })],
+        }),
+      ).toEqual({ state: SloWidgetSourceState.Unconfigured });
+    }
   });
 });
