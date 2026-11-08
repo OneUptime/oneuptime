@@ -94,6 +94,10 @@ Disse påminnelsene er for teamet ditt. Påminnelsene statussideabonnentene dine
 
 **Planlagt vedlikehold → Innstillinger → Notatmaler** rommer ferdigskrevet tekst for oppdateringer om vedlikehold. Kortet **Maler for offentlige eller private notater for planlagte vedlikeholdshendelser** viser dem; **Opprett Notatmal for planlagt vedlikehold** ber om et **Malnavn**, en **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et offentlig eller privat notat på en hendelse, og når de endrer tilstanden, og teksten kan redigeres før den publiseres. I motsetning til notatmalene for uplanlagte hendelser fyller notatmaler for vedlikehold ikke ut noen variabler.
 
+### Godkjenning av offentlige notater
+
+**Planlagt vedlikehold → Innstillinger → Godkjenning av offentlige notater** får de offentlige notatene på planlagte vedlikeholdshendelser godkjent før de publiseres. Siden fungerer som hendelsenes, med egen bryter og egne trinn: slå på **Krev godkjenning før offentlige notater publiseres**, og velg under **Hvem godkjenner** hvem som godkjenner. Dermed kan vedlikeholdsnotater kreve godkjenning mens hendelsesnotater ikke gjør det, eller godkjennes av andre personer. Bare **Prosjekteier** og **Prosjektadministrator** kan endre den. Se [Godkjenning av offentlige notater](/docs/incidents/settings#godkjenning-av-offentlige-notater) for trinnene, og [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater) for hva et notat gjør mens det venter.
+
 ### Egendefinerte felt
 
 **Planlagt vedlikehold → Innstillinger → Egendefinerte felt** legger til egne felt på hver hendelse, for eksempel en endringssak eller et kundenivå. Fyll dem ut på siden **Egendefinerte felt** for en hendelse, eller gjennom API-et som `customFields`. Et felt kan kopiere verdien sin fra et egendefinert felt på en monitor i stedet for å bli skrevet inn: se [Felt som kopieres fra en monitor](/docs/incidents/settings#felt-som-kopieres-fra-en-monitor), som fungerer på samme måte for vedlikeholdshendelser.

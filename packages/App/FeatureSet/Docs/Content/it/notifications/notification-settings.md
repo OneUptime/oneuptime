@@ -77,6 +77,15 @@ La scheda **Sicurezza** riguarda i casi di sicurezza che potete vedere:
 
 Vedete [Casi di sicurezza](/docs/telemetry/security-cases#notifiche).
 
+## Approvazione delle note pubbliche
+
+Il riquadro **Approvazione delle note pubbliche**, nella scheda **Pagine di stato**, riguarda le note pubbliche che attendono un'approvazione prima di essere pubblicate, in un progetto che la richiede:
+
+- **Nota pubblica in attesa della mia approvazione** vi dice che una nota pubblica, o una sua modifica, attende un passaggio che approvate, per nome o tramite un team. Non vi viene chiesto di una nota che avete inviato, né di un passaggio successivo a uno che avete approvato. È attiva all'inizio via email e via push, e **Email Rollup** non la trattiene mai: i clienti per cui la nota è scritta la stanno aspettando.
+- **La mia nota pubblica approvata o rifiutata** vi dice che una nota che avete inviato per l'approvazione è stata approvata e pubblicata, oppure rifiutata, con il motivo. È attiva all'inizio via email.
+
+Vedete [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche).
+
 ## Meno e-mail
 
 Questi interruttori decidono quali aggiornamenti vi raggiungono, non quante e-mail ne risultano. **Impostazioni utente → Preferenze e-mail** ha due riquadri per questo, entrambi solo per voi, in questo progetto:

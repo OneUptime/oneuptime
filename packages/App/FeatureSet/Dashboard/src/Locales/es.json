@@ -33914,6 +33914,10 @@
   "Export from": "Exportar desde",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Déjalo vacío para enviar lo que se registre a partir de ahora. Una fecha anterior también envía las entradas que aún se conservan desde entonces.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Cámbiala para volver a enviar cada entrada conservada desde esta fecha y luego continuar. Las entradas ya entregadas pueden llegar dos veces.",
+  "Record version": "Versión del registro",
+  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "La versión 2 también indica qué cambió en los pasos de un flujo de trabajo y en JSON. La versión 1 es el registro original, para lectores creados para ella.",
+  "Version 2 (newest)": "Versión 2 (la más reciente)",
+  "Version 1 (original)": "Versión 1 (original)",
   "Write a test file": "Escribir un archivo de prueba",
   "Send a test entry": "Enviar una entrada de prueba",
   "Writes one file holding one test entry, under the folder. Nothing is saved.": "Escribe un archivo con una entrada de prueba en la carpeta. No se guarda nada.",
@@ -46424,5 +46428,6 @@
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
   "Only chart this metric from these services.": "Only chart this metric from these services.",
+  "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "Se conservaron los cambios guardados después de esta propuesta"
 }

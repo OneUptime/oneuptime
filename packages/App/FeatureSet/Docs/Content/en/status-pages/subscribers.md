@@ -329,6 +329,14 @@ Through the API, send the choice next to the fields you change, in `miscDataProp
 
 as the body of `PUT /api/status-page-announcement/<announcement-id>` (or `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Leave `miscDataProps` out and the edit is silent, as before.
 
+### Public notes that wait for approval
+
+A project can have public notes approved before they are published: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval). A note that waits tells no subscriber. Its notification is sent when it is published, as a note posted at that moment is, and only if its **Notify Status Page Subscribers** choice says so; a rejected note is never sent. Until then it has no notification to retry or resend.
+
+An edit of a published note waits too. When **Notify subscribers about this update** was ticked, its update is sent once the edit is approved, and never if the edit is rejected or withdrawn.
+
+A state change sent with a public note that waits for approval is not carried by the note: the state change notifies subscribers itself, as it would with no note, and the note follows once it is published.
+
 ## The language subscribers are written in
 
 Each subscriber is written to in their own language: the email or text message that confirms the subscription, the welcome and the link to manage it, every notification about an incident, an incident episode, a scheduled maintenance event or an announcement, by email, SMS, Slack and Microsoft Teams, and the email report.

@@ -77,6 +77,15 @@ A aba **Segurança** é sobre os casos de segurança que você pode ver:
 
 Veja [Casos de segurança](/docs/telemetry/security-cases#notificações).
 
+## Aprovação de notas públicas
+
+O cartão **Aprovação de notas públicas**, na aba **Páginas de status**, trata das notas públicas que aguardam aprovação antes de serem publicadas, num projeto que a exige:
+
+- **Nota pública aguardando minha aprovação** avisa você de que uma nota pública, ou a edição de uma, aguarda uma etapa que você aprova, pelo seu nome ou por meio de uma equipe. Você não é consultado sobre uma nota que enviou, nem sobre uma etapa depois de uma que aprovou. Ela começa ativada por e-mail e por push, e **Email Rollup** nunca a retém: os clientes para quem a nota é escrita estão esperando por ela.
+- **Minha nota pública aprovada ou rejeitada** avisa você de que uma nota que você enviou para aprovação foi aprovada e publicada, ou rejeitada, com o motivo. Ela começa ativada por e-mail.
+
+Veja [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas).
+
 ## Menos e-mails
 
 Esses interruptores decidem quais novidades chegam até você, não quantos e-mails elas somam. **Configurações do usuário → Preferências de e-mail** tem dois cartões para isso, ambos só para você, neste projeto:

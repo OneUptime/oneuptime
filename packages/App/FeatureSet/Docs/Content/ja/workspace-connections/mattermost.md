@@ -131,7 +131,7 @@ OneUptime のメッセージにはボタンと、使う人の少ない操作の�
 | **インシデントエピソード、アラートエピソード** | **Acknowledge**、 **Resolve**、 **Add Note**、 **Change State**、 **Execute On-Call Policy** |
 | **定期メンテナンス** | **Mark as Ongoing**、 **Mark as Complete**、 **Add Note**、 **Change State** |
 
-**Add Note**、 **Change State**、 **Change Severity**、 **Execute On-Call Policy** は Mattermost でフォームを開きます。インシデントや定期メンテナンスイベントのメモは、ステータスページに表示される公開メモにも、非公開メモにもできます。プライベートインシデントのメモは常に非公開で、アラートのメモも常に非公開です。どのメッセージにも、そのレコードを OneUptime で開くリンクがあり、それ以外の操作はそこで行えます。
+**Add Note**、 **Change State**、 **Change Severity**、 **Execute On-Call Policy** は Mattermost でフォームを開きます。インシデントや定期メンテナンスイベントのメモは、ステータスページに表示される公開メモにも、非公開メモにもできます。プライベートインシデントのメモは常に非公開で、アラートのメモも常に非公開です。どのメッセージにも、そのレコードを OneUptime で開くリンクがあり、それ以外の操作はそこで行えます。プロジェクトの公開メモに承認が必要な場合、フォームから送った公開メモは承認を待ち、自分だけに見えるメッセージで誰を待っているかが伝えられます。 [公開メモの承認](/docs/incidents/notes-owners-and-feed#公開メモの承認) を参照してください。
 
 Mattermost アカウントがまだ接続されていない場合は、ボタンがそのことを **ユーザー設定** > **ワークスペース** > **Mattermost** へのリンクとともに伝えます。アカウントを接続してから、もう一度ボタンを押してください。
 

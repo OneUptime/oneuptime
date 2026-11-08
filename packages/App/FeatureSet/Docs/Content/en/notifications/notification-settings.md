@@ -77,6 +77,15 @@ The **Security** tab is about the security cases you can see:
 
 See [Security Cases](/docs/telemetry/security-cases#notifications).
 
+## Public note approval
+
+The **Public Note Approval** card, on the **Status Pages** tab, is about public notes that wait for approval before they are published, in a project that asks for it:
+
+- **Public note waiting for my approval** tells you that a public note, or an edit of one, waits for a step you approve, by name or through a team. You are not asked about a note you sent, or about a step after one you approved. It starts on by email and by push, and **Email Rollup** never holds it back: the customers the note is written for are waiting for it.
+- **My public note approved or rejected** tells you that a note you sent for approval was approved and published, or rejected, with the reason. It starts on by email.
+
+See [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
+
 ## Fewer emails
 
 These switches decide which updates reach you, not how many emails they add up to. **User Settings → Email Preferences** has two cards for that, both for you alone, in this project:

@@ -158,7 +158,7 @@ Réagissez à un message dans le canal d'un incident, d'une alerte, d'un épisod
 | Réaction | Enregistré comme |
 | --- | --- |
 | 📌 Un emoji épingle, ou le propre **Pin to channel** de Slack | Une note privée, visible seulement par votre équipe |
-| 📢 Un emoji mégaphone ou haut-parleur | Une note publique, affichée sur la page de statut. Incidents et événements de maintenance planifiée uniquement. Sur un incident privé, une note privée, et la confirmation dit pourquoi. |
+| 📢 Un emoji mégaphone ou haut-parleur | Une note publique, affichée sur la page de statut. Incidents et événements de maintenance planifiée uniquement. Sur un incident privé, une note privée, et la confirmation dit pourquoi. Quand les notes publiques du projet doivent être approuvées, elle n'est affichée qu'une fois approuvée, et la confirmation dit qui elle attend : voir [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques). |
 
 La note reprend le message tel que Slack l'affichait : sa mise en forme, ses liens et son code, les personnes et les canaux qu'il mentionne par leur nom, et ses fichiers et images sous forme de liens. Une note publique laisse de côté les fichiers et les images, puisqu'ils ne s'ouvrent que pour votre équipe.
 

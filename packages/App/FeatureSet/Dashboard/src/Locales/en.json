@@ -33914,6 +33914,10 @@
   "Export from": "Export from",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.",
+  "Record version": "Record version",
+  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.",
+  "Version 2 (newest)": "Version 2 (newest)",
+  "Version 1 (original)": "Version 1 (original)",
   "Write a test file": "Write a test file",
   "Send a test entry": "Send a test entry",
   "Writes one file holding one test entry, under the folder. Nothing is saved.": "Writes one file holding one test entry, under the folder. Nothing is saved.",
@@ -46424,5 +46428,6 @@
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
   "Only chart this metric from these services.": "Only chart this metric from these services.",
+  "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "Changes saved after this was proposed were kept"
 }

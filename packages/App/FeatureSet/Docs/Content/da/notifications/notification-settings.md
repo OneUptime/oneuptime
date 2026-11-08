@@ -77,6 +77,15 @@ Fanen **Sikkerhed** handler om de sikkerhedssager, du kan se:
 
 Se [Sikkerhedssager](/docs/telemetry/security-cases#notifikationer).
 
+## Godkendelse af offentlige noter
+
+Kortet **Godkendelse af offentlige noter** på fanen **Statussider** handler om offentlige noter, der venter på godkendelse, før de offentliggøres, i et projekt, der kræver det:
+
+- **Offentlig note venter på min godkendelse** fortæller dig, at en offentlig note, eller en redigering af en, venter på et trin, du godkender, ved navn eller gennem et team. Du bliver ikke spurgt om en note, du selv har sendt, eller om et trin efter et, du har godkendt. Den er fra start slået til via e-mail og push, og **Email Rollup** holder den aldrig tilbage: de kunder, noten er skrevet til, venter på den.
+- **Min offentlige note godkendt eller afvist** fortæller dig, at en note, du sendte til godkendelse, blev godkendt og offentliggjort, eller afvist, med begrundelsen. Den er fra start slået til via e-mail.
+
+Se [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter).
+
 ## Færre e-mails
 
 Disse kontakter afgør, hvilke nyheder der når dig, ikke hvor mange e-mails de bliver til. **Brugerindstillinger → E-mailindstillinger** har to kort til det, begge kun for dig, i dette projekt:

@@ -77,6 +77,15 @@ Der Tab **Sicherheit** handelt von den Sicherheitsfällen, die Sie sehen können
 
 Siehe [Sicherheitsfälle](/docs/telemetry/security-cases#benachrichtigungen).
 
+## Genehmigung öffentlicher Notizen
+
+Die Karte **Genehmigung öffentlicher Notizen** auf dem Tab **Statusseiten** betrifft öffentliche Notizen, die vor ihrer Veröffentlichung auf eine Genehmigung warten, in einem Projekt, das das verlangt:
+
+- **Öffentliche Notiz wartet auf meine Genehmigung** sagt Ihnen, dass eine öffentliche Notiz oder ihre Bearbeitung auf einen Schritt wartet, den Sie genehmigen, namentlich oder über ein Team. Sie werden nicht zu einer Notiz gefragt, die Sie gesendet haben, und nicht zu einem Schritt nach einem, den Sie genehmigt haben. Sie ist anfangs per E-Mail und per Push eingeschaltet, und **E-Mail-Zusammenfassung** hält sie nie zurück: Die Kunden, für die die Notiz geschrieben ist, warten auf sie.
+- **Meine öffentliche Notiz genehmigt oder abgelehnt** sagt Ihnen, dass eine Notiz, die Sie zur Genehmigung gesendet haben, genehmigt und veröffentlicht oder abgelehnt wurde, mit dem Grund. Sie ist anfangs per E-Mail eingeschaltet.
+
+Siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen).
+
 ## Weniger E-Mails
 
 Diese Schalter entscheiden, welche Neuigkeiten Sie erreichen, nicht wie viele E-Mails daraus werden. **Benutzereinstellungen → E-Mail-Einstellungen** hat dafür zwei Karten, beide nur für Sie, in diesem Projekt:

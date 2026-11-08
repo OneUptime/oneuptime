@@ -131,7 +131,7 @@ Los mensajes de OneUptime llevan botones, y un menú **More actions** para lo qu
 | **Episodio de incidente, episodio de alerta** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Mantenimiento programado** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** y **Execute On-Call Policy** abren un formulario en Mattermost. Una nota sobre un incidente o un evento de mantenimiento programado puede ser pública, mostrada en la página de estado, o privada; una nota sobre un incidente privado es siempre privada, y sobre una alerta, siempre privada también. Cada mensaje tiene además un enlace que abre su registro en OneUptime, para todo lo demás.
+**Add Note**, **Change State**, **Change Severity** y **Execute On-Call Policy** abren un formulario en Mattermost. Una nota sobre un incidente o un evento de mantenimiento programado puede ser pública, mostrada en la página de estado, o privada; una nota sobre un incidente privado es siempre privada, y sobre una alerta, siempre privada también. Cada mensaje tiene además un enlace que abre su registro en OneUptime, para todo lo demás. Cuando las notas públicas del proyecto necesitan aprobación, una nota pública enviada desde el formulario la espera, y un mensaje que solo tú ves dice a quién espera: consulta [Aprobación de notas públicas](/docs/incidents/notes-owners-and-feed#aprobación-de-notas-públicas).
 
 Si tu cuenta de Mattermost aún no está conectada, un botón te lo dice, con un enlace a **Ajustes de usuario** > **Espacio de trabajo** > **Mattermost**. Conecta tu cuenta y vuelve a pulsar el botón.
 

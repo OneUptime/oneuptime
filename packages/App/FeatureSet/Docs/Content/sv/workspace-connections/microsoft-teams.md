@@ -156,7 +156,7 @@ Reagera på ett meddelande, eller ett svar, i den kanal som OneUptime skapade f�
 | Reaktion | Sparas som |
 | --- | --- |
 | 📌 eller 📍 | En privat anteckning, som bara ditt team ser |
-| 📣 eller 📢 | En offentlig anteckning, som visas på statussidan. Endast incidenter och schemalagda underhållshändelser. På en privat incident en privat anteckning, och bekräftelsen säger varför. |
+| 📣 eller 📢 | En offentlig anteckning, som visas på statussidan. Endast incidenter och schemalagda underhållshändelser. På en privat incident en privat anteckning, och bekräftelsen säger varför. När projektets offentliga anteckningar kräver godkännande visas den först när den har godkänts, och bekräftelsen säger vem den väntar på: se [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar). |
 
 Anteckningen behåller meddelandet så som Microsoft Teams visade det: formateringen, länkarna och koden, personerna det nämner, med namn, och filerna och bilderna som länkar till dem. En offentlig anteckning utelämnar filerna och bilderna, eftersom de bara öppnas för ditt team.
 

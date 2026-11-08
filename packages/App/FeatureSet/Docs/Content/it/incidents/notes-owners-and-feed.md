@@ -169,7 +169,7 @@ Se avete collegato un'area di lavoro, i responder non devono mai lasciare il can
 Tre dettagli che vale la pena conoscere:
 
 - **Protezione dai duplicati** — ogni nota registra il messaggio Slack da cui proviene (`postedFromSlackMessageId`, nel formato `channel_id:message_ts`), così più persone che reagiscono allo stesso messaggio producono una nota, non cinque.
-- **Le note fanno eco** — pubblicare uno qualsiasi dei due tipi di nota invia anche un messaggio nel canale dell'incidente collegato, perché la voce di feed della nota viene creata con la notifica dell'area di lavoro attiva.
+- **Le note fanno eco** — pubblicare uno qualsiasi dei due tipi di nota invia anche un messaggio nel canale dell'incidente collegato, perché la voce di feed della nota viene creata con la notifica dell'area di lavoro attiva. Una nota pubblica in attesa di approvazione vi viene inviata una volta pubblicata: vedete [Approvazione delle note pubbliche](#approvazione-delle-note-pubbliche).
 - **Pubblicata a nome di chi l'ha chiesta** — una nota dalla finestra o da una reazione viene pubblicata con i permessi OneUptime di quella persona, quindi serve il suo permesso di pubblicare quel tipo di nota sull'incidente. Quando viene rifiutata, le viene detto perché — in un messaggio diretto su Slack, e nella conversazione su Microsoft Teams (nel thread del messaggio, per una reazione) — e non viene pubblicato nulla.
 
 ## Quando una nota pubblica raggiunge davvero gli iscritti
@@ -239,6 +239,32 @@ Solo la notifica di creazione dell'incidente riprende da dove si è fermata: tie
 Un aggiornamento inviato non viene offerto di nuovo: modificate la nota con la casella spuntata per inviare il testo più recente, oppure inviate di nuovo la nota stessa. Se la notifica originale non è ancora partita, non viene inviato un aggiornamento separato — l'originale porta con sé la modifica. Se è in invio proprio in quel momento, l'aggiornamento aspetta che finisca e poi parte. La casella e il **Riprova la notifica** dell'aggiornamento richiedono gli stessi permessi dell'invio di nuovo della notifica della nota; senza di essi potete comunque modificare la nota, senza avvisare nessuno. Vedete [Iscritti e annunci](/docs/status-pages/subscribers#avvisare-gli-iscritti-di-una-modifica).
 
 Il messaggio che ricevono davvero gli iscritti viene generato da un modello per pagina di stato e per canale — e-mail, SMS, Slack e Microsoft Teams hanno ciascuno il proprio modello per l'evento **Subscriber Incident Note Created**, con variabili per il nome e l'URL della pagina di stato, il link ai dettagli, le risorse interessate, la gravità e il titolo dell'incidente, il corpo della nota, le etichette dell'incidente, le sue pagine di stato interessate e i suoi campi personalizzati, e un link di disiscrizione per ogni iscritto. Anche i messaggi predefiniti di e-mail, Slack e Microsoft Teams elencano i campi personalizzati dell'incidente contrassegnati con **Includi nelle notifiche agli iscritti**, con i loro valori attuali. Vedete [Iscritti e annunci](/docs/status-pages/subscribers) per come si configurano quei modelli e quei canali.
+
+## Approvazione delle note pubbliche
+
+Un progetto può far approvare le sue note pubbliche prima che i clienti le leggano, così che qualcuno controlli un aggiornamento, per esempio su una violazione di sicurezza, prima che esca. L'approvazione è disattivata finché un proprietario o un amministratore del progetto non la attiva e sceglie chi approva: in **Incidenti → Impostazioni → Approvazione delle note pubbliche** per gli incidenti e gli episodi di incidente, e in **Manutenzione programmata → Impostazioni → Approvazione delle note pubbliche** per gli eventi di manutenzione programmata. Vedete [Approvazione delle note pubbliche](/docs/incidents/settings#approvazione-delle-note-pubbliche).
+
+Finché è attiva, l'editor dice che la nota viene pubblicata una volta approvata e nomina chi la approva, e **Pubblica aggiornamento** diventa **Invia per l'approvazione**. La nota viene salvata con il badge **In attesa di approvazione** e mostra sotto chi può approvarla e, se i passaggi sono più d'uno, quale attende. Finché non è approvata, una nota:
+
+- non compare in nessuna pagina di stato, né in nessuno dei loro feed RSS e Atom;
+- non avvisa nessun iscritto: la sua notifica parte quando viene pubblicata, se **Avvisa gli iscritti della pagina di stato** era selezionato. Vedete [Note pubbliche in attesa di approvazione](/docs/status-pages/subscribers#note-pubbliche-in-attesa-di-approvazione);
+- non viene pubblicata nei canali Slack, Microsoft Teams o Mattermost dell'incidente, e i suoi proprietari ne vengono informati solo quando viene pubblicata;
+- non avvia nessun workflow e resta fuori da ciò che legge OneUptime AI, quindi non compare mai in una nota redatta;
+- mostra le sue immagini solo ai membri del progetto.
+
+Ogni nuova nota pubblica attende, ovunque venga scritta: nella dashboard, tramite l'API, da un workflow o da OneUptime AI, da Slack, Microsoft Teams o Mattermost, con il promemoria di una regola SLA o con un cambio di stato.
+
+**Approvare e rifiutare.** Le persone che nomina il passaggio atteso da una nota, e i membri dei team che nomina, vedono **Approva** e **Rifiuta** sulla nota, e vengono avvisati che attende tramite le impostazioni di notifica che hanno scelto: vedete [Approvazione delle note pubbliche](/docs/notifications/notification-settings#approvazione-delle-note-pubbliche). All'ultimo passaggio **Approva** diventa **Approva e pubblica**, e la nota viene pubblicata subito, con la data del momento in cui viene pubblicata, a meno che il suo orario non sia stato scelto quando è stata scritta. Una volta pubblicata, porta il badge **Approvato** e una riga che nomina chi l'ha approvata, e la sua voce nel feed e il suo messaggio nei canali dell'incidente terminano con gli stessi nomi. **Rifiuta** chiede **Perché la rifiuti?**, e chi ha scritto la nota vede il motivo. Nessuno approva o rifiuta una nota che ha inviato, nessuno approva due passaggi della stessa nota, e una chiave API non approva nulla: chi approva è una persona.
+
+**Inviarla di nuovo.** Una nota rifiutata resta fuori dalle pagine di stato, contrassegnata come **Rifiutato**. Chi può modificarla può cambiarla, o inviarla così com'è con **Invia di nuovo per l'approvazione**; in entrambi i casi la sua approvazione riparte dal primo passaggio. Anche modificare una nota ancora in attesa fa ripartire la sua approvazione: un'approvazione riguarda le parole che le sono state sottoposte.
+
+**Modificare una nota pubblicata.** Anche una modifica attende. Il modulo di modifica lo dice, e **Invia la modifica per l'approvazione** la salva. Le pagine di stato continuano a mostrare la nota com'è stata approvata, la nota mostra la modifica sotto **Modifica proposta**, contrassegnata come **Modifica in attesa di approvazione** o, una volta rifiutata, **Modifica rifiutata**, e **Ritira la modifica** la scarta. I file di una nota pubblicata non possono cambiare finché l'approvazione è attiva: pubblicate invece una nuova nota con i file. Una modifica inviata mentre qualcuno decide sulla nota non viene salvata: aggiornate la pagina e rifatela.
+
+**Disattivare l'approvazione.** Da quel momento le nuove note vengono pubblicate appena inserite. Una nota che era ancora in attesa, o che è stata rifiutata, offre **Pubblica ora** a chi può modificarla, che la pubblica così com'è, senza approvazione, e il feed lo segnala.
+
+**Da Slack, Microsoft Teams e Mattermost.** Il modulo per aggiungere una nota dice che una nota pubblica viene pubblicata sulla pagina di stato una volta approvata. Chi ne invia una viene informato che è stata inviata per l'approvazione e chi attende: in un messaggio che vede solo lui in Slack e Mattermost, e nella conversazione in Microsoft Teams. Una nota salvata da una reazione 📣 o 📢 dice lo stesso nella sua conferma. Il canale viene a sapere della nota quando viene pubblicata.
+
+Il feed registra ogni passaggio come una voce `PublicNoteApproval`: una nota inviata per l'approvazione, approvata o rifiutata, una modifica ritirata o una nota pubblicata senza approvazione. Queste voci non vengono pubblicate nei canali di chat; la nota pubblicata sì.
 
 ## Il feed dell'incidente
 
