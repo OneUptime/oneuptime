@@ -1632,13 +1632,14 @@ describe("what an incident or alert keeps of the check", () => {
       "Content-Type": "application/json",
     });
 
+    // Values no text rule would catch: the names alone mask them.
     expect(
       MonitorEvidenceRedaction.redactJson({
         password: "hunter2",
         token: "t-1",
         api_key: "k-1",
         session: "s-1",
-        email: "ana@example.com",
+        email: "ana.lopez",
         status: "down",
       }),
     ).toEqual({
