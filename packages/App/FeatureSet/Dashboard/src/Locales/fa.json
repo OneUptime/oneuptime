@@ -46441,6 +46441,7 @@
   "Data has arrived from this service in the last 30 minutes.": "در ۳۰ دقیقهٔ گذشته داده از این سرویس رسیده است.",
   "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "داده فقط هنگام اجرای تابع فرستاده می‌شود. آن را یک بار فراخوانی کنید و پس از چند دقیقه این صفحه را تازه کنید. وقتی نخستین داده‌اش برسد، وضعیت تابع به «در حال دریافت داده» تغییر می‌کند.",
   "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "هوش مصنوعی این تغییر را بدون خواندن مراحل گردش کار نوشته است، پس ممکن است مراحلی را که ندیده حذف یا تغییر دهد.",
   "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "هنوز داده‌ای از این تابع نرسیده است. OpenTelemetry SDK را راه‌اندازی کنید و تابع را فراخوانی کنید؛ فقط چند دقیقه طول می‌کشد.",
   "No invocations in the last 15 minutes": "بدون فراخوانی در ۱۵ دقیقهٔ گذشته",
   "No recent data": "بدون دادهٔ اخیر",
@@ -46451,5 +46452,6 @@
   "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "در ۳۰ دقیقهٔ گذشته چیزی نرسیده است. سرویسی که فقط هنگام رسیدگی به درخواست‌ها داده می‌فرستد، وقتی کسی آن را فرانخواند ساکت است. اگر باید درخواست دریافت کند، بررسی کنید که در حال اجرا باشد و همچنان تله‌متری خود را با همین service.name به OneUptime بفرستد.",
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime آخرین بار {{lastHeard}} از این تابع داده دریافت کرد. این تابع فقط هنگام اجرا داده می‌فرستد، پس وقتی چیزی آن را فراخوانی نمی‌کند، مثلاً بین اجراهای زمان‌بندی‌شده، این عادی است.",
   "Status shows \"No recent invocations\" while the function runs": "با اینکه تابع اجرا می‌شود، وضعیت «بدون فراخوانی اخیر» را نشان می‌دهد",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "این تغییر آنچه را که پس از خواندن گردش کار توسط هوش مصنوعی ذخیره شد پس می‌گیرد: {{steps}}.",
   "What to check if it should be running": "اگر باید در حال اجرا باشد، چه چیزی را بررسی کنید"
 }

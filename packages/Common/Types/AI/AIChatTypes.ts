@@ -1,6 +1,7 @@
 import { JSONObject } from "../JSON";
 import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../Workflow/WorkflowDraftProposedOnKey";
 import { AIActionCardWords, AIActionWords } from "./AIActionWords";
+import { AIChatRecordSeen } from "./AIChatRecordSeen";
 import { AiContextActivity } from "./AiContext";
 import { LlmProviderActivity } from "./LlmProviderChoice";
 
@@ -91,6 +92,14 @@ export interface AIChatCitation {
   queryArguments: JSONObject; // validated tool args as executed — replayable
   rowCount: number;
   target?: AIChatCitationTarget | undefined;
+  /*
+   * What the result showed the model of a record it may change from it
+   * later - a workflow's steps, by keyed fingerprints - so a change it
+   * proposes afterwards, in this turn or a later one, can say what it would
+   * undo that was saved since (AIChatRecordSeen, issue #6291). Written by
+   * the server alone, from its own read; absent for every other result.
+   */
+  recordSeen?: AIChatRecordSeen | undefined;
 }
 
 /*
@@ -519,6 +528,13 @@ export interface AIRunPausedState {
   toolActions: Array<AIChatToolAction>;
   egressToolEntries: Array<AIRunEgressManifestToolEntry>;
   startedAtMs: number;
+  /*
+   * What the model had been shown of records in the turns before this one
+   * (the citations of the history it replays), kept for the turn's later
+   * proposals once it resumes (issue #6291). Absent from a turn paused
+   * before OneUptime kept it: it then knows only this turn's.
+   */
+  recordsSeenBeforeTurn?: Array<AIChatRecordSeen> | undefined;
 }
 
 export interface AIRunEgressManifest {
