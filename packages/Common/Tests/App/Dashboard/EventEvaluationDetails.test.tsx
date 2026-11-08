@@ -88,7 +88,8 @@ const TIME_FILTER: MonitorEvaluationFilterDetails = {
   filterType: FilterType.GreaterThan,
   value: 5000,
   met: false,
-  message: "Response Time (in ms) was 120 ms (expected to be greater than 5000).",
+  message:
+    "Response Time (in ms) was 120 ms (expected to be greater than 5000).",
 };
 
 function details(
@@ -265,7 +266,9 @@ describe("opened, it says why", () => {
   });
 
   test("a criteria of one filter, and one with no name", () => {
-    renderDetails(details({ criteriaName: undefined, filters: [STATUS_FILTER] }));
+    renderDetails(
+      details({ criteriaName: undefined, filters: [STATUS_FILTER] }),
+    );
     open();
 
     expect(screen.getByTestId("evaluation-criteria")).toHaveTextContent(
@@ -298,10 +301,11 @@ describe("opened, it says why", () => {
       within(excerpt).getByTestId("evaluation-excerpt-match"),
     ).toHaveTextContent("error");
     // A response reads left to right on every page.
-    expect(within(excerpt).getByText(/connection refused/).closest("pre")).toHaveAttribute(
-      "dir",
-      "ltr",
-    );
+    expect(
+      within(excerpt)
+        .getByText(/connection refused/)
+        .closest("pre"),
+    ).toHaveAttribute("dir", "ltr");
 
     expect(
       within(filter).getByTestId("evaluation-filter-message"),
@@ -315,6 +319,51 @@ describe("opened, it says why", () => {
     expect(screen.getByTestId("evaluation-filter-actual")).toHaveTextContent(
       "Actual503",
     );
+  });
+
+  test("a measurement is written the reader's way, with its unit", async () => {
+    const measured: MonitorEvaluationDetails = details({
+      filters: [
+        {
+          ...STATUS_FILTER,
+          checkOn: CheckOn.ResponseTime,
+          actual: "2412 ms",
+          actualNumber: 2412,
+          actualUnit: "ms",
+        },
+        {
+          ...STATUS_FILTER,
+          checkOn: CheckOn.PacketLossPercent,
+          actual: "12.5%",
+          actualNumber: 12.5,
+          actualUnit: "%",
+        },
+      ],
+    });
+
+    renderDetails(measured);
+    open();
+
+    expect(
+      screen
+        .getAllByTestId("evaluation-filter-actual")
+        .map((element: HTMLElement) => {
+          return element.textContent;
+        }),
+    ).toEqual(["Actual2,412 ms", "Actual12.5%"]);
+
+    cleanup();
+    await inLanguage("de");
+    renderDetails(measured);
+    open();
+
+    expect(
+      screen
+        .getAllByTestId("evaluation-filter-actual")
+        .map((element: HTMLElement) => {
+          return element.textContent;
+        }),
+    ).toEqual(["Tatsächlich2.412 ms", "Tatsächlich12,5%"]);
   });
 
   test("true and false are named as the criteria form names them", () => {
@@ -369,7 +418,8 @@ describe("opened, it says why", () => {
           {
             checkOn: CheckOn.JavaScriptExpression,
             filterType: FilterType.EvaluatesToTrue,
-            value: "'{{responseBody.status}}' === 'down' && {{responseBody.gone}}",
+            value:
+              "'{{responseBody.status}}' === 'down' && {{responseBody.gone}}",
             met: true,
             actual: "true",
             message: "JavaScript Expression - ... - evaluated to true.",
@@ -415,7 +465,9 @@ describe("opened, it says why", () => {
     expect(
       within(filters[1]!).getByTestId("evaluation-filter-not-matched"),
     ).toHaveTextContent("Did not match");
-    expect(within(filters[1]!).getByTestId("evaluation-filter-title")).toHaveTextContent(
+    expect(
+      within(filters[1]!).getByTestId("evaluation-filter-title"),
+    ).toHaveTextContent(
       "Did not match: Response Time (in ms) Greater Than 5000",
     );
   });
@@ -521,9 +573,7 @@ describe("what was masked or left out, said once", () => {
     );
     open();
 
-    expect(
-      screen.getByTestId("evaluation-filter-omission"),
-    ).toHaveTextContent(
+    expect(screen.getByTestId("evaluation-filter-omission")).toHaveTextContent(
       "The matched text looks like a secret or personal data, so it was not kept.",
     );
   });
@@ -574,9 +624,9 @@ describe("in the reader's language", () => {
     expect(
       screen.getByTestId("evaluation-request-facts-step"),
     ).toHaveTextContent("2 von 3");
-    expect(screen.getAllByTestId("evaluation-filter-title")[0]).toHaveTextContent(
-      "Antworttext Enthält error",
-    );
+    expect(
+      screen.getAllByTestId("evaluation-filter-title")[0],
+    ).toHaveTextContent("Antworttext Enthält error");
   });
 
   test("Persian, the response still left to right", async () => {
@@ -594,10 +644,9 @@ describe("in the reader's language", () => {
     expect(
       screen.getByTestId("evaluation-filter-excerpt").querySelector("pre"),
     ).toHaveAttribute("dir", "ltr");
-    expect(screen.getAllByTestId("evaluation-filter-message")[0]).toHaveAttribute(
-      "dir",
-      "auto",
-    );
+    expect(
+      screen.getAllByTestId("evaluation-filter-message")[0],
+    ).toHaveAttribute("dir", "auto");
   });
 });
 
@@ -610,9 +659,10 @@ describe("the rules the section is drawn by", () => {
     expect(
       getCriteriaSentence(details({ filterCondition: FilterCondition.Any })),
     ).toEqual({ template: CRITERIA_MATCHED_ANY, hasName: true });
-    expect(getCriteriaSentence(details({ filters: [STATUS_FILTER] }))).toEqual(
-      { template: CRITERIA_MATCHED, hasName: true },
-    );
+    expect(getCriteriaSentence(details({ filters: [STATUS_FILTER] }))).toEqual({
+      template: CRITERIA_MATCHED,
+      hasName: true,
+    });
     expect(
       getCriteriaSentence(
         details({ criteriaName: "  ", filters: [STATUS_FILTER] }),
@@ -644,6 +694,10 @@ describe("the rules the section is drawn by", () => {
           return filter.checkOn;
         },
       ),
-    ).toEqual([CheckOn.ResponseBody, CheckOn.ResponseStatusCode, CheckOn.ResponseTime]);
+    ).toEqual([
+      CheckOn.ResponseBody,
+      CheckOn.ResponseStatusCode,
+      CheckOn.ResponseTime,
+    ]);
   });
 });

@@ -135,6 +135,13 @@ export interface MonitorEvaluationFilterDetails {
    */
   actual?: string | undefined;
   /*
+   * A measurement's actual value as a number and its unit ("ms", "%"), so a
+   * reader's language writes the number its own way ("2.412 ms" in German).
+   * `actual` says the same in English, for anything that reads it as text.
+   */
+  actualNumber?: number | undefined;
+  actualUnit?: string | undefined;
+  /*
    * The filter is judged over a time window - its minutes, and how the
    * window's values are judged (an EvaluateOverTimeType: "Average", "All
    * Values") - so `actual` is the latest check's value, not the window's.

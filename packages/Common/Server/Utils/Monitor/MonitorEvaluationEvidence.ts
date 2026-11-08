@@ -48,6 +48,8 @@ import ResponseExcerpt, {
 export type MonitorEvaluationFilterEvidence = Pick<
   MonitorEvaluationFilterDetails,
   | "actual"
+  | "actualNumber"
+  | "actualUnit"
   | "windowMinutes"
   | "windowType"
   | "field"
@@ -213,10 +215,9 @@ export default class MonitorEvaluationEvidence {
 
     switch (input.criteriaFilter.checkOn) {
       case CheckOn.ResponseTime:
-        return MonitorEvaluationEvidence.withActual(
-          MonitorEvaluationEvidence.formatMilliseconds(
-            probeResponse.responseTimeInMs,
-          ),
+        return MonitorEvaluationEvidence.withMeasurement(
+          probeResponse.responseTimeInMs,
+          "ms",
         );
       case CheckOn.ResponseStatusCode:
         return MonitorEvaluationEvidence.withActual(
@@ -234,29 +235,24 @@ export default class MonitorEvaluationEvidence {
           MonitorEvaluationEvidence.formatBoolean(probeResponse.isTimeout),
         );
       case CheckOn.PacketLossPercent:
-        return MonitorEvaluationEvidence.withActual(
-          MonitorEvaluationEvidence.formatNumber(
-            probeResponse.pingResponse?.packetLossPercent,
-            "%",
-          ),
+        return MonitorEvaluationEvidence.withMeasurement(
+          probeResponse.pingResponse?.packetLossPercent,
+          "%",
         );
       case CheckOn.Jitter:
-        return MonitorEvaluationEvidence.withActual(
-          MonitorEvaluationEvidence.formatMilliseconds(
-            probeResponse.pingResponse?.jitterInMs,
-          ),
+        return MonitorEvaluationEvidence.withMeasurement(
+          probeResponse.pingResponse?.jitterInMs,
+          "ms",
         );
       case CheckOn.PortDnsLookupTime:
-        return MonitorEvaluationEvidence.withActual(
-          MonitorEvaluationEvidence.formatMilliseconds(
-            probeResponse.portTimings?.dnsLookupInMs,
-          ),
+        return MonitorEvaluationEvidence.withMeasurement(
+          probeResponse.portTimings?.dnsLookupInMs,
+          "ms",
         );
       case CheckOn.PortTcpConnectTime:
-        return MonitorEvaluationEvidence.withActual(
-          MonitorEvaluationEvidence.formatMilliseconds(
-            probeResponse.portTimings?.tcpConnectInMs,
-          ),
+        return MonitorEvaluationEvidence.withMeasurement(
+          probeResponse.portTimings?.tcpConnectInMs,
+          "ms",
         );
       case CheckOn.ResponseBody:
         return isHttp
@@ -321,10 +317,9 @@ export default class MonitorEvaluationEvidence {
   }): MonitorEvaluationFilterEvidence {
     switch (input.criteriaFilter.checkOn) {
       case CheckOn.ExecutionTime:
-        return MonitorEvaluationEvidence.withActual(
-          MonitorEvaluationEvidence.formatMilliseconds(
-            input.response.executionTimeInMS,
-          ),
+        return MonitorEvaluationEvidence.withMeasurement(
+          input.response.executionTimeInMS,
+          "ms",
         );
       case CheckOn.Error: {
         const error: string | undefined = input.response.scriptError;
@@ -443,7 +438,11 @@ export default class MonitorEvaluationEvidence {
        * Found in the body as stored, not in the text decoded from it: the
        * filter's text has a quote or a line break the stored JSON escapes.
        */
-      if (!result && typeof input.body === "string" && input.body !== response.text) {
+      if (
+        !result &&
+        typeof input.body === "string" &&
+        input.body !== response.text
+      ) {
         result = ResponseExcerpt.aroundMatch({
           response: { text: input.body },
           needle: needle,
@@ -606,10 +605,35 @@ export default class MonitorEvaluationEvidence {
     return actual ? { actual: actual } : {};
   }
 
-  public static formatMilliseconds(
+  /*
+   * A measurement: its number, rounded as formatNumber rounds it, and its
+   * unit, beside the same in English.
+   */
+  private static withMeasurement(
     value: number | undefined | null,
-  ): string | undefined {
-    return MonitorEvaluationEvidence.formatNumber(value, " ms");
+    unit: "ms" | "%",
+  ): MonitorEvaluationFilterEvidence {
+    const actual: string | undefined = MonitorEvaluationEvidence.formatNumber(
+      value,
+      unit === "%" ? "%" : ` ${unit}`,
+    );
+
+    if (!actual || typeof value !== "number") {
+      return {};
+    }
+
+    return {
+      actual: actual,
+      actualNumber: MonitorEvaluationEvidence.round(value),
+      actualUnit: unit,
+    };
+  }
+
+  // Whole numbers from 100 up; two decimals at most below that.
+  private static round(value: number): number {
+    return Math.abs(value) >= 100
+      ? Math.round(value)
+      : Math.round(value * 100) / 100;
   }
 
   public static formatNumber(
@@ -620,13 +644,7 @@ export default class MonitorEvaluationEvidence {
       return undefined;
     }
 
-    // Whole numbers from 100 up; two decimals at most below that.
-    const rounded: number =
-      Math.abs(value) >= 100
-        ? Math.round(value)
-        : Math.round(value * 100) / 100;
-
-    return `${rounded}${unit}`;
+    return `${MonitorEvaluationEvidence.round(value)}${unit}`;
   }
 
   private static formatBoolean(

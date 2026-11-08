@@ -236,7 +236,10 @@ const EventEvaluationDetails: FunctionComponent<ComponentProps> = (
           className="mt-3 space-y-4"
         >
           {requestFacts.length > 0 ? (
-            <FactList facts={requestFacts} dataTestId="evaluation-request-facts" />
+            <FactList
+              facts={requestFacts}
+              dataTestId="evaluation-request-facts"
+            />
           ) : (
             <></>
           )}
@@ -367,7 +370,7 @@ const FilterRow: FunctionComponent<{
         ) || "",
       value: (
         <span dir="auto" className="break-words">
-          {getActualText(filter.actual, translator)}
+          {getActualText(filter, translator)}
         </span>
       ),
     });
@@ -377,9 +380,15 @@ const FilterRow: FunctionComponent<{
     facts.push({
       key: "window",
       label: translator.translateText(FILTER_FACT_LABELS.window) || "",
-      value: translator.translatePlural(WINDOW_SENTENCE, filter.windowMinutes, {
-        type: filter.windowType ? translator.translateTerm(filter.windowType) : "",
-      }),
+      value: (
+        <span dir="auto">
+          {translator.translatePlural(WINDOW_SENTENCE, filter.windowMinutes, {
+            type: filter.windowType
+              ? translator.translateTerm(filter.windowType)
+              : "",
+          })}
+        </span>
+      ),
     });
   }
 
@@ -546,9 +555,9 @@ const FilterRow: FunctionComponent<{
  * A few lines of the response around the match, the match marked. A
  * response is written left to right, whatever the page's language.
  */
-const Excerpt: FunctionComponent<{ excerpt: MonitorEvaluationExcerpt }> = (props: {
+const Excerpt: FunctionComponent<{
   excerpt: MonitorEvaluationExcerpt;
-}): ReactElement => {
+}> = (props: { excerpt: MonitorEvaluationExcerpt }): ReactElement => {
   const translator: Translator = useTranslator();
   const excerpt: MonitorEvaluationExcerpt = props.excerpt;
 
@@ -561,7 +570,11 @@ const Excerpt: FunctionComponent<{ excerpt: MonitorEvaluationExcerpt }> = (props
         dir="ltr"
         className={`mt-1 whitespace-pre-wrap rounded-md bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-800 ${CODE_CLASS_NAME}`}
       >
-        {excerpt.isCutAtStart ? <span className="text-gray-400">…</span> : <></>}
+        {excerpt.isCutAtStart ? (
+          <span className="text-gray-400">…</span>
+        ) : (
+          <></>
+        )}
         {excerpt.before}
         {excerpt.match ? (
           <mark
@@ -604,13 +617,31 @@ const getRequestText: (
 };
 
 /*
- * An actual value as the section writes it: true and false as the criteria
- * form names its True and False conditions, anything else as it was found.
+ * An actual value as the section writes it: a measurement's number the
+ * reader's way with its unit, true and false as the criteria form names its
+ * True and False conditions, anything else as it was found.
  */
-const getActualText: (actual: string, translator: Translator) => string = (
-  actual: string,
+const getActualText: (
+  filter: MonitorEvaluationFilterDetails,
+  translator: Translator,
+) => string = (
+  filter: MonitorEvaluationFilterDetails,
   translator: Translator,
 ): string => {
+  const actual: string = filter.actual || "";
+
+  if (typeof filter.actualNumber === "number") {
+    const number: string = translator.formatNumber(filter.actualNumber);
+
+    if (!filter.actualUnit) {
+      return number;
+    }
+
+    return filter.actualUnit === "%"
+      ? `${number}%`
+      : `${number} ${filter.actualUnit}`;
+  }
+
   if (actual === "true") {
     return translator.translateTerm("True");
   }

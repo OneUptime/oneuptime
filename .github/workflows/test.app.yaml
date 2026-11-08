@@ -336,12 +336,18 @@ jobs:
           # Trace Detail (2.5) joined it from group 3 the same day, when
           # Meraki Traffic grew there: about 20.2. Postmortems (0.8) came from
           # group 9 the same day, to make room there for Cloud Spend: about 21.
+          # EvaluationDetails.spec.ts joined Event Overview on 2026-11-08 (13
+          # tests, 0.7 minutes locally: an incident's and an alert's
+          # Evaluation details under the root cause, folded and open, long
+          # values at four widths, dark, German and Persian). Its file sorts
+          # first, so this half runs it and hands about 7 of Event Overview's
+          # tests to group 10's half: about 0.4 minutes more here, 22 in all,
+          # so Postmortems (0.8) moved on to group 10: about 21.2.
           - group: 1
             event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
               test-trace-detail-ui
-              test-postmortems-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -1137,10 +1143,15 @@ jobs:
           # English, German and Persian, and the fixes of a member who may not
           # act on them, with no buttons):
           # 22.2 here, past the budget, to 19.7.
+          # This half of Event Overview took about 7 more of its tests on
+          # 2026-11-08, when EvaluationDetails.spec.ts joined the suite in
+          # group 1's half, and Postmortems (0.8) came from group 1 to make
+          # room there: about 20.9.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
+              test-postmortems-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the

@@ -143,7 +143,9 @@ async function evaluate(input: {
 }): Promise<Evaluation> {
   const criteriaInstance: MonitorCriteriaInstance = criteria({
     filters: input.filters,
-    ...(input.filterCondition ? { filterCondition: input.filterCondition } : {}),
+    ...(input.filterCondition
+      ? { filterCondition: input.filterCondition }
+      : {}),
   });
 
   const monitorStep: MonitorStep = step({
@@ -308,7 +310,8 @@ describe("an API monitor whose JSON body matched", () => {
           "https://api.acme.example/tenant-s3cret/health",
         ),
       }),
-      destination: "https://api.acme.example/{{monitorSecrets.Tenant}}/health" as unknown as URL,
+      destination:
+        "https://api.acme.example/{{monitorSecrets.Tenant}}/health" as unknown as URL,
     });
 
     expect(details!.request!.url).toBe(
@@ -341,7 +344,14 @@ describe("an API monitor whose JSON body matched", () => {
     });
 
     expect(filterOf(details, CheckOn.ResponseStatusCode).actual).toBe("503");
+    // A status code is a code: no number to write another way.
+    expect(
+      filterOf(details, CheckOn.ResponseStatusCode).actualNumber,
+    ).toBeUndefined();
     expect(filterOf(details, CheckOn.ResponseTime).actual).toBe("1234 ms");
+    // A measurement keeps its number, for the reader's language to write.
+    expect(filterOf(details, CheckOn.ResponseTime).actualNumber).toBe(1234);
+    expect(filterOf(details, CheckOn.ResponseTime).actualUnit).toBe("ms");
     expect(filterOf(details, CheckOn.ResponseStatusCode).message).toContain(
       "503",
     );
@@ -651,9 +661,7 @@ describe("Ping, IP and Port monitors", () => {
       port: 5432,
     });
 
-    expect(filterOf(details, CheckOn.PortTcpConnectTime).actual).toBe(
-      "381 ms",
-    );
+    expect(filterOf(details, CheckOn.PortTcpConnectTime).actual).toBe("381 ms");
     expect(details!.request).toEqual({
       destination: "db.acme.example",
       port: 5432,
@@ -971,6 +979,8 @@ describe("a filter judged over a time window", () => {
 
     expect(evidence).toEqual({
       actual: "1800 ms",
+      actualNumber: 1800,
+      actualUnit: "ms",
       windowMinutes: 5,
       windowType: EvaluateOverTimeType.Average,
     });
@@ -984,24 +994,33 @@ describe("the size limit", () => {
       monitorType: MonitorType.API,
       evaluatedAt: CHECKED_AT,
       filterCondition: FilterCondition.Any,
-      filters: Array.from({ length: 12 }, (): MonitorEvaluationFilterDetails => {
-        return {
-          checkOn: CheckOn.ResponseBody,
-          met: true,
-          message: "m".repeat(1000),
-          actual: "a".repeat(300),
-          fieldValues: Array.from({ length: 10 }, (_value: unknown, index: number) => {
-            return { path: `responseBody.f${index}`, value: "v".repeat(300) };
-          }),
-          excerpt: {
-            before: "b".repeat(160),
-            match: "x".repeat(200),
-            after: "c".repeat(160),
-            isCutAtStart: true,
-            isCutAtEnd: true,
-          },
-        };
-      }),
+      filters: Array.from(
+        { length: 12 },
+        (): MonitorEvaluationFilterDetails => {
+          return {
+            checkOn: CheckOn.ResponseBody,
+            met: true,
+            message: "m".repeat(1000),
+            actual: "a".repeat(300),
+            fieldValues: Array.from(
+              { length: 10 },
+              (_value: unknown, index: number) => {
+                return {
+                  path: `responseBody.f${index}`,
+                  value: "v".repeat(300),
+                };
+              },
+            ),
+            excerpt: {
+              before: "b".repeat(160),
+              match: "x".repeat(200),
+              after: "c".repeat(160),
+              isCutAtStart: true,
+              isCutAtEnd: true,
+            },
+          };
+        },
+      ),
     };
   }
 
@@ -1062,7 +1081,9 @@ describe("the size limit", () => {
       destination: URL.fromString("https://api.acme.example"),
     });
 
-    expect(details!.filters).toHaveLength(MonitorEvaluationDetailsLimits.filters);
+    expect(details!.filters).toHaveLength(
+      MonitorEvaluationDetailsLimits.filters,
+    );
     expect(details!.areFiltersTruncated).toBe(true);
   });
 });
