@@ -93,10 +93,11 @@ Les services, les hôtes, les clusters Kubernetes, les hôtes Docker et Podman, 
 | Session Replays | 7 jours, sauf changement | La politique de replay de l'application RUM : voir [Gérer les applications](/docs/rum/applications#rétention-de-la-relecture-de-session). |
 | Journaux des moniteurs, une ligne par vérification | 1 jour, sauf changement | Sur une installation auto-hébergée, **Rétention des journaux du moniteur (jours)** dans l'Admin Dashboard |
 | Métriques des moniteurs, et les métriques que les SLO enregistrent | 30 jours, sauf changement | Sur une installation auto-hébergée, **Rétention des métriques du moniteur (jours)** dans l'Admin Dashboard |
+| [Utilisation de la télémétrie](/docs/telemetry/usage), un compte par ressource, signal et jour | 120 jours, sauf changement | Sur une installation auto-hébergée, **Rétention de l'utilisation de la télémétrie (jours)** dans l'Admin Dashboard |
 
 ## Ce que coûte la rétention
 
-- **Sur OneUptime Cloud**, la télémétrie est facturée par Go ingéré, et le prix par Go inclut 15 jours de rétention. Une rétention plus longue coûte proportionnellement plus : 30 jours coûtent deux fois plus par Go que 15. Une rétention plus courte coûte proportionnellement moins, mais une rétention de moins de 7 jours est facturée comme 7 jours. **Paramètres du projet → Facturation et factures → Historique d'utilisation** montre, jour par jour, combien chaque service a envoyé et combien de temps c'est conservé.
+- **Sur OneUptime Cloud**, la télémétrie est facturée par Go ingéré, et le prix par Go inclut 15 jours de rétention. Une rétention plus longue coûte proportionnellement plus : 30 jours coûtent deux fois plus par Go que 15. Une rétention plus courte coûte proportionnellement moins, mais une rétention de moins de 7 jours est facturée comme 7 jours. **Paramètres du projet → Télémétrie & APM → Utilisation** montre, jour par jour, combien chaque service a envoyé et combien de temps c'est conservé.
 - **En auto-hébergement**, la télémétrie vit dans ClickHouse, et la rétention multiplie son disque. Voir [Dimensionnement](/docs/installation/sizing#la-rétention-et-son-effet-sur-le-stockage).
 
 La télémétrie dont vous n'avez pas besoin ne coûte rien si elle n'est jamais stockée : les [Filtres de suppression et règles de masquage](/docs/telemetry/drop-filters-and-scrub-rules) la jettent à son arrivée.

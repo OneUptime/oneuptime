@@ -63,7 +63,8 @@
     "apiKey": "API कुंजी",
     "more": "अधिक",
     "sendEmail": "ईमेल भेजें",
-    "logout": "लॉग आउट"
+    "logout": "लॉग आउट",
+    "telemetryUsage": "टेलीमेट्री उपयोग"
   },
   "topAlert": {
     "title": "OneUptime एडमिन डैशबोर्ड",
@@ -131,7 +132,8 @@
     "settingsApiIntegrations": "API और एकीकरण",
     "settingsApiKey": "API कुंजी",
     "moreCommunication": "संचार",
-    "moreSendEmail": "ईमेल भेजें"
+    "moreSendEmail": "ईमेल भेजें",
+    "telemetryUsage": "टेलीमेट्री उपयोग"
   },
   "pages": {
     "users": {
@@ -581,7 +583,10 @@
         "logEditButton": "सेटिंग्स संपादित करें",
         "metricCardTitle": "मॉनिटर मीट्रिक प्रतिधारण",
         "metricCardDescription": "कॉन्फ़िगर करें कि मॉनिटर मीट्रिक स्वचालित रूप से हटाए जाने से पहले कितने समय तक रखे जाते हैं।",
-        "metricEditButton": "सेटिंग्स संपादित करें"
+        "metricEditButton": "सेटिंग्स संपादित करें",
+        "usageCardTitle": "टेलीमेट्री उपयोग प्रतिधारण",
+        "usageCardDescription": "हर प्रोजेक्ट का दैनिक टेलीमेट्री उपयोग कितने समय तक रखा जाता है, बिलिंग चालू हो या बंद।",
+        "usageEditButton": "टेलीमेट्री उपयोग प्रतिधारण संपादित करें"
       },
       "apiKey": {
         "cardTitle": "मास्टर API कुंजी सेटिंग्स",
@@ -596,6 +601,13 @@
         "cardDescription": "वैश्विक LLM प्रदाता AI सुविधाओं के लिए सभी परियोजनाओं के लिए उपलब्ध हैं। OpenAI, Anthropic, Ollama, या अन्य LLM प्रदाता कॉन्फ़िगर करें।",
         "noItems": "कोई LLM प्रदाता कॉन्फ़िगर नहीं किए गए। AI सुविधाओं को सक्षम करने के लिए एक LLM प्रदाता जोड़ें।"
       }
+    },
+    "telemetryUsage": {
+      "title": "टेलीमेट्री उपयोग",
+      "cardTitle": "प्रोजेक्ट के हिसाब से टेलीमेट्री उपयोग",
+      "cardDescription": "हर प्रोजेक्ट ने कितनी टेलीमेट्री भेजी, सबसे ज़्यादा भेजने वाले पहले। कोई दिन UTC में खत्म होने के बाद ही गिना जाता है।",
+      "emptyTitle": "अभी तक कोई टेलीमेट्री उपयोग नहीं",
+      "emptyDescription": "इस समय सीमा में अभी तक किसी प्रोजेक्ट का उपयोग नहीं गिना गया है। किसी दिन की टेलीमेट्री उस दिन के UTC में खत्म होने के बाद, अगले दिन लगभग 08:00 UTC तक गिन ली जाती है।"
     }
   },
   "Basic": "बेसिक",
@@ -1859,6 +1871,60 @@
   "This list has default columns for everyone in this project.": "इस सूची में इस प्रोजेक्ट के सभी लोगों के लिए डिफ़ॉल्ट कॉलम हैं।",
   "Remove default": "डिफ़ॉल्ट हटाएँ",
   "Reset to project default": "प्रोजेक्ट डिफ़ॉल्ट पर रीसेट करें",
+  "Telemetry Usage": "टेलीमेट्री उपयोग",
+  "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.": "इस प्रोजेक्ट ने हर दिन कितनी टेलीमेट्री भेजी, सिग्नल के हिसाब से। कोई दिन UTC में खत्म होने के बाद ही गिना जाता है।",
+  "Usage by Resource": "संसाधन के हिसाब से उपयोग",
+  "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.": "किन सेवाओं और संसाधनों ने टेलीमेट्री भेजी, सबसे ज़्यादा भेजने वाले पहले, और हर एक उसे कितने समय तक रखता है।",
+  "Resource": "संसाधन",
+  "Resources": "संसाधन",
+  "Total": "कुल",
+  "Cost": "लागत",
+  "Retention": "रखने की अवधि",
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.": "संसाधन की टेलीमेट्री कितने समय तक रखी जाती है, जैसा समय सीमा के सबसे नए दिन पर गिना गया।",
+  "Range": "समय सीमा",
+  "Last {{count}} days": "पिछले {{count}} दिन",
+  "Last {{count}} days_one": "पिछला {{count}} दिन",
+  "No telemetry usage yet": "अभी तक कोई टेलीमेट्री उपयोग नहीं",
+  "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.": "किसी दिन की टेलीमेट्री उस दिन के UTC में खत्म होने के बाद, अगले दिन लगभग 08:00 UTC तक गिन ली जाती है। आज का उपयोग कल दिखेगा।",
+  "No telemetry usage in this range": "इस समय सीमा में कोई टेलीमेट्री उपयोग नहीं",
+  "The newest day with usage is {{day}}. Choose a longer range to see it.": "उपयोग वाला सबसे नया दिन {{day}} है। उसे देखने के लिए लंबी समय सीमा चुनें।",
+  "Logs": "लॉग",
+  "Metrics": "मेट्रिक्स",
+  "Traces": "ट्रेस",
+  "Profiles": "प्रोफ़ाइल",
+  "Session Replays": "सेशन रीप्ले",
+  "Security Events": "सुरक्षा इवेंट",
+  "Spans, and the exceptions recorded with them.": "स्पैन, और उनके साथ दर्ज किए गए अपवाद।",
+  "Profiles, and the samples recorded with them.": "प्रोफ़ाइल, और उनके साथ दर्ज किए गए सैंपल।",
+  "{{size}} GB": "{{size}} GB",
+  "{{size}} MB": "{{size}} MB",
+  "{{size}} KB": "{{size}} KB",
+  "{{amount}} USD": "{{amount}} USD",
+  "Session replays: {{days}}": "सेशन रीप्ले: {{days}}",
+  "Service": "सेवा",
+  "RUM Application": "RUM एप्लिकेशन",
+  "Docker Host": "Docker होस्ट",
+  "Podman Host": "Podman होस्ट",
+  "Kubernetes Cluster": "Kubernetes क्लस्टर",
+  "Proxmox Cluster": "Proxmox क्लस्टर",
+  "OpenStack Cloud": "OpenStack क्लाउड",
+  "Ceph Cluster": "Ceph क्लस्टर",
+  "Storage Array": "स्टोरेज ऐरे",
+  "Docker Swarm Cluster": "Docker Swarm क्लस्टर",
+  "vCenter": "vCenter",
+  "IoT Fleet": "IoT फ़्लीट",
+  "Serverless Function": "Serverless फ़ंक्शन",
+  "Cloud Resource": "क्लाउड संसाधन",
+  "Database": "डेटाबेस",
+  "Network Device": "नेटवर्क डिवाइस",
+  "Unknown Service": "अज्ञात सेवा",
+  "Day": "दिन",
+  "Data Ingested (in GB)": "इंजेस्ट किया गया डेटा (GB में)",
+  "How much telemetry each project sends, heaviest first.": "हर प्रोजेक्ट कितनी टेलीमेट्री भेजता है, सबसे ज़्यादा भेजने वाले पहले।",
+  "Telemetry Usage Retention (Days)": "टेलीमेट्री उपयोग प्रतिधारण (दिन)",
+  "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "हर प्रोजेक्ट का दैनिक टेलीमेट्री उपयोग कितने दिन रखा जाता है, 30 से 1095 तक। 120 दिन के लिए खाली छोड़ें।",
+  "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "हर प्रोजेक्ट के दैनिक टेलीमेट्री उपयोग को रखने के दिनों की संख्या। इससे पुराना उपयोग हटा दिया जाता है।",
+  "Scheduled Maintenance": "अनुसूचित रखरखाव",
   "markdownCallouts": {
     "caution": "सावधानी",
     "danger": "खतरा",

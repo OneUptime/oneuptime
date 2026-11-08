@@ -63,7 +63,8 @@
     "apiKey": "API 密钥",
     "more": "更多",
     "sendEmail": "发送电子邮件",
-    "logout": "注销"
+    "logout": "注销",
+    "telemetryUsage": "遥测用量"
   },
   "topAlert": {
     "title": "OneUptime 管理员仪表板",
@@ -131,7 +132,8 @@
     "settingsApiIntegrations": "API 和集成",
     "settingsApiKey": "API 密钥",
     "moreCommunication": "通信",
-    "moreSendEmail": "发送电子邮件"
+    "moreSendEmail": "发送电子邮件",
+    "telemetryUsage": "遥测用量"
   },
   "pages": {
     "users": {
@@ -581,7 +583,10 @@
         "logEditButton": "编辑设置",
         "metricCardTitle": "监视器指标保留",
         "metricCardDescription": "配置监视器指标在自动删除之前保留的时间。",
-        "metricEditButton": "编辑设置"
+        "metricEditButton": "编辑设置",
+        "usageCardTitle": "遥测用量保留",
+        "usageCardDescription": "每个项目的每日遥测用量保留多长时间，无论是否启用计费。",
+        "usageEditButton": "编辑遥测用量保留"
       },
       "apiKey": {
         "cardTitle": "主 API 密钥设置",
@@ -596,6 +601,13 @@
         "cardDescription": "全局 LLM 提供商可用于所有项目的 AI 功能。配置 OpenAI、Anthropic、Ollama 或其他 LLM 提供商。",
         "noItems": "未配置 LLM 提供商。添加 LLM 提供商以启用 AI 功能。"
       }
+    },
+    "telemetryUsage": {
+      "title": "遥测用量",
+      "cardTitle": "按项目统计的遥测用量",
+      "cardDescription": "每个项目发送了多少遥测数据，用量最大的排在最前。一天按 UTC 结束后才会统计。",
+      "emptyTitle": "暂无遥测用量",
+      "emptyDescription": "此时间范围内还没有项目统计到用量。一天的遥测数据在该天按 UTC 结束后统计，约在次日 08:00 UTC 前完成。"
     }
   },
   "Basic": "基础",
@@ -1859,6 +1871,60 @@
   "This list has default columns for everyone in this project.": "此列表为此项目中的所有人设置了默认列。",
   "Remove default": "移除默认设置",
   "Reset to project default": "重置为项目默认值",
+  "Telemetry Usage": "遥测用量",
+  "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.": "此项目每天发送的遥测数据量，按信号划分。一天按 UTC 结束后才会统计。",
+  "Usage by Resource": "按资源统计的用量",
+  "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.": "发送这些遥测数据的服务和资源（用量最大的排在最前），以及各自的保留时长。",
+  "Resource": "资源",
+  "Resources": "资源",
+  "Total": "总计",
+  "Cost": "费用",
+  "Retention": "保留期",
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.": "该资源的遥测数据保留多长时间，以该时间范围内最近一天的统计为准。",
+  "Range": "时间范围",
+  "Last {{count}} days": "最近 {{count}} 天",
+  "Last {{count}} days_one": "最近 {{count}} 天",
+  "No telemetry usage yet": "暂无遥测用量",
+  "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.": "一天的遥测数据在该天按 UTC 结束后统计，约在次日 08:00 UTC 前完成。今天的用量明天才会显示。",
+  "No telemetry usage in this range": "此时间范围内没有遥测用量",
+  "The newest day with usage is {{day}}. Choose a longer range to see it.": "有用量的最近一天是 {{day}}。请选择更长的时间范围来查看。",
+  "Logs": "日志",
+  "Metrics": "指标",
+  "Traces": "追踪",
+  "Profiles": "配置文件",
+  "Session Replays": "会话回放",
+  "Security Events": "安全事件",
+  "Spans, and the exceptions recorded with them.": "跨度，以及随之记录的异常。",
+  "Profiles, and the samples recorded with them.": "性能剖析数据，以及随之记录的样本。",
+  "{{size}} GB": "{{size}} GB",
+  "{{size}} MB": "{{size}} MB",
+  "{{size}} KB": "{{size}} KB",
+  "{{amount}} USD": "{{amount}} USD",
+  "Session replays: {{days}}": "会话回放：{{days}}",
+  "Service": "服务",
+  "RUM Application": "RUM 应用程序",
+  "Docker Host": "Docker主机",
+  "Podman Host": "Podman 主机",
+  "Kubernetes Cluster": "Kubernetes集群",
+  "Proxmox Cluster": "Proxmox 集群",
+  "OpenStack Cloud": "OpenStack 云",
+  "Ceph Cluster": "Ceph 集群",
+  "Storage Array": "存储阵列",
+  "Docker Swarm Cluster": "Docker Swarm 集群",
+  "vCenter": "vCenter",
+  "IoT Fleet": "IoT 设备群",
+  "Serverless Function": "无服务器函数",
+  "Cloud Resource": "云资源",
+  "Database": "数据库",
+  "Network Device": "网络设备",
+  "Unknown Service": "未知服务",
+  "Day": "天",
+  "Data Ingested (in GB)": "已引入的数据（GB）",
+  "How much telemetry each project sends, heaviest first.": "每个项目发送了多少遥测数据，用量最大的排在最前。",
+  "Telemetry Usage Retention (Days)": "遥测用量保留期（天）",
+  "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "每个项目每日遥测用量的保留天数，30 到 1095。留空则为 120 天。",
+  "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "保留每个项目每日遥测用量的天数。早于此时长的用量会被删除。",
+  "Scheduled Maintenance": "计划维护",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危险",

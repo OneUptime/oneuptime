@@ -106,7 +106,7 @@ When your bank is still processing a payment, OneUptime says so: some banks take
 
 ## Usage history
 
-**Project Settings → Billing and Invoices → Usage History** shows the telemetry the project sent, one row per product, service and day:
+**Project Settings → Telemetry & APM → Usage** shows how much telemetry the project sent, by day, signal and resource: see [Telemetry Usage](/docs/telemetry/usage). On OneUptime Cloud, its **Telemetry Usage History** list says what each day cost too, one row per product, service and day:
 
 | Column | What it shows |
 | --- | --- |
@@ -117,7 +117,7 @@ When your bank is still processing a payment, OneUptime says so: some banks take
 | **Data Retention (in Days)** | How long it is kept. |
 | **Total Cost** | What it cost, in US dollars. |
 
-A day's usage shows up once the day is over. Filter by **Product**, **Day** or **Service** to find what grew.
+A day's usage shows up once the day is over, by about 08:00 UTC the next day. Filter by **Product**, **Day** or **Service** to find what grew.
 
 ## Prepaid balances
 
@@ -188,8 +188,8 @@ A project with unpaid invoices becomes inactive, and is deleted if they stay unp
 The project has no payment method yet. Add one, then change the plan.
 :::
 
-:::details Usage History is empty
-Usage is counted per day, and a day shows up once it is over. A project that sent no telemetry has no rows.
+:::details Telemetry Usage History is empty
+Usage is counted per day, and a day shows up once it is over, by about 08:00 UTC the next day. A project that sent no telemetry has no rows.
 :::
 
 ## Next steps
