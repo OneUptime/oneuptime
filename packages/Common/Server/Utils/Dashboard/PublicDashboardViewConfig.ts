@@ -64,11 +64,12 @@ export default class PublicDashboardViewConfig {
     const storedConfig: JSONObject =
       StoredDashboardViewConfig.unwrap(dashboardViewConfig);
 
+    const entries: Array<unknown> =
+      StoredDashboardViewConfig.getComponentEntries(storedConfig);
+
     const components: Array<JSONObject> = [];
 
-    for (const entry of StoredDashboardViewConfig.getComponentEntries(
-      storedConfig,
-    )) {
+    for (const entry of entries) {
       if (
         StoredDashboardViewConfig.isWidgetEntry(entry) &&
         !PublicDashboardViewConfig.isDataSourceComponent(
