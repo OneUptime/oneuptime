@@ -71,6 +71,8 @@ Una modifica di queste impostazioni vale entro un minuto.
 
 Filtra per **Tipo di risorsa**, **Nome della risorsa**, **Azione**, **Email utente** o **Ora**. Una modifica elenca solo i campi cambiati, prima e dopo, e un salvataggio che non cambia nulla non aggiunge alcuna voce.
 
+Una risorsa senza un nome proprio prende il nome da ciò che la nomina in OneUptime: un'eccezione dal suo tipo e dall'inizio del suo messaggio, con identificatori, indirizzi e tutto ciò che sembra un segreto mascherati, un'esecuzione di un runbook dal suo runbook, e un modello o un dominio dal proprio nome.
+
 Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anche una propria pagina **Registri di audit**, in una sezione chiusa del loro menu laterale come **Avanzato**. Elenca solo le voci di quella risorsa, con quelle di ciò che le appartiene: la pagina di uno SLO mostra anche le sue regole e i suoi proprietari.
 
 ## Che cosa viene registrato
