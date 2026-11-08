@@ -89,12 +89,15 @@ import DashboardCanvas, {
   DASHBOARD_BOARD_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index";
 import {
-  PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES,
+  isWidgetDrawnHere,
   setPublicDashboardContext,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
-import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import DashboardComponentType, {
+  DataSourceComponentTypes,
+} from "../../../Types/Dashboard/DashboardComponentType";
+import { PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES } from "../../../Types/Dashboard/PublicDashboardServedSettings";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -333,6 +336,54 @@ describe("inside OneUptime, where every widget is drawn", () => {
 });
 
 /*
+ * The widgets the board lays out as the words they are: those a public
+ * dashboard cannot draw - the list the page shares with the server, which
+ * serves them their title only (issue #6338) - and the Data Source
+ * widgets, which the server leaves out altogether.
+ */
+const PUBLIC_PLACEHOLDER_TYPES: ReadonlyArray<DashboardComponentType> = [
+  ...PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES,
+  ...DataSourceComponentTypes,
+];
+
+describe("which widgets the board lays out as a placeholder", () => {
+  test("on a public dashboard: those it cannot draw and the Data Source widgets, and no other", () => {
+    setPublicDashboardContext({
+      dashboardId: new ObjectID("66666666-6666-4666-8666-666666666660"),
+      apiUrl: URL.fromString("https://oneuptime.example/public-dashboard-api"),
+      postJSON: async () => {
+        throw new Error("No read in this test.");
+      },
+      apiClient: API,
+    });
+
+    for (const componentType of Object.values(DashboardComponentType)) {
+      expect([componentType, isWidgetDrawnHere(componentType)]).toEqual([
+        componentType,
+        !PUBLIC_PLACEHOLDER_TYPES.includes(componentType),
+      ]);
+    }
+
+    // Matched exactly, as every board matches a type.
+    for (const notAType of [" LogChart ", "logchart", "", undefined]) {
+      expect([notAType, isWidgetDrawnHere(notAType)]).toEqual([
+        notAType,
+        true,
+      ]);
+    }
+  });
+
+  test("inside OneUptime: every widget", () => {
+    for (const componentType of Object.values(DashboardComponentType)) {
+      expect([componentType, isWidgetDrawnHere(componentType)]).toEqual([
+        componentType,
+        true,
+      ]);
+    }
+  });
+});
+
+/*
  * The list the board reads is the widgets' own word: each widget it names
  * says, on a public dashboard, that it is not available there - and no
  * widget it leaves out does. Read from the widgets' sources, through the
@@ -417,7 +468,7 @@ describe("the widgets a public dashboard cannot draw", () => {
   test("each widget the board names declines on a public dashboard, saying so in its place", () => {
     const sources: Map<string, string> = widgetSourcesByType();
 
-    for (const componentType of PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES) {
+    for (const componentType of PUBLIC_PLACEHOLDER_TYPES) {
       expect({
         componentType,
         declines: declinesOnPublicDashboards(sources.get(componentType)!),
@@ -428,7 +479,7 @@ describe("the widgets a public dashboard cannot draw", () => {
   test("and says so with the one placeholder, as the Data Source widgets and the lists do", () => {
     const sources: Map<string, string> = widgetSourcesByType();
 
-    for (const componentType of PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES) {
+    for (const componentType of PUBLIC_PLACEHOLDER_TYPES) {
       const source: string = sources.get(componentType)!;
       const saysItWithThePlaceholder: boolean =
         source.includes(PLACEHOLDER) ||
@@ -456,7 +507,7 @@ describe("the widgets a public dashboard cannot draw", () => {
 
     for (const [componentType, source] of sources) {
       if (
-        PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES.includes(
+        PUBLIC_PLACEHOLDER_TYPES.includes(
           componentType as DashboardComponentType,
         )
       ) {
