@@ -368,11 +368,12 @@ export function startWorld(): void {
     readsAsOf: null,
   };
 
-  getJestSpyOn(WorkspacePublicNoteApprovalActions, "getHost").mockImplementation(
-    (() => {
-      return host();
-    }) as never,
-  );
+  getJestSpyOn(
+    WorkspacePublicNoteApprovalActions,
+    "getHost",
+  ).mockImplementation((() => {
+    return host();
+  }) as never);
   getJestSpyOn(PublicNoteApprovalPolicy, "getSteps").mockImplementation(
     (async () => {
       return world.steps.map((step: PublicNoteApprovalStepRule) => {
@@ -392,12 +393,11 @@ export function startWorld(): void {
       });
     }) as never,
   );
-  getJestSpyOn(
-    PublicNoteApprovalPolicy,
-    "getTeamMemberIds",
-  ).mockImplementation((async () => {
-    return { ...world.teams };
-  }) as never);
+  getJestSpyOn(PublicNoteApprovalPolicy, "getTeamMemberIds").mockImplementation(
+    (async () => {
+      return { ...world.teams };
+    }) as never,
+  );
   getJestSpyOn(TeamService, "findBy").mockResolvedValue([] as never);
   getJestSpyOn(
     PublicNoteApprovalNotifications,

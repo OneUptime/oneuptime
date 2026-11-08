@@ -710,18 +710,21 @@ describe("a public note's Approve to decide once the account is connected", () =
     ["with it empty", ""],
     ["with it not text", 42],
     ["with it longer than any button carries", "v".repeat(1025)],
-  ])("%s, it is kept without anything to finish", async (_label: string, value: unknown) => {
-    const record: WorkspaceConnectRequestRecord | null =
-      await WorkspaceConnectRequest.peek(
-        await storeRaw({
-          kind: WorkspacePendingActionKind.ApprovePublicNote,
-          eventType: WorkspaceEventType.Incident,
-          eventId: INCIDENT_ID.toString(),
-          publicNoteApproval: value,
-        }),
-      );
+  ])(
+    "%s, it is kept without anything to finish",
+    async (_label: string, value: unknown) => {
+      const record: WorkspaceConnectRequestRecord | null =
+        await WorkspaceConnectRequest.peek(
+          await storeRaw({
+            kind: WorkspacePendingActionKind.ApprovePublicNote,
+            eventType: WorkspaceEventType.Incident,
+            eventId: INCIDENT_ID.toString(),
+            publicNoteApproval: value,
+          }),
+        );
 
-    expect(record).not.toBeNull();
-    expect(record!.pendingAction).toBeUndefined();
-  });
+      expect(record).not.toBeNull();
+      expect(record!.pendingAction).toBeUndefined();
+    },
+  );
 });

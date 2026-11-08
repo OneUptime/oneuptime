@@ -286,7 +286,9 @@ export default class WorkspacePublicNoteApproval {
    * sign as it is - another button's value, one changed by a character, one
    * signed with another key, one that is not text at all.
    */
-  public static readValue(value: unknown): PublicNoteApprovalButtonValue | null {
+  public static readValue(
+    value: unknown,
+  ): PublicNoteApprovalButtonValue | null {
     if (
       typeof value !== "string" ||
       !value ||
@@ -402,13 +404,13 @@ export default class WorkspacePublicNoteApproval {
    * (MattermostUtil.getMessageText) - while the lines around it and the
    * buttons stay whole.
    */
-  public static getAskMessage(ask: PublicNoteApprovalAsk): WorkspaceDirectMessage {
+  public static getAskMessage(
+    ask: PublicNoteApprovalAsk,
+  ): WorkspaceDirectMessage {
     const value: string = WorkspacePublicNoteApproval.encodeValue(ask.value);
     const subject: string = WorkspacePublicNoteApproval.getSubject(ask);
 
-    const what: string = ask.isEdit
-      ? "edit of a public note"
-      : "public note";
+    const what: string = ask.isEdit ? "edit of a public note" : "public note";
     const record: MarkdownText = FeedMarkdown.link(
       ask.recordLabel,
       ask.notesUrl,
@@ -503,9 +505,7 @@ export default class WorkspacePublicNoteApproval {
     recordTitle: string;
     isEdit: boolean;
   }): string {
-    const what: string = ask.isEdit
-      ? "edit of a public note"
-      : "public note";
+    const what: string = ask.isEdit ? "edit of a public note" : "public note";
 
     return ask.recordTitle
       ? `Approval needed: ${what} on ${ask.recordLabel} - ${ask.recordTitle}`

@@ -92,7 +92,9 @@ function value(
   };
 }
 
-function ask(overrides: Partial<PublicNoteApprovalAsk> = {}): PublicNoteApprovalAsk {
+function ask(
+  overrides: Partial<PublicNoteApprovalAsk> = {},
+): PublicNoteApprovalAsk {
   return {
     recordLabel: "Incident INC-42",
     recordTitle: "Checkout is down",
@@ -402,7 +404,8 @@ describe("the message an approver gets", () => {
       WorkspacePublicNoteApproval.getAskMessage(
         ask({
           recordLabel: "Incident [INC-42](https://evil.example)",
-          recordTitle: "**down** <!channel> @here ![x](https://evil.example/x.png)",
+          recordTitle:
+            "**down** <!channel> @here ![x](https://evil.example/x.png)",
           sentBy: "<@U012> *Mallory*",
           waitingFor: {
             position: {
@@ -479,117 +482,125 @@ describe("held to what each chat takes, whatever the note", () => {
     texts.map((text: string, index: number): [number, string] => {
       return [index, text];
     }),
-  )("generated note %i: Slack, Teams and Mattermost each take the message, with its buttons", (_index: number, text: string) => {
-    // Some notes far longer than any chat shows.
-    const note: string =
-      random(4) === 0 ? text.repeat(1 + random(400)) : text;
-    const name: string = text.slice(0, 1 + random(300));
+  )(
+    "generated note %i: Slack, Teams and Mattermost each take the message, with its buttons",
+    (_index: number, text: string) => {
+      // Some notes far longer than any chat shows.
+      const note: string =
+        random(4) === 0 ? text.repeat(1 + random(400)) : text;
+      const name: string = text.slice(0, 1 + random(300));
 
-    const message: WorkspaceDirectMessage =
-      WorkspacePublicNoteApproval.getAskMessage(
-        ask({
-          note: note,
-          recordTitle: name,
-          sentBy: name || null,
-          value: value({ isFinal: random(2) === 0 }),
-        }),
-      );
-
-    // Slack: at most 50 blocks, sections of at most 3,000 characters, and the buttons.
-    const slackBlocks: Array<JSONObject> =
-      SlackUtil.getBlocksFromWorkspaceMessagePayload({
-        messageBlocks: message.messageBlocks,
-      });
-
-    expect(slackBlocks.length).toBeLessThanOrEqual(
-      SlackUtil.MAX_BLOCKS_PER_MESSAGE,
-    );
-
-    for (const block of slackBlocks) {
-      const blockText: unknown = (block["text"] as JSONObject | undefined)?.[
-        "text"
-      ];
-
-      if (typeof blockText === "string") {
-        expect(blockText.length).toBeLessThanOrEqual(
-          SlackUtil.SECTION_TEXT_MAX_LENGTH,
+      const message: WorkspaceDirectMessage =
+        WorkspacePublicNoteApproval.getAskMessage(
+          ask({
+            note: note,
+            recordTitle: name,
+            sentBy: name || null,
+            value: value({ isFinal: random(2) === 0 }),
+          }),
         );
-      }
-    }
 
-    const slackActions: JSONObject | undefined = slackBlocks.find(
-      (block: JSONObject): boolean => {
-        return block["type"] === "actions";
-      },
-    );
-
-    expect(
-      ((slackActions?.["elements"] as Array<JSONObject>) || []).map(
-        (element: JSONObject) => {
-          return element["action_id"];
-        },
-      ),
-    ).toEqual([
-      SlackActionType.ApprovePublicNote,
-      SlackActionType.ViewRejectPublicNote,
-      SlackActionType.OpenInOneUptime,
-    ]);
-
-    // Microsoft Teams: within its budget, with Approve and Reject on it.
-    const card: JSONObject = MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks(
-      { messageBlocks: message.messageBlocks },
-    );
-
-    expect(MicrosoftTeamsMessageSize.getSizeInBytes(card)).toBeLessThanOrEqual(
-      MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES,
-    );
-    expect(
-      ((card["actions"] as Array<JSONObject>) || []).map(
-        (action: JSONObject) => {
-          return (action["data"] as JSONObject | undefined)?.["action"] || "url";
-        },
-      ),
-    ).toEqual([
-      SlackActionType.ApprovePublicNote,
-      SlackActionType.ViewRejectPublicNote,
-      "url",
-    ]);
-
-    // Mattermost: at most a post's length, the buttons signed for the direct message.
-    const post: JSONObject = MattermostUtil.toPost({
-      blocks: MattermostUtil.getBlocksFromWorkspaceMessagePayload({
-        messageBlocks: message.messageBlocks,
-      }),
-      teamId: TEAM_ID,
-      directMessageChannelId: CHANNEL_ID,
-    });
-
-    expect((post["message"] as string).length).toBeLessThanOrEqual(
-      MattermostUtil.MESSAGE_MAX_LENGTH,
-    );
-
-    const actions: Array<JSONObject> = (
-      ((post["props"] as JSONObject)["attachments"] as Array<JSONObject>)[0]![
-        "actions"
-      ] as Array<JSONObject>
-    ).filter((action: JSONObject): boolean => {
-      return action["type"] === "button";
-    });
-
-    expect(actions).toHaveLength(2);
-
-    for (const action of actions) {
-      const press: MattermostPressedAction | null =
-        MattermostActionContext.readPress({
-          context: (action["integration"] as JSONObject)["context"],
-          teamId: "",
-          channelId: CHANNEL_ID,
+      // Slack: at most 50 blocks, sections of at most 3,000 characters, and the buttons.
+      const slackBlocks: Array<JSONObject> =
+        SlackUtil.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: message.messageBlocks,
         });
 
-      expect(press?.channelId).toBe(CHANNEL_ID);
-      expect(WorkspacePublicNoteApproval.readValue(press?.value)).not.toBeNull();
-    }
-  });
+      expect(slackBlocks.length).toBeLessThanOrEqual(
+        SlackUtil.MAX_BLOCKS_PER_MESSAGE,
+      );
+
+      for (const block of slackBlocks) {
+        const blockText: unknown = (block["text"] as JSONObject | undefined)?.[
+          "text"
+        ];
+
+        if (typeof blockText === "string") {
+          expect(blockText.length).toBeLessThanOrEqual(
+            SlackUtil.SECTION_TEXT_MAX_LENGTH,
+          );
+        }
+      }
+
+      const slackActions: JSONObject | undefined = slackBlocks.find(
+        (block: JSONObject): boolean => {
+          return block["type"] === "actions";
+        },
+      );
+
+      expect(
+        ((slackActions?.["elements"] as Array<JSONObject>) || []).map(
+          (element: JSONObject) => {
+            return element["action_id"];
+          },
+        ),
+      ).toEqual([
+        SlackActionType.ApprovePublicNote,
+        SlackActionType.ViewRejectPublicNote,
+        SlackActionType.OpenInOneUptime,
+      ]);
+
+      // Microsoft Teams: within its budget, with Approve and Reject on it.
+      const card: JSONObject =
+        MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
+          messageBlocks: message.messageBlocks,
+        });
+
+      expect(
+        MicrosoftTeamsMessageSize.getSizeInBytes(card),
+      ).toBeLessThanOrEqual(MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES);
+      expect(
+        ((card["actions"] as Array<JSONObject>) || []).map(
+          (action: JSONObject) => {
+            return (
+              (action["data"] as JSONObject | undefined)?.["action"] || "url"
+            );
+          },
+        ),
+      ).toEqual([
+        SlackActionType.ApprovePublicNote,
+        SlackActionType.ViewRejectPublicNote,
+        "url",
+      ]);
+
+      // Mattermost: at most a post's length, the buttons signed for the direct message.
+      const post: JSONObject = MattermostUtil.toPost({
+        blocks: MattermostUtil.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: message.messageBlocks,
+        }),
+        teamId: TEAM_ID,
+        directMessageChannelId: CHANNEL_ID,
+      });
+
+      expect((post["message"] as string).length).toBeLessThanOrEqual(
+        MattermostUtil.MESSAGE_MAX_LENGTH,
+      );
+
+      const actions: Array<JSONObject> = (
+        ((post["props"] as JSONObject)["attachments"] as Array<JSONObject>)[0]![
+          "actions"
+        ] as Array<JSONObject>
+      ).filter((action: JSONObject): boolean => {
+        return action["type"] === "button";
+      });
+
+      expect(actions).toHaveLength(2);
+
+      for (const action of actions) {
+        const press: MattermostPressedAction | null =
+          MattermostActionContext.readPress({
+            context: (action["integration"] as JSONObject)["context"],
+            teamId: "",
+            channelId: CHANNEL_ID,
+          });
+
+        expect(press?.channelId).toBe(CHANNEL_ID);
+        expect(
+          WorkspacePublicNoteApproval.readValue(press?.value),
+        ).not.toBeNull();
+      }
+    },
+  );
 
   test("a note longer than a chat shows ends with the note that it was cut, and the lines around it stay whole", () => {
     const message: WorkspaceDirectMessage =
@@ -749,7 +760,10 @@ describe("what a press asks to be connected for", () => {
         }),
       ).toEqual({
         purpose: "reject this public note",
-        again: { kind: WorkspaceConnectRequestAgainKind.Button, label: "Reject" },
+        again: {
+          kind: WorkspaceConnectRequestAgainKind.Button,
+          label: "Reject",
+        },
       });
     }
   });
@@ -777,8 +791,14 @@ describe("the project a press is read in", () => {
 
     expect(
       WorkspacePublicNoteApproval.getSignedProjectId([
-        { actionType: SlackActionType.ApprovePublicNote, actionValue: "forged" },
-        { actionType: SlackActionType.AcknowledgeIncident, actionValue: encoded },
+        {
+          actionType: SlackActionType.ApprovePublicNote,
+          actionValue: "forged",
+        },
+        {
+          actionType: SlackActionType.AcknowledgeIncident,
+          actionValue: encoded,
+        },
       ]),
     ).toBeUndefined();
   });

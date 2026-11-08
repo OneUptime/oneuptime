@@ -167,7 +167,9 @@ export default class WorkspacePublicNoteApprovalActions {
   }
 
   // What the engine knows of a kind of note: the note service's own.
-  public static getHost(kind: PublicNoteKind): PublicNoteApprovalHost<BaseModel> {
+  public static getHost(
+    kind: PublicNoteKind,
+  ): PublicNoteApprovalHost<BaseModel> {
     switch (kind) {
       case PublicNoteKind.Incident:
         return IncidentPublicNoteService.getApprovalHost() as unknown as PublicNoteApprovalHost<BaseModel>;
@@ -519,8 +521,7 @@ export default class WorkspacePublicNoteApprovalActions {
       return null;
     }
 
-    const columns: PressedNoteColumns =
-      found as unknown as PressedNoteColumns;
+    const columns: PressedNoteColumns = found as unknown as PressedNoteColumns;
 
     return {
       host: host,
@@ -664,16 +665,17 @@ export default class WorkspacePublicNoteApprovalActions {
           round.approvals[round.approvals.length - 1];
 
         return {
-          markdown: mdText`✅ ${subject} was already approved${await WorkspacePublicNoteApprovalActions.getByAndWhen(
-            {
-              userId: lastApproval?.userId,
-              at: lastApproval?.at || round.publishedAt,
-            },
-          )}. ${
-            isEdit
-              ? mdText`Status pages show the edited note.`
-              : mdText`It is published on status pages.`
-          }`.toString(),
+          markdown:
+            mdText`✅ ${subject} was already approved${await WorkspacePublicNoteApprovalActions.getByAndWhen(
+              {
+                userId: lastApproval?.userId,
+                at: lastApproval?.at || round.publishedAt,
+              },
+            )}. ${
+              isEdit
+                ? mdText`Status pages show the edited note.`
+                : mdText`It is published on status pages.`
+            }`.toString(),
           text: "This public note was already approved",
         };
       }
@@ -684,16 +686,17 @@ export default class WorkspacePublicNoteApprovalActions {
         round?.rejection
       ) {
         return {
-          markdown: mdText`↩️ ${subject} was already rejected${await WorkspacePublicNoteApprovalActions.getByAndWhen(
-            {
-              userId: round.rejection.userId,
-              at: round.rejection.at,
-            },
-          )}. ${
-            isEdit
-              ? mdText`Status pages keep showing the note as it was approved.`
-              : mdText`It is not published.`
-          }`.toString(),
+          markdown:
+            mdText`↩️ ${subject} was already rejected${await WorkspacePublicNoteApprovalActions.getByAndWhen(
+              {
+                userId: round.rejection.userId,
+                at: round.rejection.at,
+              },
+            )}. ${
+              isEdit
+                ? mdText`Status pages keep showing the note as it was approved.`
+                : mdText`It is not published.`
+            }`.toString(),
           text: "This public note was already rejected",
         };
       }
@@ -775,12 +778,13 @@ export default class WorkspacePublicNoteApprovalActions {
       });
 
       return {
-        markdown: mdText`✅ ${subject} was already approved for ${stepName}${await WorkspacePublicNoteApprovalActions.getByAndWhen(
-          {
-            userId: approvedStep.userId,
-            at: approvedStep.at,
-          },
-        )}. ${waitingFor}`.toString(),
+        markdown:
+          mdText`✅ ${subject} was already approved for ${stepName}${await WorkspacePublicNoteApprovalActions.getByAndWhen(
+            {
+              userId: approvedStep.userId,
+              at: approvedStep.at,
+            },
+          )}. ${waitingFor}`.toString(),
         text: "This public note was already approved for this step",
       };
     }
@@ -852,7 +856,8 @@ export default class WorkspacePublicNoteApprovalActions {
     }
 
     return {
-      markdown: mdText`✅ You approved ${what} on ${record} for ${approvedFor}`.toString(),
+      markdown:
+        mdText`✅ You approved ${what} on ${record} for ${approvedFor}`.toString(),
       text: "You approved a public note for its step",
     };
   }
@@ -912,7 +917,9 @@ export default class WorkspacePublicNoteApprovalActions {
 
       return mdText`${stepName}. ${await WorkspacePublicNoteApprovalActions.getWaitingForMarkdown(after)}`;
     } catch (err) {
-      logger.error("Could not read where a public note approved from chat stands.");
+      logger.error(
+        "Could not read where a public note approved from chat stands.",
+      );
       logger.error(err);
       return null;
     }

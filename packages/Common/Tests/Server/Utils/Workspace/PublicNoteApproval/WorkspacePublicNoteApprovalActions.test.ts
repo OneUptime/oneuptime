@@ -1,10 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspacePublicNoteApproval, {
   PUBLIC_NOTE_APPROVAL_CHAT_WORDS,
@@ -110,9 +104,11 @@ describe("Approve", () => {
 
     expect(world.stored.isPublished).toBe(false);
     expect(
-      storedRound().approvals.map((given: { stepId: string; userId: string }) => {
-        return [given.stepId, given.userId];
-      }),
+      storedRound().approvals.map(
+        (given: { stepId: string; userId: string }) => {
+          return [given.stepId, given.userId];
+        },
+      ),
     ).toEqual([[SUPPORT.id, BOB]]);
     expect(world.asked).toEqual([[CAROL]]);
     expect(world.published).toEqual([]);
@@ -226,14 +222,19 @@ describe("Reject", () => {
     ["a number", 42],
     ["a list", ["why"]],
     ["an object", { reason: "why" }],
-  ])("%s cannot be sent: the engine's words, and nothing is written", async (_label: string, reason: unknown) => {
-    const pressed: PublicNoteApprovalPressAnswer = await reject(BOB, reason);
+  ])(
+    "%s cannot be sent: the engine's words, and nothing is written",
+    async (_label: string, reason: unknown) => {
+      const pressed: PublicNoteApprovalPressAnswer = await reject(BOB, reason);
 
-    expect(pressed.outcome).toBe(PublicNoteApprovalPressOutcome.Refused);
-    expect(pressed.answer.text).toBe(PublicNoteApprovalMessages.reasonRequired);
-    expect(world.writes).toEqual([]);
-    expect(world.told).toEqual([]);
-  });
+      expect(pressed.outcome).toBe(PublicNoteApprovalPressOutcome.Refused);
+      expect(pressed.answer.text).toBe(
+        PublicNoteApprovalMessages.reasonRequired,
+      );
+      expect(world.writes).toEqual([]);
+      expect(world.told).toEqual([]);
+    },
+  );
 
   test("a reason over the longest one kept cannot be sent; one exactly that long can", async () => {
     const tooLong: PublicNoteApprovalPressAnswer = await reject(
@@ -259,7 +260,9 @@ describe("Reject", () => {
   });
 
   test("getReasonError: what a form's submission is told", () => {
-    expect(WorkspacePublicNoteApprovalActions.getReasonError("Fine")).toBeNull();
+    expect(
+      WorkspacePublicNoteApprovalActions.getReasonError("Fine"),
+    ).toBeNull();
     expect(WorkspacePublicNoteApprovalActions.getReasonError(" ")).toBe(
       PublicNoteApprovalMessages.reasonRequired,
     );
@@ -280,10 +283,7 @@ describe("refusals, in the engine's own words", () => {
   test("the person who sent it", async () => {
     world.steps = [{ ...SUPPORT, userIds: [ALICE, BOB] }, LEGAL];
 
-    for (const pressed of [
-      await approve(ALICE),
-      await reject(ALICE, "No."),
-    ]) {
+    for (const pressed of [await approve(ALICE), await reject(ALICE, "No.")]) {
       expect(pressed.outcome).toBe(PublicNoteApprovalPressOutcome.Refused);
       expect(pressed.answer.text).toBe(PublicNoteApprovalMessages.sentByYou);
     }
@@ -669,7 +669,9 @@ describe("two approvers at the same moment", () => {
       });
 
     expect(pressed.outcome).toBe(PublicNoteApprovalPressOutcome.Refused);
-    expect(pressed.answer.text).toBe(PublicNoteApprovalMessages.decidedMeanwhile);
+    expect(pressed.answer.text).toBe(
+      PublicNoteApprovalMessages.decidedMeanwhile,
+    );
   });
 });
 

@@ -137,7 +137,9 @@ export default class MattermostPublicNoteApprovalActions {
         : null;
 
     if (!value) {
-      return { error: WorkspacePublicNoteApprovalActions.getUnverifiedMessage() };
+      return {
+        error: WorkspacePublicNoteApprovalActions.getUnverifiedMessage(),
+      };
     }
 
     const reason: unknown = data.submission[PUBLIC_NOTE_REJECT_REASON_FIELD];

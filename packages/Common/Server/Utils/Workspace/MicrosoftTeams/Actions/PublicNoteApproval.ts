@@ -304,9 +304,11 @@ export default class MicrosoftTeamsPublicNoteApprovalActions {
     const conversationId: unknown = (
       data.turnContext.activity as unknown as JSONObject
     )?.["conversation"]
-      ? ((data.turnContext.activity as unknown as JSONObject)[
-          "conversation"
-        ] as JSONObject)["id"]
+      ? (
+          (data.turnContext.activity as unknown as JSONObject)[
+            "conversation"
+          ] as JSONObject
+        )["id"]
       : undefined;
 
     await WorkspacePublicNoteApprovalActions.logPress({
@@ -314,7 +316,8 @@ export default class MicrosoftTeamsPublicNoteApprovalActions {
       workspaceType: WorkspaceType.MicrosoftTeams,
       userId: data.userId,
       buttonAction: data.buttonAction,
-      channelId: typeof conversationId === "string" ? conversationId : undefined,
+      channelId:
+        typeof conversationId === "string" ? conversationId : undefined,
     });
   }
 }

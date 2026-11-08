@@ -500,9 +500,8 @@ export default class SlackAuthAction {
      * record's channel, and the person may be in several of the projects.
      */
     if (!drawnForProjectId) {
-      drawnForProjectId = WorkspacePublicNoteApproval.getSignedProjectId(
-        actions,
-      );
+      drawnForProjectId =
+        WorkspacePublicNoteApproval.getSignedProjectId(actions);
     }
 
     /*
