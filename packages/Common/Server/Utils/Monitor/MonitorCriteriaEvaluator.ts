@@ -1528,13 +1528,11 @@ ${incomingRequestGrouping.rootCauseNote}
        * What the expression can name, per monitor type - the same map the
        * evaluation details read its references from.
        */
-      const storageMap: JSONObject = JavaScriptExpressionValues.getStorageMap(
-        {
-          monitorType: input.monitor.monitorType,
-          dataToProcess: input.dataToProcess,
-          projectId: input.monitor.projectId?.toString(),
-        },
-      );
+      const storageMap: JSONObject = JavaScriptExpressionValues.getStorageMap({
+        monitorType: input.monitor.monitorType,
+        dataToProcess: input.dataToProcess,
+        projectId: input.monitor.projectId?.toString(),
+      });
 
       const writtenExpression: string = input.criteriaFilter.value as string;
       const expression: string = VMUtil.replaceValueInPlace(

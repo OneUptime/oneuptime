@@ -224,9 +224,9 @@ describe("what an expression can name, per monitor type", () => {
     expect(map["responseStatusCode"]).toBe(503);
     expect(map["responseTimeInMs"]).toBe(812);
     expect(map["isOnline"]).toBe(true);
-    expect(
-      (map["responseHeaders"] as JSONObject)["x-region"],
-    ).toBe("eu-west-1");
+    expect((map["responseHeaders"] as JSONObject)["x-region"]).toBe(
+      "eu-west-1",
+    );
   });
 
   test("a body that is no JSON is kept as its text", () => {
@@ -293,7 +293,8 @@ describe("the value of each reference, for the evaluation details", () => {
   test("is what deepFind reads, like the expression itself", () => {
     const values: Array<MonitorEvaluationFieldValue> =
       JavaScriptExpressionValues.readReferences({
-        expression: "{{responseBody.items[1].name}} && {{responseBody.items[last].name}}",
+        expression:
+          "{{responseBody.items[1].name}} && {{responseBody.items[last].name}}",
         storageMap: apiStorageMap({
           items: [{ name: "a" }, { name: "b" }, { name: "c" }],
         }),

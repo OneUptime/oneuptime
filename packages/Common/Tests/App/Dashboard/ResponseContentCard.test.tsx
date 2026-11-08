@@ -229,7 +229,9 @@ describe("the monitor types whose checks carry no body", () => {
   ])("%s has no card", async (monitorType: MonitorType) => {
     await renderCard(monitorType);
 
-    expect(screen.queryByTestId(`${RESPONSE_CONTENT_SWITCH_TEST_ID}-card`)).toBeNull();
+    expect(
+      screen.queryByTestId(`${RESPONSE_CONTENT_SWITCH_TEST_ID}-card`),
+    ).toBeNull();
     expect(screen.queryByRole("switch")).toBeNull();
     expect(getItemMock).not.toHaveBeenCalled();
   });

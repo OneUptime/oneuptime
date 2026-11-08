@@ -1367,10 +1367,11 @@ export default class MonitorIncident {
 
     if (input.dataToProcess) {
       // Redacted and storable, as createdStateLog above.
-      incidentStateTimeline.stateChangeLog = MonitorRecordEvidence.toStoredCheck({
-        dataToProcess: input.dataToProcess as DataToProcess,
-        keepResponseContent: input.keepResponseContent !== false,
-      });
+      incidentStateTimeline.stateChangeLog =
+        MonitorRecordEvidence.toStoredCheck({
+          dataToProcess: input.dataToProcess as DataToProcess,
+          keepResponseContent: input.keepResponseContent !== false,
+        });
     }
 
     try {

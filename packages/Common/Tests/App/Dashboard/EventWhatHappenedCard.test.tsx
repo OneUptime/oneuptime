@@ -598,9 +598,11 @@ describe("how the monitor decided, under the root cause", () => {
     ) as Array<HTMLElement>;
 
     // Root cause first, then how the monitor decided.
-    expect(sections.map((section: HTMLElement) => {
-      return section.getAttribute("data-testid");
-    })).toEqual(["what-happened-root-cause", "what-happened-evaluation"]);
+    expect(
+      sections.map((section: HTMLElement) => {
+        return section.getAttribute("data-testid");
+      }),
+    ).toEqual(["what-happened-root-cause", "what-happened-evaluation"]);
 
     expect(sections[1]!.className).toContain("border-t");
     expect(

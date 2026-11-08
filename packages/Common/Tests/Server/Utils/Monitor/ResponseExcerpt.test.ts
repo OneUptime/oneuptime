@@ -80,7 +80,9 @@ describe("the text an excerpt is cut from", () => {
 describe("an excerpt around the match", () => {
   test("keeps the match and a bounded stretch either side", () => {
     const body: string =
-      "a".repeat(5000) + " the payment provider returned error 503 " + "b".repeat(5000);
+      "a".repeat(5000) +
+      " the payment provider returned error 503 " +
+      "b".repeat(5000);
 
     const result: MatchExcerptResult = around(body, "error 503")!;
     const excerpt: MonitorEvaluationExcerpt = result.excerpt!;
@@ -94,10 +96,7 @@ describe("an excerpt around the match", () => {
   });
 
   test("a short body is kept whole, and says it was not cut", () => {
-    const result: MatchExcerptResult = around(
-      '{"status":"error"}',
-      "error",
-    )!;
+    const result: MatchExcerptResult = around('{"status":"error"}', "error")!;
 
     expect(result.excerpt).toEqual({
       before: '{"status":"',
@@ -276,13 +275,17 @@ describe("what the excerpt masks", () => {
 
     expect(excerpt.before.startsWith("ACTED]")).toBe(false);
     expect(excerpt.before.startsWith("]")).toBe(false);
-    expect(excerpt.before.indexOf("[RED") === -1 || excerpt.before.includes(REDACTED)).toBe(true);
+    expect(
+      excerpt.before.indexOf("[RED") === -1 ||
+        excerpt.before.includes(REDACTED),
+    ).toBe(true);
   });
 });
 
 describe("the start of a response, for a filter with nothing to point at", () => {
   test("keeps how the body begins, bounded", () => {
-    const body: string = "<html><head><title>Maintenance</title></head>" + "z".repeat(5000);
+    const body: string =
+      "<html><head><title>Maintenance</title></head>" + "z".repeat(5000);
     const excerpt: MonitorEvaluationExcerpt = ResponseExcerpt.atStart({
       response: ResponseExcerpt.readText(body)!,
     })!;
@@ -311,9 +314,7 @@ describe("the start of a response, for a filter with nothing to point at", () =>
   });
 
   test("an empty body has none", () => {
-    expect(
-      ResponseExcerpt.atStart({ response: { text: "   " } }),
-    ).toBeNull();
+    expect(ResponseExcerpt.atStart({ response: { text: "   " } })).toBeNull();
   });
 });
 

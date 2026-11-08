@@ -415,9 +415,7 @@ export default class MonitorEvaluationDetailsBuilder {
     }
 
     const probeResponse: ProbeMonitorResponse | null =
-      MonitorCriteriaDataExtractor.getProbeMonitorResponse(
-        input.dataToProcess,
-      );
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
 
     if (!probeResponse) {
       return undefined;

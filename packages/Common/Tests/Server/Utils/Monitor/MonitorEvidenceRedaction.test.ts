@@ -406,9 +406,9 @@ describe("JSON", () => {
       deep = { next: deep };
     }
 
-    expect(JSON.stringify(MonitorEvidenceRedaction.redactJson(deep))).not.toContain(
-      "hunter2",
-    );
+    expect(
+      JSON.stringify(MonitorEvidenceRedaction.redactJson(deep)),
+    ).not.toContain("hunter2");
   });
 });
 
@@ -436,10 +436,11 @@ describe("headers", () => {
   });
 
   test("a value that carries a secret in its URL is masked there", () => {
-    const redacted: Dictionary<string> =
-      MonitorEvidenceRedaction.redactHeaders({
+    const redacted: Dictionary<string> = MonitorEvidenceRedaction.redactHeaders(
+      {
         location: "https://example.com/next?token=abc123&page=2",
-      })!;
+      },
+    )!;
 
     expect(redacted["location"]).toBe(
       `https://example.com/next?token=${REDACTED}&page=2`,

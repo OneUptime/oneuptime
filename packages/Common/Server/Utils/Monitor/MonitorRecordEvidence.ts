@@ -72,7 +72,11 @@ export default class MonitorRecordEvidence {
       input.dataToProcess as unknown as JSONValue,
     ) as JSONObject;
 
-    if (!input.keepResponseContent && redacted && typeof redacted === "object") {
+    if (
+      !input.keepResponseContent &&
+      redacted &&
+      typeof redacted === "object"
+    ) {
       delete redacted["responseBody"];
       delete redacted["requestBody"];
     }
@@ -122,10 +126,9 @@ export default class MonitorRecordEvidence {
         );
 
         if (MonitorRecordEvidence.isUrlLike(echoed)) {
-          probeResponse.monitorDestination =
-            MonitorEvidenceRedaction.redactUrl(
-              echoed,
-            ) as unknown as ProbeMonitorResponse["monitorDestination"];
+          probeResponse.monitorDestination = MonitorEvidenceRedaction.redactUrl(
+            echoed,
+          ) as unknown as ProbeMonitorResponse["monitorDestination"];
         }
       }
 

@@ -1474,7 +1474,8 @@ export default class MonitorResourceUtil {
               : undefined,
             disableSeriesAbsenceResolution,
             criteriaInstancesById: criteriaInstanceMap,
-            keepResponseContent: MonitorRecordEvidence.keepsResponseContent(monitor),
+            keepResponseContent:
+              MonitorRecordEvidence.keepsResponseContent(monitor),
           });
 
         const openAlerts: Array<Alert> =
@@ -1492,7 +1493,8 @@ export default class MonitorResourceUtil {
               : undefined,
             disableSeriesAbsenceResolution,
             criteriaInstancesById: criteriaInstanceAlertMap,
-            keepResponseContent: MonitorRecordEvidence.keepsResponseContent(monitor),
+            keepResponseContent:
+              MonitorRecordEvidence.keepsResponseContent(monitor),
           });
 
         /*
@@ -1651,7 +1653,8 @@ export default class MonitorResourceUtil {
           criteriaInstance: null, // no criteria met!
           dataToProcess: dataToProcess,
           evaluationSummary: evaluationSummary,
-          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(monitor),
+          keepResponseContent:
+            MonitorRecordEvidence.keepsResponseContent(monitor),
           /*
            * Event-driven grouping: for incoming-request monitors, never
            * absence-resolve per-key (seriesFingerprint) incidents on the
@@ -1680,7 +1683,8 @@ export default class MonitorResourceUtil {
           criteriaInstance: null, // no criteria met!
           dataToProcess: dataToProcess,
           evaluationSummary: evaluationSummary,
-          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(monitor),
+          keepResponseContent:
+            MonitorRecordEvidence.keepsResponseContent(monitor),
           disableSeriesAbsenceResolution:
             MonitorResourceUtil.isSeriesResolvedExplicitly({
               monitor: monitor,

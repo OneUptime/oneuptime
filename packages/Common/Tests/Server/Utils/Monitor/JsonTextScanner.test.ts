@@ -120,9 +120,7 @@ describe("where the secret values sit", () => {
   });
 
   test("no secret names, no spans", () => {
-    expect(scan('{"status":"down","items":[1,2]}')!.sensitiveSpans).toEqual(
-      [],
-    );
+    expect(scan('{"status":"down","items":[1,2]}')!.sensitiveSpans).toEqual([]);
   });
 });
 

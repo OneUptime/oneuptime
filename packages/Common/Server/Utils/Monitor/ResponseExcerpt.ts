@@ -220,8 +220,7 @@ export default class ResponseExcerpt {
           redacted.slice(located + matchLength, displayEnd),
         ).trimEnd(),
         isCutAtStart: windowStart + displayStart > 0,
-        isCutAtEnd:
-          displayEnd < redacted.length || windowEnd < text.length,
+        isCutAtEnd: displayEnd < redacted.length || windowEnd < text.length,
       },
     };
   }
@@ -427,7 +426,11 @@ export default class ResponseExcerpt {
     const searchFrom: number = Math.max(0, cut - marker.length + 1);
     const markerStart: number = text.indexOf(marker, searchFrom);
 
-    if (markerStart !== -1 && markerStart < cut && cut < markerStart + marker.length) {
+    if (
+      markerStart !== -1 &&
+      markerStart < cut &&
+      cut < markerStart + marker.length
+    ) {
       cut = direction === 1 ? markerStart + marker.length : markerStart;
     }
 

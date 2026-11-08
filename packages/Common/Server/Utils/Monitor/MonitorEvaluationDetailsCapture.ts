@@ -98,7 +98,8 @@ export default class MonitorEvaluationDetailsCapture {
   }): boolean {
     if (
       !input.seriesFingerprint ||
-      input.seriesFingerprint === MetricSeriesFingerprint.WholeMonitorFingerprint
+      input.seriesFingerprint ===
+        MetricSeriesFingerprint.WholeMonitorFingerprint
     ) {
       return true;
     }

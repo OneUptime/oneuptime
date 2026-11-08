@@ -78,8 +78,9 @@ export default class MonitorSummaryCapture {
         monitor: input.monitor,
         monitorStep: MonitorSummaryCapture.findStep({
           monitor: input.monitor,
-          monitorStepId: (input.dataToProcess as ProbeMonitorResponse | undefined)
-            ?.monitorStepId,
+          monitorStepId: (
+            input.dataToProcess as ProbeMonitorResponse | undefined
+          )?.monitorStepId,
         }),
       });
     } catch (err) {
@@ -108,11 +109,11 @@ export default class MonitorSummaryCapture {
 
     const stepId: string = input.monitorStepId.toString();
 
-    return (input.monitor.monitorSteps?.data?.monitorStepsInstanceArray || []).find(
-      (step: MonitorStep): boolean => {
-        return step.id?.toString() === stepId;
-      },
-    );
+    return (
+      input.monitor.monitorSteps?.data?.monitorStepsInstanceArray || []
+    ).find((step: MonitorStep): boolean => {
+      return step.id?.toString() === stepId;
+    });
   }
 
   /*

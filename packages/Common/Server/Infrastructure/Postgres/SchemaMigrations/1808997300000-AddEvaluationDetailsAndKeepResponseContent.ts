@@ -30,7 +30,9 @@ export class AddEvaluationDetailsAndKeepResponseContent1808997300000
     await queryRunner.query(
       `ALTER TABLE "Incident" ADD "evaluationDetails" jsonb`,
     );
-    await queryRunner.query(`ALTER TABLE "Alert" ADD "evaluationDetails" jsonb`);
+    await queryRunner.query(
+      `ALTER TABLE "Alert" ADD "evaluationDetails" jsonb`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

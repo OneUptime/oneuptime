@@ -233,7 +233,10 @@ export default class MonitorEvidenceRedaction {
       return false;
     }
 
-    if (!RESPONSE_CODE_NAMES.has(normalized) && isSensitiveLogKey(name, value)) {
+    if (
+      !RESPONSE_CODE_NAMES.has(normalized) &&
+      isSensitiveLogKey(name, value)
+    ) {
       return true;
     }
 
@@ -457,9 +460,7 @@ export default class MonitorEvidenceRedaction {
         const userInfo: string = authority.slice(0, atSign);
         const colon: number = userInfo.indexOf(":");
         const maskedUserInfo: string =
-          colon === -1
-            ? REDACTED
-            : `${userInfo.slice(0, colon)}:${REDACTED}`;
+          colon === -1 ? REDACTED : `${userInfo.slice(0, colon)}:${REDACTED}`;
 
         result =
           result.slice(0, authorityStart) +
@@ -754,7 +755,8 @@ export default class MonitorEvidenceRedaction {
       // UnionPay
       (digits.length >= 16 && prefixOf(2) === 62) ||
       // Maestro
-      (prefixOf(2) === 50 || (prefixOf(2) >= 56 && prefixOf(2) <= 69));
+      prefixOf(2) === 50 ||
+      (prefixOf(2) >= 56 && prefixOf(2) <= 69);
 
     if (!hasNetworkPrefix) {
       return false;

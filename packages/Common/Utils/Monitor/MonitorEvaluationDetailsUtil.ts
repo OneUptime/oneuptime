@@ -73,7 +73,8 @@ export default class MonitorEvaluationDetailsUtil {
      * read is not one this build wrote.
      */
     const evaluatedAt: Date | undefined =
-      details.evaluatedAt instanceof Date && !isNaN(details.evaluatedAt.getTime())
+      details.evaluatedAt instanceof Date &&
+      !isNaN(details.evaluatedAt.getTime())
         ? details.evaluatedAt
         : MonitorEvaluationDetailsUtil.toDate(details.evaluatedAt);
 

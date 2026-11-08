@@ -19,10 +19,7 @@ import URL from "../../../../Types/API/URL";
 import Dictionary from "../../../../Types/Dictionary";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../Types/JSON";
-import {
-  CheckOn,
-  FilterType,
-} from "../../../../Types/Monitor/CriteriaFilter";
+import { CheckOn, FilterType } from "../../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorEvaluationDetails from "../../../../Types/Monitor/MonitorEvaluationDetails";
 import MonitorEvaluationSummary from "../../../../Types/Monitor/MonitorEvaluationSummary";
@@ -48,6 +45,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
@@ -398,19 +396,18 @@ describe("Incidents and alerts keep the evaluation that opened them", () => {
 
   it("the details are built once for the incident and the alert", async () => {
     const evaluated: EvaluatedCheck = await evaluateCheck({});
-    const build: jest.SpiedFunction<typeof MonitorEvaluationDetailsBuilder.build> =
+    const build: SpyInstance<typeof MonitorEvaluationDetailsBuilder.build> =
       jest.spyOn(MonitorEvaluationDetailsBuilder, "build");
 
     // A fresh getter, so the spy sees its one build.
-    evaluated.getEvaluationDetails = MonitorEvaluationDetailsCapture.forCriteria(
-      {
+    evaluated.getEvaluationDetails =
+      MonitorEvaluationDetailsCapture.forCriteria({
         monitor: evaluated.monitor,
         monitorStep: evaluated.step,
         criteriaInstance: evaluated.instance,
         evaluationSummary: evaluated.evaluationSummary,
         dataToProcess: evaluated.dataToProcess,
-      },
-    );
+      });
 
     await createBoth(evaluated);
 
@@ -430,7 +427,7 @@ describe("Incidents and alerts keep the evaluation that opened them", () => {
 
     jest.spyOn(IncidentService, "findBy").mockResolvedValue([openIncident]);
 
-    const build: jest.SpiedFunction<typeof MonitorEvaluationDetailsBuilder.build> =
+    const build: SpyInstance<typeof MonitorEvaluationDetailsBuilder.build> =
       jest.spyOn(MonitorEvaluationDetailsBuilder, "build");
 
     await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
@@ -475,9 +472,9 @@ describe("Incidents and alerts keep the evaluation that opened them", () => {
         "content-type": "application/json",
         "set-cookie": REDACTED,
       });
-      expect(
-        String(summary!.probeMonitorResponse!.monitorDestination),
-      ).toBe(`https://api.acme.example/v1/health?api_key=${REDACTED}`);
+      expect(String(summary!.probeMonitorResponse!.monitorDestination)).toBe(
+        `https://api.acme.example/v1/health?api_key=${REDACTED}`,
+      );
       expect(summary!.isResponseContentOmitted).toBeUndefined();
     }
   });
@@ -495,9 +492,7 @@ describe("Incidents and alerts keep the evaluation that opened them", () => {
 
       expect(details.areResponseExcerptsOff).toBe(true);
       expect(details.filters[0]!.excerpt).toBeUndefined();
-      expect(details.filters[0]!.excerptOmission).toBe(
-        "response-excerpts-off",
-      );
+      expect(details.filters[0]!.excerptOmission).toBe("response-excerpts-off");
       // The status code is no content of the response: it stays.
       expect(details.filters[1]!.actual).toBe("503");
 
@@ -577,15 +572,14 @@ describe("Incidents and alerts keep the evaluation that opened them", () => {
       .spyOn(MonitorEvaluationDetailsBuilder, "build")
       .mockRejectedValue(new Error("unexpected shape"));
 
-    evaluated.getEvaluationDetails = MonitorEvaluationDetailsCapture.forCriteria(
-      {
+    evaluated.getEvaluationDetails =
+      MonitorEvaluationDetailsCapture.forCriteria({
         monitor: evaluated.monitor,
         monitorStep: evaluated.step,
         criteriaInstance: evaluated.instance,
         evaluationSummary: evaluated.evaluationSummary,
         dataToProcess: evaluated.dataToProcess,
-      },
-    );
+      });
 
     await createBoth(evaluated);
 

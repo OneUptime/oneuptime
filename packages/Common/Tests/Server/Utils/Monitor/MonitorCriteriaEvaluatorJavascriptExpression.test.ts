@@ -151,9 +151,8 @@ describe("MonitorCriteriaEvaluator JavaScript expression criteria", () => {
       value: "{{responseBody}}.items.length > 0",
     } as CriteriaFilter;
 
-    const result: string = (await Evaluator.isMonitorInstanceCriteriaFilterMet(
-      input,
-    ))!;
+    const result: string =
+      (await Evaluator.isMonitorInstanceCriteriaFilterMet(input))!;
 
     expect(result.length).toBeLessThan(400);
     expect(result).not.toContain("@example.com");

@@ -100,11 +100,14 @@ describe("whether a monitor keeps response content", () => {
     [MonitorType.Ping, false],
     [MonitorType.Logs, false],
     [MonitorType.Manual, false],
-  ])("the switch is offered for %s: %s", (type: MonitorType, offered: boolean) => {
-    expect(MonitorRecordEvidence.isResponseContentMonitorType(type)).toBe(
-      offered,
-    );
-  });
+  ])(
+    "the switch is offered for %s: %s",
+    (type: MonitorType, offered: boolean) => {
+      expect(MonitorRecordEvidence.isResponseContentMonitorType(type)).toBe(
+        offered,
+      );
+    },
+  );
 });
 
 describe("the stored check (createdStateLog, the state timeline's log)", () => {
@@ -335,6 +338,8 @@ describe("a step's destination and port, as text", () => {
     step.data!.monitorDestinationPort = new Port(5432);
 
     expect(MonitorRecordEvidence.getStepPort(step)).toBe(5432);
-    expect(MonitorRecordEvidence.getStepPort(new MonitorStep())).toBeUndefined();
+    expect(
+      MonitorRecordEvidence.getStepPort(new MonitorStep()),
+    ).toBeUndefined();
   });
 });
