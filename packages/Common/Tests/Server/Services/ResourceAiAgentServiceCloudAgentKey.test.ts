@@ -25,9 +25,13 @@ import {
   CloudAiAgentKeyResponse,
   readCloudAiAgentKeys,
 } from "../../../Types/CloudConnection/CloudAiAgentKey";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import UserType from "../../../Types/UserType";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AuditLogService from "../../../Server/Services/AuditLogService";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
@@ -69,6 +73,13 @@ const OTHER_ACCOUNT_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
 const USER_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
+
+// Who made a key, or reset the agent: the route's props.
+const PERSON: DatabaseCommonInteractionProps = {
+  tenantId: PROJECT_ID,
+  userId: USER_ID,
+  userType: UserType.User,
+};
 const INGESTION_KEY_ID: ObjectID = new ObjectID(
   "66666666-6666-4666-8666-666666666666",
 );
@@ -661,7 +672,7 @@ describe("Reset agent", () => {
       projectId: PROJECT_ID,
       resourceType: AiResourceType.AwsAccount,
       resourceId: ACCOUNT_ID,
-      userId: USER_ID,
+      props: PERSON,
     });
 
     expect(agentRow?.keyHash).toBeNull();
@@ -699,7 +710,7 @@ describe("Reset agent", () => {
       projectId: PROJECT_ID,
       resourceType: AiResourceType.AwsAccount,
       resourceId: ACCOUNT_ID,
-      userId: USER_ID,
+      props: PERSON,
     });
 
     expect((await refusalOf(register({}))).reason).toBe("agent_key_required");
@@ -710,5 +721,133 @@ describe("Reset agent", () => {
       pending: [],
       isOwnKeyRequired: true,
     });
+  });
+});
+
+/*
+ * What reaches the account's audit log (issue #6302). A key made for its
+ * Cloud AI agent, and a reset of the agent, are the person's changes; an
+ * agent connecting with its key is what the agent does, and records
+ * nothing. The entries' contents - the keys as changed, never with a hash -
+ * are pinned in ee's AuditLogOwnersNumbersAndAgentResets.test.ts.
+ */
+describe("in the account's audit log", () => {
+  interface RecordedUpdate {
+    itemId: ObjectID;
+    updatedFields: Record<string, unknown>;
+    includeColumns?: Array<string> | undefined;
+    props: DatabaseCommonInteractionProps;
+  }
+
+  let recordUpdate: jest.SpyInstance;
+
+  beforeEach(() => {
+    recordUpdate = jest
+      .spyOn(AuditLogService, "recordUpdate")
+      .mockResolvedValue(undefined as never);
+  });
+
+  function recorded(): Array<RecordedUpdate> {
+    return recordUpdate.mock.calls.map(
+      (call: Array<unknown>): RecordedUpdate => {
+        return call[0] as RecordedUpdate;
+      },
+    );
+  }
+
+  test("a key someone makes is their change: the keys named as changed, nothing more", async () => {
+    await CloudAccountService.makeAiAgentKey({
+      cloudAccountId: ACCOUNT_ID,
+      userId: USER_ID,
+      now: new Date(),
+      props: PERSON,
+    });
+
+    expect(recorded()).toHaveLength(1);
+
+    const entry: RecordedUpdate = recorded()[0]!;
+
+    expect(entry.itemId.toString()).toBe(ACCOUNT_ID.toString());
+    expect(entry.props).toBe(PERSON);
+    expect(entry.includeColumns).toEqual(["aiAgentKeys"]);
+    expect(Object.keys(entry.updatedFields)).toEqual(["aiAgentKeys"]);
+  });
+
+  test("a key made with nobody named records nothing", async () => {
+    await makeKey();
+
+    expect(recordUpdate).not.toHaveBeenCalled();
+  });
+
+  test("a key that could not be written records nothing", async () => {
+    jest
+      .spyOn(CloudAccountService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockResolvedValue(false);
+
+    await expect(
+      CloudAccountService.makeAiAgentKey({
+        cloudAccountId: ACCOUNT_ID,
+        userId: USER_ID,
+        now: new Date(),
+        props: PERSON,
+      }),
+    ).rejects.toThrow(BadDataException);
+
+    expect(recordUpdate).not.toHaveBeenCalled();
+  });
+
+  test("an agent connecting with its key records nothing: it is what the agent reports", async () => {
+    const key: string = await makeKey();
+
+    await register({ key: await keyOf(key) });
+
+    expect(recordUpdate).not.toHaveBeenCalled();
+  });
+
+  test("a reset is stamped on the account and recorded by whoever reset it, naming when, never the keys", async () => {
+    const stamped: Array<Record<string, unknown>> = [];
+
+    jest
+      .spyOn(CloudAccountService, "updateColumnsByIdWithoutHooks")
+      .mockImplementation(
+        async (data: {
+          id: ObjectID;
+          data: Record<string, unknown>;
+        }): Promise<void> => {
+          stamped.push(data.data);
+
+          const row: AccountRow | undefined = accountOf(data.id);
+
+          if (row && "aiAgentKeys" in data.data) {
+            row.aiAgentKeys = data.data["aiAgentKeys"] as JSONObject;
+          }
+        },
+      );
+
+    await register({ key: await keyOf(await makeKey()) });
+
+    await ResourceAiAgentService.resetAgent({
+      projectId: PROJECT_ID,
+      resourceType: AiResourceType.AwsAccount,
+      resourceId: ACCOUNT_ID,
+      props: PERSON,
+    });
+
+    // The keys revoked, then when it was reset.
+    expect(Object.keys(stamped[0]!)).toEqual(["aiAgentKeys"]);
+    expect(Object.keys(stamped[1]!)).toEqual(["aiAgentResetAt"]);
+    expect(stamped[1]!["aiAgentResetAt"]).toBeInstanceOf(Date);
+
+    const resets: Array<RecordedUpdate> = recorded().filter(
+      (entry: RecordedUpdate): boolean => {
+        return (entry.includeColumns || []).includes("aiAgentResetAt");
+      },
+    );
+
+    expect(resets).toHaveLength(1);
+    expect(resets[0]!.props).toBe(PERSON);
+    expect(resets[0]!.itemId.toString()).toBe(ACCOUNT_ID.toString());
+    expect(resets[0]!.includeColumns).toEqual(["aiAgentResetAt"]);
+    expect(Object.keys(resets[0]!.updatedFields)).toEqual(["aiAgentResetAt"]);
   });
 });

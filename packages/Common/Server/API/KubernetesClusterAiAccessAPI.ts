@@ -1462,10 +1462,11 @@ router.post(
         );
       }
 
+      // Recorded on the cluster's Audit Logs as theirs.
       await KubernetesAiAgentService.resetAgent({
         projectId: tenantId,
         kubernetesClusterId: cluster.id!,
-        userId: props.userId,
+        props: props,
       });
 
       const status: KubernetesClusterAiAccessStatus | null =

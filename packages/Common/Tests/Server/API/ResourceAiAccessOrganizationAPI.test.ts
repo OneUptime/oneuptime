@@ -473,6 +473,10 @@ describe("ResourceAiAccessAPI: an AWS Organization's agents", () => {
       for (const call of made) {
         expect(call["userId"]).toEqual(USER_ID);
         expect(call["now"]).toBe(made[0]!["now"]);
+        // Who made it, for each account's audit log (issue #6302).
+        expect(
+          (call["props"] as DatabaseCommonInteractionProps).userId,
+        ).toEqual(USER_ID);
       }
 
       // The accounts are the caller's own read, of the organization's connection.

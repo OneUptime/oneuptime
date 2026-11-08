@@ -1886,6 +1886,13 @@ describe("ResourceAiAccessAPI", () => {
         expect(String(call["cloudAccountId"])).toBe(RESOURCE_ID.toString());
         expect(String(call["userId"])).toBe(USER_ID.toString());
         expect(call["now"]).toBeInstanceOf(Date);
+        // Who made it, for the account's audit log (issue #6302).
+        expect(
+          String((call["props"] as DatabaseCommonInteractionProps).userId),
+        ).toBe(USER_ID.toString());
+        expect(
+          String((call["props"] as DatabaseCommonInteractionProps).tenantId),
+        ).toBe(PROJECT_ID.toString());
         // Decided for this very account, under the caller's own props.
         expect(changeSpy).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -2097,7 +2104,16 @@ describe("ResourceAiAccessAPI", () => {
         expect(String(call["projectId"])).toBe(PROJECT_ID.toString());
         expect(call["resourceType"]).toBe(kind.resourceType);
         expect(String(call["resourceId"])).toBe(RESOURCE_ID.toString());
-        expect(String(call["userId"])).toBe(USER_ID.toString());
+        /*
+         * The route's own props, so the reset is recorded on the resource
+         * as theirs (issue #6302).
+         */
+        const props: DatabaseCommonInteractionProps =
+          call["props"] as DatabaseCommonInteractionProps;
+        expect(String(props.userId)).toBe(USER_ID.toString());
+        expect(String(props.tenantId)).toBe(PROJECT_ID.toString());
+        expect(props.userType).toBe(UserType.User);
+        expect(call["userId"]).toBeUndefined();
 
         const response: JSONObject = lastResponse();
         expect(response["ok"]).toBe(true);

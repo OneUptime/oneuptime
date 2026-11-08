@@ -355,6 +355,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/WorkflowService.ts": {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
   },
+  "packages/Common/Server/Utils/AI/ResourceAccess/AiAgentResetAuditLog.ts": {
+    "AiAgentResetAuditLog.record *": Why.Recorded,
+  },
   "packages/Common/Server/Utils/AI/SRE/IncidentInvestigationRunner.ts": {
     "AIIncidentInvestigationRunner.runInvestigationEngine IncidentInternalNote":
       Why.Automation,
