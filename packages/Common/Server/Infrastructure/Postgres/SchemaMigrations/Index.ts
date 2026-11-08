@@ -925,6 +925,8 @@ import { AddRuleOwningTeams1808995800000 } from "./1808995800000-AddRuleOwningTe
 import { AddWorkflowGraphRevision1808995900000 } from "./1808995900000-AddWorkflowGraphRevision";
 import { AddWorkflowVersionSavedThrough1808996000000 } from "./1808996000000-AddWorkflowVersionSavedThrough";
 import { AddAuditLogExportSchemaVersion1808996130000 } from "./1808996130000-AddAuditLogExportSchemaVersion";
+import { AddTelemetryUsageRetention1808996259160 } from "./1808996259160-AddTelemetryUsageRetention";
+import { AddTelemetryUsageCreatedAtIndex1808996259170 } from "./1808996259170-AddTelemetryUsageCreatedAtIndex";
 
 export default [
   InitialMigration,
@@ -1854,4 +1856,6 @@ export default [
   AddWorkflowGraphRevision1808995900000,
   AddWorkflowVersionSavedThrough1808996000000,
   AddAuditLogExportSchemaVersion1808996130000,
+  AddTelemetryUsageRetention1808996259160,
+  AddTelemetryUsageCreatedAtIndex1808996259170,
 ];
