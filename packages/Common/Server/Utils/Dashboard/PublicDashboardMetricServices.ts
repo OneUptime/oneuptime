@@ -1,9 +1,8 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { JSONValue } from "../../../Types/JSON";
-import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import MetricQueryServices from "../../../Utils/Metrics/MetricQueryServices";
+import PublicDashboardViewConfig from "./PublicDashboardViewConfig";
 
 /*
  * THE SERVICES A PUBLIC DASHBOARD'S CHARTS READ (issue #6280).
@@ -59,23 +58,17 @@ export const PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE: string =
 
 /*
  * The services one saved query is read for, as the public page reads them:
- * it deserializes each widget (StoredDashboardViewConfig.read), so an id
- * stored as ObjectID JSON is that id, then reads the filter with
- * MetricQueryServices. Empty for every service.
+ * its filter as the page draws it - each widget deserialized, so an id
+ * stored as ObjectID JSON is that id, or left as stored when it cannot be
+ * (PublicDashboardViewConfig.getDrawnConfig) - read with
+ * MetricQueryServices, as the page's chart reads it. Empty for every
+ * service. Never deserialized again here: what the page could not revive,
+ * it reads as stored, and so is it read here (issue #6297).
  */
 const readSavedServiceIds: (value: unknown) => Array<string> = (
   value: unknown,
 ): Array<string> => {
-  let read: unknown = value;
-
-  try {
-    read = JSONFunctions.deserializeValue(value as JSONValue);
-  } catch {
-    // The page then draws the widget from its stored JSON, and so is it read.
-    read = value;
-  }
-
-  return MetricQueryServices.normalize(read);
+  return MetricQueryServices.normalize(value);
 };
 
 /*
@@ -142,19 +135,23 @@ const isSameServices: (
 
 export default class PublicDashboardMetricServices {
   /*
-   * Walk a stored dashboard view config and collect, for every metric it
-   * charts, the services each query of it is saved with. It reads exactly
-   * where the public metric allowlist reads metric names (every
-   * `metricName` in the config, DashboardAPI.collectDashboardMetricNames),
-   * and a query's services sit beside its metric name in its filter data
-   * (`filterData.telemetryServiceIds`), so every metric the dashboard may
-   * be read for has its services here: a chart's queries, a fallback
-   * query, a table's columns. A place that names a metric without
-   * services - a table column, a query saved before #6266 - reads it for
-   * every service, as the dashboard draws it.
+   * Walk the settings of the widgets a public dashboard's page draws that
+   * chart metrics (DashboardAPI.getPublicMetricSources: their `arguments`,
+   * as PublicDashboardViewConfig.getDrawnConfig reads them) and collect,
+   * for every metric they chart, the services each query of it is saved
+   * with. It reads exactly where the public metric allowlist reads metric
+   * names - every `metricName` in the same settings, through the same walk
+   * (PublicDashboardViewConfig.forEachSettingsObject,
+   * DashboardAPI.collectDashboardMetricNames) - and a query's services sit
+   * beside its metric name in its filter data
+   * (`filterData.telemetryServiceIds`), so every metric the page may read
+   * has its services here: a chart's queries, a fallback query, a table's
+   * columns. A place that names a metric without services - a table
+   * column, a query saved before #6266 - reads it for every service, as
+   * the dashboard draws it.
    */
   public static getSavedServices(
-    dashboardViewConfig: unknown,
+    metricWidgetSettings: unknown,
   ): PublicDashboardMetricSavedServices {
     const savedServices: PublicDashboardMetricSavedServices = new Map<
       string,
@@ -183,34 +180,19 @@ export default class PublicDashboardMetricServices {
       savedServices.get(metricName)!.push(serviceIds);
     };
 
-    const walk: (node: unknown) => void = (node: unknown): void => {
-      if (!node || typeof node !== "object") {
-        return;
-      }
+    PublicDashboardViewConfig.forEachSettingsObject(
+      metricWidgetSettings,
+      (settings: Record<string, unknown>): void => {
+        const metricName: unknown = settings["metricName"];
 
-      if (Array.isArray(node)) {
-        for (const item of node) {
-          walk(item);
+        if (typeof metricName === "string" && metricName.trim().length > 0) {
+          addServices(
+            metricName,
+            readSavedServiceIds(settings["telemetryServiceIds"]),
+          );
         }
-        return;
-      }
-
-      const obj: Record<string, unknown> = node as Record<string, unknown>;
-
-      const metricName: unknown = obj["metricName"];
-      if (typeof metricName === "string" && metricName.trim().length > 0) {
-        addServices(
-          metricName,
-          readSavedServiceIds(obj["telemetryServiceIds"]),
-        );
-      }
-
-      for (const key of Object.keys(obj)) {
-        walk(obj[key]);
-      }
-    };
-
-    walk(dashboardViewConfig);
+      },
+    );
 
     return savedServices;
   }

@@ -92,11 +92,11 @@ const KNOWN_FILES: Record<string, KnownFile> = {
   },
   "Common/Server/API/DashboardAPI.ts": {
     role: "reader",
-    why: "every public dashboard route reads the stored config",
+    why: "every public dashboard route reads the stored config: the routes that select one widget where it is stored, the metric routes as the public page draws it",
   },
   "Common/Server/Utils/Dashboard/PublicDashboardViewConfig.ts": {
     role: "reader",
-    why: "strips Data Source widgets from what anonymous visitors get",
+    why: "strips Data Source widgets from what anonymous visitors get, and reads the config their page then draws",
   },
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx": {
     role: "handed-a-read-config",
@@ -121,10 +121,7 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "handed-a-read-config",
     why: "handed DashboardAPI.getStoredViewConfig's located config",
   },
-  "Common/Server/Utils/Dashboard/PublicDashboardMetricServices.ts": {
-    role: "handed-a-read-config",
-    why: "reads each metric's saved services out of DashboardAPI.getStoredViewConfig's located config, where the metric allowlist reads its names",
-  },
+
   "Common/Utils/Dashboard/DashboardViewConfig.ts": {
     role: "handed-a-read-config",
     why: "layout utilities over a config already read",
@@ -288,10 +285,12 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
       [DASHBOARD_API]: [
         "StoredDashboardViewConfig.unwrap(dashboard.dashboardViewConfig)",
         "StoredDashboardViewConfig.withComponentIds(",
+        "PublicDashboardViewConfig.getDrawnConfig(dashboard.dashboardViewConfig",
       ],
       [PUBLIC_SANITIZER]: [
         "StoredDashboardViewConfig.unwrap(dashboardViewConfig)",
         "StoredDashboardViewConfig.getComponentEntries(storedConfig)",
+        "StoredDashboardViewConfig.read(PublicDashboardViewConfig.sanitize(",
       ],
     };
 
@@ -337,22 +336,36 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
     }
   });
 
-  test("the public routes read the stored config only through getStoredViewConfig or the sanitizer", () => {
+  test("the public routes read the stored config only through getStoredViewConfig, the sanitizer, or what the public page draws", () => {
     const code: string = codeOf(DASHBOARD_API)
       .split(
         "PublicDashboardViewConfig.sanitize(dashboard.dashboardViewConfig)",
       )
       .join("")
       .split("StoredDashboardViewConfig.unwrap(dashboard.dashboardViewConfig)")
+      .join("")
+      .split(
+        "PublicDashboardViewConfig.getDrawnConfig(dashboard.dashboardViewConfig",
+      )
       .join("");
 
     expect(code.includes("dashboard.dashboardViewConfig")).toBe(false);
 
-    // And they do use it: one place reads the stored config for all of them.
+    /*
+     * And they do use them: one place reads the stored config for the
+     * routes that select one widget (resource-list, SLO history), and one
+     * reads what the public page draws for the routes that serve what its
+     * widgets and toolbar ask for (overview, attribute-values,
+     * metric-types, metrics-aggregate; issue #6297).
+     */
     expect(
       codeOf(DASHBOARD_API).split("DashboardAPI.getStoredViewConfig(dashboard)")
         .length - 1,
-    ).toBeGreaterThanOrEqual(8);
+    ).toBeGreaterThanOrEqual(4);
+    expect(
+      codeOf(DASHBOARD_API).split("DashboardAPI.getDrawnViewConfig(dashboard)")
+        .length - 1,
+    ).toBeGreaterThanOrEqual(4);
   });
 });
 

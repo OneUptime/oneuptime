@@ -2,6 +2,7 @@ import PublicDashboardMetricServices, {
   PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE,
   PublicDashboardMetricSavedServices,
 } from "../../../../Server/Utils/Dashboard/PublicDashboardMetricServices";
+import PublicDashboardViewConfig from "../../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
 import EqualTo from "../../../../Types/BaseDatabase/EqualTo";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
@@ -104,6 +105,17 @@ function servicesFilter(serviceIds: Array<string>): unknown {
   return overTheWire(new Includes(serviceIds));
 }
 
+/*
+ * What the public metrics route hands the policy (issue #6297): the
+ * settings of the widgets the public page draws that chart metrics, as it
+ * reads them - out of a stored config in any shape.
+ */
+function drawnSettingsOf(config: unknown): Array<JSONObject> {
+  return PublicDashboardViewConfig.getMetricWidgetSettings(
+    PublicDashboardViewConfig.getDrawnConfig(config),
+  );
+}
+
 type ServicesRead = Array<string> | "every service" | "refused";
 
 /*
@@ -120,7 +132,9 @@ function readFor(
 
   try {
     serviceQuery = PublicDashboardMetricServices.getServiceQuery({
-      savedServices: PublicDashboardMetricServices.getSavedServices(config),
+      savedServices: PublicDashboardMetricServices.getSavedServices(
+        drawnSettingsOf(config),
+      ),
       metricName: metricName,
       requestedServiceFilter: requestedServiceFilter,
     });
@@ -151,7 +165,7 @@ function savedServicesOf(
   config: unknown,
 ): Array<[string, Array<Array<string>>]> {
   const savedServices: PublicDashboardMetricSavedServices =
-    PublicDashboardMetricServices.getSavedServices(config);
+    PublicDashboardMetricServices.getSavedServices(drawnSettingsOf(config));
 
   return Array.from(savedServices.entries()).sort(
     (
@@ -196,7 +210,9 @@ describe("a public read of a dashboard's metric", () => {
   test("the filter it runs with is built from the saved ids, not handed on from the request", () => {
     const savedServices: PublicDashboardMetricSavedServices =
       PublicDashboardMetricServices.getSavedServices(
-        dashboardOf(chart(savedQuery(LATENCY, [API, CHECKOUT]))),
+        drawnSettingsOf(
+          dashboardOf(chart(savedQuery(LATENCY, [API, CHECKOUT]))),
+        ),
       );
     const requested: Includes = new Includes([CHECKOUT, API]);
 
@@ -457,7 +473,9 @@ describe("what a public read cannot do", () => {
 
     try {
       PublicDashboardMetricServices.getServiceQuery({
-        savedServices: PublicDashboardMetricServices.getSavedServices(config),
+        savedServices: PublicDashboardMetricServices.getSavedServices(
+          drawnSettingsOf(config),
+        ),
         metricName: LATENCY,
         requestedServiceFilter: new Includes([API]),
       });
@@ -685,6 +703,181 @@ describe("the services a dashboard saves for each metric", () => {
       expect(savedServicesOf(stored)).toEqual([]);
       expect(readFor(stored, LATENCY, undefined)).toBe("refused");
     }
+  });
+});
+
+/*
+ * ISSUE #6297: THE SERVICES ARE READ WHERE THE PUBLIC PAGE DRAWS THEM.
+ *
+ * The route hands the policy the settings of the widgets the public page
+ * draws that chart metrics, as the page reads them (drawnSettingsOf). So a
+ * chart stored in any shape the page draws reads its services as stored as
+ * an object; a widget the page does not draw saves none; and a value is
+ * read as the page has it - revived with its widget, or as stored when the
+ * page could not revive the widget - never revived again here.
+ */
+describe("the services are read where the public page draws them (issue #6297)", () => {
+  const STORED_SERVICES: Array<JSONValue> = [
+    API,
+    { _type: "ObjectID", value: CHECKOUT },
+  ];
+
+  test("a chart stored in any shape the page draws reads its services as one stored as an object", () => {
+    const widget: JSONObject = chart(savedQuery(LATENCY, STORED_SERVICES));
+    const expected: Array<[string, Array<Array<string>>]> = [
+      [LATENCY, [[API, CHECKOUT]]],
+    ];
+
+    for (const [label, components] of [
+      ["as an object", [widget]],
+      ["as JSON text", [JSON.stringify(widget)]],
+      [
+        "in the envelope, its value as JSON text",
+        [{ _type: "DashboardComponent", value: JSON.stringify(widget) }],
+      ],
+      ["in a widget list written as JSON text", JSON.stringify([widget])],
+      [
+        "with its arguments as JSON text",
+        [{ ...widget, arguments: JSON.stringify(widget["arguments"]) }],
+      ],
+    ] as Array<[string, unknown]>) {
+      const config: JSONObject = {
+        _type: "DashboardViewConfig",
+        components: components as JSONValue,
+      };
+
+      expect([label, savedServicesOf(config)]).toEqual([label, expected]);
+      expect([
+        label,
+        readFor(config, LATENCY, servicesFilter([CHECKOUT, API])),
+      ]).toEqual([label, [API, CHECKOUT]]);
+      expect([label, readFor(config, LATENCY, undefined)]).toEqual([
+        label,
+        "refused",
+      ]);
+    }
+  });
+
+  test("a widget the page does not draw saves no services, and does not add to a drawn chart's", () => {
+    const hidden: Array<[string, unknown]> = [
+      [
+        "a Data Source widget",
+        {
+          ...chart(savedQuery(LATENCY, [FOREIGN])),
+          componentType: DashboardComponentType.DataSourceChart,
+        },
+      ],
+      [
+        "a type the page does not draw",
+        { ...chart(savedQuery(LATENCY, [FOREIGN])), componentType: "Charts" },
+      ],
+      [
+        "a widget that charts no metrics",
+        {
+          ...chart(savedQuery(LATENCY, [FOREIGN])),
+          componentType: DashboardComponentType.Text,
+        },
+      ],
+      [
+        "text that says no widget",
+        JSON.stringify(JSON.stringify(chart(savedQuery(LATENCY, [FOREIGN])))),
+      ],
+      [
+        "arguments that say no object",
+        {
+          ...chart(savedQuery(LATENCY, [FOREIGN])),
+          arguments: JSON.stringify(
+            JSON.stringify(chart(savedQuery(LATENCY, [FOREIGN]))["arguments"]),
+          ),
+        },
+      ],
+    ];
+
+    for (const [label, entry] of hidden) {
+      // On its own: the metric is charted for no services at all.
+      expect([
+        label,
+        savedServicesOf(dashboardOf(entry as JSONObject)),
+      ]).toEqual([label, []]);
+
+      // Beside a drawn chart of the metric: only the chart's services.
+      const config: JSONObject = dashboardOf(
+        entry as JSONObject,
+        chart(savedQuery(LATENCY, [API])),
+      );
+
+      expect([label, savedServicesOf(config)]).toEqual([
+        label,
+        [[LATENCY, [[API]]]],
+      ]);
+      expect([
+        label,
+        readFor(config, LATENCY, servicesFilter([FOREIGN])),
+      ]).toEqual([label, "refused"]);
+    }
+  });
+
+  test("a widget the page cannot revive is read as the page reads it, and its services never revived here", () => {
+    // An address that is not text cannot be revived: the page then draws the widget as stored.
+    const widget: JSONObject = chart(savedQuery(LATENCY, STORED_SERVICES));
+
+    (widget["arguments"] as JSONObject)["owner"] = {
+      _type: "Email",
+      value: 42,
+    };
+
+    const config: JSONObject = dashboardOf(widget);
+
+    // The page reads only the text id: the ObjectID JSON is no id to it.
+    const drawn: JSONObject = drawnSettingsOf(config)[0]!;
+    const drawnIds: unknown = (
+      (
+        (drawn["metricQueryConfig"] as JSONObject)[
+          "metricQueryData"
+        ] as JSONObject
+      )["filterData"] as JSONObject
+    )["telemetryServiceIds"];
+
+    expect(drawnIds).toEqual(STORED_SERVICES);
+    expect(savedServicesOf(config)).toEqual([[LATENCY, [[API]]]]);
+    expect(readFor(config, LATENCY, servicesFilter([API]))).toEqual([API]);
+    expect(readFor(config, LATENCY, servicesFilter([API, CHECKOUT]))).toBe(
+      "refused",
+    );
+  });
+
+  test("a value under a __proto__ key, which JSON keeps as an ordinary key, is never read", () => {
+    // The widget cannot be revived, so the page draws its stored JSON, key and all.
+    const config: JSONObject = JSON.parse(
+      JSON.stringify(dashboardOf(chart(savedQuery(LATENCY, [API])))).replace(
+        '"metricQueryConfig"',
+        `"owner": {"_type": "Email", "value": 42}, "__proto__": ${JSON.stringify(
+          { metricQueryConfig: savedQuery(CPU, [FOREIGN]) },
+        )}, "metricQueryConfig"`,
+      ),
+    ) as JSONObject;
+
+    const drawn: JSONObject = drawnSettingsOf(config)[0]!;
+
+    expect(Object.keys(drawn)).toContain("__proto__");
+    expect(savedServicesOf(config)).toEqual([[LATENCY, [[API]]]]);
+    expect(readFor(config, CPU, servicesFilter([FOREIGN]))).toBe("refused");
+  });
+
+  test("a deserialized value is a value, never settings to walk into", () => {
+    const config: JSONObject = dashboardOf({
+      ...chart(savedQuery(LATENCY, [API])),
+      arguments: {
+        metricQueryConfig: savedQuery(LATENCY, [API]),
+        // Revived as an Includes: its values are its own, not settings.
+        metricQueryConfigs: {
+          _type: "Includes",
+          value: [savedQuery(CPU, [FOREIGN])],
+        },
+      },
+    });
+
+    expect(savedServicesOf(config)).toEqual([[LATENCY, [[API]]]]);
   });
 });
 
