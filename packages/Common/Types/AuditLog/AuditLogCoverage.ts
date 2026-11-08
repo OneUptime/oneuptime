@@ -680,6 +680,12 @@ export const AUDIT_LOG_RESOURCE_NAME_COLUMNS: Readonly<
   DataPipeline: ["jobNamespace", "jobName"],
   // The runbook it is a run of, as it was named when the run started.
   RunbookExecution: ["runbookNameSnapshot"],
+  /*
+   * The number itself, so buying, attaching and releasing one says which
+   * (issue #6301). The provider's id for it, and the call and SMS settings
+   * it is bought with, never name it.
+   */
+  IncomingCallPolicyPhoneNumber: ["phoneNumber"],
 };
 
 // A column whose value names a row that has no name: a template's, a domain's.

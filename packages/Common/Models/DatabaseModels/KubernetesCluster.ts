@@ -1315,6 +1315,41 @@ export default class KubernetesCluster extends BaseModel {
   public aiAccessConfiguredAt?: Date = undefined;
 
   /*
+   * When someone last reset this cluster's AI agent (Reset agent, on its AI
+   * agent page): the Kubernetes AI agent's key stopped working at once, and
+   * the agent registers again by itself. Only the server writes it, as the
+   * reset is made, and the reset's audit log entry names it (issue #6302):
+   * the agent's own row is what the agent reports, which the audit log
+   * leaves out.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Agent Reset At",
+    description:
+      "When this cluster's AI agent was last reset: its key stopped working at once, and it registers again by itself. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAgentResetAt?: Date = undefined;
+
+  /*
    * When a Runner was first bound to this cluster for AI access — by the
    * in-cluster Runner's registration or by anyone binding it through the
    * API. Only the server writes it and nothing ever clears it.

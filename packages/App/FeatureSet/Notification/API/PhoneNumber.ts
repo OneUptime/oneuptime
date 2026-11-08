@@ -46,6 +46,7 @@ import RelationListPermission from "Common/Server/Types/Database/Permissions/Rel
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Query from "Common/Types/BaseDatabase/Query";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import OnBehalfOfProps from "Common/Server/Utils/AuditLog/OnBehalfOfProps";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -78,6 +79,28 @@ function getAuthenticatedProjectId(req: ExpressRequest): ObjectID {
     throw new BadDataException("Project ID not found in request");
   }
   return tenantId;
+}
+
+/*
+ * The props of the writes these routes make for the person (issue #6301).
+ *
+ * A policy's numbers are nobody's to write through the API
+ * (IncomingCallPolicyPhoneNumber's create, update and delete are []), so
+ * once the route's own checks let the person reserve, attach or release one
+ * (requirePhoneNumberAccess, assertCanEditIncomingCallPolicy), OneUptime
+ * writes the row, as root. Plain root was System's in the audit log: kept
+ * only when the project stores system events, and naming nobody - for a
+ * number someone bought, which costs money. These keep the write root, and
+ * carry who the person is and none of what they may do (OnBehalfOfProps),
+ * so the entry is theirs. Nothing here asks anything of the person: that
+ * stays with the checks above.
+ */
+async function getWritePropsFor(
+  req: ExpressRequest,
+): Promise<DatabaseCommonInteractionProps> {
+  return OnBehalfOfProps.get(
+    await CommonAPI.getDatabaseCommonInteractionProps(req),
+  );
 }
 
 /*
@@ -725,12 +748,11 @@ router.post(
       );
       attachedPhoneNumber.phoneNumberPurchasedAt = new Date();
 
+      // Attached by the person: the audit log's Create entry is theirs.
       const createdPhoneNumber: IncomingCallPolicyPhoneNumber =
         await IncomingCallPolicyPhoneNumberService.create({
           data: attachedPhoneNumber,
-          props: {
-            isRoot: true,
-          },
+          props: await getWritePropsFor(req),
         });
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -864,6 +886,10 @@ router.post(
         projectCallSMSConfigId: incomingCallPolicy.projectCallSMSConfigId,
       });
 
+      // Who buys the number: read before anything is bought.
+      const writeProps: DatabaseCommonInteractionProps =
+        await getWritePropsFor(req);
+
       // Get project Twilio config
       const customTwilioConfig: TwilioConfig | null =
         await getProjectTwilioConfig(incomingCallPolicy.projectCallSMSConfigId);
@@ -926,11 +952,10 @@ router.post(
         purchasedPhoneNumber.areaCode = areaCode;
         purchasedPhoneNumber.phoneNumberPurchasedAt = new Date();
 
+        // Bought by the person: the audit log's Create entry is theirs.
         createdPhoneNumber = await IncomingCallPolicyPhoneNumberService.create({
           data: purchasedPhoneNumber,
-          props: {
-            isRoot: true,
-          },
+          props: writeProps,
         });
       } catch (persistErr) {
         logger.error(
@@ -1145,17 +1170,25 @@ async function releasePhoneNumberHandler(
     const provider: ICallProvider =
       CallProviderFactory.getProviderWithConfig(customTwilioConfig);
 
+    // Who releases the number: read before it is released.
+    const writeProps: DatabaseCommonInteractionProps =
+      await getWritePropsFor(req);
+
     await provider.releaseNumber(callProviderPhoneNumberId);
 
     if (phoneNumberToRelease?.id) {
+      // Released by the person: the audit log's Delete entry is theirs.
       await IncomingCallPolicyPhoneNumberService.deleteOneById({
         id: phoneNumberToRelease.id,
-        props: {
-          isRoot: true,
-        },
+        props: writeProps,
       });
     } else {
-      /* Scalar-only rolling-upgrade fallback. */
+      /*
+       * Scalar-only rolling-upgrade fallback: the number lived only in the
+       * policy's own columns, which are OneUptime's to write, so the entry
+       * names the one that says which number went (and nothing of the
+       * provider's: its id for the number stays out).
+       */
       await IncomingCallPolicyService.updateOneById({
         id: incomingCallPolicyId,
         data: {
@@ -1167,9 +1200,8 @@ async function releasePhoneNumberHandler(
           // TypeORM columns are nullable even though PartialEntity omits null.
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
-        props: {
-          isRoot: true,
-        },
+        props: writeProps,
+        auditLogIncludeColumns: ["routingPhoneNumber"],
       });
 
       /* Promote any remaining child after removing an unmatched scalar. */
