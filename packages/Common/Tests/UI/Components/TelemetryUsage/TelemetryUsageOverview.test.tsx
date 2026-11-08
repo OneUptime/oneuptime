@@ -27,27 +27,30 @@ import {
  * measure, and its own helpers are pinned below.
  */
 
-jest.mock("../../../../UI/Components/TelemetryUsage/TelemetryUsageDailyChart", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../../UI/Components/TelemetryUsage/TelemetryUsageDailyChart",
-  ) as Record<string, unknown>;
-  const react: typeof React = jest.requireActual("react") as typeof React;
+jest.mock(
+  "../../../../UI/Components/TelemetryUsage/TelemetryUsageDailyChart",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../UI/Components/TelemetryUsage/TelemetryUsageDailyChart",
+    ) as Record<string, unknown>;
+    const react: typeof React = jest.requireActual("react") as typeof React;
 
-  return {
-    ...actual,
-    __esModule: true,
-    default: (props: { days: Array<{ day: string }> }) => {
-      return react.createElement("div", {
-        "data-testid": "daily-chart",
-        "data-days": props.days
-          .map((day: { day: string }): string => {
-            return day.day;
-          })
-          .join(","),
-      });
-    },
-  };
-});
+    return {
+      ...actual,
+      __esModule: true,
+      default: (props: { days: Array<{ day: string }> }) => {
+        return react.createElement("div", {
+          "data-testid": "daily-chart",
+          "data-days": props.days
+            .map((day: { day: string }): string => {
+              return day.day;
+            })
+            .join(","),
+        });
+      },
+    };
+  },
+);
 
 import TelemetryUsageOverview, {
   sortTelemetryUsageResourceRows,
@@ -150,7 +153,9 @@ function summary(
   };
 }
 
-let fetchUsage: jest.Mock<(range: TelemetryUsageRange) => Promise<TelemetryUsageSummary>>;
+let fetchUsage: jest.Mock<
+  (range: TelemetryUsageRange) => Promise<TelemetryUsageSummary>
+>;
 
 beforeEach(() => {
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
@@ -180,11 +185,9 @@ function renderOverview(
 
 // The resources table's rows: the page's only table, its header row left out.
 function resourceRows(): Array<HTMLElement> {
-  return screen
-    .getAllByRole("row")
-    .filter((row: HTMLElement): boolean => {
-      return within(row).queryAllByRole("columnheader").length === 0;
-    });
+  return screen.getAllByRole("row").filter((row: HTMLElement): boolean => {
+    return within(row).queryAllByRole("columnheader").length === 0;
+  });
 }
 
 describe("the usage overview", () => {
@@ -204,9 +207,9 @@ describe("the usage overview", () => {
   test("draws the range's total and a total for each signal it sent", async () => {
     renderOverview();
 
-    expect(await screen.findByTestId("telemetry-usage-total")).toHaveTextContent(
-      "13.5 GB",
-    );
+    expect(
+      await screen.findByTestId("telemetry-usage-total"),
+    ).toHaveTextContent("13.5 GB");
     expect(
       screen.getByTestId(`telemetry-usage-signal-${ProductType.Logs}`),
     ).toHaveTextContent("12 GB");
@@ -366,7 +369,9 @@ describe("the usage overview", () => {
 
     renderOverview();
 
-    expect(await screen.findByText("No telemetry usage yet")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No telemetry usage yet"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
         "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.",
@@ -392,7 +397,9 @@ describe("the usage overview", () => {
       await screen.findByText("No telemetry usage in this range"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/^The newest day with usage is .*2026.*\. Choose a longer range to see it\.$/),
+      screen.getByText(
+        /^The newest day with usage is .*2026.*\. Choose a longer range to see it\.$/,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -401,13 +408,15 @@ describe("the usage overview", () => {
 
     renderOverview();
 
-    expect(await screen.findByText("Server is unreachable")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Server is unreachable"),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("refresh-button"));
 
-    expect(await screen.findByTestId("telemetry-usage-total")).toHaveTextContent(
-      "13.5 GB",
-    );
+    expect(
+      await screen.findByTestId("telemetry-usage-total"),
+    ).toHaveTextContent("13.5 GB");
     expect(fetchUsage).toHaveBeenCalledTimes(2);
   });
 });

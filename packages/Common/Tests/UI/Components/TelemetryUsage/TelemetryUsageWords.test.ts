@@ -38,9 +38,9 @@ describe("the signals", () => {
       expect(TELEMETRY_USAGE_SIGNAL_COLORS[productType]).toBeTruthy();
     }
 
-    expect(
-      new Set(Object.values(TELEMETRY_USAGE_SIGNAL_COLORS)).size,
-    ).toBe(TELEMETRY_USAGE_PRODUCT_TYPES.length);
+    expect(new Set(Object.values(TELEMETRY_USAGE_SIGNAL_COLORS)).size).toBe(
+      TELEMETRY_USAGE_PRODUCT_TYPES.length,
+    );
   });
 
   test("are named as the explorers name them", () => {
@@ -89,9 +89,9 @@ describe("a cost", () => {
   });
 
   test("sits beside the size only where it is known", () => {
-    expect(
-      formatTelemetryUsageAmount({ dataIngestedInGB: 2 }, english),
-    ).toBe("2 GB");
+    expect(formatTelemetryUsageAmount({ dataIngestedInGB: 2 }, english)).toBe(
+      "2 GB",
+    );
     expect(
       formatTelemetryUsageAmount(
         { dataIngestedInGB: 2, totalCostInUSD: 0.5 },

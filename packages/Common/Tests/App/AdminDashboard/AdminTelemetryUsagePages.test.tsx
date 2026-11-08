@@ -435,7 +435,10 @@ describe("Admin Dashboard > Projects > (project) > Telemetry Usage", () => {
       .mock.calls[0]![0] as { projectId: ObjectID; range: unknown };
 
     expect(call.projectId.toString()).toBe(PROJECT_A);
-    expect(call.range).toEqual({ startDay: "2026-10-09", endDay: "2026-11-07" });
+    expect(call.range).toEqual({
+      startDay: "2026-10-09",
+      endDay: "2026-11-07",
+    });
 
     // Resources have no pages in the Admin Dashboard: named, never linked.
     expect(screen.queryByTestId("telemetry-usage-resource-link")).toBeNull();

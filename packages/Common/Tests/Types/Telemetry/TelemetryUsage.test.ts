@@ -261,9 +261,7 @@ describe("amounts of usage", () => {
     expect(getEmptyTelemetryUsageAmount(false)).toEqual({
       dataIngestedInGB: 0,
     });
-    expect("totalCostInUSD" in getEmptyTelemetryUsageAmount(false)).toBe(
-      false,
-    );
+    expect("totalCostInUSD" in getEmptyTelemetryUsageAmount(false)).toBe(false);
   });
 });
 

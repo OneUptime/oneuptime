@@ -272,17 +272,18 @@ describe("GET /telemetry-usage/project", () => {
     Permission.IncidentMember,
     Permission.StatusPageAdmin,
     Permission.ReadTelemetryServiceLog,
-  ])("is refused to %s, which reads none of the project's telemetry usage", async (
-    permission: Permission,
-  ) => {
-    props = memberProps([row(permission)]);
+  ])(
+    "is refused to %s, which reads none of the project's telemetry usage",
+    async (permission: Permission) => {
+      props = memberProps([row(permission)]);
 
-    const thrown: unknown = await call(TELEMETRY_USAGE_PROJECT_ROUTE, RANGE);
+      const thrown: unknown = await call(TELEMETRY_USAGE_PROJECT_ROUTE, RANGE);
 
-    expect(thrown).toBeInstanceOf(NotAuthorizedException);
-    expect((thrown as Error).message).toBe(TELEMETRY_USAGE_READ_REFUSAL);
-    expect(getProjectUsage).not.toHaveBeenCalled();
-  });
+      expect(thrown).toBeInstanceOf(NotAuthorizedException);
+      expect((thrown as Error).message).toBe(TELEMETRY_USAGE_READ_REFUSAL);
+      expect(getProjectUsage).not.toHaveBeenCalled();
+    },
+  );
 
   test("is refused to a role limited to some labels: the answer is about the whole project", async () => {
     props = memberProps([

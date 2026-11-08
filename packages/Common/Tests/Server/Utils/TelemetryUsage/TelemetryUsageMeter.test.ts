@@ -43,9 +43,15 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 const NOW: Date = new Date("2026-10-23T08:00:00.000Z");
 const DEADLINE: Date = new Date("2026-10-23T10:00:00.000Z");
 
-const PROJECT_A: ObjectID = new ObjectID("aaaaaaaa-0000-4000-8000-000000000001");
-const PROJECT_B: ObjectID = new ObjectID("bbbbbbbb-0000-4000-8000-000000000002");
-const PROJECT_C: ObjectID = new ObjectID("cccccccc-0000-4000-8000-000000000003");
+const PROJECT_A: ObjectID = new ObjectID(
+  "aaaaaaaa-0000-4000-8000-000000000001",
+);
+const PROJECT_B: ObjectID = new ObjectID(
+  "bbbbbbbb-0000-4000-8000-000000000002",
+);
+const PROJECT_C: ObjectID = new ObjectID(
+  "cccccccc-0000-4000-8000-000000000003",
+);
 
 function project(id: ObjectID | undefined): Project {
   const value: Project = new Project();

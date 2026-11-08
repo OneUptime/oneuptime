@@ -30,15 +30,13 @@ let serviceFind: jest.SpyInstance;
 let hostFind: jest.SpyInstance;
 
 beforeEach(() => {
-  serviceFind = jest
-    .spyOn(ServiceService, "findBy")
-    .mockResolvedValue([
-      Object.assign(new Service(), {
-        _id: SERVICE_ID,
-        id: new ObjectID(SERVICE_ID),
-        name: "checkout",
-      }),
-    ] as never);
+  serviceFind = jest.spyOn(ServiceService, "findBy").mockResolvedValue([
+    Object.assign(new Service(), {
+      _id: SERVICE_ID,
+      id: new ObjectID(SERVICE_ID),
+      name: "checkout",
+    }),
+  ] as never);
 
   hostFind = jest.spyOn(HostService, "findBy").mockResolvedValue([
     Object.assign(new Host(), {
@@ -63,8 +61,8 @@ describe("naming usage's resources", () => {
   test("reads each kind from its own table, the project's rows only, with the reader's props", async () => {
     const props: { tenantId: ObjectID } = { tenantId: PROJECT_ID };
 
-    const names: Map<string, string> = await TelemetryUsageResourceNames.resolve(
-      {
+    const names: Map<string, string> =
+      await TelemetryUsageResourceNames.resolve({
         projectId: PROJECT_ID,
         resources: [
           {
@@ -78,8 +76,7 @@ describe("naming usage's resources", () => {
           },
         ],
         props: props as never,
-      },
-    );
+      });
 
     expect(Array.from(names.entries()).sort()).toEqual(
       [
@@ -102,21 +99,20 @@ describe("naming usage's resources", () => {
   });
 
   test("names a row of no type from the Services, as legacy rows are", async () => {
-    const names: Map<string, string> = await TelemetryUsageResourceNames.resolve(
-      {
+    const names: Map<string, string> =
+      await TelemetryUsageResourceNames.resolve({
         projectId: PROJECT_ID,
         resources: [{ primaryEntityId: SERVICE_ID, primaryEntityType: null }],
         props: { isRoot: true },
-      },
-    );
+      });
 
     expect(names.get(SERVICE_ID)).toBe("checkout");
     expect(hostFind).not.toHaveBeenCalled();
   });
 
   test("leaves the unattributed bucket, and anything that is not an id, unnamed without a read", async () => {
-    const names: Map<string, string> = await TelemetryUsageResourceNames.resolve(
-      {
+    const names: Map<string, string> =
+      await TelemetryUsageResourceNames.resolve({
         projectId: PROJECT_ID,
         resources: [
           {
@@ -133,8 +129,7 @@ describe("naming usage's resources", () => {
           },
         ],
         props: { isRoot: true },
-      },
-    );
+      });
 
     expect(names.size).toBe(0);
     expect(serviceFind).not.toHaveBeenCalled();
@@ -146,8 +141,8 @@ describe("naming usage's resources", () => {
       new NotAuthorizedException("You do not have permission to read Host."),
     );
 
-    const names: Map<string, string> = await TelemetryUsageResourceNames.resolve(
-      {
+    const names: Map<string, string> =
+      await TelemetryUsageResourceNames.resolve({
         projectId: PROJECT_ID,
         resources: [
           {
@@ -157,8 +152,7 @@ describe("naming usage's resources", () => {
           { primaryEntityId: HOST_ID, primaryEntityType: ServiceType.Host },
         ],
         props: { tenantId: PROJECT_ID } as never,
-      },
-    );
+      });
 
     expect(Array.from(names.entries())).toEqual([[SERVICE_ID, "checkout"]]);
   });

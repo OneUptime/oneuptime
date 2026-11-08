@@ -453,12 +453,12 @@ describe("every project's usage, for the instance admin", () => {
     expect(names(await readPage({ sortBy: "name", sortOrder: "asc" }))).toEqual(
       ["Alpha", "beta", "Gamma"],
     );
-    expect(names(await readPage({ sortBy: "name", sortOrder: "desc" }))).toEqual(
-      ["Gamma", "beta", "Alpha"],
-    );
-    expect(names(await readPage({ sortBy: "total", sortOrder: "asc" }))).toEqual(
-      ["Gamma", "Alpha", "beta"],
-    );
+    expect(
+      names(await readPage({ sortBy: "name", sortOrder: "desc" })),
+    ).toEqual(["Gamma", "beta", "Alpha"]);
+    expect(
+      names(await readPage({ sortBy: "total", sortOrder: "asc" })),
+    ).toEqual(["Gamma", "Alpha", "beta"]);
   });
 
   test("returns one page, and counts them all", async () => {
@@ -474,9 +474,7 @@ describe("every project's usage, for the instance admin", () => {
   });
 
   test("says what usage cost only where it is asked to", async () => {
-    expect(JSON.stringify(await readPage({}))).not.toContain(
-      "totalCostInUSD",
-    );
+    expect(JSON.stringify(await readPage({}))).not.toContain("totalCostInUSD");
 
     const page: TelemetryProjectUsagePage = await readPage({
       isCostIncluded: true,
