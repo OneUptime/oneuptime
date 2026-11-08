@@ -19,6 +19,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import EventTimeRangeControls, {
   EVENT_TIME_RANGE_RESET_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/EventTimeRangeControls";
@@ -236,11 +237,10 @@ describe("a range the reader picked", () => {
   });
 
   test("Copy link copies the page's address with the range in it", async () => {
-    const writeText: jest.Mock<(text: string) => Promise<void>> = jest.fn(
-      (_text: string): Promise<void> => {
-        return Promise.resolve();
-      },
-    );
+    const writeText: MockFunction = getJestMockFunction();
+    writeText.mockImplementation((): Promise<void> => {
+      return Promise.resolve();
+    });
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText: writeText },
       configurable: true,
@@ -259,7 +259,7 @@ describe("a range the reader picked", () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledTimes(1);
     });
-    const copied: URL = new URL(writeText.mock.calls[0]![0]);
+    const copied: URL = new URL(String(writeText.mock.calls[0]![0]));
     expect(copied.pathname).toBe(PAGE);
     expect(copied.searchParams.get("telemetryTime")).toBe("day-before");
   });
