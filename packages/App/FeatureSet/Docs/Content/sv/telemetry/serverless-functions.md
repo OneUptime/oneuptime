@@ -189,6 +189,8 @@ Så snart funktionen skickar ett span, en logg eller ett mätvärde visas den un
 - **Instanser**: en direktlista över de `faas.instance`-värden som funktionen rapporterar.
 - Fullständiga sidor **Loggar**, **Spår** och **Mätvärden**, avgränsade till den här funktionen.
 
+En funktion visar **Tar emot data** medan dess telemetri kommer, och **Inga anrop nyligen** efter 15 minuter utan telemetri, vilket är normalt mellan körningarna: en funktion skickar bara telemetri medan den körs. En funktion som lagts till via API:t visar **Väntar på data** tills dess första telemetri kommer.
+
 ## Etikettera funktioner och tilldela ägare
 
 Ett resursattribut som börjar med `oneuptime.label.` blir en projektetikett på funktionen: `oneuptime.label.team=payments` lägger till etiketten `team:payments`. Lägg till attributen i `OTEL_RESOURCE_ATTRIBUTES`:
@@ -215,8 +217,8 @@ Kontrollera i den här ordningen:
 Funktionens **Översikt**, **Loggar**, **Spår** och **Mätvärden** visar telemetri vars `faas.name` exakt motsvarar funktionens namn, inklusive versaler och gemener. En funktion som namnges via en FaaS-`cloud.platform` och dess `service.name` behöver inget eget `faas.name`: OneUptime skriver `service.name` i telemetrin som `faas.name` när den kommer in. Telemetri som lagrades innan OneUptime började fylla i `faas.name` uppdateras inte och hålls utanför sidorna: anropa funktionen för att skicka ny telemetri. Kontrollera också tidsintervallet högst upp på sidan.
 :::
 
-:::details Funktionen visas som frånkopplad
-En funktion blir frånkopplad när OneUptime inte har tagit emot något från den på 15 minuter; OneUptime kontrollerar var 5:e minut, och tid då OneUptime själv inte tog emot data räknas inte. En funktion som bara körs då och då är frånkopplad mellan körningarna: den blir ansluten igen med sin nästa telemetri.
+:::details Funktionen visar "Inga anrop nyligen"
+En funktion visar **Inga anrop nyligen** när OneUptime inte har tagit emot något från den på 15 minuter; OneUptime kontrollerar var 5:e minut, och tid då OneUptime själv inte tog emot data räknas inte. Det är normalt för en funktion som bara körs då och då: med sin nästa telemetri visar den **Tar emot data** igen. Om funktionen anropas, gå igenom kontrollerna för en funktion som inte visas, ovan.
 :::
 
 ## Nästa steg

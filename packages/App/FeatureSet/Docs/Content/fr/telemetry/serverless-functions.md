@@ -189,6 +189,8 @@ Dès que la fonction envoie un span, un journal ou une métrique, elle apparaît
 - **Instances** : une liste en direct des valeurs `faas.instance` que la fonction rapporte.
 - Des pages **Journaux**, **Traces** et **Métriques** complètes, limitées à cette fonction.
 
+Une fonction affiche **Reçoit des données** tant que sa télémétrie arrive, et **Aucune invocation récente** après 15 minutes sans télémétrie, ce qui est normal entre deux exécutions : une fonction n'envoie de la télémétrie que pendant son exécution. Une fonction ajoutée via l'API affiche **En attente de données** jusqu'à l'arrivée de sa première télémétrie.
+
 ## Étiqueter les fonctions et attribuer des propriétaires
 
 Un attribut de ressource qui commence par `oneuptime.label.` devient une étiquette de projet sur la fonction : `oneuptime.label.team=payments` ajoute l'étiquette `team:payments`. Ajoutez les attributs à `OTEL_RESOURCE_ATTRIBUTES` :
@@ -215,8 +217,8 @@ Vérifiez, dans l'ordre :
 Les pages **Vue d'ensemble**, **Journaux**, **Traces** et **Métriques** de la fonction affichent la télémétrie dont le `faas.name` est exactement égal au nom de la fonction, casse comprise. Une fonction nommée par une `cloud.platform` FaaS et son `service.name` n'a pas besoin de `faas.name` propre : OneUptime écrit le `service.name` dans la télémétrie comme `faas.name` à son arrivée. La télémétrie stockée avant que OneUptime ne commence à renseigner `faas.name` n'est pas mise à jour et reste hors des pages : invoquez la fonction pour envoyer de la nouvelle télémétrie. Vérifiez aussi la plage de temps en haut de la page.
 :::
 
-:::details La fonction apparaît comme déconnectée
-Une fonction passe à l'état déconnecté quand OneUptime n'a rien reçu d'elle pendant 15 minutes ; OneUptime vérifie toutes les 5 minutes, et le temps pendant lequel il ne recevait lui-même pas de données ne compte pas. Une fonction qui ne s'exécute que de temps en temps est déconnectée entre deux exécutions : elle repasse à l'état connecté avec sa télémétrie suivante.
+:::details La fonction affiche « Aucune invocation récente »
+Une fonction affiche **Aucune invocation récente** quand OneUptime n'a rien reçu d'elle pendant 15 minutes ; OneUptime vérifie toutes les 5 minutes, et le temps pendant lequel il ne recevait lui-même pas de données ne compte pas. C'est normal pour une fonction qui ne s'exécute que de temps en temps : elle affiche de nouveau **Reçoit des données** avec sa télémétrie suivante. Si la fonction est bien invoquée, suivez les vérifications d'une fonction qui n'apparaît pas, plus haut.
 :::
 
 ## Étapes suivantes

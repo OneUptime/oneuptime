@@ -46431,5 +46431,19 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "Se conservaron los cambios guardados después de esta propuesta",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Data has arrived from this function in the last 15 minutes.": "Han llegado datos de esta función en los últimos 15 minutos.",
+  "Data has arrived from this service in the last 30 minutes.": "Han llegado datos de este servicio en los últimos 30 minutos.",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Los datos se envían cuando se ejecuta la función. Invócala una vez y actualiza esta página al cabo de unos minutos. La función pasa a \"Recibiendo datos\" en cuanto llegan sus primeros datos.",
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "Todavía no han llegado datos de esta función. Configura el SDK de OpenTelemetry e invoca la función; solo lleva unos minutos.",
+  "No invocations in the last 15 minutes": "Sin invocaciones en los últimos 15 minutos",
+  "No recent data": "Sin datos recientes",
+  "No recent invocations": "Sin invocaciones recientes",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "Todavía no ha llegado nada de esta función. Añádele el SDK de OpenTelemetry e invócala una vez; su pestaña Documentación explica cómo.",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "Todavía no ha llegado nada de este servicio. Envía sus datos de OpenTelemetry con un service.name idéntico al nombre de este servicio.",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "No ha llegado nada en los últimos 15 minutos. Una función solo envía datos mientras se ejecuta, así que es normal cuando nada la ha invocado, por ejemplo entre ejecuciones programadas. Si debería estar ejecutándose, su Vista general indica qué comprobar.",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "No ha llegado nada en los últimos 30 minutos. Un servicio que solo envía datos mientras atiende solicitudes está en silencio cuando nadie lo llama. Si debería estar atendiendo solicitudes, comprueba que está en ejecución y que sigue enviando su telemetría a OneUptime con este service.name.",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime recibió datos de esta función por última vez {{lastHeard}}. Solo envía datos mientras se ejecuta, así que es normal cuando nada la invoca, por ejemplo entre ejecuciones programadas.",
+  "Status shows \"No recent invocations\" while the function runs": "El estado muestra \"Sin invocaciones recientes\" mientras la función se ejecuta",
+  "What to check if it should be running": "Qué comprobar si debería estar ejecutándose"
 }

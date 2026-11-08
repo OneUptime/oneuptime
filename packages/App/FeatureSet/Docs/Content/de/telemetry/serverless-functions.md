@@ -189,6 +189,8 @@ Sobald die Funktion einen Span, ein Log oder eine Metrik sendet, erscheint sie u
 - **Instanzen**: eine Live-Liste der `faas.instance`-Werte, die die Funktion meldet.
 - Vollständige Seiten **Protokolle**, **Traces** und **Metriken**, auf diese Funktion eingegrenzt.
 
+Eine Funktion zeigt **Empfängt Daten**, solange ihre Telemetrie eintrifft, und **Keine aktuellen Aufrufe** nach 15 Minuten ohne Telemetrie, was zwischen den Läufen normal ist: Eine Funktion sendet Telemetrie nur, während sie läuft. Eine über die API angelegte Funktion zeigt **Warten auf Daten**, bis ihre erste Telemetrie eintrifft.
+
 ## Funktionen mit Labels versehen und Eigentümer zuweisen
 
 Ein Ressourcenattribut, das mit `oneuptime.label.` beginnt, wird zu einem Projekt-Label an der Funktion: `oneuptime.label.team=payments` fügt das Label `team:payments` hinzu. Fügen Sie die Attribute zu `OTEL_RESOURCE_ATTRIBUTES` hinzu:
@@ -215,8 +217,8 @@ Prüfen Sie der Reihe nach:
 **Übersicht**, **Protokolle**, **Traces** und **Metriken** der Funktion zeigen Telemetrie, deren `faas.name` genau dem Namen der Funktion entspricht, einschließlich Groß- und Kleinschreibung. Eine Funktion, die über eine FaaS-`cloud.platform` und ihren `service.name` benannt ist, braucht keinen eigenen `faas.name`: OneUptime schreibt den `service.name` beim Eintreffen als `faas.name` in die Telemetrie. Telemetrie, die gespeichert wurde, bevor OneUptime begann, `faas.name` einzutragen, wird nicht aktualisiert und bleibt den Seiten fern: Rufen Sie die Funktion auf, um neue Telemetrie zu senden. Prüfen Sie auch den Zeitraum oben auf der Seite.
 :::
 
-:::details Die Funktion wird als getrennt angezeigt
-Eine Funktion wird als getrennt angezeigt, wenn OneUptime 15 Minuten lang nichts von ihr empfangen hat; OneUptime prüft alle 5 Minuten, und Zeit, in der es selbst keine Daten empfing, zählt nicht. Eine Funktion, die nur hin und wieder läuft, ist zwischen den Läufen getrennt: Mit ihrer nächsten Telemetrie wird sie wieder als verbunden angezeigt.
+:::details Die Funktion zeigt „Keine aktuellen Aufrufe“
+Eine Funktion zeigt **Keine aktuellen Aufrufe**, wenn OneUptime 15 Minuten lang nichts von ihr empfangen hat; OneUptime prüft alle 5 Minuten, und Zeit, in der es selbst keine Daten empfing, zählt nicht. Bei einer Funktion, die nur hin und wieder läuft, ist das normal: Mit ihrer nächsten Telemetrie zeigt sie wieder **Empfängt Daten**. Wird die Funktion aufgerufen, gehen Sie die Prüfungen für eine Funktion durch, die nicht erscheint (weiter oben).
 :::
 
 ## Nächste Schritte

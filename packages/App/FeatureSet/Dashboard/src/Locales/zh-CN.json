@@ -46431,5 +46431,19 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "保留了此提议之后保存的更改",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Data has arrived from this function in the last 15 minutes.": "过去 15 分钟内收到了此函数的数据。",
+  "Data has arrived from this service in the last 30 minutes.": "过去 30 分钟内收到了此服务的数据。",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "函数运行时才会发送数据。请调用一次，几分钟后刷新此页面。收到第一批数据后，该函数会切换为“正在接收数据”。",
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "尚未收到此函数的数据。请设置 OpenTelemetry SDK 并调用该函数，只需几分钟。",
+  "No invocations in the last 15 minutes": "过去 15 分钟内无调用",
+  "No recent data": "近期无数据",
+  "No recent invocations": "近期无调用",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "尚未收到此函数的任何数据。请为它添加 OpenTelemetry SDK 并调用一次；它的文档标签页会说明如何操作。",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "尚未收到此服务的任何数据。请发送它的 OpenTelemetry 数据，并将 service.name 设置为与此服务的名称完全一致。",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "过去 15 分钟内没有收到任何数据。函数只在运行时发送数据，因此在没有调用时（例如两次计划运行之间）这是正常的。如果它本应在运行，它的概览会列出需要检查的内容。",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "过去 30 分钟内没有收到任何数据。只在处理请求时发送数据的服务，在没人调用时会保持安静。如果它本应处理请求，请检查它是否在运行，以及是否仍使用此 service.name 向 OneUptime 发送遥测数据。",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime 最后一次收到此函数的数据是在 {{lastHeard}}。它只在运行时发送数据，因此在没有调用时（例如两次计划运行之间）这是正常的。",
+  "Status shows \"No recent invocations\" while the function runs": "函数在运行时，状态却显示“近期无调用”",
+  "What to check if it should be running": "如果它本应在运行，需要检查什么"
 }

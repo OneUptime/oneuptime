@@ -46431,5 +46431,19 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "Wijzigingen die na dit voorstel zijn opgeslagen, zijn behouden",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Data has arrived from this function in the last 15 minutes.": "In de afgelopen 15 minuten zijn er gegevens van deze functie binnengekomen.",
+  "Data has arrived from this service in the last 30 minutes.": "In de afgelopen 30 minuten zijn er gegevens van deze service binnengekomen.",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Gegevens worden verzonden wanneer de functie draait. Roep de functie één keer aan en vernieuw deze pagina na een paar minuten. De functie gaat over naar \"Ontvangt gegevens\" zodra de eerste gegevens binnenkomen.",
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "Er zijn nog geen gegevens van deze functie binnengekomen. Stel de OpenTelemetry SDK in en roep de functie aan — dat duurt maar een paar minuten.",
+  "No invocations in the last 15 minutes": "Geen aanroepen in de afgelopen 15 minuten",
+  "No recent data": "Geen recente gegevens",
+  "No recent invocations": "Geen recente aanroepen",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "Van deze functie is nog niets binnengekomen. Voeg de OpenTelemetry SDK aan de functie toe en roep die één keer aan; het tabblad Documentatie laat zien hoe.",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "Van deze service is nog niets binnengekomen. Stuur de OpenTelemetry-gegevens met een service.name die precies gelijk is aan de naam van deze service.",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "In de afgelopen 15 minuten is er niets binnengekomen. Een functie stuurt alleen gegevens terwijl die draait, dus dit is normaal als niets de functie heeft aangeroepen, bijvoorbeeld tussen geplande uitvoeringen. Zou de functie moeten draaien, dan staat op het Overzicht wat u kunt controleren.",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "In de afgelopen 30 minuten is er niets binnengekomen. Een service die alleen gegevens stuurt terwijl die verzoeken afhandelt, is stil als niemand de service aanroept. Zou de service verzoeken moeten afhandelen, controleer dan of die draait en de telemetrie nog steeds met deze service.name naar OneUptime stuurt.",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime ontving {{lastHeard}} voor het laatst gegevens van deze functie. Die stuurt alleen gegevens terwijl die draait, dus dit is normaal als niets de functie aanroept, bijvoorbeeld tussen geplande uitvoeringen.",
+  "Status shows \"No recent invocations\" while the function runs": "De status toont \"Geen recente aanroepen\" terwijl de functie draait",
+  "What to check if it should be running": "Wat u controleert als de functie zou moeten draaien"
 }

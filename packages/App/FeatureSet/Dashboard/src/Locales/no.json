@@ -46431,5 +46431,19 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "Endringer lagret etter dette forslaget ble beholdt",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Data has arrived from this function in the last 15 minutes.": "Det har kommet data fra denne funksjonen de siste 15 minuttene.",
+  "Data has arrived from this service in the last 30 minutes.": "Det har kommet data fra denne tjenesten de siste 30 minuttene.",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Data sendes når funksjonen kjører. Kall den én gang, og last deretter inn denne siden på nytt etter noen minutter. Funksjonen bytter til «Mottar data» så snart de første dataene kommer.",
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "Det har ikke kommet data fra denne funksjonen ennå. Sett opp OpenTelemetry SDK-en, og kall funksjonen – det tar bare noen minutter.",
+  "No invocations in the last 15 minutes": "Ingen anrop de siste 15 minuttene",
+  "No recent data": "Ingen nylige data",
+  "No recent invocations": "Ingen nylige anrop",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "Ingenting har kommet fra denne funksjonen ennå. Legg til OpenTelemetry SDK-en i den, og kall den én gang; fanen Dokumentasjon for den viser hvordan.",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "Ingenting har kommet fra denne tjenesten ennå. Send OpenTelemetry-dataene dens med en service.name som er nøyaktig lik navnet på denne tjenesten.",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "Ingenting har kommet de siste 15 minuttene. En funksjon sender bare data mens den kjører, så dette er normalt når ingenting har kalt den, for eksempel mellom planlagte kjøringer. Hvis den burde kjøre, viser Oversikt for den hva du bør sjekke.",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "Ingenting har kommet de siste 30 minuttene. En tjeneste som bare sender data mens den behandler forespørsler, er stille når ingen kaller den. Hvis den burde behandle forespørsler, sjekk at den kjører og fortsatt sender telemetrien sin til OneUptime med denne service.name.",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime mottok sist data fra denne funksjonen {{lastHeard}}. Den sender bare data mens den kjører, så dette er normalt når ingenting kaller den, for eksempel mellom planlagte kjøringer.",
+  "Status shows \"No recent invocations\" while the function runs": "Statusen viser «Ingen nylige anrop» mens funksjonen kjører",
+  "What to check if it should be running": "Hva du bør sjekke hvis den burde kjøre"
 }
