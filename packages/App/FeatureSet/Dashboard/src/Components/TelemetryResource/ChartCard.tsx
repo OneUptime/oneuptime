@@ -92,6 +92,13 @@ export interface ChartCardProps {
    * the chip above it.
    */
   timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
+  /*
+   * What the card says when nothing is in the range, in place of "No data
+   * in this time range": why, and what to do (a RUM application's
+   * Exceptions and Logs say whether the signal is set up, issue #5770).
+   * Drawn in the same grey box, which grows to hold it.
+   */
+  emptyContent?: ReactElement | undefined;
 }
 
 const ChartCard: FunctionComponent<ChartCardProps> = (
@@ -186,6 +193,23 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
      * a reset starts (and for good if the page's own range is quiet too),
      * so the word stayed highlighted.
      */
+    if (props.emptyContent) {
+      return (
+        <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          {header}
+          <div
+            className={`min-h-44 rounded-md bg-gray-50${
+              emptyStateReset ? " select-none" : ""
+            }`}
+            onDoubleClick={emptyStateReset}
+            data-testid="chart-card-empty-content"
+          >
+            {props.emptyContent}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
