@@ -102,6 +102,15 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "other",
     why: "the column itself",
   },
+  /*
+   * The audit log covers network devices (issue #6187), and leaves the
+   * columns a walk reports out of their entries: it names the column, and
+   * reads no stored row.
+   */
+  "Common/Types/AuditLog/AuditLogCoverage.ts": {
+    role: "other",
+    why: "names the column among what agents report, which audit log entries leave out",
+  },
   "Common/Server/Infrastructure/Postgres/SchemaMigrations/1799660000000-AddSnmpTablesToNetworkDevices.ts":
     {
       role: "other",
