@@ -10,8 +10,12 @@ import TeamOwnedRuleKinds, {
 import type Field from "Common/UI/Components/Forms/Types/Field";
 import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import type DetailField from "Common/UI/Components/ModelDetail/Field";
+import { PeopleList } from "Common/UI/Components/PeoplePicker/PeopleList";
+import { getPeoplePickerOptionsFromModels } from "Common/UI/Components/PeoplePicker/PeoplePickerKinds";
 import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import type Column from "Common/UI/Components/ModelTable/Column";
+import type { RuleOwnership } from "Common/UI/Components/RuleRun/RuleView";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import type SelectFormFields from "Common/UI/Types/SelectEntityField";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -26,7 +30,13 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { ReactElement, useCallback, useMemo, useState } from "react";
+import React, {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { formatNameList } from "../AiAccess/AiAccessModes";
 import OwnersCell from "../ResourceOwners/OwnersCell";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
@@ -49,6 +59,10 @@ import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
  *   - the form's Owning Teams field, under More fields: the teams picked are
  *     sent with the rule and saved once it is (the server's
  *     RuleOwningTeams), and the Edit form opens on the teams that own it.
+ *
+ * A rule with a page of its own (an incident owner rule's) carries them
+ * there too (RuleOwnership): its Edit and Delete locked as its row's are,
+ * and its details naming the teams that own it.
  *
  * The field is offered to whoever may add owning teams to a rule of the
  * kind (the owning-team table's create permission), on Edit also to whoever
@@ -177,6 +191,36 @@ export const getRuleLockReason: (data: {
 };
 
 /*
+ * The lock of `action` on a rule's own page (RuleOwnership): what
+ * PermissionGate.checkTeamOwnedRule says of it with the teams that own the
+ * rule - undefined while they are read, which holds the change back - and
+ * the reason the rule's row gives, naming them.
+ */
+export const getRuleViewLock: (data: {
+  model: BaseModel;
+  action: ModelAction.Update | ModelAction.Delete;
+  owningTeams: ReadonlyArray<OwningTeam> | undefined;
+  translator: Translator;
+}) => PermissionGateResult = (data: {
+  model: BaseModel;
+  action: ModelAction.Update | ModelAction.Delete;
+  owningTeams: ReadonlyArray<OwningTeam> | undefined;
+  translator: Translator;
+}): PermissionGateResult => {
+  return PermissionGate.checkTeamOwnedRule(data.model, data.action, {
+    owningTeamIds: data.owningTeams?.map((team: OwningTeam): string => {
+      return team.id;
+    }),
+    reason: data.owningTeams
+      ? getRuleOwnedReason({
+          owningTeams: data.owningTeams,
+          translator: data.translator,
+        })
+      : "",
+  });
+};
+
+/*
  * Whether the reader may pick a rule's owning teams: add them (the
  * owning-team table's create permission) or, on an Edit form, take them off
  * (its delete permission). The server asks again, team by team.
@@ -248,6 +292,17 @@ export interface RuleOwningTeamsTable<TRule extends BaseModel> {
   getDeleteDisabledReason: (rule: TRule) => string | undefined;
   // For the table's onEditFormItemFetched: the Edit form opens on them.
   onEditFormItemFetched: (rule: TRule) => Promise<TRule>;
+  /*
+   * For RuleTable's ruleOwnership, on the rule's own page (viewRuleId):
+   * who owns it, read as the page opens. Undefined on the list.
+   */
+  viewRuleOwnership: RuleOwnership<TRule> | undefined;
+}
+
+// The teams that own the rule whose own page this is, as last read.
+interface ViewRuleOwningTeams {
+  ruleId: string;
+  teams: Array<OwningTeam>;
 }
 
 // The owning teams of each rule, read off the owning-team rows.
@@ -299,11 +354,14 @@ const groupByRule: (
 /*
  * The owning teams of a list of rules of one kind: read once the rows are,
  * shown in their column, and locking each row's changes for a reader the
- * server would refuse.
+ * server would refuse. On a rule's own page, the rule's: read as the page
+ * opens, while the rule itself is, and again once its Edit saves.
  */
 export function useRuleOwningTeams<TRule extends BaseModel>(data: {
   ruleModelType: { new (): TRule };
   owningTeamModelType: { new (): BaseModel };
+  // The rule whose own page this is (RuleTable's viewRuleId), if it is one.
+  viewRuleId?: ObjectID | undefined;
 }): RuleOwningTeamsTable<TRule> {
   const translator: Translator = useTranslator();
   const ruleModel: TRule = useMemo((): TRule => {
@@ -447,6 +505,120 @@ export function useRuleOwningTeams<TRule extends BaseModel>(data: {
     [readOwningTeams],
   );
 
+  // The rule whose own page this is, by the id its owning-team rows name it by.
+  const viewRuleId: string | undefined =
+    data.viewRuleId?.toString() || undefined;
+
+  // Who owns it, once read: null before.
+  const [viewRuleOwningTeams, setViewRuleOwningTeams] =
+    useState<ViewRuleOwningTeams | null>(null);
+
+  // Counted up once its Edit saves, which may have changed who owns it.
+  const [viewRuleSaves, setViewRuleSaves] = useState<number>(0);
+
+  useEffect(() => {
+    if (!viewRuleId) {
+      return;
+    }
+
+    // No rule has that id, so no team owns it; the page says it is not found.
+    if (!ObjectID.isValidUUID(viewRuleId)) {
+      setViewRuleOwningTeams({ ruleId: viewRuleId, teams: [] });
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    readOwningTeams([viewRuleId])
+      .then((byRule: Map<string, Array<OwningTeam>>) => {
+        if (isCurrent) {
+          setViewRuleOwningTeams({
+            ruleId: viewRuleId,
+            teams: byRule.get(viewRuleId.toLowerCase()) || [],
+          });
+        }
+      })
+      .catch(() => {
+        // Who owns it goes unsaid; the server still refuses what it must.
+        if (isCurrent) {
+          setViewRuleOwningTeams({ ruleId: viewRuleId, teams: [] });
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [viewRuleId, viewRuleSaves, readOwningTeams]);
+
+  /*
+   * Undefined until they are read for this rule: read again after a save,
+   * the teams last read stand meanwhile.
+   */
+  const viewRuleTeams: Array<OwningTeam> | undefined =
+    viewRuleId && viewRuleOwningTeams?.ruleId === viewRuleId
+      ? viewRuleOwningTeams.teams
+      : undefined;
+
+  const onViewRuleSaved: () => void = useCallback((): void => {
+    setViewRuleSaves((saves: number): number => {
+      return saves + 1;
+    });
+  }, []);
+
+  /*
+   * Its locks are worked out as the page draws, as each row's are, so a
+   * permission snapshot that lands after the teams are read is heeded.
+   */
+  const viewRuleOwnership: RuleOwnership<TRule> | undefined = viewRuleId
+    ? {
+        editLock: getRuleViewLock({
+          model: ruleModel,
+          action: ModelAction.Update,
+          owningTeams: viewRuleTeams,
+          translator: translator,
+        }),
+        deleteLock: getRuleViewLock({
+          model: ruleModel,
+          action: ModelAction.Delete,
+          owningTeams: viewRuleTeams,
+          translator: translator,
+        }),
+        owningTeamsField: {
+          field: {
+            _id: true,
+          } as unknown as DetailField<TRule>["field"],
+          title: RULE_OWNING_TEAMS_TITLE,
+          fieldType: FieldType.Element,
+          // Named on a rule teams own, as a list of cards names them.
+          showIf: (): boolean => {
+            return Boolean(viewRuleTeams && viewRuleTeams.length > 0);
+          },
+          getElement: (): ReactElement => {
+            return (
+              <PeopleList
+                dataTestId="rule-owning-teams"
+                options={getPeoplePickerOptionsFromModels([
+                  {
+                    kind: PeoplePickerKind.Team,
+                    models: (viewRuleTeams || []).map(
+                      (team: OwningTeam): Team => {
+                        const owningTeam: Team = new Team();
+                        owningTeam._id = team.id;
+                        owningTeam.name = team.name;
+
+                        return owningTeam;
+                      },
+                    ),
+                  },
+                ])}
+              />
+            );
+          },
+        },
+        onRuleSaved: onViewRuleSaved,
+      }
+    : undefined;
+
   const owningTeamsColumn: Column<TRule> = useMemo((): Column<TRule> => {
     return {
       field: {
@@ -482,6 +654,7 @@ export function useRuleOwningTeams<TRule extends BaseModel>(data: {
     getEditDisabledReason,
     getDeleteDisabledReason,
     onEditFormItemFetched,
+    viewRuleOwnership,
   };
 }
 
