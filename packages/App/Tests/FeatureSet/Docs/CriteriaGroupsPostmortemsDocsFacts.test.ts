@@ -1488,7 +1488,7 @@ describe("what an incident or alert keeps of the check", () => {
 
   it("is kept on the incident or the alert itself, which only OneUptime writes: one opened by hand has none", () => {
     for (const model of [new Incident(), new Alert()]) {
-      const access: ColumnAccessControl | undefined =
+      const access: ColumnAccessControl | null =
         model.getColumnAccessControlFor("evaluationDetails");
 
       expect(access?.create).toEqual([]);

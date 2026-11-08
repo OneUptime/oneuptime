@@ -111,7 +111,7 @@ describe("AddEvaluationDetailsAndKeepResponseContent1808997300000", () => {
     ).toBe(true);
 
     // The monitor's editors write it, as they write the rest of the monitor.
-    const access: ColumnAccessControl | undefined =
+    const access: ColumnAccessControl | null =
       monitor.getColumnAccessControlFor("keepResponseContent");
 
     expect((access?.create || []).length).toBeGreaterThan(0);
@@ -133,7 +133,7 @@ describe("AddEvaluationDetailsAndKeepResponseContent1808997300000", () => {
       );
 
       // No API writes it: the monitor writes it when it opens the record.
-      const access: ColumnAccessControl | undefined =
+      const access: ColumnAccessControl | null =
         model.getColumnAccessControlFor("evaluationDetails");
 
       expect(access?.create).toEqual([]);
