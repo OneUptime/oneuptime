@@ -373,6 +373,13 @@ export const AUDIT_LOG_REPORTED_COLUMNS: Readonly<
     "guestsWithoutBackupCount",
   ],
   Runner: ["connectionStatus"],
+  /*
+   * Why a run failed: the error a step's script or its Runner reported, or
+   * why OneUptime stopped it. A run's steps are recorded as what happened to
+   * them, never with what a step printed (AuditLogColumnSummaries); this is
+   * a step's error, written by the Worker, and stays out the same way.
+   */
+  RunbookExecution: ["failureReason"],
   ScheduledMaintenanceTemplate: ["scheduleNextEventAt"],
   StorageArray: [
     "openAlertCount",
@@ -659,6 +666,26 @@ const getRelatedModel: (
 const NAME_COLUMNS: ReadonlyArray<string> = ["name", "title", "displayName"];
 
 /*
+ * What names a row with no name, title or displayName of its own, by table
+ * (issue #6287): every exception's entry in the project-wide audit log read
+ * "Unnamed". The columns' values are made into a name by the recorder
+ * (Server/Utils/AuditLog/AuditLogResourceNames).
+ */
+export const AUDIT_LOG_RESOURCE_NAME_COLUMNS: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  // Its type and the start of its message, made safe to show.
+  TelemetryException: ["exceptionType", "message"],
+  // The pipeline a job belongs to, and the job.
+  DataPipeline: ["jobNamespace", "jobName"],
+  // The runbook it is a run of, as it was named when the run started.
+  RunbookExecution: ["runbookNameSnapshot"],
+};
+
+// A column whose value names a row that has no name: a template's, a domain's.
+const NAME_LIKE_COLUMNS: ReadonlyArray<string> = ["templateName", "fullDomain"];
+
+/*
  * The resource a row belongs to, when it belongs to one with an Audit Logs
  * page of its own (AUDIT_LOG_ROOT_RESOURCE_TABLES): the many-to-one relation
  * to a root whose table name starts this table's name - a MessageQueueOwnerUser
@@ -776,6 +803,47 @@ export const inferResourceNameRelation: (
   return undefined;
 };
 
+/*
+ * The columns that name a row with no name of its own: those listed for its
+ * table (AUDIT_LOG_RESOURCE_NAME_COLUMNS), else a template's name or a
+ * domain's. None for a row with a name, a title or a displayName.
+ */
+export const inferResourceNameColumns: (
+  model: AuditLogCoverageModel,
+) => Array<string> | undefined = (
+  model: AuditLogCoverageModel,
+): Array<string> | undefined => {
+  if (
+    NAME_COLUMNS.some((column: string): boolean => {
+      return model.isTableColumn(column);
+    })
+  ) {
+    return undefined;
+  }
+
+  const tableName: string | null = model.tableName;
+  const listed: ReadonlyArray<string> | undefined =
+    tableName &&
+    Object.prototype.hasOwnProperty.call(
+      AUDIT_LOG_RESOURCE_NAME_COLUMNS,
+      tableName,
+    )
+      ? AUDIT_LOG_RESOURCE_NAME_COLUMNS[tableName]
+      : undefined;
+
+  if (listed) {
+    return [...listed];
+  }
+
+  const nameLike: string | undefined = NAME_LIKE_COLUMNS.find(
+    (column: string): boolean => {
+      return model.isTableColumn(column);
+    },
+  );
+
+  return nameLike ? [nameLike] : undefined;
+};
+
 // Whether a project-scoped table is left out of the audit log, and why.
 export const getAuditLogExemption: (
   tableName: string | null | undefined,
@@ -882,6 +950,13 @@ export const getDefaultAuditLogOn: (
     config.resourceNameRelation = resourceNameRelation;
   }
 
+  const resourceNameColumns: Array<string> | undefined =
+    inferResourceNameColumns(model);
+
+  if (resourceNameColumns) {
+    config.resourceNameColumns = resourceNameColumns;
+  }
+
   return config;
 };
 
@@ -899,6 +974,10 @@ const freezeAuditLogOn: (config: EnableAuditLogOn) => EnableAuditLogOn = (
 
   if (config.rootResource) {
     Object.freeze(config.rootResource);
+  }
+
+  if (config.resourceNameColumns) {
+    Object.freeze(config.resourceNameColumns);
   }
 
   return Object.freeze(config);

@@ -84,7 +84,7 @@ Allt som avgör hur SLO:et mäter börjar med ett standardvärde som du ändrar 
 | Driftstoppsstatusar | Alla projektets icke-operativa statusar | **Inställningar** → **Beräkning av driftstopp** |
 | Läge för flera monitorer | **Valfri monitor nere** | **Inställningar** → **Beräkning av driftstopp** |
 | Utvärdering | På | **Inställningar** → **Utvärdering** |
-| Regler för förbrukningstakt | En regel **Fast burn** och en regel **Slow burn**, anpassade till fönstret | **Förbrukningstaktsregler** |
+| Regler för förbrukningstakt | En regel **Fast burn**, en regel **Slow burn** och en regel **Slow leak**, anpassade till fönstret | **Förbrukningstaktsregler** |
 
 ## Vad ett SLO består av
 
@@ -176,13 +176,13 @@ När något hindrar ett SLO från att mäta talar en banner högst upp på var o
 - **Nyckeltalen**:
   - **SLI**: andelen bra tid i fönstret, och hur mycket den ligger över eller under målet.
   - **Felbudget kvar**: en procentandel, en varaktighet som "12m 30s left of 43m 12s" och en stapel med en markering vid tröskeln för riskzon. När budgeten är överskriden visar den **Budget exceeded** och med hur mycket.
-  - **Förbrukningstakt**: hur snabbt budgeten används under de senaste 60 minuterna, den period som standardregeln för snabb förbrukning använder. Blir gul över 1× och röd, med **Regeltröskel nådd**, vid den lägsta tröskeln bland SLO:ets aktiverade regler för förbrukningstakt.
+  - **Förbrukningstakt**: hur snabbt budgeten används under de senaste 60 minuterna, den period som standardregeln för snabb förbrukning använder. Blir gul över 1× och röd, med **Regeltröskel nådd**, vid den lägsta tröskeln bland SLO:ets aktiverade regler för förbrukningstakt som ser högst 6 timmar bakåt. En timme säger lite om en regel som ser flera dagar bakåt, som **Slow leak**, så den jämförs inte med en sådan regel.
   - **Budgetens räckvidd**: hur länge budgeten räcker i den takten. Se [Felbudgetar](/docs/slo/error-budget#budgetens-räckvidd).
 - **Nedbränning av felbudget**: den återstående budgeten över det aktuella fönstret. Se [Felbudgetar](/docs/slo/error-budget#felbudgetens-förbrukning).
 - **Senaste aktivitet**: de senaste posterna i SLO:ets flöde.
 - **SLO-detaljer**: namnet, beskrivningen och etiketterna, de enda inställningar som redigeras i översikten.
 - **Öppna larm och incidenter**: det som reglerna för förbrukningstakt har öppet just nu.
-- **Burn rate rules**: tröskeln för varje aktiverad regel bredvid den aktuella förbrukningstakten, och vad regeln deklarerar.
+- **Burn rate rules**: tröskeln för varje aktiverad regel bredvid den aktuella förbrukningstakten, för regler som ser högst 6 timmar bakåt, och vad regeln deklarerar.
 
 ### Inställningar
 

@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import Host from "../../Models/DatabaseModels/Host";
@@ -157,6 +159,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
       return await this.applyRules({
         scheduledMaintenance: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(
@@ -175,6 +178,8 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
   private async applyRules(data: {
     scheduledMaintenance: ScheduledMaintenance;
     rules: Array<ScheduledMaintenanceLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { scheduledMaintenance, rules } = data;
 
@@ -422,11 +427,12 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await ScheduledMaintenanceService.getRepository()
-      .createQueryBuilder()
-      .relation(ScheduledMaintenance, "labels")
-      .of(scheduledMaintenance.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: ScheduledMaintenanceService,
+      resourceId: scheduledMaintenance.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory event.labels with the now-persisted set so any

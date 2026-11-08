@@ -1,4 +1,5 @@
 import { readPage } from "./DocsContentSupport";
+import { getRunbookStepExecutionChanges } from "Common/Utils/Runbook/RunbookStepExecutionChanges";
 import {
   MenuSection as DashboardMenuSection,
   developerSection,
@@ -2776,5 +2777,46 @@ describe("a runbook's own side menu", () => {
         says: false,
       });
     }
+  });
+});
+
+/*
+ * What a run's audit log entries say (issue #6283): the running page quotes
+ * a step's line, and the line is what OneUptime writes for an approval of
+ * that step - never what the step printed.
+ */
+describe("a run in the audit log, as the running page says", () => {
+  it("quotes the line OneUptime writes when a step is approved", () => {
+    const approved: string = 'Approved "Restart the API" (step 3)';
+    const waiting: Array<Record<string, unknown>> = [
+      {
+        step: { id: "a", title: "Check", type: "Manual" },
+        status: "Completed",
+      },
+      { step: { id: "b", title: "Notify", type: "Bash" }, status: "Completed" },
+      {
+        step: {
+          id: "c",
+          title: "Restart the API",
+          type: "Bash",
+          requireApprovalBeforeRunning: true,
+        },
+        status: "WaitingForUser",
+        output: "nothing it printed",
+      },
+    ];
+    const after: Array<Record<string, unknown>> = waiting.map(
+      (entry: Record<string, unknown>, index: number) => {
+        return index === 2
+          ? { ...entry, status: "Pending", approvedAt: "2026-11-08T10:00:00Z" }
+          : entry;
+      },
+    );
+
+    expect(RUNNING).toContain(`\`${approved}\``);
+    expect(
+      getRunbookStepExecutionChanges({ before: waiting, after: after }).lines,
+    ).toEqual([approved]);
+    expect(RUNNING).toContain("Audit Logs");
   });
 });

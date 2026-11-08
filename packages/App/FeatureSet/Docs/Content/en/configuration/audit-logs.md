@@ -71,6 +71,8 @@ A change to these settings applies within a minute.
 
 Filter by **Resource Type**, **Resource Name**, **Action**, **User Email** or **Time**. An update lists only the fields that changed, before and after, and a save that changes nothing adds no entry.
 
+A resource with no name of its own is named by what names it in OneUptime: an exception by its type and the start of its message, with ids, addresses and anything that looks like a secret masked, a runbook run by its runbook, and a template or a domain by its own name.
+
 Monitors, incidents, alerts, status pages, SLOs and many other resources also have an **Audit Logs** page of their own, in a folded section of their side menu such as **Advanced**. It lists only that resource's entries, with those of what belongs to it: an SLO's page shows its rules and owners too.
 
 ## What is recorded
@@ -89,6 +91,8 @@ Everything people create, change or delete in a project is recorded: monitors, i
 An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.
 
 Fields only OneUptime writes, such as when a host was last seen, are left out of every entry, and so are fields nobody may read. When OneUptime writes one because someone asked it to, such as merging an exception into another or resetting a webhook URL, the entry records it as their change. Keys, tokens and passwords are recorded as `[REDACTED]`: the entry shows they changed, never their value. A workflow's steps are recorded as what changed, naming a step's settings but never what was typed into them, and moving a step on the canvas is not recorded.
+
+What OneUptime does because someone asked it to is recorded as their change too, whether or not the project stores system events: starting, approving, completing, skipping and cancelling a runbook run, the labels a label rule adds when someone runs it on the records that already exist, resetting a calendar feed's link, and the teams someone joins when they sign in with SSO. A runbook run's steps are recorded as what was done to each, such as `Approved "Restart the API" (step 3)`, never with what a step printed. Labels a rule adds as a record is created are OneUptime's own change, recorded with **Store System Events** on.
 
 ## How long entries are kept
 

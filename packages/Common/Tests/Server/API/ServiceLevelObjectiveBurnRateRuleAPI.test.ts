@@ -1,0 +1,515 @@
+import ServiceLevelObjectiveBurnRateRuleAPI, {
+  SLO_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE,
+  SLO_RECOMMENDED_BURN_RATE_RULES_ROUTE,
+  readServiceLevelObjectiveId,
+} from "../../../Server/API/ServiceLevelObjectiveBurnRateRuleAPI";
+import CommonAPI from "../../../Server/API/CommonAPI";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import ServiceLevelObjectiveBurnRateRuleService, {
+  SLO_NOT_FOUND_MESSAGE,
+  SloAddedRecommendedRules,
+  SloMissingRecommendedRules,
+} from "../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "../../../Server/Utils/Express";
+import Response from "../../../Server/Utils/Response";
+import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
+import {
+  SloRecommendedBurnRateRule,
+  getSloRecommendedBurnRateRules,
+} from "../../../Utils/Slo/SloRecommendedBurnRateRules";
+
+/*
+ * "Add recommended rules", as the API serves it:
+ *
+ *   POST /service-level-objective-burn-rate-rule/recommended-rules
+ *   POST /service-level-objective-burn-rate-rule/recommended-rules/add
+ *
+ * Who may ask (the first: whoever may read SLO burn rate rules; the second:
+ * whoever may create them - a person or an API key of the project, and never
+ * a read-only credential or a team that blocks the permission), which SLO is
+ * asked about (the id the body names, nothing else), and what is answered.
+ * The service is answered here; its own suite holds what it reads and adds.
+ */
+
+type Handler = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void>;
+
+const recordedRoutes: Array<{ uri: string; handlers: Array<Handler> }> = [];
+
+jest.mock("../../../Server/Utils/Express", () => {
+  return {
+    getRouter: () => {
+      return {
+        post: (uri: string, ...handlers: Array<Handler>): void => {
+          recordedRoutes.push({ uri, handlers });
+        },
+        get: jest.fn(),
+        put: jest.fn(),
+        delete: jest.fn(),
+      };
+    },
+  };
+});
+
+jest.mock("../../../Server/Utils/Response", () => {
+  return { sendJsonObjectResponse: jest.fn() };
+});
+
+// Every refusal below is deliberate; @CaptureSpan logs each one's stack.
+jest.mock("../../../Server/Utils/Logger");
+
+const PROJECT: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
+const USER: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
+const SLO_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
+const RULE_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
+const LOW_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
+
+const PREVIEW: string = `/service-level-objective-burn-rate-rule${SLO_RECOMMENDED_BURN_RATE_RULES_ROUTE}`;
+const ADD: string = `/service-level-objective-burn-rate-rule${SLO_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE}`;
+
+const SLOW_LEAK: SloRecommendedBurnRateRule = getSloRecommendedBurnRateRules({
+  windowDays: 30,
+})[2]!;
+
+function lowSeverity(): AlertSeverity {
+  const severity: AlertSeverity = new AlertSeverity();
+  severity._id = LOW_ID.toString();
+  severity.id = LOW_ID;
+  severity.name = "Low";
+  return severity;
+}
+
+const SLOW_LEAK_JSON: JSONObject = {
+  name: "Slow leak",
+  budgetPercentage: 10,
+  burnRateThreshold: 1,
+  longWindowInMinutes: 4320,
+  shortWindowInMinutes: 360,
+  refireSuppressionMinutes: 1440,
+  alertSeverity: "LeastSevere",
+  alertSeverityName: "Low",
+};
+
+let props: DatabaseCommonInteractionProps;
+let next: jest.Mock;
+let previewSpy: jest.SpyInstance;
+let addSpy: jest.SpyInstance;
+const res: ExpressResponse = {} as ExpressResponse;
+
+function withPermissions(
+  permissions: Array<Permission>,
+  blocked: Array<Permission> = [],
+): void {
+  props.userTenantAccessPermission = {
+    [PROJECT.toString()]: {
+      _type: "UserTenantAccessPermission",
+      projectId: PROJECT,
+      permissions: [
+        ...permissions.map((permission: Permission) => {
+          return {
+            _type: "UserPermission",
+            permission,
+            labelIds: [],
+            isBlockPermission: false,
+          };
+        }),
+        ...blocked.map((permission: Permission) => {
+          return {
+            _type: "UserPermission",
+            permission,
+            labelIds: [],
+            isBlockPermission: true,
+          };
+        }),
+      ],
+    },
+  } as never;
+}
+
+function routeOf(uri: string): { uri: string; handlers: Array<Handler> } {
+  const found: { uri: string; handlers: Array<Handler> } | undefined =
+    recordedRoutes.find((item: { uri: string }) => {
+      return item.uri === uri;
+    });
+
+  expect(found).toBeDefined();
+
+  return found!;
+}
+
+async function post(uri: string, body: unknown): Promise<void> {
+  const route: { uri: string; handlers: Array<Handler> } = routeOf(uri);
+
+  await route.handlers[route.handlers.length - 1]!(
+    { params: {}, body } as unknown as ExpressRequest,
+    res,
+    next,
+  );
+}
+
+function answered(): JSONObject {
+  const mock: jest.Mock = Response.sendJsonObjectResponse as jest.Mock;
+  expect(mock).toHaveBeenCalledTimes(1);
+  return mock.mock.calls[0]![2] as JSONObject;
+}
+
+function refusal(): Error {
+  expect(next).toHaveBeenCalledTimes(1);
+  return next.mock.calls[0]![0] as Error;
+}
+
+beforeAll(() => {
+  new ServiceLevelObjectiveBurnRateRuleAPI();
+});
+
+beforeEach(() => {
+  props = { userId: USER, tenantId: PROJECT, userType: UserType.User };
+  withPermissions([
+    Permission.ReadServiceLevelObjectiveBurnRateRule,
+    Permission.CreateServiceLevelObjectiveBurnRateRule,
+  ]);
+  next = jest.fn();
+
+  jest
+    .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+    .mockImplementation(async () => {
+      return props;
+    });
+
+  previewSpy = jest
+    .spyOn(
+      ServiceLevelObjectiveBurnRateRuleService,
+      "getMissingRecommendedRules",
+    )
+    .mockResolvedValue({
+      serviceLevelObjectiveId: SLO_ID,
+      projectId: PROJECT,
+      rules: [{ recommended: SLOW_LEAK, alertSeverity: lowSeverity() }],
+    } as SloMissingRecommendedRules);
+
+  addSpy = jest
+    .spyOn(
+      ServiceLevelObjectiveBurnRateRuleService,
+      "addMissingRecommendedRules",
+    )
+    .mockResolvedValue({
+      serviceLevelObjectiveId: SLO_ID,
+      rules: [
+        {
+          recommended: SLOW_LEAK,
+          alertSeverity: lowSeverity(),
+          ruleId: RULE_ID,
+        },
+      ],
+    } as SloAddedRecommendedRules);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  jest.clearAllMocks();
+});
+
+describe("the routes", () => {
+  test("sit beside the rule table's CRUD path, behind the user middleware only - as the CRUD create is, so an API key may call them", () => {
+    for (const uri of [PREVIEW, ADD]) {
+      expect(routeOf(uri).handlers).toHaveLength(2);
+      expect(routeOf(uri).handlers[0]).toBe(UserMiddleware.getUserMiddleware);
+    }
+
+    expect(PREVIEW).toBe(
+      "/service-level-objective-burn-rate-rule/recommended-rules",
+    );
+    expect(ADD).toBe(
+      "/service-level-objective-burn-rate-rule/recommended-rules/add",
+    );
+  });
+
+  test("are not taken for a rule's own routes: neither path ends like /:id/get-item, /:id/update-item or /:id/delete-item", () => {
+    for (const uri of [PREVIEW, ADD]) {
+      expect(uri).not.toMatch(/\/(get-item|update-item|delete-item)$/);
+    }
+  });
+});
+
+describe("which recommended rules an SLO is missing", () => {
+  test("answers the missing rules, each with the severity it would raise at", async () => {
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(previewSpy).toHaveBeenCalledTimes(1);
+    expect(previewSpy.mock.calls[0]![0]).toEqual({
+      serviceLevelObjectiveId: SLO_ID,
+      props: props,
+    });
+    expect((previewSpy.mock.calls[0]![0] as { props: unknown }).props).toBe(
+      props,
+    );
+    expect(answered()).toEqual({ rules: [SLOW_LEAK_JSON] });
+    expect(addSpy).not.toHaveBeenCalled();
+  });
+
+  test("a rule the project has no severity for answers no severity name", async () => {
+    previewSpy.mockResolvedValue({
+      serviceLevelObjectiveId: SLO_ID,
+      projectId: PROJECT,
+      rules: [{ recommended: SLOW_LEAK, alertSeverity: null }],
+    });
+
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect((answered()["rules"] as Array<JSONObject>)[0]!).toMatchObject({
+      name: "Slow leak",
+      alertSeverityName: null,
+    });
+  });
+
+  test("nothing missing answers an empty list", async () => {
+    previewSpy.mockResolvedValue({
+      serviceLevelObjectiveId: SLO_ID,
+      projectId: PROJECT,
+      rules: [],
+    });
+
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(answered()).toEqual({ rules: [] });
+  });
+
+  test.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ReadServiceLevelObjectiveBurnRateRule,
+  ])(
+    "%s may ask: it reads SLO burn rate rules",
+    async (permission: Permission) => {
+      withPermissions([permission]);
+
+      await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(previewSpy).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("a role that reads SLOs but not their burn rate rules may not ask", async () => {
+    withPermissions([Permission.ReadServiceLevelObjective]);
+
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(refusal().message).toContain("read SLO burn rate rules");
+    expect(previewSpy).not.toHaveBeenCalled();
+  });
+
+  test("a team that blocks reading the rules may not ask", async () => {
+    withPermissions(
+      [Permission.ReadServiceLevelObjectiveBurnRateRule],
+      [Permission.ReadServiceLevelObjectiveBurnRateRule],
+    );
+
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(refusal()).toBeInstanceOf(Error);
+    expect(previewSpy).not.toHaveBeenCalled();
+  });
+
+  test("an API key of the project may ask, as it may read the rules through their CRUD path", async () => {
+    props = { tenantId: PROJECT, userType: UserType.API };
+    withPermissions([Permission.ReadServiceLevelObjectiveBurnRateRule]);
+
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(previewSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a request with no credentials, or in no project, is refused before anything is read", async () => {
+    props = { tenantId: PROJECT };
+
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(refusal()).toBeInstanceOf(Error);
+
+    next = jest.fn();
+    props = { userId: USER, userType: UserType.User };
+
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(refusal()).toBeInstanceOf(Error);
+    expect(previewSpy).not.toHaveBeenCalled();
+  });
+
+  test("a member of another project is refused", async () => {
+    props = {
+      userId: USER,
+      userType: UserType.User,
+      tenantId: new ObjectID("66666666-6666-4666-8666-666666666666"),
+    };
+    withPermissions([Permission.ReadServiceLevelObjectiveBurnRateRule]);
+
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(refusal()).toBeInstanceOf(Error);
+    expect(previewSpy).not.toHaveBeenCalled();
+  });
+
+  test("an SLO that is not one the caller may read is not found", async () => {
+    previewSpy.mockRejectedValue(new NotFoundException(SLO_NOT_FOUND_MESSAGE));
+
+    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(refusal()).toBeInstanceOf(NotFoundException);
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["no body", undefined],
+    ["no id", {}],
+    ["an id that is not one", { serviceLevelObjectiveId: "not-an-id" }],
+    ["an id that is not text", { serviceLevelObjectiveId: 7 }],
+    ["a list", [SLO_ID.toString()]],
+  ])("%s is refused as bad data", async (_label: string, body: unknown) => {
+    await post(PREVIEW, body);
+
+    expect(refusal()).toBeInstanceOf(BadDataException);
+    expect(previewSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("adding the missing recommended rules", () => {
+  test("adds them as the caller and answers what it added, with each new rule's id", async () => {
+    await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect((addSpy.mock.calls[0]![0] as { props: unknown }).props).toBe(props);
+    expect(
+      (addSpy.mock.calls[0]![0] as { serviceLevelObjectiveId: ObjectID })
+        .serviceLevelObjectiveId,
+    ).toEqual(SLO_ID);
+    expect(answered()).toEqual({
+      rules: [{ ...SLOW_LEAK_JSON, id: RULE_ID.toString() }],
+    });
+    expect(previewSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.CreateServiceLevelObjectiveBurnRateRule,
+  ])(
+    "%s may add them: it creates SLO burn rate rules",
+    async (permission: Permission) => {
+      withPermissions([permission]);
+
+      await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(addSpy).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("a role that only reads the rules may not add them", async () => {
+    withPermissions([Permission.ReadServiceLevelObjectiveBurnRateRule]);
+
+    await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(refusal().message).toContain("create SLO burn rate rules");
+    expect(addSpy).not.toHaveBeenCalled();
+  });
+
+  test("a team that blocks creating rules may not add them, whatever else it may do", async () => {
+    withPermissions(
+      [Permission.CreateServiceLevelObjectiveBurnRateRule],
+      [Permission.CreateServiceLevelObjectiveBurnRateRule],
+    );
+
+    await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(refusal()).toBeInstanceOf(Error);
+    expect(addSpy).not.toHaveBeenCalled();
+  });
+
+  test("a credential issued for reading only may not add them", async () => {
+    props.isReadOnlyCredential = true;
+
+    await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(refusal()).toBeInstanceOf(Error);
+    expect(addSpy).not.toHaveBeenCalled();
+  });
+
+  test("an API key that may create rules may add them", async () => {
+    props = { tenantId: PROJECT, userType: UserType.API };
+    withPermissions([Permission.CreateServiceLevelObjectiveBurnRateRule]);
+
+    await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(addSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("nothing left to add answers an empty list", async () => {
+    addSpy.mockResolvedValue({ serviceLevelObjectiveId: SLO_ID, rules: [] });
+
+    await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(answered()).toEqual({ rules: [] });
+  });
+
+  test("a refusal from the service reaches the caller", async () => {
+    addSpy.mockRejectedValue(new NotFoundException(SLO_NOT_FOUND_MESSAGE));
+
+    await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
+
+    expect(refusal()).toBeInstanceOf(NotFoundException);
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test("a body that names no SLO is refused before anything is added", async () => {
+    await post(ADD, { serviceLevelObjectiveId: "  " });
+
+    expect(refusal()).toBeInstanceOf(BadDataException);
+    expect(addSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("reading the SLO a request names", () => {
+  test("takes the id, trimmed", () => {
+    expect(
+      readServiceLevelObjectiveId({
+        serviceLevelObjectiveId: `  ${SLO_ID.toString()} `,
+      }).toString(),
+    ).toBe(SLO_ID.toString());
+  });
+
+  test("refuses anything else", () => {
+    for (const body of [
+      null,
+      undefined,
+      "id",
+      [],
+      {},
+      { serviceLevelObjectiveId: null },
+      { serviceLevelObjectiveId: "slo-1" },
+      { serviceLevelObjectiveId: { id: SLO_ID.toString() } },
+    ]) {
+      expect(() => {
+        return readServiceLevelObjectiveId(body);
+      }).toThrow(BadDataException);
+    }
+  });
+});

@@ -84,7 +84,7 @@ Everything about how the SLO measures starts from a default that you change late
 | Downtime statuses | Every non-operational status in the project | **Settings** → **Downtime Calculation** |
 | Multi-monitor mode | **Any Monitor Down** | **Settings** → **Downtime Calculation** |
 | Evaluation | On | **Settings** → **Evaluation** |
-| Burn rate rules | A **Fast burn** and a **Slow burn** rule, scaled to the window | **Burn Rate Rules** |
+| Burn rate rules | A **Fast burn**, a **Slow burn** and a **Slow leak** rule, scaled to the window | **Burn Rate Rules** |
 
 ## What an SLO is made of
 
@@ -176,13 +176,13 @@ The **Overview** answers "are we within budget?", from top to bottom:
 - **The headline numbers**:
   - **SLI**: the share of good time in the window, and how far above or below the target it is.
   - **Error budget left**: a percentage, a duration such as "12m 30s left of 43m 12s", and a bar with a tick at the at-risk threshold. Once the budget is overspent it says **Budget exceeded** and how far over it is.
-  - **Burn rate**: how fast the budget is being spent over the last 60 minutes, the lookback the default fast-burn rule uses. It turns amber above 1× and red, with **Rule threshold reached**, at the lowest threshold of the SLO's enabled burn rate rules.
+  - **Burn rate**: how fast the budget is being spent over the last 60 minutes, the lookback the default fast-burn rule uses. It turns amber above 1× and red, with **Rule threshold reached**, at the lowest threshold of the SLO's enabled burn rate rules that look back 6 hours or less. An hour says little about a rule that looks back days, such as **Slow leak**, so it is not compared with one.
   - **Budget runway**: how long the budget lasts at that pace. See [Error Budgets](/docs/slo/error-budget#budget-runway).
 - **Error budget burn-down**: the budget left across the current window. See [Error Budgets](/docs/slo/error-budget#error-budget-burn-down).
 - **Recent activity**: the latest items of the SLO's feed.
 - **SLO Details**: the name, description and labels, the only settings edited on the Overview.
 - **Open alerts & incidents**: what the burn rate rules have open right now.
-- **Burn rate rules**: each enabled rule's threshold beside the current burn rate, and what the rule declares.
+- **Burn rate rules**: each enabled rule's threshold beside the current burn rate, for rules that look back 6 hours or less, and what the rule declares.
 
 ### Settings
 

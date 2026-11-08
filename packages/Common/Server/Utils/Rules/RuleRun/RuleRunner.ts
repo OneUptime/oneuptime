@@ -4,6 +4,7 @@ import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageM
 import Select from "../../../Types/Database/Select";
 import Sort from "../../../../Types/BaseDatabase/Sort";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -51,6 +52,8 @@ export interface RuleRunPassData {
   cursor: ObjectID | null;
   // Owner rules only - see ApplyRulesToExistingResourceData.
   allowOwnerNotification: boolean;
+  // Who ran it: what the run changes is theirs in the audit log.
+  props?: DatabaseCommonInteractionProps | undefined;
 }
 
 function readField(model: BaseModel, key: string): unknown {
@@ -162,6 +165,7 @@ export default class RuleRunner {
           resource: resource,
           rules: [rule],
           allowOwnerNotification: data.allowOwnerNotification,
+          props: data.props,
         });
       } catch (error) {
         // The engines log and report their own failures; this is a backstop.

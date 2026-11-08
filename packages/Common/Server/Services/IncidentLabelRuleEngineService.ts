@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import Host from "../../Models/DatabaseModels/Host";
@@ -153,6 +155,7 @@ class IncidentLabelRuleEngineServiceClass
       return await this.applyRules({
         incident: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running incident label rules: ${error}`, {
@@ -168,6 +171,8 @@ class IncidentLabelRuleEngineServiceClass
   private async applyRules(data: {
     incident: Incident;
     rules: Array<IncidentLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { incident, rules } = data;
 
@@ -378,11 +383,12 @@ class IncidentLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await IncidentService.getRepository()
-      .createQueryBuilder()
-      .relation(Incident, "labels")
-      .of(incident.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: IncidentService,
+      resourceId: incident.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory incident.labels with the now-persisted set so downstream

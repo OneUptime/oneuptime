@@ -71,6 +71,8 @@ Uma mudança nessas configurações vale em até um minuto.
 
 Filtre por **Tipo de recurso**, **Nome do recurso**, **Ação**, **E-mail do Usuário** ou **Hora**. Uma alteração lista só os campos que mudaram, antes e depois, e um salvamento que não muda nada não adiciona entrada.
 
+Um recurso sem nome próprio recebe o nome do que o nomeia no OneUptime: uma exceção, pelo seu tipo e pelo início da sua mensagem, com ids, endereços e tudo o que pareça um segredo mascarados; uma execução de runbook, pelo seu runbook; e um modelo ou um domínio, pelo seu próprio nome.
+
 Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recursos também têm a própria página **Registros de auditoria**, em uma seção recolhida do menu lateral deles, como **Avançado**. Ela lista só as entradas daquele recurso, junto com as do que pertence a ele: a página de um SLO mostra também as regras e os proprietários dele.
 
 ## O que é registrado
@@ -89,6 +91,8 @@ Tudo o que as pessoas criam, alteram ou excluem em um projeto é registrado: mon
 Também fica registrado quando um administrador adiciona ou remove um método de notificação ou uma regra de plantão pessoal na conta de outra pessoa, sem o endereço ou o número em si.
 
 Os campos que só o OneUptime escreve, como quando um host foi visto pela última vez, ficam de fora de toda entrada, assim como os campos que ninguém pode ler. Quando o OneUptime escreve um deles porque alguém pediu, como ao mesclar uma exceção a outra ou redefinir a URL de um webhook, a entrada o registra como uma alteração dessa pessoa. Chaves, tokens e senhas são registrados como `[REDACTED]`: a entrada mostra que mudaram, nunca o seu valor. Os passos de um fluxo de trabalho são registrados como o que mudou, com os nomes das configurações de um passo, mas nunca o que foi digitado nelas, e mover um passo na tela de edição não é registrado.
+
+O que o OneUptime faz porque alguém pediu também é registrado como alteração dessa pessoa, quer o projeto armazene eventos do sistema ou não: iniciar, aprovar, concluir, pular e cancelar uma execução de runbook, os rótulos que uma regra de rótulos adiciona quando alguém a executa nos registros que já existem, redefinir o link de um feed de calendário e as equipes em que alguém entra ao fazer login com SSO. As etapas de uma execução de runbook são registradas como o que foi feito com cada uma, por exemplo `Approved "Restart the API" (step 3)`, nunca com o que uma etapa imprimiu. Os rótulos que uma regra adiciona quando um registro é criado são uma alteração do próprio OneUptime, registrada com **Armazenar Eventos do Sistema** ativado.
 
 ## Por quanto tempo as entradas ficam
 

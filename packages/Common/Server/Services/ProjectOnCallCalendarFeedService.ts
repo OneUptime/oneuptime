@@ -9,8 +9,10 @@ import {
 import CalendarFeedToken, {
   CalendarFeedRotation,
 } from "../Utils/OnCall/CalendarFeedToken";
+import CalendarFeedRotationAuditLog from "../Utils/OnCall/CalendarFeedRotationAuditLog";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Model from "../../Models/DatabaseModels/ProjectOnCallCalendarFeed";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import CalendarFeedWindow from "../../Types/OnCallDutyPolicy/CalendarFeedWindow";
@@ -127,15 +129,24 @@ export class Service extends DatabaseService<Model> {
 
   /**
    * Rotate the token of an existing feed. Returns the new plaintext token
-   * ONCE. Root write; the caller purges caches.
+   * ONCE. Root write; the caller purges caches. Recorded in the audit log
+   * as the person's reset when `props` says who asked, and as OneUptime's
+   * own otherwise (CalendarFeedRotationAuditLog).
    */
   @CaptureSpan()
   public async rotateTokenById(data: {
     id: ObjectID;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<CalendarFeedRotation> {
     const existing: Model | null = await this.findOneBy({
       query: { _id: data.id },
-      select: { _id: true, tokenHash: true },
+      select: {
+        _id: true,
+        projectId: true,
+        tokenHash: true,
+        tokenHint: true,
+        rotatedAt: true,
+      },
       props: { isRoot: true, ignoreHooks: true },
     });
 
@@ -151,6 +162,13 @@ export class Service extends DatabaseService<Model> {
       id: data.id,
       data: CalendarFeedToken.toRotationUpdateData(rotation),
       props: { isRoot: true },
+    });
+
+    await CalendarFeedRotationAuditLog.record({
+      model: new Model(),
+      before: existing,
+      rotation,
+      props: data.props,
     });
 
     return rotation;

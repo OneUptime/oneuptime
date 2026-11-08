@@ -20,6 +20,7 @@ import {
   AuditLogValueSummary,
   getAuditLogColumnSummarizer,
 } from "Common/Server/Utils/AuditLog/AuditLogColumnSummaries";
+import { getAuditLogResourceName } from "Common/Server/Utils/AuditLog/AuditLogResourceNames";
 import ColumnValueChange from "Common/Server/Utils/Database/ColumnValueChange";
 import RelationValueUtil from "Common/Server/Utils/Database/RelationValueUtil";
 import logger from "Common/Server/Utils/Logger";
@@ -1578,6 +1579,13 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
       return ownName;
     }
 
+    const columnsName: string | null =
+      await this.getResourceNameFromColumns(data);
+
+    if (columnsName) {
+      return columnsName;
+    }
+
     const relation: string | undefined =
       data.model.enableAuditLogOn?.resourceNameRelation;
 
@@ -1624,6 +1632,92 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
       logger.warn(err);
       return null;
     }
+  }
+
+  /*
+   * The name of a row with no name of its own, from the columns that name it
+   * (EnableAuditLogOn.resourceNameColumns): an exception by its type and the
+   * start of its message, a run by its runbook (AuditLogResourceNames). A
+   * column nobody may read names nothing, as everywhere else. A write round
+   * the hooks hands the recorder a row with only its id and project - an
+   * exception merged - so a column the row does not carry is read, inside
+   * the row's project. Best effort: an entry is never lost for want of a
+   * name.
+   */
+  private async getResourceNameFromColumns<TModel extends BaseModel>(data: {
+    model: TModel;
+    item: TModel;
+    projectId: ObjectID;
+  }): Promise<string | null> {
+    const unreadable: Set<string> = this.getRedactedFields(data.model);
+    const columns: Array<string> = (
+      data.model.enableAuditLogOn?.resourceNameColumns || []
+    ).filter((column: string): boolean => {
+      return data.model.isTableColumn(column) && !unreadable.has(column);
+    });
+
+    if (columns.length === 0) {
+      return null;
+    }
+
+    const values: Record<string, unknown> = {};
+    const itemRecord: Record<string, unknown> = data.item as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const column of columns) {
+      values[column] = itemRecord[column];
+    }
+
+    const tenantColumn: string | null = data.model.getTenantColumn();
+
+    if (
+      data.item.id &&
+      tenantColumn &&
+      columns.some((column: string): boolean => {
+        return values[column] === undefined;
+      })
+    ) {
+      try {
+        const select: Record<string, boolean> = { _id: true };
+
+        for (const column of columns) {
+          select[column] = true;
+        }
+
+        const row: BaseModel | null = await this.getRelatedModelService(
+          (data.model as unknown as { constructor: RelatedModelType })
+            .constructor,
+        ).findOneBy({
+          query: {
+            _id: data.item.id,
+            [tenantColumn]: data.projectId,
+          } as Query<BaseModel>,
+          select: select as Select<BaseModel>,
+          props: { isRoot: true, ignoreHooks: true },
+        });
+
+        for (const column of columns) {
+          if (values[column] === undefined && row) {
+            values[column] = (row as unknown as Record<string, unknown>)[
+              column
+            ];
+          }
+        }
+      } catch (err) {
+        logger.warn(
+          "AuditLog: could not read what names the resource; recording the entry without a name",
+        );
+        logger.warn(err);
+      }
+    }
+
+    return getAuditLogResourceName({
+      tableName: data.model.tableName,
+      columns,
+      values,
+    });
   }
 
   /*

@@ -71,6 +71,8 @@ Een wijziging van deze instellingen geldt binnen een minuut.
 
 Filter op **Resourcetype**, **Resourcenaam**, **Actie**, **E-mailadres gebruiker** of **Tijd**. Een wijziging toont alleen de velden die zijn veranderd, ervoor en erna, en een opslag die niets verandert, voegt geen vermelding toe.
 
+Een resource zonder eigen naam krijgt de naam van wat hem in OneUptime benoemt: een uitzondering haar type en het begin van haar bericht, met id's, adressen en alles wat op een geheim lijkt gemaskeerd, een uitvoering van een runbook zijn runbook, en een sjabloon of een domein zijn eigen naam.
+
 Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resources hebben ook een eigen pagina **Auditlogboeken**, in een ingeklapte sectie van hun zijmenu, zoals **Geavanceerd**. Die toont alleen de vermeldingen van die resource, samen met die van wat erbij hoort: de pagina van een SLO toont ook de regels en eigenaren.
 
 ## Wat wordt vastgelegd
@@ -89,6 +91,8 @@ Alles wat mensen in een project maken, wijzigen of verwijderen, wordt vastgelegd
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.
 
 Velden die alleen OneUptime schrijft, zoals wanneer een host voor het laatst is gezien, ontbreken in elke vermelding, net als velden die niemand mag lezen. Schrijft OneUptime er een omdat iemand erom vroeg, zoals bij het samenvoegen van een uitzondering met een andere of het opnieuw instellen van een webhook-URL, dan legt de vermelding het vast als een wijziging van die persoon. Sleutels, tokens en wachtwoorden worden vastgelegd als `[REDACTED]`: de vermelding laat zien dat ze zijn gewijzigd, nooit hun waarde. De stappen van een workflow worden vastgelegd als wat er veranderde, met de namen van de instellingen van een stap maar nooit wat erin is getypt, en het verplaatsen van een stap op het canvas wordt niet vastgelegd.
+
+Wat OneUptime doet omdat iemand erom vroeg, wordt ook als diens wijziging vastgelegd, of het project systeemgebeurtenissen opslaat of niet: een uitvoering van een runbook starten, goedkeuren, voltooien, overslaan en annuleren, de labels die een labelregel toevoegt wanneer iemand die uitvoert op de records die al bestaan, de link van een agendafeed opnieuw instellen, en de teams waar iemand lid van wordt bij het aanmelden met SSO. De stappen van een uitvoering van een runbook worden vastgelegd als wat er met elke stap gedaan is, zoals `Approved "Restart the API" (step 3)`, nooit met wat een stap uitvoerde. Labels die een regel toevoegt wanneer een record wordt aangemaakt, zijn een wijziging van OneUptime zelf, vastgelegd wanneer **Systeemgebeurtenissen opslaan** aan staat.
 
 ## Hoe lang vermeldingen blijven
 

@@ -536,12 +536,19 @@ export default class ServerlessFunction extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * The stored values are unchanged; the Dashboard words them
+   * (ServerlessFunctionStatus): "connected" is Receiving data,
+   * "disconnected" is No recent invocations - nothing has invoked the
+   * function for fifteen minutes, which is normal - and no value, with no
+   * lastSeenAt, is Waiting for data.
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     title: "OTel Collector Status",
     description:
-      "Whether telemetry is currently being received (connected) or has gone stale (disconnected).",
+      "connected while data has arrived in the last 15 minutes, disconnected once nothing has for 15 minutes (normal while nothing invokes the function: it sends data only while it runs), and empty until the first data arrives. The Dashboard shows these as Receiving data, No recent invocations and Waiting for data.",
   })
   @Column({
     nullable: true,

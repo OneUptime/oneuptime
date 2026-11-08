@@ -261,7 +261,7 @@ Ett projekt kan också logga in via en OpenID Connect-leverantör, till exempel 
 
 ## Roller och team för SSO-användare
 
-OneUptime mappar inte roller eller grupper från din identitetsleverantör. Vad någon kan göra följer av de team hen är med i: en leverantör lägger till nya personer i sina **Team**, och du hanterar team och deras behörigheter i OneUptime, så som [Användare, team och behörigheter](/docs/permissions/index) beskriver. Använd [SCIM](/docs/identity/scim) för att hålla teammedlemskapet i takt med din identitetsleverantör.
+OneUptime mappar inte roller eller grupper från din identitetsleverantör. Vad någon kan göra följer av de team hen är med i: en leverantör lägger till nya personer i sina **Team**, och du hanterar team och deras behörigheter i OneUptime, så som [Användare, team och behörigheter](/docs/permissions/index) beskriver. Använd [SCIM](/docs/identity/scim) för att hålla teammedlemskapet i takt med din identitetsleverantör. Varje team som någon går med i när de loggar in registreras på teamets sida **Granskningsloggar** som en ändring gjord av personen som loggade in.
 
 En leverantörs team avgör vad de som loggar in med den kan göra, så en leverantör sparas bara med team som den som sparar den kan bjuda in någon till. Varje sparning kontrollerar dem på nytt: en leverantör vars team ger mer åtkomst än du har kan bara ändras av någon vars åtkomst täcker dem, till exempel en projektägare. Leverantörer som sparades före den här kontrollen fortsätter att logga in personer i sina team. Alla som får redigera en leverantör kan fortfarande stänga av den, så att den kan stoppas direkt.
 

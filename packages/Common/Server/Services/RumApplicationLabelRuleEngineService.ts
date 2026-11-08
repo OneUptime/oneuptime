@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
@@ -99,6 +101,7 @@ class RumApplicationLabelRuleEngineServiceClass
       return await this.applyRules({
         rumApplication: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running RUM application label rules: ${error}`, {
@@ -114,6 +117,8 @@ class RumApplicationLabelRuleEngineServiceClass
   private async applyRules(data: {
     rumApplication: RumApplication;
     rules: Array<RumApplicationLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { rumApplication, rules } = data;
 
@@ -190,11 +195,12 @@ class RumApplicationLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await RumApplicationService.getRepository()
-      .createQueryBuilder()
-      .relation(RumApplication, "labels")
-      .of(rumApplication.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: RumApplicationService,
+      resourceId: rumApplication.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     const mergedLabelIds: Set<string> = new Set([
       ...existingLabelIds,

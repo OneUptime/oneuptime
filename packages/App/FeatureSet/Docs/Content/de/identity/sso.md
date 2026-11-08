@@ -261,7 +261,7 @@ Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Go
 
 ## Rollen und Teams für SSO-Benutzer
 
-OneUptime übernimmt keine Rollen oder Gruppen aus Ihrem Identitätsanbieter. Was jemand tun darf, ergibt sich aus den Teams, in denen die Person ist: Ein Anbieter fügt Neue seinen **Teams** hinzu, und Teams und ihre Berechtigungen verwalten Sie in OneUptime, wie es [Benutzer, Teams & Berechtigungen](/docs/permissions/index) beschreibt. Um die Teammitgliedschaft mit Ihrem Identitätsanbieter abzugleichen, verwenden Sie [SCIM](/docs/identity/scim).
+OneUptime übernimmt keine Rollen oder Gruppen aus Ihrem Identitätsanbieter. Was jemand tun darf, ergibt sich aus den Teams, in denen die Person ist: Ein Anbieter fügt Neue seinen **Teams** hinzu, und Teams und ihre Berechtigungen verwalten Sie in OneUptime, wie es [Benutzer, Teams & Berechtigungen](/docs/permissions/index) beschreibt. Um die Teammitgliedschaft mit Ihrem Identitätsanbieter abzugleichen, verwenden Sie [SCIM](/docs/identity/scim). Jedes Team, dem jemand bei der Anmeldung beitritt, wird auf der Seite **Audit-Protokolle** dieses Teams als Änderung der Person erfasst, die sich angemeldet hat.
 
 Die Teams eines Anbieters bestimmen, was Personen tun dürfen, die sich mit ihm anmelden. Deshalb wird ein Anbieter nur mit Teams gespeichert, in die die speichernde Person jemanden einladen könnte. Jedes Speichern prüft sie erneut: Einen Anbieter, dessen Teams mehr Zugriff geben, als Sie haben, kann nur jemand ändern, dessen Zugriff sie abdeckt, etwa ein Projekteigentümer. Anbieter, die vor dieser Prüfung gespeichert wurden, melden Personen weiter in ihren Teams an. Wer einen Anbieter bearbeiten darf, kann ihn weiterhin ausschalten, sodass er sich sofort stoppen lässt.
 

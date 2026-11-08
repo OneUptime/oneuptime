@@ -1,4 +1,5 @@
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Select from "../../../Types/Database/Select";
 
 /*
@@ -33,6 +34,12 @@ export interface ApplyRulesToExistingResourceData<TResource, TRule> {
    * turn into hundreds of emails unless the person running it opted in.
    */
   allowOwnerNotification: boolean;
+  /*
+   * Who ran the rule. What the run changes is theirs in the audit log: a
+   * label rule's labels are recorded by them (RuleAddedLabels). Unset, the
+   * changes are OneUptime's own, as a rule applied on create is.
+   */
+  props?: DatabaseCommonInteractionProps | undefined;
 }
 
 export interface RuleRunEngine<

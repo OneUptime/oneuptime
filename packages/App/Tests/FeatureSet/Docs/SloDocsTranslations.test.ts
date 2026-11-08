@@ -52,7 +52,8 @@ import { describe, expect, it } from "@jest/globals";
  *
  *   - KEPT_IN_ENGLISH: permissions and plans, as the role pickers and the
  *     billing pages name them; the names OneUptime itself gives a new SLO's
- *     rules (Fast burn, Slow burn) and the rule the upgrade creates; and the
+ *     rules (Fast burn, Slow burn, Slow leak) and the rule the upgrade
+ *     creates; and the
  *     widget titles the SLO Dashboard template writes into a new dashboard.
  *     All of them are data or names the API and Terraform use too, so they
  *     read the same whatever the reader's language.
@@ -107,8 +108,8 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
  */
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   // The default burn rate rules every new SLO is given, by these names.
-  [INTRODUCTION]: ["Fast burn", "Slow burn"],
-  [BURN_RATE]: ["Fast burn", "Slow burn"],
+  [INTRODUCTION]: ["Fast burn", "Slow burn", "Slow leak"],
+  [BURN_RATE]: ["Fast burn", "Slow burn", "Slow leak"],
   // The rule the upgrade creates from the old setting (SloDocs pins it).
   [MONITOR_RULES]: ["Auto-add monitors with labels"],
   // The widget titles the SLO Dashboard template creates.
@@ -285,7 +286,7 @@ const VALUES_AS_IS: Record<string, Array<string>> = {
  * Persian digits as Latin ones and thousands separators dropped.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  [INTRODUCTION]: ["5", "99.9", "30", "20", "366", "43", "12", "60"],
+  [INTRODUCTION]: ["5", "99.9", "30", "20", "366", "43", "12", "60", "6"],
   [MONITOR_RULES]: [],
   [ERROR_BUDGET]: [
     "43",
@@ -312,6 +313,12 @@ const NUMBERS: Record<string, Array<string>> = {
     "500",
     "50000",
     "5",
+    // Slow leak: 10% of the budget, a day of quiet, and its windows below 30 days.
+    "10",
+    "24",
+    "16.8",
+    "84",
+    "2.8",
   ],
   [METRICS]: ["5", "30", "400", "60"],
   [FEED]: ["14", "30", "7", "180"],

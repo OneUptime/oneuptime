@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import Service from "../../Models/DatabaseModels/Service";
@@ -99,6 +101,7 @@ class ServiceLabelRuleEngineServiceClass
       return await this.applyRules({
         service: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running service label rules: ${error}`, {
@@ -114,6 +117,8 @@ class ServiceLabelRuleEngineServiceClass
   private async applyRules(data: {
     service: Service;
     rules: Array<ServiceLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { service, rules } = data;
 
@@ -201,11 +206,12 @@ class ServiceLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await ServiceService.getRepository()
-      .createQueryBuilder()
-      .relation(Service, "labels")
-      .of(service.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: ServiceService,
+      resourceId: service.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory service.labels so a downstream owner-rule engine in

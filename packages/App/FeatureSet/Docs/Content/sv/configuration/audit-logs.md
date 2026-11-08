@@ -71,6 +71,8 @@ En ändring av de här inställningarna träder i kraft inom en minut.
 
 Filtrera efter **Resurstyp**, **Resursnamn**, **Åtgärd**, **Användares e-post** eller **Tid**. En ändring visar bara de fält som ändrades, före och efter, och en sparning som inte ändrar något lägger inte till någon post.
 
+En resurs utan eget namn får namn efter det som namnger den i OneUptime: ett undantag efter sin typ och början av sitt meddelande, med id:n, adresser och allt som liknar en hemlighet maskerat, en körning av en runbook efter sin runbook, och en mall eller en domän efter sitt eget namn.
+
 Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har också en egen sida **Granskningsloggar** i ett hopfällt avsnitt av sin sidomeny, som **Avancerad**. Den visar bara den resursens poster, tillsammans med posterna för det som hör till den: ett SLO:s sida visar också dess regler och ägare.
 
 ## Vad som registreras
@@ -89,6 +91,8 @@ Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: öve
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.
 
 Fält som bara OneUptime skriver, till exempel när en värd senast sågs, utelämnas från alla poster, och det gör även fält som ingen får läsa. När OneUptime skriver ett av dem för att någon bad om det, till exempel när ett undantag slås ihop med ett annat eller en webhook-URL återställs, registrerar posten det som den personens ändring. Nycklar, tokens och lösenord registreras som `[REDACTED]`: posten visar att de har ändrats, aldrig deras värde. Ett arbetsflödes steg registreras som det som ändrades, med namnen på ett stegs inställningar men aldrig det som skrevs i dem, och att flytta ett steg på arbetsytan registreras inte.
+
+Det OneUptime gör för att någon bad om det registreras också som deras ändring, oavsett om projektet lagrar systemhändelser eller inte: att starta, godkänna, slutföra, hoppa över och avbryta en körning av en runbook, de etiketter som en etikettregel lägger till när någon kör den på posterna som redan finns, att återställa länken till ett kalenderflöde och de team som någon går med i när de loggar in med SSO. Stegen i en runbook-körning registreras som det som gjordes med vart och ett, till exempel `Approved "Restart the API" (step 3)`, aldrig med det ett steg skrev ut. Etiketter som en regel lägger till när en post skapas är OneUptimes egen ändring och registreras när **Lagra systemhändelser** är på.
 
 ## Hur länge poster behålls
 

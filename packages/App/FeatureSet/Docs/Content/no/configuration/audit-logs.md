@@ -71,6 +71,8 @@ En endring av disse innstillingene trer i kraft innen ett minutt.
 
 Filtrer etter **Ressurstype**, **Ressursnavn**, **Handling**, **Bruker-e-post** eller **Tid**. En endring viser bare feltene som ble endret, før og etter, og en lagring som ikke endrer noe, legger ikke til noen oppføring.
 
+En ressurs uten eget navn får navn etter det som navngir den i OneUptime: et unntak etter typen og begynnelsen av meldingen, med ID-er, adresser og alt som ligner en hemmelighet maskert, en kjøring av en runbook etter runbooken, og en mal eller et domene etter sitt eget navn.
+
 Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har også sin egen side **Revisjonslogger** i en sammenslått seksjon av sidemenyen, som **Avansert**. Den viser bare den ressursens oppføringer, sammen med oppføringene for det som hører til den: siden til et SLO viser også reglene og eierne.
 
 ## Hva som registreres
@@ -89,6 +91,8 @@ Alt folk oppretter, endrer eller sletter i et prosjekt, registreres: monitorer, 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.
 
 Felt som bare OneUptime skriver, for eksempel når en vert sist ble sett, utelates fra alle oppføringer, og det samme gjør felt som ingen kan lese. Når OneUptime skriver et av dem fordi noen ba om det, for eksempel når et unntak slås sammen med et annet eller en webhook-URL tilbakestilles, registrerer oppføringen det som den personens endring. Nøkler, tokener og passord registreres som `[REDACTED]`: oppføringen viser at de er endret, aldri verdien deres. Trinnene i en arbeidsflyt registreres som det som endret seg, med navnene på et trinns innstillinger, men aldri det som ble skrevet inn i dem, og å flytte et trinn på lerretet registreres ikke.
+
+Det OneUptime gjør fordi noen ba om det, registreres også som deres endring, enten prosjektet lagrer systemhendelser eller ikke: å starte, godkjenne, fullføre, hoppe over og avbryte en kjøring av en runbook, etikettene en etikettregel legger til når noen kjører den på postene som allerede finnes, å tilbakestille lenken til en kalenderfeed, og teamene noen blir med i når de logger på med SSO. Trinnene i en runbook-kjøring registreres som det som ble gjort med hvert av dem, for eksempel `Approved "Restart the API" (step 3)`, aldri med det et trinn skrev ut. Etiketter en regel legger til når en post opprettes, er OneUptimes egen endring og registreres når **Lagre systemhendelser** er slått på.
 
 ## Hvor lenge oppføringer beholdes
 

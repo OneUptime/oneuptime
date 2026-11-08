@@ -26,6 +26,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import { getLowestBurnRateThreshold } from "Common/Utils/Slo/SloProjection";
+import { isComparedWithCurrentBurnRate } from "Common/Utils/Slo/SloEvaluation";
 import React, {
   Fragment,
   FunctionComponent,
@@ -183,11 +184,14 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           className="mb-5"
           slo={slo}
           lowestEnabledBurnRateThreshold={getLowestBurnRateThreshold(
-            enabledBurnRateRules.map(
-              (rule: ServiceLevelObjectiveBurnRateRule) => {
+            enabledBurnRateRules
+              .filter((rule: ServiceLevelObjectiveBurnRateRule): boolean => {
+                // The last hour cannot speak for a rule that looks back days.
+                return isComparedWithCurrentBurnRate(rule.longWindowInMinutes);
+              })
+              .map((rule: ServiceLevelObjectiveBurnRateRule) => {
                 return rule.burnRateThreshold;
-              },
-            ),
+              }),
           )}
           now={now}
         />

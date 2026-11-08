@@ -9,6 +9,7 @@ import {
   AUDIT_LOG_EXEMPTION_KINDS,
   AUDIT_LOG_EXEMPT_TABLES,
   AUDIT_LOG_REPORTED_COLUMNS,
+  AUDIT_LOG_RESOURCE_NAME_COLUMNS,
   AUDIT_LOG_ROOT_RESOURCE_TABLES,
   AUDIT_LOG_SECRET_COLUMNS,
   AuditLogExemptionKind,
@@ -24,6 +25,7 @@ import { getAuditLogRedactedColumns } from "../../../Types/AuditLog/AuditLogReda
 import EnableAuditLogOn from "../../../Types/BaseDatabase/EnableAuditLogOn";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import { getColumnAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnAccessControl";
 
 /*
  * EVERY MODEL PEOPLE CHANGE IS AUDITED, unless it is listed as exempt and
@@ -1017,5 +1019,93 @@ describe("root inference on models made for the test", () => {
       ),
     ).toBeUndefined();
     expect(inferResourceNameRelation(fakeModel("X", {}))).toBeUndefined();
+  });
+});
+
+/*
+ * What names an entry of a row with no name of its own (issue #6287): every
+ * exception's entry in the project-wide audit log read "Unnamed". A model
+ * with no name, title or displayName names its entries by the columns the
+ * defaults pick (resourceNameColumns), and every resource with an Audit
+ * Logs page of its own has something to be named by.
+ */
+describe("what names a row with no name of its own", () => {
+  test("every resource with an Audit Logs page of its own is named by something", () => {
+    for (const tableName of AUDIT_LOG_ROOT_RESOURCE_TABLES) {
+      const model: BaseModel = BY_TABLE.get(tableName)!;
+      const config: EnableAuditLogOn | undefined = model.enableAuditLogOn;
+      const isNamed: boolean =
+        ["name", "title", "displayName"].some((column: string): boolean => {
+          return model.isTableColumn(column);
+        }) ||
+        Boolean(config?.resourceNameRelation) ||
+        (config?.resourceNameColumns || []).length > 0;
+
+      expect([tableName, isNamed]).toEqual([tableName, true]);
+    }
+  });
+
+  test("the columns listed name models that have no name, and are columns their readers may read", () => {
+    for (const [tableName, columns] of Object.entries(
+      AUDIT_LOG_RESOURCE_NAME_COLUMNS,
+    )) {
+      const model: BaseModel | undefined = BY_TABLE.get(tableName);
+
+      expect([tableName, Boolean(model)]).toEqual([tableName, true]);
+      expect([tableName, model!.isTableColumn("name")]).toEqual([
+        tableName,
+        false,
+      ]);
+
+      const access: Record<string, { read?: Array<unknown> }> =
+        getColumnAccessControlForAllColumns(model!) as Record<
+          string,
+          { read?: Array<unknown> }
+        >;
+
+      for (const column of columns) {
+        expect([tableName, column, model!.isTableColumn(column)]).toEqual([
+          tableName,
+          column,
+          true,
+        ]);
+        expect([
+          tableName,
+          column,
+          (access[column]?.read || []).length > 0,
+        ]).toEqual([tableName, column, true]);
+        expect([
+          tableName,
+          column,
+          looksLikeSecretColumn(
+            column,
+            model!.getTableColumnMetadata(column)?.type,
+          ),
+        ]).toEqual([tableName, column, false]);
+      }
+
+      expect(model!.enableAuditLogOn?.resourceNameColumns).toEqual(columns);
+    }
+  });
+
+  test("an exception is named by its type and message; a template and a domain by their own names", () => {
+    expect(
+      BY_TABLE.get("TelemetryException")!.enableAuditLogOn?.resourceNameColumns,
+    ).toEqual(["exceptionType", "message"]);
+    expect(
+      BY_TABLE.get("IncidentNoteTemplate")!.enableAuditLogOn
+        ?.resourceNameColumns,
+    ).toEqual(["templateName"]);
+    expect(
+      BY_TABLE.get("StatusPageDomain")!.enableAuditLogOn?.resourceNameColumns,
+    ).toEqual(["fullDomain"]);
+  });
+
+  test("a model with a name of its own is named by it, and nothing else", () => {
+    for (const tableName of ["Monitor", "Incident", "Workflow", "Team"]) {
+      expect(
+        BY_TABLE.get(tableName)!.enableAuditLogOn?.resourceNameColumns,
+      ).toBeUndefined();
+    }
   });
 });

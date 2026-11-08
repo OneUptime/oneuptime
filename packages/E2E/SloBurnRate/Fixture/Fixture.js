@@ -49,6 +49,11 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import {
+  SloRecommendedAlertSeverity,
+  getMissingSloRecommendedBurnRateRules,
+  sloRecommendedBurnRateRuleToJSON,
+} from "Common/Utils/Slo/SloRecommendedBurnRateRules";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const SLO_ID = "20000000-0000-4000-8000-000000000001";
@@ -462,8 +467,77 @@ ModelAPI.createOrUpdate = async (options) => {
   return { data: record };
 };
 
+/*
+ * "Add recommended rules", as the API answers it: the recommended rules this
+ * SLO is missing (the fixture has Fast burn and Slow burn, so Slow leak), at
+ * the severity each raises at, and - on add - each added as a rule the table
+ * then lists. Every add is recorded on window.__recommendedAdds.
+ */
+function missingRecommendedRules() {
+  return getMissingSloRecommendedBurnRateRules({
+    window: slo,
+    existingRules: rules,
+  }).map((recommended) => {
+    const severity =
+      recommended.alertSeverity === SloRecommendedAlertSeverity.LeastSevere
+        ? alertSeverities[alertSeverities.length - 1]
+        : alertSeverities[0];
+
+    return { ...recommended, severity, alertSeverityName: severity.name };
+  });
+}
+
 API.get = async () => ({ data: { data: [], count: 0 } });
-API.post = async () => ({ data: { data: [], count: 0 } });
+API.post = async (options) => {
+  const url = options && options.url ? options.url.toString() : "";
+
+  if (url.endsWith("/service-level-objective-burn-rate-rule/recommended-rules")) {
+    return {
+      data: {
+        rules: missingRecommendedRules().map(sloRecommendedBurnRateRuleToJSON),
+      },
+    };
+  }
+
+  if (
+    url.endsWith("/service-level-objective-burn-rate-rule/recommended-rules/add")
+  ) {
+    const added = missingRecommendedRules().map((recommended) => {
+      const record = rule({
+        id: `60000000-0000-4000-8000-${String(rules.length + 1).padStart(12, "0")}`,
+        name: recommended.name,
+        burnRateThreshold: recommended.burnRateThreshold,
+        longWindowInMinutes: recommended.longWindowInMinutes,
+        shortWindowInMinutes: recommended.shortWindowInMinutes,
+        refireSuppressionMinutes:
+          recommended.refireSuppressionMinutes === null
+            ? undefined
+            : recommended.refireSuppressionMinutes,
+        shouldCreateAlert: true,
+        shouldCreateIncident: false,
+        alertSeverity: recommended.severity,
+      });
+      rules.push(record);
+      return { ...recommended, id: record._id };
+    });
+
+    window.__recommendedAdds = [
+      ...(window.__recommendedAdds || []),
+      {
+        serviceLevelObjectiveId: String(
+          options.data && options.data.serviceLevelObjectiveId,
+        ),
+        names: added.map((item) => item.name),
+      },
+    ];
+
+    return {
+      data: { rules: added.map(sloRecommendedBurnRateRuleToJSON) },
+    };
+  }
+
+  return { data: { data: [], count: 0 } };
+};
 
 await i18next.use(initReactI18next).init({
   lng: "en",

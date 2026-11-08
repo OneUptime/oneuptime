@@ -71,6 +71,8 @@ En ændring af disse indstillinger træder i kraft inden for et minut.
 
 Filtrér efter **Ressourcetype**, **Ressourcenavn**, **Handling**, **Bruger-e-mail** eller **Tid**. En ændring viser kun de felter, der blev ændret, før og efter, og en gemning, der ikke ændrer noget, tilføjer ingen post.
 
+En ressource uden sit eget navn får navn efter det, der navngiver den i OneUptime: en undtagelse efter sin type og begyndelsen af sin meddelelse, med id'er, adresser og alt, der ligner en hemmelighed, maskeret, en kørsel af en runbook efter sin runbook, og en skabelon eller et domæne efter sit eget navn.
+
 Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer har også deres egen side **Auditlogs** i et sammenfoldet afsnit af deres sidemenu, som **Avanceret**. Den viser kun den ressources poster, sammen med posterne for det, der hører til den: et SLO's side viser også dets regler og ejere.
 
 ## Hvad registreres
@@ -89,6 +91,8 @@ Alt, hvad folk opretter, ændrer eller sletter i et projekt, registreres: monito
 Det registreres også, når en administrator tilføjer eller fjerner en notifikationsmetode eller en personlig vagtregel på en andens konto, uden selve adressen eller nummeret.
 
 Felter, som kun OneUptime skriver, for eksempel hvornår en vært sidst blev set, udelades af alle poster, og det samme gør felter, som ingen må læse. Når OneUptime skriver et af dem, fordi nogen bad om det, for eksempel når en undtagelse flettes ind i en anden, eller en webhook-URL nulstilles, registrerer posten det som deres ændring. Nøgler, tokens og adgangskoder registreres som `[REDACTED]`: posten viser, at de er ændret, aldrig deres værdi. Et workflows trin registreres som det, der ændrede sig, med navnene på et trins indstillinger, men aldrig det, der blev skrevet i dem, og når et trin flyttes på lærredet, registreres det ikke.
+
+Det, OneUptime gør, fordi nogen bad om det, registreres også som deres ændring, uanset om projektet gemmer systemhændelser: at starte, godkende, fuldføre, springe over og annullere en kørsel af en runbook, de etiketter en etiketregel tilføjer, når nogen kører den på de poster, der allerede findes, at nulstille linket til et kalenderfeed og de teams, nogen bliver medlem af, når de logger ind med SSO. En runbook-kørsels trin registreres som det, der blev gjort ved hvert af dem, for eksempel `Approved "Restart the API" (step 3)`, aldrig med det, et trin skrev ud. Etiketter, som en regel tilføjer, når en post oprettes, er OneUptimes egen ændring og registreres, når **Gem systemhændelser** er slået til.
 
 ## Hvor længe poster gemmes
 

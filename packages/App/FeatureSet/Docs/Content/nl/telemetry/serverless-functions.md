@@ -189,6 +189,8 @@ Zodra de functie een span, een log of een metric verstuurt, verschijnt ze onder 
 - **Instanties**: een live lijst van de `faas.instance`-waarden die de functie rapporteert.
 - Volledige pagina's **Logboeken**, **Traces** en **Metrieken**, afgebakend tot deze functie.
 
+Een functie toont **Ontvangt gegevens** zolang haar telemetrie binnenkomt, en **Geen recente aanroepen** na 15 minuten zonder telemetrie, wat normaal is tussen de runs: een functie stuurt alleen telemetrie terwijl ze draait. Een functie die via de API is toegevoegd, toont **Wachten op gegevens** tot haar eerste telemetrie binnenkomt.
+
 ## Functies labelen en eigenaren toewijzen
 
 Een resource-attribuut dat begint met `oneuptime.label.` wordt een projectlabel op de functie: `oneuptime.label.team=payments` voegt het label `team:payments` toe. Voeg de attributen toe aan `OTEL_RESOURCE_ATTRIBUTES`:
@@ -215,8 +217,8 @@ Controleer, in deze volgorde:
 **Overzicht**, **Logboeken**, **Traces** en **Metrieken** van de functie tonen telemetrie waarvan de `faas.name` precies gelijk is aan de naam van de functie, inclusief hoofdletters. Een functie die haar naam krijgt via een FaaS-`cloud.platform` en haar `service.name`, heeft geen eigen `faas.name` nodig: OneUptime schrijft de `service.name` bij binnenkomst als `faas.name` in de telemetrie. Telemetrie die is opgeslagen voordat OneUptime `faas.name` begon in te vullen, wordt niet bijgewerkt en blijft buiten de pagina's: roep de functie aan om nieuwe telemetrie te versturen. Controleer ook het tijdsbereik bovenaan de pagina.
 :::
 
-:::details De functie wordt als verbroken weergegeven
-Een functie krijgt de status verbroken zodra OneUptime er 15 minuten niets van heeft ontvangen; OneUptime controleert elke 5 minuten, en tijd waarin het zelf geen gegevens ontving, telt niet mee. Een functie die alleen af en toe draait, is tussen de runs verbroken: met haar volgende telemetrie krijgt ze weer de status verbonden.
+:::details De functie toont "Geen recente aanroepen"
+Een functie toont **Geen recente aanroepen** zodra OneUptime er 15 minuten niets van heeft ontvangen; OneUptime controleert elke 5 minuten, en tijd waarin het zelf geen gegevens ontving, telt niet mee. Voor een functie die alleen af en toe draait, is dat normaal: met haar volgende telemetrie toont ze weer **Ontvangt gegevens**. Wordt de functie wel aangeroepen, loop dan de controles voor een functie die niet verschijnt hierboven na.
 :::
 
 ## Volgende stappen

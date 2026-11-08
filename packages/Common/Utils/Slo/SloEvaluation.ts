@@ -20,3 +20,42 @@ export const SLO_EVALUATION_CADENCE_MINUTES: number = 5;
  * fast-burn rule's long window, so the tile and that rule move together.
  */
 export const SLO_CURRENT_BURN_RATE_WINDOW_MINUTES: number = 60;
+
+/**
+ * The longest long window of a burn rate rule the current burn rate is
+ * compared with: the default slow-burn rule's 6 hours.
+ *
+ * The current burn rate is a reading of the last hour. It can stand in for a
+ * rule that looks back a few hours - an hour at Slow burn's threshold is how
+ * a 6-hour burn at it starts - but not for one that looks back days. The
+ * default slow-leak rule fires at 1x sustained over 3 days, and an hour
+ * compared with that put "Rule threshold reached" on the overview for any
+ * hour that burned at all: at 99.9%, 4 seconds of downtime in an hour is 1x.
+ * Rules that look back longer are left out of the comparison, and say so.
+ */
+export const SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES: number = 360;
+
+export type IsComparedWithCurrentBurnRateFunction = (
+  longWindowInMinutes: number | undefined | null,
+) => boolean;
+
+/**
+ * Whether a rule with this long window is compared with the current burn
+ * rate. A rule whose long window is unknown is compared, as every rule was
+ * before: nothing says the hour cannot speak for it.
+ */
+export const isComparedWithCurrentBurnRate: IsComparedWithCurrentBurnRateFunction =
+  (longWindowInMinutes: number | undefined | null): boolean => {
+    if (
+      typeof longWindowInMinutes !== "number" ||
+      !Number.isFinite(longWindowInMinutes) ||
+      longWindowInMinutes <= 0
+    ) {
+      return true;
+    }
+
+    return (
+      longWindowInMinutes <=
+      SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES
+    );
+  };

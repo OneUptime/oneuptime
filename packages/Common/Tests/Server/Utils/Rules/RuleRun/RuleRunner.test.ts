@@ -402,6 +402,43 @@ describe("RuleRunner.runPass", () => {
       }
     });
 
+    /*
+     * Who ran the rule reaches every resource's application, so what the
+     * run changes is theirs in the audit log (issue #6284).
+     */
+    it("hands every resource who ran the rule, and none when nobody is named", async () => {
+      const fake: FakeRegistryEntry = fakeDefinition({
+        rule: labelRule(),
+        resources: resources(2),
+      });
+      const props: { tenantId: ObjectID; userId: ObjectID } = {
+        tenantId: PROJECT_ID,
+        userId: new ObjectID("33333333-3333-4333-8333-333333333333"),
+      };
+
+      await RuleRunner.runPass({
+        ruleType: RuleRunType.MonitorLabelRule,
+        ruleId: RULE_ID,
+        projectId: PROJECT_ID,
+        cursor: null,
+        allowOwnerNotification: false,
+        props,
+      });
+
+      expect(fake.apply).toHaveBeenCalledTimes(2);
+
+      for (const call of fake.apply.mock.calls) {
+        expect((call[0] as { props: unknown }).props).toBe(props);
+      }
+
+      fake.apply.mockClear();
+      await runPass();
+
+      for (const call of fake.apply.mock.calls) {
+        expect((call[0] as { props: unknown }).props).toBeUndefined();
+      }
+    });
+
     it("counts matches, updates, additions and failures separately", async () => {
       const outcomes: Array<RuleApplicationResult> = [
         RuleApplicationResultUtil.updated(2),

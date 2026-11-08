@@ -71,6 +71,8 @@ Une modification de ces paramètres s'applique en moins d'une minute.
 
 Filtrez par **Type de ressource**, **Nom de la ressource**, **Action**, **E-mail de l'utilisateur** ou **Heure**. Une modification ne liste que les champs qui ont changé, avant et après, et un enregistrement qui ne change rien n'ajoute aucune entrée.
 
+Une ressource sans nom propre est nommée par ce qui la nomme dans OneUptime : une exception par son type et le début de son message, les identifiants, les adresses et tout ce qui ressemble à un secret étant masqués, une exécution de runbook par son runbook, et un modèle ou un domaine par son propre nom.
+
 Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien d'autres ressources ont aussi leur propre page **Journaux d'audit**, dans une section repliée de leur menu latéral comme **Avancé**. Elle ne liste que les entrées de cette ressource, avec celles de ce qui lui appartient : la page d'un SLO montre aussi ses règles et ses propriétaires.
 
 ## Ce qui est enregistré
@@ -89,6 +91,8 @@ Tout ce que les personnes créent, modifient ou suppriment dans un projet est en
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.
 
 Les champs que seul OneUptime écrit, comme le moment où un hôte a été vu pour la dernière fois, sont omis de chaque entrée, tout comme les champs que personne ne peut lire. Quand OneUptime en écrit un parce que quelqu'un le lui a demandé, comme fusionner une exception avec une autre ou réinitialiser l'URL d'un webhook, l'entrée l'enregistre comme une modification de cette personne. Les clés, jetons et mots de passe sont enregistrés comme `[REDACTED]` : l'entrée montre qu'ils ont changé, jamais leur valeur. Les étapes d'un workflow sont enregistrées comme ce qui a changé, en nommant les réglages d'une étape mais jamais ce qui y a été saisi, et le déplacement d'une étape sur le canevas n'est pas enregistré.
+
+Ce que OneUptime fait parce que quelqu'un le lui a demandé est aussi enregistré comme une modification de cette personne, que le projet stocke ou non les événements système : lancer, approuver, terminer, ignorer et annuler une exécution de runbook, les libellés qu'une règle de libellés ajoute quand quelqu'un l'exécute sur les enregistrements qui existent déjà, la réinitialisation du lien d'un flux de calendrier, et les équipes que quelqu'un rejoint en se connectant avec SSO. Les étapes d'une exécution de runbook sont enregistrées comme ce qui a été fait à chacune, par exemple `Approved "Restart the API" (step 3)`, jamais avec ce qu'une étape a affiché. Les libellés qu'une règle ajoute à la création d'un enregistrement sont une modification de OneUptime lui-même, enregistrée quand **Stocker les événements système** est activé.
 
 ## Combien de temps les entrées sont conservées
 

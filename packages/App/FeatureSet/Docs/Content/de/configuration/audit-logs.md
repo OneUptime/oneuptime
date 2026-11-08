@@ -71,6 +71,8 @@ Eine Änderung dieser Einstellungen gilt innerhalb einer Minute.
 
 Filtern Sie nach **Ressourcentyp**, **Ressourcenname**, **Aktion**, **Benutzer-E-Mail** oder **Zeit**. Eine Änderung listet nur die geänderten Felder, vorher und nachher, und ein Speichern, das nichts ändert, erzeugt keinen Eintrag.
 
+Eine Ressource ohne eigenen Namen wird nach dem benannt, was sie in OneUptime benennt: eine Ausnahme nach ihrem Typ und dem Anfang ihrer Meldung, wobei IDs, Adressen und alles, was wie ein Geheimnis aussieht, maskiert werden, ein Runbook-Lauf nach seinem Runbook und eine Vorlage oder eine Domain nach ihrem eigenen Namen.
+
 Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen haben auch eine eigene Seite **Audit-Protokolle**, in einem eingeklappten Abschnitt ihres Seitenmenüs wie **Erweitert**. Sie listet nur die Einträge dieser Ressource, mit denen dessen, was zu ihr gehört: Die Seite eines SLO zeigt auch seine Regeln und Owners.
 
 ## Was erfasst wird
@@ -89,6 +91,8 @@ Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfass
 Fügt ein Administrator eine Benachrichtigungsmethode oder eine persönliche Bereitschaftsregel zum Konto einer anderen Person hinzu oder entfernt sie, wird das ebenfalls erfasst, ohne die Adresse oder Nummer selbst.
 
 Felder, die nur OneUptime schreibt, etwa wann ein Host zuletzt gesehen wurde, fehlen in jedem Eintrag, ebenso Felder, die niemand lesen darf. Schreibt OneUptime eines davon, weil jemand darum gebeten hat, etwa wenn eine Ausnahme mit einer anderen zusammengeführt oder eine Webhook-URL zurückgesetzt wird, erfasst der Eintrag es als Änderung dieser Person. Schlüssel, Tokens und Passwörter werden als `[REDACTED]` erfasst: Der Eintrag zeigt, dass sie sich geändert haben, nie ihren Wert. Die Schritte eines Workflows werden als das erfasst, was sich geändert hat, mit den Namen der Einstellungen eines Schritts, aber nie dem, was in sie eingegeben wurde, und das Verschieben eines Schritts auf der Arbeitsfläche wird nicht erfasst.
+
+Was OneUptime tut, weil jemand darum gebeten hat, wird ebenfalls als dessen Änderung erfasst, ob das Projekt Systemereignisse speichert oder nicht: das Starten, Genehmigen, Abschließen, Überspringen und Abbrechen eines Runbook-Laufs, die Labels, die eine Label-Regel hinzufügt, wenn jemand sie auf die bereits vorhandenen Datensätze anwendet, das Zurücksetzen des Links eines Kalender-Feeds und die Teams, denen jemand bei der Anmeldung mit SSO beitritt. Die Schritte eines Runbook-Laufs werden als das erfasst, was mit jedem getan wurde, etwa `Approved "Restart the API" (step 3)`, nie mit dem, was ein Schritt ausgegeben hat. Labels, die eine Regel beim Anlegen eines Datensatzes hinzufügt, sind eine Änderung von OneUptime selbst und werden erfasst, wenn **Systemereignisse speichern** eingeschaltet ist.
 
 ## Wie lange Einträge bleiben
 
