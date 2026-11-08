@@ -299,6 +299,15 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
     return undefined;
   };
 
+  /*
+   * No call, beside tokens and cost the GenAI metrics brought: the 0 is the
+   * apps' (a coding assistant's metrics count no call), and says so rather
+   * than reading as a contradiction of the figures beside it.
+   */
+  const callsFromAppsOnly: boolean =
+    totals.calls === 0 &&
+    (totals.tokenSource === "metrics" || totals.costSource === "metrics");
+
   return (
     <div
       className="grid grid-cols-2 gap-3 lg:grid-cols-4"
@@ -312,7 +321,10 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
             ? translator.translateTemplate("{{rate}} error rate", {
                 rate: formatLlmShare(totals.erroredCalls, totals.calls),
               })
-            : undefined
+            : callsFromAppsOnly
+              ? translator.translateText("AI calls come from your apps") ||
+                undefined
+              : undefined
         }
         icon={IconProp.Sparkles}
         iconClassName="text-violet-600"

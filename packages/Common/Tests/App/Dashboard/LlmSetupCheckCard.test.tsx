@@ -267,8 +267,8 @@ describe("the Setup check card: the customer's case", () => {
       ).getByTestId("llm-setup-check-line-connection-openai"),
     ).toHaveAttribute("data-tone", "ok");
     expect(accounts).toHaveTextContent(/Last used/);
-    // OpenAI's reports leave Azure OpenAI out.
-    expect(accounts).toHaveTextContent(
+    // A working account with usage is one line: no note on what it reads.
+    expect(accounts).not.toHaveTextContent(
       "Azure OpenAI and ChatGPT use are not in it.",
     );
 
@@ -368,7 +368,14 @@ describe("the Setup check card: your apps", () => {
       expect(group(testId)).toHaveTextContent(
         "This part could not be read for you.",
       );
+      // Not known is not "none": no next step offered on a guess.
+      expect(screen.queryByTestId(`${testId}-action`)).not.toBeInTheDocument();
     }
+
+    // Parts not known are not "nothing": the groups show, not the quiet line.
+    expect(
+      screen.queryByTestId("llm-setup-check-quiet"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -429,7 +436,15 @@ describe("the Setup check card: coding assistants", () => {
 
 describe("the Setup check card: connections", () => {
   test("nothing connected: each kind says what it would bring, and opens its way", async () => {
-    fetchCheckMock.mockResolvedValue(check() as never);
+    fetchCheckMock.mockResolvedValue(
+      check({
+        apps: apps({
+          callsRecently: 4,
+          newestCallAt: recent(3),
+          services: [{ serviceId: "svc-checkout", calls: 4, newestAt: null }],
+        }),
+      }) as never,
+    );
 
     await renderCard();
 
@@ -488,9 +503,18 @@ describe("the Setup check card: connections", () => {
       "llm-setup-check-connection-copilot",
     );
 
-    expect(copilot).toHaveTextContent(
-      "Its last read failed: HTTP 403: Forbidden",
+    expect(
+      within(copilot).getByTestId("llm-setup-check-line-connection-copilot"),
+    ).toHaveTextContent(/^Not workingIts last read failed/);
+    // The server's own words: apart from the sentence, in their own direction.
+    const error: HTMLElement = within(copilot).getByTestId(
+      "llm-setup-check-error-connection-copilot",
     );
+
+    expect(error).toHaveTextContent("HTTP 403: Forbidden");
+    expect(error).toHaveAttribute("dir", "auto");
+    expect(error).toHaveAttribute("title", "HTTP 403: Forbidden");
+    expect(error).toHaveClass("line-clamp-2");
     expect(
       within(copilot).getByTestId("llm-setup-check-line-connection-copilot"),
     ).toHaveAttribute("data-tone", "error");
@@ -501,21 +525,223 @@ describe("the Setup check card: connections", () => {
     );
   });
 
-  test("every tone says itself to a screen reader", async () => {
+  /*
+   * A working, failing or doubtful line says how it stands to a screen
+   * reader; a line that is off or waiting says it in its own words, and its
+   * icon is decoration (it used to read "Not set up. Turned off").
+   */
+  test("a tone that adds something says it to a screen reader; one that would contradict the words says nothing", async () => {
     fetchCheckMock.mockResolvedValue(
       check({
-        connections: [connection({ isEnabled: false })],
+        connections: [
+          connection({ connectionId: "off", isEnabled: false }),
+          connection({ connectionId: "new", lastSuccessfulReadAt: null }),
+          connection({ connectionId: "used" }),
+          connection({
+            connectionId: "broken",
+            lastError: "HTTP 401",
+            failureKind: "authentication",
+            lastReadAt: recent(1),
+            lastSuccessfulReadAt: recent(600),
+          }),
+        ],
       }) as never,
     );
 
     await renderCard();
 
-    const line: HTMLElement = screen.getByTestId(
-      "llm-setup-check-line-connection-openai",
+    const off: HTMLElement = screen.getByTestId(
+      "llm-setup-check-line-connection-off",
     );
 
-    expect(line).toHaveAttribute("data-tone", "off");
-    expect(within(line).getByText("Not set up")).toHaveClass("sr-only");
-    expect(line).toHaveTextContent("Turned off");
+    expect(off).toHaveAttribute("data-tone", "off");
+    expect(off).toHaveTextContent(/^Turned off$/);
+    expect(within(off).queryByText("Not set up")).not.toBeInTheDocument();
+
+    const waiting: HTMLElement = screen.getByTestId(
+      "llm-setup-check-line-connection-new",
+    );
+
+    expect(waiting).toHaveAttribute("data-tone", "waiting");
+    expect(waiting).toHaveTextContent(/^Waiting for the first read$/);
+
+    expect(
+      within(
+        screen.getByTestId("llm-setup-check-line-connection-used"),
+      ).getByText("Working"),
+    ).toHaveClass("sr-only");
+
+    const broken: HTMLElement = screen.getByTestId(
+      "llm-setup-check-line-connection-broken",
+    );
+
+    expect(within(broken).getByText("Not working")).toHaveClass("sr-only");
+    // In the product's words, with what to do - never the raw error.
+    expect(broken).toHaveTextContent("The key or secret was not accepted.");
+    expect(broken).toHaveTextContent(
+      "Check that you copied all of it, that it has not been revoked, and that it is the kind this connection asks for.",
+    );
+    expect(broken).not.toHaveTextContent("HTTP 401");
+  });
+});
+
+/*
+ * The UI review (#6340): a new project's card is one line, each group is a
+ * heading with its next step under what it answers, a connection's name
+ * keeps its own direction, and a re-read keeps the last answer on screen.
+ */
+describe("the Setup check card: one look, at any width", () => {
+  test("nothing set up and nothing arriving: one line, not three groups of none", async () => {
+    fetchCheckMock.mockResolvedValue(
+      check({ apps: apps({ callsInWindow: 0 }) }) as never,
+    );
+
+    await renderCard();
+
+    expect(screen.getByTestId("llm-setup-check-quiet")).toHaveTextContent(
+      "Nothing is coming in yet. Pick a way below to bring AI in.",
+    );
+
+    for (const testId of [
+      "llm-setup-check-apps",
+      "llm-setup-check-accounts",
+      "llm-setup-check-tools",
+    ]) {
+      expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+    }
+
+    // Still a check: it can be read again.
+    expect(
+      screen.getByRole("button", { name: /Check again/ }),
+    ).toBeInTheDocument();
+  });
+
+  test("each group is a heading a screen reader can jump to", async () => {
+    fetchCheckMock.mockResolvedValue(
+      check({ connections: [connection()] }) as never,
+    );
+
+    await renderCard();
+
+    expect(
+      screen
+        .getAllByRole("heading", { level: 3 })
+        .map((heading: HTMLElement): string => {
+          return heading.textContent || "";
+        }),
+    ).toEqual([
+      "Your apps",
+      "Your AI provider accounts",
+      "Your company's AI tools",
+    ]);
+  });
+
+  test("a group's next step comes after the finding it answers", async () => {
+    fetchCheckMock.mockResolvedValue(
+      check({ connections: [connection()] }) as never,
+    );
+
+    await renderCard();
+
+    const appsGroup: HTMLElement = group("llm-setup-check-apps");
+    const finding: HTMLElement = within(appsGroup).getByTestId(
+      "llm-setup-check-line-apps-none",
+    );
+    const action: HTMLElement = within(appsGroup).getByTestId(
+      "llm-setup-check-apps-action",
+    );
+
+    expect(
+      finding.compareDocumentPosition(action) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(action).toHaveTextContent("Send your app's AI calls");
+    // Under the text, past the lines' icons.
+    expect(action).toHaveClass("ml-6");
+  });
+
+  test("a connection's name keeps its own direction, and its whole name on hover", async () => {
+    const name: string = "Azure OpenAI / Foundry (production subscription)";
+
+    fetchCheckMock.mockResolvedValue(
+      check({
+        connections: [
+          connection({
+            connectionId: "azure",
+            name,
+            provider: LlmConnectionProvider.AzureOpenAI,
+          }),
+        ],
+      }) as never,
+    );
+
+    await renderCard();
+
+    const row: HTMLElement = screen.getByTestId(
+      "llm-setup-check-connection-azure",
+    );
+    const label: HTMLElement = within(row).getByTestId(
+      "llm-setup-check-connection-name",
+    );
+
+    expect(label).toHaveTextContent(name);
+    // An English name on a Persian page is cut at its end, not its start.
+    expect(label).toHaveAttribute("dir", "auto");
+    expect(label).toHaveAttribute("title", name);
+    // A row is a list item, in a container the row's layout measures.
+    expect(row.tagName).toBe("LI");
+    expect(row.closest("ul")!.parentElement!.className).toContain(
+      "[container-type:inline-size]",
+    );
+  });
+
+  test("Check again keeps the last answer on screen while it reads", async () => {
+    fetchCheckMock.mockResolvedValueOnce(
+      check({ connections: [connection()] }) as never,
+    );
+
+    await renderCard();
+
+    expect(group("llm-setup-check-accounts")).toHaveTextContent(
+      "OpenAI production",
+    );
+
+    fetchCheckMock.mockReturnValueOnce(new Promise(() => {}) as never);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Check again/ }));
+    });
+
+    expect(fetchCheckMock).toHaveBeenCalledTimes(2);
+    // No placeholder in place of what was there.
+    expect(
+      screen.queryByTestId("llm-setup-check-loading"),
+    ).not.toBeInTheDocument();
+    expect(group("llm-setup-check-accounts")).toHaveTextContent(
+      "OpenAI production",
+    );
+  });
+
+  test("a re-read that fails says so", async () => {
+    fetchCheckMock.mockResolvedValueOnce(
+      check({ connections: [connection()] }) as never,
+    );
+
+    await renderCard();
+
+    fetchCheckMock.mockRejectedValueOnce(
+      new Error("Timeout exceeded") as never,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Check again/ }));
+    });
+
+    expect(screen.getByTestId("llm-setup-check-error")).toHaveTextContent(
+      "The setup check could not be read. Check again in a moment.",
+    );
+    expect(
+      screen.queryByTestId("llm-setup-check-accounts"),
+    ).not.toBeInTheDocument();
   });
 });

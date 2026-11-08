@@ -1,7 +1,8 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import OneUptimeDate from "../../../Types/Date";
+import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
 import LlmConnectionProvider from "../../../Types/LlmObservability/LlmConnectionProvider";
 import {
   LlmEmptyViewFinding,
@@ -9,6 +10,7 @@ import {
   LlmMetricSource,
   LlmSetupCheckApps,
   LlmSetupCheckConnection,
+  LlmSetupCheckResponse,
 } from "../../../Types/Telemetry/LlmSetupCheckApi";
 import TimeRange from "../../../Types/Time/TimeRange";
 import {
@@ -20,6 +22,7 @@ import {
   LlmEmptyView,
   LlmEmptyViewWords,
   LlmSetupCheckLine,
+  NOTHING_COMING_IN,
   PROVIDER_READS,
   getAppNames,
   getAppsLines,
@@ -29,6 +32,8 @@ import {
   getRangeHolding,
   getWidenTitle,
   isConnectionFailing,
+  isLlmSetupCheckQuiet,
+  withOneStop,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/SetupCheck/LlmSetupCheckWords";
 
 /*
@@ -42,6 +47,8 @@ import {
 const NOW: Date = new Date("2026-11-04T12:00:00.000Z");
 const ENGLISH: Translator = createTranslator(undefined, "en");
 const DAY: number = 24 * 60 * 60 * 1000;
+// A short date that ends with a full stop of its own, as German writes it.
+const DATE_WITH_STOP: RegExp = /\.$/;
 
 const NAMES: Record<string, string> = {
   "svc-checkout": "checkout",
@@ -315,8 +322,10 @@ describe("what an empty view says", () => {
 
       expect(result.title).toBe(title);
       expect(result.description).toBe(
-        "Your 2 connected provider accounts report usage and cost by day, never a call or a conversation. Those come from your apps, and none has sent an AI call in the past 7 days.",
+        "Your 2 connected provider accounts report usage and cost by day, never a call or a conversation. None of your apps has sent an AI call in the past 7 days.",
       );
+      // The heading says where calls come from; the sentence does not repeat it.
+      expect(result.description).not.toContain("come from your apps");
       expect(result.primary).toBe("send-calls");
       expect(result.secondary).toBe("see-provider-usage");
     },
@@ -329,11 +338,11 @@ describe("what an empty view says", () => {
         connections: [connection()],
       }).description,
     ).toBe(
-      "Your connected provider account reports usage and cost by day, never a call or a conversation. Those come from your apps, and none has sent an AI call in the past 7 days.",
+      "Your connected provider account reports usage and cost by day, never a call or a conversation. None of your apps has sent an AI call in the past 7 days.",
     );
   });
 
-  test("coding assistants only: they send usage, which is on Usage", () => {
+  test("coding assistants only: they send usage, and See usage leads", () => {
     const result: LlmEmptyViewWords = words({
       key: LlmEmptyViewFindingKey.CodingToolsOnly,
       metricSources: [LlmMetricSource.ClaudeCode, LlmMetricSource.Cursor],
@@ -341,7 +350,7 @@ describe("what an empty view says", () => {
 
     expect(result.title).toBe("Conversations come from your apps");
     expect(result.description).toBe(
-      "Claude Code and Cursor send usage metrics, which show on Usage. Calls and conversations come from your apps, and none has sent an AI call in the past 7 days.",
+      "Claude Code and Cursor send usage metrics, never a call or a conversation. None of your apps has sent an AI call in the past 7 days.",
     );
     expect(result.primary).toBe("see-usage");
     expect(result.secondary).toBe("send-calls");
@@ -646,25 +655,87 @@ describe("the Setup check card: a connection", () => {
     });
   });
 
-  test("not working: the server's own words", () => {
+  /*
+   * A failed read says what failed in the product's words - the ones the
+   * connection's View error and its test use - and what to do, never the
+   * provider's JSON in the middle of a sentence.
+   */
+  test("not working, a key refused: the product's words and what to do, no raw error", () => {
     expect(
       line(
         connection({
-          lastError: "HTTP 401: the key was refused",
+          lastError:
+            'OpenAI usage report failed with HTTP 401: {"error":{"message":"Incorrect API key provided."}}',
+          failureKind: "authentication",
           lastSuccessfulReadAt: null,
         }),
       ),
     ).toEqual({
       key: "connection-c1",
       tone: "error",
-      text: "Its last read failed: HTTP 401: the key was refused",
+      text: "The key or secret was not accepted.",
+      detail:
+        "Check that you copied all of it, that it has not been revoked, and that it is the kind this connection asks for.",
     });
   });
 
-  test("never read yet", () => {
+  test("not working, a missing permission: the role to give", () => {
+    const result: LlmSetupCheckLine = line(
+      connection({
+        lastError: "HTTP 403: Forbidden",
+        failureKind: "permission",
+        lastSuccessfulReadAt: null,
+      }),
+    );
+
+    expect(result.tone).toBe("error");
+    expect(result.text).toBe(
+      "The credential works, but it may not read what this connection needs.",
+    );
+    expect(result.detail).toBe(
+      "Give it the role or scope the setup guide names, then test again.",
+    );
+    expect(result.error).toBeUndefined();
+  });
+
+  test("not working for a reason the product has no words for: the server's own, set apart", () => {
+    for (const failureKind of [undefined, "other", "something-new"]) {
+      expect(
+        line(
+          connection({
+            lastError: "HTTP 401: the key was refused",
+            ...(failureKind ? { failureKind } : {}),
+            lastSuccessfulReadAt: null,
+          }),
+        ),
+      ).toEqual({
+        key: "connection-c1",
+        tone: "error",
+        text: "Its last read failed",
+        // Apart from the sentence, never inside it.
+        error: "HTTP 401: the key was refused",
+      });
+    }
+  });
+
+  test("a failure kind on a connection that reads again is no failure", () => {
+    const result: LlmSetupCheckLine = line(
+      connection({
+        lastError: "HTTP 401",
+        failureKind: "authentication",
+        newestUsageAt: "2026-11-03T00:00:00.000Z",
+      }),
+    );
+
+    // The last read was the good one: it works.
+    expect(result.tone).toBe("ok");
+    expect(result.text).toContain("Last used");
+  });
+
+  test("never read yet: waiting, not off", () => {
     expect(line(connection({ lastSuccessfulReadAt: null }))).toEqual({
       key: "connection-c1",
-      tone: "off",
+      tone: "waiting",
       text: "Waiting for the first read",
     });
   });
@@ -699,7 +770,11 @@ describe("the Setup check card: a connection", () => {
     ).toContain("12 chats in the past 7 days");
   });
 
-  test("a provider account with usage: when it was read, the last day used, what its reads cover", () => {
+  /*
+   * A working account with usage is one line: what its reads cover would
+   * only repeat itself under every account that works.
+   */
+  test("a provider account with usage: when it was read and the last day used, in one line", () => {
     const readAt: Date = daysAgo(0.01);
     const result: LlmSetupCheckLine = line(
       connection({
@@ -712,10 +787,20 @@ describe("the Setup check card: a connection", () => {
       key: "connection-c1",
       tone: "ok",
       text: `Read ${OneUptimeDate.fromNow(readAt, NOW)}. Last used ${formatLlmUsageDay("2026-11-03T00:00:00.000Z")}.`,
-      detail: PROVIDER_READS[LlmConnectionProvider.OpenAI],
     });
-    // OpenAI's reports leave Azure OpenAI out: said where it matters.
-    expect(result.detail).toContain("Azure OpenAI");
+  });
+
+  // Where the reads explain an empty account, they are said.
+  test("an OpenAI account with no usage: what OpenAI's reports leave out", () => {
+    const result: LlmSetupCheckLine = line(
+      connection({ readSince: "2026-10-01T00:00:00.000Z" }),
+    );
+
+    expect(result.tone).toBe("warning");
+    expect(result.detail).toBe(PROVIDER_READS[LlmConnectionProvider.OpenAI]);
+    expect(result.detail).toContain(
+      "Azure OpenAI and ChatGPT use are not in it.",
+    );
   });
 
   test("an account read without usage since its first read: since when", () => {
@@ -794,6 +879,160 @@ describe("the Setup check card: a connection", () => {
       expect(PROVIDER_READS[provider]).toBeTruthy();
     }
   });
+});
+
+/*
+ * German, Danish, Dutch and Swedish write a short date with a full stop of
+ * its own ("9. Okt."): a sentence that ends on it ends with that one stop -
+ * the review found "Keine Nutzung seit 9. Okt.." on the card.
+ */
+describe("a sentence that ends on a date with its own stop", () => {
+  afterEach(() => {
+    setDateDisplayLanguage(null);
+  });
+
+  test("ends with one stop", () => {
+    expect(withOneStop("Keine Nutzung seit 9. Okt..", "9. Okt.")).toBe(
+      "Keine Nutzung seit 9. Okt.",
+    );
+    expect(withOneStop("Senast använd 9 okt..", "9 okt.")).toBe(
+      "Senast använd 9 okt.",
+    );
+    // A date without a stop, or none at all, leaves the sentence as it is.
+    expect(withOneStop("Last used Oct 9.", "Oct 9")).toBe("Last used Oct 9.");
+    expect(withOneStop("No usage yet.", "")).toBe("No usage yet.");
+    // Only the stop after the date: one inside the sentence stays.
+    expect(withOneStop("Gelesen vor 1 Minute. Seit 9. Okt..", "9. Okt.")).toBe(
+      "Gelesen vor 1 Minute. Seit 9. Okt.",
+    );
+  });
+
+  test("in German, an account's line never ends in two stops", () => {
+    const table: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Locales/de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+    const german: Translator = createTranslator((key: string): string => {
+      return table[key] || key;
+    }, "de");
+
+    setDateDisplayLanguage("de");
+
+    // The date is German, with its own stop.
+    expect(formatLlmUsageDay("2026-10-09T00:00:00.000Z")).toMatch(
+      DATE_WITH_STOP,
+    );
+
+    for (const value of [
+      connection({ newestUsageAt: "2026-10-09T00:00:00.000Z" }),
+      connection({ readSince: "2026-10-09T00:00:00.000Z" }),
+    ]) {
+      const text: string = getConnectionLine({
+        connection: value,
+        translator: german,
+        now: NOW,
+      }).text;
+
+      expect(text).toContain(formatLlmUsageDay("2026-10-09T00:00:00.000Z"));
+      expect(text.endsWith("..")).toBe(false);
+      expect(text.endsWith(".")).toBe(true);
+    }
+  });
+});
+
+/*
+ * A project with nothing set up and nothing arriving: the card says so in
+ * one line rather than three groups of "none" that repeat the three ways
+ * right under it. Anything set up, arriving, or not known shows the groups.
+ */
+describe("when the whole check is quiet", () => {
+  function response(
+    overrides: Partial<LlmSetupCheckResponse> = {},
+  ): LlmSetupCheckResponse {
+    return {
+      checkedAt: NOW.toISOString(),
+      apps: apps({ callsInWindow: 0 }),
+      metrics: [],
+      connections: [],
+      ...overrides,
+    };
+  }
+
+  test("nothing set up, nothing arriving: quiet", () => {
+    expect(isLlmSetupCheckQuiet(response())).toBe(true);
+    // A metric source with no points in the week is not arriving.
+    expect(
+      isLlmSetupCheckQuiet(
+        response({
+          metrics: [
+            { source: LlmMetricSource.Codex, points: 0, newestAt: null },
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test.each([
+    [
+      "an app sent calls",
+      {
+        apps: apps({
+          callsRecently: 3,
+          newestCallAt: daysAgo(1).toISOString(),
+        }),
+      },
+    ],
+    [
+      "calls before the past week",
+      { apps: apps({ newestCallAt: daysAgo(20).toISOString() }) },
+    ],
+    ["calls in the view's window", { apps: apps({ callsInWindow: 2 }) }],
+    [
+      "an app calls an AI API unrecorded",
+      {
+        apps: apps({
+          uninstrumented: [
+            {
+              serviceId: "svc-checkout",
+              host: "api.openai.com",
+              provider: "openai",
+              calls: 4,
+            },
+          ],
+        }),
+      },
+    ],
+    [
+      "a coding assistant sends metrics",
+      {
+        metrics: [
+          {
+            source: LlmMetricSource.ClaudeCode,
+            points: 12,
+            newestAt: daysAgo(1).toISOString(),
+          },
+        ],
+      },
+    ],
+    ["a connection", { connections: [connection()] }],
+    [
+      "a connection turned off",
+      { connections: [connection({ isEnabled: false })] },
+    ],
+    ["apps not known", { apps: null }],
+    ["metrics not known", { metrics: null }],
+    ["connections not known", { connections: null }],
+  ] as Array<[string, Partial<LlmSetupCheckResponse>]>)(
+    "%s: not quiet",
+    (_name: string, overrides: Partial<LlmSetupCheckResponse>) => {
+      expect(isLlmSetupCheckQuiet(response(overrides))).toBe(false);
+    },
+  );
 });
 
 /*
@@ -964,6 +1203,16 @@ describe("the setup check in every language", () => {
     const connectionCases: Array<LlmSetupCheckConnection> = [
       connection({ isEnabled: false }),
       connection({ lastError: "HTTP 401", lastSuccessfulReadAt: null }),
+      connection({
+        lastError: "HTTP 401",
+        failureKind: "authentication",
+        lastSuccessfulReadAt: null,
+      }),
+      connection({
+        lastError: "HTTP 429",
+        failureKind: "rate-limited",
+        lastSuccessfulReadAt: null,
+      }),
       connection({ lastSuccessfulReadAt: null }),
       connection({
         kind: "company-tool",
@@ -1008,6 +1257,11 @@ describe("the setup check in every language", () => {
     ]) {
       sentences.push(getWidenTitle(range, translator));
     }
+
+    // The card of a project with nothing set up and nothing arriving.
+    sentences.push(
+      translator.translateText(NOTHING_COMING_IN) || NOTHING_COMING_IN,
+    );
 
     return sentences;
   }
@@ -1062,8 +1316,9 @@ describe("the setup check in every language", () => {
         now: NOW,
       });
 
-      // The server's own words are not translated.
-      expect(failing.text).toContain("HTTP 401");
+      // The server's own words are not translated, and kept apart.
+      expect(failing.error).toBe("HTTP 401");
+      expect(failing.text).not.toContain("HTTP 401");
     },
   );
 });

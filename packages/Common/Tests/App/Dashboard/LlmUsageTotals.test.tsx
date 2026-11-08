@@ -346,6 +346,59 @@ describe("the totals of a coding-assistant fleet (metrics only)", () => {
     );
   });
 
+  /*
+   * The customer's Usage tab read "LLM calls 0" beside a cost "from GenAI
+   * metrics": the 0 is the apps', and the tile says so.
+   */
+  test("no call beside figures from GenAI metrics: the calls tile says calls come from apps", async () => {
+    countMock.mockImplementation(() => {
+      return Promise.resolve(0 as never);
+    });
+    serve({
+      spanInput: 0,
+      spanOutput: 0,
+      spanCost: 0,
+      metrics: { costUsd: 41.5, hasCost: true },
+    });
+
+    await renderTiles();
+
+    expect(
+      screen.getByTestId("llm-usage-totals-calls-value"),
+    ).toHaveTextContent("0");
+    expect(screen.getByTestId("llm-usage-totals-calls-hint")).toHaveTextContent(
+      "AI calls come from your apps",
+    );
+  });
+
+  test("no call and nothing from metrics either: the calls tile adds nothing", async () => {
+    countMock.mockImplementation(() => {
+      return Promise.resolve(0 as never);
+    });
+    serve({ spanInput: 0, spanOutput: 0, spanCost: 0 });
+
+    await renderTiles();
+
+    expect(
+      screen.queryByTestId("llm-usage-totals-calls-hint"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("calls from apps beside metric cost: the error rate, as before", async () => {
+    serve({
+      spanInput: 500,
+      spanOutput: 50,
+      spanCost: 0,
+      metrics: { costUsd: 7.25, hasCost: true },
+    });
+
+    await renderTiles();
+
+    expect(screen.getByTestId("llm-usage-totals-calls-hint")).toHaveTextContent(
+      "error rate",
+    );
+  });
+
   test("a metric cost of 0 is no signal, not a metric figure", async () => {
     serve({
       spanInput: 0,

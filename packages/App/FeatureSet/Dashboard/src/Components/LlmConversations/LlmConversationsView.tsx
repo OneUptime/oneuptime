@@ -397,6 +397,17 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
         );
       }
 
+      /*
+       * "Show the past month" is a way to find older calls: offered unless
+       * the range already holds a month, or the setup check read that no
+       * app has ever sent one the project still keeps.
+       */
+      const hasNoCallsToFind: boolean =
+        setupCheck.kind === "loaded" &&
+        setupCheck.check.apps !== null &&
+        setupCheck.check.apps.callsRecently === 0 &&
+        !setupCheck.check.apps.newestCallAt;
+
       const isWholeMonth: boolean =
         view.range.range === TimeRange.PAST_ONE_MONTH ||
         view.range.range === TimeRange.PAST_THREE_MONTHS;
@@ -474,7 +485,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
                 Navigation.navigate(setupRoute);
               },
             },
-            ...(isWholeMonth
+            ...(isWholeMonth || hasNoCallsToFind
               ? []
               : [
                   {

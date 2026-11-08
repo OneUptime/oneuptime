@@ -448,7 +448,7 @@ describe("an empty Calls list says why", () => {
       "AI calls come from your apps",
     );
     expect(emptyDescription()).toBe(
-      "Your connected provider account reports usage and cost by day, never a call or a conversation. Those come from your apps, and none has sent an AI call in the past 7 days.",
+      "Your connected provider account reports usage and cost by day, never a call or a conversation. None of your apps has sent an AI call in the past 7 days.",
     );
 
     const actions: Array<CapturedAction> =

@@ -365,6 +365,27 @@ describe("readLlmSetupCheckResponse", () => {
     expect(read.connections?.[1]?.resources).toBe(0);
     expect(read.connections?.[1]?.callsRecently).toBe(0);
   });
+
+  /*
+   * What kind of failure a connection's last read was: the card says it in
+   * the product's words. Absent when the server sent none, never "".
+   */
+  test("a failed read's kind is read when the server sent one, and left out when not", () => {
+    const read: LlmSetupCheckResponse = readLlmSetupCheckResponse({
+      connections: [
+        { lastError: "HTTP 401", failureKind: "authentication" },
+        { lastError: "HTTP 500" },
+        { failureKind: "" },
+        { failureKind: 42 },
+      ],
+    });
+
+    expect(read.connections?.[0]?.failureKind).toBe("authentication");
+
+    for (const index of [1, 2, 3]) {
+      expect(read.connections?.[index]).not.toHaveProperty("failureKind");
+    }
+  });
 });
 
 describe("what an empty Conversations or Calls view leads with", () => {

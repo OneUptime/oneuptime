@@ -577,6 +577,10 @@ function setupCheck() {
         lastReadAt: toIso(item.lastPulledAt),
         lastSuccessfulReadAt: toIso(item.lastSuccessfulPullAt),
         lastError: item.lastError || "",
+        // A failed read says what kind of failure it was, as the server does.
+        ...(result.status === "failed" && result.failureKind
+          ? { failureKind: result.failureKind }
+          : {}),
         newestUsageAt: !isTool && used ? "2026-10-19T00:00:00.000Z" : null,
         resources: null,
         readSince: null,

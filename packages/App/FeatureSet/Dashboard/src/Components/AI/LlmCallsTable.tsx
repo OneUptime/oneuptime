@@ -493,8 +493,10 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
         },
         /*
          * How long the call took: the latency a person most often opens a
-         * call for, after what it cost. Narrow ("850 ms", "2.3 s"), so the
-         * default table still fits a laptop - the AI pages have no side menu.
+         * call for, after what it cost. Narrow ("850 ms", "2.3 s", some
+         * 90px): with real app and user names the default table already
+         * scrolls sideways under a laptop's width, its actions held at the
+         * end, and this adds little to that.
          */
         {
           field: {

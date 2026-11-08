@@ -962,15 +962,27 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                 }),
               })}
             </div>
-            <div className="text-sm text-gray-500">
-              {translator.translateTemplate(
-                "Top {{top}} of {{total}} by cost over the selected range.",
-                {
-                  top: translator.formatNumber(TOP_K_GROUPS),
-                  total: translator.formatNumber(usage.totalGroups),
-                },
-              )}
-            </div>
+            {/*
+             * Only over rows it counts: while the table loads, when it could
+             * not be read, or when it is empty, "Top 25 of 0" says nothing
+             * true.
+             */}
+            {!usage.isLoading && !usage.hasError && usage.totalGroups > 0 ? (
+              <div
+                className="text-sm text-gray-500"
+                data-testid="llm-usage-breakdown-top"
+              >
+                {translator.translateTemplate(
+                  "Top {{top}} of {{total}} by cost over the selected range.",
+                  {
+                    top: translator.formatNumber(TOP_K_GROUPS),
+                    total: translator.formatNumber(usage.totalGroups),
+                  },
+                )}
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
           {usage.source === "metrics" ? (
             <span

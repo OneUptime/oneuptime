@@ -155,6 +155,13 @@ export interface LlmSetupCheckConnection {
   lastSuccessfulReadAt: string | null;
   // The last read's error, secrets removed; "" when none.
   lastError: string;
+  /*
+   * What kind of failure the last read was (LlmConnectionFailureKind:
+   * authentication, permission, ...), when it failed and said: the check
+   * then says it in the product's words, the error itself kept for the
+   * connection's own View error.
+   */
+  failureKind?: string | undefined;
   // A provider account's newest day with usage; null when none was read.
   newestUsageAt: string | null;
   // Resources the last read found (Azure); null when not counted.
@@ -303,6 +310,8 @@ export function readLlmSetupCheckResponse(
       ? readList(
           object["connections"],
           (item: Record<string, unknown>): LlmSetupCheckConnection => {
+            const failureKind: string = readString(item["failureKind"]);
+
             return {
               connectionId: readString(item["connectionId"]),
               name: readString(item["name"]),
@@ -315,6 +324,7 @@ export function readLlmSetupCheckResponse(
               lastReadAt: readDate(item["lastReadAt"]),
               lastSuccessfulReadAt: readDate(item["lastSuccessfulReadAt"]),
               lastError: readString(item["lastError"]),
+              ...(failureKind ? { failureKind: failureKind } : {}),
               newestUsageAt: readDate(item["newestUsageAt"]),
               resources: readOptionalCount(item["resources"]),
               readSince: readDate(item["readSince"]),

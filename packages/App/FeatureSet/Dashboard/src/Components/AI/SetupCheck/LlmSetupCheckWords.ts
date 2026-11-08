@@ -1,5 +1,8 @@
 import OneUptimeDate from "Common/Types/Date";
-import { getLlmConnectionTitle } from "Common/Types/LlmObservability/LlmConnectionCatalog";
+import {
+  getLlmConnectionDefinition,
+  getLlmConnectionTitle,
+} from "Common/Types/LlmObservability/LlmConnectionCatalog";
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
 import { getLlmProviderTitle } from "Common/Types/Telemetry/LlmProviders";
 import {
@@ -9,6 +12,8 @@ import {
   LlmMetricSource,
   LlmSetupCheckApps,
   LlmSetupCheckConnection,
+  LlmSetupCheckMetricSource,
+  LlmSetupCheckResponse,
   LlmSetupCheckUninstrumentedCalls,
 } from "Common/Types/Telemetry/LlmSetupCheckApi";
 import TimeRange from "Common/Types/Time/TimeRange";
@@ -20,6 +25,10 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
 import { formatLlmUsageDay } from "../Connect/LlmConnectionHealth";
+import {
+  LlmConnectionTestWords,
+  getLlmConnectionReadFailureWords,
+} from "../Connect/LlmConnectionTestWords";
 
 /*
  * WHAT THE AI / LLM SETUP CHECK SAYS, IN THE READER'S WORDS.
@@ -105,16 +114,22 @@ export const TOOLS_QUIET_SENTENCE: PluralTemplate = {
     "{{tools}} are connected and read every 15 minutes: their chats show here as people use them.",
 };
 
+/*
+ * Under "Conversations come from your apps": what the accounts or tools do
+ * bring, and that no app has sent a call. The heading already says where
+ * calls come from, so the sentence does not say it again; the buttons under
+ * it say where the usage shows.
+ */
 export const PROVIDER_ACCOUNTS_ONLY_SENTENCE: PluralTemplate = {
-  one: "Your connected provider account reports usage and cost by day, never a call or a conversation. Those come from your apps, and none has sent an AI call in the past 7 days.",
+  one: "Your connected provider account reports usage and cost by day, never a call or a conversation. None of your apps has sent an AI call in the past 7 days.",
   other:
-    "Your {{count}} connected provider accounts report usage and cost by day, never a call or a conversation. Those come from your apps, and none has sent an AI call in the past 7 days.",
+    "Your {{count}} connected provider accounts report usage and cost by day, never a call or a conversation. None of your apps has sent an AI call in the past 7 days.",
 };
 
 export const CODING_TOOLS_ONLY_SENTENCE: PluralTemplate = {
-  one: "{{tools}} sends usage metrics, which show on Usage. Calls and conversations come from your apps, and none has sent an AI call in the past 7 days.",
+  one: "{{tools}} sends usage metrics, never a call or a conversation. None of your apps has sent an AI call in the past 7 days.",
   other:
-    "{{tools}} send usage metrics, which show on Usage. Calls and conversations come from your apps, and none has sent an AI call in the past 7 days.",
+    "{{tools}} send usage metrics, never a call or a conversation. None of your apps has sent an AI call in the past 7 days.",
 };
 
 export const NOTHING_TITLE: Record<LlmEmptyView, string> = {
@@ -377,10 +392,11 @@ export function isConnectionFailing(
 
 /*
  * THE CONNECT PAGE'S SETUP CHECK: one line per finding, in the reader's
- * words, with how it stands (ok, a warning, or not set up).
+ * words, with how it stands: ok, a warning, not working, waiting for a
+ * first read, or off (not set up, turned off, or not known).
  */
 
-export type LlmSetupCheckTone = "ok" | "warning" | "off" | "error";
+export type LlmSetupCheckTone = "ok" | "warning" | "off" | "error" | "waiting";
 
 export interface LlmSetupCheckLine {
   key: string;
@@ -388,7 +404,23 @@ export interface LlmSetupCheckLine {
   text: string;
   // A muted second line: what this means, or what to do.
   detail?: string | undefined;
+  /*
+   * A failed read's own words, as the provider or the server wrote them
+   * (untranslated, secrets removed before they were stored): shown apart
+   * from the sentence, only when the product has no words for the failure.
+   */
+  error?: string | undefined;
 }
+
+// The whole check, when nothing is set up and nothing arrives.
+export const NOTHING_COMING_IN: string = translationKey(
+  "Nothing is coming in yet. Pick a way below to bring AI in.",
+);
+
+// A failed read the product has no words for.
+export const CONNECTION_READ_FAILED: string = translationKey(
+  "Its last read failed",
+);
 
 export const APPS_RECEIVING: PluralTemplate = {
   one: "{{count}} AI call in the past 7 days, from {{apps}}.",
@@ -432,10 +464,6 @@ export const METRICS_WHERE: string = translationKey(
   "They show on Usage: who uses what, and what it costs. Coding assistants send no conversations.",
 );
 
-export const METRICS_NONE: string = translationKey(
-  "No coding assistant sends usage metrics.",
-);
-
 export const ACCOUNTS_NONE: string = translationKey(
   "None connected. An account brings its usage and cost by day, with no code.",
 );
@@ -447,9 +475,6 @@ export const TOOLS_NONE: string = translationKey(
 export const CONNECTION_OFF: string = translationKey("Turned off");
 export const CONNECTION_WAITING: string = translationKey(
   "Waiting for the first read",
-);
-export const CONNECTION_FAILED: string = translationKey(
-  "Its last read failed: {{error}}",
 );
 export const CONNECTION_LAST_USED: string = translationKey(
   "Read {{time}}. Last used {{date}}.",
@@ -643,6 +668,43 @@ export function getAppsLines(data: {
   return lines;
 }
 
+/*
+ * A date that ends with its own full stop ("9. Okt." in German, "9 okt." in
+ * Dutch and Swedish) ends a sentence with that one stop, never two.
+ */
+export function withOneStop(text: string, value: string): string {
+  if (!value || !value.endsWith(".")) {
+    return text;
+  }
+
+  return text.split(`${value}.`).join(value);
+}
+
+/*
+ * Nothing set up and nothing arriving: no app has sent an AI call within
+ * retention or calls an AI API unrecorded, no metrics arrive, and nothing is
+ * connected. The card then says so in one line, above the three ways in. A
+ * part that could not be read is not "nothing".
+ */
+export function isLlmSetupCheckQuiet(check: LlmSetupCheckResponse): boolean {
+  const apps: LlmSetupCheckApps | null = check.apps;
+
+  if (!apps || check.metrics === null || check.connections === null) {
+    return false;
+  }
+
+  return (
+    apps.callsRecently === 0 &&
+    (apps.callsInWindow ?? 0) === 0 &&
+    !apps.newestCallAt &&
+    (apps.uninstrumented || []).length === 0 &&
+    check.metrics.every((metric: LlmSetupCheckMetricSource): boolean => {
+      return metric.points === 0;
+    }) &&
+    check.connections.length === 0
+  );
+}
+
 export function getConnectionLine(data: {
   connection: LlmSetupCheckConnection;
   translator: Translator;
@@ -664,20 +726,45 @@ export function getConnectionLine(data: {
   }
 
   if (isConnectionFailing(connection)) {
+    /*
+     * What failed, in the words the connection's View error and its test
+     * use ("The key or secret was not accepted.") and what to do about it.
+     * Only a failure the product has no words for shows the provider's own
+     * text - set apart, as it is English and often JSON.
+     */
+    const failure: LlmConnectionTestWords | undefined =
+      getLlmConnectionReadFailureWords({
+        definition: getLlmConnectionDefinition(connection.provider),
+        lastPullResult: connection.failureKind
+          ? { failureKind: connection.failureKind }
+          : undefined,
+      });
+
+    if (failure) {
+      return {
+        key,
+        tone: "error",
+        text: translator.translateText(failure.headline) || failure.headline,
+        detail: failure.advice
+          ? translator.translateText(failure.advice) || failure.advice
+          : undefined,
+      };
+    }
+
     return {
       key,
       tone: "error",
-      // The server's own words, secrets removed before they were stored.
-      text: translator.translateTemplate(CONNECTION_FAILED, {
-        error: connection.lastError,
-      }),
+      text:
+        translator.translateText(CONNECTION_READ_FAILED) ||
+        CONNECTION_READ_FAILED,
+      error: connection.lastError || undefined,
     };
   }
 
   if (!readAt) {
     return {
       key,
-      tone: "off",
+      tone: "waiting",
       text: translator.translateText(CONNECTION_WAITING) || CONNECTION_WAITING,
     };
   }
@@ -694,6 +781,11 @@ export function getConnectionLine(data: {
     };
   }
 
+  /*
+   * What the account's reads cover, said where it explains something: on
+   * an account that reads no usage ("Azure OpenAI and ChatGPT use are not
+   * in it"), not under every working one.
+   */
   const detail: string | undefined =
     PROVIDER_READS[connection.provider as LlmConnectionProvider];
   const translatedDetail: string | undefined = detail
@@ -714,25 +806,31 @@ export function getConnectionLine(data: {
   }
 
   if (connection.newestUsageAt) {
+    const date: string = formatLlmUsageDay(connection.newestUsageAt);
+
     return {
       key,
       tone: "ok",
-      text: translator.translateTemplate(CONNECTION_LAST_USED, {
-        time,
-        date: formatLlmUsageDay(connection.newestUsageAt),
-      }),
-      detail: translatedDetail,
+      text: withOneStop(
+        translator.translateTemplate(CONNECTION_LAST_USED, { time, date }),
+        date,
+      ),
     };
   }
 
   if (connection.readSince) {
+    const date: string = formatLlmUsageDay(connection.readSince);
+
     return {
       key,
       tone: "warning",
-      text: translator.translateTemplate(CONNECTION_NO_USAGE_SINCE, {
-        time,
-        date: formatLlmUsageDay(connection.readSince),
-      }),
+      text: withOneStop(
+        translator.translateTemplate(CONNECTION_NO_USAGE_SINCE, {
+          time,
+          date,
+        }),
+        date,
+      ),
       detail: translatedDetail,
     };
   }

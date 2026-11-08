@@ -677,6 +677,14 @@ export default class LlmSetupCheckReader {
     );
     const resources: unknown = result ? result["resources"] : undefined;
     const readSince: string = readJsonString(result, "readSince");
+    /*
+     * A failed read keeps what kind of failure it was (a refused key, a
+     * missing role): the check says that in the product's words.
+     */
+    const failureKind: string =
+      connection.lastError && readJsonString(result, "status") === "failed"
+        ? readJsonString(result, "failureKind")
+        : "";
 
     const toIsoOrNull: (value: Date | string | undefined) => string | null = (
       value: Date | string | undefined,
@@ -698,6 +706,7 @@ export default class LlmSetupCheckReader {
       lastReadAt: toIsoOrNull(connection.lastPulledAt),
       lastSuccessfulReadAt: toIsoOrNull(connection.lastSuccessfulPullAt),
       lastError: connection.lastError || "",
+      ...(failureKind ? { failureKind: failureKind } : {}),
       newestUsageAt: isTool ? null : toIso(newestUsageAtMs),
       resources:
         !isTool && typeof resources === "number" && Number.isFinite(resources)

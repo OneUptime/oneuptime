@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -673,7 +674,11 @@ test.describe("a connection that is off", () => {
  * Connect says what each way is bringing in right now.
  */
 test.describe("the setup check", () => {
-  test("nothing connected: each way says what it would bring, and opens its path", async ({
+  /*
+   * A new project: one line, not three groups of "none connected" over the
+   * three ways that say the same right under it - which stay in view.
+   */
+  test("nothing set up: one line, and the three ways right under it", async ({
     page,
   }: {
     page: Page;
@@ -683,27 +688,24 @@ test.describe("the setup check", () => {
     const check: Locator = page.getByTestId("llm-setup-check");
 
     await expect(check.getByText("Setup check", { exact: true })).toBeVisible();
-    await expect(page.getByTestId("llm-setup-check-apps")).toContainText(
-      "No app has sent an AI call yet. Calls and conversations come from your apps.",
+    await expect(page.getByTestId("llm-setup-check-quiet")).toHaveText(
+      "Nothing is coming in yet. Pick a way below to bring AI in.",
     );
-    await expect(page.getByTestId("llm-setup-check-accounts")).toContainText(
-      "None connected. An account brings its usage and cost by day, with no code.",
-    );
-    await expect(page.getByTestId("llm-setup-check-tools")).toContainText(
-      "None connected. A company AI tool brings what your people ask it, by person.",
-    );
+
+    for (const group of ["apps", "accounts", "tools"]) {
+      await expect(page.getByTestId(`llm-setup-check-${group}`)).toHaveCount(0);
+    }
+
+    for (const key of ["apps", "providers", "tools"]) {
+      await expect(way(page, key)).toBeInViewport();
+    }
 
     // The check reads the project, not a view's window.
     const state: FixtureState = await fixture(page);
     expect(state.setupChecks).toEqual([{}]);
 
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-setup-check-empty");
-
-    await page.getByTestId("llm-setup-check-accounts-action").click();
-    await expect(way(page, "providers")).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
   });
 
   test("provider accounts connected and no app sending: each account's line, and the way to send calls", async ({
@@ -727,26 +729,81 @@ test.describe("the setup check", () => {
     );
     await expect(openai).toContainText("OpenAI production");
     await expect(openai).toContainText("Last used");
-    // What OpenAI's reports leave out.
-    await expect(openai).toContainText(
+    // An account that works and has usage is one line.
+    await expect(openai).not.toContainText(
       "Azure OpenAI and ChatGPT use are not in it.",
     );
 
     const foundry: Locator = accounts.getByTestId(
       "llm-setup-check-connection-20000000-0000-4000-8000-000000000002",
     );
-    await expect(foundry).toContainText("Its last read failed");
+    // What failed in the product's words, and what to do - not Azure's JSON.
+    await expect(foundry).toContainText(
+      "The credential works, but it may not read what this connection needs.",
+    );
+    await expect(foundry).toContainText(
+      "Give it the role or scope the setup guide names, then test again.",
+    );
+    await expect(foundry).not.toContainText("AuthorizationFailed");
     await expect(
       foundry.getByTestId(
         "llm-setup-check-line-connection-20000000-0000-4000-8000-000000000002",
       ),
     ).toHaveAttribute("data-tone", "error");
 
+    await expect(
+      page.getByTestId(
+        "llm-setup-check-line-connection-20000000-0000-4000-8000-000000000003",
+      ),
+    ).toHaveAttribute("data-tone", "waiting");
     await expect(page.getByTestId("llm-setup-check-tools")).toContainText(
       "Waiting for the first read",
     );
 
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-setup-check-connected");
+  });
+
+  /*
+   * A connection is a row: its name and how it stands side by side where
+   * the card is wide, so a busy project's accounts read as a list; the
+   * status under the name on a phone. The next step sits under what it
+   * answers, in line with the text.
+   */
+  test("a connection's name and status share a row on a desktop, and stack on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    const row: Locator = page.getByTestId(
+      "llm-setup-check-connection-20000000-0000-4000-8000-000000000001",
+    );
+    const boxes: Array<FrameBox> = await boxesInOneFrame([
+      row.getByTestId("llm-setup-check-connection-name"),
+      row.getByTestId(
+        "llm-setup-check-line-connection-20000000-0000-4000-8000-000000000001",
+      ),
+    ]);
+    const name: FrameBox = boxes[0]!;
+    const status: FrameBox = boxes[1]!;
+
+    if (test.info().project.name === "phone") {
+      expect(status.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
+    } else {
+      expect(Math.abs(status.y - name.y)).toBeLessThanOrEqual(4);
+      expect(status.x).toBeGreaterThan(name.x + name.width);
+    }
+
+    const apps: Locator = page.getByTestId("llm-setup-check-apps");
+    const [finding, action] = await boxesInOneFrame([
+      apps.getByTestId("llm-setup-check-line-apps-none"),
+      apps.getByTestId("llm-setup-check-apps-action"),
+    ]);
+
+    // Under the finding, at every width.
+    expect(action!.y).toBeGreaterThanOrEqual(finding!.y + finding!.height - 1);
   });
 
   test("apps sending AI calls: how many, through which provider, and nothing to open", async ({

@@ -605,6 +605,8 @@ describe("when there is nothing to show", () => {
       problemConversationCount: 0,
     });
     server.conversations = [];
+    // Not known whether any call exists: older ones may.
+    server.setupCheck = null;
 
     await openList();
 
@@ -832,7 +834,7 @@ describe("an empty list says why, from the setup check", () => {
       "Your 2 connected provider accounts report usage and cost by day, never a call or a conversation.",
     );
     expect(text).toHaveTextContent(
-      "none has sent an AI call in the past 7 days",
+      "None of your apps has sent an AI call in the past 7 days.",
     );
 
     fireEvent.click(screen.getByTestId("llm-empty-send-calls"));
@@ -1002,7 +1004,7 @@ describe("an empty list says why, from the setup check", () => {
     await openList();
 
     expect(await diagnosis()).toHaveTextContent(
-      "Claude Code and Codex send usage metrics, which show on Usage.",
+      "Claude Code and Codex send usage metrics, never a call or a conversation.",
     );
 
     fireEvent.click(screen.getByTestId("llm-empty-see-usage"));
@@ -1097,5 +1099,40 @@ describe("an empty list says why, from the setup check", () => {
     expect(screen.getByTestId("llm-conversations-setup")).toHaveTextContent(
       "Connect AI",
     );
+    // Older calls may exist: the past month is offered.
+    expect(
+      screen.getByTestId("llm-conversations-widen-range"),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * The check read the apps and found no call the project keeps: a wider
+   * range would show the same nothing, so it is not offered - the way in
+   * is the one button.
+   */
+  test("no call ever: no past month to show, only the way in", async () => {
+    await openList();
+    await checked();
+
+    const empty: HTMLElement = screen.getByTestId("llm-conversations-empty");
+
+    expect(empty).toHaveTextContent("No AI conversations here yet");
+    expect(screen.getByTestId("llm-conversations-setup")).toHaveTextContent(
+      "Connect AI",
+    );
+    expect(
+      screen.queryByTestId("llm-conversations-widen-range"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("apps the reader may not read: the past month is still offered", async () => {
+    server.setupCheck = emptyCheck({ apps: null });
+
+    await openList();
+    await checked();
+
+    expect(
+      screen.getByTestId("llm-conversations-widen-range"),
+    ).toBeInTheDocument();
   });
 });

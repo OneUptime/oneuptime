@@ -634,6 +634,10 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
 
     expect(screen.getByText(/Usage could not be loaded/i)).toBeInTheDocument();
     expect(screen.queryByText(/No LLM usage found/i)).not.toBeInTheDocument();
+    // No "Top 25 of 0" over a table that could not be read.
+    expect(
+      screen.queryByTestId("llm-usage-breakdown-top"),
+    ).not.toBeInTheDocument();
   });
 
   test.each([
@@ -906,5 +910,38 @@ describe("LlmUsageBreakdown - degradation", () => {
       screen.queryByText(/Usage could not be loaded/i),
     ).not.toBeInTheDocument();
     expect(renderedRows()).toHaveLength(0);
+    // Nothing ranked, so no "Top 25 of 0" over it.
+    expect(
+      screen.queryByTestId("llm-usage-breakdown-top"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the top line counts the rows the table ranks, once it has them", async () => {
+    aggregateMock.mockImplementation((call: unknown) => {
+      const aggregateCall: AggregateCall = call as AggregateCall;
+
+      if (columnOf(aggregateCall) === "llmCost") {
+        return Promise.resolve(
+          result([
+            row({
+              value: 3,
+              columns: { llmUserEmail: "one@example.com", llmUserId: "" },
+            }),
+            row({
+              value: 2,
+              columns: { llmUserEmail: "two@example.com", llmUserId: "" },
+            }),
+          ]),
+        );
+      }
+
+      return Promise.resolve(result([]));
+    });
+
+    await renderBreakdown();
+
+    expect(screen.getByTestId("llm-usage-breakdown-top")).toHaveTextContent(
+      "Top 25 of 2 by cost over the selected range.",
+    );
   });
 });

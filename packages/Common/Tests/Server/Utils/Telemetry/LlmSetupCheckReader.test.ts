@@ -558,6 +558,57 @@ describe("a connection as the check reports it", () => {
     expect(reported.isEnabled).toBe(false);
     expect(reported.lastError).toBe("Unauthorized.");
   });
+
+  /*
+   * The last read failed and said why (the pull runner keeps the kind on
+   * the result): the check passes the kind on, so the card says it in the
+   * product's words rather than the provider's JSON.
+   */
+  test("a failed read passes on what kind of failure it was", () => {
+    const reported: LlmSetupCheckConnection = LlmSetupCheckReader.toConnection({
+      connection: model({
+        lastError: "Azure OpenAI request failed with HTTP 403.",
+        lastPullResult: { status: "failed", failureKind: "permission" },
+      }),
+      newestUsageAtMs: 0,
+      toolCallsRecently: null,
+    });
+
+    expect(reported.failureKind).toBe("permission");
+    expect(reported.lastError).toBe(
+      "Azure OpenAI request failed with HTTP 403.",
+    );
+  });
+
+  test("no failure kind from a read that did not fail, or one with no error kept", () => {
+    for (const overrides of [
+      // A good read after the failure: its result has no kind.
+      {
+        lastError: "HTTP 403",
+        lastPullResult: { status: "success", failureKind: "permission" },
+      },
+      // A failed result whose error was cleared.
+      {
+        lastError: "",
+        lastPullResult: { status: "failed", failureKind: "permission" },
+      },
+      // A failed result that kept no kind.
+      { lastError: "HTTP 500", lastPullResult: { status: "failed" } },
+      // A kind that is not text.
+      {
+        lastError: "HTTP 500",
+        lastPullResult: { status: "failed", failureKind: 3 },
+      },
+    ]) {
+      expect(
+        LlmSetupCheckReader.toConnection({
+          connection: model(overrides),
+          newestUsageAtMs: 0,
+          toolCallsRecently: null,
+        }),
+      ).not.toHaveProperty("failureKind");
+    }
+  });
 });
 
 describe("read", () => {

@@ -16,7 +16,12 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
 import { LlmConnectWayKey } from "../Connect/LlmConnectWays";
 import LlmConnectionLogo from "../Connect/LlmConnectionLogo";
@@ -26,10 +31,12 @@ import {
   LlmSetupCheckTone,
   METRICS_RECEIVING,
   METRICS_WHERE,
+  NOTHING_COMING_IN,
   TOOLS_NONE,
   getAppsLines,
   getConnectionLine,
   getLlmMetricSourceTitle,
+  isLlmSetupCheckQuiet,
 } from "./LlmSetupCheckWords";
 import useLlmSetupCheck, { LlmSetupCheckState } from "./useLlmSetupCheck";
 
@@ -47,8 +54,16 @@ import useLlmSetupCheck, { LlmSetupCheckState } from "./useLlmSetupCheck";
  * metrics), each provider account (when it was read, the last day it had
  * usage, why it has none) and each company AI tool.
  *
+ * Each group is a heading, its findings, and - where something is missing -
+ * the one next step under them, where the eye lands after reading. A
+ * connection is a row: its name and how it stands side by side where the
+ * card is wide, one under the other on a phone.
+ *
+ * A project with nothing set up and nothing arriving gets one line instead
+ * of three "none" groups that repeat the ways right below the card.
+ *
  * Read when the page opens and on "Check again" (LlmSetupCheckReader caps
- * every read, so it is cheap).
+ * every read, so it is cheap). While it reads again, the last answer stays.
  */
 
 export interface ComponentProps {
@@ -60,10 +75,18 @@ export interface ComponentProps {
   refreshToken?: number | undefined;
 }
 
-const TONES: Record<
-  LlmSetupCheckTone,
-  { icon: IconProp; className: string; label: string }
-> = {
+interface ToneStyle {
+  icon: IconProp;
+  className: string;
+  /*
+   * What the icon says, to a screen reader and on hover. A line that is off
+   * or waiting says it in its own words ("Turned off", "Waiting for the
+   * first read"), so its icon is decoration only.
+   */
+  label?: string | undefined;
+}
+
+export const LLM_SETUP_CHECK_TONES: Record<LlmSetupCheckTone, ToneStyle> = {
   ok: {
     icon: IconProp.CheckCircle,
     className: "text-emerald-600",
@@ -79,10 +102,13 @@ const TONES: Record<
     className: "text-red-600",
     label: translationKey("Not working"),
   },
+  waiting: {
+    icon: IconProp.Clock,
+    className: "text-gray-400",
+  },
   off: {
     icon: IconProp.MinusCircle,
     className: "text-gray-400",
-    label: translationKey("Not set up"),
   },
 };
 
@@ -90,8 +116,10 @@ const SetupLine: FunctionComponent<{ line: LlmSetupCheckLine }> = (props: {
   line: LlmSetupCheckLine;
 }): ReactElement => {
   const translator: Translator = useTranslator();
-  const tone: { icon: IconProp; className: string; label: string } =
-    TONES[props.line.tone];
+  const tone: ToneStyle = LLM_SETUP_CHECK_TONES[props.line.tone];
+  const label: string | undefined = tone.label
+    ? translator.translateText(tone.label) || tone.label
+    : undefined;
 
   return (
     <div
@@ -99,15 +127,14 @@ const SetupLine: FunctionComponent<{ line: LlmSetupCheckLine }> = (props: {
       data-testid={`llm-setup-check-line-${props.line.key}`}
       data-tone={props.line.tone}
     >
-      <span
+      <div
         className="mt-0.5 flex-shrink-0"
-        title={translator.translateText(tone.label) || tone.label}
+        title={label}
+        aria-hidden={label ? undefined : true}
       >
         <Icon icon={tone.icon} className={`h-4 w-4 ${tone.className}`} />
-        <span className="sr-only">
-          {translator.translateText(tone.label) || tone.label}
-        </span>
-      </span>
+        {label ? <span className="sr-only">{label}</span> : <></>}
+      </div>
       <div className="min-w-0">
         <div className="break-words text-sm text-gray-900">
           {props.line.text}
@@ -119,49 +146,119 @@ const SetupLine: FunctionComponent<{ line: LlmSetupCheckLine }> = (props: {
         ) : (
           <></>
         )}
+        {props.line.error ? (
+          /*
+           * The provider's own words: English, often JSON, so set apart in
+           * a direction of their own and cut to two lines. The list's View
+           * error has all of it.
+           */
+          <div
+            className="mt-1 line-clamp-2 break-all font-mono text-xs text-gray-500"
+            dir="auto"
+            title={props.line.error}
+            data-testid={`llm-setup-check-error-${props.line.key}`}
+          >
+            {props.line.error}
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
     </div>
   );
 };
 
+interface GroupAction {
+  title: string;
+  onClick: () => void;
+}
+
 const Group: FunctionComponent<{
   title: string;
   dataTestId: string;
   children: ReactElement | Array<ReactElement>;
-  action?: { title: string; onClick: () => void } | undefined;
+  action?: GroupAction | undefined;
 }> = (props: {
   title: string;
   dataTestId: string;
   children: ReactElement | Array<ReactElement>;
-  action?: { title: string; onClick: () => void } | undefined;
+  action?: GroupAction | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
-    <div
-      className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0"
+    <section
+      className="py-4 first:pt-0 last:pb-0"
       data-testid={props.dataTestId}
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-          {translator.translateText(props.title) || props.title}
-        </div>
-        {props.action ? (
-          <button
-            type="button"
-            onClick={props.action.onClick}
-            className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
-            data-testid={`${props.dataTestId}-action`}
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {translator.translateText(props.title) || props.title}
+      </h3>
+      <div className="mt-2 flex flex-col gap-3">{props.children}</div>
+      {props.action ? (
+        /*
+         * The next step, under what it answers - in line with the text,
+         * past the lines' icons - at every width and in every language.
+         */
+        <button
+          type="button"
+          onClick={props.action.onClick}
+          className="ml-6 mt-2 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+          data-testid={`${props.dataTestId}-action`}
+        >
+          {translator.translateText(props.action.title) || props.action.title}
+          <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+        </button>
+      ) : (
+        <></>
+      )}
+    </section>
+  );
+};
+
+/*
+ * A connection's row: its logo, its name, and how it stands - side by side
+ * once the card is wide enough for both, so a busy project's accounts read
+ * as a list; the name over its status on a phone, where a long name wraps
+ * rather than being cut.
+ */
+const ConnectionRow: FunctionComponent<{
+  connection: LlmSetupCheckConnection;
+  line: LlmSetupCheckLine;
+}> = (props: {
+  connection: LlmSetupCheckConnection;
+  line: LlmSetupCheckLine;
+}): ReactElement => {
+  return (
+    <li
+      className="flex min-w-0 items-start gap-3"
+      data-testid={`llm-setup-check-connection-${props.connection.connectionId}`}
+    >
+      <LlmConnectionLogo
+        provider={props.connection.provider as LlmConnectionProvider}
+        size="sm"
+      />
+      <div className="min-w-0 flex-1 [@container(min-width:40rem)]:flex [@container(min-width:40rem)]:items-start [@container(min-width:40rem)]:gap-4">
+        <div className="min-w-0 pt-0.5 [@container(min-width:40rem)]:w-60 [@container(min-width:40rem)]:flex-none">
+          {/*
+           * The name in its own direction: an English name on a Persian
+           * page is cut at its end ("Azure OpenAI / Foundry (prod…"), not
+           * its start, and still sits at the start of the row.
+           */}
+          <span
+            dir="auto"
+            className="inline-block max-w-full break-words align-top text-sm font-medium text-gray-900 [@container(min-width:40rem)]:truncate"
+            title={props.connection.name}
+            data-testid="llm-setup-check-connection-name"
           >
-            {translator.translateText(props.action.title) || props.action.title}
-            <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
-          </button>
-        ) : (
-          <></>
-        )}
+            {props.connection.name}
+          </span>
+        </div>
+        <div className="mt-1 min-w-0 [@container(min-width:40rem)]:mt-0 [@container(min-width:40rem)]:flex-1 [@container(min-width:40rem)]:pt-0.5">
+          <SetupLine line={props.line} />
+        </div>
       </div>
-      <div className="flex flex-col gap-3">{props.children}</div>
-    </div>
+    </li>
   );
 };
 
@@ -186,43 +283,60 @@ const LlmSetupCheckCard: FunctionComponent<ComponentProps> = (
     reloadToken: reloadToken + (props.refreshToken || 0),
   });
 
+  /*
+   * The last answer, kept while the check reads again: "Check again" and a
+   * connection saved below re-read it, and the card would otherwise empty
+   * to a placeholder and fill again under the reader's eyes.
+   */
+  const [lastCheck, setLastCheck] = useState<LlmSetupCheckResponse | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (state.kind === "loaded") {
+      setLastCheck(state.check);
+    }
+  }, [state]);
+
+  const shownCheck: LlmSetupCheckResponse | null =
+    state.kind === "loaded"
+      ? state.check
+      : state.kind === "loading" || state.kind === "idle"
+        ? lastCheck
+        : null;
+
   const now: Date = OneUptimeDate.getCurrentDate();
 
-  const renderBody: () => ReactElement = (): ReactElement => {
-    if (state.kind === "loading" || state.kind === "idle") {
+  const unknown: LlmSetupCheckLine = {
+    key: "unknown",
+    tone: "off",
+    text:
+      translator.translateText(SETUP_CHECK_PART_UNKNOWN) ||
+      SETUP_CHECK_PART_UNKNOWN,
+  };
+
+  const renderGroups: (check: LlmSetupCheckResponse) => ReactElement = (
+    check: LlmSetupCheckResponse,
+  ): ReactElement => {
+    /*
+     * Nothing set up and nothing arriving: one line, not three groups of
+     * "none" that repeat the three ways right below.
+     */
+    if (isLlmSetupCheckQuiet(check)) {
       return (
-        <div className="space-y-3" data-testid="llm-setup-check-loading">
-          {[0, 1, 2].map((index: number) => {
-            return (
-              <div key={index} className="flex items-start gap-2">
-                <div className="mt-0.5 h-4 w-4 rounded-full bg-gray-100" />
-                <div className="h-4 w-2/3 animate-pulse rounded bg-gray-100" />
-              </div>
-            );
-          })}
+        <div data-testid="llm-setup-check-quiet">
+          <SetupLine
+            line={{
+              key: "quiet",
+              tone: "off",
+              text:
+                translator.translateText(NOTHING_COMING_IN) ||
+                NOTHING_COMING_IN,
+            }}
+          />
         </div>
       );
     }
-
-    if (state.kind === "error") {
-      return (
-        <div
-          className="text-sm text-gray-600"
-          data-testid="llm-setup-check-error"
-        >
-          {translator.translateText(SETUP_CHECK_FAILED) || SETUP_CHECK_FAILED}
-        </div>
-      );
-    }
-
-    const check: LlmSetupCheckResponse = state.check;
-    const unknown: LlmSetupCheckLine = {
-      key: "unknown",
-      tone: "off",
-      text:
-        translator.translateText(SETUP_CHECK_PART_UNKNOWN) ||
-        SETUP_CHECK_PART_UNKNOWN,
-    };
 
     const appsLines: Array<LlmSetupCheckLine> = check.apps
       ? getAppsLines({
@@ -233,8 +347,12 @@ const LlmSetupCheckCard: FunctionComponent<ComponentProps> = (
         })
       : [unknown];
 
-    const appsWorking: boolean = Boolean(
-      check.apps && check.apps.callsRecently > 0,
+    /*
+     * "Send your app's AI calls" once the apps were read and none sends:
+     * never for apps the reader may not read, which may well be sending.
+     */
+    const appsSendNone: boolean = Boolean(
+      check.apps && check.apps.callsRecently === 0,
     );
 
     const toolSources: Array<LlmSetupCheckMetricSource> = (
@@ -255,29 +373,43 @@ const LlmSetupCheckCard: FunctionComponent<ComponentProps> = (
       },
     );
 
-    const renderConnection: (
-      connection: LlmSetupCheckConnection,
-    ) => ReactElement = (connection: LlmSetupCheckConnection): ReactElement => {
-      return (
-        <div
-          key={connection.connectionId}
-          className="flex min-w-0 items-start gap-3"
-          data-testid={`llm-setup-check-connection-${connection.connectionId}`}
-        >
-          <LlmConnectionLogo
-            provider={connection.provider as LlmConnectionProvider}
-            size="sm"
+    const renderConnections: (
+      list: Array<LlmSetupCheckConnection>,
+      none: { key: string; text: string },
+    ) => ReactElement = (
+      list: Array<LlmSetupCheckConnection>,
+      none: { key: string; text: string },
+    ): ReactElement => {
+      if (check.connections === null) {
+        return <SetupLine line={unknown} />;
+      }
+
+      if (list.length === 0) {
+        return (
+          <SetupLine
+            line={{
+              key: none.key,
+              tone: "off",
+              text: translator.translateText(none.text) || none.text,
+            }}
           />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-gray-900">
-              {connection.name}
-            </div>
-            <div className="mt-1">
-              <SetupLine
-                line={getConnectionLine({ connection, translator, now })}
-              />
-            </div>
-          </div>
+        );
+      }
+
+      return (
+        // The card's width, for the rows' side-by-side layout.
+        <div className="[container-type:inline-size]">
+          <ul className="flex flex-col gap-3">
+            {list.map((connection: LlmSetupCheckConnection): ReactElement => {
+              return (
+                <ConnectionRow
+                  key={connection.connectionId}
+                  connection={connection}
+                  line={getConnectionLine({ connection, translator, now })}
+                />
+              );
+            })}
+          </ul>
         </div>
       );
     };
@@ -300,14 +432,14 @@ const LlmSetupCheckCard: FunctionComponent<ComponentProps> = (
           title={translationKey("Your apps")}
           dataTestId="llm-setup-check-apps"
           action={
-            appsWorking
-              ? undefined
-              : {
+            appsSendNone
+              ? {
                   title: translationKey("Send your app's AI calls"),
                   onClick: () => {
                     props.onPickWay("apps");
                   },
                 }
+              : undefined
           }
         >
           {appsLines.map((line: LlmSetupCheckLine): ReactElement => {
@@ -357,7 +489,7 @@ const LlmSetupCheckCard: FunctionComponent<ComponentProps> = (
           title={translationKey("Your AI provider accounts")}
           dataTestId="llm-setup-check-accounts"
           action={
-            accounts.length === 0
+            check.connections !== null && accounts.length === 0
               ? {
                   title: translationKey("Connect one"),
                   onClick: () => {
@@ -367,29 +499,17 @@ const LlmSetupCheckCard: FunctionComponent<ComponentProps> = (
               : undefined
           }
         >
-          {check.connections === null
-            ? [<SetupLine key="unknown" line={unknown} />]
-            : accounts.length > 0
-              ? accounts.map(renderConnection)
-              : [
-                  <SetupLine
-                    key="none"
-                    line={{
-                      key: "accounts-none",
-                      tone: "off",
-                      text:
-                        translator.translateText(ACCOUNTS_NONE) ||
-                        ACCOUNTS_NONE,
-                    }}
-                  />,
-                ]}
+          {renderConnections(accounts, {
+            key: "accounts-none",
+            text: ACCOUNTS_NONE,
+          })}
         </Group>
 
         <Group
           title={translationKey("Your company's AI tools")}
           dataTestId="llm-setup-check-tools"
           action={
-            tools.length === 0
+            check.connections !== null && tools.length === 0
               ? {
                   title: translationKey("Connect one"),
                   onClick: () => {
@@ -399,21 +519,52 @@ const LlmSetupCheckCard: FunctionComponent<ComponentProps> = (
               : undefined
           }
         >
-          {check.connections === null
-            ? [<SetupLine key="unknown" line={unknown} />]
-            : tools.length > 0
-              ? tools.map(renderConnection)
-              : [
-                  <SetupLine
-                    key="none"
-                    line={{
-                      key: "tools-none",
-                      tone: "off",
-                      text: translator.translateText(TOOLS_NONE) || TOOLS_NONE,
-                    }}
-                  />,
-                ]}
+          {renderConnections(tools, { key: "tools-none", text: TOOLS_NONE })}
         </Group>
+      </div>
+    );
+  };
+
+  const renderBody: () => ReactElement = (): ReactElement => {
+    if (shownCheck) {
+      return renderGroups(shownCheck);
+    }
+
+    if (state.kind === "error") {
+      return (
+        <div data-testid="llm-setup-check-error">
+          <SetupLine
+            line={{
+              key: "check-failed",
+              tone: "off",
+              text:
+                translator.translateText(SETUP_CHECK_FAILED) ||
+                SETUP_CHECK_FAILED,
+            }}
+          />
+        </div>
+      );
+    }
+
+    // The first read: a line's worth of placeholder, as a quiet check is.
+    return (
+      <div
+        className="space-y-3"
+        data-testid="llm-setup-check-loading"
+        aria-busy="true"
+      >
+        {[0, 1].map((index: number) => {
+          return (
+            <div key={index} className="flex items-start gap-2">
+              <div className="mt-0.5 h-4 w-4 flex-shrink-0 animate-pulse rounded-full bg-gray-100" />
+              <div
+                className={`h-4 animate-pulse rounded bg-gray-100 ${
+                  index === 0 ? "w-2/3" : "w-1/3"
+                }`}
+              />
+            </div>
+          );
+        })}
       </div>
     );
   };
