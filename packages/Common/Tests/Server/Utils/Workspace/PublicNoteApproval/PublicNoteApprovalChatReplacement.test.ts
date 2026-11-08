@@ -37,6 +37,16 @@ import PublicNoteApproval, {
   PublicNoteApprovalStatus,
 } from "../../../../../Types/StatusPage/PublicNoteApproval";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import { JSONObject } from "../../../../../Types/JSON";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
+import MattermostUtil from "../../../../../Server/Utils/Workspace/Mattermost/Mattermost";
+import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MicrosoftTeamsMessageSize, {
+  MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES,
+} from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageSize";
+import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
+import { generatedTexts } from "../../../../Helpers/GeneratedTexts";
+import { SeededRandom, seededRandom } from "../../../../Helpers/SeededRandom";
 import {
   ALICE,
   BOB,
@@ -44,6 +54,8 @@ import {
   CHATS,
   DAVE,
   INCIDENT_ID,
+  LEGAL,
+  NAMES,
   NOTE_ID,
   NOTES_URL,
   OTHER_PROJECT_ID,
@@ -1144,4 +1156,186 @@ describe("a waiting note's copies, untouched while they still ask", () => {
       PublicNoteApprovalStatus.WaitingForApproval,
     );
   });
+});
+
+/*
+ * NAMES ARE TEXT, AND EVERY CHAT TAKES THE MESSAGE. What a replaced copy
+ * says names people, steps and the record - text OneUptime did not write -
+ * so each is placed with mdText: a name that reads as Markdown, a link or a
+ * mention is text in every chat. And however long they are, each chat's own
+ * builder holds the message to what it takes (Slack's blocks and sections,
+ * the Teams card budget, a Mattermost post), with View in OneUptime on it.
+ */
+describe("the words of a replaced copy", () => {
+  const ORIGINAL_NAMES: Record<string, string> = { ...NAMES };
+
+  afterEach(() => {
+    for (const userId of Object.keys(NAMES)) {
+      NAMES[userId] = ORIGINAL_NAMES[userId]!;
+    }
+  });
+
+  // What each chat makes of a replaced copy, as it would send it.
+  function asEachChatSendsIt(replaced: ReplacedMessage): {
+    slack: Array<JSONObject>;
+    teams: JSONObject;
+    mattermost: JSONObject;
+  } {
+    return {
+      slack: SlackUtil.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: replaced.blocks,
+      }),
+      teams: MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
+        messageBlocks: replaced.blocks,
+      }),
+      mattermost: MattermostUtil.toPost({
+        blocks: MattermostUtil.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: replaced.blocks,
+        }),
+        teamId: WORKSPACES[WorkspaceType.Mattermost],
+      }),
+    };
+  }
+
+  test("a name that reads as Markdown, a link or a mention is text, in every chat", async () => {
+    NAMES[BOB] =
+      "**Bob** [your account](https://evil.example/login) <!channel> @here `rm`";
+    world.steps = [{ ...SUPPORT, name: "Support <!here> _team_" }, LEGAL];
+
+    await keepCopies([DAVE], CHATS);
+    await approve(BOB);
+
+    const markdown: string = replacedWith(WorkspaceType.Slack)[0]!;
+
+    expect(markdown).toContain(mdText`**${NAMES[BOB]!}**`.toString());
+    expect(markdown).toContain(mdText`(${"Support <!here> _team_"})`.toString());
+    // The link's brackets escaped: its words are text, not a link.
+    expect(markdown).not.toContain("[your account](https://evil.example/login)");
+
+    const sent: {
+      slack: Array<JSONObject>;
+      teams: JSONObject;
+      mattermost: JSONObject;
+    } = asEachChatSendsIt(world.replaced[0]!);
+
+    expect(JSON.stringify(sent.slack)).not.toContain("<!channel>");
+    expect(JSON.stringify(sent.slack)).not.toContain("<!here>");
+    expect(String(sent.mattermost["message"])).not.toContain("@here");
+    expect(JSON.stringify(sent.teams)).not.toContain(
+      "[your account](https://evil.example/login)",
+    );
+  });
+
+  // Pieces of names: Markdown, mentions, wide characters, long words.
+  const PIECES: ReadonlyArray<string> = [
+    "a",
+    " ",
+    "**",
+    "_",
+    "`",
+    "[",
+    "](",
+    ")",
+    "<!channel>",
+    "@here",
+    "|",
+    "😀",
+    "中文",
+    "word ".repeat(40),
+    "x".repeat(900),
+  ];
+
+  const random: SeededRandom = seededRandom(6317);
+  const texts: Array<string> = generatedTexts(30, 6317, PIECES, 40);
+
+  test.each(
+    texts.map((text: string, index: number): [number, string] => {
+      return [index, text];
+    }),
+  )(
+    "generated names %i: Slack, Teams and Mattermost each take the replaced copy, with View in OneUptime",
+    async (_index: number, text: string) => {
+      // Some names far longer than any chat shows.
+      const long: string = random(3) === 0 ? text.repeat(1 + random(60)) : text;
+
+      NAMES[BOB] = long || "Bob";
+      NAMES[CAROL] = text.slice(0, 1 + random(400)) || "Carol";
+      world.steps = [
+        { ...SUPPORT, name: text.slice(0, random(200)) || undefined },
+        { ...LEGAL, name: long.slice(0, random(5000)) || undefined },
+      ];
+      world.record = {
+        ...world.record!,
+        label: `Incident ${text.slice(0, random(300))}`,
+      };
+
+      await keepCopies([DAVE], [WorkspaceType.Slack]);
+      await approve(BOB);
+
+      expect(world.replaced).toHaveLength(1);
+
+      const sent: {
+        slack: Array<JSONObject>;
+        teams: JSONObject;
+        mattermost: JSONObject;
+      } = asEachChatSendsIt(world.replaced[0]!);
+
+      // Slack: at most 50 blocks, sections of at most 3,000 characters, and the link.
+      expect(sent.slack.length).toBeLessThanOrEqual(
+        SlackUtil.MAX_BLOCKS_PER_MESSAGE,
+      );
+
+      for (const block of sent.slack) {
+        const blockText: unknown = (block["text"] as JSONObject | undefined)?.[
+          "text"
+        ];
+
+        if (typeof blockText === "string") {
+          expect(blockText.length).toBeLessThanOrEqual(
+            SlackUtil.SECTION_TEXT_MAX_LENGTH,
+          );
+        }
+      }
+
+      expect(
+        sent.slack
+          .filter((block: JSONObject): boolean => {
+            return block["type"] === "actions";
+          })
+          .flatMap((block: JSONObject): Array<unknown> => {
+            return (block["elements"] as Array<JSONObject>).map(
+              (element: JSONObject): unknown => {
+                return element["action_id"];
+              },
+            );
+          }),
+      ).toEqual([SlackActionType.OpenInOneUptime]);
+
+      // Microsoft Teams: within its budget, with the link and nothing else.
+      expect(
+        MicrosoftTeamsMessageSize.getSizeInBytes(sent.teams),
+      ).toBeLessThanOrEqual(MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES);
+      expect(
+        ((sent.teams["actions"] as Array<JSONObject>) || []).map(
+          (action: JSONObject): unknown => {
+            return action["type"];
+          },
+        ),
+      ).toEqual(["Action.OpenUrl"]);
+
+      // Mattermost: at most a post's length, the link under it and no button.
+      expect(String(sent.mattermost["message"]).length).toBeLessThanOrEqual(
+        MattermostUtil.MESSAGE_MAX_LENGTH,
+      );
+
+      const attachment: JSONObject = (
+        (sent.mattermost["props"] as JSONObject)["attachments"] as Array<
+          JSONObject
+        >
+      )[0]!;
+
+      expect(String(attachment["text"])).toContain(NOTES_URL);
+      expect(attachment["actions"]).toBeUndefined();
+    },
+  );
 });

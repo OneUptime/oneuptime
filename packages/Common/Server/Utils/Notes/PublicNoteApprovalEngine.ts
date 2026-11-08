@@ -464,8 +464,8 @@ export default class PublicNoteApprovalEngine {
     const note: NoteFields = notes[0]!;
     const noteId: string = this.idOf(note as unknown as BaseModel) || "";
     const state: PublicNoteApprovalState = PublicNoteApproval.getState(note);
-    // Whose chat messages an edit it governs replaces (afterUpdate).
-    result.projectId = note.projectId?.toString();
+    // Whose chat messages the edit replaces, when it ends a round (afterUpdate).
+    const projectId: string | undefined = note.projectId?.toString();
     const round: PublicNoteApprovalRound | null = PublicNoteApproval.readRound(
       note.approval,
     );
@@ -497,6 +497,7 @@ export default class PublicNoteApprovalEngine {
         );
         this.holdToVersionRead(data.updateBy, note);
         result.resentNoteIds.push(noteId);
+        result.projectId = projectId;
       }
 
       return result;
@@ -515,7 +516,7 @@ export default class PublicNoteApprovalEngine {
           PublicNoteApprovalWrites.forDroppedEdit(round),
         );
         result.withdrawnEditNoteIds = [noteId];
-        result.projectId = note.projectId?.toString();
+        result.projectId = projectId;
       }
 
       return result;
@@ -545,6 +546,7 @@ export default class PublicNoteApprovalEngine {
         );
         this.holdToVersionRead(data.updateBy, note);
         result.droppedEditNoteIds.push(noteId);
+        result.projectId = projectId;
         result.isUpdateNotificationHeld = true;
       }
 
@@ -571,6 +573,7 @@ export default class PublicNoteApprovalEngine {
 
     this.holdToVersionRead(data.updateBy, note);
     result.heldEditNoteIds.push(noteId);
+    result.projectId = projectId;
     result.isUpdateNotificationHeld = true;
 
     return result;

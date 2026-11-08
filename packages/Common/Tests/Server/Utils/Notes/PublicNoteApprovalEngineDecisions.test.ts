@@ -283,6 +283,8 @@ function storedRound(): PublicNoteApprovalRound {
 
 let steps: Array<PublicNoteApprovalStepRule>;
 let isRequired: boolean;
+// Each time the engine had the note's chat copies replaced (#6317).
+let chatCopiesReplaced: Array<string>;
 
 beforeEach(() => {
   world = {
@@ -300,6 +302,20 @@ beforeEach(() => {
   };
   steps = [SUPPORT, LEGAL];
   isRequired = true;
+  chatCopiesReplaced = [];
+
+  getJestSpyOn(
+    PublicNoteApprovalNotifications,
+    "replaceChatMessages",
+  ).mockImplementation(((data: {
+    kind: PublicNoteKind;
+    projectId: ObjectID;
+    noteId: ObjectID;
+  }): void => {
+    chatCopiesReplaced.push(
+      `${data.kind}:${data.projectId.toString()}:${data.noteId.toString()}`,
+    );
+  }) as never);
 
   getJestSpyOn(PublicNoteApprovalPolicy, "getSteps").mockImplementation(
     (async () => {
@@ -803,5 +819,149 @@ describe("an edit of a published note", () => {
 
     expect(refusal.message).toBe(PublicNoteApprovalMessages.noEditWaiting);
     expect(world.writes).toEqual([]);
+  });
+});
+
+/*
+ * THE CHAT COPIES OF ITS APPROVAL MESSAGE (#6317). Every write that decides
+ * on a note, sends it again or withdraws its edit has the chat copies of its
+ * approval message replaced - once, for that note of that project - and a
+ * decision refused, or lost to one made a moment before, has none replaced:
+ * nothing changed.
+ */
+describe("the chat copies of its approval message", () => {
+  const THIS_NOTE: string = `${PublicNoteKind.Incident}:${PROJECT_ID.toString()}:${NOTE_ID.toString()}`;
+
+  test("a step approved: replaced once", async () => {
+    await decide(BOB, PublicNoteApprovalDecision.Approve);
+
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE]);
+  });
+
+  test("approved and published: replaced once for each decision", async () => {
+    await decide(BOB, PublicNoteApprovalDecision.Approve);
+    await decide(CAROL, PublicNoteApprovalDecision.Approve);
+
+    expect(world.stored.isPublished).toBe(true);
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE, THIS_NOTE]);
+  });
+
+  test("rejected: replaced once", async () => {
+    await decide(BOB, PublicNoteApprovalDecision.Reject, "Not yet.");
+
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE]);
+  });
+
+  test("rejected and sent again: replaced for each", async () => {
+    await decide(BOB, PublicNoteApprovalDecision.Reject, "Not yet.");
+    await PublicNoteApprovalEngine.resubmit({
+      host: host(),
+      noteId: NOTE_ID,
+      props: propsOf(ALICE),
+    });
+
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE, THIS_NOTE]);
+  });
+
+  test("published without approval once approval was turned off: replaced once", async () => {
+    isRequired = false;
+
+    await PublicNoteApprovalEngine.resubmit({
+      host: host(),
+      noteId: NOTE_ID,
+      props: propsOf(ALICE),
+    });
+
+    expect(world.stored.isPublished).toBe(true);
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE]);
+  });
+
+  test("an edit withdrawn: replaced once", async () => {
+    const approved: PublicNoteApprovalRound = PublicNoteApproval.startRound({
+      now: new Date("2026-11-07T08:00:00.000Z"),
+      submittedByUserId: ALICE,
+      isEdit: false,
+    });
+
+    world.stored = heldNote({
+      isPublished: true,
+      pendingNote: "We found the cause.",
+      approvalStatus: PublicNoteApprovalStatus.WaitingForApproval,
+      approval: PublicNoteApproval.toJSON(
+        PublicNoteApproval.startRound({
+          now: new Date("2026-11-07T09:00:00.000Z"),
+          submittedByUserId: ALICE,
+          isEdit: true,
+          before: { status: PublicNoteApprovalStatus.Approved, round: approved },
+        }),
+      ),
+    });
+
+    await PublicNoteApprovalEngine.discardEdit({
+      host: host(),
+      noteId: NOTE_ID,
+      props: propsOf(ALICE),
+    });
+
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE]);
+  });
+
+  test("a decision refused - not an approver, the sender, no reason - replaces nothing", async () => {
+    await refusalOf(() => {
+      return decide(DAVE, PublicNoteApprovalDecision.Approve);
+    });
+    await refusalOf(() => {
+      return decide(ALICE, PublicNoteApprovalDecision.Approve);
+    });
+    await refusalOf(() => {
+      return decide(BOB, PublicNoteApprovalDecision.Reject, " ");
+    });
+
+    expect(world.writes).toEqual([]);
+    expect(chatCopiesReplaced).toEqual([]);
+  });
+
+  test("a decision lost to one made a moment before replaces nothing more", async () => {
+    steps = [{ ...SUPPORT, userIds: [BOB, DAVE] }];
+    const asBothRead: StoredNote = snapshot();
+
+    await decide(BOB, PublicNoteApprovalDecision.Approve);
+
+    world.staleNote = asBothRead;
+    await refusalOf(() => {
+      return decide(DAVE, PublicNoteApprovalDecision.Approve);
+    });
+
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE]);
+  });
+
+  test("a note still waiting, sent again, is refused and replaces nothing", async () => {
+    await refusalOf(() => {
+      return PublicNoteApprovalEngine.resubmit({
+        host: host(),
+        noteId: NOTE_ID,
+        props: propsOf(ALICE),
+      });
+    });
+
+    expect(chatCopiesReplaced).toEqual([]);
+  });
+
+  test("replacing never holds back the decision: it is not awaited, and a failure to start it is never thrown", async () => {
+    getJestSpyOn(
+      PublicNoteApprovalNotifications,
+      "replaceChatMessages",
+    ).mockImplementation((() => {
+      // A pass that never ends would hold back an awaited decision for good.
+      return new Promise<void>((): void => {});
+    }) as never);
+
+    const outcome: PublicNoteApprovalOutcome = await decide(
+      BOB,
+      PublicNoteApprovalDecision.Approve,
+    );
+
+    expect(outcome.state).toBe(PublicNoteApprovalState.WaitingForApproval);
+    expect(storedRound().approvals).toHaveLength(1);
   });
 });

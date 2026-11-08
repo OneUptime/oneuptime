@@ -1489,6 +1489,74 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
       });
     });
 
+    /*
+     * Where it landed (#6317): the direct message channel and the post, what
+     * an edit of it names - a public note's approval message is replaced
+     * there once the note is decided.
+     */
+    test("a direct message says where it landed: its channel and its post", async () => {
+      on(
+        "POST",
+        "/api/v4/channels/direct",
+        ok({ id: "d".repeat(26), type: "D" }),
+      );
+      on("POST", "/api/v4/posts", ok({ id: POST_ID }));
+
+      expect(
+        await MattermostUtil.sendDirectMessageToUser({
+          authToken: AUTH_TOKEN,
+          workspaceUserId: ALICE_ID,
+          messageBlocks: [
+            { _type: "WorkspacePayloadMarkdown", text: "You are on call." },
+          ] as unknown as Array<WorkspaceMessageBlock>,
+        }),
+      ).toEqual({ channelId: "d".repeat(26), messageId: POST_ID });
+    });
+
+    test("a direct message's post edited in place: what it says now, its link and no button", async () => {
+      on("PUT", `/api/v4/posts/${POST_ID}/patch`, ok({ id: POST_ID }));
+
+      await MattermostUtil.updateMessage({
+        authToken: AUTH_TOKEN,
+        projectId: ObjectID.generate(),
+        location: { channelId: "d".repeat(26) },
+        messageId: POST_ID,
+        messageBlocks: [
+          {
+            _type: "WorkspacePayloadMarkdown",
+            text: "✅ This public note was approved by **Bob**.",
+          },
+          {
+            _type: "WorkspacePayloadButtons",
+            buttons: [
+              {
+                _type: "WorkspaceMessagePayloadButton",
+                title: "View in OneUptime",
+                value: "",
+                actionId: "OpenInOneUptime",
+                url: URL.fromString("https://oneuptime.example/notes"),
+              },
+            ],
+          },
+        ] as unknown as Array<WorkspaceMessageBlock>,
+      });
+
+      const patch: JSONObject = calls[0]!.args.data as JSONObject;
+
+      expect(patch["message"]).toBe(
+        "✅ This public note was approved by **Bob**.",
+      );
+
+      const attachment: JSONObject = (
+        (patch["props"] as JSONObject)["attachments"] as Array<JSONObject>
+      )[0]!;
+
+      expect(String(attachment["text"])).toContain(
+        "https://oneuptime.example/notes",
+      );
+      expect(attachment["actions"]).toBeUndefined();
+    });
+
     test("opens a form for whoever pressed, posting its submission back to OneUptime", async () => {
       on("POST", "/api/v4/actions/dialogs/open", ok({ status: "OK" }));
 

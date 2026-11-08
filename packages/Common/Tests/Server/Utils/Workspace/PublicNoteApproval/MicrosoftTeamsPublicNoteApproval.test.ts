@@ -32,6 +32,7 @@ import {
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 import MicrosoftTeamsPublicNoteApprovalActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/PublicNoteApproval";
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import { DRAWN_FOR_PROJECT_ID_FIELD } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCardProject";
 import MicrosoftTeamsConnectPrompt from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsConnectPrompt";
 import WorkspaceConnectCompletion, {
@@ -67,8 +68,15 @@ import {
   OTHER_PROJECT_ID,
   PROJECT_ID,
   SUPPORT,
+  ReplacedMessage,
+  TEAMS_SERVICE_URL,
   encodedValue,
+  keepCopies,
+  keptCopies,
+  replacedCopies,
   restoreWorld,
+  sentTo,
+  settled,
   startWorld,
   storedRound,
   world,
@@ -447,7 +455,7 @@ describe("Approve", () => {
     );
 
     expect(replyText(turn.replies[0])).toContain(
-      `This public note on [Incident INC-42](${NOTES_URL}) no longer waits for approval, so nothing was decided.`,
+      `📄 This public note on [Incident INC-42](${NOTES_URL}) was published without approval, so nothing was decided: public notes no longer need approval.`,
     );
     expect(world.writes).toEqual([]);
   });
@@ -795,5 +803,68 @@ describe("a Teams account not connected yet", () => {
         return given.userId;
       }),
     ).toEqual([BOB]);
+  });
+});
+
+/*
+ * ONCE IT IS DECIDED, EVERY CARD SAYS SO (#6317): the presser's own card and
+ * every other approver's, edited in place in each personal chat
+ * (updateActivity, at the service the chat was opened at) - what happened,
+ * View in OneUptime, and no Approve or Reject - beside the bot's answer in
+ * the presser's chat.
+ */
+describe("every copy of the card, the presser's own too, once it is decided", () => {
+  test("Approve: the bot answers in the chat, and the presser's card and the other approver's say who approved it and who is next", async () => {
+    await keepCopies([BOB, DAVE], [WorkspaceType.MicrosoftTeams]);
+    const turn: FakeTurn = createTurn();
+
+    await press(
+      turn,
+      BOB,
+      MicrosoftTeamsPublicNoteApprovalActionType.ApprovePublicNote,
+      encodedValue(),
+    );
+    await settled();
+
+    expect(turn.replies).toHaveLength(1);
+    expect(replyText(turn.replies[0])).toContain(
+      "✅ You approved a **public note**",
+    );
+    expect(replacedCopies()).toEqual([
+      "Bob:MicrosoftTeams",
+      "Dave:MicrosoftTeams",
+    ]);
+
+    for (const replaced of world.replaced) {
+      expect(replaced.markdown).toMatch(
+        /^✅ This public note on \[Incident INC-42\]\([^)]+\) was approved for step 1 of 2 \(Support\) by \*\*Bob\*\* at \{\{TIME\([^)]+\)\}\}\. It waits for step 2 of 2 \(Legal\): Carol\.$/,
+      );
+      expect(
+        replaced.buttons.map((button: ReplacedMessage["buttons"][number]) => {
+          return button.actionId;
+        }),
+      ).toEqual([SlackActionType.OpenInOneUptime]);
+      expect(replaced.location.isChat).toBe(true);
+      expect(replaced.location.serviceUrl).toBe(TEAMS_SERVICE_URL);
+    }
+
+    expect(
+      world.replaced
+        .map((replaced: ReplacedMessage): string => {
+          return `${replaced.location.channelId}|${replaced.messageId}`;
+        })
+        .sort(),
+    ).toEqual(
+      [BOB, DAVE]
+        .map((userId: string): string => {
+          const landed: { channelId: string; messageId: string } = sentTo(
+            userId,
+            WorkspaceType.MicrosoftTeams,
+          );
+          return `${landed.channelId}|${landed.messageId}`;
+        })
+        .sort(),
+    );
+    expect(keptCopies()).toEqual([]);
   });
 });

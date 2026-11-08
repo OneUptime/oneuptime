@@ -59,8 +59,14 @@ import {
   OTHER_PROJECT_ID,
   PROJECT_ID,
   SUPPORT,
+  ReplacedMessage,
   encodedValue,
+  keepCopies,
+  keptCopies,
+  replacedCopies,
   restoreWorld,
+  sentTo,
+  settled,
   startWorld,
   storedRound,
   world,
@@ -349,7 +355,7 @@ describe("Approve, in a direct message", () => {
     await press(BOB, SlackActionType.ApprovePublicNote, value);
 
     expect(answers()).toEqual([
-      `This public note on [Incident INC-42](${NOTES_URL}) no longer waits for approval, so nothing was decided.`,
+      `📄 This public note on [Incident INC-42](${NOTES_URL}) was published without approval, so nothing was decided: public notes no longer need approval.`,
     ]);
     expect(world.writes).toEqual([]);
   });
@@ -699,5 +705,80 @@ describe("a Slack account not connected yet", () => {
       "was already rejected by **Dave**",
     );
     expect(world.writes).toEqual([]);
+  });
+});
+
+/*
+ * ONCE IT IS DECIDED, EVERY COPY SAYS SO (#6317): the presser's own direct
+ * message and every other approver's, edited in place (chat.update, in the
+ * direct message channel each landed in) - what happened, View in
+ * OneUptime, and no Approve or Reject - beside the answer only the presser
+ * sees.
+ */
+describe("every copy of the message, the presser's own too, once it is decided", () => {
+  function expectReplacedWith(pattern: RegExp): void {
+    for (const replaced of world.replaced) {
+      expect(replaced.workspaceType).toBe(WorkspaceType.Slack);
+      expect(replaced.markdown).toMatch(pattern);
+      expect(
+        replaced.buttons.map((button: ReplacedMessage["buttons"][number]) => {
+          return button.actionId;
+        }),
+      ).toEqual([SlackActionType.OpenInOneUptime]);
+    }
+  }
+
+  test("Approve: answered only to the presser, and their message and the other approver's say who approved it and who is next", async () => {
+    await keepCopies([BOB, DAVE], [WorkspaceType.Slack]);
+
+    await press(BOB, SlackActionType.ApprovePublicNote, encodedValue());
+    await settled();
+
+    expect(answers()).toEqual([
+      `✅ You approved a **public note** on [Incident INC-42](${NOTES_URL}) for step 1 of 2 (Support). It waits for step 2 of 2 (Legal): Carol.`,
+    ]);
+    expect(replacedCopies()).toEqual(["Bob:Slack", "Dave:Slack"]);
+    expectReplacedWith(
+      /^✅ This public note on \[Incident INC-42\]\([^)]+\) was approved for step 1 of 2 \(Support\) by \*\*Bob\*\* at \{\{TIME\([^)]+\)\}\}\. It waits for step 2 of 2 \(Legal\): Carol\.$/,
+    );
+    expect(
+      world.replaced
+        .map((replaced: ReplacedMessage): string => {
+          return replaced.location.channelId;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        sentTo(BOB, WorkspaceType.Slack).channelId,
+        sentTo(DAVE, WorkspaceType.Slack).channelId,
+      ].sort(),
+    );
+    expect(keptCopies()).toEqual([]);
+  });
+
+  test("Reject, submitted with its reason: every message says who rejected it", async () => {
+    await keepCopies([BOB, DAVE], [WorkspaceType.Slack]);
+
+    await submitReject(DAVE, encodedValue(), "Not yet.");
+    await settled();
+
+    expect(replacedCopies()).toEqual(["Bob:Slack", "Dave:Slack"]);
+    expectReplacedWith(
+      /^↩️ This public note on \[Incident INC-42\]\([^)]+\) was rejected by \*\*Dave\*\* at \{\{TIME\([^)]+\)\}\}\. It is not published\.$/,
+    );
+    expect(keptCopies()).toEqual([]);
+  });
+
+  test("the last step approved: the last step's message says the note is published", async () => {
+    await press(BOB, SlackActionType.ApprovePublicNote, encodedValue());
+    await keepCopies([CAROL], [WorkspaceType.Slack]);
+
+    await press(CAROL, SlackActionType.ApprovePublicNote, encodedValue());
+    await settled();
+
+    expect(replacedCopies()).toEqual(["Carol:Slack"]);
+    expectReplacedWith(
+      /^✅ This public note on \[Incident INC-42\]\([^)]+\) was approved by \*\*Carol\*\* at \{\{TIME\([^)]+\)\}\}\. It is published on status pages\.$/,
+    );
   });
 });
