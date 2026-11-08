@@ -98,7 +98,10 @@ import ServiceLevelObjectiveService from "../Services/ServiceLevelObjectiveServi
 import SpanService from "../Services/SpanService";
 import LogService from "../Services/LogService";
 import SloHistoryService from "../Services/SloHistoryService";
-import DashboardComponentType from "../../Types/Dashboard/DashboardComponentType";
+import DashboardComponentType, {
+  isMetricComponentType,
+} from "../../Types/Dashboard/DashboardComponentType";
+import DashboardBaseComponent from "../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../Types/Dashboard/DashboardVariable";
@@ -373,6 +376,27 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     },
   },
 };
+
+/*
+ * What a public dashboard's page reads metrics with (issue #6297), read
+ * from the config it draws (PublicDashboardViewConfig.getDrawnConfig), so
+ * the public metric routes allow exactly what the page can ask for.
+ */
+interface PublicDashboardMetricSources {
+  /*
+   * The settings (`arguments`) of every widget the page draws that charts
+   * metrics - a chart, value, gauge or table - in whatever shape it is
+   * stored, as the page reads them: where every query those widgets make
+   * comes from. No other widget asks the metric routes for anything.
+   */
+  metricWidgetSettings: Array<JSONObject>;
+  /*
+   * The variables the page's toolbar draws: a Telemetry Attribute
+   * variable's pick is a filter on its key, in every query those widgets
+   * make.
+   */
+  variables: Array<DashboardVariable>;
+}
 
 type GetPublicDashboardIdOrThrowFunction = (
   dashboardId: string | undefined,
@@ -656,6 +680,14 @@ export default class DashboardAPI extends BaseAPI<
         const publicViewConfig: DashboardViewConfig | null =
           PublicDashboardViewConfig.sanitize(dashboard.dashboardViewConfig);
 
+        /*
+         * The widgets are summarised as the public page draws them, in
+         * every shape they can be stored in (issue #6297), and the metrics
+         * listed are exactly those the public metric routes serve.
+         */
+        const drawnViewConfig: DashboardViewConfig =
+          DashboardAPI.getDrawnViewConfig(dashboard);
+
         return Response.sendJsonObjectResponse(req, res, {
           _id: dashboard._id?.toString() || "",
           name: dashboard.name || "Dashboard",
@@ -663,9 +695,12 @@ export default class DashboardAPI extends BaseAPI<
           pageTitle: dashboard.pageTitle || "",
           pageDescription: dashboard.pageDescription || "",
           components:
-            DashboardAPI.buildPublicComponentSummaries(publicViewConfig),
+            DashboardAPI.buildPublicComponentSummaries(drawnViewConfig),
           metricsUsed: Array.from(
-            DashboardAPI.collectDashboardMetricNames(publicViewConfig),
+            DashboardAPI.collectDashboardMetricNames(
+              DashboardAPI.getPublicMetricSources(drawnViewConfig)
+                .metricWidgetSettings,
+            ),
           ).sort(),
           dashboardViewConfig: publicViewConfig
             ? JSONFunctions.serialize(publicViewConfig as any)
@@ -1054,13 +1089,15 @@ export default class DashboardAPI extends BaseAPI<
            * a variable's VALUE into a widget filter — never its key — so the
            * stored view config is an exact allowlist. A dashboard with no
            * telemetry-attribute variables has nothing to look up and is
-           * refused outright.
+           * refused outright. The variables are the ones the public page's
+           * toolbar draws, in every shape they can be stored in (issue
+           * #6297).
            */
           const requestedAttributeKey: string = attributeKey.trim();
 
           const allowedAttributeKeys: Set<string> =
             DashboardAPI.collectDashboardVariableAttributeKeys(
-              DashboardAPI.getStoredViewConfig(dashboard),
+              DashboardAPI.getDrawnViewConfig(dashboard).variables,
             );
 
           if (!allowedAttributeKeys.has(requestedAttributeKey)) {
@@ -1143,11 +1180,14 @@ export default class DashboardAPI extends BaseAPI<
           /*
            * Only expose metric types the dashboard actually charts, so a
            * public viewer cannot enumerate the owning project's full metric
-           * catalog.
+           * catalog: the metrics of the widgets the public page draws, as
+           * metrics-aggregate allows them (issue #6297).
            */
           const allowedMetricNames: Set<string> =
             DashboardAPI.collectDashboardMetricNames(
-              DashboardAPI.getStoredViewConfig(dashboard),
+              DashboardAPI.getPublicMetricSources(
+                DashboardAPI.getDrawnViewConfig(dashboard),
+              ).metricWidgetSettings,
             );
 
           if (allowedMetricNames.size === 0) {
@@ -1268,6 +1308,20 @@ export default class DashboardAPI extends BaseAPI<
           };
 
           /*
+           * Every allowlist below is read from the same place: the widgets
+           * the public page draws that chart metrics, and the variables its
+           * toolbar draws, each as the page reads it - in every shape the
+           * config can be stored in (issue #6297). So a request is allowed
+           * exactly what one of those widgets can ask for, and a widget the
+           * page does not draw - a Data Source widget, a type this version
+           * does not draw, text that says no widget - unlocks nothing.
+           */
+          const metricSources: PublicDashboardMetricSources =
+            DashboardAPI.getPublicMetricSources(
+              DashboardAPI.getDrawnViewConfig(dashboard),
+            );
+
+          /*
            * Restrict aggregation to the metric names this dashboard actually
            * charts. Without this, a public viewer who knows the dashboard ID
            * could aggregate any metric in the owning project. Variable
@@ -1276,7 +1330,7 @@ export default class DashboardAPI extends BaseAPI<
            */
           const allowedMetricNames: Set<string> =
             DashboardAPI.collectDashboardMetricNames(
-              DashboardAPI.getStoredViewConfig(dashboard),
+              metricSources.metricWidgetSettings,
             );
 
           /*
@@ -1319,7 +1373,7 @@ export default class DashboardAPI extends BaseAPI<
            */
           const allowedGroupByAttributeKeys: Set<string> =
             DashboardAPI.collectDashboardGroupByAttributeKeys(
-              DashboardAPI.getStoredViewConfig(dashboard),
+              metricSources.metricWidgetSettings,
             );
           const requestedGroupByAttributeKeys: unknown =
             aggregateBy.groupByAttributeKeys;
@@ -1353,7 +1407,7 @@ export default class DashboardAPI extends BaseAPI<
 
           const allowedGroupByColumns: Set<string> =
             DashboardAPI.collectDashboardGroupByColumns(
-              DashboardAPI.getStoredViewConfig(dashboard),
+              metricSources.metricWidgetSettings,
             );
           const requestedGroupBy: unknown = aggregateBy.groupBy;
 
@@ -1422,9 +1476,7 @@ export default class DashboardAPI extends BaseAPI<
            * (GHSA-w332-x78m-vf3v).
            */
           const allowedFilterAttributeKeys: Set<string> =
-            DashboardAPI.collectDashboardFilterAttributeKeys(
-              DashboardAPI.getStoredViewConfig(dashboard),
-            );
+            DashboardAPI.collectDashboardFilterAttributeKeys(metricSources);
 
           const sanitizedAttributes: Record<string, unknown> = {};
           const requestedAttributes: unknown = requestedQuery["attributes"];
@@ -1459,12 +1511,13 @@ export default class DashboardAPI extends BaseAPI<
            * services as saved. Services no query of this metric is saved
            * with, some or more of them, every service when each of its
            * queries is limited to some, and any other filter on the column
-           * are refused (PublicDashboardMetricServices).
+           * are refused (PublicDashboardMetricServices). The services are
+           * read from the very settings the metric names are.
            */
           const serviceQuery: { primaryEntityId?: Includes } =
             PublicDashboardMetricServices.getServiceQuery({
               savedServices: PublicDashboardMetricServices.getSavedServices(
-                DashboardAPI.getStoredViewConfig(dashboard),
+                metricSources.metricWidgetSettings,
               ),
               metricName: requestedMetricName,
               requestedServiceFilter: requestedQuery["primaryEntityId"],
@@ -1787,181 +1840,138 @@ export default class DashboardAPI extends BaseAPI<
 
   /*
    * Build a compact machine-readable summary of the widgets on a dashboard
-   * for the public overview endpoint. Derived entirely from the stored
-   * dashboardViewConfig (already served to public viewers by /view-config) —
-   * this only lifts out the human-meaningful fields (widget type, title,
-   * text, metric names). The config comes straight from a JSON column, so
-   * every field is read defensively.
+   * for the public overview endpoint. Derived entirely from the config the
+   * public page draws (PublicDashboardViewConfig.getDrawnConfig, from what
+   * /view-config already serves to public viewers) — this only lifts out
+   * the human-meaningful fields (widget type, title, text, metric names).
+   * Every widget is summarised as the page draws it, whatever shape it was
+   * stored in, and a widget's metric names are the ones the public metric
+   * routes serve for it: none for a widget that charts no metrics.
    */
   private static buildPublicComponentSummaries(
-    dashboardViewConfig: unknown,
+    drawnViewConfig: DashboardViewConfig,
   ): Array<JSONObject> {
-    const summaries: Array<JSONObject> = [];
+    return drawnViewConfig.components.map(
+      (component: DashboardBaseComponent): JSONObject => {
+        const argumentsObject: Record<string, unknown> =
+          PublicDashboardViewConfig.isSettingsObject(component.arguments)
+            ? component.arguments
+            : {};
 
-    const components: unknown =
-      dashboardViewConfig && typeof dashboardViewConfig === "object"
-        ? (dashboardViewConfig as Record<string, unknown>)["components"]
-        : undefined;
+        const getStringArgument: (key: string) => string | null = (
+          key: string,
+        ): string | null => {
+          const value: unknown = argumentsObject[key];
+          return typeof value === "string" && value.trim().length > 0
+            ? value
+            : null;
+        };
 
-    if (!Array.isArray(components)) {
-      return summaries;
-    }
-
-    for (const component of components) {
-      if (!component || typeof component !== "object") {
-        continue;
-      }
-
-      const componentObject: Record<string, unknown> = component as Record<
-        string,
-        unknown
-      >;
-
-      const argumentsObject: Record<string, unknown> =
-        componentObject["arguments"] &&
-        typeof componentObject["arguments"] === "object"
-          ? (componentObject["arguments"] as Record<string, unknown>)
-          : {};
-
-      const getStringArgument: (key: string) => string | null = (
-        key: string,
-      ): string | null => {
-        const value: unknown = argumentsObject[key];
-        return typeof value === "string" && value.trim().length > 0
-          ? value
-          : null;
-      };
-
-      summaries.push({
-        componentType:
-          typeof componentObject["componentType"] === "string"
-            ? componentObject["componentType"]
-            : "",
-        /*
-         * Widgets do not agree on where the author's heading lives — each
-         * one's settings form names its own argument (`chartTitle`,
-         * `gaugeTitle`, `tableTitle`, the SLO widget's `widgetTitle`, plain
-         * `title` elsewhere). Read every key that is actually a heading
-         * today, so a summary is not blank for a widget that plainly has a
-         * title on the page. A widget type added later with yet another key
-         * needs adding here too.
-         */
-        title:
-          getStringArgument("chartTitle") ||
-          getStringArgument("gaugeTitle") ||
-          getStringArgument("tableTitle") ||
-          getStringArgument("widgetTitle") ||
-          getStringArgument("title"),
-        description: getStringArgument("chartDescription"),
-        text: getStringArgument("text"),
-        metricNames: Array.from(
-          DashboardAPI.collectDashboardMetricNames(component),
-        ).sort(),
-      });
-    }
-
-    return summaries;
+        return {
+          componentType:
+            typeof component.componentType === "string"
+              ? component.componentType
+              : "",
+          /*
+           * Widgets do not agree on where the author's heading lives — each
+           * one's settings form names its own argument (`chartTitle`,
+           * `gaugeTitle`, `tableTitle`, the SLO widget's `widgetTitle`,
+           * plain `title` elsewhere). Read every key that is actually a
+           * heading today, so a summary is not blank for a widget that
+           * plainly has a title on the page. A widget type added later with
+           * yet another key needs adding here too.
+           */
+          title:
+            getStringArgument("chartTitle") ||
+            getStringArgument("gaugeTitle") ||
+            getStringArgument("tableTitle") ||
+            getStringArgument("widgetTitle") ||
+            getStringArgument("title"),
+          description: getStringArgument("chartDescription"),
+          text: getStringArgument("text"),
+          metricNames: isMetricComponentType(component.componentType)
+            ? Array.from(
+                DashboardAPI.collectDashboardMetricNames(argumentsObject),
+              ).sort()
+            : [],
+        };
+      },
+    );
   }
 
   /*
-   * Walk a stored dashboard view config and collect every metric name it
-   * references (chart/value/gauge/table widgets all carry their metric in a
-   * `metricName` field somewhere under their query config). Used to build an
-   * allowlist for the public metric endpoints so an anonymous viewer can only
-   * read the metrics this dashboard was built to show.
+   * Collect every metric name in the settings of the widgets a public
+   * dashboard's page draws that chart metrics (chart/value/gauge/table
+   * widgets all carry their metric in a `metricName` field somewhere under
+   * their query config). Used to build an allowlist for the public metric
+   * endpoints so an anonymous viewer can only read the metrics this
+   * dashboard was built to show. The services each is read for are
+   * collected from the same settings through the same walk
+   * (PublicDashboardMetricServices.getSavedServices).
    */
   private static collectDashboardMetricNames(
-    dashboardViewConfig: unknown,
+    metricWidgetSettings: unknown,
   ): Set<string> {
     const metricNames: Set<string> = new Set<string>();
 
-    const walk: (node: unknown) => void = (node: unknown): void => {
-      if (!node || typeof node !== "object") {
-        return;
-      }
+    PublicDashboardViewConfig.forEachSettingsObject(
+      metricWidgetSettings,
+      (settings: Record<string, unknown>): void => {
+        const metricName: unknown = settings["metricName"];
 
-      if (Array.isArray(node)) {
-        for (const item of node) {
-          walk(item);
+        if (typeof metricName === "string" && metricName.trim().length > 0) {
+          metricNames.add(metricName);
         }
-        return;
-      }
-
-      const obj: Record<string, unknown> = node as Record<string, unknown>;
-
-      const metricName: unknown = obj["metricName"];
-      if (typeof metricName === "string" && metricName.trim().length > 0) {
-        metricNames.add(metricName);
-      }
-
-      for (const key of Object.keys(obj)) {
-        walk(obj[key]);
-      }
-    };
-
-    walk(dashboardViewConfig);
+      },
+    );
 
     return metricNames;
   }
 
   /*
-   * Walk a stored dashboard view config and collect every OpenTelemetry
-   * attribute key its variables bind to (a `Telemetry Attribute` variable
-   * carries the key its dropdown lists values for). Used as the allowlist
-   * for the public attribute-values endpoint, so an anonymous viewer can
-   * only read the values behind this dashboard's own variable pickers and
-   * not every attribute in the owning project.
+   * Collect every OpenTelemetry attribute key the dashboard's variables
+   * bind to (a `Telemetry Attribute` variable carries the key its dropdown
+   * lists values for) - the variables its public page's toolbar draws, as
+   * it reads them (PublicDashboardViewConfig.getDrawnConfig: a list written
+   * as JSON text, a key written as a number). Used as the allowlist for the
+   * public attribute-values endpoint, so an anonymous viewer can only read
+   * the values behind this dashboard's own variable pickers and not every
+   * attribute in the owning project - and as part of the metric filter
+   * allowlist, since a pick is a filter on its key.
    */
   private static collectDashboardVariableAttributeKeys(
-    dashboardViewConfig: unknown,
+    variables: Array<DashboardVariable> | undefined,
   ): Set<string> {
     const attributeKeys: Set<string> = new Set<string>();
 
-    const walk: (node: unknown) => void = (node: unknown): void => {
-      if (!node || typeof node !== "object") {
-        return;
+    for (const variable of variables || []) {
+      if (
+        !PublicDashboardViewConfig.isSettingsObject(variable) ||
+        variable["type"] !== DashboardVariableType.TelemetryAttribute
+      ) {
+        continue;
       }
 
-      if (Array.isArray(node)) {
-        for (const item of node) {
-          walk(item);
-        }
-        return;
+      const attributeKey: unknown = variable["attributeKey"];
+
+      if (typeof attributeKey === "string" && attributeKey.trim().length > 0) {
+        attributeKeys.add(attributeKey.trim());
       }
-
-      const obj: Record<string, unknown> = node as Record<string, unknown>;
-
-      if (obj["type"] === DashboardVariableType.TelemetryAttribute) {
-        const attributeKey: unknown = obj["attributeKey"];
-
-        if (
-          typeof attributeKey === "string" &&
-          attributeKey.trim().length > 0
-        ) {
-          attributeKeys.add(attributeKey.trim());
-        }
-      }
-
-      for (const key of Object.keys(obj)) {
-        walk(obj[key]);
-      }
-    };
-
-    walk(dashboardViewConfig);
+    }
 
     return attributeKeys;
   }
 
   /*
-   * Walk a stored dashboard view config and collect every OpenTelemetry
-   * attribute key its metric widgets group by — `groupByAttributeKeys`
-   * (chart / value / gauge / legacy table queries) and `groupByAttributes`
-   * (the table widget's richer per-key form). Used as the allowlist for the
-   * public metric-aggregate endpoint, whose grouped results echo each
-   * group's key values back to the caller.
+   * Collect every OpenTelemetry attribute key the metric widgets a public
+   * dashboard's page draws group by — `groupByAttributeKeys` (chart / value
+   * / gauge / legacy table queries) and `groupByAttributes` (the table
+   * widget's richer per-key form). Used as the allowlist for the public
+   * metric-aggregate endpoint, whose grouped results echo each group's key
+   * values back to the caller.
    */
   private static collectDashboardGroupByAttributeKeys(
-    dashboardViewConfig: unknown,
+    metricWidgetSettings: unknown,
   ): Set<string> {
     const attributeKeys: Set<string> = new Set<string>();
 
@@ -1971,42 +1981,28 @@ export default class DashboardAPI extends BaseAPI<
       }
     };
 
-    const walk: (node: unknown) => void = (node: unknown): void => {
-      if (!node || typeof node !== "object") {
-        return;
-      }
+    PublicDashboardViewConfig.forEachSettingsObject(
+      metricWidgetSettings,
+      (settings: Record<string, unknown>): void => {
+        const groupByAttributeKeys: unknown = settings["groupByAttributeKeys"];
 
-      if (Array.isArray(node)) {
-        for (const item of node) {
-          walk(item);
-        }
-        return;
-      }
-
-      const obj: Record<string, unknown> = node as Record<string, unknown>;
-
-      const groupByAttributeKeys: unknown = obj["groupByAttributeKeys"];
-      if (Array.isArray(groupByAttributeKeys)) {
-        for (const key of groupByAttributeKeys) {
-          addKey(key);
-        }
-      }
-
-      const groupByAttributes: unknown = obj["groupByAttributes"];
-      if (Array.isArray(groupByAttributes)) {
-        for (const groupByAttribute of groupByAttributes) {
-          if (groupByAttribute && typeof groupByAttribute === "object") {
-            addKey((groupByAttribute as Record<string, unknown>)["key"]);
+        if (Array.isArray(groupByAttributeKeys)) {
+          for (const key of groupByAttributeKeys) {
+            addKey(key);
           }
         }
-      }
 
-      for (const key of Object.keys(obj)) {
-        walk(obj[key]);
-      }
-    };
+        const groupByAttributes: unknown = settings["groupByAttributes"];
 
-    walk(dashboardViewConfig);
+        if (Array.isArray(groupByAttributes)) {
+          for (const groupByAttribute of groupByAttributes) {
+            if (PublicDashboardViewConfig.isSettingsObject(groupByAttribute)) {
+              addKey(groupByAttribute["key"]);
+            }
+          }
+        }
+      },
+    );
 
     return attributeKeys;
   }
@@ -2026,107 +2022,119 @@ export default class DashboardAPI extends BaseAPI<
    *   and DashboardVariableInterpolation injects it at render time. An
    *   allowlist built from stored filters alone would refuse every real
    *   templated dashboard the moment its variable is used.
+   *
+   * Both as the public page draws them (getPublicMetricSources).
    */
   private static collectDashboardFilterAttributeKeys(
-    dashboardViewConfig: unknown,
+    metricSources: PublicDashboardMetricSources,
   ): Set<string> {
     const attributeKeys: Set<string> =
-      DashboardAPI.collectDashboardVariableAttributeKeys(dashboardViewConfig);
+      DashboardAPI.collectDashboardVariableAttributeKeys(
+        metricSources.variables,
+      );
 
     const addKeysOf: (value: unknown) => void = (value: unknown): void => {
-      if (!value || typeof value !== "object" || Array.isArray(value)) {
+      if (!PublicDashboardViewConfig.isSettingsObject(value)) {
         return;
       }
 
-      for (const key of Object.keys(value as Record<string, unknown>)) {
+      for (const key of PublicDashboardViewConfig.getSettingsKeys(value)) {
         if (key.length > 0) {
           attributeKeys.add(key);
         }
       }
     };
 
-    const walk: (node: unknown) => void = (node: unknown): void => {
-      if (!node || typeof node !== "object") {
-        return;
-      }
+    PublicDashboardViewConfig.forEachSettingsObject(
+      metricSources.metricWidgetSettings,
+      (settings: Record<string, unknown>): void => {
+        const filterData: unknown = settings["filterData"];
 
-      if (Array.isArray(node)) {
-        for (const item of node) {
-          walk(item);
+        if (PublicDashboardViewConfig.isSettingsObject(filterData)) {
+          addKeysOf(filterData["attributes"]);
         }
-        return;
-      }
 
-      const obj: Record<string, unknown> = node as Record<string, unknown>;
-
-      const filterData: unknown = obj["filterData"];
-      if (filterData && typeof filterData === "object") {
-        addKeysOf((filterData as Record<string, unknown>)["attributes"]);
-      }
-
-      addKeysOf(obj["attributeFilters"]);
-
-      for (const key of Object.keys(obj)) {
-        walk(obj[key]);
-      }
-    };
-
-    walk(dashboardViewConfig);
+        addKeysOf(settings["attributeFilters"]);
+      },
+    );
 
     return attributeKeys;
   }
 
   /*
-   * Walk a stored dashboard view config and collect every model column its
-   * widgets group by. Used as the allowlist for the public metric-aggregate
+   * Collect every model column the metric widgets a public dashboard's page
+   * draws group by. Used as the allowlist for the public metric-aggregate
    * endpoint: grouping echoes the grouped column back in every result row,
    * so `groupBy: { attributes: true }` would hand an anonymous viewer the
    * entire attribute map of an allowlisted metric.
    */
   private static collectDashboardGroupByColumns(
-    dashboardViewConfig: unknown,
+    metricWidgetSettings: unknown,
   ): Set<string> {
     const groupByColumns: Set<string> = new Set<string>();
 
-    const walk: (node: unknown) => void = (node: unknown): void => {
-      if (!node || typeof node !== "object") {
-        return;
-      }
+    PublicDashboardViewConfig.forEachSettingsObject(
+      metricWidgetSettings,
+      (settings: Record<string, unknown>): void => {
+        const groupBy: unknown = settings["groupBy"];
 
-      if (Array.isArray(node)) {
-        for (const item of node) {
-          walk(item);
+        if (!PublicDashboardViewConfig.isSettingsObject(groupBy)) {
+          return;
         }
-        return;
-      }
 
-      const obj: Record<string, unknown> = node as Record<string, unknown>;
-
-      const groupBy: unknown = obj["groupBy"];
-      if (groupBy && typeof groupBy === "object" && !Array.isArray(groupBy)) {
-        for (const column of Object.keys(groupBy as Record<string, unknown>)) {
-          if ((groupBy as Record<string, unknown>)[column]) {
+        for (const column of PublicDashboardViewConfig.getSettingsKeys(
+          groupBy,
+        )) {
+          if (groupBy[column]) {
             groupByColumns.add(column);
           }
         }
-      }
-
-      for (const key of Object.keys(obj)) {
-        walk(obj[key]);
-      }
-    };
-
-    walk(dashboardViewConfig);
+      },
+    );
 
     return groupByColumns;
   }
 
   /*
-   * A dashboard's stored config as every public route reads it: the object
-   * its widgets are on, wherever it was stored. A config written as the API
-   * reference's `{_type: "DashboardViewConfig", value: {...}}` envelope or
-   * as JSON text has them one level down; the dashboard draws them, so the
-   * routes that serve their data must find them too (issue #4571).
+   * The config a public dashboard's page draws (issue #6297): what
+   * /view-config serves, read as the page reads it, with every widget found
+   * in every shape it can be stored in - as JSON text, in the
+   * DashboardComponent envelope (its value an object or text), in a widget
+   * list written as text, with its arguments written as text - and
+   * deserialized. The routes that serve what the page's metric widgets and
+   * variables ask for read this, so they answer exactly what the page can
+   * ask: a widget it draws in any shape, and nothing it does not draw.
+   */
+  private static getDrawnViewConfig(dashboard: Dashboard): DashboardViewConfig {
+    return PublicDashboardViewConfig.getDrawnConfig(
+      dashboard.dashboardViewConfig,
+    );
+  }
+
+  /*
+   * What the public page reads metrics with, from the config it draws: the
+   * settings of each widget it draws that charts metrics, and the variables
+   * its toolbar draws. Every public metric allowlist - metric names,
+   * grouping keys and columns, filter keys, saved services - reads these,
+   * and only these, so they move in step.
+   */
+  private static getPublicMetricSources(
+    drawnViewConfig: DashboardViewConfig,
+  ): PublicDashboardMetricSources {
+    return {
+      metricWidgetSettings:
+        PublicDashboardViewConfig.getMetricWidgetSettings(drawnViewConfig),
+      variables: drawnViewConfig.variables || [],
+    };
+  }
+
+  /*
+   * A dashboard's stored config as the public routes that select one widget
+   * read it (resource-list, SLO history): the object its widgets are on,
+   * wherever it was stored. A config written as the API reference's
+   * `{_type: "DashboardViewConfig", value: {...}}` envelope or as JSON text
+   * has them one level down; the dashboard draws them, so the routes that
+   * serve their data must find them too (issue #4571).
    */
   private static getStoredViewConfig(dashboard: Dashboard): JSONObject {
     return StoredDashboardViewConfig.unwrap(dashboard.dashboardViewConfig);
@@ -2143,6 +2151,10 @@ export default class DashboardAPI extends BaseAPI<
    * widget stored without an id, or with one an earlier widget already has,
    * is then found by the id the page asks with, and two widgets that share
    * a stored id are no longer both answered from the first one's settings.
+   * A widget whose arguments were stored as JSON text has them read as the
+   * object they say (StoredDashboardViewConfig.withArgumentsRead), as the
+   * page draws it, so it is answered as the same widget stored with them as
+   * an object (issue #6297).
    */
   private static collectDashboardWidgets(
     dashboardViewConfig: unknown,
@@ -2156,11 +2168,13 @@ export default class DashboardAPI extends BaseAPI<
       return [];
     }
 
-    return StoredDashboardViewConfig.withComponentIds(
-      servedConfig.components,
-    ).filter((component: unknown): component is JSONObject => {
-      return StoredDashboardViewConfig.isWidgetEntry(component);
-    });
+    return StoredDashboardViewConfig.withComponentIds(servedConfig.components)
+      .filter((component: unknown): component is JSONObject => {
+        return StoredDashboardViewConfig.isWidgetEntry(component);
+      })
+      .map((widget: JSONObject): JSONObject => {
+        return StoredDashboardViewConfig.withArgumentsRead(widget);
+      });
   }
 
   private static readDashboardWidgetComponentId(

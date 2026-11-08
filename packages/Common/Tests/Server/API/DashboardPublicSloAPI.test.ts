@@ -1178,6 +1178,91 @@ describe("DashboardAPI public SLO", () => {
     });
   });
 
+  /*
+   * Issue #6297: an SLO widget stored with its arguments as JSON text is
+   * drawn by the public page, and was refused here as "Dashboard widget
+   * arguments must be an object." Its numbers and its series are now read
+   * as those of the same widget stored with its arguments as an object.
+   */
+  describe("an SLO widget with its arguments as JSON text (issue #6297)", () => {
+    type WithTextArgumentsFunction = (widget: JSONObject) => JSONObject;
+
+    const withTextArguments: WithTextArgumentsFunction = (
+      widget: JSONObject,
+    ): JSONObject => {
+      return { ...widget, arguments: JSON.stringify(widget["arguments"]) };
+    };
+
+    it("lists its SLO as the same widget stored as an object does", async () => {
+      const slo: BuiltWidget = buildSloWidget();
+
+      setWidgets([slo.widget]);
+      await callResourceList({ componentId: slo.componentId.toString() });
+      expect(nextFunction).not.toHaveBeenCalled();
+      const asObject: JSONObject = getFindByArgs();
+
+      jest.clearAllMocks();
+
+      setWidgets([withTextArguments(slo.widget)]);
+      await callResourceList({ componentId: slo.componentId.toString() });
+      expect(nextFunction).not.toHaveBeenCalled();
+      const asText: JSONObject = getFindByArgs();
+
+      expect(asText).toEqual(asObject);
+      expect(JSON.stringify(asText["query"])).toContain(
+        serviceLevelObjectiveId.toString(),
+      );
+    });
+
+    it("aggregates its SLO's series as the same widget stored as an object does", async () => {
+      const slo: BuiltWidget = buildSloChartWidget({
+        sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      });
+
+      setWidgets([slo.widget]);
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+      });
+      expect(nextFunction).not.toHaveBeenCalled();
+      const asObject: JSONObject = getAggregateArgs();
+
+      jest.clearAllMocks();
+
+      setWidgets([withTextArguments(slo.widget)]);
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+      });
+      expect(nextFunction).not.toHaveBeenCalled();
+      const asText: JSONObject = getAggregateArgs();
+
+      expect(asText).toEqual(asObject);
+      expect((asText["query"] as JSONObject)["metricName"]).toBe(
+        "error.budget.remaining.percent",
+      );
+    });
+
+    it("still refuses one whose arguments are text that says no object", async () => {
+      const slo: BuiltWidget = buildSloChartWidget();
+
+      setWidgets([
+        {
+          ...slo.widget,
+          arguments: JSON.stringify(JSON.stringify(slo.widget["arguments"])),
+        },
+      ]);
+
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingRead();
+    });
+  });
+
   describe("dashboard authorization", () => {
     it("rejects both routes for a dashboard that is not public", async () => {
       const slo: BuiltWidget = buildSloChartWidget();

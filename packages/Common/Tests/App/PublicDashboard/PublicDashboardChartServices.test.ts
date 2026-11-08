@@ -808,3 +808,179 @@ describe("property: a public dashboard's charts read what the signed-in ones rea
     }
   });
 });
+
+/*
+ * ISSUE #6297: A CHART STORED IN ANOTHER SHAPE READS THE SAME.
+ *
+ * The API, Terraform and scripts can store a widget inside the widget list
+ * as JSON text, in the DashboardComponent envelope with its value as text,
+ * in a widget list written as text, or with its arguments as text. Signed
+ * in and on the public page alike, the dashboard draws each as the chart it
+ * holds - so the public route must answer each read the chart makes, with
+ * its services, filter and grouping, exactly as signed in.
+ */
+describe("a chart stored in another shape (issue #6297)", () => {
+  type ReshapeFunction = (stored: JSONObject) => JSONObject;
+
+  const widgetsOf: (stored: JSONObject) => Array<JSONObject> = (
+    stored: JSONObject,
+  ): Array<JSONObject> => {
+    return stored["components"] as Array<JSONObject>;
+  };
+
+  const SHAPES: Array<[string, ReshapeFunction]> = [
+    [
+      "as JSON text",
+      (stored: JSONObject): JSONObject => {
+        return {
+          ...stored,
+          components: widgetsOf(stored).map((widget: JSONObject): string => {
+            return JSON.stringify(widget);
+          }),
+        };
+      },
+    ],
+    [
+      "in the envelope, its value as JSON text",
+      (stored: JSONObject): JSONObject => {
+        return {
+          ...stored,
+          components: widgetsOf(stored).map(
+            (widget: JSONObject): JSONObject => {
+              return {
+                _type: "DashboardComponent",
+                value: JSON.stringify(widget),
+              };
+            },
+          ),
+        };
+      },
+    ],
+    [
+      "in a widget list written as JSON text",
+      (stored: JSONObject): JSONObject => {
+        return { ...stored, components: JSON.stringify(widgetsOf(stored)) };
+      },
+    ],
+    [
+      "with its arguments as JSON text",
+      (stored: JSONObject): JSONObject => {
+        return {
+          ...stored,
+          components: widgetsOf(stored).map(
+            (widget: JSONObject): JSONObject => {
+              return {
+                ...widget,
+                arguments: JSON.stringify(widget["arguments"]),
+              };
+            },
+          ),
+        };
+      },
+    ],
+  ];
+
+  const servicesInOrder: (
+    services: Array<Array<string> | undefined>,
+  ) => Array<string> = (
+    services: Array<Array<string> | undefined>,
+  ): Array<string> => {
+    return services
+      .map((serviceIds: Array<string> | undefined): string => {
+        return serviceIds ? [...serviceIds].sort().join(",") : "every service";
+      })
+      .sort();
+  };
+
+  test.each(SHAPES)(
+    "%s: charts its services, filter and grouping on the public dashboard as signed in",
+    async (_label: string, reshape: ReshapeFunction) => {
+      const stored: JSONObject = reshape(
+        addToDashboard(null, [
+          viewQuery({
+            metricName: LATENCY,
+            variable: "a",
+            serviceIds: [API, CHECKOUT],
+            attributes: { "http.route": "/pay" },
+            groupByAttributeKeys: ["host.name"],
+          }),
+          viewQuery({ metricName: CPU, variable: "b" }),
+        ]),
+      );
+
+      const [chart] = await readEveryChart(stored);
+
+      expect(servicesInOrder(chart!.signedIn.services)).toEqual(
+        servicesInOrder([[API, CHECKOUT], undefined]),
+      );
+      expect(chart!.public.reads.length).toBe(2);
+      expect(chart!.public.reads).toEqual(chart!.signedIn.reads);
+    },
+  );
+
+  test.each(SHAPES)(
+    "%s: its services saved as ObjectID JSON read as those ids, on both",
+    async (_label: string, reshape: ReshapeFunction) => {
+      const saved: JSONObject = addToDashboard(null, [
+        viewQuery({
+          metricName: MEMORY,
+          variable: "a",
+          serviceIds: [API, BILLING],
+        }),
+      ]);
+
+      // A serialized id is stored as its JSON.
+      const withObjectIds: JSONObject = JSON.parse(
+        JSON.stringify(saved).replace(
+          `"${BILLING}"`,
+          JSON.stringify({ _type: "ObjectID", value: BILLING }),
+        ),
+      ) as JSONObject;
+
+      expect(JSON.stringify(withObjectIds)).toContain('"_type":"ObjectID"');
+
+      const [chart] = await readEveryChart(reshape(withObjectIds));
+
+      expect(chart!.signedIn.services).toEqual([[API, BILLING]]);
+      expect(chart!.public.services).toEqual([[API, BILLING]]);
+      expect(chart!.public.reads).toEqual(chart!.signedIn.reads);
+    },
+  );
+
+  test.each(SHAPES)(
+    "%s: beside a dashboard variable's pick, as signed in",
+    async (_label: string, reshape: ReshapeFunction) => {
+      const stored: JSONObject = reshape(
+        addToDashboard(
+          {
+            _type: "DashboardViewConfig",
+            heightInDashboardUnits: 24,
+            components: [],
+            variables: [
+              {
+                id: "cluster",
+                name: "cluster",
+                type: DashboardVariableType.TelemetryAttribute,
+                attributeKey: "resource.k8s.cluster.name",
+                selectedValue: "prod-eu",
+              },
+            ],
+          },
+          [
+            viewQuery({
+              metricName: CPU,
+              variable: "a",
+              serviceIds: [BILLING],
+            }),
+          ],
+        ),
+      );
+
+      const [chart] = await readEveryChart(stored);
+
+      expect(chart!.public.services).toEqual([[BILLING]]);
+      expect(chart!.public.reads).toEqual(chart!.signedIn.reads);
+      expect(chart!.public.reads[0]).toContain("prod-eu");
+    },
+  );
+});

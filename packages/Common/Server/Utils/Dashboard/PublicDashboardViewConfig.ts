@@ -2,6 +2,7 @@ import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType, {
   isDataSourceComponentType,
+  isMetricComponentType,
 } from "../../../Types/Dashboard/DashboardComponentType";
 import { JSONObject } from "../../../Types/JSON";
 import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
@@ -54,6 +55,116 @@ export default class PublicDashboardViewConfig {
         );
       }) as Array<DashboardBaseComponent>,
     };
+  }
+
+  /*
+   * The config a public dashboard's page draws: the one /view-config serves
+   * (sanitize), read as the page reads it (StoredDashboardViewConfig.read).
+   * Every widget is found in every shape it can be stored in - as JSON
+   * text, in the DashboardComponent envelope (its value an object or
+   * text), in a widget list written as text, with its arguments written as
+   * text - and comes deserialized, with an id and an `arguments` object;
+   * a Data Source widget, an entry no widget is read from and text that
+   * says no widget are not among them (issue #6297).
+   *
+   * The public routes that serve what the page draws read this, so they
+   * answer exactly what the page can ask for. Between the two lies only
+   * the wire - serialized, sent as JSON, parsed - which changes nothing
+   * the page reads. The one key it may keep or drop is `__proto__`, which
+   * JSON.parse keeps as an ordinary key: the page reads its widgets'
+   * settings by name and never reads a value from it, so nothing read here
+   * may either.
+   */
+  public static getDrawnConfig(
+    dashboardViewConfig: unknown,
+  ): DashboardViewConfig {
+    return StoredDashboardViewConfig.read(
+      PublicDashboardViewConfig.sanitize(
+        dashboardViewConfig as DashboardViewConfig | null | undefined,
+      ),
+    );
+  }
+
+  /*
+   * The settings (`arguments`) of each widget of a drawn config that charts
+   * metrics (MetricComponentTypes, matched exactly), in order: where the
+   * chart, value, gauge and table widgets read every query they make, and
+   * so the only settings whose reads the public metric routes answer.
+   * Every other widget the page draws - text, a list, one of a type this
+   * version does not draw - asks those routes for nothing.
+   */
+  public static getMetricWidgetSettings(
+    drawnConfig: DashboardViewConfig,
+  ): Array<JSONObject> {
+    return drawnConfig.components
+      .filter((component: DashboardBaseComponent): boolean => {
+        return isMetricComponentType(component.componentType);
+      })
+      .map((component: DashboardBaseComponent): JSONObject => {
+        // Always an object: the drawn config gives every widget one.
+        return (component.arguments || {}) as JSONObject;
+      });
+  }
+
+  /*
+   * Calls `visit` with every object in the settings of drawn widgets, at
+   * any depth, as the page reads them - the one walk every public metric
+   * allowlist makes, so all of them read the same places (issue #6297):
+   *
+   * - lists and plain objects are walked into;
+   * - a deserialized value - an ObjectID, a query operator, a date - is a
+   *   value the page reads whole, never settings of its own, so it is not
+   *   walked into (its fields are its own: an Includes keeps its values in
+   *   `_values`);
+   * - a `__proto__` key holds nothing the page reads (getDrawnConfig).
+   */
+  public static forEachSettingsObject(
+    value: unknown,
+    visit: (settings: Record<string, unknown>) => void,
+  ): void {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        PublicDashboardViewConfig.forEachSettingsObject(item, visit);
+      }
+
+      return;
+    }
+
+    if (!PublicDashboardViewConfig.isSettingsObject(value)) {
+      return;
+    }
+
+    visit(value);
+
+    for (const key of PublicDashboardViewConfig.getSettingsKeys(value)) {
+      PublicDashboardViewConfig.forEachSettingsObject(value[key], visit);
+    }
+  }
+
+  /*
+   * Whether a value is settings the page reads by name: a plain object, as
+   * JSON and the deserializer make them - not a list, and not a
+   * deserialized value (an ObjectID, a query operator, a date).
+   */
+  public static isSettingsObject(
+    value: unknown,
+  ): value is Record<string, unknown> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return false;
+    }
+
+    const prototype: unknown = Object.getPrototypeOf(value);
+
+    return prototype === Object.prototype || prototype === null;
+  }
+
+  // The keys of settings the page reads: each own key but `__proto__`.
+  public static getSettingsKeys(
+    settings: Record<string, unknown>,
+  ): Array<string> {
+    return Object.keys(settings).filter((key: string): boolean => {
+      return key !== "__proto__";
+    });
   }
 
   /*
