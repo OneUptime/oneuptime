@@ -1922,4 +1922,91 @@ describe("DashboardAPI public SLO", () => {
       expect(buildSpy).not.toHaveBeenCalled();
     });
   });
+
+  /*
+   * Issue #6327: an SLO widget stored inside more layers of envelope or
+   * JSON text than any board reads through is drawn as "This widget could
+   * not be shown", signed in and on the public page alike. Both routes
+   * answer it while every board reads it as an SLO widget, and refuse it
+   * past that - before, they answered one in six to ten layers that the
+   * owner's own board could not show.
+   */
+  describe("an SLO widget stored deeper than any board reads (issue #6327)", () => {
+    const envelopes: (widget: JSONObject, layers: number) => unknown = (
+      widget: JSONObject,
+      layers: number,
+    ): unknown => {
+      let entry: unknown = widget;
+
+      for (let layer: number = 0; layer < layers; layer++) {
+        entry =
+          layer % 2 === 1
+            ? JSON.stringify({ _type: "DashboardComponent", value: entry })
+            : { _type: "DashboardComponent", value: entry };
+      }
+
+      return entry;
+    };
+
+    it("serves its numbers and its history while every board reads it, and refuses both past that", async () => {
+      for (let layers: number = 0; layers <= 12; layers++) {
+        const slo: BuiltWidget = buildSloChartWidget();
+
+        setWidgets([envelopes(slo.widget, layers) as JSONObject]);
+
+        /*
+         * Each layer is an envelope, and every second one is also written
+         * as JSON text. A board reads text in the step that opens the
+         * envelope holding it; only the outermost text - the stored entry
+         * itself - takes a step of its own.
+         */
+        const isTextOutermost: boolean = layers >= 2 && layers % 2 === 0;
+        const isRead: boolean = layers + (isTextOutermost ? 1 : 0) <= 5;
+
+        jest.clearAllMocks();
+
+        await callResourceList({ componentId: slo.componentId.toString() });
+
+        if (isRead) {
+          expect([layers, (nextFunction as jest.Mock).mock.calls]).toEqual([
+            layers,
+            [],
+          ]);
+          expect(getFindByArgs()["limit"]).toBe(1);
+        } else {
+          expect([layers, getThrownError()]).toEqual([
+            layers,
+            new BadDataException(
+              "This resource is not part of this dashboard.",
+            ),
+          ]);
+          expectNothingRead();
+        }
+
+        jest.clearAllMocks();
+
+        await callSloHistory({
+          componentId: slo.componentId.toString(),
+          aggregateBy: buildAggregateBy(),
+        });
+
+        if (isRead) {
+          expect([layers, (nextFunction as jest.Mock).mock.calls]).toEqual([
+            layers,
+            [],
+          ]);
+          expect(
+            ((getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID)
+              .toString(),
+          ).toBe(serviceLevelObjectiveId.toString());
+        } else {
+          expect([
+            layers,
+            getThrownError() instanceof BadDataException,
+          ]).toEqual([layers, true]);
+          expectNothingRead();
+        }
+      }
+    });
+  });
 });

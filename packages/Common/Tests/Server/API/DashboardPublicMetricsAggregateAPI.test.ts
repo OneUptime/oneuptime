@@ -14,7 +14,9 @@ import {
 import Response from "../../../Server/Utils/Response";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
-import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import DashboardComponentType, {
+  DataSourceComponentTypes,
+} from "../../../Types/Dashboard/DashboardComponentType";
 import { DashboardVariableType } from "../../../Types/Dashboard/DashboardVariable";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -2943,6 +2945,99 @@ describe("DashboardAPI public metrics-aggregate", () => {
             );
           }
         });
+      });
+
+      /*
+       * Issue #6327: a widget stored inside more layers of envelope or JSON
+       * text than any board reads through is drawn as "This widget could
+       * not be shown", signed in and on the public page alike, and served
+       * as that alone. Its metric is read while every board reads the
+       * widget, and refused past that. Before, the public page read five
+       * layers more than the signed-in board, and these routes served the
+       * metric of a chart in six to ten layers that the owner's own board
+       * could not show.
+       */
+      describe("a widget stored deeper than any board reads (issue #6327)", () => {
+        const envelopes: (widget: JSONObject, layers: number) => unknown = (
+          widget: JSONObject,
+          layers: number,
+        ): unknown => {
+          let entry: unknown = widget;
+
+          for (let layer: number = 0; layer < layers; layer++) {
+            entry =
+              layer % 3 === 2
+                ? { _type: "DashboardComponent", value: JSON.stringify(entry) }
+                : { _type: "DashboardComponent", value: entry };
+          }
+
+          return entry;
+        };
+
+        it.each(METRIC_WIDGET_TYPES)(
+          "a %s widget's metric is read while every board reads the widget, and refused past that",
+          async (componentType: DashboardComponentType) => {
+            for (let layers: number = 0; layers <= 12; layers++) {
+              jest.clearAllMocks();
+
+              dashboard.dashboardViewConfig = configOf([
+                envelopes(buildWidget(componentType, SPEC), layers),
+              ]) as DashboardViewConfig;
+
+              await callWithAggregate(pageRequest(componentType));
+
+              if (layers <= 5) {
+                expect([layers, (nextFunction as jest.Mock).mock.calls]).toEqual(
+                  [layers, []],
+                );
+                expect(
+                  (getAggregateArgs()["query"] as JSONObject)["name"],
+                ).toBe(WIDGET_METRIC);
+                expect([layers, await callMetricTypes()]).toEqual([
+                  layers,
+                  [WIDGET_METRIC],
+                ]);
+              } else {
+                const refusal: unknown = getThrownError();
+
+                expect([
+                  layers,
+                  refusal instanceof BadDataException,
+                  (refusal as Error).message,
+                ]).toEqual([layers, true, METRIC_REFUSED]);
+                expectNothingAggregated();
+                expect([layers, await callMetricTypes()]).toEqual([layers, []]);
+              }
+            }
+          },
+        );
+
+        it.each([...DataSourceComponentTypes])(
+          "a %s widget holding a metric query is never read, at any depth",
+          async (componentType: DashboardComponentType) => {
+            for (let layers: number = 0; layers <= 30; layers++) {
+              jest.clearAllMocks();
+
+              dashboard.dashboardViewConfig = configOf([
+                envelopes(buildWidget(componentType, SPEC), layers),
+              ]) as DashboardViewConfig;
+
+              await callWithAggregate(
+                pageRequest(DashboardComponentType.Chart),
+              );
+
+              const refusal: unknown = getThrownError();
+
+              expect([
+                layers,
+                refusal instanceof BadDataException,
+                (refusal as Error).message,
+              ]).toEqual([layers, true, METRIC_REFUSED]);
+              expectNothingAggregated();
+              expect([layers, await callMetricTypes()]).toEqual([layers, []]);
+            }
+          },
+        );
       });
 
       /*

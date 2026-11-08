@@ -3666,4 +3666,113 @@ describe("DashboardAPI public resource-list", () => {
       },
     );
   });
+
+  /*
+   * Issue #6327: a widget stored inside more layers of envelope or JSON
+   * text than any board reads through is drawn as "This widget could not be
+   * shown", signed in and on the public page alike, and is served as that
+   * alone. The route lists a list widget while every board reads it as one,
+   * and refuses it past that - by the id it was stored under, and by the id
+   * the page draws its note under. Before, the public page read five layers
+   * more than the signed-in board, so this route listed a widget in six to
+   * ten layers that the owner's own board could not show.
+   */
+  describe("a list widget stored deeper than any board reads (issue #6327)", () => {
+    const envelopes: (widget: JSONObject, layers: number) => unknown = (
+      widget: JSONObject,
+      layers: number,
+    ): unknown => {
+      let entry: unknown = widget;
+
+      for (let layer: number = 0; layer < layers; layer++) {
+        entry =
+          layer % 3 === 2
+            ? { _type: "DashboardComponent", value: JSON.stringify(entry) }
+            : { _type: "DashboardComponent", value: entry };
+      }
+
+      return entry;
+    };
+
+    // What the public page draws: what /view-config serves, sent as JSON, read.
+    const pageDraws: (stored: unknown) => DashboardViewConfig = (
+      stored: unknown,
+    ): DashboardViewConfig => {
+      return StoredDashboardViewConfig.read(
+        JSON.parse(
+          JSON.stringify(
+            JSONFunctions.serialize(
+              PublicDashboardViewConfig.sanitize(
+                stored as DashboardViewConfig,
+              ) as unknown as JSONObject,
+            ),
+          ),
+        ),
+      );
+    };
+
+    const typesOf: (config: DashboardViewConfig) => Array<string> = (
+      config: DashboardViewConfig,
+    ): Array<string> => {
+      return config.components.map((component: { componentType: string }) => {
+        return component.componentType;
+      });
+    };
+
+    it("is listed while every board reads it, and refused past that", async () => {
+      for (let layers: number = 0; layers <= 12; layers++) {
+        const incident: BuiltWidget = buildWidget({
+          componentType: DashboardComponentType.IncidentList,
+          argumentsObject: { maxRows: 7 },
+          storedIdShape: "string",
+        });
+        const stored: JSONObject = {
+          components: [envelopes(incident.widget, layers) as JSONObject],
+        };
+
+        dashboard.dashboardViewConfig = stored as unknown as DashboardViewConfig;
+
+        const drawn: DashboardViewConfig = pageDraws(stored);
+        const isRead: boolean = layers <= 5;
+        const drawnAs: Array<string> = isRead
+          ? [DashboardComponentType.IncidentList]
+          : [""];
+
+        // The public page and a signed-in board draw it alike.
+        expect([layers, typesOf(drawn)]).toEqual([layers, drawnAs]);
+        expect([
+          layers,
+          typesOf(StoredDashboardViewConfig.read(stored)),
+        ]).toEqual([layers, drawnAs]);
+
+        for (const componentId of [
+          incident.componentId.toString(),
+          drawn.components[0]!.componentId.toString(),
+        ]) {
+          jest.clearAllMocks();
+
+          await callRoute({
+            resourceType: "incident",
+            body: { componentId: componentId },
+          });
+
+          if (isRead) {
+            expect([layers, (nextFunction as jest.Mock).mock.calls]).toEqual([
+              layers,
+              [],
+            ]);
+            expect(getFindByArgs(IncidentService)["limit"]).toBe(7);
+          } else {
+            expect([layers, getThrownError()]).toEqual([
+              layers,
+              new BadDataException(
+                "This resource is not part of this dashboard.",
+              ),
+            ]);
+            expectNothingListed();
+          }
+        }
+      }
+    });
+  });
 });
