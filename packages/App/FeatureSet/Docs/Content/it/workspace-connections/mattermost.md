@@ -137,6 +137,10 @@ Se il tuo account Mattermost non è ancora collegato, un pulsante te lo dice, co
 
 Ogni pressione di un pulsante viene registrata in **Impostazioni del progetto** > **Notifiche** > **Registri di notifica**, nella scheda **Area di lavoro**, insieme a chi l'ha premuto.
 
+## Approvare una nota pubblica
+
+Quando le note pubbliche del progetto richiedono approvazione e attivi Mattermost per **Approvazione delle note pubbliche** nelle impostazioni delle notifiche, ogni nota pubblica che attende un passaggio che approvi arriva nei tuoi messaggi diretti con il bot di OneUptime: chi l'ha inviata, il passaggio che attende, la nota, **Approve**, **Reject** e un link alla nota in OneUptime. **Approve** la approva per quel passaggio; all'ultimo passaggio si chiama **Approve and publish** e la nota viene pubblicata subito. **Reject** apre un modulo che chiede il motivo: il motivo è obbligatorio e l'autore della nota lo vede. I pulsanti agiscono come te, con le stesse regole di OneUptime, e rispondono in un messaggio che vedi solo tu. Un clic dopo che qualcun altro ha deciso, o dopo che la nota o i suoi passaggi sono cambiati, non decide nulla e dice che cosa è successo. Se il tuo account Mattermost non è collegato, collegalo in **Impostazioni utente** > **Area di lavoro** > **Mattermost**, poi premi di nuovo il pulsante. Vedi [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche).
+
 ## Rete e self-hosting
 
 Due server comunicano tra loro:

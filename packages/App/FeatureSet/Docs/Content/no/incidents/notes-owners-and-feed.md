@@ -264,6 +264,8 @@ Hvert nye offentlige notat venter, uansett hvor det skrives: i dashbordet, gjenn
 
 **Fra Slack, Microsoft Teams og Mattermost.** Skjemaet for å legge til et notat sier at et offentlig notat publiseres på statussiden når det er godkjent. Den som sender et, får vite at det er sendt til godkjenning, og hvem det venter på: i en melding bare vedkommende ser i Slack og Mattermost, og i samtalen i Microsoft Teams. Et notat som lagres fra en 📣- eller 📢-reaksjon, sier det samme i bekreftelsen sin. Kanalen hører om notatet når det publiseres.
 
+**Godkjenne fra Slack, Microsoft Teams og Mattermost.** Godkjennere som slår på Slack, Microsoft Teams eller Mattermost for **Godkjenning av offentlige notater** under **Brukerinnstillinger → Varselinnstillinger**, får notatet der, i en direktemelding fra OneUptime: hvem som sendte det, hvilket trinn det venter på, og knapper for å godkjenne det, avvise det eller åpne det i OneUptime. Et trykk avgjør som OneUptime-kontoen chatkontoen deres er koblet til, etter de samme reglene som knappene på notatet, og en avvisning krever en begrunnelse der også. Bare de ser svaret. Hvis noen andre avgjorde først, eller notatet eller trinnene endret seg etter at meldingen ble sendt, avgjøres ingenting, og svaret sier hva som skjedde. Se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) og [Mattermost](/docs/workspace-connections/mattermost).
+
 Feeden registrerer hvert trinn som en oppføring av typen `PublicNoteApproval`: et notat sendt til godkjenning, godkjent eller avvist, en tilbaketrukket redigering eller et notat publisert uten godkjenning. Disse oppføringene publiseres ikke i chattekanaler; det publiserte notatet gjør det.
 
 ## Hendelsens feed

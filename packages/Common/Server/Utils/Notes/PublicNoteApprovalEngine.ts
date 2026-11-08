@@ -46,6 +46,7 @@ import PublicNoteApprovalFeed, {
   PublicNoteApprovalWaitingFor,
 } from "./PublicNoteApprovalFeed";
 import PublicNoteApprovalNotifications, {
+  PublicNoteApprovalChatAsk,
   PublicNoteApprovalMessageFacts,
 } from "./PublicNoteApprovalNotifications";
 import PublicNoteApprovalPolicy from "./PublicNoteApprovalPolicy";
@@ -1662,7 +1663,59 @@ export default class PublicNoteApprovalEngine {
             : `Step ${data.position.number} of ${data.position.count}`
           : data.position.step.name || "Approval",
       canRead: this.readCheck(data.host, data.note),
+      chat: await this.getChatAsk({
+        host: data.host,
+        note: data.note,
+        round: data.round,
+        position: data.position,
+      }),
     });
+  }
+
+  /*
+   * What the chat message that asks (WorkspacePublicNoteApproval) carries
+   * on its Approve and Reject: the note and its record, the round of
+   * approval and the step it asks about, and whether approving that step
+   * publishes the note - with who the step names, in the feed's words.
+   * Undefined for a note that cannot be named so, or whose step's names
+   * cannot be read: its approvers are still asked, in chat as before, with
+   * no buttons.
+   */
+  private static async getChatAsk<TNote extends BaseModel>(data: {
+    host: PublicNoteApprovalHost<TNote>;
+    note: NoteFields;
+    round: PublicNoteApprovalRound | null;
+    position: PublicNoteApprovalPosition;
+  }): Promise<PublicNoteApprovalChatAsk | undefined> {
+    const noteId: string | null = this.idOf(data.note as unknown as BaseModel);
+    const recordId: ObjectID | null = this.parentIdOf(data.host, data.note);
+
+    if (
+      !noteId ||
+      !recordId ||
+      !data.round?.submittedAt ||
+      !data.position.step
+    ) {
+      return undefined;
+    }
+
+    try {
+      return {
+        kind: data.host.kind,
+        noteId: new ObjectID(noteId),
+        recordId: recordId,
+        submittedAt: data.round.submittedAt,
+        stepId: data.position.step.id,
+        isFinal: data.position.isFinal,
+        waitingFor: await this.getWaitingFor(data.position),
+      };
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not name a step for its chat buttons.",
+      );
+      logger.error(error);
+      return undefined;
+    }
   }
 
   private static async getWaitingFor(
@@ -1964,6 +2017,22 @@ export default class PublicNoteApprovalEngine {
       isEdit,
       ...host.getMessageIds(parentId),
     };
+  }
+
+  /*
+   * The text an approver of this note is asked about: the edit that waits,
+   * for a note that is published, else the note - the text every message
+   * that asks shows (getFacts), and what a press from chat is checked
+   * against (WorkspacePublicNoteApprovalActions).
+   */
+  public static getTextToApprove(note: {
+    isPublished?: boolean | null | undefined;
+    note?: string | null | undefined;
+    pendingNote?: string | null | undefined;
+  }): string {
+    const isEdit: boolean = note.isPublished !== false;
+
+    return (isEdit ? note.pendingNote : note.note) || note.note || "";
   }
 
   private static async getTeamNames(

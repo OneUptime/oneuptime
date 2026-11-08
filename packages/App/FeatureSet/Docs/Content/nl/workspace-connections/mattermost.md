@@ -137,6 +137,10 @@ Is je Mattermost-account nog niet gekoppeld, dan zegt een knop je dat, met een l
 
 Elke druk op een knop wordt vastgelegd in **Projectinstellingen** > **Meldingen** > **Meldingslogboeken**, op het tabblad **Werkruimte**, met wie erop drukte.
 
+## Een openbare notitie goedkeuren
+
+Als de openbare notities van uw project goedgekeurd moeten worden en u Mattermost aanzet voor **Goedkeuring van openbare notities** in uw meldingsinstellingen, komt elke openbare notitie die wacht op een stap die u goedkeurt naar uw directe berichten met de bot van OneUptime: wie haar stuurde, op welke stap ze wacht, de notitie, **Approve**, **Reject** en een link naar de notitie in OneUptime. **Approve** keurt haar goed voor die stap; bij de laatste stap heet de knop **Approve and publish** en wordt de notitie meteen gepubliceerd. **Reject** opent een formulier dat naar de reden vraagt: een reden is verplicht, en de auteur van de notitie ziet hem. De knoppen handelen als u, volgens dezelfde regels als in OneUptime, en antwoorden in een bericht dat alleen u ziet. Een klik nadat iemand anders heeft beslist, of nadat de notitie of haar stappen zijn veranderd, beslist niets en zegt wat er is gebeurd. Is uw Mattermost-account niet verbonden, verbind het dan onder **Gebruikersinstellingen** > **Werkruimte** > **Mattermost** en klik daarna opnieuw op de knop. Zie [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities).
+
 ## Netwerk en zelf hosten
 
 Twee servers praten met elkaar:
