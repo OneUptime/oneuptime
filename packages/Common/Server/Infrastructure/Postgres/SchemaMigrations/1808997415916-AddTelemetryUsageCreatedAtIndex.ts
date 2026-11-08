@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddTelemetryUsageRetention1808996259160, and moved into a migration of its
+ * AddTelemetryUsageRetention1808997405916, and moved into a migration of its
  * own: "TelemetryUsageBilling" already holds rows on installs with billing,
  * so its index is built online, without blocking the usage the billing run
  * stages meanwhile. A usage row's createdAt is the UTC day its usage is for,
@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Admin Dashboard's Telemetry Usage), and the daily cleanup deletes the days
  * past the retention, both by it. Safe to run again after a stop part way.
  */
-export class AddTelemetryUsageCreatedAtIndex1808996259170
+export class AddTelemetryUsageCreatedAtIndex1808997415916
   implements MigrationInterface
 {
-  public name: string = "AddTelemetryUsageCreatedAtIndex1808996259170";
+  public name: string = "AddTelemetryUsageCreatedAtIndex1808997415916";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

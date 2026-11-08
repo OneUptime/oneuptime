@@ -10,12 +10,12 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Generated with npm run generate-postgres-migration. A nullable column with
  * no default, so it is added without rewriting the table. The createdAt
  * index the same model change asks for is built online, in
- * AddTelemetryUsageCreatedAtIndex1808996259170.
+ * AddTelemetryUsageCreatedAtIndex1808997415916.
  */
-export class AddTelemetryUsageRetention1808996259160
+export class AddTelemetryUsageRetention1808997405916
   implements MigrationInterface
 {
-  public name: string = "AddTelemetryUsageRetention1808996259160";
+  public name: string = "AddTelemetryUsageRetention1808997405916";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
