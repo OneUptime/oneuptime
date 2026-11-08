@@ -324,6 +324,12 @@ export default class NetworkRuleRunAPI {
                 projectId: projectId,
                 isDryRun: readBooleanFlag(body, "dryRun"),
                 expectedMonitorTemplateId: rule.monitorTemplateId || null,
+                /*
+                 * The devices and monitors it creates are theirs in the
+                 * audit log. Their identity only: who may run it is what
+                 * the checks above decided.
+                 */
+                props: props,
               },
             );
 
