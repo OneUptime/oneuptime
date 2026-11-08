@@ -268,9 +268,7 @@ describe("the recommended tiers an SLO is missing", () => {
 
     await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
 
-    expect(refusal().message).toContain(
-      "read SLO error budget policy tiers",
-    );
+    expect(refusal().message).toContain("read SLO error budget policy tiers");
     expect(previewSpy).not.toHaveBeenCalled();
   });
 
@@ -369,9 +367,7 @@ describe("using the recommended policy", () => {
 
     await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
 
-    expect(refusal().message).toContain(
-      "create SLO error budget policy tiers",
-    );
+    expect(refusal().message).toContain("create SLO error budget policy tiers");
     expect(addSpy).not.toHaveBeenCalled();
   });
 

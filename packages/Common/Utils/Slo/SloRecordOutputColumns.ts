@@ -99,16 +99,16 @@ export type SloRecordOutputProjectScopedRelationColumn =
   | "alertOwnerTeams"
   | "incidentOwnerTeams";
 
-export type SloRecordOutputOwnerUserColumn = "alertOwnerUsers" | "incidentOwnerUsers";
+export type SloRecordOutputOwnerUserColumn =
+  | "alertOwnerUsers"
+  | "incidentOwnerUsers";
 
 export type SloRecordOutputRelationColumn =
   | SloRecordOutputProjectScopedRelationColumn
   | SloRecordOutputOwnerUserColumn;
 
-export const SLO_RECORD_OUTPUT_OWNER_USER_COLUMNS: Array<SloRecordOutputOwnerUserColumn> = [
-  "alertOwnerUsers",
-  "incidentOwnerUsers",
-];
+export const SLO_RECORD_OUTPUT_OWNER_USER_COLUMNS: Array<SloRecordOutputOwnerUserColumn> =
+  ["alertOwnerUsers", "incidentOwnerUsers"];
 
 export const SLO_RECORD_OUTPUT_PROJECT_SCOPED_RELATION_COLUMNS: Array<SloRecordOutputProjectScopedRelationColumn> =
   [
@@ -143,4 +143,3 @@ export const getSloRecordOwnerUsersNotInProjectErrorPrefix: GetSloRecordOwnerUse
   (subject: string): string => {
     return `This ${subject} names owner users who are not members of this project:`;
   };
-

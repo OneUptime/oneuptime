@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import { Green, Red, Yellow } from "../../../Types/BrandColors";
-import FeedMarkdown, { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 import {
   SloFeedMarkdown,
   getSloPolicyTierChangedFeedMarkdown,

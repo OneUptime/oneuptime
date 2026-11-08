@@ -179,7 +179,11 @@ describe("the policy tier variables", () => {
     const variables: SloBurnRateTemplateVariables =
       buildSloBurnRateTemplateVariables(
         burnRateContext({
-          policyTier: { name: "  ", thresholdPercentage: "2.5", whatWeDo: null },
+          policyTier: {
+            name: "  ",
+            thresholdPercentage: "2.5",
+            whatWeDo: null,
+          },
         }),
       );
 
@@ -322,7 +326,9 @@ describe("the default policy tier text", () => {
         DEFAULT_SLO_POLICY_TIER_TITLE_TEMPLATE,
         variables,
       ),
-    ).toBe("SLO error budget policy: Checkout availability — Reliability first");
+    ).toBe(
+      "SLO error budget policy: Checkout availability — Reliability first",
+    );
   });
 
   test("says the budget, the tier's threshold and the agreement in the description", () => {

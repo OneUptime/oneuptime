@@ -47,7 +47,11 @@ interface Tier extends SloPolicyTierLike {
   thresholdPercentage: number;
 }
 
-const CAUTION: Tier = { id: "caution", name: "Caution", thresholdPercentage: 50 };
+const CAUTION: Tier = {
+  id: "caution",
+  name: "Caution",
+  thresholdPercentage: 50,
+};
 const RELIABILITY_FIRST: Tier = {
   id: "reliability-first",
   name: "Reliability first",
@@ -626,9 +630,7 @@ describe("the recommended policy over the API", () => {
     );
 
     expect(parseSloRecommendedPolicyTiers(json)).toEqual(tiers);
-    expect(sloRecommendedPolicyTierToJSON(tiers[0]!)).not.toHaveProperty(
-      "id",
-    );
+    expect(sloRecommendedPolicyTierToJSON(tiers[0]!)).not.toHaveProperty("id");
   });
 
   test("an entry without a name or a valid threshold is left out", () => {

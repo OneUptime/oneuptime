@@ -6756,9 +6756,7 @@ describe("Slo:EvaluateSlos worker", () => {
         expect(items[0]!.feedInfoInMarkdown).toBe(
           "📉 [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) entered the **Budget exhausted** tier of its error budget policy (was **Caution**).",
         );
-        expect(items[0]!.moreInformationInMarkdown).toContain(
-          "over budget by",
-        );
+        expect(items[0]!.moreInformationInMarkdown).toContain("over budget by");
         // A tier at 0% is red, like Budget Exhausted.
         expect(items[0]!.displayColor).toEqual(Red);
       });
@@ -6796,7 +6794,11 @@ describe("Slo:EvaluateSlos worker", () => {
       });
 
       test("leaves every tier as the window rolls, clearing all three columns", async () => {
-        await evaluate(sloInTier(CAUTION_ID, "Caution"), recommendedPolicy(), 0);
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          recommendedPolicy(),
+          0,
+        );
 
         const state: Record<string, unknown> = persistedStateUpdate();
 
@@ -6949,9 +6951,11 @@ describe("Slo:EvaluateSlos worker", () => {
         expect(alert.isCreatedAutomatically).toBe(true);
         // The SLO as the affected resource, never its monitors.
         expect(
-          (alert.serviceLevelObjectives || []).map((slo: ServiceLevelObjective) => {
-            return slo.id?.toString();
-          }),
+          (alert.serviceLevelObjectives || []).map(
+            (slo: ServiceLevelObjective) => {
+              return slo.id?.toString();
+            },
+          ),
         ).toEqual([SLO_ID.toString()]);
 
         expect(tierUpdates()).toEqual([

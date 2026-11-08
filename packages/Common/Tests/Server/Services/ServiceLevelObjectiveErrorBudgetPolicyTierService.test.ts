@@ -29,7 +29,11 @@ import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelO
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
@@ -447,9 +451,9 @@ describe("onBeforeCreate: what a tier raises", () => {
       }).toEqual({ flag, value });
     }
 
-    expect(model.getTableColumnMetadata("shouldCreateAlert")?.defaultValue).toBe(
-      false,
-    );
+    expect(
+      model.getTableColumnMetadata("shouldCreateAlert")?.defaultValue,
+    ).toBe(false);
     expect(
       model.getTableColumnMetadata("shouldCreateIncident")?.defaultValue,
     ).toBe(false);
@@ -477,7 +481,10 @@ describe("onBeforeCreate: what a tier raises", () => {
 
   it("checks the severities it names belong to the project, in its own words", async () => {
     const validatorSpy: jest.SpyInstance = jest
-      .spyOn(ProjectScopedReferenceValidator, "validateReferencesBelongToProject")
+      .spyOn(
+        ProjectScopedReferenceValidator,
+        "validateReferencesBelongToProject",
+      )
       .mockResolvedValue(undefined as never);
 
     await callHook(
@@ -624,7 +631,10 @@ describe("onCreateSuccess", () => {
 
     await callHook(
       "onCreateSuccess",
-      { createBy: makeCreateBy(), carryForward: null } as OnCreate<ServiceLevelObjectiveErrorBudgetPolicyTier>,
+      {
+        createBy: makeCreateBy(),
+        carryForward: null,
+      } as OnCreate<ServiceLevelObjectiveErrorBudgetPolicyTier>,
       created,
     );
     await flushPromises();
@@ -826,8 +836,7 @@ describe("onDeleteSuccess", () => {
 
     expect(resolveSpy).toHaveBeenCalledTimes(1);
     expect(
-      (resolveSpy.mock.calls[0]![0] as { policyTierId: ObjectID })
-        .policyTierId,
+      (resolveSpy.mock.calls[0]![0] as { policyTierId: ObjectID }).policyTierId,
     ).toEqual(OTHER_TIER_ID);
   });
 
@@ -889,7 +898,9 @@ describe("resolving what a tier raised", () => {
     incident.id = new ObjectID("bbbbbbbb-0000-4000-8000-000000000001");
     incident.projectId = PROJECT_ID;
 
-    jest.spyOn(IncidentService, "findBy").mockResolvedValue([incident] as never);
+    jest
+      .spyOn(IncidentService, "findBy")
+      .mockResolvedValue([incident] as never);
     jest
       .spyOn(IncidentStateTimelineService, "getResolvedStateIdForProject")
       .mockResolvedValue(INCIDENT_STATE_IDS.resolved as never);

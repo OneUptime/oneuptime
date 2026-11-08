@@ -1208,7 +1208,9 @@ describe("query_slos — error budget policy", () => {
     expect(text).toContain("currentErrorBudgetPolicyTier");
     expect(text).toContain("isCurrentTier");
     // The model is told how to read a tier.
-    expect(text).toContain("errorBudgetPolicyTier rows are the SLO's error budget policy");
+    expect(text).toContain(
+      "errorBudgetPolicyTier rows are the SLO's error budget policy",
+    );
     expect(widgetField(result, "Error budget policy tier")).toBe(
       "Reliability first",
     );
@@ -1240,11 +1242,11 @@ describe("query_slos — error budget policy", () => {
     });
 
     const tierRow: string =
-      result.dataForLlm
-        .split("\n")
-        .find((line: string): boolean => {
-          return line.includes("errorBudgetPolicyTier") && line.includes("Caution");
-        }) || result.dataForLlm;
+      result.dataForLlm.split("\n").find((line: string): boolean => {
+        return (
+          line.includes("errorBudgetPolicyTier") && line.includes("Caution")
+        );
+      }) || result.dataForLlm;
 
     expect(tierRow).toContain("createsAlert");
     expect(result.dataForLlm).not.toMatch(/createsAlert[^,\n]*true/);
@@ -1275,9 +1277,7 @@ describe("query_slos — error budget policy", () => {
       "no error budget policy",
     );
     // No tiers, no note about reading them.
-    expect(noPolicy.dataForLlm).not.toContain(
-      "errorBudgetPolicyTier rows are",
-    );
+    expect(noPolicy.dataForLlm).not.toContain("errorBudgetPolicyTier rows are");
   });
 
   test("a caller who may not read tiers still gets the SLO, and the tier it is in", async () => {
@@ -1324,7 +1324,7 @@ describe("query_slos — error budget policy", () => {
     ).rejects.toThrow("connection lost");
   });
 
-  test("a long \"what we do\" is cut, so one tier cannot crowd out the rest", async () => {
+  test('a long "what we do" is cut, so one tier cannot crowd out the rest', async () => {
     const { result } = await detail({
       slo: sloInTier(null, null),
       tiers: [
@@ -1358,10 +1358,7 @@ describe("query_slos — error budget policy", () => {
   });
 
   test("list mode names the tier each SLO is in", async () => {
-    const inTier: ServiceLevelObjective = sloInTier(
-      CAUTION_ID,
-      "Caution",
-    );
+    const inTier: ServiceLevelObjective = sloInTier(CAUTION_ID, "Caution");
     const findBySpy: jest.SpyInstance = jest
       .spyOn(ServiceLevelObjectiveService, "findBy")
       .mockResolvedValue([

@@ -157,9 +157,11 @@ describe("ServiceLevelObjectiveErrorBudgetPolicyTier", () => {
       const access: ColumnAccessControl | null =
         model.getColumnAccessControlFor(column);
 
-      expect({ column, create: access?.create, update: access?.update }).toEqual(
-        { column, create: [], update: [] },
-      );
+      expect({
+        column,
+        create: access?.create,
+        update: access?.update,
+      }).toEqual({ column, create: [], update: [] });
       expect(access?.read).toEqual(READERS);
     }
   });
@@ -222,14 +224,15 @@ describe("ServiceLevelObjectiveErrorBudgetPolicyTier", () => {
   });
 
   it("keeps one tier per threshold on an SLO, in the database", () => {
-    const unique: Array<IndexMetadataArgs> = getMetadataArgsStorage().indices.filter(
-      (index: IndexMetadataArgs): boolean => {
-        return (
-          index.target === ServiceLevelObjectiveErrorBudgetPolicyTier &&
-          index.unique === true
-        );
-      },
-    );
+    const unique: Array<IndexMetadataArgs> =
+      getMetadataArgsStorage().indices.filter(
+        (index: IndexMetadataArgs): boolean => {
+          return (
+            index.target === ServiceLevelObjectiveErrorBudgetPolicyTier &&
+            index.unique === true
+          );
+        },
+      );
 
     expect(
       unique.map((index: IndexMetadataArgs): unknown => {
@@ -242,7 +245,9 @@ describe("ServiceLevelObjectiveErrorBudgetPolicyTier", () => {
     const joinTables: Array<JoinTableMetadataArgs> =
       getMetadataArgsStorage().joinTables.filter(
         (joinTable: JoinTableMetadataArgs): boolean => {
-          return joinTable.target === ServiceLevelObjectiveErrorBudgetPolicyTier;
+          return (
+            joinTable.target === ServiceLevelObjectiveErrorBudgetPolicyTier
+          );
         },
       );
 

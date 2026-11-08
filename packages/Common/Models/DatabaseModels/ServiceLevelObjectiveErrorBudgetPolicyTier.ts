@@ -392,7 +392,7 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     type: TableColumnType.Markdown,
     title: "What We Do",
     description:
-      "What the team agreed to do while the SLO is in this tier, in Markdown - for example \"Only reliability work and critical fixes ship.\" Shown on the SLO's Overview, in the feed item posted when the SLO enters the tier, and as {{policyTierWhatWeDo}} in alert and incident templates.",
+      'What the team agreed to do while the SLO is in this tier, in Markdown - for example "Only reliability work and critical fixes ship." Shown on the SLO\'s Overview, in the feed item posted when the SLO enters the tier, and as {{policyTierWhatWeDo}} in alert and incident templates.',
   })
   @Column({
     nullable: false,
@@ -540,8 +540,7 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     type: TableColumnType.Entity,
     modelType: AlertSeverity,
     title: "Alert Severity",
-    description:
-      "Severity of the alert raised when the SLO enters this tier.",
+    description: "Severity of the alert raised when the SLO enters this tier.",
   })
   @ManyToOne(
     () => {
@@ -828,8 +827,7 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Alert Labels",
-    description:
-      "Labels added to alerts raised by this tier.",
+    description: "Labels added to alerts raised by this tier.",
   })
   @ManyToMany(
     () => {
@@ -874,8 +872,7 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     type: TableColumnType.EntityArray,
     modelType: Team,
     title: "Alert Owner Teams",
-    description:
-      "Teams added as owners of alerts raised by this tier.",
+    description: "Teams added as owners of alerts raised by this tier.",
   })
   @ManyToMany(
     () => {
@@ -920,8 +917,7 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     type: TableColumnType.EntityArray,
     modelType: User,
     title: "Alert Owner Users",
-    description:
-      "Users added as owners of alerts raised by this tier.",
+    description: "Users added as owners of alerts raised by this tier.",
   })
   @ManyToMany(
     () => {
@@ -1256,8 +1252,7 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Incident Labels",
-    description:
-      "Labels added to incidents declared by this tier.",
+    description: "Labels added to incidents declared by this tier.",
   })
   @ManyToMany(
     () => {
@@ -1302,8 +1297,7 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     type: TableColumnType.EntityArray,
     modelType: Team,
     title: "Incident Owner Teams",
-    description:
-      "Teams added as owners of incidents declared by this tier.",
+    description: "Teams added as owners of incidents declared by this tier.",
   })
   @ManyToMany(
     () => {
@@ -1348,8 +1342,7 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     type: TableColumnType.EntityArray,
     modelType: User,
     title: "Incident Owner Users",
-    description:
-      "Users added as owners of incidents declared by this tier.",
+    description: "Users added as owners of incidents declared by this tier.",
   })
   @ManyToMany(
     () => {

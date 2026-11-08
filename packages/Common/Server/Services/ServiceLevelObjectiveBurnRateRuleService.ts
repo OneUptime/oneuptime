@@ -527,14 +527,16 @@ export class Service extends ProjectReferencesService<Model> {
      * fresh create but hides the decision from the row that the update hook
      * later reads back.
      */
-    const shouldCreateAlert: boolean = this.getRecordSettings().normalizeBooleanInput(
-      createBy.data.shouldCreateAlert,
-      DEFAULT_SHOULD_CREATE_ALERT,
-    );
-    const shouldCreateIncident: boolean = this.getRecordSettings().normalizeBooleanInput(
-      createBy.data.shouldCreateIncident,
-      DEFAULT_SHOULD_CREATE_INCIDENT,
-    );
+    const shouldCreateAlert: boolean =
+      this.getRecordSettings().normalizeBooleanInput(
+        createBy.data.shouldCreateAlert,
+        DEFAULT_SHOULD_CREATE_ALERT,
+      );
+    const shouldCreateIncident: boolean =
+      this.getRecordSettings().normalizeBooleanInput(
+        createBy.data.shouldCreateIncident,
+        DEFAULT_SHOULD_CREATE_INCIDENT,
+      );
 
     if (!shouldCreateAlert && !shouldCreateIncident) {
       throw new BadDataException(NO_OUTPUT_ERROR_MESSAGE);
@@ -549,11 +551,16 @@ export class Service extends ProjectReferencesService<Model> {
      * `!== false` and the private flags with `=== true`, so each holds a
      * real boolean - the one written, or its default.
      */
-    this.getRecordSettings().normalizeOptionFlags(createBy.data as unknown as Dictionary<unknown>, {
-      applyDefaults: true,
-    });
+    this.getRecordSettings().normalizeOptionFlags(
+      createBy.data as unknown as Dictionary<unknown>,
+      {
+        applyDefaults: true,
+      },
+    );
 
-    this.getRecordSettings().normalizeTemplates(createBy.data as unknown as Dictionary<unknown>);
+    this.getRecordSettings().normalizeTemplates(
+      createBy.data as unknown as Dictionary<unknown>,
+    );
 
     /*
      * Tenant first, for every reference check below, like the other SLO child
@@ -590,7 +597,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.getRecordSettings().validateSeverityReferences({
       projectId: projectId,
-      ...this.getRecordSettings().readSeverityIds(createBy.data as unknown as Dictionary<unknown>),
+      ...this.getRecordSettings().readSeverityIds(
+        createBy.data as unknown as Dictionary<unknown>,
+      ),
     });
 
     await this.getRecordSettings().validateRoutingReferences({
@@ -676,7 +685,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.validateOutputsOnUpdate(updateBy);
 
-    await this.getRecordSettings().validateServiceLevelObjectiveOnUpdate(updateBy);
+    await this.getRecordSettings().validateServiceLevelObjectiveOnUpdate(
+      updateBy,
+    );
 
     await this.getRecordSettings().validateSeverityReferencesOnUpdate(updateBy);
 
@@ -685,11 +696,16 @@ export class Service extends ProjectReferencesService<Model> {
      * flag must stay absent, or a form that saves just the name would reset
      * every other option to its default.
      */
-    this.getRecordSettings().normalizeOptionFlags(updateBy.data as unknown as Dictionary<unknown>, {
-      applyDefaults: false,
-    });
+    this.getRecordSettings().normalizeOptionFlags(
+      updateBy.data as unknown as Dictionary<unknown>,
+      {
+        applyDefaults: false,
+      },
+    );
 
-    this.getRecordSettings().normalizeTemplates(updateBy.data as unknown as Dictionary<unknown>);
+    this.getRecordSettings().normalizeTemplates(
+      updateBy.data as unknown as Dictionary<unknown>,
+    );
 
     await this.getRecordSettings().validateRoutingReferencesOnUpdate(updateBy);
 
@@ -721,9 +737,10 @@ export class Service extends ProjectReferencesService<Model> {
          * then load the affected rules so the updated value can be validated
          * against the value that will remain on each row.
          */
-        const normalizedNewWindow: number = this.getRecordSettings().normalizeNumericInput(
-          isLongWindowUpdated ? newLongWindow : newShortWindow,
-        );
+        const normalizedNewWindow: number =
+          this.getRecordSettings().normalizeNumericInput(
+            isLongWindowUpdated ? newLongWindow : newShortWindow,
+          );
 
         if (!Number.isFinite(normalizedNewWindow)) {
           throw new BadDataException(WINDOWS_NOT_NUMERIC_ERROR_MESSAGE);
@@ -1321,17 +1338,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (isShouldCreateAlertUpdated) {
-      updateBy.data.shouldCreateAlert = this.getRecordSettings().normalizeBooleanInput(
-        newShouldCreateAlert,
-        DEFAULT_SHOULD_CREATE_ALERT,
-      );
+      updateBy.data.shouldCreateAlert =
+        this.getRecordSettings().normalizeBooleanInput(
+          newShouldCreateAlert,
+          DEFAULT_SHOULD_CREATE_ALERT,
+        );
     }
 
     if (isShouldCreateIncidentUpdated) {
-      updateBy.data.shouldCreateIncident = this.getRecordSettings().normalizeBooleanInput(
-        newShouldCreateIncident,
-        DEFAULT_SHOULD_CREATE_INCIDENT,
-      );
+      updateBy.data.shouldCreateIncident =
+        this.getRecordSettings().normalizeBooleanInput(
+          newShouldCreateIncident,
+          DEFAULT_SHOULD_CREATE_INCIDENT,
+        );
     }
 
     const updatedShouldCreateAlert: boolean = Boolean(
@@ -1505,7 +1524,8 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   private validateBurnRateThreshold(value: unknown): number {
-    const burnRateThreshold: number = this.getRecordSettings().normalizeNumericInput(value);
+    const burnRateThreshold: number =
+      this.getRecordSettings().normalizeNumericInput(value);
 
     if (!Number.isFinite(burnRateThreshold) || burnRateThreshold <= 0) {
       throw new BadDataException(THRESHOLD_ERROR_MESSAGE);
@@ -1515,7 +1535,8 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   private validateMinimumSampleCount(value: unknown): number {
-    const minimumSampleCount: number = this.getRecordSettings().normalizeNumericInput(value);
+    const minimumSampleCount: number =
+      this.getRecordSettings().normalizeNumericInput(value);
 
     if (!Number.isFinite(minimumSampleCount) || minimumSampleCount < 0) {
       throw new BadDataException(
@@ -1527,7 +1548,8 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   private validateRefireSuppressionMinutes(value: unknown): number {
-    const refireSuppressionMinutes: number = this.getRecordSettings().normalizeNumericInput(value);
+    const refireSuppressionMinutes: number =
+      this.getRecordSettings().normalizeNumericInput(value);
 
     if (
       !Number.isFinite(refireSuppressionMinutes) ||
@@ -1550,12 +1572,10 @@ export class Service extends ProjectReferencesService<Model> {
     longWindowInMinutes: unknown;
     shortWindowInMinutes: unknown;
   }): { longWindowInMinutes: number; shortWindowInMinutes: number } {
-    const longWindowInMinutes: number = this.getRecordSettings().normalizeNumericInput(
-      data.longWindowInMinutes,
-    );
-    const shortWindowInMinutes: number = this.getRecordSettings().normalizeNumericInput(
-      data.shortWindowInMinutes,
-    );
+    const longWindowInMinutes: number =
+      this.getRecordSettings().normalizeNumericInput(data.longWindowInMinutes);
+    const shortWindowInMinutes: number =
+      this.getRecordSettings().normalizeNumericInput(data.shortWindowInMinutes);
 
     if (
       !Number.isFinite(longWindowInMinutes) ||

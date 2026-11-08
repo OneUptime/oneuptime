@@ -55,7 +55,7 @@ export const SLO_POLICY_TIER_THRESHOLD_ERROR_MESSAGE: string =
 export const SLO_POLICY_TIER_NAME_ERROR_MESSAGE: string =
   "An error budget policy tier needs a name.";
 export const SLO_POLICY_TIER_WHAT_WE_DO_ERROR_MESSAGE: string =
-  "An error budget policy tier needs a \"what we do\": what the team agreed to do while the SLO is in it.";
+  'An error budget policy tier needs a "what we do": what the team agreed to do while the SLO is in it.';
 
 // An SLO the caller may not read is not found either, so it says nothing about itself.
 export const SLO_NOT_FOUND_MESSAGE: string =
@@ -524,9 +524,7 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy,
     );
 
-    await this.getRecordSettings().validateSeverityReferencesOnUpdate(
-      updateBy,
-    );
+    await this.getRecordSettings().validateSeverityReferencesOnUpdate(updateBy);
 
     this.getRecordSettings().normalizeOptionFlags(
       updateBy.data as unknown as Dictionary<unknown>,
@@ -900,7 +898,8 @@ export class Service extends ProjectReferencesService<Model> {
           policyTierId: tier.id,
           projectId: data.projectId,
           rootCause:
-            data.rootCause || SLO_POLICY_TIER_SLO_DISABLED_OR_DELETED_ROOT_CAUSE,
+            data.rootCause ||
+            SLO_POLICY_TIER_SLO_DISABLED_OR_DELETED_ROOT_CAUSE,
         });
 
         await this.clearOpenOutputStateForTier({

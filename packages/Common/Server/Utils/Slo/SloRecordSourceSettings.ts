@@ -663,9 +663,11 @@ export default class SloRecordSourceSettings<
       updateBy.data as unknown as Dictionary<unknown>;
 
     const columnsInPayload: Array<SloRecordOutputRelationColumn> =
-      SLO_RECORD_OUTPUT_RELATION_COLUMNS.filter((column: SloRecordOutputRelationColumn): boolean => {
-        return payload[column] !== undefined && payload[column] !== null;
-      });
+      SLO_RECORD_OUTPUT_RELATION_COLUMNS.filter(
+        (column: SloRecordOutputRelationColumn): boolean => {
+          return payload[column] !== undefined && payload[column] !== null;
+        },
+      );
 
     if (columnsInPayload.length === 0) {
       return;
@@ -682,10 +684,11 @@ export default class SloRecordSourceSettings<
       };
     }
 
-    const rules: Array<TModel> = await this.source.service.findRowsAndHoldUpdateToThem(
-      updateBy,
-      select as unknown as Select<TModel>,
-    );
+    const rules: Array<TModel> =
+      await this.source.service.findRowsAndHoldUpdateToThem(
+        updateBy,
+        select as unknown as Select<TModel>,
+      );
 
     /*
      * The request's project for a teammate, whose update is kept to it; the
@@ -909,10 +912,7 @@ export default class SloRecordSourceSettings<
    * read the same way. A rule that declares nothing is never mistaken for
    * one that declares both.
    */
-  public normalizeBooleanInput(
-    value: unknown,
-    defaultValue: boolean,
-  ): boolean {
+  public normalizeBooleanInput(value: unknown, defaultValue: boolean): boolean {
     const stored: unknown = toStoredBoolean(value);
 
     return typeof stored === "boolean" ? stored : defaultValue;

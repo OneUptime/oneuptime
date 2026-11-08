@@ -1107,59 +1107,58 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
  * burn rate rule's are read (see the rule select above for why every option
  * is selected), and its lifecycle stamps.
  */
-const POLICY_TIER_SELECT: Select<ServiceLevelObjectiveErrorBudgetPolicyTier> =
-  {
+const POLICY_TIER_SELECT: Select<ServiceLevelObjectiveErrorBudgetPolicyTier> = {
+  _id: true,
+  projectId: true,
+  serviceLevelObjectiveId: true,
+  name: true,
+  thresholdPercentage: true,
+  whatWeDo: true,
+  isEnabled: true,
+  shouldCreateAlert: true,
+  shouldCreateIncident: true,
+  alertSeverityId: true,
+  onCallDutyPolicies: {
     _id: true,
-    projectId: true,
-    serviceLevelObjectiveId: true,
-    name: true,
-    thresholdPercentage: true,
-    whatWeDo: true,
-    isEnabled: true,
-    shouldCreateAlert: true,
-    shouldCreateIncident: true,
-    alertSeverityId: true,
-    onCallDutyPolicies: {
-      _id: true,
-    },
-    alertTitleTemplate: true,
-    alertDescriptionTemplate: true,
-    alertRemediationNotes: true,
-    isAlertPrivate: true,
-    autoResolveAlert: true,
-    alertLabels: {
-      _id: true,
-    },
-    alertOwnerTeams: {
-      _id: true,
-    },
-    alertOwnerUsers: {
-      _id: true,
-    },
-    incidentSeverityId: true,
-    incidentOnCallDutyPolicies: {
-      _id: true,
-    },
-    incidentTitleTemplate: true,
-    incidentDescriptionTemplate: true,
-    incidentRemediationNotes: true,
-    isIncidentPrivate: true,
-    autoResolveIncident: true,
-    incidentLabels: {
-      _id: true,
-    },
-    incidentOwnerTeams: {
-      _id: true,
-    },
-    incidentOwnerUsers: {
-      _id: true,
-    },
-    addSloOwnersAsOwners: true,
-    lastAlertCreatedAt: true,
-    lastAlertResolvedAt: true,
-    lastIncidentCreatedAt: true,
-    lastIncidentResolvedAt: true,
-  };
+  },
+  alertTitleTemplate: true,
+  alertDescriptionTemplate: true,
+  alertRemediationNotes: true,
+  isAlertPrivate: true,
+  autoResolveAlert: true,
+  alertLabels: {
+    _id: true,
+  },
+  alertOwnerTeams: {
+    _id: true,
+  },
+  alertOwnerUsers: {
+    _id: true,
+  },
+  incidentSeverityId: true,
+  incidentOnCallDutyPolicies: {
+    _id: true,
+  },
+  incidentTitleTemplate: true,
+  incidentDescriptionTemplate: true,
+  incidentRemediationNotes: true,
+  isIncidentPrivate: true,
+  autoResolveIncident: true,
+  incidentLabels: {
+    _id: true,
+  },
+  incidentOwnerTeams: {
+    _id: true,
+  },
+  incidentOwnerUsers: {
+    _id: true,
+  },
+  addSloOwnersAsOwners: true,
+  lastAlertCreatedAt: true,
+  lastAlertResolvedAt: true,
+  lastIncidentCreatedAt: true,
+  lastIncidentResolvedAt: true,
+};
 
 // The tier columns this evaluation writes, and whether the tier changed.
 interface PolicyTierChange {
@@ -1192,8 +1191,7 @@ function getPolicyTierChange(data: {
 }): PolicyTierChange {
   const { slo, policyTier } = data;
 
-  const storedTierId: ObjectID | undefined =
-    slo.currentErrorBudgetPolicyTierId;
+  const storedTierId: ObjectID | undefined = slo.currentErrorBudgetPolicyTierId;
 
   if (policyTier && policyTier.id) {
     if (!isSameSloPolicyTier(policyTier.id, storedTierId)) {
@@ -1207,7 +1205,10 @@ function getPolicyTierChange(data: {
       };
     }
 
-    if ((policyTier.name || null) !== (slo.currentErrorBudgetPolicyTierName || null)) {
+    if (
+      (policyTier.name || null) !==
+      (slo.currentErrorBudgetPolicyTierName || null)
+    ) {
       return {
         isTierChange: false,
         columns: {
@@ -1354,7 +1355,9 @@ async function evaluatePolicyTierOutputs(data: {
 
   const isCurrentTier: (
     tier: ServiceLevelObjectiveErrorBudgetPolicyTier,
-  ) => boolean = (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
+  ) => boolean = (
+    tier: ServiceLevelObjectiveErrorBudgetPolicyTier,
+  ): boolean => {
     return Boolean(currentTier && isSameSloPolicyTier(tier.id, currentTier.id));
   };
 
