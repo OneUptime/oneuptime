@@ -780,9 +780,11 @@ router.post(
         props: props,
       });
 
+      // Recorded in the audit log as this person's reset of the link.
       const rotation: CalendarFeedRotation =
         await ScheduledMaintenanceCalendarFeedService.rotateTokenById({
           id: existing.id,
+          props: props,
         });
 
       const feed: ScheduledMaintenanceCalendarFeed | null =

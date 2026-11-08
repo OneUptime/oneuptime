@@ -59,6 +59,9 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { getJestSpyOn } from "../../Spy";
+import AuditLogService from "../../../Server/Services/AuditLogService";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import UserType from "../../../Types/UserType";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
@@ -520,7 +523,7 @@ describe.each(ROTATABLE)(
       );
     });
 
-    test("reads only the hash (never the encrypted token) and as root without hooks", async () => {
+    test("reads the hash, never the encrypted token, as root without hooks", async () => {
       const findOneBy: jest.SpyInstance = getJestSpyOn(
         service,
         "findOneBy",
@@ -540,8 +543,10 @@ describe.each(ROTATABLE)(
       };
 
       expect(call.query).toEqual({ _id: FEED_ID });
-      expect(call.select).toEqual({ _id: true, tokenHash: true });
+      expect(call.select["tokenHash"]).toBe(true);
+      // The plaintext, never: the rotation parks the hash it holds.
       expect(call.select["token"]).toBeUndefined();
+      expect(call.select["previousTokenHash"]).toBeUndefined();
       expect(call.props.isRoot).toBe(true);
       expect(call.props.ignoreHooks).toBe(true);
     });
@@ -603,6 +608,223 @@ describe.each(ROTATABLE)(
     });
   },
 );
+
+/*
+ * A reset of a shared feed's link, in the audit log (issue #6286). The new
+ * token is written as root, and only OneUptime writes the token columns, so
+ * a reset recorded nothing: whoever held the old link lost it, and nothing
+ * said who did that. Each rotation of a shared feed now records it, as the
+ * person's when a route says who asked, and as OneUptime's own otherwise -
+ * and never with a token or a hash in it. A person's own feed is theirs
+ * alone and stays out of the audit log (AUDIT_LOG_EXEMPT_TABLES).
+ */
+interface RecordedReset {
+  model: BaseModel;
+  before: Record<string, unknown>;
+  updatedFields: Record<string, unknown>;
+  itemId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+  includeColumns: Array<string>;
+}
+
+const SHARED_FEEDS: Array<[string, RotatableService, string, string | null]> =
+  [
+    [
+      "OnCallDutyPolicyScheduleCalendarFeedService",
+      OnCallDutyPolicyScheduleCalendarFeedService as unknown as RotatableService,
+      "OnCallDutyPolicyScheduleCalendarFeed",
+      "onCallDutyPolicyScheduleId",
+    ],
+    [
+      "ProjectOnCallCalendarFeedService",
+      ProjectOnCallCalendarFeedService as unknown as RotatableService,
+      "ProjectOnCallCalendarFeed",
+      null,
+    ],
+  ];
+
+const RESETTER: DatabaseCommonInteractionProps = {
+  tenantId: PROJECT_ID,
+  userId: USER_ID,
+  userType: UserType.User,
+};
+
+describe.each(SHARED_FEEDS)(
+  "%s.rotateTokenById in the audit log",
+  (
+    _name: string,
+    service: RotatableService,
+    tableName: string,
+    rootColumn: string | null,
+  ) => {
+    let recordUpdate: jest.SpyInstance;
+    let order: Array<string>;
+
+    beforeEach(() => {
+      order = [];
+      getJestSpyOn(service, "findOneBy").mockResolvedValue({
+        id: FEED_ID,
+        _id: FEED_ID.toString(),
+        projectId: PROJECT_ID,
+        tokenHash: "old-hash",
+        tokenHint: "aB3d",
+        rotatedAt: new Date("2026-10-01T00:00:00.000Z"),
+      });
+      getJestSpyOn(service, "updateOneById").mockImplementation(
+        async (): Promise<number> => {
+          order.push("written");
+          return 1;
+        },
+      );
+      recordUpdate = getJestSpyOn(
+        AuditLogService,
+        "recordUpdate",
+      ).mockImplementation(async (): Promise<void> => {
+        order.push("recorded");
+      });
+    });
+
+    function onlyRecorded(): RecordedReset {
+      expect(recordUpdate).toHaveBeenCalledTimes(1);
+      return recordUpdate.mock.calls[0]![0] as unknown as RecordedReset;
+    }
+
+    test("a reset someone asked for is theirs, once the new token is written", async () => {
+      const rotation: CalendarFeedRotation = await (
+        service as unknown as {
+          rotateTokenById: (data: {
+            id: ObjectID;
+            props?: DatabaseCommonInteractionProps;
+          }) => Promise<CalendarFeedRotation>;
+        }
+      ).rotateTokenById({ id: FEED_ID, props: RESETTER });
+
+      const recorded: RecordedReset = onlyRecorded();
+
+      expect(order).toEqual(["written", "recorded"]);
+      expect(recorded.model.tableName).toBe(tableName);
+      expect(recorded.itemId.toString()).toBe(FEED_ID.toString());
+      expect(recorded.props).toEqual(RESETTER);
+      expect(recorded.includeColumns).toEqual(["tokenHint", "rotatedAt"]);
+      expect(recorded.updatedFields).toEqual({
+        tokenHint: rotation.tokenHint,
+        rotatedAt: rotation.rotatedAt,
+      });
+      expect(recorded.before["tokenHint"]).toBe("aB3d");
+    });
+
+    test("no token and no hash is handed to the audit log", async () => {
+      const rotation: CalendarFeedRotation = await service.rotateTokenById({
+        id: FEED_ID,
+      });
+
+      const handed: string = JSON.stringify(onlyRecorded().updatedFields);
+
+      expect(handed).not.toContain(rotation.token);
+      expect(handed).not.toContain(rotation.tokenHash);
+      expect(handed).not.toContain("old-hash");
+      expect(Object.keys(onlyRecorded().updatedFields)).toEqual([
+        "tokenHint",
+        "rotatedAt",
+      ]);
+    });
+
+    test("a rotation nobody asked for is OneUptime's own: a system event", async () => {
+      await service.rotateTokenById({ id: FEED_ID });
+
+      expect(onlyRecorded().props).toEqual({ isRoot: true });
+    });
+
+    test("reads what the entry is filed under: its project, and the schedule it is for", async () => {
+      await service.rotateTokenById({ id: FEED_ID });
+
+      const select: Record<string, unknown> = (
+        (service.findOneBy as unknown as jest.SpyInstance).mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select["projectId"]).toBe(true);
+      expect(select["tokenHint"]).toBe(true);
+      expect(select["rotatedAt"]).toBe(true);
+
+      if (rootColumn) {
+        expect(select[rootColumn]).toBe(true);
+      }
+    });
+
+    test("a feed that does not exist records nothing", async () => {
+      getJestSpyOn(service, "findOneBy").mockResolvedValue(null);
+
+      await expect(service.rotateTokenById({ id: FEED_ID })).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(recordUpdate).not.toHaveBeenCalled();
+    });
+
+    test("a write that fails records nothing", async () => {
+      getJestSpyOn(service, "updateOneById").mockRejectedValue(
+        new Error("database down"),
+      );
+
+      await expect(service.rotateTokenById({ id: FEED_ID })).rejects.toThrow(
+        "database down",
+      );
+      expect(recordUpdate).not.toHaveBeenCalled();
+    });
+  },
+);
+
+test("a person's own feed stays out of the audit log when its link is reset", async () => {
+  getJestSpyOn(UserOnCallCalendarFeedService, "findOneBy").mockResolvedValue({
+    id: FEED_ID,
+    tokenHash: "old-hash",
+  } as never);
+  getJestSpyOn(UserOnCallCalendarFeedService, "updateOneById").mockResolvedValue(
+    1 as never,
+  );
+  const recordUpdate: jest.SpyInstance = getJestSpyOn(
+    AuditLogService,
+    "recordUpdate",
+  ).mockResolvedValue(undefined as never);
+
+  await UserOnCallCalendarFeedService.rotateTokenById({ id: FEED_ID });
+
+  expect(recordUpdate).not.toHaveBeenCalled();
+});
+
+describe("a member leaving rotates the shared feeds as OneUptime's own", () => {
+  test("each rotated feed's entry is a system event", async () => {
+    getJestSpyOn(OnCallDutyPolicyScheduleCalendarFeedService, "findBy").mockResolvedValue([
+      { id: FEED_ID },
+    ] as never);
+    getJestSpyOn(
+      OnCallDutyPolicyScheduleCalendarFeedService,
+      "findOneBy",
+    ).mockResolvedValue({
+      id: FEED_ID,
+      projectId: PROJECT_ID,
+      tokenHash: "old-hash",
+    } as never);
+    getJestSpyOn(
+      OnCallDutyPolicyScheduleCalendarFeedService,
+      "updateOneById",
+    ).mockResolvedValue(1 as never);
+    const recordUpdate: jest.SpyInstance = getJestSpyOn(
+      AuditLogService,
+      "recordUpdate",
+    ).mockResolvedValue(undefined as never);
+
+    await OnCallDutyPolicyScheduleCalendarFeedService.rotateFeedsForMemberLeave({
+      projectId: PROJECT_ID,
+    });
+
+    expect(recordUpdate).toHaveBeenCalledTimes(1);
+    expect(
+      (recordUpdate.mock.calls[0]![0] as { props: unknown }).props,
+    ).toEqual({ isRoot: true });
+  });
+});
 
 describe("OnCallDutyPolicyScheduleCalendarFeedService.onBeforeCreate", () => {
   function feed(

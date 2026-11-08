@@ -16,6 +16,7 @@ import {
   limitText,
   redactSecretsInJson,
 } from "../../../Utils/AuditLog/AuditLogValues";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
@@ -462,17 +463,28 @@ describe("long text keeps the part around where it changed", () => {
     expect(formatCount(12.9)).toBe("12");
   });
 
+  /*
+   * Timed as the other linear-time tests are (FastestRun): one measurement
+   * in a busy test run is noise - another worker, a garbage collection - and
+   * this one, a single Date.now() around the call, overran its two seconds
+   * on a loaded machine though the work is one pass over the text. Work that
+   * grew with the square of a 4 MB line would take hours on every attempt.
+   */
   test("a megabyte-long line is limited in time linear in its length", () => {
     const line: string = "q".repeat(4 * 1024 * 1024);
-    const started: number = Date.now();
 
-    const limited: { before: string; after: string } = limitChangedText({
-      before: line,
-      after: `${line}!`,
+    const timed: FastestRun<{ before: string; after: string }> = fastestRun({
+      run: (): { before: string; after: string } => {
+        return limitChangedText({
+          before: line,
+          after: `${line}!`,
+        });
+      },
+      limitInMs: 2000,
     });
 
-    expect(limited.after.length).toBeLessThan(AUDIT_LOG_TEXT_LIMIT + 100);
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.result.after.length).toBeLessThan(AUDIT_LOG_TEXT_LIMIT + 100);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 
