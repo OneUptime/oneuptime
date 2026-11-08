@@ -2397,6 +2397,12 @@ enum Permission {
   EditServiceLevelObjectiveBurnRateRule = "EditServiceLevelObjectiveBurnRateRule",
   ReadServiceLevelObjectiveBurnRateRule = "ReadServiceLevelObjectiveBurnRateRule",
 
+  // Service Level Objective Error Budget Policy Tier Permissions
+  CreateServiceLevelObjectiveErrorBudgetPolicyTier = "CreateServiceLevelObjectiveErrorBudgetPolicyTier",
+  DeleteServiceLevelObjectiveErrorBudgetPolicyTier = "DeleteServiceLevelObjectiveErrorBudgetPolicyTier",
+  EditServiceLevelObjectiveErrorBudgetPolicyTier = "EditServiceLevelObjectiveErrorBudgetPolicyTier",
+  ReadServiceLevelObjectiveErrorBudgetPolicyTier = "ReadServiceLevelObjectiveErrorBudgetPolicyTier",
+
   // Service Level Objective Monitor Rule Permissions
   CreateServiceLevelObjectiveMonitorRule = "CreateServiceLevelObjectiveMonitorRule",
   DeleteServiceLevelObjectiveMonitorRule = "DeleteServiceLevelObjectiveMonitorRule",
@@ -19319,6 +19325,48 @@ export class PermissionHelper {
         permission: Permission.ReadServiceLevelObjectiveBurnRateRule,
         title: "Read SLO Burn Rate Rule",
         description: "Permission to read SLO Burn Rate Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Error Budget Policy Tier Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveErrorBudgetPolicyTier,
+        title: "Create SLO Error Budget Policy Tier",
+        description:
+          "Permission to create SLO Error Budget Policy Tiers, which record what the team does as an SLO's error budget runs down, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveErrorBudgetPolicyTier,
+        title: "Delete SLO Error Budget Policy Tier",
+        description:
+          "Permission to delete SLO Error Budget Policy Tiers of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveErrorBudgetPolicyTier,
+        title: "Edit SLO Error Budget Policy Tier",
+        description:
+          "Permission to edit SLO Error Budget Policy Tiers of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveErrorBudgetPolicyTier,
+        title: "Read SLO Error Budget Policy Tier",
+        description:
+          "Permission to read SLO Error Budget Policy Tiers of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
