@@ -36,7 +36,10 @@ import {
   AIChatRecordSeen,
   AIChatRecordSeenType,
 } from "../../../../Types/AI/AIChatRecordSeen";
-import { CodeFileUnseen, seeCodeFile } from "../../../../Types/CodeRepository/CodeFileSeen";
+import {
+  CodeFileUnseen,
+  seeCodeFile,
+} from "../../../../Types/CodeRepository/CodeFileSeen";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -84,7 +87,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 
 const CHARGE: string = "src/billing/charge.ts";
 const V1: string = "export const charge = 1;\n";
-const TEAMMATE: string = "export const charge = 1;\nexport const audited = true;\n";
+const TEAMMATE: string =
+  "export const charge = 1;\nexport const audited = true;\n";
 
 let repository: FakeGitRepository;
 
@@ -235,7 +239,12 @@ function installSpies(data: {
       return typeof turn.answer === "function" ? turn.answer() : turn.answer;
     }) as never);
 
-  return { executeWithLogging, messageUpdateOneBy, runUpdateOneBy, eventCreate };
+  return {
+    executeWithLogging,
+    messageUpdateOneBy,
+    runUpdateOneBy,
+    eventCreate,
+  };
 }
 
 function lastSaved<T>(spies: Spies, key: string): T | undefined {
@@ -575,7 +584,11 @@ describe("what an earlier turn showed the model counts, as far as the history it
         },
       }),
       turns: [
-        { answer: response({ toolCalls: [COMMIT_CALL("export const charge = 3;\n")] }) },
+        {
+          answer: response({
+            toolCalls: [COMMIT_CALL("export const charge = 3;\n")],
+          }),
+        },
       ],
     });
 
@@ -609,7 +622,9 @@ describe("what an earlier turn showed the model counts, as far as the history it
     const first: Spies = installSpies({
       turns: [
         { answer: response({ toolCalls: [READ_CALL()] }) },
-        { answer: response({ toolCalls: [COMMIT_CALL(doubled(V1), "call-a")] }) },
+        {
+          answer: response({ toolCalls: [COMMIT_CALL(doubled(V1), "call-a")] }),
+        },
       ],
     });
     await ChatAgentRunner.runTurn(buildRequest());
@@ -635,9 +650,11 @@ describe("what an earlier turn showed the model counts, as far as the history it
 
     // The commit's citation keeps the file it wrote, as the host hashes it.
     const citations: Array<AIChatCitation> = pausedStateOf(spies).citations;
-    const committed: AIChatCitation = citations.find((citation: AIChatCitation) => {
-      return citation.toolName === "commit_code_to_branch";
-    })!;
+    const committed: AIChatCitation = citations.find(
+      (citation: AIChatCitation) => {
+        return citation.toolName === "commit_code_to_branch";
+      },
+    )!;
     expect(committed.recordSeen).toEqual([
       seeCodeFile({
         repositoryId: repository.repositoryId.toString(),
@@ -646,9 +663,9 @@ describe("what an earlier turn showed the model counts, as far as the history it
         fingerprint: fingerprintCodeFileVersion(blobOf(doubled(V1))),
       }),
     ]);
-    expect((committed.recordSeen as Array<AIChatRecordSeen>)[0]!.recordType).toBe(
-      AIChatRecordSeenType.CodeFile,
-    );
+    expect(
+      (committed.recordSeen as Array<AIChatRecordSeen>)[0]!.recordType,
+    ).toBe(AIChatRecordSeenType.CodeFile);
   });
 });
 
@@ -717,7 +734,9 @@ describe("Auto-run: a commit that would undo a push it never saw is not made una
       ["call-fresh", AIChatToolActionStatus.Executed],
     ]);
     expect(actions[0]!.resultSummary).toBe(
-      CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][CodeFileUnseen.ChangedSinceRead],
+      CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+        CodeFileUnseen.ChangedSinceRead
+      ],
     );
     expect(actions[0]!.requiresApproval).toBe(false);
     // Its record says what it would have done.
@@ -765,8 +784,12 @@ describe("Auto-run: a commit that would undo a push it never saw is not made una
           meanwhile: pushTheTeammatesChange,
           answer: response({ toolCalls: [COMMIT_CALL(doubled(V1), "call-1")] }),
         },
-        { answer: response({ toolCalls: [COMMIT_CALL(doubled(V1), "call-2")] }) },
-        { answer: response({ toolCalls: [COMMIT_CALL(doubled(V1), "call-3")] }) },
+        {
+          answer: response({ toolCalls: [COMMIT_CALL(doubled(V1), "call-2")] }),
+        },
+        {
+          answer: response({ toolCalls: [COMMIT_CALL(doubled(V1), "call-3")] }),
+        },
         { answer: response({ content: "I could not commit it." }) },
       ],
     });

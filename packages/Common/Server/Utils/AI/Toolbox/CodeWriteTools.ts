@@ -61,13 +61,12 @@ import {
   CodeFileNow,
   UnseenCodeChange,
   describeChangedSinceProposed,
-  describeCodeFilesUnseenForReviewer,
   findUnseenCodeChange,
   getCodeChangeProposedOn,
   getCodeFilesSeenFromWrite,
   readCodeFilesNow,
 } from "./CodeFilesSeen";
-import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { describeCodeFilesUnseenForReviewer } from "./CodeChangeReviewerNote";
 import logger from "../../Logger";
 
 /*
@@ -840,7 +839,7 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
      * read: whoever reviews it may never have seen the card, so the pull
      * request says it too.
      */
-    const reviewerNote: MarkdownText | null = proposedOn
+    const reviewerNote: string | null = proposedOn
       ? describeCodeFilesUnseenForReviewer({
           baseBranchName: baseBranchName,
           findings: proposedOn.unseen,
@@ -853,7 +852,7 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
         headBranchName: headBranchName,
         title: title,
         body: `${description}\n\n---\n_Proposed by OneUptime AI from a chat conversation. Review carefully before merging: this change was written by an agent that reads production telemetry._${
-          reviewerNote ? `\n\n${reviewerNote.toString()}` : ""
+          reviewerNote ? `\n\n${reviewerNote}` : ""
         }`,
       },
     );

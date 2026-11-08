@@ -69,7 +69,9 @@ export interface FakeGitRepository {
 }
 
 // The blob git writes for a file's text: "blob <size>\0" and its bytes, SHA-1.
-export const blobOf: (content: string) => string = (content: string): string => {
+export const blobOf: (content: string) => string = (
+  content: string,
+): string => {
   const bytes: Buffer = Buffer.from(content, "utf8");
 
   return crypto
@@ -94,7 +96,10 @@ let commitCount: number = 0;
 
 const nextCommitSha: () => string = (): string => {
   commitCount++;
-  return crypto.createHash("sha1").update(`commit ${commitCount}`).digest("hex");
+  return crypto
+    .createHash("sha1")
+    .update(`commit ${commitCount}`)
+    .digest("hex");
 };
 
 export function makeRepository(data: {
@@ -218,7 +223,10 @@ function readBlobs(
 
     const content: string | undefined = branch?.get(filePath);
 
-    return { filePath, blobSha: content === undefined ? null : blobOf(content) };
+    return {
+      filePath,
+      blobSha: content === undefined ? null : blobOf(content),
+    };
   });
 }
 
@@ -254,7 +262,9 @@ function mockTheRows(row: CodeRepositoryModel): void {
 }
 
 // The repository as a GitHub one, through the App's installation: every GitHubUtil call answered here.
-export function serveOnGitHub(repository: FakeGitRepository): CodeRepositoryModel {
+export function serveOnGitHub(
+  repository: FakeGitRepository,
+): CodeRepositoryModel {
   const row: CodeRepositoryModel = repositoryRow(repository);
 
   mockTheRows(row);
@@ -271,7 +281,9 @@ export function serveOnGitHub(repository: FakeGitRepository): CodeRepositoryMode
   jest
     .spyOn(GitHubUtil, "getBranch")
     .mockImplementation(
-      async (data: { branchName: string }): Promise<GitHubBranchInfo | null> => {
+      async (data: {
+        branchName: string;
+      }): Promise<GitHubBranchInfo | null> => {
         if (!repository.branches.has(data.branchName)) {
           return null;
         }
@@ -404,19 +416,27 @@ const json: (value: unknown, status?: number) => FakeAnswer = (
   return { status, json: value };
 };
 
-const NOT_FOUND: FakeAnswer = { status: 404, json: { message: "404 Not Found" } };
+const NOT_FOUND: FakeAnswer = {
+  status: 404,
+  json: { message: "404 Not Found" },
+};
 
-const bodyOf: (request: { body?: string | undefined }) => Record<string, unknown> =
-  (request: { body?: string | undefined }): Record<string, unknown> => {
-    return JSON.parse(request.body || "{}") as Record<string, unknown>;
-  };
+const bodyOf: (request: {
+  body?: string | undefined;
+}) => Record<string, unknown> = (request: {
+  body?: string | undefined;
+}): Record<string, unknown> => {
+  return JSON.parse(request.body || "{}") as Record<string, unknown>;
+};
 
 const decoded: (base64: unknown) => string = (base64: unknown): string => {
   return Buffer.from(String(base64), "base64").toString("utf8");
 };
 
 // The repository as a GitLab project, through its connection: GitLab's API answered here.
-export function serveOnGitLab(repository: FakeGitRepository): ConnectedRepository {
+export function serveOnGitLab(
+  repository: FakeGitRepository,
+): ConnectedRepository {
   const filesPath: RegExp = /^\/projects\/4217\/repository\/files\/(.+)$/;
 
   const routes: Array<FakeRoute> = [
@@ -512,7 +532,10 @@ export function serveOnGitLab(repository: FakeGitRepository): ConnectedRepositor
         );
 
         return json(
-          { id: sha, web_url: `https://gitlab.example.com/acme/checkout/-/commit/${sha}` },
+          {
+            id: sha,
+            web_url: `https://gitlab.example.com/acme/checkout/-/commit/${sha}`,
+          },
           201,
         );
       },
@@ -557,7 +580,9 @@ export function serveOnGitLab(repository: FakeGitRepository): ConnectedRepositor
 }
 
 // The repository on a Forgejo or Gitea server, through its connection.
-export function serveOnForgejo(repository: FakeGitRepository): ConnectedRepository {
+export function serveOnForgejo(
+  repository: FakeGitRepository,
+): ConnectedRepository {
   const routes: Array<FakeRoute> = [
     {
       method: "GET",
@@ -648,7 +673,12 @@ export function serveOnForgejo(repository: FakeGitRepository): ConnectedReposito
         );
 
         return json(
-          { commit: { sha, html_url: `https://git.example.com/acme/checkout/commit/${sha}` } },
+          {
+            commit: {
+              sha,
+              html_url: `https://git.example.com/acme/checkout/commit/${sha}`,
+            },
+          },
           201,
         );
       },

@@ -9,7 +9,6 @@ import {
   describeChangedSinceProposed,
   describeCodeFilesUnseenForModel,
   describeCodeFilesUnseenForPerson,
-  describeCodeFilesUnseenForReviewer,
   findUnseenCodeChange,
   fingerprintCodeFileVersion,
   getCodeChangeProposedOn,
@@ -22,6 +21,7 @@ import {
   summarizeCodeFilesUnseen,
   writeNameOnCard,
 } from "../../../../Server/Utils/AI/Toolbox/CodeFilesSeen";
+import { describeCodeFilesUnseenForReviewer } from "../../../../Server/Utils/AI/Toolbox/CodeChangeReviewerNote";
 import { CodeHostWriter } from "../../../../Server/Utils/CodeRepository/CodeHost/CodeHostWriter";
 import { CodeHostFileBlob } from "../../../../Server/Utils/CodeRepository/CodeHost/CodeHostTypes";
 import {
@@ -63,7 +63,8 @@ const REPOSITORY: string = "c0de0000-0000-4000-8000-000000006313";
 // Git's own SHAs of these blobs (git hash-object).
 const EMPTY_BLOB_SHA1: string = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391";
 const HELLO_BLOB_SHA1: string = "b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0";
-const HELLO_NEWLINE_BLOB_SHA1: string = "ce013625030ba8dba906f756967f9e9ca394464a";
+const HELLO_NEWLINE_BLOB_SHA1: string =
+  "ce013625030ba8dba906f756967f9e9ca394464a";
 const EMPTY_BLOB_SHA256: string =
   "473a0f4c3be8a93681a267e3b1e9a7dcda1185436fe141f7749120a303721813";
 
@@ -111,7 +112,9 @@ describe("a file's version, kept", () => {
     expect(fingerprintCodeFileVersion(HELLO_BLOB_SHA1.toUpperCase())).toBe(
       fingerprint,
     );
-    expect(fingerprintCodeFileVersion(` ${HELLO_BLOB_SHA1} `)).toBe(fingerprint);
+    expect(fingerprintCodeFileVersion(` ${HELLO_BLOB_SHA1} `)).toBe(
+      fingerprint,
+    );
     expect(fingerprintCodeFileVersion(EMPTY_BLOB_SHA1)).not.toBe(fingerprint);
   });
 
@@ -151,9 +154,12 @@ describe("the blob git writes for a file's text", () => {
     ["a".repeat(64), "sha256"],
     [` ${"a".repeat(64)} `, "sha256"],
     ["abc", "sha1"],
-  ])("a repository whose commit is %j hashes with %s", (commitSha: string, format: string) => {
-    expect(getGitObjectFormat(commitSha)).toBe(format);
-  });
+  ])(
+    "a repository whose commit is %j hashes with %s",
+    (commitSha: string, format: string) => {
+      expect(getGitObjectFormat(commitSha)).toBe(format);
+    },
+  );
 });
 
 describe("what a read and a commit keep", () => {
@@ -296,7 +302,10 @@ describe("reading the branch as the commit would find it", () => {
       },
       {
         filePath: "src/unanswered.ts",
-        now: { state: "unreadable", reason: "The code host said nothing of it." },
+        now: {
+          state: "unreadable",
+          reason: "The code host said nothing of it.",
+        },
       },
     ]);
   });
@@ -315,11 +324,17 @@ describe("reading the branch as the commit would find it", () => {
     expect(files).toEqual([
       {
         filePath: "src/a.ts",
-        now: { state: "unreadable", reason: "The code host could not be read." },
+        now: {
+          state: "unreadable",
+          reason: "The code host could not be read.",
+        },
       },
       {
         filePath: "src/b.ts",
-        now: { state: "unreadable", reason: "The code host could not be read." },
+        now: {
+          state: "unreadable",
+          reason: "The code host could not be read.",
+        },
       },
     ]);
   });
@@ -419,7 +434,9 @@ describe("what the card says", () => {
     expect(Array.from(writeNameOnCard(emoji))).toHaveLength(
       MAX_NAME_LENGTH_ON_CARD,
     );
-    expect(writeNameOnCard(emoji)).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
+    expect(writeNameOnCard(emoji)).not.toMatch(
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])/,
+    );
   });
 
   test("the first few files written out, the rest counted, as the module's sentences", () => {
@@ -619,20 +636,43 @@ describe("what the model is told, in a conversation nobody approves", () => {
   });
 
   test.each<[CodeChangeKind, Array<CodeFileUnseen>, CodeFileUnseen]>([
-    [CodeChangeKind.Commit, [CodeFileUnseen.NotChecked, CodeFileUnseen.ChangedSinceRead], CodeFileUnseen.ChangedSinceRead],
-    [CodeChangeKind.Commit, [CodeFileUnseen.NotRead, CodeFileUnseen.ReadOnAnotherBranch], CodeFileUnseen.ReadOnAnotherBranch],
-    [CodeChangeKind.PullRequest, [CodeFileUnseen.NotChecked, CodeFileUnseen.NotRead], CodeFileUnseen.NotRead],
-    [CodeChangeKind.PullRequest, [CodeFileUnseen.NotChecked], CodeFileUnseen.NotChecked],
-  ])("the record of a %s not made says what mattered most", (change: CodeChangeKind, kinds: Array<CodeFileUnseen>, most: CodeFileUnseen) => {
-    expect(
-      summarizeCodeFilesUnseen({
-        change,
-        findings: kinds.map((unseen: CodeFileUnseen, index: number) => {
-          return finding(`f${index}`, unseen, "main");
+    [
+      CodeChangeKind.Commit,
+      [CodeFileUnseen.NotChecked, CodeFileUnseen.ChangedSinceRead],
+      CodeFileUnseen.ChangedSinceRead,
+    ],
+    [
+      CodeChangeKind.Commit,
+      [CodeFileUnseen.NotRead, CodeFileUnseen.ReadOnAnotherBranch],
+      CodeFileUnseen.ReadOnAnotherBranch,
+    ],
+    [
+      CodeChangeKind.PullRequest,
+      [CodeFileUnseen.NotChecked, CodeFileUnseen.NotRead],
+      CodeFileUnseen.NotRead,
+    ],
+    [
+      CodeChangeKind.PullRequest,
+      [CodeFileUnseen.NotChecked],
+      CodeFileUnseen.NotChecked,
+    ],
+  ])(
+    "the record of a %s not made says what mattered most",
+    (
+      change: CodeChangeKind,
+      kinds: Array<CodeFileUnseen>,
+      most: CodeFileUnseen,
+    ) => {
+      expect(
+        summarizeCodeFilesUnseen({
+          change,
+          findings: kinds.map((unseen: CodeFileUnseen, index: number) => {
+            return finding(`f${index}`, unseen, "main");
+          }),
         }),
-      }),
-    ).toBe(CODE_UNSEEN_SUMMARIES[change][most]);
-  });
+      ).toBe(CODE_UNSEEN_SUMMARIES[change][most]);
+    },
+  );
 
   test("every summary says it was not made", () => {
     for (const change of Object.values(CodeChangeKind)) {
@@ -666,7 +706,7 @@ describe("what the model is told, in a conversation nobody approves", () => {
 
 describe("what a pull request approved anyway tells its reviewer", () => {
   test("each file in a code span, what was said of it, under a bold line", () => {
-    const note: string | undefined = describeCodeFilesUnseenForReviewer({
+    const note: string | null = describeCodeFilesUnseenForReviewer({
       baseBranchName: "main",
       findings: [
         finding("src/a.ts", CodeFileUnseen.ChangedSinceRead),
@@ -675,7 +715,7 @@ describe("what a pull request approved anyway tells its reviewer", () => {
         finding("src/d.ts", CodeFileUnseen.NotChecked),
         finding("src/e.ts", CodeFileUnseen.ReadOnAnotherBranch),
       ],
-    })?.toString();
+    });
 
     expect(note).toBe(
       [
@@ -697,7 +737,7 @@ describe("what a pull request approved anyway tells its reviewer", () => {
         finding("a`b`c.md", CodeFileUnseen.NotRead),
         finding("pages/[slug].tsx", CodeFileUnseen.NotRead),
       ],
-    })!.toString();
+    })!;
 
     expect(note).toContain("- `src/__init__.py`: AI did not read it");
     expect(note).toContain("- `pages/[slug].tsx`: AI did not read it");
@@ -708,7 +748,10 @@ describe("what a pull request approved anyway tells its reviewer", () => {
 
   test("nothing said, no note", () => {
     expect(
-      describeCodeFilesUnseenForReviewer({ baseBranchName: "main", findings: [] }),
+      describeCodeFilesUnseenForReviewer({
+        baseBranchName: "main",
+        findings: [],
+      }),
     ).toBeNull();
   });
 });
@@ -758,7 +801,9 @@ describe("what the card and the model are told of a change", () => {
       "This file changed on fix/login after Ask AI read it, and Ask AI's version undoes that change: src/a.ts. OneUptime could not check this file on fix/login against what Ask AI read: src/x.ts.",
     );
     expect(unseen!.notRunWithoutApproval.summary).toBe(
-      CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][CodeFileUnseen.ChangedSinceRead],
+      CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+        CodeFileUnseen.ChangedSinceRead
+      ],
     );
     expect(unseen!.notRunWithoutApproval.toldModel).toContain(
       "- src/x.ts could not be checked on fix/login: Slow.",

@@ -58,7 +58,10 @@ describe("GitHub", () => {
   let tokenSpy: SpyInstance<typeof GitHubUtil.getInstallationAccessToken>;
   let getSpy: SpyInstance<ApiGet>;
   // Each address GitHub was asked, and what it answers there.
-  let answers: Map<string, HTTPResponse<JSONObject> | HTTPErrorResponse | Error>;
+  let answers: Map<
+    string,
+    HTTPResponse<JSONObject> | HTTPErrorResponse | Error
+  >;
 
   beforeEach(() => {
     answers = new Map();
@@ -71,8 +74,11 @@ describe("GitHub", () => {
     getSpy = jest.spyOn(API, "get").mockImplementation((async (
       options: APIRequestOptions,
     ) => {
-      const answer: HTTPResponse<JSONObject> | HTTPErrorResponse | Error | undefined =
-        answers.get(options.url.toString());
+      const answer:
+        | HTTPResponse<JSONObject>
+        | HTTPErrorResponse
+        | Error
+        | undefined = answers.get(options.url.toString());
 
       if (answer instanceof Error) {
         throw answer;
@@ -122,7 +128,9 @@ describe("GitHub", () => {
     });
     expect(getSpy).toHaveBeenCalledTimes(3);
     expect(
-      (getSpy.mock.calls[0]![0] as APIRequestOptions).headers?.["Authorization"],
+      (getSpy.mock.calls[0]![0] as APIRequestOptions).headers?.[
+        "Authorization"
+      ],
     ).toBe("Bearer ghs_token");
   });
 
@@ -135,7 +143,10 @@ describe("GitHub", () => {
       contentsUrl("src/big.bin", "main"),
       new HTTPErrorResponse(403, { message: "too_large" }, {}),
     );
-    answers.set(contentsUrl("src/down.ts", "main"), new Error("socket hang up"));
+    answers.set(
+      contentsUrl("src/down.ts", "main"),
+      new Error("socket hang up"),
+    );
     answers.set(
       contentsUrl("src/odd.ts", "main"),
       new HTTPResponse(200, { type: "file" }, {}),
@@ -150,14 +161,23 @@ describe("GitHub", () => {
       organizationName: "acme",
       repositoryName: "checkout",
       branchName: "main",
-      filePaths: ["src", "src/big.bin", "src/down.ts", "src/odd.ts", "src/a.ts"],
+      filePaths: [
+        "src",
+        "src/big.bin",
+        "src/down.ts",
+        "src/odd.ts",
+        "src/a.ts",
+      ],
     });
 
     expect(blobs).toEqual([
       { filePath: "src", failure: "It is a folder on GitHub." },
       { filePath: "src/big.bin", failure: "GitHub answered 403 for it." },
       { filePath: "src/down.ts", failure: "GitHub could not be reached." },
-      { filePath: "src/odd.ts", failure: "GitHub did not say which version it is." },
+      {
+        filePath: "src/odd.ts",
+        failure: "GitHub did not say which version it is.",
+      },
       { filePath: "src/a.ts", blobSha: BLOB },
     ]);
     // Nothing of the failure's own words reaches the model.
@@ -251,7 +271,10 @@ describe("GitHub", () => {
     });
 
     expect(
-      await writer.getFileBlobShas({ branchName: "feature", filePaths: ["a.ts"] }),
+      await writer.getFileBlobShas({
+        branchName: "feature",
+        filePaths: ["a.ts"],
+      }),
     ).toEqual([{ filePath: "a.ts", blobSha: BLOB }]);
     expect(shas).toHaveBeenCalledWith({
       installationId: "4242",
@@ -443,7 +466,8 @@ describe("Forgejo and Gitea", () => {
               sha: BLOB,
               size: 6,
               content: Buffer.from("hello\n").toString("base64"),
-              html_url: "https://git.example.com/acme/checkout/src/branch/main/src/a.ts",
+              html_url:
+                "https://git.example.com/acme/checkout/src/branch/main/src/a.ts",
             },
           };
         }

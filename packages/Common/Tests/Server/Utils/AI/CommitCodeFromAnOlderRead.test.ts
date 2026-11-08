@@ -106,7 +106,8 @@ const CONNECTED_CONTEXT: ToolContext = {
 const ENGLISH: Translator = createTranslator(undefined, "en");
 
 const A_V1: string = "export const a = 1;\n";
-const A_TEAMMATE: string = "export const a = 1;\nexport const teammate = true;\n";
+const A_TEAMMATE: string =
+  "export const a = 1;\nexport const teammate = true;\n";
 const A_ASK_AI: string = "export const a = 2;\n";
 
 // One conversation: what each result showed the model, kept as the chat runner keeps it.
@@ -200,7 +201,9 @@ const cardOf: (
   prepared: PreparedMutation,
 ): { title: string | undefined; line: string | undefined } => {
   return {
-    title: actionTitleText(prepared.title || tool.buildActionTitle!(prepared.arguments)),
+    title: actionTitleText(
+      prepared.title || tool.buildActionTitle!(prepared.arguments),
+    ),
     line: actionLineText(prepared.description),
   };
 };
@@ -237,10 +240,14 @@ const drawnCard: (
   };
 };
 
-const proposedOnOf: (prepared: PreparedMutation) => CodeChangeProposedOn | null = (
+const proposedOnOf: (
+  prepared: PreparedMutation,
+) => CodeChangeProposedOn | null = (
   prepared: PreparedMutation,
 ): CodeChangeProposedOn | null => {
-  return readCodeChangeProposedOn(prepared.arguments[CODE_CHANGE_PROPOSED_ON_KEY]);
+  return readCodeChangeProposedOn(
+    prepared.arguments[CODE_CHANGE_PROPOSED_ON_KEY],
+  );
 };
 
 const CHANGED_A: string =
@@ -283,7 +290,10 @@ describe("read_code_file keeps what it showed", () => {
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    const result: ToolExecutionResult = await conversation.read(CHARGE, "fix/login");
+    const result: ToolExecutionResult = await conversation.read(
+      CHARGE,
+      "fix/login",
+    );
 
     expect(result.recordSeen).toEqual(
       seeCodeFile({
@@ -306,11 +316,14 @@ describe("read_code_file keeps what it showed", () => {
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
     expect(
-      ((await conversation.read(CHARGE)).recordSeen as AIChatRecordSeen).recordId,
+      ((await conversation.read(CHARGE)).recordSeen as AIChatRecordSeen)
+        .recordId,
     ).toBe(`${repository.repositoryId.toString()}:main:${CHARGE}`);
     expect(
-      ((await conversation.read(CHARGE, "refs/heads/fix/login"))
-        .recordSeen as AIChatRecordSeen).recordId,
+      (
+        (await conversation.read(CHARGE, "refs/heads/fix/login"))
+          .recordSeen as AIChatRecordSeen
+      ).recordId,
     ).toBe(`${repository.repositoryId.toString()}:fix/login:${CHARGE}`);
     expect(repository.contentReads[1]).toEqual({
       branchName: "fix/login",
@@ -341,7 +354,9 @@ describe("read_code_file keeps what it showed", () => {
     );
 
     expect((window.recordSeen as AIChatRecordSeen).parts[0]!.fingerprint).toBe(
-      fingerprintCodeFileVersion(blobOf(repository.branches.get("main")!.get("big.ts")!)),
+      fingerprintCodeFileVersion(
+        blobOf(repository.branches.get("main")!.get("big.ts")!),
+      ),
     );
     expect((empty.recordSeen as AIChatRecordSeen).parts[0]!.fingerprint).toBe(
       fingerprintCodeFileVersion(blobOf("")),
@@ -391,7 +406,10 @@ describe("Ask to act: the card names the file before anyone approves it", () => 
       toldModel: expect.stringContaining(
         `- ${CHARGE} changed on fix/login after you last read it there.`,
       ),
-      summary: CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][CodeFileUnseen.ChangedSinceRead],
+      summary:
+        CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+          CodeFileUnseen.ChangedSinceRead
+        ],
     });
     // A prepare only reads: nothing is committed before anyone approves it.
     expect(repository.commits).toEqual([]);
@@ -530,7 +548,9 @@ describe("nothing pushed since the read: the card is exactly as it is today", ()
 
     const again: PreparedMutation = await conversation.propose(
       CommitCodeToBranchTool,
-      commit("fix/login", [{ filePath: CHARGE, content: "export const a = 3;\n" }]),
+      commit("fix/login", [
+        { filePath: CHARGE, content: "export const a = 3;\n" },
+      ]),
     );
 
     expect(Object.keys(again)).toEqual(["arguments"]);
@@ -715,7 +735,9 @@ describe("never read", () => {
 
   test("a read under a name that differs only in case is another file", async () => {
     const repository: FakeGitRepository = makeRepository({
-      files: { "fix/login": { "README.md": "upper\n", "readme.md": "lower\n" } },
+      files: {
+        "fix/login": { "README.md": "upper\n", "readme.md": "lower\n" },
+      },
     });
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
@@ -809,9 +831,12 @@ describe("deleted and renamed files", () => {
 });
 
 describe("many files", () => {
-  const TEN: Array<string> = Array.from({ length: 10 }, (_v: unknown, index: number) => {
-    return `src/file-${index}.ts`;
-  });
+  const TEN: Array<string> = Array.from(
+    { length: 10 },
+    (_v: unknown, index: number) => {
+      return `src/file-${index}.ts`;
+    },
+  );
 
   test("ten files, seven changed since the read: one read of the branch, the line counts them and names three", async () => {
     const files: Record<string, string> = {};
@@ -850,9 +875,13 @@ describe("many files", () => {
     });
     // The model is told every one of them, by its whole path.
     for (const path of TEN.slice(0, 7)) {
-      expect(prepared.notRunWithoutApproval!.toldModel).toContain(`- ${path} changed`);
+      expect(prepared.notRunWithoutApproval!.toldModel).toContain(
+        `- ${path} changed`,
+      );
     }
-    expect(prepared.notRunWithoutApproval!.toldModel).not.toContain("src/file-8.ts");
+    expect(prepared.notRunWithoutApproval!.toldModel).not.toContain(
+      "src/file-8.ts",
+    );
   });
 
   test("more files than one commit may write: nothing is read, and running it says why", async () => {
@@ -906,9 +935,11 @@ describe("a host that cannot be read is never taken for one that did not change"
       "- README.md could not be checked on fix/login: GitHub answered 502 for it.",
     );
     // Held to the file it could read, and to nothing for the one it could not.
-    expect(proposedOnOf(prepared)!.files.map((file: { filePath: string }) => {
-      return file.filePath;
-    })).toEqual([CHARGE]);
+    expect(
+      proposedOnOf(prepared)!.files.map((file: { filePath: string }) => {
+        return file.filePath;
+      }),
+    ).toEqual([CHARGE]);
   });
 
   test("the host down: every file could not be checked, and approved anyway it is made", async () => {
@@ -936,7 +967,11 @@ describe("a host that cannot be read is never taken for one that did not change"
 
 describe("paths with Markdown in them", () => {
   test("are data on the card, written as they are", async () => {
-    const paths: Array<string> = ["src/__init__.py", "pages/[slug].tsx", "docs/*.md"];
+    const paths: Array<string> = [
+      "src/__init__.py",
+      "pages/[slug].tsx",
+      "docs/*.md",
+    ];
     const files: Record<string, string> = {};
     for (const path of paths) {
       files[path] = "v1\n";
@@ -970,14 +1005,20 @@ describe("paths with Markdown in them", () => {
 
 describe("whatever the model says it read is ignored", () => {
   const MODEL_SAYS: Array<[string, JSONObject]> = [
-    ["a proposed-on of its own, saying nothing changed", {
-      [CODE_CHANGE_PROPOSED_ON_KEY]: {
-        branchName: "fix/login",
-        files: [{ filePath: CHARGE, fingerprint: "0".repeat(16) }],
-        unseen: [],
-      },
-    } as unknown as JSONObject],
-    ["a record of its own", { recordSeen: { recordType: "CodeFile" } } as unknown as JSONObject],
+    [
+      "a proposed-on of its own, saying nothing changed",
+      {
+        [CODE_CHANGE_PROPOSED_ON_KEY]: {
+          branchName: "fix/login",
+          files: [{ filePath: CHARGE, fingerprint: "0".repeat(16) }],
+          unseen: [],
+        },
+      } as unknown as JSONObject,
+    ],
+    [
+      "a record of its own",
+      { recordSeen: { recordType: "CodeFile" } } as unknown as JSONObject,
+    ],
     ["the blob it read", { readBlobSha: blobOf(A_TEAMMATE), baseSha: "abc" }],
     ["a revision", { readAtRevision: 99, graphRevision: 99 }],
   ];
@@ -1089,7 +1130,10 @@ describe("a caller that keeps no record of what the model saw", () => {
 
     const prepared: PreparedMutation =
       await CommitCodeToBranchTool.prepareMutation!(
-        { ...args, [CODE_CHANGE_PROPOSED_ON_KEY]: { branchName: "x" } } as unknown as JSONObject,
+        {
+          ...args,
+          [CODE_CHANGE_PROPOSED_ON_KEY]: { branchName: "x" },
+        } as unknown as JSONObject,
         GITHUB_CONTEXT,
       );
 
@@ -1100,28 +1144,58 @@ describe("a caller that keeps no record of what the model saw", () => {
 
 describe("a prepare never throws, and reads nothing for a change that will not be made", () => {
   test.each<[string, (repository: FakeGitRepository) => void, JSONObject]>([
-    ["the default branch", () => {}, commit("main", [{ filePath: CHARGE, content: "x" }])],
-    ["a protected branch", (repository: FakeGitRepository) => {
-      repository.protectedBranches.add("fix/login");
-    }, commit("fix/login", [{ filePath: CHARGE, content: "x" }])],
-    ["a branch that is not there", () => {}, commit("nope", [{ filePath: CHARGE, content: "x" }])],
-    ["no branch", () => {}, { commitMessage: "m", changes: [{ filePath: CHARGE, content: "x" }] } as unknown as JSONObject],
+    [
+      "the default branch",
+      () => {},
+      commit("main", [{ filePath: CHARGE, content: "x" }]),
+    ],
+    [
+      "a protected branch",
+      (repository: FakeGitRepository) => {
+        repository.protectedBranches.add("fix/login");
+      },
+      commit("fix/login", [{ filePath: CHARGE, content: "x" }]),
+    ],
+    [
+      "a branch that is not there",
+      () => {},
+      commit("nope", [{ filePath: CHARGE, content: "x" }]),
+    ],
+    [
+      "no branch",
+      () => {},
+      {
+        commitMessage: "m",
+        changes: [{ filePath: CHARGE, content: "x" }],
+      } as unknown as JSONObject,
+    ],
     ["no changes", () => {}, commit("fix/login", [])],
-    ["a path that climbs out", () => {}, commit("fix/login", [{ filePath: "../etc/passwd", content: "x" }])],
-  ])("%s", async (_name: string, arrange: (repository: FakeGitRepository) => void, args: JSONObject) => {
-    const repository: FakeGitRepository = repositoryWithCharge();
-    arrange(repository);
-    serveOnGitHub(repository);
-    const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
+    [
+      "a path that climbs out",
+      () => {},
+      commit("fix/login", [{ filePath: "../etc/passwd", content: "x" }]),
+    ],
+  ])(
+    "%s",
+    async (
+      _name: string,
+      arrange: (repository: FakeGitRepository) => void,
+      args: JSONObject,
+    ) => {
+      const repository: FakeGitRepository = repositoryWithCharge();
+      arrange(repository);
+      serveOnGitHub(repository);
+      const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    const prepared: PreparedMutation = await conversation.propose(
-      CommitCodeToBranchTool,
-      args,
-    );
+      const prepared: PreparedMutation = await conversation.propose(
+        CommitCodeToBranchTool,
+        args,
+      );
 
-    expect(Object.keys(prepared)).toEqual(["arguments"]);
-    expect(repository.blobReads).toEqual([]);
-  });
+      expect(Object.keys(prepared)).toEqual(["arguments"]);
+      expect(repository.blobReads).toEqual([]);
+    },
+  );
 
   test("a repository the person may only read", async () => {
     const repository: FakeGitRepository = repositoryWithCharge();
@@ -1183,7 +1257,9 @@ describe("open_code_pull_request, against the default branch it starts from", ()
       line: `This file changed on main after Ask AI read it, and Ask AI's version undoes that change: ${CHARGE}.`,
     });
     expect(prepared.notRunWithoutApproval!.summary).toBe(
-      CODE_UNSEEN_SUMMARIES[CodeChangeKind.PullRequest][CodeFileUnseen.ChangedSinceRead],
+      CODE_UNSEEN_SUMMARIES[CodeChangeKind.PullRequest][
+        CodeFileUnseen.ChangedSinceRead
+      ],
     );
     expect(prepared.notRunWithoutApproval!.toldModel).toMatch(
       /^Not done: no pull request was opened/,
@@ -1245,7 +1321,9 @@ describe("open_code_pull_request, against the default branch it starts from", ()
       Object.keys(
         await conversation.propose(
           CommitCodeToBranchTool,
-          commit(head, [{ filePath: CHARGE, content: "export const a = 4;\n" }]),
+          commit(head, [
+            { filePath: CHARGE, content: "export const a = 4;\n" },
+          ]),
         ),
       ),
     ).toEqual(["arguments"]);
@@ -1255,7 +1333,9 @@ describe("open_code_pull_request, against the default branch it starts from", ()
     const repository: FakeGitRepository = repositoryWithCharge();
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
-    const args: JSONObject = pullRequest([{ filePath: CHARGE, content: A_ASK_AI }]);
+    const args: JSONObject = pullRequest([
+      { filePath: CHARGE, content: A_ASK_AI },
+    ]);
 
     await conversation.read(CHARGE);
     const prepared: PreparedMutation = await conversation.propose(
@@ -1292,7 +1372,10 @@ describe("open_code_pull_request, against the default branch it starts from", ()
       `No pull request was opened: ${CHARGE} changed on main after this pull request was shown for approval`,
     );
     expect(repository.pullRequests).toEqual([]);
-    expect(Array.from(repository.branches.keys())).toEqual(["main", "fix/login"]);
+    expect(Array.from(repository.branches.keys())).toEqual([
+      "main",
+      "fix/login",
+    ]);
   });
 
   test("the stored main branch drifted from the host's default: a file read there is said to be read on another branch", async () => {
@@ -1330,7 +1413,10 @@ describe("beyond GitHub", () => {
     serveOnGitLab(repository);
     const conversation: Conversation = new Conversation(CONNECTED_CONTEXT);
 
-    const read: ToolExecutionResult = await conversation.read(CHARGE, "fix/login");
+    const read: ToolExecutionResult = await conversation.read(
+      CHARGE,
+      "fix/login",
+    );
     expect((read.recordSeen as AIChatRecordSeen).parts[0]!.fingerprint).toBe(
       fingerprintCodeFileVersion(blobOf(A_V1)),
     );

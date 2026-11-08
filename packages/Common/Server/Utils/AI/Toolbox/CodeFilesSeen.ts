@@ -23,10 +23,6 @@ import {
   normalizeCodeFilePath,
   seeCodeFile,
 } from "../../../../Types/CodeRepository/CodeFileSeen";
-import FeedMarkdown, {
-  MarkdownText,
-  mdText,
-} from "../../../../Utils/Markdown/FeedMarkdown";
 import {
   CodeHostFileBlob,
   CodeHostFileContent,
@@ -261,7 +257,10 @@ export const readCodeFilesNow: ReadFilesNowFunction = async (data: {
     if (!blob) {
       return {
         filePath,
-        now: { state: "unreadable", reason: "The code host said nothing of it." },
+        now: {
+          state: "unreadable",
+          reason: "The code host said nothing of it.",
+        },
       };
     }
 
@@ -302,7 +301,10 @@ export const getCodeChangeProposedOn: ProposedOnFunction = (data: {
 
   for (const file of data.files) {
     if (file.now.state === "file") {
-      files.push({ filePath: file.filePath, fingerprint: file.now.fingerprint });
+      files.push({
+        filePath: file.filePath,
+        fingerprint: file.now.fingerprint,
+      });
     } else if (file.now.state === "absent") {
       files.push({ filePath: file.filePath, fingerprint: null });
     }
@@ -367,7 +369,10 @@ export const listFilesOnCard: FilesOnCardFunction = (
 
   return aiActionList(
     rest > 0
-      ? [...named, aiActionPluralSentence(AI_ACTION_PLURAL_LINES.moreFiles, rest)]
+      ? [
+          ...named,
+          aiActionPluralSentence(AI_ACTION_PLURAL_LINES.moreFiles, rest),
+        ]
       : named,
   );
 };
@@ -409,89 +414,88 @@ type LinesForPersonFunction = (data: {
  * unseen, in the order a person reads what matters most first: undone
  * since the read, read on another branch, never read, not checked.
  */
-export const describeCodeFilesUnseenForPerson: LinesForPersonFunction =
-  (data: {
-    branchName: string;
-    findings: ReadonlyArray<CodeFileUnseenFinding>;
-  }): Array<AIActionSentence> => {
-    const branch: string = writeNameOnCard(data.branchName);
-    const lines: Array<AIActionSentence> = [];
+export const describeCodeFilesUnseenForPerson: LinesForPersonFunction = (data: {
+  branchName: string;
+  findings: ReadonlyArray<CodeFileUnseenFinding>;
+}): Array<AIActionSentence> => {
+  const branch: string = writeNameOnCard(data.branchName);
+  const lines: Array<AIActionSentence> = [];
 
-    const changed: Array<CodeFileUnseenFinding> = ofKind(
-      data.findings,
-      CodeFileUnseen.ChangedSinceRead,
+  const changed: Array<CodeFileUnseenFinding> = ofKind(
+    data.findings,
+    CodeFileUnseen.ChangedSinceRead,
+  );
+
+  if (changed.length > 0) {
+    lines.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.codeFilesChangedSinceRead,
+        changed.length,
+        { branch, files: listFilesOnCard(pathsOf(changed)) },
+      ),
     );
+  }
 
-    if (changed.length > 0) {
-      lines.push(
-        aiActionPluralSentence(
-          AI_ACTION_PLURAL_LINES.codeFilesChangedSinceRead,
-          changed.length,
-          { branch, files: listFilesOnCard(pathsOf(changed)) },
-        ),
-      );
-    }
+  const elsewhere: Array<CodeFileUnseenFinding> = ofKind(
+    data.findings,
+    CodeFileUnseen.ReadOnAnotherBranch,
+  );
 
-    const elsewhere: Array<CodeFileUnseenFinding> = ofKind(
-      data.findings,
-      CodeFileUnseen.ReadOnAnotherBranch,
-    );
+  if (elsewhere.length > 0) {
+    const readOn: Array<string> = [];
 
-    if (elsewhere.length > 0) {
-      const readOn: Array<string> = [];
-
-      for (const finding of elsewhere) {
-        if (finding.readOnBranch && !readOn.includes(finding.readOnBranch)) {
-          readOn.push(finding.readOnBranch);
-        }
+    for (const finding of elsewhere) {
+      if (finding.readOnBranch && !readOn.includes(finding.readOnBranch)) {
+        readOn.push(finding.readOnBranch);
       }
-
-      const readBranch: AIActionSentenceValue =
-        readOn.length === 1
-          ? writeNameOnCard(readOn[0]!)
-          : aiActionTerm(AI_ACTION_TERMS.anotherBranch, { inSentence: true });
-
-      lines.push(
-        aiActionPluralSentence(
-          AI_ACTION_PLURAL_LINES.codeFilesReadOnAnotherBranch,
-          elsewhere.length,
-          { readBranch, branch, files: listFilesOnCard(pathsOf(elsewhere)) },
-        ),
-      );
     }
 
-    const notRead: Array<CodeFileUnseenFinding> = ofKind(
-      data.findings,
-      CodeFileUnseen.NotRead,
+    const readBranch: AIActionSentenceValue =
+      readOn.length === 1
+        ? writeNameOnCard(readOn[0]!)
+        : aiActionTerm(AI_ACTION_TERMS.anotherBranch, { inSentence: true });
+
+    lines.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.codeFilesReadOnAnotherBranch,
+        elsewhere.length,
+        { readBranch, branch, files: listFilesOnCard(pathsOf(elsewhere)) },
+      ),
     );
+  }
 
-    if (notRead.length > 0) {
-      lines.push(
-        aiActionPluralSentence(
-          AI_ACTION_PLURAL_LINES.codeFilesNotRead,
-          notRead.length,
-          { branch, files: listFilesOnCard(pathsOf(notRead)) },
-        ),
-      );
-    }
+  const notRead: Array<CodeFileUnseenFinding> = ofKind(
+    data.findings,
+    CodeFileUnseen.NotRead,
+  );
 
-    const notChecked: Array<CodeFileUnseenFinding> = ofKind(
-      data.findings,
-      CodeFileUnseen.NotChecked,
+  if (notRead.length > 0) {
+    lines.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.codeFilesNotRead,
+        notRead.length,
+        { branch, files: listFilesOnCard(pathsOf(notRead)) },
+      ),
     );
+  }
 
-    if (notChecked.length > 0) {
-      lines.push(
-        aiActionPluralSentence(
-          AI_ACTION_PLURAL_LINES.codeFilesNotChecked,
-          notChecked.length,
-          { branch, files: listFilesOnCard(pathsOf(notChecked)) },
-        ),
-      );
-    }
+  const notChecked: Array<CodeFileUnseenFinding> = ofKind(
+    data.findings,
+    CodeFileUnseen.NotChecked,
+  );
 
-    return lines;
-  };
+  if (notChecked.length > 0) {
+    lines.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.codeFilesNotChecked,
+        notChecked.length,
+        { branch, files: listFilesOnCard(pathsOf(notChecked)) },
+      ),
+    );
+  }
+
+  return lines;
+};
 
 // Which of the two code changes a message is about.
 export enum CodeChangeKind {
@@ -724,50 +728,4 @@ export const describeChangedSinceProposed: ChangedSinceProposedFunction =
     return data.change === CodeChangeKind.Commit
       ? `Nothing was committed: ${files} changed on ${data.branchName} after this commit was shown for approval, or could not be read there again, so committing it now could undo a change nobody saw. Read each of them again with read_code_file and branchName "${data.branchName}", and propose the commit again on the files as they are now.`
       : `No pull request was opened: ${files} changed on ${data.branchName} after this pull request was shown for approval, or could not be read there again, so it could undo a change nobody saw. Read each of them again with read_code_file and branchName "${data.branchName}", and propose the pull request again on the files as they are now.`;
-  };
-
-type ReviewerNoteFunction = (data: {
-  baseBranchName: string;
-  findings: ReadonlyArray<CodeFileUnseenFinding>;
-}) => MarkdownText | null;
-
-/*
- * The pull request's note for whoever reviews it, when the card said the
- * change writes over what Ask AI never read and the person approved it
- * anyway: the reviewer may not have seen the card. Each file in a code
- * span, so its name reads as written (FeedMarkdown).
- */
-export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction =
-  (data: {
-    baseBranchName: string;
-    findings: ReadonlyArray<CodeFileUnseenFinding>;
-  }): MarkdownText | null => {
-    if (data.findings.length === 0) {
-      return null;
-    }
-
-    const base: MarkdownText = FeedMarkdown.code(data.baseBranchName);
-
-    const items: Array<MarkdownText> = data.findings.map(
-      (finding: CodeFileUnseenFinding): MarkdownText => {
-        const file: MarkdownText = FeedMarkdown.code(finding.filePath);
-
-        switch (finding.unseen) {
-          case CodeFileUnseen.ChangedSinceRead:
-            return mdText`${file}: changed on ${base} after AI read it.`;
-          case CodeFileUnseen.ReadOnAnotherBranch:
-            return finding.readOnBranch
-              ? mdText`${file}: AI read it on ${FeedMarkdown.code(finding.readOnBranch)}, and it is different on ${base}.`
-              : mdText`${file}: AI read it on another branch, and it is different on ${base}.`;
-          case CodeFileUnseen.NotRead:
-            return mdText`${file}: AI did not read it before writing it.`;
-          case CodeFileUnseen.NotChecked:
-          default:
-            return mdText`${file}: OneUptime could not check it against what AI read.`;
-        }
-      },
-    );
-
-    return mdText`**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace changes it did not read:
-${FeedMarkdown.bulletList(items)}`;
   };

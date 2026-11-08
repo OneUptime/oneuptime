@@ -39,7 +39,9 @@ const CHANGED: AIActionSentence = aiActionPluralSentence(
   1,
   {
     branch: BRANCH,
-    files: aiActionList([aiActionSentence(AI_ACTION_CODE_FILE, { file: FILE })]),
+    files: aiActionList([
+      aiActionSentence(AI_ACTION_CODE_FILE, { file: FILE }),
+    ]),
   },
 );
 
@@ -121,6 +123,9 @@ describe("the Ask AI page on a code change written from an older read (issue #63
     const seen: string = flat(
       readRepoFile("Common/Server/Utils/AI/Toolbox/CodeFilesSeen.ts"),
     );
+    const reviewerNote: string = flat(
+      readRepoFile("Common/Server/Utils/AI/Toolbox/CodeChangeReviewerNote.ts"),
+    );
 
     // It reads the main branch unless it is told one.
     expect(readTool).toContain(
@@ -181,11 +186,13 @@ describe("the Ask AI page on a code change written from an older read (issue #63
     // A file changed while the card waited: nothing made, proposed again.
     expect(writeTools).toContain("await holdToWhatTheCardShowed({");
     expect(seen).toContain("`Nothing was committed: ${files} changed on");
-    expect(seen).toContain("propose the commit again on the files as they are now");
+    expect(seen).toContain(
+      "propose the commit again on the files as they are now",
+    );
 
     // A pull request approved anyway names the files for its reviewer.
     expect(writeTools).toContain("describeCodeFilesUnseenForReviewer({");
-    expect(seen).toContain(
+    expect(reviewerNote).toContain(
       "Before this was approved, OneUptime said AI's versions of them may undo or replace changes it did not read",
     );
   });

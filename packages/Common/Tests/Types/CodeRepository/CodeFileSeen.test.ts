@@ -153,20 +153,38 @@ describe("the ID a file on a branch is kept by", () => {
     });
   });
 
-  test.each<[string, { repositoryId: string; branchName: string; filePath: string }]>([
+  test.each<
+    [string, { repositoryId: string; branchName: string; filePath: string }]
+  >([
     ["no repository", { repositoryId: " ", branchName: "main", filePath: "a" }],
-    ["a repository with a colon", { repositoryId: "a:b", branchName: "main", filePath: "a" }],
+    [
+      "a repository with a colon",
+      { repositoryId: "a:b", branchName: "main", filePath: "a" },
+    ],
     ["no branch", { repositoryId: REPOSITORY, branchName: "", filePath: "a" }],
-    ["a branch with a colon", { repositoryId: REPOSITORY, branchName: "a:b", filePath: "a" }],
-    ["a branch with spaces around it", { repositoryId: REPOSITORY, branchName: " main", filePath: "a" }],
+    [
+      "a branch with a colon",
+      { repositoryId: REPOSITORY, branchName: "a:b", filePath: "a" },
+    ],
+    [
+      "a branch with spaces around it",
+      { repositoryId: REPOSITORY, branchName: " main", filePath: "a" },
+    ],
     ["no path", { repositoryId: REPOSITORY, branchName: "main", filePath: "" }],
-  ])("none for %s", (_name: string, address: { repositoryId: string; branchName: string; filePath: string }) => {
-    expect(getCodeFileRecordId(address)).toBeNull();
-    expect(seeCodeFile({ ...address, fingerprint: "f" })).toBeNull();
-  });
+  ])(
+    "none for %s",
+    (
+      _name: string,
+      address: { repositoryId: string; branchName: string; filePath: string },
+    ) => {
+      expect(getCodeFileRecordId(address)).toBeNull();
+      expect(seeCodeFile({ ...address, fingerprint: "f" })).toBeNull();
+    },
+  );
 
   test("a file kept by an ID as long as a record's may be, and none longer", () => {
-    const longest: number = MAX_RECORD_ID_LENGTHS[AIChatRecordSeenType.CodeFile];
+    const longest: number =
+      MAX_RECORD_ID_LENGTHS[AIChatRecordSeenType.CodeFile];
     const prefix: string = `${REPOSITORY}:main:`;
     const fits: string = "a".repeat(longest - prefix.length);
 
@@ -279,11 +297,28 @@ describe("the last view of a file on each branch", () => {
   test.each<[string, unknown]>([
     ["nothing", undefined],
     ["a string", "src/a.ts"],
-    ["another kind", { recordType: "File", recordId: `${REPOSITORY}:main:src/a.ts`, revision: 0, parts: [] }],
-    ["an ID that names no file", { recordType: "CodeFile", recordId: "main", revision: 0, parts: [] }],
+    [
+      "another kind",
+      {
+        recordType: "File",
+        recordId: `${REPOSITORY}:main:src/a.ts`,
+        revision: 0,
+        parts: [],
+      },
+    ],
+    [
+      "an ID that names no file",
+      { recordType: "CodeFile", recordId: "main", revision: 0, parts: [] },
+    ],
     ["only part of one", { ...see("main", "src/a.ts", "f1"), isPartial: true }],
-    ["a revision that is not a number", { ...see("main", "src/a.ts", "f1"), revision: "1" }],
-    ["a part that is not one", { ...see("main", "src/a.ts", "f1"), parts: ["version"] }],
+    [
+      "a revision that is not a number",
+      { ...see("main", "src/a.ts", "f1"), revision: "1" },
+    ],
+    [
+      "a part that is not one",
+      { ...see("main", "src/a.ts", "f1"), parts: ["version"] },
+    ],
   ])("%s shows nothing", (_name: string, value: unknown) => {
     expect(
       getCodeFileViews({
@@ -297,7 +332,11 @@ describe("the last view of a file on each branch", () => {
   test("a damaged record shows nothing, and the ones around it still do", () => {
     expect(
       getCodeFileViews({
-        records: [see("main", "src/a.ts", "f1"), null, see("fix/login", "src/a.ts", "f2")],
+        records: [
+          see("main", "src/a.ts", "f1"),
+          null,
+          see("fix/login", "src/a.ts", "f2"),
+        ],
         repositoryId: REPOSITORY,
         filePath: "src/a.ts",
       }).map((view: CodeFileView): string => {
@@ -342,8 +381,12 @@ describe("what writing a file whole on a branch would undo", () => {
     test("seen not there, and still not there: nothing; made since: changed since", () => {
       const records: Array<unknown> = [see("fix/login", "src/a.ts", null)];
 
-      expect(decide({ records, branchName: "fix/login", now: ABSENT })).toBeNull();
-      expect(decide({ records, branchName: "fix/login", now: file("f1") })).toEqual({
+      expect(
+        decide({ records, branchName: "fix/login", now: ABSENT }),
+      ).toBeNull();
+      expect(
+        decide({ records, branchName: "fix/login", now: file("f1") }),
+      ).toEqual({
         unseen: CodeFileUnseen.ChangedSinceRead,
       });
     });
@@ -351,7 +394,10 @@ describe("what writing a file whole on a branch would undo", () => {
     test("the last view on the branch decides, not an older one that matches", () => {
       expect(
         decide({
-          records: [see("fix/login", "src/a.ts", "f1"), see("fix/login", "src/a.ts", "f2")],
+          records: [
+            see("fix/login", "src/a.ts", "f1"),
+            see("fix/login", "src/a.ts", "f2"),
+          ],
           branchName: "fix/login",
           now: file("f1"),
         }),
@@ -361,7 +407,10 @@ describe("what writing a file whole on a branch would undo", () => {
     test("a view on another branch of what is there now does not hide a change on this one", () => {
       expect(
         decide({
-          records: [see("fix/login", "src/a.ts", "f1"), see("main", "src/a.ts", "f2")],
+          records: [
+            see("fix/login", "src/a.ts", "f1"),
+            see("main", "src/a.ts", "f2"),
+          ],
           branchName: "fix/login",
           now: file("f2"),
         }),
@@ -396,7 +445,10 @@ describe("what writing a file whole on a branch would undo", () => {
     test("read on several, the same as one of them: nothing", () => {
       expect(
         decide({
-          records: [see("main", "src/a.ts", "f1"), see("release", "src/a.ts", "f2")],
+          records: [
+            see("main", "src/a.ts", "f1"),
+            see("release", "src/a.ts", "f2"),
+          ],
           branchName: "fix/login",
           now: file("f1"),
         }),
@@ -441,13 +493,17 @@ describe("what writing a file whole on a branch would undo", () => {
     });
 
     test("never read, and on the branch: not read", () => {
-      expect(decide({ records: [], branchName: "fix/login", now: file("f1") })).toEqual({
+      expect(
+        decide({ records: [], branchName: "fix/login", now: file("f1") }),
+      ).toEqual({
         unseen: CodeFileUnseen.NotRead,
       });
     });
 
     test("never read, and not on the branch: a new file, nothing", () => {
-      expect(decide({ records: [], branchName: "fix/login", now: ABSENT })).toBeNull();
+      expect(
+        decide({ records: [], branchName: "fix/login", now: ABSENT }),
+      ).toBeNull();
     });
 
     test("read under a name that differs only in case: not this file", () => {
@@ -477,11 +533,16 @@ describe("what writing a file whole on a branch would undo", () => {
 
   describe("a branch that could not be read", () => {
     test.each<[string, Array<unknown>]>([
-      ["read on it, unchanged as far as anyone knows", [see("fix/login", "src/a.ts", "f1")]],
+      [
+        "read on it, unchanged as far as anyone knows",
+        [see("fix/login", "src/a.ts", "f1")],
+      ],
       ["read elsewhere", [see("main", "src/a.ts", "f1")]],
       ["never read", []],
     ])("is never unchanged: %s", (_name: string, records: Array<unknown>) => {
-      expect(decide({ records, branchName: "fix/login", now: UNREADABLE })).toEqual({
+      expect(
+        decide({ records, branchName: "fix/login", now: UNREADABLE }),
+      ).toEqual({
         unseen: CodeFileUnseen.NotChecked,
       });
     });
@@ -551,9 +612,9 @@ describe("what a change was proposed on, as its arguments carry it", () => {
   };
 
   test("reads back as it was written, through JSON", () => {
-    expect(readCodeChangeProposedOn(JSON.parse(JSON.stringify(PROPOSED)))).toEqual(
-      PROPOSED,
-    );
+    expect(
+      readCodeChangeProposedOn(JSON.parse(JSON.stringify(PROPOSED))),
+    ).toEqual(PROPOSED);
   });
 
   test.each<[string, unknown]>([
@@ -565,13 +626,47 @@ describe("what a change was proposed on, as its arguments carry it", () => {
     ["a branch that is not text", { ...PROPOSED, branchName: 7 }],
     ["files that are not a list", { ...PROPOSED, files: {} }],
     ["a file without a path", { ...PROPOSED, files: [{ fingerprint: "a" }] }],
-    ["a file whose version is a number", { ...PROPOSED, files: [{ filePath: "a", fingerprint: 1 }] }],
-    ["a file whose version is empty", { ...PROPOSED, files: [{ filePath: "a", fingerprint: "" }] }],
+    [
+      "a file whose version is a number",
+      { ...PROPOSED, files: [{ filePath: "a", fingerprint: 1 }] },
+    ],
+    [
+      "a file whose version is empty",
+      { ...PROPOSED, files: [{ filePath: "a", fingerprint: "" }] },
+    ],
     ["no list of what the card said", { ...PROPOSED, unseen: undefined }],
-    ["a kind nobody knows", { ...PROPOSED, unseen: [{ filePath: "a", unseen: "Fine" }] }],
-    ["a branch read that is not text", { ...PROPOSED, unseen: [{ filePath: "a", unseen: "ReadOnAnotherBranch", readOnBranch: 3 }] }],
-    ["more files than any change writes", { ...PROPOSED, files: Array.from({ length: 101 }, (_v: unknown, index: number) => ({ filePath: `f${index}`, fingerprint: null })) }],
-    ["a path longer than any kept", { ...PROPOSED, files: [{ filePath: "a".repeat(4097), fingerprint: null }] }],
+    [
+      "a kind nobody knows",
+      { ...PROPOSED, unseen: [{ filePath: "a", unseen: "Fine" }] },
+    ],
+    [
+      "a branch read that is not text",
+      {
+        ...PROPOSED,
+        unseen: [
+          { filePath: "a", unseen: "ReadOnAnotherBranch", readOnBranch: 3 },
+        ],
+      },
+    ],
+    [
+      "more files than any change writes",
+      {
+        ...PROPOSED,
+        files: Array.from({ length: 101 }, (_v: unknown, index: number) => {
+          return {
+            filePath: `f${index}`,
+            fingerprint: null,
+          };
+        }),
+      },
+    ],
+    [
+      "a path longer than any kept",
+      {
+        ...PROPOSED,
+        files: [{ filePath: "a".repeat(4097), fingerprint: null }],
+      },
+    ],
   ])("is nothing for %s", (_name: string, value: unknown) => {
     expect(readCodeChangeProposedOn(value)).toBeNull();
   });
@@ -630,7 +725,13 @@ describe("what a change was proposed on, as its arguments carry it", () => {
  */
 
 const BRANCHES: Array<string> = ["main", "fix/login", "release", "Fix/Login"];
-const PATHS: Array<string> = ["src/a.ts", "src/b.ts", "README.md", "readme.md", "docs/a:b.md"];
+const PATHS: Array<string> = [
+  "src/a.ts",
+  "src/b.ts",
+  "README.md",
+  "readme.md",
+  "docs/a:b.md",
+];
 
 type Repository = Map<string, Map<string, string>>;
 
@@ -659,9 +760,11 @@ const oracle: OracleFunction = (data: {
     return { unseen: CodeFileUnseen.NotChecked };
   }
 
-  const ofFile: Array<OracleEvent> = data.events.filter((event: OracleEvent): boolean => {
-    return event.filePath === data.filePath;
-  });
+  const ofFile: Array<OracleEvent> = data.events.filter(
+    (event: OracleEvent): boolean => {
+      return event.filePath === data.filePath;
+    },
+  );
 
   let lastOnBranch: OracleEvent | null = null;
 
@@ -682,7 +785,8 @@ const oracle: OracleFunction = (data: {
   }
 
   // Each other branch as last seen, and the order it was last seen in.
-  const lastElsewhere: Map<string, { content: string | null; at: number }> = new Map();
+  const lastElsewhere: Map<string, { content: string | null; at: number }> =
+    new Map();
 
   ofFile.forEach((event: OracleEvent, at: number): void => {
     if (event.branchName !== data.branchName) {
@@ -705,18 +809,26 @@ const oracle: OracleFunction = (data: {
   }
 
   return latest
-    ? { unseen: CodeFileUnseen.ReadOnAnotherBranch, readOnBranch: latest.branchName }
+    ? {
+        unseen: CodeFileUnseen.ReadOnAnotherBranch,
+        readOnBranch: latest.branchName,
+      }
     : { unseen: CodeFileUnseen.NotRead };
 };
 
 type PickFunction = <T>(items: ReadonlyArray<T>, random: SeededRandom) => T;
 
-const pick: PickFunction = <T>(items: ReadonlyArray<T>, random: SeededRandom): T => {
+const pick: PickFunction = <T>(
+  items: ReadonlyArray<T>,
+  random: SeededRandom,
+): T => {
   return items[random(items.length)] as T;
 };
 
 // A fingerprint the records carry: anything but the content, but one for each.
-const fingerprintOf: (content: string) => string = (content: string): string => {
+const fingerprintOf: (content: string) => string = (
+  content: string,
+): string => {
   return `fp-${content.length}-${content}`;
 };
 
@@ -765,8 +877,12 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
          * file Ask AI read - the rest anywhere.
          */
         const shown: OracleEvent | undefined =
-          events.length > 0 && random(2) === 0 ? pick(events, random) : undefined;
-        const branchName: string = shown ? shown.branchName : pick(BRANCHES, random);
+          events.length > 0 && random(2) === 0
+            ? pick(events, random)
+            : undefined;
+        const branchName: string = shown
+          ? shown.branchName
+          : pick(BRANCHES, random);
         const filePath: string = shown ? shown.filePath : pick(PATHS, random);
         const files: Map<string, string> = repository.get(branchName)!;
 
@@ -801,7 +917,9 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
           }
         } else if (action < 8 && proposal) {
           // The person approves the change shown: it is held to what the card was shown on.
-          const approvedOn: Map<string, string> = repository.get(proposal.branchName)!;
+          const approvedOn: Map<string, string> = repository.get(
+            proposal.branchName,
+          )!;
           const unreadable: boolean = random(10) === 0;
           const now: Array<{ filePath: string; now: CodeFileOnBranch }> = [];
           const expected: Array<string> = [];
@@ -819,7 +937,10 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
             });
 
             // The oracle: changed since it was shown, or no longer readable.
-            if (unreadable || (content === undefined ? null : content) !== then) {
+            if (
+              unreadable ||
+              (content === undefined ? null : content) !== then
+            ) {
               expected.push(checked);
             }
           }
@@ -850,13 +971,19 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
                 ? ABSENT
                 : file(fingerprintOf(content));
 
-            const expected: { unseen: CodeFileUnseen; readOnBranch?: string } | null =
-              oracle({
-                events,
-                branchName,
-                filePath: checked,
-                now: unreadable ? undefined : content === undefined ? null : content,
-              });
+            const expected: {
+              unseen: CodeFileUnseen;
+              readOnBranch?: string;
+            } | null = oracle({
+              events,
+              branchName,
+              filePath: checked,
+              now: unreadable
+                ? undefined
+                : content === undefined
+                  ? null
+                  : content,
+            });
 
             for (const kept of [records, getLatestAIChatRecordsSeen(records)]) {
               const found: Array<CodeFileUnseenFinding> = findCodeFilesUnseen({
@@ -885,7 +1012,10 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
             const shown: Map<string, string | null> = new Map();
 
             for (const checked of PATHS) {
-              shown.set(checked, files.has(checked) ? files.get(checked)! : null);
+              shown.set(
+                checked,
+                files.has(checked) ? files.get(checked)! : null,
+              );
             }
 
             proposal = {
@@ -897,7 +1027,8 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
                   const content: string | undefined = files.get(checked);
                   return {
                     filePath: checked,
-                    fingerprint: content === undefined ? null : fingerprintOf(content),
+                    fingerprint:
+                      content === undefined ? null : fingerprintOf(content),
                   };
                 }),
                 unseen: [],
