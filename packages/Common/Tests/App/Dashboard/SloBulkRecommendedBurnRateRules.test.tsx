@@ -338,10 +338,10 @@ afterEach(() => {
 
 const SloList: React.FunctionComponent<{
   rows: Array<ServiceLevelObjective>;
-  batchSize?: number;
+  batchSize?: number | undefined;
 }> = (props: {
   rows: Array<ServiceLevelObjective>;
-  batchSize?: number;
+  batchSize?: number | undefined;
 }): React.ReactElement => {
   const actions: Array<BulkActionButtonSchema<ServiceLevelObjective>> =
     useSloRecommendedRulesBulkAction({ batchSize: props.batchSize });
