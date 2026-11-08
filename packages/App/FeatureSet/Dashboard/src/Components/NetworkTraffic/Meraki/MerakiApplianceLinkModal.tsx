@@ -1,4 +1,3 @@
-import { formatTrafficBytes } from "../NetworkTrafficFormat";
 import {
   fetchLinkableAppliances,
   linkMerakiAppliance,
@@ -39,7 +38,6 @@ import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -56,10 +54,14 @@ import React, {
  * ones first, under "Likely matches", each saying why (the same name, a
  * number both names have), then every other one by name. Each row is one
  * whole label - a press anywhere picks it - with what tells two appliances
- * apart: the serial number, the network, the connection. An appliance
- * another device is already is listed, and says so, but cannot be picked:
- * one appliance is one device. A search narrows the list (a part of a name,
- * a serial number, a network); the list says when it shows only part.
+ * apart: the serial number and the network, and the connection when the
+ * list is of more than one (one organization's name on every row tells
+ * nothing apart). An appliance another device is already is listed, and
+ * says so, but cannot be picked: one appliance is one device. A search
+ * narrows the list (a part of a name, a serial number, a network); the
+ * list says when it shows only part. Its headings stay over their rows
+ * while they scroll, and the search box's glass turns into the spinner
+ * while a search is read, as the episode pickers' do.
  *
  * Link device writes the appliance's serial number on the device (POST
  * /network-traffic/link-appliance) and files its stored traffic under it;
@@ -72,6 +74,28 @@ export interface ComponentProps {
   onClose: () => void;
   // Linked: the page reads its traffic again.
   onLinked: (appliance: NetworkControllerLinkableAppliance) => void;
+}
+
+/*
+ * "Likely matches" and "All appliances": over their rows, and kept there
+ * while the rows scroll under them (the list scrolls in its own box).
+ */
+export const LINK_HEADING_CLASS_NAME: string =
+  "sticky top-0 z-10 border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs font-medium uppercase tracking-wide text-gray-500";
+
+// Whether the appliances listed come from more than one Meraki connection.
+export function hasSeveralConnections(
+  appliances: Array<NetworkControllerLinkableAppliance>,
+): boolean {
+  const names: Set<string> = new Set<string>();
+
+  for (const appliance of appliances) {
+    if (appliance.connectionName) {
+      names.add(appliance.connectionName);
+    }
+  }
+
+  return names.size > 1;
 }
 
 const MerakiApplianceLinkModal: FunctionComponent<ComponentProps> = (
@@ -163,6 +187,9 @@ const MerakiApplianceLinkModal: FunctionComponent<ComponentProps> = (
       return !appliance.isLikely;
     },
   );
+  // A connection's name tells rows apart only when the list has several.
+  const showsConnections: boolean = hasSeveralConnections(appliances);
+  const isRereading: boolean = isLoading && Boolean(list);
 
   const renderRow: (
     appliance: NetworkControllerLinkableAppliance,
@@ -176,8 +203,7 @@ const MerakiApplianceLinkModal: FunctionComponent<ComponentProps> = (
     const isOtherDevices: boolean = !isLinkable;
     const details: Array<string> = [
       appliance.controllerNetworkName,
-      appliance.connectionName,
-      appliance.octets > 0 ? formatTrafficBytes(appliance.octets) : "",
+      showsConnections ? appliance.connectionName : "",
     ].filter(Boolean);
 
     // Another device's appliance: its name and details fade, not its reason.
@@ -244,7 +270,8 @@ const MerakiApplianceLinkModal: FunctionComponent<ComponentProps> = (
             )}
           </span>
           <span
-            className={`mt-0.5 block truncate text-xs text-gray-500 ${lockedPartClassName}`}
+            className={`mt-0.5 block break-words text-xs text-gray-500 ${lockedPartClassName}`}
+            data-testid="meraki-link-appliance-details"
           >
             <span className="font-mono" dir="ltr">
               {appliance.serial}
@@ -314,10 +341,14 @@ const MerakiApplianceLinkModal: FunctionComponent<ComponentProps> = (
         className={isLoading ? "opacity-75 transition-opacity" : ""}
         aria-busy={isLoading}
       >
+        {/*
+         * Each heading in a box of its own with its rows, so it stays at the
+         * top only while its rows are in view.
+         */}
         {likely.length > 0 ? (
-          <Fragment>
+          <div data-testid="meraki-link-likely">
             <div
-              className="bg-gray-50 px-4 py-2 text-xs font-medium uppercase tracking-wide text-gray-500"
+              className={LINK_HEADING_CLASS_NAME}
               data-testid="meraki-link-likely-heading"
             >
               {translator.translateText(LIKELY_APPLIANCES_HEADING)}
@@ -325,18 +356,29 @@ const MerakiApplianceLinkModal: FunctionComponent<ComponentProps> = (
             <div className="divide-y divide-gray-200">
               {likely.map(renderRow)}
             </div>
-            {others.length > 0 ? (
-              <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+          </div>
+        ) : (
+          <></>
+        )}
+        {others.length > 0 ? (
+          <div data-testid="meraki-link-others">
+            {likely.length > 0 ? (
+              <div
+                className={`${LINK_HEADING_CLASS_NAME} border-t`}
+                data-testid="meraki-link-all-heading"
+              >
                 {translator.translateText(ALL_APPLIANCES_HEADING)}
               </div>
             ) : (
               <></>
             )}
-          </Fragment>
+            <div className="divide-y divide-gray-200">
+              {others.map(renderRow)}
+            </div>
+          </div>
         ) : (
           <></>
         )}
-        <div className="divide-y divide-gray-200">{others.map(renderRow)}</div>
       </div>
     );
   })();
@@ -360,7 +402,15 @@ const MerakiApplianceLinkModal: FunctionComponent<ComponentProps> = (
       <div data-testid="meraki-link-dialog">
         <div className="relative">
           <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
-            <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+            {isRereading ? (
+              <Icon
+                icon={IconProp.Spinner}
+                className="h-4 w-4 animate-spin text-gray-400"
+                data-testid="meraki-link-search-busy"
+              />
+            ) : (
+              <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+            )}
           </div>
           <input
             type="search"

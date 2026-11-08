@@ -278,6 +278,8 @@ describe("a list with more rows than it shows", () => {
 
     expect(button.tagName).toBe("BUTTON");
     expect(button).toHaveAttribute("type", "button");
+    // It opens a dialog, and says so to a screen reader before it is pressed.
+    expect(button).toHaveAttribute("aria-haspopup", "dialog");
     expect(button).toHaveTextContent("View all 523 networks");
     expect(
       rowsShown[rowsShown.length - 1]!.compareDocumentPosition(button) &

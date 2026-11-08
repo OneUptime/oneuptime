@@ -276,6 +276,7 @@ const TrafficTopList: FunctionComponent<ComponentProps> = (
             <div className="border-t border-gray-100 pt-3">
               <button
                 type="button"
+                aria-haspopup="dialog"
                 onClick={props.viewAll.onClick}
                 className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 data-testid={`${props.dataTestId}-view-all`}

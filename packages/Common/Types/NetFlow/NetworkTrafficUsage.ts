@@ -340,6 +340,8 @@ export interface NetworkTrafficUsageListResult {
  *
  * A device Meraki says is another kind of box - a switch, an access point -
  * gets neither: Meraki reports its traffic with its network's appliance.
+ * Nor does a device with a serial number of its own that no connection
+ * reported: a link, which writes the appliance's, would be refused there.
  */
 export enum NetworkTrafficUsageApplianceLinkStatus {
   Linked = "linked",

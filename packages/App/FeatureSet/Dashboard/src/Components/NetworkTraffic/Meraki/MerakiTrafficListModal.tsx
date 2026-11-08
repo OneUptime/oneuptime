@@ -30,12 +30,14 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pagination from "Common/UI/Components/Pagination/Pagination";
 import API from "Common/UI/Utils/API/API";
+import { scrollToTopOfScroller } from "Common/UI/Utils/ScrollToTopOfScroller";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -53,8 +55,15 @@ import React, {
  * dialog. Applications and clients are lists, as on the card.
  *
  * The search waits for a pause in the typing; the sort is busiest first, by
- * both directions, what came in or what went out. A change of either goes
- * back to the first page.
+ * both directions, what came in or what went out - "Sort by" says it is an
+ * order, never a filter, and sorted by one way each row's own figure for
+ * it stands out. A change of either goes back to the first page.
+ *
+ * The search and the sort stay at the top of the dialog while its rows
+ * scroll under them, and a page read anew - the next one, a search, another
+ * order - opens at its start: the pages are under the rows, so the next one
+ * was asked for with the last rows in view. While a page is read the search
+ * box's glass turns into the spinner, as the episode pickers' does.
  */
 
 export interface ComponentProps {
@@ -79,11 +88,20 @@ export interface ComponentProps {
 // How long the search waits for the typing to pause.
 export const LIST_SEARCH_DELAY_MS: number = 300;
 
+/*
+ * The search and the sort, kept at the top of the dialog's scrolling body:
+ * edge to edge over the rows that scroll under them, its own padding in
+ * place of the body's (Modal: px-5 py-5, sm:px-6).
+ */
+export const LIST_TOOLBAR_CLASS_NAME: string =
+  "sticky -top-5 z-10 -mx-5 -mt-5 border-b border-gray-100 bg-white px-5 pb-4 pt-5 sm:-mx-6 sm:px-6";
+
 const MerakiTrafficListModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const words: MerakiListWords = MERAKI_LIST_WORDS[props.list];
+  const sortLabelId: string = useId();
 
   const [searchInput, setSearchInput] = useState<string>("");
   const [search, setSearch] = useState<string>("");
@@ -101,6 +119,7 @@ const MerakiTrafficListModal: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [retryKey, setRetryKey] = useState<number>(0);
   const latestRef: React.MutableRefObject<number> = useRef<number>(0);
+  const rootRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   // The search, once the typing pauses: from the first page again.
   useEffect(() => {
@@ -120,6 +139,8 @@ const MerakiTrafficListModal: FunctionComponent<ComponentProps> = (
 
     setIsLoading(true);
     setError("");
+    // A page read anew opens at its start, under the search and the sort.
+    scrollToTopOfScroller(rootRef.current);
 
     fetchNetworkTrafficUsageList({
       ...props.request,
@@ -155,7 +176,7 @@ const MerakiTrafficListModal: FunctionComponent<ComponentProps> = (
     if (props.list === NetworkTrafficUsageListKind.Applications) {
       return result.applications.map(
         (row: NetworkTrafficUsageApplicationRow): TrafficTopRow => {
-          return toApplicationTopRow(row, translator);
+          return toApplicationTopRow(row, translator, sortBy);
         },
       );
     }
@@ -165,6 +186,7 @@ const MerakiTrafficListModal: FunctionComponent<ComponentProps> = (
         (row: NetworkTrafficUsageClientRow): TrafficTopRow => {
           return toClientTopRow(row, translator, {
             withNetwork: props.clientsWithNetwork,
+            sortBy,
           });
         },
       );
@@ -186,12 +208,15 @@ const MerakiTrafficListModal: FunctionComponent<ComponentProps> = (
                 props.onClose();
               }
             : undefined,
+          sortBy,
         });
       },
     );
   })();
 
   const count: number = result ? result.count : props.count;
+  // A page after the first being read: the search box says so.
+  const isRereading: boolean = isLoading && Boolean(result);
 
   const body: ReactElement = ((): ReactElement => {
     if (!result && isLoading) {
@@ -262,59 +287,84 @@ const MerakiTrafficListModal: FunctionComponent<ComponentProps> = (
       closeButtonText="Close"
       modalWidth={ModalWidth.Medium}
     >
-      <div data-testid={`meraki-list-${props.list}`}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative min-w-0 flex-1">
-            <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
-              <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+      <div ref={rootRef} data-testid={`meraki-list-${props.list}`}>
+        <div
+          className={LIST_TOOLBAR_CLASS_NAME}
+          data-testid="meraki-list-toolbar"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 flex-1">
+              <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
+                {isRereading ? (
+                  <Icon
+                    icon={IconProp.Spinner}
+                    className="h-4 w-4 animate-spin text-gray-400"
+                    data-testid="meraki-list-search-busy"
+                  />
+                ) : (
+                  <Icon
+                    icon={IconProp.Search}
+                    className="h-4 w-4 text-gray-400"
+                  />
+                )}
+              </div>
+              <input
+                type="search"
+                data-unsaved-changes-ignore
+                value={searchInput}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  setSearchInput(event.target.value);
+                }}
+                placeholder={translator.translateText(words.searchPlaceholder)}
+                aria-label={translator.translateText(words.searchPlaceholder)}
+                maxLength={100}
+                className="block w-full rounded-md border border-gray-300 bg-white py-2 pe-3 ps-9 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                data-testid="meraki-list-search"
+              />
             </div>
-            <input
-              type="search"
-              data-unsaved-changes-ignore
-              value={searchInput}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                setSearchInput(event.target.value);
-              }}
-              placeholder={translator.translateText(words.searchPlaceholder)}
-              aria-label={translator.translateText(words.searchPlaceholder)}
-              maxLength={100}
-              className="block w-full rounded-md border border-gray-300 bg-white py-2 pe-3 ps-9 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              data-testid="meraki-list-search"
-            />
-          </div>
-          <div
-            className="inline-flex flex-shrink-0 self-start rounded-md bg-gray-50 p-0.5 ring-1 ring-gray-200 sm:self-auto"
-            role="group"
-            aria-label={translator.translateText(LIST_SORT_LABEL)}
-            data-testid="meraki-list-sort"
-          >
-            {NETWORK_TRAFFIC_USAGE_LIST_SORTS.map(
-              (option: NetworkTrafficUsageListSort): ReactElement => {
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    aria-pressed={sortBy === option}
-                    className={`rounded px-2.5 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                      sortBy === option
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-gray-500 hover:text-gray-900"
-                    }`}
-                    onClick={() => {
-                      setSortBy(option);
-                      setPageNumber(1);
-                    }}
-                    data-testid={`meraki-list-sort-${option}`}
-                  >
-                    {translator.translateText(LIST_SORT_WORDS[option])}
-                  </button>
-                );
-              },
-            )}
+            <div className="flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-1">
+              <span
+                id={sortLabelId}
+                className="whitespace-nowrap text-xs text-gray-500"
+                data-testid="meraki-list-sort-label"
+              >
+                {translator.translateText(LIST_SORT_LABEL)}
+              </span>
+              <div
+                className="inline-flex rounded-md bg-gray-50 p-0.5 ring-1 ring-gray-200"
+                role="group"
+                aria-labelledby={sortLabelId}
+                data-testid="meraki-list-sort"
+              >
+                {NETWORK_TRAFFIC_USAGE_LIST_SORTS.map(
+                  (option: NetworkTrafficUsageListSort): ReactElement => {
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        aria-pressed={sortBy === option}
+                        className={`rounded px-2.5 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                          sortBy === option
+                            ? "bg-white text-gray-900 shadow-sm"
+                            : "text-gray-500 hover:text-gray-900"
+                        }`}
+                        onClick={() => {
+                          setSortBy(option);
+                          setPageNumber(1);
+                        }}
+                        data-testid={`meraki-list-sort-${option}`}
+                      >
+                        {translator.translateText(LIST_SORT_WORDS[option])}
+                      </button>
+                    );
+                  },
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="mt-4 min-h-[12rem]">{body}</div>
+        <div className="mt-2 min-h-[12rem]">{body}</div>
 
         {result && count > 0 ? (
           <div className="mt-3 border-t border-gray-100">

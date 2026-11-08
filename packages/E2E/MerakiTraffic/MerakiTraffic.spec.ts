@@ -1759,9 +1759,22 @@ test("an estate of 150 networks: Top networks shows ten and opens the rest, sear
     limit: 25,
   });
 
-  // The next page reads on from where the first ended.
+  /*
+   * The pages are under the rows: scrolled down to them, the search and the
+   * sort stay in view over the rows (UI review).
+   */
+  await page.getByTestId("meraki-list-pagination").scrollIntoViewIfNeeded();
+  await expect(rows.first()).not.toBeInViewport();
+  await expect(page.getByTestId("meraki-list-search")).toBeInViewport();
+  await expect(page.getByTestId("meraki-list-sort")).toBeInViewport();
+
+  /*
+   * The next page reads on from where the first ended - and opens at its
+   * start, never at the foot it was asked for from.
+   */
   await page.getByTestId("pagination-next-button").click();
   await expect(rows.first()).not.toContainText("Head Office");
+  await expect(rows.first()).toBeInViewport();
   asked = (await fixture(page)).listRequests;
   expect(asked[asked.length - 1]).toMatchObject({ skip: 25 });
 
@@ -1779,12 +1792,24 @@ test("an estate of 150 networks: Top networks shows ten and opens the rest, sear
     skip: 0,
   });
 
-  // Sorted by what went out.
+  /*
+   * Sorted by what went out: "Sort by" says it is an order, and each row's
+   * out figure stands out of its "In … · out …" line.
+   */
+  await expect(page.getByTestId("meraki-list-sort-label")).toHaveText(
+    "Sort by",
+  );
+  await expect(
+    dialog(page).getByTestId("traffic-row-sorted-figure"),
+  ).toHaveCount(0);
   await page.getByTestId("meraki-list-sort-out").click();
   await expect(page.getByTestId("meraki-list-sort-out")).toHaveAttribute(
     "aria-pressed",
     "true",
   );
+  await expect(
+    rows.first().getByTestId("traffic-row-sorted-figure"),
+  ).toBeVisible();
   asked = (await fixture(page)).listRequests;
   expect(asked[asked.length - 1]).toMatchObject({ sortBy: "out" });
 
@@ -1867,7 +1892,14 @@ test("the bug this fixes: a router added by hand had no Meraki side and no word 
   await expect(headOffice.getByRole("radio")).toBeDisabled();
   await expect(
     headOffice.getByTestId("meraki-link-appliance-taken"),
-  ).toHaveText("Linked to HQ MX250");
+  ).toHaveText("Already linked to HQ MX250");
+  /*
+   * What tells two appliances apart: the serial number and the network. One
+   * connection's name on every row tells nothing apart (UI review).
+   */
+  await expect(
+    appliances.first().getByTestId("meraki-link-appliance-details"),
+  ).toHaveText("Q2PN-LDS0-0012 · Branch 012 · Leeds");
   await expect(page.getByTestId("modal-footer-submit-button")).toBeDisabled();
   await settledDialog(page);
   await screenshot(page, testInfo, "router-link-dialog", dialog(page));
@@ -1925,7 +1957,7 @@ test("a linked router: Unlink, confirmed, takes the link off, and the page offer
     "Unlink this device?",
   );
   await expect(page.getByTestId("confirm-modal-description")).toContainText(
-    "The traffic of LDS MX68 goes back to the network's Traffic page",
+    "The serial number of LDS MX68 is removed from this device",
   );
   await page.getByTestId("modal-footer-submit-button").click();
 

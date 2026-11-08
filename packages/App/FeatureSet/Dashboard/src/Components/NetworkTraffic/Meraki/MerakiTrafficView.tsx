@@ -177,6 +177,8 @@ export interface ComponentProps {
   networkDeviceId?: ObjectID | undefined;
   // A link made or undone: the page reads its traffic again.
   onApplianceChanged: () => void;
+  // A device linked a moment ago, its traffic still to come: read it again.
+  onReadAgain?: (() => void) | undefined;
 }
 
 export const MERAKI_DESCRIPTIONS: {
@@ -644,6 +646,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
         networkDeviceId={props.networkDeviceId}
         appliance={summary.deviceAppliance}
         onChanged={props.onApplianceChanged}
+        onReadAgain={props.onReadAgain}
       />
     ) : null;
 

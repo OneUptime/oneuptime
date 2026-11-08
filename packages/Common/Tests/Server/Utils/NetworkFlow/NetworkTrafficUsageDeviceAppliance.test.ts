@@ -178,7 +178,24 @@ describe("which appliance a device is, from what is known of it", () => {
     expect(appliance?.isLinkedBySerialNumber).toBe(true);
   });
 
-  test("nothing filed, nothing known: not linked - the page offers to link it", () => {
+  test("nothing filed, nothing known, no serial number: not linked - the page offers to link it", () => {
+    expect(
+      NetworkTrafficUsageSummaryUtil.getDeviceAppliance({
+        identity: identity(),
+        hasFiledTraffic: false,
+        uplinks: [],
+        known: [],
+      }),
+    ).toEqual({ status: NetworkTrafficUsageApplianceLinkStatus.Unlinked });
+  });
+
+  /*
+   * The bug the UI review found: a switch of another make, its serial
+   * number read from its walk, was offered "Link to a Meraki appliance" -
+   * and every link was refused ("This device has the serial number ...
+   * already"), with nothing on the page to unlink.
+   */
+  test("a serial number of its own that no connection reported: no Meraki side - a link would be refused", () => {
     expect(
       NetworkTrafficUsageSummaryUtil.getDeviceAppliance({
         identity: identity({ serialNumber: "FOC1932X0K1" }),
@@ -186,7 +203,46 @@ describe("which appliance a device is, from what is known of it", () => {
         uplinks: [],
         known: [],
       }),
+    ).toBeUndefined();
+
+    // Meraki's own record of it names an appliance it could be: still none.
+    expect(
+      NetworkTrafficUsageSummaryUtil.getDeviceAppliance({
+        identity: identity({
+          serialNumber: "FOC1932X0K1",
+          controllerSerial: "Q2PN-LDS0-0012",
+          controllerProductType: "appliance",
+        }),
+        hasFiledTraffic: false,
+        uplinks: [],
+        known: [],
+      }),
+    ).toBeUndefined();
+  });
+
+  test("Meraki's record alone, with no serial number on the device, is still offered to link", () => {
+    expect(
+      NetworkTrafficUsageSummaryUtil.getDeviceAppliance({
+        identity: identity({
+          controllerSerial: "Q2PN-LDS0-0012",
+          controllerProductType: "appliance",
+        }),
+        hasFiledTraffic: false,
+        uplinks: [],
+        known: [],
+      }),
     ).toEqual({ status: NetworkTrafficUsageApplianceLinkStatus.Unlinked });
+  });
+
+  test("traffic filed under it keeps a device linked, whatever serial number it has", () => {
+    expect(
+      NetworkTrafficUsageSummaryUtil.getDeviceAppliance({
+        identity: identity({ serialNumber: "FOC1932X0K1" }),
+        hasFiledTraffic: true,
+        uplinks: [uplink()],
+        known: [],
+      })?.status,
+    ).toBe(NetworkTrafficUsageApplianceLinkStatus.Linked);
   });
 
   test.each([["switch"], ["wireless"], ["camera"], ["sensor"]])(
@@ -431,6 +487,20 @@ describe("a device's page in a project that reads Meraki", () => {
     expect(asked.since.toISOString()).toBe("2026-10-17T12:00:00.000Z");
     // The caller's scope of the whole project: the bucket the appliance's rows are in.
     expect(asked.devices.serviceIds).toBeUndefined();
+  });
+
+  test("a device of another make, its serial number read from its walk: no Meraki side, after asking for that serial alone", async () => {
+    device.serialNumber = "FOC1932X0K1";
+    known = [];
+
+    const summary: NetworkTrafficUsageSummary = await build();
+
+    expect(summary.isAvailable).toBe(false);
+    expect(summary.deviceAppliance).toBeUndefined();
+    expect(getAppliances).toHaveBeenCalledTimes(1);
+    expect(
+      (getAppliances.mock.calls[0]![0] as { serials: Array<string> }).serials,
+    ).toEqual(["FOC1932X0K1"]);
   });
 
   test("a device Meraki says is a switch: no Meraki side at all", async () => {

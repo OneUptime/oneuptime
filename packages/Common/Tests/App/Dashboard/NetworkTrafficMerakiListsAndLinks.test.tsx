@@ -162,7 +162,23 @@ import NetworkTrafficView, {
   APPLIANCE_REFILE_REREAD_MS,
   NetworkTrafficScope,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficView";
-import { LIST_SEARCH_DELAY_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiTrafficListModal";
+import {
+  LIST_SEARCH_DELAY_MS,
+  LIST_TOOLBAR_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiTrafficListModal";
+import {
+  LINK_HEADING_CLASS_NAME,
+  hasSeveralConnections,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiApplianceLinkModal";
+import {
+  LINKED_WAITING_REREAD_FOR_MS,
+  LINKED_WAITING_REREAD_MS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiDeviceAppliance";
+import {
+  SORTED_FIGURE_CLASS_NAME,
+  SORTED_FIGURE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiListRows";
+import { NetworkControllerLinkableAppliance } from "../../../Types/NetworkController/NetworkControllerApplianceLink";
 import { getTrafficSideStorageKey } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/TrafficSideMemory";
 import { resetStandInCharts } from "./ChartZoomStandIn";
 import { JSONObject } from "../../../Types/JSON";
@@ -623,6 +639,141 @@ describe("every network, not ten", () => {
     expect(bodiesOf(listPostMock).pop()).toMatchObject({ sortBy: "out" });
   });
 
+  /*
+   * UI review: "Total | In | Out" beside a search read as a filter, and a
+   * list sorted by In looked out of order - the bytes on the right are both
+   * ways. "Sort by" names the switch, and each row's own figure for the way
+   * it is sorted by stands out of its "In … · out …" line.
+   */
+  test("Sort by names the switch an order; sorted by In or Out, each row's figure for it stands out", async () => {
+    await renderView(NETWORK);
+    fireEvent.click(screen.getByTestId("meraki-top-networks-view-all"));
+    await flush();
+
+    expect(screen.getByTestId("meraki-list-sort-label")).toHaveTextContent(
+      "Sort by",
+    );
+    expect(screen.getByRole("group", { name: "Sort by" })).toBe(
+      screen.getByTestId("meraki-list-sort"),
+    );
+    // Busiest both ways: no one figure stands out.
+    expect(screen.queryAllByTestId(SORTED_FIGURE_TEST_ID)).toHaveLength(0);
+
+    fireEvent.click(screen.getByTestId("meraki-list-sort-in"));
+    await flush();
+
+    const inFigures: Array<HTMLElement> = screen.getAllByTestId(
+      SORTED_FIGURE_TEST_ID,
+    );
+    expect(inFigures).toHaveLength(listRows().length);
+    // Store 001 took 10 MB in and sent 2 MB: its In figure is the one.
+    expect(listRows()[0]).toHaveTextContent("In 10.0 MB · out 2.00 MB");
+    expect(inFigures[0]).toHaveTextContent("10.0 MB");
+    expect(inFigures[0]!.className.split(" ")).toEqual(
+      SORTED_FIGURE_CLASS_NAME.split(" "),
+    );
+
+    fireEvent.click(screen.getByTestId("meraki-list-sort-out"));
+    await flush();
+
+    expect(screen.getAllByTestId(SORTED_FIGURE_TEST_ID)[0]).toHaveTextContent(
+      "2.00 MB",
+    );
+
+    fireEvent.click(screen.getByTestId("meraki-list-sort-total"));
+    await flush();
+
+    expect(screen.queryAllByTestId(SORTED_FIGURE_TEST_ID)).toHaveLength(0);
+  });
+
+  test("the search and the sort stay over the rows while they scroll", async () => {
+    await renderView(NETWORK);
+    fireEvent.click(screen.getByTestId("meraki-top-networks-view-all"));
+    await flush();
+
+    const toolbar: HTMLElement = screen.getByTestId("meraki-list-toolbar");
+
+    expect(toolbar.className).toBe(LIST_TOOLBAR_CLASS_NAME);
+    expect(toolbar.className.split(" ")).toContain("sticky");
+    expect(within(toolbar).getByTestId("meraki-list-search")).toBeTruthy();
+    expect(within(toolbar).getByTestId("meraki-list-sort")).toBeTruthy();
+    // The rows are not in it.
+    expect(within(toolbar).queryAllByTestId("meraki-list-row")).toHaveLength(0);
+  });
+
+  /*
+   * UI review: the pages are under the rows, so the next one was asked for
+   * with the last rows in view - and opened there, at its foot.
+   */
+  test("a page read anew opens at its start: the next page, another order, a search", async () => {
+    await renderView(NETWORK);
+    fireEvent.click(screen.getByTestId("meraki-top-networks-view-all"));
+    await flush();
+
+    const body: HTMLElement = screen.getByTestId("modal-content");
+    body.style.overflowY = "auto";
+    Object.defineProperty(body, "scrollHeight", {
+      configurable: true,
+      value: 2400,
+    });
+    Object.defineProperty(body, "clientHeight", {
+      configurable: true,
+      value: 600,
+    });
+
+    body.scrollTop = 1800;
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
+    await flush();
+    expect(body.scrollTop).toBe(0);
+    expect(listRows()[0]).toHaveTextContent("Store 026");
+
+    body.scrollTop = 1800;
+    fireEvent.click(screen.getByTestId("meraki-list-sort-out"));
+    await flush();
+    expect(body.scrollTop).toBe(0);
+
+    body.scrollTop = 1800;
+    fireEvent.change(screen.getByTestId("meraki-list-search"), {
+      target: { value: "store 04" },
+    });
+    await advance(LIST_SEARCH_DELAY_MS);
+    expect(body.scrollTop).toBe(0);
+  });
+
+  test("while a page after the first is read, the search box's glass is a spinner and the rows stay", async () => {
+    await renderView(NETWORK);
+    fireEvent.click(screen.getByTestId("meraki-top-networks-view-all"));
+    await flush();
+
+    expect(screen.queryByTestId("meraki-list-search-busy")).toBeNull();
+
+    let release: () => void = (): void => {};
+    const held: Promise<void> = new Promise<void>((resolve: () => void) => {
+      release = resolve;
+    });
+    const read: ((...args: Array<unknown>) => unknown) | undefined =
+      listPostMock.getMockImplementation();
+    listPostMock.mockImplementationOnce(
+      async (...args: Array<unknown>): Promise<unknown> => {
+        await held;
+        return read!(...args);
+      },
+    );
+
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
+    await flush();
+
+    expect(screen.getByTestId("meraki-list-search-busy")).toBeInTheDocument();
+    expect(listRows()).toHaveLength(25);
+    expect(listRows()[0]).toHaveTextContent("Store 001");
+
+    release();
+    await flush();
+
+    expect(screen.queryByTestId("meraki-list-search-busy")).toBeNull();
+    expect(listRows()[0]).toHaveTextContent("Store 026");
+  });
+
   test("a network picked there narrows the page to it, as a row of Top networks does, and the dialog closes", async () => {
     await renderView(NETWORK);
     fireEvent.click(screen.getByTestId("meraki-top-networks-view-all"));
@@ -699,6 +850,26 @@ describe("every network, not ten", () => {
     // A client without a name is its address, in the addresses' font - and not a filter.
     expect(listRows()[0]).toHaveTextContent("10.0.0.99");
     expect(listRows()[0]!.tagName).toBe("DIV");
+
+    // Sorted by what went out, a client's out figure stands out of its line.
+    fireEvent.click(screen.getByTestId("meraki-list-sort-out"));
+    await flush();
+    expect(
+      within(listRows()[0]!).getByTestId(SORTED_FIGURE_TEST_ID),
+    ).toHaveTextContent("1 B");
+
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+    await flush();
+
+    // And an application's in figure, sorted by what came in.
+    fireEvent.click(screen.getByTestId("meraki-top-applications-view-all"));
+    await flush();
+    fireEvent.click(screen.getByTestId("meraki-list-sort-in"));
+    await flush();
+    expect(listRows()[0]).toHaveTextContent("Zoom");
+    expect(
+      within(listRows()[0]!).getByTestId(SORTED_FIGURE_TEST_ID),
+    ).toHaveTextContent("2 B");
   });
 });
 
@@ -803,6 +974,17 @@ describe("a router's Traffic page and its Meraki appliance", () => {
     expect(screen.getByTestId("meraki-appliance-link")).toHaveTextContent(
       "Link to a Meraki appliance",
     );
+    // Said to every device tied to no appliance: it says when the link is for.
+    expect(screen.getByTestId("meraki-appliance-unlinked")).toHaveTextContent(
+      "If this device is a Meraki MX or Z appliance, link it to see its uplinks, applications and clients here.",
+    );
+    /*
+     * Button keeps a dialog footer's md:ml-3: cleared, the button stands
+     * centred under the sentence.
+     */
+    expect(
+      screen.getByTestId("meraki-appliance-link").parentElement!.className,
+    ).toContain("[&>button]:md:ml-0");
   });
 
   test("a router that exports flows opens on them, with Meraki and its link one click away", async () => {
@@ -843,10 +1025,112 @@ describe("a router's Traffic page and its Meraki appliance", () => {
     expect(within(rows[1]!).getByRole("radio")).toBeDisabled();
     expect(
       within(rows[1]!).getByTestId("meraki-link-appliance-taken"),
-    ).toHaveTextContent("Linked to Bristol router");
+    ).toHaveTextContent("Already linked to Bristol router");
+
+    /*
+     * What tells two appliances apart: the serial number and the network.
+     * One connection's name on every row tells nothing apart, and a bare
+     * byte count said nothing it was of (UI review).
+     */
+    const details: HTMLElement = within(rows[0]!).getByTestId(
+      "meraki-link-appliance-details",
+    );
+    expect(details).toHaveTextContent("Q2PN-LDS0-0012 · Branch 012 · Leeds");
+    expect(details).not.toHaveTextContent("Acme Networks");
+    expect(details).not.toHaveTextContent("MB");
 
     // Nothing picked: nothing to link.
     expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+  });
+
+  test("a connection's name is said only when the appliances come from several", async () => {
+    expect(
+      hasSeveralConnections(
+        (APPLIANCES[
+          "appliances"
+        ] as unknown as Array<NetworkControllerLinkableAppliance>) || [],
+      ),
+    ).toBe(false);
+
+    answer(appliancesPostMock, () => {
+      const appliances: Array<JSONObject> = (
+        APPLIANCES["appliances"] as Array<JSONObject>
+      ).map((appliance: JSONObject, index: number): JSONObject => {
+        return index === 2
+          ? { ...appliance, connectionName: "Acme Retail" }
+          : appliance;
+      });
+
+      return { ...APPLIANCES, appliances };
+    });
+
+    await renderView(ROUTER);
+    fireEvent.click(screen.getByTestId("meraki-appliance-link"));
+    await flush();
+
+    const details: Array<HTMLElement> = screen.getAllByTestId(
+      "meraki-link-appliance-details",
+    );
+    expect(details[0]).toHaveTextContent(
+      "Q2PN-LDS0-0012 · Branch 012 · Leeds · Acme Networks",
+    );
+    expect(details[2]).toHaveTextContent(
+      "Q2PN-COV0-0003 · Warehouse · Coventry · Acme Retail",
+    );
+  });
+
+  test("each heading stays over its own rows while they scroll, in a section of its own", async () => {
+    await renderView(ROUTER);
+    fireEvent.click(screen.getByTestId("meraki-appliance-link"));
+    await flush();
+
+    const likely: HTMLElement = screen.getByTestId("meraki-link-likely");
+    const others: HTMLElement = screen.getByTestId("meraki-link-others");
+
+    expect(
+      within(likely).getByTestId("meraki-link-likely-heading").className,
+    ).toBe(LINK_HEADING_CLASS_NAME);
+    expect(LINK_HEADING_CLASS_NAME.split(" ")).toContain("sticky");
+    expect(
+      within(others)
+        .getByTestId("meraki-link-all-heading")
+        .className.split(" "),
+    ).toEqual(expect.arrayContaining(["sticky", "border-t"]));
+    expect(within(likely).getAllByTestId("meraki-link-appliance")).toHaveLength(
+      1,
+    );
+    expect(within(others).getAllByTestId("meraki-link-appliance")).toHaveLength(
+      2,
+    );
+  });
+
+  test("while a search is read, the search box's glass is a spinner", async () => {
+    await renderView(ROUTER);
+    fireEvent.click(screen.getByTestId("meraki-appliance-link"));
+    await flush();
+
+    let release: () => void = (): void => {};
+    const held: Promise<void> = new Promise<void>((resolve: () => void) => {
+      release = resolve;
+    });
+    appliancesPostMock.mockImplementationOnce(async (): Promise<unknown> => {
+      await held;
+      return { data: APPLIANCES };
+    });
+
+    expect(screen.queryByTestId("meraki-link-search-busy")).toBeNull();
+    fireEvent.change(screen.getByTestId("meraki-link-search"), {
+      target: { value: "leeds" },
+    });
+    await advance(LIST_SEARCH_DELAY_MS);
+
+    expect(screen.getByTestId("meraki-link-search-busy")).toBeInTheDocument();
+    expect(screen.getAllByTestId("meraki-link-appliance")).toHaveLength(3);
+
+    release();
+    await flush();
+
+    expect(screen.queryByTestId("meraki-link-search-busy")).toBeNull();
   });
 
   test("an appliance another device is takes the shared locked look: its name and details fade, the device it is does not", async () => {
@@ -912,6 +1196,20 @@ describe("a router's Traffic page and its Meraki appliance", () => {
     );
     expect(screen.getByTestId("meraki-appliance-line")).toHaveTextContent(
       "Q2PN-LDS0-0012",
+    );
+    /*
+     * The appliance's name stands out of its line, and the line is one run
+     * of text beside its icon: on a phone it wraps as a sentence, never
+     * leaving the icon alone on a line (UI review).
+     */
+    const name: HTMLElement = screen.getByTestId("meraki-appliance-line-name");
+    expect(name).toHaveTextContent("LDS MX68");
+    expect(name.className).toContain("font-medium");
+    const line: HTMLElement = screen.getByTestId("meraki-appliance-line");
+    expect(line.children).toHaveLength(2);
+    expect(line.children[1]).toContainElement(name);
+    expect(line.children[1]).toContainElement(
+      screen.getByTestId("meraki-appliance-unlink"),
     );
 
     // And once more a moment later, when the stored traffic is filed.
@@ -998,8 +1296,9 @@ describe("a router's Traffic page and its Meraki appliance", () => {
     expect(screen.getByTestId("modal-title")).toHaveTextContent(
       "Unlink this device?",
     );
+    // What it does: the serial number comes off; the network's page keeps the traffic.
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-      "The traffic of LDS MX68 goes back to the network's Traffic page",
+      "The serial number of LDS MX68 is removed from this device, and its traffic stops showing here. It still shows on the network's Traffic page",
     );
 
     fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
@@ -1049,6 +1348,83 @@ describe("a router's Traffic page and its Meraki appliance", () => {
     expect(screen.getByTestId("meraki-appliance-waiting")).toHaveTextContent(
       "Its traffic shows here within a few minutes.",
     );
+  });
+
+  /*
+   * UI review: "Its traffic shows here within a few minutes" - but the page
+   * read again only once, five seconds after the link, and a refile that
+   * took longer left it waiting until a reload.
+   */
+  test("linked a moment ago: the page reads again every half minute until its traffic shows, ten minutes at most", async () => {
+    answer(usagePostMock, () => {
+      return {
+        isAvailable: false,
+        deviceAppliance: {
+          status: "linked",
+          serial: "Q2PN-LDS0-0012",
+          name: "LDS MX68",
+          isLinkedBySerialNumber: true,
+        },
+      };
+    });
+
+    await renderView(ROUTER);
+    expect(screen.getByTestId("meraki-appliance-waiting")).toBeInTheDocument();
+    const first: number = usagePostMock.mock.calls.length;
+
+    // Not before the half minute.
+    await advance(LINKED_WAITING_REREAD_MS - 1000);
+    expect(usagePostMock.mock.calls.length).toBe(first);
+
+    await advance(1000);
+    expect(usagePostMock.mock.calls.length).toBe(first + 1);
+
+    // One read each half minute, ten minutes in all.
+    const ticks: number =
+      LINKED_WAITING_REREAD_FOR_MS / LINKED_WAITING_REREAD_MS;
+
+    for (let tick: number = 1; tick < ticks + 4; tick++) {
+      await advance(LINKED_WAITING_REREAD_MS);
+    }
+
+    expect(usagePostMock.mock.calls.length).toBe(first + ticks);
+  });
+
+  test("the re-reads stop once the traffic shows", async () => {
+    let filed: boolean = false;
+    answer(usagePostMock, () => {
+      return filed
+        ? usage({
+            topNetworks: [],
+            deviceAppliance: {
+              status: "linked",
+              serial: "Q2PN-LDS0-0012",
+              name: "LDS MX68",
+              isLinkedBySerialNumber: true,
+            },
+          })
+        : {
+            isAvailable: false,
+            deviceAppliance: {
+              status: "linked",
+              serial: "Q2PN-LDS0-0012",
+              name: "LDS MX68",
+              isLinkedBySerialNumber: true,
+            },
+          };
+    });
+
+    await renderView(ROUTER);
+    filed = true;
+    await advance(LINKED_WAITING_REREAD_MS);
+
+    expect(screen.queryByTestId("meraki-appliance-waiting")).toBeNull();
+    expect(screen.getByTestId("meraki-appliance-line")).toBeInTheDocument();
+    const shown: number = usagePostMock.mock.calls.length;
+
+    await advance(LINKED_WAITING_REREAD_MS * 4);
+
+    expect(usagePostMock.mock.calls.length).toBe(shown);
   });
 
   test("whoever may not change a device's serial number reads why there is no button", async () => {

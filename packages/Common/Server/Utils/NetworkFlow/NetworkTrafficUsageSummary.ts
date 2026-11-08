@@ -84,7 +84,9 @@ import ObjectID from "../../../Types/ObjectID";
  * reports under no device of the project can be linked to its appliance
  * from its own page. A device Meraki says is a switch or an access point
  * gets no Meraki side: Meraki reports its traffic with its network's
- * appliance.
+ * appliance. Nor does a device with a serial number of its own that no
+ * connection reported - a switch of another make, read from its walk: a
+ * link would be refused there, so none is offered.
  *
  * The same page's whole lists - every network, application or client, a
  * page of rows at a time (POST /network-traffic/usage-list) - are read
@@ -690,7 +692,8 @@ export default class NetworkTrafficUsageSummaryUtil {
    * A device's page with none of its traffic filed: the appliance it is -
    * its serial number, or what Meraki's record of it says, an appliance the
    * connections reported lately - or that it is none yet. Nothing for a
-   * device Meraki says is another kind of box.
+   * device Meraki says is another kind of box, nor for one with a serial
+   * number of its own that no connection reported (getDeviceAppliance).
    */
   private static async getUnfiledDeviceAppliance(data: {
     page: ResolvedUsagePage;
@@ -755,7 +758,10 @@ export default class NetworkTrafficUsageSummaryUtil {
    *   - none filed: an appliance the connections reported lately whose
    *     serial number the device holds, or Meraki's record names - linked,
    *     its traffic to come; else unlinked, unless Meraki says the device
-   *     is another kind of box (no Meraki side at all).
+   *     is another kind of box, or the device has a serial number of its
+   *     own that no connection reported (no Meraki side at all: a link
+   *     writes the appliance's serial number, and is refused where the
+   *     device has another - so it is never offered there).
    *
    * Linked by its serial number when the serial number on the device is
    * the appliance's: what Unlink takes off.
@@ -837,6 +843,17 @@ export default class NetworkTrafficUsageSummaryUtil {
         name: known.name,
         controllerNetworkName: known.controllerNetworkName,
       });
+    }
+
+    /*
+     * A serial number no connection reported: the device is another box (a
+     * switch of another make, read from its walk), or its appliance has
+     * not reported for days. Linking it would be refused
+     * (NetworkControllerApplianceLink.link: one serial number per device),
+     * so it is not offered.
+     */
+    if (identity.serialNumber) {
+      return undefined;
     }
 
     return { status: NetworkTrafficUsageApplianceLinkStatus.Unlinked };

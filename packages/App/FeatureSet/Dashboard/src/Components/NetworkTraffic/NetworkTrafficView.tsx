@@ -90,13 +90,6 @@ import {
   NetworkTrafficUsageRequest,
   NetworkTrafficUsageSummary,
 } from "Common/Types/NetFlow/NetworkTrafficUsage";
-
-/*
- * How long after a link is made or undone the page reads its traffic once
- * more: the traffic already stored is filed under the device in the
- * background, within seconds.
- */
-export const APPLIANCE_REFILE_REREAD_MS: number = 5000;
 import ObjectID from "Common/Types/ObjectID";
 import NetworkDeviceOtherAddressesUtil from "Common/Utils/NetworkDevice/NetworkDeviceOtherAddresses";
 import RangeStartAndEndDateTime, {
@@ -216,6 +209,13 @@ interface LoadedTraffic {
   // The view the summary answers; while the next loads, what is on screen.
   view: NetworkTrafficViewState;
 }
+
+/*
+ * How long after a link is made or undone the page reads its traffic once
+ * more: the traffic already stored is filed under the device in the
+ * background, within seconds.
+ */
+export const APPLIANCE_REFILE_REREAD_MS: number = 5000;
 
 export const TRAFFIC_HELP: {
   sources: string;
@@ -1221,20 +1221,21 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  const onApplianceChanged: () => void = (): void => {
-    const refresh: () => void = (): void => {
-      setRefreshKey((key: number) => {
-        return key + 1;
-      });
-    };
+  // The page's traffic read once more, as it stands.
+  const readAgain: () => void = (): void => {
+    setRefreshKey((key: number) => {
+      return key + 1;
+    });
+  };
 
-    refresh();
+  const onApplianceChanged: () => void = (): void => {
+    readAgain();
 
     if (refileTimerRef.current) {
       clearTimeout(refileTimerRef.current);
     }
 
-    refileTimerRef.current = setTimeout(refresh, APPLIANCE_REFILE_REREAD_MS);
+    refileTimerRef.current = setTimeout(readAgain, APPLIANCE_REFILE_REREAD_MS);
   };
 
   /*
@@ -1316,6 +1317,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
             scope.kind === "device" ? scope.networkDeviceId : undefined
           }
           onApplianceChanged={onApplianceChanged}
+          onReadAgain={readAgain}
         />
       ) : (
         <Fragment>

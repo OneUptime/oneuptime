@@ -94,9 +94,8 @@ export const MERAKI_LIST_WORDS: Record<
     description: translationKey(
       "Every client that sent or received traffic in this time range.",
     ),
-    searchPlaceholder: translationKey(
-      "Search clients by name, IP or MAC address",
-    ),
+    // The dialog's title says what is searched: "All clients".
+    searchPlaceholder: translationKey("Search by name, IP or MAC address"),
     empty: translationKey("No clients in this time range."),
     noMatch: translationKey("No client matches “{{search}}”."),
     singular: translationKey("Client"),
@@ -104,9 +103,14 @@ export const MERAKI_LIST_WORDS: Record<
   },
 };
 
+// Said beside the sort switch, so Total | In | Out reads as an order, never a filter.
 export const LIST_SORT_LABEL: string = translationKey("Sort by");
 
-// The sort switch, as every row says it: "In 8 GB · out 96 GB".
+/*
+ * The sort switch, as every row says it: "In 8 GB · out 96 GB". Sorted by
+ * In or Out, each row's own figure for it stands out (MerakiListRows), so
+ * the order is plain to see.
+ */
 export const LIST_SORT_WORDS: Record<NetworkTrafficUsageListSort, string> = {
   [NetworkTrafficUsageListSort.Total]: translationKey("Total"),
   [NetworkTrafficUsageListSort.In]: translationKey("In"),
@@ -123,8 +127,13 @@ export const UNLINKED_DEVICE_TITLE: string = translationKey(
   "This device is not linked to a Meraki appliance.",
 );
 
+/*
+ * Said to every device of a project that reads Meraki and is tied to no
+ * appliance - a router added by hand, and a device that is no Meraki box at
+ * all - so it says when the link is for.
+ */
 export const UNLINKED_DEVICE_BODY: string = translationKey(
-  "Meraki reports the traffic of its MX and Z appliances. Link this device to the appliance it is, and its uplinks, applications and clients show here.",
+  "If this device is a Meraki MX or Z appliance, link it to see its uplinks, applications and clients here.",
 );
 
 // The Meraki side's card, before a device is linked: no "appliance" yet.
@@ -144,13 +153,18 @@ export const UNLINK_ACTION: string = translationKey("Unlink device");
 
 export const UNLINK_TITLE: string = translationKey("Unlink this device?");
 
+/*
+ * What Unlink does: the serial number comes off the device, and the
+ * appliance's traffic leaves its page - never the network's, which shows
+ * every appliance's traffic, linked or not.
+ */
 export const UNLINK_DESCRIPTION: string = translationKey(
-  "The traffic of {{appliance}} goes back to the network's Traffic page and stops showing here. You can link the device again at any time.",
+  "The serial number of {{appliance}} is removed from this device, and its traffic stops showing here. It still shows on the network's Traffic page, and you can link the device again at any time.",
 );
 
 // The link dialog.
 export const LINK_DIALOG_DESCRIPTION: string = translationKey(
-  "Pick the Meraki appliance this device is. Its serial number is saved on the device, and its traffic shows on this page, including the days already read.",
+  "Pick this device's Meraki appliance. Its serial number is saved on the device, and its traffic shows here, past traffic included.",
 );
 
 export const LINK_SEARCH_PLACEHOLDER: string = translationKey(
@@ -179,12 +193,13 @@ export const MORE_APPLIANCES: string = translationKey(
   "Showing {{shown}} of {{matching}}. Search to find the rest.",
 );
 
+// Why a row cannot be picked: one appliance is one device.
 export const APPLIANCE_LINKED_TO_DEVICE: string = translationKey(
-  "Linked to {{device}}",
+  "Already linked to {{device}}",
 );
 
 export const APPLIANCE_LINKED_TO_ANOTHER_DEVICE: string = translationKey(
-  "Linked to another device",
+  "Already linked to another device",
 );
 
 /*
