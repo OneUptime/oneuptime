@@ -68,6 +68,60 @@ export function isUplinkUsageKind(kind: NetworkTrafficUsageKind): boolean {
 export const NETWORK_TRAFFIC_USAGE_TOP_LIMIT: number = 10;
 
 /*
+ * EVERY ROW OF A TOP LIST, NOT ITS TEN (issue #5762).
+ *
+ * Top networks, Top applications and Top clients show the ten busiest; an
+ * estate of a thousand branches has a thousand networks, and the one being
+ * looked into is rarely among the ten. Each of the three says how many
+ * there are (the summary's networkCount, applicationCount, clientCount) and
+ * opens all of them on request: POST /network-traffic/usage-list, a page of
+ * rows at a time, searched and sorted by the database - never the whole
+ * list in the browser.
+ *
+ * The other lists stay ten: the uplinks are an appliance's two or three
+ * lines, and the destinations and Who talks to whom say the same as the
+ * applications, once more per host.
+ */
+export enum NetworkTrafficUsageListKind {
+  Networks = "networks",
+  Applications = "applications",
+  Clients = "clients",
+}
+
+export const NETWORK_TRAFFIC_USAGE_LIST_KINDS: ReadonlyArray<NetworkTrafficUsageListKind> =
+  [
+    NetworkTrafficUsageListKind.Networks,
+    NetworkTrafficUsageListKind.Applications,
+    NetworkTrafficUsageListKind.Clients,
+  ];
+
+/*
+ * How a list is sorted, busiest first: by both directions, by what came in
+ * (received, download) or by what went out (sent, upload) - the "In" and
+ * "out" every row of the lists says.
+ */
+export enum NetworkTrafficUsageListSort {
+  Total = "total",
+  In = "in",
+  Out = "out",
+}
+
+export const NETWORK_TRAFFIC_USAGE_LIST_SORTS: ReadonlyArray<NetworkTrafficUsageListSort> =
+  [
+    NetworkTrafficUsageListSort.Total,
+    NetworkTrafficUsageListSort.In,
+    NetworkTrafficUsageListSort.Out,
+  ];
+
+// Rows a page of a list holds unless asked otherwise, and at most.
+export const NETWORK_TRAFFIC_USAGE_LIST_PAGE_SIZE: number = 25;
+export const MAX_NETWORK_TRAFFIC_USAGE_LIST_PAGE_SIZE: number = 100;
+// How far in a list may be paged: past this, search instead.
+export const MAX_NETWORK_TRAFFIC_USAGE_LIST_SKIP: number = 100000;
+// The longest text a list is searched for.
+export const MAX_NETWORK_TRAFFIC_USAGE_SEARCH_LENGTH: number = 100;
+
+/*
  * The longest window one row may cover - a first read's backfill of a
  * day, ending when the read asked for it, up to a read's few minutes after
  * it began - with room to spare: what a read looks back past the page's
@@ -239,6 +293,67 @@ export interface NetworkTrafficUsageClientRow {
   receivedOctets: number;
 }
 
+/*
+ * One page of a whole list (POST /network-traffic/usage-list): the page's
+ * request - its device or site, range and filters, as the summary's - and
+ * which list, searched for what, sorted how and from which row.
+ */
+export interface NetworkTrafficUsageListRequest
+  extends NetworkTrafficUsageRequest {
+  list: NetworkTrafficUsageListKind;
+  /*
+   * What Top networks is of on the page the list opened from: the
+   * summary's primaryKind, so the whole list adds up as its ten did.
+   */
+  primaryKind?: NetworkTrafficUsageKind | undefined;
+  // Part of a name (a network's, an application's, a client's), its IP or MAC address.
+  search?: string | undefined;
+  sortBy?: NetworkTrafficUsageListSort | undefined;
+  skip?: number | undefined;
+  limit?: number | undefined;
+}
+
+export interface NetworkTrafficUsageListResult {
+  list: NetworkTrafficUsageListKind;
+  // Every row the search matches, of which this is a page.
+  count: number;
+  // The page's rows: only the list's own kind is filled.
+  networks: Array<NetworkTrafficUsageNetworkRow>;
+  applications: Array<NetworkTrafficUsageApplicationRow>;
+  clients: Array<NetworkTrafficUsageClientRow>;
+}
+
+/*
+ * Whether a device's page has a Meraki appliance behind it (issue #5762).
+ *
+ * An appliance's traffic belongs to the device it is: one with its serial
+ * number or MAC address, or one Meraki's own record of it was matched to
+ * (NetworkControllerDeviceMatcher). A router added by hand at its WAN
+ * address has none of them, so its page had no Meraki side and said
+ * nothing of why. Now the page says which it is:
+ *
+ *   linked    the appliance it is: its serial number, its Meraki name and
+ *             its network's - and whether that is by the serial number on
+ *             the device, which Unlink takes off again;
+ *   unlinked  the project reads Meraki and nothing ties this device to an
+ *             appliance: the page offers to link it to one.
+ *
+ * A device Meraki says is another kind of box - a switch, an access point -
+ * gets neither: Meraki reports its traffic with its network's appliance.
+ */
+export enum NetworkTrafficUsageApplianceLinkStatus {
+  Linked = "linked",
+  Unlinked = "unlinked",
+}
+
+export interface NetworkTrafficUsageDeviceAppliance {
+  status: NetworkTrafficUsageApplianceLinkStatus;
+  serial?: string | undefined;
+  name?: string | undefined;
+  controllerNetworkName?: string | undefined;
+  isLinkedBySerialNumber?: boolean | undefined;
+}
+
 // A connection, as a Traffic page says how it is doing.
 export interface NetworkTrafficUsageConnection {
   id: string;
@@ -283,6 +398,16 @@ export interface NetworkTrafficUsageSummary {
   topDestinations: Array<NetworkTrafficUsageDestinationRow>;
   topClients: Array<NetworkTrafficUsageClientRow>;
   topConversations: Array<NetworkTrafficUsageConversationRow>;
+  /*
+   * How many networks, applications and clients the page's lists are of -
+   * all of them, where Top networks, Top applications and Top clients show
+   * the busiest ten: what each list's "View all" says and opens.
+   */
+  networkCount: number;
+  applicationCount: number;
+  clientCount: number;
+  // A device's page in a project that reads Meraki: the appliance it is, or none yet.
+  deviceAppliance?: NetworkTrafficUsageDeviceAppliance | undefined;
   /*
    * The end of the newest uplink window and of the newest application
    * window this page has (within retention, whatever the range): how fresh
@@ -453,11 +578,150 @@ export function getUnavailableNetworkTrafficUsageSummary(data: {
     topDestinations: [],
     topClients: [],
     topConversations: [],
+    networkCount: 0,
+    applicationCount: 0,
+    clientCount: 0,
     lastUplinkAt: null,
     lastAnalyticsAt: null,
     uplinksReadTo: null,
     connections: [],
   };
+}
+
+/*
+ * A list request's own parts, checked: which list, the search text (one
+ * line, at most MAX_NETWORK_TRAFFIC_USAGE_SEARCH_LENGTH characters, cut
+ * there), the sort and the page. Anything unknown is refused - a list that
+ * quietly showed something else would say what it is not.
+ */
+export class NetworkTrafficUsageListRequestUtil {
+  public static readList(value: unknown): NetworkTrafficUsageListKind {
+    if (
+      typeof value !== "string" ||
+      !NETWORK_TRAFFIC_USAGE_LIST_KINDS.includes(
+        value as NetworkTrafficUsageListKind,
+      )
+    ) {
+      throw new BadDataException(
+        `list must be one of ${NETWORK_TRAFFIC_USAGE_LIST_KINDS.join(", ")}`,
+      );
+    }
+
+    return value as NetworkTrafficUsageListKind;
+  }
+
+  public static readSort(value: unknown): NetworkTrafficUsageListSort {
+    if (value === undefined || value === null || value === "") {
+      return NetworkTrafficUsageListSort.Total;
+    }
+
+    if (
+      typeof value !== "string" ||
+      !NETWORK_TRAFFIC_USAGE_LIST_SORTS.includes(
+        value as NetworkTrafficUsageListSort,
+      )
+    ) {
+      throw new BadDataException(
+        `sortBy must be one of ${NETWORK_TRAFFIC_USAGE_LIST_SORTS.join(", ")}`,
+      );
+    }
+
+    return value as NetworkTrafficUsageListSort;
+  }
+
+  public static readPrimaryKind(value: unknown): NetworkTrafficUsageKind {
+    if (value === undefined || value === null || value === "") {
+      return NetworkTrafficUsageKind.Uplink;
+    }
+
+    if (
+      value !== NetworkTrafficUsageKind.Uplink &&
+      value !== NetworkTrafficUsageKind.Application
+    ) {
+      throw new BadDataException("primaryKind must be uplink or application");
+    }
+
+    return value;
+  }
+
+  /*
+   * The search as the database is asked for it: trimmed, one line, cut to
+   * its longest. Control characters are dropped, never matched.
+   */
+  public static readSearch(value: unknown): string {
+    if (value === undefined || value === null) {
+      return "";
+    }
+
+    if (typeof value !== "string") {
+      throw new BadDataException("search must be text");
+    }
+
+    let search: string = "";
+
+    for (const character of value) {
+      const code: number = character.codePointAt(0) || 0;
+
+      if (code < 0x20 || (code >= 0x7f && code <= 0x9f)) {
+        continue;
+      }
+
+      search += character;
+
+      if (search.length >= MAX_NETWORK_TRAFFIC_USAGE_SEARCH_LENGTH) {
+        break;
+      }
+    }
+
+    return search.trim();
+  }
+
+  public static readSkip(value: unknown): number {
+    return NetworkTrafficUsageListRequestUtil.readWhole(value, {
+      field: "skip",
+      fallback: 0,
+      min: 0,
+      max: MAX_NETWORK_TRAFFIC_USAGE_LIST_SKIP,
+    });
+  }
+
+  public static readLimit(value: unknown): number {
+    return NetworkTrafficUsageListRequestUtil.readWhole(value, {
+      field: "limit",
+      fallback: NETWORK_TRAFFIC_USAGE_LIST_PAGE_SIZE,
+      min: 1,
+      max: MAX_NETWORK_TRAFFIC_USAGE_LIST_PAGE_SIZE,
+    });
+  }
+
+  private static readWhole(
+    value: unknown,
+    options: { field: string; fallback: number; min: number; max: number },
+  ): number {
+    if (value === undefined || value === null || value === "") {
+      return options.fallback;
+    }
+
+    if (
+      typeof value !== "number" ||
+      !Number.isInteger(value) ||
+      value < options.min ||
+      value > options.max
+    ) {
+      throw new BadDataException(
+        `${options.field} must be a whole number from ${options.min} to ${options.max}`,
+      );
+    }
+
+    return value;
+  }
+}
+
+// An empty page of a list: a page without this source.
+export function getEmptyNetworkTrafficUsageListResult(
+  list: NetworkTrafficUsageListKind,
+): NetworkTrafficUsageListResult {
+  return { list, count: 0, networks: [], applications: [], clients: [] };
 }
 
 // Whether an ID is one OneUptime made (a device's, a connection's).

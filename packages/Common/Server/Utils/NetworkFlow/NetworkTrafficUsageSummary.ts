@@ -4,6 +4,7 @@ import NetworkSiteService from "../../Services/NetworkSiteService";
 import NetworkTrafficUsageAggregationService, {
   NETWORK_TRAFFIC_USAGE_QUERY_TIMEOUT_SECONDS,
   NetworkTrafficUsageAggregates,
+  NetworkTrafficUsageApplianceRow,
   NetworkTrafficUsageFreshness,
   NetworkTrafficUsageQuery,
 } from "../../Services/NetworkTrafficUsageAggregationService";
@@ -28,14 +29,29 @@ import QueryTimeoutException from "../../../Types/Exception/QueryTimeoutExceptio
 import { JSONObject } from "../../../Types/JSON";
 import { MAX_NETWORK_TRAFFIC_RANGE_DAYS } from "../../../Types/NetFlow/NetworkTraffic";
 import {
+  NetworkTrafficUsageApplianceLinkStatus,
   NetworkTrafficUsageConnection,
+  NetworkTrafficUsageDeviceAppliance,
   NetworkTrafficUsageFilters,
   NetworkTrafficUsageFiltersUtil,
   NetworkTrafficUsageKind,
+  NetworkTrafficUsageListKind,
+  NetworkTrafficUsageListRequestUtil,
+  NetworkTrafficUsageListResult,
+  NetworkTrafficUsageListSort,
   NetworkTrafficUsageSummary,
+  NetworkTrafficUsageUplinkRow,
+  getEmptyNetworkTrafficUsageListResult,
   getNetworkTrafficUsageBucketSeconds,
   getUnavailableNetworkTrafficUsageSummary,
 } from "../../../Types/NetFlow/NetworkTrafficUsage";
+import { LINKABLE_APPLIANCE_DAYS } from "../../../Types/NetworkController/NetworkControllerApplianceLink";
+import {
+  NetworkDeviceControllerField,
+  NetworkDeviceControllerReading,
+  readNetworkDeviceDiscoveredDetails,
+} from "../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import { toSerialKey } from "../../../Utils/NetworkDevice/DeviceNameLikeness";
 import {
   NetworkControllerConnectionStatus,
   getNetworkControllerConnectionHealth,
@@ -61,12 +77,25 @@ import ObjectID from "../../../Types/ObjectID";
  *
  * Whether the page has the source at all: the whole network's page as soon
  * as the project has a connection (its status shows while the first read
- * runs); a device's or a site's only when a connection read traffic of it -
- * a router that is no Meraki appliance never shows a Meraki tab.
+ * runs); a site's only when a connection read traffic of it. A device's
+ * page has it when a connection read traffic of it - and, in a project
+ * that reads Meraki, says which appliance the device is, or that it is none
+ * yet (deviceAppliance, issue #5762), so a router whose traffic Meraki
+ * reports under no device of the project can be linked to its appliance
+ * from its own page. A device Meraki says is a switch or an access point
+ * gets no Meraki side: Meraki reports its traffic with its network's
+ * appliance.
+ *
+ * The same page's whole lists - every network, application or client, a
+ * page of rows at a time (POST /network-traffic/usage-list) - are read
+ * under the same rules (list).
  */
 
 // Default window: the past hour.
 const DEFAULT_WINDOW_MINUTES: number = 60;
+
+// The Meraki product type of the appliances: the MX and Z lines.
+const APPLIANCE_PRODUCT_TYPE: string = "appliance";
 
 export interface ParsedNetworkTrafficUsageRequest {
   networkDeviceId: ObjectID | null;
@@ -74,6 +103,41 @@ export interface ParsedNetworkTrafficUsageRequest {
   startTime: Date;
   endTime: Date;
   filters: NetworkTrafficUsageFilters;
+}
+
+export interface ParsedNetworkTrafficUsageListRequest
+  extends ParsedNetworkTrafficUsageRequest {
+  list: NetworkTrafficUsageListKind;
+  primaryKind: NetworkTrafficUsageKind;
+  search: string;
+  sortBy: NetworkTrafficUsageListSort;
+  skip: number;
+  limit: number;
+}
+
+/*
+ * What a device says about the Meraki appliance it may be: the serial
+ * number on it, and what Meraki's record of it says, when Inventory matched
+ * one to it (its controller reading). "" for anything it does not have.
+ */
+export interface DeviceApplianceIdentity {
+  serialNumber: string;
+  controllerSerial: string;
+  controllerName: string;
+  controllerNetworkName: string;
+  controllerProductType: string;
+}
+
+// A page a request is of, resolved as the caller may read it.
+interface ResolvedUsagePage {
+  projectId: ObjectID;
+  connections: Array<NetworkControllerConnection>;
+  // The rows the caller may read of the page's devices.
+  devices: TelemetryServiceFilter;
+  // A device's page: the device.
+  deviceId: ObjectID | null;
+  // The caller's read scope of the whole project, for what is looked up beyond the page.
+  readScope: TelemetryReadScope;
 }
 
 export default class NetworkTrafficUsageSummaryUtil {
@@ -239,11 +303,36 @@ export default class NetworkTrafficUsageSummaryUtil {
       : null;
   }
 
-  public static async build(data: {
+  public static parseListRequest(
+    body: unknown,
+    now: Date,
+  ): ParsedNetworkTrafficUsageListRequest {
+    const value: JSONObject =
+      body && typeof body === "object" && !Array.isArray(body)
+        ? (body as JSONObject)
+        : {};
+
+    return {
+      ...NetworkTrafficUsageSummaryUtil.parseRequest(value, now),
+      list: NetworkTrafficUsageListRequestUtil.readList(value["list"]),
+      primaryKind: NetworkTrafficUsageListRequestUtil.readPrimaryKind(
+        value["primaryKind"],
+      ),
+      search: NetworkTrafficUsageListRequestUtil.readSearch(value["search"]),
+      sortBy: NetworkTrafficUsageListRequestUtil.readSort(value["sortBy"]),
+      skip: NetworkTrafficUsageListRequestUtil.readSkip(value["skip"]),
+      limit: NetworkTrafficUsageListRequestUtil.readLimit(value["limit"]),
+    };
+  }
+
+  /*
+   * Whose traffic a request is of, as the caller may read it - or null for
+   * a page without this source: no connection the caller may read.
+   */
+  private static async resolvePage(data: {
     props: DatabaseCommonInteractionProps;
     request: ParsedNetworkTrafficUsageRequest;
-    now: Date;
-  }): Promise<NetworkTrafficUsageSummary> {
+  }): Promise<ResolvedUsagePage | null> {
     const props: DatabaseCommonInteractionProps = data.props;
     const request: ParsedNetworkTrafficUsageRequest = data.request;
 
@@ -252,11 +341,6 @@ export default class NetworkTrafficUsageSummaryUtil {
     }
 
     const projectId: ObjectID = props.tenantId;
-    const unavailable: NetworkTrafficUsageSummary =
-      getUnavailableNetworkTrafficUsageSummary({
-        startTime: request.startTime,
-        endTime: request.endTime,
-      });
 
     /*
      * The caller's own read of the connections: none they may read, no
@@ -287,17 +371,18 @@ export default class NetworkTrafficUsageSummaryUtil {
       });
     } catch (error) {
       if (error instanceof NotAuthorizedException) {
-        return unavailable;
+        return null;
       }
 
       throw error;
     }
 
     if (connections.length === 0) {
-      return unavailable;
+      return null;
     }
 
     let pageDeviceIds: Array<string> | null = null;
+    let deviceId: ObjectID | null = null;
 
     if (request.networkDeviceId) {
       const device: NetworkDevice | null = await NetworkDeviceService.findOneBy(
@@ -312,6 +397,7 @@ export default class NetworkTrafficUsageSummaryUtil {
         throw new NotFoundException("Network device not found");
       }
 
+      deviceId = device.id;
       pageDeviceIds = [device.id.toString()];
     } else if (request.networkSiteId) {
       const site: NetworkSite | null = await NetworkSiteService.findOneBy({
@@ -345,8 +431,43 @@ export default class NetworkTrafficUsageSummaryUtil {
       props,
     );
 
-    const devices: TelemetryServiceFilter =
-      NetworkTrafficSummaryUtil.getDeviceFilter(readScope, pageDeviceIds);
+    return {
+      projectId,
+      connections,
+      devices: NetworkTrafficSummaryUtil.getDeviceFilter(
+        readScope,
+        pageDeviceIds,
+      ),
+      deviceId,
+      readScope,
+    };
+  }
+
+  public static async build(data: {
+    props: DatabaseCommonInteractionProps;
+    request: ParsedNetworkTrafficUsageRequest;
+    now: Date;
+  }): Promise<NetworkTrafficUsageSummary> {
+    const request: ParsedNetworkTrafficUsageRequest = data.request;
+    const unavailable: NetworkTrafficUsageSummary =
+      getUnavailableNetworkTrafficUsageSummary({
+        startTime: request.startTime,
+        endTime: request.endTime,
+      });
+
+    const page: ResolvedUsagePage | null =
+      await NetworkTrafficUsageSummaryUtil.resolvePage({
+        props: data.props,
+        request,
+      });
+
+    if (!page) {
+      return unavailable;
+    }
+
+    const projectId: ObjectID = page.projectId;
+    const connections: Array<NetworkControllerConnection> = page.connections;
+    const devices: TelemetryServiceFilter = page.devices;
 
     const pageConnections: Array<NetworkTrafficUsageConnection> =
       connections.map(
@@ -376,7 +497,23 @@ export default class NetworkTrafficUsageSummaryUtil {
         !freshness.lastUplinkAt &&
         !freshness.lastAnalyticsAt
       ) {
-        return unavailable;
+        if (!page.deviceId) {
+          return unavailable;
+        }
+
+        /*
+         * A device none of whose traffic is filed: the appliance it is, when
+         * its traffic is about to be (a link made a moment ago), or none.
+         */
+        const deviceAppliance: NetworkTrafficUsageDeviceAppliance | undefined =
+          await NetworkTrafficUsageSummaryUtil.getUnfiledDeviceAppliance({
+            page,
+            now: data.now,
+          });
+
+        return deviceAppliance
+          ? { ...unavailable, deviceAppliance }
+          : unavailable;
       }
 
       const query: NetworkTrafficUsageQuery = {
@@ -402,6 +539,21 @@ export default class NetworkTrafficUsageSummaryUtil {
             : NetworkTrafficUsageKind.Application,
         });
 
+      const deviceAppliance: NetworkTrafficUsageDeviceAppliance | undefined =
+        page.deviceId
+          ? NetworkTrafficUsageSummaryUtil.getDeviceAppliance({
+              identity: await NetworkTrafficUsageSummaryUtil.readDeviceIdentity(
+                {
+                  projectId,
+                  deviceId: page.deviceId,
+                },
+              ),
+              hasFiledTraffic: true,
+              uplinks: aggregates.topUplinks,
+              known: [],
+            })
+          : undefined;
+
       return {
         isAvailable: true,
         windowStartAt: OneUptimeDate.toString(request.startTime),
@@ -420,6 +572,10 @@ export default class NetworkTrafficUsageSummaryUtil {
         topDestinations: aggregates.topDestinations,
         topClients: aggregates.topClients,
         topConversations: aggregates.topConversations,
+        networkCount: aggregates.networkCount,
+        applicationCount: aggregates.applicationCount,
+        clientCount: aggregates.clientCount,
+        ...(deviceAppliance ? { deviceAppliance } : {}),
         lastUplinkAt: freshness.lastUplinkAt,
         lastAnalyticsAt: freshness.lastAnalyticsAt,
         uplinksReadTo: NetworkTrafficUsageSummaryUtil.getUplinksReadTo({
@@ -442,6 +598,248 @@ export default class NetworkTrafficUsageSummaryUtil {
 
       throw error;
     }
+  }
+
+  /*
+   * One page of a page's whole list (issue #5762): every network,
+   * application or client its top list shows ten of, searched and sorted by
+   * the database, under the page's own rules of whose traffic it is.
+   */
+  public static async list(data: {
+    props: DatabaseCommonInteractionProps;
+    request: ParsedNetworkTrafficUsageListRequest;
+  }): Promise<NetworkTrafficUsageListResult> {
+    const request: ParsedNetworkTrafficUsageListRequest = data.request;
+    const page: ResolvedUsagePage | null =
+      await NetworkTrafficUsageSummaryUtil.resolvePage({
+        props: data.props,
+        request,
+      });
+
+    if (!page) {
+      return getEmptyNetworkTrafficUsageListResult(request.list);
+    }
+
+    try {
+      return await NetworkTrafficUsageAggregationService.getList({
+        query: {
+          projectId: page.projectId,
+          startTime: request.startTime,
+          endTime: request.endTime,
+          devices: page.devices,
+          filters: request.filters,
+        },
+        list: request.list,
+        primaryKind: request.primaryKind,
+        search: request.search,
+        sortBy: request.sortBy,
+        skip: request.skip,
+        limit: request.limit,
+      });
+    } catch (error) {
+      if (NetworkTrafficUsageAggregationService.isTimeout(error)) {
+        throw new QueryTimeoutException(
+          `Listing this much traffic took longer than ${NETWORK_TRAFFIC_USAGE_QUERY_TIMEOUT_SECONDS} seconds. Pick a shorter time range, or search for fewer rows.`,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * What a device says about the appliance it may be (DeviceApplianceIdentity):
+   * read as the server, once the caller was found to read the device - the
+   * columns are inputs to the answer, never returned as they are.
+   */
+  public static async readDeviceIdentity(data: {
+    projectId: ObjectID;
+    deviceId: ObjectID;
+  }): Promise<DeviceApplianceIdentity> {
+    const device: NetworkDevice | null = await NetworkDeviceService.findOneBy({
+      query: { _id: data.deviceId, projectId: data.projectId },
+      select: { _id: true, serialNumber: true, discoveredDetails: true },
+      props: { isRoot: true },
+    });
+
+    return NetworkTrafficUsageSummaryUtil.toDeviceIdentity(device);
+  }
+
+  public static toDeviceIdentity(
+    device: NetworkDevice | null,
+  ): DeviceApplianceIdentity {
+    const reading: NetworkDeviceControllerReading | undefined =
+      readNetworkDeviceDiscoveredDetails(device?.discoveredDetails).controller;
+    const values: Partial<Record<NetworkDeviceControllerField, string>> =
+      reading?.values || {};
+
+    return {
+      serialNumber: toSerialKey(device?.serialNumber),
+      controllerSerial: toSerialKey(
+        values[NetworkDeviceControllerField.SerialNumber],
+      ),
+      controllerName: values[NetworkDeviceControllerField.Name] || "",
+      controllerNetworkName:
+        values[NetworkDeviceControllerField.NetworkName] || "",
+      controllerProductType:
+        values[NetworkDeviceControllerField.ProductType] || "",
+    };
+  }
+
+  /*
+   * A device's page with none of its traffic filed: the appliance it is -
+   * its serial number, or what Meraki's record of it says, an appliance the
+   * connections reported lately - or that it is none yet. Nothing for a
+   * device Meraki says is another kind of box.
+   */
+  private static async getUnfiledDeviceAppliance(data: {
+    page: ResolvedUsagePage;
+    now: Date;
+  }): Promise<NetworkTrafficUsageDeviceAppliance | undefined> {
+    const identity: DeviceApplianceIdentity =
+      await NetworkTrafficUsageSummaryUtil.readDeviceIdentity({
+        projectId: data.page.projectId,
+        deviceId: data.page.deviceId!,
+      });
+
+    if (NetworkTrafficUsageSummaryUtil.isOtherKindOfDevice(identity)) {
+      return undefined;
+    }
+
+    const serials: Array<string> = Array.from(
+      new Set(
+        [identity.serialNumber, identity.controllerSerial].filter(Boolean),
+      ),
+    );
+
+    const known: Array<NetworkTrafficUsageApplianceRow> =
+      serials.length > 0
+        ? await NetworkTrafficUsageAggregationService.getAppliances({
+            projectId: data.page.projectId,
+            devices: NetworkTrafficSummaryUtil.getDeviceFilter(
+              data.page.readScope,
+              null,
+            ),
+            since: OneUptimeDate.addRemoveDays(
+              data.now,
+              -LINKABLE_APPLIANCE_DAYS,
+            ),
+            serials,
+            limit: serials.length,
+          })
+        : [];
+
+    return NetworkTrafficUsageSummaryUtil.getDeviceAppliance({
+      identity,
+      hasFiledTraffic: false,
+      uplinks: [],
+      known,
+    });
+  }
+
+  // A device Meraki says is a switch, an access point, a camera...
+  public static isOtherKindOfDevice(
+    identity: DeviceApplianceIdentity,
+  ): boolean {
+    return Boolean(
+      identity.controllerProductType &&
+        identity.controllerProductType !== APPLIANCE_PRODUCT_TYPE,
+    );
+  }
+
+  /*
+   * Which appliance a device is, from what is known of it (pure):
+   *
+   *   - traffic filed under it: the appliance its busiest uplink is of, or
+   *     else the one its serial number or Meraki's record names - linked;
+   *   - none filed: an appliance the connections reported lately whose
+   *     serial number the device holds, or Meraki's record names - linked,
+   *     its traffic to come; else unlinked, unless Meraki says the device
+   *     is another kind of box (no Meraki side at all).
+   *
+   * Linked by its serial number when the serial number on the device is
+   * the appliance's: what Unlink takes off.
+   */
+  public static getDeviceAppliance(data: {
+    identity: DeviceApplianceIdentity;
+    hasFiledTraffic: boolean;
+    uplinks: Array<NetworkTrafficUsageUplinkRow>;
+    known: Array<NetworkTrafficUsageApplianceRow>;
+  }): NetworkTrafficUsageDeviceAppliance | undefined {
+    const identity: DeviceApplianceIdentity = data.identity;
+
+    const linked: (appliance: {
+      serial: string;
+      name: string;
+      controllerNetworkName: string;
+    }) => NetworkTrafficUsageDeviceAppliance = (appliance: {
+      serial: string;
+      name: string;
+      controllerNetworkName: string;
+    }): NetworkTrafficUsageDeviceAppliance => {
+      const serial: string = toSerialKey(appliance.serial);
+
+      return {
+        status: NetworkTrafficUsageApplianceLinkStatus.Linked,
+        ...(serial ? { serial } : {}),
+        ...(appliance.name ? { name: appliance.name } : {}),
+        ...(appliance.controllerNetworkName
+          ? { controllerNetworkName: appliance.controllerNetworkName }
+          : {}),
+        isLinkedBySerialNumber: Boolean(
+          serial && identity.serialNumber === serial,
+        ),
+      };
+    };
+
+    if (data.hasFiledTraffic) {
+      const uplink: NetworkTrafficUsageUplinkRow | undefined =
+        data.uplinks.find((row: NetworkTrafficUsageUplinkRow): boolean => {
+          return Boolean(row.deviceSerial);
+        });
+
+      if (uplink) {
+        return linked({
+          serial: uplink.deviceSerial,
+          name: uplink.deviceName,
+          controllerNetworkName: uplink.controllerNetworkName,
+        });
+      }
+
+      return linked({
+        serial: identity.serialNumber || identity.controllerSerial,
+        name: identity.controllerName,
+        controllerNetworkName: identity.controllerNetworkName,
+      });
+    }
+
+    if (NetworkTrafficUsageSummaryUtil.isOtherKindOfDevice(identity)) {
+      return undefined;
+    }
+
+    const byKey: Map<string, NetworkTrafficUsageApplianceRow> = new Map(
+      data.known.map(
+        (
+          row: NetworkTrafficUsageApplianceRow,
+        ): [string, NetworkTrafficUsageApplianceRow] => {
+          return [toSerialKey(row.serial), row];
+        },
+      ),
+    );
+    const known: NetworkTrafficUsageApplianceRow | undefined =
+      (identity.serialNumber && byKey.get(identity.serialNumber)) ||
+      (identity.controllerSerial && byKey.get(identity.controllerSerial)) ||
+      undefined;
+
+    if (known) {
+      return linked({
+        serial: known.serial,
+        name: known.name,
+        controllerNetworkName: known.controllerNetworkName,
+      });
+    }
+
+    return { status: NetworkTrafficUsageApplianceLinkStatus.Unlinked };
   }
 
   private static readId(value: unknown, field: string): ObjectID | null {
