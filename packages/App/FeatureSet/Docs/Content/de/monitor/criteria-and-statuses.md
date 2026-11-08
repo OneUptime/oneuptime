@@ -93,6 +93,19 @@ flowchart TB
 
 Um zu sehen, wie eine Prüfung bewertet wurde, öffnen Sie die **Übersicht** des Monitors: Die Karte **Monitor-Zusammenfassung** zeigt, welches Kriterium zutraf und was jedes getan hat, einschließlich eines Vorfalls, der übersprungen wurde, weil schon einer offen war.
 
+## Was ein Vorfall oder eine Warnung von der Prüfung behält
+
+Ein Vorfall oder eine Warnung, die ein Monitor öffnet, behält die Prüfung, die sie geöffnet hat, sodass Sie das Warum noch sehen, lange nachdem die eigenen Protokolle des Monitors gelöscht sind. Unter der Grundursache zeigt der Abschnitt **Auswertungsdetails**, wann die Prüfung lief, von welcher Sonde und was zurückkam. **Details anzeigen** ergänzt die Anfrage, das Kriterium, das zutraf, und für jeden Filter, was er wo gefunden hat:
+
+- **Das Feld.** Wo ein Filter **Antworttext** in einem JSON-Inhalt zutraf, etwa `checks[1].status`, oder der Header, in dem ein Filter **Response Header Value** zutraf.
+- **Die Werte.** Was jeder Wert, den eine **JavaScript Expression** liest, bei der Auswertung enthielt, etwa `responseBody.status = "down"`.
+- **Ein Auszug.** Ein kurzes Stück der Antwort rund um die Übereinstimmung, die Übereinstimmung markiert: nie der ganze Inhalt.
+
+Geheimnisse und personenbezogene Daten werden maskiert, bevor etwas behalten wird: Header wie `Authorization`, `Cookie` und `Set-Cookie`, Felder, deren Namen `password`, `token`, `key`, `session` oder `email` sagen, und Text, der wie ein Bearer-Token, ein JWT, eine Kartennummer oder eine E-Mail-Adresse aussieht. Die URL der Anfrage ist die, mit der der Monitor eingerichtet wurde, also bleibt `{{monitorSecrets.NAME}}` ein Name, und ein geheimer Abfragewert wird maskiert. Ein Vorfall oder eine Warnung, die von Hand geöffnet wurde oder bevor Auswertungsdetails behalten wurden, hat keine.
+
+> [!TIP]
+> Wenn die Antworten eines Website- oder API-Monitors selbst vertraulich sind, schalten Sie **Antwortinhalt bei Vorfällen und Warnungen behalten** auf der Karte **Antwortinhalt** seiner Seite **Erweitert → Einstellungen** aus. Seine Vorfälle und Warnungen behalten dann, welche Filter zutrafen, den Statuscode und die Antwortzeit, und keinen Teil der Antwort. Ein Monitor für eingehende Anfragen hat denselben Schalter für die Anfragen, die er empfängt: **Anfrageinhalt bei Vorfällen und Warnungen behalten**, auf der Karte **Anfrageinhalt**.
+
 ## Die Kriterien eines Monitors ändern
 
 :::steps

@@ -93,6 +93,19 @@ flowchart TB
 
 For å se hvordan en kontroll ble vurdert, åpner du monitorens **Oversikt**: kortet **Monitor-sammendrag** viser hvilket kriterium som samsvarte og hva hvert kriterium gjorde, også en hendelse som ble hoppet over fordi en allerede var åpen.
 
+## Hva en hendelse eller et varsel tar vare på av kontrollen
+
+En hendelse eller et varsel som en monitor åpner, tar vare på kontrollen som åpnet den, så du kan se hvorfor lenge etter at monitorens egne logger er borte. Under rotårsaken forteller **Evalueringsdetaljer** når kontrollen kjørte, fra hvilken sonde og hva som kom tilbake. **Vis detaljer** legger til forespørselen, kriteriet som samsvarte, og for hvert filter hva det fant og hvor:
+
+- **Feltet.** Hvor et filter **Svartekst** samsvarte i et JSON-innhold, for eksempel `checks[1].status`, eller headeren der et filter **Response Header Value** samsvarte.
+- **Verdiene.** Hva hver verdi en **JavaScript Expression** leser inneholdt da den ble evaluert, for eksempel `responseBody.status = "down"`.
+- **Et utdrag.** Et kort stykke av svaret rundt treffet, med treffet markert: aldri hele innholdet.
+
+Hemmeligheter og personopplysninger maskeres før noe tas vare på: headere som `Authorization`, `Cookie` og `Set-Cookie`, felt der navnet sier `password`, `token`, `key`, `session` eller `email`, og tekst som ser ut som et bearer-token, en JWT, et kortnummer eller en e-postadresse. Forespørselens URL er den monitoren ble satt opp med, så `{{monitorSecrets.NAME}}` forblir et navn, og en hemmelig spørringsverdi maskeres. En hendelse eller et varsel som er åpnet manuelt, eller før evalueringsdetaljer ble tatt vare på, har ingen.
+
+> [!TIP]
+> Når svarene fra en nettsted- eller API-monitor er sensitive i seg selv, slår du av **Behold svarinnhold på hendelser og varsler** på kortet **Svarinnhold** på siden **Avansert → Innstillinger**. Hendelsene og varslene tar da vare på hvilke filtre som samsvarte, statuskoden og svartiden, og ingen del av svaret. En monitor for innkommende forespørsler har den samme bryteren for forespørslene den mottar: **Behold forespørselsinnhold på hendelser og varsler**, på kortet **Forespørselsinnhold**.
+
 ## Endre en monitors kriterier
 
 :::steps

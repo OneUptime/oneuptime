@@ -93,6 +93,19 @@ flowchart TB
 
 Om te zien hoe een controle is beoordeeld, opent u het **Overzicht** van de monitor: de kaart **Monitorsamenvatting** toont welk criterium overeenkwam en wat elk criterium deed, inclusief een incident dat werd overgeslagen omdat er al een open stond.
 
+## Wat een incident of waarschuwing van de controle bewaart
+
+Een incident of waarschuwing die een monitor opent, bewaart de controle die het opende, zodat u nog lang nadat de logboeken van de monitor zelf zijn verdwenen kunt zien waarom. Onder de hoofdoorzaak vertelt **Evaluatiedetails** wanneer de controle liep, vanaf welke sonde en wat er terugkwam. **Details tonen** voegt het verzoek toe, het criterium dat overeenkwam en per filter wat het vond en waar:
+
+- **Het veld.** Waar een filter **Antwoordlichaam** in een JSON-inhoud overeenkwam, zoals `checks[1].status`, of de header waarin een filter **Response Header Value** overeenkwam.
+- **De waarden.** Wat elke waarde die een **JavaScript Expression** leest bevatte toen die werd geëvalueerd, zoals `responseBody.status = "down"`.
+- **Een fragment.** Een kort stuk van het antwoord rond de overeenkomst, met de overeenkomst gemarkeerd: nooit de hele inhoud.
+
+Geheimen en persoonsgegevens worden gemaskeerd voordat er iets wordt bewaard: headers zoals `Authorization`, `Cookie` en `Set-Cookie`, velden waarvan de naam `password`, `token`, `key`, `session` of `email` zegt, en tekst die eruitziet als een bearer-token, een JWT, een kaartnummer of een e-mailadres. De URL van het verzoek is die waarmee de monitor is ingesteld, dus `{{monitorSecrets.NAME}}` blijft een naam, en een geheime querywaarde wordt gemaskeerd. Een incident of waarschuwing die met de hand is geopend, of voordat evaluatiedetails werden bewaard, heeft er geen.
+
+> [!TIP]
+> Als de antwoorden van een website- of API-monitor op zich gevoelig zijn, zet dan **Antwoordinhoud bewaren bij incidenten en waarschuwingen** uit op de kaart **Antwoordinhoud** van zijn pagina **Geavanceerd → Instellingen**. Zijn incidenten en waarschuwingen bewaren dan welke filters overeenkwamen, de statuscode en de responstijd, en geen enkel deel van het antwoord. Een monitor voor inkomende verzoeken heeft dezelfde schakelaar voor de verzoeken die hij ontvangt: **Verzoekinhoud bewaren bij incidenten en waarschuwingen**, op de kaart **Verzoekinhoud**.
+
 ## De criteria van een monitor wijzigen
 
 :::steps

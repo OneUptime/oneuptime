@@ -93,6 +93,19 @@ flowchart TB
 
 Para ver como uma verificação foi julgada, abra a **Visão geral** do monitor: o cartão **Resumo do monitor** mostra qual critério correspondeu e o que cada um fez, incluindo um incidente ignorado porque já havia um aberto.
 
+## O que um incidente ou alerta guarda da verificação
+
+Um incidente ou alerta que um monitor abre guarda a verificação que o abriu, para que você veja o porquê muito depois de os registros do próprio monitor terem sido apagados. Abaixo da causa raiz, a seção **Detalhes da avaliação** diz quando a verificação foi feita, de qual sonda e o que voltou. **Mostrar detalhes** acrescenta a solicitação, o critério que correspondeu e, para cada filtro, o que ele encontrou e onde:
+
+- **O campo.** Onde um filtro **Corpo da Resposta** correspondeu em um corpo JSON, como `checks[1].status`, ou o cabeçalho em que um filtro **Response Header Value** correspondeu.
+- **Os valores.** O que cada valor lido por uma **JavaScript Expression** continha quando ela foi avaliada, como `responseBody.status = "down"`.
+- **Um trecho.** Uma pequena parte da resposta em volta da correspondência, com ela destacada: nunca o corpo inteiro.
+
+Segredos e dados pessoais são mascarados antes de qualquer coisa ser guardada: cabeçalhos como `Authorization`, `Cookie` e `Set-Cookie`, campos cujos nomes dizem `password`, `token`, `key`, `session` ou `email`, e texto que parece um token bearer, um JWT, um número de cartão ou um endereço de e-mail. A URL da solicitação é a configurada no monitor, então `{{monitorSecrets.NAME}}` continua sendo um nome, e um valor secreto da consulta é mascarado. Um incidente ou alerta aberto manualmente, ou antes de os detalhes da avaliação serem guardados, não tem nenhum.
+
+> [!TIP]
+> Quando as respostas de um monitor de site ou de API forem sensíveis por si só, desative **Manter o conteúdo da resposta em incidentes e alertas** no cartão **Conteúdo da resposta** da página **Avançado → Configurações** dele. Os incidentes e alertas dele passam a guardar quais filtros corresponderam, o código de status e o tempo de resposta, e nenhuma parte da resposta. Um monitor de requisições recebidas tem o mesmo interruptor para as requisições que recebe: **Manter o conteúdo da solicitação em incidentes e alertas**, no cartão **Conteúdo da solicitação**.
+
 ## Alterar os critérios de um monitor
 
 :::steps

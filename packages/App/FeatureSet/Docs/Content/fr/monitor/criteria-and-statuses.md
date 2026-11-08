@@ -93,6 +93,19 @@ flowchart TB
 
 Pour voir comment une vérification a été jugée, ouvrez la **Vue d'ensemble** du moniteur : la carte **Résumé du moniteur** montre quel critère a correspondu et ce que chacun a fait, y compris un incident ignoré parce qu'un autre était déjà ouvert.
 
+## Ce qu'un incident ou une alerte conserve de la vérification
+
+Un incident ou une alerte qu'un moniteur ouvre conserve la vérification qui l'a ouvert, pour que vous puissiez voir pourquoi bien après la disparition des journaux du moniteur. Sous sa cause racine, la section **Détails de l'évaluation** indique quand la vérification a eu lieu, depuis quelle sonde et ce qui a été renvoyé. **Afficher les détails** ajoute la requête, le critère qui a correspondu et, pour chaque filtre, ce qu'il a trouvé et où :
+
+- **Le champ.** L'endroit d'un corps JSON où un filtre **Corps de la réponse** a correspondu, par exemple `checks[1].status`, ou l'en-tête dans lequel un filtre **Response Header Value** a correspondu.
+- **Les valeurs.** Ce que contenait chaque valeur lue par une **JavaScript Expression** lors de son évaluation, par exemple `responseBody.status = "down"`.
+- **Un extrait.** Un court passage de la réponse autour de la correspondance, mise en évidence : jamais le corps entier.
+
+Les secrets et les données personnelles sont masqués avant que quoi que ce soit ne soit conservé : les en-têtes comme `Authorization`, `Cookie` et `Set-Cookie`, les champs dont le nom dit `password`, `token`, `key`, `session` ou `email`, et le texte qui ressemble à un jeton bearer, un JWT, un numéro de carte ou une adresse e-mail. L'URL de la requête est celle avec laquelle le moniteur a été configuré : `{{monitorSecrets.NAME}}` reste un nom, et une valeur de requête secrète est masquée. Un incident ou une alerte ouverts à la main, ou avant que les détails de l'évaluation ne soient conservés, n'en ont pas.
+
+> [!TIP]
+> Lorsque les réponses d'un moniteur de site web ou d'API sont sensibles en elles-mêmes, désactivez **Conserver le contenu de la réponse dans les incidents et alertes** dans la carte **Contenu de la réponse** de sa page **Avancé → Paramètres**. Ses incidents et alertes conservent alors les filtres qui ont correspondu, le code de statut et le temps de réponse, et aucune partie de la réponse. Un moniteur de requêtes entrantes a le même interrupteur pour les requêtes qu'il reçoit : **Conserver le contenu de la requête dans les incidents et alertes**, dans la carte **Contenu de la requête**.
+
 ## Modifier les critères d'un moniteur
 
 :::steps

@@ -93,6 +93,19 @@ flowchart TB
 
 För att se hur en kontroll bedömdes öppnar du monitorns **Översikt**: kortet **Monitor-sammanfattning** visar vilket kriterium som matchade och vad varje kriterium gjorde, även en incident som hoppades över eftersom en redan var öppen.
 
+## Vad en incident eller ett larm behåller av kontrollen
+
+En incident eller ett larm som en monitor öppnar behåller kontrollen som öppnade den, så att du kan se varför långt efter att monitorns egna loggar är borta. Under rotorsaken talar **Utvärderingsdetaljer** om när kontrollen kördes, från vilken sond och vad som kom tillbaka. **Visa detaljer** lägger till förfrågan, kriteriet som matchade och för varje filter vad det hittade och var:
+
+- **Fältet.** Var ett filter **Svarstext** matchade i ett JSON-innehåll, till exempel `checks[1].status`, eller headern där ett filter **Response Header Value** matchade.
+- **Värdena.** Vad varje värde som en **JavaScript Expression** läser innehöll när det utvärderades, till exempel `responseBody.status = "down"`.
+- **Ett utdrag.** En kort bit av svaret runt träffen, med träffen markerad: aldrig hela innehållet.
+
+Hemligheter och personuppgifter maskeras innan något sparas: headers som `Authorization`, `Cookie` och `Set-Cookie`, fält vars namn säger `password`, `token`, `key`, `session` eller `email`, och text som ser ut som en bearer-token, en JWT, ett kortnummer eller en e-postadress. Förfrågans URL är den som monitorn konfigurerades med, så `{{monitorSecrets.NAME}}` förblir ett namn, och ett hemligt frågevärde maskeras. En incident eller ett larm som öppnades för hand, eller innan utvärderingsdetaljer sparades, har inga.
+
+> [!TIP]
+> När svaren från en webbplats- eller API-monitor är känsliga i sig själva stänger du av **Behåll svarsinnehåll på incidenter och larm** på kortet **Svarsinnehåll** på dess sida **Avancerad → Inställningar**. Dess incidenter och larm behåller då vilka filter som matchade, statuskoden och svarstiden, och ingen del av svaret. En monitor för inkommande förfrågningar har samma reglage för förfrågningarna den tar emot: **Behåll förfrågans innehåll på incidenter och larm**, på kortet **Förfrågans innehåll**.
+
 ## Ändra en monitors kriterier
 
 :::steps
