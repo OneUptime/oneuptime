@@ -1,11 +1,18 @@
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import * as React from "react";
 import TrafficTopList, {
   TRAFFIC_TOP_LIST_BODY_CLASS_NAME,
   TRAFFIC_TOP_LIST_EMPTY_CLASS_NAME,
   TrafficTopRow,
+  TrafficTopRows,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficTopList";
 import CardGrid, {
   CARD_GRID_CELL_TEST_ID,
@@ -231,5 +238,126 @@ describe("a list on a line of its own", () => {
     const list: HTMLElement = renderList();
 
     expect(list.querySelector(".border-t")).toBeNull();
+  });
+});
+
+/*
+ * A list cut at its ten (issue #5762): "View all 523 networks" under its
+ * rows, the one way to the rest - at the card's foot, so two lists side by
+ * side end on one line.
+ */
+describe("a list with more rows than it shows", () => {
+  function renderList(
+    overrides: Partial<React.ComponentProps<typeof TrafficTopList>> = {},
+  ): HTMLElement {
+    render(
+      <TrafficTopList
+        title="Top networks"
+        description="Which networks carried the most."
+        help="What the numbers are."
+        rows={rows(10, "Network")}
+        totalOctets={60_000_000_000}
+        emptyMessage="No networks in this time range."
+        dataTestId="list"
+        {...overrides}
+      />,
+    );
+
+    return screen.getByTestId("list");
+  }
+
+  test("says how many, under its rows, and opens them", () => {
+    const onClick: ReturnType<typeof jest.fn> = jest.fn();
+    const list: HTMLElement = renderList({
+      viewAll: { label: "View all 523 networks", onClick },
+    });
+
+    const button: HTMLElement = screen.getByTestId("list-view-all");
+    const rowsShown: Array<HTMLElement> =
+      within(list).getAllByTestId("list-row");
+
+    expect(button.tagName).toBe("BUTTON");
+    expect(button).toHaveAttribute("type", "button");
+    expect(button).toHaveTextContent("View all 523 networks");
+    expect(
+      rowsShown[rowsShown.length - 1]!.compareDocumentPosition(button) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  test("at the card's foot, ruled off from the rows", () => {
+    renderList({
+      viewAll: { label: "View all 523 networks", onClick: jest.fn() },
+    });
+
+    const foot: HTMLElement =
+      screen.getByTestId("list-view-all").parentElement!.parentElement!;
+
+    expect(foot.className).toContain("mt-auto");
+    expect(
+      screen.getByTestId("list-view-all").parentElement!.className,
+    ).toContain("border-t");
+  });
+
+  test("a list with no rows has nothing to view all of", () => {
+    renderList({
+      rows: [],
+      viewAll: { label: "View all 0 networks", onClick: jest.fn() },
+    });
+
+    expect(screen.queryByTestId("list-view-all")).toBeNull();
+    expect(screen.getByTestId("list-empty")).toBeInTheDocument();
+  });
+
+  test("a whole list says nothing", () => {
+    renderList();
+
+    expect(screen.queryByTestId("list-view-all")).toBeNull();
+  });
+});
+
+describe("a list's rows on their own", () => {
+  test("drawn as a top list draws them - the dialog of every row reads the same", () => {
+    render(
+      <TrafficTopRows
+        rows={[
+          {
+            key: "a",
+            label: "Store 001",
+            octets: 30_000_000_000,
+            detail: "In 25 GB · out 5 GB",
+            isActive: true,
+            onClick: jest.fn(),
+            ariaLabel: "Show only the traffic of Store 001",
+          },
+          {
+            key: "b",
+            label: "Store 002",
+            octets: 10_000_000_000,
+            isActive: false,
+          },
+        ]}
+        totalOctets={40_000_000_000}
+        dataTestId="every"
+      />,
+    );
+
+    const drawn: Array<HTMLElement> = screen.getAllByTestId("every-row");
+
+    expect(drawn).toHaveLength(2);
+    expect(drawn[0]!.tagName).toBe("BUTTON");
+    expect(drawn[0]).toHaveAttribute("aria-pressed", "true");
+    expect(drawn[0]).toHaveAttribute(
+      "aria-label",
+      "Show only the traffic of Store 001",
+    );
+    expect(drawn[0]).toHaveTextContent("75%");
+    expect(drawn[1]!.tagName).toBe("DIV");
+    expect(screen.getAllByTestId("every-row-label")[1]).toHaveTextContent(
+      "Store 002",
+    );
   });
 });

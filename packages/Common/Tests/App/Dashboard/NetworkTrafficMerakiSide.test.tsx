@@ -383,6 +383,8 @@ beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
   window.history.replaceState(null, "", "/");
+  // The side a reader picked is remembered in the browser (issue #5762).
+  window.localStorage.clear();
   flowPostMock.mockReset();
   usagePostMock.mockReset();
   getListMock.mockReset();
@@ -417,17 +419,43 @@ describe("which side a page opens on", () => {
     expect(lastUsageRequest().networkDeviceId).toBe(DEVICE_ID);
   });
 
-  test("a page with flows and Meraki traffic opens on its flows, with the switch", async () => {
+  /*
+   * Issue #5762: where Meraki reports, it is the first look - it covers every
+   * network a connection reads, with nothing set up on the devices. Until
+   * then a page with both opened on its flows (#5225).
+   */
+  test("a page with flows and Meraki traffic opens on Meraki, with the switch one click from its flows", async () => {
     answerUsage(() => {
       return usage();
     });
 
     await renderView(NETWORK);
 
+    expect(sideButton("meraki")).toHaveAttribute("aria-pressed", "true");
+    expect(sideButton("flows")).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByTestId("meraki-traffic-body")).toBeInTheDocument();
+    expect(screen.queryByTestId("traffic-body")).toBeNull();
+  });
+
+  test("a page with flows and a connection that reported nothing in its range opens on its flows", async () => {
+    answerUsage(() => {
+      return usage({
+        totals: { sentOctets: 0, receivedOctets: 0, flows: 0 },
+        applicationTotals: { sentOctets: 0, receivedOctets: 0 },
+        clientTotals: { sentOctets: 0, receivedOctets: 0 },
+        series: [],
+        topNetworks: [],
+        topUplinks: [],
+        topApplications: [],
+        topDestinations: [],
+        topClients: [],
+      });
+    });
+
+    await renderView(NETWORK);
+
     expect(sideButton("flows")).toHaveAttribute("aria-pressed", "true");
-    expect(sideButton("meraki")).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByTestId("traffic-body")).toBeInTheDocument();
-    expect(screen.queryByTestId("meraki-traffic-body")).toBeNull();
   });
 
   test("a page with Meraki traffic and no flow records opens on Meraki", async () => {
