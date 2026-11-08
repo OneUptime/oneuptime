@@ -133,7 +133,7 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 // The Edit dialog, as far as the page goes: what it opens with, and a save.
 jest.mock("../../../../UI/Components/ModelFormModal/ModelFormModal", () => {
-  const mockReact: typeof React = jest.requireActual("react");
+  const mockReact: typeof React = jest.requireActual("react") as typeof React;
   return {
     __esModule: true,
     default: (props: Record<string, any>) => {
