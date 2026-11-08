@@ -1,6 +1,7 @@
 import {
   LlmCostMetricNames,
   LlmInputTokenTypeValues,
+  LlmMetricInputCacheTokenTypes,
   LlmMetricTeamAttributeKeys,
   LlmMetricUserAttributeKeys,
   LlmMicroUsdCostMetricNames,
@@ -9,6 +10,7 @@ import {
   LlmTokenTypeAttributeKeys,
   LlmTokenUsageMetricNames,
   MICRO_USD_TO_USD,
+  getLlmMetricTokenDirection,
   getLlmTokenDirection,
   getLlmTokenTypeValues,
 } from "../../../Types/Telemetry/LlmMetricConventions";
@@ -486,11 +488,13 @@ describe("LlmMetricConventions — metric identity attribute keys", () => {
      */
     expect(LlmMetricUserAttributeKeys).toEqual([
       "user.email",
+      "cursor.user.email",
       "user.id",
       "user.account_uuid",
       "user.account_id",
       "cursor.user.id",
       "resource.user.email",
+      "resource.cursor.user.email",
       "resource.user.id",
       "resource.user.account_uuid",
       "resource.user.account_id",
@@ -580,5 +584,75 @@ describe("LlmMetricConventions — metric identity attribute keys", () => {
     expect(new Set(LlmMetricTeamAttributeKeys).size).toBe(
       LlmMetricTeamAttributeKeys.length,
     );
+  });
+});
+
+/*
+ * Claude Code's metric `input` leaves out the tokens read from and written
+ * to the prompt cache, which it counts as cacheRead and cacheCreation. By
+ * the GenAI conventions - and its own spans' input count (LlmTokenUsage) -
+ * they are input, so on its metric they count as input (#5776). The
+ * generic direction still drops them: on another tool's metric a cache kind
+ * may already be inside its input.
+ */
+describe("LlmMetricConventions — cache tokens that are input", () => {
+  test("only Claude Code's metric names cache kinds as input", () => {
+    expect(Object.keys(LlmMetricInputCacheTokenTypes)).toEqual([
+      "claude_code.token.usage",
+    ]);
+    expect(LlmMetricInputCacheTokenTypes["claude_code.token.usage"]).toEqual([
+      "cacheread",
+      "cachecreation",
+    ]);
+  });
+
+  test("the metric is one OneUptime reads tokens from", () => {
+    for (const name of Object.keys(LlmMetricInputCacheTokenTypes)) {
+      expect(LlmTokenUsageMetricNames).toContain(name);
+    }
+  });
+
+  test("Claude Code's cache kinds are input on its metric, in any case", () => {
+    for (const value of ["cacheRead", "cacheCreation", "CACHEREAD", " cacheCreation "]) {
+      expect(getLlmMetricTokenDirection("claude_code.token.usage", value)).toBe(
+        "input",
+      );
+    }
+  });
+
+  test("its plain input and output keep their direction", () => {
+    expect(getLlmMetricTokenDirection("claude_code.token.usage", "input")).toBe(
+      "input",
+    );
+    expect(getLlmMetricTokenDirection("claude_code.token.usage", "output")).toBe(
+      "output",
+    );
+  });
+
+  test("on any other metric a cache kind counts nothing", () => {
+    for (const metric of [
+      "gen_ai.client.token.usage",
+      "cursor.token.usage",
+      "codex.turn.token_usage",
+    ]) {
+      for (const value of ["cacheRead", "cache_read", "cached_input"]) {
+        expect({ metric, value, direction: getLlmMetricTokenDirection(metric, value) })
+          .toEqual({ metric, value, direction: null });
+      }
+    }
+  });
+
+  test("the generic direction still drops every cache kind", () => {
+    for (const value of ["cacheRead", "cacheCreation", "cache_read"]) {
+      expect(getLlmTokenDirection(value)).toBeNull();
+    }
+  });
+
+  test("nothing in, nothing out", () => {
+    expect(getLlmMetricTokenDirection(undefined, "cacheRead")).toBeNull();
+    expect(getLlmMetricTokenDirection("claude_code.token.usage", undefined)).toBe(
+      null,
+    );
+    expect(getLlmMetricTokenDirection(null, null)).toBeNull();
   });
 });

@@ -14,11 +14,14 @@ import {
 } from "../../../Types/LlmObservability/LlmConnectionTest";
 import LlmConversationReaders from "../../../Types/LlmObservability/LlmConversationReaders";
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
 import { DOCS_URL } from "../../../UI/Config";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import {
   getLlmConnectionHealth,
   getLlmConnectionLastReadSummary,
+  LlmConnectionSummary,
+  formatLlmUsageDay,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectionHealth";
 import {
   getLlmConnectionReadFailureWords,
@@ -271,12 +274,119 @@ describe("what the last read brought in", () => {
     });
   });
 
-  test("an account that used nothing", () => {
+  test("an account that used nothing, read before reads kept what they covered", () => {
     expect(
       getLlmConnectionLastReadSummary(
         connectionWith({ lastPullResult: { kind: "usage", days: 7 } }),
       ),
     ).toEqual({ template: "No usage yet", values: {} });
+  });
+
+  /*
+   * A read after the first covers the last three days, so "No usage yet"
+   * said nothing about the thirty the first read covered (#5776). A quiet
+   * read now says what the reads found overall.
+   */
+  test("a quiet read after usage was found says when the account was last used", () => {
+    const summary: LlmConnectionSummary | undefined =
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            days: 3,
+            newestUsageDay: "2026-10-28T00:00:00.000Z",
+            readSince: "2026-10-05T00:00:00.000Z",
+          },
+        }),
+      );
+
+    expect(summary?.template).toBe("Last used {{date}}");
+    expect(summary?.values["date"]).toBe(
+      formatLlmUsageDay("2026-10-28T00:00:00.000Z"),
+    );
+  });
+
+  test("an account never used says since when it was read", () => {
+    const summary: LlmConnectionSummary | undefined =
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            days: 3,
+            readSince: "2026-10-05T00:00:00.000Z",
+          },
+        }),
+      );
+
+    expect(summary?.template).toBe("No usage since {{date}}");
+    expect(summary?.values["date"]).toBe(
+      formatLlmUsageDay("2026-10-05T00:00:00.000Z"),
+    );
+    expect(summary?.plural).toBeUndefined();
+  });
+
+  test("Azure says how many resources it read, in the reader's plural", () => {
+    const summary: LlmConnectionSummary | undefined =
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            days: 3,
+            resources: 3,
+            readSince: "2026-10-05T00:00:00.000Z",
+          },
+        }),
+      );
+
+    expect(summary?.plural).toEqual({
+      one: "{{count}} resource read, no usage since {{date}}",
+      other: "{{count}} resources read, no usage since {{date}}",
+    });
+    expect(summary?.count).toBe(3);
+  });
+
+  test("Azure that found no resource says so: a role in the wrong place, not a quiet account", () => {
+    expect(
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            days: 30,
+            resources: 0,
+            readSince: "2026-10-05T00:00:00.000Z",
+          },
+        }),
+      ),
+    ).toEqual({
+      template: "No Azure OpenAI or Foundry resource found",
+      values: {},
+    });
+  });
+
+  test("usage in the last read still says what it cost", () => {
+    expect(
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            days: 3,
+            costUsd: 12,
+            newestUsageDay: "2026-10-28T00:00:00.000Z",
+          },
+        }),
+      )?.template,
+    ).toBe("${{cost}} over the last {{days}} days");
+  });
+
+  test("a UTC day is written as the same date in every timezone", () => {
+    // Noon UTC: never the day before in the Americas, nor after in Asia.
+    expect(formatLlmUsageDay("2026-10-28T00:00:00.000Z")).toBe(
+      OneUptimeDate.getDateAsCompactLocalString(
+        new Date("2026-10-28T12:00:00.000Z"),
+        { onlyShowDate: true },
+      ),
+    );
+    expect(formatLlmUsageDay("not a date")).toBe("");
   });
 
   test("a result it does not know is left out", () => {
@@ -330,6 +440,41 @@ describe("what a test says", () => {
       "It works, but nobody has used it in the last 7 days.",
     );
     expect(tool.advice).toContain("organization or tenant");
+  });
+
+  /*
+   * Azure lists a subscription's resources without complaint when the app
+   * registration has no role where they are: a test that read none found
+   * nothing to read, which is not a quiet account (#5776).
+   */
+  test("an Azure test that found no resource says where the role belongs", () => {
+    const words: ReturnType<typeof getLlmConnectionTestWords> =
+      getLlmConnectionTestWords({
+        result: result({
+          provider: LlmConnectionProvider.AzureOpenAI,
+          status: "warn",
+          counts: { days: 7, resources: 0 },
+        }),
+        definition: definitionOf(LlmConnectionProvider.AzureOpenAI),
+      });
+
+    expect(words.headline).toBe(
+      "It signs in, but it found no Azure OpenAI or Foundry resource in the subscription.",
+    );
+    expect(words.advice).toContain("Monitoring Reader role");
+  });
+
+  test("an Azure test that read resources with no usage is a quiet account", () => {
+    expect(
+      getLlmConnectionTestWords({
+        result: result({
+          provider: LlmConnectionProvider.AzureOpenAI,
+          status: "warn",
+          counts: { days: 7, resources: 2 },
+        }),
+        definition: definitionOf(LlmConnectionProvider.AzureOpenAI),
+      }).headline,
+    ).toBe("It works, but the account has no usage in the last 7 days.");
   });
 
   test.each([
@@ -633,12 +778,81 @@ describe("each connection's guide", () => {
 });
 
 describe("the snippets for your apps", () => {
-  test("python, Node.js, any language and a gateway, in that order", () => {
+  test("Python, Node.js, .NET, Java, any language and a gateway, in that order", () => {
     expect(
       LLM_APPS_SNIPPETS.map((snippet: LlmAppsSnippet): string => {
         return snippet.key;
       }),
-    ).toEqual(["python", "node", "otel", "gateway"]);
+    ).toEqual(["python", "node", "dotnet", "java", "otel", "gateway"]);
+  });
+
+  function codeOf(key: string): string {
+    return LLM_APPS_SNIPPETS.find((snippet: LlmAppsSnippet): boolean => {
+      return snippet.key === key;
+    })!
+      .blocks.map((block: LlmAppsSnippetBlock): string => {
+        return block.code;
+      })
+      .join("\n");
+  }
+
+  function noteOf(key: string): string {
+    return LLM_APPS_SNIPPETS.find((snippet: LlmAppsSnippet): boolean => {
+      return snippet.key === key;
+    })!.note;
+  }
+
+  /*
+   * The same SDKs call OpenAI and Azure OpenAI or Microsoft Foundry (#5776):
+   * each language's snippet shows both clients, traced the same way.
+   */
+  test("Python and Node.js show the OpenAI and the Azure OpenAI client", () => {
+    expect(codeOf("python")).toContain("client = OpenAI()");
+    expect(codeOf("python")).toContain(
+      "# client = AzureOpenAI(azure_endpoint=",
+    );
+    expect(codeOf("node")).toContain("const client = new OpenAI();");
+    expect(codeOf("node")).toContain("// const client = new AzureOpenAI({");
+
+    for (const key of ["python", "node"]) {
+      expect(noteOf(key)).toContain("Azure OpenAI and Microsoft Foundry");
+    }
+  });
+
+  test("Node.js hands OpenLLMetry the openai module, as its docs say to", () => {
+    expect(codeOf("node")).toContain("instrumentModules: { openAI: OpenAI }");
+  });
+
+  test(".NET turns the OpenAI library's OpenTelemetry on and exports its source and meter", () => {
+    const dotnet: string = codeOf("dotnet");
+
+    expect(dotnet).toContain("dotnet add package OpenTelemetry.Extensions.Hosting");
+    expect(dotnet).toContain(
+      "dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol",
+    );
+    expect(dotnet).toContain(
+      'AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);',
+    );
+    expect(dotnet).toContain('AddSource("OpenAI.*")');
+    expect(dotnet).toContain('AddMeter("OpenAI.*")');
+    expect(dotnet).toContain('OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"');
+    // It records no content: the note says so, and which library does.
+    expect(noteOf("dotnet")).toContain("They record no prompts or answers");
+    expect(noteOf("dotnet")).toContain("EnableSensitiveData");
+  });
+
+  test("Java runs the OpenTelemetry Java agent, and says where its content goes", () => {
+    const java: string = codeOf("java");
+
+    expect(java).toContain(
+      "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar",
+    );
+    expect(java).toContain("java -javaagent:opentelemetry-javaagent.jar");
+    expect(noteOf("java")).toContain("as log events, which conversations do not show");
+  });
+
+  test("the any-language snippet says Python's instrumentations take span_only", () => {
+    expect(codeOf("otel")).toContain("span_only instead of true");
   });
 
   test.each(

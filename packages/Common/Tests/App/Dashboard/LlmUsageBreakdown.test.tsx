@@ -48,6 +48,24 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 const aggregateMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const getCurrentProjectIdMock: MockFunction = getJestMockFunction();
+const fetchUsageMock: MockFunction = getJestMockFunction();
+
+/*
+ * The metric fallback reads /telemetry/llm/metric-usage, which counts a
+ * counter the way it counts and picks each point's group on the server
+ * (LlmMetricUsageReader's suites pin both). Stood in for here by its answer.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmObservabilityReads",
+  () => {
+    return {
+      __esModule: true,
+      fetchLlmMetricUsage: (...args: Array<unknown>) => {
+        return fetchUsageMock(...args);
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   return {
@@ -106,11 +124,12 @@ import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
 import {
-  LlmMetricUserAttributeKeys,
-  LlmMicroUsdCostMetricNames,
-} from "../../../Types/Telemetry/LlmMetricConventions";
-import { METRIC_USER_ATTRIBUTE_KEY } from "../../../Utils/Telemetry/LlmMetricQuery";
+  LlmMetricUsageDimension,
+  LlmMetricUsageGroup,
+  emptyLlmMetricUsageFigures,
+} from "../../../Types/Telemetry/LlmMetricUsageApi";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -172,18 +191,23 @@ const columnOf: ColumnNameFunction = (call: AggregateCall): string => {
   return String(call.aggregateBy["aggregateColumnName"]);
 };
 
-type IsMicroUsdFunction = (call: AggregateCall) => boolean;
+function metricGroup(
+  overrides: Partial<LlmMetricUsageGroup> & { key: string },
+): LlmMetricUsageGroup {
+  return {
+    ...emptyLlmMetricUsageFigures(),
+    hasCost: true,
+    ...overrides,
+  };
+}
 
-const isMicroUsdCostCall: IsMicroUsdFunction = (
-  call: AggregateCall,
-): boolean => {
-  const query: JSONObject = call.aggregateBy["query"] as JSONObject;
-  const names: Includes = query["name"] as unknown as Includes;
-
-  return (names.values as Array<string>).includes(
-    LlmMicroUsdCostMetricNames[0]!,
-  );
-};
+function serveMetricGroups(groups: Array<LlmMetricUsageGroup>): void {
+  fetchUsageMock.mockResolvedValue({
+    totals: emptyLlmMetricUsageFigures(),
+    groups: groups,
+    truncated: false,
+  } as never);
+}
 
 type RowTextsFunction = () => Array<Array<string>>;
 
@@ -215,6 +239,8 @@ beforeEach(() => {
   aggregateMock.mockReset();
   getListMock.mockReset();
   getCurrentProjectIdMock.mockReset();
+  fetchUsageMock.mockReset();
+  serveMetricGroups([]);
 
   getCurrentProjectIdMock.mockReturnValue(PROJECT_ID);
   getListMock.mockResolvedValue({ data: [] } as never);
@@ -472,35 +498,21 @@ describe("LlmUsageBreakdown - the application dimension", () => {
 
 describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
   test("consults GenAI metrics only when spans reported nothing, and labels them", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (modelNameOf(aggregateCall) === "Span") {
-        // Spans reported nothing at all — this is the fallback's precondition.
-        return Promise.resolve(result([]));
-      }
-
-      if (isMicroUsdCostCall(aggregateCall)) {
-        // Codex reports MILLIONTHS of a dollar: 2,500,000 µUSD = $2.50.
-        return Promise.resolve(
-          result([
-            row({
-              value: 2500000,
-              attributes: { [METRIC_USER_ATTRIBUTE_KEY]: "codex@example.com" },
-            }),
-          ]),
-        );
-      }
-
-      return Promise.resolve(
-        result([
-          row({
-            value: 7,
-            attributes: { [METRIC_USER_ATTRIBUTE_KEY]: "claude@example.com" },
-          }),
-        ]),
-      );
+    aggregateMock.mockImplementation(() => {
+      // Spans reported nothing at all — this is the fallback's precondition.
+      return Promise.resolve(result([]));
     });
+    serveMetricGroups([
+      metricGroup({
+        key: "claude@example.com",
+        costUsd: 7,
+        inputTokens: 97_200,
+        outputTokens: 3_000,
+        hasTokens: true,
+      }),
+      // Codex's millionths of a dollar arrive scaled by the server.
+      metricGroup({ key: "codex@example.com", costUsd: 2.5 }),
+    ]);
 
     await renderBreakdown();
 
@@ -510,38 +522,51 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
 
     expect(rows[0]![1]).toBe("claude@example.com");
     expect(rows[0]![6]).toBe("$7.0000");
-    // The metric stream carries spend, not per-call detail.
+    // The metric stream carries no per-call detail...
     expect(rows[0]![2]).toBe("—");
-    expect(rows[0]![5]).toBe("—");
+    // ...but its tokens, when the person's metrics counted some.
+    expect(rows[0]![3]).toBe((97_200).toLocaleString());
+    expect(rows[0]![4]).toBe((3_000).toLocaleString());
+    expect(rows[0]![5]).toBe((100_200).toLocaleString());
 
-    // The micro-USD scale is applied before the addition, not after.
     expect(rows[1]![1]).toBe("codex@example.com");
     expect(rows[1]![6]).toBe("$2.5000");
+    // No token metric for this person: unknown, not 0.
+    expect(rows[1]![3]).toBe("—");
 
     expect(screen.getByTestId("llm-usage-source-hint")).toHaveTextContent(
       "from GenAI metrics",
     );
   });
 
+  test("asks the metric read for the dimension and the range on screen", async () => {
+    aggregateMock.mockResolvedValue(result([]) as never);
+    serveMetricGroups([]);
+
+    await renderBreakdown();
+
+    expect(fetchUsageMock).toHaveBeenCalledTimes(1);
+
+    const asked: {
+      range: InBetween<Date>;
+      dimension: LlmMetricUsageDimension;
+    } = fetchUsageMock.mock.calls[0]![0] as {
+      range: InBetween<Date>;
+      dimension: LlmMetricUsageDimension;
+    };
+
+    expect(asked.dimension).toBe(LlmMetricUsageDimension.Employee);
+
+    const days: number =
+      (asked.range.endValue.getTime() - asked.range.startValue.getTime()) /
+      (24 * 60 * 60 * 1000);
+
+    expect(Math.round(days)).toBe(7);
+  });
+
   test("never sums spans and metrics: a metric-emitting project with spans reads span figures only", async () => {
     aggregateMock.mockImplementation((call: unknown) => {
       const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (modelNameOf(aggregateCall) === "Metric") {
-        /*
-         * This project DOES publish a cost metric. If the component ever
-         * summed the two signals, $4 of span cost plus $100 of metric cost
-         * would surface as $104 — every dollar counted twice.
-         */
-        return Promise.resolve(
-          result([
-            row({
-              value: 100,
-              attributes: { [METRIC_USER_ATTRIBUTE_KEY]: "both@example.com" },
-            }),
-          ]),
-        );
-      }
 
       if (columnOf(aggregateCall) === "llmCost") {
         return Promise.resolve(
@@ -556,6 +581,12 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
 
       return Promise.resolve(result([]));
     });
+    /*
+     * This project DOES publish a cost metric. If the component ever summed
+     * the two signals, $4 of span cost plus $100 of metric cost would
+     * surface as $104 — every dollar counted twice.
+     */
+    serveMetricGroups([metricGroup({ key: "both@example.com", costUsd: 100 })]);
 
     await renderBreakdown();
 
@@ -565,14 +596,8 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
     expect(rows[0]![1]).toBe("both@example.com");
     expect(rows[0]![6]).toBe("$4.0000");
 
-    // The metric stream is not even queried while spans have something to say.
-    const metricCalls: Array<unknown> = aggregateMock.mock.calls.filter(
-      (args: Array<unknown>): boolean => {
-        return modelNameOf(args[0] as AggregateCall) === "Metric";
-      },
-    );
-
-    expect(metricCalls).toHaveLength(0);
+    // The metric stream is not even read while spans have something to say.
+    expect(fetchUsageMock).not.toHaveBeenCalled();
     expect(
       screen.queryByTestId("llm-usage-source-hint"),
     ).not.toBeInTheDocument();
@@ -586,21 +611,30 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
         return Promise.reject(new Error("clickhouse timeout"));
       }
 
-      return Promise.resolve(
-        result([
-          row({
-            value: 42,
-            attributes: { [METRIC_USER_ATTRIBUTE_KEY]: "ghost@example.com" },
-          }),
-        ]),
-      );
+      return Promise.resolve(result([]));
     });
+    serveMetricGroups([metricGroup({ key: "ghost@example.com", costUsd: 42 })]);
 
     await renderBreakdown();
 
     // An error is an error. Dressing it up as metric data would be a lie.
     expect(screen.queryByText("ghost@example.com")).not.toBeInTheDocument();
     expect(screen.getByText(/Usage could not be loaded/i)).toBeInTheDocument();
+    expect(fetchUsageMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The spans had nothing and the metric read FAILED: before, the table came
+   * back empty - "no spend" - which is not what was measured (#5776).
+   */
+  test("a failed metric read is the error state, never an empty table", async () => {
+    aggregateMock.mockResolvedValue(result([]) as never);
+    fetchUsageMock.mockRejectedValue(new Error("Timeout exceeded") as never);
+
+    await renderBreakdown();
+
+    expect(screen.getByText(/Usage could not be loaded/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No LLM usage found/i)).not.toBeInTheDocument();
   });
 
   test.each([
@@ -609,43 +643,25 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
   ])(
     "the %s dimension does not consult metrics, and says why instead of showing a bare empty state",
     async (dimensionLabel: string, expectedNote: RegExp) => {
-      aggregateMock.mockImplementation((call: unknown) => {
-        const aggregateCall: AggregateCall = call as AggregateCall;
-
-        if (modelNameOf(aggregateCall) === "Span") {
-          return Promise.resolve(result([]));
-        }
-
-        /*
-         * The metric stream has plenty to say. It just cannot answer THIS
-         * question: a vendor cost counter carries no gen_ai.system and no
-         * OneUptime service id, so there is nothing to group on.
-         */
-        return Promise.resolve(
-          result([
-            row({
-              value: 12,
-              attributes: { [METRIC_USER_ATTRIBUTE_KEY]: "metric@example.com" },
-            }),
-          ]),
-        );
-      });
+      aggregateMock.mockResolvedValue(result([]) as never);
+      /*
+       * The metric stream has plenty to say. It just cannot answer THIS
+       * question: a vendor cost counter carries no gen_ai.system and no
+       * OneUptime service id, so there is nothing to group on.
+       */
+      serveMetricGroups([
+        metricGroup({ key: "metric@example.com", costUsd: 12 }),
+      ]);
 
       await renderBreakdown();
 
-      aggregateMock.mockClear();
+      fetchUsageMock.mockClear();
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: dimensionLabel }));
       });
 
-      const metricCalls: Array<unknown> = aggregateMock.mock.calls.filter(
-        (args: Array<unknown>): boolean => {
-          return modelNameOf(args[0] as AggregateCall) === "Metric";
-        },
-      );
-
-      expect(metricCalls).toHaveLength(0);
+      expect(fetchUsageMock).not.toHaveBeenCalled();
       expect(screen.getByText(/No LLM usage found/i)).toBeInTheDocument();
 
       /*
@@ -659,50 +675,39 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
     },
   );
 
-  test.each([["Model"], ["Team"]])(
+  test.each([
+    ["Model", LlmMetricUsageDimension.Model, "claude-4-sonnet"],
+    ["Team", LlmMetricUsageDimension.Team, "platform"],
+  ])(
     "the %s dimension has a metric fallback too, so a metrics-only coding agent is not four empty tabs",
-    async (dimensionLabel: string) => {
-      aggregateMock.mockImplementation((call: unknown) => {
-        const aggregateCall: AggregateCall = call as AggregateCall;
-
-        if (modelNameOf(aggregateCall) === "Span") {
-          return Promise.resolve(result([]));
-        }
-
-        if (isMicroUsdCostCall(aggregateCall)) {
-          return Promise.resolve(result([]));
-        }
-
-        /*
-         * One datapoint carrying every attribute a Cursor / Claude Code cost
-         * counter carries. Whichever dimension is selected must find its own
-         * key in there.
-         */
-        return Promise.resolve(
-          result([
-            row({
-              value: 8,
-              attributes: {
-                "cursor.model.name": "claude-4-sonnet",
-                "resource.team.id": "platform",
-              },
-            }),
-          ]),
-        );
-      });
+    async (
+      dimensionLabel: string,
+      dimension: LlmMetricUsageDimension,
+      key: string,
+    ) => {
+      aggregateMock.mockResolvedValue(result([]) as never);
+      serveMetricGroups([metricGroup({ key: key, costUsd: 8 })]);
 
       await renderBreakdown();
+
+      fetchUsageMock.mockClear();
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: dimensionLabel }));
       });
 
+      expect(
+        (
+          fetchUsageMock.mock.calls[0]![0] as {
+            dimension: LlmMetricUsageDimension;
+          }
+        ).dimension,
+      ).toBe(dimension);
+
       const rows: Array<Array<string>> = renderedRows();
 
       expect(rows).toHaveLength(1);
-      expect(rows[0]![1]).toBe(
-        dimensionLabel === "Model" ? "claude-4-sonnet" : "platform",
-      );
+      expect(rows[0]![1]).toBe(key);
       expect(rows[0]![6]).toBe("$8.0000");
 
       // Labelled, exactly as the Employee fallback is.
@@ -717,24 +722,6 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
     async (dimensionLabel: string) => {
       aggregateMock.mockImplementation((call: unknown) => {
         const aggregateCall: AggregateCall = call as AggregateCall;
-
-        if (modelNameOf(aggregateCall) === "Metric") {
-          /*
-           * $100 of metric spend sitting right there. If the dimension ever
-           * summed the two signals it would surface as $103.
-           */
-          return Promise.resolve(
-            result([
-              row({
-                value: 100,
-                attributes: {
-                  "cursor.model.name": "claude-4-sonnet",
-                  "resource.team.id": "platform",
-                },
-              }),
-            ]),
-          );
-        }
 
         if (columnOf(aggregateCall) === "llmCost") {
           return Promise.resolve(
@@ -752,10 +739,11 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
 
         return Promise.resolve(result([]));
       });
+      serveMetricGroups([metricGroup({ key: "platform", costUsd: 100 })]);
 
       await renderBreakdown();
 
-      aggregateMock.mockClear();
+      fetchUsageMock.mockClear();
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: dimensionLabel }));
@@ -765,14 +753,7 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
 
       expect(rows).toHaveLength(1);
       expect(rows[0]![6]).toBe("$3.0000");
-
-      const metricCalls: Array<unknown> = aggregateMock.mock.calls.filter(
-        (args: Array<unknown>): boolean => {
-          return modelNameOf(args[0] as AggregateCall) === "Metric";
-        },
-      );
-
-      expect(metricCalls).toHaveLength(0);
+      expect(fetchUsageMock).not.toHaveBeenCalled();
       expect(
         screen.queryByTestId("llm-usage-source-hint"),
       ).not.toBeInTheDocument();
@@ -782,143 +763,48 @@ describe("LlmUsageBreakdown - span-first, metric-fallback", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * The metric employee rollup's grouping keys
+ * The metric employee rollup's groups
  * ---------------------------------------------------------------------------
  *
- * Grouping the metric stream on user.email ALONE is the specific bug these
- * cover: a Cursor-only project's identity is an opaque cursor.user.id and a
- * Claude Code fleet on API-key auth sends user.account_uuid, so a
- * single-key rollup silently collapses an entire company's spend into one
- * Unattributed row — the exact failure the span-side groupBy is written to
- * avoid.
+ * The server picks each point's person from every recognized identity
+ * spelling (LlmMetricUsageReader; its suites pin the keys and their order),
+ * so a Cursor-only project's opaque cursor.user.id and a Claude Code fleet's
+ * user.account_uuid rank as people. Here: whatever group the read answers
+ * is a row, the unattributed one included.
  */
 describe("LlmUsageBreakdown - metric identity grouping", () => {
-  type MetricGroupKeysFunction = () => Array<string>;
-
-  const metricGroupKeys: MetricGroupKeysFunction = (): Array<string> => {
-    const call: AggregateCall | undefined = aggregateMock.mock.calls
-      .map((args: Array<unknown>): AggregateCall => {
-        return args[0] as AggregateCall;
-      })
-      .find((candidate: AggregateCall): boolean => {
-        return modelNameOf(candidate) === "Metric";
-      });
-
-    return (call?.aggregateBy["groupByAttributeKeys"] as Array<string>) || [];
-  };
-
-  test("groups on every recognized identity spelling, not just the email", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (modelNameOf(aggregateCall) === "Span") {
-        return Promise.resolve(result([]));
-      }
-
-      return Promise.resolve(result([]));
-    });
-
-    await renderBreakdown();
-
-    expect(metricGroupKeys()).toEqual([...LlmMetricUserAttributeKeys]);
-
-    /*
-     * MetricService rejects more than MAX_GROUP_BY_ATTRIBUTE_KEYS = 10 keys
-     * with a BadDataException, and this list is exactly at the cap. Adding an
-     * eleventh spelling to LlmMetricUserAttributeKeys would turn the whole
-     * employee fallback into a 400 at runtime, which no other test here would
-     * catch — the query simply stops answering.
-     */
-    expect(LlmMetricUserAttributeKeys.length).toBeLessThanOrEqual(10);
-  });
-
-  test("an id-only Cursor datapoint ranks as a person, not as Unattributed", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (modelNameOf(aggregateCall) === "Span") {
-        return Promise.resolve(result([]));
-      }
-
-      if (isMicroUsdCostCall(aggregateCall)) {
-        return Promise.resolve(result([]));
-      }
-
-      return Promise.resolve(
-        result([
-          /*
-           * Cursor: an opaque team-scoped integer and NO email anywhere. A
-           * user.email-only rollup reads this row's identity as absent.
-           */
-          row({
-            value: 11,
-            attributes: { "cursor.user.id": "4471" },
-          }),
-          // Claude Code on API-key auth: an account uuid, still no email.
-          row({
-            value: 5,
-            attributes: {
-              "user.account_uuid": "acct-9f2c",
-            },
-          }),
-          // An operator who stamped identity once via OTEL_RESOURCE_ATTRIBUTES.
-          row({
-            value: 2,
-            attributes: { "resource.user.email": "ops@example.com" },
-          }),
-        ]),
-      );
-    });
+  test("an id-only Cursor group ranks as a person, not as Unattributed", async () => {
+    aggregateMock.mockResolvedValue(result([]) as never);
+    serveMetricGroups([
+      metricGroup({ key: "4471", costUsd: 11 }),
+      metricGroup({ key: "acct-9f2", costUsd: 5 }),
+      metricGroup({ key: "", costUsd: 2 }),
+    ]);
 
     await renderBreakdown();
 
     const rows: Array<Array<string>> = renderedRows();
 
-    expect(rows).toHaveLength(3);
-    expect(rows[0]![1]).toBe("4471");
-    expect(rows[0]![6]).toBe("$11.0000");
-    expect(rows[1]![1]).toBe("acct-9f2c");
-    expect(rows[2]![1]).toBe("ops@example.com");
-
-    // Three people, not one anonymous heap.
     expect(
-      screen.queryByTestId("llm-usage-unattributed"),
-    ).not.toBeInTheDocument();
+      rows.map((rendered: Array<string>): string => {
+        return rendered[1]!;
+      }),
+    ).toEqual(["4471", "acct-9f2", "Unattributed"]);
   });
 
-  test("prefers the email when a datapoint carries both spellings", async () => {
-    aggregateMock.mockImplementation((call: unknown) => {
-      const aggregateCall: AggregateCall = call as AggregateCall;
-
-      if (modelNameOf(aggregateCall) === "Span") {
-        return Promise.resolve(result([]));
-      }
-
-      if (isMicroUsdCostCall(aggregateCall)) {
-        return Promise.resolve(result([]));
-      }
-
-      return Promise.resolve(
-        result([
-          row({
-            value: 4,
-            attributes: {
-              "user.email": "named@example.com",
-              "cursor.user.id": "4471",
-              // The span tier is more specific than the resource tier.
-              "resource.user.email": "fleet@example.com",
-            },
-          }),
-        ]),
-      );
-    });
+  test("the share is of every group's cost, the unattributed one included", async () => {
+    aggregateMock.mockResolvedValue(result([]) as never);
+    serveMetricGroups([
+      metricGroup({ key: "ana@example.com", costUsd: 3 }),
+      metricGroup({ key: "", costUsd: 1 }),
+    ]);
 
     await renderBreakdown();
 
     const rows: Array<Array<string>> = renderedRows();
 
-    expect(rows).toHaveLength(1);
-    expect(rows[0]![1]).toBe("named@example.com");
+    expect(rows[0]![7]).toContain("75");
+    expect(rows[1]![7]).toContain("25");
   });
 });
 

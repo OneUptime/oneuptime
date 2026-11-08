@@ -445,19 +445,12 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
           // The cell renders a fallback the declared field does not carry.
           getExportValue: getUserLabel,
         },
-        /*
-         * Shipped hidden, as Provider and Operation are, to make room for
-         * Duration: a team is set by a gateway or an operator, so most
-         * apps' calls carry none. Still in the column picker and the
-         * filters.
-         */
         {
           field: {
             llmTeam: true,
           },
           title: "Team",
           type: FieldType.Text,
-          isHiddenByDefault: true,
         },
         {
           field: {
@@ -498,6 +491,11 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
             );
           },
         },
+        /*
+         * How long the call took: the latency a person most often opens a
+         * call for, after what it cost. Narrow ("850 ms", "2.3 s"), so the
+         * default table still fits a laptop - the AI pages have no side menu.
+         */
         {
           field: {
             durationUnixNano: true,
