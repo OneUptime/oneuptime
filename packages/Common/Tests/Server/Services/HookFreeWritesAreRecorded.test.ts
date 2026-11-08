@@ -964,9 +964,7 @@ describe("owner and privacy rule engines", () => {
   ): ts.ObjectLiteralExpression | null => {
     const argument: ts.Expression | undefined = call.arguments[0];
 
-    return argument && ts.isObjectLiteralExpression(argument)
-      ? argument
-      : null;
+    return argument && ts.isObjectLiteralExpression(argument) ? argument : null;
   };
 
   const propertyText: (

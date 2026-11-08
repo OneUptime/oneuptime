@@ -109,15 +109,18 @@ describe("AddAiAgentResetAt1808996200000", () => {
     MODELS.map((model: BaseModel): [string, BaseModel] => {
       return [model.tableName!, model];
     }),
-  )("the %s model declares the column it adds, as a date", (_name, model) => {
-    expect(model.getTableColumns().columns).toContain("aiAgentResetAt");
-    expect(model.getTableColumnMetadata("aiAgentResetAt").type).toBe(
-      TableColumnType.Date,
-    );
-    expect(model.getTableColumnMetadata("aiAgentResetAt").required).toBe(
-      false,
-    );
-  });
+  )(
+    "the %s model declares the column it adds, as a date",
+    (_name: string, model: BaseModel) => {
+      expect(model.getTableColumns().columns).toContain("aiAgentResetAt");
+      expect(model.getTableColumnMetadata("aiAgentResetAt").type).toBe(
+        TableColumnType.Date,
+      );
+      expect(model.getTableColumnMetadata("aiAgentResetAt").required).toBe(
+        false,
+      );
+    },
+  );
 
   test("is registered once, under its own name, after every migration before it", () => {
     const names: Array<string> = SchemaMigrations.map(

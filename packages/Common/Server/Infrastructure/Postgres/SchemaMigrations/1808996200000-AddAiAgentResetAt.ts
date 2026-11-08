@@ -68,9 +68,7 @@ export class AddAiAgentResetAt1808996200000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "PodmanHost" DROP COLUMN "aiAgentResetAt"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "Host" DROP COLUMN "aiAgentResetAt"`,
-    );
+    await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "aiAgentResetAt"`);
     await queryRunner.query(
       `ALTER TABLE "OpenStackCloud" DROP COLUMN "aiAgentResetAt"`,
     );

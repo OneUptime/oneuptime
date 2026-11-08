@@ -189,8 +189,11 @@ describe("every owner and privacy rule's Run now", () => {
   beforeEach(() => {
     writes = [];
 
-    jest.spyOn(DatabaseService.prototype, "findOneById").mockImplementation(
-      async function (this: DatabaseService<BaseModel>): Promise<BaseModel> {
+    jest
+      .spyOn(DatabaseService.prototype, "findOneById")
+      .mockImplementation(async function (
+        this: DatabaseService<BaseModel>,
+      ): Promise<BaseModel> {
         const row: BaseModel = new this.modelType();
         row.id = RESOURCE_ID;
         const record: Record<string, unknown> = row as unknown as Record<
@@ -203,8 +206,7 @@ describe("every owner and privacy rule's Run now", () => {
         record["description"] = "The core cluster";
         record["labels"] = [];
         return row;
-      } as never,
-    );
+      } as never);
     jest
       .spyOn(DatabaseService.prototype, "findBy")
       .mockResolvedValue([] as never);
@@ -212,21 +214,27 @@ describe("every owner and privacy rule's Run now", () => {
       .spyOn(DatabaseService.prototype, "findOneBy")
       .mockResolvedValue(null as never);
 
-    for (const method of ["create", "updateOneById"] as const) {
-      jest.spyOn(DatabaseService.prototype, method).mockImplementation(
-        async function (
-          this: DatabaseService<BaseModel>,
-          data: { data: BaseModel; props: DatabaseCommonInteractionProps },
-        ): Promise<BaseModel> {
-          writes.push({
-            table: this.getModel().tableName || "",
-            method: method,
-            props: data.props,
-          });
-          return data.data;
-        } as never,
-      );
-    }
+    // A write, captured with the props it is made with.
+    const capture: (method: string) => unknown = (method: string): unknown => {
+      return async function (
+        this: DatabaseService<BaseModel>,
+        data: { data: BaseModel; props: DatabaseCommonInteractionProps },
+      ): Promise<BaseModel> {
+        writes.push({
+          table: this.getModel().tableName || "",
+          method: method,
+          props: data.props,
+        });
+        return data.data;
+      };
+    };
+
+    jest
+      .spyOn(DatabaseService.prototype, "create")
+      .mockImplementation(capture("create") as never);
+    jest
+      .spyOn(DatabaseService.prototype, "updateOneById")
+      .mockImplementation(capture("updateOneById") as never);
 
     jest
       .spyOn(TeamMemberService, "isUserMemberOfProject")
@@ -432,14 +440,17 @@ describe("a monitor owner rule, end to end", () => {
     recordedCreates = [];
     feedItems = [];
 
-    jest.spyOn(AuditLogService, "recordCreate").mockImplementation((async (
-      data: { model: BaseModel; props: DatabaseCommonInteractionProps },
-    ): Promise<void> => {
-      recordedCreates.push({
-        table: data.model.tableName || "",
-        props: data.props,
-      });
-    }) as never);
+    jest
+      .spyOn(AuditLogService, "recordCreate")
+      .mockImplementation((async (data: {
+        model: BaseModel;
+        props: DatabaseCommonInteractionProps;
+      }): Promise<void> => {
+        recordedCreates.push({
+          table: data.model.tableName || "",
+          props: data.props,
+        });
+      }) as never);
 
     const monitor: Monitor = new Monitor(RESOURCE_ID);
     monitor.projectId = PROJECT_ID;
@@ -483,11 +494,13 @@ describe("a monitor owner rule, end to end", () => {
         "inviteTeamsBasedOnRulesAndWorkspaceChannels",
       )
       .mockResolvedValue(undefined as never);
-    jest.spyOn(MonitorFeedService, "createMonitorFeedItem").mockImplementation(
-      (async (item: Record<string, unknown>): Promise<void> => {
+    jest
+      .spyOn(MonitorFeedService, "createMonitorFeedItem")
+      .mockImplementation((async (
+        item: Record<string, unknown>,
+      ): Promise<void> => {
         feedItems.push(item);
-      }) as never,
-    );
+      }) as never);
     jest
       .spyOn(TeamMemberService, "isUserMemberOfProject")
       .mockResolvedValue(true);
@@ -594,7 +607,9 @@ describe("a monitor owner rule, end to end", () => {
   });
 
   test("a rule applied as a monitor is created is OneUptime's own: a system event, by nobody", async () => {
-    jest.spyOn(MonitorOwnerRuleService, "findBy").mockResolvedValue([rule(true)]);
+    jest
+      .spyOn(MonitorOwnerRuleService, "findBy")
+      .mockResolvedValue([rule(true)]);
 
     await MonitorOwnerRuleEngineService.applyRulesToMonitor(target());
 

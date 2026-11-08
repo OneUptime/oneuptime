@@ -2108,8 +2108,9 @@ describe("ResourceAiAccessAPI", () => {
          * The route's own props, so the reset is recorded on the resource
          * as theirs (issue #6302).
          */
-        const props: DatabaseCommonInteractionProps =
-          call["props"] as DatabaseCommonInteractionProps;
+        const props: DatabaseCommonInteractionProps = call[
+          "props"
+        ] as DatabaseCommonInteractionProps;
         expect(String(props.userId)).toBe(USER_ID.toString());
         expect(String(props.tenantId)).toBe(PROJECT_ID.toString());
         expect(props.userType).toBe(UserType.User);
