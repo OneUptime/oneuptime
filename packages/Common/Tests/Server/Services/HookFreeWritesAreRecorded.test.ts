@@ -1455,21 +1455,40 @@ describe("every rule's Run now", () => {
    * is OneUptime's own, as a rule applied to a new record is.
    */
   test("the automatic import hands nobody's props to the import it shares with Run Now", () => {
+    const file: string =
+      NETWORK_RUNS["/network-device-auto-import-rule/:ruleId/run"]!.file;
     const reading: RunNowReading = readRunNow({
-      file: path.join(REPOSITORY_ROOT, NETWORK_RUNS[
-        "/network-device-auto-import-rule/:ruleId/run"
-      ]!.file),
+      file: path.join(REPOSITORY_ROOT, file),
       entry: "processCompletedScan",
     });
 
     expect(reading.reached).toEqual(
       expect.arrayContaining(["processCompletedScan", "importHostsFromScan"]),
     );
-    expect(
-      reading.callsDroppingProps.filter((call: string): boolean => {
-        return call.includes("this.importHostsFromScan in processCompletedScan");
-      }),
-    ).toHaveLength(1);
+
+    // The sweep's own method, and every import it starts: no props at all.
+    let sweep: ts.MethodDeclaration | null = null;
+
+    const find: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isMethodDeclaration(node) &&
+        node.name.getText() === "processCompletedScan"
+      ) {
+        sweep = node;
+      }
+
+      ts.forEachChild(node, find);
+    };
+
+    find(sourceOf(file));
+
+    const imports: Array<{ callee: string; call: ts.CallExpression }> =
+      callsIn(sweep!).filter((found: { callee: string }): boolean => {
+        return found.callee === "this.importHostsFromScan";
+      });
+
+    expect(imports).toHaveLength(1);
+    expect(propsHandedOn(imports[0]!.call)).toBeNull();
   });
 
   /*

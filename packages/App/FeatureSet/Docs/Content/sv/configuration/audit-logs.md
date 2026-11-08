@@ -92,7 +92,16 @@ Det registreras också när en administratör lägger till eller tar bort en avi
 
 Fält som bara OneUptime skriver, till exempel när en värd senast sågs, utelämnas från alla poster, och det gör även fält som ingen får läsa. När OneUptime skriver ett av dem för att någon bad om det, till exempel när ett undantag slås ihop med ett annat eller en webhook-URL återställs, registrerar posten det som den personens ändring. Nycklar, tokens och lösenord registreras som `[REDACTED]`: posten visar att de har ändrats, aldrig deras värde. Ett arbetsflödes steg registreras som det som ändrades, med namnen på ett stegs inställningar men aldrig det som skrevs i dem, och att flytta ett steg på arbetsytan registreras inte.
 
-Det OneUptime gör för att någon bad om det registreras också som deras ändring, oavsett om projektet lagrar systemhändelser eller inte: att starta, godkänna, slutföra, hoppa över och avbryta en körning av en runbook; de etiketter och ägare som en regel lägger till, de poster som en sekretessregel gör privata och de enheter som en regel för platstilldelning flyttar när någon kör regeln på posterna som redan finns; att köpa, koppla och frisläppa telefonnumret till en policy för inkommande samtal; att lösa ett datalarm som någon markerar som väntat eller som inget problem; att återställa länken till ett kalenderflöde; och de team som någon går med i när de loggar in med SSO. Stegen i en runbook-körning registreras som det som gjordes med vart och ett, till exempel `Approved "Restart the API" (step 3)`, aldrig med det ett steg skrev ut. Etiketter och ägare som en regel lägger till när en post skapas, och en post som den då gör privat, är OneUptimes egen ändring och registreras när **Lagra systemhändelser** är på.
+Det OneUptime gör för att någon bad om det registreras också som deras ändring, oavsett om projektet lagrar systemhändelser eller inte:
+
+- Att starta, godkänna, slutföra, hoppa över och avbryta en körning av en runbook. Dess steg registreras som det som gjordes med vart och ett, till exempel `Approved "Restart the API" (step 3)`, aldrig med det ett steg skrev ut.
+- Det en regel ändrar när någon kör den: de etiketter och ägare som den lägger till, de poster som en sekretessregel gör privata, de enheter som en regel för platstilldelning flyttar, de enheter och monitorer som en regel för automatisk import skapar, och det en monitorregel på en statussida eller en SLO ändrar på sidan eller SLO:n.
+- Att köpa, koppla och frisläppa telefonnumret till en policy för inkommande samtal.
+- Att lösa ett datalarm som någon markerar som väntat eller som inget problem.
+- Att återställa länken till ett kalenderflöde.
+- De team som någon går med i när de loggar in med SSO.
+
+Det en regel gör av sig själv är OneUptimes egen ändring och registreras när **Lagra systemhändelser** är på: etiketter och ägare som en regel lägger till när en post skapas, och en post som den då gör privat; de enheter och monitorer som en regel för automatisk import skapar från nya skanningsresultat; och det en monitorregel på en statussida eller en SLO ändrar när en regel, en monitor eller en etikett sparas.
 
 Att återställa AI-agenten för en värd, ett kluster eller ett molnkonto registreras på resursens egen sida **Granskningsloggar**, som ändringen av `aiAgentResetAt` gjord av den som återställde den: vem, och när. Detsamma gäller att skapa en nyckel för ett molnkontos AI-agent: nycklarna visas som ändrade, aldrig med en nyckel eller en hash. Det en agent rapporterar när den ansluter och hör av sig lämnas utanför, som tidigare.
 
