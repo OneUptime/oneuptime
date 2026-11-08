@@ -75,6 +75,7 @@ Die Reichweite ist eine gerade Linie. In einem rollierenden Zeitfenster gibt her
 Das Diagramm **Fehlerbudget-Burn-down** auf der **Übersicht** zeigt das verbleibende Budget in Prozent über das aktuelle Compliance-Zeitfenster:
 
 - Eine Linie bei 0 % markiert, wo das Budget aufgebraucht ist, und eine gestrichelte Linie markiert die Risikoschwelle des SLO.
+- Hat das SLO eine Fehlerbudget-Richtlinie, markiert außerdem eine beschriftete Linie den Schwellenwert jeder Stufe: siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy).
 - Bei Kalendermonat-SLOs verläuft eine blasse Linie gleichmäßig von einem vollen Budget zu Monatsbeginn bis zu einem leeren beim Zurücksetzen. Liegt die Kurve darunter, verbraucht der Monat sein Budget zu schnell.
 - Bei jeder Auswertung, alle 5 Minuten, wird ein Punkt erfasst, das Diagramm eines neuen SLO bleibt also bis zu seiner ersten Auswertung leer.
 - Ziehen Sie über das Diagramm, um in einen Teil des Zeitfensters zu zoomen. Doppelklicken Sie oder klicken Sie auf **Zoom zurücksetzen**, um wieder das ganze Zeitfenster zu sehen.
@@ -126,6 +127,8 @@ stateDiagram-v2
 
 Mit der Standardschwelle von 20 % wird ein gefährdetes SLO bei 25 % verbleibendem Budget wieder fehlerfrei, und ein SLO mit ausgeschöpftem Budget wird bei 2 % wieder gefährdet. Jede Statusänderung erscheint im **Feed** des SLO, mit SLI, Budget und Burn-Rate dahinter.
 
+Ein Status sagt, wie viel Budget übrig ist, nicht, was Ihr Team dagegen tut. Um das für jede Höhe des verbleibenden Budgets festzuhalten, etwa bei der Risikoschwelle oder sobald das Budget aufgebraucht ist, geben Sie dem SLO eine [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy).
+
 ## Benachrichtigung der Eigentümer
 
 Wenn ein SLO **Gefährdet** oder **Budget ausgeschöpft** wird, benachrichtigt OneUptime seine Eigentümer:
@@ -143,6 +146,7 @@ Damit ein SLO nahe einer Grenze nicht immer wieder benachrichtigt, werden seine 
 
 :::cards
 - [Burn-Rate-Warnungen und -Vorfälle](/docs/slo/burn-rate-alerts): Ihr Team alarmieren, wenn das Budget zu schnell verbrennt.
+- [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy): Festhalten, was das Team tut, während das Budget schrumpft.
 - [SLO-Metriken und -Dashboards](/docs/slo/metrics): Das Budget über die Zeit als Diagramm darstellen.
 - [SLOs – Übersicht](/docs/slo/introduction): Ziele, Zeitfenster und Ausfall-Status.
 :::

@@ -7,7 +7,7 @@ Uno SLO tiene due registrazioni della sua storia, e rispondono a domande diverse
 | | **Feed** | **Registri di audit** |
 | --- | --- | --- |
 | Risponde a | Cosa è successo allo SLO | Chi ha cambiato cosa, e quando |
-| Registra | Cambi di stato, avvisi e incidenti di tasso di consumo, e modifiche allo SLO, alle sue regole, ai monitor e ai proprietari | Ogni modifica fatta dalle persone allo SLO, alle sue regole del tasso di consumo, alle regole dei monitor e ai proprietari, con il valore vecchio e quello nuovo |
+| Registra | Cambi di stato, cambi di livello della policy del budget di errore, gli avvisi e gli incidenti delle regole del tasso di consumo e dei livelli, e modifiche allo SLO, alle sue regole, ai monitor e ai proprietari | Ogni modifica fatta dalle persone allo SLO, alle sue regole del tasso di consumo, alle regole dei monitor, ai livelli della policy del budget di errore e ai proprietari, con il valore vecchio e quello nuovo |
 | Include il lavoro di OneUptime stesso | Sì: le valutazioni e le regole dei monitor che collegano monitor | Solo con **Memorizza eventi di sistema** attivo |
 | Piani | Tutti i piani | Il piano Enterprise su OneUptime Cloud, o la Enterprise Edition su un'installazione self-hosted |
 | Conservazione | Tre anni su OneUptime Cloud | 7 giorni per impostazione predefinita, fino a 180 |
@@ -32,9 +32,13 @@ Il feed si trova nella pagina **Feed** dello SLO, e i suoi ultimi elementi in **
 | SLO abilitato o disabilitato | La valutazione viene attivata o disattivata. |
 | SLO archiviato o ripristinato | Lo SLO viene archiviato o tolto dall'archivio. |
 | Stato cambiato | Una valutazione porta lo SLO a un nuovo stato. Mostra lo SLI, il budget di errore, il tasso di consumo e la soglia a rischio che lo spiegano, e il motivo per **In pausa** o **Configurato male**. |
+| Livello della policy del budget di errore cambiato | Una valutazione porta lo SLO in un livello della sua policy del budget di errore, in un altro livello o fuori da ogni livello. Mostra il livello lasciato e quello in cui è entrato, il budget rimanente e cosa il team ha concordato di fare nel nuovo livello. Vedi [Policy del budget di errore](/docs/slo/error-budget-policy). |
 | Avviso di tasso di consumo generato | Una regola del tasso di consumo crea un avviso. Rimanda all'avviso e mostra i tassi di consumo che l'hanno fatto scattare. |
 | Incidente di tasso di consumo dichiarato | Una regola del tasso di consumo dichiara un incidente. Rimanda all'incidente e mostra i tassi di consumo che l'hanno fatto scattare. |
 | Avviso o incidente di tasso di consumo risolto | L'avviso o l'incidente di una regola si chiude: risolto automaticamente, o a mano mentre la risoluzione automatica era disattivata. |
+| Avviso della policy del budget di errore generato | Un livello della policy del budget di errore crea un avviso. Rimanda all'avviso. |
+| Incidente della policy del budget di errore dichiarato | Un livello della policy del budget di errore dichiara un incidente. Rimanda all'incidente. |
+| Avviso o incidente della policy del budget di errore risolto | L'avviso o l'incidente di un livello si chiude: sostituito da un livello più grave, risolto automaticamente, o a mano mentre la risoluzione automatica era disattivata. |
 | Regola del tasso di consumo aggiunta, modificata o rimossa | Qualcuno crea, modifica o elimina una regola del tasso di consumo. Le regole predefinite di un nuovo SLO compaiono invece nel suo elemento «SLO creato». |
 | Regola dei monitor aggiunta, modificata o rimossa | Qualcuno crea, modifica o elimina una regola dei monitor. Un salvataggio che non cambia nulla di rilevante non viene pubblicato. |
 | Monitor collegati o scollegati | Dei monitor vengono aggiunti allo SLO o rimossi, a mano o da una regola dei monitor. Gli elenchi lunghi nominano i primi monitor «e altri N». |
@@ -55,6 +59,7 @@ La pagina **Registri di audit** dello SLO elenca le modifiche fatte a:
 
 - lo SLO stesso: i suoi dettagli, le impostazioni, le etichette, i monitor e l'archiviazione;
 - le sue regole del tasso di consumo;
+- i suoi livelli della policy del budget di errore;
 - le sue regole dei monitor;
 - i suoi utenti proprietari e i suoi team proprietari.
 
@@ -62,7 +67,7 @@ Le modifiche alle regole e ai proprietari vengono registrate sulla regola o sul 
 
 Restano fuori due cose:
 
-- **I risultati delle valutazioni.** SLI, budget di errore, tasso di consumo, stato e orari di valutazione cambiano ogni pochi minuti. La loro cronologia si trova nella **Panoramica**, nella pagina **Metriche** e nel **Feed**.
+- **I risultati delle valutazioni.** SLI, budget di errore, tasso di consumo, stato e orari di valutazione cambiano ogni pochi minuti. La loro cronologia si trova nella **Panoramica**, nella pagina **Metriche** e nel **Feed**. Il livello della policy del budget di errore in cui si trova lo SLO fa eccezione: un cambio di livello viene registrato come una modifica fatta da OneUptime stesso.
 - **Le modifiche che OneUptime fa da solo**, come una regola dei monitor che collega o scollega un monitor, a meno che **Memorizza eventi di sistema** non sia attivo per il progetto. Il **Feed** registra comunque i collegamenti e gli scollegamenti dei monitor.
 
 ### Attivare i registri di audit

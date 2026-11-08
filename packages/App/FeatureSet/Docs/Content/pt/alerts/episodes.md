@@ -177,6 +177,8 @@ Um episódio que você cria não tem regra de agrupamento, então a lista mostra
 
 **Desenvolvedores** e **Avançado** começam recolhidas. Na **Visão geral**, o cabeçalho mostra os **Proprietários** do episódio, equipes primeiro, e o primeiro bloco, **Criado**, diz quando o episódio foi criado — **Automaticamente**, quando uma regra de agrupamento o abriu. O cartão **O que aconteceu** abre a página — a descrição do episódio e a sua **Causa raiz** — depois **Alertas neste episódio** e o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Mover episódio para** no menu **⋯**.
 
+A página **Causa raiz** traça as métricas por trás do episódio ao lado da sua causa raiz: as do seu primeiro alerta, o criado mais cedo, como o cartão de telemetria da sua **Visão geral** as traça, em torno do início do episódio e com os seus momentos marcados, para que você possa lê-las em qualquer intervalo em torno dele enquanto escreve por que ele aconteceu. Quando esse alerta não guardou nenhum instantâneo de uma verificação de métricas (um criado à mão em um monitor de métricas, por exemplo), a página traça as métricas desse monitor como o monitor as lê agora, e avisa.
+
 **Alertas → Episódios ativos** lista os episódios que ainda não foram resolvidos, e o selo ao lado os conta.
 
 ## Solução de problemas

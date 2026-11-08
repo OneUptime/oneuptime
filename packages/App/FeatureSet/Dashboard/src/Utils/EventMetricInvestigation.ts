@@ -31,6 +31,15 @@ export interface EventMetricWords {
   telemetryNoun: "incident" | "alert";
   // How its moments rank among other marks where they cluster.
   markerKind: ChartEventKind;
+  /*
+   * What its metric card says it shows, under the card's title: on its
+   * Overview, and on its Root Cause page while the card reads and when a
+   * read fails. An episode's card shows its first member's metrics
+   * (EpisodeFirstMember), and says so.
+   */
+  description: string;
+  // The same, once the charts are narrowed to the series it is about.
+  scopedDescription: string;
 }
 
 export function getEventMetricWords(
@@ -47,6 +56,10 @@ export function getEventMetricWords(
         ),
         telemetryNoun: "alert",
         markerKind: ChartEventKind.Alert,
+        description: translationKey("Metrics for this alert."),
+        scopedDescription: translationKey(
+          "Metrics for this alert, scoped to the affected series ({{seriesSummary}}).",
+        ),
       };
     case EventMetricSubject.IncidentEpisode:
       return {
@@ -58,6 +71,12 @@ export function getEventMetricWords(
         ),
         telemetryNoun: "incident",
         markerKind: ChartEventKind.Incident,
+        description: translationKey(
+          "Metrics related to this episode's first incident.",
+        ),
+        scopedDescription: translationKey(
+          "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).",
+        ),
       };
     case EventMetricSubject.AlertEpisode:
       return {
@@ -69,6 +88,10 @@ export function getEventMetricWords(
         ),
         telemetryNoun: "alert",
         markerKind: ChartEventKind.Alert,
+        description: translationKey("Metrics for this episode's first alert."),
+        scopedDescription: translationKey(
+          "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).",
+        ),
       };
     case EventMetricSubject.Incident:
     default:
@@ -81,6 +104,10 @@ export function getEventMetricWords(
         ),
         telemetryNoun: "incident",
         markerKind: ChartEventKind.Incident,
+        description: translationKey("Metrics related to this incident."),
+        scopedDescription: translationKey(
+          "Metrics related to this incident, scoped to the affected series ({{seriesSummary}}).",
+        ),
       };
   }
 }

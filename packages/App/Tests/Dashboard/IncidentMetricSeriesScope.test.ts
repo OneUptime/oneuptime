@@ -85,6 +85,19 @@ const ALERT_ROOT_CAUSE_READER: string = readSource(
   "AlertRootCauseMetricChart.tsx",
 );
 
+// An episode's card reads its first member (issue #6320).
+const INCIDENT_EPISODE_ROOT_CAUSE_READER: string = readSource(
+  "Components",
+  "IncidentEpisode",
+  "IncidentEpisodeRootCauseMetricChart.tsx",
+);
+
+const ALERT_EPISODE_ROOT_CAUSE_READER: string = readSource(
+  "Components",
+  "AlertEpisode",
+  "AlertEpisodeRootCauseMetricChart.tsx",
+);
+
 // What the Root Cause card charts, worked out apart from it.
 const ROOT_CAUSE_METRICS: string = readSource(
   "Utils",
@@ -109,6 +122,37 @@ const METRIC_INVESTIGATION_PANEL: string = readSource(
   "Telemetry",
   "EventMetricInvestigationPanel.tsx",
 );
+
+/*
+ * The words that card says what it shows in, for each kind of page: an
+ * incident's, an alert's and an episode's (issue #6320).
+ */
+const METRIC_INVESTIGATION_WORDS: string = readSource(
+  "Utils",
+  "EventMetricInvestigation.ts",
+);
+
+// The card says the narrowing it was handed, in its subject's words.
+const PANEL_SAYS_THE_NARROWING: string =
+  "const description: string = props.seriesSummary ? translator.translateTemplate(words.scopedDescription, { seriesSummary: props.seriesSummary, })";
+
+const SCOPED_DESCRIPTIONS: Array<string> = [
+  'scopedDescription: translationKey( "Metrics related to this incident, scoped to the affected series ({{seriesSummary}}).", ),',
+  'scopedDescription: translationKey( "Metrics for this alert, scoped to the affected series ({{seriesSummary}}).", ),',
+  `scopedDescription: translationKey( "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).", ),`,
+  `scopedDescription: translationKey( "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).", ),`,
+];
+
+function expectThePanelSaysTheNarrowing(): void {
+  expect(METRIC_INVESTIGATION_PANEL).toContain(PANEL_SAYS_THE_NARROWING);
+
+  for (const scoped of SCOPED_DESCRIPTIONS) {
+    expect({
+      scoped,
+      worded: METRIC_INVESTIGATION_WORDS.includes(scoped),
+    }).toEqual({ scoped, worded: true });
+  }
+}
 
 /*
  * A monitor's own metrics card (issue #5759), and what it charts: the
@@ -221,9 +265,7 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
     expect(ROOT_CAUSE_CHART).toContain(
       "seriesSummary={card.metrics.seriesSummary}",
     );
-    expect(METRIC_INVESTIGATION_PANEL).toContain(
-      "scoped to the affected series ({{seriesSummary}})",
-    );
+    expectThePanelSaysTheNarrowing();
   });
 });
 
@@ -279,6 +321,89 @@ describe("alert Root Cause metric chart is scoped to the alert's series", () => 
   });
 });
 
+/*
+ * An episode's Root Cause page shows the same card (issue #6320), reading
+ * its first member: a grouped metric monitor's incidents and alerts are each
+ * about one series, and the episode's card is narrowed to its first
+ * member's, as the episode's Overview narrows it.
+ */
+describe("episode Root Cause metric chart is scoped to its first member's series", () => {
+  test.each([
+    [
+      "an incident episode's",
+      (): string => {
+        return INCIDENT_EPISODE_ROOT_CAUSE_READER;
+      },
+      "kind: INCIDENT_EPISODE_FIRST_MEMBER, select: {",
+      "monitors: { _id: true, monitorType: true, monitorSteps: true, } as never,",
+    ],
+    [
+      "an alert episode's",
+      (): string => {
+        return ALERT_EPISODE_ROOT_CAUSE_READER;
+      },
+      "kind: ALERT_EPISODE_FIRST_MEMBER, select: {",
+      "monitor: { _id: true, monitorType: true, monitorSteps: true, },",
+    ],
+  ])(
+    "%s card asks the API for what its first member keeps: its snapshot, series and criteria, and its monitors' steps",
+    (
+      _name: string,
+      reader: () => string,
+      marker: string,
+      monitorColumns: string,
+    ) => {
+      const select: string = selectBlockAfter(reader(), marker);
+
+      for (const column of [
+        "_id: true,",
+        "telemetryQuery: true,",
+        "seriesLabels: true,",
+        "createdCriteriaId: true,",
+        monitorColumns,
+      ]) {
+        expect({ column, selected: select.includes(column) }).toEqual({
+          column,
+          selected: true,
+        });
+      }
+    },
+  );
+
+  test("hands its first member to what it charts, read as that incident's or alert's own card reads it", () => {
+    expect(INCIDENT_EPISODE_ROOT_CAUSE_READER).toContain(
+      "return member ? getIncidentEpisodeRootCauseEvent(member) : null;",
+    );
+    expect(ALERT_EPISODE_ROOT_CAUSE_READER).toContain(
+      "return member ? getAlertEpisodeRootCauseEvent(member) : null;",
+    );
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "return readEpisodeEvent(member, getIncidentRootCauseEvent(member));",
+    );
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "return readEpisodeEvent(member, getAlertRootCauseEvent(member));",
+    );
+    // The member's event as it is, its moments the episode's own.
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "return { ...memberEvent, startedAt: undefined, impactStartedAt: undefined, ruleEventId: readId(member.id), };",
+    );
+  });
+
+  test("is the incident's card, so it narrows and says it as that one does", () => {
+    for (const reader of [
+      INCIDENT_EPISODE_ROOT_CAUSE_READER,
+      ALERT_EPISODE_ROOT_CAUSE_READER,
+    ]) {
+      expect(reader).toContain("<EventRootCauseMetricChart");
+      // No chart and no narrowing of its own: the card's.
+      expect(reader).not.toContain("MetricSeriesScope");
+      expect(reader).not.toContain("<EventMetricInvestigationPanel");
+      // Its first member as the episode's Overview picks it.
+      expect(reader).toContain("await fetchFirstEpisodeMember<");
+    }
+  });
+});
+
 describe("incident overview Metrics card is scoped to the incident's series", () => {
   test("imports MetricSeriesScope", () => {
     expect(INCIDENT_VIEW).toContain(
@@ -307,12 +432,7 @@ describe("incident overview Metrics card is scoped to the incident's series", ()
      * worked out: never from the raw labels.
      */
     expect(INCIDENT_VIEW).toContain("seriesSummary={seriesSummary}");
-    expect(METRIC_INVESTIGATION_PANEL).toContain(
-      "scoped to the affected series ({{seriesSummary}})",
-    );
-    expect(METRIC_INVESTIGATION_PANEL).toContain(
-      "{ seriesSummary: props.seriesSummary }",
-    );
+    expectThePanelSaysTheNarrowing();
   });
 });
 
@@ -344,12 +464,7 @@ describe("alert overview Metrics card is scoped to the alert's series", () => {
      * worked out: never from the raw labels.
      */
     expect(ALERT_VIEW).toContain("seriesSummary={seriesSummary}");
-    expect(METRIC_INVESTIGATION_PANEL).toContain(
-      "scoped to the affected series ({{seriesSummary}})",
-    );
-    expect(METRIC_INVESTIGATION_PANEL).toContain(
-      "{ seriesSummary: props.seriesSummary }",
-    );
+    expectThePanelSaysTheNarrowing();
   });
 });
 

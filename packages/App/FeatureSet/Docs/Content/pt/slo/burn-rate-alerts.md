@@ -28,6 +28,8 @@ Com uma taxa de consumo de 1, você gasta o orçamento exatamente ao longo da ja
 
 A taxa de consumo não depende de quanto orçamento resta. Ela responde a "quão ruim está agora?", que é o que você precisa saber para decidir se aciona alguém.
 
+Para agir em vez disso conforme o orçamento que resta, por exemplo publicando só trabalho de confiabilidade quando resta um quarto dele, dê ao SLO uma [política de orçamento de erros](/docs/slo/error-budget-policy).
+
 ## Como uma regra decide disparar
 
 O OneUptime verifica cada regra de taxa de consumo habilitada a cada avaliação do SLO, a cada 5 minutos. Cada regra mede a taxa de consumo em duas janelas e só dispara quando as duas estão no limite dela ou acima:
@@ -184,6 +186,9 @@ Para escrever os seus, use variáveis de modelo no título, na descrição e nas
 | `{{errorBudgetRemaining}}` | Orçamento de erros ainda disponível, como duração. Começa com um sinal de menos quando o orçamento foi ultrapassado. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | Orçamento de erros ainda disponível, em minutos. | `18.37` |
 | `{{windowDescription}}` | A janela de conformidade do SLO, por extenso. | `rolling 30-day window` |
+| `{{policyTier}}` | Nome do nível da política de orçamento de erros em que o SLO está após esta avaliação. "None" quando não está em nenhum nível. | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | Limite de orçamento restante desse nível, como porcentagem. Vazio quando o SLO não está em nenhum nível. | `25` |
+| `{{policyTierWhatWeDo}}` | O que a equipe combinou fazer nesse nível, como está escrito no nível. Vazio quando o SLO não está em nenhum nível. | `Only reliability work and critical fixes ship.` |
 
 Por exemplo, o título `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` vira `Fast burn: Checkout availability is burning 21.5x`.
 
@@ -249,6 +254,7 @@ Não para SLOs medidos pela disponibilidade dos monitores. A disponibilidade é 
 
 :::cards
 - [Orçamentos de erros](/docs/slo/error-budget): O que é o orçamento e quanto ele dura.
+- [Política de orçamento de erros](/docs/slo/error-budget-policy): Aja conforme o orçamento que resta, nível por nível.
 - [Regras de escalonamento](/docs/on-call/escalation-rules): Quem é acionado, e em que ordem.
 - [Feed e registros de auditoria de SLO](/docs/slo/feed-and-audit-logs): Cada alerta e incidente que uma regra gera.
 :::

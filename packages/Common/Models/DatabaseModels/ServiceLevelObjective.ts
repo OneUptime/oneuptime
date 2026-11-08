@@ -86,7 +86,11 @@ const decimalTransformer: ValueTransformer = {
  * told, with their context, in the SLO feed), so a worker-only write records
  * nothing. autoAddedMonitors is the monitor-rule engine's bookkeeping of which
  * attached monitors it owns; the attachment itself stays audited on
- * `monitors`. The SLO's burn-rate rules, monitor rules and owners roll their
+ * `monitors`. The one worker column that IS recorded is
+ * currentErrorBudgetPolicyTierName: an SLO entering or leaving a tier of its
+ * error budget policy is a decision the team agreed to act on, so it is
+ * recorded (as a system event, like every change the worker makes) under the
+ * tier's name, while the tier's id and entry time beside it stay out. The SLO's burn-rate rules, monitor rules and owners roll their
  * entries up to this resource (their rootResource), so the SLO's Audit Logs
  * page shows them too.
  */
@@ -99,6 +103,8 @@ const decimalTransformer: ValueTransformer = {
     "currentBurnRate",
     "sloStatus",
     "statusChangeNotificationSentAt",
+    "currentErrorBudgetPolicyTierId",
+    "currentErrorBudgetPolicyTierEnteredAt",
     "lastEvaluatedAt",
     "nextEvaluationAt",
     "lastAccumulatedBucketEndAt",
@@ -1197,6 +1203,93 @@ export default class ServiceLevelObjective extends BaseModel {
     nullable: true,
   })
   public statusChangeNotificationSentAt?: Date = undefined;
+
+  /*
+   * The tier of the SLO's error budget policy it is in, decided by the
+   * evaluation worker (SloErrorBudgetPolicy.computeSloPolicyTier) and empty
+   * while the budget is above every tier or the SLO has no policy. Readable
+   * with the SLO's own read permission, so CI and scripts can ask "what tier
+   * is this SLO in?" with the same API key that reads its budget.
+   *
+   * A snapshot rather than a relation: the name is what readers want, it is
+   * what the audit log records the change under, and it stays readable when
+   * the tier itself has since been renamed or deleted (the worker refreshes
+   * it on its next evaluation). The id says which tier it is, for a reader
+   * who goes on to read that tier's "what we do".
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Current Error Budget Policy Tier ID",
+    description:
+      "ID of the error budget policy tier this Service Level Objective is in. Empty while its error budget is above every tier, or when it has no error budget policy. Computed by the worker.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public currentErrorBudgetPolicyTierId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Current Error Budget Policy Tier",
+    description:
+      "Name of the error budget policy tier this Service Level Objective is in. Empty while its error budget is above every tier, or when it has no error budget policy. Computed by the worker.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    length: ColumnLength.ShortText,
+  })
+  public currentErrorBudgetPolicyTierName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Current Error Budget Policy Tier Entered At",
+    description:
+      "When this Service Level Objective entered the error budget policy tier it is in. Empty while it is in no tier. Computed by the worker.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public currentErrorBudgetPolicyTierEnteredAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

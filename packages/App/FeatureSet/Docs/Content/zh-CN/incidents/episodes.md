@@ -85,3 +85,7 @@ curl -X POST 'https://oneuptime.com/api/incident-episode-member/add-incidents' \
 在只允许事件属于一个片段的项目中，已在另一个片段中的事件会以原因 `Already in another episode. An incident can be in only one episode in this project.` 出现在 `notAdded` 中。
 
 对于警报，把 `alertEpisodeId` 和 `alertIds` 发送到 `/api/alert-episode-member/add-alerts`。要创建一个已包含事件的片段，在创建片段的请求 `POST /api/incident-episode` 中带上它们的 ID，形式为 `{ "data": { "title": "Checkout outage" }, "miscDataProps": { "incidentIdsToAdd": ["<incident id>"] } }`；警报片段则使用 `POST /api/alert-episode` 并带上 `alertIdsToAdd`。只要其中有一个无法添加，就不会创建片段。
+
+## 写下根本原因
+
+片段的 **根本原因** 页面是你写下它发生原因的地方，为其中所有事件写一次即可。在根本原因旁边，它会绘制片段背后的指标：即它的第一个事件（最早声明的那个）的指标，与片段 **概览** 的遥测卡片绘制的一样，范围在片段开始前后，并标出片段自身的各个时刻。你可以选择其他时间范围、在图表上拖动来放大，或者直接在那里更改和添加指标；页面地址会保留你所做的更改，因此指向它的链接会打开相同的图表。如果该事件没有保留指标检查的快照（例如针对指标监视器手动声明的事件），页面会按监视器当前的读取方式绘制该监视器的指标，并加以说明。如果片段的第一个事件背后没有指标，页面只显示根本原因。

@@ -1,9 +1,12 @@
 /**
- * Template variables for the Alerts and Incidents a burn rate rule creates.
+ * Template variables for the Alerts and Incidents a burn rate rule - or a
+ * tier of the SLO's error budget policy - creates.
  *
  * A burn rate rule can carry its own title, description and remediation
  * notes, and all three may reference `{{variables}}` - the SLO, the rule and
- * the numbers that made it fire. This module owns both halves of that
+ * the numbers that made it fire. A policy tier carries the same three, and
+ * renders them with the same replacer and the same variable map: its own
+ * catalog leaves out the rule's variables, which render empty for a tier. This module owns both halves of that
  * contract: the catalog the dashboard documents, and the variable map plus
  * replacer the evaluation worker renders with. Keeping them in one file (and
  * pinning `catalog keys === variable map keys` in the unit tests) is what
@@ -27,6 +30,7 @@ import {
 } from "../../Types/Template/TemplateVariable";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import { formatDurationCompact } from "./SloDuration";
+import { readSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
 
 /*
  * Every variable a burn rate template may reference. Values equal the
@@ -50,7 +54,13 @@ export enum SloBurnRateTemplateVariable {
   ErrorBudgetRemaining = "errorBudgetRemaining",
   ErrorBudgetRemainingMinutes = "errorBudgetRemainingMinutes",
   WindowDescription = "windowDescription",
+  PolicyTier = "policyTier",
+  PolicyTierThresholdPercentage = "policyTierThresholdPercentage",
+  PolicyTierWhatWeDo = "policyTierWhatWeDo",
 }
+
+// What `{{policyTier}}` says while the SLO is in no tier.
+export const SLO_POLICY_TIER_NONE_TEXT: string = "None";
 
 /*
  * A Record over the enum rather than a loose dictionary: the builder below
@@ -159,7 +169,63 @@ export const SLO_BURN_RATE_TEMPLATE_VARIABLES: ReadonlyArray<SloBurnRateTemplate
       description: "The SLO's compliance window, in words.",
       example: "rolling 30-day window",
     },
+    {
+      key: SloBurnRateTemplateVariable.PolicyTier,
+      description: `Name of the error budget policy tier the SLO is in after this evaluation. "${SLO_POLICY_TIER_NONE_TEXT}" when it is in no tier.`,
+      example: "Reliability first",
+    },
+    {
+      key: SloBurnRateTemplateVariable.PolicyTierThresholdPercentage,
+      description:
+        "Budget-left threshold of that tier, as a percentage. Empty when the SLO is in no tier.",
+      example: "25",
+    },
+    {
+      key: SloBurnRateTemplateVariable.PolicyTierWhatWeDo,
+      description:
+        "What the team agreed to do in that tier, as written on the tier. Empty when the SLO is in no tier.",
+      example: "Only reliability work and critical fixes ship.",
+    },
   ];
+
+/*
+ * The variables a policy tier's templates are offered: everything about the
+ * SLO and its budget, and the tier. The rule's own variables - its name,
+ * threshold, windows and burn rates - are left out: a tier has none of them,
+ * and they render empty in a tier's templates.
+ */
+const SLO_POLICY_TIER_TEMPLATE_VARIABLE_KEYS: ReadonlyArray<SloBurnRateTemplateVariable> =
+  [
+    SloBurnRateTemplateVariable.SloName,
+    SloBurnRateTemplateVariable.SloId,
+    SloBurnRateTemplateVariable.SloLink,
+    SloBurnRateTemplateVariable.SloStatus,
+    SloBurnRateTemplateVariable.PolicyTier,
+    SloBurnRateTemplateVariable.PolicyTierThresholdPercentage,
+    SloBurnRateTemplateVariable.PolicyTierWhatWeDo,
+    SloBurnRateTemplateVariable.TargetPercentage,
+    SloBurnRateTemplateVariable.CurrentSliPercentage,
+    SloBurnRateTemplateVariable.ErrorBudgetRemainingPercentage,
+    SloBurnRateTemplateVariable.ErrorBudgetRemaining,
+    SloBurnRateTemplateVariable.ErrorBudgetRemainingMinutes,
+    SloBurnRateTemplateVariable.WindowDescription,
+  ];
+
+export const SLO_POLICY_TIER_TEMPLATE_VARIABLES: ReadonlyArray<SloBurnRateTemplateVariableDefinition> =
+  SLO_POLICY_TIER_TEMPLATE_VARIABLE_KEYS.map(
+    (
+      key: SloBurnRateTemplateVariable,
+    ): SloBurnRateTemplateVariableDefinition => {
+      const definition: SloBurnRateTemplateVariableDefinition | undefined =
+        SLO_BURN_RATE_TEMPLATE_VARIABLES.find(
+          (candidate: SloBurnRateTemplateVariableDefinition): boolean => {
+            return candidate.key === key;
+          },
+        );
+
+      return definition as SloBurnRateTemplateVariableDefinition;
+    },
+  );
 
 /*
  * The same catalog as the rule form's template fields offer it: under each
@@ -167,19 +233,36 @@ export const SLO_BURN_RATE_TEMPLATE_VARIABLES: ReadonlyArray<SloBurnRateTemplate
  * Insert variable button, and when "{{" is typed. Each with its example, so
  * the reader can picture what goes in.
  */
-export const SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS: TemplateVariableGroups = [
-  {
-    variables: SLO_BURN_RATE_TEMPLATE_VARIABLES.map(
-      (definition: SloBurnRateTemplateVariableDefinition): TemplateVariable => {
-        return {
-          name: definition.key,
-          description: definition.description,
-          example: definition.example,
-        };
-      },
-    ),
-  },
-];
+type ToTemplateVariableGroupsFunction = (
+  definitions: ReadonlyArray<SloBurnRateTemplateVariableDefinition>,
+) => TemplateVariableGroups;
+
+const toTemplateVariableGroups: ToTemplateVariableGroupsFunction = (
+  definitions: ReadonlyArray<SloBurnRateTemplateVariableDefinition>,
+): TemplateVariableGroups => {
+  return [
+    {
+      variables: definitions.map(
+        (
+          definition: SloBurnRateTemplateVariableDefinition,
+        ): TemplateVariable => {
+          return {
+            name: definition.key,
+            description: definition.description,
+            example: definition.example,
+          };
+        },
+      ),
+    },
+  ];
+};
+
+export const SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS: TemplateVariableGroups =
+  toTemplateVariableGroups(SLO_BURN_RATE_TEMPLATE_VARIABLES);
+
+// The same, as a policy tier's template fields offer it.
+export const SLO_POLICY_TIER_TEMPLATE_VARIABLE_GROUPS: TemplateVariableGroups =
+  toTemplateVariableGroups(SLO_POLICY_TIER_TEMPLATE_VARIABLES);
 
 /*
  * The longest template the rule service accepts, shared with the dashboard
@@ -208,6 +291,18 @@ export const DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE: string =
 export const DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE: string =
   'SLO "{{sloName}}" is burning its error budget too fast. Rule "{{ruleName}}": burn rate over the last {{longWindowInMinutes}} minutes is {{longWindowBurnRate}}x and over the last {{shortWindowInMinutes}} minutes is {{shortWindowBurnRate}}x — both at or above the threshold of {{burnRateThreshold}}x. Error budget remaining: {{errorBudgetRemainingPercentage}}% ({{errorBudgetRemainingMinutes}} minutes).';
 
+/*
+ * What an alert or incident a policy tier raises says when its templates are
+ * blank: which tier the SLO entered, the budget that put it there, and the
+ * team's agreement for it. The dashboard prefills a tier's template fields
+ * with these, like a rule's.
+ */
+export const DEFAULT_SLO_POLICY_TIER_TITLE_TEMPLATE: string =
+  "SLO error budget policy: {{sloName}} — {{policyTier}}";
+
+export const DEFAULT_SLO_POLICY_TIER_DESCRIPTION_TEMPLATE: string =
+  'SLO "{{sloName}}" is in the "{{policyTier}}" tier of its error budget policy: {{errorBudgetRemainingPercentage}}% of its error budget is left ({{errorBudgetRemaining}}), at or below the tier\'s {{policyTierThresholdPercentage}}%.\n\n**What we do:** {{policyTierWhatWeDo}}';
+
 // What the worker knows at the moment a rule fires.
 export interface SloBurnRateTemplateContext {
   sloId: string;
@@ -227,7 +322,33 @@ export interface SloBurnRateTemplateContext {
   windowType: SloWindowType | undefined;
   windowDays: number | undefined;
   timezone: string | undefined;
+  /*
+   * The error budget policy tier the SLO is in after this evaluation, or
+   * nothing when it is in none (or has no policy).
+   */
+  policyTier?: SloPolicyTierTemplateValues | null | undefined;
 }
+
+// A policy tier as the templates read it.
+export interface SloPolicyTierTemplateValues {
+  name: string | undefined | null;
+  thresholdPercentage: number | string | undefined | null;
+  whatWeDo: string | undefined | null;
+}
+
+/*
+ * What the worker knows when a policy tier raises something: the SLO, its
+ * budget and the tier. The rule's variables have nothing to say for a tier.
+ */
+export type SloPolicyTierTemplateContext = Omit<
+  SloBurnRateTemplateContext,
+  | "ruleName"
+  | "burnRateThreshold"
+  | "longWindowBurnRate"
+  | "shortWindowBurnRate"
+  | "longWindowInMinutes"
+  | "shortWindowInMinutes"
+>;
 
 /*
  * Two decimals, the precision the pre-template description always used, and
@@ -272,6 +393,25 @@ const formatBudgetDuration: FormatBudgetDurationFunction = (
   }
 
   return duration;
+};
+
+type FormatPolicyTierThresholdFunction = (
+  tier: SloPolicyTierTemplateValues | null | undefined,
+) => string;
+
+// "25", like every other percentage here: the template writes the % sign.
+const formatPolicyTierThreshold: FormatPolicyTierThresholdFunction = (
+  tier: SloPolicyTierTemplateValues | null | undefined,
+): string => {
+  if (!tier) {
+    return "";
+  }
+
+  const threshold: number | null = readSloPolicyTierThreshold(
+    tier.thresholdPercentage,
+  );
+
+  return threshold === null ? "" : formatTemplateNumber(threshold);
 };
 
 type DescribeWindowFunction = (context: SloBurnRateTemplateContext) => string;
@@ -335,7 +475,35 @@ export const buildSloBurnRateTemplateVariables: BuildSloBurnRateTemplateVariable
           ? formatTemplateNumber(context.errorBudgetRemainingSeconds / 60)
           : "",
       [SloBurnRateTemplateVariable.WindowDescription]: describeWindow(context),
+      [SloBurnRateTemplateVariable.PolicyTier]:
+        context.policyTier?.name?.trim() || SLO_POLICY_TIER_NONE_TEXT,
+      [SloBurnRateTemplateVariable.PolicyTierThresholdPercentage]:
+        formatPolicyTierThreshold(context.policyTier),
+      [SloBurnRateTemplateVariable.PolicyTierWhatWeDo]:
+        context.policyTier?.whatWeDo || "",
     };
+  };
+
+export type BuildSloPolicyTierTemplateVariablesFunction = (
+  context: SloPolicyTierTemplateContext,
+) => SloBurnRateTemplateVariables;
+
+/*
+ * The variable map a policy tier renders with. The rule's variables are in
+ * it - the map is one Record over the enum - but empty: NaN reads as empty
+ * through formatTemplateNumber, and a tier has no rule name.
+ */
+export const buildSloPolicyTierTemplateVariables: BuildSloPolicyTierTemplateVariablesFunction =
+  (context: SloPolicyTierTemplateContext): SloBurnRateTemplateVariables => {
+    return buildSloBurnRateTemplateVariables({
+      ...context,
+      ruleName: undefined,
+      burnRateThreshold: Number.NaN,
+      longWindowBurnRate: Number.NaN,
+      shortWindowBurnRate: Number.NaN,
+      longWindowInMinutes: Number.NaN,
+      shortWindowInMinutes: Number.NaN,
+    });
   };
 
 /*

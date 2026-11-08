@@ -18,6 +18,10 @@ import path from "path";
  *   AlertRootCauseTimeRangeZoom.test.tsx          (an alert's Root Cause
  *                                                  page, the same card,
  *                                                  issue #6304)
+ *   EpisodeRootCauseTimeRangeZoom.test.tsx        (an incident episode's and
+ *                                                  an alert episode's Root
+ *                                                  Cause pages, the same
+ *                                                  card, issue #6320)
  *   EventOverviewTelemetrySnapshotZoom.test.tsx   (incident / alert pages)
  *   EventOverviewSnapshotZoomAcrossTabs.test.tsx  (their snapshot's tabs)
  *   TelemetrySnapshotPanelTimeRangeZoom.test.tsx  (episodes, companion tabs)
@@ -492,10 +496,12 @@ describe("a metric snapshot's investigation zooms as one, every tab of it (issue
   });
 });
 
-describe("the Root Cause cards zoom through the event's investigation (issues #6249 and #6304)", () => {
+describe("the Root Cause cards zoom through the event's investigation (issues #6249, #6304 and #6320)", () => {
   const CARD: string = `${DASHBOARD}/Components/Telemetry/EventRootCauseMetricChart.tsx`;
   const INCIDENT_CARD: string = `${DASHBOARD}/Components/Incident/IncidentRootCauseMetricChart.tsx`;
   const ALERT_CARD: string = `${DASHBOARD}/Components/Alert/AlertRootCauseMetricChart.tsx`;
+  const INCIDENT_EPISODE_CARD: string = `${DASHBOARD}/Components/IncidentEpisode/IncidentEpisodeRootCauseMetricChart.tsx`;
+  const ALERT_EPISODE_CARD: string = `${DASHBOARD}/Components/AlertEpisode/AlertEpisodeRootCauseMetricChart.tsx`;
 
   test("no chart of its own: the investigation draws it, zoom and way back included", () => {
     const source: string = readSquashed(CARD);
@@ -508,9 +514,19 @@ describe("the Root Cause cards zoom through the event's investigation (issues #6
       "<EventMetricInvestigationPanel",
       "/>",
     );
-    // The event it reads: the incident, or the alert.
+    // The record it reads: the incident, the alert, or an episode of either.
     expect(panel).toContain("subject={reader.subject}");
-    expect(panel).toContain("eventId={eventId}");
+    /*
+     * An incident's or an alert's own id, so it is not marked twice; an
+     * episode's members are all marked, and its first member's rule drawn.
+     */
+    expect(panel).toContain(
+      "eventId={ ROOT_CAUSE_SUBJECT_IS_ONE_EVENT[reader.subject] ? eventId : undefined }",
+    );
+    expect(panel).toContain("ruleEventId={card.ruleEventId}");
+    expect(source).toContain(
+      "[EventMetricSubject.Incident]: true, [EventMetricSubject.Alert]: true, [EventMetricSubject.IncidentEpisode]: false, [EventMetricSubject.AlertEpisode]: false,",
+    );
     // The metrics alone, beside the root cause: the Overview has the tabs.
     expect(panel).toContain("showsCompanionTabs={false}");
     // Names of its own in the URL: never the Overview card's.
@@ -532,6 +548,18 @@ describe("the Root Cause cards zoom through the event's investigation (issues #6
       ALERT_CARD,
       "EventMetricSubject.Alert",
       "ALERT_ROOT_CAUSE_READER",
+    ],
+    [
+      "the incident episode's",
+      INCIDENT_EPISODE_CARD,
+      "EventMetricSubject.IncidentEpisode",
+      "INCIDENT_EPISODE_ROOT_CAUSE_READER",
+    ],
+    [
+      "the alert episode's",
+      ALERT_EPISODE_CARD,
+      "EventMetricSubject.AlertEpisode",
+      "ALERT_EPISODE_ROOT_CAUSE_READER",
     ],
   ])(
     "%s Root Cause page shows that one card, reading its own event",
@@ -558,6 +586,16 @@ describe("the Root Cause cards zoom through the event's investigation (issues #6
     expect(
       readSquashed(`${DASHBOARD}/Pages/Alerts/View/RootCause.tsx`),
     ).toContain("<AlertRootCauseMetricChart alertId={modelId} />");
+    expect(
+      readSquashed(`${DASHBOARD}/Pages/Incidents/EpisodeView/RootCause.tsx`),
+    ).toContain(
+      "<IncidentEpisodeRootCauseMetricChart incidentEpisodeId={modelId} />",
+    );
+    expect(
+      readSquashed(`${DASHBOARD}/Pages/Alerts/EpisodeView/RootCause.tsx`),
+    ).toContain(
+      "<AlertEpisodeRootCauseMetricChart alertEpisodeId={modelId} />",
+    );
   });
 });
 

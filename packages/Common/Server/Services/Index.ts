@@ -507,6 +507,7 @@ import ScheduledMaintenanceMeasurementValueService from "./ScheduledMaintenanceM
 import IncidentSlaService from "./IncidentSlaService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "./ServiceLevelObjectiveErrorBudgetPolicyTierService";
 import LlmCostBudgetService from "./LlmCostBudgetService";
 import LlmObservabilityConnectionService from "./LlmObservabilityConnectionService";
 import ExternalMcpServerService from "./ExternalMcpServerService";
@@ -1096,6 +1097,7 @@ const services: Array<BaseService> = [
   IncidentSlaService,
   ServiceLevelObjectiveService,
   ServiceLevelObjectiveBurnRateRuleService,
+  ServiceLevelObjectiveErrorBudgetPolicyTierService,
   LlmCostBudgetService,
   LlmObservabilityConnectionService,
   ExternalMcpServerService,

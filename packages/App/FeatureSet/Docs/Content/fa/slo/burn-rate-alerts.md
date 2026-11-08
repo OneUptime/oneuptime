@@ -28,6 +28,8 @@ burn rate = (share of time that was bad) ÷ (share of time the target allows to 
 
 نرخ مصرف به اینکه چه مقدار بودجه مانده بستگی ندارد. به «همین حالا اوضاع چقدر بد است؟» پاسخ می‌دهد، و این همان چیزی است که برای تصمیم به فراخواندن کسی باید بدانید.
 
+برای اینکه به‌جای آن بر پایه بودجه باقی‌مانده عمل کنید، مثلاً وقتی یک‌چهارم بودجه مانده فقط کار قابلیت اطمینان منتشر شود، به SLO یک [سیاست بودجه خطا](/docs/slo/error-budget-policy) بدهید.
+
 ## یک قاعده چگونه تصمیم می‌گیرد فعال شود
 
 OneUptime هر قاعده نرخ مصرف فعال را در هر ارزیابی SLO، هر ۵ دقیقه، بررسی می‌کند. هر قاعده نرخ مصرف را روی دو پنجره می‌سنجد و فقط وقتی فعال می‌شود که هر دو در آستانه آن یا بالاتر باشند:
@@ -184,6 +186,9 @@ SLO burn rate: {{sloName}} — {{ruleName}}
 | `{{errorBudgetRemaining}}` | بودجه خطایی که هنوز در دسترس است، به‌صورت مدت. وقتی از بودجه فراتر رفته باشید با علامت منفی آغاز می‌شود. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | بودجه خطایی که هنوز در دسترس است، به دقیقه. | `18.37` |
 | `{{windowDescription}}` | پنجره انطباق SLO، به زبان ساده. | `rolling 30-day window` |
+| `{{policyTier}}` | نام سطحی از سیاست بودجه خطا که SLO پس از این ارزیابی در آن است. وقتی در هیچ سطحی نیست «None». | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | آستانه بودجه باقی‌مانده آن سطح، به درصد. وقتی SLO در هیچ سطحی نیست خالی است. | `25` |
+| `{{policyTierWhatWeDo}}` | آنچه تیم توافق کرده در آن سطح انجام دهد، همان‌طور که روی سطح نوشته شده است. وقتی SLO در هیچ سطحی نیست خالی است. | `Only reliability work and critical fixes ship.` |
 
 برای نمونه، عنوان `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` به `Fast burn: Checkout availability is burning 21.5x` تبدیل می‌شود.
 
@@ -249,6 +254,7 @@ SLO burn rate: {{sloName}} — {{ruleName}}
 
 :::cards
 - [بودجه‌های خطا](/docs/slo/error-budget): بودجه چیست و چقدر دوام می‌آورد.
+- [سیاست بودجه خطا](/docs/slo/error-budget-policy): بر پایه بودجه باقی‌مانده، سطح به سطح عمل کنید.
 - [قواعد تشدید](/docs/on-call/escalation-rules): چه کسی و به چه ترتیبی فراخوانده می‌شود.
 - [فید و گزارش‌های ممیزی SLO](/docs/slo/feed-and-audit-logs): هر هشدار و حادثه‌ای که یک قاعده می‌سازد.
 :::
