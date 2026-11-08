@@ -411,6 +411,25 @@ export function pickSloRecommendedAlertSeverities<
 
 /*
  * ---------------------------------------------------------------------------
+ * What "Add recommended rules" is refused with
+ * ---------------------------------------------------------------------------
+ *
+ * The routes' sentences, here so the Dashboard can translate them where it
+ * shows one (the SLO list's bulk result), in the server's very words.
+ */
+
+// An SLO the caller may not read is not found either, so it says nothing about itself.
+export const SLO_RECOMMENDED_RULES_SLO_NOT_FOUND_MESSAGE: string =
+  "Service Level Objective not found.";
+
+export const SLO_RECOMMENDED_RULES_READ_REFUSAL_MESSAGE: string =
+  "Seeing which recommended burn rate rules an SLO is missing takes a role that can read SLO burn rate rules.";
+
+export const SLO_RECOMMENDED_RULES_CREATE_REFUSAL_MESSAGE: string =
+  "Adding the recommended burn rate rules takes a role that can create SLO burn rate rules.";
+
+/*
+ * ---------------------------------------------------------------------------
  * What "Add recommended rules" is told, as JSON
  * ---------------------------------------------------------------------------
  */
