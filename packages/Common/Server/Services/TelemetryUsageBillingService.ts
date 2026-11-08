@@ -65,6 +65,9 @@ import {
 } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import QueryHelper from "../Types/Database/QueryHelper";
+import GlobalConfigService from "./GlobalConfigService";
+import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import { getTelemetryUsageRetentionInDays } from "../../Types/Telemetry/TelemetryUsage";
 import PayAsYouGoBillingService, {
   LiveUsageAuthorization,
 } from "./PayAsYouGoBillingService";
@@ -140,12 +143,26 @@ export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> =
  */
 export const TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS: number = 7;
 
+/*
+ * What one resource sent of one product in a window, as metering counts it:
+ * the estimated bytes, and what kind of resource the id names.
+ */
+export interface TelemetryResourceUsage {
+  primaryEntityType: ServiceType;
+  bytes: number;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
-    if (IsBillingEnabled) {
-      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
-    }
+    /*
+     * No fixed retention here: the rows are kept for the instance's telemetry
+     * usage retention (GlobalConfig.telemetryUsageRetentionInDays, 120 days
+     * unless changed), with billing on or off, by
+     * deleteUsageOlderThanRetention - the TelemetryUsage:DeleteOldUsage
+     * worker job. The 120 days used to be scheduled here, and only where
+     * billing was on.
+     */
   }
 
   @CaptureSpan()
@@ -200,7 +217,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * Stage every complete UTC day of the last
    * TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS that has telemetry for this
-   * product and no staged usage yet, oldest first.
+   * product and no staged usage yet, oldest first - for billing, where
+   * billing is on.
    *
    * A day counts as staged once it has any usage row; staging a day again
    * would only skip the resources already staged for it. Only days that hold
@@ -229,11 +247,75 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    await this.stageUnstagedDays({
+      projectId: data.projectId,
+      productType: data.productType,
+      earliestDay: data.billingStartsAt,
+      stageDay: async (usageDay: Date): Promise<void> => {
+        await this.stageTelemetryUsageForProject({
+          projectId: data.projectId,
+          productType: data.productType,
+          usageDate: usageDay,
+          liveAuthorization: data.liveAuthorization,
+        });
+      },
+    });
+  }
+
+  /*
+   * Metering where billing is off: the same catch-up as
+   * stageUnstagedTelemetryUsageForProject - every complete UTC day of the
+   * last week that has telemetry and no usage yet, oldest first, one failing
+   * day stopping none of the others - with every day staged at no cost
+   * (meterTelemetryUsageForProject). Run for each project by the
+   * TelemetryUsage:MeterTelemetryUsage worker job, so a server without
+   * billing - Community Edition included - shows what each project and
+   * service sends.
+   *
+   * Nothing at all where billing is on: billing stages usage itself
+   * (stageUnstagedTelemetryUsageForProject), for the projects that pay for
+   * it, and a free project's days are left to it - counted here, a day with
+   * a row would never be billed once the project starts paying.
+   */
+  @CaptureSpan()
+  public async meterUnstagedTelemetryUsageForProject(data: {
+    projectId: ObjectID;
+    productType: ProductType;
+  }): Promise<void> {
+    if (IsBillingEnabled) {
+      return;
+    }
+
+    await this.stageUnstagedDays({
+      projectId: data.projectId,
+      productType: data.productType,
+      earliestDay: undefined,
+      stageDay: async (usageDay: Date): Promise<void> => {
+        await this.meterTelemetryUsageForProject({
+          projectId: data.projectId,
+          productType: data.productType,
+          usageDate: usageDay,
+        });
+      },
+    });
+  }
+
+  /*
+   * The catch-up both staging paths share: the days of the window from
+   * `earliestDay` on that have telemetry and no usage row, each handed to
+   * `stageDay`, oldest first.
+   */
+  private async stageUnstagedDays(data: {
+    projectId: ObjectID;
+    productType: ProductType;
+    earliestDay: Date | undefined;
+    stageDay: (usageDay: Date) => Promise<void>;
+  }): Promise<void> {
     const usageDays: Array<Date> = this.getStagingWindowDays().filter(
       (usageDay: Date): boolean => {
         return (
-          !data.billingStartsAt ||
-          usageDay.getTime() >= data.billingStartsAt.getTime()
+          !data.earliestDay ||
+          usageDay.getTime() >= data.earliestDay.getTime()
         );
       },
     );
@@ -300,15 +382,10 @@ export class Service extends DatabaseService<Model> {
       }
 
       try {
-        await this.stageTelemetryUsageForProject({
-          projectId: data.projectId,
-          productType: data.productType,
-          usageDate: usageDay,
-          liveAuthorization: data.liveAuthorization,
-        });
+        await data.stageDay(usageDay);
       } catch (error) {
         logger.error(
-          `Failed to stage ${data.productType} usage of ${this.getUsageDayString(usageDay)} for project ${data.projectId.toString()}; the next billing run retries it.`,
+          `Failed to stage ${data.productType} usage of ${this.getUsageDayString(usageDay)} for project ${data.projectId.toString()}; the next run retries it.`,
         );
         logger.error(error as Error);
         firstFailure = firstFailure || error;
@@ -428,6 +505,11 @@ export class Service extends DatabaseService<Model> {
     return new Set(dayLists.flat());
   }
 
+  /*
+   * Stage one day of a product's usage for billing, where billing is on:
+   * only for a project that may pay as it goes (anything else is waived),
+   * and never for a day before its billing cutoff.
+   */
   @CaptureSpan()
   public async stageTelemetryUsageForProject(data: {
     projectId: ObjectID;
@@ -474,6 +556,74 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    await this.stageUsageOfDay({
+      projectId: data.projectId,
+      productType: data.productType,
+      usageDate: usageDate,
+      isBillable: true,
+    });
+  }
+
+  /*
+   * Meter one day of a product's usage where billing is off: the same scan,
+   * the same rows and the same retention as billing stages, at no cost.
+   *
+   * Nothing here asks a payment provider - there is none - and nothing here
+   * can ever be charged. Each row is staged with a total cost of 0, and every
+   * path that charges for usage takes only rows that cost something
+   * (getUnreportedUsageBilling, the marketplace usage reports). A day with a
+   * row counts as staged, so if billing is turned on later it never stages
+   * that day again: what was metered without billing is never charged
+   * retroactively.
+   */
+  @CaptureSpan()
+  public async meterTelemetryUsageForProject(data: {
+    projectId: ObjectID;
+    productType: ProductType;
+    usageDate: Date;
+  }): Promise<void> {
+    if (IsBillingEnabled) {
+      return;
+    }
+
+    await this.stageUsageOfDay({
+      projectId: data.projectId,
+      productType: data.productType,
+      usageDate: OneUptimeDate.fromString(data.usageDate),
+      isBillable: false,
+    });
+  }
+
+  /*
+   * How many bytes of a product each resource of a project sent in a window:
+   * the usage both billing and metering stage, for one UTC day at a time.
+   *
+   * Enumerated from ClickHouse by (primaryEntityId, primaryEntityType) in a
+   * single aggregation scan per analytics table. Unlike the old
+   * per-Service-row loop, this surfaces EVERY resource that emitted
+   * telemetry — real Services AND Hosts / Docker hosts / Kubernetes
+   * clusters / unattributed (primaryEntityId = projectId) — so infrastructure
+   * telemetry is no longer ingested for free. `byteSize(*)` gives the
+   * estimated ingested bytes per group; the configured average row size
+   * is only a fallback if the engine returns 0. Each scan keeps the
+   * analytics service's time cap, and fails rather than counting part of a
+   * day.
+   *
+   * OneUptime's own operational rows - monitor, alert, incident, SLO and
+   * Data Observability telemetry, the session replay budget series - are
+   * left out (TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES and _METRIC_NAMES), as
+   * they are left out of billing. A resource with a legacy row of no type is
+   * a real Service (OpenTelemetry).
+   */
+  @CaptureSpan()
+  public async getTelemetryUsageByResource(data: {
+    projectId: ObjectID;
+    productType: ProductType;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<Map<string, TelemetryResourceUsage>> {
+    const usageByResource: Map<string, TelemetryResourceUsage> = new Map();
+
     const averageRowSizeInBytes: number = this.getAverageRowSizeForProduct(
       data.productType,
     );
@@ -495,7 +645,7 @@ export class Service extends DatabaseService<Model> {
       data.productType !== ProductType.SessionReplay &&
       averageRowSizeInBytes <= 0
     ) {
-      return;
+      return usageByResource;
     }
 
     if (
@@ -503,7 +653,7 @@ export class Service extends DatabaseService<Model> {
       averageRowSizeInBytes <= 0 &&
       averageExceptionRowSizeInBytes <= 0
     ) {
-      return;
+      return usageByResource;
     }
 
     if (
@@ -511,23 +661,9 @@ export class Service extends DatabaseService<Model> {
       averageRowSizeInBytes <= 0 &&
       averageProfileSampleRowSizeInBytes <= 0
     ) {
-      return;
+      return usageByResource;
     }
 
-    const usageDayString: string = this.getUsageDayString(usageDate);
-    const startOfDay: Date = OneUptimeDate.getStartOfDay(usageDate, "UTC");
-    const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate, "UTC");
-
-    /*
-     * Enumerate usage from ClickHouse by (primaryEntityId, primaryEntityType) in a
-     * single aggregation scan per analytics table. Unlike the old
-     * per-Service-row loop, this surfaces EVERY resource that emitted
-     * telemetry — real Services AND Hosts / Docker hosts / Kubernetes
-     * clusters / unattributed (primaryEntityId = projectId) — so infrastructure
-     * telemetry is no longer ingested for free. `byteSize(*)` gives the
-     * estimated ingested bytes per group; the configured average row size
-     * is only a fallback if the engine returns 0.
-     */
     type ServiceUsage = {
       primaryEntityType: string | null;
       bytes: number;
@@ -573,33 +709,33 @@ export class Service extends DatabaseService<Model> {
       }
     };
 
+    const window: { projectId: ObjectID; startDate: Date; endDate: Date } = {
+      projectId: data.projectId,
+      startDate: data.startDate,
+      endDate: data.endDate,
+    };
+
     try {
       if (data.productType === ProductType.Traces) {
         addUsage(
           await SpanService.groupTelemetryUsageByService({
-            projectId: data.projectId,
+            ...window,
             timestampColumnName: "startTime",
-            startDate: startOfDay,
-            endDate: endOfDay,
           }),
           averageRowSizeInBytes,
         );
         addUsage(
           await ExceptionInstanceService.groupTelemetryUsageByService({
-            projectId: data.projectId,
+            ...window,
             timestampColumnName: "time",
-            startDate: startOfDay,
-            endDate: endOfDay,
           }),
           averageExceptionRowSizeInBytes,
         );
       } else if (data.productType === ProductType.Logs) {
         addUsage(
           await LogService.groupTelemetryUsageByService({
-            projectId: data.projectId,
+            ...window,
             timestampColumnName: "time",
-            startDate: startOfDay,
-            endDate: endOfDay,
           }),
           averageRowSizeInBytes,
         );
@@ -611,10 +747,8 @@ export class Service extends DatabaseService<Model> {
          */
         addUsage(
           await MetricService.groupTelemetryUsageByService({
-            projectId: data.projectId,
+            ...window,
             timestampColumnName: "time",
-            startDate: startOfDay,
-            endDate: endOfDay,
             excludeNames: [...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES],
           }),
           averageRowSizeInBytes,
@@ -622,10 +756,8 @@ export class Service extends DatabaseService<Model> {
       } else if (data.productType === ProductType.SecurityEvents) {
         addUsage(
           await SecurityEventService.groupTelemetryUsageByService({
-            projectId: data.projectId,
+            ...window,
             timestampColumnName: "time",
-            startDate: startOfDay,
-            endDate: endOfDay,
           }),
           averageRowSizeInBytes,
         );
@@ -636,29 +768,21 @@ export class Service extends DatabaseService<Model> {
          * must not touch the chunk table or use byteSize(*).
          */
         addUsage(
-          await RumSessionService.groupSessionReplayUsageByEntity({
-            projectId: data.projectId,
-            startDate: startOfDay,
-            endDate: endOfDay,
-          }),
+          await RumSessionService.groupSessionReplayUsageByEntity(window),
           averageRowSizeInBytes,
         );
       } else if (data.productType === ProductType.Profiles) {
         addUsage(
           await ProfileService.groupTelemetryUsageByService({
-            projectId: data.projectId,
+            ...window,
             timestampColumnName: "startTime",
-            startDate: startOfDay,
-            endDate: endOfDay,
           }),
           averageRowSizeInBytes,
         );
         addUsage(
           await ProfileSampleService.groupTelemetryUsageByService({
-            projectId: data.projectId,
+            ...window,
             timestampColumnName: "time",
-            startDate: startOfDay,
-            endDate: endOfDay,
           }),
           averageProfileSampleRowSizeInBytes,
         );
@@ -671,13 +795,61 @@ export class Service extends DatabaseService<Model> {
       /*
        * Rethrow so the failure is loud: nothing has been staged for this
        * day yet (staging below is skipped entirely), so the next run's
-       * catch-up (stageUnstagedTelemetryUsageForProject) re-stages the full
-       * day. Swallowing here would silently bill the day as zero.
+       * catch-up (stageUnstagedDays) re-stages the full day. Swallowing here
+       * would silently count the day as zero.
        */
       throw error;
     }
 
-    if (usageByServiceId.size === 0) {
+    for (const [primaryEntityId, usage] of usageByServiceId) {
+      /*
+       * Monitor telemetry is billed via the Active Monitoring plan, and
+       * Alert / Incident / SLO telemetry is OneUptime's own operational
+       * data — none of it is charged as ingested telemetry volume.
+       */
+      if (isTelemetryBillingExcludedEntityType(usage.primaryEntityType)) {
+        continue;
+      }
+
+      /*
+       * Legacy rows (pre-discriminator) and any null primaryEntityType are
+       * treated as OpenTelemetry — historically every billed primaryEntityId
+       * was a real Service.
+       */
+      usageByResource.set(primaryEntityId, {
+        primaryEntityType:
+          (usage.primaryEntityType as ServiceType | null) ??
+          ServiceType.OpenTelemetry,
+        bytes: usage.bytes,
+      });
+    }
+
+    return usageByResource;
+  }
+
+  /*
+   * One UTC day of a product's usage, one row per resource that sent any:
+   * billed (isBillable) where billing stages it, at no cost where metering
+   * does. Resources already staged for the day are skipped, so a re-run
+   * never counts one twice (updateUsageBilling adds into the day's row).
+   */
+  private async stageUsageOfDay(data: {
+    projectId: ObjectID;
+    productType: ProductType;
+    usageDate: Date;
+    isBillable: boolean;
+  }): Promise<void> {
+    const usageDayString: string = this.getUsageDayString(data.usageDate);
+
+    const usageByResource: Map<string, TelemetryResourceUsage> =
+      await this.getTelemetryUsageByResource({
+        projectId: data.projectId,
+        productType: data.productType,
+        startDate: OneUptimeDate.getStartOfDay(data.usageDate, "UTC"),
+        endDate: OneUptimeDate.getEndOfDay(data.usageDate, "UTC"),
+      });
+
+    if (usageByResource.size === 0) {
       return;
     }
 
@@ -731,16 +903,7 @@ export class Service extends DatabaseService<Model> {
         }),
     );
 
-    for (const [serviceIdStr, usage] of usageByServiceId) {
-      /*
-       * Monitor telemetry is billed via the Active Monitoring plan, and
-       * Alert / Incident / SLO telemetry is OneUptime's own operational
-       * data — none of it is charged as ingested telemetry volume.
-       */
-      if (isTelemetryBillingExcludedEntityType(usage.primaryEntityType)) {
-        continue;
-      }
-
+    for (const [serviceIdStr, usage] of usageByResource) {
       if (stagedServiceIds.has(serviceIdStr)) {
         continue;
       }
@@ -753,25 +916,82 @@ export class Service extends DatabaseService<Model> {
       const retentionInDays: number =
         retentionByServiceId.get(serviceIdStr) ?? defaultRetentionInDays;
 
-      /*
-       * Legacy rows (pre-discriminator) and any null primaryEntityType are
-       * treated as OpenTelemetry — historically every billed primaryEntityId was
-       * a real Service.
-       */
-      const primaryEntityType: ServiceType =
-        (usage.primaryEntityType as ServiceType | null) ??
-        ServiceType.OpenTelemetry;
-
       await this.updateUsageBilling({
         projectId: data.projectId,
         productType: data.productType,
         primaryEntityId: new ObjectID(serviceIdStr),
-        primaryEntityType: primaryEntityType,
+        primaryEntityType: usage.primaryEntityType,
         dataIngestedInGB: estimatedGigabytes,
         retentionInDays: retentionInDays,
-        usageDate: usageDate,
+        usageDate: data.usageDate,
+        isBillable: data.isBillable,
       });
     }
+  }
+
+  /*
+   * How many days usage rows are kept: the instance's telemetry usage
+   * retention (Admin Dashboard > Settings > Data Retention), held to its
+   * bounds, 120 days when it is empty (getTelemetryUsageRetentionInDays).
+   */
+  @CaptureSpan()
+  public async getUsageRetentionInDays(): Promise<number> {
+    const globalConfig: GlobalConfig | null =
+      await GlobalConfigService.findOneById({
+        id: ObjectID.getZeroObjectID(),
+        select: {
+          telemetryUsageRetentionInDays: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return getTelemetryUsageRetentionInDays(
+      globalConfig?.telemetryUsageRetentionInDays,
+    );
+  }
+
+  /*
+   * Delete the usage rows of the days past the retention, with billing on or
+   * off. A row's createdAt is the UTC day its usage is for, so a day is kept
+   * for the whole retention after it ended. Never a day of the staging
+   * window: the retention is at least TELEMETRY_USAGE_MIN_RETENTION_IN_DAYS,
+   * well past TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS, and a day deleted
+   * inside the window would be staged - and billed - again.
+   */
+  @CaptureSpan()
+  public async deleteUsageOlderThanRetention(): Promise<{
+    deleted: number;
+    cutoff: Date;
+    retentionInDays: number;
+  }> {
+    const retentionInDays: number = await this.getUsageRetentionInDays();
+    const cutoff: Date = OneUptimeDate.getSomeDaysAgo(retentionInDays);
+
+    let deleted: number = 0;
+    let deletedInBatch: number = 0;
+
+    do {
+      deletedInBatch = await this.hardDeleteBy({
+        query: {
+          createdAt: QueryHelper.lessThan(cutoff),
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
+
+      deleted += deletedInBatch;
+    } while (deletedInBatch > 0);
+
+    return {
+      deleted: deleted,
+      cutoff: cutoff,
+      retentionInDays: retentionInDays,
+    };
   }
 
   /*
@@ -1059,6 +1279,12 @@ export class Service extends DatabaseService<Model> {
     dataIngestedInGB: number;
     retentionInDays: number;
     usageDate?: Date;
+    /*
+     * False for usage metered where billing is off: the row is staged at no
+     * cost (meterTelemetryUsageForProject). Left out, or true, the cost is
+     * the product's metered price, as billing stages it.
+     */
+    isBillable?: boolean | undefined;
   }): Promise<void> {
     if (
       data.productType !== ProductType.Traces &&
@@ -1085,10 +1311,12 @@ export class Service extends DatabaseService<Model> {
     const usageDayString: string = this.getUsageDayString(usageDate);
 
     const totalCostOfThisOperationInUSD: number =
-      serverMeteredPlan.getTotalCostInUSD({
-        dataIngestedInGB: data.dataIngestedInGB,
-        retentionInDays: data.retentionInDays,
-      });
+      data.isBillable === false
+        ? 0
+        : serverMeteredPlan.getTotalCostInUSD({
+            dataIngestedInGB: data.dataIngestedInGB,
+            retentionInDays: data.retentionInDays,
+          });
 
     const usageBilling: Model | null = await this.findOneBy({
       query: {
