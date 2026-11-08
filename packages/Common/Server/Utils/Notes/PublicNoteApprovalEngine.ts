@@ -1677,8 +1677,9 @@ export default class PublicNoteApprovalEngine {
    * on its Approve and Reject: the note and its record, the round of
    * approval and the step it asks about, and whether approving that step
    * publishes the note - with who the step names, in the feed's words.
-   * Undefined for a note that cannot be named so: its approvers are asked
-   * in chat as before, with no buttons.
+   * Undefined for a note that cannot be named so, or whose step's names
+   * cannot be read: its approvers are still asked, in chat as before, with
+   * no buttons.
    */
   private static async getChatAsk<TNote extends BaseModel>(data: {
     host: PublicNoteApprovalHost<TNote>;
@@ -1698,15 +1699,23 @@ export default class PublicNoteApprovalEngine {
       return undefined;
     }
 
-    return {
-      kind: data.host.kind,
-      noteId: new ObjectID(noteId),
-      recordId: recordId,
-      submittedAt: data.round.submittedAt,
-      stepId: data.position.step.id,
-      isFinal: data.position.isFinal,
-      waitingFor: await this.getWaitingFor(data.position),
-    };
+    try {
+      return {
+        kind: data.host.kind,
+        noteId: new ObjectID(noteId),
+        recordId: recordId,
+        submittedAt: data.round.submittedAt,
+        stepId: data.position.step.id,
+        isFinal: data.position.isFinal,
+        waitingFor: await this.getWaitingFor(data.position),
+      };
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not name a step for its chat buttons.",
+      );
+      logger.error(error);
+      return undefined;
+    }
   }
 
   private static async getWaitingFor(

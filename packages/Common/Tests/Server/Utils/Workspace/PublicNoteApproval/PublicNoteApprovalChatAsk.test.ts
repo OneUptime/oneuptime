@@ -42,6 +42,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import PushNotificationMessage from "../../../../../Types/PushNotification/PushNotificationMessage";
 import {
   WorkspaceMessageBlock,
+  WorkspaceMessagePayloadButton,
   WorkspacePayloadButtons,
   WorkspacePayloadMarkdown,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
@@ -50,6 +51,7 @@ import {
   CAROL,
   INCIDENT_ID,
   LEGAL,
+  NAMES,
   NOTE_ID,
   NOTE_TEXT,
   PROJECT_ID,
@@ -164,7 +166,8 @@ describe("UserNotificationSettingService.sendUserNotification - an event's own c
       eventType:
         NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
       emailEnvelope: {
-        subject: "Approval needed: public note on Incident INC-42 - Checkout is down",
+        subject:
+          "Approval needed: public note on Incident INC-42 - Checkout is down",
         vars: {},
       } as unknown as EmailEnvelope,
       smsMessage: { message: "Approval needed: a public note waits for you." },
@@ -194,15 +197,21 @@ describe("UserNotificationSettingService.sendUserNotification - an event's own c
       .spyOn(ProjectCallSMSConfigService, "getProjectDefaultTwilioConfig")
       .mockResolvedValue(undefined as never);
     jest.spyOn(UserEmailService, "findBy").mockResolvedValue([] as never);
-    findSlacks = jest.spyOn(UserSlackService, "findBy").mockResolvedValue([
-      { slackUserId: "U0BOB" } as unknown as UserSlack,
-    ] as never) as AnySpy;
-    jest.spyOn(UserMicrosoftTeamsService, "findBy").mockResolvedValue([
-      { microsoftTeamsUserId: "entra-bob" } as unknown as UserMicrosoftTeams,
-    ] as never);
-    jest.spyOn(UserMattermostService, "findBy").mockResolvedValue([
-      { mattermostUserId: "m".repeat(26) } as unknown as UserMattermost,
-    ] as never);
+    findSlacks = jest
+      .spyOn(UserSlackService, "findBy")
+      .mockResolvedValue([
+        { slackUserId: "U0BOB" } as unknown as UserSlack,
+      ] as never) as AnySpy;
+    jest
+      .spyOn(UserMicrosoftTeamsService, "findBy")
+      .mockResolvedValue([
+        { microsoftTeamsUserId: "entra-bob" } as unknown as UserMicrosoftTeams,
+      ] as never);
+    jest
+      .spyOn(UserMattermostService, "findBy")
+      .mockResolvedValue([
+        { mattermostUserId: "m".repeat(26) } as unknown as UserMattermost,
+      ] as never);
     sendDm = jest
       .spyOn(WorkspaceUserNotificationService, "sendDirectMessageToUser")
       .mockResolvedValue(undefined as never) as AnySpy;
@@ -247,7 +256,7 @@ describe("UserNotificationSettingService.sendUserNotification - an event's own c
       ] as WorkspacePayloadButtons;
 
       expect(
-        buttons.buttons.map((button) => {
+        buttons.buttons.map((button: WorkspaceMessagePayloadButton): string => {
           return button.actionId;
         }),
       ).toEqual([
@@ -297,8 +306,8 @@ describe("UserNotificationSettingService.sendUserNotification - an event's own c
 
     await send(undefined);
 
-    const sent: { messageBlocks: Array<WorkspacePayloadMarkdown> } = sendDm
-      .mock.calls[0]![0] as never;
+    const sent: { messageBlocks: Array<WorkspacePayloadMarkdown> } = sendDm.mock
+      .calls[0]![0] as never;
 
     expect(sent.messageBlocks).toHaveLength(1);
     expect(sent.messageBlocks[0]!.text).toBe(
@@ -398,7 +407,9 @@ describe("PublicNoteApprovalNotifications.askApprovers - the chat message", () =
       message.messageBlocks.length - 1
     ] as WorkspacePayloadButtons;
 
-    expect(WorkspacePublicNoteApproval.readValue(buttons.buttons[0]!.value)).toEqual({
+    expect(
+      WorkspacePublicNoteApproval.readValue(buttons.buttons[0]!.value),
+    ).toEqual({
       kind: PublicNoteKind.Incident,
       projectId: PROJECT_ID,
       recordId: INCIDENT_ID,
@@ -496,6 +507,43 @@ describe("the engine asks with what the message's buttons need", () => {
         },
       },
     ]);
+  });
+
+  test("a step whose names cannot be read for the buttons is still asked, with no buttons", async () => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+
+    let calls: number = 0;
+
+    jest
+      .spyOn(PublicNoteApprovalNotifications, "getUserNames")
+      .mockImplementation((async (ids: ReadonlyArray<string>) => {
+        calls++;
+
+        // The second read is the chat message's: the feed's came first.
+        if (calls === 2) {
+          throw new Error("names unavailable");
+        }
+
+        const found: Record<string, string> = {};
+
+        for (const id of ids) {
+          if (NAMES[id]) {
+            found[id] = NAMES[id]!;
+          }
+        }
+
+        return found;
+      }) as never);
+
+    await WorkspacePublicNoteApprovalActions.approve({
+      value: buttonValue(),
+      props: memberProps(BOB_ID),
+    });
+
+    expect(world.asked).toEqual([[CAROL]]);
+    expect(world.askedChat).toEqual([undefined]);
   });
 
   test("a note sent for approval: its first step is asked, about this round", async () => {
