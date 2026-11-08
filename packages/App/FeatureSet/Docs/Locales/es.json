@@ -286,6 +286,7 @@
     "Topology": "Topología",
     "Drop Filters & Scrub Rules": "Filtros de descarte y reglas de depuración",
     "Data Retention": "Retención de datos",
+    "Telemetry Usage": "Uso de telemetría",
     "Serilog (.NET)": "Serilog (.NET)",
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",
