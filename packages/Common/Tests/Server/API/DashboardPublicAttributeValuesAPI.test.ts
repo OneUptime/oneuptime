@@ -18,7 +18,7 @@ import MasterPasswordRequiredException from "../../../Types/Exception/MasterPass
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import HashedString from "../../../Types/HashedString";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import { mockRouter } from "./Helpers";
@@ -938,6 +938,178 @@ describe("DashboardAPI public attribute-values", () => {
 
       expect(fetchArgs["searchText"]).toBeUndefined();
       expect(fetchArgs["metricName"]).toBeUndefined();
+    });
+  });
+
+  /*
+   * Issue #6297: the keys a public dashboard's dropdowns may read are those
+   * of the variables its toolbar draws, read as the toolbar reads them
+   * (StoredDashboardViewConfig.read): a variable list written as JSON text
+   * is its variables, and a key written as a number is that number's text.
+   * A value shaped like a variable anywhere else - inside a widget, under
+   * another key of the config, inside a variable - is no variable the page
+   * draws, and unlocks nothing.
+   */
+  describe("the variables the public page draws (issue #6297)", () => {
+    type VariableOfFunction = (attributeKey: unknown) => JSONObject;
+
+    const variableOf: VariableOfFunction = (attributeKey: unknown): JSONObject => {
+      return {
+        id: ObjectID.generate().toString(),
+        name: "cluster",
+        label: "Cluster",
+        type: DashboardVariableType.TelemetryAttribute,
+        attributeKey: attributeKey as JSONValue,
+      };
+    };
+
+    type ExpectServedFunction = (
+      attributeKey: string,
+      servedAs: string,
+    ) => Promise<void>;
+
+    const expectServed: ExpectServedFunction = async (
+      attributeKey: string,
+      servedAs: string,
+    ): Promise<void> => {
+      jest.clearAllMocks();
+
+      await callRoute({ attributeKey: attributeKey });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(getFetchArgs()["attributeKey"]).toBe(servedAs);
+    };
+
+    type ExpectRefusedFunction = (attributeKey: string) => Promise<void>;
+
+    const expectRefused: ExpectRefusedFunction = async (
+      attributeKey: string,
+    ): Promise<void> => {
+      jest.clearAllMocks();
+
+      await callRoute({ attributeKey: attributeKey });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expect((getThrownError() as Error).message).toBe(
+        "This attribute is not part of this dashboard.",
+      );
+      expectNothingRead();
+    };
+
+    it("serves the key of a variable in a list written as JSON text", async () => {
+      dashboard.dashboardViewConfig = {
+        _type: "DashboardViewConfig",
+        heightInDashboardUnits: 24,
+        components: [],
+        variables: JSON.stringify([variableOf("k8s.cluster.name")]),
+      } as unknown as DashboardViewConfig;
+
+      await expectServed("k8s.cluster.name", "k8s.cluster.name");
+      await expectRefused("user.email");
+    });
+
+    it("serves it in a config stored in any shape, the list as text inside", async () => {
+      const config: JSONObject = {
+        _type: "DashboardViewConfig",
+        heightInDashboardUnits: 24,
+        components: [],
+        variables: JSON.stringify([variableOf("k8s.cluster.name")]),
+      };
+
+      for (const stored of [
+        JSON.stringify(config),
+        { _type: "DashboardViewConfig", value: config },
+        JSON.stringify({ _type: "DashboardViewConfig", value: config }),
+      ]) {
+        dashboard.dashboardViewConfig = stored as unknown as DashboardViewConfig;
+
+        await expectServed("k8s.cluster.name", "k8s.cluster.name");
+        await expectRefused("user.email");
+      }
+    });
+
+    it("serves a key written as a number as the toolbar reads it: as text", async () => {
+      dashboard.dashboardViewConfig = {
+        components: [],
+        variables: [variableOf(42)],
+      } as unknown as DashboardViewConfig;
+
+      await expectServed("42", "42");
+    });
+
+    it("refuses a list written as text that says no list, twice encoded or cut short", async () => {
+      const list: string = JSON.stringify([variableOf("k8s.cluster.name")]);
+
+      for (const variables of [
+        JSON.stringify(list),
+        list.slice(0, list.length - 3),
+        JSON.stringify(variableOf("k8s.cluster.name")),
+      ]) {
+        dashboard.dashboardViewConfig = {
+          components: [],
+          variables: variables,
+        } as unknown as DashboardViewConfig;
+
+        await expectRefused("k8s.cluster.name");
+      }
+    });
+
+    it("refuses a variable written as JSON text inside the list: the toolbar draws no such variable", async () => {
+      dashboard.dashboardViewConfig = {
+        components: [],
+        variables: [JSON.stringify(variableOf("k8s.cluster.name"))],
+      } as unknown as DashboardViewConfig;
+
+      await expectRefused("k8s.cluster.name");
+    });
+
+    it("refuses a value shaped like a variable that is no variable the page draws", async () => {
+      const smuggled: JSONObject = {
+        type: DashboardVariableType.TelemetryAttribute,
+        attributeKey: "user.email",
+      };
+
+      const configs: Array<[string, JSONObject]> = [
+        [
+          "inside a widget's arguments",
+          {
+            components: [
+              {
+                componentId: ObjectID.generate().toString(),
+                componentType: DashboardComponentType.Chart,
+                arguments: { variable: smuggled },
+              },
+            ],
+          },
+        ],
+        ["under another key of the config", { components: [], filters: [smuggled] }],
+        [
+          "inside a variable",
+          {
+            components: [],
+            variables: [{ ...variableOf("host.name"), nested: smuggled }],
+          },
+        ],
+        [
+          "inside a Data Source widget",
+          {
+            components: [
+              {
+                componentId: ObjectID.generate().toString(),
+                componentType: DashboardComponentType.DataSourceChart,
+                arguments: { variables: [smuggled] },
+              },
+            ],
+          },
+        ],
+      ];
+
+      for (const [label, config] of configs) {
+        dashboard.dashboardViewConfig = config as unknown as DashboardViewConfig;
+
+        expect(label.length).toBeGreaterThan(0);
+        await expectRefused("user.email");
+      }
     });
   });
 });
