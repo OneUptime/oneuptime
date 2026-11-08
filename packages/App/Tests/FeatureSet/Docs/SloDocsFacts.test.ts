@@ -1758,9 +1758,7 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     expect(bulk).toContain(
       "exactly as its own **Burn Rate Rules** page would add them",
     );
-    expect(bulk).toContain(
-      "running it again on the same SLOs adds nothing",
-    );
+    expect(bulk).toContain("running it again on the same SLOs adds nothing");
     expect(bulk).toContain("Archived SLOs are not on the list");
 
     // The four requests, as the API serves them.

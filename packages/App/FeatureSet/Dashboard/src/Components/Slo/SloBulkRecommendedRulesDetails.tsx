@@ -300,14 +300,15 @@ const SloBulkRecommendedRulesDetails: FunctionComponent<ComponentProps> = (
                 ) : (
                   <></>
                 )}
-                <span>{fact}</span>
+                {/* A fact wraps whole: never "Alert:" on one line, its severity on the next. */}
+                <span className="whitespace-nowrap">{fact}</span>
               </React.Fragment>
             );
           })}
         </div>
         {names ? (
           <div
-            className="mt-0.5 break-words text-xs text-gray-500"
+            className="mt-0.5 break-words text-xs font-medium text-gray-600"
             data-testid={`${SLO_BULK_RECOMMENDED_RULES_DETAILS_TEST_ID}-variant-slos`}
           >
             {names}
