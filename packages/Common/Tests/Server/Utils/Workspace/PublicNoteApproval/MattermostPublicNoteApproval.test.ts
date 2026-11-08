@@ -26,6 +26,7 @@ import { JSONArray, JSONObject } from "../../../../../Types/JSON";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 import {
   PUBLIC_NOTE_APPROVAL_TEXT_MAX_LENGTH,
+  PublicNoteApprovalGiven,
   PublicNoteApprovalMessages,
   PublicNoteApprovalStatus,
 } from "../../../../../Types/StatusPage/PublicNoteApproval";
@@ -222,12 +223,16 @@ describe("the buttons of a direct message", () => {
       messageBlocks: [buttons],
     });
 
-    const post: JSONObject = calls.find((call) => {
-      return call.path === "/api/v4/posts";
-    })!.body as JSONObject;
+    const post: JSONObject = calls.find(
+      (call: { path: string; body: unknown }): boolean => {
+        return call.path === "/api/v4/posts";
+      },
+    )!.body as JSONObject;
     const context: unknown = (
       (
-        ((post["props"] as JSONObject)["attachments"] as JSONArray)[0] as JSONObject
+        (
+          (post["props"] as JSONObject)["attachments"] as JSONArray
+        )[0] as JSONObject
       )["actions"] as Array<JSONObject>
     )[0]!["integration"] as JSONObject;
 
@@ -261,7 +266,11 @@ describe("Approve", () => {
     expect(answer.ephemeral_text).toBe(
       `✅ You approved a **public note** on [Incident INC-42](${NOTES_URL}) for step 1 of 2 (Support). It waits for step 2 of 2 (Legal): Carol.`,
     );
-    expect(storedRound().approvals.map((given) => given.userId)).toEqual([BOB]);
+    expect(
+      storedRound().approvals.map((given: PublicNoteApprovalGiven): string => {
+        return given.userId;
+      }),
+    ).toEqual([BOB]);
     expect(world.logged).toEqual(["approve_public_note"]);
   });
 
@@ -299,13 +308,57 @@ describe("Approve", () => {
       },
       told: "This public note is no longer in OneUptime. It may have been deleted.",
     },
-  ])("$who is told why, and nothing is written", async ({ userId, arrange, told }) => {
-    arrange();
+  ])(
+    "$who is told why, and nothing is written",
+    async ({
+      userId,
+      arrange,
+      told,
+    }: {
+      userId: string;
+      arrange: () => void;
+      told: string;
+    }): Promise<void> => {
+      arrange();
 
-    const answer: MattermostPressAnswer = await approve(userId);
+      const answer: MattermostPressAnswer = await approve(userId);
 
-    // A refusal is text: its words, escaped as Markdown where they need it.
-    expect(answer.ephemeral_text).toBe(mdText`${told}`.toString());
+      // A refusal is text: its words, escaped as Markdown where they need it.
+      expect(answer.ephemeral_text).toBe(mdText`${told}`.toString());
+      expect(world.writes).toEqual([]);
+    },
+  );
+
+  test("approval switched off since, the note still waiting: decided, as the Dashboard decides it", async () => {
+    world.isRequired = false;
+
+    const answer: MattermostPressAnswer = await approve(BOB);
+
+    expect(
+      storedRound().approvals.map((given: PublicNoteApprovalGiven): string => {
+        return given.userId;
+      }),
+    ).toEqual([BOB]);
+    expect(answer.ephemeral_text).toContain(
+      "✅ You approved a **public note**",
+    );
+  });
+
+  test("published without approval once approval was switched off: news, and nothing decided", async () => {
+    const value: string = encodedValue();
+    world.isRequired = false;
+    world.stored = {
+      ...world.stored,
+      isPublished: true,
+      approvalStatus: null,
+      approval: null,
+    };
+
+    const answer: MattermostPressAnswer = await approve(BOB, value);
+
+    expect(answer.ephemeral_text).toBe(
+      `This public note on [Incident INC-42](${NOTES_URL}) no longer waits for approval, so nothing was decided.`,
+    );
     expect(world.writes).toEqual([]);
   });
 
@@ -355,7 +408,9 @@ describe("forged, replayed and stale presses", () => {
       channel_id: OTHER_CHANNEL,
     });
 
-    expect(answer.ephemeral_text).toBe(MattermostActions.UNVERIFIED_PRESS_MESSAGE);
+    expect(answer.ephemeral_text).toBe(
+      MattermostActions.UNVERIFIED_PRESS_MESSAGE,
+    );
     expect(findUserLink).not.toHaveBeenCalled();
     expect(world.writes).toEqual([]);
   });
@@ -368,14 +423,20 @@ describe("forged, replayed and stale presses", () => {
     );
     (forged["context"] as JSONObject)["signature"] = "forged";
 
-    const answer: MattermostPressAnswer = await MattermostActions.handlePress(forged);
+    const answer: MattermostPressAnswer =
+      await MattermostActions.handlePress(forged);
 
-    expect(answer.ephemeral_text).toBe(MattermostActions.UNVERIFIED_PRESS_MESSAGE);
+    expect(answer.ephemeral_text).toBe(
+      MattermostActions.UNVERIFIED_PRESS_MESSAGE,
+    );
     expect(world.writes).toEqual([]);
   });
 
   test("a signed context whose value is not an approval this installation signed decides nothing", async () => {
-    const answer: MattermostPressAnswer = await approve(BOB, NOTE_ID.toString());
+    const answer: MattermostPressAnswer = await approve(
+      BOB,
+      NOTE_ID.toString(),
+    );
 
     expect(answer.ephemeral_text).toBe(
       WorkspacePublicNoteApprovalActions.getUnverifiedMessage(),
@@ -489,22 +550,31 @@ describe("Reject, and its dialog", () => {
 
   test.each([
     ["no reason", {}, PublicNoteApprovalMessages.reasonRequired],
-    ["an empty reason", { reason: " \n " }, PublicNoteApprovalMessages.reasonRequired],
+    [
+      "an empty reason",
+      { reason: " \n " },
+      PublicNoteApprovalMessages.reasonRequired,
+    ],
     [
       "a reason over the longest kept",
       { reason: "x".repeat(PUBLIC_NOTE_APPROVAL_TEXT_MAX_LENGTH + 1) },
       `A reason may have at most ${PUBLIC_NOTE_APPROVAL_TEXT_MAX_LENGTH} characters.`,
     ],
-  ])("%s keeps the dialog open, saying why under the field", async (_label: string, submission: JSONObject, told: string) => {
-    const answer: MattermostDialogAnswer =
-      await MattermostActions.handleDialogSubmission(
-        rejectSubmission(BOB, encodedValue(), submission),
-      );
+  ])(
+    "%s keeps the dialog open, saying why under the field",
+    async (_label: string, submission: JSONObject, told: string) => {
+      const answer: MattermostDialogAnswer =
+        await MattermostActions.handleDialogSubmission(
+          rejectSubmission(BOB, encodedValue(), submission),
+        );
 
-    expect(answer).toEqual({ errors: { [PUBLIC_NOTE_REJECT_REASON_FIELD]: told } });
-    expect(world.writes).toEqual([]);
-    expect(postEphemeral).not.toHaveBeenCalled();
-  });
+      expect(answer).toEqual({
+        errors: { [PUBLIC_NOTE_REJECT_REASON_FIELD]: told },
+      });
+      expect(world.writes).toEqual([]);
+      expect(postEphemeral).not.toHaveBeenCalled();
+    },
+  );
 
   test("with a reason: the dialog closes, the note is rejected, and the presser is told in a post only they see", async () => {
     const answer: MattermostDialogAnswer =
@@ -537,7 +607,9 @@ describe("Reject, and its dialog", () => {
         ),
       );
 
-    expect(answer).toEqual({ error: MattermostActions.UNVERIFIED_PRESS_MESSAGE });
+    expect(answer).toEqual({
+      error: MattermostActions.UNVERIFIED_PRESS_MESSAGE,
+    });
     expect(world.writes).toEqual([]);
   });
 

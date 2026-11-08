@@ -48,6 +48,7 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
   PUBLIC_NOTE_APPROVAL_TEXT_MAX_LENGTH,
+  PublicNoteApprovalGiven,
   PublicNoteApprovalMessages,
   PublicNoteApprovalStatus,
 } from "../../../../../Types/StatusPage/PublicNoteApproval";
@@ -109,7 +110,11 @@ function createTurn(): FakeTurn {
     turnContext: {
       activity: {
         replyToId: "card-activity-1",
-        from: { id: "29:member", name: "Bob Example", aadObjectId: "entra-bob" },
+        from: {
+          id: "29:member",
+          name: "Bob Example",
+          aadObjectId: "entra-bob",
+        },
         conversation: { id: "a:personal-chat", conversationType: "personal" },
       },
       deleteActivity: jest.fn(async (id: unknown): Promise<void> => {
@@ -217,9 +222,10 @@ describe("the card's buttons", () => {
         },
       });
 
-    const built: JSONObject = MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks(
-      { messageBlocks: message.messageBlocks },
-    );
+    const built: JSONObject =
+      MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
+        messageBlocks: message.messageBlocks,
+      });
     const actions: Array<JSONObject> = built["actions"] as Array<JSONObject>;
 
     expect(actions[0]).toMatchObject({
@@ -281,9 +287,11 @@ describe("the card's buttons", () => {
       ],
     });
 
-    const sentCard: JSONObject = (sent.mock.calls[0]![0] as {
-      adaptiveCard: JSONObject;
-    }).adaptiveCard;
+    const sentCard: JSONObject = (
+      sent.mock.calls[0]![0] as {
+        adaptiveCard: JSONObject;
+      }
+    ).adaptiveCard;
 
     expect(
       ((sentCard["actions"] as Array<JSONObject>)[0]!["data"] as JSONObject)[
@@ -304,7 +312,11 @@ describe("Approve", () => {
       encodedValue(),
     );
 
-    expect(storedRound().approvals.map((given) => given.userId)).toEqual([BOB]);
+    expect(
+      storedRound().approvals.map((given: PublicNoteApprovalGiven): string => {
+        return given.userId;
+      }),
+    ).toEqual([BOB]);
     expect(turn.replies).toHaveLength(1);
     expect(replyText(turn.replies[0])).toContain(
       `✅ You approved a **public note** on [Incident INC-42](${NOTES_URL}) for step 1 of 2 (Support). It waits for step 2 of 2 (Legal): Carol.`,
@@ -367,21 +379,77 @@ describe("Approve", () => {
       },
       told: "This public note is no longer in OneUptime. It may have been deleted.",
     },
-  ])("$who is told why, and nothing is written", async ({ userId, arrange, told }) => {
-    arrange();
+  ])(
+    "$who is told why, and nothing is written",
+    async ({
+      userId,
+      arrange,
+      told,
+    }: {
+      userId: string;
+      arrange: () => void;
+      told: string;
+    }): Promise<void> => {
+      arrange();
+      const turn: FakeTurn = createTurn();
+
+      await press(
+        turn,
+        userId,
+        MicrosoftTeamsPublicNoteApprovalActionType.ApprovePublicNote,
+        encodedValue(),
+      );
+
+      // A refusal is text: its words, escaped as Markdown where they need it.
+      expect(replyText(turn.replies[0])).toContain(mdText`${told}`.toString());
+      expect(world.writes).toEqual([]);
+      expect(world.logged).toEqual([]);
+    },
+  );
+
+  test("approval switched off since, the note still waiting: decided, as the Dashboard decides it", async () => {
+    world.isRequired = false;
     const turn: FakeTurn = createTurn();
 
     await press(
       turn,
-      userId,
+      BOB,
       MicrosoftTeamsPublicNoteApprovalActionType.ApprovePublicNote,
       encodedValue(),
     );
 
-    // A refusal is text: its words, escaped as Markdown where they need it.
-    expect(replyText(turn.replies[0])).toContain(mdText`${told}`.toString());
+    expect(
+      storedRound().approvals.map((given: PublicNoteApprovalGiven): string => {
+        return given.userId;
+      }),
+    ).toEqual([BOB]);
+    expect(replyText(turn.replies[0])).toContain(
+      "✅ You approved a **public note**",
+    );
+  });
+
+  test("published without approval once approval was switched off: news, and nothing decided", async () => {
+    const value: string = encodedValue();
+    world.isRequired = false;
+    world.stored = {
+      ...world.stored,
+      isPublished: true,
+      approvalStatus: null,
+      approval: null,
+    };
+    const turn: FakeTurn = createTurn();
+
+    await press(
+      turn,
+      BOB,
+      MicrosoftTeamsPublicNoteApprovalActionType.ApprovePublicNote,
+      value,
+    );
+
+    expect(replyText(turn.replies[0])).toContain(
+      `This public note on [Incident INC-42](${NOTES_URL}) no longer waits for approval, so nothing was decided.`,
+    );
     expect(world.writes).toEqual([]);
-    expect(world.logged).toEqual([]);
   });
 
   test("an approver of an earlier step is told they cannot approve this one", async () => {
@@ -456,21 +524,24 @@ describe("a value a client made up decides nothing", () => {
         return "";
       },
     ],
-  ])("%s: told the button could not be verified", async (_label: string, actionValue: () => string) => {
-    const turn: FakeTurn = createTurn();
+  ])(
+    "%s: told the button could not be verified",
+    async (_label: string, actionValue: () => string) => {
+      const turn: FakeTurn = createTurn();
 
-    await press(
-      turn,
-      BOB,
-      MicrosoftTeamsPublicNoteApprovalActionType.ApprovePublicNote,
-      actionValue(),
-    );
+      await press(
+        turn,
+        BOB,
+        MicrosoftTeamsPublicNoteApprovalActionType.ApprovePublicNote,
+        actionValue(),
+      );
 
-    expect(replyText(turn.replies[0])).toContain(
-      WorkspacePublicNoteApprovalActions.getUnverifiedMessage(),
-    );
-    expect(world.writes).toEqual([]);
-  });
+      expect(replyText(turn.replies[0])).toContain(
+        WorkspacePublicNoteApprovalActions.getUnverifiedMessage(),
+      );
+      expect(world.writes).toEqual([]);
+    },
+  );
 
   test("a value signed for another project than the press was read in", async () => {
     const turn: FakeTurn = createTurn();
@@ -549,7 +620,8 @@ describe("Reject, and the card that asks why", () => {
         title: "Reject",
         style: "destructive",
         data: {
-          action: MicrosoftTeamsPublicNoteApprovalActionType.SubmitRejectPublicNote,
+          action:
+            MicrosoftTeamsPublicNoteApprovalActionType.SubmitRejectPublicNote,
           actionValue: value,
         },
       },
@@ -571,34 +643,45 @@ describe("Reject, and the card that asks why", () => {
     expect(replyText(turn.replies[0])).toContain(
       PublicNoteApprovalMessages.sentByYou,
     );
-    expect((card(turn.replies[0])["body"] as Array<JSONObject>).some((element) => {
-      return element["type"] === "Input.Text";
-    })).toBe(false);
+    expect(
+      (card(turn.replies[0])["body"] as Array<JSONObject>).some(
+        (element: JSONObject): boolean => {
+          return element["type"] === "Input.Text";
+        },
+      ),
+    ).toBe(false);
   });
 
   test.each([
     ["no reason", {}, PublicNoteApprovalMessages.reasonRequired],
-    ["an empty reason", { reason: "  " }, PublicNoteApprovalMessages.reasonRequired],
+    [
+      "an empty reason",
+      { reason: "  " },
+      PublicNoteApprovalMessages.reasonRequired,
+    ],
     [
       "a reason over the longest kept",
       { reason: "x".repeat(PUBLIC_NOTE_APPROVAL_TEXT_MAX_LENGTH + 1) },
       `A reason may have at most ${PUBLIC_NOTE_APPROVAL_TEXT_MAX_LENGTH} characters.`,
     ],
-  ])("%s, sent anyway: told why, the card kept, and nothing rejected", async (_label: string, submitted: JSONObject, told: string) => {
-    const turn: FakeTurn = createTurn();
+  ])(
+    "%s, sent anyway: told why, the card kept, and nothing rejected",
+    async (_label: string, submitted: JSONObject, told: string) => {
+      const turn: FakeTurn = createTurn();
 
-    await press(
-      turn,
-      BOB,
-      MicrosoftTeamsPublicNoteApprovalActionType.SubmitRejectPublicNote,
-      encodedValue(),
-      submitted,
-    );
+      await press(
+        turn,
+        BOB,
+        MicrosoftTeamsPublicNoteApprovalActionType.SubmitRejectPublicNote,
+        encodedValue(),
+        submitted,
+      );
 
-    expect(replyText(turn.replies[0])).toContain(mdText`${told}`.toString());
-    expect(turn.deleted).toEqual([]);
-    expect(world.writes).toEqual([]);
-  });
+      expect(replyText(turn.replies[0])).toContain(mdText`${told}`.toString());
+      expect(turn.deleted).toEqual([]);
+      expect(world.writes).toEqual([]);
+    },
+  );
 
   test("with a reason: rejected, answered, and the card removed", async () => {
     const turn: FakeTurn = createTurn();
@@ -655,7 +738,8 @@ describe("a Teams account not connected yet", () => {
 
     expect(
       MicrosoftTeamsConnectPrompt.describe({
-        actionType: MicrosoftTeamsPublicNoteApprovalActionType.ApprovePublicNote,
+        actionType:
+          MicrosoftTeamsPublicNoteApprovalActionType.ApprovePublicNote,
         actionValue: value,
       }),
     ).toMatchObject({
@@ -706,6 +790,10 @@ describe("a Teams account not connected yet", () => {
     expect(result.answer.markdown).toContain(
       "✅ **Your Microsoft Teams account is connected to OneUptime.** You approved a **public note**",
     );
-    expect(storedRound().approvals.map((given) => given.userId)).toEqual([BOB]);
+    expect(
+      storedRound().approvals.map((given: PublicNoteApprovalGiven): string => {
+        return given.userId;
+      }),
+    ).toEqual([BOB]);
   });
 });

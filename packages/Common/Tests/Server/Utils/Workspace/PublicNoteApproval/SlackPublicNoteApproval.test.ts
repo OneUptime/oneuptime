@@ -11,7 +11,10 @@ import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/Work
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../../Server/Services/WorkspaceUserAuthTokenService";
-import { ExpressRequest, ExpressResponse } from "../../../../../Server/Utils/Express";
+import {
+  ExpressRequest,
+  ExpressResponse,
+} from "../../../../../Server/Utils/Express";
 import Response from "../../../../../Server/Utils/Response";
 import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackAuthAction, {
@@ -36,6 +39,7 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
   PUBLIC_NOTE_APPROVAL_TEXT_MAX_LENGTH,
+  PublicNoteApprovalGiven,
   PublicNoteApprovalMessages,
   PublicNoteApprovalStatus,
 } from "../../../../../Types/StatusPage/PublicNoteApproval";
@@ -196,7 +200,11 @@ describe("Approve, in a direct message", () => {
     await press(BOB, SlackActionType.ApprovePublicNote, encodedValue());
 
     expect(slackResponses()).toEqual([{ response_action: "clear" }]);
-    expect(storedRound().approvals.map((given) => given.userId)).toEqual([BOB]);
+    expect(
+      storedRound().approvals.map((given: PublicNoteApprovalGiven): string => {
+        return given.userId;
+      }),
+    ).toEqual([BOB]);
     expect(answers()).toEqual([
       `✅ You approved a **public note** on [Incident INC-42](${NOTES_URL}) for step 1 of 2 (Support). It waits for step 2 of 2 (Legal): Carol.`,
     ]);
@@ -233,15 +241,26 @@ describe("Approve, in a direct message", () => {
       arrange: (): void => {},
       told: PublicNoteApprovalMessages.notAnApprover('step 1 ("Support")'),
     },
-  ])("$who is told why, in the engine's words, and nothing is written", async ({ userId, arrange, told }) => {
-    arrange();
+  ])(
+    "$who is told why, in the engine's words, and nothing is written",
+    async ({
+      userId,
+      arrange,
+      told,
+    }: {
+      userId: string;
+      arrange: () => void;
+      told: string;
+    }): Promise<void> => {
+      arrange();
 
-    await press(userId, SlackActionType.ApprovePublicNote, encodedValue());
+      await press(userId, SlackActionType.ApprovePublicNote, encodedValue());
 
-    expect(answerTexts()).toEqual([told]);
-    expect(world.writes).toEqual([]);
-    expect(world.logged).toEqual([]);
-  });
+      expect(answerTexts()).toEqual([told]);
+      expect(world.writes).toEqual([]);
+      expect(world.logged).toEqual([]);
+    },
+  );
 
   test("an approver of an earlier step is told why they cannot approve this one", async () => {
     world.steps = [SUPPORT, { ...world.steps[1]!, userIds: [BOB, CAROL] }];
@@ -304,6 +323,37 @@ describe("Approve, in a direct message", () => {
     expect(world.logged).toEqual(["approve_public_note"]);
   });
 
+  test("approval switched off since, the note still waiting: decided, as the Dashboard decides it", async () => {
+    world.isRequired = false;
+
+    await press(BOB, SlackActionType.ApprovePublicNote, encodedValue());
+
+    expect(
+      storedRound().approvals.map((given: PublicNoteApprovalGiven): string => {
+        return given.userId;
+      }),
+    ).toEqual([BOB]);
+    expect(answerTexts()).toEqual(["You approved a public note for its step"]);
+  });
+
+  test("published without approval once approval was switched off: news, and nothing decided", async () => {
+    const value: string = encodedValue();
+    world.isRequired = false;
+    world.stored = {
+      ...world.stored,
+      isPublished: true,
+      approvalStatus: null,
+      approval: null,
+    };
+
+    await press(BOB, SlackActionType.ApprovePublicNote, value);
+
+    expect(answers()).toEqual([
+      `This public note on [Incident INC-42](${NOTES_URL}) no longer waits for approval, so nothing was decided.`,
+    ]);
+    expect(world.writes).toEqual([]);
+  });
+
   test("a press on a note that changed since it was asked about is news, and decides nothing", async () => {
     const value: string = encodedValue();
     world.stored = { ...world.stored, note: "Rewritten." };
@@ -337,18 +387,22 @@ describe("forged, replayed and stale presses", () => {
         return "";
       },
     ],
-  ])("%s: told the button could not be verified, and nothing is read", async (_label: string, actionValue: () => string) => {
-    const getHost: AnySpy = WorkspacePublicNoteApprovalActions.getHost as unknown as AnySpy;
-    getHost.mockClear();
+  ])(
+    "%s: told the button could not be verified, and nothing is read",
+    async (_label: string, actionValue: () => string) => {
+      const getHost: AnySpy =
+        WorkspacePublicNoteApprovalActions.getHost as unknown as AnySpy;
+      getHost.mockClear();
 
-    await press(BOB, SlackActionType.ApprovePublicNote, actionValue());
+      await press(BOB, SlackActionType.ApprovePublicNote, actionValue());
 
-    expect(answerTexts()).toEqual([
-      WorkspacePublicNoteApprovalActions.getUnverifiedMessage(),
-    ]);
-    expect(getHost).not.toHaveBeenCalled();
-    expect(world.writes).toEqual([]);
-  });
+      expect(answerTexts()).toEqual([
+        WorkspacePublicNoteApprovalActions.getUnverifiedMessage(),
+      ]);
+      expect(getHost).not.toHaveBeenCalled();
+      expect(world.writes).toEqual([]);
+    },
+  );
 
   test("a value signed for another project than the one the press was read in decides nothing", async () => {
     await press(
@@ -417,18 +471,21 @@ describe("Reject, and its modal", () => {
       "x".repeat(PUBLIC_NOTE_APPROVAL_TEXT_MAX_LENGTH + 1),
       `A reason may have at most ${PUBLIC_NOTE_APPROVAL_TEXT_MAX_LENGTH} characters.`,
     ],
-  ])("%s keeps the modal open, saying why under the field, and rejects nothing", async (_label: string, reason: unknown, told: string) => {
-    await submitReject(BOB, encodedValue(), reason);
+  ])(
+    "%s keeps the modal open, saying why under the field, and rejects nothing",
+    async (_label: string, reason: unknown, told: string) => {
+      await submitReject(BOB, encodedValue(), reason);
 
-    expect(slackResponses()).toEqual([
-      {
-        response_action: "errors",
-        errors: { [PUBLIC_NOTE_REJECT_REASON_FIELD]: told },
-      },
-    ]);
-    expect(world.writes).toEqual([]);
-    expect(answers()).toEqual([]);
-  });
+      expect(slackResponses()).toEqual([
+        {
+          response_action: "errors",
+          errors: { [PUBLIC_NOTE_REJECT_REASON_FIELD]: told },
+        },
+      ]);
+      expect(world.writes).toEqual([]);
+      expect(answers()).toEqual([]);
+    },
+  );
 
   test("with a reason: the modal closes, the note is rejected, and the presser is told in their direct message", async () => {
     await submitReject(BOB, encodedValue(), "Do not name the vendor.");
@@ -544,9 +601,11 @@ describe("a Slack account not connected yet", () => {
     jest
       .spyOn(WorkspaceConnectRequest, "getConnectLink")
       .mockResolvedValue({ button: "None" } as never);
-    jest
-      .spyOn(WorkspaceProjectAuthTokenService, "countBy")
-      .mockResolvedValue({ toNumber: () => 1 } as never);
+    jest.spyOn(WorkspaceProjectAuthTokenService, "countBy").mockResolvedValue({
+      toNumber: () => {
+        return 1;
+      },
+    } as never);
 
     await SlackAuthAction.answerRefusal({
       ...slackRequest(BOB),
@@ -594,7 +653,11 @@ describe("a Slack account not connected yet", () => {
     expect(result.answer.markdown).toBe(
       `✅ **Your Slack account is connected to OneUptime.** You approved a **public note** on [Incident INC-42](${NOTES_URL}) for step 1 of 2 (Support). It waits for step 2 of 2 (Legal): Carol.`,
     );
-    expect(storedRound().approvals.map((given) => given.userId)).toEqual([BOB]);
+    expect(
+      storedRound().approvals.map((given: PublicNoteApprovalGiven): string => {
+        return given.userId;
+      }),
+    ).toEqual([BOB]);
     expect(world.logged).toEqual(["approve_public_note"]);
   });
 
@@ -605,7 +668,11 @@ describe("a Slack account not connected yet", () => {
       approvalStatus: PublicNoteApprovalStatus.Rejected,
       approval: {
         ...(world.stored.approval as JSONObject),
-        rejection: { userId: DAVE, at: "2026-11-07T09:10:00.000Z", reason: "No" },
+        rejection: {
+          userId: DAVE,
+          at: "2026-11-07T09:10:00.000Z",
+          reason: "No",
+        },
       },
     };
 
@@ -628,7 +695,9 @@ describe("a Slack account not connected yet", () => {
       });
 
     expect(result.outcome).toBe(ConnectRequestOutcome.Answered);
-    expect(result.answer.markdown).toContain("was already rejected by **Dave**");
+    expect(result.answer.markdown).toContain(
+      "was already rejected by **Dave**",
+    );
     expect(world.writes).toEqual([]);
   });
 });
