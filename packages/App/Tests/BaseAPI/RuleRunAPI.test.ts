@@ -190,6 +190,32 @@ describe("RuleRunAPI", () => {
     );
   });
 
+  /*
+   * A status page or SLO monitor rule's sync is handed who ran it too, so
+   * what it changes on the page or the SLO is theirs in the audit log
+   * (issue #6324).
+   */
+  test.each([
+    RuleRunType.StatusPageMonitorRule,
+    RuleRunType.ServiceLevelObjectiveMonitorRule,
+  ])("hands a %s's run who ran it", async (ruleType: RuleRunType) => {
+    const props: DatabaseCommonInteractionProps = mockProps(PROJECT_ID);
+
+    const next: NextFunction = await callRoute({ ruleType: ruleType });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(permission.assertCanRun).toHaveBeenCalledWith({
+      props: props,
+      ruleType: ruleType,
+    });
+
+    const args: { ruleType: RuleRunType; props: unknown } = runner.runPass
+      .mock.calls[0]![0] as never;
+
+    expect(args.ruleType).toBe(ruleType);
+    expect(args.props).toBe(props);
+  });
+
   test("forwards the cursor and an explicit notifyOwners", async () => {
     mockProps(PROJECT_ID);
 
