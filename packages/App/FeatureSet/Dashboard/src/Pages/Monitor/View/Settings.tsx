@@ -1,6 +1,7 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import IncomingEmailAddressSettings from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailAddressSettings";
 import MonitoringCard from "../../../Components/Monitor/MonitoringCard";
+import ResponseContentCard from "../../../Components/Monitor/ResponseContentCard";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
@@ -104,6 +105,18 @@ const MonitorCriteria: FunctionComponent<
         )}
 
         {/*
+         * What this monitor's incidents and alerts keep of the check that
+         * opened them: Website, API and Incoming Request monitors only, whose
+         * checks carry a body.
+         */}
+        <div className="mt-5 empty:hidden">
+          <ResponseContentCard
+            monitorId={modelId}
+            monitorType={monitor.monitorType}
+          />
+        </div>
+
+        {/*
          * How many probes must agree before the status changes is on the
          * Probes & Interval page now, under the probes it counts.
          */}
@@ -200,6 +213,8 @@ const MonitorCriteria: FunctionComponent<
               monitoringInterval: true,
               labels: true,
               customFields: true,
+              // A copy keeps what its incidents keep of a check.
+              keepResponseContent: true,
             }}
             navigateToOnSuccess={RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS] as Route,
