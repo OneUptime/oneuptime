@@ -383,34 +383,33 @@ describe("applyParams", () => {
  * what it always kept.
  */
 describe("the time range's half and the metrics' half", () => {
-  const SELECTIONS: Array<[string, MetricInvestigationTimeSelection | null]> =
+  const SELECTIONS: Array<[string, MetricInvestigationTimeSelection | null]> = [
+    ["nothing picked", null],
     [
-      ["nothing picked", null],
-      [
-        "a preset",
-        {
-          kind: MetricInvestigationTimeKind.Preset,
-          presetId: "around-start",
-        },
-      ],
-      [
-        "a relative range",
-        {
-          kind: MetricInvestigationTimeKind.Relative,
-          range: TimeRange.PAST_ONE_DAY,
-        },
-      ],
-      [
-        "a custom window",
-        {
-          kind: MetricInvestigationTimeKind.Custom,
-          window: new InBetween<Date>(
-            new Date("2026-11-05T05:20:00.000Z"),
-            new Date("2026-11-05T05:30:00.000Z"),
-          ),
-        },
-      ],
-    ];
+      "a preset",
+      {
+        kind: MetricInvestigationTimeKind.Preset,
+        presetId: "around-start",
+      },
+    ],
+    [
+      "a relative range",
+      {
+        kind: MetricInvestigationTimeKind.Relative,
+        range: TimeRange.PAST_ONE_DAY,
+      },
+    ],
+    [
+      "a custom window",
+      {
+        kind: MetricInvestigationTimeKind.Custom,
+        window: new InBetween<Date>(
+          new Date("2026-11-05T05:20:00.000Z"),
+          new Date("2026-11-05T05:30:00.000Z"),
+        ),
+      },
+    ],
+  ];
 
   test("the time range's names and the metrics' names, under the page's prefix, never the same", () => {
     expect(MetricInvestigationUrl.getTimeParamNames("telemetry")).toEqual({
@@ -557,12 +556,13 @@ describe("the time range's half and the metrics' half", () => {
         prefix: PREFIX,
         state: { selection: SELECTIONS[3]![1], queries: QUERIES },
       });
-    const state: MetricInvestigationUrlState =
-      MetricInvestigationUrl.readState({
+    const state: MetricInvestigationUrlState = MetricInvestigationUrl.readState(
+      {
         prefix: PREFIX,
         read: reader(params),
         presets: PRESETS,
-      });
+      },
+    );
 
     expect(state.selection).toEqual(
       MetricInvestigationUrl.readSelection({

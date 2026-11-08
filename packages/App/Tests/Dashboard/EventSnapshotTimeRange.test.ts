@@ -210,9 +210,7 @@ describe("getSnapshotExplorerQuery: what the primary explorer lists", () => {
         // The window itself, real Dates the explorer pins to.
         expect((shown as unknown as JSONObject)[field]).toBe(window);
         expect((shown as unknown as JSONObject)["severityText"]).toBe("Error");
-        expect((shown as unknown as JSONObject)["serviceId"]).toBe(
-          "service-1",
-        );
+        expect((shown as unknown as JSONObject)["serviceId"]).toBe("service-1");
         expect(Object.keys(shown as unknown as JSONObject).sort()).toEqual(
           Object.keys(stored as unknown as JSONObject).sort(),
         );
@@ -381,9 +379,7 @@ describe("getExplorerZoom: the card's zoom, as the primary explorer is offered i
         TelemetryType.Log,
       );
 
-    expect(TimeRangeZoomUtil.isSameRange(offered.timeRange, pinned)).toBe(
-      true,
-    );
+    expect(TimeRangeZoomUtil.isSameRange(offered.timeRange, pinned)).toBe(true);
     expect(TimeRangeZoomUtil.isSameRange(zoom.timeRange, pinned)).toBe(false);
   });
 
@@ -399,9 +395,7 @@ describe("getExplorerZoom: the card's zoom, as the primary explorer is offered i
         TelemetryType.Log,
       );
 
-    expect(TimeRangeZoomUtil.isSameRange(offered.timeRange, pinned)).toBe(
-      true,
-    );
+    expect(TimeRangeZoomUtil.isSameRange(offered.timeRange, pinned)).toBe(true);
   });
 
   test("everything else is the card's own: the way back, what it goes back to, the handlers", () => {

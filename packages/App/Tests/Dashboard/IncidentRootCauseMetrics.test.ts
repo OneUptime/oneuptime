@@ -569,12 +569,12 @@ describe("seeded: whatever an incident holds", () => {
       if (metrics) {
         const names: Array<string> = metricNamesOf(metrics);
         expect(names.length).toBeGreaterThan(0);
-        expect(names.some((name: string): boolean => {
-          return name.length > 0;
-        })).toBe(true);
-        expect(metrics.telemetryQuery.telemetryType).toBe(
-          TelemetryType.Metric,
-        );
+        expect(
+          names.some((name: string): boolean => {
+            return name.length > 0;
+          }),
+        ).toBe(true);
+        expect(metrics.telemetryQuery.telemetryType).toBe(TelemetryType.Metric);
         // Charted from the monitor now exactly when no snapshot was used.
         expect(Boolean(metrics.chartedFromMonitorNow)).toBe(
           metrics.evaluationWindow === null,

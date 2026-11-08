@@ -230,9 +230,9 @@ describe("a range the reader picked", () => {
     expect(resetButton()).toBeVisible();
     expect(resetButton()).toHaveTextContent("Reset");
     expect(resetZoomButtons()).toHaveLength(0);
-    expect(new URLSearchParams(window.location.search).get("telemetryTime")).toBe(
-      "hour-before",
-    );
+    expect(
+      new URLSearchParams(window.location.search).get("telemetryTime"),
+    ).toBe("hour-before");
   });
 
   test("Copy link copies the page's address with the range in it", async () => {

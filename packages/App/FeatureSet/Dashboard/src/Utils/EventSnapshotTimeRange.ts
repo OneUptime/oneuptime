@@ -72,7 +72,9 @@ export function getSnapshotExplorerQuery(input: {
     return input.storedQuery;
   }
 
-  if (MetricInvestigationTime.isSameWindow(input.window, input.snapshotWindow)) {
+  if (
+    MetricInvestigationTime.isSameWindow(input.window, input.snapshotWindow)
+  ) {
     return input.storedQuery;
   }
 

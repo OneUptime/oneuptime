@@ -68,11 +68,10 @@ function windowOf(preset: MetricInvestigationTimePreset | undefined): {
 
 describe("the time ranges around an event", () => {
   test("an open incident with what the monitor evaluated gets all five, in the picker's order", () => {
-    const presets: Array<MetricInvestigationTimePreset> =
-      getEventTimePresets(
-        { startedAt: STARTED_AT, evaluationWindow: EVALUATION_WINDOW },
-        LATER,
-      );
+    const presets: Array<MetricInvestigationTimePreset> = getEventTimePresets(
+      { startedAt: STARTED_AT, evaluationWindow: EVALUATION_WINDOW },
+      LATER,
+    );
 
     expect(
       presets.map((preset: MetricInvestigationTimePreset): string => {
@@ -198,9 +197,7 @@ describe("the time ranges around an event", () => {
       ),
     );
 
-    expect(byId[EventTimePresetId.StartToEnd]!.label).toBe(
-      START_TO_NOW_LABEL,
-    );
+    expect(byId[EventTimePresetId.StartToEnd]!.label).toBe(START_TO_NOW_LABEL);
   });
 
   test("without a start, the end of what the monitor evaluated stands in for it", () => {
@@ -243,8 +240,10 @@ describe("the time ranges around an event", () => {
 
   test("a reader's clock behind the event still gets windows that can be shown", () => {
     const now: Date = new Date(STARTED_AT.getTime() - 2 * HOUR_MS);
-    const presets: Array<MetricInvestigationTimePreset> =
-      getEventTimePresets({ startedAt: STARTED_AT }, now);
+    const presets: Array<MetricInvestigationTimePreset> = getEventTimePresets(
+      { startedAt: STARTED_AT },
+      now,
+    );
     const byId: Record<string, MetricInvestigationTimePreset> =
       presetsById(presets);
 
@@ -278,20 +277,19 @@ describe("the time ranges around an event", () => {
       const nowMs: number =
         Math.max(startMs, hasEnd ? endMs : startMs) + lagMinutes * MINUTE_MS;
 
-      const presets: Array<MetricInvestigationTimePreset> =
-        getEventTimePresets(
-          {
-            startedAt: new Date(startMs),
-            endedAt: hasEnd ? new Date(endMs) : undefined,
-            evaluationWindow: hasEvaluation
-              ? new InBetween<Date>(
-                  new Date(evaluationStartMs),
-                  new Date(evaluationEndMs),
-                )
-              : null,
-          },
-          new Date(nowMs),
-        );
+      const presets: Array<MetricInvestigationTimePreset> = getEventTimePresets(
+        {
+          startedAt: new Date(startMs),
+          endedAt: hasEnd ? new Date(endMs) : undefined,
+          evaluationWindow: hasEvaluation
+            ? new InBetween<Date>(
+                new Date(evaluationStartMs),
+                new Date(evaluationEndMs),
+              )
+            : null,
+        },
+        new Date(nowMs),
+      );
 
       const ids: Array<string> = presets.map(
         (preset: MetricInvestigationTimePreset): string => {

@@ -473,11 +473,15 @@ describe("Root Cause: the incident's metrics, untouched", () => {
         },
       ),
     ).toEqual([
-      [EVALUATED_START.toISOString(), DECLARED_AT.toISOString(), "What the monitor saw"],
+      [
+        EVALUATED_START.toISOString(),
+        DECLARED_AT.toISOString(),
+        "What the monitor saw",
+      ],
     ]);
-    expect(eventLinesInputs[eventLinesInputs.length - 1]!["excludedIncidentIds"]).toEqual([
-      INCIDENT_ID,
-    ]);
+    expect(
+      eventLinesInputs[eventLinesInputs.length - 1]!["excludedIncidentIds"],
+    ).toEqual([INCIDENT_ID]);
   });
 
   test("a grouped monitor's incident is narrowed to its own series, and says so", async () => {
@@ -611,7 +615,9 @@ describe("Root Cause: a drag across the chart (issue #4105)", () => {
   test("a drag re-queries the dragged window and offers the way back", async () => {
     await renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: "Drag across the chart" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Drag across the chart" }),
+    );
 
     await waitFor(() => {
       expect(lastFetchedWindow()).toEqual([
@@ -632,11 +638,15 @@ describe("Root Cause: a drag across the chart (issue #4105)", () => {
   test("a double-click returns to the range around the declaration, not to now", async () => {
     await renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: "Drag across the chart" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Drag across the chart" }),
+    );
     await waitFor(() => {
       expect(charts().onTimeRangeReset).toBeInstanceOf(Function);
     });
-    fireEvent.click(screen.getByRole("button", { name: "Double-click the chart" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Double-click the chart" }),
+    );
 
     await waitFor(() => {
       expect(lastFetchedWindow()).toEqual(AROUND_START);
@@ -650,7 +660,9 @@ describe("Root Cause: a drag across the chart (issue #4105)", () => {
   test("Reset zoom does what a double-click does", async () => {
     await renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: "Drag across the chart" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Drag across the chart" }),
+    );
     fireEvent.click(
       await screen.findByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
     );
@@ -663,7 +675,9 @@ describe("Root Cause: a drag across the chart (issue #4105)", () => {
   test("two drags deep, one double-click still returns to the range around the declaration", async () => {
     await renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: "Drag across the chart" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Drag across the chart" }),
+    );
     await waitFor(() => {
       expect(charts().onTimeRangeReset).toBeInstanceOf(Function);
     });
@@ -679,7 +693,9 @@ describe("Root Cause: a drag across the chart (issue #4105)", () => {
       ]);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Double-click the chart" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Double-click the chart" }),
+    );
 
     await waitFor(() => {
       expect(lastFetchedWindow()).toEqual(AROUND_START);
@@ -697,16 +713,16 @@ describe("Root Cause: an incident that kept no metric snapshot", () => {
     await renderPage();
 
     expect(lastFetchedWindow()).toEqual(AROUND_START);
-    expect(screen.getByTestId(EVENT_METRIC_SCOPE_NOTE_TEST_ID)).toHaveTextContent(
-      "Charted for what this monitor checks now.",
-    );
+    expect(
+      screen.getByTestId(EVENT_METRIC_SCOPE_NOTE_TEST_ID),
+    ).toHaveTextContent("Charted for what this monitor checks now.");
     // Nothing the monitor evaluated to shade, or to offer.
     expect(charts().referenceRegions).toBeUndefined();
     fireEvent.click(pickerButton());
     expect(
-      within(screen.getByTestId("metric-investigation-time-dropdown")).queryByText(
-        "What the monitor saw",
-      ),
+      within(
+        screen.getByTestId("metric-investigation-time-dropdown"),
+      ).queryByText("What the monitor saw"),
     ).toBeNull();
   });
 
@@ -723,7 +739,10 @@ describe("Root Cause: an incident that kept no metric snapshot", () => {
     await renderPage();
 
     expect(
-      String(charts().metricViewData.queryConfigs[0]?.metricQueryData.filterData.metricName),
+      String(
+        charts().metricViewData.queryConfigs[0]?.metricQueryData.filterData
+          .metricName,
+      ),
     ).toBe("http.server.errors");
   });
 
@@ -735,7 +754,9 @@ describe("Root Cause: an incident that kept no metric snapshot", () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByText("Metrics related to this incident.")).toBeNull();
+      expect(
+        screen.queryByText("Metrics related to this incident."),
+      ).toBeNull();
     });
     expect(screen.getByTestId("root-cause-text")).toBeInTheDocument();
     expect(getItemMock).toHaveBeenCalledTimes(1);

@@ -61,7 +61,9 @@ interface Props extends UseInvestigationTimeRangeOptions {
   evaluationWindow?: InBetween<Date> | null | undefined;
 }
 
-function presetsFor(props: Props): (now: Date) => Array<MetricInvestigationTimePreset> {
+function presetsFor(
+  props: Props,
+): (now: Date) => Array<MetricInvestigationTimePreset> {
   return (now: Date): Array<MetricInvestigationTimePreset> => {
     return getEventTimePresets(
       {
@@ -383,7 +385,10 @@ describe("a drag across the chart", () => {
     // What Reset zoom goes back to: what the monitor saw.
     expect(time.zoom.rangeBeforeZoom).toEqual({
       range: TimeRange.CUSTOM,
-      startAndEndDate: new InBetween<Date>(EVALUATED.startValue, EVALUATED.endValue),
+      startAndEndDate: new InBetween<Date>(
+        EVALUATED.startValue,
+        EVALUATED.endValue,
+      ),
     });
     expect(urlParam("telemetryTime")).toBe("custom");
     expect(urlParam("telemetryStart")).toBe("2026-11-05T05:40:00.000Z");
@@ -579,8 +584,14 @@ describe("a page opened on a link", () => {
 
   test.each([
     ["a range this page does not offer", "?telemetryTime=next-week"],
-    ["a custom window with an end missing", "?telemetryTime=custom&telemetryStart=2026-11-05T05:40:00.000Z"],
-    ["a custom window that ends before it starts", "?telemetryTime=custom&telemetryStart=2026-11-05T05:42:00.000Z&telemetryEnd=2026-11-05T05:40:00.000Z"],
+    [
+      "a custom window with an end missing",
+      "?telemetryTime=custom&telemetryStart=2026-11-05T05:40:00.000Z",
+    ],
+    [
+      "a custom window that ends before it starts",
+      "?telemetryTime=custom&telemetryStart=2026-11-05T05:42:00.000Z&telemetryEnd=2026-11-05T05:40:00.000Z",
+    ],
   ])(
     "%s opens on what the monitor saw, and is tidied away",
     (_name: string, search: string) => {

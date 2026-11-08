@@ -64,6 +64,8 @@ const READS_EVERY_VALUE: Record<string, string> = {
     "picks monitors by the labels they have: a label still on a monitor finds it, archived or not",
   "Components/Dashboard/Toolbar/DashboardVariablesModal.tsx":
     "a dashboard variable filters what charts show: records keep archived labels, and stay findable by them",
+  "Components/Incident/IncidentRootCauseMetricChart.tsx":
+    "works out an incident's times and moments from its state timeline, for the ranges and marks of its metrics",
   "Components/IncidentRole/FetchIncidentRoleAssignments.tsx":
     "reads the roles people hold on an incident, to show them",
   "Components/IncidentSeverity/FetchIncidentSeverity.tsx":

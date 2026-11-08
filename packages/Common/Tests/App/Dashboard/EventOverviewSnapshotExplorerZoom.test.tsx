@@ -1272,9 +1272,9 @@ describe.each(CASES)(
       await volumeChartDrawn();
 
       await expectLatest(mockPrimary.self.sources, HOUR_BEFORE_TEXT);
-      expect(
-        askedSince(mockPrimary.self.sources, [0, 0]),
-      ).not.toContain(SNAPSHOT_TEXT);
+      expect(askedSince(mockPrimary.self.sources, [0, 0])).not.toContain(
+        SNAPSHOT_TEXT,
+      );
       expect(cardPickerSays().label).toBe("The hour before it started");
     });
 

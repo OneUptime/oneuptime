@@ -197,7 +197,9 @@ const ExplorerSnapshotPanel: FunctionComponent<ExplorerSnapshotPanelProps> = (
     },
     defaultSelection: EVENT_EVALUATED_SELECTION,
     // With no window there is no range to keep: the URL is left alone.
-    urlParamPrefix: snapshotWindow ? EVENT_TELEMETRY_TIME_URL_PREFIX : undefined,
+    urlParamPrefix: snapshotWindow
+      ? EVENT_TELEMETRY_TIME_URL_PREFIX
+      : undefined,
   });
 
   const hasWindow: boolean = snapshotWindow !== null;

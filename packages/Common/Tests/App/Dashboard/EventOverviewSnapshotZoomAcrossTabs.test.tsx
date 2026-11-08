@@ -28,10 +28,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * - it survives a switch to another tab and back (the tabs mount only the
  *   open one, so a zoom kept in the chart was gone on the way back);
- * - "Reset zoom" beside the snapshot badge, on any tab, and a double-click
- *   on the chart return every tab to the snapshot window;
- * - the page's background refresh re-reads an equal snapshot and keeps it;
- *   a refresh that brings back a different window ends it;
+ * - "Reset zoom" beside the card's time picker, on any tab, and a
+ *   double-click on the chart return every tab to the range picked before;
+ * - the page's background refresh re-reads an equal snapshot and keeps it,
+ *   and so does a refresh that brings back a different window: the zoom is
+ *   the reader's pick;
  * - the page stays mounted when the reader moves to another event, and one
  *   evaluation of a grouped monitor opens several events over the same
  *   window: the next event starts unzoomed, and so does coming back.

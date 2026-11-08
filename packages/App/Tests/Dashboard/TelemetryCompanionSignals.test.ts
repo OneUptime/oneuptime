@@ -1142,27 +1142,48 @@ const COMPANION_TABS: string = readSource(
   "Telemetry",
   "TelemetryCompanionSignalTabs.tsx",
 );
+// The logs, traces or exceptions card of every event page (issue #6251).
+const SNAPSHOT_PANEL: string = readSource(
+  "Components",
+  "Telemetry",
+  "TelemetrySnapshotPanel.tsx",
+);
 
 describe("page and card wiring", () => {
   test.each([
     ["incident", INCIDENT_VIEW, "incident"],
     ["alert", ALERT_VIEW, "alert"],
   ])(
-    "%s page routes its snapshot through the shared tabbed card",
+    "%s page routes its snapshot through the shared card",
     (_name: string, source: string, eventNoun: string) => {
-      expect(source).toContain("<TelemetryCompanionSignalTabs");
-      expect(source).toContain("telemetryQuery={telemetryQuery}");
-      /*
-       * The window the snapshot shows: the page's snapshot window, or the
-       * slice a drag on its metric chart zoomed the whole snapshot to.
-       */
-      expect(source).toContain("snapshotWindow: telemetrySnapshotWindow,");
-      expect(source).toContain("snapshotWindow={snapshotZoom.window}");
-      expect(source).toContain("snapshotWindowAlert={snapshotWindowAlert}");
-      expect(source).toContain(`eventNoun="${eventNoun}"`);
-      expect(source).toContain("primarySignalElement={");
+      const card: string = source.slice(
+        source.indexOf("<TelemetrySnapshotPanel"),
+      );
+
+      expect(source).toContain("<TelemetrySnapshotPanel");
+      expect(card).toContain("telemetryQuery={telemetryQuery}");
+      // The window the monitor evaluated, as the page read it.
+      expect(card).toContain("snapshotWindow={telemetrySnapshotWindow}");
+      expect(card).toContain(`eventNoun="${eventNoun}"`);
+      // The tabs are the card's: no page draws them itself any more.
+      expect(source).not.toContain("<TelemetryCompanionSignalTabs");
     },
   );
+
+  test("the shared card routes the snapshot through the tabbed card, on the window it shows", () => {
+    expect(SNAPSHOT_PANEL).toContain("<TelemetryCompanionSignalTabs");
+    expect(SNAPSHOT_PANEL).toContain("telemetryQuery={telemetryQuery}");
+    /*
+     * The window the card shows: what the monitor saw, a range the reader
+     * picked, or the slice a drag zoomed the whole card to.
+     */
+    expect(SNAPSHOT_PANEL).toContain(
+      "snapshotWindow={hasWindow ? time.window : props.snapshotWindow}",
+    );
+    expect(SNAPSHOT_PANEL).toContain("snapshotWindowAlert={timeRangeControls}");
+    expect(SNAPSHOT_PANEL).toContain("eventNoun={eventNoun}");
+    expect(SNAPSHOT_PANEL).toContain("primarySignalElement={");
+  });
 
   test("the card derives companions with the shared pure util", () => {
     expect(COMPANION_TABS).toContain("deriveCompanionSignalQueries({");

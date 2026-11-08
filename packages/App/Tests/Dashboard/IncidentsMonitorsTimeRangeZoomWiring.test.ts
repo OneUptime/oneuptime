@@ -308,9 +308,7 @@ describe("the telemetry snapshot zooms as one, every tab of it", () => {
     );
     expect(source).toContain("snapshotWindowAlert={timeRangeControls}");
     // The Logs, Spans and Exceptions cards the primary can be.
-    expect(source.split("rightElement={timeRangeControls}").length - 1).toBe(
-      3,
-    );
+    expect(source.split("rightElement={timeRangeControls}").length - 1).toBe(3);
     // The picker offers the card's own Reset zoom, wherever it sits.
     expect(
       readSquashed(

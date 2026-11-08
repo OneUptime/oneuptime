@@ -1188,17 +1188,21 @@ describe("Zooming Into a Time Range docs: what zooms, and how far", () => {
     );
     expect(explorerCard).toContain("snapshotWindowAlert={timeRangeControls}");
     expect(
-      readCode(`${DASHBOARD_SRC}/Components/Telemetry/EventTimeRangeControls.tsx`),
+      readCode(
+        `${DASHBOARD_SRC}/Components/Telemetry/EventTimeRangeControls.tsx`,
+      ),
     ).toContain("<MetricInvestigationTimePicker");
 
     // Where each card starts: what the monitor saw, or around the start.
     expect(explorerCard).toContain(
       "defaultSelection: EVENT_EVALUATED_SELECTION,",
     );
-    expect(metricCard).toContain("defaultSelection: EVENT_AROUND_START_SELECTION,");
-    expect(
-      readCode(`${DASHBOARD_SRC}/Utils/EventTimePresets.ts`),
-    ).toContain("export const AROUND_START_MINUTES: number = 30;");
+    expect(metricCard).toContain(
+      "defaultSelection: EVENT_AROUND_START_SELECTION,",
+    );
+    expect(readCode(`${DASHBOARD_SRC}/Utils/EventTimePresets.ts`)).toContain(
+      "export const AROUND_START_MINUTES: number = 30;",
+    );
 
     // The Root Cause page charts the incident's metrics through the same card.
     expect(

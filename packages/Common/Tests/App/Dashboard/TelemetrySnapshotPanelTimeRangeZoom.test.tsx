@@ -807,9 +807,7 @@ describe("the companion tabs inside a page that zooms (the investigation drawer'
 });
 
 describe("the snapshot panel: a logs, traces or exceptions snapshot's time range (issue #6251)", () => {
-  const PRIMARIES: Array<
-    [string, TelemetryType, string, string, string]
-  > = [
+  const PRIMARIES: Array<[string, TelemetryType, string, string, string]> = [
     ["Logs", TelemetryType.Log, "time", "logs", "logQuery"],
     ["Traces", TelemetryType.Trace, "startTime", "traces", "spanQuery"],
     [
@@ -952,10 +950,20 @@ describe("the snapshot panel: a logs, traces or exceptions snapshot's time range
   });
 
   test.each([
-    ["an incident's", "incident", EventMetricSubject.Incident, "Around this incident"],
+    [
+      "an incident's",
+      "incident",
+      EventMetricSubject.Incident,
+      "Around this incident",
+    ],
     ["an alert's", "alert", EventMetricSubject.Alert, "Around this alert"],
     ["an incident episode's", "incident", undefined, "Around this episode"],
-    ["an alert episode's", "alert", EventMetricSubject.AlertEpisode, "Around this episode"],
+    [
+      "an alert episode's",
+      "alert",
+      EventMetricSubject.AlertEpisode,
+      "Around this episode",
+    ],
   ])(
     "%s card offers the ranges around it under its own heading",
     async (
@@ -1017,10 +1025,34 @@ describe("the snapshot panel: a logs, traces or exceptions snapshot's time range
   test.each([
     ["Logs", TelemetryType.Log, "time", "incident", "Logs for this incident."],
     ["Logs", TelemetryType.Log, "time", "alert", "Logs for this alert."],
-    ["Spans", TelemetryType.Trace, "startTime", "incident", "Spans for this incident."],
-    ["Spans", TelemetryType.Trace, "startTime", "alert", "Spans for this alert."],
-    ["Exceptions", TelemetryType.Exception, "time", "incident", "Exceptions related to this incident."],
-    ["Exceptions", TelemetryType.Exception, "time", "alert", "Exceptions for this alert."],
+    [
+      "Spans",
+      TelemetryType.Trace,
+      "startTime",
+      "incident",
+      "Spans for this incident.",
+    ],
+    [
+      "Spans",
+      TelemetryType.Trace,
+      "startTime",
+      "alert",
+      "Spans for this alert.",
+    ],
+    [
+      "Exceptions",
+      TelemetryType.Exception,
+      "time",
+      "incident",
+      "Exceptions related to this incident.",
+    ],
+    [
+      "Exceptions",
+      TelemetryType.Exception,
+      "time",
+      "alert",
+      "Exceptions for this alert.",
+    ],
   ])(
     "the %s card of %s says what it lists: %s",
     async (
