@@ -2151,6 +2151,10 @@ export default class DashboardAPI extends BaseAPI<
    * widget stored without an id, or with one an earlier widget already has,
    * is then found by the id the page asks with, and two widgets that share
    * a stored id are no longer both answered from the first one's settings.
+   * A widget whose arguments were stored as JSON text has them read as the
+   * object they say (StoredDashboardViewConfig.withArgumentsRead), as the
+   * page draws it, so it is answered as the same widget stored with them as
+   * an object (issue #6297).
    */
   private static collectDashboardWidgets(
     dashboardViewConfig: unknown,
@@ -2164,11 +2168,13 @@ export default class DashboardAPI extends BaseAPI<
       return [];
     }
 
-    return StoredDashboardViewConfig.withComponentIds(
-      servedConfig.components,
-    ).filter((component: unknown): component is JSONObject => {
-      return StoredDashboardViewConfig.isWidgetEntry(component);
-    });
+    return StoredDashboardViewConfig.withComponentIds(servedConfig.components)
+      .filter((component: unknown): component is JSONObject => {
+        return StoredDashboardViewConfig.isWidgetEntry(component);
+      })
+      .map((widget: JSONObject): JSONObject => {
+        return StoredDashboardViewConfig.withArgumentsRead(widget);
+      });
   }
 
   private static readDashboardWidgetComponentId(

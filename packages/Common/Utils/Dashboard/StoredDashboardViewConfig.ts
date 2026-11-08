@@ -362,6 +362,31 @@ export default class StoredDashboardViewConfig {
   }
 
   /*
+   * A stored widget entry with its `arguments` written as JSON text (the
+   * arguments encoded twice) read as the object that text says - a copy;
+   * any other entry comes back as the same object. Text that says no
+   * object - a list, a number, text again, JSON cut short - is left as it
+   * is: no arguments. `read` deserializes what this gives, as it does a
+   * widget stored with its arguments as an object; a public route that
+   * reads one widget's settings as stored JSON reads them through this, so
+   * a widget is answered from the settings the page draws it with, in
+   * either shape (issue #6297).
+   */
+  public static withArgumentsRead(entry: JSONObject): JSONObject {
+    const storedArguments: unknown = entry["arguments"];
+
+    if (typeof storedArguments !== "string") {
+      return entry;
+    }
+
+    const textArguments: unknown = readJSONText(storedArguments);
+
+    return isPlainObject(textArguments)
+      ? { ...entry, arguments: textArguments }
+      : entry;
+  }
+
+  /*
    * The config the dashboard draws. Always a DashboardViewConfig with a
    * widget list; every widget has a unique ObjectID, a type (kept as stored,
    * known or not), numeric position and size, and an `arguments` object.
@@ -543,21 +568,15 @@ export default class StoredDashboardViewConfig {
     id: string,
   ): DashboardBaseComponent {
     /*
-     * Arguments written as JSON text (encoded twice) are the object they
-     * say, read exactly as arguments stored as that object: deserialized
-     * with the rest of the widget, below. Parsed after it, they stayed JSON
-     * - an ObjectID's JSON instead of the id, a query operator's instead of
-     * the operator - so a chart whose arguments were text read none of the
-     * services it is saved with, and charted every service (issue #6297).
+     * Arguments written as JSON text are read exactly as arguments stored
+     * as that object: deserialized with the rest of the widget, below.
+     * Parsed after it, they stayed JSON - an ObjectID's JSON instead of the
+     * id, a query operator's instead of the operator - so a chart whose
+     * arguments were text read none of the services it is saved with, and
+     * charted every service (issue #6297).
      */
-    const storedArguments: unknown = entry["arguments"];
-    const textArguments: unknown =
-      typeof storedArguments === "string"
-        ? readJSONText(storedArguments)
-        : undefined;
-    const widget: JSONObject = isPlainObject(textArguments)
-      ? { ...entry, arguments: textArguments }
-      : entry;
+    const widget: JSONObject =
+      StoredDashboardViewConfig.withArgumentsRead(entry);
 
     /*
      * Each widget is deserialized on its own (ObjectIDs, dates, query
