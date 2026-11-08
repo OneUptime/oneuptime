@@ -315,8 +315,8 @@ export function readRunNow(data: {
       continue;
     }
 
-    const callee: string = (call.expression as ts.PropertyAccessExpression)
-      .name.text;
+    const callee: string = (call.expression as ts.PropertyAccessExpression).name
+      .text;
 
     if (isThisCall(call) && writing.has(callee)) {
       const literal: ts.ObjectLiteralExpression | null = objectArgument(call);

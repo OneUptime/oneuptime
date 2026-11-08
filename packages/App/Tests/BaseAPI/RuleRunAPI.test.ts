@@ -209,8 +209,8 @@ describe("RuleRunAPI", () => {
       ruleType: ruleType,
     });
 
-    const args: { ruleType: RuleRunType; props: unknown } = runner.runPass
-      .mock.calls[0]![0] as never;
+    const args: { ruleType: RuleRunType; props: unknown } = runner.runPass.mock
+      .calls[0]![0] as never;
 
     expect(args.ruleType).toBe(ruleType);
     expect(args.props).toBe(props);

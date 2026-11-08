@@ -1180,8 +1180,10 @@ describe("owner and privacy rule engines", () => {
  */
 describe("every rule's Run now", () => {
   const SERVICES: string = "packages/Common/Server/Services";
-  const RUNNER: string = "packages/Common/Server/Utils/Rules/RuleRun/RuleRunner.ts";
-  const RULE_RUN_ROUTE: string = "packages/App/FeatureSet/BaseAPI/API/RuleRun.ts";
+  const RUNNER: string =
+    "packages/Common/Server/Utils/Rules/RuleRun/RuleRunner.ts";
+  const RULE_RUN_ROUTE: string =
+    "packages/App/FeatureSet/BaseAPI/API/RuleRun.ts";
   const NETWORK_RUN_ROUTES: string =
     "packages/App/FeatureSet/BaseAPI/API/NetworkRuleRun.ts";
 
@@ -1314,9 +1316,11 @@ describe("every rule's Run now", () => {
             ? "OwnerRuleEngineService.ts"
             : "PrivacyRuleEngineService.ts";
 
-      expect([ruleType, engineFiles.has(engine), engine.endsWith(suffix)]).toEqual(
-        [ruleType, true, true],
-      );
+      expect([
+        ruleType,
+        engineFiles.has(engine),
+        engine.endsWith(suffix),
+      ]).toEqual([ruleType, true, true]);
     }
   });
 
@@ -1332,12 +1336,11 @@ describe("every rule's Run now", () => {
   });
 
   test("the runner hands who ran it to every engine it runs", () => {
+    const ENGINE_CALL: RegExp = /(EngineService|definition\.engine)\.\w+$/;
     const engineCalls: Array<{ callee: string; call: ts.CallExpression }> =
-      callsIn(sourceOf(RUNNER)).filter(
-        (found: { callee: string }): boolean => {
-          return /(EngineService|definition\.engine)\.\w+$/.test(found.callee);
-        },
-      );
+      callsIn(sourceOf(RUNNER)).filter((found: { callee: string }): boolean => {
+        return ENGINE_CALL.test(found.callee);
+      });
 
     // A new engine the runner runs fails here until this block reads it.
     expect(
@@ -1482,10 +1485,11 @@ describe("every rule's Run now", () => {
 
     find(sourceOf(file));
 
-    const imports: Array<{ callee: string; call: ts.CallExpression }> =
-      callsIn(sweep!).filter((found: { callee: string }): boolean => {
-        return found.callee === "this.importHostsFromScan";
-      });
+    const imports: Array<{ callee: string; call: ts.CallExpression }> = callsIn(
+      sweep!,
+    ).filter((found: { callee: string }): boolean => {
+      return found.callee === "this.importHostsFromScan";
+    });
 
     expect(imports).toHaveLength(1);
     expect(propsHandedOn(imports[0]!.call)).toBeNull();

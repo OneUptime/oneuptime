@@ -508,16 +508,19 @@ describe("an auto import rule's Run Now, from the route to the writes", () => {
           return { ...person(), tenantId: undefined };
         },
       ],
-    ])("%s", async (_name: string, propsFor: () => DatabaseCommonInteractionProps) => {
-      const next: NextFunction = await run(propsFor());
+    ])(
+      "%s",
+      async (_name: string, propsFor: () => DatabaseCommonInteractionProps) => {
+        const next: NextFunction = await run(propsFor());
 
-      expect((next as unknown as AnyMock).mock.calls).toHaveLength(1);
-      expect(
-        (next as unknown as AnyMock).mock.calls[0]![0] instanceof Error,
-      ).toBe(true);
-      expectNothingWritten();
-      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
-    });
+        expect((next as unknown as AnyMock).mock.calls).toHaveLength(1);
+        expect(
+          (next as unknown as AnyMock).mock.calls[0]![0] instanceof Error,
+        ).toBe(true);
+        expectNothingWritten();
+        expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+      },
+    );
 
     test("who cannot read the rule's monitor template", async () => {
       templateRead.mockResolvedValue(null);

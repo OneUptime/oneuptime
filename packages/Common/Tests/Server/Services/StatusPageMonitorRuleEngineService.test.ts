@@ -1868,9 +1868,7 @@ describe("who a status page monitor rule's sync is by (issue #6324)", () => {
   const RUNNER_ID: ObjectID = new ObjectID(
     "12121212-1212-4212-8212-121212121212",
   );
-  const KEY_ID: ObjectID = new ObjectID(
-    "34343434-3434-4434-8434-343434343434",
-  );
+  const KEY_ID: ObjectID = new ObjectID("34343434-3434-4434-8434-343434343434");
   const RESOURCE_C_ID: ObjectID = new ObjectID(
     "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1",
   );

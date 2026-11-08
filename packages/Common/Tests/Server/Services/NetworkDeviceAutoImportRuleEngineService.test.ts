@@ -5318,9 +5318,7 @@ describe("who an import's devices and monitors are by (issue #6323)", () => {
   const RUNNER_ID: ObjectID = new ObjectID(
     "12121212-1212-4212-8212-121212121212",
   );
-  const KEY_ID: ObjectID = new ObjectID(
-    "34343434-3434-4434-8434-343434343434",
-  );
+  const KEY_ID: ObjectID = new ObjectID("34343434-3434-4434-8434-343434343434");
   const GRANT_ID: ObjectID = new ObjectID(
     "56565656-5656-4656-8656-565656565656",
   );
@@ -5546,10 +5544,7 @@ describe("who an import's devices and monitors are by (issue #6323)", () => {
 
       await runRule(false);
 
-      expect(deviceCreateProps()).toEqual([
-        { isRoot: true },
-        { isRoot: true },
-      ]);
+      expect(deviceCreateProps()).toEqual([{ isRoot: true }, { isRoot: true }]);
       expect(monitorCreateProps()).toEqual([
         { isRoot: true, tenantId: PROJECT_ID },
         { isRoot: true, tenantId: PROJECT_ID },
@@ -5575,10 +5570,7 @@ describe("who an import's devices and monitors are by (issue #6323)", () => {
       const result: AutoImportRuleRunResult | null = await processScan();
 
       expect(result).toMatchObject({ devicesCreated: 2, monitorsCreated: 2 });
-      expect(deviceCreateProps()).toEqual([
-        { isRoot: true },
-        { isRoot: true },
-      ]);
+      expect(deviceCreateProps()).toEqual([{ isRoot: true }, { isRoot: true }]);
       expect(monitorCreateProps()).toEqual([
         { isRoot: true, tenantId: PROJECT_ID },
         { isRoot: true, tenantId: PROJECT_ID },

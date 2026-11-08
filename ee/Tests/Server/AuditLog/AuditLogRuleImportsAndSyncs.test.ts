@@ -103,9 +103,7 @@ const RESOURCE_ID: ObjectID = new ObjectID(
 const SLO_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
 const RULE_ID: ObjectID = new ObjectID("88888888-8888-4888-8888-888888888888");
 const KEY_ID: ObjectID = new ObjectID("99999999-9999-4999-8999-999999999999");
-const GROUP_ID: ObjectID = new ObjectID(
-  "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-);
+const GROUP_ID: ObjectID = new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
 // The person's request, as the routes have it.
 const PERSON: DatabaseCommonInteractionProps = {
@@ -491,7 +489,9 @@ describe("whoever runs a rule, whatever it changes", () => {
 
     type Change = (props: DatabaseCommonInteractionProps) => Promise<void>;
 
-    const changes: Array<[string, (given?: DatabaseCommonInteractionProps) => Change]> = [
+    const changes: Array<
+      [string, (given?: DatabaseCommonInteractionProps) => Change]
+    > = [
       [
         "device",
         (): Change => {

@@ -177,9 +177,10 @@ describe("RuleRunWriteProps.getInProject", () => {
   );
 
   test("the automatic path writes as OneUptime's own, in the rule's project", () => {
-    expect(RuleRunWriteProps.getInProject(undefined, RULE_PROJECT_ID)).toEqual(
-      { isRoot: true, tenantId: RULE_PROJECT_ID },
-    );
+    expect(RuleRunWriteProps.getInProject(undefined, RULE_PROJECT_ID)).toEqual({
+      isRoot: true,
+      tenantId: RULE_PROJECT_ID,
+    });
   });
 
   test("Run now writes as root in the rule's project, carrying the person and nothing they may do", () => {
@@ -269,7 +270,9 @@ describe("RuleRunWriteProps.getInProject", () => {
       }
 
       const given: DatabaseCommonInteractionProps | undefined =
-        random(10) === 0 ? undefined : (props as DatabaseCommonInteractionProps);
+        random(10) === 0
+          ? undefined
+          : (props as DatabaseCommonInteractionProps);
 
       const written: DatabaseCommonInteractionProps =
         RuleRunWriteProps.getInProject(given, RULE_PROJECT_ID);

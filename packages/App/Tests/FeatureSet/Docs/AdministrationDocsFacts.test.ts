@@ -1986,7 +1986,9 @@ describe("Audit Logs", () => {
     // Root as the person who ran it, and OneUptime's own with nobody named.
     expect(
       readCommonSource("Server/Utils/Rules/RuleRun/RuleApplication.ts"),
-    ).toContain("return props ? OnBehalfOfProps.get(props) : { isRoot: true };");
+    ).toContain(
+      "return props ? OnBehalfOfProps.get(props) : { isRoot: true };",
+    );
 
     // The engines the page names write a Run now's changes as that person.
     for (const engine of [
@@ -2010,7 +2012,9 @@ describe("Audit Logs", () => {
     );
     expect(
       readCommonSource("Server/Utils/Rules/RuleRun/RuleRunner.ts"),
-    ).toContain("statusPageMonitorRuleId: data.ruleId,\n        props: data.props,");
+    ).toContain(
+      "statusPageMonitorRuleId: data.ruleId,\n        props: data.props,",
+    );
   });
 
   it("names the actions an entry can record, a download included", () => {

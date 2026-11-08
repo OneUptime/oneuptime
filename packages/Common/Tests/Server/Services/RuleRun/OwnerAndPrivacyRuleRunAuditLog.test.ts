@@ -870,10 +870,7 @@ describe("every rule's Run now, through the runner", () => {
           return [record(this.modelType)];
         }
 
-        if (
-          table === "ServiceLevelObjectiveMonitorRule" &&
-          isSync(ruleType)
-        ) {
+        if (table === "ServiceLevelObjectiveMonitorRule" && isSync(ruleType)) {
           return [ruleOfType(ruleType)!];
         }
 

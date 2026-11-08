@@ -608,9 +608,9 @@ describe("RuleRunner.runPass", () => {
       });
 
       expect(mocks.sync).toHaveBeenCalledTimes(1);
-      expect(
-        (mocks.sync.mock.calls[0]![0] as { props: unknown }).props,
-      ).toBe(props);
+      expect((mocks.sync.mock.calls[0]![0] as { props: unknown }).props).toBe(
+        props,
+      );
       expect(
         (mocks.findOneBy.mock.calls[0]![0] as { props: unknown }).props,
       ).toEqual({ isRoot: true });
@@ -771,9 +771,9 @@ describe("RuleRunner.runPass", () => {
       });
 
       expect(mocks.sync).toHaveBeenCalledTimes(1);
-      expect(
-        (mocks.sync.mock.calls[0]![0] as { props: unknown }).props,
-      ).toBe(props);
+      expect((mocks.sync.mock.calls[0]![0] as { props: unknown }).props).toBe(
+        props,
+      );
 
       mocks.sync.mockClear();
       await runPass({ ruleType: RuleRunType.ServiceLevelObjectiveMonitorRule });

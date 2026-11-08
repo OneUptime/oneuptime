@@ -106,7 +106,8 @@ interface Write {
   props: DatabaseCommonInteractionProps;
 }
 
-let writes: Array<Write>;
+// What the run wrote, emptied before each test.
+const writes: Array<Write> = [];
 
 function grantsOf(
   permissions: Array<Permission>,
@@ -239,7 +240,7 @@ function answer(table: string, method: string): unknown {
 beforeEach(() => {
   jest.clearAllMocks();
   jest.restoreAllMocks();
-  writes = [];
+  writes.length = 0;
 
   for (const method of ["findOneById", "findOneBy", "findBy"] as const) {
     jest
