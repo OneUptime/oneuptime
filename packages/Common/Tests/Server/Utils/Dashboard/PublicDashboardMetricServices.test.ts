@@ -2,6 +2,7 @@ import PublicDashboardMetricServices, {
   PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE,
   PublicDashboardMetricSavedServices,
 } from "../../../../Server/Utils/Dashboard/PublicDashboardMetricServices";
+import PublicDashboardViewConfig from "../../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
 import EqualTo from "../../../../Types/BaseDatabase/EqualTo";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
@@ -104,6 +105,17 @@ function servicesFilter(serviceIds: Array<string>): unknown {
   return overTheWire(new Includes(serviceIds));
 }
 
+/*
+ * What the public metrics route hands the policy (issue #6297): the
+ * settings of the widgets the public page draws that chart metrics, as it
+ * reads them - out of a stored config in any shape.
+ */
+function drawnSettingsOf(config: unknown): Array<JSONObject> {
+  return PublicDashboardViewConfig.getMetricWidgetSettings(
+    PublicDashboardViewConfig.getDrawnConfig(config),
+  );
+}
+
 type ServicesRead = Array<string> | "every service" | "refused";
 
 /*
@@ -120,7 +132,9 @@ function readFor(
 
   try {
     serviceQuery = PublicDashboardMetricServices.getServiceQuery({
-      savedServices: PublicDashboardMetricServices.getSavedServices(config),
+      savedServices: PublicDashboardMetricServices.getSavedServices(
+        drawnSettingsOf(config),
+      ),
       metricName: metricName,
       requestedServiceFilter: requestedServiceFilter,
     });
@@ -151,7 +165,7 @@ function savedServicesOf(
   config: unknown,
 ): Array<[string, Array<Array<string>>]> {
   const savedServices: PublicDashboardMetricSavedServices =
-    PublicDashboardMetricServices.getSavedServices(config);
+    PublicDashboardMetricServices.getSavedServices(drawnSettingsOf(config));
 
   return Array.from(savedServices.entries()).sort(
     (
@@ -196,7 +210,9 @@ describe("a public read of a dashboard's metric", () => {
   test("the filter it runs with is built from the saved ids, not handed on from the request", () => {
     const savedServices: PublicDashboardMetricSavedServices =
       PublicDashboardMetricServices.getSavedServices(
-        dashboardOf(chart(savedQuery(LATENCY, [API, CHECKOUT]))),
+        drawnSettingsOf(
+          dashboardOf(chart(savedQuery(LATENCY, [API, CHECKOUT]))),
+        ),
       );
     const requested: Includes = new Includes([CHECKOUT, API]);
 
@@ -457,7 +473,9 @@ describe("what a public read cannot do", () => {
 
     try {
       PublicDashboardMetricServices.getServiceQuery({
-        savedServices: PublicDashboardMetricServices.getSavedServices(config),
+        savedServices: PublicDashboardMetricServices.getSavedServices(
+          drawnSettingsOf(config),
+        ),
         metricName: LATENCY,
         requestedServiceFilter: new Includes([API]),
       });

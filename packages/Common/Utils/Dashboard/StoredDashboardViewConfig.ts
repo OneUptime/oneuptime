@@ -27,7 +27,8 @@ import ObjectID from "../../Types/ObjectID";
  *   undefined (reading 'length')", and the page never opened. Widgets in
  *   the `{"_type": "DashboardComponent", "value": {...}}` envelope the same
  *   reference documented for one widget are read as the widget inside.
- * - JSON text instead of an object (a config, or a widget, encoded twice).
+ * - JSON text instead of an object (a config, a widget or a widget's
+ *   arguments, encoded twice).
  * - No widget list at all (`{}`), or a list that is not a list.
  * - Widgets without an id, two widgets with the same id, widgets without
  *   `arguments` (saved before November 2024, or written by hand), sizes
@@ -542,24 +543,42 @@ export default class StoredDashboardViewConfig {
     id: string,
   ): DashboardBaseComponent {
     /*
+     * Arguments written as JSON text (encoded twice) are the object they
+     * say, read exactly as arguments stored as that object: deserialized
+     * with the rest of the widget, below. Parsed after it, they stayed JSON
+     * - an ObjectID's JSON instead of the id, a query operator's instead of
+     * the operator - so a chart whose arguments were text read none of the
+     * services it is saved with, and charted every service (issue #6297).
+     */
+    const storedArguments: unknown = entry["arguments"];
+    const textArguments: unknown =
+      typeof storedArguments === "string"
+        ? readJSONText(storedArguments)
+        : undefined;
+    const widget: JSONObject = isPlainObject(textArguments)
+      ? { ...entry, arguments: textArguments }
+      : entry;
+
+    /*
      * Each widget is deserialized on its own (ObjectIDs, dates, query
      * operators), so one that cannot be leaves the others alone - it is
      * then drawn from its stored JSON, and its own error boundary decides.
      */
-    let source: JSONObject = entry;
+    let source: JSONObject = widget;
 
     try {
       const deserialized: unknown = JSONFunctions.deserializeValue(
-        entry as JSONValue,
+        widget as JSONValue,
       );
 
       if (isPlainObject(deserialized)) {
         source = deserialized;
       }
     } catch {
-      source = entry;
+      source = widget;
     }
 
+    // Text that says no object - a list, a number, text again - is none.
     const componentArguments: unknown = readJSONText(source["arguments"]);
     const componentType: unknown = source["componentType"];
 
