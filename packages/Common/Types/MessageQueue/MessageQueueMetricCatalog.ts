@@ -66,7 +66,20 @@ export type MessageQueueSignal =
   | "errors"
   | "throttled"
   | "oldestMessageAge"
-  | "consumers";
+  | "consumers"
+  /*
+   * Messages a sender scheduled for later delivery, not yet enqueued
+   * (Service Bus's ScheduledMessages): waiting by design, so not a backlog.
+   */
+  | "scheduled"
+  // The storage a queue's messages take, in bytes (Azure Monitor's Size).
+  | "size"
+  /*
+   * How long the broker took to accept a send (Service Bus's
+   * ServerSendLatency): its own side of a publish, never the time a
+   * consumer takes, which only consumer spans measure.
+   */
+  | "latency";
 
 export type MessageQueueMetricKind = "gauge" | "counter";
 
@@ -87,7 +100,7 @@ export interface MessageQueueMetricDescriptor {
   title: string;
   // Full sentence(s) ending in ".".
   description: string;
-  // Display unit: "messages", "s", "ms", "requests", "consumers".
+  // Display unit: "messages", "s", "ms", "requests", "consumers", "bytes".
   unit: string;
   signal: MessageQueueSignal;
   kind: MessageQueueMetricKind;
@@ -692,6 +705,40 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     },
     {
       system: "servicebus",
+      metricName: "azure_scheduledmessages_average",
+      title: translationKey("Scheduled messages"),
+      description:
+        "Messages sent for delivery at a later time that are not in the queue or topic yet (Azure Monitor's ScheduledMessages, averaged over each minute). They wait by design, so they are not part of the backlog.",
+      unit: translationKey("messages"),
+      signal: "scheduled",
+      kind: "gauge",
+      aggregation: AggregationType.Max,
+      seriesCombine: "max",
+      destinationAttributes: AZURE_ENTITY_KEYS,
+      scopeAttributes: AZURE_NAMESPACE_KEYS,
+      requiredAttributes: SERVICE_BUS_NAMESPACE_TYPE,
+      receiver: AZURE_MONITOR,
+      enabledByDefault: true,
+    },
+    {
+      system: "servicebus",
+      metricName: "azure_size_average",
+      title: translationKey("Size"),
+      description:
+        "The storage the queue or topic takes, in bytes (Azure Monitor's Size, averaged over each minute). A queue or topic that reaches its maximum size refuses new messages.",
+      unit: "bytes",
+      signal: "size",
+      kind: "gauge",
+      aggregation: AggregationType.Max,
+      seriesCombine: "max",
+      destinationAttributes: AZURE_ENTITY_KEYS,
+      scopeAttributes: AZURE_NAMESPACE_KEYS,
+      requiredAttributes: SERVICE_BUS_NAMESPACE_TYPE,
+      receiver: AZURE_MONITOR,
+      enabledByDefault: true,
+    },
+    {
+      system: "servicebus",
       metricName: "azure_incomingmessages_total",
       title: translationKey("Incoming messages"),
       description:
@@ -812,6 +859,23 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       receiver: AZURE_MONITOR,
       enabledByDefault: true,
     },
+    {
+      system: "servicebus",
+      metricName: "azure_serversendlatency_average",
+      title: translationKey("Server send latency"),
+      description:
+        "How long Service Bus took to accept a message sent to the queue or topic, in milliseconds (Azure Monitor's ServerSendLatency, averaged over each minute). It is the broker's side of a send, not the time your consumers take to handle a message.",
+      unit: "ms",
+      signal: "latency",
+      kind: "gauge",
+      aggregation: AggregationType.Max,
+      seriesCombine: "max",
+      destinationAttributes: AZURE_ENTITY_KEYS,
+      scopeAttributes: AZURE_NAMESPACE_KEYS,
+      requiredAttributes: SERVICE_BUS_NAMESPACE_TYPE,
+      receiver: AZURE_MONITOR,
+      enabledByDefault: true,
+    },
 
     // Azure Event Hubs.
     {
@@ -917,6 +981,23 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       scopeAttributes: AZURE_NAMESPACE_KEYS,
       requiredAttributes: EVENT_HUBS_NAMESPACE_TYPE,
       seriesKeys: AZURE_OPERATION_RESULT_KEYS,
+      receiver: AZURE_MONITOR,
+      enabledByDefault: true,
+    },
+    {
+      system: "eventhubs",
+      metricName: "azure_size_average",
+      title: translationKey("Size"),
+      description:
+        "The storage the event hub's retained events take, in bytes (Azure Monitor's Size, averaged over each minute).",
+      unit: "bytes",
+      signal: "size",
+      kind: "gauge",
+      aggregation: AggregationType.Max,
+      seriesCombine: "max",
+      destinationAttributes: AZURE_ENTITY_KEYS,
+      scopeAttributes: AZURE_NAMESPACE_KEYS,
+      requiredAttributes: EVENT_HUBS_NAMESPACE_TYPE,
       receiver: AZURE_MONITOR,
       enabledByDefault: true,
     },

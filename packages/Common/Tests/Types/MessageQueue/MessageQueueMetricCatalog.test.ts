@@ -274,6 +274,25 @@ const EXPECTED_METRICS: ReadonlyArray<ExpectedMetricRow> = [
     AggregationType.Max,
     "max",
   ),
+  // Scheduled messages wait by design: their own signal, never a backlog.
+  row(
+    "servicebus",
+    "azure_scheduledmessages_average",
+    "scheduled",
+    "gauge",
+    "messages",
+    AggregationType.Max,
+    "max",
+  ),
+  row(
+    "servicebus",
+    "azure_size_average",
+    "size",
+    "gauge",
+    "bytes",
+    AggregationType.Max,
+    "max",
+  ),
   row(
     "servicebus",
     "azure_incomingmessages_total",
@@ -344,6 +363,16 @@ const EXPECTED_METRICS: ReadonlyArray<ExpectedMetricRow> = [
       "metadata_MessagingErrorSubCode",
     ],
   ),
+  // The broker's side of a send, in milliseconds: a level at its worst.
+  row(
+    "servicebus",
+    "azure_serversendlatency_average",
+    "latency",
+    "gauge",
+    "ms",
+    AggregationType.Max,
+    "max",
+  ),
   // Event Hubs.
   row(
     "eventhubs",
@@ -402,6 +431,15 @@ const EXPECTED_METRICS: ReadonlyArray<ExpectedMetricRow> = [
     AggregationType.Sum,
     "sum",
     AZURE_RESULT,
+  ),
+  row(
+    "eventhubs",
+    "azure_size_average",
+    "size",
+    "gauge",
+    "bytes",
+    AggregationType.Max,
+    "max",
   ),
   // Amazon SQS: CloudWatch's Average of a level, its Sum of a count; one series per queue.
   row(
@@ -898,6 +936,7 @@ const ALLOWED_UNITS: ReadonlyArray<string> = [
   "ms",
   "requests",
   "consumers",
+  "bytes",
 ];
 
 const ALLOWED_AGGREGATIONS: ReadonlyArray<AggregationType> = [
@@ -1145,6 +1184,9 @@ describe("MESSAGE_QUEUE_METRICS catalog", () => {
         "throttled",
         "oldestMessageAge",
         "consumers",
+        "scheduled",
+        "size",
+        "latency",
       ]).toContain(descriptor.signal);
       expect(["gauge", "counter"]).toContain(descriptor.kind);
       expect(ALLOWED_AGGREGATIONS).toContain(descriptor.aggregation);
@@ -1161,14 +1203,69 @@ describe("MESSAGE_QUEUE_METRICS catalog", () => {
         isTime,
       }).toEqual({
         metric: descriptor.metricName,
-        isTime: descriptor.signal === "oldestMessageAge",
+        isTime:
+          descriptor.signal === "oldestMessageAge" ||
+          descriptor.signal === "latency",
       });
     }
     for (const descriptor of MESSAGE_QUEUE_METRICS) {
       if (descriptor.signal === "consumers") {
         expect(descriptor.unit).toBe("consumers");
       }
+      // A size is in bytes, and only a size is.
+      expect({
+        metric: descriptor.metricName,
+        isBytes: descriptor.unit === "bytes",
+      }).toEqual({
+        metric: descriptor.metricName,
+        isBytes: descriptor.signal === "size",
+      });
     }
+  });
+
+  test("Azure Service Bus reports its levels per queue and topic: active, dead-lettered, scheduled, size and send latency", () => {
+    /*
+     * Microsoft's Supported metrics reference for
+     * Microsoft.ServiceBus/Namespaces: ActiveMessages, DeadletteredMessages,
+     * ScheduledMessages and Size (Average, Minimum, Maximum) and
+     * ServerSendLatency (Average), each split by the EntityName dimension,
+     * which the azure_monitor receiver stores as metadata_entityname.
+     */
+    const serviceBus: ReadonlyArray<MessageQueueMetricDescriptor> =
+      getMessageQueueMetricsForSystem("servicebus");
+    const levels: Array<MessageQueueMetricDescriptor> = serviceBus.filter(
+      (descriptor: MessageQueueMetricDescriptor): boolean => {
+        return descriptor.metricName.endsWith("_average");
+      },
+    );
+    expect(
+      levels.map((descriptor: MessageQueueMetricDescriptor): string => {
+        return descriptor.metricName;
+      }),
+    ).toEqual([
+      "azure_activemessages_average",
+      "azure_deadletteredmessages_average",
+      "azure_scheduledmessages_average",
+      "azure_size_average",
+      "azure_serversendlatency_average",
+    ]);
+    for (const descriptor of levels) {
+      expect(descriptor.destinationAttributes).toContain(
+        "metadata_entityname",
+      );
+      expect(descriptor.scopeAttributes).toEqual(["name"]);
+      expect(descriptor.kind).toBe("gauge");
+      // A level is never summed within a bucket.
+      expect(descriptor.aggregation).not.toBe(AggregationType.Sum);
+    }
+    // Event Hubs reports its size per event hub too.
+    expect(
+      getMessageQueueMetricsForSystem("eventhubs").map(
+        (descriptor: MessageQueueMetricDescriptor): string => {
+          return descriptor.metricName;
+        },
+      ),
+    ).toContain("azure_size_average");
   });
 
   test("counters use aggregation Max and seriesCombine sum, and carry no series keys", () => {

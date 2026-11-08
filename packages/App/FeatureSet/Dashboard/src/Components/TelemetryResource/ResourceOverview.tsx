@@ -80,6 +80,13 @@ export interface ResourceOverviewTile {
    */
   title: string;
   value: string;
+  /*
+   * Words drawn in place of the value when there is no number to show and
+   * the page can say what would give one ("Needs consumer traces"): an
+   * English literal the tile draws in the reader's language, smaller and
+   * muted, so it never reads as a figure.
+   */
+  valueNote?: string | undefined;
   icon: IconProp;
   iconColor: ResourceOverviewTileColor;
   loading?: boolean | undefined;
@@ -404,6 +411,14 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
     drawn: sublabel,
     language: translator.language,
   });
+  const valueNote: string | undefined = props.valueNote
+    ? translator.translateText(props.valueNote) || props.valueNote
+    : undefined;
+  const valueNoteLanguage: string | undefined = getDrawnLanguage({
+    english: props.valueNote,
+    drawn: valueNote,
+    language: translator.language,
+  });
 
   const barColor: string = (() => {
     if (props.percent === null || props.percent === undefined) {
@@ -515,9 +530,23 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
         </div>
       ) : (
         <Fragment>
-          <div className="text-2xl font-semibold text-gray-900 leading-none">
-            {props.value}
-          </div>
+          {valueNote ? (
+            /*
+             * As tall as a value's line, so a tile with a note lines up with
+             * its neighbours' sublabels.
+             */
+            <div
+              className="flex min-h-6 items-end text-sm font-medium leading-tight text-gray-500"
+              lang={valueNoteLanguage}
+              data-testid="resource-overview-tile-value-note"
+            >
+              {valueNote}
+            </div>
+          ) : (
+            <div className="text-2xl font-semibold text-gray-900 leading-none">
+              {props.value}
+            </div>
+          )}
           {sublabel ? (
             <div
               className="mt-1 text-xs text-gray-500 truncate"
