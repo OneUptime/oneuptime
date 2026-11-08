@@ -795,9 +795,10 @@ describe("the services are read where the public page draws them (issue #6297)",
 
     for (const [label, entry] of hidden) {
       // On its own: the metric is charted for no services at all.
-      expect([label, savedServicesOf(dashboardOf(entry as JSONObject))]).toEqual(
-        [label, []],
-      );
+      expect([
+        label,
+        savedServicesOf(dashboardOf(entry as JSONObject)),
+      ]).toEqual([label, []]);
 
       // Beside a drawn chart of the metric: only the chart's services.
       const config: JSONObject = dashboardOf(
@@ -809,9 +810,10 @@ describe("the services are read where the public page draws them (issue #6297)",
         label,
         [[LATENCY, [[API]]]],
       ]);
-      expect([label, readFor(config, LATENCY, servicesFilter([FOREIGN]))]).toEqual(
-        [label, "refused"],
-      );
+      expect([
+        label,
+        readFor(config, LATENCY, servicesFilter([FOREIGN])),
+      ]).toEqual([label, "refused"]);
     }
   });
 
@@ -839,17 +841,15 @@ describe("the services are read where the public page draws them (issue #6297)",
     expect(drawnIds).toEqual(STORED_SERVICES);
     expect(savedServicesOf(config)).toEqual([[LATENCY, [[API]]]]);
     expect(readFor(config, LATENCY, servicesFilter([API]))).toEqual([API]);
-    expect(
-      readFor(config, LATENCY, servicesFilter([API, CHECKOUT])),
-    ).toBe("refused");
+    expect(readFor(config, LATENCY, servicesFilter([API, CHECKOUT]))).toBe(
+      "refused",
+    );
   });
 
   test("a value under a __proto__ key, which JSON keeps as an ordinary key, is never read", () => {
     // The widget cannot be revived, so the page draws its stored JSON, key and all.
     const config: JSONObject = JSON.parse(
-      JSON.stringify(
-        dashboardOf(chart(savedQuery(LATENCY, [API]))),
-      ).replace(
+      JSON.stringify(dashboardOf(chart(savedQuery(LATENCY, [API])))).replace(
         '"metricQueryConfig"',
         `"owner": {"_type": "Email", "value": 42}, "__proto__": ${JSON.stringify(
           { metricQueryConfig: savedQuery(CPU, [FOREIGN]) },

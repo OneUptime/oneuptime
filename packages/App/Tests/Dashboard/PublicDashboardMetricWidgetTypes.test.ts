@@ -92,9 +92,10 @@ describe("the widget types the public metric routes read are the ones that chart
     ).toEqual(expect.arrayContaining([...MetricComponentTypes]));
 
     for (const widget of widgets) {
-      expect({ widget: widget.file, exists: fs.existsSync(widget.file) }).toEqual(
-        { widget: widget.file, exists: true },
-      );
+      expect({
+        widget: widget.file,
+        exists: fs.existsSync(widget.file),
+      }).toEqual({ widget: widget.file, exists: true });
     }
   });
 

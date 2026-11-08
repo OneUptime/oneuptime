@@ -1032,6 +1032,48 @@ describe("widgets", () => {
         expect(JSON.stringify(entry)).toBe(before);
         expect(typeof entry["arguments"]).toBe("string");
       });
+
+      describe("withArgumentsRead: the same settings, as JSON", () => {
+        test("text that says an object is read as it: a copy, the stored entry kept", () => {
+          const entry: JSONObject = chartWith(JSON.stringify(chartArguments()));
+          const before: string = JSON.stringify(entry);
+
+          const read: JSONObject =
+            StoredDashboardViewConfig.withArgumentsRead(entry);
+
+          expect(read).not.toBe(entry);
+          expect(read).toEqual(chartWith(chartArguments()));
+          // Not deserialized: the JSON a widget stored as an object holds.
+          expect((read["arguments"] as JSONObject)["monitorId"]).toEqual({
+            _type: "ObjectID",
+            value: SECOND_WIDGET_ID,
+          });
+          expect(JSON.stringify(entry)).toBe(before);
+        });
+
+        test.each([
+          ["an object", { text: "Stored as one" }],
+          ["missing", undefined],
+          ["null", null],
+          ["text of text", JSON.stringify(JSON.stringify({ text: "Twice" }))],
+          ["a list as text", "[1, 2]"],
+          ["a number as text", "5"],
+          ["JSON cut short", '{"text": "Cut'],
+          ["text that is not JSON", "isBold"],
+        ])(
+          "any other entry comes back as the same object: arguments %s",
+          (_name: string, value: unknown) => {
+            const entry: JSONObject = {
+              ...apiTextWidget(),
+              arguments: value as JSONObject,
+            };
+
+            expect(StoredDashboardViewConfig.withArgumentsRead(entry)).toBe(
+              entry,
+            );
+          },
+        );
+      });
     });
   });
 });

@@ -14,7 +14,6 @@ import {
 import Response from "../../../Server/Utils/Response";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
-import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import { DashboardVariableType } from "../../../Types/Dashboard/DashboardVariable";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
@@ -2636,7 +2635,8 @@ describe("DashboardAPI public metrics-aggregate", () => {
         expectNothingAggregated();
       };
 
-      const METRIC_REFUSED: string = "This metric is not part of this dashboard.";
+      const METRIC_REFUSED: string =
+        "This metric is not part of this dashboard.";
       const ATTRIBUTE_REFUSED: string =
         "This attribute is not part of this dashboard.";
 
@@ -2693,242 +2693,242 @@ describe("DashboardAPI public metrics-aggregate", () => {
         );
       });
 
-      describe.each(WIDGET_SHAPES)(
-        "stored $name",
-        (shape: WidgetShape) => {
-          describe.each(METRIC_WIDGET_TYPES)(
-            "a %s widget",
-            (componentType: DashboardComponentType) => {
-              beforeEach(() => {
-                dashboard.dashboardViewConfig = shape.store([
-                  buildWidget(componentType, SPEC),
-                ]) as DashboardViewConfig;
-              });
-
-              it("charts its metric with its saved grouping, attribute filter and services, as stored as an object", async () => {
-                await callWithAggregate(pageRequest(componentType));
-
-                expect(nextFunction).not.toHaveBeenCalled();
-
-                const args: JSONObject = getAggregateArgs();
-                const query: JSONObject = args["query"] as JSONObject;
-
-                expect(query["name"]).toBe(WIDGET_METRIC);
-                expect(query["projectId"]).toBe(projectId);
-                expect(query["attributes"]).toEqual({
-                  [WIDGET_FILTER_KEY]: "/pay",
-                });
-                expect(args["groupByAttributeKeys"]).toEqual([
-                  WIDGET_GROUP_BY_KEY,
-                ]);
-
-                if (servicesOf(componentType).length === 0) {
-                  expect(
-                    Object.prototype.hasOwnProperty.call(
-                      query,
-                      "primaryEntityId",
-                    ),
-                  ).toBe(false);
-                } else {
-                  // As saved, the ObjectID JSON one read as its id.
-                  expect(query["primaryEntityId"]).toBeInstanceOf(Includes);
-                  expect(
-                    (query["primaryEntityId"] as Includes).values,
-                  ).toEqual(SPEC.serviceIds);
-                }
-              });
-
-              it("refuses a metric it does not chart", async () => {
-                await callWithAggregate(
-                  pageRequest(componentType, {
-                    query: { name: FOREIGN_METRIC },
-                  }),
-                );
-
-                expectRefused(METRIC_REFUSED);
-              });
-
-              it("refuses a grouping it does not save", async () => {
-                await callWithAggregate(
-                  pageRequest(componentType, {
-                    aggregateBy: { groupByAttributeKeys: [FOREIGN_KEY] },
-                  }),
-                );
-
-                expectRefused(ATTRIBUTE_REFUSED);
-              });
-
-              it("refuses a filter on a key it does not filter by", async () => {
-                await callWithAggregate(
-                  pageRequest(componentType, {
-                    query: { attributes: { [FOREIGN_KEY]: "a" } },
-                  }),
-                );
-
-                expectRefused(ATTRIBUTE_REFUSED);
-              });
-
-              it("refuses services it is not saved with", async () => {
-                const requests: Array<unknown> =
-                  servicesOf(componentType).length === 0
-                    ? [servicesFilter([API_SERVICE_ID])]
-                    : [
-                        undefined,
-                        servicesFilter([API_SERVICE_ID]),
-                        servicesFilter([
-                          API_SERVICE_ID,
-                          CHECKOUT_SERVICE_ID,
-                          UNSAVED_SERVICE_ID,
-                        ]),
-                        servicesFilter([UNSAVED_SERVICE_ID]),
-                      ];
-
-                for (const requested of requests) {
-                  jest.clearAllMocks();
-
-                  const request: JSONObject = pageRequest(componentType);
-                  const query: JSONObject = request["query"] as JSONObject;
-
-                  delete query["primaryEntityId"];
-
-                  if (requested !== undefined) {
-                    query["primaryEntityId"] = requested as JSONObject;
-                  }
-
-                  await callWithAggregate(request);
-
-                  expectRefused(PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE);
-                }
-              });
-
-              it("is listed by /metric-types, with no metric it does not chart", async () => {
-                expect(await callMetricTypes()).toEqual([WIDGET_METRIC]);
-              });
-            },
-          );
-
-          /*
-           * A widget the public page does not draw asks for nothing, so it
-           * unlocks nothing - in this shape as in any other.
-           */
-          describe("what the page does not draw stays unreadable", () => {
-            const HIDDEN_TYPES: Array<[string, string]> = [
-              ["a Data Source chart", DashboardComponentType.DataSourceChart],
-              ["a Data Source table", DashboardComponentType.DataSourceTable],
-              ["a removed type", "HostMetricChart"],
-              ["a type spelt with spaces", " Chart "],
-              ["a type spelt in lower case", "chart"],
-              ["a widget that charts no metrics", DashboardComponentType.Text],
-            ];
-
-            it.each(HIDDEN_TYPES)(
-              "%s holding a metric query",
-              async (_label: string, componentType: string) => {
-                dashboard.dashboardViewConfig = shape.store([
-                  buildWidget(componentType, SPEC),
-                ]) as DashboardViewConfig;
-
-                await callWithAggregate(
-                  pageRequest(DashboardComponentType.Chart),
-                );
-                expectRefused(METRIC_REFUSED);
-
-                expect(await callMetricTypes()).toEqual([]);
-              },
-            );
-
-            it("a metric widget's query kept outside its arguments, where the page never reads one", async () => {
-              const widget: JSONObject = buildWidget(
-                DashboardComponentType.Chart,
-                SPEC,
-              );
-              const stray: JSONObject = {
-                ...widget,
-                metricQueryConfig: (widget["arguments"] as JSONObject)[
-                  "metricQueryConfig"
-                ] as JSONObject,
-              };
-
-              delete stray["arguments"];
-
+      describe.each(WIDGET_SHAPES)("stored $name", (shape: WidgetShape) => {
+        describe.each(METRIC_WIDGET_TYPES)(
+          "a %s widget",
+          (componentType: DashboardComponentType) => {
+            beforeEach(() => {
               dashboard.dashboardViewConfig = shape.store([
-                stray,
+                buildWidget(componentType, SPEC),
               ]) as DashboardViewConfig;
-
-              await callWithAggregate(pageRequest(DashboardComponentType.Chart));
-              expectRefused(METRIC_REFUSED);
             });
 
-            it("a chart of a type the page does not draw beside one it draws: neither its services nor its keys read", async () => {
-              const hiddenSpec: WidgetSpec = {
-                metricName: WIDGET_METRIC,
-                groupByKey: FOREIGN_KEY,
-                filterKey: "user.email",
-                serviceIds: [UNSAVED_SERVICE_ID],
-              };
+            it("charts its metric with its saved grouping, attribute filter and services, as stored as an object", async () => {
+              await callWithAggregate(pageRequest(componentType));
 
-              dashboard.dashboardViewConfig = shape.store([
-                buildWidget(DashboardComponentType.DataSourceChart, hiddenSpec),
-                buildWidget(DashboardComponentType.Chart, SPEC),
-                buildWidget("HostMetricChart", hiddenSpec),
-              ]) as DashboardViewConfig;
-
-              // The drawn chart reads, as saved.
-              await callWithAggregate(pageRequest(DashboardComponentType.Chart));
               expect(nextFunction).not.toHaveBeenCalled();
 
-              // The others' grouping, filter key and services do not.
-              const refusals: Array<[JSONObject, string]> = [
-                [
-                  pageRequest(DashboardComponentType.Chart, {
-                    aggregateBy: { groupByAttributeKeys: [FOREIGN_KEY] },
-                  }),
-                  ATTRIBUTE_REFUSED,
-                ],
-                [
-                  pageRequest(DashboardComponentType.Chart, {
-                    query: { attributes: { "user.email": "a" } },
-                  }),
-                  ATTRIBUTE_REFUSED,
-                ],
-                [
-                  pageRequest(DashboardComponentType.Chart, {
-                    query: {
-                      primaryEntityId: servicesFilter([UNSAVED_SERVICE_ID]),
-                    },
-                  }),
-                  PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE,
-                ],
-              ];
+              const args: JSONObject = getAggregateArgs();
+              const query: JSONObject = args["query"] as JSONObject;
 
-              for (const [request, message] of refusals) {
-                jest.clearAllMocks();
+              expect(query["name"]).toBe(WIDGET_METRIC);
+              expect(query["projectId"]).toBe(projectId);
+              expect(query["attributes"]).toEqual({
+                [WIDGET_FILTER_KEY]: "/pay",
+              });
+              expect(args["groupByAttributeKeys"]).toEqual([
+                WIDGET_GROUP_BY_KEY,
+              ]);
 
-                await callWithAggregate(request);
-
-                expectRefused(message);
+              if (servicesOf(componentType).length === 0) {
+                expect(
+                  Object.prototype.hasOwnProperty.call(
+                    query,
+                    "primaryEntityId",
+                  ),
+                ).toBe(false);
+              } else {
+                // As saved, the ObjectID JSON one read as its id.
+                expect(query["primaryEntityId"]).toBeInstanceOf(Includes);
+                expect((query["primaryEntityId"] as Includes).values).toEqual(
+                  SPEC.serviceIds,
+                );
               }
             });
 
-            it("a widget hidden inside another widget's settings", async () => {
-              const nested: JSONObject = buildWidget(
-                DashboardComponentType.Chart,
-                SPEC,
+            it("refuses a metric it does not chart", async () => {
+              await callWithAggregate(
+                pageRequest(componentType, {
+                  query: { name: FOREIGN_METRIC },
+                }),
               );
 
-              dashboard.dashboardViewConfig = shape.store([
-                {
-                  ...buildWidget(DashboardComponentType.Text, SPEC),
-                  arguments: { text: "Latency", widget: nested },
-                },
-              ]) as DashboardViewConfig;
-
-              await callWithAggregate(pageRequest(DashboardComponentType.Chart));
               expectRefused(METRIC_REFUSED);
             });
 
-            for (const [label, storeUnreadable] of shape.unreadable || []) {
-              it(`the shape ${label}: read loosely by no reader, so read by none`, async () => {
+            it("refuses a grouping it does not save", async () => {
+              await callWithAggregate(
+                pageRequest(componentType, {
+                  aggregateBy: { groupByAttributeKeys: [FOREIGN_KEY] },
+                }),
+              );
+
+              expectRefused(ATTRIBUTE_REFUSED);
+            });
+
+            it("refuses a filter on a key it does not filter by", async () => {
+              await callWithAggregate(
+                pageRequest(componentType, {
+                  query: { attributes: { [FOREIGN_KEY]: "a" } },
+                }),
+              );
+
+              expectRefused(ATTRIBUTE_REFUSED);
+            });
+
+            it("refuses services it is not saved with", async () => {
+              const requests: Array<unknown> =
+                servicesOf(componentType).length === 0
+                  ? [servicesFilter([API_SERVICE_ID])]
+                  : [
+                      undefined,
+                      servicesFilter([API_SERVICE_ID]),
+                      servicesFilter([
+                        API_SERVICE_ID,
+                        CHECKOUT_SERVICE_ID,
+                        UNSAVED_SERVICE_ID,
+                      ]),
+                      servicesFilter([UNSAVED_SERVICE_ID]),
+                    ];
+
+              for (const requested of requests) {
+                jest.clearAllMocks();
+
+                const request: JSONObject = pageRequest(componentType);
+                const query: JSONObject = request["query"] as JSONObject;
+
+                delete query["primaryEntityId"];
+
+                if (requested !== undefined) {
+                  query["primaryEntityId"] = requested as JSONObject;
+                }
+
+                await callWithAggregate(request);
+
+                expectRefused(PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE);
+              }
+            });
+
+            it("is listed by /metric-types, with no metric it does not chart", async () => {
+              expect(await callMetricTypes()).toEqual([WIDGET_METRIC]);
+            });
+          },
+        );
+
+        /*
+         * A widget the public page does not draw asks for nothing, so it
+         * unlocks nothing - in this shape as in any other.
+         */
+        describe("what the page does not draw stays unreadable", () => {
+          const HIDDEN_TYPES: Array<[string, string]> = [
+            ["a Data Source chart", DashboardComponentType.DataSourceChart],
+            ["a Data Source table", DashboardComponentType.DataSourceTable],
+            ["a removed type", "HostMetricChart"],
+            ["a type spelt with spaces", " Chart "],
+            ["a type spelt in lower case", "chart"],
+            ["a widget that charts no metrics", DashboardComponentType.Text],
+          ];
+
+          it.each(HIDDEN_TYPES)(
+            "%s holding a metric query",
+            async (_label: string, componentType: string) => {
+              dashboard.dashboardViewConfig = shape.store([
+                buildWidget(componentType, SPEC),
+              ]) as DashboardViewConfig;
+
+              await callWithAggregate(
+                pageRequest(DashboardComponentType.Chart),
+              );
+              expectRefused(METRIC_REFUSED);
+
+              expect(await callMetricTypes()).toEqual([]);
+            },
+          );
+
+          it("a metric widget's query kept outside its arguments, where the page never reads one", async () => {
+            const widget: JSONObject = buildWidget(
+              DashboardComponentType.Chart,
+              SPEC,
+            );
+            const stray: JSONObject = {
+              ...widget,
+              metricQueryConfig: (widget["arguments"] as JSONObject)[
+                "metricQueryConfig"
+              ] as JSONObject,
+            };
+
+            delete stray["arguments"];
+
+            dashboard.dashboardViewConfig = shape.store([
+              stray,
+            ]) as DashboardViewConfig;
+
+            await callWithAggregate(pageRequest(DashboardComponentType.Chart));
+            expectRefused(METRIC_REFUSED);
+          });
+
+          it("a chart of a type the page does not draw beside one it draws: neither its services nor its keys read", async () => {
+            const hiddenSpec: WidgetSpec = {
+              metricName: WIDGET_METRIC,
+              groupByKey: FOREIGN_KEY,
+              filterKey: "user.email",
+              serviceIds: [UNSAVED_SERVICE_ID],
+            };
+
+            dashboard.dashboardViewConfig = shape.store([
+              buildWidget(DashboardComponentType.DataSourceChart, hiddenSpec),
+              buildWidget(DashboardComponentType.Chart, SPEC),
+              buildWidget("HostMetricChart", hiddenSpec),
+            ]) as DashboardViewConfig;
+
+            // The drawn chart reads, as saved.
+            await callWithAggregate(pageRequest(DashboardComponentType.Chart));
+            expect(nextFunction).not.toHaveBeenCalled();
+
+            // The others' grouping, filter key and services do not.
+            const refusals: Array<[JSONObject, string]> = [
+              [
+                pageRequest(DashboardComponentType.Chart, {
+                  aggregateBy: { groupByAttributeKeys: [FOREIGN_KEY] },
+                }),
+                ATTRIBUTE_REFUSED,
+              ],
+              [
+                pageRequest(DashboardComponentType.Chart, {
+                  query: { attributes: { "user.email": "a" } },
+                }),
+                ATTRIBUTE_REFUSED,
+              ],
+              [
+                pageRequest(DashboardComponentType.Chart, {
+                  query: {
+                    primaryEntityId: servicesFilter([UNSAVED_SERVICE_ID]),
+                  },
+                }),
+                PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE,
+              ],
+            ];
+
+            for (const [request, message] of refusals) {
+              jest.clearAllMocks();
+
+              await callWithAggregate(request);
+
+              expectRefused(message);
+            }
+          });
+
+          it("a widget hidden inside another widget's settings", async () => {
+            const nested: JSONObject = buildWidget(
+              DashboardComponentType.Chart,
+              SPEC,
+            );
+
+            dashboard.dashboardViewConfig = shape.store([
+              {
+                ...buildWidget(DashboardComponentType.Text, SPEC),
+                arguments: { text: "Latency", widget: nested },
+              },
+            ]) as DashboardViewConfig;
+
+            await callWithAggregate(pageRequest(DashboardComponentType.Chart));
+            expectRefused(METRIC_REFUSED);
+          });
+
+          if (shape.unreadable) {
+            it.each(shape.unreadable)(
+              "the shape %s: read loosely by no reader, so read by none",
+              async (_label: string, storeUnreadable: StoreFunction) => {
                 dashboard.dashboardViewConfig = storeUnreadable([
                   buildWidget(DashboardComponentType.Chart, SPEC),
                 ]) as DashboardViewConfig;
@@ -2939,11 +2939,11 @@ describe("DashboardAPI public metrics-aggregate", () => {
                 expectRefused(METRIC_REFUSED);
 
                 expect(await callMetricTypes()).toEqual([]);
-              });
-            }
-          });
-        },
-      );
+              },
+            );
+          }
+        });
+      });
 
       /*
        * PROPERTY: THE ALLOWLISTS ARE EXACTLY WHAT THE PUBLIC PAGE DRAWS.

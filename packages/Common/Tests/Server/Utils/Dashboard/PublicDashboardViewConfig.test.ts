@@ -5,6 +5,7 @@ import DashboardComponentType, {
   MetricComponentTypes,
 } from "../../../../Types/Dashboard/DashboardComponentType";
 import DashboardBaseComponent from "../../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import DashboardVariable from "../../../../Types/Dashboard/DashboardVariable";
 import DashboardViewConfig, {
   AutoRefreshInterval,
 } from "../../../../Types/Dashboard/DashboardViewConfig";
@@ -668,7 +669,10 @@ describe("PublicDashboardViewConfig", () => {
             filterData: {
               metricName: "http.server.duration",
               telemetryServiceIds: [
-                { _type: "ObjectID", value: "0f8fad5b-d9cb-469f-a165-70867728950e" },
+                {
+                  _type: "ObjectID",
+                  value: "0f8fad5b-d9cb-469f-a165-70867728950e",
+                },
               ],
               attributes: {
                 "host.name": { _type: "Includes", value: ["web-1"] },
@@ -727,7 +731,9 @@ describe("PublicDashboardViewConfig", () => {
           heightInDashboardUnits: 24,
           components: [
             chart,
-            JSON.stringify(storedWidget(DashboardComponentType.Value, CHART_ARGUMENTS())),
+            JSON.stringify(
+              storedWidget(DashboardComponentType.Value, CHART_ARGUMENTS()),
+            ),
             {
               _type: "DashboardComponent",
               value: JSON.stringify(
@@ -776,9 +782,13 @@ describe("PublicDashboardViewConfig", () => {
           expect(drawn.components[3]!.arguments).toEqual({
             tableTitle: "Hosts",
           });
-          expect(drawn.variables!.map((variable) => {
-            return variable.attributeKey;
-          })).toEqual(["k8s.cluster.name"]);
+          expect(
+            drawn.variables!.map(
+              (variable: DashboardVariable): string | undefined => {
+                return variable.attributeKey;
+              },
+            ),
+          ).toEqual(["k8s.cluster.name"]);
           expect(JSON.stringify(drawn)).not.toContain("SELECT secret");
         }
       });
@@ -860,14 +870,14 @@ describe("PublicDashboardViewConfig", () => {
             ],
           });
 
-        expect(PublicDashboardViewConfig.getMetricWidgetSettings(drawn)).toEqual(
-          [
-            { tableTitle: "1" },
-            { chartTitle: "2" },
-            { gaugeTitle: "3" },
-            { title: "4" },
-          ],
-        );
+        expect(
+          PublicDashboardViewConfig.getMetricWidgetSettings(drawn),
+        ).toEqual([
+          { tableTitle: "1" },
+          { chartTitle: "2" },
+          { gaugeTitle: "3" },
+          { title: "4" },
+        ]);
       });
 
       it("gives a metric widget saved without arguments an empty set, as the page draws it", () => {
@@ -1004,9 +1014,10 @@ describe("PublicDashboardViewConfig", () => {
           [new Includes(["a"]), false],
           [new Date(), false],
         ] as Array<[unknown, boolean]>) {
-          expect([value, PublicDashboardViewConfig.isSettingsObject(value)]).toEqual(
-            [value, expected],
-          );
+          expect([
+            value,
+            PublicDashboardViewConfig.isSettingsObject(value),
+          ]).toEqual([value, expected]);
         }
       });
 

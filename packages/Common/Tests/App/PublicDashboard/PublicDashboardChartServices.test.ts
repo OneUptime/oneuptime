@@ -966,7 +966,13 @@ describe("a chart stored in another shape (issue #6297)", () => {
               },
             ],
           },
-          [viewQuery({ metricName: CPU, variable: "a", serviceIds: [BILLING] })],
+          [
+            viewQuery({
+              metricName: CPU,
+              variable: "a",
+              serviceIds: [BILLING],
+            }),
+          ],
         ),
       );
 

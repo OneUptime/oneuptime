@@ -953,7 +953,9 @@ describe("DashboardAPI public attribute-values", () => {
   describe("the variables the public page draws (issue #6297)", () => {
     type VariableOfFunction = (attributeKey: unknown) => JSONObject;
 
-    const variableOf: VariableOfFunction = (attributeKey: unknown): JSONObject => {
+    const variableOf: VariableOfFunction = (
+      attributeKey: unknown,
+    ): JSONObject => {
       return {
         id: ObjectID.generate().toString(),
         name: "cluster",
@@ -1021,7 +1023,8 @@ describe("DashboardAPI public attribute-values", () => {
         { _type: "DashboardViewConfig", value: config },
         JSON.stringify({ _type: "DashboardViewConfig", value: config }),
       ]) {
-        dashboard.dashboardViewConfig = stored as unknown as DashboardViewConfig;
+        dashboard.dashboardViewConfig =
+          stored as unknown as DashboardViewConfig;
 
         await expectServed("k8s.cluster.name", "k8s.cluster.name");
         await expectRefused("user.email");
@@ -1082,7 +1085,10 @@ describe("DashboardAPI public attribute-values", () => {
             ],
           },
         ],
-        ["under another key of the config", { components: [], filters: [smuggled] }],
+        [
+          "under another key of the config",
+          { components: [], filters: [smuggled] },
+        ],
         [
           "inside a variable",
           {
@@ -1105,7 +1111,8 @@ describe("DashboardAPI public attribute-values", () => {
       ];
 
       for (const [label, config] of configs) {
-        dashboard.dashboardViewConfig = config as unknown as DashboardViewConfig;
+        dashboard.dashboardViewConfig =
+          config as unknown as DashboardViewConfig;
 
         expect(label.length).toBeGreaterThan(0);
         await expectRefused("user.email");

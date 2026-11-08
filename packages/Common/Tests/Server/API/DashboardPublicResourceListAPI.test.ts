@@ -1586,6 +1586,152 @@ describe("DashboardAPI public resource-list", () => {
       expect(listedLimit()).toBe(11);
     });
 
+    /*
+     * Issue #6297. Inside the widget list a widget can also be stored as
+     * JSON text, in the DashboardComponent envelope with its value as text,
+     * in a widget list written as text, or with its arguments written as
+     * text - which this route refused as "Dashboard widget arguments must
+     * be an object." while the page drew the widget. Each is served from
+     * the settings the page draws it with.
+     */
+    it.each([
+      [
+        "as JSON text",
+        (widget: JSONObject): unknown => {
+          return { components: [JSON.stringify(widget)] };
+        },
+      ],
+      [
+        "in the DashboardComponent envelope, its value as JSON text",
+        (widget: JSONObject): unknown => {
+          return {
+            components: [
+              { _type: "DashboardComponent", value: JSON.stringify(widget) },
+            ],
+          };
+        },
+      ],
+      [
+        "in a widget list written as JSON text",
+        (widget: JSONObject): unknown => {
+          return { components: JSON.stringify([widget]) };
+        },
+      ],
+      [
+        "with its arguments as JSON text",
+        (widget: JSONObject): unknown => {
+          return {
+            components: [
+              { ...widget, arguments: JSON.stringify(widget["arguments"]) },
+            ],
+          };
+        },
+      ],
+      [
+        "as JSON text, its arguments as JSON text in it",
+        (widget: JSONObject): unknown => {
+          return {
+            components: [
+              JSON.stringify({
+                ...widget,
+                arguments: JSON.stringify(widget["arguments"]),
+              }),
+            ],
+          };
+        },
+      ],
+    ])(
+      "serves a widget stored %s from the settings the page draws it with (issue #6297)",
+      async (_name: string, storeAs: (widget: JSONObject) => unknown) => {
+        const incident: BuiltWidget = buildWidget({
+          componentType: DashboardComponentType.IncidentList,
+          argumentsObject: { maxRows: 7 },
+          storedIdShape: "string",
+        });
+        dashboard.dashboardViewConfig = storeAs(
+          incident.widget,
+        ) as DashboardViewConfig;
+
+        const [pageId] = pageIdsFor(dashboard.dashboardViewConfig);
+        expect(pageId).toBe(incident.componentId.toString());
+
+        await callRoute({
+          resourceType: "incident",
+          body: { componentId: pageId },
+        });
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(listedLimit()).toBe(7);
+        expect(
+          (getFindByArgs(IncidentService)["query"] as JSONObject)["projectId"],
+        ).toBe(projectId);
+      },
+    );
+
+    it.each([
+      [
+        "encoded twice",
+        (text: string): string => {
+          return JSON.stringify(text);
+        },
+      ],
+      [
+        "cut short",
+        (text: string): string => {
+          return text.slice(0, 5);
+        },
+      ],
+      [
+        "a list",
+        (): string => {
+          return "[1, 2]";
+        },
+      ],
+    ])(
+      "still refuses a widget whose arguments are text that says no object: %s (issue #6297)",
+      async (_name: string, encode: (text: string) => string) => {
+        const incident: BuiltWidget = buildWidget({
+          componentType: DashboardComponentType.IncidentList,
+          argumentsObject: { maxRows: 7 },
+        });
+        setDashboardWidgets([
+          {
+            ...incident.widget,
+            arguments: encode(JSON.stringify(incident.widget["arguments"])),
+          },
+        ]);
+
+        await callRoute({
+          resourceType: "incident",
+          body: { componentId: incident.componentId.toString() },
+        });
+
+        expect(getThrownError()).toBeInstanceOf(BadDataException);
+        expectNothingListed();
+      },
+    );
+
+    it("never serves a Data Source widget with its arguments as JSON text (issue #6297)", async () => {
+      const dataSourceTable: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.DataSourceTable,
+        argumentsObject: { maxRows: 7 },
+      });
+      setDashboardWidgets([
+        {
+          ...dataSourceTable.widget,
+          arguments: JSON.stringify(dataSourceTable.widget["arguments"]),
+        },
+      ]);
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: dataSourceTable.componentId.toString() },
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingListed();
+    });
+
     it("never serves a Data Source widget hidden in the envelope", async () => {
       const dataSourceTable: BuiltWidget = buildWidget({
         componentType: DashboardComponentType.DataSourceTable,
