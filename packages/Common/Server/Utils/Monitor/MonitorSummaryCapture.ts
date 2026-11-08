@@ -12,6 +12,8 @@ import ProbeService from "../../Services/ProbeService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
 
 /*
  * Captures the "Monitor Summary" that an incident or alert is about to be
@@ -51,14 +53,34 @@ export default class MonitorSummaryCapture {
             ?.probeId,
         }));
 
-      return MonitorSummarySnapshotUtil.buildSnapshot({
-        monitorType: input.monitor.monitorType,
-        dataToProcess: input.dataToProcess as MonitorSummaryDataToProcess,
-        monitorId: input.monitor.id?.toString(),
-        monitorName: input.monitor.name || undefined,
-        probeName: probeName,
-        evaluationSummary: input.evaluationSummary,
-        capturedAt: OneUptimeDate.getCurrentDate(),
+      const snapshot: MonitorSummarySnapshot | null =
+        MonitorSummarySnapshotUtil.buildSnapshot({
+          monitorType: input.monitor.monitorType,
+          dataToProcess: input.dataToProcess as MonitorSummaryDataToProcess,
+          monitorId: input.monitor.id?.toString(),
+          monitorName: input.monitor.name || undefined,
+          probeName: probeName,
+          evaluationSummary: input.evaluationSummary,
+          capturedAt: OneUptimeDate.getCurrentDate(),
+        });
+
+      if (!snapshot) {
+        return null;
+      }
+
+      /*
+       * What every reader of the incident or alert may see of the check:
+       * credential headers masked, the destination as configured, and no
+       * body for a monitor that keeps no response content.
+       */
+      return MonitorRecordEvidence.redactSnapshot({
+        snapshot: snapshot,
+        monitor: input.monitor,
+        monitorStep: MonitorSummaryCapture.findStep({
+          monitor: input.monitor,
+          monitorStepId: (input.dataToProcess as ProbeMonitorResponse | undefined)
+            ?.monitorStepId,
+        }),
       });
     } catch (err) {
       /*
@@ -73,6 +95,24 @@ export default class MonitorSummaryCapture {
       logger.error(err);
       return null;
     }
+  }
+
+  // The step a probe check ran, by the id it carries.
+  private static findStep(input: {
+    monitor: Monitor;
+    monitorStepId?: ObjectID | string | undefined;
+  }): MonitorStep | undefined {
+    if (!input.monitorStepId) {
+      return undefined;
+    }
+
+    const stepId: string = input.monitorStepId.toString();
+
+    return (input.monitor.monitorSteps?.data?.monitorStepsInstanceArray || []).find(
+      (step: MonitorStep): boolean => {
+        return step.id?.toString() === stepId;
+      },
+    );
   }
 
   /*

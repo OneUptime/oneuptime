@@ -925,6 +925,7 @@ import { AddRuleOwningTeams1808995800000 } from "./1808995800000-AddRuleOwningTe
 import { AddWorkflowGraphRevision1808995900000 } from "./1808995900000-AddWorkflowGraphRevision";
 import { AddWorkflowVersionSavedThrough1808996000000 } from "./1808996000000-AddWorkflowVersionSavedThrough";
 import { AddAuditLogExportSchemaVersion1808996130000 } from "./1808996130000-AddAuditLogExportSchemaVersion";
+import { AddEvaluationDetailsAndKeepResponseContent1808997300000 } from "./1808997300000-AddEvaluationDetailsAndKeepResponseContent";
 
 export default [
   InitialMigration,
@@ -1854,4 +1855,5 @@ export default [
   AddWorkflowGraphRevision1808995900000,
   AddWorkflowVersionSavedThrough1808996000000,
   AddAuditLogExportSchemaVersion1808996130000,
+  AddEvaluationDetailsAndKeepResponseContent1808997300000,
 ];

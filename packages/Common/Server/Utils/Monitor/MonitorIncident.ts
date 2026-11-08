@@ -35,6 +35,10 @@ import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorEvaluationDetailsCapture, {
+  GetEvaluationDetails,
+} from "./MonitorEvaluationDetailsCapture";
 import SeriesContextEnricher from "./SeriesContextEnricher";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
@@ -115,6 +119,12 @@ export default class MonitorIncident {
      * to "the criteria that raised it".
      */
     criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
+    /*
+     * Whether the monitor keeps response content on its records
+     * (Monitor.keepResponseContent): the state timeline's copy of a check
+     * that resolves one keeps no body when it does not. Kept when absent.
+     */
+    keepResponseContent?: boolean | undefined;
   }): Promise<Array<Incident>> {
     /*
      * check active incidents and if there are open incidents, do not create
@@ -195,6 +205,7 @@ export default class MonitorIncident {
           openIncident: openIncident,
           rootCause: rootCause,
           dataToProcess: input.dataToProcess,
+          keepResponseContent: input.keepResponseContent,
         });
 
         input.evaluationSummary?.events.push({
@@ -336,6 +347,9 @@ export default class MonitorIncident {
             ? input.rootCause
             : input.wholeMonitor.rootCause,
         dataToProcess: input.dataToProcess,
+        keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+          input.monitor,
+        ),
       });
 
       input.evaluationSummary?.events.push({
@@ -371,6 +385,13 @@ export default class MonitorIncident {
      * monitor page shows, long after the monitor log has aged out.
      */
     monitorSummary?: MonitorSummarySnapshot | null | undefined;
+    /**
+     * The evaluation details of the criteria this call acts on, built
+     * the first time a incident is really created
+     * (MonitorEvaluationDetailsCapture). Stored on every incident the
+     * details describe: not on one series of a grouped metric criteria.
+     */
+    getEvaluationDetails?: GetEvaluationDetails | undefined;
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
@@ -466,6 +487,9 @@ export default class MonitorIncident {
             criteriaInstance: input.criteriaInstance,
             dataToProcess: input.dataToProcess,
             evaluationSummary: input.evaluationSummary,
+            keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+              input.monitor,
+            ),
             breachingSeriesFingerprints,
             breachingSeriesFingerprintsByCriteriaId:
               input.breachingSeriesFingerprintsByCriteriaId,
@@ -868,9 +892,17 @@ export default class MonitorIncident {
            * would never open. Inputs stay as they are - they are still
            * being read for this and the next incident.
            */
-          incident.createdStateLog = toStorableJson(
-            input.dataToProcess,
-          ) as unknown as JSONObject;
+          /*
+           * Redacted as the monitor's own log is, and without its bodies
+           * when the monitor keeps no response content
+           * (MonitorRecordEvidence).
+           */
+          incident.createdStateLog = MonitorRecordEvidence.toStoredCheck({
+            dataToProcess: input.dataToProcess,
+            keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+              input.monitor,
+            ),
+          });
 
           /*
            * Same capture on every incident this evaluation opens - they all
@@ -883,6 +915,26 @@ export default class MonitorIncident {
 
           if (serializedMonitorSummary) {
             incident.monitorSummary = serializedMonitorSummary;
+          }
+
+          /*
+           * Why it opened: the criteria's filters, what the check found
+           * and where, redacted and bounded. Built once, when the first
+           * record of this criteria is created.
+           */
+          if (
+            input.getEvaluationDetails &&
+            MonitorEvaluationDetailsCapture.describesRecord({
+              monitorType: input.monitor.monitorType,
+              seriesFingerprint: seriesFingerprint,
+            })
+          ) {
+            const evaluationDetails: JSONObject | null =
+              await input.getEvaluationDetails();
+
+            if (evaluationDetails) {
+              incident.evaluationDetails = evaluationDetails;
+            }
           }
 
           /*
@@ -1294,6 +1346,7 @@ export default class MonitorIncident {
       | ProbeMonitorResponse
       | IncomingMonitorRequest
       | DataToProcess;
+    keepResponseContent?: boolean | undefined;
   }): Promise<void> {
     const resolvedStateId: ObjectID =
       await IncidentStateTimelineService.getResolvedStateIdForProject(
@@ -1313,10 +1366,11 @@ export default class MonitorIncident {
     }
 
     if (input.dataToProcess) {
-      // Storable copy, for the same reason as createdStateLog above.
-      incidentStateTimeline.stateChangeLog = toStorableJson(
-        input.dataToProcess,
-      ) as unknown as JSONObject;
+      // Redacted and storable, as createdStateLog above.
+      incidentStateTimeline.stateChangeLog = MonitorRecordEvidence.toStoredCheck({
+        dataToProcess: input.dataToProcess as DataToProcess,
+        keepResponseContent: input.keepResponseContent !== false,
+      });
     }
 
     try {
