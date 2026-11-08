@@ -28,6 +28,8 @@ burn rate = (share of time that was bad) ÷ (share of time the target allows to 
 
 소진율은 예산이 얼마나 남았는지와 관계가 없습니다. "지금 얼마나 나쁜가?"에 답하며, 누군가를 호출할지 결정하는 데 필요한 것이 바로 이것입니다.
 
+대신 남은 예산에 따라 대응하려면, 예를 들어 예산이 4분의 1 남았을 때 안정성 작업만 배포하려면 SLO에 [오류 예산 정책](/docs/slo/error-budget-policy)을 만드세요.
+
 ## 규칙이 발동을 결정하는 방식
 
 OneUptime은 5분마다 SLO를 평가할 때마다 활성화된 각 소진율 규칙을 확인합니다. 각 규칙은 두 기간에서 소진율을 측정하고, 둘 다 임계값 이상일 때만 발동합니다:
@@ -184,6 +186,9 @@ SLO burn rate: {{sloName}} — {{ruleName}}
 | `{{errorBudgetRemaining}}` | 아직 쓸 수 있는 오류 예산(기간). 예산을 초과하면 빼기 기호로 시작합니다. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | 아직 쓸 수 있는 오류 예산(분). | `18.37` |
 | `{{windowDescription}}` | SLO의 준수 기간을 말로 표현한 것. | `rolling 30-day window` |
+| `{{policyTier}}` | 이번 평가 후 SLO가 있는 오류 예산 정책 단계의 이름. 어떤 단계에도 없으면 "None". | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | 그 단계의 남은 예산 임계값(퍼센트). SLO가 어떤 단계에도 없으면 비어 있습니다. | `25` |
+| `{{policyTierWhatWeDo}}` | 그 단계에서 팀이 하기로 합의한 일로, 단계에 적힌 그대로입니다. SLO가 어떤 단계에도 없으면 비어 있습니다. | `Only reliability work and critical fixes ship.` |
 
 예를 들어 제목 `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` 는 `Fast burn: Checkout availability is burning 21.5x` 가 됩니다.
 
@@ -249,6 +254,7 @@ SLO의 모니터 중 하나라도 진행 중인 예약된 유지 관리 이벤�
 
 :::cards
 - [오류 예산](/docs/slo/error-budget): 예산이 무엇이고 얼마나 버티는지.
+- [오류 예산 정책](/docs/slo/error-budget-policy): 남은 예산에 따라 단계별로 대응합니다.
 - [에스컬레이션 규칙](/docs/on-call/escalation-rules): 누구를 어떤 순서로 호출하는지.
 - [SLO 피드 및 감사 로그](/docs/slo/feed-and-audit-logs): 규칙이 발생시킨 모든 경고와 인시던트.
 :::

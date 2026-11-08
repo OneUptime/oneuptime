@@ -153,18 +153,19 @@ Abre un SLO para ver sus páginas en el menú lateral:
 | --- | --- |
 | **Vista general** | El estado, las cifras principales, el consumo del presupuesto de errores, la actividad reciente, las alertas e incidentes abiertos y las reglas de tasa de consumo. |
 | **Métricas** | Las métricas `oneuptime.slo.*` del SLO, su historial a largo plazo del presupuesto de errores y las métricas de los incidentes y alertas que lo afectan. Consulta [Métricas y paneles de SLO](/docs/slo/metrics). |
-| **Incidentes** | Los incidentes que declararon sus reglas de tasa de consumo. El distintivo cuenta los abiertos. |
-| **Alertas** | Las alertas que generaron sus reglas de tasa de consumo. El distintivo cuenta las abiertas. |
+| **Incidentes** | Los incidentes que declararon sus reglas de tasa de consumo y su política de presupuesto de errores. El distintivo cuenta los abiertos. |
+| **Alertas** | Las alertas que generaron sus reglas de tasa de consumo y su política de presupuesto de errores. El distintivo cuenta las abiertas. |
 | **Feed** | Lo que le ha pasado al SLO, como línea de tiempo. Consulta [Feed y registros de auditoría de SLO](/docs/slo/feed-and-audit-logs). |
 | **Monitores** | Los monitores que mide, y si cada uno lo asoció una persona o una regla. |
 | **Reglas de monitores** | Las reglas que asocian los monitores que coinciden. |
 | **Reglas de tasa de consumo** | Las reglas que generan alertas y declaran incidentes cuando el presupuesto se consume demasiado rápido. |
+| **Error Budget Policy** | Lo que el equipo acordó hacer a medida que se agota el presupuesto de errores, y las alertas e incidentes que genera cada nivel de la política. Consulta [Política de presupuesto de errores](/docs/slo/error-budget-policy). |
 | **Propietarios** | Los usuarios y equipos que se enteran de sus cambios de estado. |
 | **Ajustes** | El objetivo, el periodo de cumplimiento, el cálculo del tiempo de inactividad, el interruptor de evaluación y la tarjeta de archivo. |
 | **Registros de auditoría** | Quién cambió el SLO, sus reglas y sus propietarios, y cuándo. |
 | **Eliminar SLO** | Elimina el SLO para siempre y resuelve las alertas e incidentes de tasa de consumo que tenía abiertos. |
 
-**Monitores** está en una sección **Configuración**, **Reglas de monitores** y **Reglas de tasa de consumo** en una sección **Reglas**, y **Propietarios**, **Ajustes**, **Registros de auditoría** y **Eliminar SLO** en una sección **Gestión**. Las tres empiezan plegadas, igual que una sección **Desarrolladores** para gestionar el SLO desde código: haz clic en el título de una sección para abrirla.
+**Monitores** está en una sección **Configuración**, **Reglas de monitores**, **Reglas de tasa de consumo** y **Error Budget Policy** en una sección **Reglas**, y **Propietarios**, **Ajustes**, **Registros de auditoría** y **Eliminar SLO** en una sección **Gestión**. Las tres empiezan plegadas, igual que una sección **Desarrolladores** para gestionar el SLO desde código: haz clic en el título de una sección para abrirla.
 
 Cuando algo impide que un SLO mida, un aviso en la parte superior de cada una de sus páginas dice qué falla y enlaza a la página que lo arregla: consulta [Solución de problemas](#solución-de-problemas).
 
@@ -183,6 +184,8 @@ La **Vista general** responde a «¿estamos dentro del presupuesto?», de arriba
 - **Detalles del SLO**: el nombre, la descripción y las etiquetas, los únicos ajustes que se editan en la vista general.
 - **Alertas e incidentes abiertos**: lo que las reglas de tasa de consumo tienen abierto ahora mismo.
 - **Reglas de tasa de consumo**: el umbral de cada regla habilitada junto a la tasa de consumo actual, para las reglas cuyo periodo es de 6 horas o menos, y lo que declara la regla.
+
+Cuando el SLO está en un nivel de su política de presupuesto de errores, la **Vista general** también muestra ese nivel y lo que el equipo acordó hacer en él: consulta [Política de presupuesto de errores](/docs/slo/error-budget-policy).
 
 ### Ajustes
 

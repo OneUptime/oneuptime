@@ -11,8 +11,14 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import {
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+  DEFAULT_SLO_POLICY_TIER_TITLE_TEMPLATE,
   SLO_BURN_RATE_TEMPLATE_VARIABLES,
+  SLO_POLICY_TIER_NONE_TEXT,
+  SLO_POLICY_TIER_TEMPLATE_VARIABLES,
+  SloBurnRateTemplateVariable,
   SloBurnRateTemplateVariableDefinition,
+  SloBurnRateTemplateVariables,
+  buildSloPolicyTierTemplateVariables,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import SloMetricTypeUtil from "Common/Utils/Slo/SloMetricType";
 import { describe, expect, it } from "@jest/globals";
@@ -52,6 +58,7 @@ const NAV_GROUP_TITLE: string = "SLOs";
 const INTRODUCTION_PAGE: string = "slo/introduction";
 const MONITOR_RULES_PAGE: string = "slo/monitor-rules";
 const BURN_RATE_ALERTS_PAGE: string = "slo/burn-rate-alerts";
+const ERROR_BUDGET_POLICY_PAGE: string = "slo/error-budget-policy";
 const METRICS_PAGE: string = "slo/metrics";
 
 interface ExpectedPage {
@@ -65,6 +72,7 @@ const EXPECTED_PAGES: ReadonlyArray<ExpectedPage> = [
   { title: "Monitors and Monitor Rules", page: MONITOR_RULES_PAGE },
   { title: "Error Budgets", page: "slo/error-budget" },
   { title: "Burn Rate Alerts and Incidents", page: BURN_RATE_ALERTS_PAGE },
+  { title: "Error Budget Policy", page: ERROR_BUDGET_POLICY_PAGE },
   { title: "SLO Metrics and Dashboards", page: METRICS_PAGE },
   { title: "SLO Feed and Audit Logs", page: "slo/feed-and-audit-logs" },
   { title: "Label and Owner Rules", page: "slo/label-and-owner-rules" },
@@ -503,6 +511,180 @@ describe("SLO docs", () => {
 
     it("shows the built-in title", () => {
       expect(markdown).toContain(DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE);
+    });
+  });
+
+  describe("Error Budget Policy", () => {
+    const markdown: string = readPage(ERROR_BUDGET_POLICY_PAGE);
+
+    // The paragraph that lists what a tier's template fields offer.
+    const offeredParagraph: (page: string) => string = (
+      page: string,
+    ): string => {
+      const paragraph: string | undefined = splitMarkdown(page).prose.find(
+        (line: string): boolean => {
+          return (
+            line.includes("`{{sloStatus}}`") &&
+            line.includes("`{{windowDescription}}`")
+          );
+        },
+      );
+
+      expect(paragraph).toBeDefined();
+
+      return paragraph as string;
+    };
+
+    // The variables a line names, in order, as {{name}} inline code.
+    const variablesIn: (line: string) => Array<string> = (
+      line: string,
+    ): Array<string> => {
+      return Array.from(line.matchAll(/`\{\{(\w+)\}\}`/g)).map(
+        (match: RegExpMatchArray): string => {
+          return match[1] as string;
+        },
+      );
+    };
+
+    it("lists the variables a tier's templates offer, in catalog order, in every language", () => {
+      const offered: Array<string> = SLO_POLICY_TIER_TEMPLATE_VARIABLES.map(
+        (variable: SloBurnRateTemplateVariableDefinition): string => {
+          return variable.key;
+        },
+      );
+
+      for (const language of ["en", ...TRANSLATED_LANGUAGES]) {
+        const named: Array<string> = variablesIn(
+          offeredParagraph(readPage(ERROR_BUDGET_POLICY_PAGE, language)),
+        );
+
+        // The offered ones, then the rule's own variable it says is not.
+        expect({ language, named }).toEqual({
+          language,
+          named: [...offered, SloBurnRateTemplateVariable.RuleName],
+        });
+      }
+    });
+
+    it("leaves out exactly the rule's own variables, which render empty for a tier", () => {
+      const offered: Array<string> = SLO_POLICY_TIER_TEMPLATE_VARIABLES.map(
+        (variable: SloBurnRateTemplateVariableDefinition): string => {
+          return variable.key;
+        },
+      );
+      const leftOut: Array<string> = SLO_BURN_RATE_TEMPLATE_VARIABLES.map(
+        (variable: SloBurnRateTemplateVariableDefinition): string => {
+          return variable.key;
+        },
+      ).filter((key: string): boolean => {
+        return !offered.includes(key);
+      });
+
+      expect(leftOut).toEqual([
+        SloBurnRateTemplateVariable.RuleName,
+        SloBurnRateTemplateVariable.BurnRateThreshold,
+        SloBurnRateTemplateVariable.LongWindowBurnRate,
+        SloBurnRateTemplateVariable.ShortWindowBurnRate,
+        SloBurnRateTemplateVariable.LongWindowInMinutes,
+        SloBurnRateTemplateVariable.ShortWindowInMinutes,
+      ]);
+
+      const variables: SloBurnRateTemplateVariables =
+        buildSloPolicyTierTemplateVariables({
+          sloId: "b7f4c2d8-1f3e-4a5b-9c6d-7e8f9a0b1c2d",
+          sloName: "Checkout availability",
+          sloLink: undefined,
+          sloStatus: "At Risk",
+          targetPercentage: 99.9,
+          currentSliPercentage: 99.87,
+          errorBudgetRemainingPercentage: 22.5,
+          errorBudgetRemainingSeconds: 583,
+          windowType: undefined,
+          windowDays: 30,
+          timezone: undefined,
+          policyTier: {
+            name: "Reliability first",
+            thresholdPercentage: 25,
+            whatWeDo: "Only reliability work and critical fixes ship.",
+          },
+        });
+
+      for (const key of leftOut) {
+        expect({
+          key,
+          value: variables[key as SloBurnRateTemplateVariable],
+        }).toEqual({
+          key,
+          value: "",
+        });
+      }
+
+      expect(variables[SloBurnRateTemplateVariable.PolicyTier]).toBe(
+        "Reliability first",
+      );
+      expect(
+        variables[SloBurnRateTemplateVariable.PolicyTierThresholdPercentage],
+      ).toBe("25");
+      expect(markdown).toContain(
+        "A rule's own variables, such as `{{ruleName}}` and the burn rates, are not offered, and are empty in a tier's templates.",
+      );
+    });
+
+    it("describes the three tier variables, and what {{policyTier}} says in no tier", () => {
+      const tierKeys: Array<string> = [
+        SloBurnRateTemplateVariable.PolicyTier,
+        SloBurnRateTemplateVariable.PolicyTierThresholdPercentage,
+        SloBurnRateTemplateVariable.PolicyTierWhatWeDo,
+      ];
+      const documentedKeys: Array<string> = Array.from(
+        markdown.matchAll(/^\|\s*`\{\{(\w+)\}\}`\s*\|/gm),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      });
+
+      expect(documentedKeys).toEqual(tierKeys);
+
+      const noTier: SloBurnRateTemplateVariables =
+        buildSloPolicyTierTemplateVariables({
+          sloId: "b7f4c2d8-1f3e-4a5b-9c6d-7e8f9a0b1c2d",
+          sloName: "Checkout availability",
+          sloLink: undefined,
+          sloStatus: "Healthy",
+          targetPercentage: 99.9,
+          currentSliPercentage: 99.99,
+          errorBudgetRemainingPercentage: 80,
+          errorBudgetRemainingSeconds: 2073,
+          windowType: undefined,
+          windowDays: 30,
+          timezone: undefined,
+          policyTier: null,
+        });
+
+      expect(noTier[SloBurnRateTemplateVariable.PolicyTier]).toBe(
+        SLO_POLICY_TIER_NONE_TEXT,
+      );
+      expect(
+        noTier[SloBurnRateTemplateVariable.PolicyTierThresholdPercentage],
+      ).toBe("");
+      expect(noTier[SloBurnRateTemplateVariable.PolicyTierWhatWeDo]).toBe("");
+
+      for (const language of ["en", ...TRANSLATED_LANGUAGES]) {
+        const row: string | undefined = tableRowStartingWith(
+          readPage(ERROR_BUDGET_POLICY_PAGE, language),
+          "`{{policyTier}}`",
+        );
+
+        expect({
+          language,
+          none: Boolean(
+            row && row.includes(`\`${SLO_POLICY_TIER_NONE_TEXT}\``),
+          ),
+        }).toEqual({ language, none: true });
+      }
+    });
+
+    it("shows the built-in title a tier's alerts and incidents get", () => {
+      expect(markdown).toContain(DEFAULT_SLO_POLICY_TIER_TITLE_TEMPLATE);
     });
   });
 
