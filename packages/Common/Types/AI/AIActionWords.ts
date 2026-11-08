@@ -301,6 +301,75 @@ export const AI_ACTION_LINES: {
 };
 
 /*
+ * The lines that count: a code change's files Ask AI never saw as the
+ * branch has them (issue #6313). Ask AI writes each file whole, from what
+ * read_code_file showed it, so a commit - on a branch, or a pull request's
+ * - would undo what was pushed to a file since, or replace a file Ask AI
+ * read on another branch, or never read. Each names the files, as
+ * {{files}}: a list of AI_ACTION_CODE_FILE, the first few written out and
+ * the rest counted (moreFiles). {{count}} is how many files it names.
+ */
+export const AI_ACTION_PLURAL_LINES: {
+  codeFilesChangedSinceRead: PluralTemplate;
+  codeFilesReadOnAnotherBranch: PluralTemplate;
+  codeFilesNotRead: PluralTemplate;
+  codeFilesNotChecked: PluralTemplate;
+  moreFiles: PluralTemplate;
+} = {
+  // Pushed to, deleted or renamed away on the branch after Ask AI read it there.
+  codeFilesChangedSinceRead: {
+    one: translationKey(
+      "This file changed on {{branch}} after Ask AI read it, and Ask AI's version undoes that change: {{files}}.",
+    ),
+    other: translationKey(
+      "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}.",
+    ),
+  },
+  /*
+   * Read on another branch only - the repository's main branch, unless Ask
+   * AI was told one - and different on the branch written to. {{readBranch}}
+   * is that branch, or "another branch" when the files were read on several.
+   */
+  codeFilesReadOnAnotherBranch: {
+    one: translationKey(
+      "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.",
+    ),
+    other: translationKey(
+      "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.",
+    ),
+  },
+  // Never read, and on the branch written to.
+  codeFilesNotRead: {
+    one: translationKey(
+      "Ask AI wrote this file without reading it, and it replaces the one on {{branch}}: {{files}}.",
+    ),
+    other: translationKey(
+      "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}.",
+    ),
+  },
+  // The branch could not be read: never said to be unchanged.
+  codeFilesNotChecked: {
+    one: translationKey(
+      "OneUptime could not check this file on {{branch}} against what Ask AI read: {{files}}.",
+    ),
+    other: translationKey(
+      "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}.",
+    ),
+  },
+  // The files a line counts rather than names, last in its list.
+  moreFiles: {
+    one: translationKey("{{count}} more file"),
+    other: translationKey("{{count}} more files"),
+  },
+};
+
+/*
+ * One file in such a list, by its path as the commit writes it. No words
+ * of its own: the path is data, in every language.
+ */
+export const AI_ACTION_CODE_FILE: string = "{{file}}";
+
+/*
  * One resource in a list: its kind, then its name in quotes - 'host
  * "test01"'. The name is written as a JSON string, so a name with a quote
  * in it can never read as two resources ('host "a" and host "b"'); the
@@ -318,11 +387,14 @@ export const AI_ACTION_RESOURCE_BY_NAME: string = "{{kind}} {{name}}";
 export const AI_ACTION_TERMS: {
   untitled: string;
   aBranch: string;
+  anotherBranch: string;
 } = {
   // What an incident, alert or pull request the call gave no title is called.
   untitled: translationKey("Untitled"),
   // The branch of a commit whose call names none.
   aBranch: translationKey("a branch"),
+  // Where Ask AI read files, when it read them on more than one branch (codeFilesReadOnAnotherBranch).
+  anotherBranch: translationKey("another branch"),
 };
 
 /*
@@ -490,10 +562,12 @@ export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
   ...Object.values(AI_ACTION_LINES),
   ...Object.values(AI_ACTION_CARD_LINES),
   AI_ACTION_RESOURCE_BY_NAME,
+  AI_ACTION_CODE_FILE,
 ];
 
 export const AI_ACTION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> = [
   ...Object.values(AI_ACTION_PLURAL_TITLES),
+  ...Object.values(AI_ACTION_PLURAL_LINES),
 ];
 
 // The kinds of resource, by the nouns the server names them by.

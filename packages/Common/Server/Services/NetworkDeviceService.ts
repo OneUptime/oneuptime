@@ -28,6 +28,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { RuleRunWriteProps } from "../Utils/Rules/RuleRun/RuleApplication";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
@@ -2828,6 +2829,9 @@ export class Service extends ProjectReferencesService<Model> {
    *     the warning that goes with it — and it is not needed for the case the
    *     button exists for, since a device imported before the rule existed
    *     has no site at all.
+   *
+   * Each device moved is written on the behalf of whoever ran the rule
+   * (RuleRunWriteProps), so the audit log credits them, not System.
    */
   @CaptureSpan()
   @RuleEvaluation()
@@ -2835,6 +2839,8 @@ export class Service extends ProjectReferencesService<Model> {
     ruleId: ObjectID;
     projectId: ObjectID;
     reassignDevicesAlreadyInASite: boolean;
+    // Who ran it: their props, from the route.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<SiteAssignmentRuleRunResult> {
     /*
      * Every rule in the project, not just the one being run — pickRule needs
@@ -2991,9 +2997,7 @@ export class Service extends ProjectReferencesService<Model> {
             data: {
               siteId: ruleSiteId,
             },
-            props: {
-              isRoot: true,
-            },
+            props: RuleRunWriteProps.get(data.props),
           });
 
           result.devicesAssigned++;

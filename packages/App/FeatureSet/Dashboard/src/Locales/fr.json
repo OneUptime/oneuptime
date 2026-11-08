@@ -46494,5 +46494,22 @@
   "View all {{count}} clients_one": "Voir {{count}} client",
   "View all {{count}} networks": "Voir les {{count}} réseaux",
   "View all {{count}} networks_one": "Voir {{count}} réseau",
-  "Where this device's traffic goes, as the Meraki dashboard reports it.": "Où va le trafic de cet équipement, tel que le tableau de bord Meraki le rapporte."
+  "Where this device's traffic goes, as the Meraki dashboard reports it.": "Où va le trafic de cet équipement, tel que le tableau de bord Meraki le rapporte.",
+  "AI Agent Reset At": "Agent IA réinitialisé le",
+  "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "L'IA a lu ces {{count}} fichiers sur {{readBranch}}, mais ils sont différents sur {{branch}}, si bien que les versions de l'IA peuvent annuler des changements faits là-bas : {{files}}.",
+  "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "L'IA a lu ce fichier sur {{readBranch}}, mais il est différent sur {{branch}}, si bien que la version de l'IA peut annuler des changements faits là-bas : {{files}}.",
+  "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "L'IA a lu ce fichier sur {{readBranch}}, mais il est différent sur {{branch}}, si bien que la version de l'IA peut annuler des changements faits là-bas : {{files}}.",
+  "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}.": "L'IA a écrit ces {{count}} fichiers sans les lire, et ils remplacent ceux de {{branch}} : {{files}}.",
+  "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}._one": "L'IA a écrit ce fichier sans le lire, et il remplace celui de {{branch}} : {{files}}.",
+  "Ask AI wrote this file without reading it, and it replaces the one on {{branch}}: {{files}}.": "L'IA a écrit ce fichier sans le lire, et il remplace celui de {{branch}} : {{files}}.",
+  "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}.": "OneUptime n'a pas pu comparer ces {{count}} fichiers sur {{branch}} avec ce que l'IA a lu : {{files}}.",
+  "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}._one": "OneUptime n'a pas pu comparer ce fichier sur {{branch}} avec ce que l'IA a lu : {{files}}.",
+  "OneUptime could not check this file on {{branch}} against what Ask AI read: {{files}}.": "OneUptime n'a pas pu comparer ce fichier sur {{branch}} avec ce que l'IA a lu : {{files}}.",
+  "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}.": "Ces {{count}} fichiers ont changé sur {{branch}} après que l'IA les a lus, et les versions de l'IA annulent ces changements : {{files}}.",
+  "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}._one": "Ce fichier a changé sur {{branch}} après que l'IA l'a lu, et la version de l'IA annule ce changement : {{files}}.",
+  "This file changed on {{branch}} after Ask AI read it, and Ask AI's version undoes that change: {{files}}.": "Ce fichier a changé sur {{branch}} après que l'IA l'a lu, et la version de l'IA annule ce changement : {{files}}.",
+  "another branch": "une autre branche",
+  "{{count}} more file": "{{count}} fichier de plus",
+  "{{count}} more files": "{{count}} fichiers de plus",
+  "{{count}} more files_one": "{{count}} fichier de plus"
 }
