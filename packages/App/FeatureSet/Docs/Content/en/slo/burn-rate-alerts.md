@@ -58,7 +58,7 @@ Every new SLO gets three burn rate rules. For a 30-day window:
 | **Slow burn** | 6× | 6 hours | 30 minutes | About 5% of the budget burns in six hours: it would be gone in about 5 days. |
 | **Slow leak** | 1× | 3 days | 6 hours | About 10% of the budget burns in three days: it would be gone by the end of the window. |
 
-Fast burn and Slow burn are pages: they raise an alert at the project's most severe alert severity. Slow leak is a ticket, for a steady burn the other two never reach: at 3× a 99.9% budget is gone in 10 days, and only Slow leak fires. It raises its alert at the project's least severe alert severity, and waits 24 hours, not its 3-day long window, before it raises another one after an alert resolves.
+Fast burn and Slow burn are pages: they raise an alert at the project's most severe alert severity. Slow leak is a ticket: it raises its alert at the project's least severe alert severity. It catches a steady burn the other two never reach: at 3×, a 99.9% budget is gone in 10 days, yet only Slow leak fires. After its alert resolves, it waits 24 hours, not its 3-day long window, before it raises another.
 
 The thresholds are worked out for a 30-day budget, so OneUptime scales them to your SLO's window. Fast burn and Slow burn always mean "2% of the budget in 1 hour" and "5% of the budget in 6 hours":
 

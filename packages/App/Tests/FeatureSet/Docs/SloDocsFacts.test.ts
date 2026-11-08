@@ -20,9 +20,20 @@ import {
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import { formatErrorBudgetRemainingOfTotal } from "Common/Utils/Slo/SloDuration";
 import {
+  SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES,
   SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
   SLO_EVALUATION_CADENCE_MINUTES,
 } from "Common/Utils/Slo/SloEvaluation";
+import {
+  SLO_FAST_BURN_RULE_NAME,
+  SLO_SLOW_BURN_RULE_NAME,
+  SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES,
+  SLO_SLOW_LEAK_RULE_NAME,
+  SloRecommendedAlertSeverity,
+  SloRecommendedBurnRateRule,
+  getSloRecommendedBurnRateRules,
+  isSloRecommendedBurnRateRulePresent,
+} from "Common/Utils/Slo/SloRecommendedBurnRateRules";
 import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
@@ -103,6 +114,8 @@ const SOURCES: Record<string, string> = {
   monitorRuleFields: `${DASHBOARD}/Pages/Slo/View/SloMonitorRuleFormFields.ts`,
   monitorSideMenu: `${DASHBOARD}/Pages/Monitor/View/SideMenu.tsx`,
   burnRuleForm: `${DASHBOARD}/Pages/Slo/Utils/BurnRateRuleForm.ts`,
+  burnRulesPage: `${DASHBOARD}/Pages/Slo/View/BurnRateRules.tsx`,
+  recommendedRulesModal: `${DASHBOARD}/Components/Slo/SloRecommendedBurnRateRulesModal.tsx`,
   notificationSettings: `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
   metricsQueryConfig: `${DASHBOARD}/Components/Slo/SloMetricsQueryConfig.ts`,
   labelRulesPage: `${DASHBOARD}/Pages/Slo/Settings/LabelRules.tsx`,
@@ -488,8 +501,20 @@ describe("SLOs Overview, against the product", () => {
     expect(readSource("sloService")).toContain(
       "return !monitorStatus.isOperationalState;",
     );
-    expect(readSource("sloService")).toContain('name: "Fast burn",');
-    expect(readSource("sloService")).toContain('name: "Slow burn",');
+    expect(readSource("sloService")).toContain(
+      "getSloRecommendedBurnRateRules({",
+    );
+    expect(
+      getSloRecommendedBurnRateRules({ windowDays: 30 }).map(
+        (rule: SloRecommendedBurnRateRule): string => {
+          return rule.name;
+        },
+      ),
+    ).toEqual([
+      SLO_FAST_BURN_RULE_NAME,
+      SLO_SLOW_BURN_RULE_NAME,
+      SLO_SLOW_LEAK_RULE_NAME,
+    ]);
 
     const table: string = page.slice(
       page.indexOf("| Setting | A new SLO starts with | Change it on |"),
@@ -505,7 +530,7 @@ describe("SLOs Overview, against the product", () => {
       "Downtime statuses = Every non-operational status in the project",
       `Multi-monitor mode = **${SloMultiMonitorMode.AnyDown}**`,
       "Evaluation = On",
-      "Burn rate rules = A **Fast burn** and a **Slow burn** rule, scaled to the window",
+      `Burn rate rules = A **${SLO_FAST_BURN_RULE_NAME}**, a **${SLO_SLOW_BURN_RULE_NAME}** and a **${SLO_SLOW_LEAK_RULE_NAME}** rule, scaled to the window`,
     ]);
   });
 
@@ -741,6 +766,21 @@ describe("SLOs Overview, against the product", () => {
     );
     expect(page).toContain(
       "It turns amber above 1× and red, with **Rule threshold reached**",
+    );
+
+    // Compared only with the rules an hour can speak for: up to Slow burn's 6 hours.
+    expect(SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES).toBe(6 * 60);
+    expect(readSource("overview")).toContain(
+      "return isComparedWithCurrentBurnRate(rule.longWindowInMinutes);",
+    );
+    expect(readSource("rulesSummary")).toContain(
+      "isComparedWithCurrentBurnRate(",
+    );
+    expect(page).toContain(
+      `at the lowest threshold of the SLO's enabled burn rate rules that look back ${SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES / 60} hours or less.`,
+    );
+    expect(page).toContain(
+      `each enabled rule's threshold beside the current burn rate, for rules that look back ${SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES / 60} hours or less`,
     );
   });
 
@@ -1326,51 +1366,243 @@ describe("Error Budgets, against the math the worker does", () => {
 describe("Burn Rate Alerts and Incidents, against the worker and the form", () => {
   const page: string = englishPage(BURN_RATE);
 
+  // A default rule as a new SLO with this window is seeded with.
+  function seeded(
+    name: string,
+    window: { windowType?: SloWindowType; windowDays?: number },
+  ): SloRecommendedBurnRateRule {
+    const rule: SloRecommendedBurnRateRule | undefined =
+      getSloRecommendedBurnRateRules(window).find(
+        (candidate: SloRecommendedBurnRateRule): boolean => {
+          return candidate.name === name;
+        },
+      );
+
+    expect({ name, seeded: Boolean(rule) }).toEqual({ name, seeded: true });
+
+    return rule as SloRecommendedBurnRateRule;
+  }
+
+  const threshold: (value: number) => string = (value: number): string => {
+    return `${value}×`;
+  };
+
+  /*
+   * A window the way the page's tables write it: whole days and hours as
+   * such, a tenth of a window shorter than 30 days in tenths ("2.8 days",
+   * "16.8 hours", "5.6 hours"), and anything shorter in minutes.
+   */
+  const windowText: (minutes: number) => string = (minutes: number): string => {
+    if (minutes % 1440 === 0) {
+      return `${minutes / 1440} day${minutes === 1440 ? "" : "s"}`;
+    }
+
+    if (minutes >= 2 * 1440 && (minutes * 10) % 1440 === 0) {
+      return `${minutes / 1440} days`;
+    }
+
+    if (minutes % 60 === 0) {
+      return `${minutes / 60} hour${minutes === 60 ? "" : "s"}`;
+    }
+
+    if (minutes >= 5 * 60 && (minutes * 10) % 60 === 0) {
+      return `${minutes / 60} hours`;
+    }
+
+    return `${minutes} minutes`;
+  };
+
   it("scales the default thresholds the way new SLOs are seeded", () => {
     const service: string = readSource("sloService");
     const seed: string = blockFrom(
       service,
-      "const defaultRules: Array<{",
+      "private async seedDefaultBurnRateRules(",
       "for (const defaultRule of defaultRules)",
     );
 
-    expect(seed).toContain('name: "Fast burn",');
-    expect(seed).toContain("this.roundToTwoDecimals((0.02 * windowHours) / 1)");
+    // The service seeds exactly the shared recommendation, for the SLO's window.
     expect(seed).toContain(
-      "longWindowInMinutes: 60,\n        shortWindowInMinutes: 5,",
-    );
-    expect(seed).toContain('name: "Slow burn",');
-    expect(seed).toContain("this.roundToTwoDecimals((0.05 * windowHours) / 6)");
-    expect(seed).toContain(
-      "longWindowInMinutes: 360,\n        shortWindowInMinutes: 30,",
-    );
-    // A calendar month seeds as 30 days.
-    expect(service).toContain(
-      "? 720\n        : (createdItem.windowDays || 30) * 24;",
+      "getSloRecommendedBurnRateRules({\n        windowType: createdItem.windowType,\n        windowDays: createdItem.windowDays,\n      });",
     );
 
-    const threshold: (value: number) => string = (value: number): string => {
-      return `${Math.round(value * 100) / 100}×`;
-    };
+    const defaults: Array<Array<string>> = tableRows(section(page, "Default rules"));
+
+    expect(
+      defaults.map((row: Array<string>): Array<string> => {
+        return row.slice(0, 4);
+      }),
+    ).toEqual(
+      [SLO_FAST_BURN_RULE_NAME, SLO_SLOW_BURN_RULE_NAME, SLO_SLOW_LEAK_RULE_NAME].map(
+        (name: string): Array<string> => {
+          const rule: SloRecommendedBurnRateRule = seeded(name, {
+            windowType: SloWindowType.Rolling,
+            windowDays: 30,
+          });
+
+          return [
+            `**${name}**`,
+            threshold(rule.burnRateThreshold),
+            windowText(rule.longWindowInMinutes),
+            windowText(rule.shortWindowInMinutes),
+          ];
+        },
+      ),
+    );
+
     const rows: Array<Array<string>> = tableRows(
       page.slice(page.indexOf("| SLO window | Fast burn threshold |")),
     );
 
-    expect(
-      rows.map((row: Array<string>): Array<string> => {
-        return row;
-      }),
-    ).toEqual(
+    expect(rows).toEqual(
       [7, 28, 30, 90].map((days: number): Array<string> => {
+        const window: { windowType: SloWindowType; windowDays: number } = {
+          windowType: SloWindowType.Rolling,
+          windowDays: days,
+        };
+
         return [
           `${days} days`,
-          threshold(0.02 * days * 24),
-          threshold((0.05 * days * 24) / 6),
+          threshold(seeded(SLO_FAST_BURN_RULE_NAME, window).burnRateThreshold),
+          threshold(seeded(SLO_SLOW_BURN_RULE_NAME, window).burnRateThreshold),
         ];
       }),
     );
 
+    const leaks: Array<Array<string>> = tableRows(
+      page.slice(page.indexOf("| SLO window | Slow leak threshold |")),
+    );
+
+    expect(leaks).toEqual(
+      [7, 28, 30, 90].map((days: number): Array<string> => {
+        const leak: SloRecommendedBurnRateRule = seeded(
+          SLO_SLOW_LEAK_RULE_NAME,
+          { windowType: SloWindowType.Rolling, windowDays: days },
+        );
+
+        return [
+          `${days} days`,
+          threshold(leak.burnRateThreshold),
+          windowText(leak.longWindowInMinutes),
+          windowText(leak.shortWindowInMinutes),
+        ];
+      }),
+    );
+
+    // A calendar month is seeded as 30 days.
+    for (const name of [
+      SLO_FAST_BURN_RULE_NAME,
+      SLO_SLOW_BURN_RULE_NAME,
+      SLO_SLOW_LEAK_RULE_NAME,
+    ]) {
+      expect(seeded(name, { windowType: SloWindowType.CalendarMonth })).toEqual(
+        seeded(name, { windowType: SloWindowType.Rolling, windowDays: 30 }),
+      );
+    }
+
     expect(page).toContain("Calendar-month SLOs get the 30-day values.");
+  });
+
+  it("says Slow leak is a ticket: the least severe severity, no incident and a day of quiet", () => {
+    const leak: SloRecommendedBurnRateRule = seeded(SLO_SLOW_LEAK_RULE_NAME, {
+      windowDays: 30,
+    });
+
+    expect(leak.alertSeverity).toBe(SloRecommendedAlertSeverity.LeastSevere);
+    expect(seeded(SLO_FAST_BURN_RULE_NAME, { windowDays: 30 }).alertSeverity).toBe(
+      SloRecommendedAlertSeverity.MostSevere,
+    );
+    expect(seeded(SLO_SLOW_BURN_RULE_NAME, { windowDays: 30 }).alertSeverity).toBe(
+      SloRecommendedAlertSeverity.MostSevere,
+    );
+    expect(SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES).toBe(24 * 60);
+    expect(leak.refireSuppressionMinutes).toBe(
+      SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES,
+    );
+
+    const defaults: string = section(page, "Default rules");
+
+    expect(defaults).toContain(
+      "Fast burn and Slow burn are pages: they raise an alert at the project's most severe alert severity.",
+    );
+    expect(defaults).toContain(
+      "Slow leak is a ticket: it raises its alert at the project's least severe alert severity.",
+    );
+    expect(defaults).toContain(
+      "After its alert resolves, it waits 24 hours, not its 3-day long window, before it raises another.",
+    );
+    expect(defaults).toContain("None of them declares an incident");
+    expect(section(page, "Resolution and re-fire suppression")).toContain(
+      "Slow leak is created with 24 hours instead of its 3-day long window",
+    );
+
+    // A steady 3x on a 99.9% / 30-day SLO: under Slow burn's 6x, over Slow leak's 1x.
+    expect(3).toBeLessThan(
+      seeded(SLO_SLOW_BURN_RULE_NAME, { windowDays: 30 }).burnRateThreshold,
+    );
+    expect(3).toBeGreaterThanOrEqual(leak.burnRateThreshold);
+    expect(defaults).toContain(
+      "at 3×, a 99.9% budget is gone in 10 days, yet only Slow leak fires.",
+    );
+  });
+
+  it("offers Add recommended rules as the Burn Rate Rules page draws it, and says what counts as there", () => {
+    const rulesPage: string = readSource("burnRulesPage");
+    const modal: string = readSource("recommendedRulesModal");
+
+    expect(rulesPage).toContain('title: "Add recommended rules",');
+    expect(rulesPage).toContain("ModelAction.Create");
+    expect(modal).toContain('title="Add recommended rules"');
+    expect(modal).toContain('submitButtonText="Add rules"');
+
+    const addSection: string = section(
+      page,
+      "Add the recommended rules to an existing SLO",
+    );
+
+    expect(addSection).toContain(
+      "its **Burn Rate Rules** page shows **Add recommended rules**",
+    );
+    expect(addSection).toContain(
+      "It adds only the missing rules, and clicking it again adds nothing.",
+    );
+    expect(addSection).toContain(
+      "You need permission to create SLO burn rate rules.",
+    );
+    expect(addSection).toContain(
+      "A rule counts as there when the SLO has a rule with the same name, or one with the same long window, whether it is on or off.",
+    );
+
+    // What the page says counts as there is what the server checks.
+    const leak: SloRecommendedBurnRateRule = seeded(SLO_SLOW_LEAK_RULE_NAME, {
+      windowDays: 30,
+    });
+
+    expect(
+      isSloRecommendedBurnRateRulePresent({
+        recommended: leak,
+        existingRules: [{ name: "Slow leak", longWindowInMinutes: 10 }],
+      }),
+    ).toBe(true);
+    expect(
+      isSloRecommendedBurnRateRulePresent({
+        recommended: leak,
+        existingRules: [{ name: "Renamed", longWindowInMinutes: 4320 }],
+      }),
+    ).toBe(true);
+    expect(
+      isSloRecommendedBurnRateRulePresent({
+        recommended: leak,
+        existingRules: [{ name: "Renamed", longWindowInMinutes: 10 }],
+      }),
+    ).toBe(false);
+
+    // The rules the API adds are posted to the feed and audited like any other.
+    expect(readSource("burnRuleService")).toContain(
+      "const created: Model = await this.create({",
+    );
+    expect(addSection).toContain(
+      "Each rule it adds is posted to the SLO's feed and recorded in its audit logs, like a rule you create yourself.",
+    );
   });
 
   it("states how long a 99.9% budget lasts at each burn rate", () => {
@@ -1402,7 +1634,7 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     ).toContain("resolveOpenBurnRateAlertsAndIncidentsForSlo");
     expect(worker).toContain("status: SloStatus.Paused,");
     expect(page).toContain(
-      "a new SLO cannot fire its **Fast burn** rule for its first hour, or its **Slow burn** rule for its first six",
+      "a new SLO cannot fire its **Fast burn** rule for its first hour, its **Slow burn** rule for its first six, or its **Slow leak** rule for its first three days",
     );
     expect(page).toContain(
       "the SLO turning **Paused** or **Misconfigured**, because it then measures nothing;",
