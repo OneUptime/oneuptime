@@ -38,6 +38,12 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * wrong, nothing left to add, a member and a connection turned off - in
  * German and in the dark theme too.
  *
+ * And issue #5762: a page opens on Meraki where Meraki reports, and on the
+ * side the reader picked last; every network of an estate of 150, not its
+ * ten, searched, sorted and paged; a branch router added by hand, which had
+ * no Meraki side and no word of it, linked to its MX from its own page -
+ * its traffic then on it - and unlinked again.
+ *
  * Every test puts up a network fence that aborts anything leaving the
  * fixture server, and fails on an uncaught page error, on a request the
  * fixture does not model and on any request the fence had to abort.
@@ -49,6 +55,9 @@ const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const TRAFFIC: string = `/dashboard/${PROJECT_ID}/network-devices/traffic`;
 // The Head Office MX's own Traffic page, and the Branches site's.
 const DEVICE_TRAFFIC: string = `/dashboard/${PROJECT_ID}/network-devices/40000000-0000-4000-8000-000000000001/traffic`;
+// A branch router added by hand at its WAN address (issue #5762).
+const ROUTER_ID: string = "40000000-0000-4000-8000-000000000002";
+const ROUTER_TRAFFIC: string = `/dashboard/${PROJECT_ID}/network-devices/${ROUTER_ID}/traffic`;
 const SITE_TRAFFIC: string = `/dashboard/${PROJECT_ID}/network-sites/view/50000000-0000-4000-8000-000000000001/traffic`;
 const API_KEY: string = "6bec40cf957de430a6f1f2baa056b99a4fac9ea0";
 const NEW_KEY: string = "fedcba9876543210fedcba9876543210fedcba98";
@@ -70,6 +79,10 @@ const GERMAN: Record<string, string> = JSON.parse(
 
 interface FixtureState {
   usageRequests: Array<{ filters?: Record<string, unknown> }>;
+  listRequests: Array<Record<string, unknown>>;
+  applianceAsks: Array<Record<string, unknown>>;
+  links: Array<Record<string, unknown>>;
+  unlinks: Array<Record<string, unknown>>;
   flowRequests: Array<Record<string, unknown>>;
   tests: Array<{
     connectionId?: string;
@@ -790,7 +803,11 @@ test("the applications and destinations say their protocol and port", async ({
   );
 });
 
-test("a page with flow records too opens on them, and the switch moves between the two", async ({
+/*
+ * Issue #5762: where Meraki reports, the page opens on it - flow records or
+ * not - and on the side the reader picked last time, once they picked one.
+ */
+test("a page with flow records too opens on Meraki, the switch moves between the two, and the pick is remembered", async ({
   page,
 }: {
   page: Page;
@@ -804,6 +821,15 @@ test("a page with flow records too opens on them, and the switch moves between t
     .getByTestId("traffic-source-switch")
     .getByTestId("traffic-source-meraki");
 
+  await expect(meraki).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("meraki-traffic-body")).toBeVisible();
+
+  await flows.click();
+  await expect(page.getByTestId("traffic-body")).toBeVisible();
+  await expect(page).toHaveURL(/source=flows/);
+
+  // The next visit, from a link that names no side, opens where they left.
+  await open(page, "state=both");
   await expect(flows).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("traffic-body")).toBeVisible();
 
@@ -811,9 +837,12 @@ test("a page with flow records too opens on them, and the switch moves between t
   await expect(page.getByTestId("meraki-traffic-body")).toBeVisible();
   await expect(page).toHaveURL(/source=meraki/);
 
-  await flows.click();
-  await expect(page.getByTestId("traffic-body")).toBeVisible();
-  await expect(page).toHaveURL(/source=flows/);
+  await open(page, "state=both");
+  await expect(meraki).toHaveAttribute("aria-pressed", "true");
+
+  // A link that names a side still wins.
+  await open(page, "state=both&source=flows");
+  await expect(flows).toHaveAttribute("aria-pressed", "true");
 });
 
 /*
@@ -1684,6 +1713,269 @@ test("a device's page: its MX's uplinks, applications and clients - nothing said
   ).toBe("40000000-0000-4000-8000-000000000001");
   await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "device");
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Every network, not ten (issue #5762)
+ * ---------------------------------------------------------------------------
+ */
+
+test("an estate of 150 networks: Top networks shows ten and opens the rest, searched, sorted and paged", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki&lists=long");
+
+  await expect(rowsOf(page, "meraki-top-networks")).toHaveCount(10);
+  const viewAll: Locator = page.getByTestId("meraki-top-networks-view-all");
+  await expect(viewAll).toHaveText("View all 150 networks");
+  await expect(page.getByTestId("meraki-top-applications-view-all")).toHaveText(
+    "View all 24 applications",
+  );
+  await expect(page.getByTestId("meraki-top-clients-view-all")).toHaveText(
+    "View all 45 clients",
+  );
+
+  await viewAll.click();
+  await expect(dialog(page).getByTestId("modal-title")).toHaveText(
+    "All networks",
+  );
+  const rows: Locator = dialog(page).getByTestId("meraki-list-row");
+  await expect(rows).toHaveCount(25);
+  await expect(rows.first()).toContainText("Head Office");
+  await expect(page.getByTestId("meraki-list-pagination")).toContainText("150");
+  await settledDialog(page);
+  await screenshot(page, testInfo, "view-all-networks", dialog(page));
+
+  let asked: FixtureState["listRequests"] = (await fixture(page)).listRequests;
+  expect(asked[asked.length - 1]).toMatchObject({
+    list: "networks",
+    primaryKind: "uplink",
+    search: "",
+    sortBy: "total",
+    skip: 0,
+    limit: 25,
+  });
+
+  // The next page reads on from where the first ended.
+  await page.getByTestId("pagination-next-button").click();
+  await expect(rows.first()).not.toContainText("Head Office");
+  asked = (await fixture(page)).listRequests;
+  expect(asked[asked.length - 1]).toMatchObject({ skip: 25 });
+
+  /*
+   * A search waits for the typing to pause, then reads from the first page:
+   * Store 120 to Store 129, the busiest first.
+   */
+  await page.getByTestId("meraki-list-search").fill("store 12");
+  await expect(rows).toHaveCount(10);
+  await expect(rows.first()).toContainText("Store 120");
+  await expect(rows.last()).toContainText("Store 129");
+  asked = (await fixture(page)).listRequests;
+  expect(asked[asked.length - 1]).toMatchObject({
+    search: "store 12",
+    skip: 0,
+  });
+
+  // Sorted by what went out.
+  await page.getByTestId("meraki-list-sort-out").click();
+  await expect(page.getByTestId("meraki-list-sort-out")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  asked = (await fixture(page)).listRequests;
+  expect(asked[asked.length - 1]).toMatchObject({ sortBy: "out" });
+
+  // A network picked narrows the page to it, and the dialog closes.
+  const picked: string = (await rows.nth(2).textContent()) || "";
+  await rows.nth(2).click();
+  await expect(dialog(page)).toHaveCount(0);
+  await expect(page.getByTestId("meraki-filter-network")).toContainText(
+    picked.split("·")[0]!.trim().split(" ").slice(0, 2).join(" "),
+  );
+  await expect(page).toHaveURL(/mnet=L_/);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
+});
+
+test("a search that matches nothing says so; the clients' list draws a client without a name by its address", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki&lists=long");
+
+  await page.getByTestId("meraki-top-networks-view-all").click();
+  await page.getByTestId("meraki-list-search").fill("coventry warehouse 9");
+  await expect(page.getByTestId("meraki-list-empty")).toHaveText(
+    "No network matches “coventry warehouse 9”.",
+  );
+  await dialog(page).getByTestId("modal-footer-close-button").click();
+  await expect(dialog(page)).toHaveCount(0);
+
+  await page.getByTestId("meraki-top-clients-view-all").click();
+  await expect(dialog(page).getByTestId("modal-title")).toHaveText(
+    "All clients",
+  );
+  await page.getByTestId("meraki-list-search").fill("10.70.0.20");
+  const rows: Locator = dialog(page).getByTestId("meraki-list-row");
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText("10.70.0.20");
+  await settledDialog(page);
+  await screenshot(page, testInfo, "view-all-clients", dialog(page));
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A router's Traffic page and its Meraki appliance (issue #5762)
+ * ---------------------------------------------------------------------------
+ */
+
+test("the bug this fixes: a router added by hand had no Meraki side and no word of it - now it says why, and links to its MX", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki", ROUTER_TRAFFIC);
+
+  const unlinked: Locator = page.getByTestId("meraki-appliance-unlinked");
+  await expect(unlinked).toContainText(
+    "This device is not linked to a Meraki appliance.",
+  );
+  await expect(
+    page
+      .getByTestId("traffic-source-switch")
+      .getByTestId("traffic-source-meraki"),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
+  await screenshot(page, testInfo, "router-unlinked");
+
+  await page.getByTestId("meraki-appliance-link").click();
+  const appliances: Locator = page.getByTestId("meraki-link-appliance");
+  await expect(appliances).toHaveCount(4);
+  // The Leeds MX first: its network and the router share the branch number.
+  await expect(page.getByTestId("meraki-link-likely-heading")).toHaveText(
+    "Likely matches",
+  );
+  await expect(appliances.first()).toContainText("LDS MX68");
+  await expect(
+    appliances.first().getByTestId("meraki-link-appliance-likeness"),
+  ).toHaveText("Both names have 12");
+  // The Head Office MX is a device already: listed, never offered.
+  const headOffice: Locator = appliances.filter({ hasText: "HQ MX250" });
+  await expect(headOffice.getByRole("radio")).toBeDisabled();
+  await expect(
+    headOffice.getByTestId("meraki-link-appliance-taken"),
+  ).toHaveText("Linked to HQ MX250");
+  await expect(page.getByTestId("modal-footer-submit-button")).toBeDisabled();
+  await settledDialog(page);
+  await screenshot(page, testInfo, "router-link-dialog", dialog(page));
+
+  // A press anywhere on the row picks it.
+  await appliances.first().click();
+  await page.getByTestId("modal-footer-submit-button").click();
+  await expect(dialog(page)).toHaveCount(0);
+
+  expect((await fixture(page)).links).toEqual([
+    { networkDeviceId: ROUTER_ID, deviceSerial: "Q2PN-LDS0-0012" },
+  ]);
+  // Its traffic, and which appliance it is, over it.
+  await expect(page.getByTestId("meraki-appliance-line")).toContainText(
+    "Linked to the Meraki appliance LDS MX68",
+  );
+  await expect(page.getByTestId("traffic-tile-total-value")).not.toHaveText(
+    "0 B",
+  );
+  await expect(rowsOf(page, "meraki-top-uplinks").first()).toContainText(
+    "wan1",
+  );
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
+  await screenshot(page, testInfo, "router-linked");
+});
+
+test("the router's numbers are its MX's on the network's page: the same appliance, the same traffic", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "state=meraki&router=linked", ROUTER_TRAFFIC);
+  const onRouter: string =
+    (await page.getByTestId("traffic-tile-total-value").textContent()) || "";
+
+  await open(
+    page,
+    "state=meraki&source=meraki&mnet=L_646829496481105434",
+    TRAFFIC,
+  );
+  await expect(page.getByTestId("traffic-tile-total-value")).toHaveText(
+    onRouter,
+  );
+});
+
+test("a linked router: Unlink, confirmed, takes the link off, and the page offers it again", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "state=meraki&router=linked", ROUTER_TRAFFIC);
+
+  await page.getByTestId("meraki-appliance-unlink").click();
+  await expect(dialog(page).getByTestId("modal-title")).toHaveText(
+    "Unlink this device?",
+  );
+  await expect(page.getByTestId("confirm-modal-description")).toContainText(
+    "The traffic of LDS MX68 goes back to the network's Traffic page",
+  );
+  await page.getByTestId("modal-footer-submit-button").click();
+
+  await expect(page.getByTestId("meraki-appliance-unlinked")).toBeVisible();
+  expect((await fixture(page)).unlinks).toEqual([
+    { networkDeviceId: ROUTER_ID },
+  ]);
+});
+
+test("a member reads why there is no Link button: linking changes a device's serial number", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "state=meraki&role=member", ROUTER_TRAFFIC);
+
+  await expect(page.getByTestId("meraki-appliance-unlinked")).toBeVisible();
+  await expect(page.getByTestId("meraki-appliance-link")).toHaveCount(0);
+  await expect(page.getByTestId("meraki-appliance-link-locked")).toContainText(
+    "You need",
+  );
+});
+
+test("linking a router, in German and in the dark theme", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki&lang=de&theme=dark", ROUTER_TRAFFIC);
+
+  await expect(page.getByTestId("meraki-appliance-unlinked")).toContainText(
+    GERMAN["This device is not linked to a Meraki appliance."]!,
+  );
+  await screenshot(page, testInfo, "router-unlinked-de-dark");
+
+  await page.getByTestId("meraki-appliance-link").click();
+  await expect(dialog(page).getByTestId("modal-title")).toHaveText(
+    GERMAN["Link to a Meraki appliance"]!,
+  );
+  await settledDialog(page);
+  await screenshot(page, testInfo, "router-link-dialog-de-dark", dialog(page));
+  await dialog(page).getByTestId("modal-footer-close-button").click();
+
+  await open(page, "state=meraki&lists=long&lang=de&theme=dark");
+  await page.getByTestId("meraki-top-networks-view-all").click();
+  await expect(dialog(page).getByTestId("modal-title")).toHaveText(
+    GERMAN["All networks"]!,
+  );
+  await settledDialog(page);
+  await screenshot(page, testInfo, "view-all-networks-de-dark", dialog(page));
 });
 
 /*
