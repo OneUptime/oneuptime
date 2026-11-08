@@ -46431,5 +46431,7 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "이 제안 이후에 저장된 변경 사항은 유지되었습니다",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "AI가 워크플로의 단계를 읽지 않고 이 변경을 작성했으므로, 보지 못한 단계를 제거하거나 변경할 수 있습니다.",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "이 변경은 AI가 워크플로를 읽은 뒤에 저장된 내용을 되돌립니다: {{steps}}."
 }

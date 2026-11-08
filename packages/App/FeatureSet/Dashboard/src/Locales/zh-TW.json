@@ -46431,5 +46431,7 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "保留了此提議之後儲存的變更",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "AI 在未讀取工作流程步驟的情況下撰寫了此變更，因此可能會移除或變更它未曾看到的步驟。",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "此變更會撤銷 AI 讀取工作流程之後儲存的內容：{{steps}}。"
 }

@@ -353,50 +353,6 @@ export const fingerprintWorkflowSteps: FingerprintStepsFunction = (data: {
   });
 };
 
-type GetStepIdsFunction = (graph: JSONObject | null | undefined) => Array<string>;
-
-// The ids of a stored graph's steps, each once, in the graph's order.
-export const getWorkflowStepIds: GetStepIdsFunction = (
-  graph: JSONObject | null | undefined,
-): Array<string> => {
-  return Array.from(
-    new Set<string>(
-      readStoredSteps(graph).steps.map((step: StoredStep): string => {
-        return step.id;
-      }),
-    ),
-  );
-};
-
-/*
- * The fingerprints of what these steps of a graph are - their component and
- * their settings as saved - leaving out what they connect to: whether a
- * change made a step something else, or only moved what leads to it (issue
- * #6291). In their order: null for a step the graph does not have.
- */
-export const fingerprintWorkflowStepContents: FingerprintStepsFunction =
-  (data: {
-    graph: JSONObject | null | undefined;
-    stepIds: Array<string>;
-    digest: WorkflowDraftDigestFunction;
-  }): Array<WorkflowDraftProposedStep> => {
-    const stored: StoredSteps = readStoredSteps(data.graph);
-
-    return data.stepIds.map((stepId: string): WorkflowDraftProposedStep => {
-      const steps: Array<StoredStep> = stored.steps.filter(
-        (step: StoredStep): boolean => {
-          return step.id === stepId;
-        },
-      );
-
-      return {
-        id: stepId,
-        fingerprint:
-          steps.length === 0 ? null : data.digest(getStepContentKey(steps)),
-      };
-    });
-  };
-
 type CollectStringsFunction = (value: JSONValue | undefined) => Array<string>;
 
 // Every text in a setting, however deep in its JSON.
@@ -484,6 +440,62 @@ const groupStepsById: GroupStepsFunction = (
   }
 
   return groups;
+};
+
+// What a stored graph is made of, for telling what changed in it (issue #6291).
+export interface WorkflowGraphParts {
+  /*
+   * Each step once, in the graph's order, by the fingerprint of what it is:
+   * its component and its settings as saved - never what it connects to,
+   * nor where its card sits.
+   */
+  steps: Array<{ id: string; fingerprint: string }>;
+  // Each connection once, by the steps it joins and the output it leaves by.
+  connections: Array<WorkflowDraftConnection & { fromOutput: string }>;
+}
+
+type GetGraphPartsFunction = (data: {
+  graph: JSONObject | null | undefined;
+  digest: WorkflowDraftDigestFunction;
+}) => WorkflowGraphParts;
+
+/*
+ * A stored graph's steps and connections apart, read as a change's record
+ * reads them (readStoredSteps): so a change that adds a step after another
+ * is no change to what that step is, and a setting changed on a step is no
+ * change to what leads to it.
+ */
+export const getWorkflowGraphParts: GetGraphPartsFunction = (data: {
+  graph: JSONObject | null | undefined;
+  digest: WorkflowDraftDigestFunction;
+}): WorkflowGraphParts => {
+  const stored: StoredSteps = readStoredSteps(data.graph);
+  const steps: Array<{ id: string; fingerprint: string }> = [];
+
+  for (const [stepId, group] of groupStepsById(stored.steps)) {
+    steps.push({ id: stepId, fingerprint: data.digest(getStepContentKey(group)) });
+  }
+
+  const connections: Array<WorkflowDraftConnection & { fromOutput: string }> =
+    [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const connection of stored.connections) {
+    const key: string = getConnectionKey(connection);
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    connections.push({
+      from: connection.from,
+      fromOutput: connection.fromOutput || "",
+      to: connection.to,
+    });
+  }
+
+  return { steps: steps, connections: connections };
 };
 
 type GetStepsTouchedFunction = (data: {

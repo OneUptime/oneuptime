@@ -46431,5 +46431,7 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "この提案の後に保存された変更は保持されました",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "AI はワークフローのステップを読まずにこの変更を作成したため、見ていないステップを削除または変更する可能性があります。",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "この変更は、AI がワークフローを読んだ後に保存された内容を元に戻します: {{steps}}。"
 }

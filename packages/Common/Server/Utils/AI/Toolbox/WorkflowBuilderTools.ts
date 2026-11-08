@@ -71,7 +71,6 @@ import {
   WorkflowDraftProposedOn,
   WorkflowDraftRebase,
   WorkflowDraftRebaseKind,
-  fingerprintWorkflowSteps,
   proposeWorkflowDraft,
   readWorkflowDraftProposedOn,
   rebaseWorkflowDraft,
@@ -79,7 +78,8 @@ import {
 import {
   WorkflowStepsUndone,
   findWorkflowStepsUndoneUnseen,
-  fingerprintEveryWorkflowStep,
+  seeWorkflowParts,
+  seeWorkflowPartsSaved,
 } from "../../../../Types/Workflow/WorkflowDraftSeen";
 import {
   WORKFLOW_GRAPH_REVISION_KEY,
@@ -1185,12 +1185,12 @@ type GetWorkflowSeenFunction = (data: {
 }) => AIChatRecordSeen;
 
 /*
- * What a result showed the model of a workflow: every step of it, by the
- * fingerprint a change's record uses (fingerprintWorkflowStep), at the
- * revision read - its steps read by query_workflows, or the workflow
- * create_workflow made. Kept with the result's citation, so a change Ask
- * AI proposes later can say what it would undo that was saved since
- * (AIChatRecordSeen, issue #6291).
+ * What a result showed the model of a workflow: every step and connection
+ * of it (WorkflowDraftSeen), each step by a fingerprint keyed as a change's
+ * record is (fingerprintWorkflowStep), at the revision read - its steps
+ * read by query_workflows, or the workflow create_workflow made. Kept with
+ * the result's citation, so a change Ask AI proposes later can say what it
+ * would undo that was saved since (AIChatRecordSeen, issue #6291).
  */
 export const getWorkflowSeen: GetWorkflowSeenFunction = (data: {
   workflowId: string;
@@ -1201,7 +1201,7 @@ export const getWorkflowSeen: GetWorkflowSeenFunction = (data: {
     recordType: AIChatRecordSeenType.Workflow,
     recordId: data.workflowId,
     revision: data.revision,
-    parts: fingerprintEveryWorkflowStep({
+    parts: seeWorkflowParts({
       graph: data.graph,
       digest: fingerprintWorkflowStep,
     }),
@@ -1400,7 +1400,7 @@ const findUnseenChange: FindUnseenChangeFunction = (data: {
     digest: fingerprintWorkflowStep,
   });
 
-  if (undone.stepIds.length === 0) {
+  if (undone.partIds.length === 0) {
     return null;
   }
 
@@ -1984,23 +1984,22 @@ export const UpdateWorkflowTool: ObservabilityTool = {
       workflow = saved.workflow;
 
       /*
-       * Ask AI saw the steps this change touches as it saved them, and every
-       * other step as it saw it before - whatever this save kept of someone
-       * else's (issue #6291). The save was held to change.revision, so it
-       * left the workflow at the next one.
+       * Ask AI saw the steps this change touches, and what leads to and from
+       * them, as it saved them; every other part as it saw it before -
+       * whatever this save kept of someone else's (issue #6291). The save
+       * was held to change.revision, so it left the workflow at the next one.
        */
       seen = {
         recordType: AIChatRecordSeenType.Workflow,
         recordId: workflowId.toString(),
         revision: change.revision + 1,
         isPartial: true,
-        parts: fingerprintWorkflowSteps({
-          graph: change.graph,
-          stepIds: proposedOn.steps.map(
-            (step: { id: string }): string => {
-              return step.id;
-            },
-          ),
+        parts: seeWorkflowPartsSaved({
+          stepIds: proposedOn.steps.map((step: { id: string }): string => {
+            return step.id;
+          }),
+          replaced: saved.workflow.graph,
+          saved: change.graph,
           digest: fingerprintWorkflowStep,
         }),
       };

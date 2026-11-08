@@ -46431,5 +46431,7 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "Wijzigingen die na dit voorstel zijn opgeslagen, zijn behouden",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "De AI heeft deze wijziging geschreven zonder de stappen van de workflow te lezen, dus ze kan stappen verwijderen of wijzigen die de AI niet heeft gezien.",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Deze wijziging maakt ongedaan wat is opgeslagen nadat de AI de workflow las: {{steps}}."
 }
