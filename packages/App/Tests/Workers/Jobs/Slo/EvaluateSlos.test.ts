@@ -6368,7 +6368,8 @@ describe("Slo:EvaluateSlos worker", () => {
           lastAlertResolvedAt: hoursAgo(25),
         },
       });
-      rules[2]!.refireSuppressionMinutes = undefined;
+      // The column left empty, as Fast burn and Slow burn have it.
+      delete rules[2]!.refireSuppressionMinutes;
       burnRuleService.findBy.mockResolvedValue(rules);
       stubSteadyBurn({ fromHoursAgo: 240, downSecondsPerOutage: 11 });
 
