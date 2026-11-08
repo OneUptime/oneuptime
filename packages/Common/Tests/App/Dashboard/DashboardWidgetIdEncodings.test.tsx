@@ -630,7 +630,7 @@ describe("the public routes and the signed-in page agree on every encoding (issu
     }).components;
 
     return PublicDashboardResourceListPolicy.build({
-      widget: drawn!,
+      widget: drawn as unknown as JSONObject,
       variables: [],
       requestedVariables: [],
       requestedQuery: {},
