@@ -15,8 +15,12 @@ import AlertStateTimelineService from "../../../Server/Services/AlertStateTimeli
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentStateTimelineService from "../../../Server/Services/IncidentStateTimelineService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
-import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
+import ServiceLevelObjectiveService, {
+  SLO_DISABLED_OR_DELETED_ROOT_CAUSE,
+} from "../../../Server/Services/ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "../../../Server/Services/ServiceLevelObjectiveErrorBudgetPolicyTierService";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveLabelRuleEngineService from "../../../Server/Services/ServiceLevelObjectiveLabelRuleEngineService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "../../../Server/Services/ServiceLevelObjectiveMonitorRuleEngineService";
 import ServiceLevelObjectiveOwnerRuleEngineService from "../../../Server/Services/ServiceLevelObjectiveOwnerRuleEngineService";
@@ -146,6 +150,10 @@ const EXPECTED_DUE_SLO_SELECT_KEYS: Array<string> = [
   "currentBurnRate",
   "sloStatus",
   "statusChangeNotificationSentAt",
+  // The tier the worker's hysteresis starts from.
+  "currentErrorBudgetPolicyTierId",
+  "currentErrorBudgetPolicyTierName",
+  "currentErrorBudgetPolicyTierEnteredAt",
   "lastEvaluatedAt",
   "nextEvaluationAt",
   "lastAccumulatedBucketEndAt",
@@ -1516,6 +1524,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - default alert severity"
 
 describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
   let resolveAlertsAndIncidentsSpy: jest.SpyInstance;
+  let tierResolveSpy: jest.SpyInstance;
   let updateOneByIdSpy: jest.SpyInstance;
   let findOneByIdSpy: jest.SpyInstance;
 
@@ -1534,11 +1543,58 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
     findOneByIdSpy = jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")
       .mockResolvedValue(makeSlo({ projectId: PROJECT_ID }));
+
+    tierResolveSpy = jest
+      .spyOn(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService,
+        "resolveOpenPolicyTierAlertsAndIncidentsForSlo",
+      )
+      .mockResolvedValue(undefined);
     stubProjectDirectory({});
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("resolves what the error budget policy's tiers raised for every SLO just disabled", async () => {
+    await callHook("onUpdateSuccess", makeOnUpdate({ isEnabled: false }), [
+      SLO_ID,
+    ]);
+
+    expect(tierResolveSpy).toHaveBeenCalledWith({
+      sloId: SLO_ID,
+      projectId: PROJECT_ID,
+      rootCause: SLO_DISABLED_OR_DELETED_ROOT_CAUSE,
+    });
+  });
+
+  it("a tier resolve that fails is logged and costs the burn rate resolve nothing", async () => {
+    tierResolveSpy.mockRejectedValue(new Error("tier resolve failed"));
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+
+    await expect(
+      callHook("onUpdateSuccess", makeOnUpdate({ isEnabled: false }), [SLO_ID]),
+    ).resolves.toBeDefined();
+
+    expect(resolveAlertsAndIncidentsSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "Error resolving open error budget policy alerts and incidents for disabled SLO",
+      ),
+    );
+  });
+
+  it("enabling an SLO resolves nothing its tiers raised", async () => {
+    await callHook("onUpdateSuccess", makeOnUpdate({ isEnabled: true }), [
+      SLO_ID,
+    ]);
+
+    expect(tierResolveSpy).not.toHaveBeenCalled();
   });
 
   it("resolves the open burn rate alerts and incidents of every SLO that was just disabled", async () => {
@@ -1728,7 +1784,10 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
   interface CarriedForward {
     itemsToDelete: Array<unknown>;
     burnRateRules: Array<unknown>;
+    policyTiers: Array<unknown>;
   }
+
+  let tierFindBySpy: jest.SpyInstance;
 
   interface ReadArguments {
     query: Record<string, unknown>;
@@ -1757,11 +1816,63 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
     ruleFindBySpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
       .mockResolvedValue([]);
+
+    tierFindBySpy = jest
+      .spyOn(ServiceLevelObjectiveErrorBudgetPolicyTierService, "findBy")
+      .mockResolvedValue([]);
     stubProjectDirectory({});
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("carries each SLO's error budget policy tiers forward too - they cascade away with it", async () => {
+    const first: ServiceLevelObjective = makeSlo({
+      _id: SLO_ID.toString(),
+      id: SLO_ID,
+      projectId: PROJECT_ID,
+    });
+    const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+      new ServiceLevelObjectiveErrorBudgetPolicyTier();
+    tier.id = RULE_ID;
+    tier.serviceLevelObjectiveId = SLO_ID;
+    tier.projectId = PROJECT_ID;
+
+    findBySpy.mockResolvedValue([first]);
+    tierFindBySpy.mockResolvedValue([tier]);
+
+    const result: { carryForward: CarriedForward } = (await callHook(
+      "onBeforeDelete",
+      makeDeleteBy(),
+    )) as { carryForward: CarriedForward };
+
+    expect(result.carryForward.policyTiers).toEqual([tier]);
+
+    const tierRead: ReadArguments = tierFindBySpy.mock
+      .calls[0]![0] as ReadArguments;
+
+    expect(tierRead.query).toEqual({
+      serviceLevelObjectiveId: SLO_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(tierRead.select).toEqual({
+      _id: true,
+      projectId: true,
+      serviceLevelObjectiveId: true,
+    });
+    expect(tierRead.props).toEqual({ isRoot: true });
+  });
+
+  it("fails the delete when it cannot read the tiers, rather than stranding what they raised", async () => {
+    findBySpy.mockResolvedValue([
+      makeSlo({ _id: SLO_ID.toString(), id: SLO_ID, projectId: PROJECT_ID }),
+    ]);
+    tierFindBySpy.mockRejectedValueOnce(new Error("tier read failed"));
+
+    await expect(callHook("onBeforeDelete", makeDeleteBy())).rejects.toThrow(
+      "tier read failed",
+    );
   });
 
   function makeDeleteBy(
