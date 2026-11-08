@@ -207,12 +207,23 @@ export const MATTERMOST_SUBMIT_ACTIONS: Readonly<
   return submits;
 })();
 
+/*
+ * Approve and Reject on a public note that waits for approval, in the
+ * direct message its approvers get (MattermostPublicNoteApprovalActions):
+ * they are about a note, not a record, so they are not among the presses
+ * above.
+ */
+export const MATTERMOST_PUBLIC_NOTE_APPROVAL_BUTTONS: ReadonlyArray<string> = [
+  SlackActionType.ApprovePublicNote,
+  SlackActionType.ViewRejectPublicNote,
+];
+
 // Whether a button or a menu item with this action id is shown in Mattermost.
 export const isMattermostAction: (actionId: string) => boolean = (
   actionId: string,
 ): boolean => {
-  return Object.prototype.hasOwnProperty.call(
-    MATTERMOST_PRESS_ACTIONS,
-    actionId,
+  return (
+    Object.prototype.hasOwnProperty.call(MATTERMOST_PRESS_ACTIONS, actionId) ||
+    MATTERMOST_PUBLIC_NOTE_APPROVAL_BUTTONS.includes(actionId)
   );
 };

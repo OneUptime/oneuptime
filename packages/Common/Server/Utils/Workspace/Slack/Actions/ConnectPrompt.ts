@@ -31,6 +31,7 @@ import SlackActionAnswer, {
   SlackAnswerDelivery,
   SlackAnswerPlace,
 } from "./Answer";
+import WorkspacePublicNoteApproval from "../../WorkspacePublicNoteApproval";
 
 /*
  * "CONNECT YOUR SLACK ACCOUNT TO ACKNOWLEDGE THIS INCIDENT."
@@ -418,6 +419,21 @@ export default class SlackConnectPrompt {
           label: form.button,
         },
       };
+    }
+
+    /*
+     * A public note waiting for approval: Approve is decided for them once
+     * they connect, only while the note is what its message showed; Reject
+     * asks why in a form, so it is pressed again.
+     */
+    const approvalPress: SlackPressDescription | null =
+      WorkspacePublicNoteApproval.describePress({
+        actionType: actionType,
+        actionValue: data.actionValue,
+      });
+
+    if (approvalPress) {
+      return approvalPress;
     }
 
     /*

@@ -93,11 +93,20 @@ ${FeedMarkdown.asMarkdown(data.note)}`;
       ? mdText`the edit of a **public note**`
       : mdText`a **public note**`;
 
-    const step: MarkdownText = data.approvedPosition.step?.name
-      ? mdText`step ${String(data.approvedPosition.number)} of ${String(data.approvedPosition.count)} (${data.approvedPosition.step.name})`
-      : mdText`step ${String(data.approvedPosition.number)} of ${String(data.approvedPosition.count)}`;
+    return mdText`✅ approved ${what} on ${link} for ${this.approvedStepName(data.approvedPosition)}. ${this.waitingFor(data.waitingFor)}`;
+  }
 
-    return mdText`✅ approved ${what} on ${link} for ${step}. ${this.waitingFor(data.waitingFor)}`;
+  /*
+   * "step 1 of 2 (Support)": the step an approval was given for, as the
+   * feed's entry names it - and the answer to the approver who gave it
+   * from chat (WorkspacePublicNoteApprovalActions).
+   */
+  public static approvedStepName(
+    position: PublicNoteApprovalPosition,
+  ): MarkdownText {
+    return position.step?.name
+      ? mdText`step ${String(position.number)} of ${String(position.count)} (${position.step.name})`
+      : mdText`step ${String(position.number)} of ${String(position.count)}`;
   }
 
   /*

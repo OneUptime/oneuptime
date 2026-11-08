@@ -20,6 +20,11 @@ import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
 import PushNotificationUtil from "../PushNotificationUtil";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import WorkspacePublicNoteApproval, {
+  WorkspaceDirectMessage,
+} from "../Workspace/WorkspacePublicNoteApproval";
+import { PublicNoteApprovalWaitingFor } from "./PublicNoteApprovalFeed";
+import type { PublicNoteKind } from "./PublicNoteApprovalEngine";
 
 /*
  * TELLING PEOPLE ABOUT PUBLIC NOTE APPROVAL.
@@ -44,6 +49,11 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * joined before these existed get the defaults as they are first told
  * (addPublicNoteApprovalNotificationSettings is idempotent).
  *
+ * In chat, an approver is asked with the note itself and Approve and Reject
+ * on it (WorkspacePublicNoteApproval): they decide where they are asked,
+ * as the member their chat account is connected to, with the Dashboard's
+ * rules (WorkspacePublicNoteApprovalActions).
+ *
  * A notification never fails, or holds back, the decision it follows: it
  * is sent after the decision is written, and a failure is logged.
  */
@@ -64,6 +74,21 @@ export interface PublicNoteApprovalMessageFacts {
   incidentId?: ObjectID | undefined;
   incidentEpisodeId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
+}
+
+/*
+ * What an approver's chat message carries on its buttons (the engine's
+ * getChatAsk): the note and its record, the round and step it asks about,
+ * whether approving that step publishes it, and who the step names.
+ */
+export interface PublicNoteApprovalChatAsk {
+  kind: PublicNoteKind;
+  noteId: ObjectID;
+  recordId: ObjectID;
+  submittedAt: string;
+  stepId: string;
+  isFinal: boolean;
+  waitingFor: PublicNoteApprovalWaitingFor;
 }
 
 export interface PublicNoteApprovalMessage {
@@ -195,6 +220,8 @@ export default class PublicNoteApprovalNotifications {
     sentByUserId?: string | undefined;
     stepLabel: string;
     canRead: (props: DatabaseCommonInteractionProps) => Promise<boolean>;
+    // What the chat message's Approve and Reject carry; none, none on it.
+    chat?: PublicNoteApprovalChatAsk | undefined;
   }): Promise<Array<ObjectID>> {
     const asked: Array<ObjectID> = [];
 
@@ -207,6 +234,14 @@ export default class PublicNoteApprovalNotifications {
       ? (await this.getUserNames([data.sentByUserId]))[data.sentByUserId] ||
         "A member of your team"
       : "OneUptime";
+
+    // One chat message for everyone the step asks: nothing in it is anybody's own.
+    const workspaceMessage: WorkspaceDirectMessage | undefined =
+      this.getChatMessage({
+        facts: data.facts,
+        chat: data.chat,
+        sentBy: data.sentByUserId ? sentBy : null,
+      });
 
     for (const userIdText of data.userIds) {
       try {
@@ -237,6 +272,7 @@ export default class PublicNoteApprovalNotifications {
             stepLabel: data.stepLabel,
             isTeam: !data.namedUserIds.includes(userIdText),
           }),
+          workspaceMessage: workspaceMessage,
         });
 
         asked.push(userId);
@@ -356,6 +392,54 @@ export default class PublicNoteApprovalNotifications {
   }
 
   /*
+   * The message an approver's chat accounts get, with Approve and Reject
+   * (WorkspacePublicNoteApproval.getAskMessage) - or none, so they are asked
+   * as every other event asks in chat, when the note cannot be named on a
+   * button or the message cannot be built: an approver is always asked.
+   */
+  public static getChatMessage(data: {
+    facts: PublicNoteApprovalMessageFacts;
+    chat: PublicNoteApprovalChatAsk | undefined;
+    // Who sent it for approval, by name; null for OneUptime or an API key.
+    sentBy: string | null;
+  }): WorkspaceDirectMessage | undefined {
+    if (!data.chat) {
+      return undefined;
+    }
+
+    try {
+      return WorkspacePublicNoteApproval.getAskMessage({
+        recordLabel: data.facts.recordLabel,
+        recordTitle: data.facts.recordTitle,
+        notesUrl: data.facts.notesUrl,
+        note: data.facts.note,
+        isEdit: data.facts.isEdit,
+        sentBy: data.sentBy,
+        waitingFor: data.chat.waitingFor,
+        value: {
+          kind: data.chat.kind,
+          projectId: data.facts.projectId,
+          recordId: data.chat.recordId,
+          noteId: data.chat.noteId,
+          submittedAt: data.chat.submittedAt,
+          stepId: data.chat.stepId,
+          isFinal: data.chat.isFinal,
+          isEdit: data.facts.isEdit,
+          textDigest: WorkspacePublicNoteApproval.getTextDigest(
+            data.facts.note,
+          ),
+        },
+      });
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not build the chat message with Approve and Reject.",
+      );
+      logger.error(error);
+      return undefined;
+    }
+  }
+
+  /*
    * A member of the project who can read the note: a notification is the
    * note in another place.
    */
@@ -391,6 +475,8 @@ export default class PublicNoteApprovalNotifications {
     userId: ObjectID;
     facts: PublicNoteApprovalMessageFacts;
     message: PublicNoteApprovalMessage;
+    // The chat accounts' own message, when the event has one.
+    workspaceMessage?: WorkspaceDirectMessage | undefined;
   }): Promise<void> {
     const { facts, message } = data;
 
@@ -438,6 +524,9 @@ export default class PublicNoteApprovalNotifications {
       smsMessage: sms,
       callRequestMessage: call,
       pushNotificationMessage: push,
+      ...(data.workspaceMessage
+        ? { workspaceMessage: data.workspaceMessage }
+        : {}),
       ...(facts.incidentId ? { incidentId: facts.incidentId } : {}),
       ...(facts.incidentEpisodeId
         ? { incidentEpisodeId: facts.incidentEpisodeId }
