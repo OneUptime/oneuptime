@@ -161,7 +161,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 ویژگی‌های استاندارد عبارت‌اند از `session.id`، `app.version`، `app.entrypoint`، `organization.id`، `user.account_uuid`، `user.account_id`، `user.id`، `user.email` و `terminal.type`، به‌علاوهٔ `OTEL_RESOURCE_ATTRIBUTES` شما. برخی از آن‌ها را می‌توان خاموش کرد: [حجم متریک‌ها را پایین نگه دارید](#حجم-متریکها-را-پایین-نگه-دارید) را ببینید.
 
-- نوع‌های توکن cache با camelCase نوشته می‌شوند: `cacheRead` و `cacheCreation`. مجموع توکن‌های OneUptime فقط `input` و `output` را می‌شمارد.
+- نوع‌های توکن cache با camelCase نوشته می‌شوند: `cacheRead` و `cacheCreation`. `input` در Claude Code این‌ها را کنار می‌گذارد، پس OneUptime آن‌ها را هم توکن ورودی می‌شمارد.
 - روی متریک‌های هزینه و توکن، نام عامل‌ها و سرورهای MCP خودتان، و افزونه‌ها و مهارت‌های شخص ثالث، `custom` یا `third-party` نمایش داده می‌شود، مگر اینکه `OTEL_LOG_TOOL_DETAILS=1` تنظیم شده باشد (Claude Code 2.1.273 یا جدیدتر).
 
 ## رویدادها
@@ -220,7 +220,7 @@ Claude Code به‌طور پیش‌فرض متریک‌های دلتا می‌ف
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-`cumulative` را فقط وقتی ثابت کنید که همهٔ صادرکننده‌های سازمانتان از آن استفاده کنند، و این دو را در میان دستگاه‌ها مخلوط نکنید.
+`cumulative` را فقط وقتی ثابت کنید که همهٔ صادرکننده‌های سازمانتان از آن استفاده کنند، و این دو را در میان دستگاه‌ها مخلوط نکنید. زبانهٔ مصرف و بودجه‌های OneUptime هر دو را می‌شمارند: دلتا را با جمع نقطه‌هایش، شمارندهٔ تجمعی را با اینکه در بازهٔ زمانی چقدر رشد کرده است.
 
 ## ترِیس‌ها (بتا)
 

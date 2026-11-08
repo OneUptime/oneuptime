@@ -49,7 +49,7 @@ Under **Testa** klickar du på **Testa anslutningen**. OneUptime läser användn
 Klicka på **Anslut**. Den första läsningen startar inom en minut och hämtar de senaste 30 dagarna.
 :::
 
-Anslutna konton listas under rutorna, med **Status** och **Senast läst**. **Läs nu** läser direkt, **Testa** kontrollerar de sparade inställningarna igen, **Stäng av** slutar läsa och behåller det som lästs, och **Redigera** ändrar inställningarna: en hemlighet som lämnas tom behåller den sparade. **Visa fel** visar varför en läsning misslyckades, utan någon hemlighet.
+Anslutna konton listas under rutorna, med **Status** och **Senast läst**. **Läs nu** läser direkt, **Testa** kontrollerar de sparade inställningarna igen, **Stäng av** slutar läsa och behåller det som lästs, och **Redigera** ändrar inställningarna: en hemlighet som lämnas tom behåller den sparade. **Visa fel** visar varför en läsning misslyckades, utan någon hemlighet. Statusen för ett konto som fungerar anger den senaste dagen med användning eller, när läsningarna inte hittade någon, den första lästa dagen; en Azure-anslutning som inte hittar någon resurs säger det.
 
 ## Vad varje leverantör ger
 
@@ -187,6 +187,14 @@ Ge dem den roll som den här sidan nämner för leverantören: Monitoring Reader
 
 :::details Testet lyckas, men inget visas för i dag
 Leverantörerna rapporterar en dags användning minuter till timmar efteråt och rättar den under en dag eller två. Nästa läsningar hämtar den.
+:::
+
+:::details Kontot fungerar, men dess status säger ingen användning
+Dess läsningar hittade ingen sedan den angivna dagen. OpenAIs rapporter räknar de API-anrop som gjorts med den organisationens nycklar, inte Azure OpenAI eller ChatGPT. En Azure-anslutning läser bara de resurser som dess app kan se: ge appen Monitoring Reader där de finns.
+:::
+
+:::details Konton är anslutna, men Konversationer och Anrop är tomma
+Ett konto ger användning och kostnad per dag, aldrig ett anrop eller en konversation: de kommer från dina appar. Se [Kontrollera vad som kommer in](/docs/telemetry/ai-llm-observability#kontrollera-vad-som-kommer-in).
 :::
 
 :::details Kostnaden skiljer sig från fakturan

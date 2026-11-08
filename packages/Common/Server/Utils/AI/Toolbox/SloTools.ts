@@ -1,6 +1,7 @@
 import Label from "../../../../Models/DatabaseModels/Label";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveMonitorRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import {
   describeSloMonitorRuleCriteria,
@@ -19,6 +20,12 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import ServiceLevelObjectiveService from "../../../Services/ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "../../../Services/ServiceLevelObjectiveErrorBudgetPolicyTierService";
+import {
+  formatSloPolicyTierThreshold,
+  isSameSloPolicyTier,
+  sortSloPolicyTiers,
+} from "../../../../Utils/Slo/SloErrorBudgetPolicy";
 import Query from "../../../Types/Database/Query";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
@@ -182,7 +189,38 @@ const MONITOR_RULES_NOT_VISIBLE_NOTE: string =
 const BURN_RATE_RULES_NOT_VISIBLE_NOTE: string =
   "Note: this SLO's burn-rate rules are left out because the current user does not have permission to read SLO Burn Rate Rules (ReadServiceLevelObjectiveBurnRateRule). Do not conclude that the SLO has no burn-rate rules; say which permission is missing if the user asks about them.\n";
 
+const POLICY_TIERS_NOT_VISIBLE_NOTE: string =
+  "Note: this SLO's error budget policy tiers are left out because the current user does not have permission to read SLO Error Budget Policy Tiers (ReadServiceLevelObjectiveErrorBudgetPolicyTier). The SLO row still says which tier it is in. Do not conclude that the SLO has no error budget policy; say which permission is missing if the user asks about it.\n";
+
+/*
+ * How an SLO's error budget policy tiers are read: a tier applies while the
+ * budget left is at or below its threshold, the SLO is in the applying tier
+ * with the lowest threshold, and leaving one waits for a recovery margin.
+ * Travels with every result that has tiers in it, so the model explains a
+ * tier the way the product does.
+ */
+const POLICY_TIERS_NOTE: string =
+  "Note: errorBudgetPolicyTier rows are the SLO's error budget policy - what the team agreed to do as the budget runs down. A tier applies while the error budget left is at or below its threshold; the SLO is in the applying tier with the lowest threshold (currentErrorBudgetPolicyTier on the SLO row). It leaves a tier only once the budget is 5 points above its threshold (2% for a tier at 0%). whatWeDo is the team's agreement for that tier.\n";
+
 const NOT_VISIBLE_WIDGET_VALUE: string = "not visible to you";
+
+// The most tiers one SLO read returns; a policy has a handful.
+const POLICY_TIERS_READ_LIMIT: number = 25;
+
+// "What we do" is free text: enough of it for the model, not a whole essay.
+const WHAT_WE_DO_MAX_CHARACTERS: number = 1000;
+
+function truncateWhatWeDo(whatWeDo: string | undefined): string | undefined {
+  if (!whatWeDo) {
+    return undefined;
+  }
+
+  const characters: Array<string> = Array.from(whatWeDo);
+
+  return characters.length <= WHAT_WE_DO_MAX_CHARACTERS
+    ? whatWeDo
+    : `${characters.slice(0, WHAT_WE_DO_MAX_CHARACTERS).join("")}…`;
+}
 
 // The most burn-rate rules one SLO read returns.
 const BURN_RATE_RULES_READ_LIMIT: number = 25;
@@ -275,7 +313,7 @@ async function resolveMonitorRuleLabelNames(data: {
 export const QuerySlosTool: ObservabilityTool = {
   name: "query_slos",
   description:
-    "List Service Level Objectives (SLOs) in this project: what each one measures (monitor uptime or a metric SLI), its target percentage, compliance window, attached monitors, and the latest persisted compliance status — current SLI %, error budget remaining and burn rate as computed by the platform at its last evaluation (this tool never recomputes compliance live). Pass sloId (an SLO ID from this tool's own list results) to get one SLO's full definition plus its burn-rate rules, their thresholds, whether each raises an alert, declares an incident, or both, and what each output is created with (custom title/description templates, label and owner counts, private and auto-resolve settings, and whether the SLO's owners are added), and which of OneUptime's recommended burn-rate rules (Fast burn, Slow burn, Slow leak) the SLO is missing. Use query_alerts to see alerts those burn-rate rules raised, query_incidents for the incidents they declared, and query_monitors for the current status of an SLO's monitors. Archived SLOs (retired: hidden from the SLO list and no longer evaluated) are left out of lists unless includeArchived is true; looking one up by sloId still works and says it is archived.",
+    "List Service Level Objectives (SLOs) in this project: what each one measures (monitor uptime or a metric SLI), its target percentage, compliance window, attached monitors, and the latest persisted compliance status — current SLI %, error budget remaining and burn rate as computed by the platform at its last evaluation (this tool never recomputes compliance live). Pass sloId (an SLO ID from this tool's own list results) to get one SLO's full definition plus its burn-rate rules, their thresholds, whether each raises an alert, declares an incident, or both, and what each output is created with (custom title/description templates, label and owner counts, private and auto-resolve settings, and whether the SLO's owners are added), and which of OneUptime's recommended burn-rate rules (Fast burn, Slow burn, Slow leak) the SLO is missing, plus its error budget policy: the tiers (name, budget-left threshold, what the team agreed to do, whether each raises an alert or declares an incident) and the tier the SLO is in now. Every SLO row says which error budget policy tier it is in. Use query_alerts to see alerts those burn-rate rules raised, query_incidents for the incidents they declared, and query_monitors for the current status of an SLO's monitors. Archived SLOs (retired: hidden from the SLO list and no longer evaluated) are left out of lists unless includeArchived is true; looking one up by sloId still works and says it is archived.",
   inputSchema: {
     type: "object",
     properties: {
@@ -344,6 +382,9 @@ export const QuerySlosTool: ObservabilityTool = {
             errorBudgetRemainingSeconds: true,
             errorBudgetTotalSeconds: true,
             currentBurnRate: true,
+            currentErrorBudgetPolicyTierId: true,
+            currentErrorBudgetPolicyTierName: true,
+            currentErrorBudgetPolicyTierEnteredAt: true,
             lastEvaluatedAt: true,
             monitors: {
               _id: true,
@@ -383,6 +424,10 @@ export const QuerySlosTool: ObservabilityTool = {
           errorBudgetRemainingSeconds: slo.errorBudgetRemainingSeconds,
           errorBudgetTotalSeconds: slo.errorBudgetTotalSeconds,
           currentBurnRate: slo.currentBurnRate,
+          currentErrorBudgetPolicyTier:
+            slo.currentErrorBudgetPolicyTierName || undefined,
+          currentErrorBudgetPolicyTierEnteredAt:
+            slo.currentErrorBudgetPolicyTierEnteredAt || undefined,
           lastEvaluatedAt: slo.lastEvaluatedAt,
           monitors: joinNames(slo.monitors) || undefined,
           downtimeMonitorStatuses:
@@ -622,6 +667,72 @@ export const QuerySlosTool: ObservabilityTool = {
       }
 
       /*
+       * The error budget policy: its tiers, most budget left first (the order
+       * the budget reaches them), and which one the SLO is in. Read like the
+       * rule tables - only for an SLO the user can see, and a caller who may
+       * read the SLO but not its tiers still gets the SLO (and, on its row,
+       * the tier it is in, which is SLO data).
+       */
+      let policyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> = [];
+      let arePolicyTiersVisible: boolean = true;
+
+      if (slo) {
+        const policyTiersRead: ChildRowsRead<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+          await readChildRowsIfPermitted<ServiceLevelObjectiveErrorBudgetPolicyTier>(
+            (): Promise<Array<ServiceLevelObjectiveErrorBudgetPolicyTier>> => {
+              return ServiceLevelObjectiveErrorBudgetPolicyTierService.findBy({
+                query: {
+                  serviceLevelObjectiveId: sloId,
+                },
+                select: {
+                  _id: true,
+                  name: true,
+                  isEnabled: true,
+                  thresholdPercentage: true,
+                  whatWeDo: true,
+                  shouldCreateAlert: true,
+                  shouldCreateIncident: true,
+                  lastAlertCreatedAt: true,
+                  lastAlertResolvedAt: true,
+                  lastIncidentCreatedAt: true,
+                  lastIncidentResolvedAt: true,
+                },
+                limit: POLICY_TIERS_READ_LIMIT,
+                skip: 0,
+                props: ctx.props,
+              });
+            },
+          );
+
+        policyTiers = sortSloPolicyTiers(policyTiersRead.rows).reverse();
+        arePolicyTiersVisible = policyTiersRead.isPermitted;
+      }
+
+      for (const tier of policyTiers) {
+        rows.push({
+          record: "errorBudgetPolicyTier",
+          id: tier.id?.toString(),
+          name: tier.name,
+          // A NOT NULL column that defaults to true; absent reads as enabled.
+          isEnabled: tier.isEnabled !== false,
+          thresholdPercentage: tier.thresholdPercentage,
+          appliesWhen: `error budget left at or below ${formatSloPolicyTierThreshold(tier.thresholdPercentage)}`,
+          isCurrentTier: isSameSloPolicyTier(
+            tier.id,
+            slo?.currentErrorBudgetPolicyTierId,
+          ),
+          whatWeDo: truncateWhatWeDo(tier.whatWeDo),
+          // Both default to false on a tier.
+          createsAlert: tier.shouldCreateAlert === true,
+          createsIncident: tier.shouldCreateIncident === true,
+          lastAlertCreatedAt: tier.lastAlertCreatedAt,
+          lastAlertResolvedAt: tier.lastAlertResolvedAt,
+          lastIncidentCreatedAt: tier.lastIncidentCreatedAt,
+          lastIncidentResolvedAt: tier.lastIncidentResolvedAt,
+        });
+      }
+
+      /*
        * The rules OneUptime recommends (Fast burn, Slow burn, Slow leak) that
        * this SLO does not have, scaled to its window - an SLO created before
        * Slow leak existed is missing it - so the model can say so, and where
@@ -647,7 +758,7 @@ export const QuerySlosTool: ObservabilityTool = {
       return {
         dataForLlm:
           rows.length > 0
-            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${getMissingRecommendedRulesNote(missingRecommendedRules)}${COMPLIANCE_NOTE}${serialized.text}`
+            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${arePolicyTiersVisible ? "" : POLICY_TIERS_NOT_VISIBLE_NOTE}${policyTiers.length > 0 ? POLICY_TIERS_NOTE : ""}${getMissingRecommendedRulesNote(missingRecommendedRules)}${COMPLIANCE_NOTE}${serialized.text}`
             : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `SLO ${slo?.name || sloId.toString()}`,
@@ -712,6 +823,20 @@ export const QuerySlosTool: ObservabilityTool = {
                   value: areBurnRateRulesVisible
                     ? String(rules.length)
                     : NOT_VISIBLE_WIDGET_VALUE,
+                },
+                {
+                  label: "Error budget policy tier",
+                  /*
+                   * The tier is SLO data, so it shows even when the tiers
+                   * cannot be read; "none" only when nothing says otherwise.
+                   */
+                  value:
+                    slo.currentErrorBudgetPolicyTierName ||
+                    (!arePolicyTiersVisible
+                      ? NOT_VISIBLE_WIDGET_VALUE
+                      : policyTiers.length === 0
+                        ? "no error budget policy"
+                        : "none - the budget is above every tier"),
                 },
               ],
               link: {
@@ -802,6 +927,7 @@ export const QuerySlosTool: ObservabilityTool = {
           currentSliPercentage: true,
           errorBudgetRemainingPercentage: true,
           currentBurnRate: true,
+          currentErrorBudgetPolicyTierName: true,
           lastEvaluatedAt: true,
           monitors: {
             name: true,
@@ -837,6 +963,9 @@ export const QuerySlosTool: ObservabilityTool = {
         currentSliPercentage: slo.currentSliPercentage,
         errorBudgetRemainingPercentage: slo.errorBudgetRemainingPercentage,
         currentBurnRate: slo.currentBurnRate,
+        // Only an SLO in a tier carries it; the serializer drops undefined.
+        currentErrorBudgetPolicyTier:
+          slo.currentErrorBudgetPolicyTierName || undefined,
         lastEvaluatedAt: slo.lastEvaluatedAt,
       };
     });

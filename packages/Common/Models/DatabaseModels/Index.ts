@@ -548,6 +548,7 @@ import ScheduledMaintenanceMeasurementValue from "./ScheduledMaintenanceMeasurem
 import IncidentSla from "./IncidentSla";
 import ServiceLevelObjective from "./ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "./ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "./ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveOwnerUser from "./ServiceLevelObjectiveOwnerUser";
 import ServiceLevelObjectiveOwnerTeam from "./ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveMonitorRule from "./ServiceLevelObjectiveMonitorRule";
@@ -870,6 +871,7 @@ const AllModelTypes: Array<{
   IncidentSla,
   ServiceLevelObjective,
   ServiceLevelObjectiveBurnRateRule,
+  ServiceLevelObjectiveErrorBudgetPolicyTier,
   ServiceLevelObjectiveOwnerUser,
   ServiceLevelObjectiveOwnerTeam,
   ServiceLevelObjectiveMonitorRule,

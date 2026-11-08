@@ -83,7 +83,7 @@ Copilot 只從其代理程式功能匯出 OpenTelemetry：VS Code 的聊天和�
 
 | 欄位 | 鍵（優先者在前） |
 | --- | --- |
-| 員工 | `user.email`、`user.id`、`user.account_uuid`、`user.account_id`、`cursor.user.id` |
+| 員工 | `user.email`、`cursor.user.email`、`user.id`、`user.account_uuid`、`user.account_id`、`cursor.user.id` |
 | 團隊 / 成本中心 | `team.id`、`team`、`cost_center`、`department`、`cursor.team.id` |
 | 模型 | `gen_ai.request.model`、`model`、`cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime 也會從 `gen_ai.client.token.usage`、`gen_ai.client.token.count`、
 閱讀數字之前需要了解兩點：
 
 - **刻意不讀取 `gemini_cli.token.usage`。** Gemini CLI 會把 token 傳送兩次，一次作為自己的指標，一次作為 `gen_ai.client.token.usage`，同時讀取會使其加倍。它的 token 只透過 `gen_ai.client.token.usage` 計算一次。Gemini CLI 不會傳送成本指標：請開啟它的追蹤，讓每次呼叫都能計價。
-- **只計算輸入和輸出 token。** token 類型會從 `gen_ai.token.type`、`llm.token.type`、`type`、`cursor.token.type` 或 `token_type` 讀取，只計算 `input` 和 `output`（或舊的 `prompt` 和 `completion`）。快取讀寫、Codex 的 `total`（重複了其他值）和 `reasoning_output`（`output` 的一部分）都不計入，因此來自指標的總數會小於工具傳送的所有值之和。
+- **只計算輸入和輸出 token。** token 類型會從 `gen_ai.token.type`、`llm.token.type`、`type`、`cursor.token.type` 或 `token_type` 讀取，只計算 `input` 和 `output`（或舊的 `prompt` 和 `completion`），而 Claude Code 的 `cacheRead` 和 `cacheCreation` 會計為輸入，因為它的 `input` 不包含它們。其他快取讀寫、Codex 的 `total`（重複了其他值）和 `reasoning_output`（`output` 的一部分）都不計入，因此來自指標的總數會小於工具傳送的所有值之和。
 
 ## 使用量分頁
 

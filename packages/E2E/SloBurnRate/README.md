@@ -1,8 +1,9 @@
-# SLO Burn Rate Rules and Overview fixture
+# SLO Burn Rate Rules, Error Budget Policy and Overview fixture
 
 An offline harness for the real
-`packages/App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules.tsx` page and
-the SLO overview with its production layout and side menu. It bundles the
+`packages/App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules.tsx` page, the
+Error Budget Policy page (`Pages/Slo/View/ErrorBudgetPolicy.tsx`) and the SLO
+overview with its production layout and side menu. It bundles the
 production component with esbuild, replaces only the `ModelAPI` / `API` data boundary
 with synthetic records, and serves it on `127.0.0.1:4213`. No Docker, no database, no
 sign-in — so it runs against a branch without touching a shared dev stack.
@@ -30,6 +31,14 @@ desktop and mobile overview screenshots. The hero adds owners right there: Add o
 it) open the Add owners list, and each pick is a row the hero's next read names. The
 overview route is the same URL without `/burn-rate-rules`; add `?details=empty` for blank
 description and labels.
+
+`ErrorBudgetPolicy.spec.ts` opens the same URL ending in `/error-budget-policy`. An SLO
+with no tiers is offered Use the recommended policy: its confirmation lists exactly the
+tiers it adds, each raising nothing, and adds just those (closing it adds nothing). A
+new tier's form asks Name, Budget Left Threshold (%) and What We Do, with its alerts and
+incidents folded away and switched off. With `?policy=recommended` the SLO has the
+recommended tiers and is in Reliability first, which the overview shows under its
+summary, with what the team does there and a link to the policy.
 
 ## Run it
 

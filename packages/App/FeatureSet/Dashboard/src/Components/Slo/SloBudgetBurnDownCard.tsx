@@ -10,10 +10,12 @@ import {
 } from "./SloChartZoomHint";
 import SloOverviewActionLink from "./SloOverviewActionLink";
 import SloOverviewEmptyState from "./SloOverviewEmptyState";
+import { getSloPolicyTierReferenceLines } from "./SloPolicyTier";
 import useSloHistorySeries, {
   UseSloHistorySeriesResult,
 } from "./useSloHistorySeries";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import Route from "Common/Types/API/Route";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
@@ -91,13 +93,20 @@ export interface ComponentProps {
    * the same buckets four times out of five.
    */
   refreshToken: string;
+  /*
+   * The tiers of the SLO's error budget policy, each drawn as a labelled
+   * line at its threshold beside the at-risk line. The page loads them with
+   * the rest of the overview; a disabled tier draws nothing.
+   */
+  policyTiers?: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> | undefined;
 }
 
 /*
  * How the error budget has been spent over the CURRENT compliance window —
  * the span the KPI strip's numbers describe — with the SLO's own at-risk
  * and exhausted lines drawn in, so a dip reads as "that is when it went At
- * Risk" without the reader having to remember the threshold.
+ * Risk" without the reader having to remember the threshold, and a line at
+ * each tier of its error budget policy, named for the tier.
  *
  * Calendar-month SLOs also get the even-burn line from 100% at the start of
  * the month to 0% at the reset: spending exactly at 1x lands on it, so a
@@ -351,19 +360,23 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
       });
     }
 
-    const referenceLines: Array<ChartReferenceLineProps> = [
-      {
-        value: 0,
-        label: "Budget exhausted",
-        color: EXHAUSTED_LINE_COLOR,
-      },
-      {
-        value: atRiskThreshold,
-        label: `At risk (${formatSloPercent(atRiskThreshold)})`,
-        color: AT_RISK_LINE_COLOR,
-        strokeDasharray: "4 4",
-      },
-    ];
+    const referenceLines: Array<ChartReferenceLineProps> =
+      getSloPolicyTierReferenceLines({
+        lines: [
+          {
+            value: 0,
+            label: "Budget exhausted",
+            color: EXHAUSTED_LINE_COLOR,
+          },
+          {
+            value: atRiskThreshold,
+            label: `At risk (${formatSloPercent(atRiskThreshold)})`,
+            color: AT_RISK_LINE_COLOR,
+            strokeDasharray: "4 4",
+          },
+        ],
+        tiers: props.policyTiers || [],
+      });
 
     return withSloChartZoomHint(
       true,

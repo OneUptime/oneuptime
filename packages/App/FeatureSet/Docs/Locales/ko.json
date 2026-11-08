@@ -374,6 +374,7 @@
     "Monitors and Monitor Rules": "모니터 및 모니터 규칙",
     "Error Budgets": "오류 예산",
     "Burn Rate Alerts and Incidents": "소진율 경고 및 인시던트",
+    "Error Budget Policy": "오류 예산 정책",
     "SLO Metrics and Dashboards": "SLO 메트릭 및 대시보드",
     "SLO Feed and Audit Logs": "SLO 피드 및 감사 로그",
     "Label and Owner Rules": "레이블 및 소유자 규칙",

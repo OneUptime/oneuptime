@@ -153,18 +153,19 @@ Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återst�
 | --- | --- |
 | **Översikt** | Statusen, nyckeltalen, felbudgetens förbrukning, senaste aktiviteten, öppna larm och incidenter och reglerna för förbrukningstakt. |
 | **Mätvärden** | SLO:ets `oneuptime.slo.*`-metriker, dess långsiktiga felbudgethistorik och metrikerna för de incidenter och larm som påverkar det. Se [SLO-metriker och -instrumentpaneler](/docs/slo/metrics). |
-| **Incidenter** | De incidenter som dess regler för förbrukningstakt har deklarerat. Märket räknar de öppna. |
-| **Larm** | De larm som dess regler för förbrukningstakt har utlöst. Märket räknar de öppna. |
+| **Incidenter** | De incidenter som dess regler för förbrukningstakt och dess felbudgetpolicy har deklarerat. Märket räknar de öppna. |
+| **Larm** | De larm som dess regler för förbrukningstakt och dess felbudgetpolicy har utlöst. Märket räknar de öppna. |
 | **Feed** | Vad som har hänt med SLO:et, som en tidslinje. Se [SLO-flöde och granskningsloggar](/docs/slo/feed-and-audit-logs). |
 | **Monitorer** | De monitorer som det mäter, och om var och en kopplades av en person eller en regel. |
 | **Monitorregler** | Reglerna som kopplar monitorer som matchar. |
 | **Förbrukningstaktsregler** | Reglerna som utlöser larm och deklarerar incidenter när budgeten förbrukas för snabbt. |
+| **Felbudgetpolicy** | Vad teamet har kommit överens om att göra medan felbudgeten tar slut, och de larm och incidenter som varje nivå i policyn utlöser. Se [Felbudgetpolicy](/docs/slo/error-budget-policy). |
 | **Ägare** | De användare och team som får höra om dess statusändringar. |
 | **Inställningar** | Målet, efterlevnadsperioden, beräkningen av driftstopp, utvärderingsreglaget och arkivkortet. |
 | **Granskningsloggar** | Vem som ändrade SLO:et, dess regler och dess ägare, och när. |
 | **Ta bort SLO** | Raderar SLO:et permanent och löser de larm och incidenter för förbrukningstakt som det hade öppna. |
 
-**Monitorer** ligger i ett avsnitt **Konfiguration**, **Monitorregler** och **Förbrukningstaktsregler** i ett avsnitt **Regler**, och **Ägare**, **Inställningar**, **Granskningsloggar** och **Ta bort SLO** i ett avsnitt **Hantering**. Alla tre börjar hopfällda, precis som ett avsnitt **Utvecklare** för att hantera SLO:et från kod: klicka på ett avsnitts rubrik för att öppna det.
+**Monitorer** ligger i ett avsnitt **Konfiguration**, **Monitorregler**, **Förbrukningstaktsregler** och **Felbudgetpolicy** i ett avsnitt **Regler**, och **Ägare**, **Inställningar**, **Granskningsloggar** och **Ta bort SLO** i ett avsnitt **Hantering**. Alla tre börjar hopfällda, precis som ett avsnitt **Utvecklare** för att hantera SLO:et från kod: klicka på ett avsnitts rubrik för att öppna det.
 
 När något hindrar ett SLO från att mäta talar en banner högst upp på var och en av dess sidor om vad som är fel och länkar till sidan som åtgärdar det: se [Felsökning](#felsökning).
 
@@ -183,6 +184,8 @@ När något hindrar ett SLO från att mäta talar en banner högst upp på var o
 - **SLO-detaljer**: namnet, beskrivningen och etiketterna, de enda inställningar som redigeras i översikten.
 - **Öppna larm och incidenter**: det som reglerna för förbrukningstakt har öppet just nu.
 - **Burn rate rules**: tröskeln för varje aktiverad regel bredvid den aktuella förbrukningstakten, för regler som ser högst 6 timmar bakåt, och vad regeln deklarerar.
+
+När SLO:et är i en nivå i sin felbudgetpolicy visar **Översikt** också den nivån och vad teamet har kommit överens om att göra i den: se [Felbudgetpolicy](/docs/slo/error-budget-policy).
 
 ### Inställningar
 

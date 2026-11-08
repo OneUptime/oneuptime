@@ -7,7 +7,7 @@ Ein SLO führt zwei Aufzeichnungen seiner Geschichte, und sie beantworten versch
 | | **Feed** | **Audit-Protokolle** |
 | --- | --- | --- |
 | Beantwortet | Was mit dem SLO passiert ist | Wer was geändert hat, und wann |
-| Erfasst | Statusänderungen, Burn-Rate-Warnungen und -Vorfälle sowie Änderungen am SLO, seinen Regeln, Monitoren und Eigentümern | Jede Änderung, die Menschen am SLO, seinen Burn-Rate-Regeln, Monitor-Regeln und Eigentümern vorgenommen haben, mit altem und neuem Wert |
+| Erfasst | Statusänderungen, Wechsel der Stufe der Fehlerbudget-Richtlinie, die Warnungen und Vorfälle von Burn-Rate-Regeln und Richtlinienstufen sowie Änderungen am SLO, seinen Regeln, Monitoren und Eigentümern | Jede Änderung, die Menschen am SLO, seinen Burn-Rate-Regeln, Monitor-Regeln, Stufen der Fehlerbudget-Richtlinie und Eigentümern vorgenommen haben, mit altem und neuem Wert |
 | Enthält, was OneUptime selbst tut | Ja: Auswertungen und Monitor-Regeln, die Monitore zuordnen | Nur mit eingeschaltetem **Systemereignisse speichern** |
 | Tarife | Jeder Tarif | Der Tarif Enterprise auf OneUptime Cloud oder die Enterprise Edition in einer selbst gehosteten Installation |
 | Aufbewahrt | Drei Jahre auf OneUptime Cloud | Standardmäßig 7 Tage, bis zu 180 |
@@ -32,9 +32,13 @@ Der Feed steht auf der Seite **Feed** des SLO, und seine neuesten Einträge steh
 | SLO aktiviert oder deaktiviert | Die Auswertung ein- oder ausgeschaltet wird. |
 | SLO archiviert oder wiederhergestellt | Das SLO archiviert oder aus dem Archiv geholt wird. |
 | Status geändert | Eine Auswertung das SLO in einen neuen Status bringt. Zeigt SLI, Fehlerbudget, Burn-Rate und Risikoschwelle dahinter und den Grund für **Pausiert** oder **Falsch konfiguriert**. |
+| Stufe der Fehlerbudget-Richtlinie gewechselt | Eine Auswertung bringt das SLO in eine Stufe seiner Fehlerbudget-Richtlinie, in eine andere Stufe oder aus jeder Stufe heraus. Zeigt die Stufe, die es verlassen hat, und die, in die es eingetreten ist, das verbleibende Budget und was das Team in der neuen Stufe vereinbart hat. Siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy). |
 | Burn-Rate-Warnung ausgelöst | Eine Burn-Rate-Regel eine Warnung erstellt. Verlinkt sie und zeigt die Burn-Raten, die sie ausgelöst haben. |
 | Burn-Rate-Vorfall gemeldet | Eine Burn-Rate-Regel einen Vorfall meldet. Verlinkt ihn und zeigt die Burn-Raten, die ihn ausgelöst haben. |
 | Burn-Rate-Warnung oder -Vorfall aufgelöst | Die Warnung oder der Vorfall einer Regel geschlossen wird: automatisch aufgelöst oder von Hand, während das automatische Auflösen aus war. |
+| Warnung der Fehlerbudget-Richtlinie ausgelöst | Eine Stufe der Fehlerbudget-Richtlinie erstellt eine Warnung. Verlinkt darauf. |
+| Vorfall der Fehlerbudget-Richtlinie gemeldet | Eine Stufe der Fehlerbudget-Richtlinie meldet einen Vorfall. Verlinkt darauf. |
+| Warnung oder Vorfall der Fehlerbudget-Richtlinie aufgelöst | Die Warnung oder der Vorfall einer Stufe wird geschlossen: von einer strengeren Stufe abgelöst, automatisch aufgelöst oder von Hand, während das automatische Auflösen aus war. |
 | Burn-Rate-Regel hinzugefügt, geändert oder entfernt | Jemand eine Burn-Rate-Regel erstellt, bearbeitet oder löscht. Die Standardregeln eines neuen SLO stehen stattdessen in seinem Eintrag „SLO erstellt“. |
 | Monitor-Regel hinzugefügt, geändert oder entfernt | Jemand eine Monitor-Regel erstellt, bearbeitet oder löscht. Ein Speichern, das nichts Wesentliches ändert, erscheint nicht. |
 | Monitore zugeordnet oder gelöst | Monitore dem SLO hinzugefügt oder von ihm entfernt werden, von Hand oder durch eine Monitor-Regel. Lange Listen nennen die ersten Monitore „und N weitere“. |
@@ -55,6 +59,7 @@ Die Seite **Audit-Protokolle** des SLO listet Änderungen an:
 
 - dem SLO selbst: seinen Details, Einstellungen, Beschriftungen, Monitoren und der Archivierung;
 - seinen Burn-Rate-Regeln;
+- seinen Stufen der Fehlerbudget-Richtlinie;
 - seinen Monitor-Regeln;
 - seinen Eigentümer-Benutzern und Eigentümer-Teams.
 
@@ -62,7 +67,7 @@ Die Seite **Audit-Protokolle** des SLO listet Änderungen an:
 
 Zwei Dinge fehlen:
 
-- **Ergebnisse der Auswertung.** SLI, Fehlerbudget, Burn-Rate, Status und Auswertungszeiten ändern sich alle paar Minuten. Ihr Verlauf steht auf der **Übersicht**, der Seite **Metriken** und im **Feed**.
+- **Ergebnisse der Auswertung.** SLI, Fehlerbudget, Burn-Rate, Status und Auswertungszeiten ändern sich alle paar Minuten. Ihr Verlauf steht auf der **Übersicht**, der Seite **Metriken** und im **Feed**. Die Stufe der Fehlerbudget-Richtlinie, in der das SLO ist, ist die Ausnahme: Ein Stufenwechsel wird als Änderung festgehalten, die OneUptime selbst vorgenommen hat.
 - **Änderungen, die OneUptime selbst vornimmt**, etwa eine Monitor-Regel, die einen Monitor zuordnet oder löst, es sei denn, **Systemereignisse speichern** ist für das Projekt eingeschaltet. Der **Feed** erfasst das Zuordnen und Lösen von Monitoren in jedem Fall.
 
 ### Audit-Protokolle einschalten

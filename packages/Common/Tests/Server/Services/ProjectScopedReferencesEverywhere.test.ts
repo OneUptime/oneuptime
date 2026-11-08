@@ -194,6 +194,8 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
     "PacketCaptureService.test.ts (the probe must be the project's own and never a global one, the network device the project's; another project's answered as a missing one)",
   "ServiceLevelObjectiveBurnRateRuleService.ts":
     "ServiceLevelObjectiveBurnRateRuleService.test.ts",
+  "ServiceLevelObjectiveErrorBudgetPolicyTierService.ts":
+    "ServiceLevelObjectiveErrorBudgetPolicyTierService.test.ts (the same checks as a burn rate rule's, through SloRecordSourceSettings)",
   "TeamComplianceSettingService.ts":
     "TeamComplianceSettingService.test.ts (severities, after the rule type drops the options it does not use)",
   "TeamMemberService.ts":

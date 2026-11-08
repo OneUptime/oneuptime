@@ -108,10 +108,10 @@ Cursor는 HTTP 위의 OTLP를 바이너리 protobuf로만 사용하며(gRPC도 J
 
 ## 직원 귀속
 
-**Cursor는 사람을 `cursor.user.id`로 지목합니다. 이는 Cursor만 이름으로 바꿀 수 있는 정수이며, 클라우드 에이전트에서는 자주 빠집니다.** OneUptime은 이를 직원으로, `cursor.team.id`를 팀으로 읽으므로, **사용량** 탭은 설정 없이 사람과 팀의 순위를 매기지만 사람은 정수로 표시됩니다.
+**Cursor는 사람을 `cursor.user.id`로 지목합니다. 이는 Cursor만 이름으로 바꿀 수 있는 정수이며, 클라우드 에이전트에서는 자주 빠집니다.** OneUptime은 Cursor가 보내면 `cursor.user.email`을, 보내지 않으면 `cursor.user.id`를 직원으로, `cursor.team.id`를 팀으로 읽으므로, **사용량** 탭은 설정 없이 사람과 팀의 순위를 매깁니다. 이메일이 없는 사람은 정수로 표시됩니다.
 
 - 둘 다 리소스 속성(`resource.cursor.user.id`, `resource.cursor.team.id`)으로 들어오며, OneUptime은 이를 읽습니다.
-- Cursor는 `cursor.user.email`도 보낼 수 있지만, OneUptime은 아직 읽지 않으므로 Cursor의 경우 직원 이메일 열은 비어 있습니다.
+- `cursor.user.email`은 `cursor.user.id`보다 먼저 읽히므로, Cursor가 이메일로 지목하는 사람은 이메일로 표시됩니다.
 - `gen_ai.user`, `llm.user`, LiteLLM의 최종 사용자 ID는 직원으로 읽지 않습니다. 이들은 직원이 아니라 고객을 지목합니다. [직원 및 팀 귀속](/docs/telemetry/ai-coding-assistants#직원-및-팀-귀속)을 참조하세요.
 
 ### 사용량 탭에서 Cursor가 표시되는 위치
@@ -120,7 +120,7 @@ Cursor는 메트릭을 보내고 GenAI 스팬은 보내지 않으며, 메트릭�
 
 | 분류 | Cursor의 경우 |
 | --- | --- |
-| **직원** | 예. `cursor.user.id`별 |
+| **직원** | 예. `cursor.user.email`별, 없으면 `cursor.user.id`별 |
 | **팀** | 예. `cursor.team.id`별 |
 | **모델** | 예. `cursor.model.name`별 |
 | **공급자** | 아니요. Cursor는 어떤 공급자가 호출을 처리했는지 알려 주지 않음 |
@@ -167,7 +167,7 @@ Cursor는 자체 서버에서 연결합니다. OTLP 엔드포인트는 공개 DN
 :::
 
 :::details 사람이 숫자로 표시됨
-그것은 `cursor.user.id`이며, 현재 OneUptime이 Cursor에서 읽는 유일한 사람 ID입니다. Cursor의 Admin API로 이름과 연결하세요.
+그것은 `cursor.user.id`이며, Cursor가 `cursor.user.email`을 보내지 않을 때 읽힙니다. Cursor의 Admin API로 이름과 연결하세요.
 :::
 
 ## 다음 단계

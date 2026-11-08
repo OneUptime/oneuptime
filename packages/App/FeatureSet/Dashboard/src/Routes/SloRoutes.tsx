@@ -19,6 +19,7 @@ import SloView from "../Pages/Slo/View/Index";
 import SloMonitors from "../Pages/Slo/View/Monitors";
 import SloMonitorRules from "../Pages/Slo/View/MonitorRules";
 import SloBurnRateRules from "../Pages/Slo/View/BurnRateRules";
+import SloErrorBudgetPolicy from "../Pages/Slo/View/ErrorBudgetPolicy";
 import SloMetrics from "../Pages/Slo/View/Metrics";
 import SloCharts from "../Pages/Slo/View/Charts";
 import SloAlerts from "../Pages/Slo/View/Alerts";
@@ -175,6 +176,20 @@ const SloRoutes: FunctionComponent<ComponentProps> = (
             <SloBurnRateRules
               {...props}
               pageRoute={RouteMap[PageMap.SLO_VIEW_BURN_RATE_RULES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SLO_VIEW_ERROR_BUDGET_POLICY,
+          )}
+          element={
+            <SloErrorBudgetPolicy
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SLO_VIEW_ERROR_BUDGET_POLICY] as Route
+              }
             />
           }
         />

@@ -75,6 +75,7 @@ The runway is a straight line. On a rolling window, old downtime ageing out give
 The **Error budget burn-down** chart on the **Overview** plots the budget left, as a percentage, across the current compliance window:
 
 - A line at 0% marks where the budget is exhausted, and a dashed line marks the SLO's at-risk threshold.
+- When the SLO has an error budget policy, a labelled line marks each tier's threshold too: see [Error Budget Policy](/docs/slo/error-budget-policy).
 - For calendar-month SLOs, a faded line runs evenly from a full budget at the start of the month to an empty one at the reset. Below it, the month is spending its budget too fast.
 - A point is recorded at every evaluation, every 5 minutes, so a new SLO's chart is empty until its first evaluation.
 - Drag across the chart to zoom into part of the window. Double-click, or click **Reset zoom**, to see the whole window again.
@@ -126,6 +127,8 @@ stateDiagram-v2
 
 With the default threshold of 20%, an At Risk SLO turns Healthy again at 25% left, and a Budget Exhausted SLO turns At Risk again at 2% left. Every status change is posted to the SLO's **Feed**, with the SLI, budget and burn rate behind it.
 
+A status says how much budget is left, not what your team does about it. To write that down for each level of budget left, such as at the at-risk threshold or once the budget is exhausted, give the SLO an [error budget policy](/docs/slo/error-budget-policy).
+
 ## Owner notifications
 
 When an SLO turns **At Risk** or **Budget Exhausted**, OneUptime notifies its owners:
@@ -143,6 +146,7 @@ To keep an SLO near a boundary from notifying again and again, its owners are no
 
 :::cards
 - [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts): Page your team when the budget burns too fast.
+- [Error Budget Policy](/docs/slo/error-budget-policy): Write down what the team does as the budget runs down.
 - [SLO Metrics and Dashboards](/docs/slo/metrics): Chart the budget over time.
 - [SLOs Overview](/docs/slo/introduction): Targets, windows and downtime statuses.
 :::

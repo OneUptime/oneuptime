@@ -108,10 +108,10 @@ Chaque enregistrement porte ces attributs de ressource :
 
 ## Attribution aux employés
 
-**Cursor nomme une personne par `cursor.user.id`, un entier que seul Cursor peut transformer en nom, et l'omet souvent pour les agents cloud.** OneUptime le lit comme l'employé, et `cursor.team.id` comme l'équipe, si bien que l'onglet **Utilisation** classe personnes et équipes sans configuration, mais que les personnes apparaissent sous forme d'entiers.
+**Cursor nomme une personne par `cursor.user.id`, un entier que seul Cursor peut transformer en nom, et l'omet souvent pour les agents cloud.** OneUptime lit `cursor.user.email` comme l'employé quand Cursor l'envoie, `cursor.user.id` sinon, et `cursor.team.id` comme l'équipe, si bien que l'onglet **Utilisation** classe personnes et équipes sans configuration ; les personnes sans e-mail apparaissent sous forme d'entiers.
 
 - Les deux arrivent comme attributs de ressource (`resource.cursor.user.id`, `resource.cursor.team.id`), que OneUptime lit.
-- Cursor peut aussi envoyer `cursor.user.email`, mais OneUptime ne le lit pas encore, donc la colonne de l'e-mail de l'employé reste vide pour Cursor.
+- `cursor.user.email` est lu avant `cursor.user.id`, donc une personne que Cursor nomme par e-mail apparaît par son e-mail.
 - `gen_ai.user`, `llm.user` et les identifiants d'utilisateur final de LiteLLM ne sont jamais lus comme l'employé : ils nomment vos clients, pas votre personnel. Voir [Attribution aux employés et aux équipes](/docs/telemetry/ai-coding-assistants#attribution-aux-employés-et-aux-équipes).
 
 ### Où Cursor apparaît dans l'onglet Utilisation
@@ -120,7 +120,7 @@ Cursor envoie des métriques sans spans GenAI, et les métriques ne font que pre
 
 | Ventilation | Pour Cursor |
 | --- | --- |
-| **Employé** | Oui, par `cursor.user.id` |
+| **Employé** | Oui, par `cursor.user.email`, sinon `cursor.user.id` |
 | **Équipe** | Oui, par `cursor.team.id` |
 | **Modèle** | Oui, par `cursor.model.name` |
 | **Fournisseur** | Non : Cursor ne dit jamais quel fournisseur a servi un appel |
@@ -167,7 +167,7 @@ Le projet reçoit aussi des spans GenAI avec un coût, donc les métriques de Cu
 :::
 
 :::details Les personnes apparaissent sous forme de nombres
-C'est `cursor.user.id` : le seul identifiant de personne que OneUptime lit aujourd'hui depuis Cursor. Associez-le à des noms avec l'API d'administration de Cursor.
+C'est `cursor.user.id`, lu quand Cursor n'envoie pas de `cursor.user.email`. Associez-le à des noms avec l'API d'administration de Cursor.
 :::
 
 ## Étapes suivantes

@@ -8,8 +8,12 @@ import ClickhouseDatabase, {
 import NetworkControllerConnectionService from "Common/Server/Services/NetworkControllerConnectionService";
 import NetworkTrafficUsageAggregationService, {
   NetworkTrafficUsageAggregates,
+  NetworkTrafficUsageApplianceRow,
   NetworkTrafficUsageFreshness,
+  NetworkTrafficUsageListQuery,
   NetworkTrafficUsageQuery,
+  NetworkTrafficUsageRefile,
+  NetworkTrafficUsageStorageTable,
 } from "Common/Server/Services/NetworkTrafficUsageAggregationService";
 import NetworkTrafficUsageService from "Common/Server/Services/NetworkTrafficUsageService";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
@@ -27,6 +31,9 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   NetworkTrafficUsageFilters,
   NetworkTrafficUsageKind,
+  NetworkTrafficUsageListKind,
+  NetworkTrafficUsageListResult,
+  NetworkTrafficUsageListSort,
   getUsageOctets,
 } from "Common/Types/NetFlow/NetworkTrafficUsage";
 import NetworkControllerProvider from "Common/Types/NetworkController/NetworkControllerProvider";
@@ -1020,6 +1027,610 @@ integration("Meraki traffic reads against ClickHouse", () => {
 
     expect(caught).not.toBeNull();
     expect(NetworkTrafficUsageAggregationService.isTimeout(caught)).toBe(true);
+  });
+
+  /*
+   * Issue #5762, on a project of its own whose rows the tests write: an
+   * estate of 30 stores, each an MX on wan1 - store i receives (200 - i)
+   * thousand bytes in the hour and sends i * 500, so the busiest in total
+   * and in is store 101, the busiest out store 130 - with twelve
+   * applications on the first store's network and fifteen clients on the
+   * second's. Every appliance is in the project's bucket until a refile
+   * files one under a device.
+   */
+  describe("whole lists, the appliances to link and refiles", () => {
+    const ESTATE: ObjectID = ObjectID.generate();
+    const ESTATE_CONNECTION: ObjectID = ObjectID.generate();
+    const ANOTHER_ESTATE_CONNECTION: ObjectID = ObjectID.generate();
+    const ROUTER: ObjectID = ObjectID.generate();
+    const STORES: number = 30;
+    const TOWNS: Array<string> = ["Leeds", "York", "Bath", "Derby", "Hull"];
+    const SINCE: Date = new Date("2026-10-01T00:00:00.000Z");
+    // Where the refile is written: the table itself, on a server of one node.
+    const ONE_NODE_TABLE: NetworkTrafficUsageStorageTable = {
+      databaseName: database,
+      storageTable: "NetworkTrafficUsageV1",
+      onCluster: "",
+    };
+
+    function store(index: number): {
+      id: string;
+      name: string;
+      serial: string;
+      appliance: string;
+      received: number;
+      sent: number;
+    } {
+      const number: number = 100 + index;
+
+      return {
+        id: `L_77${number}`,
+        name: `Store ${number} · ${TOWNS[(index - 1) % TOWNS.length]}`,
+        serial: `Q2ST-0000-0${number}`,
+        appliance: `ST${number} MX67`,
+        received: (200 - index) * 1000,
+        sent: index * 500,
+      };
+    }
+
+    function blank(
+      overrides: Partial<NetworkTrafficUsageRecord>,
+    ): NetworkTrafficUsageRecord {
+      return {
+        kind: NetworkTrafficUsageKind.Uplink,
+        controllerNetworkId: "",
+        controllerNetworkName: "",
+        deviceSerial: "",
+        deviceName: "",
+        interfaceName: "",
+        application: "",
+        destination: "",
+        protocol: "",
+        port: 0,
+        clientKey: "",
+        clientName: "",
+        clientIp: "",
+        clientMac: "",
+        clientManufacturer: "",
+        sentOctets: 0,
+        receivedOctets: 0,
+        flows: 0,
+        clients: 0,
+        lossPercent: null,
+        latencyMs: null,
+        windowStartAt: RANGE_START,
+        windowEndAt: RANGE_END,
+        ...overrides,
+      };
+    }
+
+    async function write(
+      records: Array<NetworkTrafficUsageRecord>,
+      connectionId: ObjectID = ESTATE_CONNECTION,
+    ): Promise<void> {
+      await NetworkTrafficUsageService.insertJsonRows(
+        records.map((record: NetworkTrafficUsageRecord): JSONObject => {
+          return toUsageRow({
+            record,
+            projectId: ESTATE,
+            connectionId,
+            matches: { bySerial: new Map(), byNetwork: new Map() },
+            ingestedAt: START,
+          });
+        }),
+      );
+    }
+
+    function estate(
+      overrides: Partial<NetworkTrafficUsageQuery> = {},
+    ): NetworkTrafficUsageQuery {
+      return query({ projectId: ESTATE, ...overrides });
+    }
+
+    async function list(
+      overrides: Partial<NetworkTrafficUsageListQuery>,
+    ): Promise<NetworkTrafficUsageListResult> {
+      return await NetworkTrafficUsageAggregationService.getList({
+        query: estate(),
+        list: NetworkTrafficUsageListKind.Networks,
+        primaryKind: NetworkTrafficUsageKind.Uplink,
+        search: "",
+        sortBy: NetworkTrafficUsageListSort.Total,
+        skip: 0,
+        limit: 25,
+        ...overrides,
+      });
+    }
+
+    function names(result: NetworkTrafficUsageListResult): Array<string> {
+      return result.networks.map((row: { name: string }): string => {
+        return row.name;
+      });
+    }
+
+    async function estateAggregates(
+      devices: TelemetryServiceFilter,
+    ): Promise<NetworkTrafficUsageAggregates> {
+      return await NetworkTrafficUsageAggregationService.getAggregates({
+        query: estate({ devices }),
+        bucketSeconds: 300,
+        primaryKind: NetworkTrafficUsageKind.Uplink,
+      });
+    }
+
+    // A mutation runs in the background: wait for what it makes true.
+    async function eventually(
+      what: string,
+      check: () => Promise<boolean>,
+    ): Promise<void> {
+      const deadline: number = Date.now() + 60000;
+
+      while (Date.now() < deadline) {
+        if (await check()) {
+          return;
+        }
+
+        await new Promise((resolve: (value: unknown) => void) => {
+          setTimeout(resolve, 200);
+        });
+      }
+
+      throw new Error(`Still waiting for ${what}`);
+    }
+
+    function refileOf(
+      overrides: Partial<NetworkTrafficUsageRefile>,
+    ): NetworkTrafficUsageRefile {
+      return {
+        projectId: ESTATE,
+        connectionId: ESTATE_CONNECTION,
+        fromDeviceId: ESTATE,
+        appliances: [],
+        networks: [],
+        since: SINCE,
+        ...overrides,
+      };
+    }
+
+    beforeAll(async (): Promise<void> => {
+      const records: Array<NetworkTrafficUsageRecord> = [];
+
+      for (let index: number = 1; index <= STORES; index++) {
+        const each: ReturnType<typeof store> = store(index);
+
+        records.push(
+          blank({
+            kind: NetworkTrafficUsageKind.Uplink,
+            controllerNetworkId: each.id,
+            controllerNetworkName: each.name,
+            deviceSerial: each.serial,
+            deviceName: each.appliance,
+            interfaceName: "wan1",
+            sentOctets: each.sent,
+            receivedOctets: each.received,
+          }),
+        );
+      }
+
+      for (let index: number = 1; index <= 12; index++) {
+        records.push(
+          blank({
+            kind: NetworkTrafficUsageKind.Application,
+            controllerNetworkId: store(1).id,
+            controllerNetworkName: store(1).name,
+            application: `App ${String.fromCharCode(64 + index)}`,
+            protocol: "TCP",
+            port: 443,
+            sentOctets: index * 10,
+            receivedOctets: (13 - index) * 100,
+            flows: 1,
+          }),
+        );
+      }
+
+      for (let index: number = 1; index <= 15; index++) {
+        records.push(
+          blank({
+            kind: NetworkTrafficUsageKind.Client,
+            controllerNetworkId: store(2).id,
+            controllerNetworkName: store(2).name,
+            clientKey: `k${index}`,
+            clientName: index % 5 === 0 ? "" : `Till ${index}`,
+            clientIp: `10.80.0.${index}`,
+            clientMac: `00:1b:63:00:00:${String(index).padStart(2, "0")}`,
+            clientManufacturer: "Ingenico",
+            sentOctets: index * 5,
+            receivedOctets: (16 - index) * 50,
+          }),
+        );
+      }
+
+      await write(records);
+    });
+
+    test("the totals say how many networks, applications and clients the top lists are of", async () => {
+      const result: NetworkTrafficUsageAggregates =
+        await estateAggregates(EVERY_DEVICE);
+
+      expect(result.networkCount).toBe(STORES);
+      expect(result.applicationCount).toBe(12);
+      expect(result.clientCount).toBe(15);
+      // The top lists stop at ten; the counts are what "View all" opens.
+      expect(result.topNetworks).toHaveLength(10);
+      expect(result.topNetworks[0]!.name).toBe(store(1).name);
+    });
+
+    test("a whole list, paged by the database: every network once, the busiest first", async () => {
+      const first: NetworkTrafficUsageListResult = await list({});
+      const second: NetworkTrafficUsageListResult = await list({ skip: 25 });
+
+      expect(first.count).toBe(STORES);
+      expect(second.count).toBe(STORES);
+      expect(names(first)).toEqual(
+        Array.from({ length: 25 }, (_unused: unknown, index: number) => {
+          return store(index + 1).name;
+        }),
+      );
+      expect(names(second)).toEqual(
+        Array.from({ length: 5 }, (_unused: unknown, index: number) => {
+          return store(index + 26).name;
+        }),
+      );
+      expect(first.networks[0]).toEqual({
+        controllerNetworkId: store(1).id,
+        name: store(1).name,
+        sentOctets: store(1).sent,
+        receivedOctets: store(1).received,
+      });
+      expect(first.applications).toEqual([]);
+      expect(first.clients).toEqual([]);
+    });
+
+    test("sorted by what went out, or by what came in", async () => {
+      const out: NetworkTrafficUsageListResult = await list({
+        sortBy: NetworkTrafficUsageListSort.Out,
+        limit: 3,
+      });
+      const into: NetworkTrafficUsageListResult = await list({
+        sortBy: NetworkTrafficUsageListSort.In,
+        limit: 3,
+      });
+
+      expect(names(out)).toEqual([
+        store(30).name,
+        store(29).name,
+        store(28).name,
+      ]);
+      expect(names(into)).toEqual([
+        store(1).name,
+        store(2).name,
+        store(3).name,
+      ]);
+    });
+
+    test("a search is a part of a network's name or ID, case aside, and counted as such", async () => {
+      const byName: NetworkTrafficUsageListResult = await list({
+        search: "STORE 12",
+      });
+
+      expect(byName.count).toBe(10);
+      expect(names(byName)).toEqual(
+        Array.from({ length: 10 }, (_unused: unknown, index: number) => {
+          return store(index + 20).name;
+        }),
+      );
+
+      const byId: NetworkTrafficUsageListResult = await list({
+        search: "l_7711",
+      });
+
+      expect(byId.count).toBe(10);
+      expect(byId.networks[0]!.controllerNetworkId).toBe(store(10).id);
+
+      // Paged inside the search.
+      expect(
+        names(await list({ search: "store 12", skip: 8, limit: 5 })),
+      ).toEqual([store(28).name, store(29).name]);
+    });
+
+    test("a search that is SQL, or a pattern, is only text: it matches nothing", async () => {
+      for (const search of ["' OR 1=1 --", "%", "Store_1", ".*"]) {
+        const result: NetworkTrafficUsageListResult = await list({ search });
+
+        expect(result.count).toBe(0);
+        expect(result.networks).toEqual([]);
+      }
+    });
+
+    test("the applications' whole list: counted, sorted and paged", async () => {
+      const result: NetworkTrafficUsageListResult = await list({
+        list: NetworkTrafficUsageListKind.Applications,
+        limit: 5,
+      });
+
+      expect(result.count).toBe(12);
+      expect(
+        result.applications.map((row: { application: string }) => {
+          return row.application;
+        }),
+      ).toEqual(["App A", "App B", "App C", "App D", "App E"]);
+      expect(result.applications[0]).toMatchObject({
+        protocol: "TCP",
+        port: 443,
+        sentOctets: 10,
+        receivedOctets: 1200,
+        flows: 1,
+      });
+      expect(result.networks).toEqual([]);
+    });
+
+    test("the clients' whole list, searched by an address or a name", async () => {
+      const byAddress: NetworkTrafficUsageListResult = await list({
+        list: NetworkTrafficUsageListKind.Clients,
+        search: "10.80.0.1",
+      });
+
+      // 10.80.0.1 and 10.80.0.10 to 10.80.0.15.
+      expect(byAddress.count).toBe(7);
+      expect(
+        byAddress.clients.map((row: { clientKey: string }) => {
+          return row.clientKey;
+        }),
+      ).toEqual(["k1", "k10", "k11", "k12", "k13", "k14", "k15"]);
+
+      const byName: NetworkTrafficUsageListResult = await list({
+        list: NetworkTrafficUsageListKind.Clients,
+        search: "till 1",
+      });
+
+      // Till 1 and Till 11 to Till 14: clients 10 and 15 have no name.
+      expect(byName.count).toBe(5);
+      expect(byName.clients[0]).toMatchObject({
+        clientKey: "k1",
+        name: "Till 1",
+        ip: "10.80.0.1",
+        manufacturer: "Ingenico",
+        controllerNetworkName: store(2).name,
+      });
+    });
+
+    test("the appliances to link: each once, by its newest window, with what it carried", async () => {
+      const appliances: Array<NetworkTrafficUsageApplianceRow> =
+        await NetworkTrafficUsageAggregationService.getAppliances({
+          projectId: ESTATE,
+          devices: EVERY_DEVICE,
+          since: SINCE,
+          limit: 100,
+        });
+
+      expect(appliances).toHaveLength(STORES);
+      expect(
+        appliances.map((row: NetworkTrafficUsageApplianceRow) => {
+          return row.serial;
+        }),
+      ).toEqual(
+        Array.from({ length: STORES }, (_unused: unknown, index: number) => {
+          return store(index + 1).serial;
+        }),
+      );
+      expect(appliances[0]).toEqual({
+        serial: store(1).serial,
+        name: store(1).appliance,
+        controllerNetworkId: store(1).id,
+        controllerNetworkName: store(1).name,
+        connectionId: ESTATE_CONNECTION.toString(),
+        networkDeviceId: ESTATE.toString(),
+        lastWindowEndAt: RANGE_END.toISOString(),
+        octets: store(1).sent + store(1).received,
+      });
+
+      const some: Array<NetworkTrafficUsageApplianceRow> =
+        await NetworkTrafficUsageAggregationService.getAppliances({
+          projectId: ESTATE,
+          devices: EVERY_DEVICE,
+          since: SINCE,
+          serials: [store(2).serial, "Q2ST-NONE-0000"],
+          limit: 100,
+        });
+
+      expect(
+        some.map((row: NetworkTrafficUsageApplianceRow) => {
+          return row.serial;
+        }),
+      ).toEqual([store(2).serial]);
+
+      expect(
+        await NetworkTrafficUsageAggregationService.getAppliances({
+          projectId: ESTATE,
+          devices: EVERY_DEVICE,
+          since: SINCE,
+          limit: 5,
+        }),
+      ).toHaveLength(5);
+    });
+
+    test("an appliance renamed in Meraki reads as it is called now", async () => {
+      await write([
+        blank({
+          controllerNetworkId: store(3).id,
+          controllerNetworkName: store(3).name,
+          deviceSerial: store(3).serial,
+          deviceName: "ST103 MX68",
+          interfaceName: "wan1",
+          sentOctets: 1,
+          receivedOctets: 1,
+          windowStartAt: RANGE_END,
+          windowEndAt: new Date(RANGE_END.getTime() + HOUR),
+        }),
+      ]);
+
+      const renamed: Array<NetworkTrafficUsageApplianceRow> =
+        await NetworkTrafficUsageAggregationService.getAppliances({
+          projectId: ESTATE,
+          devices: EVERY_DEVICE,
+          since: SINCE,
+          serials: [store(3).serial],
+          limit: 100,
+        });
+
+      expect(renamed).toHaveLength(1);
+      expect(renamed[0]!.name).toBe("ST103 MX68");
+      expect(renamed[0]!.lastWindowEndAt).toBe(
+        new Date(RANGE_END.getTime() + HOUR).toISOString(),
+      );
+    });
+
+    test("nothing to file queues nothing", async () => {
+      expect(
+        await NetworkTrafficUsageAggregationService.refile(
+          refileOf({
+            appliances: [{ serial: "Q2ST-NONE-0000", deviceId: ROUTER }],
+          }),
+          ONE_NODE_TABLE,
+        ),
+      ).toBe(false);
+
+      // The router holds nothing yet, so it has nothing to give back.
+      expect(
+        await NetworkTrafficUsageAggregationService.refile(
+          refileOf({
+            fromDeviceId: ROUTER,
+            appliances: [{ serial: store(1).serial, deviceId: ESTATE }],
+          }),
+          ONE_NODE_TABLE,
+        ),
+      ).toBe(false);
+
+      expect(
+        await NetworkTrafficUsageAggregationService.refile(
+          refileOf({}),
+          ONE_NODE_TABLE,
+        ),
+      ).toBe(false);
+    });
+
+    test("a link files the appliance's stored rows and its network's under the router, and an unlink files them back", async () => {
+      // The same appliance as another connection reads it: not this refile's.
+      await write(
+        [
+          blank({
+            controllerNetworkId: store(1).id,
+            controllerNetworkName: store(1).name,
+            deviceSerial: store(1).serial,
+            deviceName: store(1).appliance,
+            interfaceName: "wan2",
+            sentOctets: 7,
+            receivedOctets: 9,
+          }),
+        ],
+        ANOTHER_ESTATE_CONNECTION,
+      );
+
+      const before: NetworkTrafficUsageAggregates =
+        await estateAggregates(EVERY_DEVICE);
+
+      expect(
+        await NetworkTrafficUsageAggregationService.refile(
+          refileOf({
+            appliances: [{ serial: store(1).serial, deviceId: ROUTER }],
+            networks: [{ controllerNetworkId: store(1).id, deviceId: ROUTER }],
+          }),
+          ONE_NODE_TABLE,
+        ),
+      ).toBe(true);
+
+      await eventually("the router's traffic", async () => {
+        return (
+          (await estateAggregates({ serviceIds: [ROUTER] })).totals
+            .receivedOctets === store(1).received
+        );
+      });
+
+      // The router's page: its MX's uplink and its network's applications.
+      const router: NetworkTrafficUsageAggregates = await estateAggregates({
+        serviceIds: [ROUTER],
+      });
+
+      expect(router.totals.sentOctets).toBe(store(1).sent);
+      expect(router.applicationCount).toBe(12);
+      expect(router.clientCount).toBe(0);
+      expect(
+        router.topNetworks.map((row: { name: string }) => {
+          return row.name;
+        }),
+      ).toEqual([store(1).name]);
+
+      // The bucket keeps the rest, and the other connection's row.
+      const bucket: NetworkTrafficUsageAggregates = await estateAggregates({
+        serviceIds: [ESTATE],
+      });
+
+      expect(bucket.networkCount).toBe(STORES);
+      expect(bucket.totals.receivedOctets).toBe(
+        before.totals.receivedOctets - store(1).received,
+      );
+      expect(bucket.applicationCount).toBe(0);
+      expect(bucket.clientCount).toBe(15);
+
+      // The project's page adds up the same: nothing lost, nothing twice.
+      const after: NetworkTrafficUsageAggregates =
+        await estateAggregates(EVERY_DEVICE);
+
+      expect(after.totals).toEqual(before.totals);
+      expect(after.networkCount).toBe(before.networkCount);
+      expect(after.applicationCount).toBe(before.applicationCount);
+
+      // The appliance now reads as the router's.
+      const linked: Array<NetworkTrafficUsageApplianceRow> =
+        await NetworkTrafficUsageAggregationService.getAppliances({
+          projectId: ESTATE,
+          devices: { serviceIds: [ROUTER] },
+          since: SINCE,
+          limit: 100,
+        });
+
+      expect(linked).toHaveLength(1);
+      expect(linked[0]!.serial).toBe(store(1).serial);
+      expect(linked[0]!.networkDeviceId).toBe(ROUTER.toString());
+
+      // Unlinked: back in the bucket, the router's page empty again.
+      expect(
+        await NetworkTrafficUsageAggregationService.refile(
+          refileOf({
+            fromDeviceId: ROUTER,
+            appliances: [{ serial: store(1).serial, deviceId: ESTATE }],
+            networks: [{ controllerNetworkId: store(1).id, deviceId: ESTATE }],
+          }),
+          ONE_NODE_TABLE,
+        ),
+      ).toBe(true);
+
+      await eventually("the router's traffic to go back", async () => {
+        return (
+          (await estateAggregates({ serviceIds: [ROUTER] })).totals
+            .receivedOctets === 0
+        );
+      });
+
+      const unlinked: NetworkTrafficUsageAggregates = await estateAggregates({
+        serviceIds: [ESTATE],
+      });
+
+      expect(unlinked.totals).toEqual(before.totals);
+      expect(unlinked.applicationCount).toBe(12);
+    });
+
+    test("a refile reaches back only as far as it is told", async () => {
+      expect(
+        await NetworkTrafficUsageAggregationService.refile(
+          refileOf({
+            appliances: [{ serial: store(4).serial, deviceId: ROUTER }],
+            since: RANGE_END,
+          }),
+          ONE_NODE_TABLE,
+        ),
+      ).toBe(false);
+    });
   });
 });
 

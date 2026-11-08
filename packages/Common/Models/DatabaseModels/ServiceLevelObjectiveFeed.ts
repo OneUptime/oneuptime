@@ -64,6 +64,13 @@ export enum ServiceLevelObjectiveFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   LabelRuleExecuted = "LabelRuleExecuted",
   OwnerRuleExecuted = "OwnerRuleExecuted",
+  // The SLO entered, moved between or left the tiers of its error budget policy.
+  ErrorBudgetPolicyTierChanged = "ErrorBudgetPolicyTierChanged",
+  // What a tier of the policy raised, and its resolve.
+  ErrorBudgetPolicyAlertRaised = "ErrorBudgetPolicyAlertRaised",
+  ErrorBudgetPolicyAlertResolved = "ErrorBudgetPolicyAlertResolved",
+  ErrorBudgetPolicyIncidentDeclared = "ErrorBudgetPolicyIncidentDeclared",
+  ErrorBudgetPolicyIncidentResolved = "ErrorBudgetPolicyIncidentResolved",
 }
 
 @EnableDocumentation()

@@ -94,6 +94,11 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
     path: `${SLO_PATH}/burn-rate-rules`,
   },
   {
+    title: "Error Budget Policy",
+    section: "Rules",
+    path: `${SLO_PATH}/error-budget-policy`,
+  },
+  {
     title: "Terraform",
     section: "Developer",
     path: `${SLO_PATH}/developer/terraform`,
@@ -172,13 +177,13 @@ describe("SLO detail side menu", () => {
     },
   );
 
-  test("keeps all sixteen destinations unique and fully populated", async () => {
+  test("keeps all seventeen destinations unique and fully populated", async () => {
     await renderSloMenu();
 
     const hrefs: Array<string> = hrefsInMenu();
     const titles: Array<string> = titlesInMenu();
 
-    expect(hrefs).toHaveLength(16);
+    expect(hrefs).toHaveLength(17);
     expect(hrefs).toEqual(Array.from(new Set(hrefs)));
     expect(titles).toEqual(Array.from(new Set(titles)));
     expect(hrefs).toEqual(
@@ -289,11 +294,12 @@ function rowIconPaths(title: string): Array<string> {
  * "Create a new section for rules and have monitor rules there. The section
  * should be collapsed by default" (the maintainer). An SLO has two kinds of
  * rule: Monitor Rules attach the monitors it measures, and Burn Rate Rules
- * raise its alerts and declare its incidents. Both are written once and then
- * run by themselves, so they have a section of their own, Rules, folded down
- * to its title until opened - as a status page's Monitor Rules do
- * (StatusPageRulesMenu.test.tsx) - apart from the monitors themselves, which
- * stay under Configuration.
+ * raise its alerts and declare its incidents - and its Error Budget Policy
+ * says what the team does as its budget runs down. All three are written
+ * once and then run by themselves, so they have a section of their own,
+ * Rules, folded down to its title until opened - as a status page's Monitor
+ * Rules do (StatusPageRulesMenu.test.tsx) - apart from the monitors
+ * themselves, which stay under Configuration.
  */
 describe("the SLO's Rules section", () => {
   beforeEach(() => {
@@ -317,6 +323,10 @@ describe("the SLO's Rules section", () => {
     expect(linksIn("Rules")).toEqual([
       { title: "Monitor Rules", href: `${SLO_PATH}/monitor-rules` },
       { title: "Burn Rate Rules", href: `${SLO_PATH}/burn-rate-rules` },
+      {
+        title: "Error Budget Policy",
+        href: `${SLO_PATH}/error-budget-policy`,
+      },
     ]);
   });
 
@@ -340,15 +350,19 @@ describe("the SLO's Rules section", () => {
     }
   });
 
-  test("keeps each rule's icon: the funnel for Monitor Rules, the flame for Burn Rate Rules", async () => {
+  test("keeps each rule's icon: the funnel for Monitor Rules, the flame for Burn Rate Rules, the scale for Error Budget Policy", async () => {
     await renderSloMenu();
 
-    expect(iconCountIn("Rules")).toBe(2);
+    expect(iconCountIn("Rules")).toBe(3);
     expect(rowIconPaths("Monitor Rules")).toEqual(
       drawnIconPaths(IconProp.Filter),
     );
     expect(rowIconPaths("Burn Rate Rules")).toEqual(
       drawnIconPaths(IconProp.Fire),
+    );
+    // The icon of the tier model and of the feed's tier changes.
+    expect(rowIconPaths("Error Budget Policy")).toEqual(
+      drawnIconPaths(IconProp.Scale),
     );
   });
 
@@ -390,6 +404,7 @@ describe("the SLO's Rules section", () => {
   test.each([
     { title: "Monitor Rules", path: `${SLO_PATH}/monitor-rules` },
     { title: "Burn Rate Rules", path: `${SLO_PATH}/burn-rate-rules` },
+    { title: "Error Budget Policy", path: `${SLO_PATH}/error-budget-policy` },
   ])(
     "$title opens Rules by itself, and leaves Configuration folded",
     async (page: { title: string; path: string }) => {
