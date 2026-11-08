@@ -21,10 +21,12 @@ import path from "path";
 
 const SENTINEL_CUTOFF: Date = new Date("2026-11-08T11:45:00.000Z");
 
-const STATUS_MODULE: string = "../../../Types/Serverless/ServerlessFunctionStatus";
+const STATUS_MODULE: string =
+  "../../../Types/Serverless/ServerlessFunctionStatus";
 const SERVICE_MODULE: string =
   "../../../Server/Services/ServerlessFunctionService";
-const COVERAGE_MODULE: string = "../../../Server/Utils/Telemetry/ReceivingCoverage";
+const COVERAGE_MODULE: string =
+  "../../../Server/Utils/Telemetry/ReceivingCoverage";
 
 // The value a QueryHelper.lessThan(...) was built with.
 function lessThanValue(operator: unknown): unknown {
@@ -93,10 +95,10 @@ describe("the serverless sweep's silence is the status's number", () => {
           SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES: 42,
         };
       });
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       const coverage: typeof ReceivingCoverage = require(COVERAGE_MODULE)
         .default as typeof ReceivingCoverage;
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       const service: typeof ServerlessFunctionService = require(SERVICE_MODULE)
         .default as typeof ServerlessFunctionService;
 
@@ -124,7 +126,10 @@ describe("the serverless sweep's silence is the status's number", () => {
 
   test("the sweep's source names the constant, and no minutes of its own", () => {
     const source: string = fs.readFileSync(
-      path.resolve(__dirname, "../../../Server/Services/ServerlessFunctionService.ts"),
+      path.resolve(
+        __dirname,
+        "../../../Server/Services/ServerlessFunctionService.ts",
+      ),
       "utf8",
     );
     const sweep: string = source.slice(
