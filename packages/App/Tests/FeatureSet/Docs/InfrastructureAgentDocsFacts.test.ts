@@ -1519,7 +1519,9 @@ describe("when a task 22 page says a resource turns Disconnected", () => {
       "packages/App/FeatureSet/Workers/Jobs/Serverless/CleanupStaleResources.ts",
     );
     expect(job).toContain("schedule: EVERY_FIVE_MINUTE");
-    expect(job).toContain("ServerlessFunctionService.markDisconnectedFunctions()");
+    expect(job).toContain(
+      "ServerlessFunctionService.markDisconnectedFunctions()",
+    );
 
     lineWith(
       SERVERLESS_PAGE,

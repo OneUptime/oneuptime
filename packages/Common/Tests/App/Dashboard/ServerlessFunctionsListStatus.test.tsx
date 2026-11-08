@@ -332,9 +332,7 @@ describe("the Serverless Functions list's Status column", () => {
 
     await act(async () => {
       render(
-        (
-          column.getElement as (item: ServerlessFunction) => React.ReactElement
-        )(
+        (column.getElement as (item: ServerlessFunction) => React.ReactElement)(
           serverlessFunction({
             otelCollectorStatus: "disconnected",
             lastSeenAt: new Date(),

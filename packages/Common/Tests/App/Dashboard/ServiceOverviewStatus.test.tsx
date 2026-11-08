@@ -363,21 +363,18 @@ const STATES: Array<[string, HeroCase]> = [
 ];
 
 describe("a service's Overview hero says whether its data arrives", () => {
-  test.each(STATES)(
-    "with %s",
-    async (_state: string, expected: HeroCase) => {
-      await mount(expected.lastSeenAt);
+  test.each(STATES)("with %s", async (_state: string, expected: HeroCase) => {
+    await mount(expected.lastSeenAt);
 
-      const element: HTMLElement = pill();
+    const element: HTMLElement = pill();
 
-      expect(element).toHaveTextContent(new RegExp(`^${expected.label}$`));
-      expect(element).toHaveClass(expected.background);
-      // Never amber or red: neither quiet state is a fault on its own.
-      expect(element.className).not.toMatch(/amber|red/);
-      expect(element).toHaveAttribute("title", expected.hover);
-      expect(within(hero()).getByText(expected.seen)).toBeInTheDocument();
-    },
-  );
+    expect(element).toHaveTextContent(new RegExp(`^${expected.label}$`));
+    expect(element).toHaveClass(expected.background);
+    // Never amber or red: neither quiet state is a fault on its own.
+    expect(element.className).not.toMatch(/amber|red/);
+    expect(element).toHaveAttribute("title", expected.hover);
+    expect(within(hero()).getByText(expected.seen)).toBeInTheDocument();
+  });
 
   test.each(STATES)(
     "and nothing on it says Connected or Disconnected, with %s",

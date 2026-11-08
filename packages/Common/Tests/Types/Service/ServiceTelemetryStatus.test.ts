@@ -174,9 +174,9 @@ describe("getServiceLastDataAt", () => {
   });
 
   test("parses the API's ISO string", () => {
-    expect(getServiceLastDataAt("2026-11-08T11:00:00.000Z")?.toISOString()).toBe(
-      "2026-11-08T11:00:00.000Z",
-    );
+    expect(
+      getServiceLastDataAt("2026-11-08T11:00:00.000Z")?.toISOString(),
+    ).toBe("2026-11-08T11:00:00.000Z");
   });
 
   test("is null for nothing, and for anything that is not a date", () => {
@@ -230,8 +230,9 @@ describe("the status's words", () => {
     const quiet: ServiceTelemetryStatusWords = getServiceTelemetryStatusWords(
       ServiceTelemetryStatus.NoRecentData,
     );
-    const waiting: ServiceTelemetryStatusWords =
-      getServiceTelemetryStatusWords(ServiceTelemetryStatus.WaitingForData);
+    const waiting: ServiceTelemetryStatusWords = getServiceTelemetryStatusWords(
+      ServiceTelemetryStatus.WaitingForData,
+    );
 
     expect(SERVICE_RECEIVING_DATA_LABEL).toBe(receiving.label);
     expect(SERVICE_RECEIVING_DATA_DESCRIPTION).toBe(receiving.description);

@@ -971,9 +971,15 @@ describe.each(IDLE_WHEN_UNUSED)(
         state: "connected" | "disconnected" | "neverConnected",
       ) => {
         const connection: Record<string, unknown> = {
-          connected: { otelCollectorStatus: "connected", lastSeenAt: A_MINUTE_AGO },
+          connected: {
+            otelCollectorStatus: "connected",
+            lastSeenAt: A_MINUTE_AGO,
+          },
           disconnected: IDLE,
-          neverConnected: { otelCollectorStatus: undefined, lastSeenAt: undefined },
+          neverConnected: {
+            otelCollectorStatus: undefined,
+            lastSeenAt: undefined,
+          },
         }[state];
         const hover: string = {
           connected: idle.receivingHover,

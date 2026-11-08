@@ -822,7 +822,9 @@ describe("Serverless Functions docs", (): void => {
       );
 
       expect(entry).toMatch(/^:::details /);
-      expect(entry).toContain("That is normal for a function that runs only now and then");
+      expect(entry).toContain(
+        "That is normal for a function that runs only now and then",
+      );
       expect(entry).toContain(
         `it shows **${SERVERLESS_FUNCTION_RECEIVING_DATA_LABEL}** again with its next telemetry`,
       );
@@ -830,9 +832,11 @@ describe("Serverless Functions docs", (): void => {
         "go through the checks for a function that does not appear, above.",
       );
       // The checks it points at are the entry before it.
-      expect(troubleshooting.indexOf(
-        ":::details The function does not appear under Serverless Functions",
-      )).toBeLessThan(troubleshooting.indexOf(entry));
+      expect(
+        troubleshooting.indexOf(
+          ":::details The function does not appear under Serverless Functions",
+        ),
+      ).toBeLessThan(troubleshooting.indexOf(entry));
     });
 
     it("never calls a function Disconnected or Connected", (): void => {

@@ -1074,12 +1074,10 @@ describe("resource membership", () => {
 
     expect(rowOf("nightly-report")).toContain("status=No recent invocations");
     expect(rowOf("checkout-handler")).toContain("status=Receiving data");
-    expect(rowOf("added-through-the-api")).toContain(
-      "status=Waiting for data",
-    );
+    expect(rowOf("added-through-the-api")).toContain("status=Waiting for data");
     // The stored value never reaches the model, so it cannot repeat it.
     expect(result.dataForLlm).not.toMatch(/otelCollectorStatus/);
-    expect(result.dataForLlm).not.toMatch(/=disconnected|=connected/i);
+    expect(result.dataForLlm).not.toMatch(/[=]disconnected|=connected/i);
     // What the words mean, beside the note every resource gets.
     expect(result.dataForLlm).toContain(
       "No recent invocations (nothing for 15 minutes: a function sends data only while it runs, so this is normal when nothing has invoked it, and is not a fault or a broken connection on its own)",

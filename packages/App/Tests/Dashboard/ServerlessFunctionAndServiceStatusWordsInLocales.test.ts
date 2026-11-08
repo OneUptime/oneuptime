@@ -86,9 +86,8 @@ function markedWordsOf(file: string): Array<string> {
   });
 }
 
-const FUNCTION_STATUS_WORDS: Array<string> = markedWordsOf(
-  FUNCTION_STATUS_FILE,
-);
+const FUNCTION_STATUS_WORDS: Array<string> =
+  markedWordsOf(FUNCTION_STATUS_FILE);
 const SERVICE_STATUS_WORDS: Array<string> = markedWordsOf(SERVICE_STATUS_FILE);
 
 const FUNCTION_WAIT_STEP: string =
