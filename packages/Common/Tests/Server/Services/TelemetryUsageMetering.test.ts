@@ -97,7 +97,7 @@ function utcMidnight(day: string): Date {
  * ---------------------------------------------------------------------
  * The usage rows, in memory, and an evaluator for the conditions the
  * service writes: plain equality, and QueryHelper's Raw operators (IN, >,
- * <), read from the SQL they generate and the parameters they carry.
+ * <, <=), read from the SQL they generate and the parameters they carry.
  * ---------------------------------------------------------------------
  */
 
@@ -159,6 +159,10 @@ function matchesCondition(value: unknown, condition: unknown): boolean {
 
     if (sql.startsWith("(COLUMN < :")) {
       return Number(scalarOf(value)) < Number(scalarOf(parameter));
+    }
+
+    if (sql.startsWith("(COLUMN <= :")) {
+      return Number(scalarOf(value)) <= Number(scalarOf(parameter));
     }
 
     throw new Error(`The store does not evaluate ${sql}`);
@@ -784,9 +788,9 @@ describe("metering where billing is off", () => {
     ).toEqual([SERVICE_ID]);
 
     // And the session replay budget series, inside the metrics scan.
-    expect(
-      [...spies.metricScan.mock.calls[0]![0].excludeNames].sort(),
-    ).toEqual([...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES].sort());
+    expect([...spies.metricScan.mock.calls[0]![0].excludeNames].sort()).toEqual(
+      [...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES].sort(),
+    );
   });
 
   test("counts session replays at their application's replay retention", async () => {
@@ -992,12 +996,10 @@ describe("billing turned on after usage was metered without it", () => {
     ];
 
     for (const productType of [ProductType.Logs, ProductType.Traces]) {
-      await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject(
-        {
-          projectId: PROJECT_ID,
-          productType: productType,
-        },
-      );
+      await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+        projectId: PROJECT_ID,
+        productType: productType,
+      });
     }
 
     expect(store).toHaveLength(6);
@@ -1013,12 +1015,10 @@ describe("billing turned on after usage was metered without it", () => {
     );
 
     for (const productType of [ProductType.Logs, ProductType.Traces]) {
-      await TelemetryUsageBillingService.stageUnstagedTelemetryUsageForProject(
-        {
-          projectId: PROJECT_ID,
-          productType: productType,
-        },
-      );
+      await TelemetryUsageBillingService.stageUnstagedTelemetryUsageForProject({
+        projectId: PROJECT_ID,
+        productType: productType,
+      });
     }
 
     expect(stage).not.toHaveBeenCalled();
@@ -1320,6 +1320,152 @@ describe("how long usage rows are kept", () => {
 
     expect(spies.hardDeleteBy).toHaveBeenCalledTimes(3);
     expect(result.deleted).toBe(LIMIT_MAX + 12);
+  });
+
+  // The cleanup deletes from the store, a batch at a time, as Postgres would.
+  function deleteFromStore(): void {
+    spies.hardDeleteBy.mockImplementation((async (args: {
+      query: Record<string, unknown>;
+      limit: number;
+    }): Promise<number> => {
+      const matched: Array<StoredRow> = rowsOf(args.query).slice(0, args.limit);
+
+      store = store.filter((row: StoredRow): boolean => {
+        return !matched.includes(row);
+      });
+
+      return matched.length;
+    }) as never);
+  }
+
+  function rowOfAge(data: {
+    daysOld: number;
+    costInUSD: number;
+    isReported: boolean;
+  }): StoredRow {
+    const row: StoredRow = {
+      _id: `00000000-0000-4000-8000-${String(++nextId).padStart(12, "0")}`,
+      projectId: PROJECT_ID,
+      productType: ProductType.Logs,
+      day: `${data.daysOld} days ago`,
+      primaryEntityId: new ObjectID(HOST_ID),
+      primaryEntityType: ServiceType.Host,
+      dataIngestedInGB: new Decimal(1),
+      totalCostInUSD: new Decimal(data.costInUSD),
+      retainTelemetryDataForDays: 15,
+      isReportedToBillingProvider: data.isReported,
+      createdAt: new Date(NOW.getTime() - data.daysOld * 24 * 60 * 60 * 1000),
+    };
+
+    store.push(row);
+
+    return row;
+  }
+
+  function keptIds(): Array<string> {
+    return store
+      .map((row: StoredRow): string => {
+        return row._id;
+      })
+      .sort();
+  }
+
+  test("a shorter retention keeps what billing has yet to charge, for the 120 days usage was always kept", async () => {
+    mockIsBillingEnabled = true;
+    spies.globalConfig.mockResolvedValue(
+      Object.assign(new GlobalConfig(), {
+        telemetryUsageRetentionInDays: 30,
+      }) as never,
+    );
+    deleteFromStore();
+
+    // Past the 30 days: metered at no cost, billed and reported, still owed.
+    rowOfAge({ daysOld: 40, costInUSD: 0, isReported: false });
+    rowOfAge({ daysOld: 40, costInUSD: 2, isReported: true });
+    const owed: StoredRow = rowOfAge({
+      daysOld: 40,
+      costInUSD: 2,
+      isReported: false,
+    });
+    // Owed, but past the 120 days every row was kept for: deleted as before.
+    rowOfAge({ daysOld: 130, costInUSD: 2, isReported: false });
+    const recent: StoredRow = rowOfAge({
+      daysOld: 20,
+      costInUSD: 0,
+      isReported: false,
+    });
+
+    const result: { deleted: number; cutoff: Date; retentionInDays: number } =
+      await TelemetryUsageBillingService.deleteUsageOlderThanRetention();
+
+    expect(keptIds()).toEqual([owed._id, recent._id].sort());
+    expect(result.deleted).toBe(3);
+    expect(result.retentionInDays).toBe(30);
+
+    // What is still owed is reported, then goes with the next cleanup.
+    expect(
+      (
+        await TelemetryUsageBillingService.getUnreportedUsageBilling({
+          projectId: PROJECT_ID,
+          productType: ProductType.Logs,
+        })
+      ).map((row: TelemetryUsageBilling): string => {
+        return row._id!.toString();
+      }),
+    ).toEqual([owed._id]);
+  });
+
+  test("where billing is off, a shorter retention deletes every row past it: none is owed", async () => {
+    spies.globalConfig.mockResolvedValue(
+      Object.assign(new GlobalConfig(), {
+        telemetryUsageRetentionInDays: 30,
+      }) as never,
+    );
+    deleteFromStore();
+
+    rowOfAge({ daysOld: 31, costInUSD: 0, isReported: false });
+    rowOfAge({ daysOld: 90, costInUSD: 0, isReported: false });
+    const recent: StoredRow = rowOfAge({
+      daysOld: 29,
+      costInUSD: 0,
+      isReported: false,
+    });
+
+    const result: { deleted: number; cutoff: Date; retentionInDays: number } =
+      await TelemetryUsageBillingService.deleteUsageOlderThanRetention();
+
+    expect(keptIds()).toEqual([recent._id]);
+    expect(result.deleted).toBe(2);
+  });
+
+  test("a retention of 120 days or more deletes every row past it in one sweep, owed or not", async () => {
+    mockIsBillingEnabled = true;
+    spies.globalConfig.mockResolvedValue(
+      Object.assign(new GlobalConfig(), {
+        telemetryUsageRetentionInDays: 200,
+      }) as never,
+    );
+    deleteFromStore();
+
+    rowOfAge({ daysOld: 210, costInUSD: 2, isReported: false });
+    const kept: Array<StoredRow> = [
+      rowOfAge({ daysOld: 150, costInUSD: 2, isReported: false }),
+      rowOfAge({ daysOld: 150, costInUSD: 0, isReported: false }),
+    ];
+
+    const result: { deleted: number; cutoff: Date; retentionInDays: number } =
+      await TelemetryUsageBillingService.deleteUsageOlderThanRetention();
+
+    expect(keptIds()).toEqual(
+      kept
+        .map((row: StoredRow): string => {
+          return row._id;
+        })
+        .sort(),
+    );
+    expect(result.deleted).toBe(1);
+    // One batch, and the empty one that ends it.
+    expect(spies.hardDeleteBy).toHaveBeenCalledTimes(2);
   });
 
   test("reads the setting from the instance's one GlobalConfig, as root", async () => {

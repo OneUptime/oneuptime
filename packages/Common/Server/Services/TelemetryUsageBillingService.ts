@@ -64,10 +64,14 @@ import {
   IsBillingEnabled,
 } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import GlobalConfigService from "./GlobalConfigService";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
-import { getTelemetryUsageRetentionInDays } from "../../Types/Telemetry/TelemetryUsage";
+import {
+  TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS,
+  getTelemetryUsageRetentionInDays,
+} from "../../Types/Telemetry/TelemetryUsage";
 import PayAsYouGoBillingService, {
   LiveUsageAuthorization,
 } from "./PayAsYouGoBillingService";
@@ -144,6 +148,15 @@ export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> =
 export const TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS: number = 7;
 
 /*
+ * How long a usage row billing has yet to charge - one that costs something
+ * and has not been reported to the payment provider - is kept, whatever the
+ * usage retention says: the 120 days every row was kept for before the
+ * retention could be set (deleteUsageOlderThanRetention).
+ */
+export const TELEMETRY_USAGE_UNREPORTED_BILLING_RETENTION_IN_DAYS: number =
+  TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS;
+
+/*
  * What one resource sent of one product in a window, as metering counts it:
  * the estimated bytes, and what kind of resource the id names.
  */
@@ -159,7 +172,7 @@ export class Service extends DatabaseService<Model> {
      * No fixed retention here: the rows are kept for the instance's telemetry
      * usage retention (GlobalConfig.telemetryUsageRetentionInDays, 120 days
      * unless changed), with billing on or off, by
-     * deleteUsageOlderThanRetention - the TelemetryUsage:DeleteOldUsage
+     * deleteUsageOlderThanRetention - the TelemetryUsage:DeleteOldTelemetryUsage
      * worker job. The 120 days used to be scheduled here, and only where
      * billing was on.
      */
@@ -314,8 +327,7 @@ export class Service extends DatabaseService<Model> {
     const usageDays: Array<Date> = this.getStagingWindowDays().filter(
       (usageDay: Date): boolean => {
         return (
-          !data.earliestDay ||
-          usageDay.getTime() >= data.earliestDay.getTime()
+          !data.earliestDay || usageDay.getTime() >= data.earliestDay.getTime()
         );
       },
     );
@@ -968,19 +980,73 @@ export class Service extends DatabaseService<Model> {
   }> {
     const retentionInDays: number = await this.getUsageRetentionInDays();
     // On the clock staging reads (getStagingWindowDays), whole days back.
-    const cutoff: Date = OneUptimeDate.addRemoveSeconds(
-      OneUptimeDate.getCurrentDate(),
-      -retentionInDays * 24 * 60 * 60,
+    const daysAgo: (days: number) => Date = (days: number): Date => {
+      return OneUptimeDate.addRemoveSeconds(
+        OneUptimeDate.getCurrentDate(),
+        -days * 24 * 60 * 60,
+      );
+    };
+    const cutoff: Date = daysAgo(retentionInDays);
+
+    if (
+      retentionInDays >= TELEMETRY_USAGE_UNREPORTED_BILLING_RETENTION_IN_DAYS
+    ) {
+      return {
+        deleted: await this.hardDeleteAllWhere((): Query<Model> => {
+          return { createdAt: QueryHelper.lessThan(cutoff) };
+        }),
+        cutoff: cutoff,
+        retentionInDays: retentionInDays,
+      };
+    }
+
+    /*
+     * A shorter retention deletes only what nothing is owed for: a row
+     * reported to the payment provider, or one that costs nothing (all of
+     * them where billing is off). A row billing has yet to charge is kept
+     * for the 120 days every row was kept for before the setting existed,
+     * so turning the retention down never deletes revenue still to be
+     * reported.
+     */
+    let deleted: number = await this.hardDeleteAllWhere((): Query<Model> => {
+      return {
+        createdAt: QueryHelper.lessThan(cutoff),
+        isReportedToBillingProvider: true,
+      };
+    });
+
+    deleted += await this.hardDeleteAllWhere((): Query<Model> => {
+      return {
+        createdAt: QueryHelper.lessThan(cutoff),
+        totalCostInUSD: QueryHelper.lessThanEqualTo(0),
+      };
+    });
+
+    const unreportedCutoff: Date = daysAgo(
+      TELEMETRY_USAGE_UNREPORTED_BILLING_RETENTION_IN_DAYS,
     );
 
+    deleted += await this.hardDeleteAllWhere((): Query<Model> => {
+      return { createdAt: QueryHelper.lessThan(unreportedCutoff) };
+    });
+
+    return {
+      deleted: deleted,
+      cutoff: cutoff,
+      retentionInDays: retentionInDays,
+    };
+  }
+
+  // Every row the query matches, deleted a batch at a time; how many.
+  private async hardDeleteAllWhere(
+    getQuery: () => Query<Model>,
+  ): Promise<number> {
     let deleted: number = 0;
     let deletedInBatch: number = 0;
 
     do {
       deletedInBatch = await this.hardDeleteBy({
-        query: {
-          createdAt: QueryHelper.lessThan(cutoff),
-        },
+        query: getQuery(),
         props: {
           isRoot: true,
         },
@@ -991,11 +1057,7 @@ export class Service extends DatabaseService<Model> {
       deleted += deletedInBatch;
     } while (deletedInBatch > 0);
 
-    return {
-      deleted: deleted,
-      cutoff: cutoff,
-      retentionInDays: retentionInDays,
-    };
+    return deleted;
   }
 
   /*
