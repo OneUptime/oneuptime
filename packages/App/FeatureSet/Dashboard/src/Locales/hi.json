@@ -46453,5 +46453,21 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime को इस फ़ंक्शन से आख़िरी बार {{lastHeard}} डेटा मिला। यह तभी डेटा भेजता है जब यह चलता है, इसलिए जब इसे कोई इन्वोक नहीं करता, जैसे शेड्यूल किए गए रन के बीच, तब यह सामान्य है।",
   "Status shows \"No recent invocations\" while the function runs": "फ़ंक्शन चल रहा है, फिर भी स्थिति \"हाल में कोई इन्वोकेशन नहीं\" दिखाती है",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "यह बदलाव उसे पूर्ववत कर देता है जो AI के वर्कफ़्लो पढ़ने के बाद सहेजा गया था: {{steps}}।",
-  "What to check if it should be running": "अगर इसे चलना चाहिए तो क्या जाँचें"
+  "What to check if it should be running": "अगर इसे चलना चाहिए तो क्या जाँचें",
+  "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "AI ने ये {{count}} फ़ाइलें {{readBranch}} पर पढ़ी थीं, लेकिन {{branch}} पर ये अलग हैं, इसलिए AI के संस्करण वहाँ किए गए बदलावों को पूर्ववत कर सकते हैं: {{files}}।",
+  "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "AI ने यह फ़ाइल {{readBranch}} पर पढ़ी थी, लेकिन {{branch}} पर यह अलग है, इसलिए AI का संस्करण वहाँ किए गए बदलावों को पूर्ववत कर सकता है: {{files}}।",
+  "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "AI ने यह फ़ाइल {{readBranch}} पर पढ़ी थी, लेकिन {{branch}} पर यह अलग है, इसलिए AI का संस्करण वहाँ किए गए बदलावों को पूर्ववत कर सकता है: {{files}}।",
+  "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}.": "AI ने ये {{count}} फ़ाइलें पढ़े बिना लिखी हैं, और ये {{branch}} पर मौजूद फ़ाइलों की जगह ले लेती हैं: {{files}}।",
+  "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}._one": "AI ने यह फ़ाइल पढ़े बिना लिखी है, और यह {{branch}} पर मौजूद फ़ाइल की जगह ले लेती है: {{files}}।",
+  "Ask AI wrote this file without reading it, and it replaces the one on {{branch}}: {{files}}.": "AI ने यह फ़ाइल पढ़े बिना लिखी है, और यह {{branch}} पर मौजूद फ़ाइल की जगह ले लेती है: {{files}}।",
+  "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}.": "OneUptime इन {{count}} फ़ाइलों को {{branch}} पर AI के पढ़े हुए से नहीं मिला सका: {{files}}।",
+  "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}._one": "OneUptime इस फ़ाइल को {{branch}} पर AI के पढ़े हुए से नहीं मिला सका: {{files}}।",
+  "OneUptime could not check this file on {{branch}} against what Ask AI read: {{files}}.": "OneUptime इस फ़ाइल को {{branch}} पर AI के पढ़े हुए से नहीं मिला सका: {{files}}।",
+  "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}.": "AI के पढ़ने के बाद ये {{count}} फ़ाइलें {{branch}} पर बदली गईं, और AI के संस्करण उन बदलावों को पूर्ववत कर देते हैं: {{files}}।",
+  "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}._one": "AI के पढ़ने के बाद यह फ़ाइल {{branch}} पर बदली गई, और AI का संस्करण उस बदलाव को पूर्ववत कर देता है: {{files}}।",
+  "This file changed on {{branch}} after Ask AI read it, and Ask AI's version undoes that change: {{files}}.": "AI के पढ़ने के बाद यह फ़ाइल {{branch}} पर बदली गई, और AI का संस्करण उस बदलाव को पूर्ववत कर देता है: {{files}}।",
+  "another branch": "किसी दूसरी ब्रांच",
+  "{{count}} more file": "{{count}} और फ़ाइल",
+  "{{count}} more files": "{{count}} और फ़ाइलें",
+  "{{count}} more files_one": "{{count}} और फ़ाइल"
 }

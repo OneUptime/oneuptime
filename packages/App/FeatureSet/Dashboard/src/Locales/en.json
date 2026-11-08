@@ -46453,5 +46453,21 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.",
   "Status shows \"No recent invocations\" while the function runs": "Status shows \"No recent invocations\" while the function runs",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "This change undoes what was saved after Ask AI read the workflow: {{steps}}.",
-  "What to check if it should be running": "What to check if it should be running"
+  "What to check if it should be running": "What to check if it should be running",
+  "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.",
+  "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.",
+  "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.",
+  "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}.": "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}.",
+  "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}._one": "Ask AI wrote this file without reading it, and it replaces the one on {{branch}}: {{files}}.",
+  "Ask AI wrote this file without reading it, and it replaces the one on {{branch}}: {{files}}.": "Ask AI wrote this file without reading it, and it replaces the one on {{branch}}: {{files}}.",
+  "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}.": "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}.",
+  "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}._one": "OneUptime could not check this file on {{branch}} against what Ask AI read: {{files}}.",
+  "OneUptime could not check this file on {{branch}} against what Ask AI read: {{files}}.": "OneUptime could not check this file on {{branch}} against what Ask AI read: {{files}}.",
+  "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}.": "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}.",
+  "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}._one": "This file changed on {{branch}} after Ask AI read it, and Ask AI's version undoes that change: {{files}}.",
+  "This file changed on {{branch}} after Ask AI read it, and Ask AI's version undoes that change: {{files}}.": "This file changed on {{branch}} after Ask AI read it, and Ask AI's version undoes that change: {{files}}.",
+  "another branch": "another branch",
+  "{{count}} more file": "{{count}} more file",
+  "{{count}} more files": "{{count}} more files",
+  "{{count}} more files_one": "{{count}} more file"
 }

@@ -46453,5 +46453,21 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime mottok sist data fra denne funksjonen {{lastHeard}}. Den sender bare data mens den kjører, så dette er normalt når ingenting kaller den, for eksempel mellom planlagte kjøringer.",
   "Status shows \"No recent invocations\" while the function runs": "Statusen viser «Ingen nylige anrop» mens funksjonen kjører",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Denne endringen omgjør det som ble lagret etter at AI leste arbeidsflyten: {{steps}}.",
-  "What to check if it should be running": "Hva du bør sjekke hvis den burde kjøre"
+  "What to check if it should be running": "Hva du bør sjekke hvis den burde kjøre",
+  "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "AI leste disse {{count}} filene på {{readBranch}}, men de er annerledes på {{branch}}, så AI-versjonene kan omgjøre endringer som er gjort der: {{files}}.",
+  "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "AI leste denne filen på {{readBranch}}, men den er annerledes på {{branch}}, så AI-versjonen kan omgjøre endringer som er gjort der: {{files}}.",
+  "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "AI leste denne filen på {{readBranch}}, men den er annerledes på {{branch}}, så AI-versjonen kan omgjøre endringer som er gjort der: {{files}}.",
+  "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}.": "AI skrev disse {{count}} filene uten å lese dem, og de erstatter filene på {{branch}}: {{files}}.",
+  "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}._one": "AI skrev denne filen uten å lese den, og den erstatter filen på {{branch}}: {{files}}.",
+  "Ask AI wrote this file without reading it, and it replaces the one on {{branch}}: {{files}}.": "AI skrev denne filen uten å lese den, og den erstatter filen på {{branch}}: {{files}}.",
+  "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}.": "OneUptime kunne ikke sjekke disse {{count}} filene på {{branch}} mot det AI leste: {{files}}.",
+  "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}._one": "OneUptime kunne ikke sjekke denne filen på {{branch}} mot det AI leste: {{files}}.",
+  "OneUptime could not check this file on {{branch}} against what Ask AI read: {{files}}.": "OneUptime kunne ikke sjekke denne filen på {{branch}} mot det AI leste: {{files}}.",
+  "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}.": "Disse {{count}} filene ble endret på {{branch}} etter at AI leste dem, og AI-versjonene omgjør de endringene: {{files}}.",
+  "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}._one": "Denne filen ble endret på {{branch}} etter at AI leste den, og AI-versjonen omgjør den endringen: {{files}}.",
+  "This file changed on {{branch}} after Ask AI read it, and Ask AI's version undoes that change: {{files}}.": "Denne filen ble endret på {{branch}} etter at AI leste den, og AI-versjonen omgjør den endringen: {{files}}.",
+  "another branch": "en annen gren",
+  "{{count}} more file": "{{count}} fil til",
+  "{{count}} more files": "{{count}} filer til",
+  "{{count}} more files_one": "{{count}} fil til"
 }

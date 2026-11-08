@@ -46453,5 +46453,21 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime がこの関数から最後にデータを受信したのは {{lastHeard}} です。実行中にだけデータを送信するため、スケジュール実行の合間など、呼び出されていないときはこれが普通です。",
   "Status shows \"No recent invocations\" while the function runs": "関数が実行されているのにステータスが「最近の呼び出しなし」と表示される",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "この変更は、AI がワークフローを読んだ後に保存された内容を元に戻します: {{steps}}。",
-  "What to check if it should be running": "実行されているはずの場合に確認すること"
+  "What to check if it should be running": "実行されているはずの場合に確認すること",
+  "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "AI はこれら {{count}} 個のファイルを {{readBranch}} で読みましたが、{{branch}} では内容が異なるため、AI のバージョンはそこで行われた変更を元に戻す可能性があります: {{files}}。",
+  "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "AI はこのファイルを {{readBranch}} で読みましたが、{{branch}} では内容が異なるため、AI のバージョンはそこで行われた変更を元に戻す可能性があります: {{files}}。",
+  "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "AI はこのファイルを {{readBranch}} で読みましたが、{{branch}} では内容が異なるため、AI のバージョンはそこで行われた変更を元に戻す可能性があります: {{files}}。",
+  "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}.": "AI はこれら {{count}} 個のファイルを読まずに作成しており、{{branch}} にあるファイルを置き換えます: {{files}}。",
+  "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}._one": "AI はこのファイルを読まずに作成しており、{{branch}} にあるファイルを置き換えます: {{files}}。",
+  "Ask AI wrote this file without reading it, and it replaces the one on {{branch}}: {{files}}.": "AI はこのファイルを読まずに作成しており、{{branch}} にあるファイルを置き換えます: {{files}}。",
+  "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}.": "OneUptime は {{branch}} にあるこれら {{count}} 個のファイルを AI が読んだ内容と照合できませんでした: {{files}}。",
+  "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}._one": "OneUptime は {{branch}} にあるこのファイルを AI が読んだ内容と照合できませんでした: {{files}}。",
+  "OneUptime could not check this file on {{branch}} against what Ask AI read: {{files}}.": "OneUptime は {{branch}} にあるこのファイルを AI が読んだ内容と照合できませんでした: {{files}}。",
+  "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}.": "AI が読んだ後に {{branch}} でこれら {{count}} 個のファイルが変更されたため、AI のバージョンはそれらの変更を元に戻します: {{files}}。",
+  "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}._one": "AI が読んだ後に {{branch}} でこのファイルが変更されたため、AI のバージョンはその変更を元に戻します: {{files}}。",
+  "This file changed on {{branch}} after Ask AI read it, and Ask AI's version undoes that change: {{files}}.": "AI が読んだ後に {{branch}} でこのファイルが変更されたため、AI のバージョンはその変更を元に戻します: {{files}}。",
+  "another branch": "別のブランチ",
+  "{{count}} more file": "ほか {{count}} 個のファイル",
+  "{{count}} more files": "ほか {{count}} 個のファイル",
+  "{{count}} more files_one": "ほか {{count}} 個のファイル"
 }
