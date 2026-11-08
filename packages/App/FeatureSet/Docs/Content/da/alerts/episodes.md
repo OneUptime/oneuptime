@@ -177,6 +177,8 @@ En episode, du opretter, har ingen grupperingsregel, så listen viser dens **Gru
 
 **Udvikler** og **Avanceret** er foldet sammen fra start. På **Oversigt** nævner hovedet episodens **Ejere**, teams først, og det første felt, **Oprettet**, siger, hvornår episoden blev oprettet — **Automatisk**, når en grupperingsregel åbnede den. Kortet **Hvad der skete** står øverst på siden — episodens beskrivelse og dens **Grundårsag** — derefter **Advarsler i denne episode** og **Episodefeed**, ved siden af kortet **Episodedetaljer**: dens nummer, tilstand, alvorsgrad, antal advarsler, grupperingsregel og vagtpolitikker. Dens hoved har **Bekræft** og **Løs** og **Flyt episode til** i menuen **⋯**.
 
+Siden **Grundårsag** viser metrikkerne bag episoden ved siden af dens grundårsag: dem fra dens første advarsel, den tidligst oprettede, som telemetrikortet på dens **Oversigt** viser dem, omkring det tidspunkt episoden startede og med dens øjeblikke markeret, så du kan læse dem over ethvert interval omkring den, mens du skriver ned, hvorfor den skete. Når den advarsel ikke har gemt et øjebliksbillede af et metriktjek (en, der er oprettet i hånden på en metrikmonitor, for eksempel), viser siden den monitors metrikker, som monitoren læser dem nu, og siger det.
+
 **Advarsler → Aktive episoder** viser de episoder, der endnu ikke er løst, og mærket ved siden af tæller dem.
 
 ## Fejlfinding

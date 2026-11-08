@@ -233,23 +233,16 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const isAlert: boolean = words.telemetryNoun === "alert";
-
+  /*
+   * What it shows, in its subject's words: an incident's or an alert's
+   * metrics, or an episode's first member's, narrowed to the series it is
+   * about when the charts are.
+   */
   const description: string = props.seriesSummary
-    ? isAlert
-      ? translator.translateTemplate(
-          "Metrics for this alert, scoped to the affected series ({{seriesSummary}}).",
-          { seriesSummary: props.seriesSummary },
-        )
-      : translator.translateTemplate(
-          "Metrics related to this incident, scoped to the affected series ({{seriesSummary}}).",
-          { seriesSummary: props.seriesSummary },
-        )
-    : isAlert
-      ? translator.translateText("Metrics for this alert.") ||
-        "Metrics for this alert."
-      : translator.translateText("Metrics related to this incident.") ||
-        "Metrics related to this incident.";
+    ? translator.translateTemplate(words.scopedDescription, {
+        seriesSummary: props.seriesSummary,
+      })
+    : translator.translateText(words.description) || words.description;
 
   /*
    * Said while the charts show a snapshot narrowed now (see above), or the

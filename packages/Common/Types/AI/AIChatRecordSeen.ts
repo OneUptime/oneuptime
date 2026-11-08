@@ -23,11 +23,25 @@
  * undo that was saved since. It is never a permission, and never what a
  * change is saved by: what is saved is held to the record's revision as it
  * is read when the change is approved (WorkflowDraftRebase).
+ *
+ * A repository's files are kept the same way (issue #6313): Ask AI writes a
+ * file whole, from what read_code_file showed it, so each read keeps the
+ * file it showed - the repository, the branch it was read on, the path, and
+ * a keyed fingerprint of its version (Types/CodeRepository/CodeFileSeen) -
+ * and each commit of Ask AI's own keeps every file it wrote. One result can
+ * keep several (a commit's files): its citation then holds a list of them.
  */
 
 // The kinds of record a result can show the model, as the tool that changes them names them.
 export enum AIChatRecordSeenType {
   Workflow = "Workflow",
+  /*
+   * One file of a connected repository on one branch: what read_code_file
+   * showed the model, or what a commit of Ask AI's own wrote there
+   * (Types/CodeRepository/CodeFileSeen). Always whole: a file is written
+   * whole, so its one part is its version.
+   */
+  CodeFile = "CodeFile",
 }
 
 // A part of a record as shown: its id, and its fingerprint, or null where the record has no such part.
@@ -60,7 +74,25 @@ export interface AIChatRecordKnown {
 // More parts than any record shown whole: the steps of a workflow too long to read are not shown.
 export const MAX_RECORD_PARTS_SEEN: number = 1000;
 
-const MAX_RECORD_ID_LENGTH: number = 128;
+/*
+ * The longest ID a record of each kind is kept by: a workflow's own ID, or
+ * a repository's ID with a branch and a path in it (CodeFileSeen), which
+ * are as long as git lets them be. A longer one is not kept at all, which
+ * only ever leaves Ask AI knowing less.
+ */
+export const MAX_RECORD_ID_LENGTHS: Readonly<
+  Record<AIChatRecordSeenType, number>
+> = {
+  [AIChatRecordSeenType.Workflow]: 128,
+  [AIChatRecordSeenType.CodeFile]: 2048,
+};
+
+/*
+ * The most records one result may keep: a commit's files, each its own
+ * record. More than any write of the toolbox makes at once.
+ */
+export const MAX_RECORDS_SEEN_PER_RESULT: number = 100;
+
 const MAX_PART_ID_LENGTH: number = 1000;
 const MAX_FINGERPRINT_LENGTH: number = 128;
 
@@ -101,7 +133,8 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
     ) ||
     typeof recordId !== "string" ||
     recordId.length === 0 ||
-    recordId.length > MAX_RECORD_ID_LENGTH ||
+    recordId.length >
+      MAX_RECORD_ID_LENGTHS[recordType as AIChatRecordSeenType] ||
     typeof revision !== "number" ||
     !Number.isSafeInteger(revision) ||
     revision < 0 ||
@@ -154,14 +187,48 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
   };
 };
 
-type IsSameRecordIdFunction = (a: string, b: string) => boolean;
+type RecordKeyFunction = (
+  recordType: AIChatRecordSeenType,
+  recordId: string,
+) => string;
 
-// IDs as the database writes them, whichever case a caller spelt one in.
-const isSameRecordId: IsSameRecordIdFunction = (
-  a: string,
-  b: string,
-): boolean => {
-  return a.trim().toLowerCase() === b.trim().toLowerCase();
+/*
+ * What tells one record from another: a workflow by its ID as the database
+ * writes it, whichever case a caller spelt it in; a repository's file
+ * exactly as it is kept, since git tells "README.md" from "readme.md" and
+ * a branch "Fix" from "fix" (CodeFileSeen).
+ */
+const keyOfRecord: RecordKeyFunction = (
+  recordType: AIChatRecordSeenType,
+  recordId: string,
+): string => {
+  return `${recordType}\u0000${
+    recordType === AIChatRecordSeenType.CodeFile
+      ? recordId
+      : recordId.trim().toLowerCase()
+  }`;
+};
+
+type ListRecordsSeenFunction = (value: unknown) => Array<unknown>;
+
+/*
+ * The records one result or citation keeps (recordSeen): one, a list of
+ * them - a commit's files - or none. Read as stored, untrusted: a list
+ * longer than any result keeps is cut there, and each record in it is read
+ * on its own (readAIChatRecordSeen), so a damaged one only drops itself.
+ */
+export const listAIChatRecordsSeen: ListRecordsSeenFunction = (
+  value: unknown,
+): Array<unknown> => {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.slice(0, MAX_RECORDS_SEEN_PER_RESULT);
+  }
+
+  return [value];
 };
 
 type GetRecordKnownFunction = (data: {
@@ -189,8 +256,8 @@ export const getAIChatRecordKnown: GetRecordKnownFunction = (data: {
 
     if (
       record &&
-      record.recordType === data.recordType &&
-      isSameRecordId(record.recordId, data.recordId)
+      keyOfRecord(record.recordType, record.recordId) ===
+        keyOfRecord(data.recordType, data.recordId)
     ) {
       ofRecord.push(record);
     }
@@ -261,7 +328,7 @@ export const getLatestAIChatRecordsSeen: LatestRecordsSeenFunction = (
   const keyOf: (record: AIChatRecordSeen) => string = (
     record: AIChatRecordSeen,
   ): string => {
-    return `${record.recordType}\u0000${record.recordId.trim().toLowerCase()}`;
+    return keyOfRecord(record.recordType, record.recordId);
   };
 
   // Each record's last whole one.
