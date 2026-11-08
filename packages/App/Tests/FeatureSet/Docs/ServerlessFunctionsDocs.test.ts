@@ -6,6 +6,12 @@ import {
   normalizeCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import {
+  SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES,
+  SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_LABEL,
+  SERVERLESS_FUNCTION_RECEIVING_DATA_LABEL,
+  SERVERLESS_FUNCTION_WAITING_FOR_DATA_LABEL,
+} from "Common/Types/Serverless/ServerlessFunctionStatus";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -790,6 +796,49 @@ describe("Serverless Functions docs", (): void => {
       );
       expect(text).toContain("`logging.applicationInsights`");
       expect(text).toContain("**Instances** lists `faas.instance` values");
+    });
+  });
+
+  /*
+   * Issue #6269: a function sends telemetry only while it runs, so one
+   * nothing has invoked for a while is idle. The page names the status the
+   * list and the Overview draw, in the status module's words and minutes,
+   * and says it is normal between runs - never "Disconnected".
+   */
+  describe("the status", (): void => {
+    it("is described in the status's own words and minutes under What you get", (): void => {
+      expect(SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES).toBe(15);
+      expect(section(readPage(), "## What you get")).toContain(
+        `A function shows **${SERVERLESS_FUNCTION_RECEIVING_DATA_LABEL}** while its telemetry arrives and **${SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_LABEL}** after ${SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES} minutes without any, which is normal between runs: a function sends telemetry only while it runs. One added through the API shows **${SERVERLESS_FUNCTION_WAITING_FOR_DATA_LABEL}** until its first telemetry arrives.`,
+      );
+    });
+
+    it("has a troubleshooting entry named after the quiet status, which sends an invoked function to the checks above", (): void => {
+      const troubleshooting: string = section(readPage(), "## Troubleshooting");
+      const entry: string = troubleshooting.slice(
+        troubleshooting.indexOf(
+          `:::details The function shows ${SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_LABEL}`,
+        ),
+      );
+
+      expect(entry).toMatch(/^:::details /);
+      expect(entry).toContain("That is normal for a function that runs only now and then");
+      expect(entry).toContain(
+        `it shows **${SERVERLESS_FUNCTION_RECEIVING_DATA_LABEL}** again with its next telemetry`,
+      );
+      expect(entry).toContain(
+        "go through the checks for a function that does not appear, above.",
+      );
+      // The checks it points at are the entry before it.
+      expect(troubleshooting.indexOf(
+        ":::details The function does not appear under Serverless Functions",
+      )).toBeLessThan(troubleshooting.indexOf(entry));
+    });
+
+    it("never calls a function Disconnected or Connected", (): void => {
+      // "spans ... connected to the host's" is about spans, not a status.
+      expect(readPage()).not.toMatch(/disconnect/i);
+      expect(readPage()).not.toMatch(/\bConnected\b/);
     });
   });
 });

@@ -234,8 +234,10 @@ describe("the pages draw the status's words", () => {
     expect(list).toContain(
       "color={getServerlessFunctionStatusPillColor(status.tone)}",
     );
-    expect(list).not.toMatch(/"(?:Connected|Disconnected)"/);
-    expect(list).not.toMatch(/\bRed\b/);
+    // No pill text of the old words.
+    expect(list).not.toMatch(/text=\{[^}]*"(?:Connected|Disconnected)"/);
+    // No colour of its own, red included: the status's tone picks it.
+    expect(list).not.toContain('from "Common/Types/BrandColors"');
   });
 
   test("the Overview hands its hero the status's words, tone and hover", () => {
