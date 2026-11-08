@@ -1137,6 +1137,57 @@ describe("#6290's check is never weakened", () => {
     expect(stepIdsOf(server.graph)).toEqual(["log-a", "log-b", "log-c", "log-d", "webhook-1"]);
   });
 
+  test("the line stays true while the card waits: a card moved meanwhile, and approving does what it said", async () => {
+    const earlier: WorkflowDraft = await readSteps();
+    builder.addSlackAfter("log-d");
+    const prepared: PreparedMutation = await propose(addLogB(earlier));
+    expect(linesOf(prepared)).toContain(UNDOES("Send Message to Slack"));
+
+    builder.move("log-a");
+    const movedTo: { x: number; y: number } = copyOf(
+      nodeOf(server.graph, "log-a")!.position,
+    );
+    await approve(prepared);
+
+    // Made on top of the move (#6290), and the Slack step goes, as the card said.
+    expect(update.mock.calls[0]![0].miscDataProps).toEqual({
+      [WORKFLOW_GRAPH_REVISION_KEY]: 9,
+    });
+    expect(nodeOf(server.graph, "slack-1")).toBeUndefined();
+    expect(nodeOf(server.graph, "log-a")!.position).toEqual(movedTo);
+  });
+
+  test("the line can never come to lie: the step it names taken out while the card waits, approving is refused", async () => {
+    const earlier: WorkflowDraft = await readSteps();
+    builder.addSlackAfter("log-d");
+    const prepared: PreparedMutation = await propose(addLogB(earlier));
+    expect(linesOf(prepared)).toContain(UNDOES("Send Message to Slack"));
+
+    // Someone takes the Slack step out again: what the card named is no longer so.
+    builder.remove("slack-1");
+
+    const refusal: unknown = await refusalOf(approve(prepared));
+    expect(refusal).toBeInstanceOf(ConflictException);
+    // #6290's refusal names the step, which is in neither the workflow nor the draft now, by its id.
+    expect((refusal as ConflictException).message).toContain("(slack-1)");
+    expect((refusal as ConflictException).message).toContain(
+      "nothing was changed",
+    );
+    expect(update.mock.calls).toHaveLength(0);
+  });
+
+  test("no line, and a step added while the card waits: approving keeps it (#6290), so no line was owed", async () => {
+    const earlier: WorkflowDraft = await readSteps();
+    const prepared: PreparedMutation = await propose(addLogB(earlier));
+    expect(linesOf(prepared)).toEqual(["Adds Log."]);
+
+    builder.addSlackAfter("log-d");
+    await approve(prepared);
+
+    expect(nodeOf(server.graph, "slack-1")).toBeDefined();
+    expect(nodeOf(server.graph, "log-b")).toBeDefined();
+  });
+
   test("a stale read approved, and a save while the card waits to a step it touches: refused as before", async () => {
     const earlier: WorkflowDraft = await readSteps();
     builder.addSlackAfter("log-d");

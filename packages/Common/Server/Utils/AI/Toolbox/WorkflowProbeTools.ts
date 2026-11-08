@@ -284,9 +284,10 @@ const MAX_WORKFLOW_STEPS_TEXT_LENGTH: number = 48 * 1024;
  * not at all: a draft cut short and written back would remove the rest.
  *
  * Shown, they are what a change the model writes from them is checked
- * against before anyone approves it (issue #6291): every step, by its
- * keyed fingerprint, and the graph revision they were read at, kept with
- * the result's citation (recordSeen) - by OneUptime, never the model.
+ * against before anyone approves it (issue #6291): every step, by a keyed
+ * fingerprint of what it is, every connection, and the graph revision
+ * they were read at, kept with the result's citation (recordSeen) - by
+ * OneUptime, never the model.
  */
 function describeWorkflowSteps(workflow: Workflow): {
   text: string;
