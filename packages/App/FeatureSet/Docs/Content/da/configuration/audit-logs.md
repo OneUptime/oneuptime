@@ -92,7 +92,16 @@ Det registreres også, når en administrator tilføjer eller fjerner en notifika
 
 Felter, som kun OneUptime skriver, for eksempel hvornår en vært sidst blev set, udelades af alle poster, og det samme gør felter, som ingen må læse. Når OneUptime skriver et af dem, fordi nogen bad om det, for eksempel når en undtagelse flettes ind i en anden, eller en webhook-URL nulstilles, registrerer posten det som deres ændring. Nøgler, tokens og adgangskoder registreres som `[REDACTED]`: posten viser, at de er ændret, aldrig deres værdi. Et workflows trin registreres som det, der ændrede sig, med navnene på et trins indstillinger, men aldrig det, der blev skrevet i dem, og når et trin flyttes på lærredet, registreres det ikke.
 
-Det, OneUptime gør, fordi nogen bad om det, registreres også som deres ændring, uanset om projektet gemmer systemhændelser: at starte, godkende, fuldføre, springe over og annullere en kørsel af en runbook; de etiketter og ejere, en regel tilføjer, de poster, en privatlivsregel gør private, og de enheder, en regel for tildeling af lokation flytter, når nogen kører reglen på de poster, der allerede findes; at købe, tilknytte og frigive telefonnummeret på en politik for indgående opkald; at løse en dataalarm, som nogen markerer som forventet eller som ikke et problem; at nulstille linket til et kalenderfeed; og de teams, nogen bliver medlem af, når de logger ind med SSO. En runbook-kørsels trin registreres som det, der blev gjort ved hvert af dem, for eksempel `Approved "Restart the API" (step 3)`, aldrig med det, et trin skrev ud. Etiketter og ejere, som en regel tilføjer, når en post oprettes, og en post, den da gør privat, er OneUptimes egen ændring og registreres, når **Gem systemhændelser** er slået til.
+Det, OneUptime gør, fordi nogen bad om det, registreres også som deres ændring, uanset om projektet gemmer systemhændelser:
+
+- At starte, godkende, fuldføre, springe over og annullere en kørsel af en runbook. Dens trin registreres som det, der blev gjort ved hvert af dem, for eksempel `Approved "Restart the API" (step 3)`, aldrig med det, et trin skrev ud.
+- Det, en regel ændrer, når nogen kører den: de etiketter og ejere, den tilføjer, de poster, en privatlivsregel gør private, de enheder, en regel for tildeling af lokation flytter, de enheder og monitorer, en regel for automatisk import opretter, og det, en monitorregel på en statusside eller et SLO ændrer på siden eller SLO'et.
+- At købe, tilknytte og frigive telefonnummeret på en politik for indgående opkald.
+- At løse en dataalarm, som nogen markerer som forventet eller som ikke et problem.
+- At nulstille linket til et kalenderfeed.
+- De teams, nogen bliver medlem af, når de logger ind med SSO.
+
+Det, en regel gør af sig selv, er OneUptimes egen ændring og registreres, når **Gem systemhændelser** er slået til: de etiketter og ejere, en regel tilføjer, når en post oprettes, og en post, den da gør privat; de enheder og monitorer, en regel for automatisk import opretter ud fra nye scanningsresultater; og det, en monitorregel på en statusside eller et SLO ændrer, når en regel, en monitor eller en etiket gemmes.
 
 Når nogen nulstiller AI-agenten for en vært, en klynge eller en cloudkonto, registreres det på ressourcens egen side **Auditlogs** som deres ændring af `aiAgentResetAt`: hvem, og hvornår. Det samme gælder, når nogen laver en nøgle til en cloudkontos AI-agent: nøglerne vises som ændret, aldrig med en nøgle eller en hash. Det, en agent rapporterer, når den forbinder og melder sig, er udeladt som før.
 

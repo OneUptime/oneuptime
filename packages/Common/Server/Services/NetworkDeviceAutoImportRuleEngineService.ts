@@ -11,6 +11,7 @@ import NetworkDeviceService from "./NetworkDeviceService";
 import MonitorService from "./MonitorService";
 import MonitorTemplateService from "./MonitorTemplateService";
 import BadDataException from "../../Types/Exception/BadDataException";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../Types/JSON";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
@@ -69,6 +70,7 @@ import NetworkDeviceHydrationUtil from "../Utils/Monitor/NetworkDeviceHydrationU
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
+import { RuleRunWriteProps } from "../Utils/Rules/RuleRun/RuleApplication";
 import Label from "../../Models/DatabaseModels/Label";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -100,6 +102,15 @@ import { RuleEvaluation } from "../Utils/PatternWorkScope";
  * interval, and both paths reuse hosts whose address is already registered.
  * Existing devices are still reconciled for a selected template monitor,
  * while provenance keys prevent the same monitor from being created twice.
+ *
+ * Who the devices and monitors are by (issue #6323). Both paths write as
+ * root - who may run a rule is asked at its route - but Run Now names who
+ * ran it, and every device and monitor it creates is written on their behalf
+ * (RuleRunWriteProps): the audit log records them as that person's, kept
+ * whether or not the project stores system events, and each record's
+ * creator is them. What the automatic path imports names nobody and stays
+ * OneUptime's own, a system event. HookFreeWritesAreRecorded.test.ts holds
+ * every write Run Now reaches to this.
  */
 
 /*
@@ -553,6 +564,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
     data.attemptBudgetsByProjectId?.set(projectBudgetKey, attempts);
 
+    /*
+     * Names nobody: what the sweep imports from a new result is OneUptime's
+     * own, a system event, as a rule applied to a new record is.
+     */
     const createdIpAddresses: Array<string> = await this.importHostsFromScan({
       scan: scan,
       rules: rules,
@@ -730,6 +745,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * Markers are deliberately not stamped here. They belong to the automatic
    * path's bookkeeping, and a manual run of one rule has not done what the
    * full rule set would.
+   *
+   * The devices and monitors a real run creates are written on the behalf of
+   * whoever ran it (`props`, from the route), so the audit log credits them,
+   * not System. A dry run writes nothing at all.
    */
   @CaptureSpan()
   public async applyRuleToCompletedScans(data: {
@@ -737,6 +756,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     projectId: ObjectID;
     isDryRun: boolean;
     expectedMonitorTemplateId?: ObjectID | null;
+    // Who ran it: their props, from the route.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<AutoImportRuleRunResult> {
     const rule: NetworkDeviceAutoImportRule | null =
       await NetworkDeviceAutoImportRuleService.findOneBy({
@@ -830,6 +851,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         rule: rule,
         projectId: data.projectId,
         isDryRun: data.isDryRun,
+        props: data.props,
       });
     } finally {
       if (mutex) {
@@ -848,6 +870,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     rule: NetworkDeviceAutoImportRule;
     projectId: ObjectID;
     isDryRun: boolean;
+    // Who ran it - see applyRuleToCompletedScans.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<AutoImportRuleRunResult> {
     const exclusionRules: Array<NetworkDeviceAutoImportRule> = (
       await this.loadEnabledRules(data.projectId)
@@ -973,6 +997,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         result: result,
         attempts: attempts,
         isDryRun: data.isDryRun,
+        props: data.props,
       });
 
       if (createdIpAddresses.length > 0) {
@@ -2075,6 +2100,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     result: AutoImportRuleRunResult;
     attempts: ImportAttemptBudget;
     isDryRun: boolean;
+    // Who ran the rule (Run Now); none for the automatic path.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<Array<string>> {
     const scan: NetworkDeviceDiscoveryScan = data.scan;
     const result: AutoImportRuleRunResult = data.result;
@@ -2281,6 +2308,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             existingDevices: data.existingDevices,
             result: result,
             attempts: data.attempts,
+            props: data.props,
             ...(oidTemplateIdForHost
               ? { oidTemplateId: oidTemplateIdForHost }
               : {}),
@@ -2317,6 +2345,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           result: result,
           attempts: data.attempts,
           isDryRun: data.isDryRun,
+          props: data.props,
         });
 
       /*
@@ -2366,6 +2395,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     result: AutoImportRuleRunResult;
     attempts: ImportAttemptBudget;
     isDryRun: boolean;
+    // Who ran the rule (Run Now); none for the automatic path.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<Array<string>> {
     /*
      * A Network Device monitor is fed by the device's polls, and nothing
@@ -2595,12 +2626,14 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           networkDevice: data.networkDevice,
         });
 
+        /*
+         * In the device's project: MonitorService creates a monitor only in
+         * the project on the request. On the behalf of whoever ran the rule,
+         * so the monitor is theirs in the audit log and they are its creator.
+         */
         await MonitorService.create({
           data: monitor,
-          props: {
-            isRoot: true,
-            tenantId: data.projectId,
-          },
+          props: RuleRunWriteProps.getInProject(data.props, data.projectId),
         });
 
         data.existingMonitors.autoProvisionedKeys.add(key);
@@ -2740,6 +2773,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     existingDevices: Map<string, NetworkDevice>;
     result: AutoImportRuleRunResult;
     attempts: ImportAttemptBudget;
+    // Who ran the rule (Run Now); none for the automatic path.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<{ device: NetworkDevice | null; wasCreated: boolean }> {
     data.attempts.deviceCount++;
 
@@ -2764,11 +2799,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           : {}),
       });
 
+      // On the behalf of whoever ran the rule: theirs in the audit log.
       const created: NetworkDevice = await NetworkDeviceService.create({
         data: device,
-        props: {
-          isRoot: true,
-        },
+        props: RuleRunWriteProps.get(data.props),
       });
 
       return created || device;

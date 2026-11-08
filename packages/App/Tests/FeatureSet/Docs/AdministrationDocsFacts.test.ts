@@ -1966,6 +1966,57 @@ describe("Audit Logs", () => {
     }
   });
 
+  /*
+   * Issues #6300, #6323, #6324: what a rule changes when someone runs it is
+   * their change - every rule's Run now hands who ran it to its engine, and
+   * the engine writes with RuleRunWriteProps - and what a rule does by
+   * itself is OneUptime's own. HookFreeWritesAreRecorded holds the engines
+   * to it; this holds the page to the same list of rules.
+   */
+  it("says what a rule changes when someone runs it is their change, and what a rule does by itself OneUptime's own", () => {
+    const recorded: string = section(page, "## What is recorded");
+
+    expect(recorded).toContain(
+      "- What a rule changes when someone runs it: the labels and owners it adds, the records a privacy rule makes private, the devices a site assignment rule moves, the devices and monitors an auto import rule creates, and what a status page or SLO monitor rule changes on its page or SLO.",
+    );
+    expect(recorded).toContain(
+      "What a rule does by itself is OneUptime's own change, recorded with **Store System Events** on: the labels and owners a rule adds as a record is created, and a record it makes private then; the devices and monitors an auto import rule creates from new scan results; and what a status page or SLO monitor rule changes when a rule, a monitor or a label is saved.",
+    );
+
+    // Root as the person who ran it, and OneUptime's own with nobody named.
+    expect(
+      readCommonSource("Server/Utils/Rules/RuleRun/RuleApplication.ts"),
+    ).toContain(
+      "return props ? OnBehalfOfProps.get(props) : { isRoot: true };",
+    );
+
+    // The engines the page names write a Run now's changes as that person.
+    for (const engine of [
+      "Server/Services/NetworkDeviceAutoImportRuleEngineService.ts",
+      "Server/Services/StatusPageMonitorRuleEngineService.ts",
+      "Server/Services/ServiceLevelObjectiveMonitorRuleEngineService.ts",
+      "Server/Services/NetworkDeviceService.ts",
+    ]) {
+      expect([engine, readCommonSource(engine)]).toEqual([
+        engine,
+        expect.stringContaining("RuleRunWriteProps.get(data.props)"),
+      ]);
+    }
+
+    /*
+     * And the routes and the runner hand who ran it on, every one of them
+     * (HookFreeWritesAreRecorded reads each call).
+     */
+    expect(readPackageFile("App/FeatureSet/BaseAPI/API/RuleRun.ts")).toContain(
+      "// What the run changes is theirs in the audit log.\n            props: props,",
+    );
+    expect(
+      readCommonSource("Server/Utils/Rules/RuleRun/RuleRunner.ts"),
+    ).toContain(
+      "statusPageMonitorRuleId: data.ruleId,\n        props: data.props,",
+    );
+  });
+
   it("names the actions an entry can record, a download included", () => {
     expect(Object.values(AuditLogAction).sort()).toEqual(
       ["Create", "Update", "Delete", "Download"].sort(),
