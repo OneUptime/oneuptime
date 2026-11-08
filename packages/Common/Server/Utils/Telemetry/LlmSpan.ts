@@ -8,6 +8,7 @@ import {
   LlmAttributeNamespacePrefixes,
   LlmConversationIdAttributeKeys,
   LlmCostAttributeKeys,
+  LlmEndpointAddressAttributeKeys,
   LlmOperationAttributeKeys,
   LlmRequestModelAttributeKeys,
   LlmResponseModelAttributeKeys,
@@ -20,6 +21,7 @@ import {
 import LlmTokenUsageUtil, {
   LlmTokenUsage,
 } from "../../../Types/Telemetry/LlmTokenUsage";
+import { normalizeLlmProvider } from "../../../Types/Telemetry/LlmProviders";
 import { AttributeType } from "./Telemetry";
 import {
   LlmCallKind,
@@ -199,7 +201,15 @@ export default class LlmSpanUtil {
       return fields;
     }
 
-    fields.llmSystem = this.getString(attributes, LlmSystemAttributeKeys);
+    /*
+     * The provider as the conventions name it (LlmProviders): "az.ai.openai"
+     * and "azure_openai" are stored as "azure.ai.openai", "OpenAI" as
+     * "openai". Which Azure host an "openai" call went to is read once the
+     * span is known to be an AI call, below.
+     */
+    fields.llmSystem = normalizeLlmProvider({
+      reported: this.getString(attributes, LlmSystemAttributeKeys),
+    });
 
     fields.llmOperation = this.getString(attributes, LlmOperationAttributeKeys);
 
@@ -252,6 +262,25 @@ export default class LlmSpanUtil {
     fields.llmToolName = this.getString(attributes, LlmToolNameAttributeKeys);
 
     fields.isLlmSpan = this.detectIsLlmSpan(keys, fields);
+
+    /*
+     * An OpenAI SDK says "openai" (or nothing) when it calls an Azure
+     * OpenAI or Microsoft Foundry resource - the OpenAI .NET library, the
+     * OpenTelemetry instrumentation for JavaScript, OpenLLMetry for a
+     * Foundry endpoint. The address it called says Azure, and an Azure call
+     * is filed, filtered and budgeted as one. Read only on an AI call: an
+     * ordinary HTTP span to the same host stays what it is.
+     */
+    if (fields.isLlmSpan) {
+      fields.llmSystem = normalizeLlmProvider({
+        reported: fields.llmSystem,
+        addresses: LlmEndpointAddressAttributeKeys.map(
+          (key: string): string => {
+            return this.getString(attributes, [key]);
+          },
+        ),
+      });
+    }
 
     /*
      * Conversation id is gated on isLlmSpan because one of its candidate keys

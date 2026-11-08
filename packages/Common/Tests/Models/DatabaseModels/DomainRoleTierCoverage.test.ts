@@ -103,10 +103,12 @@ const DOMAIN_BY_MODEL: Record<string, string> = {
 const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
   /*
    * The telemetry ingestion key is the credential a collector authenticates
-   * with, and usage billing is billing. Neither is telemetry data.
+   * with: not telemetry data. (TelemetryUsageBilling left this list when
+   * usage was counted where billing is off too, issue #5916: how much
+   * telemetry a project sends is read by the Telemetry roles now, and only
+   * its cost column stays with the billing readers.)
    */
   "TelemetryIngestionKey",
-  "TelemetryUsageBilling",
 
   /*
    * Secrets and credentials. These hold the values a monitor or runbook step

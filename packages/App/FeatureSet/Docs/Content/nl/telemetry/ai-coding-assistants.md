@@ -83,7 +83,7 @@ Op een datapunt van een metriek is de lijst korter en begint hij met het e-maila
 
 | Kolom | Sleutels, de voorkeur eerst |
 | --- | --- |
-| Medewerker | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Medewerker | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Team / kostenplaats | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Model | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime leest ook tokens uit `gen_ai.client.token.usage`, `gen_ai.client.token
 Twee dingen om te weten voordat je de getallen leest:
 
 - **`gemini_cli.token.usage` wordt bewust overgeslagen.** Gemini CLI stuurt zijn tokens twee keer, als eigen metriek en als `gen_ai.client.token.usage`, en beide lezen zou ze verdubbelen. Zijn tokens worden één keer geteld, via `gen_ai.client.token.usage`. Gemini CLI stuurt geen kostenmetriek: zet zijn traces aan om elke aanroep een prijs te geven.
-- **Alleen invoer- en uitvoertokens worden geteld.** Het tokentype wordt gelezen uit `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` of `token_type`, en alleen `input` en `output` (of de oudere `prompt` en `completion`) tellen. Cachelezen en -schrijven, de `total` van Codex (die de andere herhaalt) en `reasoning_output` (onderdeel van `output`) worden weggelaten, dus een totaal uit metrieken is kleiner dan de som van alles wat een tool stuurt.
+- **Alleen invoer- en uitvoertokens worden geteld.** Het tokentype wordt gelezen uit `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` of `token_type`, en alleen `input` en `output` (of de oudere `prompt` en `completion`) tellen, met `cacheRead` en `cacheCreation` van Claude Code als invoer, omdat zijn `input` ze weglaat. Ander cachelezen en -schrijven, de `total` van Codex (die de andere herhaalt) en `reasoning_output` (onderdeel van `output`) worden weggelaten, dus een totaal uit metrieken is kleiner dan de som van alles wat een tool stuurt.
 
 ## Het tabblad Gebruik
 

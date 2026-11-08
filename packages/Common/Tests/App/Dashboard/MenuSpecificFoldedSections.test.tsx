@@ -197,6 +197,8 @@ describe("project Settings: only Basic starts open", () => {
       "Ingestion Keys",
     ],
     [PageMap.SETTINGS_TELEMETRY_SETTINGS, "Telemetry & APM", "Data Retention"],
+    // Usage is on every install, billing or not (issue #5916).
+    [PageMap.SETTINGS_USAGE_HISTORY, "Telemetry & APM", "Usage"],
     [PageMap.SETTINGS_SLACK_INTEGRATION, "Workspace", "Slack"],
     [
       PageMap.SETTINGS_NOTIFICATION_SETTINGS,
@@ -232,7 +234,20 @@ describe("project Settings: only Basic starts open", () => {
       linksIn("Telemetry & APM").map((link: MenuLink): string => {
         return link.title;
       }),
-    ).toEqual(["Ingestion Keys", "Data Retention"]);
+    ).toEqual(["Ingestion Keys", "Data Retention", "Usage"]);
+  });
+
+  test("with billing on, Usage stays under Telemetry & APM, and Billing and Invoices holds billing alone", async () => {
+    billingEnabledForTest = true;
+    await renderSettingsMenuAt(PageMap.SETTINGS_USAGE_HISTORY);
+
+    expect(isExpanded("Telemetry & APM")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["Usage"]);
+    expect(
+      linksIn("Billing and Invoices").map((link: MenuLink): string => {
+        return link.title;
+      }),
+    ).toEqual(["Billing", "Invoices"]);
   });
 
   test("on a phone, the menu names the section and page", async () => {

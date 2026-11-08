@@ -63,7 +63,8 @@
     "apiKey": "API-Schlüssel",
     "more": "Mehr",
     "sendEmail": "E-Mail senden",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "telemetryUsage": "Telemetrie-Nutzung"
   },
   "topAlert": {
     "title": "OneUptime Admin-Dashboard",
@@ -131,7 +132,8 @@
     "settingsApiIntegrations": "API und Integrationen",
     "settingsApiKey": "API-Schlüssel",
     "moreCommunication": "Kommunikation",
-    "moreSendEmail": "E-Mail senden"
+    "moreSendEmail": "E-Mail senden",
+    "telemetryUsage": "Telemetrie-Nutzung"
   },
   "pages": {
     "users": {
@@ -581,7 +583,10 @@
         "logEditButton": "Einstellungen bearbeiten",
         "metricCardTitle": "Monitor-Metrik-Aufbewahrung",
         "metricCardDescription": "Konfigurieren Sie, wie lange Monitor-Metriken aufbewahrt werden, bevor sie automatisch gelöscht werden.",
-        "metricEditButton": "Einstellungen bearbeiten"
+        "metricEditButton": "Einstellungen bearbeiten",
+        "usageCardTitle": "Aufbewahrung der Telemetrie-Nutzung",
+        "usageCardDescription": "Wie lange die tägliche Telemetrie-Nutzung jedes Projekts aufbewahrt wird, mit oder ohne Abrechnung.",
+        "usageEditButton": "Aufbewahrung der Telemetrie-Nutzung bearbeiten"
       },
       "apiKey": {
         "cardTitle": "Master-API-Schlüssel-Einstellungen",
@@ -596,6 +601,13 @@
         "cardDescription": "Globale LLM-Anbieter sind für alle Projekte für KI-Funktionen verfügbar. Konfigurieren Sie OpenAI, Anthropic, Ollama oder andere LLM-Anbieter.",
         "noItems": "Keine LLM-Anbieter konfiguriert. Fügen Sie einen LLM-Anbieter hinzu, um KI-Funktionen zu aktivieren."
       }
+    },
+    "telemetryUsage": {
+      "title": "Telemetrie-Nutzung",
+      "cardTitle": "Telemetrie-Nutzung nach Projekt",
+      "cardDescription": "Wie viel Telemetrie jedes Projekt gesendet hat, die größten zuerst. Ein Tag wird gezählt, sobald er in UTC zu Ende ist.",
+      "emptyTitle": "Noch keine Telemetrie-Nutzung",
+      "emptyDescription": "In diesem Zeitraum wurde noch für kein Projekt Nutzung gezählt. Die Telemetrie eines Tages wird gezählt, sobald der Tag in UTC zu Ende ist, bis etwa 08:00 UTC am nächsten Tag."
     }
   },
   "Basic": "Grundlegend",
@@ -1859,6 +1871,60 @@
   "This list has default columns for everyone in this project.": "Diese Liste hat Standardspalten für alle in diesem Projekt.",
   "Remove default": "Standard entfernen",
   "Reset to project default": "Auf Projektstandard zurücksetzen",
+  "Telemetry Usage": "Telemetrie-Nutzung",
+  "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.": "Wie viel Telemetrie dieses Projekt pro Tag gesendet hat, nach Signal. Ein Tag wird gezählt, sobald er in UTC zu Ende ist.",
+  "Usage by Resource": "Nutzung nach Ressource",
+  "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.": "Welche Dienste und Ressourcen die Telemetrie gesendet haben, die größten zuerst, und wie lange sie jeweils aufbewahrt wird.",
+  "Resource": "Ressource",
+  "Resources": "Ressourcen",
+  "Total": "Gesamt",
+  "Cost": "Kosten",
+  "Retention": "Aufbewahrung",
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.": "Wie lange die Telemetrie der Ressource aufbewahrt wird, gezählt am neuesten Tag des Zeitraums.",
+  "Range": "Zeitraum",
+  "Last {{count}} days": "Letzte {{count}} Tage",
+  "Last {{count}} days_one": "Letzter {{count}} Tag",
+  "No telemetry usage yet": "Noch keine Telemetrie-Nutzung",
+  "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.": "Die Telemetrie eines Tages wird gezählt, sobald der Tag in UTC zu Ende ist, bis etwa 08:00 UTC am nächsten Tag. Die von heute erscheint morgen.",
+  "No telemetry usage in this range": "Keine Telemetrie-Nutzung in diesem Zeitraum",
+  "The newest day with usage is {{day}}. Choose a longer range to see it.": "Die neueste Nutzung stammt vom {{day}}. Wählen Sie einen längeren Zeitraum, um sie zu sehen.",
+  "Logs": "Protokolle",
+  "Metrics": "Metriken",
+  "Traces": "Traces",
+  "Profiles": "Profile",
+  "Session Replays": "Sitzungswiedergaben",
+  "Security Events": "Sicherheitsereignisse",
+  "Spans, and the exceptions recorded with them.": "Spans und die mit ihnen aufgezeichneten Ausnahmen.",
+  "Profiles, and the samples recorded with them.": "Profile und die mit ihnen aufgezeichneten Samples.",
+  "{{size}} GB": "{{size}} GB",
+  "{{size}} MB": "{{size}} MB",
+  "{{size}} KB": "{{size}} KB",
+  "{{amount}} USD": "{{amount}} USD",
+  "Session replays: {{days}}": "Sitzungswiedergaben: {{days}}",
+  "Service": "Dienst",
+  "RUM Application": "RUM-Anwendung",
+  "Docker Host": "Docker-Host",
+  "Podman Host": "Podman-Host",
+  "Kubernetes Cluster": "Kubernetes-Cluster",
+  "Proxmox Cluster": "Proxmox-Cluster",
+  "OpenStack Cloud": "OpenStack-Cloud",
+  "Ceph Cluster": "Ceph-Cluster",
+  "Storage Array": "Speicher-Array",
+  "Docker Swarm Cluster": "Docker-Swarm-Cluster",
+  "vCenter": "vCenter",
+  "IoT Fleet": "IoT-Flotte",
+  "Serverless Function": "Serverless-Funktion",
+  "Cloud Resource": "Cloud-Ressource",
+  "Database": "Datenbank",
+  "Network Device": "Netzwerkgerät",
+  "Unknown Service": "Unbekannter Dienst",
+  "Day": "Tag",
+  "Data Ingested (in GB)": "Aufgenommene Daten (in GB)",
+  "How much telemetry each project sends, heaviest first.": "Wie viel Telemetrie jedes Projekt sendet, die größten zuerst.",
+  "Telemetry Usage Retention (Days)": "Aufbewahrung der Telemetrie-Nutzung (Tage)",
+  "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Wie viele Tage die tägliche Telemetrie-Nutzung jedes Projekts aufbewahrt wird, von 30 bis 1095. Leer lassen für 120 Tage.",
+  "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Anzahl der Tage, für die die tägliche Telemetrie-Nutzung jedes Projekts aufbewahrt wird. Ältere Nutzung wird gelöscht.",
+  "Scheduled Maintenance": "Geplante Wartung",
   "markdownCallouts": {
     "caution": "Vorsicht",
     "danger": "Gefahr",

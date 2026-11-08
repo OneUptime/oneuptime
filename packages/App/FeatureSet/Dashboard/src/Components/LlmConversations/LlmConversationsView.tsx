@@ -49,6 +49,12 @@ import {
   LLM_ISSUE_STYLES,
   LlmSortOption,
 } from "./LlmConversationCopy";
+import { LlmEmptyViewFindingKey } from "Common/Types/Telemetry/LlmSetupCheckApi";
+import OneUptimeDate from "Common/Types/Date";
+import { getLlmEmptyViewState } from "../AI/SetupCheck/LlmEmptyViewDiagnosis";
+import useLlmSetupCheck, {
+  LlmSetupCheckState,
+} from "../AI/SetupCheck/useLlmSetupCheck";
 import {
   LlmConversationListView,
   isLlmConversationListFiltered,
@@ -254,6 +260,30 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
     state.kind === "loaded" &&
     state.response.conversations.length === 0;
 
+  /*
+   * Nothing in the time range and nothing narrowing it: ask the project's
+   * setup check why, and lead the empty state with what it finds. The
+   * window is the one the list read, kept as long as the range is.
+   */
+  const rangeKey: string = JSON.stringify({
+    range: view.range.range,
+    start: view.range.startAndEndDate?.startValue?.toString() || "",
+    end: view.range.startAndEndDate?.endValue?.toString() || "",
+  });
+
+  const checkWindow: InBetween<Date> = useMemo(() => {
+    return RangeStartAndEndDateTimeUtil.getStartAndEndDate(view.range);
+  }, [rangeKey]);
+
+  const setupCheck: LlmSetupCheckState = useLlmSetupCheck({
+    enabled:
+      !isFiltered &&
+      state.kind === "loaded" &&
+      state.response.conversations.length === 0,
+    window: checkWindow,
+    reloadToken: reloadToken,
+  });
+
   const totalForFilter: number | null = useMemo(() => {
     if (!summary) {
       return null;
@@ -367,9 +397,77 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
         );
       }
 
+      /*
+       * "Show the past month" is a way to find older calls: offered unless
+       * the range already holds a month, or the setup check read that no
+       * app has ever sent one the project still keeps.
+       */
+      const hasNoCallsToFind: boolean =
+        setupCheck.kind === "loaded" &&
+        setupCheck.check.apps !== null &&
+        setupCheck.check.apps.callsRecently === 0 &&
+        !setupCheck.check.apps.newestCallAt;
+
       const isWholeMonth: boolean =
         view.range.range === TimeRange.PAST_ONE_MONTH ||
         view.range.range === TimeRange.PAST_THREE_MONTHS;
+
+      const diagnosis: ReturnType<typeof getLlmEmptyViewState> =
+        getLlmEmptyViewState({
+          view: "conversations",
+          check: setupCheck,
+          translator: translator,
+          serviceName: (serviceId: string): string => {
+            return services.names.get(serviceId) || "";
+          },
+          now: OneUptimeDate.getCurrentDate(),
+          onWiden: (widenTo: {
+            range: TimeRange;
+            startTime?: Date | undefined;
+          }): void => {
+            setView({
+              ...view,
+              range:
+                widenTo.range === TimeRange.CUSTOM && widenTo.startTime
+                  ? {
+                      range: TimeRange.CUSTOM,
+                      startAndEndDate: new InBetween<Date>(
+                        widenTo.startTime,
+                        OneUptimeDate.getCurrentDate(),
+                      ),
+                    }
+                  : { range: widenTo.range },
+              page: 0,
+            });
+          },
+        });
+
+      /*
+       * What the setup check found leads: calls just outside the range, an
+       * app calling a provider with nothing recording it, a quiet company
+       * AI tool, provider accounts or coding assistants that bring usage
+       * only. With nothing found - or a check that could not be read - the
+       * empty state says how AI comes in, as it always did.
+       */
+      if (
+        diagnosis.findingKey !== LlmEmptyViewFindingKey.Nothing &&
+        setupCheck.kind !== "error"
+      ) {
+        return (
+          <TableEmptyState
+            kind={TableEmptyStateKind.Empty}
+            icon={IconProp.ChatBubbleLeftRight}
+            dataTestId="llm-conversations-empty"
+            title={diagnosis.title}
+            description={
+              <span data-testid="llm-conversations-diagnosis">
+                {diagnosis.description}
+              </span>
+            }
+            actions={diagnosis.actions}
+          />
+        );
+      }
 
       return (
         <TableEmptyState
@@ -387,7 +485,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
                 Navigation.navigate(setupRoute);
               },
             },
-            ...(isWholeMonth
+            ...(isWholeMonth || hasNoCallsToFind
               ? []
               : [
                   {

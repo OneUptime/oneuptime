@@ -92,7 +92,16 @@ An administrator adding or removing a notification method or a personal on-call 
 
 Fields only OneUptime writes, such as when a host was last seen, are left out of every entry, and so are fields nobody may read. When OneUptime writes one because someone asked it to, such as merging an exception into another or resetting a webhook URL, the entry records it as their change. Keys, tokens and passwords are recorded as `[REDACTED]`: the entry shows they changed, never their value. A workflow's steps are recorded as what changed, naming a step's settings but never what was typed into them, and moving a step on the canvas is not recorded.
 
-What OneUptime does because someone asked it to is recorded as their change too, whether or not the project stores system events: starting, approving, completing, skipping and cancelling a runbook run; the labels and owners a rule adds, the records a privacy rule makes private and the devices a site assignment rule moves when someone runs the rule on the records that already exist; buying, attaching and releasing an incoming call policy's phone number; resolving a data alert someone marks as expected or not an issue; resetting a calendar feed's link; and the teams someone joins when they sign in with SSO. A runbook run's steps are recorded as what was done to each, such as `Approved "Restart the API" (step 3)`, never with what a step printed. Labels and owners a rule adds as a record is created, and a record it makes private then, are OneUptime's own change, recorded with **Store System Events** on.
+What OneUptime does because someone asked it to is recorded as their change too, whether or not the project stores system events:
+
+- Starting, approving, completing, skipping and cancelling a runbook run. Its steps are recorded as what was done to each, such as `Approved "Restart the API" (step 3)`, never with what a step printed.
+- What a rule changes when someone runs it: the labels and owners it adds, the records a privacy rule makes private, the devices a site assignment rule moves, the devices and monitors an auto import rule creates, and what a status page or SLO monitor rule changes on its page or SLO.
+- Buying, attaching and releasing an incoming call policy's phone number.
+- Resolving a data alert someone marks as expected or not an issue.
+- Resetting a calendar feed's link.
+- The teams someone joins when they sign in with SSO.
+
+What a rule does by itself is OneUptime's own change, recorded with **Store System Events** on: the labels and owners a rule adds as a record is created, and a record it makes private then; the devices and monitors an auto import rule creates from new scan results; and what a status page or SLO monitor rule changes when a rule, a monitor or a label is saved.
 
 Resetting the AI agent of a host, a cluster or a cloud account is recorded on that resource's own **Audit Logs** page, as the change of `aiAgentResetAt` by whoever reset it: who, and when. So is making a key for a cloud account's AI agent: the keys show as changed, never with a key or a hash. What an agent reports as it connects and checks in is left out, as before.
 

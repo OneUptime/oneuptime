@@ -11,6 +11,7 @@ import DefaultDashboardSize from "../../Types/Dashboard/DashboardSize";
 import { JSONObject, JSONValue, ObjectType } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
+import DashboardWidgetIds from "./DashboardWidgetIds";
 
 /*
  * Reads a dashboard's stored config, in whatever shape it was stored, into
@@ -709,7 +710,18 @@ export default class StoredDashboardViewConfig {
         widget,
       ) as DashboardComponentType,
       ...StoredDashboardViewConfig.getComponentLayout(widget),
-      arguments: isPlainObject(componentArguments) ? componentArguments : {},
+      /*
+       * Each id setting - a list's states, severities, monitors, labels,
+       * clusters and hosts, an SLO widget's SLO, the variable a widget
+       * follows - as the id it names, in text: stored as an ObjectID's JSON,
+       * it was revived into an ObjectID here (or kept as that JSON), which
+       * the widgets read as text. An SLO widget trimmed it and fell into its
+       * error boundary, and a list's state filter compared it with text and
+       * dropped every state (issue #6328).
+       */
+      arguments: isPlainObject(componentArguments)
+        ? DashboardWidgetIds.withIdsRead(componentArguments)
+        : {},
     };
   }
 

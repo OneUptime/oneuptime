@@ -49,7 +49,7 @@ In **Test**, fai clic su **Testa la connessione**. OneUptime legge l'utilizzo de
 Fai clic su **Collega**. La prima lettura parte entro un minuto e porta gli ultimi 30 giorni.
 :::
 
-Gli account collegati compaiono sotto i riquadri, con il loro **Stato** e la loro **Ultima lettura**. **Leggi ora** legge subito, **Test** ricontrolla le impostazioni salvate, **Disattiva** smette di leggere e tiene ciò che è stato letto, e **Modifica** cambia le impostazioni: un segreto lasciato vuoto mantiene quello salvato. **Visualizza errore** mostra perché una lettura non è riuscita, senza alcun segreto.
+Gli account collegati compaiono sotto i riquadri, con il loro **Stato** e la loro **Ultima lettura**. **Leggi ora** legge subito, **Test** ricontrolla le impostazioni salvate, **Disattiva** smette di leggere e tiene ciò che è stato letto, e **Modifica** cambia le impostazioni: un segreto lasciato vuoto mantiene quello salvato. **Visualizza errore** mostra perché una lettura non è riuscita, senza alcun segreto. Lo stato di un account che funziona indica l'ultimo giorno con utilizzo o, quando le sue letture non ne hanno trovato, il primo giorno letto; una connessione Azure che non trova risorse lo dice.
 
 ## Cosa offre ogni provider
 
@@ -187,6 +187,14 @@ Dalle il ruolo che questa pagina indica per il provider: Monitoring Reader sulla
 
 :::details Il test passa, ma per oggi non compare nulla
 I provider riportano l'utilizzo di un giorno minuti o ore dopo, e lo correggono per un giorno o due. Le letture successive lo portano.
+:::
+
+:::details L'account funziona, ma il suo stato non indica utilizzo
+Le sue letture non ne hanno trovato dal giorno indicato. I report di OpenAI contano le chiamate API fatte con le chiavi di quell'organizzazione, non Azure OpenAI né ChatGPT. Una connessione Azure legge solo le risorse che la sua app può vedere: assegna all'app Monitoring Reader dove si trovano.
+:::
+
+:::details Gli account sono collegati, ma Conversazioni e Chiamate sono vuote
+Un account porta utilizzo e costo giorno per giorno, mai una chiamata o una conversazione: quelle arrivano dalle tue app. Vedi [Verifica cosa arriva](/docs/telemetry/ai-llm-observability#verifica-cosa-arriva).
 :::
 
 :::details Il costo è diverso dalla fattura

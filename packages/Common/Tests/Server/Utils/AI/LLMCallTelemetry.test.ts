@@ -569,7 +569,8 @@ describe("what OneUptime reads back from a recorded call", () => {
 
     expect(fields).toMatchObject({
       isLlmSpan: true,
-      llmSystem: "OpenAI",
+      // Stamped "OpenAI" (LlmType), stored as the conventions name it (#5776).
+      llmSystem: "openai",
       llmOperation: "chat",
       llmRequestModel: MODEL,
       llmResponseModel: MODEL,

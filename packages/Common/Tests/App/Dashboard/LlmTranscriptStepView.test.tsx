@@ -271,7 +271,8 @@ describe("what the AI answered", () => {
     const details: HTMLElement = screen.getByTestId("llm-step-details");
 
     expect(toggle).toHaveTextContent("Hide details");
-    expect(details).toHaveTextContent("openai");
+    // The provider by its name, not its GenAI value ("openai").
+    expect(details).toHaveTextContent("OpenAI");
     expect(details).toHaveTextContent("1,200 / 300");
     expect(details).toHaveTextContent("content_filter");
     expect(details).toHaveTextContent("booking-agent");

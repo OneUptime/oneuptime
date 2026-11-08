@@ -66,6 +66,8 @@ import UserSettings from "./Pages/Users/View/Settings";
 import ProjectView from "./Pages/Projects/View/Index";
 import ProjectSubscription from "./Pages/Projects/View/Subscription";
 import ProjectSupport from "./Pages/Projects/View/Support";
+import ProjectTelemetryUsage from "./Pages/Projects/View/TelemetryUsage";
+import TelemetryUsage from "./Pages/TelemetryUsage/Index";
 import ProjectDelete from "./Pages/Projects/View/Delete";
 import ProjectUsers from "./Pages/Projects/View/Users";
 import ProjectUserView from "./Pages/Projects/View/UserView";
@@ -176,6 +178,11 @@ const App: () => JSX.Element = () => {
         />
 
         <PageRoute
+          path={RouteMap[PageMap.TELEMETRY_USAGE]?.toString() || ""}
+          element={<TelemetryUsage />}
+        />
+
+        <PageRoute
           path={RouteMap[PageMap.USERS]?.toString() || ""}
           element={<Users />}
         />
@@ -228,6 +235,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.PROJECT_SUPPORT]?.toString() || ""}
           element={<ProjectSupport />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PROJECT_TELEMETRY_USAGE]?.toString() || ""}
+          element={<ProjectTelemetryUsage />}
         />
 
         <PageRoute

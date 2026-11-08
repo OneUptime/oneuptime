@@ -927,6 +927,9 @@ import { AddWorkflowVersionSavedThrough1808996000000 } from "./1808996000000-Add
 import { AddAuditLogExportSchemaVersion1808996130000 } from "./1808996130000-AddAuditLogExportSchemaVersion";
 import { AddAiAgentResetAt1808996200000 } from "./1808996200000-AddAiAgentResetAt";
 import { AddSloErrorBudgetPolicyTiers1808996325825 } from "./1808996325825-AddSloErrorBudgetPolicyTiers";
+import { AddEvaluationDetailsAndKeepResponseContent1808997300000 } from "./1808997300000-AddEvaluationDetailsAndKeepResponseContent";
+import { AddTelemetryUsageRetention1808997405916 } from "./1808997405916-AddTelemetryUsageRetention";
+import { AddTelemetryUsageCreatedAtIndex1808997415916 } from "./1808997415916-AddTelemetryUsageCreatedAtIndex";
 
 export default [
   InitialMigration,
@@ -1858,4 +1861,7 @@ export default [
   AddAuditLogExportSchemaVersion1808996130000,
   AddAiAgentResetAt1808996200000,
   AddSloErrorBudgetPolicyTiers1808996325825,
+  AddEvaluationDetailsAndKeepResponseContent1808997300000,
+  AddTelemetryUsageRetention1808997405916,
+  AddTelemetryUsageCreatedAtIndex1808997415916,
 ];

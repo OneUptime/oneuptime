@@ -88,4 +88,11 @@ export default interface MonitorSummarySnapshot {
 
   // Same idea for an oversized Website / API response body.
   isResponseBodyTruncated?: boolean | undefined;
+
+  /*
+   * The monitor keeps no response content on its incidents and alerts
+   * (Monitor.keepResponseContent): the response or request body was left
+   * out of this capture, and the view says so.
+   */
+  isResponseContentOmitted?: boolean | undefined;
 }

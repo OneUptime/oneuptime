@@ -83,7 +83,7 @@ Em um ponto de dados de métrica, a lista é mais curta e começa pelo e-mail, p
 
 | Coluna | Chaves, da preferida em diante |
 | --- | --- |
-| Funcionário | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Funcionário | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Equipe / centro de custo | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Modelo | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ O OneUptime também lê tokens de `gen_ai.client.token.usage`, `gen_ai.client.to
 Duas coisas para saber antes de ler os números:
 
 - **`gemini_cli.token.usage` fica de fora de propósito.** O Gemini CLI envia seus tokens duas vezes, como métrica própria e como `gen_ai.client.token.usage`, e ler as duas os dobraria. Os tokens dele são contados uma vez, via `gen_ai.client.token.usage`. O Gemini CLI não envia nenhuma métrica de custo: ative os traces dele para que cada chamada tenha preço.
-- **Só os tokens de entrada e de saída são contados.** O tipo de token é lido de `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` ou `token_type`, e só `input` e `output` (ou os antigos `prompt` e `completion`) contam. Leituras e gravações de cache, o `total` do Codex (que repete os outros) e `reasoning_output` (parte de `output`) ficam de fora, então um total vindo de métricas é menor que a soma de tudo o que uma ferramenta envia.
+- **Só os tokens de entrada e de saída são contados.** O tipo de token é lido de `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` ou `token_type`, e só `input` e `output` (ou os antigos `prompt` e `completion`) contam, com `cacheRead` e `cacheCreation` do Claude Code como entrada, já que o seu `input` os deixa de fora. Outras leituras e gravações de cache, o `total` do Codex (que repete os outros) e `reasoning_output` (parte de `output`) ficam de fora, então um total vindo de métricas é menor que a soma de tudo o que uma ferramenta envia.
 
 ## A aba Uso
 

@@ -106,7 +106,7 @@ Quand votre banque traite encore un paiement, OneUptime l'indique : certaines ba
 
 ## Historique d'utilisation
 
-**Paramètres du projet → Facturation et factures → Historique d'utilisation** montre la télémétrie que le projet a envoyée, une ligne par produit, service et jour :
+**Paramètres du projet → Télémétrie & APM → Utilisation** montre combien de télémétrie le projet a envoyé, par jour, signal et ressource : voir [Utilisation de la télémétrie](/docs/telemetry/usage). Sur OneUptime Cloud, sa liste **Historique d'utilisation de la télémétrie** indique aussi ce que chaque jour a coûté, une ligne par produit, service et jour :
 
 | Colonne | Ce qu'elle montre |
 | --- | --- |
@@ -117,7 +117,7 @@ Quand votre banque traite encore un paiement, OneUptime l'indique : certaines ba
 | **Conservation des données (en jours)** | La durée de conservation. |
 | **Coût total** | Ce qu'elle a coûté, en dollars américains. |
 
-L'utilisation d'un jour apparaît une fois la journée terminée. Filtrez par **Produit**, **Jour** ou **Service** pour trouver ce qui a augmenté.
+L'utilisation d'un jour apparaît une fois la journée terminée, au plus tard vers 08:00 UTC le lendemain. Filtrez par **Produit**, **Jour** ou **Service** pour trouver ce qui a augmenté.
 
 ## Soldes prépayés
 
@@ -188,8 +188,8 @@ Un projet avec des factures impayées devient inactif, et il est supprimé si el
 Le projet n'a pas encore de moyen de paiement. Ajoutez-en un, puis changez de forfait.
 :::
 
-:::details L'historique d'utilisation est vide
-L'utilisation est comptée par jour, et une journée apparaît une fois terminée. Un projet qui n'a envoyé aucune télémétrie n'a aucune ligne.
+:::details La liste Historique d'utilisation de la télémétrie est vide
+L'utilisation est comptée par jour, et une journée apparaît une fois terminée, au plus tard vers 08:00 UTC le lendemain. Un projet qui n'a envoyé aucune télémétrie n'a aucune ligne.
 :::
 
 ## Étapes suivantes

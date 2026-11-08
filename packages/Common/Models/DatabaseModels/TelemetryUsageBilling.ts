@@ -18,21 +18,30 @@ import ProductType from "../../Types/MeteredPlan/ProductType";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import {
+  PROJECT_TELEMETRY_USAGE_READ_PERMISSIONS,
+  PROJECT_USAGE_READ_PERMISSIONS,
+} from "../../Utils/Project/ProjectBilling";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 export const DEFAULT_RETENTION_IN_DAYS: number = 15;
 
+/*
+ * Who reads a usage row: how much telemetry a resource sent on a day, and
+ * how long it is kept, are read by everyone who reads the project's
+ * telemetry; what it cost only by those who read billing (both lists:
+ * Utils/Project/ProjectBilling). A server without billing counts usage too,
+ * at no cost, so the rows are not billing data alone.
+ */
+const USAGE_READ_PERMISSIONS: ReadonlyArray<Permission> =
+  PROJECT_TELEMETRY_USAGE_READ_PERMISSIONS;
+const COST_READ_PERMISSIONS: ReadonlyArray<Permission> =
+  PROJECT_USAGE_READ_PERMISSIONS;
+
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [],
-  read: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ManageProjectBilling,
-    Permission.BillingAdmin,
-    Permission.BillingMember,
-    Permission.BillingViewer,
-  ],
+  read: [...USAGE_READ_PERMISSIONS],
   delete: [],
   update: [],
 })
@@ -43,22 +52,22 @@ export const DEFAULT_RETENTION_IN_DAYS: number = 15;
   pluralName: "Telemetry Usage Billings",
   icon: IconProp.Billing,
   tableDescription:
-    "Stores historical usage billing data for your telemetry data like Logs, Metrics, Traces, and Exceptions.",
+    "How much telemetry (logs, metrics, traces and exceptions, profiles, session replays and security events) each resource of a project sent on each UTC day, how long it is kept and, where billing is on, what it cost.",
 })
+/*
+ * The usage pages read a range of days (Project Settings > Telemetry & APM >
+ * Usage, and every project at once in the Admin Dashboard), and the daily
+ * cleanup deletes the days past their retention: all by createdAt, which is
+ * the UTC day the usage is for.
+ */
+@Index(["createdAt"])
 @Entity({
   name: "TelemetryUsageBilling",
 })
 export default class TelemetryUsageBilling extends BaseModel {
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -85,14 +94,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @Index()
@@ -113,14 +115,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -140,14 +135,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -172,14 +160,7 @@ export default class TelemetryUsageBilling extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ManageProjectBilling,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -199,14 +180,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -226,14 +200,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...COST_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -274,14 +241,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -316,14 +276,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @Index()
@@ -343,14 +296,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -391,14 +337,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -426,14 +365,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -452,14 +384,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({
@@ -488,14 +413,7 @@ export default class TelemetryUsageBilling extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ManageProjectBilling,
-      Permission.BillingAdmin,
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ],
+    read: [...USAGE_READ_PERMISSIONS],
     update: [],
   })
   @TableColumn({

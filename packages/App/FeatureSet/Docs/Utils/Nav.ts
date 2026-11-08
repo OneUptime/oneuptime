@@ -705,6 +705,11 @@ const DocsNav: NavGroup[] = [
         title: "Data Retention",
         url: "/docs/telemetry/data-retention",
       },
+      // How much of it each project and service sends, on every install.
+      {
+        title: "Telemetry Usage",
+        url: "/docs/telemetry/usage",
+      },
       {
         title: "Continuous Profiling",
         url: "/docs/telemetry/profiles",

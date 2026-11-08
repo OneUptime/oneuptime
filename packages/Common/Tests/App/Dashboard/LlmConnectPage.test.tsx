@@ -85,6 +85,71 @@ function listedFor(kind: LlmConnectionKind): number | undefined {
   return listedForTest[kind];
 }
 
+/*
+ * The Setup check card reads its own route and has a suite of its own
+ * (LlmSetupCheckCard.test.tsx): here it is a marker that records what the
+ * page hands it, and lets a test pick a way through it.
+ */
+interface SetupCheckProps {
+  onPickWay: (key: string) => void;
+  serviceName: (serviceId: string) => string;
+  refreshToken?: number | undefined;
+}
+
+let setupCheckPropsForTest: SetupCheckProps | null = null;
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AI/SetupCheck/LlmSetupCheckCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: SetupCheckProps): React.ReactElement => {
+        const ReactActual: typeof React = jest.requireActual(
+          "react",
+        ) as typeof React;
+
+        setupCheckPropsForTest = props;
+
+        return ReactActual.createElement(
+          "div",
+          {
+            "data-testid": "setup-check",
+            "data-refresh": String(props.refreshToken || 0),
+          },
+          ReactActual.createElement(
+            "button",
+            {
+              type: "button",
+              onClick: () => {
+                props.onPickWay("providers");
+              },
+            },
+            "Check: connect a provider account",
+          ),
+        );
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/useLlmServiceNames",
+  () => {
+    return {
+      __esModule: true,
+      useLlmServiceNames: (): {
+        names: Map<string, string>;
+        options: Array<{ id: string; name: string }>;
+      } => {
+        return {
+          names: new Map<string, string>([["service-1", "Support bot"]]),
+          options: [{ id: "service-1", name: "Support bot" }],
+        };
+      },
+    };
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmAppsPath",
   () => {
@@ -1113,4 +1178,73 @@ test("the page is drawn with its real ways and tiles", async () => {
   expect(
     screen.getByTestId(`llm-connection-tiles-${LlmConnectionKind.CompanyTool}`),
   ).toBeInTheDocument();
+});
+
+/*
+ * THE SETUP CHECK, ABOVE THE WAYS (#5776): what each way is bringing in,
+ * in one look, before the paths to connect more. Its own suite
+ * (LlmSetupCheckCard.test.tsx) pins what it says; here, where it sits and
+ * what the page hands it.
+ */
+describe("the setup check", () => {
+  test("it sits above the three ways", async () => {
+    await openPage();
+
+    const check: HTMLElement = screen.getByTestId("setup-check");
+    const ways: HTMLElement = screen.getByRole("tablist", {
+      name: "Ways to bring AI in",
+    });
+
+    expect(
+      check.compareDocumentPosition(ways) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a way it points to opens on the page, as its tab would", async () => {
+    await openPage();
+
+    fireEvent.click(screen.getByText("Check: connect a provider account"));
+
+    expect(way("providers")).toHaveAttribute("aria-selected", "true");
+    expect(panel("providers")).toBeVisible();
+    expect(panel("apps")).not.toBeVisible();
+  });
+
+  test("it names apps by the project's service names", async () => {
+    await openPage();
+
+    expect(setupCheckPropsForTest!.serviceName("service-1")).toBe(
+      "Support bot",
+    );
+    expect(setupCheckPropsForTest!.serviceName("unknown")).toBe("");
+  });
+
+  test("a connection saved on the page has the check read again", async () => {
+    await openPage();
+
+    const before: string | null = screen
+      .getByTestId("setup-check")
+      .getAttribute("data-refresh");
+
+    fireEvent.click(screen.getByTestId("llm-connect-way-providers"));
+    fireEvent.click(screen.getByTestId("llm-connection-tile-openai"));
+    fireEvent.click(screen.getByText("Save the connection"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("setup-check").getAttribute("data-refresh"),
+      ).not.toBe(before);
+    });
+  });
+
+  test("a plan without telemetry shows no check", async () => {
+    await openPage({
+      ...pageProps,
+      currentProject: {
+        reseller: { enableTelemetryFeatures: false },
+      } as unknown as PageComponentProps["currentProject"],
+    });
+
+    expect(screen.queryByTestId("setup-check")).not.toBeInTheDocument();
+  });
 });

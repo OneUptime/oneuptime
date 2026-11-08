@@ -214,14 +214,32 @@ export default class AzureOpenAIConnector
 
     const records: Array<LlmUsageRecord> = [];
 
-    for (const account of accounts.slice(0, MAX_ACCOUNTS)) {
+    const readAccounts: Array<AzureModelAccount> = accounts.slice(
+      0,
+      MAX_ACCOUNTS,
+    );
+
+    for (const account of readAccounts) {
       records.push(...(await this.readAccount({ client, account, window })));
+    }
+
+    /*
+     * Listing the subscription's resources succeeds with none when the app
+     * registration has no role where they are (Monitoring Reader on another
+     * subscription, or on none): say so, or the read looks like a quiet
+     * account.
+     */
+    if (accounts.length === 0) {
+      warnings.push(
+        "No Azure OpenAI or Foundry resource was found in the subscription. Give the app registration the Monitoring Reader role on the subscription, or on the resource groups, that hold them.",
+      );
     }
 
     return {
       records,
       requestCount: client.getRequestCount(),
       warnings,
+      resources: readAccounts.length,
     };
   }
 
@@ -256,13 +274,19 @@ export default class AzureOpenAIConnector
         durationMs: Date.now() - startedAt,
       });
 
+      /*
+       * Every resource read, used or not: a test that read none found
+       * nothing to read, which the form says apart from a quiet account.
+       */
       test.counts = {
         ...test.counts,
-        resources: new Set(
-          result.records.map((record: LlmUsageRecord): string => {
-            return record.project;
-          }),
-        ).size,
+        resources:
+          result.resources ??
+          new Set(
+            result.records.map((record: LlmUsageRecord): string => {
+              return record.project;
+            }),
+          ).size,
       };
 
       return test;

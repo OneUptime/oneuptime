@@ -12,6 +12,7 @@ import {
   LLM_PROVIDER_NAME_ATTRIBUTE,
 } from "../../../Types/LlmObservability/LlmProviderUsageMetrics";
 import ObjectID from "../../../Types/ObjectID";
+import { normalizeLlmProvider } from "../../../Types/Telemetry/LlmProviders";
 import MetricService from "../../Services/MetricService";
 import AggregateBy from "../../Types/AnalyticsDatabase/AggregateBy";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -46,8 +47,15 @@ export default class LlmProviderSpend {
 
     const attributes: Record<string, string> = {};
 
+    /*
+     * A connection's points name the provider as the conventions do
+     * (azure.ai.openai), so a budget's older spelling (az.ai.openai,
+     * azure_openai) is read as that name.
+     */
     if (scope.provider && scope.provider.trim()) {
-      attributes[LLM_PROVIDER_NAME_ATTRIBUTE] = scope.provider.trim();
+      attributes[LLM_PROVIDER_NAME_ATTRIBUTE] = normalizeLlmProvider({
+        reported: scope.provider,
+      });
     }
 
     if (scope.model && scope.model.trim()) {

@@ -49,7 +49,7 @@ En **Probar**, haz clic en **Probar conexión**. OneUptime lee el uso de los úl
 Haz clic en **Conectar**. La primera lectura empieza en menos de un minuto y trae los últimos 30 días.
 :::
 
-Las cuentas conectadas aparecen bajo los mosaicos, con su **Estado** y su **Última lectura**. **Leer ahora** lee al momento, **Probar** vuelve a comprobar los ajustes guardados, **Desactivar** deja de leer y conserva lo leído, y **Editar** cambia los ajustes: un secreto dejado en blanco conserva el guardado. **Ver error** muestra por qué falló una lectura, sin ningún secreto.
+Las cuentas conectadas aparecen bajo los mosaicos, con su **Estado** y su **Última lectura**. **Leer ahora** lee al momento, **Probar** vuelve a comprobar los ajustes guardados, **Desactivar** deja de leer y conserva lo leído, y **Editar** cambia los ajustes: un secreto dejado en blanco conserva el guardado. **Ver error** muestra por qué falló una lectura, sin ningún secreto. El estado de una cuenta que funciona nombra el último día con uso o, cuando sus lecturas no encontraron ninguno, el primer día leído; una conexión de Azure que no encuentra ningún recurso lo dice.
 
 ## Qué da cada proveedor
 
@@ -187,6 +187,14 @@ Dale el rol que esta página nombra para el proveedor: Monitoring Reader en la s
 
 :::details La prueba pasa, pero no aparece nada de hoy
 Los proveedores informan del uso de un día minutos u horas después y lo corrigen durante un día o dos. Las siguientes lecturas lo traen.
+:::
+
+:::details La cuenta funciona, pero su estado no indica uso
+Sus lecturas no encontraron ninguno desde el día indicado. Los informes de OpenAI cuentan las llamadas a la API hechas con las claves de esa organización, no Azure OpenAI ni ChatGPT. Una conexión de Azure solo lee los recursos que su aplicación puede ver: dale a la aplicación Monitoring Reader donde estén.
+:::
+
+:::details Hay cuentas conectadas, pero Conversaciones y Llamadas están vacías
+Una cuenta trae uso y coste por día, nunca una llamada ni una conversación: esas vienen de tus aplicaciones. Consulta [Comprueba lo que llega](/docs/telemetry/ai-llm-observability#comprueba-lo-que-llega).
 :::
 
 :::details El coste no coincide con la factura

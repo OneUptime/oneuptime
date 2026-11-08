@@ -105,6 +105,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Settings,
         },
+        /*
+         * How much telemetry the project sends, with billing on or off: it
+         * was Billing and Invoices > Usage History, shown only with billing,
+         * and is the same page at the same address.
+         */
+        {
+          link: {
+            title: "Usage",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_USAGE_HISTORY] as Route,
+            ),
+          },
+          icon: IconProp.ChartBar,
+        },
       ],
     },
     {
@@ -342,15 +356,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Billing,
-        },
-        {
-          link: {
-            title: "Usage History",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_USAGE_HISTORY] as Route,
-            ),
-          },
-          icon: IconProp.ChartBar,
         },
         {
           link: {

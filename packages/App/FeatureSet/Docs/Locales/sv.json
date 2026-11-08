@@ -286,6 +286,7 @@
     "Topology": "Topologi",
     "Drop Filters & Scrub Rules": "Drop-filter och scrub-regler",
     "Data Retention": "Datalagring",
+    "Telemetry Usage": "Telemetrianvändning",
     "Serilog (.NET)": "Serilog (.NET)",
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",

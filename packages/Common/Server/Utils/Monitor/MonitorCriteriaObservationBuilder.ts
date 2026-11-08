@@ -69,9 +69,19 @@ import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import ExceptionLearnedBaselineUtil from "./ExceptionLearnedBaseline";
 import { isExceptionCountAnomaly } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import PerEntityCriteriaFanOut from "./PerEntityCriteriaFanOut";
+import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import Dictionary from "../../../Types/Dictionary";
 
 // A sentence's closing period, dropped where it is quoted mid-sentence.
 const TRAILING_PERIOD: RegExp = /\.$/;
+
+/*
+ * How much of a body a sentence's sample is read from: the sample quotes a
+ * short start of it, redacted first (MonitorEvidenceRedaction), so a secret
+ * that runs past the sample's end is seen whole by the rules.
+ */
+const SAMPLED_BODY_CHARS: number = 2000;
 
 export default class MonitorCriteriaObservationBuilder {
   public static describeFilterObservation(input: {
@@ -537,6 +547,7 @@ export default class MonitorCriteriaObservationBuilder {
   }
 
   private static describeResponseHeaderValueObservation(input: {
+    monitor: Monitor;
     dataToProcess: DataToProcess;
   }): string | null {
     const probeResponse: ProbeMonitorResponse | null =
@@ -546,20 +557,62 @@ export default class MonitorCriteriaObservationBuilder {
       return null;
     }
 
-    const headerValues: Array<string> = Object.values(
-      probeResponse.responseHeaders || {},
-    ).map((value: string) => {
-      return value.toLowerCase();
-    });
+    const headerValues: Array<string> =
+      MonitorCriteriaObservationBuilder.getQuotableHeaderValues(
+        probeResponse.responseHeaders,
+      );
 
     if (!headerValues.length) {
       return "Response header values were empty.";
     }
 
+    // A monitor that keeps no response content quotes none of it.
+    if (!MonitorRecordEvidence.keepsResponseContent(input.monitor)) {
+      return null;
+    }
+
     return `Response header values: ${MonitorCriteriaMessageFormatter.formatList(headerValues)}.`;
   }
 
+  /*
+   * Header values as a sentence may quote them, lowercased as the filter
+   * compares them: a credential header's value masked, any other swept for
+   * credential-shaped text.
+   */
+  private static getQuotableHeaderValues(
+    headers: Dictionary<string> | undefined,
+  ): Array<string> {
+    const redacted: Dictionary<string> =
+      MonitorEvidenceRedaction.redactHeaders(headers) || {};
+
+    return Object.values(redacted).map((value: string) => {
+      return value === MonitorEvidenceRedaction.REDACTED
+        ? value
+        : String(value).toLowerCase();
+    });
+  }
+
+  /*
+   * The start of a body as a sentence may quote it: redacted, and nothing
+   * for a monitor that keeps no response content.
+   */
+  private static getQuotableBodySample(input: {
+    monitor: Monitor;
+    body: string;
+  }): string | null {
+    if (!MonitorRecordEvidence.keepsResponseContent(input.monitor)) {
+      return null;
+    }
+
+    return MonitorCriteriaMessageFormatter.formatSnippet(
+      MonitorEvidenceRedaction.redactText(
+        input.body.slice(0, SAMPLED_BODY_CHARS),
+      ),
+    );
+  }
+
   private static describeResponseBodyObservation(input: {
+    monitor: Monitor;
     dataToProcess: DataToProcess;
   }): string | null {
     const probeResponse: ProbeMonitorResponse | null =
@@ -586,7 +639,13 @@ export default class MonitorCriteriaObservationBuilder {
       bodyAsString = probeResponse.responseBody as string;
     }
 
-    return `Response body sample: ${MonitorCriteriaMessageFormatter.formatSnippet(bodyAsString)}.`;
+    const sample: string | null =
+      MonitorCriteriaObservationBuilder.getQuotableBodySample({
+        monitor: input.monitor,
+        body: bodyAsString,
+      });
+
+    return sample ? `Response body sample: ${sample}.` : null;
   }
 
   private static describeIsOnlineObservation(input: {
@@ -679,6 +738,7 @@ export default class MonitorCriteriaObservationBuilder {
   }
 
   private static describeRequestBodyObservation(input: {
+    monitor: Monitor;
     dataToProcess: DataToProcess;
   }): string | null {
     const incomingRequest: IncomingMonitorRequest | null =
@@ -710,7 +770,13 @@ export default class MonitorCriteriaObservationBuilder {
       requestBodyAsString = requestBody as string;
     }
 
-    return `Request body sample: ${MonitorCriteriaMessageFormatter.formatSnippet(requestBodyAsString)}.`;
+    const sample: string | null =
+      MonitorCriteriaObservationBuilder.getQuotableBodySample({
+        monitor: input.monitor,
+        body: requestBodyAsString,
+      });
+
+    return sample ? `Request body sample: ${sample}.` : null;
   }
 
   private static describeRequestHeaderObservation(input: {
@@ -739,6 +805,7 @@ export default class MonitorCriteriaObservationBuilder {
   }
 
   private static describeRequestHeaderValueObservation(input: {
+    monitor: Monitor;
     dataToProcess: DataToProcess;
   }): string | null {
     const incomingRequest: IncomingMonitorRequest | null =
@@ -750,14 +817,18 @@ export default class MonitorCriteriaObservationBuilder {
       return null;
     }
 
-    const headerValues: Array<string> = Object.values(
-      incomingRequest.requestHeaders || {},
-    ).map((value: string) => {
-      return value.toLowerCase();
-    });
+    const headerValues: Array<string> =
+      MonitorCriteriaObservationBuilder.getQuotableHeaderValues(
+        incomingRequest.requestHeaders,
+      );
 
     if (!headerValues.length) {
       return "Request header values were empty.";
+    }
+
+    // A monitor that keeps no request content quotes none of it.
+    if (!MonitorRecordEvidence.keepsResponseContent(input.monitor)) {
+      return null;
     }
 
     return `Request header values: ${MonitorCriteriaMessageFormatter.formatList(headerValues)}.`;
