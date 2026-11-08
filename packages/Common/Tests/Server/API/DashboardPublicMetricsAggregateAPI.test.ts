@@ -898,11 +898,10 @@ describe("DashboardAPI public metrics-aggregate", () => {
         expect(query["projectId"]).toBe(projectId);
       });
 
-      it("is read for its services as saved, whatever order or repeats the request names them in", async () => {
+      it("is read for its services as saved, whatever order the request names them in", async () => {
         for (const requested of [
           [CHECKOUT_SERVICE_ID, API_SERVICE_ID],
-          [CHECKOUT_SERVICE_ID, API_SERVICE_ID, CHECKOUT_SERVICE_ID],
-          [API_SERVICE_ID, API_SERVICE_ID, CHECKOUT_SERVICE_ID],
+          [API_SERVICE_ID, CHECKOUT_SERVICE_ID],
         ]) {
           jest.clearAllMocks();
 
@@ -913,6 +912,24 @@ describe("DashboardAPI public metrics-aggregate", () => {
             API_SERVICE_ID,
             CHECKOUT_SERVICE_ID,
           ]);
+        }
+      });
+
+      it("refuses its services with one of them named twice, which no page sends", async () => {
+        for (const requested of [
+          [CHECKOUT_SERVICE_ID, API_SERVICE_ID, CHECKOUT_SERVICE_ID],
+          [API_SERVICE_ID, API_SERVICE_ID, CHECKOUT_SERVICE_ID],
+          [
+            API_SERVICE_ID,
+            CHECKOUT_SERVICE_ID,
+            API_SERVICE_ID,
+            CHECKOUT_SERVICE_ID,
+          ],
+        ]) {
+          jest.clearAllMocks();
+
+          await callForServices(servicesFilter(requested));
+          expectServicesRefused();
         }
       });
 
@@ -1330,6 +1347,29 @@ describe("DashboardAPI public metrics-aggregate", () => {
         ]);
       });
 
+      it("does not read a chart saved with something that is not a service id among its services, nor every service instead", async () => {
+        for (const notAnId of ["smuggled", 7]) {
+          setWidgets([
+            {
+              metricName: CHARTED_METRIC_NAME,
+              telemetryServiceIds: [API_SERVICE_ID, notAnId],
+            },
+          ]);
+
+          for (const requested of [
+            // What the page sends for it: MetricQueryServices reads 7 as "7".
+            servicesFilter([API_SERVICE_ID, String(notAnId)]),
+            servicesFilter([API_SERVICE_ID]),
+            undefined,
+          ]) {
+            jest.clearAllMocks();
+
+            await callForServices(requested);
+            expectServicesRefused();
+          }
+        }
+      });
+
       it("matches a requested id exactly", async () => {
         setWidgets([
           {
@@ -1376,6 +1416,21 @@ describe("DashboardAPI public metrics-aggregate", () => {
           ["an Includes of a number", { _type: "Includes", value: [42] }],
           ["an Includes of null", { _type: "Includes", value: [null] }],
           ["an Includes of an empty id", { _type: "Includes", value: [""] }],
+          [
+            "an Includes naming the id twice",
+            { _type: "Includes", value: [API_SERVICE_ID, API_SERVICE_ID] },
+          ],
+          [
+            "an Includes of a text that is not an id",
+            { _type: "Includes", value: ["smuggled"] },
+          ],
+          [
+            "an Includes of the id followed by SQL",
+            {
+              _type: "Includes",
+              value: [`${API_SERVICE_ID}') OR ('1'='1`],
+            },
+          ],
           [
             "an Includes of an ObjectID",
             {

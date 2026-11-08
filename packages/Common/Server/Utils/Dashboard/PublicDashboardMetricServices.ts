@@ -2,6 +2,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
+import ObjectID from "../../../Types/ObjectID";
 import MetricQueryServices from "../../../Utils/Metrics/MetricQueryServices";
 
 /*
@@ -30,12 +31,17 @@ import MetricQueryServices from "../../../Utils/Metrics/MetricQueryServices";
  *     than them - another metric's services among them;
  *   - every service, when each query of the metric is saved with some;
  *   - any other filter on the column: one id, IncludesNone, a search, a list
- *     of anything but ids.
+ *     of anything but service ids, or one that names a service twice.
  *
  * A dashboard saved without services - every dashboard saved before #6266 -
  * reads every service of every metric, and its requests, which never name
  * one, are read exactly as before. The route pins the project, so even a
  * saved id of another project's service reads nothing of that project.
+ *
+ * A query saved with something that is not a service id among its services
+ * (only a config or an explorer link written by hand has one; signed in, it
+ * matches no row) is not read on the public page: no request can name it.
+ * It is never read for every service instead.
  */
 
 /*
@@ -74,8 +80,12 @@ const readSavedServiceIds: (value: unknown) => Array<string> = (
 
 /*
  * The services a request names: none for no filter (absent or null - a
- * query saved without services sends none), the ids of an Includes of ids,
- * and null for anything else, which no client sends.
+ * query saved without services sends none), the ids of an Includes of
+ * service ids, and null for anything else. The page sends a saved query's
+ * services as it reads them (MetricQueryServices): ids, each once. So a list
+ * that names a service twice or holds anything but an id - a padded or blank
+ * id, a number, an ObjectID, a list - is no list a page sends, and is
+ * refused rather than tidied into one.
  */
 const readRequestedServiceIds: (value: unknown) => Set<string> | null = (
   value: unknown,
@@ -104,7 +114,7 @@ const readRequestedServiceIds: (value: unknown) => Set<string> | null = (
   const ids: Set<string> = new Set<string>();
 
   for (const id of values) {
-    if (typeof id !== "string" || id.length === 0) {
+    if (typeof id !== "string" || !ObjectID.isValidUUID(id) || ids.has(id)) {
       return null;
     }
 

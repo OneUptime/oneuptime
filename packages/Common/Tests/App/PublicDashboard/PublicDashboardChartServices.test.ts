@@ -101,6 +101,7 @@ import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import DashboardAPI from "../../../Server/API/DashboardAPI";
 import DashboardService from "../../../Server/Services/DashboardService";
 import MetricService from "../../../Server/Services/MetricService";
+import { PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE } from "../../../Server/Utils/Dashboard/PublicDashboardMetricServices";
 import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
 import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -702,6 +703,53 @@ describe("a chart added from a view of every service", () => {
  * attribute filters and groupings now and then - several charts of one
  * metric among them, for different services.
  */
+/*
+ * The one chart the two sides do not read alike: an explorer link written
+ * by hand can name text that is no service id, and Add to dashboard keeps
+ * it. Signed in, the text matches no row. A public request can name only
+ * service ids, so the public page cannot ask for that chart's services, and
+ * it is refused - never read for every service instead.
+ */
+describe("a chart added from a link naming text that is no service id", () => {
+  test("is refused on the public dashboard, and never read for every service", async () => {
+    const serviceIds: Array<string> = MetricExplorerUrl.parseServicesParam(
+      JSON.stringify([API, "smuggled"]),
+    );
+
+    expect(serviceIds).toEqual([API, "smuggled"]);
+
+    const stored: JSONObject = addToDashboard(null, [
+      viewQuery({ metricName: LATENCY, variable: "a", serviceIds }),
+    ]);
+
+    dashboard.dashboardViewConfig = stored as unknown as DashboardViewConfig;
+
+    const window: InBetween<Date> = nextWindow();
+
+    const signedIn: ChartReads = await readSignedIn(
+      chartsOf(signedInConfig(stored))[0]!,
+      undefined,
+      window,
+    );
+
+    expect(signedIn.services).toEqual([[API, "smuggled"]]);
+
+    let refusal: unknown = undefined;
+
+    try {
+      await readPublic(chartsOf(publicConfig(stored))[0]!, undefined, window);
+    } catch (err) {
+      refusal = err;
+    }
+
+    expect(refusal).toBeInstanceOf(HTTPErrorResponse);
+    expect((refusal as HTTPErrorResponse).message).toBe(
+      PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE,
+    );
+    expect(MetricService.aggregateBy).not.toHaveBeenCalled();
+  });
+});
+
 describe("property: a public dashboard's charts read what the signed-in ones read", () => {
   const METRICS: Array<string> = [LATENCY, CPU, MEMORY];
   const SERVICES: Array<string> = [API, CHECKOUT, BILLING];

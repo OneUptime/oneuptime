@@ -175,15 +175,15 @@ describe("a public read of a dashboard's metric", () => {
     ]);
   });
 
-  test("as saved: in the saved order and each once, however the request orders or repeats them", () => {
+  test("as saved: in the saved order, whatever order the request names them in", () => {
     const config: JSONObject = dashboardOf(
       chart(savedQuery(LATENCY, [API, CHECKOUT, BILLING])),
     );
 
     for (const requested of [
       [BILLING, CHECKOUT, API],
-      [CHECKOUT, API, BILLING, API],
-      [API, API, CHECKOUT, BILLING, BILLING, CHECKOUT],
+      [CHECKOUT, API, BILLING],
+      [API, CHECKOUT, BILLING],
     ]) {
       expect(readFor(config, LATENCY, servicesFilter(requested))).toEqual([
         API,
@@ -313,6 +313,22 @@ describe("what a public read cannot do", () => {
     );
   });
 
+  test("name a service twice, even among exactly its services", () => {
+    for (const requested of [
+      [API, API, CHECKOUT],
+      [API, CHECKOUT, CHECKOUT],
+      [CHECKOUT, API, CHECKOUT, API],
+    ]) {
+      expect(readFor(config, LATENCY, servicesFilter(requested))).toBe(
+        "refused",
+      );
+    }
+
+    expect(readFor(config, CPU, servicesFilter([BILLING, BILLING]))).toBe(
+      "refused",
+    );
+  });
+
   test("borrow another metric's services", () => {
     expect(readFor(config, LATENCY, servicesFilter([BILLING]))).toBe("refused");
     expect(readFor(config, CPU, servicesFilter([API, CHECKOUT]))).toBe(
@@ -370,6 +386,16 @@ describe("what a public read cannot do", () => {
         new Includes([API, null as unknown as string, CHECKOUT]),
       ],
       ["an Includes with an empty id", new Includes([API, "", CHECKOUT])],
+      ["an Includes with a blank id", new Includes([API, "   ", CHECKOUT])],
+      [
+        "an Includes naming one of exactly its services twice",
+        new Includes([API, CHECKOUT, API]),
+      ],
+      ["an Includes of a text that is not an id", new Includes(["smuggled"])],
+      [
+        "an Includes of an id followed by SQL",
+        new Includes([`${API}') OR ('1'='1`, CHECKOUT]),
+      ],
       [
         "an Includes of lists",
         new Includes([[API, CHECKOUT]] as unknown as Array<string>),
@@ -554,6 +580,39 @@ describe("the services a dashboard saves for each metric", () => {
     ]);
   });
 
+  test("a query saved with something that is not a service id among its services reads for no request, and never for every service", () => {
+    for (const notAnId of ["smuggled", 7, `${API}x`, "{" + CHECKOUT + "}"]) {
+      // As the page sends them: MetricQueryServices reads 7 as "7".
+      const asSent: Array<string> = [API, String(notAnId)];
+      const config: JSONObject = dashboardOf(
+        chart(savedQuery(LATENCY, [API, notAnId])),
+      );
+
+      expect(savedServicesOf(config)).toEqual([[LATENCY, [asSent]]]);
+
+      for (const requested of [
+        servicesFilter(asSent),
+        servicesFilter([API]),
+        undefined,
+        null,
+      ]) {
+        expect([String(notAnId), readFor(config, LATENCY, requested)]).toEqual(
+          [String(notAnId), "refused"],
+        );
+      }
+    }
+
+    // On its own, too.
+    const alone: JSONObject = dashboardOf(
+      chart(savedQuery(LATENCY, ["smuggled"])),
+    );
+
+    expect(readFor(alone, LATENCY, servicesFilter(["smuggled"]))).toBe(
+      "refused",
+    );
+    expect(readFor(alone, LATENCY, undefined)).toBe("refused");
+  });
+
   test("only a text that names a metric is a metric name, kept exactly as written", () => {
     const config: JSONObject = dashboardOf(
       chart(
@@ -629,8 +688,9 @@ describe("the services a dashboard saves for each metric", () => {
  * Seeded dashboards of a few charts, each query a pick of a few metrics and
  * services (none, an empty list, or some - stored now and then the noisy
  * ways the page still reads as those ids), and requests that name every
- * set of services there is, some saved and most not. The answer is worked
- * out here from the generated queries alone, not from the policy.
+ * set of services there is, some saved and most not, in an order of their
+ * own and now and then with a service named twice. The answer is worked out
+ * here from the generated queries alone, not from the policy.
  */
 describe("property: a public read is only ever one a saved query makes", () => {
   const METRICS: Array<string> = [LATENCY, CPU, "system.memory.usage"];
@@ -749,11 +809,14 @@ describe("property: a public read is only ever one a saved query makes", () => {
         );
 
         for (const requestedSet of everyServiceSet()) {
-          // The request names them in an order and with repeats of its own.
+          // The request names them in an order of its own, now and then one twice.
           const requestedIds: Array<string> = shuffled(
             [...requestedSet, ...requestedSet.slice(0, random(2))],
             random,
           );
+          // No page names a service twice, so no such request is read.
+          const namesOneTwice: boolean =
+            requestedIds.length !== requestedSet.length;
           const requested: unknown =
             requestedSet.length === 0
               ? [undefined, null][random(2)]
@@ -768,7 +831,7 @@ describe("property: a public read is only ever one a saved query makes", () => {
           const read: ServicesRead = readFor(config, metricName, requested);
           const context: string = `seed ${seed}, ${metricName}, [${requestedSet.join(", ")}]`;
 
-          if (!firstSaved) {
+          if (!firstSaved || namesOneTwice) {
             expect([context, read]).toEqual([context, "refused"]);
             refused++;
             continue;
@@ -789,6 +852,30 @@ describe("property: a public read is only ever one a saved query makes", () => {
             expect(savedUnion.has(serviceId)).toBe(true);
           }
         }
+      }
+
+      /*
+       * Each saved query's own services, with one of them named twice: what
+       * would be read but for the repeat, and is read by no request.
+       */
+      for (const query of generated) {
+        if (query.serviceIds.length === 0) {
+          continue;
+        }
+
+        const requestedIds: Array<string> = shuffled(
+          [
+            ...query.serviceIds,
+            query.serviceIds[random(query.serviceIds.length)]!,
+          ],
+          random,
+        );
+        const context: string = `seed ${seed}, ${query.metricName}, [${requestedIds.join(", ")}]`;
+
+        expect([
+          context,
+          readFor(config, query.metricName, servicesFilter(requestedIds)),
+        ]).toEqual([context, "refused"]);
       }
 
       // The sweep must have tried both answers.
