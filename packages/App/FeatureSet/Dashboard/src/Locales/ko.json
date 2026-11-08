@@ -46572,7 +46572,7 @@
   "Show from {{date}}": "{{date}}부터 보기",
   "Show the past 3 months": "지난 3개월 보기",
   "The OpenAI and Azure.AI.OpenAI libraries trace their calls, to OpenAI, Azure OpenAI and Microsoft Foundry, once their OpenTelemetry switch is on. They record no prompts or answers: apps on Microsoft.Extensions.AI record them with UseOpenTelemetry and EnableSensitiveData.": "OpenAI 및 Azure.AI.OpenAI 라이브러리는 OpenTelemetry 스위치를 켜면 OpenAI, Azure OpenAI, Microsoft Foundry 호출을 추적합니다. 프롬프트나 응답은 기록하지 않습니다. Microsoft.Extensions.AI를 사용하는 앱은 UseOpenTelemetry와 EnableSensitiveData로 기록합니다.",
-  "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI. It sends prompts and answers as log events, which conversations do not show: each call arrives with its model, tokens and cost.": "OpenTelemetry Java 에이전트는 OpenAI 또는 Azure OpenAI를 호출하는 OpenAI Java SDK를 추적합니다. 프롬프트와 응답은 로그 이벤트로 보내며 대화에는 표시되지 않습니다. 각 호출은 모델, 토큰, 비용과 함께 도착합니다.",
+  "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, which conversations do not show.": "OpenTelemetry Java 에이전트는 OpenAI 또는 Azure OpenAI를 호출하는 OpenAI Java SDK를 추적합니다. 각 호출은 모델, 토큰, 비용과 함께 도착합니다. 콘텐츠 캡처를 켜면 프롬프트와 응답을 로그 이벤트로 보내며 대화에는 표시되지 않습니다.",
   "The setup check could not be read. Check again in a moment.": "설정 점검을 읽을 수 없습니다. 잠시 후 다시 확인하세요.",
   "They show on Usage: who uses what, and what it costs. Coding assistants send no conversations.": "사용량에 표시됩니다. 누가 무엇을 쓰고 비용이 얼마인지 보여 줍니다. 코딩 도우미는 대화를 보내지 않습니다.",
   "This part could not be read for you.": "이 부분은 읽을 권한이 없습니다.",

@@ -46572,7 +46572,7 @@
   "Show from {{date}}": "{{date}} から表示",
   "Show the past 3 months": "過去 3 か月を表示",
   "The OpenAI and Azure.AI.OpenAI libraries trace their calls, to OpenAI, Azure OpenAI and Microsoft Foundry, once their OpenTelemetry switch is on. They record no prompts or answers: apps on Microsoft.Extensions.AI record them with UseOpenTelemetry and EnableSensitiveData.": "OpenAI と Azure.AI.OpenAI ライブラリは、OpenTelemetry のスイッチをオンにすると、OpenAI、Azure OpenAI、Microsoft Foundry への呼び出しをトレースします。プロンプトや回答は記録しません。Microsoft.Extensions.AI を使うアプリでは、UseOpenTelemetry と EnableSensitiveData で記録できます。",
-  "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI. It sends prompts and answers as log events, which conversations do not show: each call arrives with its model, tokens and cost.": "OpenTelemetry Java エージェントは、OpenAI または Azure OpenAI を呼び出す OpenAI Java SDK をトレースします。プロンプトと回答はログ イベントとして送信され、会話には表示されません。各呼び出しはモデル、トークン、コスト付きで届きます。",
+  "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, which conversations do not show.": "OpenTelemetry Java エージェントは、OpenAI または Azure OpenAI を呼び出す OpenAI Java SDK をトレースします。各呼び出しはモデル、トークン、コスト付きで届きます。コンテンツ キャプチャをオンにすると、プロンプトと回答はログ イベントとして送信され、会話には表示されません。",
   "The setup check could not be read. Check again in a moment.": "セットアップ チェックを読み取れませんでした。しばらくしてからもう一度確認してください。",
   "They show on Usage: who uses what, and what it costs. Coding assistants send no conversations.": "「使用量」に表示されます。誰が何を使い、いくらかかったかがわかります。コーディング アシスタントは会話を送信しません。",
   "This part could not be read for you.": "この部分はあなたの権限では読み取れません。",

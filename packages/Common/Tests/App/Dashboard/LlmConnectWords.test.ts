@@ -853,6 +853,10 @@ describe("the snippets for your apps", () => {
     expect(noteOf("java")).toContain(
       "as log events, which conversations do not show",
     );
+    // The agent records no content until it is told to: never said as if it did.
+    expect(noteOf("java")).toContain(
+      "With content capture on, it sends prompts and answers",
+    );
   });
 
   test("the any-language snippet says Python's instrumentations take span_only", () => {

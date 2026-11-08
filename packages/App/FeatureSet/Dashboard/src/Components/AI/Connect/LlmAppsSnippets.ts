@@ -139,8 +139,13 @@ builder.Services.AddOpenTelemetry()
   {
     key: "java",
     title: translationKey("Java"),
+    /*
+     * The agent records no prompt or answer until content capture is on
+     * (otel.instrumentation.genai.capture-message-content, off by
+     * default), and then on the logs signal.
+     */
     note: translationKey(
-      "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI. It sends prompts and answers as log events, which conversations do not show: each call arrives with its model, tokens and cost.",
+      "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, which conversations do not show.",
     ),
     blocks: [
       {

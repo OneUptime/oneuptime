@@ -1449,8 +1449,9 @@ describe("the AI / LLM Observability page: what is arriving, and from where", ()
       "Python's OpenTelemetry instrumentation records it there with `span_only`; the JavaScript and Java instrumentations, and Python's with `true`, send it as log events, which conversations do not read, and the **Setup check** says so.",
     );
     expect(snippets).toContain("span_only instead of true");
+    // Off until content capture is switched on, and then on the logs signal.
     expect(snippets).toContain(
-      "It sends prompts and answers as log events, which conversations do not show",
+      "With content capture on, it sends prompts and answers as log events, which conversations do not show",
     );
     expect(snippets).toContain("UseOpenTelemetry and EnableSensitiveData");
     // The check looks for GenAI events on the logs signal.

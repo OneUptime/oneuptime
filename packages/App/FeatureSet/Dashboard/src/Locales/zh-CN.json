@@ -46572,7 +46572,7 @@
   "Show from {{date}}": "从 {{date}} 开始显示",
   "Show the past 3 months": "显示过去 3 个月",
   "The OpenAI and Azure.AI.OpenAI libraries trace their calls, to OpenAI, Azure OpenAI and Microsoft Foundry, once their OpenTelemetry switch is on. They record no prompts or answers: apps on Microsoft.Extensions.AI record them with UseOpenTelemetry and EnableSensitiveData.": "OpenAI 和 Azure.AI.OpenAI 库在打开其 OpenTelemetry 开关后，会追踪对 OpenAI、Azure OpenAI 和 Microsoft Foundry 的调用。它们不记录提示词或回答：基于 Microsoft.Extensions.AI 的应用可通过 UseOpenTelemetry 和 EnableSensitiveData 记录。",
-  "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI. It sends prompts and answers as log events, which conversations do not show: each call arrives with its model, tokens and cost.": "OpenTelemetry Java 代理会追踪调用 OpenAI 或 Azure OpenAI 的 OpenAI Java SDK。它以日志事件发送提示词和回答，对话中不会显示：每次调用都会带着模型、令牌和成本到达。",
+  "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, which conversations do not show.": "OpenTelemetry Java 代理会追踪调用 OpenAI 或 Azure OpenAI 的 OpenAI Java SDK：每次调用都会带着模型、令牌和成本到达。打开内容捕获后，它以日志事件发送提示词和回答，对话中不会显示。",
   "The setup check could not be read. Check again in a moment.": "无法读取设置检查。请稍后再检查。",
   "They show on Usage: who uses what, and what it costs. Coding assistants send no conversations.": "它们显示在“用量”中：谁在用什么，花费多少。编程助手不会发送对话。",
   "This part could not be read for you.": "你无权读取这一部分。",
