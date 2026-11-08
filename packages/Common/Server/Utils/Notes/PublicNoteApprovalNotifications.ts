@@ -20,10 +20,8 @@ import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
 import PushNotificationUtil from "../PushNotificationUtil";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import WorkspacePublicNoteApproval, {
-  WorkspaceDirectMessage,
-} from "../Workspace/WorkspacePublicNoteApproval";
-import { PublicNoteApprovalWaitingFor } from "./PublicNoteApprovalFeed";
+import type { WorkspaceDirectMessage } from "../Workspace/WorkspacePublicNoteApproval";
+import type { PublicNoteApprovalWaitingFor } from "./PublicNoteApprovalFeed";
 import type { PublicNoteKind } from "./PublicNoteApprovalEngine";
 
 /*
@@ -408,6 +406,17 @@ export default class PublicNoteApprovalNotifications {
     }
 
     try {
+      /*
+       * Required here, not imported: it reads the chat apps' modules, and
+       * every public note service reads this file, through the notes'
+       * engine, as it loads. Imported at the top, loading a note service
+       * would start the chat apps' modules before the ones they read
+       * (WorkspaceMemberActions' WorkspaceEventType) are ready.
+       */
+      const WorkspacePublicNoteApproval: typeof import("../Workspace/WorkspacePublicNoteApproval").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("../Workspace/WorkspacePublicNoteApproval").default;
+
       return WorkspacePublicNoteApproval.getAskMessage({
         recordLabel: data.facts.recordLabel,
         recordTitle: data.facts.recordTitle,
