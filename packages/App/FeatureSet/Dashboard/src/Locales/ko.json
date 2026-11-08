@@ -46435,5 +46435,7 @@
   "Fires when about {{percent}}% of the error budget burns in {{duration}}": "오류 예산의 약 {{percent}}%가 {{duration}} 동안 소진되면 실행",
   "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "이 SLO에 아직 없는 추천 소진율 규칙으로, 준수 기간에 맞게 조정되었습니다. 추가한 뒤에는 다른 규칙처럼 수정하거나 삭제할 수 있습니다.",
   "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "이 SLO에 아직 없는 규칙: {{rules}}. 확인하기 전에는 아무것도 추가되지 않습니다. 비활성화된 규칙도 설정된 것으로 보므로, 원하지 않는 규칙은 삭제하지 말고 비활성화하세요.",
-  "Recommended rules not set up": "추천 규칙이 설정되지 않음"
+  "Recommended rules not set up": "추천 규칙이 설정되지 않음",
+  "Copy a link to this time range": "Copy a link to this time range",
+  "Go back to what the monitor saw": "Go back to what the monitor saw"
 }

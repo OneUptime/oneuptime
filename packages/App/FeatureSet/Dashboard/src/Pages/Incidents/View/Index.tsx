@@ -33,7 +33,6 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -48,22 +47,14 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import User from "Common/UI/Utils/User";
-import Card from "Common/UI/Components/Card/Card";
-import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
-import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import TracesViewer from "../../../Components/Traces/TracesViewer";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import EventMetricInvestigationPanel from "../../../Components/Telemetry/EventMetricInvestigationPanel";
 import { EventMetricSubject } from "../../../Utils/EventMetricInvestigation";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
-import TelemetryCompanionSignalTabs from "../../../Components/Telemetry/TelemetryCompanionSignalTabs";
-import useTelemetrySnapshotZoom, {
-  TelemetrySnapshotBadge,
-  TelemetrySnapshotZoom,
-} from "../../../Components/Telemetry/TelemetrySnapshotZoom";
+import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
@@ -120,11 +111,6 @@ import IncidentCreatedResend from "Common/Types/StatusPage/IncidentCreatedResend
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
 import IncidentStatusPageScopeView from "../../../Components/Incident/IncidentStatusPageScopeView";
-import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
-import Query from "Common/Types/BaseDatabase/Query";
-import Span from "Common/Models/AnalyticsModels/Span";
-import Log from "Common/Models/AnalyticsModels/Log";
-import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import {
   EventStanding,
   EventStateTimelineDate,
@@ -288,21 +274,6 @@ const IncidentView: FunctionComponent<
    */
   const [telemetrySnapshotWindow, setTelemetrySnapshotWindow] =
     useState<InBetween<Date> | null>(null);
-  /*
-   * A drag on the snapshot's primary chart (a logs, traces or exceptions
-   * explorer's histogram) zooms the whole snapshot, every tab of it; see
-   * TelemetrySnapshotZoom. Held by the page, above the tabs, so it outlives
-   * a switch to another tab and back, and the background refresh (which
-   * re-reads an equal window) keeps it. A metrics monitor's incident has
-   * its metric investigation instead (EventMetricInvestigationPanel), whose
-   * time range its tabs follow.
-   */
-  const snapshotZoom: TelemetrySnapshotZoom = useTelemetrySnapshotZoom({
-    snapshotWindow: telemetrySnapshotWindow,
-    telemetryType: telemetryQuery?.telemetryType,
-    explorerQuery: telemetryQuery?.telemetryQuery,
-    subjectKey: modelIdString,
-  });
   /*
    * "host.name = prod-01" when a grouped metric monitor opened this
    * incident for one series. Empty for whole-monitor incidents.
@@ -1144,21 +1115,6 @@ const IncidentView: FunctionComponent<
   const isMetricSnapshot: boolean =
     telemetryQuery?.telemetryType === TelemetryType.Metric;
 
-  /*
-   * Built once and shared by the preview cards. Resolved to `undefined`
-   * rather than an element that renders nothing, because Card decides whether
-   * to lay out its right-hand column from the PRESENCE of rightElement — an
-   * element returning an empty fragment is still truthy, and would leave an
-   * empty block and a shifted title on incidents that stored no window.
-   */
-  const snapshotWindowAlert: ReactElement | undefined =
-    telemetrySnapshotWindow ? (
-      <TelemetrySnapshotBadge
-        window={telemetrySnapshotWindow}
-        zoom={snapshotZoom.zoom}
-      />
-    ) : undefined;
-
   return (
     <div>
       {refreshError ? (
@@ -1386,112 +1342,20 @@ const IncidentView: FunctionComponent<
           )}
 
           {telemetryQuery && !isMetricSnapshot && (
-            <TelemetryCompanionSignalTabs
+            /*
+             * A logs, traces or exceptions monitor's incident: what its query
+             * finds, over the window the monitor evaluated or any range
+             * around the incident the reader picks, with the other signals on
+             * tabs that follow the same range.
+             */
+            <TelemetrySnapshotPanel
               telemetryQuery={telemetryQuery}
-              // The companion tabs follow the zoom: they show the slice too.
-              snapshotWindow={snapshotZoom.window}
-              isSnapshotZoomed={snapshotZoom.isZoomed}
-              snapshotWindowAlert={snapshotWindowAlert}
+              snapshotWindow={telemetrySnapshotWindow}
+              seriesSummary={seriesSummary}
               eventNoun="incident"
-              primarySignalElement={
-                <Fragment>
-                  {telemetryQuery.telemetryType === TelemetryType.Log &&
-                    telemetryQuery.telemetryQuery && (
-                      <div>
-                        <Card
-                          title={"Logs"}
-                          description={"Logs for this incident."}
-                          rightElement={snapshotWindowAlert}
-                        >
-                          {/*
-                           * On the window the snapshot shows and inside
-                           * its zoom, which the explorer follows: a drag
-                           * on the log volume chart zooms every tab, and a
-                           * double-click or the badge's Reset zoom
-                           * returns them all. See TelemetrySnapshotZoom.
-                           */}
-                          <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
-                            <DashboardLogsViewer
-                              id="logs-preview"
-                              logQuery={
-                                snapshotZoom.explorerQuery as Query<Log>
-                              }
-                              limit={10}
-                              noLogsMessage="No logs found"
-                            />
-                          </TimeRangeZoomProvider>
-                        </Card>
-                      </div>
-                    )}
-
-                  {telemetryQuery.telemetryType === TelemetryType.Trace &&
-                    telemetryQuery.telemetryQuery && (
-                      <div>
-                        <Card
-                          title={"Spans"}
-                          description={"Spans for this incident."}
-                          rightElement={snapshotWindowAlert}
-                        >
-                          {/*
-                           * On the window the snapshot shows and inside
-                           * its zoom, which the explorer follows; see the
-                           * logs above.
-                           */}
-                          <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
-                            <TracesViewer
-                              spanQuery={
-                                snapshotZoom.explorerQuery as Query<Span>
-                              }
-                              limit={10}
-                              /*
-                               * Pinned to the snapshot: this page owns the URL,
-                               * so the viewer neither reads a filter out of it
-                               * nor writes its own state back into it.
-                               */
-                              disableUrlSync={true}
-                              emptyMessage="No spans found"
-                            />
-                          </TimeRangeZoomProvider>
-                        </Card>
-                      </div>
-                    )}
-
-                  {telemetryQuery.telemetryType === TelemetryType.Exception &&
-                    telemetryQuery.telemetryQuery && (
-                      <Card
-                        title={"Exceptions"}
-                        description={"Exceptions related to this incident."}
-                        rightElement={snapshotWindowAlert}
-                      >
-                        {/*
-                         * On the window the snapshot shows and inside its
-                         * zoom, which the explorer follows; see the logs
-                         * above.
-                         */}
-                        <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
-                          <ExceptionsViewer
-                            exceptionInstanceQuery={
-                              snapshotZoom.explorerQuery as Query<ExceptionInstance>
-                            }
-                            /*
-                             * An event shows the exceptions it fired on,
-                             * whoever has since resolved them and whatever the
-                             * classifier made of them — the explorer's
-                             * "unresolved issues" defaults would hide exactly
-                             * those.
-                             */
-                            defaultStatus="all"
-                            defaultClassScope="all"
-                            limit={10}
-                            // Pinned to the snapshot; this page owns the URL.
-                            disableUrlSync={true}
-                            emptyMessage="No exceptions found"
-                          />
-                        </TimeRangeZoomProvider>
-                      </Card>
-                    )}
-                </Fragment>
-              }
+              subject={EventMetricSubject.Incident}
+              startedAt={responseTimes.startedAt}
+              endedAt={durationEndDate}
             />
           )}
 

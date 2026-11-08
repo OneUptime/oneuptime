@@ -46435,5 +46435,7 @@
   "Fires when about {{percent}}% of the error budget burns in {{duration}}": "Gaat af wanneer ongeveer {{percent}}% van het foutbudget in {{duration}} wordt verbruikt",
   "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "Dit zijn de aanbevolen verbruikssnelheidsregels die dit SLO nog niet heeft, afgestemd op zijn nalevingsvenster. Bewerk of verwijder ze daarna zoals elke andere regel.",
   "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "Regels die deze SLO nog niet heeft: {{rules}}. Er wordt niets toegevoegd tot u bevestigt. Een uitgeschakelde regel telt als ingesteld, dus schakel een regel die u niet wilt uit in plaats van hem te verwijderen.",
-  "Recommended rules not set up": "Aanbevolen regels niet ingesteld"
+  "Recommended rules not set up": "Aanbevolen regels niet ingesteld",
+  "Copy a link to this time range": "Copy a link to this time range",
+  "Go back to what the monitor saw": "Go back to what the monitor saw"
 }

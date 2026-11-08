@@ -19,8 +19,10 @@ import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
  * with the SAME monitor-wide query configs. Three surfaces replay those
  * configs, and all three used to chart every group:
  *
- *   - the incident Root Cause page's "Metric at Incident Time" chart,
- *     which reads the query configs off the monitor step;
+ *   - the incident Root Cause page's metrics card (issue #6249), which
+ *     charts the incident's stored snapshot as the Overview does, or, for
+ *     an incident that kept none, reads the query configs off the monitor
+ *     step (IncidentRootCauseMetrics);
  *   - the incident overview's "Metrics" card, and
  *   - the alert overview's "Metrics" card, both of which read them off the
  *     stored telemetryQuery.
@@ -68,6 +70,12 @@ const ROOT_CAUSE_CHART: string = readSource(
   "Components",
   "Incident",
   "IncidentRootCauseMetricChart.tsx",
+);
+
+// What the Root Cause card charts, worked out apart from it.
+const ROOT_CAUSE_METRICS: string = readSource(
+  "Utils",
+  "IncidentRootCauseMetrics.ts",
 );
 
 const INCIDENT_VIEW: string = readSource(
@@ -118,9 +126,25 @@ function selectBlockAfter(source: string, marker: string): string {
 
 describe("incident Root Cause metric chart is scoped to the incident's series", () => {
   test("imports MetricSeriesScope", () => {
-    expect(ROOT_CAUSE_CHART).toContain(
+    expect(ROOT_CAUSE_METRICS).toContain(
       'import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";',
     );
+  });
+
+  test("hands what the incident keeps to what it charts: its snapshot, series and monitors", () => {
+    const handed: string = selectBlockAfter(
+      ROOT_CAUSE_CHART,
+      "getRootCauseMetrics({",
+    );
+
+    expect(handed).toContain("telemetryQuery: telemetryQuery,");
+    expect(handed).toContain(
+      "seriesLabels: incident.seriesLabels as JSONObject | undefined,",
+    );
+    expect(handed).toContain("createdCriteriaId: incident.createdCriteriaId,");
+    expect(
+      selectBlockAfter(ROOT_CAUSE_CHART, "modelType: Incident, id:"),
+    ).toContain("telemetryQuery: true,");
   });
 
   test("asks the API for the incident's series labels", () => {
@@ -135,22 +159,27 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
   });
 
   test("reads the monitor's step as the monitor reads it: for the services it is limited to (issue #6266)", () => {
-    expect(ROOT_CAUSE_CHART).toContain(
-      'import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";',
+    // The monitor's metric steps, each read as its monitor reads it.
+    expect(ROOT_CAUSE_METRICS).toContain("getMonitorMetricSteps({");
+    expect(MONITOR_METRIC_INVESTIGATION).toContain(
+      "MonitorStepMetricQueries.getReads({",
     );
-    expect(ROOT_CAUSE_CHART).toContain(
-      "queryConfigs = MonitorStepMetricQueries.getReadQueryConfigs({ monitorType: MonitorType.Metrics, settings: step.data?.metricMonitor, });",
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "const queryConfigs: Array<MetricQueryConfigData> = chosen.metricStep.reads.queryConfigs;",
     );
   });
 
-  test("narrows the monitor step's query configs before charting them", () => {
+  test("narrows what it charts before charting it: the snapshot, or the monitor step's query configs", () => {
     /*
      * The assignment is the load-bearing part: calling the util and
      * dropping its result restores the bug in full while still
      * mentioning the util.
      */
-    expect(ROOT_CAUSE_CHART).toContain(
-      "queryConfigs = MetricSeriesScope.scopeQueryConfigsToSeries({",
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "metricViewData: MetricSeriesScope.scopeMetricViewDataToSeries({ metricViewData: snapshotView, seriesLabels: input.seriesLabels, }) || snapshotView,",
+    );
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "queryConfigs: MetricSeriesScope.scopeQueryConfigsToSeries({ queryConfigs: queryConfigs, seriesLabels: input.seriesLabels, }),",
     );
   });
 
@@ -160,10 +189,18 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
      * which would have the card vouch for an unscoped chart whenever the
      * labels don't intersect the queries' group-bys.
      */
+    expect(
+      ROOT_CAUSE_METRICS.split(
+        "seriesSummary: MetricSeriesScope.getAppliedSeriesLabelSummary({",
+      ).length - 1,
+    ).toBe(2);
+    // The card says it, as the Overview's does.
     expect(ROOT_CAUSE_CHART).toContain(
-      "MetricSeriesScope.getAppliedSeriesLabelSummary({",
+      "seriesSummary={loaded.metrics.seriesSummary}",
     );
-    expect(ROOT_CAUSE_CHART).toContain("scoped to the affected series");
+    expect(METRIC_INVESTIGATION_PANEL).toContain(
+      "scoped to the affected series ({{seriesSummary}})",
+    );
   });
 });
 

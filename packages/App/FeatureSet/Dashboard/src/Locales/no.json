@@ -46435,5 +46435,7 @@
   "Fires when about {{percent}}% of the error budget burns in {{duration}}": "Utløses når rundt {{percent}} % av feilbudsjettet brukes på {{duration}}",
   "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "Dette er de anbefalte forbruksratereglene som denne SLO-en ikke har ennå, tilpasset samsvarsvinduet. Rediger eller slett dem etterpå som alle andre regler.",
   "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "Regler dette SLO-et ikke har ennå: {{rules}}. Ingenting legges til før du bekrefter. En deaktivert regel teller som satt opp, så deaktiver en regel du ikke vil ha, i stedet for å slette den.",
-  "Recommended rules not set up": "Anbefalte regler er ikke satt opp"
+  "Recommended rules not set up": "Anbefalte regler er ikke satt opp",
+  "Copy a link to this time range": "Copy a link to this time range",
+  "Go back to what the monitor saw": "Go back to what the monitor saw"
 }

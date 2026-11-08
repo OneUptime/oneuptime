@@ -46435,5 +46435,7 @@
   "Fires when about {{percent}}% of the error budget burns in {{duration}}": "Срабатывает, когда около {{percent}}% бюджета ошибок расходуется за {{duration}}",
   "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "Это рекомендуемые правила скорости расхода, которых у этого SLO ещё нет, рассчитанные под его окно соответствия. Потом их можно изменить или удалить, как любое другое правило.",
   "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "Правила, которых у этого SLO пока нет: {{rules}}. Ничего не добавится, пока вы не подтвердите. Отключённое правило считается настроенным, поэтому отключите ненужное правило, а не удаляйте его.",
-  "Recommended rules not set up": "Рекомендуемые правила не настроены"
+  "Recommended rules not set up": "Рекомендуемые правила не настроены",
+  "Copy a link to this time range": "Copy a link to this time range",
+  "Go back to what the monitor saw": "Go back to what the monitor saw"
 }

@@ -19,22 +19,24 @@ import useMetricInvestigation, {
   MetricInvestigationState,
 } from "../Metrics/Investigation/UseMetricInvestigation";
 import {
-  EVALUATED_LABEL,
   EVALUATED_REGION_COLOR,
-  EVENT_METRIC_DEFAULT_SELECTION,
-  EVENT_METRIC_RELATIVE_RANGES,
   EventMetricSubject,
   EventMetricWords,
   EventMoment,
   EventMomentLabel,
   EventMomentState,
   EventMomentTimelineEntry,
-  getEventMetricTimePresets,
   getEventMetricWords,
   getEventMomentColor,
   getEventMomentLabel,
   getEventMoments,
 } from "../../Utils/EventMetricInvestigation";
+import {
+  EVALUATED_LABEL,
+  EVENT_AROUND_START_SELECTION,
+  EVENT_RELATIVE_TIME_RANGES,
+  getEventTimePresets,
+} from "../../Utils/EventTimePresets";
 import TelemetryCompanionSignalTabs from "./TelemetryCompanionSignalTabs";
 import useEventMetricRule, { EventMetricRule } from "./useEventMetricRule";
 
@@ -79,6 +81,26 @@ export interface ComponentProps {
   // Its state timeline, and the project's states, for the moments it marks.
   stateTimeline: Array<EventMomentTimelineEntry>;
   states: Array<EventMomentState>;
+  /*
+   * Where the page keeps what the reader changed in its URL: "metrics" on
+   * an event's Overview. A page with a card of its own beside it names its
+   * own, so the two never read each other's (the incident's Root Cause
+   * page: "rootCauseMetrics").
+   */
+  urlParamPrefix?: string | undefined;
+  /*
+   * False for the metrics alone, without the Logs, Traces and Exceptions
+   * tabs: on a page that shows them beside something else (the incident's
+   * Root Cause page). The tabs are there unless said otherwise.
+   */
+  showsCompanionTabs?: boolean | undefined;
+  /*
+   * The metrics are the monitor's as it reads them now, not a snapshot the
+   * event kept (one declared by hand, or opened before events kept one):
+   * the card says so, as it does for a snapshot narrowed now, naming the
+   * resource the monitor watches when it names one ("" when it does not).
+   */
+  chartedFromMonitorNow?: { resourceName: string } | undefined;
 }
 
 /**
@@ -131,7 +153,7 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
   const investigation: MetricInvestigationState = useMetricInvestigation({
     defaultQueries: rule.scope.queries,
     getPresets: (now: Date): Array<MetricInvestigationTimePreset> => {
-      return getEventMetricTimePresets(
+      return getEventTimePresets(
         {
           startedAt: props.startedAt,
           endedAt: props.endedAt,
@@ -140,8 +162,9 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
         now,
       );
     },
-    defaultSelection: EVENT_METRIC_DEFAULT_SELECTION,
-    urlParamPrefix: EVENT_METRIC_INVESTIGATION_URL_PREFIX,
+    defaultSelection: EVENT_AROUND_START_SELECTION,
+    urlParamPrefix:
+      props.urlParamPrefix || EVENT_METRIC_INVESTIGATION_URL_PREFIX,
   });
 
   const moments: Array<EventMoment> = getEventMoments({
@@ -228,27 +251,66 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
         "Metrics related to this incident.";
 
   /*
-   * Said while the charts show a snapshot narrowed now (see above): the
-   * monitor may have watched another resource when it opened the event.
-   * Gone once the reader picks metrics of their own.
+   * Said while the charts show a snapshot narrowed now (see above), or the
+   * monitor's metrics as it reads them now: the monitor may have watched
+   * another resource when it opened the event. Gone once the reader picks
+   * metrics of their own.
    */
+  const scopedResourceName: string =
+    rule.scope.resourceName || props.chartedFromMonitorNow?.resourceName || "";
+
   const scopeNote: ReactElement | undefined =
-    rule.scope.isFromMonitorNow && !investigation.isQueriesChanged ? (
+    (rule.scope.isFromMonitorNow || props.chartedFromMonitorNow) &&
+    !investigation.isQueriesChanged ? (
       <p
         className="flex items-center gap-1.5 text-xs text-gray-500"
         data-testid={EVENT_METRIC_SCOPE_NOTE_TEST_ID}
       >
         <Icon icon={IconProp.Info} className="h-3.5 w-3.5 text-gray-400" />
-        {rule.scope.resourceName
+        {scopedResourceName
           ? translator.translateTemplate(
               "Charted for {{resource}}, which this monitor checks now.",
-              { resource: rule.scope.resourceName },
+              { resource: scopedResourceName },
             )
           : translator.translateText(
               "Charted for what this monitor checks now.",
             )}
       </p>
     ) : undefined;
+
+  const metrics: ReactElement = (
+    <MetricInvestigation
+      investigation={investigation}
+      description={description}
+      changedDescription={
+        translator.translateText(
+          "The metrics you picked. Reset brings back the metrics the monitor watched.",
+        ) ||
+        "The metrics you picked. Reset brings back the metrics the monitor watched."
+      }
+      presetsHeading={words.presetsHeading}
+      relativeRanges={EVENT_RELATIVE_TIME_RANGES}
+      moments={momentLines}
+      regions={regions}
+      thresholds={rule.thresholds}
+      beforeToolbar={scopeNote}
+      excludedIncidentIds={
+        props.eventId && props.subject === EventMetricSubject.Incident
+          ? [props.eventId]
+          : undefined
+      }
+      excludedAlertIds={
+        props.eventId && props.subject === EventMetricSubject.Alert
+          ? [props.eventId]
+          : undefined
+      }
+    />
+  );
+
+  // The metrics alone, where the page shows them beside something else.
+  if (props.showsCompanionTabs === false) {
+    return metrics;
+  }
 
   /*
    * The same picker on every tab of the card, all picking the one time
@@ -258,7 +320,7 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
     <MetricInvestigationTimePicker
       investigation={investigation}
       presetsHeading={words.presetsHeading}
-      relativeRanges={EVENT_METRIC_RELATIVE_RANGES}
+      relativeRanges={EVENT_RELATIVE_TIME_RANGES}
     />
   );
 
@@ -270,34 +332,7 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
       companionWindow="selected"
       snapshotWindowAlert={timePicker}
       eventNoun={words.telemetryNoun}
-      primarySignalElement={
-        <MetricInvestigation
-          investigation={investigation}
-          description={description}
-          changedDescription={
-            translator.translateText(
-              "The metrics you picked. Reset brings back the metrics the monitor watched.",
-            ) ||
-            "The metrics you picked. Reset brings back the metrics the monitor watched."
-          }
-          presetsHeading={words.presetsHeading}
-          relativeRanges={EVENT_METRIC_RELATIVE_RANGES}
-          moments={momentLines}
-          regions={regions}
-          thresholds={rule.thresholds}
-          beforeToolbar={scopeNote}
-          excludedIncidentIds={
-            props.eventId && props.subject === EventMetricSubject.Incident
-              ? [props.eventId]
-              : undefined
-          }
-          excludedAlertIds={
-            props.eventId && props.subject === EventMetricSubject.Alert
-              ? [props.eventId]
-              : undefined
-          }
-        />
-      }
+      primarySignalElement={metrics}
     />
   );
 };

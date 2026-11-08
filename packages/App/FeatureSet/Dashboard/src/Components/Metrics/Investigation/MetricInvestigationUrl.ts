@@ -22,15 +22,26 @@ import MetricInvestigationQueryUtil, {
  * Every name starts with the page's prefix ("metricsTime", "metricsStart"),
  * so it never meets another part of the page's URL state, such as a list's
  * filters.
+ *
+ * In two halves: the time range ("Time", "Start", "End"), which a card with
+ * no metrics of its own keeps too (an incident's logs; see
+ * UseInvestigationTimeRange), and the metrics ("Queries", "Formulas").
  */
 
-export interface MetricInvestigationUrlParamNames {
+export interface MetricInvestigationTimeUrlParamNames {
   time: string;
   start: string;
   end: string;
+}
+
+export interface MetricInvestigationQueryUrlParamNames {
   queries: string;
   formulas: string;
 }
+
+export interface MetricInvestigationUrlParamNames
+  extends MetricInvestigationTimeUrlParamNames,
+    MetricInvestigationQueryUrlParamNames {}
 
 /*
  * What the URL keeps: the pick and the queries the reader chose, each null
@@ -44,15 +55,72 @@ export interface MetricInvestigationUrlState {
 export type ReadUrlParamFunction = (name: string) => string | null;
 
 export default class MetricInvestigationUrl {
-  public static getParamNames(
+  public static getTimeParamNames(
     prefix: string,
-  ): MetricInvestigationUrlParamNames {
+  ): MetricInvestigationTimeUrlParamNames {
     return {
       time: `${prefix}Time`,
       start: `${prefix}Start`,
       end: `${prefix}End`,
+    };
+  }
+
+  public static getQueryParamNames(
+    prefix: string,
+  ): MetricInvestigationQueryUrlParamNames {
+    return {
       queries: `${prefix}Queries`,
       formulas: `${prefix}Formulas`,
+    };
+  }
+
+  public static getParamNames(
+    prefix: string,
+  ): MetricInvestigationUrlParamNames {
+    return {
+      ...MetricInvestigationUrl.getTimeParamNames(prefix),
+      ...MetricInvestigationUrl.getQueryParamNames(prefix),
+    };
+  }
+
+  /*
+   * The time range's params to set, by name: a null value is one to take
+   * out, so every time name the investigation owns is in the result (see
+   * buildParams).
+   */
+  public static buildTimeParams(input: {
+    prefix: string;
+    selection: MetricInvestigationTimeSelection | null;
+  }): Dictionary<string | null> {
+    const names: MetricInvestigationTimeUrlParamNames =
+      MetricInvestigationUrl.getTimeParamNames(input.prefix);
+
+    const time: MetricInvestigationTimeUrlValue | null = input.selection
+      ? MetricInvestigationTime.toUrlValue(input.selection)
+      : null;
+
+    return {
+      [names.time]: time ? time.time : null,
+      [names.start]: time?.start || null,
+      [names.end]: time?.end || null,
+    };
+  }
+
+  // The metrics' params to set, by name, the same way.
+  public static buildQueryParams(input: {
+    prefix: string;
+    queries: MetricInvestigationQueries | null;
+  }): Dictionary<string | null> {
+    const names: MetricInvestigationQueryUrlParamNames =
+      MetricInvestigationUrl.getQueryParamNames(input.prefix);
+
+    const queries: MetricInvestigationQueriesUrlValue | null = input.queries
+      ? MetricInvestigationQueryUtil.toUrlValue(input.queries)
+      : null;
+
+    return {
+      [names.queries]: queries ? queries.queries : null,
+      [names.formulas]: queries?.formulas || null,
     };
   }
 
@@ -66,25 +134,53 @@ export default class MetricInvestigationUrl {
     prefix: string;
     state: MetricInvestigationUrlState;
   }): Dictionary<string | null> {
-    const names: MetricInvestigationUrlParamNames =
-      MetricInvestigationUrl.getParamNames(input.prefix);
-
-    const time: MetricInvestigationTimeUrlValue | null = input.state.selection
-      ? MetricInvestigationTime.toUrlValue(input.state.selection)
-      : null;
-
-    const queries: MetricInvestigationQueriesUrlValue | null = input.state
-      .queries
-      ? MetricInvestigationQueryUtil.toUrlValue(input.state.queries)
-      : null;
-
     return {
-      [names.time]: time ? time.time : null,
-      [names.start]: time?.start || null,
-      [names.end]: time?.end || null,
-      [names.queries]: queries ? queries.queries : null,
-      [names.formulas]: queries?.formulas || null,
+      ...MetricInvestigationUrl.buildTimeParams({
+        prefix: input.prefix,
+        selection: input.state.selection,
+      }),
+      ...MetricInvestigationUrl.buildQueryParams({
+        prefix: input.prefix,
+        queries: input.state.queries,
+      }),
     };
+  }
+
+  /*
+   * The pick a URL keeps for this page, or null when it keeps none the page
+   * can show (see MetricInvestigationTime.fromUrlValue).
+   */
+  public static readSelection(input: {
+    prefix: string;
+    read: ReadUrlParamFunction;
+    presets: Array<MetricInvestigationTimePreset>;
+  }): MetricInvestigationTimeSelection | null {
+    const names: MetricInvestigationTimeUrlParamNames =
+      MetricInvestigationUrl.getTimeParamNames(input.prefix);
+
+    return MetricInvestigationTime.fromUrlValue({
+      time: input.read(names.time),
+      start: input.read(names.start),
+      end: input.read(names.end),
+      presets: input.presets,
+    });
+  }
+
+  /*
+   * The metrics a URL keeps for this page, or null when it keeps none (see
+   * MetricInvestigationQueryUtil.fromUrlValue).
+   */
+  public static readQueries(input: {
+    prefix: string;
+    read: ReadUrlParamFunction;
+  }): MetricInvestigationQueries | null {
+    const names: MetricInvestigationQueryUrlParamNames =
+      MetricInvestigationUrl.getQueryParamNames(input.prefix);
+
+    return MetricInvestigationQueryUtil.fromUrlValue({
+      queries: input.read(names.queries),
+      formulas: input.read(names.formulas),
+    });
   }
 
   /*
@@ -97,20 +193,9 @@ export default class MetricInvestigationUrl {
     read: ReadUrlParamFunction;
     presets: Array<MetricInvestigationTimePreset>;
   }): MetricInvestigationUrlState {
-    const names: MetricInvestigationUrlParamNames =
-      MetricInvestigationUrl.getParamNames(input.prefix);
-
     return {
-      selection: MetricInvestigationTime.fromUrlValue({
-        time: input.read(names.time),
-        start: input.read(names.start),
-        end: input.read(names.end),
-        presets: input.presets,
-      }),
-      queries: MetricInvestigationQueryUtil.fromUrlValue({
-        queries: input.read(names.queries),
-        formulas: input.read(names.formulas),
-      }),
+      selection: MetricInvestigationUrl.readSelection(input),
+      queries: MetricInvestigationUrl.readQueries(input),
     };
   }
 
@@ -149,10 +234,32 @@ export default class MetricInvestigationUrl {
     prefix: string;
     read: ReadUrlParamFunction;
   }): boolean {
-    const names: MetricInvestigationUrlParamNames =
-      MetricInvestigationUrl.getParamNames(input.prefix);
+    return (
+      MetricInvestigationUrl.hasAnyTimeParam(input) ||
+      MetricInvestigationUrl.hasAnyQueryParam(input)
+    );
+  }
 
-    return Object.values(names).some((name: string): boolean => {
+  // Whether the URL holds any of the time range's params.
+  public static hasAnyTimeParam(input: {
+    prefix: string;
+    read: ReadUrlParamFunction;
+  }): boolean {
+    return Object.values(
+      MetricInvestigationUrl.getTimeParamNames(input.prefix),
+    ).some((name: string): boolean => {
+      return Boolean(input.read(name));
+    });
+  }
+
+  // Whether the URL holds any of the metrics' params.
+  public static hasAnyQueryParam(input: {
+    prefix: string;
+    read: ReadUrlParamFunction;
+  }): boolean {
+    return Object.values(
+      MetricInvestigationUrl.getQueryParamNames(input.prefix),
+    ).some((name: string): boolean => {
       return Boolean(input.read(name));
     });
   }

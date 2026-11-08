@@ -374,3 +374,245 @@ describe("applyParams", () => {
     ).toBe("not a url");
   });
 });
+
+/*
+ * The two halves (issue #6251): the time range, which a card with no
+ * metrics of its own keeps too (an incident's logs, traces or exceptions,
+ * under "telemetry"), and the metrics. Each is kept and read on its own, and
+ * the whole is exactly the two together, so a metric investigation keeps
+ * what it always kept.
+ */
+describe("the time range's half and the metrics' half", () => {
+  const SELECTIONS: Array<[string, MetricInvestigationTimeSelection | null]> = [
+    ["nothing picked", null],
+    [
+      "a preset",
+      {
+        kind: MetricInvestigationTimeKind.Preset,
+        presetId: "around-start",
+      },
+    ],
+    [
+      "a relative range",
+      {
+        kind: MetricInvestigationTimeKind.Relative,
+        range: TimeRange.PAST_ONE_DAY,
+      },
+    ],
+    [
+      "a custom window",
+      {
+        kind: MetricInvestigationTimeKind.Custom,
+        window: new InBetween<Date>(
+          new Date("2026-11-05T05:20:00.000Z"),
+          new Date("2026-11-05T05:30:00.000Z"),
+        ),
+      },
+    ],
+  ];
+
+  test("the time range's names and the metrics' names, under the page's prefix, never the same", () => {
+    expect(MetricInvestigationUrl.getTimeParamNames("telemetry")).toEqual({
+      time: "telemetryTime",
+      start: "telemetryStart",
+      end: "telemetryEnd",
+    });
+    expect(MetricInvestigationUrl.getQueryParamNames("telemetry")).toEqual({
+      queries: "telemetryQueries",
+      formulas: "telemetryFormulas",
+    });
+    expect(MetricInvestigationUrl.getParamNames(PREFIX)).toEqual({
+      ...MetricInvestigationUrl.getTimeParamNames(PREFIX),
+      ...MetricInvestigationUrl.getQueryParamNames(PREFIX),
+    });
+
+    const timeNames: Array<string> = Object.values(
+      MetricInvestigationUrl.getTimeParamNames(PREFIX),
+    );
+    for (const name of Object.values(
+      MetricInvestigationUrl.getQueryParamNames(PREFIX),
+    )) {
+      expect(timeNames).not.toContain(name);
+    }
+  });
+
+  test.each(SELECTIONS)(
+    "%s: the time range's params name every time name and nothing else",
+    (_name: string, selection: MetricInvestigationTimeSelection | null) => {
+      const params: Dictionary<string | null> =
+        MetricInvestigationUrl.buildTimeParams({
+          prefix: "telemetry",
+          selection: selection,
+        });
+
+      expect(Object.keys(params).sort()).toEqual([
+        "telemetryEnd",
+        "telemetryStart",
+        "telemetryTime",
+      ]);
+    },
+  );
+
+  test.each(SELECTIONS)(
+    "%s with changed metrics, and without: the whole is the two halves together",
+    (_name: string, selection: MetricInvestigationTimeSelection | null) => {
+      for (const queries of [null, QUERIES]) {
+        expect(
+          MetricInvestigationUrl.buildParams({
+            prefix: PREFIX,
+            state: { selection: selection, queries: queries },
+          }),
+        ).toEqual({
+          ...MetricInvestigationUrl.buildTimeParams({
+            prefix: PREFIX,
+            selection: selection,
+          }),
+          ...MetricInvestigationUrl.buildQueryParams({
+            prefix: PREFIX,
+            queries: queries,
+          }),
+        });
+      }
+    },
+  );
+
+  test.each(SELECTIONS.slice(1))(
+    "%s reads back from the time range's half alone",
+    (_name: string, selection: MetricInvestigationTimeSelection | null) => {
+      const readBack: MetricInvestigationTimeSelection | null =
+        MetricInvestigationUrl.readSelection({
+          prefix: "telemetry",
+          read: reader(
+            MetricInvestigationUrl.buildTimeParams({
+              prefix: "telemetry",
+              selection: selection,
+            }),
+          ),
+          presets: PRESETS,
+        });
+
+      expect(
+        MetricInvestigationTime.isSameSelection(readBack, selection!),
+      ).toBe(true);
+    },
+  );
+
+  test("the metrics read back from their half alone, and a time range is not metrics", () => {
+    expect(
+      MetricInvestigationQueryUtil.isSame(
+        MetricInvestigationUrl.readQueries({
+          prefix: PREFIX,
+          read: reader(
+            MetricInvestigationUrl.buildQueryParams({
+              prefix: PREFIX,
+              queries: QUERIES,
+            }),
+          ),
+        }),
+        QUERIES,
+      ),
+    ).toBe(true);
+
+    expect(
+      MetricInvestigationUrl.readQueries({
+        prefix: PREFIX,
+        read: reader({ metricsTime: "around-start" }),
+      }),
+    ).toBeNull();
+    expect(
+      MetricInvestigationUrl.readSelection({
+        prefix: PREFIX,
+        read: reader(
+          MetricInvestigationUrl.buildQueryParams({
+            prefix: PREFIX,
+            queries: QUERIES,
+          }),
+        ),
+        presets: PRESETS,
+      }),
+    ).toBeNull();
+  });
+
+  test("a range kept under another prefix is not this card's", () => {
+    expect(
+      MetricInvestigationUrl.readSelection({
+        prefix: "telemetry",
+        read: reader({ metricsTime: "around-start" }),
+        presets: PRESETS,
+      }),
+    ).toBeNull();
+    expect(
+      MetricInvestigationUrl.readSelection({
+        prefix: PREFIX,
+        read: reader({ telemetryTime: "around-start" }),
+        presets: PRESETS,
+      }),
+    ).toBeNull();
+  });
+
+  test("readState is the two halves read together", () => {
+    const params: Dictionary<string | null> =
+      MetricInvestigationUrl.buildParams({
+        prefix: PREFIX,
+        state: { selection: SELECTIONS[3]![1], queries: QUERIES },
+      });
+    const state: MetricInvestigationUrlState = MetricInvestigationUrl.readState(
+      {
+        prefix: PREFIX,
+        read: reader(params),
+        presets: PRESETS,
+      },
+    );
+
+    expect(state.selection).toEqual(
+      MetricInvestigationUrl.readSelection({
+        prefix: PREFIX,
+        read: reader(params),
+        presets: PRESETS,
+      }),
+    );
+    expect(
+      MetricInvestigationQueryUtil.isSame(
+        state.queries,
+        MetricInvestigationUrl.readQueries({
+          prefix: PREFIX,
+          read: reader(params),
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test("each half says whether the URL holds any of its own names", () => {
+    const cases: Array<[Dictionary<string | null>, boolean, boolean]> = [
+      [{}, false, false],
+      [{ telemetryTime: "hour-before" }, true, false],
+      [{ telemetryEnd: "garbage" }, true, false],
+      [{ telemetryQueries: "[]" }, false, true],
+      [{ telemetryFormulas: "[]" }, false, true],
+      [{ telemetryTime: "custom", telemetryQueries: "[]" }, true, true],
+      // Another card's names, or the explorer's own, are none of these.
+      [{ metricsTime: "hour-before", metricQueries: "[]" }, false, false],
+      // An empty value is no value.
+      [{ telemetryTime: "" }, false, false],
+    ];
+
+    for (const [params, hasTime, hasQueries] of cases) {
+      const input: { prefix: string; read: ReadUrlParamFunction } = {
+        prefix: "telemetry",
+        read: reader(params),
+      };
+
+      expect({
+        params,
+        time: MetricInvestigationUrl.hasAnyTimeParam(input),
+        queries: MetricInvestigationUrl.hasAnyQueryParam(input),
+        any: MetricInvestigationUrl.hasAnyParam(input),
+      }).toEqual({
+        params,
+        time: hasTime,
+        queries: hasQueries,
+        any: hasTime || hasQueries,
+      });
+    }
+  });
+});

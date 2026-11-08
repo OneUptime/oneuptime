@@ -582,8 +582,11 @@ const AlertEpisodeView: FunctionComponent<
                 seriesSummary={telemetrySnapshot.seriesSummary}
                 eventNoun="alert"
                 metricRuleEventId={snapshotMemberId}
-                // A metric snapshot's investigation is anchored on the episode.
-                metricSubject={EventMetricSubject.AlertEpisode}
+                /*
+                 * Anchored on the episode: a metric snapshot's investigation,
+                 * and the time ranges of a logs, traces or exceptions one.
+                 */
+                subject={EventMetricSubject.AlertEpisode}
                 startedAt={timing.durationStartsAt}
                 endedAt={timing.durationEndsAt}
                 stateTimeline={episodeTimelineDates}

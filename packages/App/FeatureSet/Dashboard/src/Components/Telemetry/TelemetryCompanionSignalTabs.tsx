@@ -76,7 +76,7 @@ export interface ComponentProps {
   telemetryQuery: TelemetryQuery;
   snapshotWindow: InBetween<Date> | null;
   /*
-   * True while the host has zoomed the snapshot (see TelemetrySnapshotZoom).
+   * True while the host has zoomed the snapshot (see TelemetrySnapshotPanel).
    * snapshotWindow is then the slice, not the whole snapshot window, and
    * the tabs' copy says so: "no logs found" must not claim the whole
    * window was empty.
