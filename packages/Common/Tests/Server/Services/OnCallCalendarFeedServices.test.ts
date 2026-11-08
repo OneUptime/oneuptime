@@ -627,21 +627,20 @@ interface RecordedReset {
   includeColumns: Array<string>;
 }
 
-const SHARED_FEEDS: Array<[string, RotatableService, string, string | null]> =
+const SHARED_FEEDS: Array<[string, RotatableService, string, string | null]> = [
   [
-    [
-      "OnCallDutyPolicyScheduleCalendarFeedService",
-      OnCallDutyPolicyScheduleCalendarFeedService as unknown as RotatableService,
-      "OnCallDutyPolicyScheduleCalendarFeed",
-      "onCallDutyPolicyScheduleId",
-    ],
-    [
-      "ProjectOnCallCalendarFeedService",
-      ProjectOnCallCalendarFeedService as unknown as RotatableService,
-      "ProjectOnCallCalendarFeed",
-      null,
-    ],
-  ];
+    "OnCallDutyPolicyScheduleCalendarFeedService",
+    OnCallDutyPolicyScheduleCalendarFeedService as unknown as RotatableService,
+    "OnCallDutyPolicyScheduleCalendarFeed",
+    "onCallDutyPolicyScheduleId",
+  ],
+  [
+    "ProjectOnCallCalendarFeedService",
+    ProjectOnCallCalendarFeedService as unknown as RotatableService,
+    "ProjectOnCallCalendarFeed",
+    null,
+  ],
+];
 
 const RESETTER: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,
@@ -739,7 +738,8 @@ describe.each(SHARED_FEEDS)(
       await service.rotateTokenById({ id: FEED_ID });
 
       const select: Record<string, unknown> = (
-        (service.findOneBy as unknown as jest.SpyInstance).mock.calls[0]![0] as {
+        (service.findOneBy as unknown as jest.SpyInstance).mock
+          .calls[0]![0] as {
           select: Record<string, unknown>;
         }
       ).select;
@@ -780,9 +780,10 @@ test("a person's own feed stays out of the audit log when its link is reset", as
     id: FEED_ID,
     tokenHash: "old-hash",
   } as never);
-  getJestSpyOn(UserOnCallCalendarFeedService, "updateOneById").mockResolvedValue(
-    1 as never,
-  );
+  getJestSpyOn(
+    UserOnCallCalendarFeedService,
+    "updateOneById",
+  ).mockResolvedValue(1 as never);
   const recordUpdate: jest.SpyInstance = getJestSpyOn(
     AuditLogService,
     "recordUpdate",
@@ -795,9 +796,10 @@ test("a person's own feed stays out of the audit log when its link is reset", as
 
 describe("a member leaving rotates the shared feeds as OneUptime's own", () => {
   test("each rotated feed's entry is a system event", async () => {
-    getJestSpyOn(OnCallDutyPolicyScheduleCalendarFeedService, "findBy").mockResolvedValue([
-      { id: FEED_ID },
-    ] as never);
+    getJestSpyOn(
+      OnCallDutyPolicyScheduleCalendarFeedService,
+      "findBy",
+    ).mockResolvedValue([{ id: FEED_ID }] as never);
     getJestSpyOn(
       OnCallDutyPolicyScheduleCalendarFeedService,
       "findOneBy",
@@ -815,9 +817,11 @@ describe("a member leaving rotates the shared feeds as OneUptime's own", () => {
       "recordUpdate",
     ).mockResolvedValue(undefined as never);
 
-    await OnCallDutyPolicyScheduleCalendarFeedService.rotateFeedsForMemberLeave({
-      projectId: PROJECT_ID,
-    });
+    await OnCallDutyPolicyScheduleCalendarFeedService.rotateFeedsForMemberLeave(
+      {
+        projectId: PROJECT_ID,
+      },
+    );
 
     expect(recordUpdate).toHaveBeenCalledTimes(1);
     expect(

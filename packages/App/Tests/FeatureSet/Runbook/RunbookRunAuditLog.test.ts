@@ -366,7 +366,10 @@ describe("approving, completing and skipping a step", () => {
   test("through an API key, the entry carries the key", async () => {
     propsSpy.mockResolvedValue(apiKeyProps());
 
-    await call({ handler: api.completeManualStep, params: stepParams("restart") });
+    await call({
+      handler: api.completeManualStep,
+      params: stepParams("restart"),
+    });
 
     expect(onlyRecorded().props).toEqual(apiKeyProps());
   });

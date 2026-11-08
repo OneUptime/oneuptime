@@ -27,11 +27,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * (issue #6284).
  *
  * The monitor engine stands for every engine (each adds its labels through
- * RuleAddedLabels, which LabelRulesRecordTheirLabels holds them to): Run now
- * enters each monitor it labels by the person who ran the rule, a rule
- * applied as a monitor is created is OneUptime's own, and a monitor it did
- * not change gets nothing. The network device rules' Run now adds a page of
- * devices' labels at once and enters each device the same way.
+ * RuleAddedLabels, which HookFreeWritesAreRecorded.test.ts holds them to):
+ * Run now enters each monitor it labels by the person who ran the rule, a
+ * rule applied as a monitor is created is OneUptime's own, and a monitor it
+ * did not change gets nothing. The network device rules' Run now adds a page
+ * of devices' labels at once and enters each device the same way.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(

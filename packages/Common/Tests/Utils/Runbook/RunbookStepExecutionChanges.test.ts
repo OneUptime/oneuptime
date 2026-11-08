@@ -285,7 +285,10 @@ describe("what OneUptime did while running the run", () => {
     expect(
       describeRunbookStepChange({
         before: read({ title: "", status: RunbookStepExecutionStatus.Running }),
-        after: read({ title: "", status: RunbookStepExecutionStatus.Completed }),
+        after: read({
+          title: "",
+          status: RunbookStepExecutionStatus.Completed,
+        }),
       }),
     ).toBe("Step 1 went from running to done");
   });
@@ -410,9 +413,7 @@ describe("a step's name", () => {
     expect(describeRunbookStep(read({ number: 3 }))).toBe(
       '"Restart the API" (step 3)',
     );
-    expect(describeRunbookStep(read({ number: 3, title: "" }))).toBe(
-      "step 3",
-    );
+    expect(describeRunbookStep(read({ number: 3, title: "" }))).toBe("step 3");
   });
 
   test("a long title ends in an ellipsis, never halving a character", () => {
@@ -442,9 +443,9 @@ describe("where a run's steps stand, in a few words", () => {
         { step: {}, status: "Completed" },
       ]),
     ).toBe("5 steps: 2 done, 1 waiting for a person, 1 pending, 1 Paused");
-    expect(describeRunbookStepExecutions([{ step: {}, status: "Skipped" }])).toBe(
-      "1 step: 1 skipped",
-    );
+    expect(
+      describeRunbookStepExecutions([{ step: {}, status: "Skipped" }]),
+    ).toBe("1 step: 1 skipped");
     expect(describeRunbookStepExecutions([])).toBe("No steps");
     expect(describeRunbookStepExecutions("nothing")).toBe("No steps");
   });
@@ -483,8 +484,7 @@ describe("no line ever quotes what a step printed, its error or a note (seeded s
       step: {
         id: random(4) === 0 ? null : `step-${index}`,
         title: random(3) === 0 ? "" : `Step ${index}`,
-        type:
-          random(2) === 0 ? RunbookStepType.Manual : RunbookStepType.Bash,
+        type: random(2) === 0 ? RunbookStepType.Manual : RunbookStepType.Bash,
       },
       status: STATUSES[random(STATUSES.length)]!,
       output: TEXTS[random(TEXTS.length)]!,

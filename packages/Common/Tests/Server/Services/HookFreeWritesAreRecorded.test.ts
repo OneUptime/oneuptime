@@ -84,25 +84,26 @@ enum Why {
 }
 
 // Why a write round the hooks adds no entry, kind by kind.
-export const WHY_NOT_RECORDED: Readonly<Record<Exclude<Why, Why.Recorded>, string>> =
-  {
-    [Why.Reported]:
-      "What an agent, a probe, telemetry or a provider reports, written as it arrives: resources it discovered and the labels they carry, readings, health, check and scan results. Nobody made that change, and a report every minute would bury the ones people make.",
-    [Why.Bookkeeping]:
-      "OneUptime's own bookkeeping as it works: a claim or a lease, when a job last ran or runs next, what it has notified, a stale discovered row archived and restored, an expired row deleted, a timeline repaired.",
-    [Why.Derived]:
-      "State OneUptime works out from other records and keeps in step with them: a site's place in the tree, a status rolled up from what it holds, a count, a confidence or a threshold recomputed, a list's order closed up.",
-    [Why.FollowOn]:
-      "Follows from a change the audit log records already: a renamed custom field's values moved with it, a custom role's permissions copied to the teams and keys that hold it, when a case or a task was closed stamped beside the change that closed it.",
-    [Why.Automation]:
-      "What OneUptime does by itself as it runs: a rule attaching on-call policies to a record as it is created, a security playbook's steps and its run's progress (the run records what each step did), OneUptime AI's notes, a network alert policy adopting a monitor.",
-    [Why.Migration]:
-      "A data migration or a one-off repair: OneUptime rewriting stored rows into a new shape, not a change anybody made.",
-    [Why.Setup]:
-      "OneUptime setting up something new, before anybody can audit it: a new project's default teams and their permissions, a workflow's first incoming email address.",
-    [Why.Billing]:
-      "A project's balance and usage limits, which billing keeps records of itself.",
-  };
+export const WHY_NOT_RECORDED: Readonly<
+  Record<Exclude<Why, Why.Recorded>, string>
+> = {
+  [Why.Reported]:
+    "What an agent, a probe, telemetry or a provider reports, written as it arrives: resources it discovered and the labels they carry, readings, health, check and scan results. Nobody made that change, and a report every minute would bury the ones people make.",
+  [Why.Bookkeeping]:
+    "OneUptime's own bookkeeping as it works: a claim or a lease, when a job last ran or runs next, what it has notified, a stale discovered row archived and restored, an expired row deleted, a timeline repaired.",
+  [Why.Derived]:
+    "State OneUptime works out from other records and keeps in step with them: a site's place in the tree, a status rolled up from what it holds, a count, a confidence or a threshold recomputed, a list's order closed up.",
+  [Why.FollowOn]:
+    "Follows from a change the audit log records already: a renamed custom field's values moved with it, a custom role's permissions copied to the teams and keys that hold it, when a case or a task was closed stamped beside the change that closed it.",
+  [Why.Automation]:
+    "What OneUptime does by itself as it runs: a rule attaching on-call policies to a record as it is created, a security playbook's steps and its run's progress (the run records what each step did), OneUptime AI's notes, a network alert policy adopting a monitor.",
+  [Why.Migration]:
+    "A data migration or a one-off repair: OneUptime rewriting stored rows into a new shape, not a change anybody made.",
+  [Why.Setup]:
+    "OneUptime setting up something new, before anybody can audit it: a new project's default teams and their permissions, a workflow's first incoming email address.",
+  [Why.Billing]:
+    "A project's balance and usage limits, which billing keeps records of itself.",
+};
 
 /*
  * Every write round the hooks of what the audit log tracks, by file, then
@@ -125,42 +126,58 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "processIncomingEmailFromQueue Monitor": Why.Reported,
   },
   "packages/App/FeatureSet/Telemetry/Utils/Exception.ts": {
-    "ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch TelemetryException": Why.Reported,
+    "ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch TelemetryException":
+      Why.Reported,
   },
-  "packages/App/FeatureSet/Workers/DataMigrations/BackfillNetworkSiteTypes.ts": {
-    "BackfillNetworkSiteTypes.backfillProject NetworkSite": Why.Migration,
-  },
-  "packages/App/FeatureSet/Workers/DataMigrations/MoveGoogleSecOpsConnectionsToSecurityEventConnections.ts": {
-    "MoveGoogleSecOpsConnectionsToSecurityEventConnections.moveConnection SecurityEventConnection": Why.Migration,
-  },
-  "packages/App/FeatureSet/Workers/DataMigrations/NormalizeMonitoringInterval.ts": {
-    "NormalizeMonitoringInterval.normalizeMonitorTemplates MonitorTemplate": Why.Migration,
-    "NormalizeMonitoringInterval.normalizeMonitors Monitor": Why.Migration,
-  },
-  "packages/App/FeatureSet/Workers/DataMigrations/NormalizeNetworkDeviceMonitoringMethod.ts": {
-    "NormalizeNetworkDeviceMonitoringMethod.migrate NetworkDevice": Why.Migration,
-  },
-  "packages/App/FeatureSet/Workers/DataMigrations/RecordContainerPercentMetricUnits.ts": {
-    "RecordContainerPercentMetricUnits.migrate MetricType": Why.Migration,
-  },
-  "packages/App/FeatureSet/Workers/DataMigrations/RepairKubernetesDashboardClusterCpuTile.ts": {
-    "RepairKubernetesDashboardClusterCpuTile.migrate Dashboard": Why.Migration,
-  },
-  "packages/App/FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers.ts": {
-    "recordNotifiedStatusPagesSoFar Incident": Why.Bookkeeping,
-  },
-  "packages/App/FeatureSet/Workers/Jobs/Incident/SendPostmortemNotificationToSubscribers.ts": {
-    "requeueIfChangedSinceRead Incident": Why.Bookkeeping,
-  },
-  "packages/App/FeatureSet/Workers/Jobs/IncomingEmailMonitor/CheckOnlineStatus.ts": {
-    "checkOnlineStatus Monitor": Why.Bookkeeping,
-  },
-  "packages/App/FeatureSet/Workers/Jobs/IncomingRequestMonitor/CheckHeartbeat.ts": {
-    "checkHeartBeat Monitor": Why.Bookkeeping,
-  },
-  "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts": {
-    "enqueueDueTelemetryMonitorEvaluationJobs Monitor": Why.Bookkeeping,
-  },
+  "packages/App/FeatureSet/Workers/DataMigrations/BackfillNetworkSiteTypes.ts":
+    {
+      "BackfillNetworkSiteTypes.backfillProject NetworkSite": Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/DataMigrations/MoveGoogleSecOpsConnectionsToSecurityEventConnections.ts":
+    {
+      "MoveGoogleSecOpsConnectionsToSecurityEventConnections.moveConnection SecurityEventConnection":
+        Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/DataMigrations/NormalizeMonitoringInterval.ts":
+    {
+      "NormalizeMonitoringInterval.normalizeMonitorTemplates MonitorTemplate":
+        Why.Migration,
+      "NormalizeMonitoringInterval.normalizeMonitors Monitor": Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/DataMigrations/NormalizeNetworkDeviceMonitoringMethod.ts":
+    {
+      "NormalizeNetworkDeviceMonitoringMethod.migrate NetworkDevice":
+        Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/DataMigrations/RecordContainerPercentMetricUnits.ts":
+    {
+      "RecordContainerPercentMetricUnits.migrate MetricType": Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/DataMigrations/RepairKubernetesDashboardClusterCpuTile.ts":
+    {
+      "RepairKubernetesDashboardClusterCpuTile.migrate Dashboard":
+        Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers.ts":
+    {
+      "recordNotifiedStatusPagesSoFar Incident": Why.Bookkeeping,
+    },
+  "packages/App/FeatureSet/Workers/Jobs/Incident/SendPostmortemNotificationToSubscribers.ts":
+    {
+      "requeueIfChangedSinceRead Incident": Why.Bookkeeping,
+    },
+  "packages/App/FeatureSet/Workers/Jobs/IncomingEmailMonitor/CheckOnlineStatus.ts":
+    {
+      "checkOnlineStatus Monitor": Why.Bookkeeping,
+    },
+  "packages/App/FeatureSet/Workers/Jobs/IncomingRequestMonitor/CheckHeartbeat.ts":
+    {
+      "checkHeartBeat Monitor": Why.Bookkeeping,
+    },
+  "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts":
+    {
+      "enqueueDueTelemetryMonitorEvaluationJobs Monitor": Why.Bookkeeping,
+    },
   "packages/Common/Server/API/DataObservabilityAPI.ts": {
     "(module) DataStore": Why.Recorded,
   },
@@ -173,7 +190,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SecurityPlaybookRunAPI.writeUndone SecurityPlaybookRun": Why.Recorded,
   },
   "packages/Common/Server/Services/AlertEpisodeOnCallRuleEngineService.ts": {
-    "AlertEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode AlertEpisode": Why.Automation,
+    "AlertEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode AlertEpisode":
+      Why.Automation,
   },
   "packages/Common/Server/Services/AlertOnCallRuleEngineService.ts": {
     "AlertOnCallRuleEngineServiceClass.applyRulesToAlert Alert": Why.Automation,
@@ -193,7 +211,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "Service.onUpdateSuccess DataStoreFinding": Why.Derived,
   },
   "packages/Common/Server/Services/DatabaseServerEndpointService.ts": {
-    "Service.releaseUnproducedWorkloadEndpoints DatabaseServerEndpoint": Why.Reported,
+    "Service.releaseUnproducedWorkloadEndpoints DatabaseServerEndpoint":
+      Why.Reported,
     "Service.transferEndpoint DatabaseServerEndpoint": Why.Reported,
   },
   "packages/Common/Server/Services/DatabaseServerService.ts": {
@@ -220,10 +239,12 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "Service.moveValuesOfRenamedFields IncidentCustomField": Why.FollowOn,
   },
   "packages/Common/Server/Services/IncidentEpisodeOnCallRuleEngineService.ts": {
-    "IncidentEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode IncidentEpisode": Why.Automation,
+    "IncidentEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode IncidentEpisode":
+      Why.Automation,
   },
   "packages/Common/Server/Services/IncidentOnCallRuleEngineService.ts": {
-    "IncidentOnCallRuleEngineServiceClass.attachPolicies Incident": Why.Automation,
+    "IncidentOnCallRuleEngineServiceClass.attachPolicies Incident":
+      Why.Automation,
   },
   "packages/Common/Server/Services/IncidentPostmortemStatusService.ts": {
     "getPostmortemStatusBackfillSql Incident": Why.Migration,
@@ -255,7 +276,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "Service.onUpdateSuccess NetworkDeviceDiscoveryScan": Why.Reported,
   },
   "packages/Common/Server/Services/NetworkDeviceLabelRuleEngineService.ts": {
-    "NetworkDeviceLabelRuleEngineServiceClass.applyRuleToExistingNetworkDevices NetworkDevice": Why.Recorded,
+    "NetworkDeviceLabelRuleEngineServiceClass.applyRuleToExistingNetworkDevices NetworkDevice":
+      Why.Recorded,
   },
   "packages/Common/Server/Services/NetworkDeviceService.ts": {
     "Service.onUpdateSuccess NetworkDevice": Why.FollowOn,
@@ -334,12 +356,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
   },
   "packages/Common/Server/Utils/AI/SRE/IncidentInvestigationRunner.ts": {
-    "AIIncidentInvestigationRunner.runInvestigationEngine IncidentInternalNote": Why.Automation,
+    "AIIncidentInvestigationRunner.runInvestigationEngine IncidentInternalNote":
+      Why.Automation,
   },
-  "packages/Common/Server/Utils/CloudConnection/CloudConnectionResourceSync.ts": {
-    "CloudConnectionResourceSync.archive CloudResource": Why.Reported,
-    "CloudConnectionResourceSync.sync CloudResource": Why.Reported,
-  },
+  "packages/Common/Server/Utils/CloudConnection/CloudConnectionResourceSync.ts":
+    {
+      "CloudConnectionResourceSync.archive CloudResource": Why.Reported,
+      "CloudConnectionResourceSync.sync CloudResource": Why.Reported,
+    },
   "packages/Common/Server/Utils/CustomField/CustomFieldOptionEditHooks.ts": {
     "applyCustomFieldOptionEdit *": Why.FollowOn,
   },
@@ -354,9 +378,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "CustomRoleSync.createApiKeyCopy ApiKeyPermission": Why.FollowOn,
     "CustomRoleSync.createCopy TeamPermission": Why.FollowOn,
   },
-  "packages/Common/Server/Utils/DataObservability/DataAlertFeedbackRecorder.ts": {
-    "DataAlertFeedbackRecorder.retune DataAsset": Why.Derived,
-  },
+  "packages/Common/Server/Utils/DataObservability/DataAlertFeedbackRecorder.ts":
+    {
+      "DataAlertFeedbackRecorder.retune DataAsset": Why.Derived,
+    },
   "packages/Common/Server/Utils/DataObservability/DataCheckIngest.ts": {
     "DataCheckIngest.recordResults DataCheck": Why.Reported,
   },
@@ -414,8 +439,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "MonitorResourceUtil.monitorResource Monitor": Why.Reported,
   },
   "packages/Common/Server/Utils/Monitor/MonitorStatusTimelineReconciler.ts": {
-    "MonitorStatusTimelineReconciler.repairStaleOpenRowsBatch MonitorStatusTimeline": Why.Bookkeeping,
-    "MonitorStatusTimelineReconciler.restoreMissingStatusTimelinesBatch MonitorStatusTimeline": Why.Bookkeeping,
+    "MonitorStatusTimelineReconciler.repairStaleOpenRowsBatch MonitorStatusTimeline":
+      Why.Bookkeeping,
+    "MonitorStatusTimelineReconciler.restoreMissingStatusTimelinesBatch MonitorStatusTimeline":
+      Why.Bookkeeping,
   },
   "packages/Common/Server/Utils/OnCall/FirstPagedAt.ts": {
     "(module) Alert": Why.Bookkeeping,
@@ -445,15 +472,18 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/Runbook/RunbookVariablesMove.ts": {
     "(module) Runbook": Why.Migration,
   },
-  "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarRefresher.ts": {
-    "ExternalCalendarRefresher.readCalendar ScheduledMaintenanceExternalCalendar": Why.Reported,
-  },
+  "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarRefresher.ts":
+    {
+      "ExternalCalendarRefresher.readCalendar ScheduledMaintenanceExternalCalendar":
+        Why.Reported,
+    },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseIngest.ts": {
     "SecurityCaseIngest.addDetection SecurityCase": Why.Reported,
     "SecurityCaseIngest.recordRepeat SecurityCase": Why.Reported,
   },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseNotifications.ts": {
-    "SecurityCaseNotifications.notifyPriorityReached SecurityCase": Why.Bookkeeping,
+    "SecurityCaseNotifications.notifyPriorityReached SecurityCase":
+      Why.Bookkeeping,
   },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseTargetCheck.ts": {
     "SecurityCaseTargetCheck.checkCase SecurityCase": Why.Bookkeeping,
@@ -463,7 +493,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts": {
     "SecurityPlaybookActions.addCaseLabels SecurityCase": Why.Automation,
-    "SecurityPlaybookActions.declareIncidentForCase SecurityCase": Why.Automation,
+    "SecurityPlaybookActions.declareIncidentForCase SecurityCase":
+      Why.Automation,
   },
   "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookEngine.ts": {
     "SecurityPlaybookEngine.executeRun SecurityPlaybookRun": Why.Automation,
@@ -517,7 +548,10 @@ function relativeEe(file: string): boolean {
 
 // DatabaseService's public *WithoutHooks methods, read from its source.
 function hookFreeWriteMethods(): Set<string> {
-  const file: string = path.join(COMMON_ROOT, "Server/Services/DatabaseService.ts");
+  const file: string = path.join(
+    COMMON_ROOT,
+    "Server/Services/DatabaseService.ts",
+  );
   const source: ts.SourceFile = ts.createSourceFile(
     file,
     fs.readFileSync(file, "utf8"),

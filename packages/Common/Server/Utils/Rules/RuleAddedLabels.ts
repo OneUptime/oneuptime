@@ -15,8 +15,8 @@ import ObjectID from "../../../Types/ObjectID";
  * statement - `relation(Model, "labels").of(id).add(ids)` - which runs no
  * DatabaseService hook, so a rule's labels never reached the audit log,
  * though the same labels added by hand are recorded. Every engine adds them
- * here instead (the LabelRulesRecordTheirLabels guard holds each one to it),
- * and each record it changes gets an Update entry with its labels before and
+ * here instead (HookFreeWritesAreRecorded.test.ts holds each one to it), and
+ * each record it changes gets an Update entry with its labels before and
  * after, named as the recorder names every label:
  *
  *   - by the person who ran the rule (Run now), with their props;
@@ -74,10 +74,11 @@ export default class RuleAddedLabels {
     }
 
     const had: Set<string> = RuleAddedLabels.getLabelIds(before);
-    const toAdd: Array<string> = Array.from(new Set<string>(data.labelIds))
-      .filter((id: string): boolean => {
-        return !had.has(id.toLowerCase());
-      });
+    const toAdd: Array<string> = Array.from(
+      new Set<string>(data.labelIds),
+    ).filter((id: string): boolean => {
+      return !had.has(id.toLowerCase());
+    });
 
     if (toAdd.length === 0) {
       return [];

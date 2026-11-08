@@ -2789,7 +2789,10 @@ describe("a run in the audit log, as the running page says", () => {
   it("quotes the line OneUptime writes when a step is approved", () => {
     const approved: string = 'Approved "Restart the API" (step 3)';
     const waiting: Array<Record<string, unknown>> = [
-      { step: { id: "a", title: "Check", type: "Manual" }, status: "Completed" },
+      {
+        step: { id: "a", title: "Check", type: "Manual" },
+        status: "Completed",
+      },
       { step: { id: "b", title: "Notify", type: "Bash" }, status: "Completed" },
       {
         step: {

@@ -95,9 +95,7 @@ beforeEach(() => {
     },
   };
 
-  jest
-    .spyOn(MonitorService, "getRepository")
-    .mockReturnValue(builder as never);
+  jest.spyOn(MonitorService, "getRepository").mockReturnValue(builder as never);
   findOneById = jest
     .spyOn(MonitorService, "findOneById")
     .mockResolvedValue(monitorWith([label(PROD, "production")]));
@@ -172,9 +170,9 @@ describe("adding a rule's labels to one record", () => {
       name: true,
       labels: { _id: true, name: true },
     });
-    expect(
-      (findOneById.mock.calls[0]![0] as { props: unknown }).props,
-    ).toEqual({ isRoot: true });
+    expect((findOneById.mock.calls[0]![0] as { props: unknown }).props).toEqual(
+      { isRoot: true },
+    );
   });
 
   test("a rule applied as the record is created is OneUptime's own: a system event", async () => {

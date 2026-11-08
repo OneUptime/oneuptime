@@ -677,17 +677,17 @@ async function advanceStep(args: {
     try {
       isPauseRestored =
         await RunbookExecutionService.compareAndSetColumnsByIdWithoutHooks({
-        id: new ObjectID(args.executionId),
-        data: {
-          stepExecutions: stepExecutionsBefore,
-          status: RunbookExecutionStatus.WaitingForManualStep,
-          ...(version !== undefined ? { version: version + 2 } : {}),
-        } as unknown as PartialEntity<RunbookExecution>,
-        expectedData: {
-          status: RunbookExecutionStatus.Scheduled,
-          ...(version !== undefined ? { version: version + 1 } : {}),
-        } as unknown as PartialEntity<RunbookExecution>,
-      });
+          id: new ObjectID(args.executionId),
+          data: {
+            stepExecutions: stepExecutionsBefore,
+            status: RunbookExecutionStatus.WaitingForManualStep,
+            ...(version !== undefined ? { version: version + 2 } : {}),
+          } as unknown as PartialEntity<RunbookExecution>,
+          expectedData: {
+            status: RunbookExecutionStatus.Scheduled,
+            ...(version !== undefined ? { version: version + 1 } : {}),
+          } as unknown as PartialEntity<RunbookExecution>,
+        });
     } catch (rollbackError) {
       logger.error(
         `Runbook execution ${args.executionId} could not be queued to resume, and its pause could not be restored:`,

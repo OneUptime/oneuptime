@@ -18,13 +18,14 @@ import { listTypeScriptFiles, modelFileOf, unwrap } from "./ReferenceNameScan";
  *     records nothing of;
  *   - raw SQL - UPDATE, INSERT INTO and DELETE FROM a model's table.
  *
- * findHookFreeWrites reads one file - through the TypeScript AST, so a write
- * named in a comment or a string is none - and answers each such write with
- * the model it writes, when the code says (the service it is made through,
- * the entity it names, the table in the SQL), the columns it writes, when
- * the code says, and whether the function it is in records an audit entry:
- * calls AuditLogService.record*, or a function that does - in its own file
- * or, through an import, in another (RecordingFunctions). A guard holds the
+ * HookFreeWriteScanner reads every server file under the directories it is
+ * given - through the TypeScript AST, so a write named in a comment or a
+ * string is none - and answers each such write with the model it writes,
+ * when the code says (the service it is made through, the entity it names,
+ * the table in the SQL), the columns it writes, when the code says, and
+ * whether the function it is in records an audit entry: calls
+ * AuditLogService.record*, or a function that does - in its own file or,
+ * through an import, in another (findRecordingFunctions). A guard holds the
  * rest to a list (HookFreeWritesAreRecorded.test.ts).
  *
  * Not a test file itself (jest only collects *.test.ts).
@@ -460,8 +461,7 @@ export class HookFreeWriteScanner {
     return (this.functionsByFile.get(imported) || []).some(
       (entry: ScannedFunction): boolean => {
         return (
-          (entry.name === call.name ||
-            entry.name.endsWith(`.${call.name}`)) &&
+          (entry.name === call.name || entry.name.endsWith(`.${call.name}`)) &&
           this.recording.has(`${imported}#${entry.name}`)
         );
       },
@@ -555,15 +555,17 @@ export class HookFreeWriteScanner {
       .join("/");
     const writes: Array<HookFreeWrite> = [];
 
-    const base: (node: ts.Node) => Pick<
-      HookFreeWrite,
-      "file" | "line" | "inFunction" | "isRecorded"
-    > = (node: ts.Node) => {
+    const base: (
+      node: ts.Node,
+    ) => Pick<HookFreeWrite, "file" | "line" | "inFunction" | "isRecorded"> = (
+      node: ts.Node,
+    ) => {
       const functions: Array<string> = this.enclosingFunctions(node);
 
       return {
         file: relative,
-        line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+        line:
+          source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
         inFunction: functions[0]!,
         isRecorded: this.isRecorded(file, node),
       };
@@ -680,7 +682,10 @@ export class HookFreeWriteScanner {
       return this.modelOfServiceFile(data.file);
     }
 
-    if (ts.isIdentifier(data.receiver) && data.imports.has(data.receiver.text)) {
+    if (
+      ts.isIdentifier(data.receiver) &&
+      data.imports.has(data.receiver.text)
+    ) {
       const imported: string | null = this.resolveImport(
         data.file,
         data.imports.get(data.receiver.text)!,
@@ -759,28 +764,86 @@ export class HookFreeWriteScanner {
 
     for (const property of argument.properties) {
       if (
-        ts.isPropertyAssignment(property) &&
+        (ts.isPropertyAssignment(property) ||
+          ts.isShorthandPropertyAssignment(property)) &&
         ts.isIdentifier(property.name) &&
         property.name.text === "props"
       ) {
-        const props: ts.Expression = unwrap(property.initializer);
+        const props: ts.Expression = ts.isShorthandPropertyAssignment(property)
+          ? property.name
+          : unwrap(property.initializer);
 
-        if (ts.isObjectLiteralExpression(props)) {
-          return props.properties.some(
-            (entry: ts.ObjectLiteralElementLike): boolean => {
-              return (
-                ts.isPropertyAssignment(entry) &&
-                ts.isIdentifier(entry.name) &&
-                entry.name.text === "ignoreHooks" &&
-                unwrap(entry.initializer).kind === ts.SyntaxKind.TrueKeyword
-              );
-            },
-          );
-        }
+        return this.saysIgnoreHooks(props, call, 0);
       }
     }
 
     return false;
+  }
+
+  /*
+   * Whether props say `ignoreHooks: true`: an object literal, through its
+   * spreads, or a local constant that holds one.
+   */
+  private saysIgnoreHooks(
+    expression: ts.Expression,
+    scope: ts.Node,
+    depth: number,
+  ): boolean {
+    if (depth > 4) {
+      return false;
+    }
+
+    const props: ts.Expression = unwrap(expression);
+
+    if (ts.isObjectLiteralExpression(props)) {
+      return props.properties.some(
+        (entry: ts.ObjectLiteralElementLike): boolean => {
+          if (ts.isSpreadAssignment(entry)) {
+            return this.saysIgnoreHooks(entry.expression, scope, depth + 1);
+          }
+
+          return (
+            ts.isPropertyAssignment(entry) &&
+            ts.isIdentifier(entry.name) &&
+            entry.name.text === "ignoreHooks" &&
+            unwrap(entry.initializer).kind === ts.SyntaxKind.TrueKeyword
+          );
+        },
+      );
+    }
+
+    if (!ts.isIdentifier(props)) {
+      return false;
+    }
+
+    let body: ts.Node | undefined = scope.parent;
+
+    while (body && !ts.isFunctionLike(body) && !ts.isSourceFile(body)) {
+      body = body.parent;
+    }
+
+    let initializer: ts.Expression | undefined = undefined;
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.name.text === props.text &&
+        node.initializer
+      ) {
+        initializer = node.initializer;
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    if (body) {
+      visit(body);
+    }
+
+    return initializer
+      ? this.saysIgnoreHooks(initializer, scope, depth + 1)
+      : false;
   }
 
   /*

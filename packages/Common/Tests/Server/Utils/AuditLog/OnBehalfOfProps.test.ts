@@ -190,12 +190,14 @@ describe("the props of a write OneUptime makes on someone's behalf", () => {
     expect(members.length).toBeGreaterThan(10);
 
     for (const member of members) {
-      expect([member, identity.has(member) || member in NOT_IDENTITY]).toEqual(
-        [member, true],
-      );
-      expect([member, identity.has(member) && member in NOT_IDENTITY]).toEqual(
-        [member, false],
-      );
+      expect([member, identity.has(member) || member in NOT_IDENTITY]).toEqual([
+        member,
+        true,
+      ]);
+      expect([member, identity.has(member) && member in NOT_IDENTITY]).toEqual([
+        member,
+        false,
+      ]);
     }
 
     // And nothing decided that the props no longer have.
