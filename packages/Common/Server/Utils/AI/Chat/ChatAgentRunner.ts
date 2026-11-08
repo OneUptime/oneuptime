@@ -34,6 +34,7 @@ import {
 import {
   AIChatRecordSeen,
   getLatestAIChatRecordsSeen,
+  listAIChatRecordsSeen,
 } from "../../../../Types/AI/AIChatRecordSeen";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import AIConversationMessageService from "../../../Services/AIConversationMessageService";
@@ -1512,13 +1513,14 @@ export default class ChatAgentRunner {
   /*
    * What the model has been shown of records it may change, oldest first:
    * by the turns before this one, then by this turn's results so far, each
-   * kept with its citation (Types/AI/AIChatRecordSeen, issue #6291).
+   * kept with its citation - one record, or the several a commit wrote
+   * (Types/AI/AIChatRecordSeen, issues #6291 and #6313).
    */
   private static getRecordsSeen(state: TurnState): Array<AIChatRecordSeen> {
     return getLatestAIChatRecordsSeen([
       ...state.recordsSeenBeforeTurn,
-      ...state.citations.map((citation: AIChatCitation): unknown => {
-        return citation.recordSeen;
+      ...state.citations.flatMap((citation: AIChatCitation): Array<unknown> => {
+        return listAIChatRecordsSeen(citation.recordSeen);
       }),
     ]);
   }
@@ -1966,9 +1968,11 @@ export default class ChatAgentRunner {
         buildReplayedHistoryMessage(message);
       if (replayed) {
         recordsSeenByEntry.push(
-          (message.citations || []).map((citation: AIChatCitation): unknown => {
-            return citation.recordSeen;
-          }),
+          (message.citations || []).flatMap(
+            (citation: AIChatCitation): Array<unknown> => {
+              return listAIChatRecordsSeen(citation.recordSeen);
+            },
+          ),
         );
         replayable.push(
           isSharedThread && replayed.role === "user"
