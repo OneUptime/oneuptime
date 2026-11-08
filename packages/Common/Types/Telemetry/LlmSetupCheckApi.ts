@@ -422,6 +422,20 @@ export function diagnoseEmptyLlmView(
     };
   }
 
+  /*
+   * The last two say no app has sent an AI call in the past week: only when
+   * the apps were read and sent none. A view empty for another reason (a
+   * call that arrived since, a part that could not be read) says nothing it
+   * does not know.
+   */
+  const appsSentNone: boolean = Boolean(
+    apps && apps.callsRecently === 0 && (apps.callsInWindow ?? 0) === 0,
+  );
+
+  if (!appsSentNone) {
+    return { key: LlmEmptyViewFindingKey.Nothing };
+  }
+
   const accounts: Array<LlmSetupCheckConnection> = connections.filter(
     (connection: LlmSetupCheckConnection): boolean => {
       return connection.kind === "provider-account";

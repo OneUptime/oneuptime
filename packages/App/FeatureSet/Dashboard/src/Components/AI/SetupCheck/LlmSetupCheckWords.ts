@@ -81,6 +81,12 @@ export const UNINSTRUMENTED_SENTENCE: PluralTemplate = {
 
 export const ONE_OF_YOUR_APPS: string = translationKey("One of your apps");
 
+// In a list of apps: the apps it does not name.
+export const OTHER_APPS: string = translationKey("other apps");
+
+// In a list of apps, when it can name none of them.
+export const YOUR_APPS: string = translationKey("your apps");
+
 export const TOOL_NOT_WORKING_TITLE: string = translationKey(
   "{{tool}} isn't working",
 );
@@ -484,6 +490,44 @@ export const PROVIDER_READS: Partial<Record<LlmConnectionProvider, string>> =
     ),
   };
 
+/*
+ * The apps a sentence names: up to three by name; with more, or with one
+ * the reader cannot name, the first two and "other apps"; "your apps" when
+ * it can name none. Never "One of your apps" mid-sentence, never three
+ * names as if they were all.
+ */
+export function getAppNames(data: {
+  serviceIds: Array<string>;
+  serviceName: (serviceId: string) => string;
+  translator: Translator;
+}): Array<string> {
+  const names: Array<string> = [];
+  let unnamed: number = 0;
+
+  for (const serviceId of data.serviceIds) {
+    const name: string = data.serviceName(serviceId) || "";
+
+    if (!name) {
+      unnamed++;
+    } else if (!names.includes(name)) {
+      names.push(name);
+    }
+  }
+
+  if (names.length === 0) {
+    return [data.translator.translateText(YOUR_APPS) || YOUR_APPS];
+  }
+
+  if (names.length > 3 || unnamed > 0) {
+    return [
+      ...names.slice(0, 2),
+      data.translator.translateText(OTHER_APPS) || OTHER_APPS,
+    ];
+  }
+
+  return names;
+}
+
 export function getAppsLines(data: {
   apps: LlmSetupCheckApps;
   translator: Translator;
@@ -494,15 +538,13 @@ export function getAppsLines(data: {
   const lines: Array<LlmSetupCheckLine> = [];
 
   if (apps.callsRecently > 0) {
-    const appNames: Array<string> = apps.services
-      .slice(0, 3)
-      .map((service: { serviceId: string }): string => {
-        return (
-          data.serviceName(service.serviceId) ||
-          translator.translateText(ONE_OF_YOUR_APPS) ||
-          ONE_OF_YOUR_APPS
-        );
-      });
+    const appNames: Array<string> = getAppNames({
+      serviceIds: apps.services.map((service: { serviceId: string }) => {
+        return service.serviceId;
+      }),
+      serviceName: data.serviceName,
+      translator,
+    });
 
     const providerNames: Array<string> = apps.providers
       .filter((provider: { name: string }): boolean => {
@@ -653,6 +695,19 @@ export function getConnectionLine(data: {
     ? translator.translateText(detail) || detail
     : undefined;
 
+  /*
+   * Before the day of the last usage: a read that found no resource reads
+   * nothing now, even when an earlier read - before the role was taken
+   * away - found usage.
+   */
+  if (connection.resources === 0) {
+    return {
+      key,
+      tone: "warning",
+      text: translator.translateTemplate(CONNECTION_NO_RESOURCES, { time }),
+    };
+  }
+
   if (connection.newestUsageAt) {
     return {
       key,
@@ -662,14 +717,6 @@ export function getConnectionLine(data: {
         date: formatLlmUsageDay(connection.newestUsageAt),
       }),
       detail: translatedDetail,
-    };
-  }
-
-  if (connection.resources === 0) {
-    return {
-      key,
-      tone: "warning",
-      text: translator.translateTemplate(CONNECTION_NO_RESOURCES, { time }),
     };
   }
 
