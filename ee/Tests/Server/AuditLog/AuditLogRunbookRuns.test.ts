@@ -137,7 +137,10 @@ function steps(statuses: {
   ];
 }
 
-function runBefore(status: RunbookExecutionStatus, stepList: JSONArray) {
+function runBefore(
+  status: RunbookExecutionStatus,
+  stepList: JSONArray,
+): RunbookExecution {
   const run: RunbookExecution = new RunbookExecution(RUN_ID);
   run.projectId = PROJECT_ID;
   run.runbookId = RUNBOOK_ID;

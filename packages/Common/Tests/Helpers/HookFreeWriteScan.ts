@@ -78,6 +78,13 @@ type Imports = Map<string, string>;
 
 const RECORD_METHOD: RegExp = /^record(Create|Update|Delete|Download)$/;
 
+// What the recorder is called by, wherever it is held.
+const RECORDER_NAME: RegExp = /^auditLogService$/i;
+
+// The dashboards' browser code, which writes nothing to the database itself.
+const BROWSER_CODE: RegExp =
+  /\/(Dashboard|AdminDashboard|StatusPage|Accounts|PublicDashboard)\/src\//;
+
 const SQL_WRITE: RegExp =
   /\b(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+\\?"([A-Z][A-Za-z0-9]*)\\?"/g;
 
@@ -142,9 +149,7 @@ export class HookFreeWriteScanner {
     return (
       !relative.includes("/Tests/") &&
       !relative.includes("/node_modules/") &&
-      !/\/(Dashboard|AdminDashboard|StatusPage|Accounts|PublicDashboard)\/src\//.test(
-        relative,
-      ) &&
+      !BROWSER_CODE.test(relative) &&
       !relative.includes("/Docs/Content/") &&
       // Schema migrations change tables, not anybody's records.
       !relative.includes("/Infrastructure/Postgres/SchemaMigrations/")
@@ -338,7 +343,7 @@ export class HookFreeWriteScanner {
             if (
               RECORD_METHOD.test(callee.name.text) &&
               receiverName &&
-              /^auditLogService$/i.test(receiverName)
+              RECORDER_NAME.test(receiverName)
             ) {
               entry.callsTheRecorder = true;
             }
@@ -525,7 +530,7 @@ export class HookFreeWriteScanner {
           if (
             RECORD_METHOD.test(call.name) &&
             call.receiver &&
-            /^auditLogService$/i.test(call.receiver)
+            RECORDER_NAME.test(call.receiver)
           ) {
             records = true;
             return;
