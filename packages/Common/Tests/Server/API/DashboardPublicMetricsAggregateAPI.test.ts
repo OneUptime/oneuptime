@@ -2982,7 +2982,7 @@ describe("DashboardAPI public metrics-aggregate", () => {
 
               dashboard.dashboardViewConfig = configOf([
                 envelopes(buildWidget(componentType, SPEC), layers),
-              ]) as DashboardViewConfig;
+              ]) as unknown as DashboardViewConfig;
 
               await callWithAggregate(pageRequest(componentType));
 
@@ -3021,7 +3021,7 @@ describe("DashboardAPI public metrics-aggregate", () => {
 
               dashboard.dashboardViewConfig = configOf([
                 envelopes(buildWidget(componentType, SPEC), layers),
-              ]) as DashboardViewConfig;
+              ]) as unknown as DashboardViewConfig;
 
               await callWithAggregate(
                 pageRequest(DashboardComponentType.Chart),

@@ -1526,7 +1526,7 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
         entry = { _type: "DashboardComponent", value: entry };
       }
 
-      const stored: JSONObject = { components: [entry] };
+      const stored: JSONObject = { components: [entry as JSONObject] };
 
       expect(servedJSON(stored)).not.toContain("internal_table");
       expect(typesDrawn(pageDraws(stored))).toEqual([""]);
@@ -1564,7 +1564,7 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
                 dataSourceWidget(componentType, token, ownId),
                 layers,
                 "DashboardComponent",
-              ),
+              ) as JSONObject,
               textWidget(),
               chartWidget("Public CPU"),
             ],
@@ -1646,7 +1646,11 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
 
         const stored: JSONObject = {
           components: [
-            wrapped(chartWidget(title), layers, "DashboardComponent"),
+            wrapped(
+              chartWidget(title),
+              layers,
+              "DashboardComponent",
+            ) as JSONObject,
           ],
         };
 
@@ -2144,7 +2148,7 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
           Object.keys(
             PublicDashboardViewConfig.getServedComponent({
               componentType: DashboardComponentType.Text,
-              arguments: unreadable as JSONObject,
+              arguments: unreadable as unknown as JSONObject,
             }),
           ),
         ).not.toContain("arguments");
