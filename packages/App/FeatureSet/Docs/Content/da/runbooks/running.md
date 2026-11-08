@@ -89,6 +89,8 @@ Mens kørslen holder pause, kan du også springe et senere automatiseret trin ov
 
 At fuldføre, godkende, springe over og annullere kræver de samme roller som at starte en kørsel eller tilladelsen **Edit Runbook Execution**.
 
+Runbookens side **Auditlogs** viser, hvem der startede hver kørsel, hvem der godkendte, fuldførte eller sprang hvert af dens trin over, og hvem der annullerede den. Et trin står som det, der blev gjort ved det, for eksempel `Approved "Restart the API" (step 3)`, og aldrig med det, trinnet skrev ud, eller den note, der blev efterladt med det.
+
 ## Flet manuelle og automatiserede trin
 
 Det klassiske forløb:

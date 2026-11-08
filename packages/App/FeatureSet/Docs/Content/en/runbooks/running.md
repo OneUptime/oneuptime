@@ -89,6 +89,8 @@ While the run is paused, you can also skip a later automated step that doesn't r
 
 Completing, approving, skipping and cancelling take the same roles as starting a run, or the **Edit Runbook Execution** permission.
 
+The runbook's **Audit Logs** page records who started each run, who approved, completed or skipped each of its steps, and who cancelled it. A step reads as what was done to it, such as `Approved "Restart the API" (step 3)`, never with what the step printed or the note left with it.
+
 ## Interleaving manual and automated steps
 
 The classic flow:

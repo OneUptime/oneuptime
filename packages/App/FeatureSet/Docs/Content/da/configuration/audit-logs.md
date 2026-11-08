@@ -90,6 +90,8 @@ Det registreres også, når en administrator tilføjer eller fjerner en notifika
 
 Felter, som kun OneUptime skriver, for eksempel hvornår en vært sidst blev set, udelades af alle poster, og det samme gør felter, som ingen må læse. Når OneUptime skriver et af dem, fordi nogen bad om det, for eksempel når en undtagelse flettes ind i en anden, eller en webhook-URL nulstilles, registrerer posten det som deres ændring. Nøgler, tokens og adgangskoder registreres som `[REDACTED]`: posten viser, at de er ændret, aldrig deres værdi. Et workflows trin registreres som det, der ændrede sig, med navnene på et trins indstillinger, men aldrig det, der blev skrevet i dem, og når et trin flyttes på lærredet, registreres det ikke.
 
+Det, OneUptime gør, fordi nogen bad om det, registreres også som deres ændring, uanset om projektet gemmer systemhændelser: at starte, godkende, fuldføre, springe over og annullere en kørsel af en runbook, de etiketter en etiketregel tilføjer, når nogen kører den på de poster, der allerede findes, at nulstille linket til et kalenderfeed og de teams, nogen bliver medlem af, når de logger ind med SSO. En runbook-kørsels trin registreres som det, der blev gjort ved hvert af dem, for eksempel `Approved "Restart the API" (step 3)`, aldrig med det, et trin skrev ud. Etiketter, som en regel tilføjer, når en post oprettes, er OneUptimes egen ændring og registreres, når **Gem systemhændelser** er slået til.
+
 ## Hvor længe poster gemmes
 
 Hver post gemmes i den **Opbevaring (dage)**, projektet havde, da den blev registreret, og slettes derefter. En ny opbevaring gælder for nye poster: de allerede registrerede poster beholder deres datoer.

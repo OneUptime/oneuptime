@@ -744,6 +744,12 @@ describe("Network automation rule run endpoints", () => {
       expect((args["projectId"] as ObjectID).toString()).toBe(
         PROJECT_ID.toString(),
       );
+      // Who ran it, so the devices it labels are theirs in the audit log.
+      expect(args["props"]).toBe(
+        await (
+          CommonAPI.getDatabaseCommonInteractionProps as unknown as jest.Mock
+        ).mock.results[0]!.value,
+      );
 
       expect(
         (responseUtil.sendJsonObjectResponse.mock.calls[0]![2] as JSONObject)[
