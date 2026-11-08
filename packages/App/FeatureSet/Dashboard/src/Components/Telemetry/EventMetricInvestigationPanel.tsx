@@ -84,14 +84,15 @@ export interface ComponentProps {
   /*
    * Where the page keeps what the reader changed in its URL: "metrics" on
    * an event's Overview. A page with a card of its own beside it names its
-   * own, so the two never read each other's (the incident's Root Cause
-   * page: "rootCauseMetrics").
+   * own, so the two never read each other's (an incident's or an alert's
+   * Root Cause page: "rootCauseMetrics").
    */
   urlParamPrefix?: string | undefined;
   /*
    * False for the metrics alone, without the Logs, Traces and Exceptions
-   * tabs: on a page that shows them beside something else (the incident's
-   * Root Cause page). The tabs are there unless said otherwise.
+   * tabs: on a page that shows them beside something else (an incident's
+   * or an alert's Root Cause page). The tabs are there unless said
+   * otherwise.
    */
   showsCompanionTabs?: boolean | undefined;
   /*
@@ -259,10 +260,14 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
   const scopedResourceName: string =
     rule.scope.resourceName || props.chartedFromMonitorNow?.resourceName || "";
 
+  /*
+   * A div, not a paragraph: the icon draws a div of its own, which a
+   * paragraph may not hold.
+   */
   const scopeNote: ReactElement | undefined =
     (rule.scope.isFromMonitorNow || props.chartedFromMonitorNow) &&
     !investigation.isQueriesChanged ? (
-      <p
+      <div
         className="flex items-center gap-1.5 text-xs text-gray-500"
         data-testid={EVENT_METRIC_SCOPE_NOTE_TEST_ID}
       >
@@ -275,7 +280,7 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
           : translator.translateText(
               "Charted for what this monitor checks now.",
             )}
-      </p>
+      </div>
     ) : undefined;
 
   const metrics: ReactElement = (

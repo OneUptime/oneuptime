@@ -1167,10 +1167,11 @@ describe("Zooming Into a Time Range docs: what zooms, and how far", () => {
      * EventTimeRangeControls suites (a log, trace or exception card, issue
      * #6251), a metric card's investigation (issue #5954) by
      * EventMetricInvestigationPanel and MetricInvestigation, and the Root
-     * Cause page's (issue #6249) by IncidentRootCauseTimeRangeZoom.
+     * Cause pages' (issues #6249 and #6304) by IncidentRootCauseTimeRangeZoom
+     * and AlertRootCauseTimeRangeZoom.
      */
     expect(section).toContain(
-      "The telemetry card on an incident, alert or episode page has a time range of its own too, which you pick on the card's time picker, on any of its tabs: the ranges around the event first (around its start, the hour or the day before it started, from its start to now or to its resolution, and what the monitor saw), then ranges relative to now. The card starts on what the monitor saw when a log, trace or exception monitor opened the event, and on 30 minutes either side of its start when a metrics monitor did; an incident's Root Cause page charts its metrics the same way. A drag on the card's chart (the log, trace or exception volume chart, or a metric chart) zooms that range, so its Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out. **Reset zoom** beside the time picker, or a double-click on that chart, goes back to the range you picked, and **Reset** goes back to where the card started.",
+      "The telemetry card on an incident, alert or episode page has a time range of its own too, which you pick on the card's time picker, on any of its tabs: the ranges around the event first (around its start, the hour or the day before it started, from its start to now or to its resolution, and what the monitor saw), then ranges relative to now. The card starts on what the monitor saw when a log, trace or exception monitor opened the event, and on 30 minutes either side of its start when a metrics monitor did; an incident's or an alert's Root Cause page charts its metrics the same way. A drag on the card's chart (the log, trace or exception volume chart, or a metric chart) zooms that range, so its Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out. **Reset zoom** beside the time picker, or a double-click on that chart, goes back to the range you picked, and **Reset** goes back to where the card started.",
     );
 
     // The picker, with Reset zoom beside it, on every tab of either card.
@@ -1204,12 +1205,24 @@ describe("Zooming Into a Time Range docs: what zooms, and how far", () => {
       "export const AROUND_START_MINUTES: number = 30;",
     );
 
-    // The Root Cause page charts the incident's metrics through the same card.
+    /*
+     * An incident's and an alert's Root Cause pages chart their metrics
+     * through the same card: one Root Cause card, which is the
+     * investigation, and each page's reading of its event.
+     */
     expect(
       readCode(
-        `${DASHBOARD_SRC}/Components/Incident/IncidentRootCauseMetricChart.tsx`,
+        `${DASHBOARD_SRC}/Components/Telemetry/EventRootCauseMetricChart.tsx`,
       ),
     ).toContain("<EventMetricInvestigationPanel");
+    for (const card of [
+      "Components/Incident/IncidentRootCauseMetricChart.tsx",
+      "Components/Alert/AlertRootCauseMetricChart.tsx",
+    ]) {
+      expect(readCode(`${DASHBOARD_SRC}/${card}`)).toContain(
+        "<EventRootCauseMetricChart",
+      );
+    }
   });
 
   it("the charts listed as not zooming never take a zoom", () => {

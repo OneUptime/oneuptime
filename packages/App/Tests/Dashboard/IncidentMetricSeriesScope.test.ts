@@ -16,18 +16,18 @@ import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 /*
  * A metric monitor grouped by an attribute (host.name, pod, device) opens
  * ONE incident per breaching group, yet all of those incidents are stamped
- * with the SAME monitor-wide query configs. Three surfaces replay those
- * configs, and all three used to chart every group:
+ * with the SAME monitor-wide query configs. These surfaces replay those
+ * configs, and all of them used to chart every group:
  *
- *   - the incident Root Cause page's metrics card (issue #6249), which
- *     charts the incident's stored snapshot as the Overview does, or, for
- *     an incident that kept none, reads the query configs off the monitor
- *     step (IncidentRootCauseMetrics);
+ *   - the incident's and the alert's Root Cause pages' metrics card
+ *     (issues #6249 and #6304), which charts the event's stored snapshot
+ *     as the Overview does, or, for an event that kept none, reads the
+ *     query configs off the monitor step (EventRootCauseMetrics);
  *   - the incident overview's "Metrics" card, and
  *   - the alert overview's "Metrics" card, both of which read them off the
  *     stored telemetryQuery.
  *
- * The fix routes all three through MetricSeriesScope using the affected
+ * The fix routes all of them through MetricSeriesScope using the affected
  * series recorded on the incident/alert. None of that is reachable from a
  * unit test — the App suite runs in plain Node with no renderer — so the
  * wiring is pinned by reading the sources, the way
@@ -66,16 +66,29 @@ function readSource(...relativeParts: Array<string>): string {
   );
 }
 
+// The Root Cause card both pages show, and how each reads its event.
 const ROOT_CAUSE_CHART: string = readSource(
+  "Components",
+  "Telemetry",
+  "EventRootCauseMetricChart.tsx",
+);
+
+const INCIDENT_ROOT_CAUSE_READER: string = readSource(
   "Components",
   "Incident",
   "IncidentRootCauseMetricChart.tsx",
 );
 
+const ALERT_ROOT_CAUSE_READER: string = readSource(
+  "Components",
+  "Alert",
+  "AlertRootCauseMetricChart.tsx",
+);
+
 // What the Root Cause card charts, worked out apart from it.
 const ROOT_CAUSE_METRICS: string = readSource(
   "Utils",
-  "IncidentRootCauseMetrics.ts",
+  "EventRootCauseMetrics.ts",
 );
 
 const INCIDENT_VIEW: string = readSource(
@@ -132,18 +145,28 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
   });
 
   test("hands what the incident keeps to what it charts: its snapshot, series and monitors", () => {
+    // The incident's row, read into the event the card charts...
+    expect(INCIDENT_ROOT_CAUSE_READER).toContain(
+      "return incident ? getIncidentRootCauseEvent(incident) : null;",
+    );
     const handed: string = selectBlockAfter(
-      ROOT_CAUSE_CHART,
-      "getRootCauseMetrics({",
+      ROOT_CAUSE_METRICS,
+      "return readEvent({ startedAt: incident.declaredAt,",
     );
 
-    expect(handed).toContain("telemetryQuery: telemetryQuery,");
-    expect(handed).toContain(
-      "seriesLabels: incident.seriesLabels as JSONObject | undefined,",
-    );
+    expect(handed).toContain("telemetryQuery: incident.telemetryQuery,");
+    expect(handed).toContain("seriesLabels: incident.seriesLabels,");
     expect(handed).toContain("createdCriteriaId: incident.createdCriteriaId,");
+    // ...keeping its labels and snapshot, and charted whole.
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "seriesLabels: isJSONObject(row.seriesLabels) ? row.seriesLabels : null,",
+    );
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "telemetryQuery: readSnapshot(row.telemetryQuery),",
+    );
+    expect(ROOT_CAUSE_CHART).toContain("? getRootCauseMetrics(event)");
     expect(
-      selectBlockAfter(ROOT_CAUSE_CHART, "modelType: Incident, id:"),
+      selectBlockAfter(INCIDENT_ROOT_CAUSE_READER, "modelType: Incident, id:"),
     ).toContain("telemetryQuery: true,");
   });
 
@@ -154,7 +177,7 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
      * exactly the bug, with no error anywhere.
      */
     expect(
-      selectBlockAfter(ROOT_CAUSE_CHART, "modelType: Incident, id:"),
+      selectBlockAfter(INCIDENT_ROOT_CAUSE_READER, "modelType: Incident, id:"),
     ).toContain("seriesLabels: true,");
   });
 
@@ -196,11 +219,63 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
     ).toBe(2);
     // The card says it, as the Overview's does.
     expect(ROOT_CAUSE_CHART).toContain(
-      "seriesSummary={loaded.metrics.seriesSummary}",
+      "seriesSummary={card.metrics.seriesSummary}",
     );
     expect(METRIC_INVESTIGATION_PANEL).toContain(
       "scoped to the affected series ({{seriesSummary}})",
     );
+  });
+});
+
+/*
+ * An alert's Root Cause page shows the same card (issue #6304), reading the
+ * alert: a grouped metric monitor's alerts are each about one series too.
+ */
+describe("alert Root Cause metric chart is scoped to the alert's series", () => {
+  test("asks the API for what the alert keeps: its snapshot, series and criteria, and its monitor's steps", () => {
+    const select: string = selectBlockAfter(
+      ALERT_ROOT_CAUSE_READER,
+      "modelType: Alert, id:",
+    );
+
+    for (const column of [
+      "telemetryQuery: true,",
+      "seriesLabels: true,",
+      "createdCriteriaId: true,",
+      "monitor: { _id: true, monitorType: true, monitorSteps: true, },",
+    ]) {
+      expect({ column, selected: select.includes(column) }).toEqual({
+        column,
+        selected: true,
+      });
+    }
+  });
+
+  test("hands what the alert keeps to what it charts, its one monitor as a list of one", () => {
+    expect(ALERT_ROOT_CAUSE_READER).toContain(
+      "return alert ? getAlertRootCauseEvent(alert) : null;",
+    );
+    const handed: string = selectBlockAfter(
+      ROOT_CAUSE_METRICS,
+      "return readEvent({ startedAt: alert.createdAt,",
+    );
+
+    expect(handed).toContain("telemetryQuery: alert.telemetryQuery,");
+    expect(handed).toContain("seriesLabels: alert.seriesLabels,");
+    expect(handed).toContain("createdCriteriaId: alert.createdCriteriaId,");
+    expect(handed).toContain("monitors: alert.monitor ? [alert.monitor] : [],");
+  });
+
+  test("is the incident's card, so it narrows and says it as that one does", () => {
+    for (const reader of [
+      INCIDENT_ROOT_CAUSE_READER,
+      ALERT_ROOT_CAUSE_READER,
+    ]) {
+      expect(reader).toContain("<EventRootCauseMetricChart");
+      // No chart and no narrowing of its own: the card's.
+      expect(reader).not.toContain("MetricSeriesScope");
+      expect(reader).not.toContain("<EventMetricInvestigationPanel");
+    }
   });
 });
 

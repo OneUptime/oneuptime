@@ -62,6 +62,8 @@ const HANDLES_ARCHIVED: Array<string> = [
 const READS_EVERY_VALUE: Record<string, string> = {
   "Components/AffectedResources/AffectedResourcesPicker.tsx":
     "picks monitors by the labels they have: a label still on a monitor finds it, archived or not",
+  "Components/Alert/AlertRootCauseMetricChart.tsx":
+    "works out an alert's times and moments from its state timeline, for the ranges and marks of its metrics",
   "Components/Dashboard/Toolbar/DashboardVariablesModal.tsx":
     "a dashboard variable filters what charts show: records keep archived labels, and stay findable by them",
   "Components/Incident/IncidentRootCauseMetricChart.tsx":
