@@ -22,7 +22,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -108,6 +110,7 @@ class WorkflowOwnerRuleEngineServiceClass
         workflow: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running workflow owner rules: ${error}`, {
@@ -124,6 +127,8 @@ class WorkflowOwnerRuleEngineServiceClass
     workflow: Workflow;
     rules: Array<WorkflowOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { workflow, rules } = data;
 
@@ -252,7 +257,7 @@ class WorkflowOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: WorkflowOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -269,7 +274,7 @@ class WorkflowOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: WorkflowOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

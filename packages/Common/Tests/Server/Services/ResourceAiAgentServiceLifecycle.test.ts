@@ -12,6 +12,7 @@ import ResourceAiAgentService, {
   RESOURCE_AI_AGENT_RESOURCE_CHECK_INTERVAL_MS,
   RESOURCE_AI_AGENT_SELECT_WITHOUT_KEY,
   Service as ResourceAiAgentServiceClass,
+  getResourceAiAgentResourceBinding,
 } from "../../../Server/Services/ResourceAiAgentService";
 import UserService from "../../../Server/Services/UserService";
 import VMwareVCenterFeedService from "../../../Server/Services/VMwareVCenterFeedService";
@@ -21,6 +22,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import UserType from "../../../Types/UserType";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AiAgentResetAuditLog from "../../../Server/Utils/AI/ResourceAccess/AiAgentResetAuditLog";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
@@ -754,15 +758,26 @@ describe("markDisconnected", () => {
 describe("resetAgent", () => {
   const USER_MARKDOWN: string = `[Jane Doe](https://oneuptime.example/dashboard/${PROJECT_ID.toString()}/users/${USER_ID.toString()})`;
 
+  // Who reset it: the route's props.
+  const PERSON: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: USER_ID,
+    userType: UserType.User,
+  };
+
   interface ResetHarness {
     find: SpyCalls;
     update: SpyCalls;
     feed: SpyCalls;
     userName: SpyCalls;
+    recorded: SpyCalls;
   }
 
   function setUp(row: ResourceAiAgent | null = makeAgent()): ResetHarness {
     return {
+      recorded: jest
+        .spyOn(AiAgentResetAuditLog, "record")
+        .mockResolvedValue(undefined) as unknown as SpyCalls,
       find: jest
         .spyOn(ResourceAiAgentService, "findAgentForResource")
         .mockResolvedValue(row) as unknown as SpyCalls,
@@ -785,7 +800,7 @@ describe("resetAgent", () => {
       projectId: PROJECT_ID,
       resourceType: AiResourceType.DockerHost,
       resourceId: RESOURCE_ID,
-      ...(userId ? { userId } : {}),
+      ...(userId ? { props: { ...PERSON, userId } } : {}),
     });
   }
 
@@ -961,6 +976,9 @@ describe("resetAgent", () => {
       jest
         .spyOn(ResourceAiAgentService, "updateOneById")
         .mockResolvedValue(undefined as never);
+      const recorded: SpyCalls = jest
+        .spyOn(AiAgentResetAuditLog, "record")
+        .mockResolvedValue(undefined) as unknown as SpyCalls;
       const feed: SpyCalls = jest
         .spyOn(feedService as AnyObject, method)
         .mockResolvedValue(undefined as never) as unknown as SpyCalls;
@@ -977,8 +995,65 @@ describe("resetAgent", () => {
       ).toContain(
         `The ${AI_RESOURCE_TYPE_INFO[resourceType].agentDisplayName} was reset`,
       );
+
+      // And on its own Audit Logs, through its own service.
+      expect(recorded.mock.calls).toHaveLength(1);
+      expect((recorded.mock.calls[0]![0] as AnyObject)["service"]).toBe(
+        getResourceAiAgentResourceBinding(resourceType).getService(),
+      );
+      expect((recorded.mock.calls[0]![0] as AnyObject)["resourceId"]).toBe(
+        RESOURCE_ID,
+      );
     },
   );
+
+  /*
+   * The agent's own row is what it reports, which the audit log leaves out:
+   * the reset is recorded on the resource, by whoever reset it (issue
+   * #6302).
+   */
+  test("records the reset on the resource's own Audit Logs, by whoever reset it, once the key is cleared", async () => {
+    const harness: ResetHarness = setUp();
+
+    await reset(USER_ID);
+
+    expect(harness.recorded.mock.calls).toHaveLength(1);
+
+    const recorded: AnyObject = harness.recorded.mock.calls[0]![0] as AnyObject;
+
+    expect(recorded["service"]).toBe(DockerHostService);
+    expect(recorded["resourceId"]).toBe(RESOURCE_ID);
+    expect(recorded["resetAt"]).toBeInstanceOf(Date);
+    expect(recorded["props"]).toEqual(PERSON);
+    // After the key is gone: an entry never says a reset that did not happen.
+    expect(
+      (harness.update as unknown as jest.SpyInstance).mock
+        .invocationCallOrder[0],
+    ).toBeLessThan(
+      (harness.recorded as unknown as jest.SpyInstance).mock
+        .invocationCallOrder[0]!,
+    );
+  });
+
+  test("without anyone named, the reset is recorded as OneUptime's own", async () => {
+    const harness: ResetHarness = setUp();
+
+    await reset();
+
+    expect(
+      (harness.recorded.mock.calls[0]![0] as AnyObject)["props"],
+    ).toBeUndefined();
+  });
+
+  test("a resource without an agent records no reset", async () => {
+    const harness: ResetHarness = setUp(null);
+
+    await expect(reset(USER_ID)).rejects.toThrow(
+      "This Docker host has no Docker AI agent to reset.",
+    );
+
+    expect(harness.recorded.mock.calls).toHaveLength(0);
+  });
 
   test("after a reset the old key no longer authenticates, and the next registration is admitted", async () => {
     const reset: ResourceAiAgent = makeAgent({

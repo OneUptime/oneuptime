@@ -46453,5 +46453,6 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime को इस फ़ंक्शन से आख़िरी बार {{lastHeard}} डेटा मिला। यह तभी डेटा भेजता है जब यह चलता है, इसलिए जब इसे कोई इन्वोक नहीं करता, जैसे शेड्यूल किए गए रन के बीच, तब यह सामान्य है।",
   "Status shows \"No recent invocations\" while the function runs": "फ़ंक्शन चल रहा है, फिर भी स्थिति \"हाल में कोई इन्वोकेशन नहीं\" दिखाती है",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "यह बदलाव उसे पूर्ववत कर देता है जो AI के वर्कफ़्लो पढ़ने के बाद सहेजा गया था: {{steps}}।",
-  "What to check if it should be running": "अगर इसे चलना चाहिए तो क्या जाँचें"
+  "What to check if it should be running": "अगर इसे चलना चाहिए तो क्या जाँचें",
+  "AI Agent Reset At": "AI एजेंट रीसेट होने का समय"
 }

@@ -46453,5 +46453,6 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime ha ricevuto dati da questa funzione l'ultima volta {{lastHeard}}. Invia dati solo mentre è in esecuzione, quindi è normale quando nulla la invoca, per esempio tra un'esecuzione pianificata e l'altra.",
   "Status shows \"No recent invocations\" while the function runs": "Lo stato mostra \"Nessuna invocazione recente\" mentre la funzione è in esecuzione",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Questa modifica annulla ciò che è stato salvato dopo che l'IA ha letto il workflow: {{steps}}.",
-  "What to check if it should be running": "Cosa controllare se dovrebbe essere in esecuzione"
+  "What to check if it should be running": "Cosa controllare se dovrebbe essere in esecuzione",
+  "AI Agent Reset At": "Agente IA reimpostato il"
 }

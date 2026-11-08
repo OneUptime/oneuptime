@@ -46453,5 +46453,6 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime ontving {{lastHeard}} voor het laatst gegevens van deze functie. Die stuurt alleen gegevens terwijl die draait, dus dit is normaal als niets de functie aanroept, bijvoorbeeld tussen geplande uitvoeringen.",
   "Status shows \"No recent invocations\" while the function runs": "De status toont \"Geen recente aanroepen\" terwijl de functie draait",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Deze wijziging maakt ongedaan wat is opgeslagen nadat de AI de workflow las: {{steps}}.",
-  "What to check if it should be running": "Wat u controleert als de functie zou moeten draaien"
+  "What to check if it should be running": "Wat u controleert als de functie zou moeten draaien",
+  "AI Agent Reset At": "AI-agent gereset op"
 }

@@ -227,6 +227,8 @@ export default class NetworkRuleRunAPI {
                   body,
                   "reassignDevicesAlreadyInASite",
                 ),
+                // The devices it moves are theirs in the audit log.
+                props: props,
               },
             );
 
