@@ -363,7 +363,10 @@ describe("resolveSloWidgetSource reads its ids in every encoding (issue #6328)",
     ["text", SLO_ID],
     ["a revived ObjectID", new ObjectID(SLO_ID)],
     ["an ObjectID's JSON", { _type: "ObjectID", value: SLO_ID }],
-    ["an ObjectID's JSON with spaces", { _type: "ObjectID", value: ` ${SLO_ID} ` }],
+    [
+      "an ObjectID's JSON with spaces",
+      { _type: "ObjectID", value: ` ${SLO_ID} ` },
+    ],
   ])("pins the SLO stored as %s", (_name: string, storedId: unknown) => {
     expect(
       resolveSloWidgetSource({

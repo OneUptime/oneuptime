@@ -38,12 +38,12 @@ describe("DashboardWidgetIds", () => {
       ["text with spaces, untrimmed", ` ${FIRST_ID} `, ` ${FIRST_ID} `],
       ["empty text", "", ""],
       ["a revived ObjectID", new ObjectID(FIRST_ID), FIRST_ID],
+      ["an ObjectID's JSON", { _type: "ObjectID", value: FIRST_ID }, FIRST_ID],
       [
-        "an ObjectID's JSON",
-        { _type: "ObjectID", value: FIRST_ID },
+        "an ObjectID's JSON from toJSON",
+        new ObjectID(FIRST_ID).toJSON(),
         FIRST_ID,
       ],
-      ["an ObjectID's JSON from toJSON", new ObjectID(FIRST_ID).toJSON(), FIRST_ID],
     ])("reads %s", (_name: string, value: unknown, expected: string) => {
       expect(DashboardWidgetIds.readId(value)).toBe(expected);
     });
@@ -72,7 +72,11 @@ describe("DashboardWidgetIds", () => {
       ["null", null, true],
       ["empty text", "", true],
       ["spaces", "   ", true],
-      ["an ObjectID's JSON with spaces", { _type: "ObjectID", value: " " }, true],
+      [
+        "an ObjectID's JSON with spaces",
+        { _type: "ObjectID", value: " " },
+        true,
+      ],
       ["an id", FIRST_ID, false],
       ["a revived ObjectID", new ObjectID(FIRST_ID), false],
       ["an ObjectID's JSON", { _type: "ObjectID", value: FIRST_ID }, false],
@@ -109,9 +113,12 @@ describe("DashboardWidgetIds", () => {
       ["text", FIRST_ID],
       ["an ObjectID", new ObjectID(FIRST_ID)],
       ["an object", { ids: [FIRST_ID] }],
-    ])("keeps %s, which is no list, as it is", (_name: string, value: unknown) => {
-      expect(DashboardWidgetIds.readIdList(value)).toBe(value);
-    });
+    ])(
+      "keeps %s, which is no list, as it is",
+      (_name: string, value: unknown) => {
+        expect(DashboardWidgetIds.readIdList(value)).toBe(value);
+      },
+    );
   });
 
   describe("withIdsRead", () => {
@@ -249,9 +256,10 @@ describe("every widget type's id settings are read as ids", () => {
     );
 
     for (const setting of settings) {
-      expect([setting, isDashboardComponentType(setting.componentType)]).toEqual(
-        [setting, true],
-      );
+      expect([
+        setting,
+        isDashboardComponentType(setting.componentType),
+      ]).toEqual([setting, true]);
     }
   });
 
@@ -324,8 +332,18 @@ describe("property: every board reads every id setting as text, in every shape",
   type Shape = (widget: JSONObject) => unknown;
 
   const SHAPES: Array<[string, Shape]> = [
-    ["an object", (widget: JSONObject): unknown => widget],
-    ["JSON text", (widget: JSONObject): unknown => JSON.stringify(widget)],
+    [
+      "an object",
+      (widget: JSONObject): unknown => {
+        return widget;
+      },
+    ],
+    [
+      "JSON text",
+      (widget: JSONObject): unknown => {
+        return JSON.stringify(widget);
+      },
+    ],
     [
       "the DashboardComponent envelope",
       (widget: JSONObject): unknown => {
@@ -392,7 +410,10 @@ describe("property: every board reads every id setting as text, in every shape",
     }
 
     expect([...swept].sort()).toEqual(
-      [...DASHBOARD_WIDGET_ID_LIST_SETTINGS, ...DASHBOARD_WIDGET_ID_SETTINGS].sort(),
+      [
+        ...DASHBOARD_WIDGET_ID_LIST_SETTINGS,
+        ...DASHBOARD_WIDGET_ID_SETTINGS,
+      ].sort(),
     );
   });
 
@@ -471,10 +492,7 @@ describe("property: every board reads every id setting as text, in every shape",
         label,
         readSettings(widgetOf(asText)),
       ]);
-      expect([label, readSettings(widgetOf(asText))]).toEqual([
-        label,
-        asText,
-      ]);
+      expect([label, readSettings(widgetOf(asText))]).toEqual([label, asText]);
     }
   });
 });

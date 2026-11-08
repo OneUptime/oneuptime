@@ -10,7 +10,6 @@ import DashboardVariable, {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
-import ObjectID from "../../../Types/ObjectID";
 import PublicDashboardSloWidget, {
   PublicDashboardSloWidgetConfig,
   PublicDashboardSloWidgetTargetKind,

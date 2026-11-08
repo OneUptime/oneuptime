@@ -164,6 +164,8 @@ import ObjectID from "../../../Types/ObjectID";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import TimeRange from "../../../Types/Time/TimeRange";
 import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
+import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
+import PublicDashboardResourceListPolicy from "../../../Server/Utils/Dashboard/PublicDashboardResourceListPolicy";
 
 const COMPONENT_ID: string = "11111111-1111-4111-8111-111111111111";
 const SLO_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -599,11 +601,136 @@ describe("the incident and alert lists filter by their ids in every encoding (is
               ] as JSONObject,
               listCase.stateQueryKey,
             ),
-          ]).toEqual([pathTaken, encoding, [CREATED_STATE_ID, RESOLVED_STATE_ID]]);
+          ]).toEqual([
+            pathTaken,
+            encoding,
+            [CREATED_STATE_ID, RESOLVED_STATE_ID],
+          ]);
 
           unmount();
         }
       }
     },
   );
+});
+
+/*
+ * The public routes and the signed-in page agree on every encoding: the
+ * policy a public dashboard's list or SLO route answers with is handed the
+ * widget the public page draws (PublicDashboardViewConfig.getDrawnConfig),
+ * and reads the same ids the signed-in widget reads off the same stored
+ * widget.
+ */
+describe("the public routes and the signed-in page agree on every encoding (issue #6328)", () => {
+  const publicPolicyFor: (stored: JSONObject) => JSONObject = (
+    stored: JSONObject,
+  ): JSONObject => {
+    const [drawn] = PublicDashboardViewConfig.getDrawnConfig({
+      components: [JSON.parse(JSON.stringify(stored))],
+    }).components;
+
+    return PublicDashboardResourceListPolicy.build({
+      widget: drawn!,
+      variables: [],
+      requestedVariables: [],
+      requestedQuery: {},
+    }).query as JSONObject;
+  };
+
+  test.each(LIST_CASES)(
+    "the $name filters by the same states and severities on both",
+    async (listCase: ListCase) => {
+      for (const encoding of ENCODINGS) {
+        jest.clearAllMocks();
+
+        const settings: JSONObject = {
+          stateIds: [
+            encode(CREATED_STATE_ID, encoding),
+            encode(RESOLVED_STATE_ID, encoding),
+          ] as Array<JSONObject>,
+          severityIds: [
+            encode(ACKNOWLEDGED_STATE_ID, encoding),
+          ] as Array<JSONObject>,
+        };
+        const stored: JSONObject = {
+          componentId: COMPONENT_ID,
+          componentType: listCase.componentType,
+          arguments: settings,
+        };
+
+        const { unmount } = render(
+          listCase.render(
+            widgetFor(
+              listCase.componentType,
+              settings,
+              "as the board draws it",
+            ),
+          ),
+        );
+
+        await waitFor(() => {
+          expect(getListMock).toHaveBeenCalledTimes(1);
+        });
+
+        const signedIn: JSONObject = (
+          getListMock.mock.calls[0]![0] as JSONObject
+        )["query"] as JSONObject;
+        const publicQuery: JSONObject = publicPolicyFor(stored);
+
+        for (const key of [listCase.stateQueryKey, listCase.severityQueryKey]) {
+          expect([encoding, key, filterValues(publicQuery, key)]).toEqual([
+            encoding,
+            key,
+            filterValues(signedIn, key),
+          ]);
+        }
+
+        unmount();
+      }
+    },
+  );
+
+  test("the SLO widget reads the same SLO on both", async () => {
+    for (const encoding of ENCODINGS) {
+      jest.clearAllMocks();
+      getItemMock.mockResolvedValue(buildSlo());
+
+      const settings: JSONObject = {
+        serviceLevelObjectiveId: encode(SLO_ID, encoding) as JSONObject,
+        displayType: SloWidgetDisplayType.Tile,
+      };
+
+      const { unmount } = render(
+        <DashboardSloComponentElement
+          {...baseProps()}
+          component={
+            widgetFor(
+              DashboardComponentType.Slo,
+              settings,
+              "as the board draws it",
+            ) as never
+          }
+        />,
+      );
+
+      expect(await screen.findByText("99.95%")).toBeInTheDocument();
+
+      const signedInId: string = String(
+        (getItemMock.mock.calls[0]![0] as JSONObject)["id"],
+      );
+      const publicQuery: JSONObject = publicPolicyFor({
+        componentId: COMPONENT_ID,
+        componentType: DashboardComponentType.Slo,
+        arguments: settings,
+      });
+
+      expect([encoding, String(publicQuery["_id"])]).toEqual([
+        encoding,
+        signedInId,
+      ]);
+      expect(signedInId).toBe(SLO_ID);
+
+      unmount();
+    }
+  });
 });
