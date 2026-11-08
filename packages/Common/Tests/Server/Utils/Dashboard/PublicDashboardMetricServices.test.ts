@@ -370,6 +370,11 @@ describe("what a public read cannot do", () => {
         "Includes JSON that was not revived",
         { _type: "Includes", value: [API, CHECKOUT] },
       ],
+      [
+        "Includes JSON as text",
+        JSON.stringify(new Includes([API, CHECKOUT]).toJSON()),
+      ],
+      ["a list holding an Includes", [new Includes([API, CHECKOUT])]],
       ["an empty Includes", new Includes([])],
       ["an Includes of ObjectIDs", new Includes([new ObjectID(API)])],
       [

@@ -1410,6 +1410,11 @@ describe("DashboardAPI public metrics-aggregate", () => {
           ["true", true],
           ["an object", {}],
           ["a plain list of the id", [API_SERVICE_ID]],
+          [
+            "the filter as JSON text",
+            JSON.stringify(servicesFilter([API_SERVICE_ID])),
+          ],
+          ["a list holding the filter", [servicesFilter([API_SERVICE_ID])]],
           ["an empty list", []],
           ["an ObjectID", { _type: "ObjectID", value: API_SERVICE_ID }],
           ["an empty Includes", { _type: "Includes", value: [] }],
@@ -1501,6 +1506,8 @@ describe("DashboardAPI public metrics-aggregate", () => {
         for (const shape of [
           { _type: "Includes", value: {} },
           { _type: "Includes", value: 5 },
+          // The filter wrapped in a filter: its value is no list.
+          { _type: "Includes", value: servicesFilter([API_SERVICE_ID]) },
         ]) {
           jest.clearAllMocks();
 
