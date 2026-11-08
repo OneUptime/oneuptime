@@ -352,7 +352,9 @@ describe("a widget's sort in arguments written as JSON text (issue #6315)", () =
       for (const sort of getDashboardWidgetSortValues(componentType)) {
         expect(
           refusal({
-            dashboardViewConfig: configWith([textWidget(componentType, { sort })]),
+            dashboardViewConfig: configWith([
+              textWidget(componentType, { sort }),
+            ]),
           }),
         ).toBeNull();
       }
@@ -391,7 +393,9 @@ describe("a widget's sort in arguments written as JSON text (issue #6315)", () =
 
         expect([sort, asObject]).toEqual([
           sort,
-          expect.stringContaining("components[0].arguments.sort must be one of"),
+          expect.stringContaining(
+            "components[0].arguments.sort must be one of",
+          ),
         ]);
         expect([sort, asText]).toEqual([sort, asObject]);
       }
@@ -474,7 +478,10 @@ describe("a widget's sort in arguments written as JSON text (issue #6315)", () =
         text,
         refusal({
           dashboardViewConfig: configWith([
-            { ...widget(DashboardComponentType.MonitorList, {}), arguments: text },
+            {
+              ...widget(DashboardComponentType.MonitorList, {}),
+              arguments: text,
+            },
           ]),
         }),
       ]).toEqual([text, null]);
@@ -504,7 +511,9 @@ describe("a widget's sort in arguments written as JSON text (issue #6315)", () =
       column: "status",
       direction: "desc",
     });
-    expect(read(JSON.stringify(JSON.stringify({ sort: "status:desc" })))).toBeNull();
+    expect(
+      read(JSON.stringify(JSON.stringify({ sort: "status:desc" }))),
+    ).toBeNull();
     expect(read('{"sort": "status:desc"')).toBeNull();
   });
 
@@ -516,9 +525,7 @@ describe("a widget's sort in arguments written as JSON text (issue #6315)", () =
       configWith([bad]),
       configWith([JSON.stringify(bad) as unknown as JSONObject]),
       configWith([{ _type: "DashboardComponent", value: bad }]),
-      configWith([
-        { _type: "DashboardComponent", value: JSON.stringify(bad) },
-      ]),
+      configWith([{ _type: "DashboardComponent", value: JSON.stringify(bad) }]),
       { ...configWith([]), components: JSON.stringify([bad]) },
       { _type: "DashboardViewConfig", value: configWith([bad]) },
       JSON.stringify(configWith([bad])),

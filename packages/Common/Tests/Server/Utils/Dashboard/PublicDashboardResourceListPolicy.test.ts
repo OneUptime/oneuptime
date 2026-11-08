@@ -2038,8 +2038,9 @@ describe("PublicDashboardResourceListPolicy", () => {
       stored: unknown,
     ): JSONObject => {
       const components: Array<unknown> =
-        PublicDashboardViewConfig.getDrawnConfig({ components: [stored] })
-          .components;
+        PublicDashboardViewConfig.getDrawnConfig({
+          components: [stored],
+        }).components;
 
       expect(components).toHaveLength(1);
       return components[0] as JSONObject;
@@ -2342,7 +2343,12 @@ describe("PublicDashboardResourceListPolicy", () => {
             componentType: DashboardComponentType.LogStream,
             requestedQuery: { time: range() },
             storedVariables: [
-              { id: "service", name: "Service", type: TA, attributeKey: " service " },
+              {
+                id: "service",
+                name: "Service",
+                type: TA,
+                attributeKey: " service ",
+              },
             ],
             requestedVariables: [{ id: "service", selectedValue: "api" }],
           }).query["attributes"],
@@ -2463,12 +2469,19 @@ describe("PublicDashboardResourceListPolicy", () => {
             return { ...variable, id: `  ${variable["id"]}  ` };
           }),
         ],
-        ["entries that are no variable among them", [null, EDITOR[0], "x", 7, EDITOR[1]]],
+        [
+          "entries that are no variable among them",
+          [null, EDITOR[0], "x", 7, EDITOR[1]],
+        ],
         [
           "all of these at once, in a list written as JSON text",
           JSON.stringify([
             "junk",
-            { ...withoutId(EDITOR[0]!), defaultValue: 5, isMultiSelect: "false" },
+            {
+              ...withoutId(EDITOR[0]!),
+              defaultValue: 5,
+              isMultiSelect: "false",
+            },
             null,
             { ...EDITOR[1]!, id: 7, isMultiSelect: "true" },
           ]),
@@ -2559,7 +2572,8 @@ describe("PublicDashboardResourceListPolicy", () => {
                   isMultiSelect,
                   defaultValue: variable.defaultValue,
                   selectedValue:
-                    !isMultiSelect && typeof pick?.["selectedValue"] === "string"
+                    !isMultiSelect &&
+                    typeof pick?.["selectedValue"] === "string"
                       ? pick["selectedValue"]
                       : undefined,
                   selectedValues: isMultiSelect
@@ -2621,7 +2635,11 @@ describe("PublicDashboardResourceListPolicy", () => {
       it("never reads a pick under a variable's stored id when the page draws it under another", () => {
         // Both store "shared": the page draws the second under an id of its own.
         const stored: Array<JSONObject> = [
-          { ...NAME_VARIABLE, id: "shared", type: DashboardVariableType.CustomList },
+          {
+            ...NAME_VARIABLE,
+            id: "shared",
+            type: DashboardVariableType.CustomList,
+          },
           { ...IMAGE_VARIABLE, id: "shared" },
         ];
 
@@ -2635,7 +2653,9 @@ describe("PublicDashboardResourceListPolicy", () => {
       });
 
       it("keeps a stored id that is the id a variable without one would be drawn under, and draws that one under the next", () => {
-        const firstDerivedId: string = pageIdsOf([withoutId(NAME_VARIABLE)])[0]!;
+        const firstDerivedId: string = pageIdsOf([
+          withoutId(NAME_VARIABLE),
+        ])[0]!;
         const stored: Array<JSONObject> = [
           withoutId({ ...IMAGE_VARIABLE, defaultValue: undefined }),
           { ...NAME_VARIABLE, id: firstDerivedId },
@@ -2776,7 +2796,10 @@ describe("PublicDashboardResourceListPolicy", () => {
           [
             "too many selections",
             Array.from({ length: 51 }, (_: unknown, index: number) => {
-              return { id: index === 0 ? pageId! : `v-${index}`, selectedValue: "v" };
+              return {
+                id: index === 0 ? pageId! : `v-${index}`,
+                selectedValue: "v",
+              };
             }),
           ],
           ["an over-long id", [{ id: "x".repeat(257), selectedValue: "v" }]],
@@ -2871,7 +2894,10 @@ describe("PublicDashboardResourceListPolicy", () => {
               } as unknown as DashboardVariable,
             ],
           ],
-          ["an entry that is no variable", [null as unknown as DashboardVariable]],
+          [
+            "an entry that is no variable",
+            [null as unknown as DashboardVariable],
+          ],
         ];
 
         for (const [name, variables] of handed) {
@@ -2942,7 +2968,10 @@ describe("PublicDashboardResourceListPolicy", () => {
         [
           "with arguments cut short",
           (stored: JSONObject): JSONObject => {
-            return { ...stored, arguments: '{"maxRows": 7, "stateFilter": "res' };
+            return {
+              ...stored,
+              arguments: '{"maxRows": 7, "stateFilter": "res',
+            };
           },
         ],
       ];
@@ -2974,7 +3003,10 @@ describe("PublicDashboardResourceListPolicy", () => {
             });
 
             // The page draws it with no settings at all.
-            expect([shape, drawnWidget(stored)["arguments"]]).toEqual([shape, {}]);
+            expect([shape, drawnWidget(stored)["arguments"]]).toEqual([
+              shape,
+              {},
+            ]);
 
             expect([
               shape,
@@ -3090,34 +3122,97 @@ describe("PublicDashboardResourceListPolicy", () => {
         key: string;
         requestedQuery?: JSONObject | undefined;
       }> = [
-        { componentType: DashboardComponentType.IncidentList, key: "severityIds" },
+        {
+          componentType: DashboardComponentType.IncidentList,
+          key: "severityIds",
+        },
         { componentType: DashboardComponentType.IncidentList, key: "stateIds" },
-        { componentType: DashboardComponentType.IncidentList, key: "monitorIds" },
+        {
+          componentType: DashboardComponentType.IncidentList,
+          key: "monitorIds",
+        },
         { componentType: DashboardComponentType.IncidentList, key: "labelIds" },
         { componentType: DashboardComponentType.AlertList, key: "severityIds" },
         { componentType: DashboardComponentType.AlertList, key: "stateIds" },
         { componentType: DashboardComponentType.AlertList, key: "monitorIds" },
         { componentType: DashboardComponentType.AlertList, key: "labelIds" },
-        { componentType: DashboardComponentType.MonitorList, key: "monitorStatusIds" },
+        {
+          componentType: DashboardComponentType.MonitorList,
+          key: "monitorStatusIds",
+        },
         { componentType: DashboardComponentType.MonitorList, key: "labelIds" },
-        { componentType: DashboardComponentType.NetworkMap, key: "networkSiteTypeIds" },
-        { componentType: DashboardComponentType.KubernetesPodList, key: "kubernetesClusterIds" },
-        { componentType: DashboardComponentType.KubernetesNodeList, key: "kubernetesClusterIds" },
-        { componentType: DashboardComponentType.DockerContainerList, key: "dockerHostIds" },
-        { componentType: DashboardComponentType.DockerImageList, key: "dockerHostIds" },
-        { componentType: DashboardComponentType.DockerVolumeList, key: "dockerHostIds" },
-        { componentType: DashboardComponentType.PodmanContainerList, key: "podmanHostIds" },
-        { componentType: DashboardComponentType.PodmanNetworkList, key: "podmanHostIds" },
-        { componentType: DashboardComponentType.ProxmoxNodeList, key: "proxmoxClusterIds" },
-        { componentType: DashboardComponentType.ProxmoxGuestList, key: "proxmoxClusterIds" },
-        { componentType: DashboardComponentType.VMwareHostList, key: "vmwareVCenterIds" },
-        { componentType: DashboardComponentType.VMwareVirtualMachineList, key: "vmwareVCenterIds" },
-        { componentType: DashboardComponentType.CephOsdList, key: "cephClusterIds" },
-        { componentType: DashboardComponentType.CephPoolList, key: "cephClusterIds" },
-        { componentType: DashboardComponentType.StorageArrayVolumeList, key: "storageArrayIds" },
-        { componentType: DashboardComponentType.StorageArrayHardwareList, key: "storageArrayIds" },
-        { componentType: DashboardComponentType.DockerSwarmNodeList, key: "dockerSwarmClusterIds" },
-        { componentType: DashboardComponentType.DockerSwarmServiceList, key: "dockerSwarmClusterIds" },
+        {
+          componentType: DashboardComponentType.NetworkMap,
+          key: "networkSiteTypeIds",
+        },
+        {
+          componentType: DashboardComponentType.KubernetesPodList,
+          key: "kubernetesClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.KubernetesNodeList,
+          key: "kubernetesClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.DockerContainerList,
+          key: "dockerHostIds",
+        },
+        {
+          componentType: DashboardComponentType.DockerImageList,
+          key: "dockerHostIds",
+        },
+        {
+          componentType: DashboardComponentType.DockerVolumeList,
+          key: "dockerHostIds",
+        },
+        {
+          componentType: DashboardComponentType.PodmanContainerList,
+          key: "podmanHostIds",
+        },
+        {
+          componentType: DashboardComponentType.PodmanNetworkList,
+          key: "podmanHostIds",
+        },
+        {
+          componentType: DashboardComponentType.ProxmoxNodeList,
+          key: "proxmoxClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.ProxmoxGuestList,
+          key: "proxmoxClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.VMwareHostList,
+          key: "vmwareVCenterIds",
+        },
+        {
+          componentType: DashboardComponentType.VMwareVirtualMachineList,
+          key: "vmwareVCenterIds",
+        },
+        {
+          componentType: DashboardComponentType.CephOsdList,
+          key: "cephClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.CephPoolList,
+          key: "cephClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.StorageArrayVolumeList,
+          key: "storageArrayIds",
+        },
+        {
+          componentType: DashboardComponentType.StorageArrayHardwareList,
+          key: "storageArrayIds",
+        },
+        {
+          componentType: DashboardComponentType.DockerSwarmNodeList,
+          key: "dockerSwarmClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.DockerSwarmServiceList,
+          key: "dockerSwarmClusterIds",
+        },
         { componentType: DashboardComponentType.SloList, key: "labelIds" },
       ];
 
@@ -3149,7 +3244,9 @@ describe("PublicDashboardResourceListPolicy", () => {
             // The page holds the ObjectIDs it revived, or their JSON when it could not revive the widget.
             expect([encoding, held.map(String)]).toEqual([
               encoding,
-              isRevived(encoding) ? ids : ["[object Object]", "[object Object]"],
+              isRevived(encoding)
+                ? ids
+                : ["[object Object]", "[object Object]"],
             ]);
             expect(
               held.every((value: unknown): boolean => {
@@ -3177,8 +3274,12 @@ describe("PublicDashboardResourceListPolicy", () => {
         outcome: string;
       }
 
-      const DATE: unknown = OneUptimeDate.toJSON(new Date("2026-11-08T00:00:00.000Z"));
-      const OPERATOR: unknown = new Includes([ObjectID.generate().toString()]).toJSON();
+      const DATE: unknown = OneUptimeDate.toJSON(
+        new Date("2026-11-08T00:00:00.000Z"),
+      );
+      const OPERATOR: unknown = new Includes([
+        ObjectID.generate().toString(),
+      ]).toJSON();
       const SEARCH: unknown = new Search("status:desc").toJSON();
       const ID: unknown = ObjectID.generate().toJSON();
 
@@ -3209,7 +3310,8 @@ describe("PublicDashboardResourceListPolicy", () => {
             ["an ObjectID with no id", [{ _type: "ObjectID", value: "" }]],
             ["an id with no type", [{ value: ObjectID.generate().toString() }]],
           ],
-          outcome: "refused: Dashboard widget severityIds contains an invalid value.",
+          outcome:
+            "refused: Dashboard widget severityIds contains an invalid value.",
         },
         {
           reader: "a choice",
@@ -3247,22 +3349,29 @@ describe("PublicDashboardResourceListPolicy", () => {
           componentType: DashboardComponentType.MonitorList,
           key: "labelVariableId",
           values: TYPED_VALUES,
-          outcome: "refused: Dashboard widget labelVariableId must be a string.",
+          outcome:
+            "refused: Dashboard widget labelVariableId must be a string.",
         },
         {
           reader: "an SLO list's statuses",
           componentType: DashboardComponentType.SloList,
           key: "sloStatuses",
-          values: TYPED_VALUES.map(([name, value]: [string, unknown]): [string, unknown] => {
-            return [name, [value]];
-          }),
-          outcome: "refused: Dashboard widget sloStatuses contains an invalid value.",
+          values: TYPED_VALUES.map(
+            ([name, value]: [string, unknown]): [string, unknown] => {
+              return [name, [value]];
+            },
+          ),
+          outcome:
+            "refused: Dashboard widget sloStatuses contains an invalid value.",
         },
         {
           reader: "a row cap",
           componentType: DashboardComponentType.IncidentList,
           key: "maxRows",
-          values: [...TYPED_VALUES, ["a value greater than", { _type: "GreaterThan", value: 5 }]],
+          values: [
+            ...TYPED_VALUES,
+            ["a value greater than", { _type: "GreaterThan", value: 5 }],
+          ],
           outcome: "as unset",
         },
         {
@@ -3329,7 +3438,10 @@ describe("PublicDashboardResourceListPolicy", () => {
               const stored: JSONObject = storedIn(
                 encoding,
                 testCase.componentType,
-                { ...(testCase.settings || {}), [testCase.key]: value as JSONObject },
+                {
+                  ...(testCase.settings || {}),
+                  [testCase.key]: value as JSONObject,
+                },
               );
               const outcome: string = outcomeOf(() => {
                 return buildDrawn({
@@ -3365,27 +3477,39 @@ describe("PublicDashboardResourceListPolicy", () => {
           expect([
             encoding,
             buildDrawn({
-              storedWidget: storedIn(encoding, DashboardComponentType.IncidentList, {
-                maxRows: DATE as JSONObject,
-              }),
+              storedWidget: storedIn(
+                encoding,
+                DashboardComponentType.IncidentList,
+                {
+                  maxRows: DATE as JSONObject,
+                },
+              ),
             }).limit,
           ]).toEqual([encoding, 25]);
 
           expect([
             encoding,
             buildDrawn({
-              storedWidget: storedIn(encoding, DashboardComponentType.NetworkMap, {
-                maxSites: DATE as JSONObject,
-              }),
+              storedWidget: storedIn(
+                encoding,
+                DashboardComponentType.NetworkMap,
+                {
+                  maxSites: DATE as JSONObject,
+                },
+              ),
             }).limit,
           ]).toEqual([encoding, 251]);
 
           expect([
             encoding,
             buildDrawn({
-              storedWidget: storedIn(encoding, DashboardComponentType.IncidentList, {
-                maxRows: " 13 ",
-              }),
+              storedWidget: storedIn(
+                encoding,
+                DashboardComponentType.IncidentList,
+                {
+                  maxRows: " 13 ",
+                },
+              ),
             }).limit,
           ]).toEqual([encoding, 13]);
         }
@@ -3401,9 +3525,13 @@ describe("PublicDashboardResourceListPolicy", () => {
           expect([
             encoding,
             buildDrawn({
-              storedWidget: storedIn(encoding, DashboardComponentType.MonitorList, {
-                sort: "status:desc",
-              }),
+              storedWidget: storedIn(
+                encoding,
+                DashboardComponentType.MonitorList,
+                {
+                  sort: "status:desc",
+                },
+              ),
             }).sortChoice,
           ]).toEqual([encoding, { column: "status", direction: "desc" }]);
         }

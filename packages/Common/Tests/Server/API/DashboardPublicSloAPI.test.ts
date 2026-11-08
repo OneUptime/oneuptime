@@ -15,7 +15,9 @@ import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDas
 import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
 import { SLO_LIST_DEFAULT_MAX_ROWS } from "../../../Utils/Slo/SloListWidgetFormat";
 import DashboardResourceList from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/DashboardResourceList";
-import DashboardVariable from "../../../Types/Dashboard/DashboardVariable";
+import DashboardVariable, {
+  DashboardVariableType,
+} from "../../../Types/Dashboard/DashboardVariable";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import {
   ExpressRequest,
@@ -1354,13 +1356,26 @@ describe("DashboardAPI public SLO", () => {
       ["written as JSON text", JSON.stringify([SLO_VARIABLE])],
       ["without an id", [withoutId(SLO_VARIABLE)]],
       ["two sharing one id", [SLO_VARIABLE, SLO_VARIABLE]],
-      ['isMultiSelect written as "true"', [{ ...SLO_VARIABLE, isMultiSelect: "true" }]],
-      ["a default written as a number", [{ ...SLO_VARIABLE, defaultValue: 42 }]],
+      [
+        'isMultiSelect written as "true"',
+        [{ ...SLO_VARIABLE, isMultiSelect: "true" }],
+      ],
+      [
+        "a default written as a number",
+        [{ ...SLO_VARIABLE, defaultValue: 42 }],
+      ],
       ["an id written as a number", [{ ...SLO_VARIABLE, id: 7 }]],
       ["an entry that is no variable", [null, "slo-variable", SLO_VARIABLE]],
       [
         "a project label variable with no choices",
-        [{ id: "unit", name: "UNIT", type: "Project Label", labelOptions: "x" }],
+        [
+          {
+            id: "unit",
+            name: "UNIT",
+            type: DashboardVariableType.ProjectLabel,
+            labelOptions: "x",
+          },
+        ],
       ],
     ];
 
@@ -1384,7 +1399,9 @@ describe("DashboardAPI public SLO", () => {
         });
         expect(nextFunction).not.toHaveBeenCalled();
         expect(
-          ((getFindByArgs()["query"] as JSONObject)["_id"] as ObjectID).toString(),
+          (
+            (getFindByArgs()["query"] as JSONObject)["_id"] as ObjectID
+          ).toString(),
         ).toBe(serviceLevelObjectiveId.toString());
 
         jest.clearAllMocks();
@@ -1396,7 +1413,9 @@ describe("DashboardAPI public SLO", () => {
         });
         expect(nextFunction).not.toHaveBeenCalled();
         expect(
-          ((getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID).toString(),
+          (
+            (getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID
+          ).toString(),
         ).toBe(serviceLevelObjectiveId.toString());
       },
     );
@@ -1406,10 +1425,30 @@ describe("DashboardAPI public SLO", () => {
      * shapes its binding can still name it in. On both routes, the viewer's
      * pick names the SLO - or, with no pick, the variable's default does.
      */
-    const FOLLOWED_SHAPES: Array<[string, unknown, string, Array<JSONObject | null>, string]> = [
-      ["written as JSON text", JSON.stringify([SLO_VARIABLE]), "slo-variable", [{ selectedValue: "Checkout API" }], "Checkout API"],
-      ["its id written as a number", [{ ...SLO_VARIABLE, id: 7 }], "7", [{ selectedValue: "Checkout API" }], "Checkout API"],
-      ["its id with spaces around it", [{ ...SLO_VARIABLE, id: "  slo-variable  " }], "slo-variable", [{ selectedValue: "Checkout API" }], "Checkout API"],
+    const FOLLOWED_SHAPES: Array<
+      [string, unknown, string, Array<JSONObject | null>, string]
+    > = [
+      [
+        "written as JSON text",
+        JSON.stringify([SLO_VARIABLE]),
+        "slo-variable",
+        [{ selectedValue: "Checkout API" }],
+        "Checkout API",
+      ],
+      [
+        "its id written as a number",
+        [{ ...SLO_VARIABLE, id: 7 }],
+        "7",
+        [{ selectedValue: "Checkout API" }],
+        "Checkout API",
+      ],
+      [
+        "its id with spaces around it",
+        [{ ...SLO_VARIABLE, id: "  slo-variable  " }],
+        "slo-variable",
+        [{ selectedValue: "Checkout API" }],
+        "Checkout API",
+      ],
       [
         'isMultiSelect written as "true", one SLO picked',
         [{ ...SLO_VARIABLE, isMultiSelect: "true" }],
@@ -1417,7 +1456,13 @@ describe("DashboardAPI public SLO", () => {
         [{ selectedValues: ["Checkout API"] }],
         "Checkout API",
       ],
-      ["a default written as a number, nothing picked", [{ ...SLO_VARIABLE, defaultValue: 42 }], "slo-variable", [null], "42"],
+      [
+        "a default written as a number, nothing picked",
+        [{ ...SLO_VARIABLE, defaultValue: 42 }],
+        "slo-variable",
+        [null],
+        "42",
+      ],
       [
         "first of two sharing its id",
         [SLO_VARIABLE, { ...SLO_VARIABLE, attributeKey: "other" }],
@@ -1425,7 +1470,21 @@ describe("DashboardAPI public SLO", () => {
         [{ selectedValue: "Checkout API" }, { selectedValue: "Payments" }],
         "Checkout API",
       ],
-      ["after an entry that is no variable", [null, SLO_VARIABLE], "slo-variable", [{ selectedValue: "Checkout API" }], "Checkout API"],
+      [
+        "after an entry that is no variable",
+        [null, SLO_VARIABLE],
+        "slo-variable",
+        [{ selectedValue: "Checkout API" }],
+        "Checkout API",
+      ],
+      // A key filters lists; the widget follows the pick by name, with or without one - as on the page.
+      [
+        "a Telemetry Attribute variable stored without a key",
+        [{ ...SLO_VARIABLE, attributeKey: undefined }],
+        "slo-variable",
+        [{ selectedValue: "Checkout API" }],
+        "Checkout API",
+      ],
     ];
 
     it.each(FOLLOWED_SHAPES)(
@@ -1468,7 +1527,9 @@ describe("DashboardAPI public SLO", () => {
         expect(nextFunction).not.toHaveBeenCalled();
         expect((getFindByArgs()["query"] as JSONObject)["name"]).toBe(sloName);
         expect(
-          ((getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID).toString(),
+          (
+            (getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID
+          ).toString(),
         ).toBe(matchedId.toString());
       },
     );
@@ -1488,7 +1549,9 @@ describe("DashboardAPI public SLO", () => {
         await call({
           componentId: slo.componentId.toString(),
           aggregateBy: buildAggregateBy(),
-          variables: [{ id: secondId, selectedValue: "Payments", selectedValues: [] }],
+          variables: [
+            { id: secondId, selectedValue: "Payments", selectedValues: [] },
+          ],
         });
 
         // The variable it follows has no pick: there is no one SLO to show.
@@ -1506,7 +1569,14 @@ describe("DashboardAPI public SLO", () => {
       });
       setConfig(
         [slo.widget],
-        [{ ...SLO_VARIABLE, type: "Project Label", labelOptions: [] }, SLO_VARIABLE],
+        [
+          {
+            ...SLO_VARIABLE,
+            type: DashboardVariableType.ProjectLabel,
+            labelOptions: [],
+          },
+          SLO_VARIABLE,
+        ],
       );
 
       for (const call of [callResourceList, callSloHistory]) {
@@ -1537,7 +1607,10 @@ describe("DashboardAPI public SLO", () => {
           { id: pageId, selectedValue: "b" },
         ],
         Array.from({ length: 51 }, (_: unknown, index: number) => {
-          return { id: index === 0 ? pageId : `v-${index}`, selectedValue: "v" };
+          return {
+            id: index === 0 ? pageId : `v-${index}`,
+            selectedValue: "v",
+          };
         }),
       ]) {
         for (const call of [callResourceList, callSloHistory]) {
@@ -1626,7 +1699,10 @@ describe("DashboardAPI public SLO", () => {
 
         await mockRouter.match("post", RESOURCE_LIST_ROUTE).handlerFunction(
           {
-            params: { dashboardId: dashboardId.toString(), resourceType: "slo-list" },
+            params: {
+              dashboardId: dashboardId.toString(),
+              resourceType: "slo-list",
+            },
             body: { componentId: componentId.toString() },
             query: {},
             cookies: {},
@@ -1697,7 +1773,9 @@ describe("DashboardAPI public SLO", () => {
 
     it("lists an SLO List widget whose labels are stored as ObjectIDs as with the label ids stored as text", async () => {
       const labelId: ObjectID = ObjectID.generate();
-      const listedFor: (labelIds: Array<JSONValue>) => Promise<JSONObject> = async (
+      const listedFor: (
+        labelIds: Array<JSONValue>,
+      ) => Promise<JSONObject> = async (
         labelIds: Array<JSONValue>,
       ): Promise<JSONObject> => {
         const componentId: ObjectID = ObjectID.generate();
@@ -1715,7 +1793,10 @@ describe("DashboardAPI public SLO", () => {
 
         await mockRouter.match("post", RESOURCE_LIST_ROUTE).handlerFunction(
           {
-            params: { dashboardId: dashboardId.toString(), resourceType: "slo-list" },
+            params: {
+              dashboardId: dashboardId.toString(),
+              resourceType: "slo-list",
+            },
             body: { componentId: componentId.toString() },
             query: {},
             cookies: {},

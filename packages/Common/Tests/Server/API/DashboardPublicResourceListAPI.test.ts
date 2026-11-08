@@ -1724,8 +1724,9 @@ describe("DashboardAPI public resource-list", () => {
 
         // The page draws it with no settings at all, signed in and public alike.
         expect(
-          PublicDashboardViewConfig.getDrawnConfig(dashboard.dashboardViewConfig)
-            .components[0]?.arguments,
+          PublicDashboardViewConfig.getDrawnConfig(
+            dashboard.dashboardViewConfig,
+          ).components[0]?.arguments,
         ).toEqual({});
 
         await callRoute({
@@ -1837,14 +1838,15 @@ describe("DashboardAPI public resource-list", () => {
       const variables: Array<DashboardVariable> = (drawn.variables || []).map(
         (variable: DashboardVariable, index: number): DashboardVariable => {
           const pick: Pick | null | undefined = data.picks?.[index];
-          return pick ? ({ ...variable, ...pick } as DashboardVariable) : variable;
+          return pick
+            ? ({ ...variable, ...pick } as DashboardVariable)
+            : variable;
         },
       );
 
       return {
-        componentId: drawn.components[
-          data.widgetIndex || 0
-        ]!.componentId.toString(),
+        componentId:
+          drawn.components[data.widgetIndex || 0]!.componentId.toString(),
         variables: DashboardResourceList.getVariableSelections(variables),
         query: telemetryQuery(data.resourceType),
       };
@@ -1852,11 +1854,11 @@ describe("DashboardAPI public resource-list", () => {
 
     // The errors the last call ended in, as words: none when it listed.
     const errorsOfLastCall: () => Array<string> = (): Array<string> => {
-      return ((nextFunction as jest.Mock).mock.calls as Array<Array<unknown>>).map(
-        (call: Array<unknown>): string => {
-          return String((call[0] as Error | undefined)?.message);
-        },
-      );
+      return (
+        (nextFunction as jest.Mock).mock.calls as Array<Array<unknown>>
+      ).map((call: Array<unknown>): string => {
+        return String((call[0] as Error | undefined)?.message);
+      });
     };
 
     // What one call read, with the mocks cleared first.
@@ -1987,7 +1989,10 @@ describe("DashboardAPI public resource-list", () => {
           },
         ],
         picks: [{ selectedValues: ["prod", "staging"] }],
-        expected: { kind: "Pod", namespaceKey: new Includes(["prod", "staging"]) },
+        expected: {
+          kind: "Pod",
+          namespaceKey: new Includes(["prod", "staging"]),
+        },
       },
       {
         name: "a container list filtered by one variable and on All for the other",
@@ -2082,7 +2087,10 @@ describe("DashboardAPI public resource-list", () => {
         'isMultiSelect written as "true" or "false"',
         (variables: Array<JSONObject>): unknown => {
           return variables.map((variable: JSONObject) => {
-            return { ...variable, isMultiSelect: String(variable["isMultiSelect"]) };
+            return {
+              ...variable,
+              isMultiSelect: String(variable["isMultiSelect"]),
+            };
           });
         },
       ],
@@ -2125,7 +2133,9 @@ describe("DashboardAPI public resource-list", () => {
             "junk",
             ...variables.map((variable: JSONObject, index: number) => {
               const shaped: JSONObject = {
-                ...(index % 2 === 0 ? withoutId(variable) : { ...variable, id: 7 }),
+                ...(index % 2 === 0
+                  ? withoutId(variable)
+                  : { ...variable, id: 7 }),
                 isMultiSelect: String(variable["isMultiSelect"]),
               };
 
@@ -2141,61 +2151,66 @@ describe("DashboardAPI public resource-list", () => {
       ],
     ];
 
-    describe.each(VARIABLE_ROUTE_CASES)("$name", (routeCase: VariableRouteCase) => {
-      it.each(VARIABLE_SHAPES)(
-        "lists exactly as with the editor's variables, with %s",
-        async (_shape: string, storeAs: (variables: Array<JSONObject>) => unknown) => {
-          const list: BuiltWidget = buildWidget({
-            componentType: routeCase.componentType,
-            argumentsObject: { maxRows: 9 },
-          });
+    describe.each(VARIABLE_ROUTE_CASES)(
+      "$name",
+      (routeCase: VariableRouteCase) => {
+        it.each(VARIABLE_SHAPES)(
+          "lists exactly as with the editor's variables, with %s",
+          async (
+            _shape: string,
+            storeAs: (variables: Array<JSONObject>) => unknown,
+          ) => {
+            const list: BuiltWidget = buildWidget({
+              componentType: routeCase.componentType,
+              argumentsObject: { maxRows: 9 },
+            });
 
-          const asEditor: DashboardViewConfig = configWith(
-            [list.widget],
-            routeCase.variables,
-          );
-          dashboard.dashboardViewConfig = asEditor;
-          const expected: JSONObject = await listedWith({
-            resourceType: routeCase.resourceType,
-            service: routeCase.service,
-            body: pageBody({
-              stored: asEditor,
+            const asEditor: DashboardViewConfig = configWith(
+              [list.widget],
+              routeCase.variables,
+            );
+            dashboard.dashboardViewConfig = asEditor;
+            const expected: JSONObject = await listedWith({
               resourceType: routeCase.resourceType,
-              picks: routeCase.picks,
-            }),
-          });
-
-          // Not vacuous: the picks decide the query.
-          for (const [field, value] of Object.entries(routeCase.expected)) {
-            expect([field, (expected["query"] as JSONObject)[field]]).toEqual([
-              field,
-              value,
-            ]);
-          }
-          expect(expected["limit"]).toBe(9);
-
-          const asShape: DashboardViewConfig = configWith(
-            [list.widget],
-            storeAs(routeCase.variables),
-          );
-          dashboard.dashboardViewConfig = asShape;
-
-          expect(
-            comparable(
-              await listedWith({
+              service: routeCase.service,
+              body: pageBody({
+                stored: asEditor,
                 resourceType: routeCase.resourceType,
-                service: routeCase.service,
-                body: pageBody({
-                  stored: asShape,
-                  resourceType: routeCase.resourceType,
-                  picks: routeCase.picks,
-                }),
+                picks: routeCase.picks,
               }),
-            ),
-          ).toEqual(comparable(expected));
-        },
-      );
-    });
+            });
+
+            // Not vacuous: the picks decide the query.
+            for (const [field, value] of Object.entries(routeCase.expected)) {
+              expect([field, (expected["query"] as JSONObject)[field]]).toEqual(
+                [field, value],
+              );
+            }
+            expect(expected["limit"]).toBe(9);
+
+            const asShape: DashboardViewConfig = configWith(
+              [list.widget],
+              storeAs(routeCase.variables),
+            );
+            dashboard.dashboardViewConfig = asShape;
+
+            expect(
+              comparable(
+                await listedWith({
+                  resourceType: routeCase.resourceType,
+                  service: routeCase.service,
+                  body: pageBody({
+                    stored: asShape,
+                    resourceType: routeCase.resourceType,
+                    picks: routeCase.picks,
+                  }),
+                }),
+              ),
+            ).toEqual(comparable(expected));
+          },
+        );
+      },
+    );
 
     describe("a monitor list that follows a label variable", () => {
       const PAYMENTS: string = ObjectID.generate().toString();
@@ -2234,7 +2249,11 @@ describe("DashboardAPI public resource-list", () => {
           await listedWith({
             resourceType: "monitor",
             service: MonitorService,
-            body: pageBody({ stored, resourceType: "monitor", picks: data.picks }),
+            body: pageBody({
+              stored,
+              resourceType: "monitor",
+              picks: data.picks,
+            }),
           })
         )["query"] as JSONObject;
       };
@@ -2248,7 +2267,11 @@ describe("DashboardAPI public resource-list", () => {
           ["as the editor stores it", [UNIT], "unit"],
           ["written as JSON text", JSON.stringify([UNIT]), "unit"],
           ["its id written as a number", [{ ...UNIT, id: 7 }], "7"],
-          ["its id with spaces around it", [{ ...UNIT, id: "  unit  " }], "unit"],
+          [
+            "its id with spaces around it",
+            [{ ...UNIT, id: "  unit  " }],
+            "unit",
+          ],
           [
             'isMultiSelect written as "false"',
             [{ ...UNIT, isMultiSelect: "false" }],
@@ -2256,7 +2279,10 @@ describe("DashboardAPI public resource-list", () => {
           ],
           [
             "first of two variables sharing its id",
-            [UNIT, { ...UNIT, labelOptions: [{ label: "Other", value: PAYMENTS }] }],
+            [
+              UNIT,
+              { ...UNIT, labelOptions: [{ label: "Other", value: PAYMENTS }] },
+            ],
             "unit",
           ],
           ["after an entry that is no variable", [null, "unit", UNIT], "unit"],
@@ -2283,12 +2309,19 @@ describe("DashboardAPI public resource-list", () => {
         // A choice of the second variable, which shares the id but is drawn under its own.
         const stored: DashboardViewConfig = configWith(
           [monitor.widget],
-          [UNIT, { ...UNIT, labelOptions: [{ label: "Other", value: ObjectID.generate().toString() }] }],
+          [
+            UNIT,
+            {
+              ...UNIT,
+              labelOptions: [
+                { label: "Other", value: ObjectID.generate().toString() },
+              ],
+            },
+          ],
         );
         dashboard.dashboardViewConfig = stored;
-        const otherChoice: string = (
-          pageDraws(stored).variables![1]!.labelOptions![0]!.value as string
-        );
+        const otherChoice: string = pageDraws(stored).variables![1]!
+          .labelOptions![0]!.value as string;
 
         expect(
           await refusalOf({
@@ -2348,7 +2381,10 @@ describe("DashboardAPI public resource-list", () => {
         const list: BuiltWidget = buildWidget({
           componentType: DashboardComponentType.DockerContainerList,
         });
-        dashboard.dashboardViewConfig = configWith([list.widget], data.variables);
+        dashboard.dashboardViewConfig = configWith(
+          [list.widget],
+          data.variables,
+        );
 
         return (
           await listedWith({
@@ -2377,11 +2413,11 @@ describe("DashboardAPI public resource-list", () => {
           hiddenVariables: [{ ...IMAGE, id: hiddenId }],
         } as unknown as DashboardViewConfig;
 
-        const [pageId] = (pageDraws(dashboard.dashboardViewConfig).variables || []).map(
-          (variable: DashboardVariable) => {
-            return variable.id;
-          },
-        );
+        const [pageId] = (
+          pageDraws(dashboard.dashboardViewConfig).variables || []
+        ).map((variable: DashboardVariable) => {
+          return variable.id;
+        });
 
         for (const id of [
           hiddenId,
@@ -2432,8 +2468,8 @@ describe("DashboardAPI public resource-list", () => {
             attributeKey: "container.name",
           },
         ];
-        const imageId: string = pageDraws(configWith([], variables)).variables![0]!
-          .id;
+        const imageId: string = pageDraws(configWith([], variables))
+          .variables![0]!.id;
 
         expect(imageId).not.toBe(firstDerivedId);
 
@@ -2473,7 +2509,10 @@ describe("DashboardAPI public resource-list", () => {
             { id: pageId, selectedValue: "b" },
           ],
           Array.from({ length: 51 }, (_: unknown, index: number) => {
-            return { id: index === 0 ? pageId : `v-${index}`, selectedValue: "v" };
+            return {
+              id: index === 0 ? pageId : `v-${index}`,
+              selectedValue: "v",
+            };
           }),
         ]) {
           await refusalOf({
@@ -2671,7 +2710,10 @@ describe("DashboardAPI public resource-list", () => {
 
       it.each(ENCODINGS)(
         "lists an incident list whose ids are stored as ObjectIDs, in %s, as with the ids stored as text",
-        async (_encoding: string, encode: (settings: JSONObject) => unknown) => {
+        async (
+          _encoding: string,
+          encode: (settings: JSONObject) => unknown,
+        ) => {
           const severityId: string = ObjectID.generate().toString();
           const monitorId: string = ObjectID.generate().toString();
           const labelId: string = ObjectID.generate().toString();
@@ -2688,7 +2730,9 @@ describe("DashboardAPI public resource-list", () => {
           const incident: BuiltWidget = buildWidget({
             componentType: DashboardComponentType.IncidentList,
           });
-          const body: JSONObject = { componentId: incident.componentId.toString() };
+          const body: JSONObject = {
+            componentId: incident.componentId.toString(),
+          };
 
           dashboard.dashboardViewConfig = configWith([
             {
@@ -2767,7 +2811,9 @@ describe("DashboardAPI public resource-list", () => {
             {
               ...incident.widget,
               arguments: encode({
-                severityIds: new Includes([ObjectID.generate().toString()]).toJSON(),
+                severityIds: new Includes([
+                  ObjectID.generate().toString(),
+                ]).toJSON(),
               }),
             },
           ]);
@@ -2839,7 +2885,10 @@ describe("DashboardAPI public resource-list", () => {
         resourceType: "kubernetes-resource",
         componentType: DashboardComponentType.KubernetesPodList,
         service: KubernetesResourceService,
-        columns: { "k8s.pod.name": "name", "k8s.namespace.name": "namespaceKey" },
+        columns: {
+          "k8s.pod.name": "name",
+          "k8s.namespace.name": "namespaceKey",
+        },
         defaultLimit: 25,
       },
       {
@@ -2912,7 +2961,11 @@ describe("DashboardAPI public resource-list", () => {
       kind: ListType | "a pinned SLO" | "an SLO chart that follows a variable";
       maxRows: number;
       settingsShape: SettingsShape;
-      entryShape: "the widget" | "JSON text" | "the envelope" | "the envelope, as text";
+      entryShape:
+        | "the widget"
+        | "JSON text"
+        | "the envelope"
+        | "the envelope, as text";
       visibility: Visibility;
       componentId: string;
       hasStoredId: boolean;
@@ -2937,7 +2990,10 @@ describe("DashboardAPI public resource-list", () => {
 
       return {
         kind: "values",
-        values: shuffled(VALUES, random).slice(0, isMultiSelect ? 1 + random(2) : 1),
+        values: shuffled(VALUES, random).slice(
+          0,
+          isMultiSelect ? 1 + random(2) : 1,
+        ),
       };
     };
 
@@ -2956,7 +3012,9 @@ describe("DashboardAPI public resource-list", () => {
         key,
         isMultiSelect,
         defaultValue:
-          !isMultiSelect && random(2) === 0 ? String(10 + random(90)) : undefined,
+          !isMultiSelect && random(2) === 0
+            ? String(10 + random(90))
+            : undefined,
         idShape: idShapes[random(idShapes.length)]!,
         flagShape: isMultiSelect
           ? random(2) === 0
@@ -3033,9 +3091,10 @@ describe("DashboardAPI public resource-list", () => {
     };
 
     // The pick the page sends for it, as DashboardResourceList.getVariableSelections sends it.
-    const pickOf: (
-      variable: GeneratedVariable,
-    ) => { selectedValue?: string; selectedValues?: Array<string> } = (
+    const pickOf: (variable: GeneratedVariable) => {
+      selectedValue?: string;
+      selectedValues?: Array<string>;
+    } = (
       variable: GeneratedVariable,
     ): { selectedValue?: string; selectedValues?: Array<string> } => {
       if (variable.pick.kind === "none") {
@@ -3043,7 +3102,9 @@ describe("DashboardAPI public resource-list", () => {
       }
 
       if (variable.pick.kind === "all") {
-        return variable.isMultiSelect ? { selectedValues: [] } : { selectedValue: "" };
+        return variable.isMultiSelect
+          ? { selectedValues: [] }
+          : { selectedValue: "" };
       }
 
       return variable.isMultiSelect
@@ -3152,15 +3213,15 @@ describe("DashboardAPI public resource-list", () => {
 
     // Why the last call was refused, as words: none when it was served.
     const errorsOfLastCall: () => Array<string> = (): Array<string> => {
-      return ((nextFunction as jest.Mock).mock.calls as Array<Array<unknown>>).map(
-        (call: Array<unknown>): string => {
-          const error: unknown = call[0];
+      return (
+        (nextFunction as jest.Mock).mock.calls as Array<Array<unknown>>
+      ).map((call: Array<unknown>): string => {
+        const error: unknown = call[0];
 
-          return error instanceof BadDataException
-            ? error.message
-            : `not a BadDataException: ${String(error)}`;
-        },
-      );
+        return error instanceof BadDataException
+          ? error.message
+          : `not a BadDataException: ${String(error)}`;
+      });
     };
 
     const callSloHistory: (body: JSONObject) => Promise<void> = async (
@@ -3239,13 +3300,21 @@ describe("DashboardAPI public resource-list", () => {
               ] as const
             )[random(8)]!,
             entryShape: (
-              ["the widget", "JSON text", "the envelope", "the envelope, as text"] as const
+              [
+                "the widget",
+                "JSON text",
+                "the envelope",
+                "the envelope, as text",
+              ] as const
             )[random(4)]!,
             visibility:
               random(5) === 0
-                ? (["a Data Source widget", "a type the page does not draw"] as const)[
-                    random(2)
-                  ]!
+                ? (
+                    [
+                      "a Data Source widget",
+                      "a type the page does not draw",
+                    ] as const
+                  )[random(2)]!
                 : "drawn",
             componentId: ObjectID.generate().toString(),
             hasStoredId: random(4) !== 0,
@@ -3275,7 +3344,11 @@ describe("DashboardAPI public resource-list", () => {
             storedVariables.push([null, "junk", 7, []][random(4)]);
           }
 
-          const stored: JSONObject = storedVariableOf(variable, index, previous);
+          const stored: JSONObject = storedVariableOf(
+            variable,
+            index,
+            previous,
+          );
           storedVariables.push(stored);
           previous = stored;
         });
@@ -3333,18 +3406,29 @@ describe("DashboardAPI public resource-list", () => {
         ]);
 
         // The page's request: each variable's pick under the id the page draws it under.
-        const requested: JSONArray = DashboardResourceList.getVariableSelections(
-          (drawn.variables || []).map(
-            (variable: DashboardVariable, index: number): DashboardVariable => {
-              return { ...variable, ...pickOf(variables[index]!) } as DashboardVariable;
-            },
-          ),
-        );
+        const requested: JSONArray =
+          DashboardResourceList.getVariableSelections(
+            (drawn.variables || []).map(
+              (
+                variable: DashboardVariable,
+                index: number,
+              ): DashboardVariable => {
+                return {
+                  ...variable,
+                  ...pickOf(variables[index]!),
+                } as DashboardVariable;
+              },
+            ),
+          );
 
         const withStrayPick: JSONArray = [
           ...requested,
           // An id the page draws no variable under: never read.
-          { id: ObjectID.generate().toString(), selectedValue: "stray", selectedValues: [] },
+          {
+            id: ObjectID.generate().toString(),
+            selectedValue: "stray",
+            selectedValues: [],
+          },
         ];
 
         let served: number = 0;
@@ -3358,16 +3442,17 @@ describe("DashboardAPI public resource-list", () => {
             continue;
           }
 
-          const componentId: string = drawn.components[index]!.componentId.toString();
+          const componentId: string =
+            drawn.components[index]!.componentId.toString();
           const readable: boolean = READABLE.includes(generated.settingsShape);
           const label: string = `${context}, widget ${index} (${componentTypeOf(generated)}, settings ${generated.settingsShape})`;
 
           jest.clearAllMocks();
-          jest
-            .spyOn(ServiceLevelObjectiveService, "findBy")
-            .mockResolvedValue([
-              Object.assign(new ServiceLevelObjective(), { _id: MATCHED_SLO_ID }),
-            ] as never);
+          jest.spyOn(ServiceLevelObjectiveService, "findBy").mockResolvedValue([
+            Object.assign(new ServiceLevelObjective(), {
+              _id: MATCHED_SLO_ID,
+            }),
+          ] as never);
           jest
             .spyOn(SloHistoryService, "aggregateBy")
             .mockResolvedValue({ data: [] } as never);
@@ -3444,9 +3529,11 @@ describe("DashboardAPI public resource-list", () => {
               expect([
                 label,
                 (
-                  (getFindByArgs(ServiceLevelObjectiveService)["query"] as JSONObject)[
-                    "_id"
-                  ] as ObjectID
+                  (
+                    getFindByArgs(ServiceLevelObjectiveService)[
+                      "query"
+                    ] as JSONObject
+                  )["_id"] as ObjectID
                 ).toString(),
               ]).toEqual([label, generated.pinnedSloId]);
             } else {
@@ -3474,7 +3561,9 @@ describe("DashboardAPI public resource-list", () => {
               ).mock.calls[0]![0] as JSONObject;
               expect([
                 label,
-                ((aggregated["query"] as JSONObject)["sloId"] as ObjectID).toString(),
+                (
+                  (aggregated["query"] as JSONObject)["sloId"] as ObjectID
+                ).toString(),
               ]).toEqual([label, generated.pinnedSloId]);
               served++;
             } else {
@@ -3514,32 +3603,41 @@ describe("DashboardAPI public resource-list", () => {
           });
 
           if (expectedRefusal) {
-            expect([label, errorsOfLastCall()]).toEqual([label, [expectedRefusal]]);
+            expect([label, errorsOfLastCall()]).toEqual([
+              label,
+              [expectedRefusal],
+            ]);
             expect(SloHistoryService.aggregateBy).not.toHaveBeenCalled();
             refused++;
           } else {
             expect([label, errorsOfLastCall()]).toEqual([label, []]);
             expect([
               label,
-              (getFindByArgs(ServiceLevelObjectiveService)["query"] as JSONObject)[
-                "name"
-              ],
+              (
+                getFindByArgs(ServiceLevelObjectiveService)[
+                  "query"
+                ] as JSONObject
+              )["name"],
             ]).toEqual([label, pickedName]);
             const aggregated: JSONObject = (
               SloHistoryService.aggregateBy as jest.Mock
             ).mock.calls[0]![0] as JSONObject;
             expect([
               label,
-              ((aggregated["query"] as JSONObject)["sloId"] as ObjectID).toString(),
+              (
+                (aggregated["query"] as JSONObject)["sloId"] as ObjectID
+              ).toString(),
             ]).toEqual([label, MATCHED_SLO_ID]);
             served++;
           }
         }
 
         // Every hidden widget, asked for by its stored id: refused, nothing read.
-        for (const hidden of widgets.filter((widget: GeneratedWidget): boolean => {
-          return widget.visibility !== "drawn";
-        })) {
+        for (const hidden of widgets.filter(
+          (widget: GeneratedWidget): boolean => {
+            return widget.visibility !== "drawn";
+          },
+        )) {
           const resourceType: string =
             typeof hidden.kind === "string" ? "slo" : hidden.kind.resourceType;
 
