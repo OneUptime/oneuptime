@@ -26,8 +26,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * window of every tab of the card, the Logs, Traces and Exceptions tabs
  * opened afterwards included; it survives a switch to another tab and
  * back and the page's background refresh; a double-click on the chart, or
- * "Reset zoom" beside the snapshot badge on any tab, returns every tab to
- * the snapshot window. It used to zoom the chart alone: the other tabs
+ * "Reset zoom" beside the card's time picker on any tab, returns every tab
+ * to the range picked before. It used to zoom the chart alone: the other tabs
  * kept showing the whole snapshot, and the zoom was gone as soon as the
  * reader came back to the chart.
  *

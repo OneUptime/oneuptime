@@ -90,6 +90,8 @@ Também fica registrado quando um administrador adiciona ou remove um método de
 
 Os campos que só o OneUptime escreve, como quando um host foi visto pela última vez, ficam de fora de toda entrada, assim como os campos que ninguém pode ler. Quando o OneUptime escreve um deles porque alguém pediu, como ao mesclar uma exceção a outra ou redefinir a URL de um webhook, a entrada o registra como uma alteração dessa pessoa. Chaves, tokens e senhas são registrados como `[REDACTED]`: a entrada mostra que mudaram, nunca o seu valor. Os passos de um fluxo de trabalho são registrados como o que mudou, com os nomes das configurações de um passo, mas nunca o que foi digitado nelas, e mover um passo na tela de edição não é registrado.
 
+O que o OneUptime faz porque alguém pediu também é registrado como alteração dessa pessoa, quer o projeto armazene eventos do sistema ou não: iniciar, aprovar, concluir, pular e cancelar uma execução de runbook, os rótulos que uma regra de rótulos adiciona quando alguém a executa nos registros que já existem, redefinir o link de um feed de calendário e as equipes em que alguém entra ao fazer login com SSO. As etapas de uma execução de runbook são registradas como o que foi feito com cada uma, por exemplo `Approved "Restart the API" (step 3)`, nunca com o que uma etapa imprimiu. Os rótulos que uma regra adiciona quando um registro é criado são uma alteração do próprio OneUptime, registrada com **Armazenar Eventos do Sistema** ativado.
+
 ## Por quanto tempo as entradas ficam
 
 Cada entrada fica pela **Retenção (dias)** que o projeto tinha quando ela foi registrada, e depois é excluída. Uma nova retenção vale para as novas entradas: as já registradas mantêm as datas delas.

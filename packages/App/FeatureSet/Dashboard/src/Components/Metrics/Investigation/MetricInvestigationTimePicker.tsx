@@ -15,7 +15,7 @@ import {
   MetricInvestigationTimeKind,
   MetricInvestigationTimePreset,
 } from "./MetricInvestigationTime";
-import { MetricInvestigationState } from "./UseMetricInvestigation";
+import { InvestigationTimeRangeState } from "./UseInvestigationTimeRange";
 
 // Above the ranges the page anchors, when the page does not name them.
 export const DEFAULT_PRESETS_HEADING: string = translationKey("Suggested");
@@ -28,7 +28,13 @@ export const METRIC_INVESTIGATION_TIME_PICKER_TEST_ID_PREFIX: string =
   "metric-investigation-time";
 
 export interface ComponentProps {
-  investigation: MetricInvestigationState;
+  /*
+   * The time range it picks: a metric investigation's
+   * (useMetricInvestigation), or one a card holds with no metrics of its
+   * own (useInvestigationTimeRange: an incident's logs, traces or
+   * exceptions).
+   */
+  investigation: InvestigationTimeRangeState;
   /*
    * English heading above the ranges the page anchors ("Around this
    * incident"). Wrap it in translationKey where it is written.
@@ -45,12 +51,13 @@ export interface ComponentProps {
  * beside it while a drag on a chart has zoomed the investigation.
  *
  * Any number of these can sit on a page, all picking the one range: the
- * incident page puts one on each tab of its telemetry card.
+ * incident page puts one on each tab of its telemetry card, whether that
+ * card charts metrics or lists logs, traces or exceptions.
  */
 const MetricInvestigationTimePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const investigation: MetricInvestigationState = props.investigation;
+  const investigation: InvestigationTimeRangeState = props.investigation;
 
   const presetOptions: Array<TimeRangePickerPresetOption> | undefined =
     useMemo((): Array<TimeRangePickerPresetOption> | undefined => {

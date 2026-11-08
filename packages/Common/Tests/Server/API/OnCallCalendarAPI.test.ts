@@ -4129,9 +4129,15 @@ describe("schedule-feed session routes", () => {
       return 1;
     });
     scheduleRotate.mockImplementation(
-      async (data: { id: ObjectID }): Promise<CalendarFeedRotation> => {
+      async (data: {
+        id: ObjectID;
+        props?: { userId?: ObjectID; isRoot?: boolean };
+      }): Promise<CalendarFeedRotation> => {
         order.push("mint");
         expect(data.id.toString()).toBe(row.id.toString());
+        // The reset is recorded in the audit log as this caller's.
+        expect(data.props?.userId?.toString()).toBe(userId.toString());
+        expect(data.props?.isRoot).toBeUndefined();
 
         row.tokenHash = CalendarFeedToken.hash(newToken);
         row.tokenHint = newToken.slice(-4);
@@ -4469,8 +4475,14 @@ describe("project-feed session routes", () => {
 
     projectFindOneBy.mockImplementation(lookupFrom([row]) as never);
     projectRotate.mockImplementation(
-      async (data: { id: ObjectID }): Promise<CalendarFeedRotation> => {
+      async (data: {
+        id: ObjectID;
+        props?: { userId?: ObjectID; isRoot?: boolean };
+      }): Promise<CalendarFeedRotation> => {
         expect(data.id.toString()).toBe(row.id.toString());
+        // The reset is recorded in the audit log as this caller's.
+        expect(data.props?.userId?.toString()).toBe(userId.toString());
+        expect(data.props?.isRoot).toBeUndefined();
 
         row.tokenHash = CalendarFeedToken.hash(newToken);
         row.tokenHint = newToken.slice(-4);

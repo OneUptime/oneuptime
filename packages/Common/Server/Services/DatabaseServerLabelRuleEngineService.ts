@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
@@ -104,6 +106,7 @@ class DatabaseServerLabelRuleEngineServiceClass
       return await this.applyRules({
         databaseServer: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running database label rules: ${error}`, {
@@ -119,6 +122,8 @@ class DatabaseServerLabelRuleEngineServiceClass
   private async applyRules(data: {
     databaseServer: DatabaseServer;
     rules: Array<DatabaseServerLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { databaseServer, rules } = data;
 
@@ -205,11 +210,12 @@ class DatabaseServerLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await DatabaseServerService.getRepository()
-      .createQueryBuilder()
-      .relation(DatabaseServer, "labels")
-      .of(databaseServer.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: DatabaseServerService,
+      resourceId: databaseServer.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * A rule attached these, not a person: they must not count as somebody

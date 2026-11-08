@@ -89,6 +89,8 @@ Medan körningen är pausad kan du också hoppa över ett senare automatiserat s
 
 Att slutföra, godkänna, hoppa över och avbryta kräver samma roller som att starta en körning, eller behörigheten **Edit Runbook Execution**.
 
+Runbookens sida **Granskningsloggar** visar vem som startade varje körning, vem som godkände, slutförde eller hoppade över vart och ett av dess steg och vem som avbröt den. Ett steg står som det som gjordes med det, till exempel `Approved "Restart the API" (step 3)`, aldrig med det steget skrev ut eller anteckningen som lämnades med det.
+
 ## Varva manuella och automatiserade steg
 
 Det klassiska förloppet:

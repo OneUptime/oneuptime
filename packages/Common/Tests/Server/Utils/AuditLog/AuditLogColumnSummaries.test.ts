@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
+import RunbookExecution from "../../../../Models/DatabaseModels/RunbookExecution";
 import {
   AUDIT_LOG_SUMMARIZED_COLUMNS,
   AuditLogColumnSummarizer,
@@ -65,8 +66,15 @@ const WEBHOOK_POST: JSONObject = step({
 });
 
 describe("which columns are described rather than copied", () => {
-  test("a workflow's graph, and a column of any other table is not", () => {
+  test("a workflow's graph, a runbook run's steps, and a column of any other table is not", () => {
     expect(getAuditLogColumnSummarizer("Workflow", "graph")).not.toBeNull();
+    expect(
+      getAuditLogColumnSummarizer("RunbookExecution", "stepExecutions"),
+    ).not.toBeNull();
+    expect(
+      getAuditLogColumnSummarizer("RunbookExecution", "inputs"),
+    ).toBeNull();
+    expect(getAuditLogColumnSummarizer("Runbook", "steps")).toBeNull();
     expect(getAuditLogColumnSummarizer("Workflow", "name")).toBeNull();
     expect(getAuditLogColumnSummarizer("Dashboard", "graph")).toBeNull();
     expect(getAuditLogColumnSummarizer(undefined, "graph")).toBeNull();
@@ -183,5 +191,82 @@ describe("a workflow's graph in an entry", () => {
     );
     expect(lookUpWorkflowComponent("monitor-on-create")).toBeDefined();
     expect(lookUpWorkflowComponent("not-a-step")).toBeUndefined();
+  });
+});
+
+/*
+ * A runbook run's steps (issue #6283): each step's copy of the runbook step,
+ * its status, and what it printed. An entry says what happened to them, and
+ * never copies a step's output, its error or a note into the audit log.
+ */
+describe("a runbook run's steps in an entry", () => {
+  const summarizer: AuditLogColumnSummarizer = getAuditLogColumnSummarizer(
+    new RunbookExecution().tableName,
+    "stepExecutions",
+  ) as AuditLogColumnSummarizer;
+
+  const waiting: JSONObject = {
+    step: {
+      id: "restart",
+      title: "Restart the API",
+      type: "Bash",
+      requireApprovalBeforeRunning: true,
+      config: { script: "systemctl restart api --token sk-live-123" },
+    },
+    status: "WaitingForUser",
+  };
+
+  const done: JSONObject = {
+    step: { id: "check", title: "Check the dashboards", type: "Manual" },
+    status: "Completed",
+    output: "printed sk-live-123",
+    notes: "looked fine",
+  };
+
+  test("an approval is its line, with where the steps stood before and after", () => {
+    const summary: AuditLogValueSummary | null = summarizer.summarizeUpdate(
+      [done, waiting],
+      [
+        done,
+        {
+          ...waiting,
+          status: "Pending",
+          approvedAt: "2026-11-08T10:00:00.000Z",
+          approvedByUserId: "22222222-2222-4222-8222-222222222222",
+          notes: "go ahead, token sk-live-123",
+        },
+      ],
+    );
+
+    expect(summary).toEqual({
+      oldValue: "2 steps: 1 done, 1 waiting for a person",
+      newValue: "2 steps: 1 done, 1 pending",
+      summary: ['Approved "Restart the API" (step 2)'],
+    });
+    expect(JSON.stringify(summary)).not.toContain("sk-live");
+    expect(JSON.stringify(summary)).not.toContain("go ahead");
+  });
+
+  test("a write that only changed what a step printed is no change at all", () => {
+    expect(
+      summarizer.summarizeUpdate(
+        [{ ...done, output: "first" }],
+        [{ ...done, output: "second sk-live-123" }],
+      ),
+    ).toBeNull();
+  });
+
+  test("a run created or deleted is its steps, listed, and never what they printed", () => {
+    const snapshot: { value: unknown; summary: Array<string> } =
+      summarizer.summarizeSnapshot([done, waiting]);
+
+    expect(snapshot).toEqual({
+      value: "2 steps: 1 done, 1 waiting for a person",
+      summary: [
+        '"Check the dashboards" (step 1): done',
+        '"Restart the API" (step 2): waiting for a person',
+      ],
+    });
+    expect(JSON.stringify(snapshot)).not.toContain("sk-live");
   });
 });

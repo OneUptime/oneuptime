@@ -27,7 +27,10 @@ import ScheduledMaintenanceCalendarFeed from "../../../Models/DatabaseModels/Sch
 import CalendarFeedToken, {
   CalendarFeedRotation,
 } from "../../../Server/Utils/OnCall/CalendarFeedToken";
+import AuditLogService from "../../../Server/Services/AuditLogService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import UserType from "../../../Types/UserType";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
@@ -203,7 +206,14 @@ describe("ScheduledMaintenanceCalendarFeedService.rotateTokenById", () => {
     >;
 
     expect(read["query"]).toEqual({ _id: FEED_ID });
-    expect(read["select"]).toEqual({ _id: true, tokenHash: true });
+    // The hash it parks, and what its audit entry names; never the token.
+    expect(read["select"]).toEqual({
+      _id: true,
+      projectId: true,
+      tokenHash: true,
+      tokenHint: true,
+      rotatedAt: true,
+    });
     expect(read["props"]).toEqual({ isRoot: true, ignoreHooks: true });
 
     const written: Record<string, any> = updateOneById.mock
@@ -242,5 +252,88 @@ describe("ScheduledMaintenanceCalendarFeedService.rotateTokenById", () => {
       ScheduledMaintenanceCalendarFeedService.rotateTokenById({ id: FEED_ID }),
     ).rejects.toThrow(NotFoundException);
     expect(updateOneById).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A reset of the team's maintenance calendar link, in the audit log (issue
+ * #6286): the person's Update entry, with the token's hint as changed and
+ * when the link was made - never a token or a hash.
+ */
+describe("ScheduledMaintenanceCalendarFeedService.rotateTokenById in the audit log", () => {
+  const PERSON: DatabaseCommonInteractionProps = {
+    tenantId: new ObjectID("11111111-1111-4111-8111-111111111111"),
+    userId: new ObjectID("22222222-2222-4222-8222-222222222222"),
+    userType: UserType.User,
+  };
+
+  function stubRotation(): {
+    order: Array<string>;
+    recordUpdate: SpyInstance<typeof AuditLogService.recordUpdate>;
+  } {
+    const order: Array<string> = [];
+
+    jest
+      .spyOn(ScheduledMaintenanceCalendarFeedService, "findOneBy")
+      .mockResolvedValue({
+        id: FEED_ID,
+        tokenHash: "old-hash",
+        tokenHint: "aB3d",
+      } as unknown as ScheduledMaintenanceCalendarFeed);
+    jest
+      .spyOn(ScheduledMaintenanceCalendarFeedService, "updateOneById")
+      .mockImplementation(async (): Promise<number> => {
+        order.push("written");
+        return 1;
+      });
+
+    const recordUpdate: SpyInstance<typeof AuditLogService.recordUpdate> = jest
+      .spyOn(AuditLogService, "recordUpdate")
+      .mockImplementation(async (): Promise<void> => {
+        order.push("recorded");
+      });
+
+    return { order, recordUpdate };
+  }
+
+  test("is the person's, once the new token is written, and carries no token", async () => {
+    const stub: ReturnType<typeof stubRotation> = stubRotation();
+
+    const rotation: CalendarFeedRotation =
+      await ScheduledMaintenanceCalendarFeedService.rotateTokenById({
+        id: FEED_ID,
+        props: PERSON,
+      });
+
+    expect(stub.order).toEqual(["written", "recorded"]);
+    expect(stub.recordUpdate).toHaveBeenCalledTimes(1);
+
+    const recorded: Record<string, any> = stub.recordUpdate.mock
+      .calls[0]![0] as unknown as Record<string, any>;
+
+    expect(recorded["model"]).toBeInstanceOf(ScheduledMaintenanceCalendarFeed);
+    expect(recorded["props"]).toEqual(PERSON);
+    expect(recorded["includeColumns"]).toEqual(["tokenHint", "rotatedAt"]);
+    expect(recorded["updatedFields"]).toEqual({
+      tokenHint: rotation.tokenHint,
+      rotatedAt: rotation.rotatedAt,
+    });
+    expect(JSON.stringify(recorded["updatedFields"])).not.toContain(
+      rotation.token,
+    );
+  });
+
+  test("without anyone named, it is OneUptime's own: a system event", async () => {
+    const stub: ReturnType<typeof stubRotation> = stubRotation();
+
+    await ScheduledMaintenanceCalendarFeedService.rotateTokenById({
+      id: FEED_ID,
+    });
+
+    expect(
+      (stub.recordUpdate.mock.calls[0]![0] as unknown as Record<string, any>)[
+        "props"
+      ],
+    ).toEqual({ isRoot: true });
   });
 });

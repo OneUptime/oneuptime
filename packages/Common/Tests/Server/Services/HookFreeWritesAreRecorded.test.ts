@@ -1,0 +1,905 @@
+import fs from "fs";
+import path from "path";
+import ts from "typescript";
+import {
+  HookFreeWrite,
+  HookFreeWriteAction,
+  HookFreeWriteForm,
+  HookFreeWriteScanner,
+} from "../../Helpers/HookFreeWriteScan";
+import AllModelTypes from "../../../Models/DatabaseModels/Index";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import EnableAuditLogOn from "../../../Types/BaseDatabase/EnableAuditLogOn";
+import { getColumnAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnAccessControl";
+import { beforeAll, describe, expect, test } from "@jest/globals";
+
+/*
+ * EVERY WRITE THAT GOES ROUND DATABASESERVICE'S HOOKS, TO WHAT THE AUDIT LOG
+ * TRACKS, IS DECIDED: RECORDED, OR ONEUPTIME'S OWN WORK (issues #6276,
+ * #6283-#6286).
+ *
+ * DatabaseService records every change it makes to an audited model. A write
+ * made round it - a *WithoutHooks statement, a relation write, a create with
+ * ignoreHooks, raw SQL - records nothing unless the code making it records
+ * it itself. That is how approving a runbook step, the labels a rule added,
+ * a team joined through SSO and an exception merged never reached the audit
+ * log (HookFreeWriteScan finds such writes).
+ *
+ * So every one that writes an audited model's tracked columns - not the
+ * columns the audit log leaves out anyway (only OneUptime writes them,
+ * nobody may read them, an agent reports them), and not a model it does not
+ * cover - is listed below, by its file, the function it is in and the table
+ * it writes ("*" for a helper handed any service):
+ *
+ *   - Recorded: the change is recorded by the code that makes it - this
+ *     guard checks the function calls AuditLogService.record*, or a function
+ *     that does;
+ *   - otherwise, why it is OneUptime's own work and no entry is right: the
+ *     kinds in WHY_NOT_RECORDED.
+ *
+ * A new write round the hooks fails here until it is decided, and an entry
+ * that no longer matches a write fails too, so the list stays true.
+ *
+ * What a scan cannot tell: whether a write of a column the defaults leave
+ * out (OneUptime's own, or one nobody may read) was asked for by a person -
+ * a reset, a rotate, a merge - which then names it in includeColumns
+ * (TelemetryExceptionMerge, the calendar feeds, a runbook's webhook URL).
+ * Those record nothing written either way, so they are not here; their
+ * tests pin them.
+ *
+ * ee/Server is read when it is there (CI deletes ee/ for the open-source
+ * build, so the guard must pass without it too).
+ */
+
+// packages/Common/Tests/Server/Services -> packages/Common.
+const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..");
+const REPOSITORY_ROOT: string = path.resolve(COMMON_ROOT, "..", "..");
+const EE_ROOT: string = path.join(REPOSITORY_ROOT, "ee");
+
+const SCAN_ROOTS: Array<string> = [
+  path.join(COMMON_ROOT, "Server"),
+  path.join(REPOSITORY_ROOT, "packages", "App", "FeatureSet"),
+  path.join(EE_ROOT, "Server"),
+];
+
+/*
+ * DatabaseService's *WithoutHooks methods that read rather than write: the
+ * scan reads every other one, so a new hook-free write method is read the
+ * day it is added.
+ */
+const HOOK_FREE_READS: ReadonlySet<string> = new Set<string>([
+  "hasRowWithIdWithoutHooks",
+]);
+
+enum Why {
+  Recorded = "Recorded",
+  Reported = "Reported",
+  Bookkeeping = "Bookkeeping",
+  Derived = "Derived",
+  FollowOn = "FollowOn",
+  Automation = "Automation",
+  Migration = "Migration",
+  Setup = "Setup",
+  Billing = "Billing",
+}
+
+// Why a write round the hooks adds no entry, kind by kind.
+export const WHY_NOT_RECORDED: Readonly<
+  Record<Exclude<Why, Why.Recorded>, string>
+> = {
+  [Why.Reported]:
+    "What an agent, a probe, telemetry or a provider reports, written as it arrives: resources it discovered and the labels they carry, readings, health, check and scan results. Nobody made that change, and a report every minute would bury the ones people make.",
+  [Why.Bookkeeping]:
+    "OneUptime's own bookkeeping as it works: a claim or a lease, when a job last ran or runs next, what it has notified, a stale discovered row archived and restored, an expired row deleted, a timeline repaired.",
+  [Why.Derived]:
+    "State OneUptime works out from other records and keeps in step with them: a site's place in the tree, a status rolled up from what it holds, a count, a confidence or a threshold recomputed, a list's order closed up.",
+  [Why.FollowOn]:
+    "Follows from a change the audit log records already: a renamed custom field's values moved with it, a custom role's permissions copied to the teams and keys that hold it, when a case or a task was closed stamped beside the change that closed it.",
+  [Why.Automation]:
+    "What OneUptime does by itself as it runs: a rule attaching on-call policies to a record as it is created, a security playbook's steps and its run's progress (the run records what each step did), OneUptime AI's notes, a network alert policy adopting a monitor.",
+  [Why.Migration]:
+    "A data migration or a one-off repair: OneUptime rewriting stored rows into a new shape, not a change anybody made.",
+  [Why.Setup]:
+    "OneUptime setting up something new, before anybody can audit it: a new project's default teams and their permissions, a workflow's first incoming email address.",
+  [Why.Billing]:
+    "A project's balance and usage limits, which billing keeps records of itself.",
+};
+
+/*
+ * Every write round the hooks of what the audit log tracks, by file, then
+ * "<function> <table>".
+ */
+const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
+  "ee/Server/AuditLogExport/AuditLogExporter.ts": {
+    "AuditLogExporter.writeBookkeeping AuditLogExport": Why.Bookkeeping,
+  },
+  "packages/App/FeatureSet/Identity/Utils/SsoTeamMembership.ts": {
+    "SsoTeamMembership.addToTeams TeamMember": Why.Recorded,
+  },
+  "packages/App/FeatureSet/Runbook/API/Runbook.ts": {
+    "advanceStep RunbookExecution": Why.Recorded,
+  },
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/DataSecurity.ts": {
+    "(module) DataStore": Why.Reported,
+  },
+  "packages/App/FeatureSet/Telemetry/Jobs/ProbeIngest/ProcessProbeIngest.ts": {
+    "processIncomingEmailFromQueue Monitor": Why.Reported,
+  },
+  "packages/App/FeatureSet/Telemetry/Utils/Exception.ts": {
+    "ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch TelemetryException":
+      Why.Reported,
+  },
+  "packages/App/FeatureSet/Workers/DataMigrations/BackfillNetworkSiteTypes.ts":
+    {
+      "BackfillNetworkSiteTypes.backfillProject NetworkSite": Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/DataMigrations/MoveGoogleSecOpsConnectionsToSecurityEventConnections.ts":
+    {
+      "MoveGoogleSecOpsConnectionsToSecurityEventConnections.moveConnection SecurityEventConnection":
+        Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/DataMigrations/NormalizeMonitoringInterval.ts":
+    {
+      "NormalizeMonitoringInterval.normalizeMonitorTemplates MonitorTemplate":
+        Why.Migration,
+      "NormalizeMonitoringInterval.normalizeMonitors Monitor": Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/DataMigrations/NormalizeNetworkDeviceMonitoringMethod.ts":
+    {
+      "NormalizeNetworkDeviceMonitoringMethod.migrate NetworkDevice":
+        Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/DataMigrations/RecordContainerPercentMetricUnits.ts":
+    {
+      "RecordContainerPercentMetricUnits.migrate MetricType": Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/DataMigrations/RepairKubernetesDashboardClusterCpuTile.ts":
+    {
+      "RepairKubernetesDashboardClusterCpuTile.migrate Dashboard":
+        Why.Migration,
+    },
+  "packages/App/FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers.ts":
+    {
+      "recordNotifiedStatusPagesSoFar Incident": Why.Bookkeeping,
+    },
+  "packages/App/FeatureSet/Workers/Jobs/Incident/SendPostmortemNotificationToSubscribers.ts":
+    {
+      "requeueIfChangedSinceRead Incident": Why.Bookkeeping,
+    },
+  "packages/App/FeatureSet/Workers/Jobs/IncomingEmailMonitor/CheckOnlineStatus.ts":
+    {
+      "checkOnlineStatus Monitor": Why.Bookkeeping,
+    },
+  "packages/App/FeatureSet/Workers/Jobs/IncomingRequestMonitor/CheckHeartbeat.ts":
+    {
+      "checkHeartBeat Monitor": Why.Bookkeeping,
+    },
+  "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts":
+    {
+      "enqueueDueTelemetryMonitorEvaluationJobs Monitor": Why.Bookkeeping,
+    },
+  "packages/Common/Server/API/DataObservabilityAPI.ts": {
+    "(module) DataStore": Why.Recorded,
+  },
+  "packages/Common/Server/API/DataSecurityAPI.ts": {
+    "(module) DataStore": Why.Bookkeeping,
+    "(module) DataStoreFinding": Why.FollowOn,
+  },
+  "packages/Common/Server/API/SecurityPlaybookRunAPI.ts": {
+    "SecurityPlaybookRunAPI.decide SecurityPlaybookRun": Why.Recorded,
+    "SecurityPlaybookRunAPI.writeUndone SecurityPlaybookRun": Why.Recorded,
+  },
+  "packages/Common/Server/Services/AlertEpisodeOnCallRuleEngineService.ts": {
+    "AlertEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode AlertEpisode":
+      Why.Automation,
+  },
+  "packages/Common/Server/Services/AlertOnCallRuleEngineService.ts": {
+    "AlertOnCallRuleEngineServiceClass.applyRulesToAlert Alert": Why.Automation,
+  },
+  "packages/Common/Server/Services/CephClusterService.ts": {
+    "Service.attachLabels CephCluster": Why.Reported,
+  },
+  "packages/Common/Server/Services/CloudResourceService.ts": {
+    "Service.archiveUnseenMonitoredResources CloudResource": Why.Bookkeeping,
+    "Service.attachLabels CloudResource": Why.Reported,
+    "Service.restoreReportingMonitoredResources CloudResource": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Services/CustomFieldMappingService.ts": {
+    "CustomFieldMappingServiceClass.restampRecords *": Why.FollowOn,
+  },
+  "packages/Common/Server/Services/DataStoreFindingService.ts": {
+    "Service.onUpdateSuccess DataStoreFinding": Why.Derived,
+  },
+  "packages/Common/Server/Services/DatabaseServerEndpointService.ts": {
+    "Service.releaseUnproducedWorkloadEndpoints DatabaseServerEndpoint":
+      Why.Reported,
+    "Service.transferEndpoint DatabaseServerEndpoint": Why.Reported,
+  },
+  "packages/Common/Server/Services/DatabaseServerService.ts": {
+    "Service.attachLabels DatabaseServer": Why.Reported,
+    "Service.autoArchiveStaleDatabaseServers DatabaseServer": Why.Bookkeeping,
+    "Service.createEndpointDatabaseServer DatabaseServer": Why.Reported,
+    "Service.restoreIfAutoArchived DatabaseServer": Why.Bookkeeping,
+    "Service.upsertWorkloadDatabaseOrThrow DatabaseServer": Why.Reported,
+    "Service.writeDatabaseSystemIfUnchanged DatabaseServer": Why.Reported,
+  },
+  "packages/Common/Server/Services/DatabaseService.ts": {
+    "DatabaseService.verifyHashedColumnValue *": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Services/DockerHostService.ts": {
+    "Service.attachLabels DockerHost": Why.Reported,
+  },
+  "packages/Common/Server/Services/DockerSwarmClusterService.ts": {
+    "Service.attachLabels DockerSwarmCluster": Why.Reported,
+  },
+  "packages/Common/Server/Services/HostService.ts": {
+    "Service.attachLabels Host": Why.Reported,
+  },
+  "packages/Common/Server/Services/IncidentCustomFieldService.ts": {
+    "Service.moveValuesOfRenamedFields IncidentCustomField": Why.FollowOn,
+  },
+  "packages/Common/Server/Services/IncidentEpisodeOnCallRuleEngineService.ts": {
+    "IncidentEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode IncidentEpisode":
+      Why.Automation,
+  },
+  "packages/Common/Server/Services/IncidentOnCallRuleEngineService.ts": {
+    "IncidentOnCallRuleEngineServiceClass.attachPolicies Incident":
+      Why.Automation,
+  },
+  "packages/Common/Server/Services/IncidentPostmortemStatusService.ts": {
+    "getPostmortemStatusBackfillSql Incident": Why.Migration,
+  },
+  "packages/Common/Server/Services/IncidentService.ts": {
+    "Service.movePostmortemStatusAfterUpdate Incident": Why.Derived,
+    "Service.setPostmortemNotificationPending Incident": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Services/IoTFleetService.ts": {
+    "Service.attachLabels IoTFleet": Why.Reported,
+  },
+  "packages/Common/Server/Services/KubernetesClusterService.ts": {
+    "Service.attachLabels KubernetesCluster": Why.Reported,
+  },
+  "packages/Common/Server/Services/MessageQueueService.ts": {
+    "Service.autoArchiveStaleMessageQueues MessageQueue": Why.Bookkeeping,
+    "Service.findOrCreateByIdentity MessageQueue": Why.Reported,
+    "Service.refineMessagingSystem MessageQueue": Why.Reported,
+    "Service.restoreIfAutoArchived MessageQueue": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Services/MonitorTestService.ts": {
+    "Service.claimMonitorTestsForProbing MonitorTest": Why.Bookkeeping,
+    "Service.mergeStepProbeResponse MonitorTest": Why.Reported,
+  },
+  "packages/Common/Server/Services/NetworkAlertPolicyEngineService.ts": {
+    "NetworkAlertPolicyEngineServiceClass.adoptMonitor Monitor": Why.Automation,
+  },
+  "packages/Common/Server/Services/NetworkDeviceDiscoveryScanService.ts": {
+    "Service.onUpdateSuccess NetworkDeviceDiscoveryScan": Why.Reported,
+  },
+  "packages/Common/Server/Services/NetworkDeviceLabelRuleEngineService.ts": {
+    "NetworkDeviceLabelRuleEngineServiceClass.applyRuleToExistingNetworkDevices NetworkDevice":
+      Why.Recorded,
+  },
+  "packages/Common/Server/Services/NetworkDeviceService.ts": {
+    "Service.onUpdateSuccess NetworkDevice": Why.FollowOn,
+    "Service.refreshStampedMonitorStatus NetworkDevice": Why.Derived,
+  },
+  "packages/Common/Server/Services/NetworkInterfaceService.ts": {
+    "Service.bulkInsertInterfaces NetworkInterface": Why.Reported,
+  },
+  "packages/Common/Server/Services/NetworkSiteService.ts": {
+    "Service.getMaterializedPathForSite NetworkSite": Why.Derived,
+    "Service.onCreateSuccess NetworkSite": Why.Derived,
+    "Service.onMonitorStatusChanged NetworkDevice": Why.Derived,
+    "Service.onUpdateSuccess NetworkSite": Why.Derived,
+    "Service.reattachOrphanedSubtree NetworkSite": Why.Derived,
+    "Service.recomputeRollupForSite NetworkSite": Why.Derived,
+  },
+  "packages/Common/Server/Services/OpenStackCloudCheckService.ts": {
+    "Service.afterWrite OpenStackCloudCheck": Why.Derived,
+  },
+  "packages/Common/Server/Services/OpenStackCloudService.ts": {
+    "Service.attachLabels OpenStackCloud": Why.Reported,
+    "Service.writeConnectionServerColumns OpenStackCloud": Why.Reported,
+  },
+  "packages/Common/Server/Services/OpenStackProjectUsageService.ts": {
+    "Service.saveReading OpenStackCloud": Why.Reported,
+  },
+  "packages/Common/Server/Services/PacketCaptureService.ts": {
+    "Service.deleteExpiredCaptures PacketCapture": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Services/PodmanHostService.ts": {
+    "Service.attachLabels PodmanHost": Why.Reported,
+  },
+  "packages/Common/Server/Services/ProjectService.ts": {
+    "ProjectService.addDefaultProjectTeams TeamMember": Why.Setup,
+    "ProjectService.addDefaultProjectTeams TeamPermission": Why.Setup,
+    "ProjectService.addToSmsOrCallBalance Project": Why.Billing,
+    "ProjectService.adjustBalance Project": Why.Billing,
+    "ProjectService.claimOwnerNotice Project": Why.Bookkeeping,
+    "ProjectService.markAiDailyLimitReached Project": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Services/ProxmoxClusterService.ts": {
+    "Service.attachLabels ProxmoxCluster": Why.Reported,
+  },
+  "packages/Common/Server/Services/RumApplicationService.ts": {
+    "Service.attachLabels RumApplication": Why.Reported,
+    "Service.writeReplayHealthColumn RumApplication": Why.Reported,
+  },
+  "packages/Common/Server/Services/SecurityCaseService.ts": {
+    "Service.recordChanges SecurityCase": Why.FollowOn,
+  },
+  "packages/Common/Server/Services/SecurityCaseTaskService.ts": {
+    "Service.onCreateSuccess SecurityCaseTask": Why.FollowOn,
+    "Service.recordChanges SecurityCaseTask": Why.FollowOn,
+  },
+  "packages/Common/Server/Services/SecurityPlaybookRunService.ts": {
+    "Service.onCreateSuccess SecurityPlaybook": Why.Derived,
+    "Service.recordCancellation SecurityPlaybookRun": Why.FollowOn,
+  },
+  "packages/Common/Server/Services/ServerlessFunctionService.ts": {
+    "Service.attachLabels ServerlessFunction": Why.Reported,
+  },
+  "packages/Common/Server/Services/ServiceService.ts": {
+    "Service.attachLabels Service": Why.Reported,
+  },
+  "packages/Common/Server/Services/StatusPageSubscriberService.ts": {
+    "Service.unsubscribe StatusPageSubscriber": Why.Recorded,
+  },
+  "packages/Common/Server/Services/StorageArrayService.ts": {
+    "Service.attachLabels StorageArray": Why.Reported,
+  },
+  "packages/Common/Server/Services/VMwareVCenterService.ts": {
+    "Service.attachLabels VMwareVCenter": Why.Reported,
+    "Service.writeConnectionServerColumns VMwareVCenter": Why.Reported,
+  },
+  "packages/Common/Server/Services/WorkflowService.ts": {
+    "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
+  },
+  "packages/Common/Server/Utils/AI/SRE/IncidentInvestigationRunner.ts": {
+    "AIIncidentInvestigationRunner.runInvestigationEngine IncidentInternalNote":
+      Why.Automation,
+  },
+  "packages/Common/Server/Utils/CloudConnection/CloudConnectionResourceSync.ts":
+    {
+      "CloudConnectionResourceSync.archive CloudResource": Why.Reported,
+      "CloudConnectionResourceSync.sync CloudResource": Why.Reported,
+    },
+  "packages/Common/Server/Utils/CustomField/CustomFieldOptionEditHooks.ts": {
+    "applyCustomFieldOptionEdit *": Why.FollowOn,
+  },
+  "packages/Common/Server/Utils/CustomField/CustomFieldOptionRename.ts": {
+    "renameCustomFieldOptionsInFormTemplates Form": Why.FollowOn,
+    "renameCustomFieldOptionsInTableViews TableView": Why.FollowOn,
+  },
+  "packages/Common/Server/Utils/CustomField/CustomFieldRename.ts": {
+    "renameCustomFieldInTableViews TableView": Why.FollowOn,
+  },
+  "packages/Common/Server/Utils/CustomRole/CustomRoleSync.ts": {
+    "CustomRoleSync.createApiKeyCopy ApiKeyPermission": Why.FollowOn,
+    "CustomRoleSync.createCopy TeamPermission": Why.FollowOn,
+  },
+  "packages/Common/Server/Utils/DataObservability/DataAlertFeedbackRecorder.ts":
+    {
+      "DataAlertFeedbackRecorder.retune DataAsset": Why.Derived,
+    },
+  "packages/Common/Server/Utils/DataObservability/DataCheckIngest.ts": {
+    "DataCheckIngest.recordResults DataCheck": Why.Reported,
+  },
+  "packages/Common/Server/Utils/DataObservability/DataProductCheck.ts": {
+    "DataProductCheck.checkProduct DataProduct": Why.Reported,
+  },
+  "packages/Common/Server/Utils/DataObservability/DbtIngest.ts": {
+    "DbtIngest.recordTables DataAsset": Why.Reported,
+    "DbtIngest.upsertTestCheck DataCheck": Why.Reported,
+  },
+  "packages/Common/Server/Utils/DataObservability/TableHealthIngest.ts": {
+    "TableHealthIngest.linkDatabaseServer DataStore": Why.Reported,
+    "TableHealthIngest.recordFailure DataStore": Why.Reported,
+    "TableHealthIngest.recordSnapshot DataStore": Why.Reported,
+    "TableHealthIngest.updateAsset DataAsset": Why.Reported,
+    "TableHealthIngest.writeNewPersonalDataColumns DataStore": Why.Reported,
+  },
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityDiscovery.ts": {
+    "DataSecurityDiscovery.archiveGone DataStore": Why.Reported,
+    "DataSecurityDiscovery.ensureTelemetryStore DataStore": Why.Reported,
+    "DataSecurityDiscovery.upsert DataStore": Why.Reported,
+  },
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityEvaluator.ts": {
+    "DataSecurityEvaluator.evaluateStore DataStore": Why.Reported,
+  },
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityFindingWriter.ts": {
+    "DataSecurityFindingWriter.recordFailedScan DataStore": Why.Reported,
+    "DataSecurityFindingWriter.updateStore DataStore": Why.Reported,
+    "DataSecurityFindingWriter.writeFindings DataStoreFinding": Why.Reported,
+  },
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityIntegrations.ts": {
+    "DataSecurityIntegrations.linkIssue DataSecurityIssue": Why.Bookkeeping,
+    "DataSecurityIntegrations.notifyOwners DataSecurityIssue": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": {
+    "DataSecurityIssueReconciler.touch DataSecurityIssue": Why.Reported,
+  },
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityProbeClaim.ts": {
+    "(module) DataStore": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityRunner.ts": {
+    "DataSecurityRunner.claimDueStores DataStore": Why.Bookkeeping,
+    "DataSecurityRunner.markScrubbed DataStoreFinding": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/Database/ListOrderMaintainer.ts": {
+    "ListOrderMaintainer.writeChanges *": Why.Derived,
+  },
+  "packages/Common/Server/Utils/HostCollector/HostCollectorAgent.ts": {
+    "HostCollectorAgent.respondToMessage Host": Why.Reported,
+  },
+  "packages/Common/Server/Utils/Huntress/HuntressConnectionsToWorkflows.ts": {
+    "(module) Incident": Why.Migration,
+  },
+  "packages/Common/Server/Utils/Monitor/MonitorResource.ts": {
+    "MonitorResourceUtil.monitorResource Monitor": Why.Reported,
+  },
+  "packages/Common/Server/Utils/Monitor/MonitorStatusTimelineReconciler.ts": {
+    "MonitorStatusTimelineReconciler.repairStaleOpenRowsBatch MonitorStatusTimeline":
+      Why.Bookkeeping,
+    "MonitorStatusTimelineReconciler.restoreMissingStatusTimelinesBatch MonitorStatusTimeline":
+      Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/OnCall/FirstPagedAt.ts": {
+    "(module) Alert": Why.Bookkeeping,
+    "(module) Incident": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/OpenStack/OpenStackCheckStore.ts": {
+    "OpenStackCheckStore.claimDueIds OpenStackCloudCheck": Why.Reported,
+    "OpenStackCheckStore.noteWhyNotRunning *": Why.Reported,
+    "OpenStackCheckStore.recordReport *": Why.Reported,
+  },
+  "packages/Common/Server/Utils/OpenStack/OpenStackConnectionTestStore.ts": {
+    "OpenStackConnectionTestStore.claimPendingTests *": Why.Bookkeeping,
+    "OpenStackConnectionTestStore.recordTestReport *": Why.Reported,
+  },
+  "packages/Common/Server/Utils/OpenStack/OpenStackProbeCollectionStore.ts": {
+    "OpenStackProbeCollectionStore.recordCollectionReport *": Why.Reported,
+  },
+  "packages/Common/Server/Utils/Rules/RuleAddedLabels.ts": {
+    "RuleAddedLabels.add *": Why.Recorded,
+  },
+  "packages/Common/Server/Utils/Runbook/RunbookApprovalsMove.ts": {
+    "(module) Runbook": Why.Migration,
+  },
+  "packages/Common/Server/Utils/Runbook/RunbookCredentialsRemoval.ts": {
+    "(module) KubernetesCluster": Why.Migration,
+  },
+  "packages/Common/Server/Utils/Runbook/RunbookVariablesMove.ts": {
+    "(module) Runbook": Why.Migration,
+  },
+  "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarRefresher.ts":
+    {
+      "ExternalCalendarRefresher.readCalendar ScheduledMaintenanceExternalCalendar":
+        Why.Reported,
+    },
+  "packages/Common/Server/Utils/SecurityCase/SecurityCaseIngest.ts": {
+    "SecurityCaseIngest.addDetection SecurityCase": Why.Reported,
+    "SecurityCaseIngest.recordRepeat SecurityCase": Why.Reported,
+  },
+  "packages/Common/Server/Utils/SecurityCase/SecurityCaseNotifications.ts": {
+    "SecurityCaseNotifications.notifyPriorityReached SecurityCase":
+      Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/SecurityCase/SecurityCaseTargetCheck.ts": {
+    "SecurityCaseTargetCheck.checkCase SecurityCase": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntScheduler.ts": {
+    "SecurityHuntScheduler.record SecurityHunt": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts": {
+    "SecurityPlaybookActions.addCaseLabels SecurityCase": Why.Automation,
+    "SecurityPlaybookActions.declareIncidentForCase SecurityCase":
+      Why.Automation,
+  },
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookEngine.ts": {
+    "SecurityPlaybookEngine.executeRun SecurityPlaybookRun": Why.Automation,
+    "SecurityPlaybookEngine.finishRun SecurityPlaybookRun": Why.Automation,
+    "SecurityPlaybookEngine.recoverRuns SecurityPlaybookRun": Why.Automation,
+    "SecurityPlaybookEngine.runSteps SecurityPlaybookRun": Why.Automation,
+  },
+  "packages/Common/Server/Utils/Slo/SloLegacyMonitorLabelAdoption.ts": {
+    "(module) ServiceLevelObjectiveMonitorRule": Why.Migration,
+  },
+  "packages/Common/Server/Utils/StatusPage/SubscriberNotificationClaim.ts": {
+    "SubscriberNotificationClaim.claim *": Why.Bookkeeping,
+    "SubscriberNotificationClaim.failInterrupted *": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/Telemetry/EntityRegistry.ts": {
+    "reconcileByNaturalKey *": Why.Reported,
+  },
+  "packages/Common/Server/Utils/Telemetry/ResourceHeartbeat.ts": {
+    "ResourceHeartbeat.writeOnce *": Why.Reported,
+  },
+  "packages/Common/Server/Utils/Telemetry/Telemetry.ts": {
+    "TelemetryUtil.updateExistingMetricType MetricType": Why.Reported,
+  },
+  "packages/Common/Server/Utils/VMware/VMwareProbeCollectionStore.ts": {
+    "VMwareProbeCollectionStore.recordCollectionReport *": Why.Reported,
+  },
+};
+
+interface Site extends HookFreeWrite {
+  // Whether it writes what the audit log tracks of an audited model.
+  isTracked: boolean;
+  key: string;
+}
+
+const SKIPPED: ReadonlySet<string> = new Set<string>([
+  "_id",
+  "id",
+  "createdAt",
+  "updatedAt",
+  "deletedAt",
+  "version",
+  "slug",
+]);
+
+let sites: Array<Site> = [];
+let scanner: HookFreeWriteScanner;
+
+function relativeEe(file: string): boolean {
+  return file.startsWith("ee/");
+}
+
+// DatabaseService's public *WithoutHooks methods, read from its source.
+function hookFreeWriteMethods(): Set<string> {
+  const file: string = path.join(
+    COMMON_ROOT,
+    "Server/Services/DatabaseService.ts",
+  );
+  const source: ts.SourceFile = ts.createSourceFile(
+    file,
+    fs.readFileSync(file, "utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const methods: Set<string> = new Set<string>();
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isMethodDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text.endsWith("WithoutHooks") &&
+      !node.modifiers?.some((modifier: ts.ModifierLike): boolean => {
+        return (
+          modifier.kind === ts.SyntaxKind.PrivateKeyword ||
+          modifier.kind === ts.SyntaxKind.ProtectedKeyword
+        );
+      })
+    ) {
+      methods.add(node.name.text);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return methods;
+}
+
+function modelOf(
+  site: HookFreeWrite,
+  byTable: Map<string, BaseModel>,
+): BaseModel | null {
+  if (site.modelFile) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      const modelType: { new (): BaseModel } = require(
+        path.join(COMMON_ROOT, "Models/DatabaseModels", site.modelFile),
+      ).default;
+
+      return new modelType();
+    } catch {
+      return null;
+    }
+  }
+
+  return site.tableName ? byTable.get(site.tableName) || null : null;
+}
+
+// Whether a write reaches what an entry of `model` records.
+function isTracked(site: HookFreeWrite, model: BaseModel | null): boolean {
+  // A helper handed any service: decided by what the helper is for.
+  if (!model) {
+    return !site.tableName;
+  }
+
+  const audit: EnableAuditLogOn | undefined = model.enableAuditLogOn;
+  const action: "create" | "update" | "delete" =
+    site.action === HookFreeWriteAction.Create
+      ? "create"
+      : site.action === HookFreeWriteAction.Delete
+        ? "delete"
+        : "update";
+
+  if (!audit || !audit[action]) {
+    return false;
+  }
+
+  if (action !== "update" || site.columns === null) {
+    return true;
+  }
+
+  const ignored: Set<string> = new Set<string>(audit.ignoreColumns || []);
+  const access: Record<string, { read?: Array<unknown> }> =
+    getColumnAccessControlForAllColumns(model) as Record<
+      string,
+      { read?: Array<unknown> }
+    >;
+
+  return site.columns.some((column: string): boolean => {
+    const read: Array<unknown> | undefined = access[column]?.read;
+
+    return (
+      model.isTableColumn(column) &&
+      !SKIPPED.has(column) &&
+      !ignored.has(column) &&
+      !(Array.isArray(read) && read.length === 0)
+    );
+  });
+}
+
+function decisionOf(site: Site): Why | undefined {
+  const file: Readonly<Record<string, Why>> | undefined = DECIDED[site.file];
+
+  return file ? file[site.key] : undefined;
+}
+
+beforeAll(() => {
+  scanner = new HookFreeWriteScanner({
+    repoRoot: REPOSITORY_ROOT,
+    commonRoot: COMMON_ROOT,
+    writeMethods: new Set<string>(
+      Array.from(hookFreeWriteMethods()).filter((method: string): boolean => {
+        return !HOOK_FREE_READS.has(method);
+      }),
+    ),
+  });
+
+  const byTable: Map<string, BaseModel> = new Map<string, BaseModel>();
+
+  for (const modelType of AllModelTypes as Array<{ new (): BaseModel }>) {
+    const model: BaseModel = new modelType();
+
+    if (model.tableName) {
+      byTable.set(model.tableName, model);
+    }
+  }
+
+  sites = scanner.scan(SCAN_ROOTS).map((write: HookFreeWrite): Site => {
+    const model: BaseModel | null = modelOf(write, byTable);
+
+    return {
+      ...write,
+      isTracked: isTracked(write, model),
+      key: `${write.inFunction} ${model?.tableName || write.tableName || "*"}`,
+    };
+  });
+}, 600000);
+
+describe("writes that go round DatabaseService's hooks", () => {
+  test("are found in all four forms, where they are known to be", () => {
+    const where: (data: {
+      file: string;
+      form: HookFreeWriteForm;
+    }) => Array<Site> = (data: {
+      file: string;
+      form: HookFreeWriteForm;
+    }): Array<Site> => {
+      return sites.filter((site: Site): boolean => {
+        return site.file === data.file && site.form === data.form;
+      });
+    };
+
+    expect(
+      where({
+        file: "packages/App/FeatureSet/Runbook/API/Runbook.ts",
+        form: HookFreeWriteForm.WithoutHooks,
+      }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      where({
+        file: "packages/Common/Server/Utils/Rules/RuleAddedLabels.ts",
+        form: HookFreeWriteForm.Relation,
+      }).length,
+    ).toBe(1);
+    expect(
+      where({
+        file: "packages/App/FeatureSet/Identity/Utils/SsoTeamMembership.ts",
+        form: HookFreeWriteForm.IgnoreHooksCreate,
+      }).length,
+    ).toBe(1);
+    expect(
+      where({
+        file: "packages/Common/Server/Utils/Telemetry/TelemetryExceptionMerge.ts",
+        form: HookFreeWriteForm.RawSql,
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("read every write method DatabaseService has that skips its hooks", () => {
+    const methods: Set<string> = hookFreeWriteMethods();
+
+    for (const read of HOOK_FREE_READS) {
+      expect([read, methods.has(read)]).toEqual([read, true]);
+    }
+
+    expect(methods.size - HOOK_FREE_READS.size).toBeGreaterThanOrEqual(5);
+  });
+
+  test("of what the audit log tracks are all decided: recorded, or OneUptime's own and why", () => {
+    const undecided: Array<string> = sites
+      .filter((site: Site): boolean => {
+        return site.isTracked && decisionOf(site) === undefined;
+      })
+      .map((site: Site): string => {
+        return `${site.file}:${site.line} ${site.call} in "${site.key}" (${site.form}): record it with AuditLogService.record*, or list it in DECIDED with why it is OneUptime's own`;
+      });
+
+    expect(undecided).toEqual([]);
+  });
+
+  test("decided as recorded are in a function that records them", () => {
+    const unrecorded: Array<string> = sites
+      .filter((site: Site): boolean => {
+        return (
+          site.isTracked &&
+          decisionOf(site) === Why.Recorded &&
+          !site.isRecorded
+        );
+      })
+      .map((site: Site): string => {
+        return `${site.file}:${site.line} ${site.key}`;
+      });
+
+    expect(unrecorded).toEqual([]);
+  });
+
+  test("every decision still matches a write", () => {
+    const eeIsHere: boolean = fs.existsSync(path.join(EE_ROOT, "Server"));
+    const stale: Array<string> = [];
+
+    for (const [file, decisions] of Object.entries(DECIDED)) {
+      if (relativeEe(file) && !eeIsHere) {
+        continue;
+      }
+
+      for (const key of Object.keys(decisions)) {
+        if (
+          !sites.some((site: Site): boolean => {
+            return site.isTracked && site.file === file && site.key === key;
+          })
+        ) {
+          stale.push(`${file} ${key}`);
+        }
+      }
+    }
+
+    expect(stale).toEqual([]);
+  });
+
+  test("every reason not to record says why", () => {
+    for (const reason of Object.values(WHY_NOT_RECORDED)) {
+      expect(reason.length).toBeGreaterThan(40);
+    }
+  });
+});
+
+/*
+ * Labels a label rule adds (issue #6284): every label rule engine adds them
+ * through RuleAddedLabels, which records each record it changes, and hands
+ * it who ran the rule - so a new engine cannot forget either.
+ */
+describe("label rule engines", () => {
+  const SERVICES: string = path.join(COMMON_ROOT, "Server/Services");
+  const engines: Array<string> = fs
+    .readdirSync(SERVICES)
+    .filter((name: string): boolean => {
+      return name.endsWith("LabelRuleEngineService.ts");
+    });
+
+  test("are all found", () => {
+    expect(engines.length).toBeGreaterThanOrEqual(34);
+  });
+
+  test.each(
+    fs
+      .readdirSync(path.join(COMMON_ROOT, "Server/Services"))
+      .filter((name: string): boolean => {
+        return name.endsWith("LabelRuleEngineService.ts");
+      }),
+  )(
+    "%s adds a rule's labels only through RuleAddedLabels, with who ran the rule",
+    (name: string) => {
+      const relative: string = `packages/Common/Server/Services/${name}`;
+      const text: string = fs.readFileSync(path.join(SERVICES, name), "utf8");
+
+      // No label is written round the helper.
+      expect(
+        sites.filter((site: Site): boolean => {
+          return (
+            site.file === relative && site.form === HookFreeWriteForm.Relation
+          );
+        }).length,
+      ).toBe(
+        // The network device rules' Run now adds a page at once, and records it.
+        name === "NetworkDeviceLabelRuleEngineService.ts" ? 1 : 0,
+      );
+
+      const source: ts.SourceFile = ts.createSourceFile(
+        name,
+        text,
+        ts.ScriptTarget.Latest,
+        true,
+      );
+      let addsThroughTheHelper: boolean = false;
+      let runPassesProps: boolean = false;
+
+      const passesProps: (call: ts.CallExpression) => boolean = (
+        call: ts.CallExpression,
+      ): boolean => {
+        const argument: ts.Expression | undefined = call.arguments[0];
+
+        return Boolean(
+          argument &&
+            ts.isObjectLiteralExpression(argument) &&
+            argument.properties.some(
+              (property: ts.ObjectLiteralElementLike): boolean => {
+                return (
+                  ts.isPropertyAssignment(property) &&
+                  ts.isIdentifier(property.name) &&
+                  property.name.text === "props" &&
+                  property.initializer.getText(source) === "data.props"
+                );
+              },
+            ),
+        );
+      };
+
+      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+        if (
+          ts.isCallExpression(node) &&
+          ts.isPropertyAccessExpression(node.expression)
+        ) {
+          const callee: string = node.expression.getText(source);
+
+          if (callee === "RuleAddedLabels.add" && passesProps(node)) {
+            addsThroughTheHelper = true;
+          }
+
+          if (callee === "this.applyRules" && passesProps(node)) {
+            let method: ts.Node | undefined = node.parent;
+
+            while (method && !ts.isMethodDeclaration(method)) {
+              method = method.parent;
+            }
+
+            if (
+              method &&
+              ts.isMethodDeclaration(method) &&
+              method.name.getText(source) === "applyRulesToExistingResource"
+            ) {
+              runPassesProps = true;
+            }
+          }
+        }
+
+        ts.forEachChild(node, visit);
+      };
+
+      visit(source);
+
+      expect({ name, addsThroughTheHelper, runPassesProps }).toEqual({
+        name,
+        addsThroughTheHelper: true,
+        runPassesProps: true,
+      });
+    },
+  );
+});

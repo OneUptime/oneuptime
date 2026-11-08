@@ -269,12 +269,6 @@ jest.mock(
   },
 );
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetrySnapshotWindowAlert",
-  () => {
-    return stubModule("SnapshotWindow");
-  },
-);
-jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Logs/LogsViewer",
   () => {
     return stubModule("LogsViewer");

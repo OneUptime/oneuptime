@@ -180,6 +180,8 @@ describe("RuleRunAPI", () => {
     expect(args.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(args.cursor).toBeNull();
     expect(args.allowOwnerNotification).toBe(false);
+    // Who ran it, so what the run changes is theirs in the audit log.
+    expect((args as unknown as { props: unknown }).props).toBe(props);
 
     expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledWith(
       expect.anything(),

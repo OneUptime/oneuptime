@@ -78,6 +78,15 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * model's singularName.
    */
   singularName?: string | undefined;
+  /*
+   * What locks this record's Delete beyond the permissions of its kind, once
+   * those allow it: a rule teams own, deleted only with the permissions of
+   * the teams that own it (RuleView, PermissionGate.checkTeamOwnedRule).
+   * Refused with a reason, Delete is locked with the reason as its tooltip;
+   * refused with none - still reading who owns it - it waits, locked, with
+   * nothing to say yet.
+   */
+  deleteLock?: PermissionGateResult | undefined;
 }
 
 /*
@@ -110,11 +119,16 @@ const ModelDelete: <TBaseModel extends BaseModel>(
    * API. It now stays visible but locked, and says which permission is
    * missing.
    */
-  const deleteGate: PermissionGateResult = PermissionGate.check(
+  const kindGate: PermissionGateResult = PermissionGate.check(
     model,
     ModelAction.Delete,
     privateRecordOptions,
   );
+  // The kind's refusal names what is missing, so it is said first.
+  const deleteGate: PermissionGateResult =
+    kindGate.isAllowed && props.deleteLock && !props.deleteLock.isAllowed
+      ? props.deleteLock
+      : kindGate;
   const [showModal, setShowModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");

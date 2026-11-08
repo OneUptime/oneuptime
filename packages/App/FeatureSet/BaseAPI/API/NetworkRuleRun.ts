@@ -361,6 +361,8 @@ export default class NetworkRuleRunAPI {
               {
                 ruleId: readRuleId(req),
                 projectId: projectId,
+                // The devices it labels are theirs in the audit log.
+                props: props,
               },
             );
 

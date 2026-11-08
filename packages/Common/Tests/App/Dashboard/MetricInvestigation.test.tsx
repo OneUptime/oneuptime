@@ -159,10 +159,10 @@ import useMetricInvestigation, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Investigation/UseMetricInvestigation";
 import { MetricInvestigationTimePreset } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Investigation/MetricInvestigationTime";
 import {
-  EVENT_METRIC_DEFAULT_SELECTION,
-  EVENT_METRIC_RELATIVE_RANGES,
-  getEventMetricTimePresets,
-} from "../../../../App/FeatureSet/Dashboard/src/Utils/EventMetricInvestigation";
+  EVENT_AROUND_START_SELECTION,
+  EVENT_RELATIVE_TIME_RANGES,
+  getEventTimePresets,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/EventTimePresets";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
@@ -222,12 +222,12 @@ const Harness: React.FunctionComponent = (): React.ReactElement => {
   const investigation: MetricInvestigationState = useMetricInvestigation({
     defaultQueries: { queryConfigs: [QUERY], formulaConfigs: [] },
     getPresets: (now: Date): Array<MetricInvestigationTimePreset> => {
-      return getEventMetricTimePresets(
+      return getEventTimePresets(
         { startedAt: STARTED_AT, evaluationWindow: EVALUATED },
         now,
       );
     },
-    defaultSelection: EVENT_METRIC_DEFAULT_SELECTION,
+    defaultSelection: EVENT_AROUND_START_SELECTION,
     urlParamPrefix: "metrics",
   });
 
@@ -236,7 +236,7 @@ const Harness: React.FunctionComponent = (): React.ReactElement => {
       investigation={investigation}
       description="Metrics related to this incident."
       presetsHeading="Around this incident"
-      relativeRanges={EVENT_METRIC_RELATIVE_RANGES}
+      relativeRanges={EVENT_RELATIVE_TIME_RANGES}
       moments={MOMENTS}
       regions={REGIONS}
       excludedIncidentIds={["incident-1"]}

@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
@@ -105,6 +107,7 @@ class MonitorLabelRuleEngineServiceClass
       return await this.applyRules({
         monitor: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running monitor label rules: ${error}`, {
@@ -120,6 +123,8 @@ class MonitorLabelRuleEngineServiceClass
   private async applyRules(data: {
     monitor: Monitor;
     rules: Array<MonitorLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { monitor, rules } = data;
 
@@ -201,11 +206,12 @@ class MonitorLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await MonitorService.getRepository()
-      .createQueryBuilder()
-      .relation(Monitor, "labels")
-      .of(monitor.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: MonitorService,
+      resourceId: monitor.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory monitor.labels with the now-persisted set so a downstream

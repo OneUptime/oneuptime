@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
@@ -102,6 +104,7 @@ class ServerlessFunctionLabelRuleEngineServiceClass
       return await this.applyRules({
         serverlessFunction: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running serverless function label rules: ${error}`, {
@@ -117,6 +120,8 @@ class ServerlessFunctionLabelRuleEngineServiceClass
   private async applyRules(data: {
     serverlessFunction: ServerlessFunction;
     rules: Array<ServerlessFunctionLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { serverlessFunction, rules } = data;
 
@@ -197,11 +202,12 @@ class ServerlessFunctionLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await ServerlessFunctionService.getRepository()
-      .createQueryBuilder()
-      .relation(ServerlessFunction, "labels")
-      .of(serverlessFunction.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: ServerlessFunctionService,
+      resourceId: serverlessFunction.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     const mergedLabelIds: Set<string> = new Set([
       ...existingLabelIds,

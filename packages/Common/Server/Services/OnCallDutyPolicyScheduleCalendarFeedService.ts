@@ -6,9 +6,11 @@ import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import CalendarFeedToken, {
   CalendarFeedRotation,
 } from "../Utils/OnCall/CalendarFeedToken";
+import CalendarFeedRotationAuditLog from "../Utils/OnCall/CalendarFeedRotationAuditLog";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -197,15 +199,26 @@ export class Service extends ProjectReferencesService<Model> {
   /**
    * Rotate the token of an existing feed: mint a new one, move the current
    * hash into the 30-day grace slot, stamp rotatedAt. Returns the new
-   * plaintext token ONCE. Root write; the caller purges caches.
+   * plaintext token ONCE. Root write; the caller purges caches. Recorded in
+   * the audit log, on the schedule's page, as the person's reset when
+   * `props` says who asked, and as OneUptime's own otherwise
+   * (CalendarFeedRotationAuditLog).
    */
   @CaptureSpan()
   public async rotateTokenById(data: {
     id: ObjectID;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<CalendarFeedRotation> {
     const existing: Model | null = await this.findOneBy({
       query: { _id: data.id },
-      select: { _id: true, tokenHash: true },
+      select: {
+        _id: true,
+        projectId: true,
+        onCallDutyPolicyScheduleId: true,
+        tokenHash: true,
+        tokenHint: true,
+        rotatedAt: true,
+      },
       props: { isRoot: true, ignoreHooks: true },
     });
 
@@ -221,6 +234,13 @@ export class Service extends ProjectReferencesService<Model> {
       id: data.id,
       data: CalendarFeedToken.toRotationUpdateData(rotation),
       props: { isRoot: true },
+    });
+
+    await CalendarFeedRotationAuditLog.record({
+      model: new Model(),
+      before: existing,
+      rotation,
+      props: data.props,
     });
 
     return rotation;

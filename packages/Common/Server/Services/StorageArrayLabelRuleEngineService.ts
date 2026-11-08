@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import StorageArray from "../../Models/DatabaseModels/StorageArray";
@@ -101,6 +103,7 @@ class StorageArrayLabelRuleEngineServiceClass
       return await this.applyRules({
         storageArray: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running storage array label rules: ${error}`, {
@@ -116,6 +119,8 @@ class StorageArrayLabelRuleEngineServiceClass
   private async applyRules(data: {
     storageArray: StorageArray;
     rules: Array<StorageArrayLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { storageArray, rules } = data;
 
@@ -202,11 +207,12 @@ class StorageArrayLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await StorageArrayService.getRepository()
-      .createQueryBuilder()
-      .relation(StorageArray, "labels")
-      .of(storageArray.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: StorageArrayService,
+      resourceId: storageArray.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory storageArray.labels so a downstream owner-rule engine in
