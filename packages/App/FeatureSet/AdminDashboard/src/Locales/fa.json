@@ -1924,6 +1924,7 @@
   "Telemetry Usage Retention (Days)": "نگهداری مصرف تله‌متری (روز)",
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "تعداد روزهایی که مصرف روزانه تله‌متری هر پروژه نگه داشته می‌شود، از 30 تا 1095. برای 120 روز خالی بگذارید.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "تعداد روزهای نگهداری مصرف روزانه تله‌متری هر پروژه. مصرف قدیمی‌تر از این حذف می‌شود.",
+  "Scheduled Maintenance": "تعمیر و نگهداری زمان‌بندی‌شده",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

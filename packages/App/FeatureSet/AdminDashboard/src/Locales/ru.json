@@ -1924,6 +1924,7 @@
   "Telemetry Usage Retention (Days)": "Срок хранения данных об использовании телеметрии (дни)",
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Сколько дней хранятся ежедневные данные об использовании телеметрии каждого проекта: от 30 до 1095. Оставьте пустым, чтобы хранить 120 дней.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Количество дней хранения ежедневных данных об использовании телеметрии каждого проекта. Данные старше этого срока удаляются.",
+  "Scheduled Maintenance": "Плановое обслуживание",
   "markdownCallouts": {
     "caution": "Осторожно",
     "danger": "Опасно",

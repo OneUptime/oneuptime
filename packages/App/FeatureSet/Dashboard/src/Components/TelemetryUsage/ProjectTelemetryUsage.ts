@@ -70,6 +70,7 @@ export const TELEMETRY_USAGE_RESOURCE_PAGES: Partial<
   [ServiceType.CloudResource]: PageMap.CLOUD_RESOURCE_VIEW,
   [ServiceType.DatabaseServer]: PageMap.DATABASE_SERVER_VIEW,
   [ServiceType.NetworkDevice]: PageMap.NETWORK_DEVICE_VIEW,
+  [ServiceType.ScheduledMaintenance]: PageMap.SCHEDULED_MAINTENANCE_VIEW,
 };
 
 /*

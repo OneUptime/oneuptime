@@ -213,6 +213,7 @@ export const TELEMETRY_USAGE_RESOURCE_TYPE_LABELS: Record<string, string> = {
   [ServiceType.CloudResource]: translationKey("Cloud Resource"),
   [ServiceType.DatabaseServer]: translationKey("Database"),
   [ServiceType.NetworkDevice]: translationKey("Network Device"),
+  [ServiceType.ScheduledMaintenance]: translationKey("Scheduled Maintenance"),
   [ServiceType.Unknown]: translationKey("Service"),
 };
 

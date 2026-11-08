@@ -1924,6 +1924,7 @@
   "Telemetry Usage Retention (Days)": "Opbevaring af telemetriforbrug (dage)",
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Hvor mange dage hvert projekts daglige telemetriforbrug opbevares, fra 30 til 1095. Lad stå tom for 120 dage.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Antal dage, hvert projekts daglige telemetriforbrug skal opbevares. Forbrug, der er ældre end dette, slettes.",
+  "Scheduled Maintenance": "Planlagt vedligeholdelse",
   "markdownCallouts": {
     "caution": "Forsigtig",
     "danger": "Fare",

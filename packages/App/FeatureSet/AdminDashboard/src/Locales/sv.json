@@ -1924,6 +1924,7 @@
   "Telemetry Usage Retention (Days)": "Lagringstid för telemetrianvändning (dagar)",
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Hur många dagar varje projekts dagliga telemetrianvändning behålls, från 30 till 1095. Lämna tomt för 120 dagar.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Antal dagar att behålla varje projekts dagliga telemetrianvändning. Användning äldre än detta raderas.",
+  "Scheduled Maintenance": "Schemalagt underhåll",
   "markdownCallouts": {
     "caution": "Försiktighet",
     "danger": "Fara",

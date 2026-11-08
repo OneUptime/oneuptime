@@ -1924,6 +1924,7 @@
   "Telemetry Usage Retention (Days)": "Bewaring van telemetriegebruik (dagen)",
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Hoeveel dagen het dagelijkse telemetriegebruik van elk project wordt bewaard, van 30 tot 1095. Laat leeg voor 120 dagen.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Aantal dagen dat het dagelijkse telemetriegebruik van elk project wordt bewaard. Ouder gebruik wordt verwijderd.",
+  "Scheduled Maintenance": "Geplande onderhoud",
   "markdownCallouts": {
     "caution": "Let op",
     "danger": "Gevaar",

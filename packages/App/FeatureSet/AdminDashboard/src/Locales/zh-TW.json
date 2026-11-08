@@ -1924,6 +1924,7 @@
   "Telemetry Usage Retention (Days)": "遙測使用量保留期（天）",
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "每個專案每日遙測使用量的保留天數，30 到 1095。留空則為 120 天。",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "保留每個專案每日遙測使用量的天數。超過此天數的使用量會被刪除。",
+  "Scheduled Maintenance": "排定維護",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

@@ -1924,6 +1924,7 @@
   "Telemetry Usage Retention (Days)": "Retención del uso de telemetría (días)",
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Cuántos días se conserva el uso diario de telemetría de cada proyecto, de 30 a 1095. Déjelo vacío para 120 días.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Número de días que se conserva el uso diario de telemetría de cada proyecto. El uso más antiguo se elimina.",
+  "Scheduled Maintenance": "Mantenimiento programado",
   "markdownCallouts": {
     "caution": "Precaución",
     "danger": "Peligro",

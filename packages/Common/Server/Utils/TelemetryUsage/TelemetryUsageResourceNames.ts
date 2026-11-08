@@ -18,6 +18,7 @@ import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import RumApplicationService from "../../Services/RumApplicationService";
+import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import ServiceService from "../../Services/ServiceService";
 import StorageArrayService from "../../Services/StorageArrayService";
@@ -104,6 +105,9 @@ export const TELEMETRY_USAGE_RESOURCE_NAME_SOURCES: Partial<
   [ServiceType.NetworkDevice]: asSource(NetworkDeviceService, [
     "name",
     "hostname",
+  ]),
+  [ServiceType.ScheduledMaintenance]: asSource(ScheduledMaintenanceService, [
+    "title",
   ]),
 };
 

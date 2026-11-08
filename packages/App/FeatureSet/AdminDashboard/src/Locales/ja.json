@@ -1924,6 +1924,7 @@
   "Telemetry Usage Retention (Days)": "テレメトリ使用量保持期間（日）",
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "各プロジェクトの日ごとのテレメトリ使用量を保持する日数（30〜1095）。空欄の場合は 120 日です。",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "各プロジェクトの日ごとのテレメトリ使用量を保持する日数。これより古い使用量は削除されます。",
+  "Scheduled Maintenance": "定期メンテナンス",
   "markdownCallouts": {
     "caution": "注意",
     "danger": "危険",

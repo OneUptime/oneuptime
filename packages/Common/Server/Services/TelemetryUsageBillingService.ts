@@ -967,7 +967,11 @@ export class Service extends DatabaseService<Model> {
     retentionInDays: number;
   }> {
     const retentionInDays: number = await this.getUsageRetentionInDays();
-    const cutoff: Date = OneUptimeDate.getSomeDaysAgo(retentionInDays);
+    // On the clock staging reads (getStagingWindowDays), whole days back.
+    const cutoff: Date = OneUptimeDate.addRemoveSeconds(
+      OneUptimeDate.getCurrentDate(),
+      -retentionInDays * 24 * 60 * 60,
+    );
 
     let deleted: number = 0;
     let deletedInBatch: number = 0;
