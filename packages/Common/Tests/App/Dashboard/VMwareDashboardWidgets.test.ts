@@ -4,6 +4,7 @@ import { describe, expect, test } from "@jest/globals";
 import PublicDashboardResourceListPolicy, {
   PublicDashboardResourceListPolicyResult,
 } from "../../../Server/Utils/Dashboard/PublicDashboardResourceListPolicy";
+import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import {
   ComponentArgument,
@@ -180,10 +181,11 @@ const buildPolicy: BuildPolicyFunction = (data: {
       componentType: data.componentType,
       arguments: data.argumentsObject || {},
     },
-    dashboardViewConfig: {
+    // The variables as the public page's toolbar draws them.
+    variables: PublicDashboardViewConfig.getDrawnConfig({
       components: [],
       variables: data.storedVariables || [],
-    },
+    }).variables,
     requestedVariables: data.requestedVariables || [],
     requestedQuery: {},
   });

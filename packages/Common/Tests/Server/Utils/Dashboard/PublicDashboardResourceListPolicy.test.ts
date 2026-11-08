@@ -1,6 +1,7 @@
 import PublicDashboardResourceListPolicy, {
   PublicDashboardResourceListPolicyResult,
 } from "../../../../Server/Utils/Dashboard/PublicDashboardResourceListPolicy";
+import PublicDashboardViewConfig from "../../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesAnyOfGroups from "../../../../Types/BaseDatabase/IncludesAnyOfGroups";
@@ -12,7 +13,9 @@ import {
   SloWidgetDisplayType,
   SloWidgetMetric,
 } from "../../../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
-import { DashboardVariableType } from "../../../../Types/Dashboard/DashboardVariable";
+import DashboardVariable, {
+  DashboardVariableType,
+} from "../../../../Types/Dashboard/DashboardVariable";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -38,19 +41,30 @@ function widget(
   };
 }
 
+/*
+ * The variables the public page's toolbar draws from these stored ones -
+ * what the routes hand the policy (PublicDashboardViewConfig.getDrawnConfig).
+ */
+function drawnVariables(stored: unknown): Array<DashboardVariable> {
+  return (
+    PublicDashboardViewConfig.getDrawnConfig({
+      components: [],
+      variables: stored,
+    }).variables || []
+  );
+}
+
 function build(data: {
   componentType: DashboardComponentType;
   argumentsObject?: JSONObject | undefined;
   requestedQuery?: JSONObject | undefined;
   requestedVariables?: Array<JSONObject> | undefined;
-  storedVariables?: Array<JSONObject> | undefined;
+  // As stored: a list, or anything else a write can hold.
+  storedVariables?: unknown;
 }): PublicDashboardResourceListPolicyResult {
   return PublicDashboardResourceListPolicy.build({
     widget: widget(data.componentType, data.argumentsObject || {}),
-    dashboardViewConfig: {
-      components: [],
-      variables: data.storedVariables || [],
-    },
+    variables: drawnVariables(data.storedVariables || []),
     requestedVariables: data.requestedVariables || [],
     requestedQuery: data.requestedQuery || {},
   });
@@ -1914,7 +1928,6 @@ describe("PublicDashboardResourceListPolicy", () => {
         null,
         "Payments",
         [null],
-        [{ value: firstLabelId }],
         [{ label: "Payments", value: 42 }],
         [{ label: "", value: firstLabelId }],
       ]) {
@@ -1957,7 +1970,7 @@ describe("PublicDashboardResourceListPolicy", () => {
             componentType: DashboardComponentType.IncidentList,
             arguments: "invalid",
           },
-          dashboardViewConfig: { components: [] },
+          variables: [],
           requestedVariables: [],
           requestedQuery: {},
         });

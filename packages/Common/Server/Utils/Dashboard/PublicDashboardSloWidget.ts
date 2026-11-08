@@ -84,10 +84,14 @@ export const PUBLIC_SLO_WIDGET_VARIABLE_MISSING_MESSAGE: string =
 
 export default class PublicDashboardSloWidget {
   /*
-   * Read the config off a whole stored widget (`{ arguments: { … } }`).
+   * Read the config off a whole widget (`{ arguments: { … } }`), as the
+   * public page draws it: the routes hand it the widget of the config the
+   * page draws (PublicDashboardViewConfig.getDrawnConfig), whose arguments
+   * are always an object - an empty one for a widget saved without any,
+   * which reads as an SLO widget with no SLO selected, as it is drawn.
    *
-   * `variables` are the dashboard's STORED variables with the viewer's
-   * selections already validated and applied
+   * `variables` are the variables the page's toolbar draws, with the
+   * viewer's selections already validated and applied
    * (PublicDashboardResourceListPolicy.resolveDashboardVariableSelections).
    * A pinned widget never reads them; a variable-bound widget without them
    * fails closed.

@@ -554,7 +554,7 @@ describe("DashboardAPI public resource-list", () => {
         const expectedSelect: JSONObject =
           PublicDashboardResourceListPolicy.build({
             widget,
-            dashboardViewConfig: dashboard.dashboardViewConfig,
+            variables: [],
             requestedVariables: [],
             requestedQuery: telemetryQuery(routeCase.resourceType),
           }).select;
@@ -1243,10 +1243,12 @@ describe("DashboardAPI public resource-list", () => {
       expect(buildSpy).toHaveBeenCalledTimes(1);
       const policyInput: BuildPublicDashboardResourceListPolicyData =
         buildSpy.mock.calls[0]![0];
-      expect(policyInput.widget).toBe(log.widget);
-      expect(policyInput.dashboardViewConfig).toBe(
-        dashboard.dashboardViewConfig,
-      );
+      // The widget and the variables as the public page draws them.
+      const drawn: DashboardViewConfig =
+        PublicDashboardViewConfig.getDrawnConfig(dashboard.dashboardViewConfig);
+      expect(policyInput.widget).toEqual(drawn.components[0]);
+      expect(policyInput.variables).toEqual(drawn.variables);
+      expect(policyInput.variables).toHaveLength(1);
       expect(policyInput.requestedVariables).toEqual(requestedVariables);
       expect((policyInput.requestedQuery as JSONObject)["time"]).toBeInstanceOf(
         InBetween,

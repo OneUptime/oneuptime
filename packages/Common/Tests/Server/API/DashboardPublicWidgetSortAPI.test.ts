@@ -546,9 +546,7 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
         const policy: PublicDashboardResourceListPolicyResult =
           PublicDashboardResourceListPolicy.build({
             widget,
-            dashboardViewConfig: {
-              components: [widget],
-            },
+            variables: [],
             requestedVariables: [],
             requestedQuery: telemetryQuery(entry.resourceType),
           });
@@ -783,7 +781,7 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
     expect(
       PublicDashboardResourceListPolicy.build({
         widget: monitor,
-        dashboardViewConfig: { components: [monitor] },
+        variables: [],
         requestedVariables: [],
         requestedQuery: {},
       }).sortChoice,
@@ -792,7 +790,7 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
     expect(
       PublicDashboardResourceListPolicy.build({
         widget: monitor,
-        dashboardViewConfig: { components: [monitor] },
+        variables: [],
         requestedVariables: [],
         requestedQuery: {},
         requestedSort: "status:asc",
@@ -806,7 +804,7 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
     expect(
       PublicDashboardResourceListPolicy.build({
         widget: map,
-        dashboardViewConfig: { components: [map] },
+        variables: [],
         requestedVariables: [],
         requestedQuery: {},
         requestedSort: "name:desc",
