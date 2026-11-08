@@ -92,9 +92,11 @@ describe("SlackUtil.sendDirectMessageToUser", () => {
         text: "Approval needed: public note on Incident INC-42",
       });
 
-    expect(calls.map((call: SlackCall): string => {
-      return call.method;
-    })).toEqual(["chat.postMessage"]);
+    expect(
+      calls.map((call: SlackCall): string => {
+        return call.method;
+      }),
+    ).toEqual(["chat.postMessage"]);
     expect(calls[0]!.body["channel"]).toBe(MEMBER_ID);
     expect(sent).toEqual({ channelId: DIRECT_CHANNEL, messageId: TS });
   });

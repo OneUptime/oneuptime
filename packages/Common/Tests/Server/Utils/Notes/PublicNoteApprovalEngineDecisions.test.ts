@@ -892,7 +892,10 @@ describe("the chat copies of its approval message", () => {
           now: new Date("2026-11-07T09:00:00.000Z"),
           submittedByUserId: ALICE,
           isEdit: true,
-          before: { status: PublicNoteApprovalStatus.Approved, round: approved },
+          before: {
+            status: PublicNoteApprovalStatus.Approved,
+            round: approved,
+          },
         }),
       ),
     });

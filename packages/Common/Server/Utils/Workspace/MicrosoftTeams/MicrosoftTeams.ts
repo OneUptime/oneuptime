@@ -1372,13 +1372,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         ...(data.text ? { summary: data.text } : {}),
       });
 
+      // The service it was sent to: the chat's, else the cloud's default.
       return thread?.threadId && thread.channel?.id
         ? {
             channelId: thread.channel.id,
             messageId: thread.threadId,
-            ...(capturedPersonalChat.serviceUrl
-              ? { serviceUrl: capturedPersonalChat.serviceUrl }
-              : {}),
+            serviceUrl:
+              capturedPersonalChat.serviceUrl ||
+              MicrosoftTeamsServiceUrl.getDefault(),
           }
         : null;
     }
@@ -1449,8 +1450,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           const response: ResourceResponse | undefined =
             await context.sendActivity(message);
 
-          const conversationId: unknown =
-            context.activity?.conversation?.id;
+          const conversationId: unknown = context.activity?.conversation?.id;
           const activityServiceUrl: unknown = context.activity?.serviceUrl;
 
           if (

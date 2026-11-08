@@ -1781,12 +1781,10 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
          * The chat copies of the approval messages of their public notes,
          * which the database deletes with them: replaced once they are gone.
          */
-        publicNoteApproval: await PublicNoteApprovalEngine.beforeRecordsDelete(
-          {
-            kind: PublicNoteKind.ScheduledMaintenance,
-            records: scheduledMaintenanceEvents,
-          },
-        ),
+        publicNoteApproval: await PublicNoteApprovalEngine.beforeRecordsDelete({
+          kind: PublicNoteKind.ScheduledMaintenance,
+          records: scheduledMaintenanceEvents,
+        }),
       },
       deleteBy: deleteBy,
     };

@@ -568,15 +568,17 @@ function copyOf(
 }
 
 function installKeptMessages(): void {
-  getJestSpyOn(WorkspacePublicNoteApprovalMessageService, "create")
-    .mockImplementation((async (data: {
-      data: WorkspacePublicNoteApprovalMessage;
-    }) => {
-      const row: WorkspacePublicNoteApprovalMessage = copyOf(data.data);
-      row.id = ObjectID.generate();
-      world.kept.push(row);
-      return copyOf(row);
-    }) as never);
+  getJestSpyOn(
+    WorkspacePublicNoteApprovalMessageService,
+    "create",
+  ).mockImplementation((async (data: {
+    data: WorkspacePublicNoteApprovalMessage;
+  }) => {
+    const row: WorkspacePublicNoteApprovalMessage = copyOf(data.data);
+    row.id = ObjectID.generate();
+    world.kept.push(row);
+    return copyOf(row);
+  }) as never);
 
   const matching: (
     row: WorkspacePublicNoteApprovalMessage,
@@ -685,66 +687,69 @@ function installKeptMessages(): void {
     } as unknown as WorkspaceProjectAuthToken;
   }) as never);
 
-  for (const [workspaceType, util] of [
-    [WorkspaceType.Slack, SlackUtil],
-    [WorkspaceType.MicrosoftTeams, MicrosoftTeamsUtil],
-    [WorkspaceType.Mattermost, MattermostUtil],
-  ] as Array<[WorkspaceType, unknown]>) {
-    getJestSpyOn(util, "updateMessage").mockImplementation((async (data: {
-      authToken: string;
-      projectId: ObjectID;
-      location: WorkspaceMessageLocation;
-      messageId: string;
-      messageBlocks: Array<WorkspaceMessageBlock>;
-      text?: string | undefined;
-    }) => {
-      world.editsAsked.push({
-        workspaceType: workspaceType,
-        messageId: data.messageId,
+  installChatEdits(WorkspaceType.Slack, SlackUtil);
+  installChatEdits(WorkspaceType.MicrosoftTeams, MicrosoftTeamsUtil);
+  installChatEdits(WorkspaceType.Mattermost, MattermostUtil);
+}
+
+// One chat's edit of a message it holds: recorded, refused or left hanging.
+function installChatEdits(workspaceType: WorkspaceType, util: unknown): void {
+  getJestSpyOn(util, "updateMessage").mockImplementation((async (data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text?: string | undefined;
+  }) => {
+    world.editsAsked.push({
+      workspaceType: workspaceType,
+      messageId: data.messageId,
+    });
+
+    if (world.editsHang) {
+      // Not answered until the test is over.
+      await new Promise<void>((release: () => void): void => {
+        world.releaseHangingEdits.push(release);
       });
+    }
 
-      if (world.editsHang) {
-        // Not answered until the test is over.
-        await new Promise<void>((release: () => void): void => {
-          world.releaseHangingEdits.push(release);
-        });
-      }
+    // Read once: a test may answer each edit in its own way.
+    const refusal: unknown = world.editErrors[workspaceType];
 
-      // Read once: a test may answer each edit in its own way.
-      const refusal: unknown = world.editErrors[workspaceType];
+    if (refusal !== undefined) {
+      throw refusal;
+    }
 
-      if (refusal !== undefined) {
-        throw refusal;
-      }
-
-      world.replaced.push({
-        workspaceType: workspaceType,
-        authToken: data.authToken,
-        projectId: data.projectId.toString(),
-        location: data.location,
-        messageId: data.messageId,
-        markdown: data.messageBlocks
-          .filter((block: WorkspaceMessageBlock): boolean => {
-            return block._type === "WorkspacePayloadMarkdown";
-          })
-          .map((block: WorkspaceMessageBlock): string => {
-            return (block as WorkspacePayloadMarkdown).text;
-          })
-          .join("\n\n"),
-        text: data.text,
-        buttons: data.messageBlocks
-          .filter((block: WorkspaceMessageBlock): boolean => {
-            return block._type === "WorkspacePayloadButtons";
-          })
-          .flatMap(
-            (block: WorkspaceMessageBlock): Array<WorkspaceMessagePayloadButton> => {
-              return (block as WorkspacePayloadButtons).buttons;
-            },
-          ),
-        blocks: data.messageBlocks,
-      });
-    }) as never);
-  }
+    world.replaced.push({
+      workspaceType: workspaceType,
+      authToken: data.authToken,
+      projectId: data.projectId.toString(),
+      location: data.location,
+      messageId: data.messageId,
+      markdown: data.messageBlocks
+        .filter((block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadMarkdown";
+        })
+        .map((block: WorkspaceMessageBlock): string => {
+          return (block as WorkspacePayloadMarkdown).text;
+        })
+        .join("\n\n"),
+      text: data.text,
+      buttons: data.messageBlocks
+        .filter((block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadButtons";
+        })
+        .flatMap(
+          (
+            block: WorkspaceMessageBlock,
+          ): Array<WorkspaceMessagePayloadButton> => {
+            return (block as WorkspacePayloadButtons).buttons;
+          },
+        ),
+      blocks: data.messageBlocks,
+    });
+  }) as never);
 }
 
 /*

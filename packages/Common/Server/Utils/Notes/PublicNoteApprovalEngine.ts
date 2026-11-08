@@ -797,9 +797,7 @@ export default class PublicNoteApprovalEngine {
           await PublicNoteApprovalNotifications.getChatMessages().readForNotes({
             kind: data.host.kind,
             notes: notes.map((note: NoteFields) => {
-              const id: string | null = this.idOf(
-                note as unknown as BaseModel,
-              );
+              const id: string | null = this.idOf(note as unknown as BaseModel);
 
               return {
                 id: id ? new ObjectID(id) : null,
@@ -844,12 +842,12 @@ export default class PublicNoteApprovalEngine {
   }
 
   /*
-   * A delete of records - incidents, episodes, scheduled maintenance events,
-   * their public notes of `kind` on them - takes those notes with it, and
-   * the chat copies of their approval messages: read here, before the
-   * delete (the record service's onBeforeDelete, with the records it
-   * removes), and replaced once it is done (afterRecordsDelete). Best
-   * effort: a delete never fails for them.
+   * A delete of records - incidents, episodes, scheduled maintenance events
+   * - takes their public notes (of `kind`) with it, and with them the chat
+   * copies of the notes' approval messages: read here, before the delete
+   * (the record service's onBeforeDelete, with the records it removes), and
+   * replaced once it is done (afterRecordsDelete). Best effort: a delete
+   * never fails for them.
    */
   @CaptureSpan()
   public static async beforeRecordsDelete(data: {

@@ -5,6 +5,7 @@ import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLog
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MattermostUtil from "../../../Server/Utils/Workspace/Mattermost/Mattermost";
+import { WorkspaceDirectMessageLocation } from "../../../Server/Utils/Workspace/WorkspaceBase";
 import logger from "../../../Server/Utils/Logger";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -730,13 +731,13 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser - where the m
       "t".repeat(26),
       MATTERMOST_LANDED,
     ],
-  ] as Array<[WorkspaceType, string, string, object]>)(
+  ] as Array<[WorkspaceType, string, string, WorkspaceDirectMessageLocation]>)(
     "%s: told once, with where it landed and the workspace it was sent through",
     async (
       workspaceType: WorkspaceType,
       workspaceUserId: string,
       workspaceProjectId: string,
-      landed: object,
+      landed: WorkspaceDirectMessageLocation,
     ) => {
       connected(workspaceProjectId);
       const onSent: jest.Mock = jest.fn(async (): Promise<void> => {
@@ -831,9 +832,11 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser - where the m
         .status,
     ).toBe(WorkspaceNotificationStatus.Success);
     expect(
-      (updateTimeline.mock.calls[0]![0] as {
-        data: { status: UserNotificationStatus };
-      }).data.status,
+      (
+        updateTimeline.mock.calls[0]![0] as {
+          data: { status: UserNotificationStatus };
+        }
+      ).data.status,
     ).toBe(UserNotificationStatus.Sent);
     expect(
       errorLog.mock.calls.some((call: Array<unknown>): boolean => {

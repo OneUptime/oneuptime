@@ -102,9 +102,7 @@ describe("executing it", () => {
   test("up() creates the table, an index for every key it is read by, and a foreign key for each record it names", async () => {
     const statements: Array<string> = await statementsOf("up");
 
-    expect(statements[0]).toMatch(
-      new RegExp(`^CREATE TABLE "${TABLE}" \\(`),
-    );
+    expect(statements[0]).toMatch(new RegExp(`^CREATE TABLE "${TABLE}" \\(`));
 
     // Every column the model declares, as the model declares it.
     for (const column of [
@@ -173,9 +171,7 @@ describe("executing it", () => {
 
     // On this table alone: it touches no table that exists already.
     for (const statement of statements) {
-      expect(statement).toMatch(
-        new RegExp(`(TABLE|ON) "${TABLE}"`),
-      );
+      expect(statement).toMatch(new RegExp(`(TABLE|ON) "${TABLE}"`));
     }
   });
 
@@ -274,12 +270,12 @@ describe("the table it makes", () => {
         update?: Array<unknown>;
       } = model.getColumnAccessControlFor(column) || {};
 
-      expect([column, access.create || [], access.read || [], access.update || []]).toEqual([
+      expect([
         column,
-        [],
-        [],
-        [],
-      ]);
+        access.create || [],
+        access.read || [],
+        access.update || [],
+      ]).toEqual([column, [], [], []]);
     }
   });
 
@@ -334,11 +330,9 @@ describe("the migration runs", () => {
 
   test("exactly one file on disk carries its timestamp, and it is this one", () => {
     expect(
-      fs
-        .readdirSync(MIGRATION_DIRECTORY)
-        .filter((file: string): boolean => {
-          return file.startsWith(`${MIGRATION_TIMESTAMP}-`);
-        }),
+      fs.readdirSync(MIGRATION_DIRECTORY).filter((file: string): boolean => {
+        return file.startsWith(`${MIGRATION_TIMESTAMP}-`);
+      }),
     ).toEqual([MIGRATION_FILE_NAME]);
   });
 
@@ -352,8 +346,7 @@ describe("the migration runs", () => {
     const earlier: Array<number> = SchemaMigrations.slice(0, position)
       .map((migration: unknown): number => {
         return Number(
-          (migration as { name: string }).name.match(CLASS_TIMESTAMP)?.[1] ||
-            0,
+          (migration as { name: string }).name.match(CLASS_TIMESTAMP)?.[1] || 0,
         );
       })
       .filter((timestamp: number): boolean => {

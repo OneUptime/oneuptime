@@ -684,7 +684,9 @@ describe("every copy of the message, the presser's own too, once it is decided",
     const answer: MattermostPressAnswer = await approve(BOB);
     await settled();
 
-    expect(answer.ephemeral_text).toContain("✅ You approved a **public note**");
+    expect(answer.ephemeral_text).toContain(
+      "✅ You approved a **public note**",
+    );
     expect(replacedCopies()).toEqual(["Bob:Mattermost", "Dave:Mattermost"]);
     expectReplacedWith(
       /^✅ This public note on \[Incident INC-42\]\([^)]+\) was approved for step 1 of 2 \(Support\) by \*\*Bob\*\* at \{\{TIME\([^)]+\)\}\}\. It waits for step 2 of 2 \(Legal\): Carol\.$/,

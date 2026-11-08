@@ -20,7 +20,9 @@ import PublicNoteApprovalEngine, {
   PublicNoteKind,
 } from "../../../../../Server/Utils/Notes/PublicNoteApprovalEngine";
 import { getViewInProductTitle } from "../../../../../Server/Utils/AutoRemediation/RemediationChatWords";
-import { MattermostRequestError } from "../../../../../Server/Utils/Workspace/Mattermost/Mattermost";
+import MattermostUtil, {
+  MattermostRequestError,
+} from "../../../../../Server/Utils/Workspace/Mattermost/Mattermost";
 import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import WorkspacePublicNoteApprovalActions, {
   PublicNoteApprovalPressAnswer,
@@ -39,7 +41,6 @@ import PublicNoteApproval, {
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import { JSONObject } from "../../../../../Types/JSON";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
-import MattermostUtil from "../../../../../Server/Utils/Workspace/Mattermost/Mattermost";
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MicrosoftTeamsMessageSize, {
   MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES,
@@ -139,7 +140,9 @@ function expectOnlyViewInOneUptime(url: string | null = NOTES_URL): void {
         return [button.title, button.actionId, button.url?.toString()];
       }),
     ).toEqual(
-      url ? [[getViewInProductTitle(), SlackActionType.OpenInOneUptime, url]] : [],
+      url
+        ? [[getViewInProductTitle(), SlackActionType.OpenInOneUptime, url]]
+        : [],
     );
 
     for (const button of replaced.buttons) {
@@ -217,8 +220,8 @@ async function editNote(text: string, editor: string = ALICE): Promise<void> {
 
   await PublicNoteApprovalEngine.afterUpdate({
     host: host(),
-    update: PublicNoteApprovalEngine.getCarryForward(update)
-      ?.publicNoteApproval,
+    update:
+      PublicNoteApprovalEngine.getCarryForward(update)?.publicNoteApproval,
     updatedNoteIds: updatedNoteIds,
     props: memberProps(editor),
   });
@@ -595,7 +598,10 @@ describe.each(CHATS)("in %s, every way a round ends", (chat: WorkspaceType) => {
 
 describe("several approvers, in several chats", () => {
   test("every copy of every approver, in each chat they chose, says what happened - the decider's too", async () => {
-    await keepCopies([BOB], [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]);
+    await keepCopies(
+      [BOB],
+      [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams],
+    );
     await keepCopies([DAVE], [WorkspaceType.Mattermost, WorkspaceType.Slack]);
 
     await approve(DAVE);
@@ -843,7 +849,11 @@ describe("a copy of another project", () => {
 
   test("is never read when this project's note is decided, and never edited with this project's token", async () => {
     keptForAnotherProject();
-    connect(WorkspaceType.Slack, WORKSPACES[WorkspaceType.Slack], OTHER_PROJECT_ID);
+    connect(
+      WorkspaceType.Slack,
+      WORKSPACES[WorkspaceType.Slack],
+      OTHER_PROJECT_ID,
+    );
     await keepCopies([DAVE], [WorkspaceType.Slack]);
 
     await approve(BOB);
@@ -863,7 +873,11 @@ describe("a copy of another project", () => {
 
   test("is replaced, if ever, only through its own project's connection: never this project's", async () => {
     keptForAnotherProject();
-    connect(WorkspaceType.Slack, WORKSPACES[WorkspaceType.Slack], OTHER_PROJECT_ID);
+    connect(
+      WorkspaceType.Slack,
+      WORKSPACES[WorkspaceType.Slack],
+      OTHER_PROJECT_ID,
+    );
 
     await WorkspacePublicNoteApprovalMessages.replaceOver({
       kind: PublicNoteKind.Incident,
@@ -1208,9 +1222,13 @@ describe("the words of a replaced copy", () => {
     const markdown: string = replacedWith(WorkspaceType.Slack)[0]!;
 
     expect(markdown).toContain(mdText`**${NAMES[BOB]!}**`.toString());
-    expect(markdown).toContain(mdText`(${"Support <!here> _team_"})`.toString());
+    expect(markdown).toContain(
+      mdText`(${"Support <!here> _team_"})`.toString(),
+    );
     // The link's brackets escaped: its words are text, not a link.
-    expect(markdown).not.toContain("[your account](https://evil.example/login)");
+    expect(markdown).not.toContain(
+      "[your account](https://evil.example/login)",
+    );
 
     const sent: {
       slack: Array<JSONObject>;
@@ -1329,9 +1347,9 @@ describe("the words of a replaced copy", () => {
       );
 
       const attachment: JSONObject = (
-        (sent.mattermost["props"] as JSONObject)["attachments"] as Array<
-          JSONObject
-        >
+        (sent.mattermost["props"] as JSONObject)[
+          "attachments"
+        ] as Array<JSONObject>
       )[0]!;
 
       expect(String(attachment["text"])).toContain(NOTES_URL);

@@ -21,7 +21,9 @@ import UserMicrosoftTeamsService from "../../../../../Server/Services/UserMicros
 import UserNotificationSettingService from "../../../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../../../Server/Services/UserService";
 import UserSlackService from "../../../../../Server/Services/UserSlackService";
-import WorkspaceUserNotificationService from "../../../../../Server/Services/WorkspaceUserNotificationService";
+import WorkspaceUserNotificationService, {
+  WorkspaceSentDirectMessage,
+} from "../../../../../Server/Services/WorkspaceUserNotificationService";
 import logger from "../../../../../Server/Utils/Logger";
 import PublicNoteApprovalEngine, {
   PublicNoteKind,
@@ -36,7 +38,6 @@ import WorkspacePublicNoteApproval, {
   WorkspaceDirectMessage,
 } from "../../../../../Server/Utils/Workspace/WorkspacePublicNoteApproval";
 import WorkspacePublicNoteApprovalMessages from "../../../../../Server/Utils/Workspace/WorkspacePublicNoteApprovalMessages";
-import { WorkspaceSentDirectMessage } from "../../../../../Server/Services/WorkspaceUserNotificationService";
 import { CallRequestMessage } from "../../../../../Types/Call/CallRequest";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { EmailEnvelope } from "../../../../../Types/Email/EmailMessage";

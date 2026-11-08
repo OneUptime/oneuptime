@@ -100,7 +100,9 @@ export default class WorkspacePublicNoteApprovalMessages {
    */
   public static async settle(): Promise<void> {
     while (WorkspacePublicNoteApprovalMessages.running.size > 0) {
-      await Promise.all(Array.from(WorkspacePublicNoteApprovalMessages.running));
+      await Promise.all(
+        Array.from(WorkspacePublicNoteApprovalMessages.running),
+      );
     }
   }
 
@@ -241,7 +243,10 @@ export default class WorkspacePublicNoteApprovalMessages {
   @CaptureSpan()
   public static async readForNotes(data: {
     kind: PublicNoteKind;
-    notes: Array<{ id?: ObjectID | null | undefined; projectId?: ObjectID | undefined }>;
+    notes: Array<{
+      id?: ObjectID | null | undefined;
+      projectId?: ObjectID | undefined;
+    }>;
   }): Promise<Array<WorkspacePublicNoteApprovalMessage>> {
     return await WorkspacePublicNoteApprovalMessages.readByProject({
       rows: data.notes,
@@ -476,7 +481,12 @@ export default class WorkspacePublicNoteApprovalMessages {
       workspaceType: workspaceType,
     };
 
-    if (!kept.projectId || !workspaceType || !kept.channelId || !kept.messageId) {
+    if (
+      !kept.projectId ||
+      !workspaceType ||
+      !kept.channelId ||
+      !kept.messageId
+    ) {
       return false;
     }
 
@@ -669,8 +679,10 @@ export default class WorkspacePublicNoteApprovalMessages {
       ids: Array<ObjectID>,
     ) => Promise<Array<WorkspacePublicNoteApprovalMessage>>;
   }): Promise<Array<WorkspacePublicNoteApprovalMessage>> {
-    const byProject: Map<string, { projectId: ObjectID; ids: Array<ObjectID> }> =
-      new Map();
+    const byProject: Map<
+      string,
+      { projectId: ObjectID; ids: Array<ObjectID> }
+    > = new Map();
 
     for (const row of data.rows) {
       if (!row.id || !row.projectId) {

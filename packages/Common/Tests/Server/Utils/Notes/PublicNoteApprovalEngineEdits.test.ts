@@ -878,9 +878,7 @@ describe("an edit and the chat copies of its note's approval message", () => {
 
     const run: EditRun = await runEdit(editOf({ note: NEW_TEXT }));
 
-    expect(
-      PublicNoteApprovalEngine.getCarryForward(run.update),
-    ).toBeNull();
+    expect(PublicNoteApprovalEngine.getCarryForward(run.update)).toBeNull();
     expect(chatCopiesReplaced).toEqual([]);
   });
 
