@@ -89,6 +89,8 @@ Pendant la pause, vous pouvez aussi ignorer une étape automatisée suivante qui
 
 Terminer, approuver, ignorer et annuler demandent les mêmes rôles que lancer une exécution, ou l'autorisation **Edit Runbook Execution**.
 
+La page **Journaux d'audit** du runbook indique qui a lancé chaque exécution, qui a approuvé, terminé ou ignoré chacune de ses étapes, et qui l'a annulée. Une étape s'y lit comme ce qui lui a été fait, par exemple `Approved "Restart the API" (step 3)`, jamais avec ce que l'étape a affiché ni la note laissée avec elle.
+
 ## Entremêler étapes manuelles et automatisées
 
 Le déroulé classique :

@@ -90,6 +90,8 @@ An administrator adding or removing a notification method or a personal on-call 
 
 Fields only OneUptime writes, such as when a host was last seen, are left out of every entry, and so are fields nobody may read. When OneUptime writes one because someone asked it to, such as merging an exception into another or resetting a webhook URL, the entry records it as their change. Keys, tokens and passwords are recorded as `[REDACTED]`: the entry shows they changed, never their value. A workflow's steps are recorded as what changed, naming a step's settings but never what was typed into them, and moving a step on the canvas is not recorded.
 
+What OneUptime does because someone asked it to is recorded as their change too, whether or not the project stores system events: starting, approving, completing, skipping and cancelling a runbook run, the labels a label rule adds when someone runs it on the records that already exist, resetting a calendar feed's link, and the teams someone joins when they sign in with SSO. A runbook run's steps are recorded as what was done to each, such as `Approved "Restart the API" (step 3)`, never with what a step printed. Labels a rule adds as a record is created are OneUptime's own change, recorded with **Store System Events** on.
+
 ## How long entries are kept
 
 Each entry is kept for the **Retention (days)** the project had when it was recorded, then deleted. A new retention applies to new entries: the entries recorded so far keep their dates.

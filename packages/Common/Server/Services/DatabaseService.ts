@@ -10257,6 +10257,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             updatedFields: writtenData as JSONObject,
             itemId: item.id,
             props: updateBy.props,
+            includeColumns: updateBy.auditLogIncludeColumns,
           });
         }
       }
@@ -10726,6 +10727,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       },
       data: updateById.data as any,
       miscDataProps: updateById.miscDataProps,
+      auditLogIncludeColumns: updateById.auditLogIncludeColumns,
       props: updateById.props,
     });
   }

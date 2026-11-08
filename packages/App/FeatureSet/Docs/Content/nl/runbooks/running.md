@@ -89,6 +89,8 @@ Terwijl de uitvoering pauzeert, kunt u ook een latere geautomatiseerde stap over
 
 Voltooien, goedkeuren, overslaan en annuleren vereisen dezelfde rollen als een uitvoering starten, of de machtiging **Edit Runbook Execution**.
 
+De pagina **Auditlogboeken** van het runbook legt vast wie elke uitvoering startte, wie elk van de stappen goedkeurde, voltooide of oversloeg, en wie de uitvoering annuleerde. Een stap staat er als wat ermee gedaan is, zoals `Approved "Restart the API" (step 3)`, nooit met wat de stap uitvoerde of de notitie die erbij is achtergelaten.
+
 ## Handmatige en geautomatiseerde stappen afwisselen
 
 Het klassieke verloop:

@@ -90,6 +90,8 @@ También se registra que un administrador añada o quite un método de notificac
 
 Los campos que solo escribe OneUptime, como cuándo se vio un host por última vez, se omiten en cada entrada, igual que los campos que nadie puede leer. Cuando OneUptime escribe uno porque alguien se lo pidió, como al fusionar una excepción con otra o restablecer una URL de webhook, la entrada lo registra como un cambio de esa persona. Las claves, los tokens y las contraseñas se registran como `[REDACTED]`: la entrada muestra que cambiaron, nunca su valor. Los pasos de un flujo de trabajo se registran como lo que cambió, con los nombres de los ajustes de un paso, pero nunca lo que se escribió en ellos, y mover un paso en el lienzo no se registra.
 
+Lo que OneUptime hace porque alguien se lo pidió también se registra como un cambio de esa persona, guarde o no el proyecto los eventos del sistema: iniciar, aprobar, completar, omitir y cancelar una ejecución de un runbook, las etiquetas que añade una regla de etiquetas cuando alguien la ejecuta sobre los registros que ya existen, restablecer el enlace de un feed de calendario y los equipos a los que alguien se une al iniciar sesión con SSO. Los pasos de una ejecución de un runbook se registran como lo que se le hizo a cada uno, por ejemplo `Approved "Restart the API" (step 3)`, nunca con lo que imprimió un paso. Las etiquetas que una regla añade al crearse un registro son un cambio del propio OneUptime y se registran con **Almacenar eventos del sistema** activado.
+
 ## Cuánto tiempo se conservan las entradas
 
 Cada entrada se conserva durante la **Retención (días)** que tenía el proyecto cuando se registró, y después se elimina. Una retención nueva se aplica a las entradas nuevas: las ya registradas conservan sus fechas.

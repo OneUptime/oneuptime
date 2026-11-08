@@ -1,3 +1,7 @@
+import RuleAddedLabels, {
+  RuleLabelsAdded,
+} from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
@@ -126,6 +130,7 @@ class NetworkDeviceLabelRuleEngineServiceClass
       return await this.applyRules({
         networkDevice: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running network device label rules: ${error}`, {
@@ -141,6 +146,8 @@ class NetworkDeviceLabelRuleEngineServiceClass
   private async applyRules(data: {
     networkDevice: NetworkDevice;
     rules: Array<NetworkDeviceLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { networkDevice, rules } = data;
 
@@ -221,11 +228,12 @@ class NetworkDeviceLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await NetworkDeviceService.getRepository()
-      .createQueryBuilder()
-      .relation(NetworkDevice, "labels")
-      .of(networkDevice.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: NetworkDeviceService,
+      resourceId: networkDevice.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory networkDevice.labels so a downstream owner-rule engine in
@@ -260,12 +268,18 @@ class NetworkDeviceLabelRuleEngineServiceClass
    *
    * Safe to run repeatedly — attaching labels is additive and idempotent, so
    * a second run reports devicesMatched with devicesLabeled at zero.
+   *
+   * Each device it labels gets an Update entry in the audit log by whoever
+   * ran the rule, with its labels before and after, once its page is
+   * written (RuleAddedLabels); a device it did not change gets none.
    */
   @CaptureSpan()
   @RuleEvaluation()
   public async applyRuleToExistingNetworkDevices(data: {
     ruleId: ObjectID;
     projectId: ObjectID;
+    // Who ran the rule: its entries in the audit log are theirs.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<LabelRuleRunResult> {
     const rule: NetworkDeviceLabelRule | null =
       await NetworkDeviceLabelRuleService.findOneBy({
@@ -359,9 +373,11 @@ class NetworkDeviceLabelRuleEngineServiceClass
         },
         select: {
           _id: true,
+          projectId: true,
           name: true,
           description: true,
-          labels: { _id: true },
+          // Named, so each device's entry names the labels it had.
+          labels: { _id: true, name: true },
         },
         /*
          * Sorted by id so paging stays stable across the writes this run
@@ -386,6 +402,8 @@ class NetworkDeviceLabelRuleEngineServiceClass
        * statements no matter how large the estate is.
        */
       const deviceIdsByLabelId: Map<string, Array<string>> = new Map();
+      // What each device of this page was given, for its audit log entry.
+      const labelIdsAddedByDeviceId: Map<string, Array<string>> = new Map();
 
       for (const device of devices) {
         result.devicesEvaluated++;
@@ -433,6 +451,10 @@ class NetworkDeviceLabelRuleEngineServiceClass
 
             for (const deviceId of deviceIdChunk) {
               labeledDeviceIds.add(deviceId);
+              labelIdsAddedByDeviceId.set(deviceId, [
+                ...(labelIdsAddedByDeviceId.get(deviceId) || []),
+                labelId,
+              ]);
             }
           } catch (error) {
             /*
@@ -449,6 +471,21 @@ class NetworkDeviceLabelRuleEngineServiceClass
           }
         }
       }
+
+      await RuleAddedLabels.recordInAuditLog({
+        modelType: NetworkDevice,
+        changes: devices
+          .filter((device: NetworkDevice): boolean => {
+            return labelIdsAddedByDeviceId.has(device.id?.toString() || "");
+          })
+          .map((device: NetworkDevice): RuleLabelsAdded<NetworkDevice> => {
+            return {
+              before: device,
+              labelIds: labelIdsAddedByDeviceId.get(device.id!.toString())!,
+            };
+          }),
+        props: data.props,
+      });
 
       skip += devices.length;
 

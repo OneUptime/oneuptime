@@ -90,6 +90,8 @@ Det registreres også når en administrator legger til eller fjerner en varsling
 
 Felt som bare OneUptime skriver, for eksempel når en vert sist ble sett, utelates fra alle oppføringer, og det samme gjør felt som ingen kan lese. Når OneUptime skriver et av dem fordi noen ba om det, for eksempel når et unntak slås sammen med et annet eller en webhook-URL tilbakestilles, registrerer oppføringen det som den personens endring. Nøkler, tokener og passord registreres som `[REDACTED]`: oppføringen viser at de er endret, aldri verdien deres. Trinnene i en arbeidsflyt registreres som det som endret seg, med navnene på et trinns innstillinger, men aldri det som ble skrevet inn i dem, og å flytte et trinn på lerretet registreres ikke.
 
+Det OneUptime gjør fordi noen ba om det, registreres også som deres endring, enten prosjektet lagrer systemhendelser eller ikke: å starte, godkjenne, fullføre, hoppe over og avbryte en kjøring av en runbook, etikettene en etikettregel legger til når noen kjører den på postene som allerede finnes, å tilbakestille lenken til en kalenderfeed, og teamene noen blir med i når de logger på med SSO. Trinnene i en runbook-kjøring registreres som det som ble gjort med hvert av dem, for eksempel `Approved "Restart the API" (step 3)`, aldri med det et trinn skrev ut. Etiketter en regel legger til når en post opprettes, er OneUptimes egen endring og registreres når **Lagre systemhendelser** er slått på.
+
 ## Hvor lenge oppføringer beholdes
 
 Hver oppføring beholdes i den **Oppbevaring (dager)** prosjektet hadde da den ble registrert, og slettes deretter. En ny oppbevaring gjelder for nye oppføringer: oppføringene som allerede er registrert, beholder datoene sine.
