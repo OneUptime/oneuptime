@@ -232,9 +232,8 @@ export const getTelemetryUsageResourceTypeLabel: (
   return translator.translateText(label) || label;
 };
 
-export const UNATTRIBUTED_TELEMETRY_NAME: string = translationKey(
-  "Unknown Service",
-);
+export const UNATTRIBUTED_TELEMETRY_NAME: string =
+  translationKey("Unknown Service");
 
 /*
  * What a resource is called on the usage pages: its name, the unattributed
@@ -268,14 +267,11 @@ export const getTelemetryUsageResourceName: (
     return translator.translateTerm(UNATTRIBUTED_TELEMETRY_NAME);
   }
 
-  return translator.translateTemplate(
-    translationKey("{{type}} {{id}}"),
-    {
-      type: getTelemetryUsageResourceTypeLabel(
-        resource.primaryEntityType,
-        translator,
-      ),
-      id: resource.primaryEntityId.slice(0, 8),
-    },
-  );
+  return translator.translateTemplate(translationKey("{{type}} {{id}}"), {
+    type: getTelemetryUsageResourceTypeLabel(
+      resource.primaryEntityType,
+      translator,
+    ),
+    id: resource.primaryEntityId.slice(0, 8),
+  });
 };

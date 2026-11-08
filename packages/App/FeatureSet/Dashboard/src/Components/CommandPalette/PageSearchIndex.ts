@@ -542,11 +542,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "how much data",
               "gb per day",
             ],
-            settings: [
-              "Telemetry Usage",
-              "Usage by Resource",
-              "Telemetry Usage History",
-            ],
+            settings: ["Telemetry Usage History"],
           },
         ],
       },

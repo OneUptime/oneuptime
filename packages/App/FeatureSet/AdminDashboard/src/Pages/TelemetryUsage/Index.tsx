@@ -28,6 +28,7 @@ import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Link from "Common/UI/Components/Link/Link";
 import Page from "Common/UI/Components/Page/Page";
 import Table from "Common/UI/Components/Table/Table";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import TableEmptyState, {
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
@@ -328,7 +329,7 @@ const TelemetryUsagePage: FunctionComponent = (): ReactElement => {
             />
           </div>
         }
-        buttons={[
+        buttons={getTableHeaderButtons([
           {
             title: "",
             buttonStyle: ButtonStyleType.ICON,
@@ -337,7 +338,7 @@ const TelemetryUsagePage: FunctionComponent = (): ReactElement => {
               setRefreshCount(refreshCount + 1);
             },
           },
-        ]}
+        ])}
       >
         {page && hasUsage ? (
           <div

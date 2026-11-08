@@ -19,14 +19,12 @@ import useTranslator from "../../Utils/UseTranslator";
 import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "../Dropdown/Dropdown";
+import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import InfoCard from "../InfoCard/InfoCard";
 import Link from "../Link/Link";
 import Table from "../Table/Table";
+import { getTableHeaderButtons } from "../Table/TableHeaderControls";
 import TableEmptyState, { TableEmptyStateKind } from "../Table/TableEmptyState";
 import Column from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
@@ -414,7 +412,9 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
                   translator,
                 )}
                 tooltip={
-                  tooltip ? translator.translateText(tooltip) || tooltip : undefined
+                  tooltip
+                    ? translator.translateText(tooltip) || tooltip
+                    : undefined
                 }
                 dataTestId={`telemetry-usage-signal-${productType}`}
               />
@@ -427,9 +427,11 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
   };
 
   const signalColumns: Array<Column<TelemetryUsageResourceRow>> =
-    TELEMETRY_USAGE_PRODUCT_TYPES.filter((productType: ProductType): boolean => {
-      return signals.includes(productType);
-    }).map((productType: ProductType): Column<TelemetryUsageResourceRow> => {
+    TELEMETRY_USAGE_PRODUCT_TYPES.filter(
+      (productType: ProductType): boolean => {
+        return signals.includes(productType);
+      },
+    ).map((productType: ProductType): Column<TelemetryUsageResourceRow> => {
       const key: SignalColumnKey =
         TELEMETRY_USAGE_SIGNAL_COLUMN_KEYS[productType]!;
 
@@ -443,7 +445,9 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
         getElement: (row: TelemetryUsageResourceRow): ReactElement => {
           return (
             <span className="tabular-nums text-gray-700">
-              {row[key] > 0 ? formatTelemetryUsageSize(row[key], translator) : "—"}
+              {row[key] > 0
+                ? formatTelemetryUsageSize(row[key], translator)
+                : "—"}
             </span>
           );
         },
@@ -514,9 +518,7 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
       disableSort: true,
       headerTooltip: translator.translateText(RETENTION_TOOLTIP),
       getElement: (row: TelemetryUsageResourceRow): ReactElement => {
-        return (
-          <span className="text-gray-700">{row.retention || "—"}</span>
-        );
+        return <span className="text-gray-700">{row.retention || "—"}</span>;
       },
     },
   ];
@@ -534,7 +536,7 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
           description="How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC."
           rightElement={rangeElement}
           headerLayout="toolbar"
-          buttons={[
+          buttons={getTableHeaderButtons([
             {
               title: "",
               buttonStyle: ButtonStyleType.ICON,
@@ -543,7 +545,7 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
                 setRefreshCount(refreshCount + 1);
               },
             },
-          ]}
+          ])}
         >
           {getSummaryBody()}
         </Card>
