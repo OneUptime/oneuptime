@@ -544,7 +544,17 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
           .calls[0]![0] as Record<string, unknown>;
         expect(String(call["projectId"])).toBe(PROJECT_ID.toString());
         expect(String(call["kubernetesClusterId"])).toBe(CLUSTER_ID.toString());
-        expect(String(call["userId"])).toBe(USER_ID.toString());
+        /*
+         * The route's own props, so the reset is recorded on the cluster
+         * as theirs (issue #6302).
+         */
+        const props: DatabaseCommonInteractionProps = call[
+          "props"
+        ] as DatabaseCommonInteractionProps;
+        expect(String(props.userId)).toBe(USER_ID.toString());
+        expect(String(props.tenantId)).toBe(PROJECT_ID.toString());
+        expect(props.userType).toBe(UserType.User);
+        expect(call["userId"]).toBeUndefined();
         expect(agentLookup).toHaveBeenCalledWith({
           projectId: PROJECT_ID,
           kubernetesClusterId: CLUSTER_ID,

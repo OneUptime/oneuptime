@@ -20,7 +20,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import PatternWorkScope, { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -118,6 +120,7 @@ class AlertEpisodePrivacyRuleEngineServiceClass
       return await this.applyRules({
         episode: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running alert episode privacy rules: ${error}`, {
@@ -133,6 +136,8 @@ class AlertEpisodePrivacyRuleEngineServiceClass
   private async applyRules(data: {
     episode: AlertEpisode;
     rules: Array<AlertEpisodePrivacyRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { episode, rules } = data;
 
@@ -175,7 +180,7 @@ class AlertEpisodePrivacyRuleEngineServiceClass
     await AlertEpisodeService.updateOneById({
       id: episode.id,
       data: { isPrivate: true },
-      props: { isRoot: true },
+      props: RuleRunWriteProps.get(data.props),
     });
 
     episode.isPrivate = true;

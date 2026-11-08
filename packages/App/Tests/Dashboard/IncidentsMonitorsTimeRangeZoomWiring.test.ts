@@ -15,6 +15,9 @@ import path from "path";
  *   IncidentRootCauseTimeRangeZoom.test.tsx       (Root Cause page: the
  *                                                  incident's investigation,
  *                                                  issue #6249)
+ *   AlertRootCauseTimeRangeZoom.test.tsx          (an alert's Root Cause
+ *                                                  page, the same card,
+ *                                                  issue #6304)
  *   EventOverviewTelemetrySnapshotZoom.test.tsx   (incident / alert pages)
  *   EventOverviewSnapshotZoomAcrossTabs.test.tsx  (their snapshot's tabs)
  *   TelemetrySnapshotPanelTimeRangeZoom.test.tsx  (episodes, companion tabs)
@@ -489,8 +492,10 @@ describe("a metric snapshot's investigation zooms as one, every tab of it (issue
   });
 });
 
-describe("the incident Root Cause card zooms through the incident's investigation (issue #6249)", () => {
-  const CARD: string = `${DASHBOARD}/Components/Incident/IncidentRootCauseMetricChart.tsx`;
+describe("the Root Cause cards zoom through the event's investigation (issues #6249 and #6304)", () => {
+  const CARD: string = `${DASHBOARD}/Components/Telemetry/EventRootCauseMetricChart.tsx`;
+  const INCIDENT_CARD: string = `${DASHBOARD}/Components/Incident/IncidentRootCauseMetricChart.tsx`;
+  const ALERT_CARD: string = `${DASHBOARD}/Components/Alert/AlertRootCauseMetricChart.tsx`;
 
   test("no chart of its own: the investigation draws it, zoom and way back included", () => {
     const source: string = readSquashed(CARD);
@@ -503,8 +508,9 @@ describe("the incident Root Cause card zooms through the incident's investigatio
       "<EventMetricInvestigationPanel",
       "/>",
     );
-    expect(panel).toContain("subject={EventMetricSubject.Incident}");
-    expect(panel).toContain("eventId={incidentId}");
+    // The event it reads: the incident, or the alert.
+    expect(panel).toContain("subject={reader.subject}");
+    expect(panel).toContain("eventId={eventId}");
     // The metrics alone, beside the root cause: the Overview has the tabs.
     expect(panel).toContain("showsCompanionTabs={false}");
     // Names of its own in the URL: never the Overview card's.
@@ -512,6 +518,46 @@ describe("the incident Root Cause card zooms through the incident's investigatio
     expect(source).toContain(
       'export const ROOT_CAUSE_METRICS_URL_PREFIX: string = "rootCauseMetrics";',
     );
+  });
+
+  test.each([
+    [
+      "the incident's",
+      INCIDENT_CARD,
+      "EventMetricSubject.Incident",
+      "INCIDENT_ROOT_CAUSE_READER",
+    ],
+    [
+      "the alert's",
+      ALERT_CARD,
+      "EventMetricSubject.Alert",
+      "ALERT_ROOT_CAUSE_READER",
+    ],
+  ])(
+    "%s Root Cause page shows that one card, reading its own event",
+    (_name: string, file: string, subject: string, reader: string) => {
+      const source: string = readSquashed(file);
+
+      // Nothing of its own to draw, zoom or keep in the URL: the card's.
+      expect(metricViewElements(source)).toHaveLength(0);
+      expect(source).not.toContain("TimeRangeZoom");
+      expect(source).not.toContain("<EventMetricInvestigationPanel");
+      expect(source).not.toContain("urlParamPrefix");
+
+      expect(source).toContain(`subject: ${subject},`);
+      expect(
+        sliceBetween(source, "<EventRootCauseMetricChart", "/>"),
+      ).toContain(`reader={${reader}}`);
+    },
+  );
+
+  test("each Root Cause page shows its card beside the root cause", () => {
+    expect(
+      readSquashed(`${DASHBOARD}/Pages/Incidents/View/RootCause.tsx`),
+    ).toContain("<IncidentRootCauseMetricChart incidentId={modelId} />");
+    expect(
+      readSquashed(`${DASHBOARD}/Pages/Alerts/View/RootCause.tsx`),
+    ).toContain("<AlertRootCauseMetricChart alertId={modelId} />");
   });
 });
 

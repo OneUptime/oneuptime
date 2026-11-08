@@ -4,6 +4,7 @@ import AuditLogService from "../../../Server/Services/AuditLogService";
 import DataProductService from "../../../Server/Services/DataProductService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
 import TableHealthIngest from "../../../Server/Utils/DataObservability/TableHealthIngest";
+import DataAlertFeedbackRecorder from "../../../Server/Utils/DataObservability/DataAlertFeedbackRecorder";
 import Response from "../../../Server/Utils/Response";
 import {
   ExpressRequest,
@@ -329,5 +330,40 @@ describe("a data product's badge link reset", () => {
     });
     expect(entry.includeColumns).toEqual(["badgeToken"]);
     expect(entry.props).toBe(props);
+  });
+});
+
+/*
+ * Feedback that resolves a data alert (issue #6300's family): the
+ * resolution is the person's, so the route hands their props to the
+ * recorder, which resolves the alert on their behalf
+ * (DataAlertFeedbackRecorder.test.ts).
+ */
+describe("feedback on a data alert", () => {
+  test("hands the caller's props, and who they are, to the feedback it records", async () => {
+    const record: jest.SpyInstance = jest
+      .spyOn(DataAlertFeedbackRecorder, "record")
+      .mockResolvedValue(undefined);
+
+    await handler(DATA_OBSERVABILITY_API_ROUTES.alertFeedback(":id"))(
+      request(
+        { id: "55555555-5555-4555-8555-555555555555" },
+        { feedback: "Not an Issue" },
+      ),
+      res,
+      next as unknown as NextFunction,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(record).toHaveBeenCalledTimes(1);
+
+    const call: Record<string, unknown> = record.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+
+    expect(call["props"]).toBe(props);
+    expect(call["userId"]).toBe(USER);
+    expect(call["feedback"]).toBe("Not an Issue");
   });
 });

@@ -331,6 +331,13 @@ describe("Network automation rule run endpoints", () => {
       expect((args["projectId"] as ObjectID).toString()).toBe(
         PROJECT_ID.toString(),
       );
+      // Who ran it, so the devices it moves are theirs in the audit log.
+      expect(
+        (args["props"] as unknown as DatabaseCommonInteractionProps).tenantId,
+      ).toEqual(PROJECT_ID);
+      expect(
+        (args["props"] as unknown as DatabaseCommonInteractionProps).userId,
+      ).toBeDefined();
 
       expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
       expect(

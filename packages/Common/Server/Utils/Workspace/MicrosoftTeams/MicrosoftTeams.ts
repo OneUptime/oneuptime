@@ -87,6 +87,7 @@ import MicrosoftTeamsAuthAction, {
 } from "./Actions/Auth";
 import MicrosoftTeamsIncidentActions from "./Actions/Incident";
 import MicrosoftTeamsRemediationActions from "./Actions/Remediation";
+import MicrosoftTeamsPublicNoteApprovalActions from "./Actions/PublicNoteApproval";
 import {
   MicrosoftTeamsActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
@@ -1304,9 +1305,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
      */
     text?: string | undefined;
   }): Promise<void> {
-    const adaptiveCard: JSONObject = this.buildAdaptiveCardFromMessageBlocks({
-      messageBlocks: data.messageBlocks,
-    });
+    /*
+     * Sent for one project, so its buttons carry it (MicrosoftTeamsCardProject):
+     * in an organization connected to several projects, a press of one - a
+     * public note's Approve, which names no record - is read there.
+     */
+    const adaptiveCard: JSONObject = MicrosoftTeamsCardProject.markCard(
+      this.buildAdaptiveCardFromMessageBlocks({
+        messageBlocks: data.messageBlocks,
+      }),
+      data.projectId.toString(),
+    );
 
     const projectAuth: WorkspaceProjectAuthToken | null =
       await WorkspaceProjectAuthTokenService.getProjectAuth({
@@ -5610,6 +5619,27 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           userId: oneUptimeUserId,
           projectId: projectId,
         });
+
+      /*
+       * A public note waiting for approval, in its approvers' personal
+       * chats: Approve, Reject and the card Reject answers with.
+       */
+      if (
+        MicrosoftTeamsPublicNoteApprovalActions.isPublicNoteApprovalAction(
+          actionType,
+        )
+      ) {
+        await MicrosoftTeamsPublicNoteApprovalActions.handle({
+          actionType,
+          actionValue,
+          value,
+          projectId,
+          oneUptimeUserId,
+          databaseProps,
+          turnContext: data.turnContext,
+        });
+        return;
+      }
 
       /*
        * A fix OneUptime AI proposes for approval: Review and approve, its

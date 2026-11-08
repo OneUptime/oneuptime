@@ -288,6 +288,10 @@ The buttons on OneUptime's Slack messages act as you too: as the OneUptime accou
 
 A fix OneUptime AI proposes for approval is posted to the incident's or alert's channels with its changes and three buttons. **Review and approve** opens everything the fix runs, with **Approve and run**, which runs exactly that, as you. **Dismiss** dismisses the fix, and **View in OneUptime** opens the incident or alert. They act as you, like every button on OneUptime's Slack messages: approving needs permission to approve fixes in the project and, for a fix to a cluster or resource, to edit it. A fix that changed after its message was posted is refused, and nothing runs. See [Approve or dismiss a fix from Slack or Microsoft Teams](/docs/ai/ai-sre#approve-or-dismiss-a-fix-from-slack-or-microsoft-teams).
 
+## Approving a public note
+
+When your project's public notes need approval and you turn on Slack for **Public Note Approval** in your notification settings, each public note that waits for a step you approve comes to your direct messages with OneUptime: who sent it, the step it waits for, the note, and three buttons. **Approve** approves it for that step; on the last step it reads **Approve and publish**, and the note is published at once. **Reject** opens a form that asks **Why are you rejecting it?**: a reason is required, and the note's author sees it. **View in OneUptime** opens the note. The buttons act as you, by the same rules as in OneUptime: you must be named on the step, yourself or through a team, and you cannot decide on a note you sent or approve two steps of the same note. You are answered in a message only you see. A press after somebody else decided, or after the note or its steps changed, decides nothing and says what happened. If your Slack account is not connected, the answer asks you to connect it, and OneUptime approves the note for you once you have; for **Reject**, press it again. See [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
+
 ## Disconnecting
 
 - **Disconnect** unlinks only your own Slack account, and removes your Slack notification method with it.

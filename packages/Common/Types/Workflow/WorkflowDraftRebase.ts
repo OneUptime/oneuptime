@@ -442,6 +442,65 @@ const groupStepsById: GroupStepsFunction = (
   return groups;
 };
 
+// What a stored graph is made of, for telling what changed in it (issue #6291).
+export interface WorkflowGraphParts {
+  /*
+   * Each step once, in the graph's order, by the fingerprint of what it is:
+   * its component and its settings as saved - never what it connects to,
+   * nor where its card sits.
+   */
+  steps: Array<{ id: string; fingerprint: string }>;
+  // Each connection once, by the steps it joins and the output it leaves by.
+  connections: Array<WorkflowDraftConnection & { fromOutput: string }>;
+}
+
+type GetGraphPartsFunction = (data: {
+  graph: JSONObject | null | undefined;
+  digest: WorkflowDraftDigestFunction;
+}) => WorkflowGraphParts;
+
+/*
+ * A stored graph's steps and connections apart, read as a change's record
+ * reads them (readStoredSteps): so a change that adds a step after another
+ * is no change to what that step is, and a setting changed on a step is no
+ * change to what leads to it.
+ */
+export const getWorkflowGraphParts: GetGraphPartsFunction = (data: {
+  graph: JSONObject | null | undefined;
+  digest: WorkflowDraftDigestFunction;
+}): WorkflowGraphParts => {
+  const stored: StoredSteps = readStoredSteps(data.graph);
+  const steps: Array<{ id: string; fingerprint: string }> = [];
+
+  for (const [stepId, group] of groupStepsById(stored.steps)) {
+    steps.push({
+      id: stepId,
+      fingerprint: data.digest(getStepContentKey(group)),
+    });
+  }
+
+  const connections: Array<WorkflowDraftConnection & { fromOutput: string }> =
+    [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const connection of stored.connections) {
+    const key: string = getConnectionKey(connection);
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    connections.push({
+      from: connection.from,
+      fromOutput: connection.fromOutput || "",
+      to: connection.to,
+    });
+  }
+
+  return { steps: steps, connections: connections };
+};
+
 type GetStepsTouchedFunction = (data: {
   draft: WorkflowDraft;
   graph: JSONObject | null | undefined;
