@@ -29,6 +29,7 @@ import Modal, {
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { scrollToTopOfScroller } from "Common/UI/Utils/ScrollToTopOfScroller";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -130,25 +131,10 @@ export interface DiscoveryImportDialogProps {
  * The dialog's body scrolls on its own. A new step starts at its top: the
  * host list of step one can be scrolled a long way down, and the monitoring
  * step used to open where it had been - on a phone, half way down its
- * choices, with its first question out of sight.
+ * choices, with its first question out of sight. (Shared since issue #5762:
+ * a whole list's next page starts at its top too.)
  */
-export function scrollToTopOfScroller(element: HTMLElement | null): void {
-  let node: HTMLElement | null = element?.parentElement || null;
-
-  while (node) {
-    const overflowY: string = window.getComputedStyle(node).overflowY;
-
-    if (
-      (overflowY === "auto" || overflowY === "scroll") &&
-      node.scrollHeight > node.clientHeight
-    ) {
-      node.scrollTop = 0;
-      return;
-    }
-
-    node = node.parentElement;
-  }
-}
+export { scrollToTopOfScroller };
 
 const StepIndicator: FunctionComponent<{
   step: DiscoveryImportStep;

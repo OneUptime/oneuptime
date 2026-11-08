@@ -1,10 +1,20 @@
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
+  MAX_NETWORK_TRAFFIC_USAGE_LIST_PAGE_SIZE,
+  MAX_NETWORK_TRAFFIC_USAGE_LIST_SKIP,
+  MAX_NETWORK_TRAFFIC_USAGE_SEARCH_LENGTH,
   NETWORK_TRAFFIC_USAGE_KINDS,
+  NETWORK_TRAFFIC_USAGE_LIST_KINDS,
+  NETWORK_TRAFFIC_USAGE_LIST_PAGE_SIZE,
+  NETWORK_TRAFFIC_USAGE_LIST_SORTS,
   NETWORK_TRAFFIC_USAGE_UPLINK_WINDOW_SECONDS,
   NetworkTrafficUsageFiltersUtil,
   NetworkTrafficUsageKind,
+  NetworkTrafficUsageListKind,
+  NetworkTrafficUsageListRequestUtil,
+  NetworkTrafficUsageListSort,
   NetworkTrafficUsageSummary,
+  getEmptyNetworkTrafficUsageListResult,
   getNetworkTrafficUsageBucketSeconds,
   getUnavailableNetworkTrafficUsageSummary,
   getUsageOctets,
@@ -165,6 +175,146 @@ describe("a page without the source", () => {
     expect(summary.uplinkInterfaces).toEqual([]);
     expect(summary.uplinkSeries).toEqual([]);
     expect(summary.topConversations).toEqual([]);
+  });
+
+  test("its lists have no rows to view all of, and it names no appliance (issue #5762)", () => {
+    const summary: NetworkTrafficUsageSummary =
+      getUnavailableNetworkTrafficUsageSummary({
+        startTime: new Date("2026-10-24T10:00:00.000Z"),
+        endTime: new Date("2026-10-24T11:00:00.000Z"),
+      });
+
+    expect(summary.networkCount).toBe(0);
+    expect(summary.applicationCount).toBe(0);
+    expect(summary.clientCount).toBe(0);
+    expect(summary.deviceAppliance).toBeUndefined();
+  });
+});
+
+/*
+ * Every row of a top list (issue #5762): which list, the search, the sort
+ * and the page a request asks for - each checked, anything unknown refused
+ * rather than quietly read as something else.
+ */
+describe("a whole list's request", () => {
+  test("the three lists and the three sorts, in the order the page offers them", () => {
+    expect(NETWORK_TRAFFIC_USAGE_LIST_KINDS).toEqual([
+      NetworkTrafficUsageListKind.Networks,
+      NetworkTrafficUsageListKind.Applications,
+      NetworkTrafficUsageListKind.Clients,
+    ]);
+    expect(NETWORK_TRAFFIC_USAGE_LIST_SORTS).toEqual([
+      NetworkTrafficUsageListSort.Total,
+      NetworkTrafficUsageListSort.In,
+      NetworkTrafficUsageListSort.Out,
+    ]);
+  });
+
+  test.each([["networks"], ["applications"], ["clients"]])(
+    "the list %p is read as itself",
+    (list: string) => {
+      expect(NetworkTrafficUsageListRequestUtil.readList(list)).toBe(list);
+    },
+  );
+
+  test.each([[undefined], [""], ["uplinks"], ["destinations"], [3], [null]])(
+    "%p is no list: refused",
+    (list: unknown) => {
+      expect(() => {
+        return NetworkTrafficUsageListRequestUtil.readList(list);
+      }).toThrow(BadDataException);
+    },
+  );
+
+  test("no sort is both directions; a sort that is none of the three is refused", () => {
+    expect(NetworkTrafficUsageListRequestUtil.readSort(undefined)).toBe(
+      NetworkTrafficUsageListSort.Total,
+    );
+    expect(NetworkTrafficUsageListRequestUtil.readSort("in")).toBe(
+      NetworkTrafficUsageListSort.In,
+    );
+    expect(NetworkTrafficUsageListRequestUtil.readSort("out")).toBe(
+      NetworkTrafficUsageListSort.Out,
+    );
+    expect(() => {
+      return NetworkTrafficUsageListRequestUtil.readSort("name");
+    }).toThrow(BadDataException);
+  });
+
+  test("the networks add up as the page's Top networks: of its uplinks or its applications, nothing else", () => {
+    expect(NetworkTrafficUsageListRequestUtil.readPrimaryKind(undefined)).toBe(
+      NetworkTrafficUsageKind.Uplink,
+    );
+    expect(
+      NetworkTrafficUsageListRequestUtil.readPrimaryKind("application"),
+    ).toBe(NetworkTrafficUsageKind.Application);
+    expect(() => {
+      return NetworkTrafficUsageListRequestUtil.readPrimaryKind("client");
+    }).toThrow(BadDataException);
+  });
+
+  test("the search: one line, trimmed, its control characters dropped, cut at its longest", () => {
+    expect(NetworkTrafficUsageListRequestUtil.readSearch(undefined)).toBe("");
+    expect(NetworkTrafficUsageListRequestUtil.readSearch("  leeds  ")).toBe(
+      "leeds",
+    );
+    expect(
+      NetworkTrafficUsageListRequestUtil.readSearch("lee\u0000ds\nbranch"),
+    ).toBe("leedsbranch");
+    expect(
+      NetworkTrafficUsageListRequestUtil.readSearch("x".repeat(5000)),
+    ).toHaveLength(MAX_NETWORK_TRAFFIC_USAGE_SEARCH_LENGTH);
+    // SQL is only text here: the database is handed it as a bound value.
+    expect(
+      NetworkTrafficUsageListRequestUtil.readSearch("'; DROP TABLE x; --"),
+    ).toBe("'; DROP TABLE x; --");
+    expect(() => {
+      return NetworkTrafficUsageListRequestUtil.readSearch(42);
+    }).toThrow(BadDataException);
+  });
+
+  test("the page: from the first row, a page of the default size, at most the largest", () => {
+    expect(NetworkTrafficUsageListRequestUtil.readSkip(undefined)).toBe(0);
+    expect(NetworkTrafficUsageListRequestUtil.readLimit(undefined)).toBe(
+      NETWORK_TRAFFIC_USAGE_LIST_PAGE_SIZE,
+    );
+    expect(NetworkTrafficUsageListRequestUtil.readSkip(50)).toBe(50);
+    expect(NetworkTrafficUsageListRequestUtil.readLimit(100)).toBe(100);
+    expect(
+      NetworkTrafficUsageListRequestUtil.readSkip(
+        MAX_NETWORK_TRAFFIC_USAGE_LIST_SKIP,
+      ),
+    ).toBe(MAX_NETWORK_TRAFFIC_USAGE_LIST_SKIP);
+  });
+
+  test.each([
+    ["skip", -1],
+    ["skip", 1.5],
+    ["skip", MAX_NETWORK_TRAFFIC_USAGE_LIST_SKIP + 1],
+    ["skip", "10"],
+    ["limit", 0],
+    ["limit", MAX_NETWORK_TRAFFIC_USAGE_LIST_PAGE_SIZE + 1],
+    ["limit", "25"],
+  ])("%p %p is refused", (field: string, value: unknown) => {
+    expect(() => {
+      return field === "skip"
+        ? NetworkTrafficUsageListRequestUtil.readSkip(value)
+        : NetworkTrafficUsageListRequestUtil.readLimit(value);
+    }).toThrow(BadDataException);
+  });
+
+  test("a page of a list without the source is the list, empty", () => {
+    expect(
+      getEmptyNetworkTrafficUsageListResult(
+        NetworkTrafficUsageListKind.Clients,
+      ),
+    ).toEqual({
+      list: NetworkTrafficUsageListKind.Clients,
+      count: 0,
+      networks: [],
+      applications: [],
+      clients: [],
+    });
   });
 });
 

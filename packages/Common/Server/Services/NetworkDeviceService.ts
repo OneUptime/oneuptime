@@ -3469,6 +3469,65 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The devices of a project whose network controller reading names one of
+   * these serial numbers (issue #5762): the devices a Meraki connection's
+   * Inventory found to be its devices by any of its rules - their own serial
+   * number or MAC, or, for an MX, its name with a MAC of its block or its
+   * address (NetworkControllerInventory) - so an appliance's traffic goes to
+   * the device its details already went to. Serial numbers are compared as
+   * the reading stores them, in upper case, and as given here (the traffic
+   * matcher asks for each as Meraki prints it). Live devices, archived ones
+   * as the matcher's other lookups find them, and nothing else read.
+   */
+  @CaptureSpan()
+  public async findByControllerSerials(data: {
+    projectId: ObjectID;
+    serials: Array<string>;
+    limit: number;
+  }): Promise<Array<{ id: ObjectID; controllerSerial: string }>> {
+    if (data.serials.length === 0) {
+      return [];
+    }
+
+    const rows: Array<{ _id: string; controllerSerial: string | null }> =
+      await this.getRepository().manager.query(
+        `
+      SELECT nd."_id",
+        (nd."discoveredDetails" -> 'controller' -> 'values' ->> 'serialNumber') AS "controllerSerial"
+      FROM "NetworkDevice" AS nd
+      WHERE nd."projectId" = $1
+        AND nd."deletedAt" IS NULL
+        AND upper(btrim(nd."discoveredDetails" -> 'controller' -> 'values' ->> 'serialNumber')) = ANY($2::text[])
+      ORDER BY nd."createdAt" ASC
+      LIMIT $3
+    `,
+        [
+          data.projectId.toString(),
+          data.serials.map((serial: string): string => {
+            return serial.trim().toUpperCase();
+          }),
+          Math.max(1, Math.floor(data.limit)),
+        ],
+      );
+
+    return rows
+      .filter((row: { _id: string; controllerSerial: string | null }) => {
+        return Boolean(row._id) && Boolean(row.controllerSerial);
+      })
+      .map(
+        (row: {
+          _id: string;
+          controllerSerial: string | null;
+        }): { id: ObjectID; controllerSerial: string } => {
+          return {
+            id: new ObjectID(String(row._id)),
+            controllerSerial: String(row.controllerSerial),
+          };
+        },
+      );
+  }
+
+  /*
    * The devices of a project that already hold one of a network controller's
    * identities (NetworkControllerDeviceAdd): every device - archived ones
    * too - whose serial number, MAC (typed, or learned from an ARP table) or

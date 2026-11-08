@@ -492,6 +492,12 @@ jobs:
           # Host Collectors (1.2) joined it from group 8 on 2026-11-06, when
           # the Azure and Google Cloud streaming tests grew Cloud Connect:
           # about 21.4.
+          # Meraki Traffic grew to about 5.7 on 2026-11-08 with #5762's tests
+          # (a page opening on Meraki, an estate of 150 networks opened whole,
+          # searched, sorted and paged, a router linked to its MX and
+          # unlinked, a member, German and dark: about 50 seconds locally),
+          # which would have taken this group to 22.3: Host Collectors (1.2)
+          # moved to group 13. About 21.1.
           - group: 3
             monitor_overview_shard: 1/2
             suites: >-
@@ -500,7 +506,6 @@ jobs:
               test-label-rule-transfer-ui
               test-meraki-traffic-ui
               test-security-events-empty-states-ui
-              test-host-collectors-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
           # group past them. Its two projects, a laptop and a phone, are both
@@ -1329,6 +1334,9 @@ jobs:
           # two-factor and Add to Project runs and a status page's Add in
           # Bulk, watched while they go on): its 1.1 minutes planned as 1.8,
           # this group's sum 22.0. Group 16 has the most room (18.9).
+          # Host Collectors (1.2) joined it from group 3 on 2026-11-08, when
+          # #5762 grew Meraki Traffic there; Reading Direction had left it
+          # for group 20 (17.6): about 18.8.
           - group: 13
             suites: >-
               test-logs-ai-ui
@@ -1339,6 +1347,7 @@ jobs:
               test-status-page-search-ui
               test-accounts-theme-ui
               test-data-security-ui
+              test-host-collectors-ui
           # Added on 2026-10-29, when group 3's run step reached its 28 minutes
           # on two of master's runs (#5393 grew Monitor Overview from 209 tests
           # to 222) and took 24.6 on the next, and groups 5 and 9 took 25.3 and
