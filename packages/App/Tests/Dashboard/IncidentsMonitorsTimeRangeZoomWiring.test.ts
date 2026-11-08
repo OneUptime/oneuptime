@@ -593,7 +593,9 @@ describe("the Root Cause cards zoom through the event's investigation (issues #6
     );
     expect(
       readSquashed(`${DASHBOARD}/Pages/Alerts/EpisodeView/RootCause.tsx`),
-    ).toContain("<AlertEpisodeRootCauseMetricChart alertEpisodeId={modelId} />");
+    ).toContain(
+      "<AlertEpisodeRootCauseMetricChart alertEpisodeId={modelId} />",
+    );
   });
 });
 

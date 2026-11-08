@@ -150,7 +150,9 @@ function postgresOrder(
       startField
     ];
     const leftMs: number =
-      leftStart instanceof Date ? leftStart.getTime() : Number.POSITIVE_INFINITY;
+      leftStart instanceof Date
+        ? leftStart.getTime()
+        : Number.POSITIVE_INFINITY;
     const rightMs: number =
       rightStart instanceof Date
         ? rightStart.getTime()
@@ -398,9 +400,16 @@ describe.each([INCIDENT_KIND, ALERT_KIND])(
       const ids: Array<string> = [];
       const members: Array<ServedMember> = [];
 
-      for (let index: number = 0; index < EPISODE_MEMBER_IDS_PER_REQUEST + 2; index++) {
+      for (
+        let index: number = 0;
+        index < EPISODE_MEMBER_IDS_PER_REQUEST + 2;
+        index++
+      ) {
         ids.push(memberId(index + 10));
-        members.push({ id: memberId(index + 10), startedAt: at(500 - (index % 7)) });
+        members.push({
+          id: memberId(index + 10),
+          startedAt: at(500 - (index % 7)),
+        });
       }
 
       // On the second page: the earliest of all.

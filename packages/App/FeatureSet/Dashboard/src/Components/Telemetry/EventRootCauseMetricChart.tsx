@@ -61,9 +61,11 @@ export const ROOT_CAUSE_SUBJECT_IS_ONE_EVENT: Record<
 
 /*
  * The record's state timeline and the project's states: its moments. An
- * episode's own start and end are read with them (its Overview's rule:
- * getEpisodeRootCauseTimes), as its first member's would not do; left out,
- * they are worked out from the event's start and its timeline.
+ * episode's reader hands its start and end with them, worked out from the
+ * episode's own row by its Overview's rule (getEpisodeRootCauseTimes): its
+ * first member's start is not the episode's. Left out, as an incident's and
+ * an alert's readers leave them, they are worked out from the event's start
+ * and its timeline (getRootCauseTimes).
  */
 export interface RootCauseMoments {
   stateTimeline: Array<EventStateTimelineDate>;

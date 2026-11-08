@@ -1534,7 +1534,10 @@ describe("an episode charts its first member as that member's own Root Cause pag
   test.each([
     ["a metric snapshot", {}],
     ["no snapshot, on a metrics monitor", { telemetryQuery: null }],
-    ["a logs snapshot, on a metrics monitor", { telemetryQuery: STORED_LOGS_SNAPSHOT }],
+    [
+      "a logs snapshot, on a metrics monitor",
+      { telemetryQuery: STORED_LOGS_SNAPSHOT },
+    ],
     [
       "no snapshot and no metrics monitor",
       {
@@ -1560,7 +1563,10 @@ describe("an episode charts its first member as that member's own Root Cause pag
   test.each([
     ["a metric snapshot", {}],
     ["no snapshot, on a metrics monitor", { telemetryQuery: null }],
-    ["a logs snapshot, on a metrics monitor", { telemetryQuery: STORED_LOGS_SNAPSHOT }],
+    [
+      "a logs snapshot, on a metrics monitor",
+      { telemetryQuery: STORED_LOGS_SNAPSHOT },
+    ],
     ["no snapshot and no monitor", { telemetryQuery: null, monitor: null }],
   ])(
     "an alert episode's first member with %s",
@@ -1568,9 +1574,9 @@ describe("an episode charts its first member as that member's own Root Cause pag
       const member: AlertRootCauseRow & EpisodeMemberRootCauseRow =
         alertMember(row);
 
-      expect(getRootCauseMetrics(getAlertEpisodeRootCauseEvent(member))).toEqual(
-        getRootCauseMetrics(getAlertRootCauseEvent(member)),
-      );
+      expect(
+        getRootCauseMetrics(getAlertEpisodeRootCauseEvent(member)),
+      ).toEqual(getRootCauseMetrics(getAlertRootCauseEvent(member)));
     },
   );
 
@@ -1672,10 +1678,7 @@ function episodeTimesOf(
   stateTimeline: Array<EventStateTimelineDate>,
   states: Array<RootCauseState> = STATES,
 ): RootCauseTimes {
-  const models: Array<IncidentState | AlertState> = stateModelsOf(
-    list,
-    states,
-  );
+  const models: Array<IncidentState | AlertState> = stateModelsOf(list, states);
   const times: RootCauseTimes =
     list === StateListType.IncidentState
       ? getIncidentEpisodeRootCauseTimes({
@@ -2058,7 +2061,8 @@ describe("seeded: an episode's card, against its Overview and its first member's
         ruleEventId: id ? MEMBER_ID : undefined,
       });
 
-      const metrics: RootCauseMetrics | null = getRootCauseMetrics(episodeEvent);
+      const metrics: RootCauseMetrics | null =
+        getRootCauseMetrics(episodeEvent);
       expect(metrics).toEqual(getRootCauseMetrics(memberEvent));
 
       if (metrics) {

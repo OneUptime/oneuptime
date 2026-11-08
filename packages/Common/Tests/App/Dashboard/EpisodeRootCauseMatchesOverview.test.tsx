@@ -174,7 +174,11 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import UserUtil from "../../../UI/Utils/User";
-import { SeededRandom, seededRandom, shuffled } from "../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../Helpers/SeededRandom";
 
 const PROJECT_ID: string = "22222222-2222-4222-8222-222222222222";
 const EPISODE_ID: string = "44444444-4444-4444-8444-444444444444";
@@ -574,11 +578,9 @@ function serve(): void {
 
     if (request.modelType === kind.memberModel) {
       const ids: Set<string> = new Set<string>(
-        (request.query["_id"] as Includes).values.map(
-          (id: unknown): string => {
-            return String(id);
-          },
-        ),
+        (request.query["_id"] as Includes).values.map((id: unknown): string => {
+          return String(id);
+        }),
       );
       // Sorted by what the request sorts by, as Postgres sorts it.
       const [sortField, sortOrder]: [string, unknown] = Object.entries(
@@ -721,125 +723,120 @@ afterEach(() => {
 describe.each(KINDS)(
   "seeded: $name's Root Cause page charts what its Overview charts",
   (episodeKind: EpisodeKind) => {
-    test(
-      "the same first member, rule, metrics, window, series and moments, over 70 generated episodes",
-      async () => {
-        kind = episodeKind;
-        serve();
+    test("the same first member, rule, metrics, window, series and moments, over 70 generated episodes", async () => {
+      kind = episodeKind;
+      serve();
 
-        const random: SeededRandom = seededRandom(kind.seed);
-        let compared: number = 0;
-        let rootCauseOnly: number = 0;
-        let neither: number = 0;
-        let resolved: number = 0;
-        let paged: number = 0;
+      const random: SeededRandom = seededRandom(kind.seed);
+      let compared: number = 0;
+      let rootCauseOnly: number = 0;
+      let neither: number = 0;
+      let resolved: number = 0;
+      let paged: number = 0;
 
-        for (let draw: number = 0; draw < 70; draw++) {
-          episode = generateEpisode(random, draw);
-          paged += episode.members.length > EPISODE_MEMBER_IDS_PER_REQUEST ? 1 : 0;
+      for (let draw: number = 0; draw < 70; draw++) {
+        episode = generateEpisode(random, draw);
+        paged +=
+          episode.members.length > EPISODE_MEMBER_IDS_PER_REQUEST ? 1 : 0;
 
-          const first: GeneratedMember | undefined = firstMemberOf(episode);
-          const overview: Record<string, unknown> | undefined =
-            await renderOverview();
-          const rootCause: Record<string, unknown> | undefined =
-            await renderRootCause();
+        const first: GeneratedMember | undefined = firstMemberOf(episode);
+        const overview: Record<string, unknown> | undefined =
+          await renderOverview();
+        const rootCause: Record<string, unknown> | undefined =
+          await renderRootCause();
 
-          // Both pick the earliest started member the reader may see.
-          if (overview) {
-            expect({ draw, member: overview["metricRuleEventId"] }).toEqual({
-              draw,
-              member: first?.id,
-            });
-          }
-
-          // A Root Cause card exactly when that member has metrics behind it.
-          expect({ draw, card: Boolean(rootCause) }).toEqual({
+        // Both pick the earliest started member the reader may see.
+        if (overview) {
+          expect({ draw, member: overview["metricRuleEventId"] }).toEqual({
             draw,
-            card: Boolean(
-              first && (first.snapshotHasMetric || first.monitorHasMetric),
-            ),
+            member: first?.id,
           });
-
-          if (!rootCause) {
-            neither += overview ? 0 : 1;
-            continue;
-          }
-
-          // The member's rule, the episode's subject, and no event of its own.
-          expect({ draw, rule: rootCause["ruleEventId"] }).toEqual({
-            draw,
-            rule: first!.id,
-          });
-          expect(rootCause["eventId"]).toBeUndefined();
-          expect(rootCause["subject"]).toBe(kind.subject);
-          expect(rootCause["impactStartedAt"]).toBeUndefined();
-
-          const query: TelemetryQuery = rootCause[
-            "telemetryQuery"
-          ] as TelemetryQuery;
-
-          if (first!.snapshotHasMetric) {
-            // Charted from its snapshot: exactly what the Overview charts.
-            expect(overview).toBeDefined();
-            expect(overview!["telemetryQuery"]).toEqual(query);
-            expect(overview!["snapshotWindow"]).toEqual(
-              rootCause["evaluationWindow"],
-            );
-            expect(overview!["seriesSummary"]).toBe(rootCause["seriesSummary"]);
-            expect(overview!["subject"]).toBe(kind.subject);
-            expect(rootCause["chartedFromMonitorNow"]).toBeUndefined();
-          } else {
-            // Its monitor as it reads now, which it says.
-            expect(rootCause["chartedFromMonitorNow"]).toEqual({
-              resourceName: "",
-            });
-            expect(rootCause["evaluationWindow"]).toBeNull();
-            expect(
-              query.metricViewData?.queryConfigs[0]?.metricQueryData
-                .filterData.metricName,
-            ).toMatch(/-now$/);
-            rootCauseOnly++;
-          }
-
-          // Anchored alike, whenever the Overview shows a card to anchor.
-          if (overview) {
-            expect({ draw, start: msOf(rootCause["startedAt"]) }).toEqual({
-              draw,
-              start: msOf(overview["startedAt"]),
-            });
-            expect({ draw, end: msOf(rootCause["endedAt"]) }).toEqual({
-              draw,
-              end: msOf(overview["endedAt"]),
-            });
-            expect(rootCause["stateTimeline"]).toEqual(
-              overview["stateTimeline"],
-            );
-            expect(
-              (rootCause["states"] as Array<BaseModel>).map(
-                (state: BaseModel): string => {
-                  return state.id!.toString();
-                },
-              ),
-            ).toEqual(
-              (overview["states"] as Array<BaseModel>).map(
-                (state: BaseModel): string => {
-                  return state.id!.toString();
-                },
-              ),
-            );
-            compared++;
-            resolved += rootCause["endedAt"] ? 1 : 0;
-          }
         }
 
-        // The draws reach every case, not one of them over and over.
-        expect(compared).toBeGreaterThan(10);
-        expect(rootCauseOnly).toBeGreaterThan(5);
-        expect(neither).toBeGreaterThan(5);
-        expect(resolved).toBeGreaterThan(3);
-        expect(paged).toBeGreaterThan(0);
-      },
-      300000,
-    );
+        // A Root Cause card exactly when that member has metrics behind it.
+        expect({ draw, card: Boolean(rootCause) }).toEqual({
+          draw,
+          card: Boolean(
+            first && (first.snapshotHasMetric || first.monitorHasMetric),
+          ),
+        });
+
+        if (!rootCause) {
+          neither += overview ? 0 : 1;
+          continue;
+        }
+
+        // The member's rule, the episode's subject, and no event of its own.
+        expect({ draw, rule: rootCause["ruleEventId"] }).toEqual({
+          draw,
+          rule: first!.id,
+        });
+        expect(rootCause["eventId"]).toBeUndefined();
+        expect(rootCause["subject"]).toBe(kind.subject);
+        expect(rootCause["impactStartedAt"]).toBeUndefined();
+
+        const query: TelemetryQuery = rootCause[
+          "telemetryQuery"
+        ] as TelemetryQuery;
+
+        if (first!.snapshotHasMetric) {
+          // Charted from its snapshot: exactly what the Overview charts.
+          expect(overview).toBeDefined();
+          expect(overview!["telemetryQuery"]).toEqual(query);
+          expect(overview!["snapshotWindow"]).toEqual(
+            rootCause["evaluationWindow"],
+          );
+          expect(overview!["seriesSummary"]).toBe(rootCause["seriesSummary"]);
+          expect(overview!["subject"]).toBe(kind.subject);
+          expect(rootCause["chartedFromMonitorNow"]).toBeUndefined();
+        } else {
+          // Its monitor as it reads now, which it says.
+          expect(rootCause["chartedFromMonitorNow"]).toEqual({
+            resourceName: "",
+          });
+          expect(rootCause["evaluationWindow"]).toBeNull();
+          expect(
+            query.metricViewData?.queryConfigs[0]?.metricQueryData.filterData
+              .metricName,
+          ).toMatch(/-now$/);
+          rootCauseOnly++;
+        }
+
+        // Anchored alike, whenever the Overview shows a card to anchor.
+        if (overview) {
+          expect({ draw, start: msOf(rootCause["startedAt"]) }).toEqual({
+            draw,
+            start: msOf(overview["startedAt"]),
+          });
+          expect({ draw, end: msOf(rootCause["endedAt"]) }).toEqual({
+            draw,
+            end: msOf(overview["endedAt"]),
+          });
+          expect(rootCause["stateTimeline"]).toEqual(overview["stateTimeline"]);
+          expect(
+            (rootCause["states"] as Array<BaseModel>).map(
+              (state: BaseModel): string => {
+                return state.id!.toString();
+              },
+            ),
+          ).toEqual(
+            (overview["states"] as Array<BaseModel>).map(
+              (state: BaseModel): string => {
+                return state.id!.toString();
+              },
+            ),
+          );
+          compared++;
+          resolved += rootCause["endedAt"] ? 1 : 0;
+        }
+      }
+
+      // The draws reach every case, not one of them over and over.
+      expect(compared).toBeGreaterThan(10);
+      expect(rootCauseOnly).toBeGreaterThan(5);
+      expect(neither).toBeGreaterThan(5);
+      expect(resolved).toBeGreaterThan(3);
+      expect(paged).toBeGreaterThan(0);
+    }, 300000);
   },
 );

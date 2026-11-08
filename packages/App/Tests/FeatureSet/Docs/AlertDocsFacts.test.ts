@@ -694,7 +694,9 @@ describe("the episode's Root Cause page charts its first alert's metrics, as its
     );
 
     // The page shows the Root Cause card an alert's page shows...
-    expect(readDashboardSource("Pages/Alerts/EpisodeView/RootCause.tsx")).toContain(
+    expect(
+      readDashboardSource("Pages/Alerts/EpisodeView/RootCause.tsx"),
+    ).toContain(
       "<AlertEpisodeRootCauseMetricChart alertEpisodeId={modelId} />",
     );
     const reader: string = readDashboardSource(
@@ -713,7 +715,9 @@ describe("the episode's Root Cause page charts its first alert's metrics, as its
     ).toContain('startedAtField: "createdAt",');
 
     // ...around when the episode started, with its own moments...
-    const metrics: string = readDashboardSource("Utils/EventRootCauseMetrics.ts");
+    const metrics: string = readDashboardSource(
+      "Utils/EventRootCauseMetrics.ts",
+    );
     expect(metrics).toContain("startedAt: asDate(input.episode?.createdAt),");
     expect(
       readDashboardSource("Components/Telemetry/EventRootCauseMetricChart.tsx"),

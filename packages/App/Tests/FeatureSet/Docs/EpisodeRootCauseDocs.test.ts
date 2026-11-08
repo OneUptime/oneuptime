@@ -78,7 +78,12 @@ describe("the English pages, held to the code", () => {
     expect(lines[heading + 1]).toBe("");
     expect(lines[heading + 2]).toBe(INCIDENT_EPISODES_TEXT);
     // Its last section: nothing after it but the end of the page.
-    expect(lines.slice(heading + 3).join("").trim()).toBe("");
+    expect(
+      lines
+        .slice(heading + 3)
+        .join("")
+        .trim(),
+    ).toBe("");
     // Every episode reads it: an alert episode's page works the same way.
     expect(readPage("en", INCIDENT_EPISODES)).toContain(
       'Everything on this page works the same way for alert episodes: read "alert" where it says "incident".',
@@ -92,7 +97,9 @@ describe("the English pages, held to the code", () => {
     expect(lines[text - 2]).toMatch(
       /^\*\*Developer\*\* and \*\*Advanced\*\* start folded\. On the \*\*Overview\*\*/,
     );
-    expect(lines.slice(0, text).lastIndexOf("## What each page of an episode shows")).toBeGreaterThan(-1);
+    expect(
+      lines.slice(0, text).lastIndexOf("## What each page of an episode shows"),
+    ).toBeGreaterThan(-1);
   });
 
   it("both pages' Root Cause pages show the card, reading the episode's first member as its Overview picks it", () => {
@@ -111,7 +118,9 @@ describe("the English pages, held to the code", () => {
       ],
     ] as Array<[string, string, string, string]>) {
       expect(readDashboardSource(page)).toContain(chart);
-      expect(readDashboardSource(reader)).toContain("<EventRootCauseMetricChart");
+      expect(readDashboardSource(reader)).toContain(
+        "<EventRootCauseMetricChart",
+      );
       expect(readDashboardSource(reader)).toContain(`kind: ${kind},`);
     }
 
@@ -124,16 +133,18 @@ describe("the English pages, held to the code", () => {
     expect(firstMember).toContain("sortOrder: SortOrder.Ascending,");
 
     // The one the episode's Overview charts too.
-    expect(readDashboardSource("Pages/Incidents/EpisodeView/Index.tsx")).toContain(
-      "kind: INCIDENT_EPISODE_FIRST_MEMBER,",
-    );
+    expect(
+      readDashboardSource("Pages/Incidents/EpisodeView/Index.tsx"),
+    ).toContain("kind: INCIDENT_EPISODE_FIRST_MEMBER,");
     expect(readDashboardSource("Pages/Alerts/EpisodeView/Index.tsx")).toContain(
       "kind: ALERT_EPISODE_FIRST_MEMBER,",
     );
   });
 
   it("around when the episode started, with its own moments; the address keeps what changed; the monitor now, said; and no card without metrics", () => {
-    const metrics: string = readDashboardSource("Utils/EventRootCauseMetrics.ts");
+    const metrics: string = readDashboardSource(
+      "Utils/EventRootCauseMetrics.ts",
+    );
     const card: string = readDashboardSource(
       "Components/Telemetry/EventRootCauseMetricChart.tsx",
     );
