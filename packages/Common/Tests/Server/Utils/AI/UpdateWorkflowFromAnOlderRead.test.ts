@@ -621,7 +621,7 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
         "step:log-a",
         "step:log-b",
         'connection:["log-a","out","log-b"]',
-        'connection:["webhook-1","success","log-a"]',
+        'connection:["webhook-1","out","log-a"]',
       ].sort(),
     );
     for (const part of result.recordSeen!.parts) {
@@ -670,7 +670,7 @@ describe("Ask AI read the workflow, someone added a step in the Builder, and Ask
         description: prepared.description,
       }),
     ).toEqual({
-      title: 'Update workflow "Tickets"',
+      title: "Update workflow Tickets",
       description: `Adds Log. Removes Send Message to Slack. ${UNDOES("Send Message to Slack")}`,
     });
 
@@ -1321,7 +1321,7 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
       skipped: 0,
     };
 
-    for (let round: number = 0; round < 150; round++) {
+    for (let round: number = 0; round < 250; round++) {
       nextId = 0;
       records = [];
       server = { graph: graphOf(BASE_DRAFT), revision: 3 + random(5), isEnabled: random(2) === 0 };
@@ -1346,14 +1346,15 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
           // A save in the Builder.
           const steps: Array<string> = stepIdsOf(server.graph);
           const logs: Array<string> = steps.filter((id: string) => id.startsWith("log"));
-          const save: number = random(5);
+          // A moved card as often as anything else: the commonest save beside the panel.
+          const save: number = random(6);
           label++;
 
           if (save === 0 || logs.length === 0) {
             builder.addLogAfter(steps[random(steps.length)]!, `log-t${label}`, `t${label}`);
           } else if (save === 1) {
             builder.setValue(logs[random(logs.length)]!, `theirs ${label}`);
-          } else if (save === 2) {
+          } else if (save === 2 || save === 5) {
             builder.move(steps[random(steps.length)]!);
           } else if (save === 3) {
             builder.remove(logs[random(logs.length)]!);
