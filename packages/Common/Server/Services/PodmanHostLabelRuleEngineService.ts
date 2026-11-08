@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
@@ -99,6 +101,7 @@ class PodmanHostLabelRuleEngineServiceClass
       return await this.applyRules({
         podmanHost: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running Podman host label rules: ${error}`, {
@@ -114,6 +117,8 @@ class PodmanHostLabelRuleEngineServiceClass
   private async applyRules(data: {
     podmanHost: PodmanHost;
     rules: Array<PodmanHostLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { podmanHost, rules } = data;
 
@@ -200,11 +205,12 @@ class PodmanHostLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await PodmanHostService.getRepository()
-      .createQueryBuilder()
-      .relation(PodmanHost, "labels")
-      .of(podmanHost.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: PodmanHostService,
+      resourceId: podmanHost.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory podmanHost.labels so a downstream owner-rule engine in

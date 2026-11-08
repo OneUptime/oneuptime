@@ -14,6 +14,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionState";
 import {
   RUM_APPLICATION_IDLE_COPY,
+  SERVERLESS_FUNCTION_IDLE_COPY,
   ResourceConnectionGuide,
   ResourceConnectionGuideStep,
   getCephClusterConnectionGuide,
@@ -251,15 +252,33 @@ describe("always-on agents keep their stopped card", () => {
       expect(guide.idleCopy).toBeUndefined();
     },
   );
+});
 
+describe("the serverless function guide: idle between invocations", () => {
   /*
-   * A function runs only when invoked, so it is quiet between calls too -
-   * but it is not part of this change: it keeps today's card until its own
-   * wording is decided (a follow-up of issue #6191).
+   * A function runs only when invoked, so it is quiet between calls too:
+   * its card is the idle one, in a function's own words (issue #6269,
+   * ServerlessFunctionStatusAgreement) - never the RUM application's,
+   * which speak of people using an app.
    */
-  test("the serverless function guide is unchanged for now", () => {
-    expect(
-      getServerlessFunctionConnectionGuide("checkout-handler").idleCopy,
-    ).toBeUndefined();
+  test("the serverless function guide is idle between invocations, in its own words", () => {
+    for (const cloudPlatform of [undefined, "aws_lambda", "azure_functions"]) {
+      const guide: ResourceConnectionGuide =
+        getServerlessFunctionConnectionGuide("checkout-handler", cloudPlatform);
+
+      expect(guide.idleCopy).toBe(SERVERLESS_FUNCTION_IDLE_COPY);
+    }
+    expect(SERVERLESS_FUNCTION_IDLE_COPY).toEqual({
+      title: "No invocations in the last 15 minutes",
+      description:
+        "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.",
+      checksLabel: "What to check if it should be running",
+      waitingDescription:
+        "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.",
+    });
+    expect(SERVERLESS_FUNCTION_IDLE_COPY).not.toBe(RUM_APPLICATION_IDLE_COPY);
+    expect(JSON.stringify(SERVERLESS_FUNCTION_IDLE_COPY)).not.toMatch(
+      /people|visit|traffic/i,
+    );
   });
 });

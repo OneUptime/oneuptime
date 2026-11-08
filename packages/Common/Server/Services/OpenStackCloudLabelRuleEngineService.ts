@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import OpenStackCloud from "../../Models/DatabaseModels/OpenStackCloud";
@@ -107,6 +109,7 @@ class OpenStackCloudLabelRuleEngineServiceClass
       return await this.applyRules({
         openStackCloud: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running OpenStack cloud label rules: ${error}`, {
@@ -180,6 +183,8 @@ class OpenStackCloudLabelRuleEngineServiceClass
   private async applyRules(data: {
     openStackCloud: OpenStackCloud;
     rules: Array<OpenStackCloudLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { openStackCloud, rules } = data;
 
@@ -270,11 +275,12 @@ class OpenStackCloudLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await OpenStackCloudService.getRepository()
-      .createQueryBuilder()
-      .relation(OpenStackCloud, "labels")
-      .of(openStackCloud.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: OpenStackCloudService,
+      resourceId: openStackCloud.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory openStackCloud.labels so a downstream owner-rule engine in

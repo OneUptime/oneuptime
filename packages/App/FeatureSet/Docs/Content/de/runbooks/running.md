@@ -89,6 +89,8 @@ Solange der Lauf pausiert, können Sie auch einen späteren automatisierten Schr
 
 Abschließen, Genehmigen, Überspringen und Abbrechen erfordern dieselben Rollen wie das Starten eines Laufs oder die Berechtigung **Edit Runbook Execution**.
 
+Die Seite **Audit-Protokolle** des Runbooks zeigt, wer jeden Lauf gestartet hat, wer jeden seiner Schritte genehmigt, abgeschlossen oder übersprungen hat und wer ihn abgebrochen hat. Ein Schritt steht dort als das, was mit ihm getan wurde, etwa `Approved "Restart the API" (step 3)`, und nie mit dem, was der Schritt ausgegeben hat, oder der Notiz, die dazu hinterlassen wurde.
+
 ## Manuelle und automatisierte Schritte verzahnen
 
 Der klassische Ablauf:

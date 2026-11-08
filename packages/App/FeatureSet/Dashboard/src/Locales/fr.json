@@ -46437,5 +46437,19 @@
   "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "Règles que ce SLO n'a pas encore : {{rules}}. Rien n'est ajouté tant que vous n'avez pas confirmé. Une règle désactivée compte comme configurée : désactivez donc une règle dont vous ne voulez pas au lieu de la supprimer.",
   "Recommended rules not set up": "Règles recommandées non configurées",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Data has arrived from this function in the last 15 minutes.": "Des données de cette fonction sont arrivées au cours des 15 dernières minutes.",
+  "Data has arrived from this service in the last 30 minutes.": "Des données de ce service sont arrivées au cours des 30 dernières minutes.",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Les données sont envoyées lorsque la fonction s'exécute. Invoquez-la une fois, puis actualisez cette page après quelques minutes. La fonction passe à « Reçoit des données » dès l'arrivée de ses premières données.",
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "Aucune donnée n'est encore arrivée de cette fonction. Configurez le SDK OpenTelemetry et invoquez la fonction — cela ne prend que quelques minutes.",
+  "No invocations in the last 15 minutes": "Aucune invocation au cours des 15 dernières minutes",
+  "No recent data": "Aucune donnée récente",
+  "No recent invocations": "Aucune invocation récente",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "Rien n'est encore arrivé de cette fonction. Ajoutez-lui le SDK OpenTelemetry et invoquez-la une fois ; son onglet Documentation explique comment.",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "Rien n'est encore arrivé de ce service. Envoyez ses données OpenTelemetry avec un service.name identique au nom de ce service.",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "Rien n'est arrivé au cours des 15 dernières minutes. Une fonction n'envoie des données que pendant son exécution : c'est donc normal quand rien ne l'a invoquée, par exemple entre deux exécutions planifiées. Si elle devrait s'exécuter, sa Vue d'ensemble indique quoi vérifier.",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "Rien n'est arrivé au cours des 30 dernières minutes. Un service qui n'envoie des données que lorsqu'il traite des requêtes reste silencieux quand personne ne l'appelle. S'il devrait traiter des requêtes, vérifiez qu'il tourne et qu'il envoie toujours sa télémétrie à OneUptime avec ce service.name.",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime a reçu des données de cette fonction pour la dernière fois {{lastHeard}}. Elle n'envoie des données que pendant son exécution : c'est donc normal quand rien ne l'invoque, par exemple entre deux exécutions planifiées.",
+  "Status shows \"No recent invocations\" while the function runs": "Le statut affiche « Aucune invocation récente » alors que la fonction s'exécute",
+  "What to check if it should be running": "Quoi vérifier si elle devrait s'exécuter"
 }

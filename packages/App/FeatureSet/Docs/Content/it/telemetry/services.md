@@ -67,6 +67,8 @@ Il menu laterale di un servizio ha cinque sezioni:
 | **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA**: il servizio gestito dal codice. All'inizio è chiusa. |
 | **Avanzato** | **Impostazioni**, **Registri di audit** ed **Elimina servizio**. **Avanzato** è inizialmente compresso: espandetelo prima. |
 
+Accanto al suo nome, la **Panoramica** di un servizio indica se la sua telemetria arriva: **Riceve dati** finché negli ultimi 30 minuti è arrivato qualcosa, **Nessun dato recente** quando non arriva più nulla e **In attesa di dati** prima della sua prima telemetria. Un servizio che invia span solo mentre gestisce le richieste mostra **Nessun dato recente** ogni volta che nessuno lo chiama, quindi questo da solo non è un guasto.
+
 I proprietari contano anche oltre la pagina: un ruolo con ambito Owned legge la telemetria dei servizi che appartengono a voi o ai vostri team. Vedere [Telemetria](/docs/permissions/index#telemetria).
 
 ## Modificare un servizio
@@ -110,6 +112,10 @@ Verificate che la sua telemetria porti un `service.name`. La telemetria di un br
 
 :::details Visto l'ultima volta è in ritardo
 **Visto l'ultima volta** viene aggiornato circa una volta al minuto, non a ogni lotto, quindi può restare indietro di un minuto circa rispetto alla telemetria in tempo reale.
+:::
+
+:::details Un servizio mostra "Nessun dato recente"
+Negli ultimi 30 minuti non è arrivato nulla da questo servizio. È normale per un servizio che invia telemetria solo mentre gestisce le richieste, quando nessuno lo chiama. Se dovrebbe gestire richieste, controlla che sia in esecuzione, che il suo exporter OpenTelemetry raggiunga OneUptime e che riporti ancora lo stesso `service.name`: un nuovo nome crea un nuovo servizio.
 :::
 
 ## Passaggi successivi

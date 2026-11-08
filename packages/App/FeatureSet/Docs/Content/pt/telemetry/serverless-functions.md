@@ -189,6 +189,8 @@ Assim que a função envia um span, um log ou uma métrica, ela aparece em **Fun
 - **Instâncias**: uma lista ao vivo dos valores de `faas.instance` que a função relata.
 - Páginas completas de **Registros**, **Traços** e **Métricas** limitadas a esta função.
 
+Uma função mostra **Recebendo dados** enquanto sua telemetria chega, e **Sem invocações recentes** após 15 minutos sem telemetria, o que é normal entre as execuções: uma função só envia telemetria enquanto é executada. Uma função adicionada pela API mostra **Aguardando dados** até a chegada da primeira telemetria.
+
 ## Rotule funções e atribua proprietários
 
 Um atributo de recurso que começa com `oneuptime.label.` se torna um rótulo do projeto na função: `oneuptime.label.team=payments` adiciona o rótulo `team:payments`. Adicione os atributos a `OTEL_RESOURCE_ATTRIBUTES`:
@@ -215,8 +217,8 @@ Verifique, nesta ordem:
 **Visão geral**, **Registros**, **Traços** e **Métricas** da função mostram a telemetria cujo `faas.name` é exatamente igual ao nome da função, inclusive maiúsculas e minúsculas. Uma função nomeada por uma `cloud.platform` FaaS e pelo `service.name` dela não precisa de um `faas.name` próprio: o OneUptime grava o `service.name` na telemetria como `faas.name` à medida que ela chega. A telemetria armazenada antes de o OneUptime começar a preencher `faas.name` não é atualizada e fica fora das páginas: invoque a função para enviar telemetria nova. Verifique também o intervalo de tempo no topo da página.
 :::
 
-:::details A função aparece como desconectada
-Uma função passa a desconectada quando o OneUptime não recebe nada dela por 15 minutos; o OneUptime verifica a cada 5 minutos, e o tempo em que ele mesmo não estava recebendo dados não conta. Uma função que só é executada de vez em quando fica desconectada entre as execuções: ela volta a conectada com a telemetria seguinte.
+:::details A função mostra "Sem invocações recentes"
+Uma função mostra **Sem invocações recentes** quando o OneUptime não recebe nada dela por 15 minutos; o OneUptime verifica a cada 5 minutos, e o tempo em que ele mesmo não estava recebendo dados não conta. Isso é normal para uma função que só é executada de vez em quando: ela volta a mostrar **Recebendo dados** com a telemetria seguinte. Se a função está sendo invocada, siga as verificações de uma função que não aparece, acima.
 :::
 
 ## Próximos passos

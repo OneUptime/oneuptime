@@ -373,6 +373,13 @@ export const AUDIT_LOG_REPORTED_COLUMNS: Readonly<
     "guestsWithoutBackupCount",
   ],
   Runner: ["connectionStatus"],
+  /*
+   * Why a run failed: the error a step's script or its Runner reported, or
+   * why OneUptime stopped it. A run's steps are recorded as what happened to
+   * them, never with what a step printed (AuditLogColumnSummaries); this is
+   * a step's error, written by the Worker, and stays out the same way.
+   */
+  RunbookExecution: ["failureReason"],
   ScheduledMaintenanceTemplate: ["scheduleNextEventAt"],
   StorageArray: [
     "openAlertCount",

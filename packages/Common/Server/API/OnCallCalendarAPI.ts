@@ -1892,9 +1892,11 @@ router.post(
         props,
       });
 
+      // Recorded in the audit log as this person's reset of the link.
       const rotation: CalendarFeedRotation =
         await OnCallDutyPolicyScheduleCalendarFeedService.rotateTokenById({
           id: existing.id,
+          props,
         });
 
       await OnCallCalendarFeedCache.purgeForSchedule(scheduleId.toString());
@@ -2129,9 +2131,11 @@ router.post(
         props,
       });
 
+      // Recorded in the audit log as this person's reset of the link.
       const rotation: CalendarFeedRotation =
         await ProjectOnCallCalendarFeedService.rotateTokenById({
           id: existing.id,
+          props,
         });
 
       await OnCallCalendarFeedCache.purgeForProject(projectId.toString());

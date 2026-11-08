@@ -13,5 +13,15 @@ export default interface UpdateOneBy<TBaseModel extends BaseModel> {
    * whether an edit to a public note should notify status page subscribers.
    */
   miscDataProps?: JSONObject | undefined;
+  /*
+   * The columns this write records in the audit log although the model's
+   * audit configuration leaves them out as OneUptime's own: a write
+   * OneUptime makes for a person (OnBehalfOfProps) names the columns that
+   * say what they did - a run they cancelled names its status. Recorded on
+   * this write's entry only; one nobody may read, or a secret, as changed
+   * and never with its value (AuditLogService.recordUpdate's
+   * includeColumns).
+   */
+  auditLogIncludeColumns?: Array<string> | undefined;
   props: DatabaseCommonInteractionProps;
 }

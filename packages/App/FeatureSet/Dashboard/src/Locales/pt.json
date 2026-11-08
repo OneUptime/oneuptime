@@ -46437,5 +46437,19 @@
   "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "Regras que este SLO ainda não tem: {{rules}}. Nada é adicionado até você confirmar. Uma regra desabilitada conta como configurada, então desabilite uma regra que você não quer em vez de excluí-la.",
   "Recommended rules not set up": "Regras recomendadas não configuradas",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Data has arrived from this function in the last 15 minutes.": "Chegaram dados desta função nos últimos 15 minutos.",
+  "Data has arrived from this service in the last 30 minutes.": "Chegaram dados deste serviço nos últimos 30 minutos.",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Os dados são enviados quando a função é executada. Invoque-a uma vez e atualize esta página depois de alguns minutos. A função muda para \"Recebendo dados\" assim que os primeiros dados chegam.",
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "Nenhum dado chegou desta função ainda. Configure o SDK do OpenTelemetry e invoque a função — leva só alguns minutos.",
+  "No invocations in the last 15 minutes": "Sem invocações nos últimos 15 minutos",
+  "No recent data": "Sem dados recentes",
+  "No recent invocations": "Sem invocações recentes",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "Nada chegou desta função ainda. Adicione o SDK do OpenTelemetry a ela e invoque-a uma vez; a aba Documentação dela mostra como.",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "Nada chegou deste serviço ainda. Envie os dados do OpenTelemetry dele com um service.name idêntico ao nome deste serviço.",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "Nada chegou nos últimos 15 minutos. Uma função só envia dados enquanto é executada, então isso é normal quando nada a invocou, por exemplo entre execuções agendadas. Se ela deveria estar em execução, a Visão geral dela mostra o que verificar.",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "Nada chegou nos últimos 30 minutos. Um serviço que só envia dados enquanto atende requisições fica em silêncio quando ninguém o chama. Se ele deveria estar atendendo requisições, verifique se está em execução e se ainda envia sua telemetria ao OneUptime com este service.name.",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "O OneUptime recebeu dados desta função pela última vez {{lastHeard}}. Ela só envia dados enquanto é executada, então isso é normal quando nada a invoca, por exemplo entre execuções agendadas.",
+  "Status shows \"No recent invocations\" while the function runs": "O status mostra \"Sem invocações recentes\" enquanto a função é executada",
+  "What to check if it should be running": "O que verificar se ela deveria estar em execução"
 }

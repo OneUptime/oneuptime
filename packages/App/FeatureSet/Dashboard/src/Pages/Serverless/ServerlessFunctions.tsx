@@ -21,7 +21,11 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import {
+  ServerlessFunctionStatusDescription,
+  describeServerlessFunctionStatus,
+} from "Common/Types/Serverless/ServerlessFunctionStatus";
+import { getServerlessFunctionStatusPillColor } from "../../Components/Serverless/ServerlessFunctionStatusColor";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -162,6 +166,8 @@ const ServerlessFunctions: FunctionComponent<
           cloudProvider: true,
           cloudRegion: true,
           functionVersion: true,
+          // The Status column reads it too, even with Last Seen hidden.
+          lastSeenAt: true,
         }}
         cardProps={{
           title: "Serverless Functions",
@@ -276,13 +282,23 @@ const ServerlessFunctions: FunctionComponent<
             },
             title: "Status",
             type: FieldType.Element,
+            /*
+             * What is true, not "Disconnected" in red: a function nothing
+             * has invoked for a while sends nothing, and says so in grey
+             * (ServerlessFunctionStatus, issue #6269). Hovering says what
+             * the status means and what, if anything, to do.
+             */
             getElement: (item: ServerlessFunction): ReactElement => {
-              const isConnected: boolean =
-                item.otelCollectorStatus === "connected";
+              const status: ServerlessFunctionStatusDescription =
+                describeServerlessFunctionStatus({
+                  otelCollectorStatus: item.otelCollectorStatus,
+                  lastSeenAt: item.lastSeenAt,
+                });
               return (
                 <Pill
-                  text={isConnected ? "Connected" : "Disconnected"}
-                  color={isConnected ? Green : Red}
+                  text={status.label}
+                  color={getServerlessFunctionStatusPillColor(status.tone)}
+                  tooltip={status.description}
                 />
               );
             },

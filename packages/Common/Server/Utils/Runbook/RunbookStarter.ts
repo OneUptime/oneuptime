@@ -16,6 +16,8 @@ import RunbookTriggerType, {
   UNATTENDED_RUNBOOK_TRIGGER_TYPES,
 } from "../../../Types/Runbook/RunbookTriggerType";
 import { hasRunbookInputs } from "../../../Types/Runbook/RunbookInputs";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import UserType from "../../../Types/UserType";
 
 /*
  * THE ONE WAY A RUNBOOK RUN STARTS.
@@ -204,6 +206,28 @@ export class RunbookStarterClass {
     return execution;
   }
 
+  /*
+   * Whose the run's creation is in the audit log. A run a person started -
+   * the fix they approved, the run they asked OneUptime AI for - is theirs:
+   * written as OneUptime, with no project on the request so the person it
+   * names stays (UserAttribution), and the person as its actor
+   * (OnBehalfOfProps). A run nobody started by hand - a rule, a schedule, a
+   * webhook - is OneUptime's own: a system event.
+   */
+  public static getCreateProps(
+    request: Pick<RunbookStartRequest, "triggeredByUserId">,
+  ): DatabaseCommonInteractionProps {
+    if (!request.triggeredByUserId) {
+      return { isRoot: true };
+    }
+
+    return {
+      isRoot: true,
+      userId: request.triggeredByUserId,
+      userType: UserType.User,
+    };
+  }
+
   @CaptureSpan()
   public async start(
     request: RunbookStartRequest,
@@ -242,7 +266,7 @@ export class RunbookStarterClass {
 
     const created: RunbookExecution = await RunbookExecutionService.create({
       data: RunbookStarterClass.buildExecution({ runbook, request }),
-      props: { isRoot: true },
+      props: RunbookStarterClass.getCreateProps(request),
     });
 
     const executionId: ObjectID = new ObjectID(created._id!.toString());

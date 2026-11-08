@@ -46437,5 +46437,19 @@
   "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "Правила, которых у этого SLO пока нет: {{rules}}. Ничего не добавится, пока вы не подтвердите. Отключённое правило считается настроенным, поэтому отключите ненужное правило, а не удаляйте его.",
   "Recommended rules not set up": "Рекомендуемые правила не настроены",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Data has arrived from this function in the last 15 minutes.": "Данные от этой функции поступали в последние 15 минут.",
+  "Data has arrived from this service in the last 30 minutes.": "Данные от этого сервиса поступали в последние 30 минут.",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Данные отправляются, когда функция выполняется. Вызовите её один раз, затем через несколько минут обновите эту страницу. Статус функции сменится на «Данные поступают», как только придут её первые данные.",
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "От этой функции пока не поступало данных. Настройте OpenTelemetry SDK и вызовите функцию — это займёт несколько минут.",
+  "No invocations in the last 15 minutes": "Нет вызовов за последние 15 минут",
+  "No recent data": "Нет недавних данных",
+  "No recent invocations": "Нет недавних вызовов",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "От этой функции пока ничего не поступало. Добавьте в неё OpenTelemetry SDK и вызовите её один раз; на её вкладке «Документация» показано, как это сделать.",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "От этого сервиса пока ничего не поступало. Отправляйте его данные OpenTelemetry с service.name, в точности совпадающим с именем этого сервиса.",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "За последние 15 минут ничего не поступило. Функция отправляет данные, только пока выполняется, поэтому это нормально, когда её никто не вызывал, например между запусками по расписанию. Если она должна работать, на её странице «Обзор» указано, что проверить.",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "За последние 30 минут ничего не поступило. Сервис, который отправляет данные, только пока обрабатывает запросы, молчит, когда к нему никто не обращается. Если он должен обрабатывать запросы, проверьте, что он работает и по-прежнему отправляет телеметрию в OneUptime с этим service.name.",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "Последний раз OneUptime получал данные от этой функции {{lastHeard}}. Она отправляет данные, только пока выполняется, поэтому это нормально, когда её никто не вызывает, например между запусками по расписанию.",
+  "Status shows \"No recent invocations\" while the function runs": "Статус «Нет недавних вызовов», хотя функция выполняется",
+  "What to check if it should be running": "Что проверить, если функция должна работать"
 }
