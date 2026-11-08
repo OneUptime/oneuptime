@@ -75,6 +75,7 @@ L'autonomia è una proiezione in linea retta. Su una finestra mobile, la vecchia
 Il grafico **Burn-down del budget di errore** della **Panoramica** traccia il budget rimanente, in percentuale, lungo la finestra di conformità attuale:
 
 - Una linea allo 0% indica dove il budget è esaurito, e una linea tratteggiata indica la soglia a rischio dello SLO.
+- Quando lo SLO ha una policy del budget di errore, una linea con etichetta segna anche la soglia di ogni livello: vedi [Policy del budget di errore](/docs/slo/error-budget-policy).
 - Per gli SLO a mese di calendario, una linea tenue scende in modo regolare da un budget pieno a inizio mese a uno vuoto all'azzeramento. Sotto quella linea, il mese spende il suo budget troppo in fretta.
 - A ogni valutazione, ogni 5 minuti, viene registrato un punto, quindi il grafico di un nuovo SLO resta vuoto fino alla sua prima valutazione.
 - Trascina sul grafico per ingrandire una parte della finestra. Fai doppio clic, o clic su **Reimposta lo zoom**, per tornare a vedere tutta la finestra.
@@ -126,6 +127,8 @@ stateDiagram-v2
 
 Con la soglia predefinita del 20%, uno SLO a rischio torna integro al 25% di budget rimanente, e uno SLO con il budget esaurito torna a rischio al 2%. Ogni cambio di stato compare nel **Feed** dello SLO, con lo SLI, il budget e il tasso di consumo che lo spiegano.
 
+Uno stato dice quanto budget resta, non cosa fa il tuo team al riguardo. Per metterlo per iscritto per ogni livello di budget rimanente, per esempio alla soglia a rischio o quando il budget è esaurito, dai allo SLO una [policy del budget di errore](/docs/slo/error-budget-policy).
+
 ## Notifiche ai proprietari
 
 Quando uno SLO passa a **A rischio** o **Budget esaurito**, OneUptime avvisa i suoi proprietari:
@@ -143,6 +146,7 @@ Perché uno SLO vicino a un limite non avvisi di continuo, i suoi proprietari ri
 
 :::cards
 - [Avvisi e incidenti di tasso di consumo](/docs/slo/burn-rate-alerts): Avvisa il tuo team quando il budget si consuma troppo in fretta.
+- [Policy del budget di errore](/docs/slo/error-budget-policy): Mettere per iscritto cosa fa il team mentre il budget si esaurisce.
 - [Metriche e dashboard degli SLO](/docs/slo/metrics): Rappresenta il budget nel tempo.
 - [Panoramica degli SLO](/docs/slo/introduction): Obiettivi, finestre e stati di inattività.
 :::

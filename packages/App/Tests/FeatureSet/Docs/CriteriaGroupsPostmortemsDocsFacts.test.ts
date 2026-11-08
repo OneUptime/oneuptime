@@ -39,6 +39,33 @@ import {
 import { POSTMORTEM_RULE_TEMPLATES_TITLE } from "../../../FeatureSet/Dashboard/src/Components/AISettings/PostmortemRulesCopy";
 import { StatusPageDisplaySettingsCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
 import MonitorGroupMonitorsCopy from "../../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMonitorsCopy";
+import {
+  EVALUATION_DETAILS_HEADING,
+  EVALUATION_FACT_LABELS,
+  FILTER_FACT_LABELS,
+  SHOW_EVALUATION_DETAILS,
+  getShownFilters,
+  hasDetailsToShow,
+} from "../../../FeatureSet/Dashboard/src/Components/EventView/EventEvaluationDetailsCopy";
+import {
+  REQUEST_CONTENT_SWITCH_COPY,
+  RESPONSE_CONTENT_MONITOR_TYPES,
+  RESPONSE_CONTENT_SWITCH_COLUMN,
+  RESPONSE_CONTENT_SWITCH_COPY,
+} from "../../../FeatureSet/Dashboard/src/Components/Monitor/ResponseContentSwitchCopy";
+import JavaScriptExpressionValues from "Common/Server/Utils/Monitor/JavaScriptExpressionValues";
+import MonitorEvidenceRedaction from "Common/Server/Utils/Monitor/MonitorEvidenceRedaction";
+import ResponseExcerpt, {
+  MatchExcerptResult,
+  ResponseText,
+} from "Common/Server/Utils/Monitor/ResponseExcerpt";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import {
+  MonitorEvaluationDetailsVersion,
+  MonitorEvaluationExcerpt,
+  MonitorEvaluationFieldValue,
+  MonitorEvaluationFilterDetails,
+} from "Common/Types/Monitor/MonitorEvaluationDetails";
 import SubscriberNotificationResendCopy from "../../../FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -529,6 +556,24 @@ const EPISODE_MENU: string = readDashboardSource(
 );
 const SUMMARY_CARD: string = readDashboardSource(
   "Components/Monitor/SummaryView/Summary.tsx",
+);
+const WHAT_HAPPENED_CARD: string = readDashboardSource(
+  "Components/EventView/EventWhatHappenedCard.tsx",
+);
+const EVALUATION_DETAILS_SECTION: string = readDashboardSource(
+  "Components/EventView/EventEvaluationDetails.tsx",
+);
+const INCIDENT_VIEW_PAGE: string = readDashboardSource(
+  "Pages/Incidents/View/Index.tsx",
+);
+const ALERT_VIEW_PAGE: string = readDashboardSource(
+  "Pages/Alerts/View/Index.tsx",
+);
+const MONITOR_SETTINGS_PAGE: string = readDashboardSource(
+  "Pages/Monitor/View/Settings.tsx",
+);
+const EVALUATION_DETAILS_BUILDER: string = readCommonSource(
+  "Server/Utils/Monitor/MonitorEvaluationDetailsBuilder.ts",
 );
 const GROUPS_PAGE: string = readDashboardSource(
   "Pages/MonitorGroup/MonitorGroups.tsx",
@@ -1432,6 +1477,309 @@ describe("when a criteria's incidents and alerts open and close", () => {
     expect(MONITOR_INCIDENT).toContain('type: "incident-skipped",');
     expect(lifecycle).toContain(
       "To see how a check was judged, open the monitor's **Overview**: the **Monitor Summary** card shows which criteria matched and what each one did, including an incident it skipped because one was already open.",
+    );
+  });
+});
+
+// ---- What an incident or alert keeps of the check -------------------------------------------
+
+describe("what an incident or alert keeps of the check", () => {
+  const kept: string = section(
+    english(CRITERIA_AND_STATUSES),
+    "## What an incident or alert keeps of the check",
+  );
+  const REDACTED: string = MonitorEvidenceRedaction.REDACTED;
+
+  it("is kept on the incident or the alert itself, which only OneUptime writes: one opened by hand has none", () => {
+    for (const model of [new Incident(), new Alert()]) {
+      const access: ColumnAccessControl | null =
+        model.getColumnAccessControlFor("evaluationDetails");
+
+      expect(access?.create).toEqual([]);
+      expect(access?.update).toEqual([]);
+      expect((access?.read || []).length).toBeGreaterThan(0);
+    }
+
+    // The monitor's incident and alert creators write it, from the check.
+    expect(MONITOR_INCIDENT).toContain("evaluationDetails");
+    expect(MONITOR_ALERT).toContain("evaluationDetails");
+    expect(kept).toContain(
+      "An incident or an alert a monitor opens keeps the check that opened it, so you can see why long after the monitor's own logs are gone.",
+    );
+    expect(kept).toContain(
+      "An incident or alert opened by hand, or before evaluation details were kept, has none.",
+    );
+  });
+
+  it("shows Evaluation details under the root cause: the criteria and what each filter that matched found, the rest and the check itself behind Show details", () => {
+    expect(EVALUATION_DETAILS_HEADING).toBe("Evaluation details");
+    expect(SHOW_EVALUATION_DETAILS).toBe("Show details");
+    expect([
+      EVALUATION_FACT_LABELS.request,
+      EVALUATION_FACT_LABELS.checked,
+      EVALUATION_FACT_LABELS.probe,
+      EVALUATION_FACT_LABELS.statusCode,
+      EVALUATION_FACT_LABELS.responseTime,
+    ]).toEqual(["Request", "Checked", "Probe", "Status code", "Response time"]);
+
+    const matched: MonitorEvaluationFilterDetails = {
+      checkOn: CheckOn.ResponseStatusCode,
+      filterType: FilterType.GreaterThan,
+      value: 499,
+      met: true,
+      message: "Response Status Code was 503, above the 499 threshold.",
+      actual: "503",
+    };
+    const notMatched: MonitorEvaluationFilterDetails = {
+      checkOn: CheckOn.ResponseTime,
+      filterType: FilterType.GreaterThan,
+      value: 5000,
+      met: false,
+      message: "Response Time (in ms) was 120 ms.",
+    };
+
+    // Folded: the filters that matched. Show details adds the others.
+    expect(getShownFilters([notMatched, matched], false)).toEqual([matched]);
+    expect(getShownFilters([notMatched, matched], true)).toEqual([
+      matched,
+      notMatched,
+    ]);
+
+    // The check itself - the request, when, the probe, what came back - opens with them.
+    expect(EVALUATION_DETAILS_SECTION).toContain(
+      "<CheckFacts details={details} isOpen={isShowingDetails} />",
+    );
+    expect(
+      hasDetailsToShow({
+        version: MonitorEvaluationDetailsVersion,
+        monitorType: MonitorType.API,
+        evaluatedAt: new Date("2026-11-08T10:04:12.000Z"),
+        filterCondition: FilterCondition.All,
+        filters: [matched],
+        request: { method: "GET", url: "https://api.example.com/health" },
+        response: { statusCode: 503, responseTimeInMs: 1234 },
+      }),
+    ).toBe(true);
+
+    // Under the root cause of the What happened card, on both pages.
+    const rootCause: number = WHAT_HAPPENED_CARD.indexOf(
+      'translator.translateText("Root cause")',
+    );
+
+    expect(rootCause).toBeGreaterThan(0);
+    expect(
+      WHAT_HAPPENED_CARD.indexOf("<EventEvaluationDetails"),
+    ).toBeGreaterThan(rootCause);
+
+    for (const page of [INCIDENT_VIEW_PAGE, ALERT_VIEW_PAGE]) {
+      expect(page).toContain("evaluationDetails: true,");
+      expect(page).toContain("evaluationDetails={");
+    }
+
+    expect(kept).toContain(
+      "Under its root cause, **Evaluation details** names the criteria that matched and, for each filter that matched, what the check found. **Show details** adds the rest of the evidence, the filters that did not match, and the check itself: the request, when it ran, from which probe and what came back. What a filter found can be:",
+    );
+  });
+
+  it("names where a Response Body filter matched, with a short excerpt around the match, marked, never the whole body", () => {
+    const body: string = JSON.stringify({
+      padding: "x".repeat(5000),
+      checks: [
+        { name: "database", status: "ok" },
+        { name: "cache", status: "down: connection refused" },
+      ],
+    });
+    const response: ResponseText = ResponseExcerpt.readText(
+      body,
+    ) as ResponseText;
+    const found: MatchExcerptResult = ResponseExcerpt.aroundMatch({
+      response: response,
+      needle: "down",
+    }) as MatchExcerptResult;
+    const excerpt: MonitorEvaluationExcerpt =
+      found.excerpt as MonitorEvaluationExcerpt;
+    const excerptText: string = `${excerpt.before}${excerpt.match}${excerpt.after}`;
+
+    expect(found.path).toBe("checks[1].status");
+    expect(excerpt.match).toBe("down");
+    expect(excerpt.isCutAtStart).toBe(true);
+    expect(excerptText.length).toBeLessThan(body.length / 4);
+
+    // The section names the place and marks the match.
+    expect(FILTER_FACT_LABELS.field).toBe("Found at");
+    expect(FILTER_FACT_LABELS.excerpt).toBe("Excerpt");
+    expect(EVALUATION_DETAILS_SECTION).toContain(
+      'data-testid="evaluation-excerpt-match"',
+    );
+
+    expect(CheckOn.ResponseBody).toBe("Response Body");
+    expect(CheckOn.ResponseHeaderValue).toBe("Response Header Value");
+    expect(kept).toContain(
+      "- **The field.** Where a **Response Body** filter matched in a JSON body, such as `checks[1].status`, or the header a **Response Header Value** filter matched.",
+    );
+    expect(kept).toContain(
+      "- **An excerpt.** A short piece of the response around the match, with the match marked: never the whole body.",
+    );
+  });
+
+  it("lists what each value a JavaScript Expression reads held when it ran", () => {
+    const values: Array<MonitorEvaluationFieldValue> =
+      JavaScriptExpressionValues.readReferences({
+        expression: "{{responseBody.status}} === 'down'",
+        storageMap: { responseBody: { status: "down" } },
+      }).values;
+
+    // The section writes each one as "path = value".
+    expect(EVALUATION_DETAILS_SECTION).toContain('{" = "}');
+    expect(
+      values.map((value: MonitorEvaluationFieldValue): string => {
+        return `${value.path} = ${value.value}`;
+      }),
+    ).toEqual(['responseBody.status = "down"']);
+    expect(FILTER_FACT_LABELS.values).toBe("Values");
+
+    expect(CheckOn.JavaScriptExpression).toBe("JavaScript Expression");
+    expect(kept).toContain(
+      '- **The values.** What each value a **JavaScript Expression** reads held when it ran, such as `responseBody.status = "down"`.',
+    );
+  });
+
+  it("masks secrets and personal data first: by a header's or a field's name, and text shaped like one", () => {
+    expect(
+      MonitorEvidenceRedaction.redactHeaders({
+        Authorization: "Bearer 8f2b1c9d0e7a",
+        Cookie: "sid=42",
+        "Set-Cookie": "sid=42; HttpOnly",
+        "Content-Type": "application/json",
+      }),
+    ).toEqual({
+      Authorization: REDACTED,
+      Cookie: REDACTED,
+      "Set-Cookie": REDACTED,
+      "Content-Type": "application/json",
+    });
+
+    // Values no text rule would catch: the names alone mask them.
+    expect(
+      MonitorEvidenceRedaction.redactJson({
+        password: "hunter2",
+        token: "t-1",
+        api_key: "k-1",
+        session: "s-1",
+        email: "ana.lopez",
+        status: "down",
+      }),
+    ).toEqual({
+      password: REDACTED,
+      token: REDACTED,
+      api_key: REDACTED,
+      session: REDACTED,
+      email: REDACTED,
+      status: "down",
+    });
+
+    const jwt: string =
+      "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
+
+    for (const secret of [
+      "Bearer 8f2b1c9d0e7a5b3c",
+      jwt,
+      "4111111111111111",
+      "ana@example.com",
+    ]) {
+      const text: string = MonitorEvidenceRedaction.redactText(
+        `checkout failed for ${secret} at step 2`,
+      );
+
+      expect({ secret, kept: text.includes(secret) }).toEqual({
+        secret,
+        kept: false,
+      });
+    }
+
+    // Ids and times are the evidence, and stay.
+    expect(
+      MonitorEvidenceRedaction.redactText("order 1700000000000 failed"),
+    ).toBe("order 1700000000000 failed");
+
+    expect(kept).toContain(
+      "Secrets and personal data are masked before anything is kept: headers such as `Authorization`, `Cookie` and `Set-Cookie`, fields whose names say `password`, `token`, `key`, `session` or `email`, and text that looks like a bearer token, a JWT, a card number or an email address.",
+    );
+  });
+
+  it("keeps the URL as the monitor was set up: a secret's name, never its value, and no secret query value", () => {
+    expect(
+      MonitorEvidenceRedaction.redactUrl(
+        "https://api.example.com/v1/{{monitorSecrets.TENANT}}/health?api_key=abc123&page=2",
+      ),
+    ).toBe(
+      `https://api.example.com/v1/{{monitorSecrets.TENANT}}/health?api_key=${REDACTED}&page=2`,
+    );
+
+    // The details read the step as configured, not what the probe was handed.
+    expect(EVALUATION_DETAILS_BUILDER).toContain(
+      "MonitorRecordEvidence.getStepDestination(input.monitorStep)",
+    );
+    expect(kept).toContain(
+      "The request's URL is the one the monitor was set up with, so `{{monitorSecrets.NAME}}` stays a name, and a secret query value is masked.",
+    );
+  });
+
+  it("keeps no part of the response for a Website or API monitor set not to, on its Advanced → Settings page; an Incoming Request monitor has the same switch for requests", () => {
+    expect(RESPONSE_CONTENT_MONITOR_TYPES).toEqual([
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.IncomingRequest,
+    ]);
+    expect(RESPONSE_CONTENT_SWITCH_COPY.cardTitle).toBe("Response content");
+    expect(RESPONSE_CONTENT_SWITCH_COPY.switchTitle).toBe(
+      "Keep response content on incidents and alerts",
+    );
+    expect(RESPONSE_CONTENT_SWITCH_COPY.offDescription).toBe(
+      "Incidents and alerts keep no part of the response: only which filters matched, the status code and the response time.",
+    );
+    expect(REQUEST_CONTENT_SWITCH_COPY.cardTitle).toBe("Request content");
+    expect(REQUEST_CONTENT_SWITCH_COPY.switchTitle).toBe(
+      "Keep request content on incidents and alerts",
+    );
+
+    // On to start: a monitor keeps its response content until it is told not to.
+    expect(
+      new Monitor().getTableColumnMetadata(RESPONSE_CONTENT_SWITCH_COLUMN)
+        .defaultValue,
+    ).toBe(true);
+
+    // The card is on the monitor's Settings page, in its menu's Advanced section.
+    expect(MONITOR_SETTINGS_PAGE).toContain("<ResponseContentCard");
+    expect(between(MONITOR_MENU, "const advancedItems", "];")).toContain(
+      'title: "Settings"',
+    );
+    expect(compact(MONITOR_MENU)).toContain(
+      compact('title: "Advanced", items: advancedItems,'),
+    );
+
+    // What it changes is what a record keeps when it is opened.
+    expect(MONITOR_INCIDENT).toContain(
+      "keepResponseContent: MonitorRecordEvidence.keepsResponseContent(",
+    );
+    expect(MONITOR_ALERT).toContain(
+      "keepResponseContent: MonitorRecordEvidence.keepsResponseContent(",
+    );
+
+    expect(kept).toContain(
+      "> When a Website or API monitor's responses are sensitive in themselves, turn off **Keep response content on incidents and alerts** in the **Response content** card on its **Advanced → Settings** page. Its incidents and alerts then keep which filters matched, the status code and the response time, and no part of the response. An Incoming Request monitor has the same switch for the requests it receives: **Keep request content on incidents and alerts**, in the **Request content** card. The switch applies to the incidents and alerts opened after you change it.",
+    );
+  });
+
+  it("is named on the incident's and the alert's Overview, which link here", () => {
+    const link: string =
+      "See [What an incident or alert keeps of the check](/docs/monitor/criteria-and-statuses#what-an-incident-or-alert-keeps-of-the-check).";
+
+    expect(english("incidents/index")).toContain(
+      `When a monitor declared the incident, **Evaluation details** under its root cause names the filters that matched and what each found, and **Show details** adds an excerpt of the response and the check itself. ${link}`,
+    );
+    expect(english("alerts/index")).toContain(
+      `When a monitor created the alert, **Evaluation details** under its root cause names the filters that matched and what each found, and **Show details** adds an excerpt of the response and the check itself. ${link}`,
     );
   });
 });

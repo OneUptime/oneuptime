@@ -75,6 +75,7 @@ Räckvidden är en rak framskrivning. I ett rullande fönster ger gammalt drifts
 Diagrammet **Nedbränning av felbudget** i **Översikt** visar den återstående budgeten, i procent, över det aktuella efterlevnadsfönstret:
 
 - En linje vid 0 % markerar var budgeten tar slut, och en streckad linje markerar SLO:ets tröskel för riskzon.
+- När SLO:et har en felbudgetpolicy markerar en linje med etikett också tröskeln för varje nivå: se [Felbudgetpolicy](/docs/slo/error-budget-policy).
 - För SLO:er med kalendermånad sjunker en svag linje jämnt från en full budget i början av månaden till en tom vid nollställningen. Under den linjen förbrukar månaden sin budget för snabbt.
 - En punkt registreras vid varje utvärdering, var 5:e minut, så ett nytt SLO:s diagram är tomt fram till dess första utvärdering.
 - Dra över diagrammet för att zooma in på en del av fönstret. Dubbelklicka, eller klicka på **Återställ zoom**, för att se hela fönstret igen.
@@ -126,6 +127,8 @@ stateDiagram-v2
 
 Med standardtröskeln på 20 % blir ett SLO i riskzonen felfritt igen vid 25 % återstående budget, och ett SLO med förbrukad budget hamnar i riskzonen igen vid 2 %. Varje statusändring visas i SLO:ets **Feed**, med den SLI, den budget och den förbrukningstakt som förklarar den.
 
+En status säger hur mycket budget som finns kvar, inte vad ditt team gör åt det. För att skriva ned det för varje nivå av återstående budget, till exempel vid tröskeln för riskzon eller när budgeten är förbrukad, ger du SLO:et en [felbudgetpolicy](/docs/slo/error-budget-policy).
+
 ## Aviseringar till ägare
 
 När ett SLO går över till **I riskzonen** eller **Budget förbrukad** aviserar OneUptime dess ägare:
@@ -143,6 +146,7 @@ För att ett SLO nära en gräns inte ska avisera hela tiden får dess ägare h�
 
 :::cards
 - [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts): Larma ditt team när budgeten förbrukas för snabbt.
+- [Felbudgetpolicy](/docs/slo/error-budget-policy): Skriv ned vad teamet gör medan budgeten tar slut.
 - [SLO-metriker och -instrumentpaneler](/docs/slo/metrics): Visa budgeten över tid i ett diagram.
 - [SLO:er – Översikt](/docs/slo/introduction): Mål, fönster och driftstoppsstatusar.
 :::

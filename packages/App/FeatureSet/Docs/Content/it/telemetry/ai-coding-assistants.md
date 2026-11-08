@@ -83,7 +83,7 @@ Su un punto dati di una metrica l'elenco è più corto e inizia dall'email, perc
 
 | Colonna | Chiavi, dalla preferita |
 | --- | --- |
-| Dipendente | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Dipendente | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Team / centro di costo | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Modello | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime legge anche i token da `gen_ai.client.token.usage`, `gen_ai.client.tok
 Due cose da sapere prima di leggere i numeri:
 
 - **`gemini_cli.token.usage` è escluso di proposito.** Gemini CLI invia i suoi token due volte, come metrica propria e come `gen_ai.client.token.usage`, e leggerle entrambe li raddoppierebbe. I suoi token vengono contati una volta, tramite `gen_ai.client.token.usage`. Gemini CLI non invia alcuna metrica di costo: attiva le sue tracce perché ogni chiamata abbia un prezzo.
-- **Vengono contati solo i token di input e di output.** Il tipo di token viene letto da `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` o `token_type`, e contano solo `input` e `output` (o i vecchi `prompt` e `completion`). Letture e scritture della cache, il `total` di Codex (che ripete gli altri) e `reasoning_output` (parte di `output`) restano fuori, quindi un totale ricavato dalle metriche è più piccolo della somma di tutto ciò che uno strumento invia.
+- **Vengono contati solo i token di input e di output.** Il tipo di token viene letto da `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` o `token_type`, e contano solo `input` e `output` (o i vecchi `prompt` e `completion`), con `cacheRead` e `cacheCreation` di Claude Code come input, perché il suo `input` li esclude. Le altre letture e scritture della cache, il `total` di Codex (che ripete gli altri) e `reasoning_output` (parte di `output`) restano fuori, quindi un totale ricavato dalle metriche è più piccolo della somma di tutto ciò che uno strumento invia.
 
 ## La scheda Utilizzo
 

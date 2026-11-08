@@ -5,6 +5,10 @@ import AnalyticsDatabaseService, {
 } from "./AnalyticsDatabaseService";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getStorageTableName,
+  onClusterClause,
+} from "../Utils/AnalyticsDatabase/ClusterConfig";
 import TelemetryReadScopeUtil, {
   TelemetryServiceFilter,
 } from "../Utils/Telemetry/TelemetryReadScope";
@@ -19,6 +23,8 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import {
+  MAX_NETWORK_TRAFFIC_USAGE_LIST_PAGE_SIZE,
+  MAX_NETWORK_TRAFFIC_USAGE_LIST_SKIP,
   MAX_NETWORK_TRAFFIC_USAGE_WINDOW_HOURS,
   NETWORK_TRAFFIC_USAGE_TOP_LIMIT,
   NetworkTrafficUsageApplicationRow,
@@ -28,6 +34,9 @@ import {
   NetworkTrafficUsageFilters,
   NetworkTrafficUsageKind,
   NetworkTrafficUsageKindTotals,
+  NetworkTrafficUsageListKind,
+  NetworkTrafficUsageListResult,
+  NetworkTrafficUsageListSort,
   NetworkTrafficUsageNetworkRow,
   NetworkTrafficUsageSeriesPoint,
   NetworkTrafficUsageTotals,
@@ -105,6 +114,65 @@ export interface NetworkTrafficUsageAggregates {
   topDestinations: Array<NetworkTrafficUsageDestinationRow>;
   topClients: Array<NetworkTrafficUsageClientRow>;
   topConversations: Array<NetworkTrafficUsageConversationRow>;
+  // How many rows Top networks, Top applications and Top clients have in all.
+  networkCount: number;
+  applicationCount: number;
+  clientCount: number;
+}
+
+// One page of a whole list, as getList reads it.
+export interface NetworkTrafficUsageListQuery {
+  query: NetworkTrafficUsageQuery;
+  list: NetworkTrafficUsageListKind;
+  // The kind Top networks is of on the page: the networks' list adds up the same.
+  primaryKind: NetworkTrafficUsageKind;
+  search: string;
+  sortBy: NetworkTrafficUsageListSort;
+  skip: number;
+  limit: number;
+}
+
+/*
+ * An appliance the project's connections reported uplink traffic of, as
+ * "Link to a Meraki appliance" lists it: by its newest window, so a
+ * renamed appliance reads as it is called now.
+ */
+export interface NetworkTrafficUsageApplianceRow {
+  serial: string;
+  name: string;
+  controllerNetworkId: string;
+  controllerNetworkName: string;
+  connectionId: string;
+  // Whose its newest rows are: a device's ID, or the project's (its bucket).
+  networkDeviceId: string;
+  lastWindowEndAt: string;
+  octets: number;
+}
+
+/*
+ * Stored traffic to file under another device (issue #5762): an appliance's
+ * uplinks and their health by its serial number, a network's applications
+ * and clients by the network - only the rows `fromDeviceId` holds now: the
+ * project's bucket when an appliance became a device, the device when its
+ * link was undone.
+ */
+export interface NetworkTrafficUsageRefile {
+  projectId: ObjectID;
+  // One connection's rows; every connection's when absent.
+  connectionId?: ObjectID | undefined;
+  fromDeviceId: ObjectID;
+  appliances: Array<{ serial: string; deviceId: ObjectID }>;
+  networks: Array<{ controllerNetworkId: string; deviceId: ObjectID }>;
+  // Rows whose window starts before this are left: the table keeps none older.
+  since: Date;
+}
+
+// Where a mutation is written: the local storage table, on every node.
+export interface NetworkTrafficUsageStorageTable {
+  databaseName: string;
+  storageTable: string;
+  // " ON CLUSTER '...'", or "" for a table of one node (tests).
+  onCluster: string;
 }
 
 export interface NetworkTrafficUsageFreshness {
@@ -325,6 +393,11 @@ export default class NetworkTrafficUsageAggregationService {
       primaryKind === NetworkTrafficUsageKind.Uplink
         ? kindTotals(uplinkTotalsRows)
         : applicationTotals;
+    const primaryTotalsRow: JSONObject | undefined = (
+      primaryKind === NetworkTrafficUsageKind.Uplink
+        ? uplinkTotalsRows
+        : applicationTotalsRows
+    )?.[0];
 
     return {
       primaryKind,
@@ -335,6 +408,9 @@ export default class NetworkTrafficUsageAggregationService {
       },
       applicationTotals,
       clientTotals: kindTotals(clientTotalsRows),
+      networkCount: toBytes(primaryTotalsRow?.["networkTotal"]),
+      applicationCount: toBytes(applicationTotalsRows?.[0]?.["listTotal"]),
+      clientCount: toBytes(clientTotalsRows?.[0]?.["listTotal"]),
       series: (seriesRows || []).map(
         (row: JSONObject): NetworkTrafficUsageSeriesPoint => {
           return {
@@ -345,14 +421,7 @@ export default class NetworkTrafficUsageAggregationService {
         },
       ),
       topNetworks: (networkRows || []).map(
-        (row: JSONObject): NetworkTrafficUsageNetworkRow => {
-          return {
-            controllerNetworkId: toText(row["networkKey"]),
-            name: toText(row["networkName"]),
-            sentOctets: toBytes(row["totalSent"]),
-            receivedOctets: toBytes(row["totalReceived"]),
-          };
-        },
+        NetworkTrafficUsageAggregationService.readNetworkRow,
       ),
       topUplinks: (uplinkRows || []).map(
         (row: JSONObject): NetworkTrafficUsageUplinkRow => {
@@ -382,16 +451,7 @@ export default class NetworkTrafficUsageAggregationService {
         uplinkHealthSeriesRows || [],
       ),
       topApplications: (applicationRows || []).map(
-        (row: JSONObject): NetworkTrafficUsageApplicationRow => {
-          return {
-            application: toText(row["applicationKey"]),
-            protocol: toText(row["topProtocol"]),
-            port: toBytes(row["topPort"]),
-            sentOctets: toBytes(row["totalSent"]),
-            receivedOctets: toBytes(row["totalReceived"]),
-            flows: toBytes(row["totalFlows"]),
-          };
-        },
+        NetworkTrafficUsageAggregationService.readApplicationRow,
       ),
       topDestinations: (destinationRows || []).map(
         (row: JSONObject): NetworkTrafficUsageDestinationRow => {
@@ -406,18 +466,7 @@ export default class NetworkTrafficUsageAggregationService {
         },
       ),
       topClients: (clientRows || []).map(
-        (row: JSONObject): NetworkTrafficUsageClientRow => {
-          return {
-            clientKey: toText(row["clientKeyValue"]),
-            name: toText(row["clientNameValue"]),
-            ip: toText(row["clientIpValue"]),
-            mac: toText(row["clientMacValue"]),
-            manufacturer: toText(row["manufacturerValue"]),
-            controllerNetworkName: toText(row["networkName"]),
-            sentOctets: toBytes(row["totalSent"]),
-            receivedOctets: toBytes(row["totalReceived"]),
-          };
-        },
+        NetworkTrafficUsageAggregationService.readClientRow,
       ),
       topConversations: (conversationRows || []).map(
         (row: JSONObject): NetworkTrafficUsageConversationRow => {
@@ -436,6 +485,175 @@ export default class NetworkTrafficUsageAggregationService {
         },
       ),
     };
+  }
+
+  // A row of Top networks, or of the whole list of them.
+  public static readNetworkRow(row: JSONObject): NetworkTrafficUsageNetworkRow {
+    return {
+      controllerNetworkId: toText(row["networkKey"]),
+      name: toText(row["networkName"]),
+      sentOctets: toBytes(row["totalSent"]),
+      receivedOctets: toBytes(row["totalReceived"]),
+    };
+  }
+
+  public static readApplicationRow(
+    row: JSONObject,
+  ): NetworkTrafficUsageApplicationRow {
+    return {
+      application: toText(row["applicationKey"]),
+      protocol: toText(row["topProtocol"]),
+      port: toBytes(row["topPort"]),
+      sentOctets: toBytes(row["totalSent"]),
+      receivedOctets: toBytes(row["totalReceived"]),
+      flows: toBytes(row["totalFlows"]),
+    };
+  }
+
+  public static readClientRow(row: JSONObject): NetworkTrafficUsageClientRow {
+    return {
+      clientKey: toText(row["clientKeyValue"]),
+      name: toText(row["clientNameValue"]),
+      ip: toText(row["clientIpValue"]),
+      mac: toText(row["clientMacValue"]),
+      manufacturer: toText(row["manufacturerValue"]),
+      controllerNetworkName: toText(row["networkName"]),
+      sentOctets: toBytes(row["totalSent"]),
+      receivedOctets: toBytes(row["totalReceived"]),
+    };
+  }
+
+  /*
+   * One page of a whole list (issue #5762): its rows, searched, sorted and
+   * paged by the database, and how many rows the search matches in all -
+   * the page's read scope and filters held exactly as the top lists hold
+   * them, so its first rows are the top list's.
+   */
+  @CaptureSpan()
+  public static async getList(
+    data: NetworkTrafficUsageListQuery,
+  ): Promise<NetworkTrafficUsageListResult> {
+    const [rows, countRows]: Array<Array<JSONObject>> = await Promise.all([
+      NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildListStatement(data),
+      ),
+      NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildListCountStatement(data),
+      ),
+    ]);
+
+    return {
+      list: data.list,
+      count: toBytes(countRows?.[0]?.["listTotal"]),
+      networks:
+        data.list === NetworkTrafficUsageListKind.Networks
+          ? (rows || []).map(
+              NetworkTrafficUsageAggregationService.readNetworkRow,
+            )
+          : [],
+      applications:
+        data.list === NetworkTrafficUsageListKind.Applications
+          ? (rows || []).map(
+              NetworkTrafficUsageAggregationService.readApplicationRow,
+            )
+          : [],
+      clients:
+        data.list === NetworkTrafficUsageListKind.Clients
+          ? (rows || []).map(
+              NetworkTrafficUsageAggregationService.readClientRow,
+            )
+          : [],
+    };
+  }
+
+  /*
+   * The appliances the project's connections reported uplink traffic of
+   * since `since`, as the caller may read them (`devices`), each as its
+   * newest window describes it - or only those of `serials`, when given.
+   */
+  @CaptureSpan()
+  public static async getAppliances(data: {
+    projectId: ObjectID;
+    devices: TelemetryServiceFilter;
+    since: Date;
+    serials?: Array<string> | undefined;
+    controllerNetworkIds?: Array<string> | undefined;
+    limit: number;
+  }): Promise<Array<NetworkTrafficUsageApplianceRow>> {
+    const rows: Array<JSONObject> =
+      await NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildAppliancesStatement(data),
+      );
+
+    return rows
+      .map((row: JSONObject): NetworkTrafficUsageApplianceRow => {
+        const lastMs: number = toNumber(row["lastWindowEndMs"]);
+
+        return {
+          serial: toText(row["serialKey"]),
+          name: toText(row["applianceName"]),
+          controllerNetworkId: toText(row["networkKey"]),
+          controllerNetworkName: toText(row["networkName"]),
+          connectionId: toText(row["connectionKey"]),
+          networkDeviceId: toText(row["deviceKey"]),
+          lastWindowEndAt: lastMs > 0 ? new Date(lastMs).toISOString() : "",
+          octets: toBytes(row["totalOctets"]),
+        };
+      })
+      .filter((row: NetworkTrafficUsageApplianceRow): boolean => {
+        return Boolean(row.serial);
+      });
+  }
+
+  /*
+   * Where the rows are stored: the local table of the database the service
+   * reads, on every node of the cluster - as every data mutation of the
+   * analytics schema is written (StatementGenerator.toUpdateStatement).
+   */
+  public static getStorageTable(): NetworkTrafficUsageStorageTable {
+    if (!NetworkTrafficUsageService.database) {
+      NetworkTrafficUsageService.useDefaultDatabase();
+    }
+
+    return {
+      databaseName:
+        NetworkTrafficUsageService.database.getDatasourceOptions().database!,
+      storageTable: getStorageTableName(TABLE_NAME),
+      onCluster: onClusterClause(),
+    };
+  }
+
+  /*
+   * Files stored traffic under another device (NetworkTrafficUsageRefile):
+   * when there is any to file, one mutation, queued on every node and run
+   * in the background (ClickHouse's mutations_sync = 0), as the analytics
+   * schema's other data mutations are. Answers whether it queued one. A
+   * link or an unlink is rare, and a read files only what was matched since
+   * the last one: never a mutation per read.
+   */
+  @CaptureSpan()
+  public static async refile(
+    refile: NetworkTrafficUsageRefile,
+    table: NetworkTrafficUsageStorageTable,
+  ): Promise<boolean> {
+    if (refile.appliances.length === 0 && refile.networks.length === 0) {
+      return false;
+    }
+
+    const found: Array<JSONObject> =
+      await NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildRefileCheckStatement(refile),
+      );
+
+    if (found.length === 0) {
+      return false;
+    }
+
+    await NetworkTrafficUsageService.execute(
+      NetworkTrafficUsageAggregationService.buildRefileStatement(refile, table),
+    );
+
+    return true;
   }
 
   /*
@@ -747,7 +965,12 @@ export default class NetworkTrafficUsageAggregationService {
 
   /*
    * One kind's bytes in the range - and, for the applications, the flows
-   * Meraki's traffic analytics counted - each row's share of them.
+   * Meraki's traffic analytics counted - each row's share of them. With
+   * them, how many rows the kind's lists have in all (issue #5762): the
+   * networks Top networks groups (when the kind is the page's primary
+   * kind), and the applications or clients their lists group, by the same
+   * keys and the same rows left out, so "View all 523" is the list's own
+   * count.
    */
   public static buildTotalsStatement(
     query: NetworkTrafficUsageQuery,
@@ -759,9 +982,429 @@ export default class NetworkTrafficUsageAggregationService {
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
       .append(`) AS totalReceived, sum(toFloat64(flows) * `)
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
-      .append(SQL`) AS totalFlows FROM ${TABLE_NAME}`)
+      .append(`) AS totalFlows, uniqExact(controllerNetworkId) AS networkTotal`)
+      .append(
+        kind === NetworkTrafficUsageKind.Application
+          ? `, uniqExactIf(application, application != '') AS listTotal`
+          : kind === NetworkTrafficUsageKind.Client
+            ? `, uniqExactIf(clientKey, clientKey != '') AS listTotal`
+            : "",
+      )
+      .append(SQL` FROM ${TABLE_NAME}`)
       .append(NetworkTrafficUsageAggregationService.buildWhere(query, kind))
       .append(QUERY_SETTINGS);
+  }
+
+  /*
+   * What a whole list is sorted by: both directions, what came in
+   * (received) or what went out (sent) - busiest first, then by the list's
+   * key, so a row never moves between two pages read one after another.
+   */
+  public static getListOrder(
+    sortBy: NetworkTrafficUsageListSort,
+    key: string,
+  ): string {
+    const busiest: string =
+      sortBy === NetworkTrafficUsageListSort.In
+        ? "totalReceived DESC"
+        : sortBy === NetworkTrafficUsageListSort.Out
+          ? "totalSent DESC"
+          : "(totalSent + totalReceived) DESC";
+
+    return ` ORDER BY ${busiest}, ${key} ASC`;
+  }
+
+  /*
+   * ` AND <one of the columns holds the text>`, without case: a list's
+   * search. The text is a bound parameter; positionCaseInsensitiveUTF8 is a
+   * plain substring search, in time that grows with the text, whatever the
+   * text holds - no pattern, nothing to escape.
+   */
+  public static buildSearchCondition(
+    search: string,
+    columns: Array<string>,
+  ): Statement {
+    const statement: Statement = SQL``;
+
+    if (!search || columns.length === 0) {
+      return statement;
+    }
+
+    statement.append(" AND (");
+
+    columns.forEach((column: string, index: number): void => {
+      statement.append(index === 0 ? "" : " OR ");
+      statement.append(
+        SQL`positionCaseInsensitiveUTF8(`
+          .append(column)
+          .append(SQL`, ${{ type: TableColumnType.Text, value: search }}) > 0`),
+      );
+    });
+
+    statement.append(")");
+
+    return statement;
+  }
+
+  /*
+   * A list's rows of one kind, before they are grouped: the rows the page's
+   * top list reads (the same kind, the same WHERE, the same rows left out),
+   * with the search.
+   */
+  private static buildListWhere(data: NetworkTrafficUsageListQuery): {
+    kind: NetworkTrafficUsageKind;
+    where: Statement;
+  } {
+    if (data.list === NetworkTrafficUsageListKind.Applications) {
+      return {
+        kind: NetworkTrafficUsageKind.Application,
+        where: NetworkTrafficUsageAggregationService.buildWhere(
+          data.query,
+          NetworkTrafficUsageKind.Application,
+        )
+          .append(" AND application != ''")
+          .append(
+            NetworkTrafficUsageAggregationService.buildSearchCondition(
+              data.search,
+              ["application"],
+            ),
+          ),
+      };
+    }
+
+    if (data.list === NetworkTrafficUsageListKind.Clients) {
+      return {
+        kind: NetworkTrafficUsageKind.Client,
+        where: NetworkTrafficUsageAggregationService.buildWhere(
+          data.query,
+          NetworkTrafficUsageKind.Client,
+        )
+          .append(" AND clientKey != ''")
+          .append(
+            NetworkTrafficUsageAggregationService.buildSearchCondition(
+              data.search,
+              ["clientName", "clientIp", "clientMac", "clientManufacturer"],
+            ),
+          ),
+      };
+    }
+
+    return {
+      kind: data.primaryKind,
+      where: NetworkTrafficUsageAggregationService.buildWhere(
+        data.query,
+        data.primaryKind,
+      ).append(
+        NetworkTrafficUsageAggregationService.buildSearchCondition(
+          data.search,
+          ["controllerNetworkName", "controllerNetworkId"],
+        ),
+      ),
+    };
+  }
+
+  /*
+   * A page of a whole list: grouped as its top list groups, sorted as asked,
+   * from `skip`, `limit` rows. Both are whole numbers checked here, spliced
+   * as numbers: nothing else from the request reaches the SQL but bound
+   * parameters.
+   */
+  public static buildListStatement(
+    data: NetworkTrafficUsageListQuery,
+  ): Statement {
+    if (
+      !Number.isInteger(data.skip) ||
+      data.skip < 0 ||
+      data.skip > MAX_NETWORK_TRAFFIC_USAGE_LIST_SKIP ||
+      !Number.isInteger(data.limit) ||
+      data.limit < 1 ||
+      data.limit > MAX_NETWORK_TRAFFIC_USAGE_LIST_PAGE_SIZE
+    ) {
+      throw new BadDataException("A list's page is out of range");
+    }
+
+    const page: string = ` LIMIT ${data.limit} OFFSET ${data.skip}`;
+    const where: Statement =
+      NetworkTrafficUsageAggregationService.buildListWhere(data).where;
+    const weight: () => Statement = (): Statement => {
+      return NetworkTrafficUsageAggregationService.buildWeight(data.query);
+    };
+
+    if (data.list === NetworkTrafficUsageListKind.Applications) {
+      return SQL`SELECT application AS applicationKey, argMax(protocol, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topProtocol, argMax(port, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topPort, sum(toFloat64(sentOctets) * `
+        .append(weight())
+        .append(`) AS totalSent, sum(toFloat64(receivedOctets) * `)
+        .append(weight())
+        .append(`) AS totalReceived, sum(toFloat64(flows) * `)
+        .append(weight())
+        .append(SQL`) AS totalFlows FROM ${TABLE_NAME}`)
+        .append(where)
+        .append(" GROUP BY applicationKey")
+        .append(
+          NetworkTrafficUsageAggregationService.getListOrder(
+            data.sortBy,
+            "applicationKey",
+          ),
+        )
+        .append(page)
+        .append(QUERY_SETTINGS);
+    }
+
+    if (data.list === NetworkTrafficUsageListKind.Clients) {
+      return SQL`SELECT clientKey AS clientKeyValue, any(clientName) AS clientNameValue, any(clientIp) AS clientIpValue, any(clientMac) AS clientMacValue, any(clientManufacturer) AS manufacturerValue, any(controllerNetworkName) AS networkName, sum(toFloat64(sentOctets) * `
+        .append(weight())
+        .append(`) AS totalSent, sum(toFloat64(receivedOctets) * `)
+        .append(weight())
+        .append(SQL`) AS totalReceived FROM ${TABLE_NAME}`)
+        .append(where)
+        .append(" GROUP BY clientKeyValue")
+        .append(
+          NetworkTrafficUsageAggregationService.getListOrder(
+            data.sortBy,
+            "clientKeyValue",
+          ),
+        )
+        .append(page)
+        .append(QUERY_SETTINGS);
+    }
+
+    return SQL`SELECT controllerNetworkId AS networkKey, any(controllerNetworkName) AS networkName, sum(toFloat64(sentOctets) * `
+      .append(weight())
+      .append(`) AS totalSent, sum(toFloat64(receivedOctets) * `)
+      .append(weight())
+      .append(SQL`) AS totalReceived FROM ${TABLE_NAME}`)
+      .append(where)
+      .append(" GROUP BY networkKey")
+      .append(
+        NetworkTrafficUsageAggregationService.getListOrder(
+          data.sortBy,
+          "networkKey",
+        ),
+      )
+      .append(page)
+      .append(QUERY_SETTINGS);
+  }
+
+  // How many rows the search matches in all: what the pages page through.
+  public static buildListCountStatement(
+    data: NetworkTrafficUsageListQuery,
+  ): Statement {
+    const key: string =
+      data.list === NetworkTrafficUsageListKind.Applications
+        ? "application"
+        : data.list === NetworkTrafficUsageListKind.Clients
+          ? "clientKey"
+          : "controllerNetworkId";
+
+    return SQL`SELECT uniqExact(`
+      .append(key)
+      .append(SQL`) AS listTotal FROM ${TABLE_NAME}`)
+      .append(NetworkTrafficUsageAggregationService.buildListWhere(data).where)
+      .append(QUERY_SETTINGS);
+  }
+
+  /*
+   * The appliances behind the uplink rows since `since` - the caller's read
+   * scope applied as on every page - each by its newest window: its name
+   * and network as Meraki calls them now (a window that named none never
+   * wins over one that did), the connection that read it, and whose its
+   * newest rows are. In serial order, so a list cut at its limit is the
+   * same list each time.
+   */
+  public static buildAppliancesStatement(data: {
+    projectId: ObjectID;
+    devices: TelemetryServiceFilter;
+    since: Date;
+    serials?: Array<string> | undefined;
+    controllerNetworkIds?: Array<string> | undefined;
+    limit: number;
+  }): Statement {
+    if (!Number.isInteger(data.limit) || data.limit < 1) {
+      throw new BadDataException("limit must be at least 1");
+    }
+
+    const statement: Statement = SQL`SELECT deviceSerial AS serialKey, argMaxIf(deviceName, windowEndAt, deviceName != '') AS applianceName, argMax(controllerNetworkId, windowEndAt) AS networkKey, argMaxIf(controllerNetworkName, windowEndAt, controllerNetworkName != '') AS networkName, argMax(connectionId, windowEndAt) AS connectionKey, argMax(networkDeviceId, windowEndAt) AS deviceKey, toUnixTimestamp64Milli(max(windowEndAt)) AS lastWindowEndMs, sum(toFloat64(sentOctets) + toFloat64(receivedOctets)) AS totalOctets FROM ${TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND kind = ${{
+          type: TableColumnType.Text,
+          value: NetworkTrafficUsageKind.Uplink,
+        }}
+        AND windowStartAt >= ${{
+          type: TableColumnType.DateTime64,
+          value: data.since,
+        }}
+        AND deviceSerial != ''`;
+
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.devices,
+      "networkDeviceId",
+    );
+
+    if (data.serials) {
+      statement.append(
+        SQL` AND has(${{
+          type: TableColumnType.ArrayText,
+          value: data.serials,
+        }}, deviceSerial)`,
+      );
+    }
+
+    if (data.controllerNetworkIds) {
+      statement.append(
+        SQL` AND has(${{
+          type: TableColumnType.ArrayText,
+          value: data.controllerNetworkIds,
+        }}, controllerNetworkId)`,
+      );
+    }
+
+    return statement
+      .append(
+        ` GROUP BY serialKey ORDER BY serialKey ASC LIMIT ${Math.floor(data.limit)}`,
+      )
+      .append(QUERY_SETTINGS);
+  }
+
+  /*
+   * ` WHERE <the rows a refile moves>`: the project's rows that `from` holds
+   * now, of the connection when one is named, still kept - an appliance's
+   * uplinks and their health by its serial, a network's applications and
+   * clients by the network.
+   */
+  private static buildRefileWhere(
+    refile: NetworkTrafficUsageRefile,
+  ): Statement {
+    const statement: Statement = SQL`
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: refile.projectId,
+      }}
+        AND networkDeviceId = ${{
+          type: TableColumnType.ObjectID,
+          value: refile.fromDeviceId,
+        }}
+        AND windowStartAt >= ${{
+          type: TableColumnType.DateTime64,
+          value: refile.since,
+        }}`;
+
+    if (refile.connectionId) {
+      statement.append(
+        SQL` AND connectionId = ${{
+          type: TableColumnType.ObjectID,
+          value: refile.connectionId,
+        }}`,
+      );
+    }
+
+    return statement.append(
+      SQL` AND ((kind IN (${{
+        type: TableColumnType.Text,
+        value: NetworkTrafficUsageKind.Uplink,
+      }}, ${{
+        type: TableColumnType.Text,
+        value: NetworkTrafficUsageKind.UplinkHealth,
+      }}) AND has(${{
+        type: TableColumnType.ArrayText,
+        value: NetworkTrafficUsageAggregationService.refileSerials(refile),
+      }}, deviceSerial)) OR (kind IN (${{
+        type: TableColumnType.Text,
+        value: NetworkTrafficUsageKind.Application,
+      }}, ${{
+        type: TableColumnType.Text,
+        value: NetworkTrafficUsageKind.Client,
+      }}) AND has(${{
+        type: TableColumnType.ArrayText,
+        value: NetworkTrafficUsageAggregationService.refileNetworks(refile),
+      }}, controllerNetworkId)))`,
+    );
+  }
+
+  private static refileSerials(
+    refile: NetworkTrafficUsageRefile,
+  ): Array<string> {
+    return refile.appliances.map(
+      (appliance: { serial: string; deviceId: ObjectID }): string => {
+        return appliance.serial;
+      },
+    );
+  }
+
+  private static refileNetworks(
+    refile: NetworkTrafficUsageRefile,
+  ): Array<string> {
+    return refile.networks.map(
+      (network: {
+        controllerNetworkId: string;
+        deviceId: ObjectID;
+      }): string => {
+        return network.controllerNetworkId;
+      },
+    );
+  }
+
+  // Whether a refile has any row to move: one row is enough to say.
+  public static buildRefileCheckStatement(
+    refile: NetworkTrafficUsageRefile,
+  ): Statement {
+    return SQL`SELECT 1 AS found FROM ${TABLE_NAME}`
+      .append(NetworkTrafficUsageAggregationService.buildRefileWhere(refile))
+      .append(" LIMIT 1")
+      .append(QUERY_SETTINGS);
+  }
+
+  /*
+   * The refile itself: `ALTER TABLE <local table> ON CLUSTER .. UPDATE
+   * networkDeviceId = ..`, each row given its new device by its serial
+   * (uplinks) or its network (applications and clients) through transform()
+   * of two bound arrays, every row the WHERE names one of them. Neither the
+   * sort key nor the partition key holds networkDeviceId, so the update
+   * rewrites that one column of the parts it touches.
+   */
+  public static buildRefileStatement(
+    refile: NetworkTrafficUsageRefile,
+    table: NetworkTrafficUsageStorageTable,
+  ): Statement {
+    // The table's names are identifiers, the cluster clause the code's own.
+    return SQL`ALTER TABLE ${table.databaseName}.${table.storageTable}`
+      .append(table.onCluster)
+      .append(
+        SQL` UPDATE networkDeviceId = if(kind IN (${{
+          type: TableColumnType.Text,
+          value: NetworkTrafficUsageKind.Uplink,
+        }}, ${{
+          type: TableColumnType.Text,
+          value: NetworkTrafficUsageKind.UplinkHealth,
+        }}), transform(deviceSerial, ${{
+          type: TableColumnType.ArrayText,
+          value: NetworkTrafficUsageAggregationService.refileSerials(refile),
+        }}, ${{
+          type: TableColumnType.ArrayText,
+          value: refile.appliances.map(
+            (appliance: { serial: string; deviceId: ObjectID }): string => {
+              return appliance.deviceId.toString();
+            },
+          ),
+        }}, networkDeviceId), transform(controllerNetworkId, ${{
+          type: TableColumnType.ArrayText,
+          value: NetworkTrafficUsageAggregationService.refileNetworks(refile),
+        }}, ${{
+          type: TableColumnType.ArrayText,
+          value: refile.networks.map(
+            (network: {
+              controllerNetworkId: string;
+              deviceId: ObjectID;
+            }): string => {
+              return network.deviceId.toString();
+            },
+          ),
+        }}, networkDeviceId))`,
+      )
+      .append(NetworkTrafficUsageAggregationService.buildRefileWhere(refile));
   }
 
   /*

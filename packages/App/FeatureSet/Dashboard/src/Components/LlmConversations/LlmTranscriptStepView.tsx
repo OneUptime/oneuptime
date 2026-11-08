@@ -15,6 +15,7 @@ import {
   LlmEvaluationResult,
 } from "Common/Types/Telemetry/LlmAnswerIssue";
 import { LlmCallKind } from "Common/Types/Telemetry/LlmCallKind";
+import { getLlmProviderTitle } from "Common/Types/Telemetry/LlmProviders";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
@@ -325,7 +326,7 @@ const AnswerMeta: FunctionComponent<{
                   {translator.translateText("Provider")}
                 </dt>
                 <dd className="font-medium text-gray-800">
-                  {step.call.provider}
+                  {getLlmProviderTitle(step.call.provider)}
                 </dd>
               </div>
             ) : (

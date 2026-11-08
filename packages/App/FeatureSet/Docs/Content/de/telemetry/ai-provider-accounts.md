@@ -49,7 +49,7 @@ Klicken Sie unter **Testen** auf **Verbindung testen**. OneUptime liest die Nutz
 Klicken Sie auf **Verbinden**. Das erste Lesen beginnt innerhalb einer Minute und holt die letzten 30 Tage.
 :::
 
-Verbundene Konten stehen unter den Kacheln, mit **Status** und **Zuletzt gelesen**. **Jetzt lesen** liest sofort, **Testen** prüft die gespeicherten Einstellungen erneut, **Ausschalten** beendet das Lesen und behält, was gelesen wurde, und **Bearbeiten** ändert die Einstellungen: Ein leer gelassenes Geheimnis behält das gespeicherte. **Fehler anzeigen** zeigt, warum ein Lesen fehlschlug, ohne jedes Geheimnis.
+Verbundene Konten stehen unter den Kacheln, mit **Status** und **Zuletzt gelesen**. **Jetzt lesen** liest sofort, **Testen** prüft die gespeicherten Einstellungen erneut, **Ausschalten** beendet das Lesen und behält, was gelesen wurde, und **Bearbeiten** ändert die Einstellungen: Ein leer gelassenes Geheimnis behält das gespeicherte. **Fehler anzeigen** zeigt, warum ein Lesen fehlschlug, ohne jedes Geheimnis. Der Status eines funktionierenden Kontos nennt den letzten Tag mit Nutzung oder, wenn seine Lesevorgänge keine fanden, den ersten gelesenen Tag; eine Azure-Verbindung, die keine Ressource findet, sagt das.
 
 ## Was jeder Anbieter liefert
 
@@ -187,6 +187,14 @@ Geben Sie ihnen die Rolle, die diese Seite für den Anbieter nennt: Monitoring R
 
 :::details Der Test besteht, aber für heute erscheint nichts
 Anbieter melden die Nutzung eines Tages Minuten bis Stunden danach und korrigieren sie noch einen oder zwei Tage lang. Die nächsten Lesevorgänge holen sie.
+:::
+
+:::details Das Konto funktioniert, aber sein Status meldet keine Nutzung
+Seine Lesevorgänge fanden seit dem genannten Tag keine. Die Berichte von OpenAI zählen die API-Aufrufe mit den Schlüsseln dieser Organisation, nicht Azure OpenAI oder ChatGPT. Eine Azure-Verbindung liest nur die Ressourcen, die ihre App sehen kann: Geben Sie der App Monitoring Reader dort, wo sie liegen.
+:::
+
+:::details Konten sind verbunden, aber Unterhaltungen und Aufrufe sind leer
+Ein Konto bringt Nutzung und Kosten pro Tag, nie einen Aufruf oder eine Unterhaltung: Die kommen aus Ihren Apps. Siehe [Prüfen, was ankommt](/docs/telemetry/ai-llm-observability#prüfen-was-ankommt).
 :::
 
 :::details Die Kosten weichen von der Rechnung ab

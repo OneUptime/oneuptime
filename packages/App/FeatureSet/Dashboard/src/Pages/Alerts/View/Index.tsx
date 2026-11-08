@@ -292,6 +292,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [alertRootCause, setAlertRootCause] = useState<string | undefined>(
     undefined,
   );
+  // How the monitor decided, under the root cause (EventEvaluationDetails).
+  const [alertEvaluationDetails, setAlertEvaluationDetails] = useState<
+    JSONObject | undefined
+  >(undefined);
   const [alertImpactStartedAt, setAlertImpactStartedAt] = useState<
     Date | undefined
   >(undefined);
@@ -578,6 +582,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             // The What happened card.
             description: true,
             rootCause: true,
+            evaluationDetails: true,
             alertNumber: true,
             alertNumberWithPrefix: true,
             alertSeverity: {
@@ -670,6 +675,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       setAlertFirstPagedAt(alert?.firstPagedAt || undefined);
       setAlertDescription(alert?.description || undefined);
       setAlertRootCause(alert?.rootCause || undefined);
+      setAlertEvaluationDetails(
+        (alert?.evaluationDetails as JSONObject | undefined) || undefined,
+      );
       setAlertImpactStartedAt(alert?.impactStartedAt || undefined);
       setAlertCreatedBy({
         probe: alert?.createdByProbe,
@@ -1111,6 +1119,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             modelId={modelId}
             description={alertDescription}
             rootCause={alertRootCause}
+            evaluationDetails={alertEvaluationDetails}
             onSaved={() => {
               refreshData();
               // An edited root cause is a new feed entry.

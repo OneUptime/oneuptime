@@ -25,8 +25,9 @@ import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import Route from "../../../Types/API/Route";
-import { Red } from "../../../Types/BrandColors";
+import { Red, Yellow } from "../../../Types/BrandColors";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
@@ -54,6 +55,10 @@ const refreshOwnersMock: MockFunction = getJestMockFunction();
 let overviewData: UseSloOverviewDataResult;
 let storedSlo: ServiceLevelObjective;
 let permissionsForTest: Array<Permission>;
+// What the page hands the burn-down, as the stand-in below records it.
+let mockBurnDownTiers:
+  | Array<ServiceLevelObjectiveErrorBudgetPolicyTier>
+  | undefined;
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -198,12 +203,24 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => {
+      default: (props: {
+        policyTiers?: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>;
+      }): React.ReactElement => {
+        mockBurnDownTiers = props.policyTiers;
         return <section aria-label="Budget burn-down" />;
       },
     };
   },
 );
+
+jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
+  return {
+    __esModule: true,
+    default: (props: { text: string }): React.ReactElement => {
+      return <div data-testid="markdown">{props.text}</div>;
+    },
+  };
+});
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeed",
@@ -312,6 +329,7 @@ beforeEach(() => {
   createOrUpdateMock.mockReset();
   refreshMock.mockReset();
   refreshOwnersMock.mockReset();
+  mockBurnDownTiers = undefined;
 
   const monitor: Monitor = new Monitor();
   monitor.id = new ObjectID("33333333-3333-4333-8333-333333333333");
@@ -328,6 +346,8 @@ beforeEach(() => {
     slo: storedSlo,
     burnRateRules: [],
     burnRateRulesError: "",
+    policyTiers: [],
+    policyTiersError: "",
     monitorRuleCount: 0,
     enabledMonitorRuleCount: 0,
     owners: [],
@@ -666,6 +686,173 @@ describe("SLO overview details sidebar", () => {
       expect(getItemMock).not.toHaveBeenCalled();
     },
   );
+});
+
+/*
+ * The tier of its error budget policy the SLO is in: right under the
+ * summary, its name, the budget left it applies at, since when, and what
+ * the team agreed to do there, in the tier's colour, linking to the policy.
+ * Nothing at all while the SLO is in no tier.
+ */
+describe("the tier of the error budget policy the SLO is in", () => {
+  function policyTier(data: {
+    name: string;
+    thresholdPercentage: number;
+    whatWeDo: string;
+    isEnabled?: boolean;
+  }): ServiceLevelObjectiveErrorBudgetPolicyTier {
+    const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+      new ServiceLevelObjectiveErrorBudgetPolicyTier();
+    tier._id = ObjectID.generate().toString();
+    tier.name = data.name;
+    tier.thresholdPercentage = data.thresholdPercentage;
+    tier.whatWeDo = data.whatWeDo;
+    tier.isEnabled = data.isEnabled ?? true;
+    return tier;
+  }
+
+  const CAUTION: ServiceLevelObjectiveErrorBudgetPolicyTier = policyTier({
+    name: "Caution",
+    thresholdPercentage: 50,
+    whatWeDo: "Review risky changes before they ship.",
+  });
+  const RELIABILITY_FIRST: ServiceLevelObjectiveErrorBudgetPolicyTier =
+    policyTier({
+      name: "Reliability first",
+      thresholdPercentage: 25,
+      whatWeDo: "Only **reliability** improvements and critical fixes ship.",
+    });
+  const EXHAUSTED: ServiceLevelObjectiveErrorBudgetPolicyTier = policyTier({
+    name: "Budget exhausted",
+    thresholdPercentage: 0,
+    whatWeDo: "Freeze non-critical releases.",
+  });
+  const SWITCHED_OFF: ServiceLevelObjectiveErrorBudgetPolicyTier = policyTier({
+    name: "Switched off",
+    thresholdPercentage: 75,
+    whatWeDo: "Nothing yet.",
+    isEnabled: false,
+  });
+
+  function putSloIn(
+    tier: ServiceLevelObjectiveErrorBudgetPolicyTier,
+    hoursAgo: number = 3,
+  ): void {
+    storedSlo.currentErrorBudgetPolicyTierId = new ObjectID(tier._id!);
+    storedSlo.currentErrorBudgetPolicyTierName = tier.name!;
+    storedSlo.currentErrorBudgetPolicyTierEnteredAt = new Date(
+      Date.now() - hoursAgo * 60 * 60 * 1000,
+    );
+  }
+
+  function tierCard(): HTMLElement {
+    return screen.getByTestId("slo-overview-policy-tier");
+  }
+
+  test("shows it under the summary, before the numbers: its name, budget left, since when and what the team does", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(RELIABILITY_FIRST);
+
+    renderPage();
+    await waitForDetails();
+
+    const card: HTMLElement = tierCard();
+
+    expect(card).toHaveAttribute("aria-label", "Error Budget Policy");
+    expect(within(card).getByRole("heading", { level: 2 })).toHaveTextContent(
+      "Reliability first",
+    );
+    expect(card).toHaveTextContent("Budget left ≤ 25%");
+    expect(card).toHaveTextContent("Entered 3 hours ago");
+    expect(within(card).getByTestId("markdown")).toHaveTextContent(
+      "Only **reliability** improvements and critical fixes ship.",
+    );
+
+    // Right under the hero, before the KPI strip and the grid.
+    const hero: HTMLElement = screen.getByTestId("hero");
+    const kpi: HTMLElement = screen.getByTestId("kpi-strip");
+
+    expect(
+      hero.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      card.compareDocumentPosition(kpi) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("links to the Error Budget Policy page, and is coloured as its tier", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(CAUTION);
+
+    renderPage();
+    await waitForDetails();
+
+    expect(
+      within(tierCard()).getByRole("link", { name: "Open policy" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/slos/${SLO_ID.toString()}/error-budget-policy`,
+    );
+    expect(tierCard()).toHaveAttribute("data-tier-tone", "warning");
+    expect(
+      within(tierCard()).getByTestId("slo-overview-policy-tier-color"),
+    ).toHaveStyle({ backgroundColor: Yellow.toString() });
+  });
+
+  test("the tier of an exhausted budget reads red", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(EXHAUSTED, 2);
+
+    renderPage();
+    await waitForDetails();
+
+    expect(tierCard()).toHaveAttribute("data-tier-tone", "danger");
+    expect(
+      within(tierCard()).getByTestId("slo-overview-policy-tier-color"),
+    ).toHaveStyle({ backgroundColor: Red.toString() });
+    expect(tierCard()).toHaveTextContent("Budget left ≤ 0%");
+    expect(tierCard()).toHaveTextContent("Entered 2 hours ago");
+  });
+
+  test("an SLO in no tier, or without a policy, shows nothing more", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+
+    renderPage();
+    await waitForDetails();
+
+    expect(screen.queryByTestId("slo-overview-policy-tier")).toBeNull();
+
+    cleanup();
+    overviewData.policyTiers = [];
+
+    renderPage();
+    await waitForDetails();
+
+    expect(screen.queryByTestId("slo-overview-policy-tier")).toBeNull();
+  });
+
+  test("a tier the page could not read still says which one, by the name the SLO keeps", async () => {
+    overviewData.policyTiers = [];
+    putSloIn(RELIABILITY_FIRST);
+
+    renderPage();
+    await waitForDetails();
+
+    expect(
+      within(tierCard()).getByRole("heading", { level: 2 }),
+    ).toHaveTextContent("Reliability first");
+    expect(tierCard()).not.toHaveTextContent("Budget left");
+    expect(within(tierCard()).queryByTestId("markdown")).toBeNull();
+  });
+
+  test("hands the burn-down the enabled tiers, for its lines", async () => {
+    overviewData.policyTiers = [SWITCHED_OFF, CAUTION, EXHAUSTED];
+
+    renderPage();
+    await waitForDetails();
+
+    expect(mockBurnDownTiers).toEqual([CAUTION, EXHAUSTED]);
+  });
 });
 
 /*

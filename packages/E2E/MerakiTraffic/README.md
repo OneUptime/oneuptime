@@ -51,6 +51,14 @@ Picked with query parameters on the page's address:
   added with 2 sites, 2 that could not be; Meraki refused the key; or its worker went quiet.
 - `probes=two`: the project has two probes of its own, so no probe is picked for the devices (one,
   picked, is the default).
+- `lists=long`: an estate of 150 networks (146 stores beside the four), 24 applications and 45
+  clients, so each top list shows ten and offers "View all"; the whole lists are paged, searched
+  and sorted by the fixture as the server does (issue #5762).
+- `router=linked`: the branch router added by hand at its WAN address
+  (`/network-devices/40000000-0000-4000-8000-000000000002/traffic`) is linked to the Leeds MX.
+  Without it, the router is linked to no appliance and its Meraki side offers Link to a Meraki
+  appliance. Linking the Head Office MX is refused, as the server refuses an appliance that is
+  another device already.
 - `source=flows|meraki`, `lang=de`, `theme=dark`. `mnet`, `mdev` and `mup` narrow the Meraki side
   as the page's own links do: to a network, an appliance and an uplink.
 
@@ -59,8 +67,9 @@ all the same, so the page's uplinks compare and a standby line shows; its traffi
 short of now, as the reads do.
 
 Every read and write is recorded on `window.__merakiTrafficFixture` (`usageRequests`,
-`flowRequests`, `tests`, `readNows`, `creates`, `updates`, `deletes`, `deviceAdds`, `probeAsks`)
-with `unhandled` for anything the fixture does not model; the spec fails on an unhandled request,
+`flowRequests`, `tests`, `readNows`, `creates`, `updates`, `deletes`, `deviceAdds`, `probeAsks`,
+`listRequests`, `applianceAsks`, `links`, `unlinks`) with `unhandled` for anything the fixture does
+not model; the spec fails on an unhandled request,
 on an uncaught page error and on any request that leaves the fixture server. `finishRead()` ends
 the read a connection waits for, as the worker would, so a test can watch the page fill in by
 itself; `progressDeviceAdd(added, total)` and `finishDeviceAdd()` move an Add devices on, as its

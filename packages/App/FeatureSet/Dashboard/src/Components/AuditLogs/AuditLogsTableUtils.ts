@@ -124,6 +124,14 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     viewRoute: PageMap.SLO_VIEW_BURN_RATE_RULES,
     viewRouteModelId: "root",
   },
+  // A tier is edited in place on its SLO's Error Budget Policy page.
+  "SLO Error Budget Policy Tier": {
+    icon: IconProp.Scale,
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-50 border-emerald-100",
+    viewRoute: PageMap.SLO_VIEW_ERROR_BUDGET_POLICY,
+    viewRouteModelId: "root",
+  },
   /*
    * A monitor rule has a page of its own under its SLO. Its SLO's Monitor
    * Rules tab stays the fallback: a deleted rule's page is gone, the tab is

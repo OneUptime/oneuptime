@@ -83,7 +83,7 @@ OneUptime은 텔레메트리가 도착할 때 호출한 사람과 그 팀을 열
 
 | 열 | 키(우선순위순) |
 | --- | --- |
-| 직원 | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| 직원 | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | 팀 / 비용 센터 | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | 모델 | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime은 토큰을 `gen_ai.client.token.usage`, `gen_ai.client.token.count`,
 수치를 읽기 전에 알아 둘 두 가지가 있습니다.
 
 - **`gemini_cli.token.usage`는 의도적으로 제외합니다.** Gemini CLI는 토큰을 자체 메트릭과 `gen_ai.client.token.usage`로 두 번 보내므로, 둘 다 읽으면 두 배가 됩니다. 토큰은 `gen_ai.client.token.usage`를 통해 한 번만 셉니다. Gemini CLI는 비용 메트릭을 보내지 않으므로, 각 호출에 가격을 매기려면 트레이스를 켜세요.
-- **입력과 출력 토큰만 셉니다.** 토큰 종류는 `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type`, `token_type`에서 읽으며, `input`과 `output`(또는 이전의 `prompt`와 `completion`)만 셉니다. 캐시 읽기와 쓰기, Codex의 `total`(다른 값의 반복), `reasoning_output`(`output`의 일부)은 제외하므로, 메트릭에서 얻은 합계는 도구가 보내는 모든 값의 합보다 작습니다.
+- **입력과 출력 토큰만 셉니다.** 토큰 종류는 `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type`, `token_type`에서 읽으며, `input`과 `output`(또는 이전의 `prompt`와 `completion`)만 세고, Claude Code의 `cacheRead`와 `cacheCreation`은 그 `input`에 빠져 있으므로 입력으로 셉니다. 그 밖의 캐시 읽기와 쓰기, Codex의 `total`(다른 값의 반복), `reasoning_output`(`output`의 일부)은 제외하므로, 메트릭에서 얻은 합계는 도구가 보내는 모든 값의 합보다 작습니다.
 
 ## 사용량 탭
 

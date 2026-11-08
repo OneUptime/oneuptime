@@ -117,22 +117,56 @@ export function toMerakiUrlParams(data: {
 }
 
 /*
- * The side a page shows: the one picked, when the page has it; else Meraki
- * when the page has nothing from flow records yet but has Meraki traffic,
- * and flow records otherwise - so a page that worked before a connection
- * was made opens as it did.
+ * The side a page shows (issue #5762), first that applies:
+ *
+ *   1. none but its flows, when the page has no Meraki side - no
+ *      connection, or a device that is no appliance and cannot be linked;
+ *   2. the side a link names (?source=), when the page has it: a link lands
+ *      on exactly what was shared;
+ *   3. the side the reader picked last time on this kind of page, in this
+ *      project (TrafficSideMemory), while that side has something to show -
+ *      its flow records, or traffic Meraki reported of the page;
+ *   4. Meraki when Meraki reported traffic of the page in its time range:
+ *      it needs nothing set up on the devices and covers every network a
+ *      connection reads, so where it reports it is the fuller first look;
+ *   5. the flow records, when the page has some;
+ *   6. Meraki - waiting for its first read, or a device to link to its
+ *      appliance - which says why it is empty and what to do.
+ *
+ * Until #5762 a page with both sources opened on its flows (#5225), so that
+ * a page that worked before a connection was made opened as it did. People
+ * who connect Meraki look at Meraki first: the switch is still one click,
+ * and the click is remembered.
  */
 export function pickTrafficSide(data: {
   picked: TrafficSide | null;
+  remembered: TrafficSide | null;
+  // The page has Meraki traffic, or (the network's page) a connection.
   isMerakiAvailable: boolean;
+  // A device's page with nothing of Meraki's yet, offered to be linked.
+  isMerakiOffered: boolean;
+  // Meraki reported traffic of the page in its time range.
+  merakiHasTraffic: boolean;
   hasFlows: boolean;
 }): TrafficSide {
-  if (!data.isMerakiAvailable) {
+  if (!data.isMerakiAvailable && !data.isMerakiOffered) {
     return TrafficSide.Flows;
   }
 
   if (data.picked) {
     return data.picked;
+  }
+
+  if (data.remembered === TrafficSide.Flows && data.hasFlows) {
+    return TrafficSide.Flows;
+  }
+
+  if (data.remembered === TrafficSide.Meraki && data.isMerakiAvailable) {
+    return TrafficSide.Meraki;
+  }
+
+  if (data.merakiHasTraffic) {
+    return TrafficSide.Meraki;
   }
 
   return data.hasFlows ? TrafficSide.Flows : TrafficSide.Meraki;

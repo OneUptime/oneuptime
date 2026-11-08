@@ -57,6 +57,10 @@ import MetricTelemetrySnapshot from "../../../Utils/Monitor/MetricTelemetrySnaps
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorEvaluationDetailsCapture, {
+  GetEvaluationDetails,
+} from "./MonitorEvaluationDetailsCapture";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import IncomingRequestIncidentGrouping, {
   IncomingRequestRecoveries,
@@ -274,6 +278,11 @@ export default class MonitorResourceUtil {
         _id: true,
         name: true,
         minimumProbeAgreement: true,
+        /*
+         * Whether the incidents and alerts this check opens keep its
+         * response content (MonitorRecordEvidence).
+         */
+        keepResponseContent: true,
         /*
          * How often this monitor is checked. Over-time criteria filters need
          * it to work out how many samples a fully covered evaluation window
@@ -1465,6 +1474,8 @@ export default class MonitorResourceUtil {
               : undefined,
             disableSeriesAbsenceResolution,
             criteriaInstancesById: criteriaInstanceMap,
+            keepResponseContent:
+              MonitorRecordEvidence.keepsResponseContent(monitor),
           });
 
         const openAlerts: Array<Alert> =
@@ -1482,6 +1493,8 @@ export default class MonitorResourceUtil {
               : undefined,
             disableSeriesAbsenceResolution,
             criteriaInstancesById: criteriaInstanceAlertMap,
+            keepResponseContent:
+              MonitorRecordEvidence.keepsResponseContent(monitor),
           });
 
         /*
@@ -1540,6 +1553,21 @@ export default class MonitorResourceUtil {
                 evaluationSummary: evaluationSummary,
               });
 
+          /*
+           * Why this criteria fired, for the incident and the alert it
+           * opens: built the first time either is really created, once
+           * for both.
+           */
+          const getEvaluationDetails: GetEvaluationDetails =
+            MonitorEvaluationDetailsCapture.forCriteria({
+              monitor: monitor,
+              monitorStep: monitorStep,
+              criteriaInstance: criteriaInstance,
+              evaluationSummary: evaluationSummary,
+              dataToProcess: dataToProcess,
+              probeName: probeName,
+            });
+
           await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus(
             {
               monitor: monitor,
@@ -1549,6 +1577,7 @@ export default class MonitorResourceUtil {
               criteriaInstance: criteriaInstance,
               evaluationSummary: evaluationSummary,
               monitorSummary: monitorSummary,
+              getEvaluationDetails: getEvaluationDetails,
               props: {
                 telemetryQuery: telemetryQuery,
               },
@@ -1574,6 +1603,7 @@ export default class MonitorResourceUtil {
             criteriaInstance: criteriaInstanceAlertMap[matched.criteriaId]!,
             evaluationSummary: evaluationSummary,
             monitorSummary: monitorSummary,
+            getEvaluationDetails: getEvaluationDetails,
             props: {
               telemetryQuery: telemetryQuery,
             },
@@ -1623,6 +1653,8 @@ export default class MonitorResourceUtil {
           criteriaInstance: null, // no criteria met!
           dataToProcess: dataToProcess,
           evaluationSummary: evaluationSummary,
+          keepResponseContent:
+            MonitorRecordEvidence.keepsResponseContent(monitor),
           /*
            * Event-driven grouping: for incoming-request monitors, never
            * absence-resolve per-key (seriesFingerprint) incidents on the
@@ -1651,6 +1683,8 @@ export default class MonitorResourceUtil {
           criteriaInstance: null, // no criteria met!
           dataToProcess: dataToProcess,
           evaluationSummary: evaluationSummary,
+          keepResponseContent:
+            MonitorRecordEvidence.keepsResponseContent(monitor),
           disableSeriesAbsenceResolution:
             MonitorResourceUtil.isSeriesResolvedExplicitly({
               monitor: monitor,

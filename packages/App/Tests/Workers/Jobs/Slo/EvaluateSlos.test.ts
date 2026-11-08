@@ -175,6 +175,26 @@ jest.mock(
   },
 );
 
+/*
+ * The tiers of the SLO's error budget policy. None unless a test gives the SLO
+ * a policy, so every burn rate test above runs exactly as it always has.
+ */
+jest.mock(
+  "Common/Server/Services/ServiceLevelObjectiveErrorBudgetPolicyTierService",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        findBy: jest.fn(),
+        updateOneById: jest.fn(),
+        resolveOpenAlertsForTier: jest.fn(),
+        resolveOpenIncidentsForTier: jest.fn(),
+        getPolicyTierFingerprint: jest.fn(),
+      },
+    };
+  },
+);
+
 jest.mock("Common/Server/Services/MonitorStatusTimelineService", () => {
   return { __esModule: true, default: { findAllBy: jest.fn() } };
 });
@@ -386,6 +406,8 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
 import ServiceLevelObjectiveBurnRateRuleService from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "Common/Server/Services/ServiceLevelObjectiveErrorBudgetPolicyTierService";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveService from "Common/Server/Services/ServiceLevelObjectiveService";
 import SloHistoryService from "Common/Server/Services/SloHistoryService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
@@ -430,6 +452,17 @@ interface BurnRuleServiceMock {
   resolveOpenAlertsAndIncidentsForRule: jest.Mock;
   getBurnRateFingerprint: jest.Mock;
 }
+
+interface PolicyTierServiceMock {
+  findBy: jest.Mock;
+  updateOneById: jest.Mock;
+  resolveOpenAlertsForTier: jest.Mock;
+  resolveOpenIncidentsForTier: jest.Mock;
+  getPolicyTierFingerprint: jest.Mock;
+}
+
+const tierService: PolicyTierServiceMock =
+  ServiceLevelObjectiveErrorBudgetPolicyTierService as unknown as PolicyTierServiceMock;
 
 const sloService: SloServiceMock =
   ServiceLevelObjectiveService as unknown as SloServiceMock;
@@ -1009,6 +1042,17 @@ describe("Slo:EvaluateSlos worker", () => {
     );
     burnRuleService.getBurnRateFingerprint.mockReturnValue(
       EXPECTED_FINGERPRINT,
+    );
+
+    tierService.findBy.mockResolvedValue([]);
+    tierService.updateOneById.mockResolvedValue(undefined);
+    tierService.resolveOpenAlertsForTier.mockResolvedValue(undefined);
+    tierService.resolveOpenIncidentsForTier.mockResolvedValue(undefined);
+    // The service's own scheme, so a test can read a tier's records by it.
+    tierService.getPolicyTierFingerprint.mockImplementation(
+      (data: { serviceLevelObjectiveId: ObjectID; policyTierId: ObjectID }) => {
+        return `slo:${data.serviceLevelObjectiveId.toString()}:policy-tier:${data.policyTierId.toString()}`;
+      },
     );
 
     timelineService.findAllBy.mockResolvedValue([]);
@@ -6426,6 +6470,983 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(boundDateOf(fetchArgs.query.endsAt).getTime()).toBe(
         firstOfMonth.getTime() - 3 * 24 * 60 * 60 * 1000,
       );
+    });
+  });
+
+  /*
+   * THE ERROR BUDGET POLICY.
+   *
+   * The SLO here is the rolling 1-day / 99% one of makeSlo(): 864 seconds of
+   * budget, so seconds of downtime two hours ago set the budget left exactly -
+   * 432 seconds down is 50% left, 864 is 0%. No burn rate rules, so nothing
+   * else raises anything. The policy is the recommended one: Caution at 50%,
+   * Reliability first at 25%, Budget exhausted at 0%.
+   */
+  describe("error budget policy tiers", () => {
+    const CAUTION_ID: ObjectID = new ObjectID("tier-caution");
+    const RELIABILITY_FIRST_ID: ObjectID = new ObjectID("tier-reliability");
+    const EXHAUSTED_ID: ObjectID = new ObjectID("tier-exhausted");
+
+    interface TierOverrides {
+      isEnabled?: boolean | undefined;
+      name?: string | undefined;
+      thresholdPercentage?: number | undefined;
+      shouldCreateAlert?: boolean | undefined;
+      shouldCreateIncident?: boolean | undefined;
+      autoResolveAlert?: boolean | undefined;
+      autoResolveIncident?: boolean | undefined;
+      isAlertPrivate?: boolean | undefined;
+      alertTitleTemplate?: string | undefined;
+      lastAlertCreatedAt?: Date | undefined;
+      lastAlertResolvedAt?: Date | undefined;
+      lastIncidentCreatedAt?: Date | undefined;
+    }
+
+    function makeTier(
+      id: ObjectID,
+      name: string,
+      thresholdPercentage: number,
+      overrides: TierOverrides = {},
+    ): ServiceLevelObjectiveErrorBudgetPolicyTier {
+      const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+        new ServiceLevelObjectiveErrorBudgetPolicyTier(id);
+      tier.projectId = PROJECT_ID;
+      tier.serviceLevelObjectiveId = SLO_ID;
+      tier.name = overrides.name ?? name;
+      tier.thresholdPercentage =
+        overrides.thresholdPercentage ?? thresholdPercentage;
+      tier.whatWeDo = `${name}: what the team agreed to do.`;
+      tier.isEnabled = overrides.isEnabled ?? true;
+      tier.alertSeverityId = SEVERITY_ID;
+      tier.incidentSeverityId = INCIDENT_SEVERITY_ID;
+      tier.onCallDutyPolicies = [];
+      tier.incidentOnCallDutyPolicies = [];
+      // Read back from the database, a tier carries its column defaults.
+      tier.shouldCreateAlert = overrides.shouldCreateAlert ?? false;
+      tier.shouldCreateIncident = overrides.shouldCreateIncident ?? false;
+      tier.autoResolveAlert = overrides.autoResolveAlert ?? true;
+      tier.autoResolveIncident = overrides.autoResolveIncident ?? true;
+      tier.isAlertPrivate = overrides.isAlertPrivate ?? false;
+
+      if (overrides.alertTitleTemplate) {
+        tier.alertTitleTemplate = overrides.alertTitleTemplate;
+      }
+
+      if (overrides.lastAlertCreatedAt) {
+        tier.lastAlertCreatedAt = overrides.lastAlertCreatedAt;
+      }
+
+      if (overrides.lastAlertResolvedAt) {
+        tier.lastAlertResolvedAt = overrides.lastAlertResolvedAt;
+      }
+
+      if (overrides.lastIncidentCreatedAt) {
+        tier.lastIncidentCreatedAt = overrides.lastIncidentCreatedAt;
+      }
+
+      return tier;
+    }
+
+    function recommendedPolicy(
+      overrides: {
+        caution?: TierOverrides;
+        reliabilityFirst?: TierOverrides;
+        exhausted?: TierOverrides;
+      } = {},
+    ): Array<ServiceLevelObjectiveErrorBudgetPolicyTier> {
+      // In no useful order, as a findBy without a sort returns them.
+      return [
+        makeTier(
+          RELIABILITY_FIRST_ID,
+          "Reliability first",
+          25,
+          overrides.reliabilityFirst,
+        ),
+        makeTier(EXHAUSTED_ID, "Budget exhausted", 0, overrides.exhausted),
+        makeTier(CAUTION_ID, "Caution", 50, overrides.caution),
+      ];
+    }
+
+    // The SLO, in the tier it was left in by the last evaluation.
+    function sloInTier(
+      tierId: ObjectID | null,
+      tierName: string | null,
+      overrides: SloOverrides = {},
+    ): ServiceLevelObjective {
+      const slo: ServiceLevelObjective = makeSlo(overrides);
+
+      if (tierId) {
+        slo.currentErrorBudgetPolicyTierId = tierId;
+        slo.currentErrorBudgetPolicyTierName = tierName || "";
+        slo.currentErrorBudgetPolicyTierEnteredAt = daysAgo(1);
+      }
+
+      return slo;
+    }
+
+    // A full day of data, with this many seconds down two hours ago.
+    function stubBudgetSpent(secondsDown: number): void {
+      const downAt: Date = hoursAgo(2);
+      const upAt: Date = new Date(downAt.getTime() + secondsDown * 1000);
+
+      stubTimelines({
+        [MONITOR_A_ID.toString()]:
+          secondsDown > 0
+            ? [up(daysAgo(10), downAt), down(downAt, upAt), up(upAt)]
+            : [up(daysAgo(10))],
+      });
+    }
+
+    // Budget left, in the 864-second budget: 100 * (864 - down) / 864.
+    const BUDGET_37_PERCENT_SECONDS: number = 540; // 37.5% left
+    const BUDGET_27_PERCENT_SECONDS: number = 630; // 27.08% left
+    const BUDGET_31_PERCENT_SECONDS: number = 596; // 31.02% left
+    const BUDGET_23_PERCENT_SECONDS: number = 660; // 23.61% left
+    const BUDGET_OVERSPENT_SECONDS: number = 900; // -4.17% left
+
+    interface FeedCall {
+      serviceLevelObjectiveFeedEventType: string;
+      feedInfoInMarkdown: string;
+      moreInformationInMarkdown?: string | undefined;
+      displayColor?: unknown;
+      postedAt?: Date | undefined;
+    }
+
+    function feedItemsOfType(eventType: string): Array<FeedCall> {
+      return feedService.createServiceLevelObjectiveFeedItem.mock.calls
+        .map((args: Array<unknown>): FeedCall => {
+          return args[0] as FeedCall;
+        })
+        .filter((item: FeedCall): boolean => {
+          return item.serviceLevelObjectiveFeedEventType === eventType;
+        });
+    }
+
+    function tierChangeItems(): Array<FeedCall> {
+      return feedItemsOfType(
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyTierChanged,
+      );
+    }
+
+    function tierUpdates(): Array<{
+      id: ObjectID;
+      data: Record<string, unknown>;
+    }> {
+      return tierService.updateOneById.mock.calls.map(
+        (args: Array<unknown>) => {
+          return args[0] as { id: ObjectID; data: Record<string, unknown> };
+        },
+      );
+    }
+
+    function tierFingerprint(tierId: ObjectID): string {
+      return `slo:${SLO_ID.toString()}:policy-tier:${tierId.toString()}`;
+    }
+
+    async function evaluate(
+      slo: ServiceLevelObjective,
+      tiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>,
+      secondsDown: number,
+    ): Promise<void> {
+      sloService.getDueSlos.mockResolvedValue([slo]);
+      tierService.findBy.mockResolvedValue(tiers);
+      stubBudgetSpent(secondsDown);
+
+      await runWorkerTick();
+    }
+
+    describe("which tier the SLO is in", () => {
+      test("reads the SLO's tiers, all of them, pinned to its project", async () => {
+        await evaluate(sloInTier(null, null), recommendedPolicy(), 0);
+
+        expect(tierService.findBy).toHaveBeenCalledTimes(1);
+
+        const args: {
+          query: Record<string, unknown>;
+          props: { isRoot?: boolean };
+        } = tierService.findBy.mock.calls[0]![0] as {
+          query: Record<string, unknown>;
+          props: { isRoot?: boolean };
+        };
+
+        expect(args.query["serviceLevelObjectiveId"]).toEqual(SLO_ID);
+        expect(args.query["projectId"]).toEqual(PROJECT_ID);
+        // Disabled ones too: a change says how severe the tier it left was.
+        expect(args.query["isEnabled"]).toBeUndefined();
+        expect(args.props.isRoot).toBe(true);
+      });
+
+      test("enters the tier the budget is in, in the SLO's one hooked state write", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state["currentErrorBudgetPolicyTierId"]).toEqual(CAUTION_ID);
+        expect(state["currentErrorBudgetPolicyTierName"]).toBe("Caution");
+        expect(
+          (state["currentErrorBudgetPolicyTierEnteredAt"] as Date).getTime(),
+        ).toBe(NOW.getTime());
+        // Never through the hookless path: the change is user-facing state.
+        expect(
+          payloadsContaining(
+            sloHooklessUpdatePayloads(),
+            "currentErrorBudgetPolicyTierId",
+          ),
+        ).toEqual([]);
+      });
+
+      test("posts one ErrorBudgetPolicyTierChanged item, with the tier's agreement", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        const items: Array<FeedCall> = tierChangeItems();
+
+        expect(items).toHaveLength(1);
+        expect(items[0]!.feedInfoInMarkdown).toBe(
+          "📉 [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) entered the **Caution** tier of its error budget policy.",
+        );
+        expect(items[0]!.moreInformationInMarkdown).toContain(
+          "**Error budget policy tier**: none → Caution",
+        );
+        expect(items[0]!.moreInformationInMarkdown).toContain(
+          "**Error budget remaining**: 37.5%",
+        );
+        expect(items[0]!.moreInformationInMarkdown).toContain(
+          "Caution: what the team agreed to do.",
+        );
+        expect(items[0]!.displayColor).toEqual(Yellow);
+        expect(items[0]!.postedAt?.getTime()).toBe(NOW.getTime());
+      });
+
+      test("an SLO already in its tier writes no tier column and posts nothing", async () => {
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state).not.toHaveProperty("currentErrorBudgetPolicyTierId");
+        expect(state).not.toHaveProperty("currentErrorBudgetPolicyTierName");
+        expect(tierChangeItems()).toEqual([]);
+      });
+
+      test("jumps across several tiers in one evaluation", async () => {
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          recommendedPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        expect(
+          persistedStateUpdate()["currentErrorBudgetPolicyTierId"],
+        ).toEqual(EXHAUSTED_ID);
+
+        const items: Array<FeedCall> = tierChangeItems();
+
+        expect(items).toHaveLength(1);
+        expect(items[0]!.feedInfoInMarkdown).toBe(
+          "📉 [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) entered the **Budget exhausted** tier of its error budget policy (was **Caution**).",
+        );
+        expect(items[0]!.moreInformationInMarkdown).toContain("over budget by");
+        // A tier at 0% is red, like Budget Exhausted.
+        expect(items[0]!.displayColor).toEqual(Red);
+      });
+
+      test("hysteresis: stays in Reliability first at 27%, below its 30% exit", async () => {
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy(),
+          BUDGET_27_PERCENT_SECONDS,
+        );
+
+        expect(persistedStateUpdate()).not.toHaveProperty(
+          "currentErrorBudgetPolicyTierId",
+        );
+        expect(tierChangeItems()).toEqual([]);
+      });
+
+      test("recovers to Caution once the budget is 5 points above Reliability first", async () => {
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy(),
+          BUDGET_31_PERCENT_SECONDS,
+        );
+
+        expect(
+          persistedStateUpdate()["currentErrorBudgetPolicyTierId"],
+        ).toEqual(CAUTION_ID);
+
+        const items: Array<FeedCall> = tierChangeItems();
+
+        expect(items).toHaveLength(1);
+        expect(items[0]!.feedInfoInMarkdown).toBe(
+          "📈 [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) recovered to the **Caution** tier of its error budget policy (was **Reliability first**).",
+        );
+      });
+
+      test("leaves every tier as the window rolls, clearing all three columns", async () => {
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          recommendedPolicy(),
+          0,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state["currentErrorBudgetPolicyTierId"]).toBeNull();
+        expect(state["currentErrorBudgetPolicyTierName"]).toBeNull();
+        expect(state["currentErrorBudgetPolicyTierEnteredAt"]).toBeNull();
+
+        const items: Array<FeedCall> = tierChangeItems();
+
+        expect(items).toHaveLength(1);
+        expect(items[0]!.feedInfoInMarkdown).toBe(
+          "✅ [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) left the **Caution** tier of its error budget policy: its error budget is above every tier again.",
+        );
+        expect(items[0]!.displayColor).toEqual(Green);
+      });
+
+      test("a disabled tier never applies", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({ caution: { isEnabled: false } }),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        expect(persistedStateUpdate()).not.toHaveProperty(
+          "currentErrorBudgetPolicyTierId",
+        );
+        expect(tierChangeItems()).toEqual([]);
+      });
+
+      test("the tier the SLO is in, switched off, is left - and the item still says which one", async () => {
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          recommendedPolicy({ caution: { isEnabled: false } }),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        expect(
+          persistedStateUpdate()["currentErrorBudgetPolicyTierId"],
+        ).toBeNull();
+        expect(tierChangeItems()[0]!.feedInfoInMarkdown).toContain(
+          "left the **Caution** tier",
+        );
+      });
+
+      test("a tier that was deleted is left for the tier the budget is in, named by its snapshot", async () => {
+        const deletedTierId: ObjectID = new ObjectID("tier-deleted");
+
+        await evaluate(
+          sloInTier(deletedTierId, "Freeze"),
+          recommendedPolicy(),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(
+          persistedStateUpdate()["currentErrorBudgetPolicyTierId"],
+        ).toEqual(RELIABILITY_FIRST_ID);
+        expect(tierChangeItems()[0]!.feedInfoInMarkdown).toContain(
+          "entered the **Reliability first** tier of its error budget policy (was **Freeze**)",
+        );
+      });
+
+      test("a renamed tier refreshes the name quietly", async () => {
+        await evaluate(
+          sloInTier(CAUTION_ID, "Careful"),
+          recommendedPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state["currentErrorBudgetPolicyTierName"]).toBe("Caution");
+        expect(state).not.toHaveProperty("currentErrorBudgetPolicyTierId");
+        expect(state).not.toHaveProperty(
+          "currentErrorBudgetPolicyTierEnteredAt",
+        );
+        expect(tierChangeItems()).toEqual([]);
+      });
+
+      test("an SLO with no policy writes no tier column and posts nothing", async () => {
+        await evaluate(sloInTier(null, null), [], BUDGET_OVERSPENT_SECONDS);
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state).not.toHaveProperty("currentErrorBudgetPolicyTierId");
+        expect(tierChangeItems()).toEqual([]);
+        expect(tierService.updateOneById).not.toHaveBeenCalled();
+      });
+
+      test("a feed write that fails is logged and costs nothing else", async () => {
+        feedService.createServiceLevelObjectiveFeedItem.mockRejectedValue(
+          new Error("feed is down"),
+        );
+
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({ reliabilityFirst: { shouldCreateAlert: true } }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(mockedLogger.error).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "Error posting the error budget policy tier change feed item",
+          ),
+          expect.anything(),
+        );
+        expect(alertService.create).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe("what a tier raises", () => {
+      test("a tier left at its defaults raises nothing, and asks nothing more", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy(),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(alertService.create).not.toHaveBeenCalled();
+        expect(incidentService.create).not.toHaveBeenCalled();
+        expect(tierService.updateOneById).not.toHaveBeenCalled();
+        // No output to create: not even the maintenance check runs.
+        expect(maintenanceService.findBy).not.toHaveBeenCalled();
+      });
+
+      test("the tier the SLO enters raises its alert, with the tier's default text", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({ reliabilityFirst: { shouldCreateAlert: true } }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        const alert: Alert = createdAlert();
+
+        expect(alert.seriesFingerprint).toBe(
+          tierFingerprint(RELIABILITY_FIRST_ID),
+        );
+        expect(alert.title).toBe(
+          "SLO error budget policy: Checkout availability — Reliability first",
+        );
+        expect(alert.description).toContain(
+          'SLO "Checkout availability" is in the "Reliability first" tier of its error budget policy: 23.61% of its error budget is left',
+        );
+        expect(alert.description).toContain(
+          "**What we do:** Reliability first: what the team agreed to do.",
+        );
+        expect(alert.rootCause).toContain(
+          'is at or below 25%, the "Reliability first" tier of its error budget policy',
+        );
+        expect(alert.alertSeverityId).toEqual(SEVERITY_ID);
+        expect(alert.isCreatedAutomatically).toBe(true);
+        // The SLO as the affected resource, never its monitors.
+        expect(
+          (alert.serviceLevelObjectives || []).map(
+            (slo: ServiceLevelObjective) => {
+              return slo.id?.toString();
+            },
+          ),
+        ).toEqual([SLO_ID.toString()]);
+
+        expect(tierUpdates()).toEqual([
+          {
+            id: RELIABILITY_FIRST_ID,
+            data: { lastAlertCreatedAt: NOW },
+            props: { isRoot: true },
+          },
+        ]);
+        // Burn rate rules' stamps are untouched.
+        expect(burnRuleService.updateOneById).not.toHaveBeenCalled();
+      });
+
+      test("the raised alert gets its own feed item", async () => {
+        alertService.create.mockResolvedValue(
+          (() => {
+            const created: Alert = new Alert(new ObjectID("alert-1"));
+            created.alertNumber = 12;
+            return created;
+          })(),
+        );
+
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({ reliabilityFirst: { shouldCreateAlert: true } }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        const raised: Array<FeedCall> = feedItemsOfType(
+          ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised,
+        );
+
+        expect(raised).toHaveLength(1);
+        expect(raised[0]!.feedInfoInMarkdown).toBe(
+          "Error budget policy tier **Reliability first** raised [Alert #12](https://oneuptime.com/dashboard/project-1/alerts/alert-1).",
+        );
+        expect(raised[0]!.moreInformationInMarkdown).toContain(
+          "**Tier applies while:** the error budget left is at or below 25%",
+        );
+        expect(
+          feedItemsOfType(
+            ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised,
+          ),
+        ).toEqual([]);
+      });
+
+      test("a private tier alert is redacted on the feed", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({
+            reliabilityFirst: { shouldCreateAlert: true, isAlertPrivate: true },
+          }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(createdAlert().isPrivate).toBe(true);
+
+        const raised: Array<FeedCall> = feedItemsOfType(
+          ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised,
+        );
+
+        expect(raised[0]!.feedInfoInMarkdown).toBe(
+          "Error budget policy tier **Reliability first** raised a private alert.",
+        );
+      });
+
+      test("the tier's incident is declared when it is switched on, off status pages", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({ exhausted: { shouldCreateIncident: true } }),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const incident: Incident = createdIncident();
+
+        expect(incident.seriesFingerprint).toBe(tierFingerprint(EXHAUSTED_ID));
+        expect(incident.isVisibleOnStatusPage).toBe(false);
+        expect(
+          incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+        ).toBe(false);
+        expect(alertService.create).not.toHaveBeenCalled();
+        expect(tierUpdates()).toEqual([
+          {
+            id: EXHAUSTED_ID,
+            data: { lastIncidentCreatedAt: NOW },
+            props: { isRoot: true },
+          },
+        ]);
+      });
+
+      test("only the tier the SLO is in raises: a less severe tier set to raise stays quiet", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({
+            caution: { shouldCreateAlert: true, shouldCreateIncident: true },
+          }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(alertService.create).not.toHaveBeenCalled();
+        expect(incidentService.create).not.toHaveBeenCalled();
+      });
+
+      test("a custom title template can name the tier with {{policyTier}}", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({
+            reliabilityFirst: {
+              shouldCreateAlert: true,
+              alertTitleTemplate:
+                "{{sloName}}: {{policyTier}} at {{policyTierThresholdPercentage}}%",
+            },
+          }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(createdAlert().title).toBe(
+          "Checkout availability: Reliability first at 25%",
+        );
+      });
+
+      test("an output already open is not raised again while the SLO stays in the tier", async () => {
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy({
+            reliabilityFirst: {
+              shouldCreateAlert: true,
+              lastAlertCreatedAt: hoursAgo(6),
+            },
+          }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(alertService.create).not.toHaveBeenCalled();
+        expect(tierService.updateOneById).not.toHaveBeenCalled();
+      });
+
+      test("an output that never opened is raised while the SLO stays in the tier - a failed create is retried", async () => {
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy({ reliabilityFirst: { shouldCreateAlert: true } }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(alertService.create).toHaveBeenCalledTimes(1);
+        expect(tierChangeItems()).toEqual([]);
+      });
+
+      test("an open alert the tier had not recorded is adopted, not duplicated", async () => {
+        alertService.findOneBy.mockResolvedValue(
+          new Alert(new ObjectID("alert-open")),
+        );
+
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({ reliabilityFirst: { shouldCreateAlert: true } }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(alertService.create).not.toHaveBeenCalled();
+        expect(tierUpdates()[0]!.data).toEqual({ lastAlertCreatedAt: NOW });
+      });
+
+      test("scheduled maintenance holds the alert back, not the tier change", async () => {
+        mockMaintenanceEventsInStates([
+          { stateId: ONGOING_STATE_ID, monitorId: MONITOR_A_ID },
+        ]);
+
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({ reliabilityFirst: { shouldCreateAlert: true } }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(alertService.create).not.toHaveBeenCalled();
+        expect(
+          persistedStateUpdate()["currentErrorBudgetPolicyTierId"],
+        ).toEqual(RELIABILITY_FIRST_ID);
+        expect(tierChangeItems()).toHaveLength(1);
+      });
+
+      test("entering a more severe tier resolves what the previous tier raised, whatever its auto-resolve says", async () => {
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          recommendedPolicy({
+            caution: {
+              shouldCreateAlert: true,
+              autoResolveAlert: false,
+              lastAlertCreatedAt: hoursAgo(6),
+            },
+            reliabilityFirst: { shouldCreateIncident: true },
+          }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(tierService.resolveOpenAlertsForTier).toHaveBeenCalledTimes(1);
+
+        const resolveArgs: {
+          policyTierId: ObjectID;
+          serviceLevelObjectiveId: ObjectID;
+          projectId: ObjectID;
+          rootCause: string;
+        } = tierService.resolveOpenAlertsForTier.mock.calls[0]![0] as {
+          policyTierId: ObjectID;
+          serviceLevelObjectiveId: ObjectID;
+          projectId: ObjectID;
+          rootCause: string;
+        };
+
+        expect(resolveArgs.policyTierId).toEqual(CAUTION_ID);
+        expect(resolveArgs.serviceLevelObjectiveId).toEqual(SLO_ID);
+        expect(resolveArgs.projectId).toEqual(PROJECT_ID);
+        expect(resolveArgs.rootCause).toBe(
+          'Superseded: SLO "Checkout availability" entered the more severe "Reliability first" tier of its error budget policy.',
+        );
+        // Not asked whether a human closed it: superseded is not a recovery.
+        expect(alertService.findOneBy).not.toHaveBeenCalled();
+
+        // The old tier's record is closed before the new tier's is opened.
+        expect(tierUpdates()).toEqual([
+          {
+            id: CAUTION_ID,
+            data: { lastAlertResolvedAt: NOW },
+            props: { isRoot: true },
+          },
+          {
+            id: RELIABILITY_FIRST_ID,
+            data: { lastIncidentCreatedAt: NOW },
+            props: { isRoot: true },
+          },
+        ]);
+        expect(incidentService.create).toHaveBeenCalledTimes(1);
+        expect(
+          feedItemsOfType(
+            ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertResolved,
+          )[0]!.feedInfoInMarkdown,
+        ).toBe(
+          "The alert raised by error budget policy tier **Caution** was resolved.",
+        );
+      });
+
+      test("recovering out of every tier resolves the open alert when auto-resolve is on", async () => {
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy({
+            reliabilityFirst: {
+              shouldCreateAlert: true,
+              lastAlertCreatedAt: hoursAgo(6),
+            },
+          }),
+          0,
+        );
+
+        expect(tierService.resolveOpenAlertsForTier).toHaveBeenCalledWith({
+          serviceLevelObjectiveId: SLO_ID,
+          policyTierId: RELIABILITY_FIRST_ID,
+          projectId: PROJECT_ID,
+          rootCause:
+            'The error budget of SLO "Checkout availability" recovered out of the "Reliability first" tier of its error budget policy.',
+        });
+        expect(tierUpdates()).toEqual([
+          {
+            id: RELIABILITY_FIRST_ID,
+            data: { lastAlertResolvedAt: NOW },
+            props: { isRoot: true },
+          },
+        ]);
+      });
+
+      test("recovering to a less severe tier resolves too", async () => {
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy({
+            reliabilityFirst: {
+              shouldCreateAlert: true,
+              lastAlertCreatedAt: hoursAgo(6),
+            },
+          }),
+          BUDGET_31_PERCENT_SECONDS,
+        );
+
+        expect(tierService.resolveOpenAlertsForTier).toHaveBeenCalledTimes(1);
+        expect(
+          persistedStateUpdate()["currentErrorBudgetPolicyTierId"],
+        ).toEqual(CAUTION_ID);
+      });
+
+      test("with auto-resolve off, a recovered tier's alert stays open until someone resolves it", async () => {
+        alertService.findOneBy.mockResolvedValue(
+          new Alert(new ObjectID("alert-open")),
+        );
+
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy({
+            reliabilityFirst: {
+              shouldCreateAlert: true,
+              autoResolveAlert: false,
+              lastAlertCreatedAt: hoursAgo(6),
+            },
+          }),
+          0,
+        );
+
+        expect(tierService.resolveOpenAlertsForTier).not.toHaveBeenCalled();
+        expect(tierService.updateOneById).not.toHaveBeenCalled();
+      });
+
+      test("with auto-resolve off, one resolved by hand ends the lifecycle and says so", async () => {
+        alertService.findOneBy.mockResolvedValue(null);
+
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy({
+            reliabilityFirst: {
+              shouldCreateAlert: true,
+              autoResolveAlert: false,
+              lastAlertCreatedAt: hoursAgo(6),
+            },
+          }),
+          0,
+        );
+
+        expect(tierService.resolveOpenAlertsForTier).not.toHaveBeenCalled();
+        expect(tierUpdates()[0]!.data).toEqual({ lastAlertResolvedAt: NOW });
+        expect(
+          feedItemsOfType(
+            ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertResolved,
+          )[0]!.feedInfoInMarkdown,
+        ).toBe(
+          "The alert raised by error budget policy tier **Reliability first** was resolved by hand. The SLO has left the tier, so the tier can raise it again.",
+        );
+      });
+
+      test("a tier whose resolve fails is logged and does not stop the next tier", async () => {
+        tierService.resolveOpenAlertsForTier.mockRejectedValue(
+          new Error("state timeline write failed"),
+        );
+
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          recommendedPolicy({
+            caution: {
+              shouldCreateAlert: true,
+              lastAlertCreatedAt: hoursAgo(6),
+            },
+            reliabilityFirst: { shouldCreateAlert: true },
+          }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(mockedLogger.error).toHaveBeenCalledWith(
+          expect.stringContaining("Error evaluating error budget policy tier"),
+          expect.anything(),
+        );
+        // Caution keeps its stamp (it failed); Reliability first still raises.
+        expect(alertService.create).toHaveBeenCalledTimes(1);
+        expect(
+          tierUpdates().map((update: { id: ObjectID }) => {
+            return update.id.toString();
+          }),
+        ).toEqual([RELIABILITY_FIRST_ID.toString()]);
+      });
+    });
+
+    describe("an SLO that is not measured", () => {
+      test("a Paused SLO keeps its tier, and what the tier raised stays open", async () => {
+        const paused: Monitor = enabledMonitor(MONITOR_A_ID);
+        paused.disableActiveMonitoring = true;
+        monitorService.findBy.mockResolvedValue([paused]);
+
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          recommendedPolicy({
+            reliabilityFirst: {
+              shouldCreateAlert: true,
+              lastAlertCreatedAt: hoursAgo(6),
+            },
+          }),
+          0,
+        );
+
+        expect(
+          payloadsContaining(
+            sloUpdatePayloads(),
+            "currentErrorBudgetPolicyTierId",
+          ),
+        ).toEqual([]);
+        expect(tierChangeItems()).toEqual([]);
+        expect(tierService.resolveOpenAlertsForTier).not.toHaveBeenCalled();
+        expect(tierService.resolveOpenIncidentsForTier).not.toHaveBeenCalled();
+        expect(tierService.updateOneById).not.toHaveBeenCalled();
+      });
+
+      test("a Misconfigured SLO keeps its tier, and what the tier raised stays open", async () => {
+        await evaluate(
+          sloInTier(RELIABILITY_FIRST_ID, "Reliability first", {
+            monitors: [],
+          }),
+          recommendedPolicy({
+            reliabilityFirst: {
+              shouldCreateAlert: true,
+              lastAlertCreatedAt: hoursAgo(6),
+            },
+          }),
+          0,
+        );
+
+        expect(
+          payloadsContaining(
+            sloUpdatePayloads(),
+            "currentErrorBudgetPolicyTierId",
+          ),
+        ).toEqual([]);
+        expect(tierChangeItems()).toEqual([]);
+        expect(tierService.resolveOpenAlertsForTier).not.toHaveBeenCalled();
+        expect(tierService.updateOneById).not.toHaveBeenCalled();
+      });
+
+      test("an SLO disabled after the sweep started changes no tier and raises nothing", async () => {
+        sloService.findOneById.mockImplementation(
+          (): Promise<ServiceLevelObjective> => {
+            const current: ServiceLevelObjective = new ServiceLevelObjective(
+              SLO_ID,
+            );
+            current.isEnabled = false;
+            current.isArchived = false;
+            return Promise.resolve(current);
+          },
+        );
+
+        await evaluate(
+          sloInTier(null, null),
+          recommendedPolicy({ reliabilityFirst: { shouldCreateAlert: true } }),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(
+          payloadsContaining(
+            sloUpdatePayloads(),
+            "currentErrorBudgetPolicyTierId",
+          ),
+        ).toEqual([]);
+        expect(tierChangeItems()).toEqual([]);
+        expect(alertService.create).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("{{policyTier}} in burn rate rules", () => {
+      test("a burn rate alert's template names the tier the evaluation put the SLO in", async () => {
+        const rule: ServiceLevelObjectiveBurnRateRule = makeRule();
+        rule.alertTitleTemplate = "{{ruleName}} while in {{policyTier}}";
+
+        sloService.getDueSlos.mockResolvedValue([sloInTier(null, null)]);
+        burnRuleService.findBy.mockResolvedValue([rule]);
+        tierService.findBy.mockResolvedValue(recommendedPolicy());
+        stubFiringBurn();
+
+        await runWorkerTick();
+
+        expect(createdAlert().title).toBe(
+          "Fast burn while in Budget exhausted",
+        );
+      });
+
+      test("without a policy it reads None", async () => {
+        const rule: ServiceLevelObjectiveBurnRateRule = makeRule();
+        rule.alertTitleTemplate = "{{ruleName}} while in {{policyTier}}";
+
+        sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+        burnRuleService.findBy.mockResolvedValue([rule]);
+        stubFiringBurn();
+
+        await runWorkerTick();
+
+        expect(createdAlert().title).toBe("Fast burn while in None");
+      });
+
+      test("the default burn rate text does not mention the policy", async () => {
+        sloService.getDueSlos.mockResolvedValue([sloInTier(null, null)]);
+        burnRuleService.findBy.mockResolvedValue([makeRule()]);
+        tierService.findBy.mockResolvedValue(recommendedPolicy());
+        stubFiringBurn();
+
+        await runWorkerTick();
+
+        expect(createdAlert().title).toBe(
+          "SLO burn rate: Checkout availability — Fast burn",
+        );
+        expect(createdAlert().description).not.toContain("policy");
+      });
     });
   });
 });

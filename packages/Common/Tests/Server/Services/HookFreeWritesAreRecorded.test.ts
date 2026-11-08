@@ -519,6 +519,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/Slo/SloLegacyMonitorLabelAdoption.ts": {
     "(module) ServiceLevelObjectiveMonitorRule": Why.Migration,
   },
+  /*
+   * A burn rate rule or an error budget policy tier forgetting that it has an
+   * alert or incident open: the worker's lifecycle stamps, which the audit
+   * log ignores on both models.
+   */
+  "packages/Common/Server/Utils/Slo/SloRecordSourceSettings.ts": {
+    "SloRecordSourceSettings.clearOpenOutputState *": Why.Bookkeeping,
+  },
   "packages/Common/Server/Utils/StatusPage/SubscriberNotificationClaim.ts": {
     "SubscriberNotificationClaim.claim *": Why.Bookkeeping,
     "SubscriberNotificationClaim.failInterrupted *": Why.Bookkeeping,

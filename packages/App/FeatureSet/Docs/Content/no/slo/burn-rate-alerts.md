@@ -28,6 +28,8 @@ Med en forbruksrate på 1 bruker du budsjettet akkurat over vinduet og når mål
 
 Forbruksraten avhenger ikke av hvor mye budsjett som er igjen. Den svarer på «hvor ille er det nå?», og det er det du må vite for å bestemme om du skal tilkalle noen.
 
+For heller å handle etter hvor mye budsjett som er igjen, for eksempel bare levere pålitelighetsarbeid når en fjerdedel er igjen, gir du SLO-et en [feilbudsjettpolicy](/docs/slo/error-budget-policy).
+
 ## Hvordan en regel bestemmer seg for å utløses
 
 OneUptime sjekker hver aktivert forbruksrateregel ved hver evaluering av SLO-et, hvert 5. minutt. Hver regel måler forbruksraten over to vinduer og utløses bare når begge ligger på terskelen eller over:
@@ -184,6 +186,9 @@ For å skrive din egen tekst bruker du malvariabler i tittelen, beskrivelsen og 
 | `{{errorBudgetRemaining}}` | Feilbudsjett som fortsatt er tilgjengelig, som varighet. Starter med et minustegn når budsjettet er overskredet. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | Feilbudsjett som fortsatt er tilgjengelig, i minutter. | `18.37` |
 | `{{windowDescription}}` | Samsvarsvinduet til SLO-et, med ord. | `rolling 30-day window` |
+| `{{policyTier}}` | Navnet på nivået i feilbudsjettpolicyen som SLO-et er i etter denne evalueringen. "None" når det ikke er i noe nivå. | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | Terskelen for gjenværende budsjett for det nivået, i prosent. Tom når SLO-et ikke er i noe nivå. | `25` |
+| `{{policyTierWhatWeDo}}` | Hva teamet har avtalt å gjøre i det nivået, slik det står på nivået. Tom når SLO-et ikke er i noe nivå. | `Only reliability work and critical fixes ship.` |
 
 For eksempel blir tittelen `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` til `Fast burn: Checkout availability is burning 21.5x`.
 
@@ -249,6 +254,7 @@ Ikke for SLO-er som måles på tilgjengeligheten til monitorer. Tilgjengelighet 
 
 :::cards
 - [Feilbudsjetter](/docs/slo/error-budget): Hva budsjettet er, og hvor lenge det varer.
+- [Feilbudsjettpolicy](/docs/slo/error-budget-policy): Handle etter hvor mye budsjett som er igjen, nivå for nivå.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Hvem som tilkalles, og i hvilken rekkefølge.
 - [SLO-feed og revisjonslogger](/docs/slo/feed-and-audit-logs): Hvert varsel og hver hendelse en regel utløser.
 :::

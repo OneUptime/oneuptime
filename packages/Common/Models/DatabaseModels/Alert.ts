@@ -2390,6 +2390,42 @@ export default class Alert extends BaseModel {
   })
   public monitorSummary?: JSONObject = undefined;
 
+  /*
+   * Why the monitor opened this alert: the criteria that matched, each
+   * filter's condition with what the check found, and a short excerpt of
+   * the response around the match - redacted and bounded when it was
+   * captured (Common/Types/Monitor/MonitorEvaluationDetails). Absent for
+   * alerts opened by hand, and for those from before it was kept.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    isDefaultValueColumn: false,
+    computed: true,
+    title: "Evaluation Details",
+    description:
+      "Why the monitor opened this alert: the criteria and filters that matched, what the check found, and a redacted excerpt of the response.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public evaluationDetails?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

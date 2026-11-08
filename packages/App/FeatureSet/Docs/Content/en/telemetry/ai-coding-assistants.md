@@ -83,7 +83,7 @@ On a metric data point, the list is shorter and starts with the email, because t
 
 | Column | Keys, preferred first |
 | --- | --- |
-| Employee | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Employee | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Team / cost centre | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Model | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime also reads tokens from `gen_ai.client.token.usage`, `gen_ai.client.tok
 Two things to know before you read the numbers:
 
 - **`gemini_cli.token.usage` is left out on purpose.** Gemini CLI sends its tokens twice, as its own metric and as `gen_ai.client.token.usage`, and reading both would double them. Its tokens are counted once, through `gen_ai.client.token.usage`. Gemini CLI sends no cost metric: turn on its traces to have each call priced.
-- **Only input and output tokens are counted.** The token type is read from `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` or `token_type`, and only `input` and `output` (or the older `prompt` and `completion`) count. Cache reads and writes, Codex's `total` (which repeats the others) and `reasoning_output` (part of `output`) are left out, so a metric-sourced total is smaller than the sum of everything a tool sends.
+- **Only input and output tokens are counted.** The token type is read from `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` or `token_type`, and only `input` and `output` (or the older `prompt` and `completion`) count, with Claude Code's `cacheRead` and `cacheCreation` as input, since its `input` leaves them out. Other cache reads and writes, Codex's `total` (which repeats the others) and `reasoning_output` (part of `output`) are left out, so a metric-sourced total is smaller than the sum of everything a tool sends.
 
 ## The Usage tab
 

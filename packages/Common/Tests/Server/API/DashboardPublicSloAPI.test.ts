@@ -1722,39 +1722,45 @@ describe("DashboardAPI public SLO", () => {
     );
 
     /*
-     * The page cannot draw an SLO widget whose SLO is stored as an ObjectID
-     * either (it trims the id it shows), so both routes refuse it - in
-     * object arguments and in arguments written as JSON text alike - rather
-     * than serve an SLO the page never shows.
+     * Issue #6328: an SLO widget whose SLO is stored as an ObjectID - in
+     * object arguments, in arguments written as JSON text, and in a widget
+     * the page draws from its stored JSON because something else in it
+     * cannot be revived - draws that SLO, signed in and on the public page
+     * alike: every board reads the id as the id it names. Both routes now
+     * serve its numbers and its history exactly as for the id stored as
+     * text. Before, the page fell into the widget's error boundary, and
+     * both routes refused it.
      */
-    it("refuses an SLO widget whose SLO is stored as an ObjectID, in either encoding, as the page cannot draw it", async () => {
-      for (const encode of [
-        (settings: JSONObject): unknown => {
-          return settings;
-        },
-        (settings: JSONObject): unknown => {
-          return JSON.stringify(settings);
-        },
-      ]) {
+    it("serves an SLO widget whose SLO is stored as an ObjectID, in every encoding, exactly as the id stored as text", async () => {
+      const servedFor: (
+        settings: JSONObject,
+        encode: (settings: JSONObject) => unknown,
+      ) => Promise<Array<unknown>> = async (
+        settings: JSONObject,
+        encode: (settings: JSONObject) => unknown,
+      ): Promise<Array<unknown>> => {
         const slo: BuiltWidget = buildSloChartWidget();
         setConfig(
           [
             {
               ...slo.widget,
               arguments: encode({
-                serviceLevelObjectiveId: serviceLevelObjectiveId.toJSON(),
+                ...settings,
                 displayType: SloWidgetDisplayType.Chart,
-              }),
+              }) as JSONObject,
             },
           ],
           [],
         );
 
+        // The page holds the id as text, in every encoding.
         expect(
           (pageDraws().components[0]?.arguments as JSONObject | undefined)?.[
             "serviceLevelObjectiveId"
           ],
-        ).toBeInstanceOf(ObjectID);
+        ).toBe(serviceLevelObjectiveId.toString());
+
+        const answers: Array<unknown> = [];
 
         for (const call of [callResourceList, callSloHistory]) {
           jest.clearAllMocks();
@@ -1763,11 +1769,58 @@ describe("DashboardAPI public SLO", () => {
             aggregateBy: buildAggregateBy(),
           });
 
-          expect((getThrownError() as Error).message).toBe(
-            PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE,
+          expect((nextFunction as jest.Mock).mock.calls).toEqual([]);
+          answers.push(
+            call === callResourceList
+              ? getFindByArgs()["query"]
+              : (getAggregateArgs()["query"] as JSONObject)["sloId"],
           );
-          expectNothingRead();
         }
+
+        return answers;
+      };
+
+      const asText: Array<unknown> = await servedFor(
+        { serviceLevelObjectiveId: serviceLevelObjectiveId.toString() },
+        (settings: JSONObject): unknown => {
+          return settings;
+        },
+      );
+
+      // Not vacuous: both routes read the widget's own SLO.
+      expect(asText).toEqual([
+        { _id: serviceLevelObjectiveId, projectId: projectId },
+        serviceLevelObjectiveId,
+      ]);
+
+      for (const [name, encode] of [
+        [
+          "object arguments",
+          (settings: JSONObject): unknown => {
+            return settings;
+          },
+        ],
+        [
+          "JSON-text arguments",
+          (settings: JSONObject): unknown => {
+            return JSON.stringify(settings);
+          },
+        ],
+        [
+          "a widget the page draws from its stored JSON",
+          (settings: JSONObject): unknown => {
+            // Includes.fromJSON cannot iterate a number.
+            return { ...settings, unrelated: { _type: "Includes", value: 5 } };
+          },
+        ],
+      ] as Array<[string, (settings: JSONObject) => unknown]>) {
+        expect([
+          name,
+          await servedFor(
+            { serviceLevelObjectiveId: serviceLevelObjectiveId.toJSON() },
+            encode,
+          ),
+        ]).toEqual([name, asText]);
       }
     });
 
@@ -1920,6 +1973,94 @@ describe("DashboardAPI public SLO", () => {
       });
 
       expect(buildSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Issue #6327: an SLO widget stored inside more layers of envelope or
+   * JSON text than any board reads through is drawn as "This widget could
+   * not be shown", signed in and on the public page alike. Both routes
+   * answer it while every board reads it as an SLO widget, and refuse it
+   * past that - before, they answered one in six to ten layers that the
+   * owner's own board could not show.
+   */
+  describe("an SLO widget stored deeper than any board reads (issue #6327)", () => {
+    const envelopes: (widget: JSONObject, layers: number) => unknown = (
+      widget: JSONObject,
+      layers: number,
+    ): unknown => {
+      let entry: unknown = widget;
+
+      for (let layer: number = 0; layer < layers; layer++) {
+        entry =
+          layer % 2 === 1
+            ? JSON.stringify({ _type: "DashboardComponent", value: entry })
+            : { _type: "DashboardComponent", value: entry };
+      }
+
+      return entry;
+    };
+
+    it("serves its numbers and its history while every board reads it, and refuses both past that", async () => {
+      for (let layers: number = 0; layers <= 12; layers++) {
+        const slo: BuiltWidget = buildSloChartWidget();
+
+        setWidgets([envelopes(slo.widget, layers) as JSONObject]);
+
+        /*
+         * Each layer is an envelope, and every second one is also written
+         * as JSON text. A board reads text in the step that opens the
+         * envelope holding it; only the outermost text - the stored entry
+         * itself - takes a step of its own.
+         */
+        const isTextOutermost: boolean = layers >= 2 && layers % 2 === 0;
+        const isRead: boolean = layers + (isTextOutermost ? 1 : 0) <= 5;
+
+        jest.clearAllMocks();
+
+        await callResourceList({ componentId: slo.componentId.toString() });
+
+        if (isRead) {
+          expect([layers, (nextFunction as jest.Mock).mock.calls]).toEqual([
+            layers,
+            [],
+          ]);
+          expect(getFindByArgs()["limit"]).toBe(1);
+        } else {
+          expect([layers, getThrownError()]).toEqual([
+            layers,
+            new BadDataException(
+              "This resource is not part of this dashboard.",
+            ),
+          ]);
+          expectNothingRead();
+        }
+
+        jest.clearAllMocks();
+
+        await callSloHistory({
+          componentId: slo.componentId.toString(),
+          aggregateBy: buildAggregateBy(),
+        });
+
+        if (isRead) {
+          expect([layers, (nextFunction as jest.Mock).mock.calls]).toEqual([
+            layers,
+            [],
+          ]);
+          expect(
+            (
+              (getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID
+            ).toString(),
+          ).toBe(serviceLevelObjectiveId.toString());
+        } else {
+          expect([
+            layers,
+            getThrownError() instanceof BadDataException,
+          ]).toEqual([layers, true]);
+          expectNothingRead();
+        }
+      }
     });
   });
 });

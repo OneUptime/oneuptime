@@ -83,7 +83,7 @@ En un punto de métrica la lista es más corta y empieza por el correo, porque l
 
 | Columna | Claves, de la preferida a la menos preferida |
 | --- | --- |
-| Empleado | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Empleado | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Equipo / centro de costes | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Modelo | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime también lee tokens de `gen_ai.client.token.usage`, `gen_ai.client.tok
 Dos cosas que debes saber antes de leer las cifras:
 
 - **`gemini_cli.token.usage` se deja fuera a propósito.** Gemini CLI envía sus tokens dos veces, como su propia métrica y como `gen_ai.client.token.usage`, y leer ambas los duplicaría. Sus tokens se cuentan una vez, a través de `gen_ai.client.token.usage`. Gemini CLI no envía ninguna métrica de coste: activa sus trazas para que cada llamada tenga precio.
-- **Solo se cuentan los tokens de entrada y de salida.** El tipo de token se lee de `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` o `token_type`, y solo cuentan `input` y `output` (o los antiguos `prompt` y `completion`). Las lecturas y escrituras de caché, el `total` de Codex (que repite los demás) y `reasoning_output` (parte de `output`) se dejan fuera, así que un total sacado de métricas es menor que la suma de todo lo que envía una herramienta.
+- **Solo se cuentan los tokens de entrada y de salida.** El tipo de token se lee de `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` o `token_type`, y solo cuentan `input` y `output` (o los antiguos `prompt` y `completion`), con `cacheRead` y `cacheCreation` de Claude Code como entrada, ya que su `input` los deja fuera. Las demás lecturas y escrituras de caché, el `total` de Codex (que repite los demás) y `reasoning_output` (parte de `output`) se dejan fuera, así que un total sacado de métricas es menor que la suma de todo lo que envía una herramienta.
 
 ## La pestaña Uso
 
