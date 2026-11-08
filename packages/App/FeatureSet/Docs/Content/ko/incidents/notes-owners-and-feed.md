@@ -264,6 +264,8 @@ flowchart TB
 
 **Slack, Microsoft Teams, Mattermost에서.** 노트를 추가하는 양식은 공개 노트가 승인되면 상태 페이지에 게시된다고 알려 줍니다. 공개 노트를 보낸 사람은 노트가 승인 요청되었다는 것과 누구를 기다리는지를 알게 됩니다. Slack과 Mattermost에서는 그 사람만 보는 메시지로, Microsoft Teams에서는 대화 안에서 알려 줍니다. 📣 또는 📢 반응으로 저장된 노트도 확인 메시지에서 같은 내용을 알려 줍니다. 채널은 노트가 게시될 때 그 노트를 알게 됩니다.
 
+**Slack, Microsoft Teams, Mattermost에서 승인하기.** **사용자 설정 → 알림 설정** 에서 **공개 메모 승인** 에 Slack, Microsoft Teams 또는 Mattermost를 켠 승인자는 그곳에서 OneUptime의 다이렉트 메시지로 노트를 받습니다. 누가 보냈는지, 어느 단계를 기다리는지, 그리고 승인하거나 거부하거나 OneUptime에서 여는 버튼이 함께 옵니다. 버튼을 누르면 채팅 계정이 연결된 OneUptime 계정으로서, 노트의 버튼과 같은 규칙으로 결정되며, 거부에는 그곳에서도 사유가 필요합니다. 답변은 본인만 봅니다. 다른 사람이 먼저 결정했거나, 메시지가 보내진 뒤 노트나 그 단계가 바뀌었다면 아무것도 결정되지 않고 답변이 무슨 일이 있었는지 알려 줍니다. [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost) 을 참고하세요.
+
 피드는 각 단계를 `PublicNoteApproval` 항목으로 기록합니다. 승인 요청된 노트, 승인되거나 거부된 노트, 철회된 편집, 승인 없이 게시된 노트입니다. 이 항목들은 채팅 채널에 게시되지 않으며, 게시되는 것은 공개된 노트입니다.
 
 ## 인시던트 피드
