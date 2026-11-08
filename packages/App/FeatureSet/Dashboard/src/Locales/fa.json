@@ -46433,5 +46433,7 @@
   "Add recommended rules": "افزودن قواعد پیشنهادی",
   "Add rules": "افزودن قواعد",
   "Fires when about {{percent}}% of the error budget burns in {{duration}}": "وقتی حدود {{percent}}٪ از بودجه خطا در {{duration}} مصرف شود اجرا می‌شود",
-  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "این‌ها قواعد نرخ مصرف پیشنهادی‌اند که این SLO هنوز ندارد و متناسب با بازه انطباق آن تنظیم شده‌اند. بعداً مانند هر قاعده دیگری ویرایش یا حذفشان کنید."
+  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "این‌ها قواعد نرخ مصرف پیشنهادی‌اند که این SLO هنوز ندارد و متناسب با بازه انطباق آن تنظیم شده‌اند. بعداً مانند هر قاعده دیگری ویرایش یا حذفشان کنید.",
+  "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "قواعدی که این SLO هنوز ندارد: {{rules}}. تا تأیید نکنید چیزی افزوده نمی‌شود. قاعده غیرفعال هم تنظیم‌شده به شمار می‌آید، پس قاعده‌ای را که نمی‌خواهید به‌جای حذف، غیرفعال کنید.",
+  "Recommended rules not set up": "قواعد پیشنهادی تنظیم نشده‌اند"
 }

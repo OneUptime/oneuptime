@@ -46433,5 +46433,7 @@
   "Add recommended rules": "新增推薦規則",
   "Add rules": "新增規則",
   "Fires when about {{percent}}% of the error budget burns in {{duration}}": "當約 {{percent}}% 的錯誤預算在 {{duration}} 內被消耗時觸發",
-  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "這些是此 SLO 還沒有的推薦消耗速率規則，已依其合規視窗調整。新增後可以像其他規則一樣編輯或刪除。"
+  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "這些是此 SLO 還沒有的推薦消耗速率規則，已依其合規視窗調整。新增後可以像其他規則一樣編輯或刪除。",
+  "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "此 SLO 尚缺的規則：{{rules}}。在您確認之前不會新增任何內容。已停用的規則也算已設定，因此對於不想要的規則，請將其停用而不是刪除。",
+  "Recommended rules not set up": "推薦規則尚未設定"
 }

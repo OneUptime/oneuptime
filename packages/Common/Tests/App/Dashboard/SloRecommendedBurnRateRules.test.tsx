@@ -21,16 +21,17 @@ import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
 import { ComponentProps as ConfirmModalProps } from "../../../UI/Components/Modal/ConfirmModal";
-import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 
 /*
  * "Add recommended rules" on an SLO's Burn Rate Rules page, rendered for
- * real against a stubbed API (the table is a stand-in that draws the page's
- * own card buttons and reports its rows, as the real one does after every
- * read):
+ * real against a stubbed API (the table is a stand-in that draws what the
+ * page puts above its rows and reports its rows, as the real one does after
+ * every read):
  *
- *   - the action is offered only while the server says the SLO is missing a
- *     recommended rule, and is asked again only when the table's rows change;
+ *   - the action is offered, in a note above the rows that names what is
+ *     missing, only while the server says the SLO is missing a recommended
+ *     rule, and is asked again only when the table's rows change;
+ *   - it is never a card button, which the table would fold into its ⋯;
  *   - it is locked, with the reason, for someone who may not create rules;
  *   - its confirmation lists exactly what will be added, as the rules table
  *     will show it;
@@ -88,9 +89,9 @@ let mockTableProps:
   | undefined;
 
 /*
- * The table: draws the card's buttons, and reports its rows whenever it
- * reads them - on mount and on every refreshToggle - as BaseModelTable's
- * onFetchSuccess does.
+ * The table: draws what the page puts above its rows (topContent, inside
+ * the card, as BaseModelTable does), and reports its rows whenever it reads
+ * them - on mount and on every refreshToggle - as its onFetchSuccess does.
  */
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -106,22 +107,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
       return (
         <section data-testid={props.id} data-refresh={props.refreshToggle}>
-          {(props.cardProps?.buttons || []).map(
-            (button: unknown, index: number): React.ReactElement => {
-              const schema: CardButtonSchema = button as CardButtonSchema;
-
-              return (
-                <button
-                  key={index}
-                  disabled={schema.disabled}
-                  title={schema.tooltip}
-                  onClick={schema.onClick}
-                >
-                  {schema.title}
-                </button>
-              );
-            },
-          )}
+          {props.topContent}
         </section>
       );
     },
@@ -167,6 +153,10 @@ jest.mock("../../../UI/Components/Modal/ConfirmModal", () => {
 
 import SloBurnRateRules from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules";
 import SloRecommendedBurnRateRulesModal from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloRecommendedBurnRateRulesModal";
+import SloRecommendedBurnRateRulesBanner, {
+  ADD_RECOMMENDED_BURN_RATE_RULES_BUTTON_TEST_ID,
+  SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloRecommendedBurnRateRulesBanner";
 import { getRecommendedRulesSignature } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/useSloRecommendedBurnRateRules";
 import RecommendedBurnRateRulesApi, {
   SLO_ADD_RECOMMENDED_BURN_RATE_RULES_PATH,
@@ -184,6 +174,7 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
+  SloRecommendedBurnRateRule,
   SloRecommendedBurnRateRuleToAdd,
   getSloRecommendedBurnRateRules,
   sloRecommendedBurnRateRuleToJSON,
@@ -205,7 +196,10 @@ function slowLeakToAdd(
   };
 }
 
-function rule(name: string, longWindowInMinutes: number): ServiceLevelObjectiveBurnRateRule {
+function rule(
+  name: string,
+  longWindowInMinutes: number,
+): ServiceLevelObjectiveBurnRateRule {
   const row: ServiceLevelObjectiveBurnRateRule =
     new ServiceLevelObjectiveBurnRateRule();
   row._id = ObjectID.generate().toString();
@@ -248,6 +242,13 @@ async function renderPage(): Promise<void> {
   await waitFor(() => {
     expect(screen.getByTestId("slo-burn-rate-rules-table")).toBeInTheDocument();
   });
+
+  // The page's first questions to the server are answered inside act.
+  await act(async () => {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  });
 }
 
 beforeEach(() => {
@@ -266,7 +267,9 @@ beforeEach(() => {
   mockGetItem.mockResolvedValue(slo);
 
   mockPost.mockImplementation((async (call: PostCall): Promise<unknown> => {
-    if (call.url.toString().endsWith(SLO_ADD_RECOMMENDED_BURN_RATE_RULES_PATH)) {
+    if (
+      call.url.toString().endsWith(SLO_ADD_RECOMMENDED_BURN_RATE_RULES_PATH)
+    ) {
       if (addOutcome) {
         return await addOutcome();
       }
@@ -306,21 +309,66 @@ afterEach(() => {
 });
 
 describe("Add recommended rules on the Burn Rate Rules page", () => {
-  test("is offered while the SLO is missing a recommended rule", async () => {
+  test("is offered while the SLO is missing a recommended rule, in a note above the rows that names it", async () => {
     await renderPage();
 
     expect(
       await screen.findByRole("button", { name: BUTTON }),
     ).toBeInTheDocument();
 
+    const banner: HTMLElement = screen.getByTestId(
+      SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID,
+    );
+
+    // Inside the table's card, above its rows.
+    expect(screen.getByTestId("slo-burn-rate-rules-table")).toContainElement(
+      banner,
+    );
+    expect(banner).toHaveTextContent("Recommended rules not set up");
+    expect(banner).toHaveTextContent(
+      "Not on this SLO yet: Slow leak. Nothing is added until you confirm.",
+    );
+    expect(banner).toHaveTextContent(
+      "A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.",
+    );
+    expect(within(banner).getByRole("button", { name: BUTTON })).toBeEnabled();
+
     // Asked once, for this SLO, in its project.
-    const asked: Array<PostCall> = postsTo(SLO_RECOMMENDED_BURN_RATE_RULES_PATH);
+    const asked: Array<PostCall> = postsTo(
+      SLO_RECOMMENDED_BURN_RATE_RULES_PATH,
+    );
 
     expect(asked).toHaveLength(1);
     expect(asked[0]!.data).toEqual({
       serviceLevelObjectiveId: SLO_ID.toString(),
     });
     expect(asked[0]!.headers).toEqual({ tenantid: PROJECT_ID.toString() });
+  });
+
+  test("names every rule the SLO is missing - all three, for an SLO whose rules were all deleted", async () => {
+    mockRows = [];
+    missing = getSloRecommendedBurnRateRules({ windowDays: 30 }).map(
+      (item: SloRecommendedBurnRateRule): SloRecommendedBurnRateRuleToAdd => {
+        return { ...item, alertSeverityName: null };
+      },
+    );
+
+    await renderPage();
+
+    const banner: HTMLElement = await screen.findByTestId(
+      SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID,
+    );
+
+    expect(banner).toHaveTextContent(
+      "Not on this SLO yet: Fast burn, Slow burn, Slow leak.",
+    );
+  });
+
+  test("is never a card button, which the table would fold into its More options menu", async () => {
+    await renderPage();
+    await screen.findByRole("button", { name: BUTTON });
+
+    expect(mockTableProps!.cardProps!.buttons || []).toHaveLength(0);
   });
 
   test("is not offered to an SLO that has every recommended rule", async () => {
@@ -333,6 +381,84 @@ describe("Add recommended rules on the Burn Rate Rules page", () => {
     });
 
     expect(screen.queryByRole("button", { name: BUTTON })).toBeNull();
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("is not offered on an archived SLO, whose rules never fire", async () => {
+    const archived: ServiceLevelObjective = new ServiceLevelObjective();
+    archived._id = SLO_ID.toString();
+    archived.isEnabled = true;
+    archived.isArchived = true;
+    archived.sloStatus = SloStatus.Healthy;
+    mockGetItem.mockResolvedValue(archived);
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(postsTo(SLO_RECOMMENDED_BURN_RATE_RULES_PATH)).toHaveLength(1);
+    });
+
+    // The SLO is read with whether it is archived.
+    expect(
+      (mockGetItem.mock.calls[0]![0] as { select: JSONObject }).select,
+    ).toEqual(expect.objectContaining({ isArchived: true }));
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: BUTTON })).toBeNull();
+  });
+
+  test("waits for the SLO to be read, so it never flashes on an archived SLO's page", async () => {
+    let resolveSlo: (slo: ServiceLevelObjective) => void = (): void => {};
+
+    mockGetItem.mockReturnValue(
+      new Promise<ServiceLevelObjective>(
+        (resolve: (slo: ServiceLevelObjective) => void) => {
+          resolveSlo = resolve;
+        },
+      ),
+    );
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(postsTo(SLO_RECOMMENDED_BURN_RATE_RULES_PATH)).toHaveLength(1);
+    });
+
+    // Slow leak is known to be missing; whether the SLO is archived is not.
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID),
+    ).toBeNull();
+
+    const slo: ServiceLevelObjective = new ServiceLevelObjective();
+    slo._id = SLO_ID.toString();
+    slo.isEnabled = true;
+    slo.isArchived = false;
+    slo.sloStatus = SloStatus.Healthy;
+
+    await act(async () => {
+      resolveSlo(slo);
+    });
+
+    expect(
+      await screen.findByTestId(SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID),
+    ).toHaveTextContent("Not on this SLO yet: Slow leak.");
+  });
+
+  test("is not offered when the SLO cannot be read", async () => {
+    mockGetItem.mockRejectedValue(new Error("The SLO could not be read."));
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(postsTo(SLO_RECOMMENDED_BURN_RATE_RULES_PATH)).toHaveLength(1);
+    });
+
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID),
+    ).toBeNull();
   });
 
   test("is not offered when the server cannot say what is missing", async () => {
@@ -405,7 +531,9 @@ describe("Add recommended rules on the Burn Rate Rules page", () => {
     const refreshBefore: string | undefined = mockTableProps!.refreshToggle;
 
     await act(async () => {
-      fireEvent.click(within(dialog).getByRole("button", { name: "Add rules" }));
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Add rules" }),
+      );
     });
 
     const added: Array<PostCall> = postsTo(
@@ -430,6 +558,9 @@ describe("Add recommended rules on the Burn Rate Rules page", () => {
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: BUTTON })).toBeNull();
     });
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID),
+    ).toBeNull();
   });
 
   test("a refusal is said in the dialog, which stays open, and the table is read again", async () => {
@@ -449,12 +580,14 @@ describe("Add recommended rules on the Burn Rate Rules page", () => {
     const refreshBefore: string | undefined = mockTableProps!.refreshToggle;
 
     await act(async () => {
-      fireEvent.click(within(dialog).getByRole("button", { name: "Add rules" }));
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Add rules" }),
+      );
     });
 
-    expect(await within(dialog).findByTestId("confirm-error")).toHaveTextContent(
-      "takes a role that can create SLO burn rate rules",
-    );
+    expect(
+      await within(dialog).findByTestId("confirm-error"),
+    ).toHaveTextContent("takes a role that can create SLO burn rate rules");
     expect(screen.getByRole("dialog", { name: BUTTON })).toBeInTheDocument();
     expect(mockTableProps!.refreshToggle).not.toBe(refreshBefore);
   });
@@ -495,28 +628,122 @@ describe("Add recommended rules on the Burn Rate Rules page", () => {
     });
 
     expect(button).toBeDisabled();
-    expect(button).toHaveAttribute(
-      "title",
-      "You do not have permission to create this SLO Burn Rate Rule.",
+
+    // Why, where every locked action says it: on the wrapper's tooltip.
+    fireEvent.mouseEnter(
+      screen.getByTestId(
+        `${ADD_RECOMMENDED_BURN_RATE_RULES_BUTTON_TEST_ID}-disabled-wrapper`,
+      ),
     );
+
+    await waitFor(() => {
+      expect(screen.getByRole("tooltip")).toHaveTextContent(
+        "You do not have permission to create this SLO Burn Rate Rule.",
+      );
+    });
 
     fireEvent.click(button);
 
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(postsTo(SLO_ADD_RECOMMENDED_BURN_RATE_RULES_PATH)).toHaveLength(0);
   });
 
-  test("is not drawn at all while the permissions are still unknown", async () => {
+  test("while the permissions are still unknown the note says what is missing, with no button yet", async () => {
     jest
       .spyOn(PermissionGate, "check")
       .mockReturnValue({ isAllowed: false, disabledReason: undefined });
 
     await renderPage();
 
-    await waitFor(() => {
-      expect(postsTo(SLO_RECOMMENDED_BURN_RATE_RULES_PATH)).toHaveLength(1);
+    expect(
+      await screen.findByTestId(SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID),
+    ).toHaveTextContent("Not on this SLO yet: Slow leak.");
+    expect(screen.queryByRole("button", { name: BUTTON })).toBeNull();
+  });
+});
+
+describe("the note, on its own", () => {
+  function renderBanner(
+    props: Partial<
+      React.ComponentProps<typeof SloRecommendedBurnRateRulesBanner>
+    >,
+  ): { onAdd: MockFunction } {
+    const onAdd: MockFunction = getJestMockFunction();
+
+    render(
+      <SloRecommendedBurnRateRulesBanner
+        rules={[slowLeakToAdd()]}
+        createGate={{ isAllowed: true }}
+        onAdd={onAdd as unknown as () => void}
+        {...props}
+      />,
+    );
+
+    return { onAdd: onAdd };
+  }
+
+  test("draws nothing when nothing is missing", () => {
+    renderBanner({ rules: [] });
+
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID),
+    ).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  test("is a calm note, not an alarm: it is announced politely", () => {
+    renderBanner({});
+
+    expect(
+      screen.getByTestId(SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID),
+    ).toHaveAttribute("role", "status");
+  });
+
+  test("names the missing rules in the order they are recommended", () => {
+    const [fastBurn, , slowLeak] = getSloRecommendedBurnRateRules({
+      windowDays: 30,
     });
 
-    expect(screen.queryByRole("button", { name: BUTTON })).toBeNull();
+    renderBanner({
+      rules: [
+        { ...fastBurn!, alertSeverityName: "Critical" },
+        { ...slowLeak!, alertSeverityName: "Low" },
+      ],
+    });
+
+    expect(
+      screen.getByTestId(SLO_RECOMMENDED_BURN_RATE_RULES_BANNER_TEST_ID),
+    ).toHaveTextContent("Not on this SLO yet: Fast burn, Slow leak.");
+  });
+
+  test("its button asks for the confirmation, and adds nothing itself", () => {
+    const { onAdd } = renderBanner({});
+
+    fireEvent.click(
+      screen.getByTestId(ADD_RECOMMENDED_BURN_RATE_RULES_BUTTON_TEST_ID),
+    );
+
+    expect(onAdd).toHaveBeenCalledTimes(1);
+  });
+
+  test("a locked button asks for nothing when pressed", () => {
+    const { onAdd } = renderBanner({
+      createGate: {
+        isAllowed: false,
+        disabledReason:
+          "You do not have permission to create this SLO Burn Rate Rule.",
+      },
+    });
+
+    const button: HTMLElement = screen.getByTestId(
+      ADD_RECOMMENDED_BURN_RATE_RULES_BUTTON_TEST_ID,
+    );
+
+    expect(button).toBeDisabled();
+
+    fireEvent.click(button);
+
+    expect(onAdd).not.toHaveBeenCalled();
   });
 });
 
@@ -586,9 +813,9 @@ describe("the confirmation, on its own", () => {
   test("a rule the project has no severity for says it raises at the default one", () => {
     renderModal([{ ...slowLeakToAdd(), alertSeverityName: null }]);
 
-    expect(screen.getByTestId("slo-recommended-burn-rate-rule")).toHaveTextContent(
-      "Alert: Default",
-    );
+    expect(
+      screen.getByTestId("slo-recommended-burn-rate-rule"),
+    ).toHaveTextContent("Alert: Default");
   });
 
   test("says what it is and what happens after", () => {

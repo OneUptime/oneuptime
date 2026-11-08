@@ -82,9 +82,9 @@ SLO'er med kalendermåned får værdierne for 30 dage. Reglerne bruger standardt
 
 ### Tilføj de anbefalede regler til et eksisterende SLO
 
-SLO'er, der blev oprettet, før Slow leak fandtes, har kun Fast burn og Slow burn: en opgradering af OneUptime tilføjer aldrig en regel, der af sig selv ville begynde at udløse advarsler. Så længe et SLO mangler en af de tre standardregler, viser dets side **Forbrugsrateregler** knappen **Tilføj anbefalede regler**. Klik på den for at se præcis, hvad den tilføjer, tilpasset SLO'ets vindue, og bekræft. Den tilføjer kun de manglende regler, og klikker du på den igen, tilføjer den ingenting.
+SLO'er, der blev oprettet, før Slow leak fandtes, har kun Fast burn og Slow burn: en opgradering af OneUptime tilføjer aldrig en regel, der af sig selv ville begynde at udløse advarsler. Så længe et SLO mangler en af de tre standardregler, nævner dets side **Forbrugsrateregler** dem i en note over tabellen. Klik på knappen **Tilføj anbefalede regler** i noten for at se præcis, hvad den tilføjer, tilpasset SLO'ets vindue, og bekræft. Den tilføjer kun de manglende regler, og klikker du på den igen, tilføjer den ingenting.
 
-En regel tæller som allerede på plads, når SLO'et har en regel med samme navn eller en med samme lange vindue, uanset om den er slået til eller fra. Så en standardregel, du har omdøbt eller justeret, tilføjes aldrig to gange. Du skal have tilladelse til at oprette SLO-forbrugsrateregler. Hver regel, knappen tilføjer, offentliggøres i SLO'ets feed og registreres i dets auditlogs, ligesom en regel, du selv opretter.
+En regel tæller som allerede på plads, når SLO'et har en regel med samme navn eller en med samme lange vindue, uanset om den er slået til eller fra. Så en standardregel, du har omdøbt eller justeret, tilføjes aldrig to gange. Vil du ikke have en af standardreglerne, så behold reglen og deaktiver den i stedet for at slette den, så tilbyder noten den ikke længere. Du skal have tilladelse til at oprette SLO-forbrugsrateregler. Hver regel, knappen tilføjer, offentliggøres i SLO'ets feed og registreres i dets auditlogs, ligesom en regel, du selv opretter.
 
 ## Opret eller redigér en regel
 

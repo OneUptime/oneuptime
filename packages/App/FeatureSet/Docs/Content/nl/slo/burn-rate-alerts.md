@@ -82,9 +82,9 @@ SLO's met een kalendermaand krijgen de waarden van 30 dagen. De regels gebruiken
 
 ### De aanbevolen regels toevoegen aan een bestaande SLO
 
-SLO's die zijn aangemaakt voordat Slow leak bestond, hebben alleen Fast burn en Slow burn: een upgrade van OneUptime voegt nooit een regel toe die uit zichzelf waarschuwingen zou gaan geven. Zolang een SLO een van de drie standaardregels mist, toont zijn pagina **Verbruikssnelheidsregels** de knop **Aanbevolen regels toevoegen**. Klik erop om precies te zien wat hij toevoegt, afgestemd op het venster van de SLO, en bevestig. Hij voegt alleen de ontbrekende regels toe, en nog een keer klikken voegt niets toe.
+SLO's die zijn aangemaakt voordat Slow leak bestond, hebben alleen Fast burn en Slow burn: een upgrade van OneUptime voegt nooit een regel toe die uit zichzelf waarschuwingen zou gaan geven. Zolang een SLO een van de drie standaardregels mist, noemt zijn pagina **Verbruikssnelheidsregels** ze in een melding boven de tabel. Klik in de melding op de knop **Aanbevolen regels toevoegen** om precies te zien wat hij toevoegt, afgestemd op het venster van de SLO, en bevestig. Hij voegt alleen de ontbrekende regels toe, en nog een keer klikken voegt niets toe.
 
-Een regel telt als al aanwezig wanneer de SLO een regel met dezelfde naam heeft, of een met hetzelfde lange venster, of die nu aan of uit staat. Een standaardregel die u hebt hernoemd of bijgesteld, wordt dus nooit twee keer toegevoegd. U hebt toestemming nodig om SLO-regels voor verbruikssnelheid aan te maken. Elke regel die de knop toevoegt, wordt in de feed van de SLO gepubliceerd en vastgelegd in zijn auditlogboeken, net als een regel die u zelf aanmaakt.
+Een regel telt als al aanwezig wanneer de SLO een regel met dezelfde naam heeft, of een met hetzelfde lange venster, of die nu aan of uit staat. Een standaardregel die u hebt hernoemd of bijgesteld, wordt dus nooit twee keer toegevoegd. Wilt u een standaardregel niet, houd de regel dan en schakel hem uit in plaats van hem te verwijderen; dan biedt de melding hem niet meer aan. U hebt toestemming nodig om SLO-regels voor verbruikssnelheid aan te maken. Elke regel die de knop toevoegt, wordt in de feed van de SLO gepubliceerd en vastgelegd in zijn auditlogboeken, net als een regel die u zelf aanmaakt.
 
 ## Een regel maken of bewerken
 

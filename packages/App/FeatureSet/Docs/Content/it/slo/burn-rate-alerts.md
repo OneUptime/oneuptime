@@ -82,9 +82,9 @@ Gli SLO a mese di calendario ricevono i valori di 30 giorni. Le regole usano il 
 
 ### Aggiungere le regole consigliate a uno SLO esistente
 
-Gli SLO creati prima che esistesse Slow leak hanno solo Fast burn e Slow burn: aggiornare OneUptime non aggiunge mai da solo una regola che inizierebbe a generare avvisi. Finché a uno SLO manca una delle tre regole predefinite, la sua pagina **Regole di tasso di consumo** mostra **Aggiungi regole consigliate**. Fai clic per vedere esattamente cosa aggiunge, adattato alla finestra dello SLO, e conferma. Aggiunge solo le regole mancanti, e un nuovo clic non aggiunge nulla.
+Gli SLO creati prima che esistesse Slow leak hanno solo Fast burn e Slow burn: aggiornare OneUptime non aggiunge mai da solo una regola che inizierebbe a generare avvisi. Finché a uno SLO manca una delle tre regole predefinite, la sua pagina **Regole di tasso di consumo** le nomina in una nota sopra la tabella. Fai clic su **Aggiungi regole consigliate** nella nota per vedere esattamente cosa aggiunge, adattato alla finestra dello SLO, e conferma. Aggiunge solo le regole mancanti, e un nuovo clic non aggiunge nulla.
 
-Una regola conta come presente quando lo SLO ha una regola con lo stesso nome, o una con la stessa finestra lunga, che sia attiva o no. Così una regola predefinita che hai rinominato o regolato non viene mai aggiunta due volte. Ti serve il permesso di creare regole del tasso di consumo degli SLO. Ogni regola aggiunta così viene pubblicata nel feed dello SLO e registrata nei suoi registri di audit, come una regola che crei tu.
+Una regola conta come presente quando lo SLO ha una regola con lo stesso nome, o una con la stessa finestra lunga, che sia attiva o no. Così una regola predefinita che hai rinominato o regolato non viene mai aggiunta due volte. Perché la nota smetta di proporre una regola predefinita che non vuoi, tieni la regola e disabilitala invece di eliminarla. Ti serve il permesso di creare regole del tasso di consumo degli SLO. Ogni regola aggiunta così viene pubblicata nel feed dello SLO e registrata nei suoi registri di audit, come una regola che crei tu.
 
 ## Creare o modificare una regola
 

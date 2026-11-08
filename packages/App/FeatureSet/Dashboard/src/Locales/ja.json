@@ -46433,5 +46433,7 @@
   "Add recommended rules": "おすすめのルールを追加",
   "Add rules": "ルールを追加",
   "Fires when about {{percent}}% of the error budget burns in {{duration}}": "エラーバジェットの約 {{percent}}% が {{duration}} で消費されると発火",
-  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "この SLO にまだない、おすすめのバーンレートルールです。コンプライアンスの時間枠に合わせて調整されています。追加後は、ほかのルールと同じように編集・削除できます。"
+  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "この SLO にまだない、おすすめのバーンレートルールです。コンプライアンスの時間枠に合わせて調整されています。追加後は、ほかのルールと同じように編集・削除できます。",
+  "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "この SLO にまだないルール: {{rules}}。確認するまで何も追加されません。無効のルールも設定済みとみなされるため、不要なルールは削除せずに無効にしてください。",
+  "Recommended rules not set up": "おすすめのルールが設定されていません"
 }

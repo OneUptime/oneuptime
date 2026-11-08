@@ -65,9 +65,9 @@ export default function useSloRecommendedBurnRateRules(
     Array<SloRecommendedBurnRateRuleToAdd>
   >([]);
 
-  const signatureRef: MutableRefObject<string | null> = useRef<
-    string | null
-  >(null);
+  const signatureRef: MutableRefObject<string | null> = useRef<string | null>(
+    null,
+  );
 
   // Only the latest request's answer is kept.
   const requestRef: MutableRefObject<number> = useRef<number>(0);
@@ -92,8 +92,20 @@ export default function useSloRecommendedBurnRateRules(
     }
   }, [sloKey]);
 
-  // Another SLO's page: start over.
+  /*
+   * Another SLO's page: start over. Only on a change of SLO, never on the
+   * first render - the table's first read reaches onRulesFetched before
+   * this effect runs (a child's effects run first), and resetting then
+   * would ask the server a second time for the same rows.
+   */
+  const shownSloKeyRef: MutableRefObject<string> = useRef<string>(sloKey);
+
   useEffect(() => {
+    if (shownSloKeyRef.current === sloKey) {
+      return;
+    }
+
+    shownSloKeyRef.current = sloKey;
     signatureRef.current = null;
     setMissingRules([]);
   }, [sloKey]);
@@ -106,10 +118,7 @@ export default function useSloRecommendedBurnRateRules(
       rules: Array<ServiceLevelObjectiveBurnRateRule>,
       totalCount: number,
     ): void => {
-      const signature: string = getRecommendedRulesSignature(
-        rules,
-        totalCount,
-      );
+      const signature: string = getRecommendedRulesSignature(rules, totalCount);
 
       if (signatureRef.current === signature) {
         return;
@@ -124,18 +133,17 @@ export default function useSloRecommendedBurnRateRules(
     [load],
   );
 
-  const addMissingRules: () => Promise<
-    Array<SloRecommendedBurnRateRuleToAdd>
-  > = useCallback(async (): Promise<Array<SloRecommendedBurnRateRuleToAdd>> => {
-    try {
-      return await RecommendedBurnRateRulesApi.addMissing(
-        serviceLevelObjectiveId,
-      );
-    } finally {
-      // Whatever was added, the next rows the table reads are asked about again.
-      signatureRef.current = null;
-    }
-  }, [sloKey]);
+  const addMissingRules: () => Promise<Array<SloRecommendedBurnRateRuleToAdd>> =
+    useCallback(async (): Promise<Array<SloRecommendedBurnRateRuleToAdd>> => {
+      try {
+        return await RecommendedBurnRateRulesApi.addMissing(
+          serviceLevelObjectiveId,
+        );
+      } finally {
+        // Whatever was added, the next rows the table reads are asked about again.
+        signatureRef.current = null;
+      }
+    }, [sloKey]);
 
   return {
     missingRules: missingRules,

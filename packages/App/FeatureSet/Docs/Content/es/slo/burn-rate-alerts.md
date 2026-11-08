@@ -82,9 +82,9 @@ Los SLO de mes natural reciben los valores de 30 días. Las reglas usan el títu
 
 ### Añadir las reglas recomendadas a un SLO existente
 
-Los SLO creados antes de que existiera Slow leak solo tienen Fast burn y Slow burn: actualizar OneUptime nunca añade por su cuenta una regla que empezaría a generar alertas. Mientras a un SLO le falte una de las tres reglas predeterminadas, su página **Reglas de tasa de consumo** muestra **Agregar reglas recomendadas**. Haz clic para ver exactamente lo que añade, ajustado a la ventana del SLO, y confirma. Solo añade las reglas que faltan, y volver a hacer clic no añade nada.
+Los SLO creados antes de que existiera Slow leak solo tienen Fast burn y Slow burn: actualizar OneUptime nunca añade por su cuenta una regla que empezaría a generar alertas. Mientras a un SLO le falte una de las tres reglas predeterminadas, su página **Reglas de tasa de consumo** las nombra en un aviso sobre la tabla. Haz clic en **Agregar reglas recomendadas** en el aviso para ver exactamente lo que añade, ajustado a la ventana del SLO, y confirma. Solo añade las reglas que faltan, y volver a hacer clic no añade nada.
 
-Una regla cuenta como existente cuando el SLO tiene una regla con el mismo nombre, o una con la misma ventana larga, esté activada o no. Así, una regla predeterminada que hayas renombrado o ajustado nunca se añade dos veces. Necesitas permiso para crear reglas de tasa de consumo de SLO. Cada regla que se añade así se publica en el feed del SLO y queda en sus registros de auditoría, como una regla que creas tú.
+Una regla cuenta como existente cuando el SLO tiene una regla con el mismo nombre, o una con la misma ventana larga, esté activada o no. Así, una regla predeterminada que hayas renombrado o ajustado nunca se añade dos veces. Para que el aviso deje de ofrecer una regla predeterminada que no quieres, conserva la regla y deshabilítala en lugar de eliminarla. Necesitas permiso para crear reglas de tasa de consumo de SLO. Cada regla que se añade así se publica en el feed del SLO y queda en sus registros de auditoría, como una regla que creas tú.
 
 ## Crear o editar una regla
 

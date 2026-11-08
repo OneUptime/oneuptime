@@ -46433,5 +46433,7 @@
   "Add recommended rules": "Lägg till rekommenderade regler",
   "Add rules": "Lägg till regler",
   "Fires when about {{percent}}% of the error budget burns in {{duration}}": "Utlöses när ungefär {{percent}} % av felbudgeten förbrukas på {{duration}}",
-  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "Det här är de rekommenderade reglerna för förbrukningstakt som denna SLO inte har ännu, anpassade efter dess efterlevnadsfönster. Redigera eller ta bort dem efteråt som vilken annan regel som helst."
+  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "Det här är de rekommenderade reglerna för förbrukningstakt som denna SLO inte har ännu, anpassade efter dess efterlevnadsfönster. Redigera eller ta bort dem efteråt som vilken annan regel som helst.",
+  "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "Regler som detta SLO inte har ännu: {{rules}}. Inget läggs till förrän du bekräftar. En inaktiverad regel räknas som konfigurerad, så inaktivera en regel som du inte vill ha i stället för att ta bort den.",
+  "Recommended rules not set up": "Rekommenderade regler är inte konfigurerade"
 }

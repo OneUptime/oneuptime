@@ -82,9 +82,9 @@ Les SLO par mois calendaire reçoivent les valeurs de 30 jours. Les règles util
 
 ### Ajouter les règles recommandées à un SLO existant
 
-Les SLO créés avant l'arrivée de Slow leak n'ont que Fast burn et Slow burn : une mise à niveau de OneUptime n'ajoute jamais d'elle-même une règle qui se mettrait à déclencher des alertes. Tant qu'il manque à un SLO l'une des trois règles par défaut, sa page **Règles de taux de consommation** affiche **Ajouter les règles recommandées**. Cliquez dessus pour voir exactement ce qui sera ajouté, adapté à la fenêtre du SLO, puis confirmez. Seules les règles manquantes sont ajoutées, et cliquer de nouveau n'ajoute rien.
+Les SLO créés avant l'arrivée de Slow leak n'ont que Fast burn et Slow burn : une mise à niveau de OneUptime n'ajoute jamais d'elle-même une règle qui se mettrait à déclencher des alertes. Tant qu'il manque à un SLO l'une des trois règles par défaut, sa page **Règles de taux de consommation** les nomme dans une note au-dessus du tableau. Cliquez sur **Ajouter les règles recommandées** dans la note pour voir exactement ce qui sera ajouté, adapté à la fenêtre du SLO, puis confirmez. Seules les règles manquantes sont ajoutées, et cliquer de nouveau n'ajoute rien.
 
-Une règle compte comme présente quand le SLO a une règle du même nom, ou une règle avec la même fenêtre longue, qu'elle soit activée ou non. Une règle par défaut que vous avez renommée ou ajustée n'est donc jamais ajoutée deux fois. Il vous faut la permission de créer des règles de taux de consommation de SLO. Chaque règle ajoutée ainsi est publiée dans le fil d'activité du SLO et enregistrée dans ses journaux d'audit, comme une règle que vous créez vous-même.
+Une règle compte comme présente quand le SLO a une règle du même nom, ou une règle avec la même fenêtre longue, qu'elle soit activée ou non. Une règle par défaut que vous avez renommée ou ajustée n'est donc jamais ajoutée deux fois. Pour que la note cesse de proposer une règle par défaut dont vous ne voulez pas, gardez la règle et désactivez-la au lieu de la supprimer. Il vous faut la permission de créer des règles de taux de consommation de SLO. Chaque règle ajoutée ainsi est publiée dans le fil d'activité du SLO et enregistrée dans ses journaux d'audit, comme une règle que vous créez vous-même.
 
 ## Créer ou modifier une règle
 

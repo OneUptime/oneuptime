@@ -82,9 +82,9 @@ SLO-er med kalendermåned får verdiene for 30 dager. Reglene bruker standardtit
 
 ### Legg til de anbefalte reglene på et eksisterende SLO
 
-SLO-er som ble opprettet før Slow leak fantes, har bare Fast burn og Slow burn: en oppgradering av OneUptime legger aldri til en regel som ville begynt å utløse varsler av seg selv. Så lenge et SLO mangler en av de tre standardreglene, viser siden **Forbruksrateregler** til SLO-et knappen **Legg til anbefalte regler**. Klikk på den for å se nøyaktig hva den legger til, tilpasset vinduet til SLO-et, og bekreft. Den legger bare til reglene som mangler, og klikker du på den igjen, legger den ikke til noe.
+SLO-er som ble opprettet før Slow leak fantes, har bare Fast burn og Slow burn: en oppgradering av OneUptime legger aldri til en regel som ville begynt å utløse varsler av seg selv. Så lenge et SLO mangler en av de tre standardreglene, nevner siden **Forbruksrateregler** til SLO-et dem i en merknad over tabellen. Klikk på knappen **Legg til anbefalte regler** i merknaden for å se nøyaktig hva den legger til, tilpasset vinduet til SLO-et, og bekreft. Den legger bare til reglene som mangler, og klikker du på den igjen, legger den ikke til noe.
 
-En regel teller som allerede på plass når SLO-et har en regel med samme navn, eller en med samme lange vindu, enten den er slått på eller av. En standardregel du har gitt nytt navn eller justert, legges derfor aldri til to ganger. Du trenger tillatelse til å opprette SLO-forbruksrateregler. Hver regel knappen legger til, publiseres i feeden til SLO-et og registreres i revisjonsloggene, som en regel du oppretter selv.
+En regel teller som allerede på plass når SLO-et har en regel med samme navn, eller en med samme lange vindu, enten den er slått på eller av. En standardregel du har gitt nytt navn eller justert, legges derfor aldri til to ganger. Vil du ikke ha en av standardreglene, så behold regelen og deaktiver den i stedet for å slette den, så tilbyr merknaden den ikke lenger. Du trenger tillatelse til å opprette SLO-forbruksrateregler. Hver regel knappen legger til, publiseres i feeden til SLO-et og registreres i revisjonsloggene, som en regel du oppretter selv.
 
 ## Opprett eller rediger en regel
 

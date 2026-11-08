@@ -46433,5 +46433,7 @@
   "Add recommended rules": "सुझाए गए नियम जोड़ें",
   "Add rules": "नियम जोड़ें",
   "Fires when about {{percent}}% of the error budget burns in {{duration}}": "जब लगभग {{percent}}% त्रुटि बजट {{duration}} में ख़र्च हो जाए, तब चलता है",
-  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "ये वे सुझाए गए बर्न रेट नियम हैं जो इस SLO में अभी नहीं हैं, इसकी अनुपालन अवधि के हिसाब से तय किए गए। बाद में इन्हें किसी भी दूसरे नियम की तरह संपादित करें या हटाएँ।"
+  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "ये वे सुझाए गए बर्न रेट नियम हैं जो इस SLO में अभी नहीं हैं, इसकी अनुपालन अवधि के हिसाब से तय किए गए। बाद में इन्हें किसी भी दूसरे नियम की तरह संपादित करें या हटाएँ।",
+  "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "इस SLO में अभी ये नियम नहीं हैं: {{rules}}। आपकी पुष्टि के बिना कुछ नहीं जुड़ता। अक्षम किया गया नियम भी सेट माना जाता है, इसलिए जो नियम आप नहीं चाहते, उसे हटाने के बजाय अक्षम करें।",
+  "Recommended rules not set up": "सुझाए गए नियम सेट नहीं हैं"
 }

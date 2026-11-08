@@ -82,9 +82,9 @@ SLOs de mês do calendário recebem os valores de 30 dias. As regras usam o tít
 
 ### Adicionar as regras recomendadas a um SLO existente
 
-SLOs criados antes de Slow leak existir têm só Fast burn e Slow burn: atualizar o OneUptime nunca adiciona uma regra que começaria a gerar alertas por conta própria. Enquanto faltar a um SLO uma das três regras padrão, a página **Regras de taxa de consumo** dele mostra o botão **Adicionar regras recomendadas**. Clique nele para ver exatamente o que ele adiciona, ajustado à janela do SLO, e confirme. Ele só adiciona as regras que faltam, e clicar nele de novo não adiciona nada.
+SLOs criados antes de Slow leak existir têm só Fast burn e Slow burn: atualizar o OneUptime nunca adiciona uma regra que começaria a gerar alertas por conta própria. Enquanto faltar a um SLO uma das três regras padrão, a página **Regras de taxa de consumo** dele as nomeia em um aviso acima da tabela. Clique no botão **Adicionar regras recomendadas** do aviso para ver exatamente o que ele adiciona, ajustado à janela do SLO, e confirme. Ele só adiciona as regras que faltam, e clicar nele de novo não adiciona nada.
 
-Uma regra conta como já existente quando o SLO tem uma regra com o mesmo nome, ou uma com a mesma janela longa, esteja ela ligada ou desligada. Assim, uma regra padrão que você renomeou ou ajustou nunca é adicionada duas vezes. Você precisa de permissão para criar regras de taxa de consumo de SLO. Cada regra que o botão adiciona é publicada no feed do SLO e registrada nos registros de auditoria dele, como uma regra que você mesmo cria.
+Uma regra conta como já existente quando o SLO tem uma regra com o mesmo nome, ou uma com a mesma janela longa, esteja ela ligada ou desligada. Assim, uma regra padrão que você renomeou ou ajustou nunca é adicionada duas vezes. Para que o aviso deixe de oferecer uma regra padrão que você não quer, mantenha a regra e desabilite-a em vez de excluí-la. Você precisa de permissão para criar regras de taxa de consumo de SLO. Cada regra que o botão adiciona é publicada no feed do SLO e registrada nos registros de auditoria dele, como uma regra que você mesmo cria.
 
 ## Criar ou editar uma regra
 

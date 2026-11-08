@@ -9,6 +9,7 @@ import {
   willDeclareIncident,
 } from "../Utils/BurnRateRuleForm";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
+import SloRecommendedBurnRateRulesBanner from "../../../Components/Slo/SloRecommendedBurnRateRulesBanner";
 import SloRecommendedBurnRateRulesModal from "../../../Components/Slo/SloRecommendedBurnRateRulesModal";
 import useSloRecommendedBurnRateRules, {
   UseSloRecommendedBurnRateRulesResult,
@@ -28,9 +29,6 @@ import {
 } from "Common/Utils/Slo/SloBurnRateRuleState";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import API from "Common/UI/Utils/API/API";
 import PermissionGate, {
   ModelAction,
@@ -132,7 +130,7 @@ Fast burn and Slow burn raise their alerts at the project's most severe alert se
 
 On SLO windows shorter than 30 days, Slow leak looks back a tenth of the window instead of three days (16.8 hours on a 7-day SLO), so it always fires at 1×.
 
-An SLO created before one of these rules existed, or whose rule was deleted, does not get it by itself. **Add recommended rules** above the table adds the ones it is missing, after showing exactly what it will add. A rule counts as there when the SLO has a rule with the same name or the same long window, so a renamed or tuned default rule is never added twice.
+An SLO created before one of these rules existed, or whose rule was deleted, does not get it by itself. While one is missing, a note above the table names it. **Add recommended rules** in the note shows exactly what it will add, and adds only the missing rules once you confirm. A rule counts as there when the SLO has a rule with the same name or the same long window, enabled or disabled, so a renamed or tuned default rule is never added twice. To stop being offered a default rule you do not want, disable it instead of deleting it.
 
 Route the fast-burn rule to a paging on-call policy at a high severity, and keep the slow-leak rule as a ticket for the owning team.
 
@@ -260,10 +258,18 @@ const SloBurnRateRules: FunctionComponent<
   const [canFire, setCanFire] = useState<boolean>(true);
 
   /*
-   * "Add recommended rules": offered while the SLO is missing one of the
-   * rules OneUptime recommends (an SLO created before Slow leak existed, or
-   * one whose rule was deleted), with a confirmation of exactly what it adds.
-   * Nothing is added by itself, so upgrading never starts raising alerts.
+   * An archived SLO is not evaluated, so its rules never fire: the note
+   * offering the recommended ones is not drawn there. Null until the SLO is
+   * read, so the note never flashes on an archived SLO's page first.
+   */
+  const [isArchived, setIsArchived] = useState<boolean | null>(null);
+
+  /*
+   * "Add recommended rules": offered in a note above the table while the SLO
+   * is missing one of the rules OneUptime recommends (an SLO created before
+   * Slow leak existed, or one whose rule was deleted), with a confirmation
+   * of exactly what it adds. Nothing is added by itself, so upgrading never
+   * starts raising alerts.
    */
   const recommended: UseSloRecommendedBurnRateRulesResult =
     useSloRecommendedBurnRateRules(modelId);
@@ -296,28 +302,6 @@ const SloBurnRateRules: FunctionComponent<
     ModelAction.Create,
   );
 
-  const cardButtons: Array<CardButtonSchema> =
-    recommended.missingRules.length > 0 &&
-    (createGate.isAllowed || createGate.disabledReason)
-      ? [
-          {
-            title: "Add recommended rules",
-            buttonStyle: ButtonStyleType.NORMAL,
-            icon: IconProp.LightBulb,
-            disabled: !createGate.isAllowed,
-            tooltip: createGate.disabledReason,
-            onClick: () => {
-              if (!createGate.isAllowed) {
-                return;
-              }
-
-              setAddRecommendedError("");
-              setIsRecommendedModalOpen(true);
-            },
-          },
-        ]
-      : [];
-
   useEffect(() => {
     let cancelled: boolean = false;
 
@@ -330,11 +314,13 @@ const SloBurnRateRules: FunctionComponent<
             select: {
               isEnabled: true,
               sloStatus: true,
+              isArchived: true,
             },
           });
 
         if (!cancelled && slo) {
           setCanFire(canSloFireBurnRateRules(slo));
+          setIsArchived(slo.isArchived === true);
         }
       } catch {
         // Keep the optimistic default; the notice banner owns real errors.
@@ -365,6 +351,16 @@ const SloBurnRateRules: FunctionComponent<
         isCreateable={true}
         showRefreshButton={true}
         refreshToggle={rulesRefreshToggle}
+        topContent={
+          <SloRecommendedBurnRateRulesBanner
+            rules={isArchived === false ? recommended.missingRules : []}
+            createGate={createGate}
+            onAdd={() => {
+              setAddRecommendedError("");
+              setIsRecommendedModalOpen(true);
+            }}
+          />
+        }
         onFetchSuccess={(
           rules: Array<ServiceLevelObjectiveBurnRateRule>,
           totalCount: number,
@@ -386,7 +382,6 @@ const SloBurnRateRules: FunctionComponent<
           title: "Burn Rate Rules",
           description:
             "Raise alerts and declare incidents when the error budget is being spent too fast. Rules fire only when both the long and short windows exceed the threshold.",
-          buttons: cardButtons,
         }}
         noItemsMessage="No burn rate rules yet, so nothing pages anyone when the error budget burns. Add a fast-burn rule."
         helpContent={{

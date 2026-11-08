@@ -82,9 +82,9 @@ SLO:er med kalendermånad får värdena för 30 dagar. Reglerna använder standa
 
 ### Lägg till de rekommenderade reglerna i ett befintligt SLO
 
-SLO:er som skapades innan Slow leak fanns har bara Fast burn och Slow burn: en uppgradering av OneUptime lägger aldrig till en regel som skulle börja utlösa larm av sig själv. Så länge ett SLO saknar någon av de tre standardreglerna visas **Lägg till rekommenderade regler** på dess sida **Förbrukningstaktsregler**. Klicka på den för att se exakt vad den lägger till, anpassat till SLO:ets fönster, och bekräfta. Den lägger bara till de regler som saknas, och klickar du på den igen läggs inget till.
+SLO:er som skapades innan Slow leak fanns har bara Fast burn och Slow burn: en uppgradering av OneUptime lägger aldrig till en regel som skulle börja utlösa larm av sig själv. Så länge ett SLO saknar någon av de tre standardreglerna nämner dess sida **Förbrukningstaktsregler** dem i en notis ovanför tabellen. Klicka på knappen **Lägg till rekommenderade regler** i notisen för att se exakt vad den lägger till, anpassat till SLO:ets fönster, och bekräfta. Den lägger bara till de regler som saknas, och klickar du på den igen läggs inget till.
 
-En regel anses redan finnas när SLO:et har en regel med samma namn, eller en med samma långa fönster, oavsett om den är påslagen eller avstängd. En standardregel som du har bytt namn på eller justerat läggs alltså aldrig till två gånger. Du behöver behörighet att skapa SLO-regler för förbrukningstakt. Varje regel som den lägger till publiceras i SLO:ets flöde och registreras i dess granskningsloggar, precis som en regel som du skapar själv.
+En regel anses redan finnas när SLO:et har en regel med samma namn, eller en med samma långa fönster, oavsett om den är påslagen eller avstängd. En standardregel som du har bytt namn på eller justerat läggs alltså aldrig till två gånger. Vill du inte ha en av standardreglerna, behåll då regeln och inaktivera den i stället för att ta bort den, så erbjuder notisen den inte längre. Du behöver behörighet att skapa SLO-regler för förbrukningstakt. Varje regel som den lägger till publiceras i SLO:ets flöde och registreras i dess granskningsloggar, precis som en regel som du skapar själv.
 
 ## Skapa eller redigera en regel
 

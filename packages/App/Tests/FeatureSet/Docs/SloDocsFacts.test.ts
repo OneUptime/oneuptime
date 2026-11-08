@@ -29,6 +29,7 @@ import {
   SLO_SLOW_BURN_RULE_NAME,
   SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES,
   SLO_SLOW_LEAK_RULE_NAME,
+  SloExistingBurnRateRule,
   SloRecommendedAlertSeverity,
   SloRecommendedBurnRateRule,
   getSloRecommendedBurnRateRules,
@@ -116,6 +117,7 @@ const SOURCES: Record<string, string> = {
   burnRuleForm: `${DASHBOARD}/Pages/Slo/Utils/BurnRateRuleForm.ts`,
   burnRulesPage: `${DASHBOARD}/Pages/Slo/View/BurnRateRules.tsx`,
   recommendedRulesModal: `${DASHBOARD}/Components/Slo/SloRecommendedBurnRateRulesModal.tsx`,
+  recommendedRulesBanner: `${DASHBOARD}/Components/Slo/SloRecommendedBurnRateRulesBanner.tsx`,
   notificationSettings: `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
   metricsQueryConfig: `${DASHBOARD}/Components/Slo/SloMetricsQueryConfig.ts`,
   labelRulesPage: `${DASHBOARD}/Pages/Slo/Settings/LabelRules.tsx`,
@@ -1425,28 +1427,32 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
       "getSloRecommendedBurnRateRules({\n        windowType: createdItem.windowType,\n        windowDays: createdItem.windowDays,\n      });",
     );
 
-    const defaults: Array<Array<string>> = tableRows(section(page, "Default rules"));
+    const defaults: Array<Array<string>> = tableRows(
+      section(page, "Default rules"),
+    );
 
     expect(
       defaults.map((row: Array<string>): Array<string> => {
         return row.slice(0, 4);
       }),
     ).toEqual(
-      [SLO_FAST_BURN_RULE_NAME, SLO_SLOW_BURN_RULE_NAME, SLO_SLOW_LEAK_RULE_NAME].map(
-        (name: string): Array<string> => {
-          const rule: SloRecommendedBurnRateRule = seeded(name, {
-            windowType: SloWindowType.Rolling,
-            windowDays: 30,
-          });
+      [
+        SLO_FAST_BURN_RULE_NAME,
+        SLO_SLOW_BURN_RULE_NAME,
+        SLO_SLOW_LEAK_RULE_NAME,
+      ].map((name: string): Array<string> => {
+        const rule: SloRecommendedBurnRateRule = seeded(name, {
+          windowType: SloWindowType.Rolling,
+          windowDays: 30,
+        });
 
-          return [
-            `**${name}**`,
-            threshold(rule.burnRateThreshold),
-            windowText(rule.longWindowInMinutes),
-            windowText(rule.shortWindowInMinutes),
-          ];
-        },
-      ),
+        return [
+          `**${name}**`,
+          threshold(rule.burnRateThreshold),
+          windowText(rule.longWindowInMinutes),
+          windowText(rule.shortWindowInMinutes),
+        ];
+      }),
     );
 
     const rows: Array<Array<string>> = tableRows(
@@ -1508,12 +1514,12 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     });
 
     expect(leak.alertSeverity).toBe(SloRecommendedAlertSeverity.LeastSevere);
-    expect(seeded(SLO_FAST_BURN_RULE_NAME, { windowDays: 30 }).alertSeverity).toBe(
-      SloRecommendedAlertSeverity.MostSevere,
-    );
-    expect(seeded(SLO_SLOW_BURN_RULE_NAME, { windowDays: 30 }).alertSeverity).toBe(
-      SloRecommendedAlertSeverity.MostSevere,
-    );
+    expect(
+      seeded(SLO_FAST_BURN_RULE_NAME, { windowDays: 30 }).alertSeverity,
+    ).toBe(SloRecommendedAlertSeverity.MostSevere);
+    expect(
+      seeded(SLO_SLOW_BURN_RULE_NAME, { windowDays: 30 }).alertSeverity,
+    ).toBe(SloRecommendedAlertSeverity.MostSevere);
     expect(SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES).toBe(24 * 60);
     expect(leak.refireSuppressionMinutes).toBe(
       SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES,
@@ -1548,9 +1554,18 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
   it("offers Add recommended rules as the Burn Rate Rules page draws it, and says what counts as there", () => {
     const rulesPage: string = readSource("burnRulesPage");
     const modal: string = readSource("recommendedRulesModal");
+    const banner: string = readSource("recommendedRulesBanner");
 
-    expect(rulesPage).toContain('title: "Add recommended rules",');
+    // A note above the table's rows, not a card button folded into its ⋯.
+    expect(rulesPage).toContain("topContent={");
+    expect(rulesPage).toContain("<SloRecommendedBurnRateRulesBanner");
     expect(rulesPage).toContain("ModelAction.Create");
+    expect(rulesPage).not.toContain('title: "Add recommended rules",');
+    expect(banner).toContain('title="Add recommended rules"');
+    expect(banner).toContain("Not on this SLO yet: {{rules}}.");
+    expect(banner).toContain(
+      "A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.",
+    );
     expect(modal).toContain('title="Add recommended rules"');
     expect(modal).toContain('submitButtonText="Add rules"');
 
@@ -1560,7 +1575,10 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     );
 
     expect(addSection).toContain(
-      "its **Burn Rate Rules** page shows **Add recommended rules**",
+      "its **Burn Rate Rules** page names them in a note above the table. Click **Add recommended rules** in the note",
+    );
+    expect(addSection).toContain(
+      "To stop the note offering a default rule you do not want, keep the rule and disable it instead of deleting it.",
     );
     expect(addSection).toContain(
       "It adds only the missing rules, and clicking it again adds nothing.",
@@ -1595,6 +1613,20 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
         existingRules: [{ name: "Renamed", longWindowInMinutes: 10 }],
       }),
     ).toBe(false);
+
+    // A disabled rule is there too: the check never reads whether it is on.
+    expect(
+      isSloRecommendedBurnRateRulePresent({
+        recommended: leak,
+        existingRules: [
+          {
+            name: "Slow leak",
+            longWindowInMinutes: 4320,
+            isEnabled: false,
+          } as SloExistingBurnRateRule,
+        ],
+      }),
+    ).toBe(true);
 
     // The rules the API adds are posted to the feed and audited like any other.
     expect(readSource("burnRuleService")).toContain(

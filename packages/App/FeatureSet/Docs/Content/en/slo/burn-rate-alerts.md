@@ -82,9 +82,9 @@ Calendar-month SLOs get the 30-day values. The rules use the built-in title and 
 
 ### Add the recommended rules to an existing SLO
 
-SLOs created before Slow leak existed have only Fast burn and Slow burn: upgrading OneUptime never adds a rule that would start raising alerts by itself. While an SLO is missing one of the three default rules, its **Burn Rate Rules** page shows **Add recommended rules**. Click it to see exactly what it adds, scaled to the SLO's window, and confirm. It adds only the missing rules, and clicking it again adds nothing.
+SLOs created before Slow leak existed have only Fast burn and Slow burn: upgrading OneUptime never adds a rule that would start raising alerts by itself. While an SLO is missing one of the three default rules, its **Burn Rate Rules** page names them in a note above the table. Click **Add recommended rules** in the note to see exactly what it adds, scaled to the SLO's window, and confirm. It adds only the missing rules, and clicking it again adds nothing.
 
-A rule counts as there when the SLO has a rule with the same name, or one with the same long window, whether it is on or off. So a default rule you renamed or tuned is never added twice. You need permission to create SLO burn rate rules. Each rule it adds is posted to the SLO's feed and recorded in its audit logs, like a rule you create yourself.
+A rule counts as there when the SLO has a rule with the same name, or one with the same long window, whether it is on or off. So a default rule you renamed or tuned is never added twice. To stop the note offering a default rule you do not want, keep the rule and disable it instead of deleting it. You need permission to create SLO burn rate rules. Each rule it adds is posted to the SLO's feed and recorded in its audit logs, like a rule you create yourself.
 
 ## Create or edit a rule
 
