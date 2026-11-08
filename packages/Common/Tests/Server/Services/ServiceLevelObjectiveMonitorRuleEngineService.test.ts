@@ -50,9 +50,9 @@ import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
  *
  * The second half is what ServiceLevelObjective.autoAddedMonitors exists for.
  * Every write is also told to the SLO's feed, without a user, because nobody
- * clicked anything - a rule reacted. A rule's Run now is the exception: it
- * is the person who ran it who changed the SLO (issue #6324), so the write is
- * made on their behalf and the feed names them.
+ * clicked anything - a rule reacted. A rule's Run now is the person's who
+ * ran it in the audit log (issue #6324): the write is made on their behalf,
+ * and the feed still says what the rules did, naming no one.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -2130,9 +2130,9 @@ describe("SLO monitor type matching", () => {
  *
  * The SLO's monitors are written as root: who may run a rule is asked at
  * its route. A rule's Run now names who ran it, so the write is made on
- * their behalf (RuleRunWriteProps) - the audit log records it as theirs -
- * and the feed items it posts name them. A sync after a save, and a
- * monitor's own change, name nobody: OneUptime's own.
+ * their behalf (RuleRunWriteProps) and the audit log records it as theirs.
+ * The feed items say what the rules did, as every rule's do. A sync after
+ * a save, and a monitor's own change, name nobody: OneUptime's own.
  */
 describe("who an SLO monitor rule's sync is by (issue #6324)", () => {
   const RUNNER_ID: ObjectID = new ObjectID(
@@ -2221,7 +2221,7 @@ describe("who an SLO monitor rule's sync is by (issue #6324)", () => {
     expect(updateProps()).toEqual([ON_THEIR_BEHALF]);
   });
 
-  it("and the feed items it posts name them", async () => {
+  it("and its feed items say what the rules did, naming no one, as every rule's feed items do", async () => {
     await runAs(RUNNER);
 
     const calls: Array<FeedCall> = feedCalls(spies.feed);
@@ -2236,7 +2236,7 @@ describe("who an SLO monitor rule's sync is by (issue #6324)", () => {
     ]);
 
     for (const call of calls) {
-      expect(call.userId).toBe(RUNNER_ID);
+      expect(call.userId).toBeUndefined();
     }
   });
 
@@ -2313,8 +2313,8 @@ describe("who an SLO monitor rule's sync is by (issue #6324)", () => {
 
   /*
    * Whoever runs it, and whatever else their request carries: the write is
-   * root with exactly who ran it, and the feed names the person when there
-   * is one.
+   * root with exactly who ran it, and nothing of the request reaches the
+   * feed.
    */
   it("whoever runs it and whatever their request carries, the write carries only who ran it", async () => {
     const random: SeededRandom = seededRandom(6324);
@@ -2368,7 +2368,7 @@ describe("who an SLO monitor rule's sync is by (issue #6324)", () => {
       ]);
 
       for (const call of feedCalls(spies.feed)) {
-        expect([draw, call.userId]).toEqual([draw, identity.userId]);
+        expect([draw, call.userId]).toEqual([draw, undefined]);
       }
     }
   });

@@ -157,9 +157,10 @@ const MAX_MONITORS_LISTED_IN_FEED_DETAILS: number = 50;
  * run a rule is asked at its route (RuleRunPermission) - and a sync that
  * follows a save names nobody: OneUptime's own, a system event. A rule's Run
  * now names who ran it, and the SLO's monitors are written on their behalf
- * (RuleRunWriteProps), so the audit log records the change as theirs, and
- * the SLO's feed says they made it. HookFreeWritesAreRecorded.test.ts holds
- * every write Run now reaches to this.
+ * (RuleRunWriteProps), so the audit log records the change as theirs. The
+ * SLO's feed says which rules changed it, as every rule's feed item does,
+ * and names no person. HookFreeWritesAreRecorded.test.ts holds every write
+ * Run now reaches to this.
  */
 export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
   /**
@@ -847,7 +848,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
    * can name them without another lookup.
    *
    * `props` is who ran a rule of the SLO (Run now): the write is on their
-   * behalf, and the feed items name them.
+   * behalf.
    */
   private async writeMembership(data: {
     slo: ServiceLevelObjective;
@@ -954,7 +955,6 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
         return attachedMonitorIds.has(id);
       }),
       knownMonitors: data.knownMonitors || [],
-      userId: data.props?.userId || undefined,
     });
 
     return {
@@ -965,11 +965,11 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
 
   /*
    * Tells the SLO's feed which monitors the rules just attached or detached.
-   * Posted by the person who ran a rule of the SLO (Run now), and without a
-   * user otherwise: nobody clicked anything, a rule reacted to a change.
-   * Manual attaches from the Monitors page are posted by the SLO service
-   * instead, and this engine writes as root, which is how the two never
-   * double-post.
+   * Posted without a user, as every rule's feed item is: the item says what
+   * the rules did, and the audit log says who ran them (a Run now's write
+   * is theirs). Manual attaches from the Monitors page are posted by the
+   * SLO service instead, and this engine writes as root, which is how the
+   * two never double-post.
    *
    * Never throws. The membership is already saved; a feed item that could
    * not be written must not turn a successful sync into a failed one.
@@ -979,8 +979,6 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
     monitorIdsAttached: Array<string>;
     monitorIdsDetached: Array<string>;
     knownMonitors: Array<Monitor>;
-    // The person who ran the rule; none for a sync after a save.
-    userId?: ObjectID | undefined;
   }): Promise<void> {
     const { slo } = data;
 
@@ -1043,7 +1041,6 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
               monitorIds: data.monitorIdsAttached,
               monitorNameById: monitorNameById,
             }),
-            userId: data.userId,
           },
         );
       }
@@ -1075,7 +1072,6 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
               monitorIds: data.monitorIdsDetached,
               monitorNameById: monitorNameById,
             }),
-            userId: data.userId,
           },
         );
       }

@@ -6,12 +6,16 @@ import MonitorOwnerRuleService from "../../../../Server/Services/MonitorOwnerRul
 import MonitorOwnerTeamService from "../../../../Server/Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "../../../../Server/Services/MonitorOwnerUserService";
 import MonitorService from "../../../../Server/Services/MonitorService";
+import ServiceLevelObjectiveFeedService from "../../../../Server/Services/ServiceLevelObjectiveFeedService";
+import ServiceLevelObjectiveService from "../../../../Server/Services/ServiceLevelObjectiveService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import TeamService from "../../../../Server/Services/TeamService";
 import UserService from "../../../../Server/Services/UserService";
 import WorkspaceNotificationRuleService from "../../../../Server/Services/WorkspaceNotificationRuleService";
 import OnBehalfOfProps from "../../../../Server/Utils/AuditLog/OnBehalfOfProps";
 import logger from "../../../../Server/Utils/Logger";
+import RuleRecordScope from "../../../../Server/Utils/Rules/RuleRecordScope";
+import RuleRunner from "../../../../Server/Utils/Rules/RuleRun/RuleRunner";
 import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
@@ -20,6 +24,7 @@ import RuleRunRegistry, {
   RuleRunDefinition,
 } from "../../../../Server/Utils/Rules/RuleRun/RuleRunRegistry";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Label from "../../../../Models/DatabaseModels/Label";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import { MonitorFeedEventType } from "../../../../Models/DatabaseModels/MonitorFeed";
 import MonitorOwnerRule from "../../../../Models/DatabaseModels/MonitorOwnerRule";
@@ -32,6 +37,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import {
   RuleRunAction,
+  RuleRunPassResult,
   RuleRunType,
   RuleRunTypeUtil,
 } from "../../../../Types/Rules/RuleRun";
@@ -70,6 +76,9 @@ import {
  *   - The monitor engine end to end, through DatabaseService's own create:
  *     what reaches the audit log, the creator the owner row is stamped
  *     with, and who the "added as owner" feed item is by.
+ *   - Every rule the rule run route runs, whatever it does - labels,
+ *     owners, privacy, or a status page's or an SLO's monitors (issue
+ *     #6324) - through RuleRunner and its real engine.
  *
  * HookFreeWritesAreRecorded.test.ts holds the engines' code to the same.
  */
@@ -648,4 +657,379 @@ describe("a monitor owner rule, end to end", () => {
       }),
     ).toEqual(["MonitorOwnerTeam"]);
   });
+});
+
+/*
+ * EVERY RULE THE RULE RUN ROUTE RUNS, THROUGH THE RUNNER (issues #6300,
+ * #6324).
+ *
+ * Whatever a rule does - adds labels or owners, makes records private, or
+ * re-syncs a status page's or an SLO's monitors - what its Run now changes
+ * reaches the audit log as the change of whoever ran it, and a run that
+ * names nobody as OneUptime's own. Every rule type the registry has is
+ * driven through RuleRunner.runPass and its real engine, the database
+ * answered in memory, so a rule type or a sync added later is swept the day
+ * it is.
+ */
+describe("every rule's Run now, through the runner", () => {
+  const STATUS_PAGE_ID: ObjectID = new ObjectID(
+    "aaaaaaaa-1111-4111-8111-111111111111",
+  );
+  const SLO_ID: ObjectID = new ObjectID("bbbbbbbb-2222-4222-8222-222222222222");
+  const LABEL_ID: ObjectID = new ObjectID(
+    "cccccccc-3333-4333-8333-333333333333",
+  );
+
+  interface Change {
+    table: string;
+    method: string;
+    props: DatabaseCommonInteractionProps;
+  }
+
+  let ruleType: RuleRunType;
+  let changes: Array<Change>;
+  let recorded: Array<Change>;
+
+  const ALL_TYPES: Array<RuleRunType> = Object.values(RuleRunType).sort();
+
+  function isSync(type: RuleRunType): boolean {
+    const action: RuleRunAction = RuleRunTypeUtil.getAction(type);
+
+    return (
+      action === RuleRunAction.SyncStatusPageMonitors ||
+      action === RuleRunAction.SyncSloMonitors
+    );
+  }
+
+  // The table the run walks, or whose monitors a sync puts on its page or SLO.
+  function walkedTable(type: RuleRunType): string {
+    return isSync(type)
+      ? "Monitor"
+      : new (definitionOf(type).resourceModelType)().tableName!;
+  }
+
+  // What a rule's Run now changes.
+  function changedTables(type: RuleRunType): Array<string> {
+    switch (RuleRunTypeUtil.getAction(type)) {
+      case RuleRunAction.SyncStatusPageMonitors:
+        return ["StatusPageResource"];
+      case RuleRunAction.SyncSloMonitors:
+        return ["ServiceLevelObjective"];
+      case RuleRunAction.AddLabels:
+        // Added round the hooks, and recorded by RuleAddedLabels.
+        return [walkedTable(type)];
+      default:
+        return targetTablesOf(type);
+    }
+  }
+
+  function record(model: { new (): BaseModel }): BaseModel {
+    const row: BaseModel = new model();
+    row.id = RESOURCE_ID;
+    const fields: Record<string, unknown> = row as unknown as Record<
+      string,
+      unknown
+    >;
+    fields["projectId"] = PROJECT_ID;
+    fields["name"] = "api-gateway";
+    fields["title"] = "api-gateway";
+    fields["description"] = "The public API";
+    fields["labels"] = [];
+    return row;
+  }
+
+  // The rule being run, as its rule service and its engine read it.
+  function ruleOfType(type: RuleRunType): BaseModel | null {
+    const action: RuleRunAction = RuleRunTypeUtil.getAction(type);
+
+    if (action === RuleRunAction.SyncStatusPageMonitors) {
+      const rule: Record<string, unknown> = {
+        id: RULE_ID,
+        _id: RULE_ID.toString(),
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+        isEnabled: true,
+        monitorLabels: [],
+        monitorNamePattern: ".*",
+      };
+      return rule as unknown as BaseModel;
+    }
+
+    if (action === RuleRunAction.SyncSloMonitors) {
+      const rule: Record<string, unknown> = {
+        id: RULE_ID,
+        _id: RULE_ID.toString(),
+        projectId: PROJECT_ID,
+        serviceLevelObjectiveId: SLO_ID,
+        isEnabled: true,
+        monitorLabels: [],
+        monitorNamePattern: ".*",
+      };
+      return rule as unknown as BaseModel;
+    }
+
+    const definition: RuleRunDefinition = definitionOf(type);
+    const rule: BaseModel = new definition.ruleModelType();
+    rule.id = RULE_ID;
+    const fields: Record<string, unknown> = rule as unknown as Record<
+      string,
+      unknown
+    >;
+    fields["name"] = "Platform";
+    fields["isEnabled"] = true;
+
+    if (action === RuleRunAction.AddLabels) {
+      fields["labelsToAdd"] = [new Label(LABEL_ID)];
+    }
+
+    if (action === RuleRunAction.AddOwners) {
+      fields["notifyOwners"] = false;
+      fields["ownerUsers"] = [new User(OWNER_USER_ID)];
+      fields["ownerTeams"] = [new Team(OWNER_TEAM_ID)];
+    }
+
+    return rule;
+  }
+
+  function fakeRepository(): unknown {
+    const builder: Record<string, unknown> = {
+      createQueryBuilder: (): unknown => {
+        return builder;
+      },
+      relation: (): unknown => {
+        return builder;
+      },
+      of: (): unknown => {
+        return builder;
+      },
+      add: async (): Promise<void> => {
+        return undefined;
+      },
+    };
+
+    return builder;
+  }
+
+  beforeEach(() => {
+    changes = [];
+    recorded = [];
+
+    jest
+      .spyOn(DatabaseService.prototype, "findOneById")
+      .mockImplementation(async function (
+        this: DatabaseService<BaseModel>,
+      ): Promise<BaseModel | null> {
+        const table: string = this.getModel().tableName || "";
+        const action: RuleRunAction = RuleRunTypeUtil.getAction(ruleType);
+
+        if (
+          table === "StatusPageMonitorRule" &&
+          action === RuleRunAction.SyncStatusPageMonitors
+        ) {
+          return ruleOfType(ruleType);
+        }
+
+        if (
+          table === "ServiceLevelObjective" &&
+          action === RuleRunAction.SyncSloMonitors
+        ) {
+          const slo: Record<string, unknown> = {
+            id: SLO_ID,
+            _id: SLO_ID.toString(),
+            projectId: PROJECT_ID,
+            name: "Checkout",
+            monitors: [],
+            autoAddedMonitors: [],
+          };
+          return slo as unknown as BaseModel;
+        }
+
+        return record(this.modelType);
+      } as never);
+
+    // The rule, to the runner; nothing else is there yet (no owner, no row).
+    jest
+      .spyOn(DatabaseService.prototype, "findOneBy")
+      .mockImplementation(async function (
+        this: DatabaseService<BaseModel>,
+      ): Promise<BaseModel | null> {
+        return this.getModel().tableName === ruleType
+          ? ruleOfType(ruleType)
+          : null;
+      } as never);
+
+    // The records the run walks, the SLO's rules, and nothing else.
+    jest
+      .spyOn(DatabaseService.prototype, "findBy")
+      .mockImplementation(async function (
+        this: DatabaseService<BaseModel>,
+      ): Promise<Array<BaseModel>> {
+        const table: string = this.getModel().tableName || "";
+
+        if (table === walkedTable(ruleType)) {
+          return [record(this.modelType)];
+        }
+
+        if (
+          table === "ServiceLevelObjectiveMonitorRule" &&
+          isSync(ruleType)
+        ) {
+          return [ruleOfType(ruleType)!];
+        }
+
+        return [];
+      } as never);
+
+    const capture: (method: string) => unknown = (method: string): unknown => {
+      return async function (
+        this: DatabaseService<BaseModel>,
+        data: { data: BaseModel; props: DatabaseCommonInteractionProps },
+      ): Promise<unknown> {
+        changes.push({
+          table: this.getModel().tableName || "",
+          method: method,
+          props: data.props,
+        });
+        return method === "create" ? data.data : 1;
+      };
+    };
+
+    for (const method of [
+      "create",
+      "updateOneById",
+      "updateOneBy",
+      "updateBy",
+      "deleteOneById",
+      "deleteBy",
+    ] as const) {
+      jest
+        .spyOn(DatabaseService.prototype, method)
+        .mockImplementation(capture(method) as never);
+    }
+
+    jest
+      .spyOn(DatabaseService.prototype, "getRepository")
+      .mockReturnValue(fakeRepository() as never);
+    jest
+      .spyOn(AuditLogService, "recordUpdate")
+      .mockImplementation((async (data: {
+        model: BaseModel;
+        props: DatabaseCommonInteractionProps;
+      }): Promise<void> => {
+        recorded.push({
+          table: data.model.tableName || "",
+          method: "recordUpdate",
+          props: data.props,
+        });
+      }) as never);
+    jest
+      .spyOn(RuleRecordScope, "keepIdsInProject")
+      .mockImplementation((async (data: { ids: Array<string> }) => {
+        return data.ids;
+      }) as never);
+
+    jest
+      .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
+      .mockResolvedValue(FeedMarkdown.asMarkdown("[Checkout](https://x.test)"));
+    jest
+      .spyOn(
+        ServiceLevelObjectiveFeedService,
+        "createServiceLevelObjectiveFeedItem",
+      )
+      .mockResolvedValue(undefined);
+
+    jest
+      .spyOn(TeamMemberService, "isUserMemberOfProject")
+      .mockResolvedValue(true);
+    stubProjectDirectory({});
+  });
+
+  async function runAs(
+    type: RuleRunType,
+    props: DatabaseCommonInteractionProps | undefined,
+  ): Promise<RuleRunPassResult> {
+    ruleType = type;
+    changes = [];
+    recorded = [];
+
+    return await RuleRunner.runPass({
+      ruleType: type,
+      ruleId: RULE_ID,
+      projectId: PROJECT_ID,
+      cursor: null,
+      allowOwnerNotification: false,
+      props: props,
+    });
+  }
+
+  // What the run changed: the rule's own writes, and the labels it recorded.
+  function whatChanged(type: RuleRunType): Array<Change> {
+    const tables: Array<string> = changedTables(type);
+
+    return [...changes, ...recorded].filter((change: Change): boolean => {
+      return (
+        tables.includes(change.table) &&
+        (RuleRunTypeUtil.getAction(type) !== RuleRunAction.AddLabels ||
+          change.method === "recordUpdate")
+      );
+    });
+  }
+
+  test("sweeps every rule there is, of every kind", () => {
+    expect(ALL_TYPES.length).toBeGreaterThanOrEqual(74);
+
+    const kinds: Set<RuleRunAction> = new Set<RuleRunAction>(
+      ALL_TYPES.map((type: RuleRunType): RuleRunAction => {
+        return RuleRunTypeUtil.getAction(type);
+      }),
+    );
+
+    expect(Array.from(kinds).sort()).toEqual(
+      Object.values(RuleRunAction).sort(),
+    );
+  });
+
+  test.each(ALL_TYPES)(
+    "%s: what its Run now changes is by whoever ran it",
+    async (type: RuleRunType) => {
+      const result: RuleRunPassResult = await runAs(type, RUNNER);
+
+      expect(result.resourcesFailed).toBe(0);
+      expect(whatChanged(type).length).toBeGreaterThan(0);
+
+      for (const change of whatChanged(type)) {
+        if (change.method === "recordUpdate") {
+          // A label rule's entry, recorded with the request: its person.
+          expect([change.table, OnBehalfOfProps.get(change.props)]).toEqual([
+            change.table,
+            ON_THEIR_BEHALF,
+          ]);
+          continue;
+        }
+
+        expect([change.table, change.method, change.props]).toEqual([
+          change.table,
+          change.method,
+          ON_THEIR_BEHALF,
+        ]);
+      }
+    },
+  );
+
+  test.each(ALL_TYPES)(
+    "%s: a run that names nobody is OneUptime's own",
+    async (type: RuleRunType) => {
+      await runAs(type, undefined);
+
+      expect(whatChanged(type).length).toBeGreaterThan(0);
+
+      for (const change of whatChanged(type)) {
+        expect([change.table, change.method, change.props]).toEqual([
+          change.table,
+          change.method,
+          OWN,
+        ]);
+      }
+    },
+  );
 });
