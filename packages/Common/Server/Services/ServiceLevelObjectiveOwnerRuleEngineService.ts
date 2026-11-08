@@ -22,7 +22,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
@@ -130,6 +132,7 @@ class ServiceLevelObjectiveOwnerRuleEngineServiceClass
         serviceLevelObjective: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running SLO owner rules: ${error}`, {
@@ -146,6 +149,8 @@ class ServiceLevelObjectiveOwnerRuleEngineServiceClass
     serviceLevelObjective: ServiceLevelObjective;
     rules: Array<ServiceLevelObjectiveOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { serviceLevelObjective, rules } = data;
 
@@ -285,6 +290,7 @@ class ServiceLevelObjectiveOwnerRuleEngineServiceClass
             ownerService: ServiceLevelObjectiveOwnerUserService,
             owner: owner,
             serviceLevelObjective: serviceLevelObjective,
+            props: data.props,
           }),
         );
       }
@@ -301,6 +307,7 @@ class ServiceLevelObjectiveOwnerRuleEngineServiceClass
             ownerService: ServiceLevelObjectiveOwnerTeamService,
             owner: owner,
             serviceLevelObjective: serviceLevelObjective,
+            props: data.props,
           }),
         );
       }
@@ -346,12 +353,14 @@ class ServiceLevelObjectiveOwnerRuleEngineServiceClass
     ownerService: DatabaseService<TOwner>;
     owner: TOwner;
     serviceLevelObjective: ServiceLevelObjective;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<OwnerWriteOutcome> {
     try {
       const added: boolean = await OwnerRuleAssignment.createOwner({
         ownerService: data.ownerService,
         owner: data.owner,
-        props: { isRoot: true },
+        props: RuleRunWriteProps.get(data.props),
       });
 
       return added ? OwnerWriteOutcome.Added : OwnerWriteOutcome.AlreadyOwner;

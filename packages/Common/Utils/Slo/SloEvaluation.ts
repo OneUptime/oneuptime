@@ -59,3 +59,19 @@ export const isComparedWithCurrentBurnRate: IsComparedWithCurrentBurnRateFunctio
       SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES
     );
   };
+
+/*
+ * The status hysteresis: how far the error budget has to come back before an
+ * SLO leaves a status it fell into. Without it a rolling window that hovers
+ * at a boundary - bad seconds ageing out, a new blip coming in - flips the
+ * status, the feed and the owners' notifications every few minutes.
+ *
+ * Budget Exhausted is left once this much of the budget is back.
+ */
+export const SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE: number = 2;
+
+/*
+ * At Risk is left once the budget is this many points above the At Risk
+ * threshold.
+ */
+export const SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE: number = 5;

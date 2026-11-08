@@ -66,18 +66,15 @@ const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
  */
 export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
   /*
-   * Read since the form's fields stopped going through a wrapper the scan
-   * could not follow (the owner-user loader the owners picker replaced).
+   * An SLO burn rate rule's Alert and Incident steps left this list when
+   * their fields moved into the SLO record output helpers (Dashboard
+   * Pages/Slo/Utils/SloRecordOutputForm.ts), which an error budget policy
+   * tier's form shares: the helpers place a field on its step by an
+   * argument, which the scan leaves to the helpers' own tests. Those pin
+   * what this list said of the two steps - only the title and the severity
+   * open, the rest in four folded sections - in App's
+   * Tests/Dashboard/SloErrorBudgetPolicyTierForm.test.ts.
    */
-  ...["alert-details", "incident-details"].map((step: string): ListedStep => {
-    return {
-      file: `${DASHBOARD}/Pages/Slo/View/BurnRateRules.tsx`,
-      form: "ModelTable: SLO > Burn Rate Rules",
-      step,
-      reason:
-        "Only the title and the severity are open: everything else on the step sits in four collapsed sections (Description, Ownership & Labels, On-Call, Advanced Options) that open one at a time, so the step reads as two fields and four headings.",
-    };
-  }),
   {
     file: `${DASHBOARD}/Components/SecurityPlaybook/SecurityPlaybookStepDialog.tsx`,
     form: "BasicFormModal #1",

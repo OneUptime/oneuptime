@@ -375,6 +375,7 @@
     "Monitors and Monitor Rules": "监视器与监视器规则",
     "Error Budgets": "错误预算",
     "Burn Rate Alerts and Incidents": "消耗率警报与事件",
+    "Error Budget Policy": "错误预算策略",
     "SLO Metrics and Dashboards": "SLO 指标与仪表板",
     "SLO Feed and Audit Logs": "SLO 动态与审计日志",
     "Label and Owner Rules": "标签与所有者规则",

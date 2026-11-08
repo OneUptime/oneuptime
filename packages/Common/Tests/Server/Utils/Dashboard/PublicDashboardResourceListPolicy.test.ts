@@ -1,6 +1,7 @@
 import PublicDashboardResourceListPolicy, {
   PublicDashboardResourceListPolicyResult,
 } from "../../../../Server/Utils/Dashboard/PublicDashboardResourceListPolicy";
+import PublicDashboardViewConfig from "../../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesAnyOfGroups from "../../../../Types/BaseDatabase/IncludesAnyOfGroups";
@@ -12,10 +13,14 @@ import {
   SloWidgetDisplayType,
   SloWidgetMetric,
 } from "../../../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
-import { DashboardVariableType } from "../../../../Types/Dashboard/DashboardVariable";
+import DashboardVariable, {
+  DashboardVariableType,
+} from "../../../../Types/Dashboard/DashboardVariable";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import OneUptimeDate from "../../../../Types/Date";
+import { PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE } from "../../../../Server/Utils/Dashboard/PublicDashboardSloWidget";
 import { UNHEALTHY_HARDWARE_STATUSES } from "../../../../Server/Services/StorageArrayResourceService";
 import { STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES } from "../../../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
 
@@ -38,19 +43,30 @@ function widget(
   };
 }
 
+/*
+ * The variables the public page's toolbar draws from these stored ones -
+ * what the routes hand the policy (PublicDashboardViewConfig.getDrawnConfig).
+ */
+function drawnVariables(stored: unknown): Array<DashboardVariable> {
+  return (
+    PublicDashboardViewConfig.getDrawnConfig({
+      components: [],
+      variables: stored,
+    }).variables || []
+  );
+}
+
 function build(data: {
   componentType: DashboardComponentType;
   argumentsObject?: JSONObject | undefined;
   requestedQuery?: JSONObject | undefined;
   requestedVariables?: Array<JSONObject> | undefined;
-  storedVariables?: Array<JSONObject> | undefined;
+  // As stored: a list, or anything else a write can hold.
+  storedVariables?: unknown;
 }): PublicDashboardResourceListPolicyResult {
   return PublicDashboardResourceListPolicy.build({
     widget: widget(data.componentType, data.argumentsObject || {}),
-    dashboardViewConfig: {
-      components: [],
-      variables: data.storedVariables || [],
-    },
+    variables: drawnVariables(data.storedVariables || []),
     requestedVariables: data.requestedVariables || [],
     requestedQuery: data.requestedQuery || {},
   });
@@ -1914,7 +1930,6 @@ describe("PublicDashboardResourceListPolicy", () => {
         null,
         "Payments",
         [null],
-        [{ value: firstLabelId }],
         [{ label: "Payments", value: 42 }],
         [{ label: "", value: firstLabelId }],
       ]) {
@@ -1957,7 +1972,7 @@ describe("PublicDashboardResourceListPolicy", () => {
             componentType: DashboardComponentType.IncidentList,
             arguments: "invalid",
           },
-          dashboardViewConfig: { components: [] },
+          variables: [],
           requestedVariables: [],
           requestedQuery: {},
         });
@@ -1969,6 +1984,1739 @@ describe("PublicDashboardResourceListPolicy", () => {
           argumentsObject: { severityIds: "not-an-array" },
         });
       }).toThrow(BadDataException);
+    });
+  });
+
+  /*
+   * Issue #6315. The routes hand the policy the widget and the variables as
+   * the public page draws them (PublicDashboardViewConfig.getDrawnConfig) -
+   * the reading every board makes of a stored config, signed in and public
+   * alike. So a variable or a widget stored in a shape the editor never
+   * writes lists exactly as the same one stored as the editor stores it,
+   * and a viewer's pick is read for the one variable the page draws under
+   * its id, and for no other.
+   */
+  describe("variables and widgets as the public page draws them (issue #6315)", () => {
+    const TA: DashboardVariableType = DashboardVariableType.TelemetryAttribute;
+    const CONTAINERS: DashboardComponentType =
+      DashboardComponentType.DockerContainerList;
+
+    // A Docker container list filters by these two keys (name, imageName).
+    const NAME_VARIABLE: JSONObject = {
+      id: "name",
+      name: "Name",
+      type: TA,
+      attributeKey: "container.name",
+    };
+    const IMAGE_VARIABLE: JSONObject = {
+      id: "image",
+      name: "Image",
+      type: TA,
+      attributeKey: "container.image.name",
+      defaultValue: "nginx",
+    };
+
+    const withoutId: (variable: JSONObject) => JSONObject = (
+      variable: JSONObject,
+    ): JSONObject => {
+      const copy: JSONObject = { ...variable };
+      delete copy["id"];
+      return copy;
+    };
+
+    // The ids the page draws these stored variables under: where it sends its picks.
+    const pageIdsOf: (stored: unknown) => Array<string> = (
+      stored: unknown,
+    ): Array<string> => {
+      return drawnVariables(stored).map((variable: DashboardVariable) => {
+        return variable.id;
+      });
+    };
+
+    // The widget as the public page draws this stored one.
+    const drawnWidget: (stored: unknown) => JSONObject = (
+      stored: unknown,
+    ): JSONObject => {
+      const components: Array<unknown> =
+        PublicDashboardViewConfig.getDrawnConfig({
+          components: [stored],
+        }).components;
+
+      expect(components).toHaveLength(1);
+      return components[0] as JSONObject;
+    };
+
+    const buildDrawn: (data: {
+      storedWidget: unknown;
+      storedVariables?: unknown;
+      requestedVariables?: Array<JSONObject> | undefined;
+      requestedQuery?: JSONObject | undefined;
+    }) => PublicDashboardResourceListPolicyResult = (data: {
+      storedWidget: unknown;
+      storedVariables?: unknown;
+      requestedVariables?: Array<JSONObject> | undefined;
+      requestedQuery?: JSONObject | undefined;
+    }): PublicDashboardResourceListPolicyResult => {
+      return PublicDashboardResourceListPolicy.build({
+        widget: drawnWidget(data.storedWidget),
+        variables: drawnVariables(data.storedVariables || []),
+        requestedVariables: data.requestedVariables || [],
+        requestedQuery: data.requestedQuery || {},
+      });
+    };
+
+    // A build's outcome in words: what it lists, or why it was refused.
+    const outcomeOf: (
+      buildPolicy: () => PublicDashboardResourceListPolicyResult,
+    ) => string = (
+      buildPolicy: () => PublicDashboardResourceListPolicyResult,
+    ): string => {
+      try {
+        return `lists ${buildPolicy().resourceType}`;
+      } catch (error) {
+        if (error instanceof BadDataException) {
+          return `refused: ${error.message}`;
+        }
+
+        return `threw: ${String(error)}`;
+      }
+    };
+
+    describe("each variable shape reads as the editor's", () => {
+      it("reads a variable list written as JSON text as the same list stored as a list", () => {
+        for (const requestedVariables of [
+          [],
+          [{ id: "image", selectedValue: "redis", selectedValues: [] }],
+          [{ id: "image", selectedValue: "", selectedValues: [] }],
+          [{ id: "name", selectedValue: "web", selectedValues: [] }],
+        ]) {
+          const asList: PublicDashboardResourceListPolicyResult = build({
+            componentType: CONTAINERS,
+            storedVariables: [NAME_VARIABLE, IMAGE_VARIABLE],
+            requestedVariables,
+          });
+          const asText: PublicDashboardResourceListPolicyResult = build({
+            componentType: CONTAINERS,
+            storedVariables: JSON.stringify([NAME_VARIABLE, IMAGE_VARIABLE]),
+            requestedVariables,
+          });
+
+          expect(asText).toEqual(asList);
+        }
+
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: JSON.stringify([IMAGE_VARIABLE]),
+            requestedVariables: [{ id: "image", selectedValue: "redis" }],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "redis" });
+      });
+
+      it("reads a variable stored without an id under the id the page draws it under, and applies the page's pick sent there", () => {
+        const stored: Array<JSONObject> = [withoutId(IMAGE_VARIABLE)];
+        const [pageId] = pageIdsOf(stored);
+
+        expect(ObjectID.isValidUUID(pageId!)).toBe(true);
+
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [{ id: pageId!, selectedValue: "redis" }],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "redis" });
+
+        // No pick: its default, as signed in.
+        expect(
+          build({ componentType: CONTAINERS, storedVariables: stored }).query,
+        ).toEqual({ kind: "Container", imageName: "nginx" });
+
+        // All, as signed in: no filter at all.
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [{ id: pageId!, selectedValue: "" }],
+          }).query,
+        ).toEqual({ kind: "Container" });
+      });
+
+      it("reads two variables stored with one id each under its own id, and applies each pick to its own variable only", () => {
+        const stored: Array<JSONObject> = [
+          { ...NAME_VARIABLE, id: "shared" },
+          { ...IMAGE_VARIABLE, id: "shared", defaultValue: undefined },
+        ];
+        const [firstId, secondId] = pageIdsOf(stored);
+
+        expect(firstId).toBe("shared");
+        expect(secondId).not.toBe("shared");
+
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [
+              { id: "shared", selectedValue: "web" },
+              { id: secondId!, selectedValue: "redis" },
+            ],
+          }).query,
+        ).toEqual({ kind: "Container", name: "web", imageName: "redis" });
+
+        // The shared id names the first variable, never the second.
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [{ id: "shared", selectedValue: "redis" }],
+          }).query,
+        ).toEqual({ kind: "Container", name: "redis" });
+
+        // The second's own id names the second only.
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [{ id: secondId!, selectedValue: "web" }],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "web" });
+      });
+
+      it('reads isMultiSelect written as "true" as a multi-select and "false" as a single select', () => {
+        const namespaceVariable: (isMultiSelect: unknown) => JSONObject = (
+          isMultiSelect: unknown,
+        ): JSONObject => {
+          return {
+            id: "namespace",
+            name: "Namespace",
+            type: TA,
+            attributeKey: "k8s.namespace.name",
+            isMultiSelect: isMultiSelect as boolean,
+            defaultValue: "production",
+          };
+        };
+        const requestedVariables: Array<JSONObject> = [
+          {
+            id: "namespace",
+            selectedValue: "kube-system",
+            selectedValues: ["prod", "staging"],
+          },
+        ];
+
+        const asText: PublicDashboardResourceListPolicyResult = build({
+          componentType: DashboardComponentType.KubernetesPodList,
+          storedVariables: [namespaceVariable("true")],
+          requestedVariables,
+        });
+
+        expect(asText.query["namespaceKey"]).toEqual(
+          new Includes(["prod", "staging"]),
+        );
+        expect(asText).toEqual(
+          build({
+            componentType: DashboardComponentType.KubernetesPodList,
+            storedVariables: [namespaceVariable(true)],
+            requestedVariables,
+          }),
+        );
+
+        const single: PublicDashboardResourceListPolicyResult = build({
+          componentType: DashboardComponentType.KubernetesPodList,
+          storedVariables: [namespaceVariable("false")],
+          requestedVariables,
+        });
+
+        expect(single.query["namespaceKey"]).toBe("kube-system");
+        expect(single).toEqual(
+          build({
+            componentType: DashboardComponentType.KubernetesPodList,
+            storedVariables: [namespaceVariable(false)],
+            requestedVariables,
+          }),
+        );
+
+        // A multi-select never falls back to the default, written either way.
+        expect(
+          build({
+            componentType: DashboardComponentType.KubernetesPodList,
+            storedVariables: [namespaceVariable("true")],
+          }).query["namespaceKey"],
+        ).toBeUndefined();
+      });
+
+      it("reads a default written as a number, or as true, as its text", () => {
+        const withDefault: (defaultValue: unknown) => JSONObject = (
+          defaultValue: unknown,
+        ): JSONObject => {
+          return {
+            ...IMAGE_VARIABLE,
+            defaultValue: defaultValue as string,
+          };
+        };
+
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: [withDefault(5)],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "5" });
+
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: [withDefault(true)],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "true" });
+
+        // The viewer's pick still wins over it.
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: [withDefault(5)],
+            requestedVariables: [{ id: "image", selectedValue: "redis" }],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "redis" });
+      });
+
+      it("reads an id written as a number, or with spaces around it, as the text the page sends", () => {
+        const stored: Array<JSONObject> = [
+          { ...IMAGE_VARIABLE, id: 42 as unknown as string },
+          { ...NAME_VARIABLE, id: "  name  " },
+        ];
+
+        expect(pageIdsOf(stored)).toEqual(["42", "name"]);
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [
+              { id: "42", selectedValue: "redis" },
+              { id: "name", selectedValue: "web" },
+            ],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "redis", name: "web" });
+      });
+
+      it("skips an entry of the list that is no variable, as the toolbar does", () => {
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: [null, 7, "image", [], IMAGE_VARIABLE, true],
+            requestedVariables: [{ id: "image", selectedValue: "redis" }],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "redis" });
+      });
+
+      it("keeps a Telemetry Attribute variable without a key, which filters no list - here as on the page - instead of refusing the widget", () => {
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: [
+              { id: "unset", name: "Unset", type: TA },
+              { id: "blank", name: "Blank", type: TA, attributeKey: "" },
+              IMAGE_VARIABLE,
+            ],
+            requestedVariables: [
+              { id: "unset", selectedValue: "x" },
+              { id: "blank", selectedValue: "y" },
+              { id: "image", selectedValue: "redis" },
+            ],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "redis" });
+      });
+
+      it("reads a key with spaces around it as the page reads it, untrimmed", () => {
+        // No list maps such a key, here as on the page.
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: [
+              { ...IMAGE_VARIABLE, attributeKey: " container.image.name " },
+            ],
+            requestedVariables: [{ id: "image", selectedValue: "redis" }],
+          }).query,
+        ).toEqual({ kind: "Container" });
+
+        // A log stream filters by the key as it is written, as on the page.
+        expect(
+          build({
+            componentType: DashboardComponentType.LogStream,
+            requestedQuery: { time: range() },
+            storedVariables: [
+              {
+                id: "service",
+                name: "Service",
+                type: TA,
+                attributeKey: " service ",
+              },
+            ],
+            requestedVariables: [{ id: "service", selectedValue: "api" }],
+          }).query["attributes"],
+        ).toEqual({ " service ": "api" });
+      });
+
+      it("checks a project label variable's choices only for a widget that filters by it, as the page does", () => {
+        const broken: JSONObject = {
+          id: "unit",
+          name: "UNIT",
+          type: DashboardVariableType.ProjectLabel,
+          labelOptions: "Payments",
+        };
+
+        // An incident list does not filter by it: it lists.
+        expect(
+          outcomeOf(() => {
+            return build({
+              componentType: DashboardComponentType.IncidentList,
+              storedVariables: [broken],
+              requestedVariables: [{ id: "unit", selectedValue: "x" }],
+            });
+          }),
+        ).toBe("lists incident");
+
+        // A monitor list that does is refused, as on the page.
+        expect(
+          outcomeOf(() => {
+            return build({
+              componentType: DashboardComponentType.MonitorList,
+              argumentsObject: { labelVariableId: "unit" },
+              storedVariables: [broken],
+            });
+          }),
+        ).toBe(
+          "refused: A project label variable must offer between 1 and 1000 labels.",
+        );
+      });
+
+      it("reads a saved label choice without a label as the toolbar names it: by its label ID", () => {
+        const labelId: string = ObjectID.generate().toString();
+        const stored: Array<JSONObject> = [
+          {
+            id: "unit",
+            name: "UNIT",
+            type: DashboardVariableType.ProjectLabel,
+            labelOptions: [{ value: labelId }],
+          },
+        ];
+
+        expect(drawnVariables(stored)[0]?.labelOptions).toEqual([
+          { label: labelId, value: labelId },
+        ]);
+        expect(
+          build({
+            componentType: DashboardComponentType.MonitorList,
+            argumentsObject: { labelVariableId: "unit" },
+            storedVariables: stored,
+            requestedVariables: [{ id: "unit", selectedValue: labelId }],
+          }).query,
+        ).toEqual({ labels: new Includes([labelId]) });
+      });
+
+      /*
+       * The same two variables in every shape: whatever the viewer picks,
+       * sent under the ids the page draws them under, the list reads
+       * exactly as with the variables stored as the editor stores them.
+       */
+      const EDITOR: Array<JSONObject> = [
+        {
+          id: "name",
+          name: "Name",
+          type: TA,
+          attributeKey: "container.name",
+          isMultiSelect: false,
+          defaultValue: "5",
+        },
+        {
+          id: "image",
+          name: "Image",
+          type: TA,
+          attributeKey: "container.image.name",
+          isMultiSelect: true,
+        },
+      ];
+
+      const SHAPES: Array<[string, unknown]> = [
+        ["a list written as JSON text", JSON.stringify(EDITOR)],
+        ["variables stored without ids", EDITOR.map(withoutId)],
+        [
+          "variables sharing one id",
+          EDITOR.map((variable: JSONObject) => {
+            return { ...variable, id: "shared" };
+          }),
+        ],
+        [
+          'isMultiSelect written as "true" and "false"',
+          EDITOR.map((variable: JSONObject) => {
+            return {
+              ...variable,
+              isMultiSelect: String(variable["isMultiSelect"]),
+            };
+          }),
+        ],
+        [
+          "a default written as a number",
+          [{ ...EDITOR[0]!, defaultValue: 5 }, EDITOR[1]!],
+        ],
+        [
+          "ids written as numbers",
+          EDITOR.map((variable: JSONObject, index: number) => {
+            return { ...variable, id: index + 1 };
+          }),
+        ],
+        [
+          "ids with spaces around them",
+          EDITOR.map((variable: JSONObject) => {
+            return { ...variable, id: `  ${variable["id"]}  ` };
+          }),
+        ],
+        [
+          "entries that are no variable among them",
+          [null, EDITOR[0], "x", 7, EDITOR[1]],
+        ],
+        [
+          "all of these at once, in a list written as JSON text",
+          JSON.stringify([
+            "junk",
+            {
+              ...withoutId(EDITOR[0]!),
+              defaultValue: 5,
+              isMultiSelect: "false",
+            },
+            null,
+            { ...EDITOR[1]!, id: 7, isMultiSelect: "true" },
+          ]),
+        ],
+      ];
+
+      const PICKS: Array<[string, Array<JSONObject | null>]> = [
+        ["no pick", [null, null]],
+        ["a name", [{ selectedValue: "api", selectedValues: [] }, null]],
+        [
+          "two images",
+          [null, { selectedValue: null, selectedValues: ["redis", "nginx"] }],
+        ],
+        [
+          "All on both",
+          [
+            { selectedValue: "", selectedValues: [] },
+            { selectedValue: null, selectedValues: [] },
+          ],
+        ],
+        [
+          "both",
+          [
+            { selectedValue: "web", selectedValues: ["ignored"] },
+            { selectedValue: "ignored", selectedValues: ["redis"] },
+          ],
+        ],
+      ];
+
+      // The page's request: each pick sent under the id it draws that variable under.
+      const requestFor: (
+        stored: unknown,
+        picks: Array<JSONObject | null>,
+      ) => Array<JSONObject> = (
+        stored: unknown,
+        picks: Array<JSONObject | null>,
+      ): Array<JSONObject> => {
+        return pageIdsOf(stored)
+          .slice(0, picks.length)
+          .flatMap((id: string, index: number): Array<JSONObject> => {
+            const pick: JSONObject | null = picks[index] || null;
+            return pick ? [{ id, ...pick }] : [];
+          });
+      };
+
+      it.each(SHAPES)(
+        "lists as the editor's variables do with %s, for every pick",
+        (_shape: string, stored: unknown) => {
+          for (const [pickName, picks] of PICKS) {
+            const asEditor: PublicDashboardResourceListPolicyResult = build({
+              componentType: CONTAINERS,
+              storedVariables: EDITOR,
+              requestedVariables: requestFor(EDITOR, picks),
+            });
+            const asShape: PublicDashboardResourceListPolicyResult = build({
+              componentType: CONTAINERS,
+              storedVariables: stored,
+              requestedVariables: requestFor(stored, picks),
+            });
+
+            expect([pickName, asShape]).toEqual([pickName, asEditor]);
+          }
+        },
+      );
+
+      it("hands every widget the drawn variables with the viewer's picks, as the signed-in board hands its widgets", () => {
+        for (const [, stored] of SHAPES) {
+          for (const [, picks] of PICKS) {
+            const drawn: Array<DashboardVariable> = drawnVariables(stored);
+            const resolved: Array<DashboardVariable> =
+              PublicDashboardResourceListPolicy.resolveDashboardVariableSelections(
+                {
+                  variables: drawn,
+                  requestedVariables: requestFor(stored, picks),
+                },
+              );
+
+            // What the signed-in board hands its widgets: each drawn variable, the viewer's pick on it.
+            const signedIn: Array<JSONObject> = drawn.map(
+              (variable: DashboardVariable, index: number): JSONObject => {
+                const pick: JSONObject | null = picks[index] || null;
+                const isMultiSelect: boolean = variable.isMultiSelect === true;
+
+                return {
+                  id: variable.id,
+                  type: variable.type,
+                  attributeKey: variable.attributeKey,
+                  isMultiSelect,
+                  defaultValue: variable.defaultValue,
+                  selectedValue:
+                    !isMultiSelect &&
+                    typeof pick?.["selectedValue"] === "string"
+                      ? pick["selectedValue"]
+                      : undefined,
+                  selectedValues: isMultiSelect
+                    ? (pick?.["selectedValues"] as Array<string> | undefined)
+                    : undefined,
+                };
+              },
+            );
+
+            expect(
+              resolved.map((variable: DashboardVariable): JSONObject => {
+                return {
+                  id: variable.id,
+                  type: variable.type,
+                  attributeKey: variable.attributeKey,
+                  isMultiSelect: variable.isMultiSelect,
+                  defaultValue: variable.defaultValue,
+                  selectedValue: variable.selectedValue,
+                  selectedValues: variable.selectedValues,
+                };
+              }),
+            ).toEqual(signedIn);
+          }
+        }
+      });
+    });
+
+    /*
+     * A variable the page draws under an id derived for it - stored without
+     * an id, or with one an earlier variable has - is answered for only
+     * under that id, with only what it allows: never another variable's
+     * values, and never a pick the request may not make at all.
+     */
+    describe("a pick can only ever select what its own drawn variable allows", () => {
+      it("never reads a pick under an id the page draws no variable under", () => {
+        const stored: Array<JSONObject> = [withoutId(IMAGE_VARIABLE)];
+        const [pageId] = pageIdsOf(stored);
+
+        for (const id of [
+          "image",
+          `${pageId!.slice(0, -1)}2`,
+          "00000000-0000-4000-9000-000000000000",
+          ObjectID.generate().toString(),
+          "constructor",
+          "__proto__",
+          "toString",
+        ]) {
+          expect([
+            id,
+            build({
+              componentType: CONTAINERS,
+              storedVariables: stored,
+              requestedVariables: [{ id, selectedValue: "redis" }],
+            }).query,
+          ]).toEqual([id, { kind: "Container", imageName: "nginx" }]);
+        }
+      });
+
+      it("never reads a pick under a variable's stored id when the page draws it under another", () => {
+        // Both store "shared": the page draws the second under an id of its own.
+        const stored: Array<JSONObject> = [
+          {
+            ...NAME_VARIABLE,
+            id: "shared",
+            type: DashboardVariableType.CustomList,
+          },
+          { ...IMAGE_VARIABLE, id: "shared" },
+        ];
+
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [{ id: "shared", selectedValue: "redis" }],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "nginx" });
+      });
+
+      it("keeps a stored id that is the id a variable without one would be drawn under, and draws that one under the next", () => {
+        const firstDerivedId: string = pageIdsOf([
+          withoutId(NAME_VARIABLE),
+        ])[0]!;
+        const stored: Array<JSONObject> = [
+          withoutId({ ...IMAGE_VARIABLE, defaultValue: undefined }),
+          { ...NAME_VARIABLE, id: firstDerivedId },
+        ];
+        const [imageId, nameId] = pageIdsOf(stored);
+
+        expect(nameId).toBe(firstDerivedId);
+        expect(imageId).not.toBe(firstDerivedId);
+        expect(ObjectID.isValidUUID(imageId!)).toBe(true);
+
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [{ id: firstDerivedId, selectedValue: "web" }],
+          }).query,
+        ).toEqual({ kind: "Container", name: "web" });
+
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [{ id: imageId!, selectedValue: "redis" }],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "redis" });
+      });
+
+      it("applies a pick under a derived id through that variable's own key only", () => {
+        const stored: Array<JSONObject> = [
+          withoutId(NAME_VARIABLE),
+          withoutId({ ...IMAGE_VARIABLE, defaultValue: undefined }),
+        ];
+        const [nameId, imageId] = pageIdsOf(stored);
+
+        expect(nameId).not.toBe(imageId);
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [{ id: nameId!, selectedValue: "redis" }],
+          }).query,
+        ).toEqual({ kind: "Container", name: "redis" });
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [
+              { id: imageId!, selectedValue: "web", selectedValues: [] },
+            ],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "web" });
+      });
+
+      it("takes a label pick under a derived id only from that variable's own choices", () => {
+        const teamLabel: string = ObjectID.generate().toString();
+        const unitLabel: string = ObjectID.generate().toString();
+        const stored: Array<JSONObject> = [
+          {
+            name: "TEAM",
+            type: DashboardVariableType.ProjectLabel,
+            labelOptions: [{ label: "Payments", value: teamLabel }],
+          },
+          {
+            name: "UNIT",
+            type: DashboardVariableType.ProjectLabel,
+            labelOptions: [{ label: "Support", value: unitLabel }],
+          },
+        ];
+        const [teamId, unitId] = pageIdsOf(stored);
+        const monitorsBy: (
+          requestedVariables: Array<JSONObject>,
+        ) => () => PublicDashboardResourceListPolicyResult = (
+          requestedVariables: Array<JSONObject>,
+        ): (() => PublicDashboardResourceListPolicyResult) => {
+          return (): PublicDashboardResourceListPolicyResult => {
+            return build({
+              componentType: DashboardComponentType.MonitorList,
+              argumentsObject: { labelVariableId: teamId! },
+              storedVariables: stored,
+              requestedVariables,
+            });
+          };
+        };
+
+        expect(
+          monitorsBy([{ id: teamId!, selectedValue: teamLabel }])().query,
+        ).toEqual({ labels: new Includes([teamLabel]) });
+
+        // The other variable's choice is no choice of this one.
+        expect(
+          outcomeOf(monitorsBy([{ id: teamId!, selectedValue: unitLabel }])),
+        ).toBe(
+          "refused: Choose up to 100 labels offered by this dashboard variable, or select All.",
+        );
+
+        // And the other variable's pick, under its own id, never reaches it.
+        expect(
+          monitorsBy([{ id: unitId!, selectedValue: unitLabel }])().query,
+        ).toEqual({});
+      });
+
+      it("refuses an over-long or over-many selection under a derived id as under any other", () => {
+        const stored: Array<JSONObject> = [withoutId(IMAGE_VARIABLE)];
+        const [pageId] = pageIdsOf(stored);
+        const values: (count: number) => Array<string> = (
+          count: number,
+        ): Array<string> => {
+          return Array.from({ length: count }, (_: unknown, index: number) => {
+            return `value-${index}`;
+          });
+        };
+
+        const refusedSelections: Array<[string, Array<JSONObject>]> = [
+          [
+            "an over-long value",
+            [{ id: pageId!, selectedValue: "x".repeat(1025) }],
+          ],
+          [
+            "an over-long value in a list",
+            [{ id: pageId!, selectedValues: ["x".repeat(1025)] }],
+          ],
+          ["too many values", [{ id: pageId!, selectedValues: values(101) }]],
+          [
+            "too many values in all",
+            [
+              { id: pageId!, selectedValues: values(67) },
+              { id: "b", selectedValues: values(67) },
+              { id: "c", selectedValues: values(67) },
+            ],
+          ],
+          [
+            "the same id twice",
+            [
+              { id: pageId!, selectedValue: "a" },
+              { id: pageId!, selectedValue: "b" },
+            ],
+          ],
+          [
+            "too many selections",
+            Array.from({ length: 51 }, (_: unknown, index: number) => {
+              return {
+                id: index === 0 ? pageId! : `v-${index}`,
+                selectedValue: "v",
+              };
+            }),
+          ],
+          ["an over-long id", [{ id: "x".repeat(257), selectedValue: "v" }]],
+          ["a value that is no text", [{ id: pageId!, selectedValue: 5 }]],
+          ["values that are no list", [{ id: pageId!, selectedValues: "v" }]],
+        ];
+
+        for (const [name, requestedVariables] of refusedSelections) {
+          expect([
+            name,
+            outcomeOf(() => {
+              return build({
+                componentType: CONTAINERS,
+                storedVariables: stored,
+                requestedVariables,
+              });
+            }).startsWith("refused: "),
+          ]).toEqual([name, true]);
+        }
+
+        // At the limits, it is read.
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: stored,
+            requestedVariables: [
+              { id: pageId!, selectedValue: "x".repeat(1024) },
+            ],
+          }).query["imageName"],
+        ).toBe("x".repeat(1024));
+      });
+
+      it("reads the picks of variables of other types for their bounds, and applies none of them", () => {
+        expect(
+          build({
+            componentType: CONTAINERS,
+            storedVariables: [
+              {
+                id: "environment",
+                name: "Environment",
+                type: DashboardVariableType.CustomList,
+                attributeKey: "container.name",
+                customListValues: "a,b",
+              },
+              IMAGE_VARIABLE,
+            ],
+            requestedVariables: [
+              { id: "environment", selectedValue: "a" },
+              { id: "image", selectedValue: "redis" },
+            ],
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "redis" });
+      });
+
+      it("refuses variables no page draws: an id that is no text, a shared id, a flag that is no flag, an over-long default or key", () => {
+        const handed: Array<[string, Array<DashboardVariable>]> = [
+          [
+            "an id that is no text",
+            [{ ...IMAGE_VARIABLE, id: 42 } as unknown as DashboardVariable],
+          ],
+          [
+            "a shared id",
+            [
+              IMAGE_VARIABLE as unknown as DashboardVariable,
+              { ...NAME_VARIABLE, id: "image" } as unknown as DashboardVariable,
+            ],
+          ],
+          [
+            "a flag that is no flag",
+            [
+              {
+                ...IMAGE_VARIABLE,
+                isMultiSelect: "true",
+              } as unknown as DashboardVariable,
+            ],
+          ],
+          [
+            "an over-long default",
+            [
+              {
+                ...IMAGE_VARIABLE,
+                defaultValue: "x".repeat(1025),
+              } as unknown as DashboardVariable,
+            ],
+          ],
+          [
+            "an over-long key",
+            [
+              {
+                ...IMAGE_VARIABLE,
+                attributeKey: "x".repeat(1025),
+              } as unknown as DashboardVariable,
+            ],
+          ],
+          [
+            "an entry that is no variable",
+            [null as unknown as DashboardVariable],
+          ],
+        ];
+
+        for (const [name, variables] of handed) {
+          expect([
+            name,
+            outcomeOf(() => {
+              return PublicDashboardResourceListPolicy.build({
+                widget: widget(CONTAINERS),
+                variables,
+                requestedVariables: [],
+                requestedQuery: {},
+              });
+            }).startsWith("refused: "),
+          ]).toEqual([name, true]);
+        }
+      });
+    });
+
+    /*
+     * A widget saved without settings - before November 2024, or by hand -
+     * or with settings that say none is drawn with `arguments: {}`: its
+     * defaults, signed in and on the public page. The policy answers it with
+     * those defaults too.
+     */
+    describe("a widget saved without settings", () => {
+      const NO_SETTINGS: Array<[string, (stored: JSONObject) => JSONObject]> = [
+        [
+          "saved without arguments",
+          (stored: JSONObject): JSONObject => {
+            const copy: JSONObject = { ...stored };
+            delete copy["arguments"];
+            return copy;
+          },
+        ],
+        [
+          "with arguments null",
+          (stored: JSONObject): JSONObject => {
+            return { ...stored, arguments: null };
+          },
+        ],
+        [
+          "with arguments a number",
+          (stored: JSONObject): JSONObject => {
+            return { ...stored, arguments: 5 };
+          },
+        ],
+        [
+          "with arguments a list",
+          (stored: JSONObject): JSONObject => {
+            return { ...stored, arguments: [{ maxRows: 7 }] };
+          },
+        ],
+        [
+          "with arguments empty text",
+          (stored: JSONObject): JSONObject => {
+            return { ...stored, arguments: "  " };
+          },
+        ],
+        [
+          "with arguments encoded twice",
+          (stored: JSONObject): JSONObject => {
+            return {
+              ...stored,
+              arguments: JSON.stringify(JSON.stringify({ maxRows: 7 })),
+            };
+          },
+        ],
+        [
+          "with arguments cut short",
+          (stored: JSONObject): JSONObject => {
+            return {
+              ...stored,
+              arguments: '{"maxRows": 7, "stateFilter": "res',
+            };
+          },
+        ],
+      ];
+
+      const LIST_CASES: Array<MappingCase> = MAPPING_CASES.filter(
+        (testCase: MappingCase, index: number): boolean => {
+          return (
+            testCase.componentType !== DashboardComponentType.Slo &&
+            MAPPING_CASES.findIndex((other: MappingCase): boolean => {
+              return other.componentType === testCase.componentType;
+            }) === index
+          );
+        },
+      );
+
+      it.each(LIST_CASES)(
+        "lists a $name widget saved without settings with its defaults, in every shape",
+        (testCase: MappingCase) => {
+          const defaults: PublicDashboardResourceListPolicyResult = build({
+            componentType: testCase.componentType,
+            argumentsObject: {},
+            requestedQuery: testCase.requestedQuery,
+          });
+
+          for (const [shape, storeAs] of NO_SETTINGS) {
+            const stored: JSONObject = storeAs({
+              componentId: ObjectID.generate().toString(),
+              componentType: testCase.componentType,
+            });
+
+            // The page draws it with no settings at all.
+            expect([shape, drawnWidget(stored)["arguments"]]).toEqual([
+              shape,
+              {},
+            ]);
+
+            expect([
+              shape,
+              buildDrawn({
+                storedWidget: stored,
+                requestedQuery: testCase.requestedQuery,
+              }),
+            ]).toEqual([shape, defaults]);
+          }
+
+          expect(defaults.resourceType).toBe(testCase.resourceType);
+        },
+      );
+
+      it("reads an SLO widget saved without settings as one with no SLO selected, as it is drawn", () => {
+        for (const [shape, storeAs] of NO_SETTINGS) {
+          expect([
+            shape,
+            outcomeOf(() => {
+              return buildDrawn({
+                storedWidget: storeAs({
+                  componentId: ObjectID.generate().toString(),
+                  componentType: DashboardComponentType.Slo,
+                }),
+              });
+            }),
+          ]).toEqual([
+            shape,
+            `refused: ${PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE}`,
+          ]);
+        }
+      });
+
+      it("still refuses a widget handed with arguments that are no object: the routes hand it only the widgets the page draws", () => {
+        for (const widgetArguments of [undefined, null, "{}", 5, []]) {
+          expect(
+            outcomeOf(() => {
+              return PublicDashboardResourceListPolicy.build({
+                widget: {
+                  componentType: DashboardComponentType.IncidentList,
+                  arguments: widgetArguments as unknown as JSONObject,
+                },
+                variables: [],
+                requestedVariables: [],
+                requestedQuery: {},
+              });
+            }),
+          ).toBe("refused: Dashboard widget arguments must be an object.");
+        }
+      });
+    });
+
+    /*
+     * The page reads each widget deserialized: an ObjectID stored as
+     * `{"_type": "ObjectID", "value": ...}` as that id, a query operator as
+     * the operator, a date as the date - or, for a widget it cannot revive
+     * (a malformed typed value anywhere in it), every value as its stored
+     * JSON. Every setting the list and SLO policies read reads both forms
+     * as the page does, in object arguments and in arguments written as
+     * JSON text.
+     */
+    describe("typed values in a widget's settings", () => {
+      type Encoding =
+        | "object arguments"
+        | "JSON-text arguments"
+        | "object arguments, in a widget the page cannot revive"
+        | "JSON-text arguments, in a widget the page cannot revive";
+
+      const ENCODINGS: Array<Encoding> = [
+        "object arguments",
+        "JSON-text arguments",
+        "object arguments, in a widget the page cannot revive",
+        "JSON-text arguments, in a widget the page cannot revive",
+      ];
+
+      const isRevived: (encoding: Encoding) => boolean = (
+        encoding: Encoding,
+      ): boolean => {
+        return !encoding.includes("cannot revive");
+      };
+
+      // Includes.fromJSON cannot iterate a number: the page draws such a widget from its stored JSON.
+      const UNREVIVABLE: JSONObject = { _type: "Includes", value: 5 };
+
+      const storedIn: (
+        encoding: Encoding,
+        componentType: string,
+        widgetArguments: JSONObject,
+      ) => JSONObject = (
+        encoding: Encoding,
+        componentType: string,
+        widgetArguments: JSONObject,
+      ): JSONObject => {
+        const settings: JSONObject = isRevived(encoding)
+          ? widgetArguments
+          : { ...widgetArguments, unrelated: UNREVIVABLE };
+
+        return {
+          componentId: ObjectID.generate().toString(),
+          componentType,
+          arguments: encoding.startsWith("JSON-text")
+            ? JSON.stringify(settings)
+            : settings,
+        };
+      };
+
+      const idJSON: (id: string) => JSONObject = (id: string): JSONObject => {
+        return new ObjectID(id).toJSON();
+      };
+
+      const ID_LISTS: Array<{
+        componentType: DashboardComponentType;
+        key: string;
+        requestedQuery?: JSONObject | undefined;
+      }> = [
+        {
+          componentType: DashboardComponentType.IncidentList,
+          key: "severityIds",
+        },
+        { componentType: DashboardComponentType.IncidentList, key: "stateIds" },
+        {
+          componentType: DashboardComponentType.IncidentList,
+          key: "monitorIds",
+        },
+        { componentType: DashboardComponentType.IncidentList, key: "labelIds" },
+        { componentType: DashboardComponentType.AlertList, key: "severityIds" },
+        { componentType: DashboardComponentType.AlertList, key: "stateIds" },
+        { componentType: DashboardComponentType.AlertList, key: "monitorIds" },
+        { componentType: DashboardComponentType.AlertList, key: "labelIds" },
+        {
+          componentType: DashboardComponentType.MonitorList,
+          key: "monitorStatusIds",
+        },
+        { componentType: DashboardComponentType.MonitorList, key: "labelIds" },
+        {
+          componentType: DashboardComponentType.NetworkMap,
+          key: "networkSiteTypeIds",
+        },
+        {
+          componentType: DashboardComponentType.KubernetesPodList,
+          key: "kubernetesClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.KubernetesNodeList,
+          key: "kubernetesClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.DockerContainerList,
+          key: "dockerHostIds",
+        },
+        {
+          componentType: DashboardComponentType.DockerImageList,
+          key: "dockerHostIds",
+        },
+        {
+          componentType: DashboardComponentType.DockerVolumeList,
+          key: "dockerHostIds",
+        },
+        {
+          componentType: DashboardComponentType.PodmanContainerList,
+          key: "podmanHostIds",
+        },
+        {
+          componentType: DashboardComponentType.PodmanNetworkList,
+          key: "podmanHostIds",
+        },
+        {
+          componentType: DashboardComponentType.ProxmoxNodeList,
+          key: "proxmoxClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.ProxmoxGuestList,
+          key: "proxmoxClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.VMwareHostList,
+          key: "vmwareVCenterIds",
+        },
+        {
+          componentType: DashboardComponentType.VMwareVirtualMachineList,
+          key: "vmwareVCenterIds",
+        },
+        {
+          componentType: DashboardComponentType.CephOsdList,
+          key: "cephClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.CephPoolList,
+          key: "cephClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.StorageArrayVolumeList,
+          key: "storageArrayIds",
+        },
+        {
+          componentType: DashboardComponentType.StorageArrayHardwareList,
+          key: "storageArrayIds",
+        },
+        {
+          componentType: DashboardComponentType.DockerSwarmNodeList,
+          key: "dockerSwarmClusterIds",
+        },
+        {
+          componentType: DashboardComponentType.DockerSwarmServiceList,
+          key: "dockerSwarmClusterIds",
+        },
+        { componentType: DashboardComponentType.SloList, key: "labelIds" },
+      ];
+
+      it.each(ID_LISTS)(
+        "filters a $componentType by its $key stored as ObjectIDs exactly as by the same ids stored as text, in every encoding",
+        (testCase: { componentType: DashboardComponentType; key: string }) => {
+          const ids: Array<string> = [
+            ObjectID.generate().toString(),
+            ObjectID.generate().toString(),
+          ];
+          const asText: PublicDashboardResourceListPolicyResult = build({
+            componentType: testCase.componentType,
+            argumentsObject: { [testCase.key]: ids },
+          });
+
+          // Not vacuous: the ids are in the query.
+          expect(JSON.stringify(asText.query)).toContain(ids[1]!);
+
+          for (const encoding of ENCODINGS) {
+            const stored: JSONObject = storedIn(
+              encoding,
+              testCase.componentType,
+              { [testCase.key]: ids.map(idJSON) },
+            );
+            const held: Array<unknown> = (
+              drawnWidget(stored)["arguments"] as JSONObject
+            )[testCase.key] as Array<unknown>;
+
+            /*
+             * The page holds them as the ids they name, in text, whether it
+             * revived the widget or draws it from its stored JSON - as every
+             * board reads them (DashboardWidgetIds, issue #6328).
+             */
+            expect([encoding, held]).toEqual([encoding, ids]);
+
+            expect([encoding, buildDrawn({ storedWidget: stored })]).toEqual([
+              encoding,
+              asText,
+            ]);
+          }
+        },
+      );
+
+      interface TypedValueCase {
+        reader: string;
+        componentType: DashboardComponentType;
+        key: string;
+        // Other settings the widget needs to reach the reader.
+        settings?: JSONObject | undefined;
+        requestedQuery?: JSONObject | undefined;
+        values: Array<[string, unknown]>;
+        // The refusal, or "as unset": read as the widget saved without the setting.
+        outcome: string;
+      }
+
+      const DATE: unknown = OneUptimeDate.toJSON(
+        new Date("2026-11-08T00:00:00.000Z"),
+      );
+      const OPERATOR: unknown = new Includes([
+        ObjectID.generate().toString(),
+      ]).toJSON();
+      const SEARCH: unknown = new Search("status:desc").toJSON();
+      const ID: unknown = ObjectID.generate().toJSON();
+
+      const TYPED_VALUES: Array<[string, unknown]> = [
+        ["an ObjectID", ID],
+        ["a query operator", OPERATOR],
+        ["a search", SEARCH],
+        ["a date", DATE],
+      ];
+
+      /*
+       * An id setting reads an ObjectID as the id it names, as every board
+       * does (issue #6328, pinned below); every other typed value names no
+       * id, and is refused as before.
+       */
+      const NO_ID_TYPED_VALUES: Array<[string, unknown]> = TYPED_VALUES.filter(
+        ([name]: [string, unknown]): boolean => {
+          return name !== "an ObjectID";
+        },
+      );
+
+      const TYPED_VALUE_CASES: Array<TypedValueCase> = [
+        {
+          reader: "a list of ids, as a whole",
+          componentType: DashboardComponentType.IncidentList,
+          key: "severityIds",
+          values: TYPED_VALUES,
+          outcome: "refused: Dashboard widget severityIds must be an array.",
+        },
+        {
+          reader: "a value in a list of ids",
+          componentType: DashboardComponentType.IncidentList,
+          key: "severityIds",
+          values: [
+            ["a query operator", [OPERATOR]],
+            ["a search", [SEARCH]],
+            ["a date", [DATE]],
+            ["an ObjectID with no text", [{ _type: "ObjectID", value: 5 }]],
+            ["an ObjectID with no id", [{ _type: "ObjectID", value: "" }]],
+            ["an id with no type", [{ value: ObjectID.generate().toString() }]],
+          ],
+          outcome:
+            "refused: Dashboard widget severityIds contains an invalid value.",
+        },
+        {
+          reader: "a choice",
+          componentType: DashboardComponentType.IncidentList,
+          key: "stateFilter",
+          values: TYPED_VALUES,
+          outcome: "refused: Dashboard widget stateFilter is invalid.",
+        },
+        {
+          reader: "a choice of a log stream",
+          componentType: DashboardComponentType.LogStream,
+          key: "severityFilter",
+          requestedQuery: { time: range() },
+          values: TYPED_VALUES,
+          outcome: "refused: Dashboard widget severityFilter is invalid.",
+        },
+        {
+          reader: "a text",
+          componentType: DashboardComponentType.DockerContainerList,
+          key: "imageName",
+          values: TYPED_VALUES,
+          outcome: "refused: Dashboard widget imageName must be a string.",
+        },
+        {
+          reader: "the text of a log stream",
+          componentType: DashboardComponentType.LogStream,
+          key: "bodyContains",
+          requestedQuery: { time: range() },
+          values: TYPED_VALUES,
+          outcome: "refused: Dashboard widget bodyContains must be a string.",
+        },
+        {
+          reader: "the label variable a list follows",
+          componentType: DashboardComponentType.MonitorList,
+          key: "labelVariableId",
+          values: NO_ID_TYPED_VALUES,
+          outcome:
+            "refused: Dashboard widget labelVariableId must be a string.",
+        },
+        {
+          reader: "an SLO list's statuses",
+          componentType: DashboardComponentType.SloList,
+          key: "sloStatuses",
+          values: TYPED_VALUES.map(
+            ([name, value]: [string, unknown]): [string, unknown] => {
+              return [name, [value]];
+            },
+          ),
+          outcome:
+            "refused: Dashboard widget sloStatuses contains an invalid value.",
+        },
+        {
+          reader: "a row cap",
+          componentType: DashboardComponentType.IncidentList,
+          key: "maxRows",
+          values: [
+            ...TYPED_VALUES,
+            ["a value greater than", { _type: "GreaterThan", value: 5 }],
+          ],
+          outcome: "as unset",
+        },
+        {
+          reader: "a map's site cap",
+          componentType: DashboardComponentType.NetworkMap,
+          key: "maxSites",
+          values: TYPED_VALUES,
+          outcome: "as unset",
+        },
+        {
+          reader: "a list's own sort",
+          componentType: DashboardComponentType.MonitorList,
+          key: "sort",
+          values: TYPED_VALUES,
+          outcome: "as unset",
+        },
+        {
+          reader: "the SLO a widget pins",
+          componentType: DashboardComponentType.Slo,
+          key: "serviceLevelObjectiveId",
+          values: NO_ID_TYPED_VALUES,
+          outcome: `refused: ${PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE}`,
+        },
+        {
+          reader: "the variable an SLO widget follows",
+          componentType: DashboardComponentType.Slo,
+          key: "serviceLevelObjectiveVariableId",
+          values: NO_ID_TYPED_VALUES,
+          outcome:
+            "refused: Dashboard widget serviceLevelObjectiveVariableId is invalid.",
+        },
+        {
+          reader: "an SLO widget's series",
+          componentType: DashboardComponentType.Slo,
+          key: "sloMetric",
+          settings: { serviceLevelObjectiveId: SLO_ID.toString() },
+          values: TYPED_VALUES,
+          outcome: "refused: Dashboard widget sloMetric is invalid.",
+        },
+        {
+          reader: "an SLO widget's display",
+          componentType: DashboardComponentType.Slo,
+          key: "displayType",
+          settings: { serviceLevelObjectiveId: SLO_ID.toString() },
+          values: TYPED_VALUES,
+          outcome: "refused: Dashboard widget displayType is invalid.",
+        },
+      ];
+
+      it.each(TYPED_VALUE_CASES)(
+        "reads a typed value in $reader ($key) as its JSON is read, in every encoding",
+        (testCase: TypedValueCase) => {
+          const unset: string = outcomeOf(() => {
+            return build({
+              componentType: testCase.componentType,
+              argumentsObject: testCase.settings || {},
+              requestedQuery: testCase.requestedQuery,
+            });
+          });
+
+          for (const [valueName, value] of testCase.values) {
+            for (const encoding of ENCODINGS) {
+              const stored: JSONObject = storedIn(
+                encoding,
+                testCase.componentType,
+                {
+                  ...(testCase.settings || {}),
+                  [testCase.key]: value as JSONObject,
+                },
+              );
+              const outcome: string = outcomeOf(() => {
+                return buildDrawn({
+                  storedWidget: stored,
+                  requestedQuery: testCase.requestedQuery,
+                });
+              });
+
+              expect([valueName, encoding, outcome]).toEqual([
+                valueName,
+                encoding,
+                testCase.outcome === "as unset" ? unset : testCase.outcome,
+              ]);
+
+              if (testCase.outcome === "as unset") {
+                expect([
+                  valueName,
+                  encoding,
+                  buildDrawn({ storedWidget: stored }),
+                ]).toEqual([
+                  valueName,
+                  encoding,
+                  build({ componentType: testCase.componentType }),
+                ]);
+              }
+            }
+          }
+        },
+      );
+
+      it("reads a row cap stored as a date as none - Number() of a date is its time in milliseconds - and a row cap written as text as the number it says", () => {
+        for (const encoding of ENCODINGS) {
+          expect([
+            encoding,
+            buildDrawn({
+              storedWidget: storedIn(
+                encoding,
+                DashboardComponentType.IncidentList,
+                {
+                  maxRows: DATE as JSONObject,
+                },
+              ),
+            }).limit,
+          ]).toEqual([encoding, 25]);
+
+          expect([
+            encoding,
+            buildDrawn({
+              storedWidget: storedIn(
+                encoding,
+                DashboardComponentType.NetworkMap,
+                {
+                  maxSites: DATE as JSONObject,
+                },
+              ),
+            }).limit,
+          ]).toEqual([encoding, 251]);
+
+          expect([
+            encoding,
+            buildDrawn({
+              storedWidget: storedIn(
+                encoding,
+                DashboardComponentType.IncidentList,
+                {
+                  maxRows: " 13 ",
+                },
+              ),
+            }).limit,
+          ]).toEqual([encoding, 13]);
+        }
+
+        // As a date revives: the time in milliseconds is far past the ceiling.
+        expect(Number(new Date("2026-11-08T00:00:00.000Z"))).toBeGreaterThan(
+          LIMIT_PER_PROJECT,
+        );
+      });
+
+      it("reads a list's own sort written as text in JSON-text arguments as in object arguments", () => {
+        for (const encoding of ENCODINGS) {
+          expect([
+            encoding,
+            buildDrawn({
+              storedWidget: storedIn(
+                encoding,
+                DashboardComponentType.MonitorList,
+                {
+                  sort: "status:desc",
+                },
+              ),
+            }).sortChoice,
+          ]).toEqual([encoding, { column: "status", direction: "desc" }]);
+        }
+      });
+
+      it("pins an SLO widget's SLO stored as text in every encoding", () => {
+        for (const encoding of ENCODINGS) {
+          expect([
+            encoding,
+            buildDrawn({
+              storedWidget: storedIn(encoding, DashboardComponentType.Slo, {
+                serviceLevelObjectiveId: SLO_ID.toString(),
+              }),
+            }).query,
+          ]).toEqual([encoding, { _id: SLO_ID }]);
+        }
+      });
+
+      /*
+       * Issue #6328: an SLO, or the variable a widget follows, stored as an
+       * ObjectID is read as the id it names. The page now draws that SLO,
+       * signed in and public alike, so the policy reads it as it reads the
+       * same id stored as text - whether the page revived it or draws the
+       * widget from its stored JSON.
+       */
+      it("pins an SLO widget's SLO stored as an ObjectID exactly as stored as text, in every encoding", () => {
+        for (const encoding of ENCODINGS) {
+          expect([
+            encoding,
+            buildDrawn({
+              storedWidget: storedIn(encoding, DashboardComponentType.Slo, {
+                serviceLevelObjectiveId: idJSON(SLO_ID.toString()),
+              }),
+            }).query,
+          ]).toEqual([encoding, { _id: SLO_ID }]);
+
+          // Called with the stored settings themselves, revived or not.
+          for (const storedId of [
+            SLO_ID,
+            idJSON(SLO_ID.toString()),
+            ` ${SLO_ID.toString()} `,
+          ]) {
+            expect([
+              encoding,
+              String(storedId),
+              PublicDashboardResourceListPolicy.build({
+                widget: {
+                  componentType: DashboardComponentType.Slo,
+                  arguments: {
+                    serviceLevelObjectiveId: storedId as unknown as JSONObject,
+                  },
+                },
+                variables: [],
+                requestedVariables: [],
+                requestedQuery: {},
+              }).query,
+            ]).toEqual([encoding, String(storedId), { _id: SLO_ID }]);
+          }
+        }
+      });
+
+      it("follows the label variable a list names by an ObjectID exactly as by its id in text, in every encoding", () => {
+        const labelId: string = ObjectID.generate().toString();
+        const labelVariable: JSONObject = {
+          id: "unit",
+          name: "unit",
+          type: DashboardVariableType.ProjectLabel,
+          labelOptions: [{ label: "Payments", value: labelId }],
+          defaultValue: labelId,
+        };
+
+        for (const componentType of [
+          DashboardComponentType.MonitorList,
+          DashboardComponentType.SloList,
+        ]) {
+          const asText: PublicDashboardResourceListPolicyResult = build({
+            componentType,
+            argumentsObject: { labelVariableId: "unit" },
+            storedVariables: [labelVariable],
+          });
+
+          // Not vacuous: the variable's pick filters the list.
+          expect(JSON.stringify(asText.query)).toContain(labelId);
+
+          for (const encoding of ENCODINGS) {
+            expect([
+              componentType,
+              encoding,
+              buildDrawn({
+                storedWidget: storedIn(encoding, componentType, {
+                  labelVariableId: { _type: "ObjectID", value: "unit" },
+                }),
+                storedVariables: [labelVariable],
+              }),
+            ]).toEqual([componentType, encoding, asText]);
+          }
+
+          // Called with the stored settings themselves, revived or not.
+          for (const storedId of [
+            new ObjectID("unit"),
+            { _type: "ObjectID", value: "unit" },
+          ]) {
+            expect([
+              componentType,
+              String(storedId),
+              PublicDashboardResourceListPolicy.build({
+                widget: {
+                  componentType,
+                  arguments: {
+                    labelVariableId: storedId as unknown as JSONObject,
+                  },
+                },
+                variables: drawnVariables([labelVariable]),
+                requestedVariables: [],
+                requestedQuery: {},
+              }),
+            ]).toEqual([componentType, String(storedId), asText]);
+          }
+        }
+      });
+
+      it("follows the variable an SLO widget names by an ObjectID exactly as by its id in text, in every encoding", () => {
+        const sloVariable: JSONObject = {
+          id: "slo",
+          name: "slo",
+          type: DashboardVariableType.TelemetryAttribute,
+          attributeKey: "sloName",
+          defaultValue: "Checkout",
+        };
+
+        const asText: string = outcomeOf(() => {
+          return build({
+            componentType: DashboardComponentType.Slo,
+            argumentsObject: { serviceLevelObjectiveVariableId: "slo" },
+            storedVariables: [sloVariable],
+          });
+        });
+
+        // Not vacuous: the widget follows the variable's pick.
+        expect(asText).toBe("lists slo");
+
+        for (const encoding of ENCODINGS) {
+          expect([
+            encoding,
+            outcomeOf(() => {
+              return buildDrawn({
+                storedWidget: storedIn(encoding, DashboardComponentType.Slo, {
+                  serviceLevelObjectiveVariableId: {
+                    _type: "ObjectID",
+                    value: "slo",
+                  },
+                }),
+                storedVariables: [sloVariable],
+              });
+            }),
+          ]).toEqual([encoding, asText]);
+        }
+
+        // Called with the stored settings themselves, revived or not.
+        for (const storedId of [
+          new ObjectID("slo"),
+          { _type: "ObjectID", value: "slo" },
+        ]) {
+          expect([
+            String(storedId),
+            outcomeOf(() => {
+              return PublicDashboardResourceListPolicy.build({
+                widget: {
+                  componentType: DashboardComponentType.Slo,
+                  arguments: {
+                    serviceLevelObjectiveVariableId:
+                      storedId as unknown as JSONObject,
+                  },
+                },
+                variables: drawnVariables([sloVariable]),
+                requestedVariables: [],
+                requestedQuery: {},
+              });
+            }),
+          ]).toEqual([String(storedId), asText]);
+        }
+      });
     });
   });
 });

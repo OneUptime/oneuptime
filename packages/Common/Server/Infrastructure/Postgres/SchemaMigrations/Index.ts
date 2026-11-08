@@ -925,6 +925,9 @@ import { AddRuleOwningTeams1808995800000 } from "./1808995800000-AddRuleOwningTe
 import { AddWorkflowGraphRevision1808995900000 } from "./1808995900000-AddWorkflowGraphRevision";
 import { AddWorkflowVersionSavedThrough1808996000000 } from "./1808996000000-AddWorkflowVersionSavedThrough";
 import { AddAuditLogExportSchemaVersion1808996130000 } from "./1808996130000-AddAuditLogExportSchemaVersion";
+import { AddAiAgentResetAt1808996200000 } from "./1808996200000-AddAiAgentResetAt";
+import { AddSloErrorBudgetPolicyTiers1808996325825 } from "./1808996325825-AddSloErrorBudgetPolicyTiers";
+import { AddEvaluationDetailsAndKeepResponseContent1808997300000 } from "./1808997300000-AddEvaluationDetailsAndKeepResponseContent";
 import { AddTelemetryUsageRetention1808996259160 } from "./1808996259160-AddTelemetryUsageRetention";
 import { AddTelemetryUsageCreatedAtIndex1808996259170 } from "./1808996259170-AddTelemetryUsageCreatedAtIndex";
 
@@ -1856,6 +1859,9 @@ export default [
   AddWorkflowGraphRevision1808995900000,
   AddWorkflowVersionSavedThrough1808996000000,
   AddAuditLogExportSchemaVersion1808996130000,
+  AddAiAgentResetAt1808996200000,
+  AddSloErrorBudgetPolicyTiers1808996325825,
+  AddEvaluationDetailsAndKeepResponseContent1808997300000,
   AddTelemetryUsageRetention1808996259160,
   AddTelemetryUsageCreatedAtIndex1808996259170,
 ];

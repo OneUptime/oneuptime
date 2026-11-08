@@ -277,6 +277,8 @@ export default class DataObservabilityAPI extends BaseAPI<
           projectId,
           alertId: DataObservabilityAPI.readId(req),
           userId: props.userId || null,
+          // The alert it resolves is theirs in the audit log.
+          props: props,
           ...(typeof body["feedback"] === "string"
             ? { feedback: body["feedback"] }
             : {}),

@@ -177,6 +177,8 @@ En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grup
 
 **Utvecklare** och **Avancerad** börjar hopfällda. På **Översikt** nämner sidhuvudet episodens **Ägare**, team först, och den första rutan, **Skapad**, säger när episoden skapades — **Automatiskt**, när en grupperingsregel öppnade den. Kortet **Vad som hände** står överst på sidan — episodens beskrivning och dess **Rotorsak** — sedan **Larm i den här episoden** och **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Flytta episoden till** i menyn **⋯**.
 
+Sidan **Rotorsak** visar mätvärdena bakom episoden bredvid dess rotorsak: dem från dess första larm, det som skapades först, så som telemetrikortet på dess **Översikt** visar dem, kring när episoden började och med dess ögonblick markerade, så att du kan läsa dem över vilket intervall som helst kring den medan du skriver ner varför den inträffade. När det larmet inte har sparat någon ögonblicksbild av en måttkontroll (ett som skapats för hand på en måttmonitor, till exempel), visar sidan den monitorns mätvärden så som monitorn läser dem nu, och säger det.
+
 **Larm → Aktiva episoder** listar de episoder som inte är lösta ännu, och märket bredvid räknar dem.
 
 ## Felsökning

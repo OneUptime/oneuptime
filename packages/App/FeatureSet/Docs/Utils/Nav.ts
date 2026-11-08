@@ -385,6 +385,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/slo/burn-rate-alerts",
       },
       {
+        title: "Error Budget Policy",
+        url: "/docs/slo/error-budget-policy",
+      },
+      {
         title: "SLO Metrics and Dashboards",
         url: "/docs/slo/metrics",
       },

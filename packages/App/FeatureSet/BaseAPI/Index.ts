@@ -634,6 +634,7 @@ import LogDropFilterService, {
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
 import ServiceLevelObjectiveBurnRateRuleAPI from "Common/Server/API/ServiceLevelObjectiveBurnRateRuleAPI";
+import ServiceLevelObjectiveErrorBudgetPolicyTierAPI from "Common/Server/API/ServiceLevelObjectiveErrorBudgetPolicyTierAPI";
 import SecurityWatchlistAPI from "Common/Server/API/SecurityWatchlistAPI";
 import SecurityWatchlistItem from "Common/Models/DatabaseModels/SecurityWatchlistItem";
 import SecurityWatchlistItemService, {
@@ -3711,6 +3712,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceLevelObjectiveBurnRateRuleAPI().getRouter(),
+    );
+
+    // ServiceLevelObjectiveErrorBudgetPolicyTier, and "Use the recommended policy"
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ServiceLevelObjectiveErrorBudgetPolicyTierAPI().getRouter(),
     );
 
     // LlmCostBudget

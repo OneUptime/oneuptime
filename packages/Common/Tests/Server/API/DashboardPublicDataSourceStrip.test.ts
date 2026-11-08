@@ -13,6 +13,9 @@ import DashboardComponentType, {
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { mockRouter } from "./Helpers";
 import {
   afterEach,
@@ -881,8 +884,199 @@ describe("DashboardAPI public Data Source strip", () => {
         ).toEqual([DashboardComponentType.Chart]);
         expect(body["metricsUsed"]).toEqual([PUBLIC_METRIC_NAME]);
 
-        // The served config is the sanitized one, entries as stored.
-        expect(getServedComponents(body).length).toBe(5);
+        /*
+         * The served config is the one /view-config serves: the widgets the
+         * page draws, and no entry it does not (issue #6327).
+         */
+        expect(componentTypesOf(getServedComponents(body))).toEqual([
+          DashboardComponentType.Chart,
+        ]);
+      },
+    );
+  });
+
+  /*
+   * Issue #6327: a Data Source widget stored inside layers of envelope or
+   * JSON text, past what any board reads through, was served whole by both
+   * routes - and one in six to ten envelopes was even drawn as one, and
+   * summarised by the overview. Each route is swept from no layers to far
+   * past the bound, in every wrapping.
+   */
+  describe("a Data Source widget stored at any depth (issue #6327)", () => {
+    type Layer = "envelope" | "text";
+
+    const wrapped: (value: unknown, layers: Array<Layer>) => unknown = (
+      value: unknown,
+      layers: Array<Layer>,
+    ): unknown => {
+      let current: unknown = value;
+
+      for (let index: number = layers.length - 1; index >= 0; index--) {
+        current =
+          layers[index] === "text"
+            ? JSON.stringify(current)
+            : { _type: "DashboardComponent", value: current };
+      }
+
+      return current;
+    };
+
+    const times: (layers: Array<Layer>, count: number) => Array<Layer> = (
+      layers: Array<Layer>,
+      count: number,
+    ): Array<Layer> => {
+      const all: Array<Layer> = [];
+
+      for (let time: number = 0; time < count; time++) {
+        all.push(...layers);
+      }
+
+      return all;
+    };
+
+    /*
+     * Text doubles in size with each layer of it, so the wrappings with
+     * text are swept as deep as a value can be made; the envelope, and a
+     * mix with at most eight layers of text, to thirty.
+     */
+    const WRAPPINGS: Array<[string, number, (depth: number) => Array<Layer>]> =
+      [
+        [
+          "the envelope",
+          30,
+          (depth: number): Array<Layer> => {
+            return times(["envelope"], depth);
+          },
+        ],
+        [
+          "the envelope with its value as JSON text",
+          12,
+          (depth: number): Array<Layer> => {
+            return times(["envelope", "text"], depth);
+          },
+        ],
+        [
+          "JSON text",
+          12,
+          (depth: number): Array<Layer> => {
+            return times(["text"], depth);
+          },
+        ],
+        [
+          "a mix of the three",
+          30,
+          (depth: number): Array<Layer> => {
+            const random: SeededRandom = seededRandom(6327 + depth);
+            const layers: Array<Layer> = [];
+            let text: number = 0;
+
+            for (let step: number = 0; step < depth; step++) {
+              const kind: number = text >= 8 ? 0 : random(3);
+
+              if (kind === 0) {
+                layers.push("envelope");
+              } else if (kind === 1) {
+                layers.push("envelope", "text");
+                text++;
+              } else {
+                layers.push("text");
+                text++;
+              }
+            }
+
+            return layers;
+          },
+        ],
+      ];
+
+    const DATA_SOURCE_METRIC: string = "data.source.metric";
+
+    it.each(PUBLIC_CONFIG_ROUTES)(
+      "$name serves none of it at any depth, and only what the page then draws",
+      async (route: PublicConfigRoute) => {
+        for (const [wrappingName, deepest, layersAt] of WRAPPINGS) {
+          for (let depth: number = 0; depth <= deepest; depth++) {
+            const label: string = `${wrappingName}, ${depth} layers`;
+
+            const dataSourceChart: BuiltWidget = buildWidget(
+              DashboardComponentType.DataSourceChart,
+              {
+                chartTitle: DATA_SOURCE_TITLE_SECRET,
+                queries: [
+                  {
+                    id: "query-1",
+                    dataSourceId: DATA_SOURCE_ID_SECRET,
+                    query: CHART_QUERY_SECRET,
+                    legend: LEGEND_SECRET,
+                  },
+                ],
+                metricQueryConfig: {
+                  metricQueryData: {
+                    filterData: { metricName: DATA_SOURCE_METRIC },
+                  },
+                },
+              },
+            );
+            const text: BuiltWidget = buildWidget(DashboardComponentType.Text, {
+              text: PUBLIC_TEXT,
+            });
+
+            setDashboardWidgets([
+              wrapped(dataSourceChart.widget, layersAt(depth)) as JSONObject,
+              text.widget,
+            ]);
+
+            jest.clearAllMocks();
+
+            await callRoute(route);
+
+            const body: JSONObject = getResponseBody();
+            const servedBody: string = JSON.stringify(body);
+
+            for (const secret of [
+              ...DATA_SOURCE_SECRETS,
+              dataSourceChart.componentId,
+              DATA_SOURCE_METRIC,
+            ]) {
+              expect([label, secret, servedBody.includes(secret)]).toEqual([
+                label,
+                secret,
+                false,
+              ]);
+            }
+
+            // The page draws what is served: never a Data Source widget.
+            const drawnTypes: Array<string> = StoredDashboardViewConfig.read(
+              JSON.parse(JSON.stringify(body["dashboardViewConfig"])),
+            ).components.map((component: DashboardBaseComponent): string => {
+              return component.componentType;
+            });
+
+            expect([label, drawnTypes]).toEqual([
+              label,
+              expect.arrayContaining([DashboardComponentType.Text]),
+            ]);
+            expect([
+              label,
+              drawnTypes.filter((componentType: string): boolean => {
+                return (DataSourceComponentTypes as Array<string>).includes(
+                  componentType,
+                );
+              }),
+            ]).toEqual([label, []]);
+
+            // The overview summarises exactly those widgets.
+            if (route.servesComponentSummaries) {
+              expect([
+                label,
+                componentTypesOf(
+                  body["components"] as unknown as Array<JSONObject>,
+                ),
+              ]).toEqual([label, drawnTypes]);
+              expect([label, body["metricsUsed"]]).toEqual([label, []]);
+            }
+          }
+        }
       },
     );
   });

@@ -108,10 +108,10 @@ Cursor 只使用基于 HTTP 的二进制 protobuf 格式的 OTLP（不支持 gRP
 
 ## 员工归属
 
-**Cursor 用 `cursor.user.id` 指明一个人，这是一个只有 Cursor 才能转换为姓名的整数，而且云端代理经常省略它。** OneUptime 把它读作员工，把 `cursor.team.id` 读作团队，因此 **用量** 标签页无需设置即可对人员和团队排名，但人员会显示为整数。
+**Cursor 用 `cursor.user.id` 指明一个人，这是一个只有 Cursor 才能转换为姓名的整数，而且云端代理经常省略它。** Cursor 发送 `cursor.user.email` 时，OneUptime 把它读作员工，不发送时读取 `cursor.user.id`，并把 `cursor.team.id` 读作团队，因此 **用量** 标签页无需设置即可对人员和团队排名；没有邮箱的人员会显示为整数。
 
 - 两者都以资源属性（`resource.cursor.user.id`、`resource.cursor.team.id`）的形式到达，OneUptime 会读取它们。
-- Cursor 也可以发送 `cursor.user.email`，但 OneUptime 还不读取它，因此对 Cursor 而言，员工邮箱列保持为空。
+- `cursor.user.email` 会先于 `cursor.user.id` 读取，因此 Cursor 用邮箱指明的人员会按邮箱显示。
 - `gen_ai.user`、`llm.user` 和 LiteLLM 的最终用户 ID 从不被读作员工：它们指的是你的客户，而不是你的员工。请参阅 [员工和团队归属](/docs/telemetry/ai-coding-assistants#员工和团队归属)。
 
 ### Cursor 在用量标签页上的显示位置
@@ -120,7 +120,7 @@ Cursor 发送指标而不发送 GenAI span，而指标只用于补充 span： **
 
 | 细分 | 对 Cursor 而言 |
 | --- | --- |
-| **员工** | 是，按 `cursor.user.id` |
+| **员工** | 是，按 `cursor.user.email`，否则按 `cursor.user.id` |
 | **团队** | 是，按 `cursor.team.id` |
 | **模型** | 是，按 `cursor.model.name` |
 | **提供商** | 否：Cursor 从不说明是哪个提供商处理了调用 |
@@ -167,7 +167,7 @@ Cursor 从自己的服务器发起连接：你的 OTLP 端点必须能通过公�
 :::
 
 :::details 人员显示为数字
-那就是 `cursor.user.id`：这是 OneUptime 目前从 Cursor 读取的唯一人员 ID。请用 Cursor 的 Admin API 把它映射到姓名。
+那就是 `cursor.user.id`，在 Cursor 不发送 `cursor.user.email` 时读取。请用 Cursor 的 Admin API 把它映射到姓名。
 :::
 
 ## 后续步骤

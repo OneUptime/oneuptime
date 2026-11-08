@@ -4,6 +4,7 @@ import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSk
 import SloActiveBurnEventsCard from "../../../Components/Slo/SloActiveBurnEventsCard";
 import SloBudgetBurnDownCard from "../../../Components/Slo/SloBudgetBurnDownCard";
 import SloBurnRateRulesSummaryCard from "../../../Components/Slo/SloBurnRateRulesSummaryCard";
+import SloErrorBudgetPolicyTierCard from "../../../Components/Slo/SloErrorBudgetPolicyTierCard";
 import SloFeed from "../../../Components/Slo/SloFeed";
 import SloKpiStrip from "../../../Components/Slo/SloKpiStrip";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
@@ -17,6 +18,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
@@ -43,7 +45,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * SLO Overview — the "are we within budget?" page.
  *
  * Top to bottom: the notice banner for anything that stops measurement; the
- * hero with the verdict and what the SLO is; the four headline numbers; then
+ * hero with the verdict and what the SLO is; while the SLO is in a tier of
+ * its error budget policy, that tier and what the team agreed to do there;
+ * the four headline numbers; then
  * the incident overview's two-thirds / one-third grid — how the budget has
  * been spent and recent activity, beside the editable name, description and
  * labels, open events and burn rate rules. Configuration lives
@@ -143,6 +147,14 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       return rule.isEnabled === true;
     });
 
+  // A disabled tier is no part of the policy: the burn-down draws no line for it.
+  const enabledPolicyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+    data.policyTiers.filter(
+      (tier: ServiceLevelObjectiveErrorBudgetPolicyTier) => {
+        return tier.isEnabled === true;
+      },
+    );
+
   /*
    * Only when both are KNOWN to be zero: a failed rule count must not turn a
    * working SLO's overview into onboarding.
@@ -176,6 +188,14 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onOwnersChanged={data.refreshOwners}
         />
       </div>
+
+      {/* Draws nothing unless the SLO is in a tier of its error budget policy. */}
+      <SloErrorBudgetPolicyTierCard
+        className="mb-5"
+        sloId={modelId}
+        slo={slo}
+        tiers={data.policyTiers}
+      />
 
       {isGettingStarted ? (
         <></>
@@ -213,6 +233,7 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   ? OneUptimeDate.fromString(slo.lastEvaluatedAt).toISOString()
                   : ""
               }
+              policyTiers={enabledPolicyTiers}
             />
           )}
 

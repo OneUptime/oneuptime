@@ -1967,6 +1967,12 @@ export class Service extends ProjectReferencesService<Model> {
     userIds?: Array<ObjectID>;
     teamIds?: Array<ObjectID>;
     createdByUserId?: ObjectID;
+    /*
+     * What the owner rows are written with: OneUptime's own (root) unless
+     * the caller writes them for someone - an owner rule's Run now, on the
+     * behalf of whoever ran it (RuleRunWriteProps).
+     */
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
     const { episodeId, projectId, userIds, teamIds, createdByUserId } = data;
 
@@ -1980,7 +1986,7 @@ export class Service extends ProjectReferencesService<Model> {
       userIds: userIds || [],
       teamIds: teamIds || [],
       createdByUserId: createdByUserId,
-      props: {
+      props: data.props || {
         isRoot: true,
       },
     });

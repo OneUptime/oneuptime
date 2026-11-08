@@ -83,6 +83,18 @@ export const LlmSystemAttributeKeys: Array<string> = [
   "llm.provider",
 ];
 
+/*
+ * The address an AI call went to: the conventions' server.address, and
+ * OpenLLMetry's gen_ai.openai.api_base (the OpenAI client's base URL). An
+ * OpenAI SDK names its provider "openai" when it calls an Azure OpenAI or
+ * Microsoft Foundry resource; the address says it was Azure
+ * (LlmProviders.normalizeLlmProvider).
+ */
+export const LlmEndpointAddressAttributeKeys: Array<string> = [
+  "server.address",
+  "gen_ai.openai.api_base",
+];
+
 // Operation, e.g. "chat", "embeddings", "execute_tool", "invoke_agent".
 export const LlmOperationAttributeKeys: Array<string> = [
   "gen_ai.operation.name",
@@ -631,3 +643,12 @@ export const LlmPromptEventNames: Array<string> = [
 ];
 
 export const LlmCompletionEventNames: Array<string> = ["gen_ai.choice"];
+
+/*
+ * Where Azure's AI Inference SDK (gen_ai.system az.ai.inference) and
+ * Semantic Kernel put a message event's content: the whole message as one
+ * JSON string - {"role": "user", "content": "..."}, or on gen_ai.choice
+ * {"message": {...}, "finish_reason": "stop", "index": 0} - rather than as
+ * attributes of the event.
+ */
+export const LlmEventContentAttributeKey: string = "gen_ai.event.content";

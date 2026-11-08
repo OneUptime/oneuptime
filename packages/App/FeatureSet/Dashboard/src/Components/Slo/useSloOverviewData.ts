@@ -2,6 +2,7 @@ import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
@@ -60,6 +61,10 @@ export const SLO_OVERVIEW_SELECT: Select<ServiceLevelObjective> = {
   currentBurnRate: true,
   sloStatus: true,
   lastEvaluatedAt: true,
+  // The tier of its error budget policy the SLO is in (the policy card).
+  currentErrorBudgetPolicyTierId: true,
+  currentErrorBudgetPolicyTierName: true,
+  currentErrorBudgetPolicyTierEnteredAt: true,
   monitors: {
     _id: true,
   },
@@ -112,6 +117,13 @@ export interface UseSloOverviewDataResult {
   // Every burn rate rule of the SLO, enabled or not.
   burnRateRules: Array<ServiceLevelObjectiveBurnRateRule>;
   burnRateRulesError: string;
+  /*
+   * Every tier of the SLO's error budget policy, enabled or not, from the
+   * highest threshold down: the tier the SLO is in, and the burn-down's
+   * tier lines, are read from these.
+   */
+  policyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>;
+  policyTiersError: string;
   // Null when the count could not be loaded — never guessed as zero.
   monitorRuleCount: number | null;
   enabledMonitorRuleCount: number | null;
@@ -140,14 +152,20 @@ interface BurnRateRulesResult {
   error: string;
 }
 
+interface PolicyTiersResult {
+  tiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>;
+  error: string;
+}
+
 /*
  * The SLO overview's one poll.
  *
- * Loads the SLO row, its burn rate rules and its monitor rule counts
- * together, once a minute, and hands them to every card — the KPI strip,
- * the rules card and the getting-started check all read the same response.
- * The SLO row failing fails the load; a rules or count failure only blanks
- * the part of the page that needs it.
+ * Loads the SLO row, its burn rate rules, the tiers of its error budget
+ * policy and its monitor rule counts together, once a minute, and hands
+ * them to every card — the KPI strip, the rules card, the policy card, the
+ * burn-down and the getting-started check all read the same response. The
+ * SLO row failing fails the load; a rules, tiers or count failure only
+ * blanks the part of the page that needs it.
  *
  * A background refresh never replaces the page with a loader or an error: a
  * failure keeps the last good numbers and reports itself in the hero. The
@@ -165,6 +183,10 @@ const useSloOverviewData: (options: {
     Array<ServiceLevelObjectiveBurnRateRule>
   >([]);
   const [burnRateRulesError, setBurnRateRulesError] = useState<string>("");
+  const [policyTiers, setPolicyTiers] = useState<
+    Array<ServiceLevelObjectiveErrorBudgetPolicyTier>
+  >([]);
+  const [policyTiersError, setPolicyTiersError] = useState<string>("");
   const [monitorRuleCount, setMonitorRuleCount] = useState<number | null>(null);
   const [enabledMonitorRuleCount, setEnabledMonitorRuleCount] = useState<
     number | null
@@ -236,6 +258,36 @@ const useSloOverviewData: (options: {
             },
           );
 
+        const tiersPromise: Promise<PolicyTiersResult> =
+          ModelAPI.getList<ServiceLevelObjectiveErrorBudgetPolicyTier>({
+            modelType: ServiceLevelObjectiveErrorBudgetPolicyTier,
+            query: {
+              serviceLevelObjectiveId: options.sloId,
+              projectId: projectId!,
+            },
+            select: {
+              _id: true,
+              name: true,
+              thresholdPercentage: true,
+              whatWeDo: true,
+              isEnabled: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              thresholdPercentage: SortOrder.Descending,
+            },
+          }).then(
+            (
+              result: ListResult<ServiceLevelObjectiveErrorBudgetPolicyTier>,
+            ): PolicyTiersResult => {
+              return { tiers: result.data, error: "" };
+            },
+            (err: unknown): PolicyTiersResult => {
+              return { tiers: [], error: API.getFriendlyMessage(err) };
+            },
+          );
+
         type CountOrNullPromise = Promise<number | null>;
 
         const countMonitorRules: (
@@ -261,9 +313,10 @@ const useSloOverviewData: (options: {
         };
 
         try {
-          const [item, rulesResult, ruleCount, enabledRuleCount]: [
+          const [item, rulesResult, tiersResult, ruleCount, enabledRuleCount]: [
             ServiceLevelObjective | null,
             BurnRateRulesResult,
+            PolicyTiersResult,
             number | null,
             number | null,
           ] = await Promise.all([
@@ -273,6 +326,7 @@ const useSloOverviewData: (options: {
               select: SLO_OVERVIEW_SELECT,
             }),
             rulesPromise,
+            tiersPromise,
             countMonitorRules(false),
             countMonitorRules(true),
           ]);
@@ -291,6 +345,8 @@ const useSloOverviewData: (options: {
           setSlo(item);
           setBurnRateRules(rulesResult.rules);
           setBurnRateRulesError(rulesResult.error);
+          setPolicyTiers(tiersResult.tiers);
+          setPolicyTiersError(tiersResult.error);
           setMonitorRuleCount(ruleCount);
           setEnabledMonitorRuleCount(enabledRuleCount);
           setError("");
@@ -491,6 +547,8 @@ const useSloOverviewData: (options: {
     slo: loadedSloId === sloIdString ? slo : null,
     burnRateRules: burnRateRules,
     burnRateRulesError: burnRateRulesError,
+    policyTiers: policyTiers,
+    policyTiersError: policyTiersError,
     monitorRuleCount: monitorRuleCount,
     enabledMonitorRuleCount: enabledMonitorRuleCount,
     owners: owners,

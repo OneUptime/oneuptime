@@ -97,7 +97,7 @@ const NANOS_PER_MILLI: number = 1_000_000;
  * A call that produced an answer. Rows ingested before llmCallKind existed
  * read "": a model on them still says a model was called.
  */
-const IS_ANSWER_SQL: string = `(llmCallKind = '${LlmCallKind.Answer}' OR (llmCallKind = '' AND llmRequestModel != ''))`;
+export const IS_ANSWER_SQL: string = `(llmCallKind = '${LlmCallKind.Answer}' OR (llmCallKind = '' AND llmRequestModel != ''))`;
 
 // A failed call - by its status too, so rows from before llmIssues count.
 const IS_FAILED_SQL: string = `(statusCode = ${SpanStatus.Error} OR has(llmIssues, '${LlmAnswerIssue.Failed}'))`;

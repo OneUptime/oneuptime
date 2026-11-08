@@ -22,7 +22,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -108,6 +110,7 @@ class RunbookOwnerRuleEngineServiceClass
         runbook: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running runbook owner rules: ${error}`, {
@@ -124,6 +127,8 @@ class RunbookOwnerRuleEngineServiceClass
     runbook: Runbook;
     rules: Array<RunbookOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { runbook, rules } = data;
 
@@ -253,7 +258,7 @@ class RunbookOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: RunbookOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -270,7 +275,7 @@ class RunbookOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: RunbookOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

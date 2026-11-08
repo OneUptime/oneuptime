@@ -1297,6 +1297,8 @@ describe("incident episode owner rule engine notifications", () => {
       projectId: PROJECT_ID,
       userIds: [USER_A],
       teamIds: [],
+      // Nobody named: OneUptime's own (RuleRunWriteProps, issue #6300).
+      props: { isRoot: true },
     });
     expect(harness.writes).toHaveLength(1);
     expect(isNotificationPending(harness.writes[0]!)).toBe(true);

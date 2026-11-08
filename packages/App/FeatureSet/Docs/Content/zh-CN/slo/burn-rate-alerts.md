@@ -28,6 +28,8 @@ burn rate = (share of time that was bad) ÷ (share of time the target allows to 
 
 消耗率与剩余多少预算无关。它回答的是“现在有多糟？”，而这正是决定是否呼叫某人所需要知道的。
 
+如果要改为按剩余预算来行动，例如在预算只剩四分之一时只发布可靠性工作，请为 SLO 设置 [错误预算策略](/docs/slo/error-budget-policy)。
+
 ## 规则如何决定触发
 
 OneUptime 在每次评估 SLO 时（每 5 分钟）检查每条已启用的消耗率规则。每条规则在两个窗口上测量消耗率，只有两者都处于或高于其阈值时才会触发：
@@ -184,6 +186,9 @@ SLO burn rate: {{sloName}} — {{ruleName}}
 | `{{errorBudgetRemaining}}` | 仍可用的错误预算，以时长表示。预算超支时以负号开头。 | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | 仍可用的错误预算，以分钟计。 | `18.37` |
 | `{{windowDescription}}` | 用文字描述的 SLO 合规窗口。 | `rolling 30-day window` |
+| `{{policyTier}}` | 本次评估后 SLO 所在的错误预算策略级别的名称。不在任何级别时为“None”。 | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | 该级别的剩余预算阈值，以百分比表示。SLO 不在任何级别时为空。 | `25` |
+| `{{policyTierWhatWeDo}}` | 团队约定在该级别要做的事，与级别中写的一致。SLO 不在任何级别时为空。 | `Only reliability work and critical fixes ship.` |
 
 例如，标题 `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` 会变成 `Fast burn: Checkout availability is burning 21.5x`。
 
@@ -249,6 +254,7 @@ SLO 的 **动态** 会发布规则触发的每个警报和声明的每个事件�
 
 :::cards
 - [错误预算](/docs/slo/error-budget): 预算是什么以及能撑多久。
+- [错误预算策略](/docs/slo/error-budget-policy): 按剩余预算逐级行动。
 - [升级规则](/docs/on-call/escalation-rules): 呼叫谁，以及按什么顺序。
 - [SLO 动态与审计日志](/docs/slo/feed-and-audit-logs): 规则触发的每个警报和事件。
 :::

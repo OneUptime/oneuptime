@@ -85,6 +85,14 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import ObjectID from "../../../Types/ObjectID";
+import { JSONObject } from "../../../Types/JSON";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import MonitorEvaluationDetails, {
+  MonitorEvaluationDetailsVersion,
+} from "../../../Types/Monitor/MonitorEvaluationDetails";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorEvaluationDetailsUtil from "../../../Utils/Monitor/MonitorEvaluationDetailsUtil";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModalWidth } from "../../../UI/Components/Modal/Modal";
@@ -115,6 +123,7 @@ function renderCard(props: {
   onSaved?: () => void;
   modelType?: typeof Incident | typeof Alert | typeof IncidentEpisode;
   statusPageRecord?: StatusPageRecordKind;
+  evaluationDetails?: JSONObject | null;
 }): RenderResult {
   return render(
     <EventWhatHappenedCard<Incident | Alert | IncidentEpisode>
@@ -124,8 +133,39 @@ function renderCard(props: {
       rootCause={props.rootCause}
       statusPageRecord={props.statusPageRecord}
       onSaved={props.onSaved || ((): void => {})}
+      evaluationDetails={props.evaluationDetails}
     />,
   );
+}
+
+// The evaluation details of an incident as its row stores them.
+function storedEvaluationDetails(
+  overrides: Partial<MonitorEvaluationDetails> = {},
+): JSONObject {
+  return JSON.parse(
+    JSON.stringify(
+      MonitorEvaluationDetailsUtil.serialize({
+        version: MonitorEvaluationDetailsVersion,
+        monitorType: MonitorType.API,
+        evaluatedAt: new Date("2026-11-08T10:04:12.000Z"),
+        criteriaName: "Payments degraded",
+        filterCondition: FilterCondition.All,
+        probeName: "US West",
+        filters: [
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.GreaterThan,
+            value: 499,
+            met: true,
+            message: "Response Status Code was 503, above the 499 threshold.",
+            actual: "503",
+          },
+        ],
+        response: { statusCode: 503 },
+        ...overrides,
+      }),
+    ),
+  ) as JSONObject;
 }
 
 describe("what the card says", () => {
@@ -541,5 +581,92 @@ describe("editing", () => {
     renderCard({ description: "Checkout is slow." });
 
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+  });
+});
+
+describe("how the monitor decided, under the root cause", () => {
+  test("a record a monitor opened shows its evaluation details last, under a hairline", () => {
+    renderCard({
+      description: "Checkout is slow.",
+      rootCause: "Payments returned 503.",
+      evaluationDetails: storedEvaluationDetails(),
+    });
+
+    const card: HTMLElement = screen.getByTestId("what-happened");
+    const sections: Array<HTMLElement> = Array.from(
+      card.querySelectorAll("section"),
+    ) as Array<HTMLElement>;
+
+    // Root cause first, then how the monitor decided.
+    expect(
+      sections.map((section: HTMLElement) => {
+        return section.getAttribute("data-testid");
+      }),
+    ).toEqual(["what-happened-root-cause", "what-happened-evaluation"]);
+
+    expect(sections[1]!.className).toContain("border-t");
+    expect(
+      screen.getByRole("heading", { name: "Evaluation details" }),
+    ).toBeInTheDocument();
+    // Folded, it says why: the filter that matched and what it found.
+    expect(screen.getByTestId("evaluation-filter-title")).toHaveTextContent(
+      "Response Status Code Greater Than 499",
+    );
+    expect(screen.getByTestId("evaluation-filter-actual")).toHaveTextContent(
+      "Actual503",
+    );
+  });
+
+  test("an incident from before the details were kept shows none", () => {
+    renderCard({ description: "Checkout is slow." });
+
+    expect(screen.queryByTestId("what-happened-evaluation")).toBeNull();
+  });
+
+  test("nor does a record this build cannot read", () => {
+    renderCard({
+      evaluationDetails: {
+        ...storedEvaluationDetails(),
+        version: 99,
+      },
+    });
+
+    expect(screen.queryByTestId("what-happened-evaluation")).toBeNull();
+
+    cleanup();
+
+    renderCard({ evaluationDetails: storedEvaluationDetails({ filters: [] }) });
+
+    expect(screen.queryByTestId("what-happened-evaluation")).toBeNull();
+
+    cleanup();
+
+    renderCard({ evaluationDetails: null });
+
+    expect(screen.queryByTestId("what-happened-evaluation")).toBeNull();
+  });
+
+  test("an episode, which has none, shows none", () => {
+    renderCard({
+      modelType: IncidentEpisode,
+      statusPageRecord: "episode",
+      description: "Many checkouts failed.",
+    });
+
+    expect(screen.queryByTestId("what-happened-evaluation")).toBeNull();
+  });
+
+  test("Edit still edits only the description and the root cause", () => {
+    renderCard({ evaluationDetails: storedEvaluationDetails() });
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(
+      modalProps[0]!.formProps.fields.map(
+        (field: { field: Record<string, boolean> }) => {
+          return Object.keys(field.field)[0];
+        },
+      ),
+    ).toEqual(["description", "rootCause"]);
   });
 });

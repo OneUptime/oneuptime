@@ -370,13 +370,55 @@ export default class GitLabApi {
       return null;
     }
 
+    const blobSha: string = CodeHostText.readString(file["blob_id"]);
+
     return {
       content,
       filePath: data.filePath,
       sizeInBytes: Number(file["size"]) || 0,
       totalLines: CodeHostText.countLines(content),
       htmlUrl: `${CodeHostUrl.trimTrailingSlashes(data.webUrl)}/-/blob/${CodeHostUrl.encodePath(data.ref)}/${CodeHostUrl.encodePath(data.filePath)}`,
+      ...(blobSha ? { blobSha } : {}),
     };
+  }
+
+  /*
+   * The git blob SHA of the file at a path on a branch, as a commit made
+   * there now would find it (issue #6313), or null where there is no file.
+   * GitLab names it with the file, at any size and binary or not.
+   */
+  public async getFileBlobId(data: {
+    project: string;
+    ref: string;
+    filePath: string;
+  }): Promise<string | null> {
+    let answer: CodeHostApiAnswer;
+
+    try {
+      answer = await this.client.getJson(
+        `${GitLabApi.projectPath(data.project)}/repository/files/${encodeURIComponent(data.filePath)}`,
+        { ref: data.ref },
+      );
+    } catch (error) {
+      if (
+        error instanceof CodeHostHttpError &&
+        error.kind === CodeHostHttpErrorKind.NotFound
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
+
+    const blobId: string = CodeHostText.readString(
+      GitLabApi.asObject(answer.json, "the file")["blob_id"],
+    );
+
+    if (!blobId) {
+      throw GitLabApi.badAnswer("the file");
+    }
+
+    return blobId;
   }
 
   /*

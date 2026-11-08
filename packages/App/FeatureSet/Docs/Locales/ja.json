@@ -375,6 +375,7 @@
     "Monitors and Monitor Rules": "モニターとモニタールール",
     "Error Budgets": "エラーバジェット",
     "Burn Rate Alerts and Incidents": "バーンレートアラートとインシデント",
+    "Error Budget Policy": "エラーバジェットポリシー",
     "SLO Metrics and Dashboards": "SLO のメトリクスとダッシュボード",
     "SLO Feed and Audit Logs": "SLO のフィードと監査ログ",
     "Label and Owner Rules": "ラベルルールと所有者ルール",

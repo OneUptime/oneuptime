@@ -30,13 +30,17 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
+import {
+  SLO_RECOMMENDED_POLICY_TIERS,
+  SloRecommendedPolicyTier,
+} from "Common/Utils/Slo/SloErrorBudgetPolicy";
 import { describe, expect, it } from "@jest/globals";
 
 /*
- * Docs overhaul task 18a: the seven SLO pages - SLOs Overview, Monitors and
- * Monitor Rules, Error Budgets, Burn Rate Alerts and Incidents, SLO Metrics
- * and Dashboards, SLO Feed and Audit Logs, and Label and Owner Rules - in
- * every docs language. Each translation says what the English page says:
+ * Docs overhaul task 18a: the SLO pages - SLOs Overview, Monitors and
+ * Monitor Rules, Error Budgets, Burn Rate Alerts and Incidents, Error Budget
+ * Policy, SLO Metrics and Dashboards, SLO Feed and Audit Logs, and Label and
+ * Owner Rules - in every docs language. Each translation says what the English page says:
  * the same sections, steps, tables, lists, cards, code and diagrams, links
  * that land on the heading the English link means, a title that is the nav
  * link's, and every screen named the way that language's Dashboard draws it.
@@ -52,8 +56,9 @@ import { describe, expect, it } from "@jest/globals";
  *
  *   - KEPT_IN_ENGLISH: permissions and plans, as the role pickers and the
  *     billing pages name them; the names OneUptime itself gives a new SLO's
- *     rules (Fast burn, Slow burn, Slow leak) and the rule the upgrade
- *     creates; and the
+ *     rules (Fast burn, Slow burn, Slow leak), the tiers of the recommended
+ *     error budget policy (Caution, Reliability first, Budget exhausted) and
+ *     the rule the upgrade creates; and the
  *     widget titles the SLO Dashboard template writes into a new dashboard.
  *     All of them are data or names the API and Terraform use too, so they
  *     read the same whatever the reader's language.
@@ -83,6 +88,7 @@ const INTRODUCTION: string = "slo/introduction";
 const MONITOR_RULES: string = "slo/monitor-rules";
 const ERROR_BUDGET: string = "slo/error-budget";
 const BURN_RATE: string = "slo/burn-rate-alerts";
+const ERROR_BUDGET_POLICY: string = "slo/error-budget-policy";
 const METRICS: string = "slo/metrics";
 const FEED: string = "slo/feed-and-audit-logs";
 const LABEL_RULES: string = "slo/label-and-owner-rules";
@@ -92,6 +98,7 @@ const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: MONITOR_RULES, navTitle: "Monitors and Monitor Rules" },
   { page: ERROR_BUDGET, navTitle: "Error Budgets" },
   { page: BURN_RATE, navTitle: "Burn Rate Alerts and Incidents" },
+  { page: ERROR_BUDGET_POLICY, navTitle: "Error Budget Policy" },
   { page: METRICS, navTitle: "SLO Metrics and Dashboards" },
   { page: FEED, navTitle: "SLO Feed and Audit Logs" },
   { page: LABEL_RULES, navTitle: "Label and Owner Rules" },
@@ -110,6 +117,21 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   // The default burn rate rules every new SLO is given, by these names.
   [INTRODUCTION]: ["Fast burn", "Slow burn", "Slow leak"],
   [BURN_RATE]: ["Fast burn", "Slow burn", "Slow leak"],
+  /*
+   * The tiers Use the recommended policy creates, by these names, and the
+   * tiers' permissions, as a role's permission list names them.
+   */
+  [ERROR_BUDGET_POLICY]: [
+    ...SLO_RECOMMENDED_POLICY_TIERS.map(
+      (tier: SloRecommendedPolicyTier): string => {
+        return tier.name;
+      },
+    ),
+    "Read SLO Error Budget Policy Tier",
+    "Create SLO Error Budget Policy Tier",
+    "Edit SLO Error Budget Policy Tier",
+    "Delete SLO Error Budget Policy Tier",
+  ],
   // The rule the upgrade creates from the old setting (SloDocs pins it).
   [MONITOR_RULES]: ["Auto-add monitors with labels"],
   // The widget titles the SLO Dashboard template creates.
@@ -145,6 +167,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
 const PERMISSIONS_THAT_ARE_BUTTONS: Array<string> = [
   "Create SLO Label Rule",
   "Create SLO Owner Rule",
+  "Create SLO Error Budget Policy Tier",
 ];
 
 // Names the SLO pages draw in English in every language: the Dashboard has no wording for them.
@@ -233,6 +256,7 @@ const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
   [INTRODUCTION]: ["Create Service Level Objective"],
   [MONITOR_RULES]: ["Create SLO Monitor Rule"],
   [BURN_RATE]: ["Create SLO Burn Rate Rule"],
+  [ERROR_BUDGET_POLICY]: ["Create SLO Error Budget Policy Tier"],
   [LABEL_RULES]: ["Create SLO Label Rule", "Create SLO Owner Rule"],
 };
 
@@ -268,6 +292,15 @@ const PRINTED_AS_IS: Record<string, Array<string>> = {
     "31m 4s left of 43m 12s",
     "4d 23m over budget · 5m 47s allowed",
   ],
+  /*
+   * What the recommended policy's tiers say the team does, which OneUptime
+   * writes into each tier in English and the confirmation lists as written.
+   */
+  [ERROR_BUDGET_POLICY]: SLO_RECOMMENDED_POLICY_TIERS.map(
+    (tier: SloRecommendedPolicyTier): string => {
+      return tier.whatWeDo;
+    },
+  ),
 };
 
 /*
@@ -319,6 +352,18 @@ const NUMBERS: Record<string, Array<string>> = {
     "16.8",
     "84",
     "2.8",
+  ],
+  // The recommended tiers, the margins to leave a tier, and the limits.
+  [ERROR_BUDGET_POLICY]: [
+    "50",
+    "25",
+    "0",
+    "30",
+    "10",
+    "2",
+    "5",
+    "100",
+    "10000",
   ],
   [METRICS]: ["5", "30", "400", "60"],
   [FEED]: ["14", "30", "7", "180"],
@@ -958,6 +1003,18 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
         ).toBe(occurrences(prose(english), RIGHT_ARROW));
       }
     });
+
+    if (entry.page === ERROR_BUDGET_POLICY) {
+      it("names the tier table's create button as this language's Dashboard draws it, and the permission in English", () => {
+        const translated: string = readPage(language, entry.page);
+        const button: string = "Create SLO Error Budget Policy Tier";
+
+        expect(translated).toContain(
+          `**${drawnCreateButton(language, button)}**`,
+        );
+        expect(translated).toContain(`| **${button}** |`);
+      });
+    }
 
     if (entry.page === LABEL_RULES) {
       it("names a rule after its picks as this language's Dashboard words the name", () => {

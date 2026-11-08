@@ -17,6 +17,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import { ServiceLevelObjectiveFeedEventType } from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
@@ -70,6 +71,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
 import ServiceLevelObjectiveBurnRateRuleService from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "Common/Server/Services/ServiceLevelObjectiveErrorBudgetPolicyTierService";
 import ServiceLevelObjectiveFeedService from "Common/Server/Services/ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "Common/Server/Services/ServiceLevelObjectiveService";
 import SloHistoryService, {
@@ -77,6 +79,7 @@ import SloHistoryService, {
 } from "Common/Server/Services/SloHistoryService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
 import IncidentStateService from "Common/Server/Services/IncidentStateService";
 import AlertStateService from "Common/Server/Services/AlertStateService";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
@@ -100,17 +103,31 @@ import {
 import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+  DEFAULT_SLO_POLICY_TIER_DESCRIPTION_TEMPLATE,
+  DEFAULT_SLO_POLICY_TIER_TITLE_TEMPLATE,
   SloBurnRateTemplateVariable,
   SloBurnRateTemplateVariables,
+  SloPolicyTierTemplateValues,
   buildSloBurnRateTemplateVariables,
+  buildSloPolicyTierTemplateVariables,
   renderSloBurnRateTemplate,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import {
+  computeSloPolicyTier,
+  formatSloPolicyTierThreshold,
+  isMoreSevereSloPolicyTier,
+  isSameSloPolicyTier,
+} from "Common/Utils/Slo/SloErrorBudgetPolicy";
+import {
   SloFeedMarkdown,
   SloFeedStatusMeasurement,
+  getSloPolicyTierChangedFeedMarkdown,
   getSloStatusChangedFeedMarkdown,
 } from "Common/Utils/Slo/SloFeedMarkdown";
-import { getSloStatusColor } from "Common/Utils/Slo/SloStatusColor";
+import {
+  getSloPolicyTierColor,
+  getSloStatusColor,
+} from "Common/Utils/Slo/SloStatusColor";
 import { collapseLineBreakRuns } from "Common/Utils/LineBreakRuns";
 import FeedMarkdown, {
   mdText,
@@ -173,7 +190,9 @@ const SWEEP_LOCK_TIMEOUT_MS: number =
  * - persists the worker-owned state columns,
  * - writes SloHistory rows for charting,
  * - notifies owners on AtRisk / BudgetExhausted transitions,
- * - evaluates multi-window burn rate rules and raises / resolves Alerts.
+ * - evaluates multi-window burn rate rules and raises / resolves Alerts,
+ * - moves the SLO between the tiers of its error budget policy, and raises /
+ *   resolves what each tier is set to raise.
  */
 RunCron(
   "Slo:EvaluateSlos",
@@ -259,6 +278,12 @@ interface SloEvaluationContext {
    */
   currentSliPercentage: number;
   sloStatus: SloStatus;
+  /*
+   * The error budget policy tier this evaluation put the SLO in, or null for
+   * none - what {{policyTier}} names in every template, and the one tier
+   * whose outputs may be open after this tick.
+   */
+  policyTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
   now: Date;
   /*
    * Earliest event start across this SLO's monitors over the WHOLE fetched
@@ -557,6 +582,32 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       },
     });
 
+  /*
+   * The tiers of the SLO's error budget policy - all of them, disabled ones
+   * included, so a tier change can say how severe the tier it left was even
+   * when that tier has just been switched off. Only enabled tiers apply.
+   */
+  const allPolicyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+    await ServiceLevelObjectiveErrorBudgetPolicyTierService.findBy({
+      query: {
+        serviceLevelObjectiveId: sloId,
+        projectId: projectId,
+      },
+      select: POLICY_TIER_SELECT,
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  const policyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+    allPolicyTiers.filter(
+      (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
+        return tier.isEnabled === true;
+      },
+    );
+
   const longestLookbackInMinutes: number = burnRateRules.reduce(
     (longestSoFar: number, rule: ServiceLevelObjectiveBurnRateRule): number => {
       return Math.max(longestSoFar, rule.longWindowInMinutes || 0);
@@ -737,6 +788,26 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
    * the history rows and the notification/alert bodies below all keep the full
    * precision of the budget result.
    */
+  /*
+   * The error budget policy tier, with the same hysteresis as the status
+   * (SloErrorBudgetPolicy.computeSloPolicyTier): entered at once, left only
+   * once the budget clears the tier's exit percentage. A tier added or edited
+   * while the budget is already below it applies on this evaluation like any
+   * other - the SLO enters it, and it raises what it is set to raise.
+   */
+  const policyTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null =
+    computeSloPolicyTier({
+      budgetRemainingPercentage: budget.budgetRemainingPercentage,
+      tiers: policyTiers,
+      currentTierId: slo.currentErrorBudgetPolicyTierId,
+    });
+
+  const policyTierChange: PolicyTierChange = getPolicyTierChange({
+    slo: slo,
+    policyTier: policyTier,
+    now: now,
+  });
+
   const stateUpdate: {
     currentSliPercentage: number;
     errorBudgetRemainingPercentage: number;
@@ -744,6 +815,9 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     errorBudgetTotalSeconds: number;
     currentBurnRate: number;
     sloStatus: SloStatus;
+    currentErrorBudgetPolicyTierId?: ObjectID | null;
+    currentErrorBudgetPolicyTierName?: string | null;
+    currentErrorBudgetPolicyTierEnteredAt?: Date | null;
   } = {
     // Decimal columns — persisted unrounded.
     currentSliPercentage: sli.sliPercentage,
@@ -753,6 +827,13 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     errorBudgetRemainingSeconds: Math.round(budget.budgetRemainingSeconds), // signed.
     errorBudgetTotalSeconds: Math.round(budget.budgetTotalSeconds),
     sloStatus: newStatus,
+    /*
+     * The tier columns only when they change, in this same write: a tier
+     * change is user-facing state like the status - the Overview refreshes
+     * on it, workflows can follow it, and the audit log records the tier's
+     * name (a system event; the SLO's other worker columns are ignored).
+     */
+    ...policyTierChange.columns,
   };
 
   /*
@@ -815,6 +896,30 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
         atRiskThresholdPercentage:
           slo.atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
       },
+    });
+  }
+
+  /*
+   * ErrorBudgetPolicyTierChanged, for a tier change this write committed -
+   * after it, so a failed write posts nothing and the next tick meets the
+   * same change again.
+   */
+  if (policyTierChange.isTierChange) {
+    await postPolicyTierChangedFeedItem({
+      slo: slo,
+      previousTierName: slo.currentErrorBudgetPolicyTierName,
+      previousTier:
+        allPolicyTiers.find(
+          (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
+            return isSameSloPolicyTier(
+              tier.id,
+              slo.currentErrorBudgetPolicyTierId,
+            );
+          },
+        ) || null,
+      newTier: policyTier,
+      budget: budget,
+      now: now,
     });
   }
 
@@ -958,6 +1063,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     budget: budget,
     currentSliPercentage: sli.sliPercentage,
     sloStatus: newStatus,
+    policyTier: policyTier,
     now: now,
     earliestEventStart: earliestEventStart,
     isAnyMonitorUnderOngoingMaintenance: (): Promise<boolean> => {
@@ -985,6 +1091,330 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
         {
           projectId: projectId.toString(),
           sloId: sloId.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  await evaluatePolicyTierOutputs({
+    context: context,
+    policyTiers: policyTiers,
+  });
+}
+
+/*
+ * The tier columns a select reads: the tier, and its outputs exactly as a
+ * burn rate rule's are read (see the rule select above for why every option
+ * is selected), and its lifecycle stamps.
+ */
+const POLICY_TIER_SELECT: Select<ServiceLevelObjectiveErrorBudgetPolicyTier> = {
+  _id: true,
+  projectId: true,
+  serviceLevelObjectiveId: true,
+  name: true,
+  thresholdPercentage: true,
+  whatWeDo: true,
+  isEnabled: true,
+  shouldCreateAlert: true,
+  shouldCreateIncident: true,
+  alertSeverityId: true,
+  onCallDutyPolicies: {
+    _id: true,
+  },
+  alertTitleTemplate: true,
+  alertDescriptionTemplate: true,
+  alertRemediationNotes: true,
+  isAlertPrivate: true,
+  autoResolveAlert: true,
+  alertLabels: {
+    _id: true,
+  },
+  alertOwnerTeams: {
+    _id: true,
+  },
+  alertOwnerUsers: {
+    _id: true,
+  },
+  incidentSeverityId: true,
+  incidentOnCallDutyPolicies: {
+    _id: true,
+  },
+  incidentTitleTemplate: true,
+  incidentDescriptionTemplate: true,
+  incidentRemediationNotes: true,
+  isIncidentPrivate: true,
+  autoResolveIncident: true,
+  incidentLabels: {
+    _id: true,
+  },
+  incidentOwnerTeams: {
+    _id: true,
+  },
+  incidentOwnerUsers: {
+    _id: true,
+  },
+  addSloOwnersAsOwners: true,
+  lastAlertCreatedAt: true,
+  lastAlertResolvedAt: true,
+  lastIncidentCreatedAt: true,
+  lastIncidentResolvedAt: true,
+};
+
+// The tier columns this evaluation writes, and whether the tier changed.
+interface PolicyTierChange {
+  isTierChange: boolean;
+  columns: {
+    currentErrorBudgetPolicyTierId?: ObjectID | null;
+    currentErrorBudgetPolicyTierName?: string | null;
+    currentErrorBudgetPolicyTierEnteredAt?: Date | null;
+  };
+}
+
+/*
+ * What the SLO's tier columns become.
+ *
+ *   - Another tier, or none after one: a tier change - the three columns
+ *     move together, and the entry time is this evaluation's clock.
+ *   - The same tier, renamed since it was entered: the name snapshot is
+ *     refreshed, quietly (no feed item: the SLO did not move).
+ *   - No tier, with a name or entry time left over: they are cleared,
+ *     quietly too.
+ *   - Otherwise nothing is written.
+ *
+ * A stored tier that was deleted or disabled counts as left: the budget alone
+ * decides the tier, and if that is a different one (or none) it is a change.
+ */
+function getPolicyTierChange(data: {
+  slo: ServiceLevelObjective;
+  policyTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
+  now: Date;
+}): PolicyTierChange {
+  const { slo, policyTier } = data;
+
+  const storedTierId: ObjectID | undefined = slo.currentErrorBudgetPolicyTierId;
+
+  if (policyTier && policyTier.id) {
+    if (!isSameSloPolicyTier(policyTier.id, storedTierId)) {
+      return {
+        isTierChange: true,
+        columns: {
+          currentErrorBudgetPolicyTierId: policyTier.id,
+          currentErrorBudgetPolicyTierName: policyTier.name || null,
+          currentErrorBudgetPolicyTierEnteredAt: data.now,
+        },
+      };
+    }
+
+    if (
+      (policyTier.name || null) !==
+      (slo.currentErrorBudgetPolicyTierName || null)
+    ) {
+      return {
+        isTierChange: false,
+        columns: {
+          currentErrorBudgetPolicyTierName: policyTier.name || null,
+        },
+      };
+    }
+
+    return { isTierChange: false, columns: {} };
+  }
+
+  if (storedTierId) {
+    return {
+      isTierChange: true,
+      columns: {
+        currentErrorBudgetPolicyTierId: null,
+        currentErrorBudgetPolicyTierName: null,
+        currentErrorBudgetPolicyTierEnteredAt: null,
+      },
+    };
+  }
+
+  if (
+    slo.currentErrorBudgetPolicyTierName ||
+    slo.currentErrorBudgetPolicyTierEnteredAt
+  ) {
+    return {
+      isTierChange: false,
+      columns: {
+        currentErrorBudgetPolicyTierName: null,
+        currentErrorBudgetPolicyTierEnteredAt: null,
+      },
+    };
+  }
+
+  return { isTierChange: false, columns: {} };
+}
+
+/*
+ * ErrorBudgetPolicyTierChanged on the SLO feed: the tier left, the tier
+ * entered and the agreement for it, colored like the tier (red for a tier at
+ * 0%, yellow for any other, green for none). No acting user - the worker
+ * decided this - and posted at the evaluation's clock.
+ *
+ * Never throws: the feed must not cost the outputs that follow.
+ */
+async function postPolicyTierChangedFeedItem(data: {
+  slo: ServiceLevelObjective;
+  // The tier the SLO was in, by its recorded name, and as a row if it still exists.
+  previousTierName: string | undefined;
+  previousTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
+  newTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
+  budget: ErrorBudgetResult;
+  now: Date;
+}): Promise<void> {
+  if (!data.slo.id || !data.slo.projectId) {
+    return;
+  }
+
+  try {
+    const sloMarkdownLink: MarkdownText =
+      await ServiceLevelObjectiveService.getSloMarkdownLink({
+        projectId: data.slo.projectId,
+        sloId: data.slo.id,
+        sloName: data.slo.name || "",
+      });
+
+    /*
+     * Escalating when the new tier is more severe than the old one. A tier
+     * that no longer exists has no threshold to compare, so entering any
+     * tier after it reads as entering one.
+     */
+    const isEscalation: boolean = Boolean(
+      data.newTier &&
+        (data.previousTier
+          ? isMoreSevereSloPolicyTier(data.newTier, data.previousTier)
+          : true),
+    );
+
+    const markdown: SloFeedMarkdown = getSloPolicyTierChangedFeedMarkdown({
+      sloMarkdownLink: sloMarkdownLink,
+      previousTierName: data.previousTierName || data.previousTier?.name,
+      newTier: data.newTier
+        ? {
+            name: data.newTier.name,
+            thresholdPercentage: data.newTier.thresholdPercentage,
+            whatWeDo: data.newTier.whatWeDo,
+          }
+        : null,
+      isEscalation: isEscalation,
+      errorBudgetRemainingPercentage: data.budget.budgetRemainingPercentage,
+      errorBudgetRemainingSeconds: data.budget.budgetRemainingSeconds,
+    });
+
+    await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
+      serviceLevelObjectiveId: data.slo.id,
+      projectId: data.slo.projectId,
+      serviceLevelObjectiveFeedEventType:
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyTierChanged,
+      displayColor: getSloPolicyTierColor(data.newTier),
+      feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+      moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+      postedAt: data.now,
+    });
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error posting the error budget policy tier change feed item for SLO ${data.slo.id.toString()}: ${err}`,
+      {
+        projectId: data.slo.projectId.toString(),
+        sloId: data.slo.id.toString(),
+      } as LogAttributes,
+    );
+  }
+}
+
+/*
+ * What the tiers of the error budget policy raise and resolve, after the SLO
+ * was put in its tier (context.policyTier).
+ *
+ *   - The tier the SLO is in raises what it is set to raise, through the very
+ *     path a burn rate rule fires through: the outputs it has open are left
+ *     alone, a record that is missing is created (or adopted), and
+ *     scheduled maintenance holds creation back. So a failed create is
+ *     retried on the next tick, and an output switched on while the SLO is
+ *     in the tier is raised then.
+ *   - A tier the SLO is not in resolves what it has open. Superseded - the
+ *     SLO entered a MORE severe tier - it resolves whatever its auto-resolve
+ *     switches say, so at most one tier's records are open at a time and the
+ *     open one describes the tier the SLO is really in. Recovered - the SLO
+ *     moved to a less severe tier, or out of every tier as the window rolled
+ *     - it resolves as a burn rate rule does on recovery, honouring its
+ *     auto-resolve switches.
+ *
+ * Tiers the SLO is not in go first, so a superseded record is closed before
+ * the new tier's is opened. One tier failing never costs the others.
+ */
+async function evaluatePolicyTierOutputs(data: {
+  context: SloEvaluationContext;
+  policyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>;
+}): Promise<void> {
+  const { context } = data;
+  const currentTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null =
+    context.policyTier;
+
+  const isCurrentTier: (
+    tier: ServiceLevelObjectiveErrorBudgetPolicyTier,
+  ) => boolean = (
+    tier: ServiceLevelObjectiveErrorBudgetPolicyTier,
+  ): boolean => {
+    return Boolean(currentTier && isSameSloPolicyTier(tier.id, currentTier.id));
+  };
+
+  const ordered: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> = [
+    ...data.policyTiers.filter(
+      (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
+        return !isCurrentTier(tier);
+      },
+    ),
+    ...data.policyTiers.filter(isCurrentTier),
+  ];
+
+  for (const tier of ordered) {
+    if (!tier.id) {
+      continue;
+    }
+
+    try {
+      const source: SloRecordSource = getPolicyTierSource({
+        context: context,
+        tier: tier,
+        tierId: tier.id,
+      });
+
+      if (isCurrentTier(tier)) {
+        // The same gate a burn rate rule passes before anything is created.
+        if (!(await context.isSloStillEvaluated())) {
+          return;
+        }
+
+        await fireSloRecordSource({
+          context: context,
+          source: source,
+        });
+        continue;
+      }
+
+      const isSuperseded: boolean = Boolean(
+        currentTier && isMoreSevereSloPolicyTier(currentTier, tier),
+      );
+
+      await resolveSloRecordOutputs({
+        context: context,
+        source: source,
+        rootCause:
+          isSuperseded && currentTier
+            ? mdText`Superseded: SLO "${context.slo.name || ""}" entered the more severe "${currentTier.name || ""}" tier of its error budget policy.`.toString()
+            : mdText`The error budget of SLO "${context.slo.name || ""}" recovered out of the "${tier.name || ""}" tier of its error budget policy.`.toString(),
+        // Superseded is not a recovery: the record no longer describes the SLO.
+        honourAutoResolve: !isSuperseded,
+      });
+    } catch (err) {
+      logger.error(
+        `Slo:EvaluateSlos - Error evaluating error budget policy tier ${tier.id.toString()} for SLO ${context.sloId.toString()}: ${err}`,
+        {
+          projectId: context.projectId.toString(),
+          sloId: context.sloId.toString(),
         } as LogAttributes,
       );
     }
@@ -1536,10 +1966,14 @@ async function evaluateBurnRateRule(data: {
     !rule.longWindowInMinutes ||
     !rule.shortWindowInMinutes
   ) {
-    await resolveBurnRateRuleOutputs({
+    await resolveSloRecordOutputs({
       context: context,
-      rule: rule,
-      ruleId: ruleId,
+      source: getBurnRateRuleSource({
+        context: context,
+        rule: rule,
+        ruleId: ruleId,
+        burnRates: null,
+      }),
       rootCause:
         "Auto-resolved because this SLO burn rate rule no longer has a valid threshold and window configuration, so it can no longer justify staying open.",
       // Not a recovery: the rule cannot justify the record at all any more.
@@ -1627,12 +2061,17 @@ async function evaluateBurnRateRule(data: {
         return;
       }
 
-      await fireBurnRateRule({
+      await fireSloRecordSource({
         context: context,
-        rule: rule,
-        ruleId: ruleId,
-        burnRateLong: burnRateLong,
-        burnRateShort: burnRateShort,
+        source: getBurnRateRuleSource({
+          context: context,
+          rule: rule,
+          ruleId: ruleId,
+          burnRates: {
+            long: burnRateLong,
+            short: burnRateShort,
+          },
+        }),
       });
       return;
     }
@@ -1662,10 +2101,14 @@ async function evaluateBurnRateRule(data: {
    * nothing here can justify keeping a page open, whether that page came from
    * an Alert or from an Incident.
    */
-  await resolveBurnRateRuleOutputs({
+  await resolveSloRecordOutputs({
     context: context,
-    rule: rule,
-    ruleId: ruleId,
+    source: getBurnRateRuleSource({
+      context: context,
+      rule: rule,
+      ruleId: ruleId,
+      burnRates: null,
+    }),
     rootCause: hasFullLongWindow
       ? "Burn rate dropped below threshold."
       : mdText`The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`.toString(),
@@ -1676,6 +2119,274 @@ async function evaluateBurnRateRule(data: {
      */
     honourAutoResolve: hasFullLongWindow,
   });
+}
+
+/*
+ * WHAT RAISES A RECORD: a burn rate rule, or a tier of the SLO's error budget
+ * policy.
+ *
+ * Both carry the same output settings under the same column names - the two
+ * output flags, the severities, the on-call lists, the templates, the private
+ * and auto-resolve switches, the labels and the owners - and the same four
+ * lifecycle stamps, so everything from here to the feed items raises,
+ * adopts, stamps and resolves a record the same way for either: the source
+ * only says what differs. That is its fingerprint, how its two output flags
+ * read, its re-fire suppression (a tier has none: the tier hysteresis already
+ * keeps a budget hovering at a threshold from flapping), the words its logs
+ * and feed items use, what its records say, and the service its stamps and
+ * resolves go through.
+ */
+type SloRecordSourceRow =
+  | ServiceLevelObjectiveBurnRateRule
+  | ServiceLevelObjectiveErrorBudgetPolicyTier;
+
+interface SloRecordSourceWords {
+  // "burn rate rule", within a sentence and in logs.
+  noun: string;
+  // "Burn rate rule", opening a feed item.
+  feedNoun: string;
+  // "rule", as in "this rule's alert".
+  shortNoun: string;
+  // What a record resolved by hand, once nothing holds it open, makes possible.
+  resolvedByHandFollowUp: string;
+}
+
+interface SloRecordFeedEventTypes {
+  alertRaised: ServiceLevelObjectiveFeedEventType;
+  alertResolved: ServiceLevelObjectiveFeedEventType;
+  incidentDeclared: ServiceLevelObjectiveFeedEventType;
+  incidentResolved: ServiceLevelObjectiveFeedEventType;
+}
+
+interface SloRecordLifecycleColumns {
+  lastAlertCreatedAt?: Date;
+  lastAlertResolvedAt?: Date;
+  lastIncidentCreatedAt?: Date;
+  lastIncidentResolvedAt?: Date;
+}
+
+interface SloRecordSource {
+  id: ObjectID;
+  name: string;
+  // The row: its output settings and lifecycle stamps, read by column name.
+  row: SloRecordSourceRow;
+  // Computed on first use: most ticks never need it.
+  getFingerprint: () => string;
+  shouldCreateAlert: boolean;
+  shouldCreateIncident: boolean;
+  refireSuppressionMinutes: number;
+  words: SloRecordSourceWords;
+  feedEventTypes: SloRecordFeedEventTypes;
+  buildDeclaration: (data: {
+    fingerprint: string;
+    logAttributes: LogAttributes;
+  }) => Promise<SloRecordDeclaration>;
+  // The numbers a raised item quotes - the ones the record carries.
+  getFeedMeasurementLines: (
+    variables: SloBurnRateTemplateVariables,
+  ) => Array<MarkdownText>;
+  saveLifecycleColumns: (columns: SloRecordLifecycleColumns) => Promise<void>;
+  resolveOpenAlerts: (rootCause: string) => Promise<void>;
+  resolveOpenIncidents: (rootCause: string) => Promise<void>;
+}
+
+const BURN_RATE_RULE_WORDS: SloRecordSourceWords = {
+  noun: "burn rate rule",
+  feedNoun: "Burn rate rule",
+  shortNoun: "rule",
+  resolvedByHandFollowUp: "The burn has recovered, so the rule can fire again.",
+};
+
+const POLICY_TIER_WORDS: SloRecordSourceWords = {
+  noun: "error budget policy tier",
+  feedNoun: "Error budget policy tier",
+  shortNoun: "tier",
+  resolvedByHandFollowUp:
+    "The SLO has left the tier, so the tier can raise it again.",
+};
+
+const BURN_RATE_RULE_FEED_EVENT_TYPES: SloRecordFeedEventTypes = {
+  alertRaised: ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised,
+  alertResolved: ServiceLevelObjectiveFeedEventType.BurnRateAlertResolved,
+  incidentDeclared: ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
+  incidentResolved: ServiceLevelObjectiveFeedEventType.BurnRateIncidentResolved,
+};
+
+const POLICY_TIER_FEED_EVENT_TYPES: SloRecordFeedEventTypes = {
+  alertRaised: ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised,
+  alertResolved:
+    ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertResolved,
+  incidentDeclared:
+    ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentDeclared,
+  incidentResolved:
+    ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentResolved,
+};
+
+// "Burn rate rule <id>", how a log line opens about a source.
+function getSloRecordSourceLabel(source: SloRecordSource): string {
+  const noun: string = source.words.noun;
+
+  return `${noun.charAt(0).toUpperCase()}${noun.slice(1)} ${source.id.toString()}`;
+}
+
+function getBurnRateRuleSource(data: {
+  context: SloEvaluationContext;
+  rule: ServiceLevelObjectiveBurnRateRule;
+  ruleId: ObjectID;
+  // The burn rates that made it fire; null on the paths that only resolve.
+  burnRates: { long: number; short: number } | null;
+}): SloRecordSource {
+  const { context, rule, ruleId } = data;
+  let fingerprint: string | null = null;
+
+  return {
+    id: ruleId,
+    name: rule.name || "",
+    row: rule,
+    getFingerprint: (): string => {
+      if (fingerprint === null) {
+        fingerprint =
+          ServiceLevelObjectiveBurnRateRuleService.getBurnRateFingerprint({
+            serviceLevelObjectiveId: context.sloId,
+            burnRateRuleId: ruleId,
+          });
+      }
+
+      return fingerprint;
+    },
+    /*
+     * `!== false` for the alert and `=== true` for the incident: the alert
+     * column defaults to true and a rule read without it must keep paging,
+     * the incident column defaults to false.
+     */
+    shouldCreateAlert: rule.shouldCreateAlert !== false,
+    shouldCreateIncident: rule.shouldCreateIncident === true,
+    // Defaults to the long window, which every evaluable rule has.
+    refireSuppressionMinutes:
+      rule.refireSuppressionMinutes ?? rule.longWindowInMinutes ?? 0,
+    words: BURN_RATE_RULE_WORDS,
+    feedEventTypes: BURN_RATE_RULE_FEED_EVENT_TYPES,
+    buildDeclaration: (args: {
+      fingerprint: string;
+      logAttributes: LogAttributes;
+    }): Promise<SloRecordDeclaration> => {
+      return buildBurnRateDeclaration({
+        context: context,
+        rule: rule,
+        fingerprint: args.fingerprint,
+        burnRateLong: data.burnRates ? data.burnRates.long : Number.NaN,
+        burnRateShort: data.burnRates ? data.burnRates.short : Number.NaN,
+        logAttributes: args.logAttributes,
+      });
+    },
+    getFeedMeasurementLines: getBurnRateFeedMeasurementLines,
+    saveLifecycleColumns: async (
+      columns: SloRecordLifecycleColumns,
+    ): Promise<void> => {
+      await ServiceLevelObjectiveBurnRateRuleService.updateOneById({
+        id: ruleId,
+        data: columns,
+        props: {
+          isRoot: true,
+        },
+      });
+    },
+    resolveOpenAlerts: async (rootCause: string): Promise<void> => {
+      await ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsForRule({
+        serviceLevelObjectiveId: context.sloId,
+        burnRateRuleId: ruleId,
+        projectId: context.projectId,
+        rootCause: rootCause,
+      });
+    },
+    resolveOpenIncidents: async (rootCause: string): Promise<void> => {
+      await ServiceLevelObjectiveBurnRateRuleService.resolveOpenIncidentsForRule(
+        {
+          serviceLevelObjectiveId: context.sloId,
+          burnRateRuleId: ruleId,
+          projectId: context.projectId,
+          rootCause: rootCause,
+        },
+      );
+    },
+  };
+}
+
+function getPolicyTierSource(data: {
+  context: SloEvaluationContext;
+  tier: ServiceLevelObjectiveErrorBudgetPolicyTier;
+  tierId: ObjectID;
+}): SloRecordSource {
+  const { context, tier, tierId } = data;
+  let fingerprint: string | null = null;
+
+  return {
+    id: tierId,
+    name: tier.name || "",
+    row: tier,
+    getFingerprint: (): string => {
+      if (fingerprint === null) {
+        fingerprint =
+          ServiceLevelObjectiveErrorBudgetPolicyTierService.getPolicyTierFingerprint(
+            {
+              serviceLevelObjectiveId: context.sloId,
+              policyTierId: tierId,
+            },
+          );
+      }
+
+      return fingerprint;
+    },
+    // Both off by default, so both `=== true`: a tier raises nothing unasked.
+    shouldCreateAlert: tier.shouldCreateAlert === true,
+    shouldCreateIncident: tier.shouldCreateIncident === true,
+    refireSuppressionMinutes: 0,
+    words: POLICY_TIER_WORDS,
+    feedEventTypes: POLICY_TIER_FEED_EVENT_TYPES,
+    buildDeclaration: (args: {
+      fingerprint: string;
+      logAttributes: LogAttributes;
+    }): Promise<SloRecordDeclaration> => {
+      return buildPolicyTierDeclaration({
+        context: context,
+        tier: tier,
+        fingerprint: args.fingerprint,
+        logAttributes: args.logAttributes,
+      });
+    },
+    getFeedMeasurementLines: getPolicyTierFeedMeasurementLines,
+    saveLifecycleColumns: async (
+      columns: SloRecordLifecycleColumns,
+    ): Promise<void> => {
+      await ServiceLevelObjectiveErrorBudgetPolicyTierService.updateOneById({
+        id: tierId,
+        data: columns,
+        props: {
+          isRoot: true,
+        },
+      });
+    },
+    resolveOpenAlerts: async (rootCause: string): Promise<void> => {
+      await ServiceLevelObjectiveErrorBudgetPolicyTierService.resolveOpenAlertsForTier(
+        {
+          serviceLevelObjectiveId: context.sloId,
+          policyTierId: tierId,
+          projectId: context.projectId,
+          rootCause: rootCause,
+        },
+      );
+    },
+    resolveOpenIncidents: async (rootCause: string): Promise<void> => {
+      await ServiceLevelObjectiveErrorBudgetPolicyTierService.resolveOpenIncidentsForTier(
+        {
+          serviceLevelObjectiveId: context.sloId,
+          policyTierId: tierId,
+          projectId: context.projectId,
+          rootCause: rootCause,
+        },
+      );
+    },
+  };
 }
 
 /*
@@ -1707,17 +2418,16 @@ async function evaluateBurnRateRule(data: {
  * same reasoning the administrative resolves in the rule and SLO lifecycle
  * hooks follow, and those never consult the switches either.
  */
-async function resolveBurnRateRuleOutputs(data: {
+async function resolveSloRecordOutputs(data: {
   context: SloEvaluationContext;
-  rule: ServiceLevelObjectiveBurnRateRule;
-  ruleId: ObjectID;
+  source: SloRecordSource;
   rootCause: string;
   honourAutoResolve: boolean;
 }): Promise<void> {
-  const { context, rule, ruleId, rootCause } = data;
+  const { context, source, rootCause } = data;
 
-  const isAlertOpen: boolean = isBurnRateRuleAlertFiring(rule);
-  const isIncidentOpen: boolean = isBurnRateRuleIncidentFiring(rule);
+  const isAlertOpen: boolean = isBurnRateRuleAlertFiring(source.row);
+  const isIncidentOpen: boolean = isBurnRateRuleIncidentFiring(source.row);
 
   if (!isAlertOpen && !isIncidentOpen) {
     return;
@@ -1729,18 +2439,17 @@ async function resolveBurnRateRuleOutputs(data: {
   } = {};
 
   // How each side closed, kept for the feed items posted after the stamp.
-  let alertClosure: BurnRateOutputClosure | null = null;
-  let incidentClosure: BurnRateOutputClosure | null = null;
+  let alertClosure: SloRecordOutputClosure | null = null;
+  let incidentClosure: SloRecordOutputClosure | null = null;
 
   let firstError: unknown = null;
 
   if (isAlertOpen) {
     try {
-      alertClosure = await closeBurnRateOutput({
+      alertClosure = await closeSloRecordOutput({
         output: "alert",
         context: context,
-        rule: rule,
-        ruleId: ruleId,
+        source: source,
         rootCause: rootCause,
         honourAutoResolve: data.honourAutoResolve,
       });
@@ -1755,11 +2464,10 @@ async function resolveBurnRateRuleOutputs(data: {
 
   if (isIncidentOpen) {
     try {
-      incidentClosure = await closeBurnRateOutput({
+      incidentClosure = await closeSloRecordOutput({
         output: "incident",
         context: context,
-        rule: rule,
-        ruleId: ruleId,
+        source: source,
         rootCause: rootCause,
         honourAutoResolve: data.honourAutoResolve,
       });
@@ -1775,13 +2483,7 @@ async function resolveBurnRateRuleOutputs(data: {
   }
 
   if (Object.keys(resolvedColumns).length > 0) {
-    await ServiceLevelObjectiveBurnRateRuleService.updateOneById({
-      id: ruleId,
-      data: resolvedColumns,
-      props: {
-        isRoot: true,
-      },
-    });
+    await source.saveLifecycleColumns(resolvedColumns);
 
     /*
      * Posted only once the stamp has committed. A stamp that fails leaves the
@@ -1789,21 +2491,21 @@ async function resolveBurnRateRuleOutputs(data: {
      * "resolved" item on the feed for the one record.
      */
     if (alertClosure) {
-      await postBurnRateResolvedFeedItem({
+      await postSloRecordResolvedFeedItem({
         output: "alert",
         closure: alertClosure,
         context: context,
-        rule: rule,
+        source: source,
         rootCause: rootCause,
       });
     }
 
     if (incidentClosure) {
-      await postBurnRateResolvedFeedItem({
+      await postSloRecordResolvedFeedItem({
         output: "incident",
         closure: incidentClosure,
         context: context,
-        rule: rule,
+        source: source,
         rootCause: rootCause,
       });
     }
@@ -1814,14 +2516,14 @@ async function resolveBurnRateRuleOutputs(data: {
   }
 }
 
-type BurnRateOutputKind = "alert" | "incident";
+type SloRecordOutputKind = "alert" | "incident";
 
 /*
  * "auto-resolved": the worker resolved the record (or found nothing left open
  * with auto-resolve on - the resolvers treat that as success, as they always
  * have). "resolved-by-hand": auto-resolve is off and a human closed it.
  */
-type BurnRateOutputClosure = "auto-resolved" | "resolved-by-hand";
+type SloRecordOutputClosure = "auto-resolved" | "resolved-by-hand";
 
 /*
  * One side of resolveBurnRateRuleOutputs. Returns how the record closed, or
@@ -1829,56 +2531,35 @@ type BurnRateOutputClosure = "auto-resolved" | "resolved-by-hand";
  * yet). A failed resolve or lookup throws, and the caller leaves that side
  * unstamped so the next tick retries it.
  */
-async function closeBurnRateOutput(data: {
-  output: BurnRateOutputKind;
+async function closeSloRecordOutput(data: {
+  output: SloRecordOutputKind;
   context: SloEvaluationContext;
-  rule: ServiceLevelObjectiveBurnRateRule;
-  ruleId: ObjectID;
+  source: SloRecordSource;
   rootCause: string;
   honourAutoResolve: boolean;
-}): Promise<BurnRateOutputClosure | null> {
-  const { context, rule, ruleId } = data;
+}): Promise<SloRecordOutputClosure | null> {
+  const { context, source } = data;
   const isAlert: boolean = data.output === "alert";
 
   // `!== false`: both columns default to true, and so has every rule to date.
   const isAutoResolveOn: boolean = isAlert
-    ? rule.autoResolveAlert !== false
-    : rule.autoResolveIncident !== false;
+    ? source.row.autoResolveAlert !== false
+    : source.row.autoResolveIncident !== false;
 
   if (data.honourAutoResolve && !isAutoResolveOn) {
-    const fingerprint: string =
-      ServiceLevelObjectiveBurnRateRuleService.getBurnRateFingerprint({
-        serviceLevelObjectiveId: context.sloId,
-        burnRateRuleId: ruleId,
-      });
+    const fingerprint: string = source.getFingerprint();
 
     const isStillOpen: boolean = isAlert
-      ? Boolean(await findOpenBurnRateAlert({ context, fingerprint }))
-      : Boolean(await findOpenBurnRateIncident({ context, fingerprint }));
+      ? Boolean(await findOpenSloRecordAlert({ context, fingerprint }))
+      : Boolean(await findOpenSloRecordIncident({ context, fingerprint }));
 
     return isStillOpen ? null : "resolved-by-hand";
   }
 
-  const resolveArguments: {
-    serviceLevelObjectiveId: ObjectID;
-    burnRateRuleId: ObjectID;
-    projectId: ObjectID;
-    rootCause: string;
-  } = {
-    serviceLevelObjectiveId: context.sloId,
-    burnRateRuleId: ruleId,
-    projectId: context.projectId,
-    rootCause: data.rootCause,
-  };
-
   if (isAlert) {
-    await ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsForRule(
-      resolveArguments,
-    );
+    await source.resolveOpenAlerts(data.rootCause);
   } else {
-    await ServiceLevelObjectiveBurnRateRuleService.resolveOpenIncidentsForRule(
-      resolveArguments,
-    );
+    await source.resolveOpenIncidents(data.rootCause);
   }
 
   return "auto-resolved";
@@ -1902,37 +2583,52 @@ async function closeBurnRateOutput(data: {
  * lifecycle means the responder wins until the burn recovers and the rule
  * genuinely re-fires.
  */
-async function fireBurnRateRule(data: {
+async function fireSloRecordSource(data: {
   context: SloEvaluationContext;
-  rule: ServiceLevelObjectiveBurnRateRule;
-  ruleId: ObjectID;
-  burnRateLong: number;
-  burnRateShort: number;
+  source: SloRecordSource;
 }): Promise<void> {
-  const { context, rule, ruleId } = data;
+  const { context, source } = data;
+  const sourceId: ObjectID = source.id;
 
   const logAttributes: LogAttributes = {
     projectId: context.projectId.toString(),
     sloId: context.sloId.toString(),
   };
 
+  /*
+   * `!== false` for a rule's alert and `=== true` for its incident, the
+   * asymmetry DetectionRuleEvaluator documents: the alert column defaults to
+   * true and a rule read without it must keep paging, while the incident
+   * column defaults to false and must never read as "probably on". A tier's
+   * two both default to false and are both read `=== true`. The source says.
+   */
+  const shouldCreateAlert: boolean = source.shouldCreateAlert;
+  const shouldCreateIncident: boolean = source.shouldCreateIncident;
+
+  /*
+   * Nothing to create - every output it raises is already open, or it
+   * raises nothing - asks nothing more. That is most ticks of a sustained
+   * burn, and every tick an SLO spends in a tier.
+   */
+  if (
+    !(shouldCreateAlert && !isBurnRateRuleAlertFiring(source.row)) &&
+    !(shouldCreateIncident && !isBurnRateRuleIncidentFiring(source.row))
+  ) {
+    return;
+  }
+
   // scheduled-maintenance suppression — creation only, and for both outputs.
   if (await context.isAnyMonitorUnderOngoingMaintenance()) {
     logger.debug(
-      `Slo:EvaluateSlos - Skipping burn rate rule ${ruleId.toString()}: a monitor of this SLO is under an active scheduled maintenance window.`,
+      `Slo:EvaluateSlos - Skipping ${source.words.noun} ${sourceId.toString()}: a monitor of this SLO is under an active scheduled maintenance window.`,
       logAttributes,
     );
     return;
   }
 
-  const refireSuppressionMinutes: number =
-    rule.refireSuppressionMinutes ?? rule.longWindowInMinutes!;
+  const refireSuppressionMinutes: number = source.refireSuppressionMinutes;
 
-  const fingerprint: string =
-    ServiceLevelObjectiveBurnRateRuleService.getBurnRateFingerprint({
-      serviceLevelObjectiveId: context.sloId,
-      burnRateRuleId: ruleId,
-    });
+  const fingerprint: string = source.getFingerprint();
 
   /*
    * What both outputs need beyond the fingerprint, built on first use and
@@ -1941,19 +2637,15 @@ async function fireBurnRateRule(data: {
    * so the SLO link lookup behind the templates and the SLO owner read only
    * happen for a record that is really about to be created, at most once.
    */
-  let declarationPromise: Promise<BurnRateDeclaration> | null = null;
+  let declarationPromise: Promise<SloRecordDeclaration> | null = null;
   let sloOwnerUsersPromise: Promise<Array<User>> | null = null;
 
-  const fire: BurnRateFire = {
+  const fire: SloRecordFire = {
     fingerprint: fingerprint,
-    getDeclaration: (): Promise<BurnRateDeclaration> => {
+    getDeclaration: (): Promise<SloRecordDeclaration> => {
       if (!declarationPromise) {
-        declarationPromise = buildBurnRateDeclaration({
-          context: context,
-          rule: rule,
+        declarationPromise = source.buildDeclaration({
           fingerprint: fingerprint,
-          burnRateLong: data.burnRateLong,
-          burnRateShort: data.burnRateShort,
           logAttributes: logAttributes,
         });
       }
@@ -1972,15 +2664,6 @@ async function fireBurnRateRule(data: {
     },
   };
 
-  /*
-   * `!== false` for the alert and `=== true` for the incident, the asymmetry
-   * DetectionRuleEvaluator documents: the alert column defaults to true and a
-   * rule read without it must keep paging, while the incident column defaults
-   * to false and must never read as "probably on".
-   */
-  const shouldCreateAlert: boolean = rule.shouldCreateAlert !== false;
-  const shouldCreateIncident: boolean = rule.shouldCreateIncident === true;
-
   const firedColumns: {
     lastAlertCreatedAt?: Date;
     lastIncidentCreatedAt?: Date;
@@ -1988,24 +2671,23 @@ async function fireBurnRateRule(data: {
 
   let firstError: unknown = null;
 
-  if (shouldCreateAlert && !isBurnRateRuleAlertFiring(rule)) {
+  if (shouldCreateAlert && !isBurnRateRuleAlertFiring(source.row)) {
     if (
       isWithinRefireSuppression({
         now: context.now,
-        lastResolvedAt: rule.lastAlertResolvedAt,
+        lastResolvedAt: source.row.lastAlertResolvedAt,
         refireSuppressionMinutes: refireSuppressionMinutes,
       })
     ) {
       logger.debug(
-        `Slo:EvaluateSlos - Skipping burn rate alert for rule ${ruleId.toString()}: within the ${refireSuppressionMinutes}-minute re-fire suppression window after the last alert resolve.`,
+        `Slo:EvaluateSlos - Skipping the alert of ${source.words.noun} ${sourceId.toString()}: within the ${refireSuppressionMinutes}-minute re-fire suppression window after the last alert resolve.`,
         logAttributes,
       );
     } else {
       try {
-        const hasOpenAlert: boolean = await createBurnRateAlert({
+        const hasOpenAlert: boolean = await createSloRecordAlert({
           context: context,
-          rule: rule,
-          ruleId: ruleId,
+          source: source,
           fire: fire,
           logAttributes: logAttributes,
         });
@@ -2019,24 +2701,23 @@ async function fireBurnRateRule(data: {
     }
   }
 
-  if (shouldCreateIncident && !isBurnRateRuleIncidentFiring(rule)) {
+  if (shouldCreateIncident && !isBurnRateRuleIncidentFiring(source.row)) {
     if (
       isWithinRefireSuppression({
         now: context.now,
-        lastResolvedAt: rule.lastIncidentResolvedAt,
+        lastResolvedAt: source.row.lastIncidentResolvedAt,
         refireSuppressionMinutes: refireSuppressionMinutes,
       })
     ) {
       logger.debug(
-        `Slo:EvaluateSlos - Skipping burn rate incident for rule ${ruleId.toString()}: within the ${refireSuppressionMinutes}-minute re-fire suppression window after the last incident resolve.`,
+        `Slo:EvaluateSlos - Skipping the incident of ${source.words.noun} ${sourceId.toString()}: within the ${refireSuppressionMinutes}-minute re-fire suppression window after the last incident resolve.`,
         logAttributes,
       );
     } else {
       try {
-        const hasOpenIncident: boolean = await declareBurnRateIncident({
+        const hasOpenIncident: boolean = await declareSloRecordIncident({
           context: context,
-          rule: rule,
-          ruleId: ruleId,
+          source: source,
           fire: fire,
           logAttributes: logAttributes,
         });
@@ -2060,13 +2741,7 @@ async function fireBurnRateRule(data: {
    * lifecycles are separate columns.
    */
   if (Object.keys(firedColumns).length > 0) {
-    await ServiceLevelObjectiveBurnRateRuleService.updateOneById({
-      id: ruleId,
-      data: firedColumns,
-      props: {
-        isRoot: true,
-      },
-    });
+    await source.saveLifecycleColumns(firedColumns);
   }
 
   if (firstError !== null) {
@@ -2101,25 +2776,25 @@ function isWithinRefireSuppression(data: {
  * which is deliberate - they carry the same fingerprint and describe the same
  * burn, so anyone correlating the two sees the same numbers.
  */
-interface BurnRateOutputCopy {
+interface SloRecordOutputCopy {
   title: string;
   description: string;
   remediationNotes: string | undefined;
 }
 
-interface BurnRateDeclaration {
+interface SloRecordDeclaration {
   fingerprint: string;
   rootCause: string;
   // Also read by the feed items, so they quote the numbers the record carries.
   variables: SloBurnRateTemplateVariables;
-  alert: BurnRateOutputCopy;
-  incident: BurnRateOutputCopy;
+  alert: SloRecordOutputCopy;
+  incident: SloRecordOutputCopy;
 }
 
-// Per-fire state shared by the two create paths; see fireBurnRateRule.
-interface BurnRateFire {
+// Per-fire state shared by the two create paths; see fireSloRecordSource.
+interface SloRecordFire {
   fingerprint: string;
-  getDeclaration: () => Promise<BurnRateDeclaration>;
+  getDeclaration: () => Promise<SloRecordDeclaration>;
   getSloOwnerUsers: () => Promise<Array<User>>;
 }
 
@@ -2135,29 +2810,14 @@ async function buildBurnRateDeclaration(data: {
   burnRateLong: number;
   burnRateShort: number;
   logAttributes: LogAttributes;
-}): Promise<BurnRateDeclaration> {
+}): Promise<SloRecordDeclaration> {
   const { context, rule } = data;
 
-  /*
-   * {{sloLink}} is the only variable that needs a lookup, and a failure costs
-   * the link rather than the page: the variable renders empty and the record
-   * is still created.
-   */
-  let sloLink: string = "";
-
-  try {
-    sloLink = (
-      await ServiceLevelObjectiveService.getSloLinkInDashboard(
-        context.projectId,
-        context.sloId,
-      )
-    ).toString();
-  } catch (err) {
-    logger.error(
-      `Slo:EvaluateSlos - Could not build the SLO link for the templates of burn rate rule ${rule.id?.toString()}; {{sloLink}} renders empty: ${err}`,
-      data.logAttributes,
-    );
-  }
+  const sloLink: string = await getSloLinkForTemplates({
+    context: context,
+    sourceDescription: `burn rate rule ${rule.id?.toString()}`,
+    logAttributes: data.logAttributes,
+  });
 
   const variables: SloBurnRateTemplateVariables =
     buildSloBurnRateTemplateVariables({
@@ -2184,6 +2844,7 @@ async function buildBurnRateDeclaration(data: {
       windowType: context.slo.windowType,
       windowDays: context.slo.windowDays,
       timezone: context.slo.timezone,
+      policyTier: toPolicyTierTemplateValues(context.policyTier),
     });
 
   const defaultCopy: { title: string; description: string } = {
@@ -2204,14 +2865,14 @@ async function buildBurnRateDeclaration(data: {
     rootCause:
       mdText`Error budget burn rate breached the "${rule.name}" rule of SLO "${context.slo.name}".`.toString(),
     variables: variables,
-    alert: renderBurnRateOutputCopy({
+    alert: renderSloRecordOutputCopy({
       titleTemplate: rule.alertTitleTemplate,
       descriptionTemplate: rule.alertDescriptionTemplate,
       remediationNotesTemplate: rule.alertRemediationNotes,
       variables: variables,
       defaultCopy: defaultCopy,
     }),
-    incident: renderBurnRateOutputCopy({
+    incident: renderSloRecordOutputCopy({
       titleTemplate: rule.incidentTitleTemplate,
       descriptionTemplate: rule.incidentDescriptionTemplate,
       remediationNotesTemplate: rule.incidentRemediationNotes,
@@ -2221,13 +2882,125 @@ async function buildBurnRateDeclaration(data: {
   };
 }
 
-function renderBurnRateOutputCopy(data: {
+/*
+ * {{sloLink}} is the only variable that needs a lookup, and a failure costs
+ * the link rather than the page: the variable renders empty and the record is
+ * still created.
+ */
+async function getSloLinkForTemplates(data: {
+  context: SloEvaluationContext;
+  sourceDescription: string;
+  logAttributes: LogAttributes;
+}): Promise<string> {
+  try {
+    return (
+      await ServiceLevelObjectiveService.getSloLinkInDashboard(
+        data.context.projectId,
+        data.context.sloId,
+      )
+    ).toString();
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Could not build the SLO link for the templates of ${data.sourceDescription}; {{sloLink}} renders empty: ${err}`,
+      data.logAttributes,
+    );
+    return "";
+  }
+}
+
+// A tier as {{policyTier}} and its siblings read it, or null for none.
+function toPolicyTierTemplateValues(
+  tier: ServiceLevelObjectiveErrorBudgetPolicyTier | null,
+): SloPolicyTierTemplateValues | null {
+  if (!tier) {
+    return null;
+  }
+
+  return {
+    name: tier.name,
+    thresholdPercentage: tier.thresholdPercentage,
+    whatWeDo: tier.whatWeDo,
+  };
+}
+
+/*
+ * What a policy tier's records say: its templates, or the built-in policy
+ * tier text, rendered with the SLO, its budget and the tier. The root cause
+ * is the evaluation's own statement of why the record exists.
+ */
+async function buildPolicyTierDeclaration(data: {
+  context: SloEvaluationContext;
+  tier: ServiceLevelObjectiveErrorBudgetPolicyTier;
+  fingerprint: string;
+  logAttributes: LogAttributes;
+}): Promise<SloRecordDeclaration> {
+  const { context, tier } = data;
+
+  const sloLink: string = await getSloLinkForTemplates({
+    context: context,
+    sourceDescription: `error budget policy tier ${tier.id?.toString()}`,
+    logAttributes: data.logAttributes,
+  });
+
+  const variables: SloBurnRateTemplateVariables =
+    buildSloPolicyTierTemplateVariables({
+      sloId: context.sloId.toString(),
+      sloName: context.slo.name,
+      sloLink: sloLink,
+      sloStatus: context.sloStatus,
+      targetPercentage: Number(context.targetPercentage),
+      currentSliPercentage: context.currentSliPercentage,
+      errorBudgetRemainingPercentage: context.budget.budgetRemainingPercentage,
+      errorBudgetRemainingSeconds: context.budget.budgetRemainingSeconds,
+      windowType: context.slo.windowType,
+      windowDays: context.slo.windowDays,
+      timezone: context.slo.timezone,
+      // The tier raising the record is the tier the SLO is in.
+      policyTier: toPolicyTierTemplateValues(tier),
+    });
+
+  const defaultCopy: { title: string; description: string } = {
+    title:
+      renderSloBurnRateTemplate(
+        DEFAULT_SLO_POLICY_TIER_TITLE_TEMPLATE,
+        variables,
+      ) || "",
+    description:
+      renderSloBurnRateTemplate(
+        DEFAULT_SLO_POLICY_TIER_DESCRIPTION_TEMPLATE,
+        variables,
+      ) || "",
+  };
+
+  return {
+    fingerprint: data.fingerprint,
+    rootCause:
+      mdText`The error budget left of SLO "${context.slo.name || ""}" is at or below ${formatSloPolicyTierThreshold(tier.thresholdPercentage)}, the "${tier.name || ""}" tier of its error budget policy.`.toString(),
+    variables: variables,
+    alert: renderSloRecordOutputCopy({
+      titleTemplate: tier.alertTitleTemplate,
+      descriptionTemplate: tier.alertDescriptionTemplate,
+      remediationNotesTemplate: tier.alertRemediationNotes,
+      variables: variables,
+      defaultCopy: defaultCopy,
+    }),
+    incident: renderSloRecordOutputCopy({
+      titleTemplate: tier.incidentTitleTemplate,
+      descriptionTemplate: tier.incidentDescriptionTemplate,
+      remediationNotesTemplate: tier.incidentRemediationNotes,
+      variables: variables,
+      defaultCopy: defaultCopy,
+    }),
+  };
+}
+
+function renderSloRecordOutputCopy(data: {
   titleTemplate: string | undefined;
   descriptionTemplate: string | undefined;
   remediationNotesTemplate: string | undefined;
   variables: SloBurnRateTemplateVariables;
   defaultCopy: { title: string; description: string };
-}): BurnRateOutputCopy {
+}): SloRecordOutputCopy {
   return {
     title: toRecordTitle(
       renderSloBurnRateTemplate(data.titleTemplate, data.variables),
@@ -2307,23 +3080,24 @@ async function loadSloOwnerUsers(data: {
  * branch keys on the stamp. Stamping it now repairs the lifecycle, at the cost
  * of reporting a "last fired" that is later than the truth.
  */
-async function createBurnRateAlert(data: {
+async function createSloRecordAlert(data: {
   context: SloEvaluationContext;
-  rule: ServiceLevelObjectiveBurnRateRule;
-  ruleId: ObjectID;
-  fire: BurnRateFire;
+  source: SloRecordSource;
+  fire: SloRecordFire;
   logAttributes: LogAttributes;
 }): Promise<boolean> {
-  const { context, rule, ruleId, fire, logAttributes } = data;
+  const { context, source, fire, logAttributes } = data;
+  const rule: SloRecordSourceRow = source.row;
+  const sourceLabel: string = getSloRecordSourceLabel(source);
 
-  const openAlert: Alert | null = await findOpenBurnRateAlert({
+  const openAlert: Alert | null = await findOpenSloRecordAlert({
     context: context,
     fingerprint: fire.fingerprint,
   });
 
   if (openAlert) {
     logger.debug(
-      `Slo:EvaluateSlos - Burn rate rule ${ruleId.toString()} already has an open alert that it had not recorded; adopting it instead of creating a duplicate.`,
+      `Slo:EvaluateSlos - ${sourceLabel} already has an open alert that it had not recorded; adopting it instead of creating a duplicate.`,
       logAttributes,
     );
     return true;
@@ -2331,7 +3105,7 @@ async function createBurnRateAlert(data: {
 
   if (DisableAutomaticAlertCreation) {
     logger.debug(
-      `Slo:EvaluateSlos - Skipping burn rate alert for rule ${ruleId.toString()}: automatic alert creation is disabled by environment configuration.`,
+      `Slo:EvaluateSlos - Skipping the alert of ${source.words.noun} ${source.id.toString()}: automatic alert creation is disabled by environment configuration.`,
       logAttributes,
     );
     return false;
@@ -2370,13 +3144,13 @@ async function createBurnRateAlert(data: {
 
   if (!alertSeverityId) {
     logger.error(
-      `Slo:EvaluateSlos - Cannot create burn rate alert for rule ${ruleId.toString()}: project has no alert severity.`,
+      `Slo:EvaluateSlos - Cannot create the alert of ${source.words.noun} ${source.id.toString()}: project has no alert severity.`,
       logAttributes,
     );
     return false;
   }
 
-  const declaration: BurnRateDeclaration = await fire.getDeclaration();
+  const declaration: SloRecordDeclaration = await fire.getDeclaration();
 
   const alert: Alert = new Alert();
   alert.projectId = context.projectId;
@@ -2410,7 +3184,7 @@ async function createBurnRateAlert(data: {
     await getRecordsUsableInProject({
       output: "alert",
       projectId: context.projectId,
-      ruleId: ruleId,
+      sourceLabel: sourceLabel,
       records: rule.onCallDutyPolicies,
       modelName: "on-call policy",
       service: OnCallDutyPolicyService,
@@ -2427,7 +3201,7 @@ async function createBurnRateAlert(data: {
     await getRecordsUsableInProject({
       output: "alert",
       projectId: context.projectId,
-      ruleId: ruleId,
+      sourceLabel: sourceLabel,
       records: rule.alertLabels,
       modelName: "label",
       service: LabelService,
@@ -2463,10 +3237,10 @@ async function createBurnRateAlert(data: {
    * failure had already been logged against a page that did go out). Both
    * helpers catch and log their own failures.
    */
-  await addBurnRateRecordOwners({
+  await addSloRecordOwners({
     output: "alert",
     context: context,
-    ruleId: ruleId,
+    source: source,
     recordId: createdAlert?.id || undefined,
     ownerUsers: rule.alertOwnerUsers,
     ownerTeams: rule.alertOwnerTeams,
@@ -2475,10 +3249,10 @@ async function createBurnRateAlert(data: {
     logAttributes: logAttributes,
   });
 
-  await postBurnRateRaisedFeedItem({
+  await postSloRecordRaisedFeedItem({
     output: "alert",
     context: context,
-    rule: rule,
+    source: source,
     recordId: createdAlert?.id || undefined,
     recordNumber: formatRecordNumber(
       createdAlert?.alertNumberWithPrefix,
@@ -2526,23 +3300,24 @@ async function createBurnRateAlert(data: {
  * record — created here, or already open and being adopted (see
  * createBurnRateAlert for why adoption matters).
  */
-async function declareBurnRateIncident(data: {
+async function declareSloRecordIncident(data: {
   context: SloEvaluationContext;
-  rule: ServiceLevelObjectiveBurnRateRule;
-  ruleId: ObjectID;
-  fire: BurnRateFire;
+  source: SloRecordSource;
+  fire: SloRecordFire;
   logAttributes: LogAttributes;
 }): Promise<boolean> {
-  const { context, rule, ruleId, fire, logAttributes } = data;
+  const { context, source, fire, logAttributes } = data;
+  const rule: SloRecordSourceRow = source.row;
+  const sourceLabel: string = getSloRecordSourceLabel(source);
 
-  const openIncident: Incident | null = await findOpenBurnRateIncident({
+  const openIncident: Incident | null = await findOpenSloRecordIncident({
     context: context,
     fingerprint: fire.fingerprint,
   });
 
   if (openIncident) {
     logger.debug(
-      `Slo:EvaluateSlos - Burn rate rule ${ruleId.toString()} already has an open incident that it had not recorded; adopting it instead of declaring a duplicate.`,
+      `Slo:EvaluateSlos - ${sourceLabel} already has an open incident that it had not recorded; adopting it instead of declaring a duplicate.`,
       logAttributes,
     );
     return true;
@@ -2550,7 +3325,7 @@ async function declareBurnRateIncident(data: {
 
   if (DisableAutomaticIncidentCreation) {
     logger.debug(
-      `Slo:EvaluateSlos - Skipping burn rate incident for rule ${ruleId.toString()}: automatic incident creation is disabled by environment configuration.`,
+      `Slo:EvaluateSlos - Skipping the incident of ${source.words.noun} ${source.id.toString()}: automatic incident creation is disabled by environment configuration.`,
       logAttributes,
     );
     return false;
@@ -2587,13 +3362,13 @@ async function declareBurnRateIncident(data: {
 
   if (!incidentSeverityId) {
     logger.error(
-      `Slo:EvaluateSlos - Cannot declare burn rate incident for rule ${ruleId.toString()}: project has no incident severity.`,
+      `Slo:EvaluateSlos - Cannot declare the incident of ${source.words.noun} ${source.id.toString()}: project has no incident severity.`,
       logAttributes,
     );
     return false;
   }
 
-  const declaration: BurnRateDeclaration = await fire.getDeclaration();
+  const declaration: SloRecordDeclaration = await fire.getDeclaration();
 
   const incident: Incident = new Incident();
   incident.projectId = context.projectId;
@@ -2625,7 +3400,7 @@ async function declareBurnRateIncident(data: {
     await getRecordsUsableInProject({
       output: "incident",
       projectId: context.projectId,
-      ruleId: ruleId,
+      sourceLabel: sourceLabel,
       records: rule.incidentOnCallDutyPolicies,
       modelName: "on-call policy",
       service: OnCallDutyPolicyService,
@@ -2638,7 +3413,7 @@ async function declareBurnRateIncident(data: {
     await getRecordsUsableInProject({
       output: "incident",
       projectId: context.projectId,
-      ruleId: ruleId,
+      sourceLabel: sourceLabel,
       records: rule.incidentLabels,
       modelName: "label",
       service: LabelService,
@@ -2669,10 +3444,10 @@ async function declareBurnRateIncident(data: {
   });
 
   // The incident exists: nothing below may cost it its stamp (see the alert).
-  await addBurnRateRecordOwners({
+  await addSloRecordOwners({
     output: "incident",
     context: context,
-    ruleId: ruleId,
+    source: source,
     recordId: createdIncident?.id || undefined,
     ownerUsers: rule.incidentOwnerUsers,
     ownerTeams: rule.incidentOwnerTeams,
@@ -2681,10 +3456,10 @@ async function declareBurnRateIncident(data: {
     logAttributes: logAttributes,
   });
 
-  await postBurnRateRaisedFeedItem({
+  await postSloRecordRaisedFeedItem({
     output: "incident",
     context: context,
-    rule: rule,
+    source: source,
     recordId: createdIncident?.id || undefined,
     recordNumber: formatRecordNumber(
       createdIncident?.incidentNumberWithPrefix,
@@ -2721,9 +3496,10 @@ function toIdStub<TModel extends DatabaseBaseModel>(
 async function getRecordsUsableInProject<
   TModel extends DatabaseBaseModel,
 >(data: {
-  output: BurnRateOutputKind;
+  output: SloRecordOutputKind;
   projectId: ObjectID;
-  ruleId: ObjectID;
+  // "Burn rate rule <id>", for the log.
+  sourceLabel: string;
   records: Array<TModel> | undefined;
   modelName: string;
   service: DatabaseService<DatabaseBaseModel>;
@@ -2752,7 +3528,7 @@ async function getRecordsUsableInProject<
 
   if (result.droppedIds.length > 0) {
     logger.error(
-      `Slo:EvaluateSlos - Burn rate rule ${data.ruleId.toString()} references ${data.modelName} ${result.droppedIds
+      `Slo:EvaluateSlos - ${data.sourceLabel} references ${data.modelName} ${result.droppedIds
         .map((id: ObjectID | string): string => {
           return id.toString();
         })
@@ -2822,7 +3598,7 @@ function uniqueIdsOf(
  * Shared by the adoption check on the create paths and by the auto-resolve-off
  * check on the resolve path, so the two can never disagree about "open".
  */
-async function findOpenBurnRateAlert(data: {
+async function findOpenSloRecordAlert(data: {
   context: SloEvaluationContext;
   fingerprint: string;
 }): Promise<Alert | null> {
@@ -2846,7 +3622,7 @@ async function findOpenBurnRateAlert(data: {
   });
 }
 
-async function findOpenBurnRateIncident(data: {
+async function findOpenSloRecordIncident(data: {
   context: SloEvaluationContext;
   fingerprint: string;
 }): Promise<Incident | null> {
@@ -2882,15 +3658,15 @@ async function findOpenBurnRateIncident(data: {
  * mid-tick, a transient write error) must not leave it unstamped - the
  * resolution branch would never close it.
  */
-async function addBurnRateRecordOwners(data: {
-  output: BurnRateOutputKind;
+async function addSloRecordOwners(data: {
+  output: SloRecordOutputKind;
   context: SloEvaluationContext;
-  ruleId: ObjectID;
+  source: SloRecordSource;
   recordId: ObjectID | undefined;
   ownerUsers: Array<User> | undefined;
   ownerTeams: Array<Team> | undefined;
   addSloOwners: boolean;
-  fire: BurnRateFire;
+  fire: SloRecordFire;
   logAttributes: LogAttributes;
 }): Promise<void> {
   try {
@@ -2910,13 +3686,13 @@ async function addBurnRateRecordOwners(data: {
 
     if (!data.recordId) {
       logger.error(
-        `Slo:EvaluateSlos - Cannot add owners to the ${data.output} burn rate rule ${data.ruleId.toString()} just created: the create returned no id.`,
+        `Slo:EvaluateSlos - Cannot add owners to the ${data.output} ${data.source.words.noun} ${data.source.id.toString()} just created: the create returned no id.`,
         data.logAttributes,
       );
       return;
     }
 
-    const owners: OwnersToAssign = await getBurnRateOwnersToAssign({
+    const owners: OwnersToAssign = await getSloRecordOwnersToAssign({
       output: data.output,
       recordId: data.recordId,
       userIds: requestedUserIds,
@@ -2953,7 +3729,7 @@ async function addBurnRateRecordOwners(data: {
     }
   } catch (err) {
     logger.error(
-      `Slo:EvaluateSlos - Error adding owners to the ${data.output} created by burn rate rule ${data.ruleId.toString()}: ${err}`,
+      `Slo:EvaluateSlos - Error adding owners to the ${data.output} created by ${data.source.words.noun} ${data.source.id.toString()}: ${err}`,
       data.logAttributes,
     );
   }
@@ -2979,8 +3755,8 @@ async function addBurnRateRecordOwners(data: {
  * A failed read must not cost the record its owners, so it falls back to the
  * requested set: a duplicate notification beats an owner nobody told.
  */
-async function getBurnRateOwnersToAssign(data: {
-  output: BurnRateOutputKind;
+async function getSloRecordOwnersToAssign(data: {
+  output: SloRecordOutputKind;
   recordId: ObjectID;
   userIds: Array<ObjectID>;
   teamIds: Array<ObjectID>;
@@ -3077,18 +3853,18 @@ function formatRecordNumber(
  * raised a private record, plus the burn numbers - SLO data those readers can
  * already see on the SLO itself.
  */
-async function postBurnRateRaisedFeedItem(data: {
-  output: BurnRateOutputKind;
+async function postSloRecordRaisedFeedItem(data: {
+  output: SloRecordOutputKind;
   context: SloEvaluationContext;
-  rule: ServiceLevelObjectiveBurnRateRule;
+  source: SloRecordSource;
   recordId: ObjectID | undefined;
   recordNumber: string | undefined;
   isPrivate: boolean;
-  declaration: BurnRateDeclaration;
-  copy: BurnRateOutputCopy;
+  declaration: SloRecordDeclaration;
+  copy: SloRecordOutputCopy;
   logAttributes: LogAttributes;
 }): Promise<void> {
-  const { context, rule } = data;
+  const { context, source } = data;
   const isAlert: boolean = data.output === "alert";
 
   try {
@@ -3101,13 +3877,13 @@ async function postBurnRateRaisedFeedItem(data: {
           serviceLevelObjectiveId: context.sloId,
           projectId: context.projectId,
           serviceLevelObjectiveFeedEventType: isAlert
-            ? ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised
-            : ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
+            ? source.feedEventTypes.alertRaised
+            : source.feedEventTypes.incidentDeclared,
           feedInfoInMarkdown:
-            mdText`Burn rate rule **${rule.name}** ${isAlert ? "raised a private alert" : "declared a private incident"}.`.toString(),
+            mdText`${source.words.feedNoun} **${source.name}** ${isAlert ? "raised a private alert" : "declared a private incident"}.`.toString(),
           moreInformationInMarkdown: FeedMarkdown.bulletList([
             mdText`**Visibility:** Private - only its owners and project admins can see this ${isAlert ? "alert" : "incident"}.`,
-            ...getBurnRateFeedMeasurementLines(variables),
+            ...source.getFeedMeasurementLines(variables),
           ]).toString(),
           displayColor: Red500,
           postedAt: context.now,
@@ -3146,17 +3922,17 @@ async function postBurnRateRaisedFeedItem(data: {
 
     const moreInformation: Array<MarkdownText> = [
       mdText`**Title:** ${data.copy.title}`,
-      ...getBurnRateFeedMeasurementLines(variables),
+      ...source.getFeedMeasurementLines(variables),
     ];
 
     await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
       serviceLevelObjectiveId: context.sloId,
       projectId: context.projectId,
       serviceLevelObjectiveFeedEventType: isAlert
-        ? ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised
-        : ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
+        ? source.feedEventTypes.alertRaised
+        : source.feedEventTypes.incidentDeclared,
       feedInfoInMarkdown:
-        mdText`Burn rate rule **${rule.name}** ${isAlert ? "raised" : "declared"} ${recordReference}.`.toString(),
+        mdText`${source.words.feedNoun} **${source.name}** ${isAlert ? "raised" : "declared"} ${recordReference}.`.toString(),
       moreInformationInMarkdown:
         FeedMarkdown.bulletList(moreInformation).toString(),
       displayColor: Red500,
@@ -3164,7 +3940,7 @@ async function postBurnRateRaisedFeedItem(data: {
     });
   } catch (err) {
     logger.error(
-      `Slo:EvaluateSlos - Error posting the feed item for the ${data.output} burn rate rule ${rule.id?.toString()} created: ${err}`,
+      `Slo:EvaluateSlos - Error posting the feed item for the ${data.output} ${source.words.noun} ${source.id.toString()} created: ${err}`,
       data.logAttributes,
     );
   }
@@ -3187,45 +3963,58 @@ function getBurnRateFeedMeasurementLines(
 }
 
 /*
+ * The numbers a tier's raised item quotes: the budget, and where the tier
+ * starts. SLO data, like a rule's, so a private record's item may show it.
+ */
+function getPolicyTierFeedMeasurementLines(
+  variables: SloBurnRateTemplateVariables,
+): Array<MarkdownText> {
+  return [
+    mdText`**Error budget remaining:** ${variables[SloBurnRateTemplateVariable.ErrorBudgetRemainingPercentage]}% (${variables[SloBurnRateTemplateVariable.ErrorBudgetRemaining]})`,
+    mdText`**Tier applies while:** the error budget left is at or below ${variables[SloBurnRateTemplateVariable.PolicyTierThresholdPercentage]}%`,
+  ];
+}
+
+/*
  * "The alert raised by burn rate rule X was resolved" - posted only for a side
  * whose resolve stamp was just written. A record closed by hand while
  * auto-resolve is off gets its own wording: the rule did not resolve it, it
  * only noticed that someone had, and that the rule can now fire again.
  */
-async function postBurnRateResolvedFeedItem(data: {
-  output: BurnRateOutputKind;
-  closure: BurnRateOutputClosure;
+async function postSloRecordResolvedFeedItem(data: {
+  output: SloRecordOutputKind;
+  closure: SloRecordOutputClosure;
   context: SloEvaluationContext;
-  rule: ServiceLevelObjectiveBurnRateRule;
+  source: SloRecordSource;
   rootCause: string;
 }): Promise<void> {
-  const { context, rule } = data;
+  const { context, source } = data;
   const isAlert: boolean = data.output === "alert";
   const record: string = isAlert ? "alert" : "incident";
   const createdVerb: string = isAlert ? "raised" : "declared";
-  const ruleName: string = rule.name || "";
+  const ruleName: string = source.name;
 
   try {
     await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
       serviceLevelObjectiveId: context.sloId,
       projectId: context.projectId,
       serviceLevelObjectiveFeedEventType: isAlert
-        ? ServiceLevelObjectiveFeedEventType.BurnRateAlertResolved
-        : ServiceLevelObjectiveFeedEventType.BurnRateIncidentResolved,
+        ? source.feedEventTypes.alertResolved
+        : source.feedEventTypes.incidentResolved,
       feedInfoInMarkdown:
         data.closure === "resolved-by-hand"
-          ? mdText`The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved by hand. The burn has recovered, so the rule can fire again.`.toString()
-          : mdText`The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved.`.toString(),
+          ? mdText`The ${record} ${createdVerb} by ${source.words.noun} **${ruleName}** was resolved by hand. ${source.words.resolvedByHandFollowUp}`.toString()
+          : mdText`The ${record} ${createdVerb} by ${source.words.noun} **${ruleName}** was resolved.`.toString(),
       moreInformationInMarkdown:
         data.closure === "resolved-by-hand"
-          ? mdText`Auto-resolve is off for this rule's ${record}, so it stayed open until someone resolved it.`.toString()
+          ? mdText`Auto-resolve is off for this ${source.words.shortNoun}'s ${record}, so it stayed open until someone resolved it.`.toString()
           : mdText`**Reason:** ${FeedMarkdown.asMarkdown(data.rootCause)}`.toString(),
       displayColor: Green500,
       postedAt: context.now,
     });
   } catch (err) {
     logger.error(
-      `Slo:EvaluateSlos - Error posting the resolved feed item for the ${record} of burn rate rule ${rule.id?.toString()}: ${err}`,
+      `Slo:EvaluateSlos - Error posting the resolved feed item for the ${record} of ${source.words.noun} ${source.id.toString()}: ${err}`,
       {
         projectId: context.projectId.toString(),
         sloId: context.sloId.toString(),

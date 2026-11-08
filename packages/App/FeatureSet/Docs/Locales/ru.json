@@ -375,6 +375,7 @@
     "Monitors and Monitor Rules": "Мониторы и правила мониторов",
     "Error Budgets": "Бюджеты ошибок",
     "Burn Rate Alerts and Incidents": "Оповещения и инциденты по скорости расхода бюджета",
+    "Error Budget Policy": "Политика бюджета ошибок",
     "SLO Metrics and Dashboards": "Метрики и дашборды SLO",
     "SLO Feed and Audit Logs": "Лента и журналы аудита SLO",
     "Label and Owner Rules": "Правила меток и владельцев",
