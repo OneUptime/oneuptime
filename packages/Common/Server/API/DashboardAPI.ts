@@ -42,7 +42,6 @@ import {
 } from "../../Types/Dashboard/DashboardTheme";
 import PublicDashboardViewConfig from "../Utils/Dashboard/PublicDashboardViewConfig";
 import PublicDashboardMetricServices from "../Utils/Dashboard/PublicDashboardMetricServices";
-import StoredDashboardViewConfig from "../../Utils/Dashboard/StoredDashboardViewConfig";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import { JSONObject } from "../../Types/JSON";
@@ -155,9 +154,10 @@ const SERVED_IMAGE_SELECT: {
  *   resource at all, and the query is pinned to the kinds those widgets
  *   render. Adding a widget to a public dashboard is therefore the owner's
  *   explicit — and only — opt-in to exposing this data.
- * Query, select, sort and pagination policy are rebuilt from the exact stored
- * widget by PublicDashboardResourceListPolicy. Client copies of those fields
- * are never authoritative on this unauthenticated route.
+ * Query, select, sort and pagination policy are rebuilt from the exact widget,
+ * as the public page draws it, by PublicDashboardResourceListPolicy. Client
+ * copies of those fields are never authoritative on this unauthenticated
+ * route.
  */
 interface PublicDashboardResourceConfig {
   modelType: { new (): BaseModel | AnalyticsDataModel };
@@ -1647,23 +1647,30 @@ export default class DashboardAPI extends BaseAPI<
             throw new NotFoundException("Dashboard not found");
           }
 
-          const widget: JSONObject = DashboardAPI.selectPublicResourceWidget({
-            dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
-            config: PUBLIC_DASHBOARD_SLO_RESOURCE,
-            requestedComponentId: req.body["componentId"],
-          });
+          /*
+           * The widget and the variables as the public page draws them, as
+           * the resource-list route reads them (issue #6315).
+           */
+          const drawnViewConfig: DashboardViewConfig =
+            DashboardAPI.getDrawnViewConfig(dashboard);
+
+          const widget: DashboardBaseComponent =
+            DashboardAPI.selectPublicResourceWidget({
+              drawnViewConfig: drawnViewConfig,
+              config: PUBLIC_DASHBOARD_SLO_RESOURCE,
+              requestedComponentId: req.body["componentId"],
+            });
 
           /*
-           * The viewer's toolbar selections, validated against the
-           * dashboard's STORED variables exactly as the resource-list route
-           * validates them. A pinned SLO chart never reads them; a chart that
-           * follows an SLO variable reads only the variable it is bound to.
+           * The viewer's toolbar selections, validated against the variables
+           * the page draws exactly as the resource-list route validates them.
+           * A pinned SLO chart never reads them; a chart that follows an SLO
+           * variable reads only the variable it is bound to.
            */
           const variables: Array<DashboardVariable> =
             PublicDashboardResourceListPolicy.resolveDashboardVariableSelections(
               {
-                dashboardViewConfig:
-                  DashboardAPI.getStoredViewConfig(dashboard),
+                variables: drawnViewConfig.variables,
                 requestedVariables: req.body["variables"],
               },
             );
@@ -2101,9 +2108,11 @@ export default class DashboardAPI extends BaseAPI<
    * in every shape it can be stored in - as JSON text, in the
    * DashboardComponent envelope (its value an object or text), in a widget
    * list written as text, with its arguments written as text - and
-   * deserialized. The routes that serve what the page's metric widgets and
-   * variables ask for read this, so they answer exactly what the page can
-   * ask: a widget it draws in any shape, and nothing it does not draw.
+   * deserialized, every variable read as its toolbar reads it. Every public
+   * route that serves what the page draws reads this - the metric routes,
+   * /attribute-values and /overview, and the routes that serve one list or
+   * SLO widget (issue #6315) - so they answer exactly what the page can ask:
+   * a widget it draws in any shape, and nothing it does not draw.
    */
   private static getDrawnViewConfig(dashboard: Dashboard): DashboardViewConfig {
     return PublicDashboardViewConfig.getDrawnConfig(
@@ -2129,96 +2138,35 @@ export default class DashboardAPI extends BaseAPI<
   }
 
   /*
-   * A dashboard's stored config as the public routes that select one widget
-   * read it (resource-list, SLO history): the object its widgets are on,
-   * wherever it was stored. A config written as the API reference's
-   * `{_type: "DashboardViewConfig", value: {...}}` envelope or as JSON text
-   * has them one level down; the dashboard draws them, so the routes that
-   * serve their data must find them too (issue #4571).
-   */
-  private static getStoredViewConfig(dashboard: Dashboard): JSONObject {
-    return StoredDashboardViewConfig.unwrap(dashboard.dashboardViewConfig);
-  }
-
-  /*
-   * Read only the real, top-level dashboard components. Recursively scanning
-   * arbitrary widget arguments would let a nested object carrying a
-   * `componentType` masquerade as a widget and become an authorization input.
+   * Select the exact widget whose policy will be executed, from the config
+   * the public page draws (getDrawnViewConfig): the widget of a type this
+   * resource serves that the page draws under the id it asks with. Only the
+   * page's own widget list is read - recursively scanning widget arguments
+   * would let a nested object carrying a `componentType` masquerade as a
+   * widget and become an authorization input.
    *
-   * The list is the one the public page draws - what /view-config serves
-   * (PublicDashboardViewConfig.sanitize) - with each widget under the id the
-   * page draws it under (StoredDashboardViewConfig.withComponentIds). A
-   * widget stored without an id, or with one an earlier widget already has,
-   * is then found by the id the page asks with, and two widgets that share
-   * a stored id are no longer both answered from the first one's settings.
-   * A widget whose arguments were stored as JSON text has them read as the
-   * object they say (StoredDashboardViewConfig.withArgumentsRead), as the
-   * page draws it, so it is answered as the same widget stored with them as
-   * an object (issue #6297).
-   */
-  private static collectDashboardWidgets(
-    dashboardViewConfig: unknown,
-  ): Array<JSONObject> {
-    const servedConfig: DashboardViewConfig | null =
-      PublicDashboardViewConfig.sanitize(
-        dashboardViewConfig as DashboardViewConfig | null | undefined,
-      );
-
-    if (!servedConfig) {
-      return [];
-    }
-
-    return StoredDashboardViewConfig.withComponentIds(servedConfig.components)
-      .filter((component: unknown): component is JSONObject => {
-        return StoredDashboardViewConfig.isWidgetEntry(component);
-      })
-      .map((widget: JSONObject): JSONObject => {
-        return StoredDashboardViewConfig.withArgumentsRead(widget);
-      });
-  }
-
-  private static readDashboardWidgetComponentId(
-    widget: JSONObject,
-  ): string | null {
-    const componentId: unknown = widget["componentId"];
-
-    if (componentId instanceof ObjectID) {
-      return componentId.toString();
-    }
-
-    if (typeof componentId === "string" && componentId.length > 0) {
-      return componentId;
-    }
-
-    if (
-      componentId &&
-      typeof componentId === "object" &&
-      !Array.isArray(componentId)
-    ) {
-      const value: unknown = (componentId as Record<string, unknown>)["value"];
-
-      if (typeof value === "string" && value.length > 0) {
-        return value;
-      }
-    }
-
-    return null;
-  }
-
-  /*
-   * Select the exact stored widget whose policy will be executed. A legacy
-   * caller may omit componentId only when there is exactly one matching
-   * widget, so two differently-filtered widgets are never conflated.
+   * Every widget is found in every shape it can be stored in, under the id
+   * the page draws it under - one derived for a widget stored without an id,
+   * or with one an earlier widget already has - and comes as the page draws
+   * it: deserialized, with an `arguments` object. Those are its stored
+   * settings whether they were stored as an object or as JSON text, and none
+   * - its defaults, as the page draws it, signed in and public alike - for a
+   * widget saved without any, or with text that says none (issues #4571,
+   * #6297, #6315). A Data Source widget is not in that list at all, and a
+   * type is matched exactly, so a type the page does not draw is not served.
+   *
+   * A legacy caller may omit componentId only when there is exactly one
+   * matching widget, so two differently-filtered widgets are never conflated.
    */
   private static selectPublicResourceWidget(data: {
-    dashboardViewConfig: unknown;
+    drawnViewConfig: DashboardViewConfig;
     config: PublicDashboardResourceConfig;
     requestedComponentId: unknown;
-  }): JSONObject {
-    const matchingWidgets: Array<JSONObject> =
-      DashboardAPI.collectDashboardWidgets(data.dashboardViewConfig).filter(
-        (widget: JSONObject): boolean => {
-          const componentType: unknown = widget["componentType"];
+  }): DashboardBaseComponent {
+    const matchingWidgets: Array<DashboardBaseComponent> =
+      data.drawnViewConfig.components.filter(
+        (widget: DashboardBaseComponent): boolean => {
+          const componentType: unknown = widget.componentType;
 
           return (
             typeof componentType === "string" &&
@@ -2241,7 +2189,7 @@ export default class DashboardAPI extends BaseAPI<
       data.requestedComponentId === null
     ) {
       if (matchingWidgets.length === 1) {
-        return matchingWidgets[0] as JSONObject;
+        return matchingWidgets[0] as DashboardBaseComponent;
       }
 
       throw new BadDataException(
@@ -2255,14 +2203,10 @@ export default class DashboardAPI extends BaseAPI<
 
     ObjectID.validateUUID(data.requestedComponentId);
 
-    const selectedWidget: JSONObject | undefined = matchingWidgets.find(
-      (widget: JSONObject): boolean => {
-        return (
-          DashboardAPI.readDashboardWidgetComponentId(widget) ===
-          data.requestedComponentId
-        );
-      },
-    );
+    const selectedWidget: DashboardBaseComponent | undefined =
+      matchingWidgets.find((widget: DashboardBaseComponent): boolean => {
+        return widget.componentId.toString() === data.requestedComponentId;
+      });
 
     if (!selectedWidget) {
       throw new BadDataException(
@@ -2371,11 +2315,20 @@ export default class DashboardAPI extends BaseAPI<
       throw new NotFoundException("Dashboard not found");
     }
 
-    const widget: JSONObject = DashboardAPI.selectPublicResourceWidget({
-      dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
-      config,
-      requestedComponentId: req.body ? req.body["componentId"] : undefined,
-    });
+    /*
+     * The widget and the variables as the public page draws them: the widget
+     * lists with the settings, and the variables apply with the meaning, it
+     * is drawn with, in whatever shape they were stored (issue #6315).
+     */
+    const drawnViewConfig: DashboardViewConfig =
+      DashboardAPI.getDrawnViewConfig(dashboard);
+
+    const widget: DashboardBaseComponent =
+      DashboardAPI.selectPublicResourceWidget({
+        drawnViewConfig: drawnViewConfig,
+        config,
+        requestedComponentId: req.body ? req.body["componentId"] : undefined,
+      });
 
     const requestedQuery: JSONObject =
       req.body && req.body["query"]
@@ -2386,8 +2339,8 @@ export default class DashboardAPI extends BaseAPI<
 
     const policy: PublicDashboardResourceListPolicyResult =
       PublicDashboardResourceListPolicy.build({
-        widget,
-        dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
+        widget: widget as unknown as JSONObject,
+        variables: drawnViewConfig.variables,
         requestedVariables: req.body ? req.body["variables"] : undefined,
         requestedQuery,
         /*
@@ -2461,7 +2414,7 @@ export default class DashboardAPI extends BaseAPI<
      */
     const steps: Array<DashboardWidgetListReadStep> = policy.sortChoice
       ? getDashboardWidgetListReadSteps({
-          componentType: widget["componentType"],
+          componentType: widget.componentType,
           choice: policy.sortChoice,
           query,
         })
