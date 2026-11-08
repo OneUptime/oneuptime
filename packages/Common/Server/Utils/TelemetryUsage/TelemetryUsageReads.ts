@@ -243,13 +243,12 @@ export default class TelemetryUsageReads {
         retention.sessionReplayRetentionInDays;
     }
 
-    const names: Map<string, string> = await TelemetryUsageResourceNames.resolve(
-      {
+    const names: Map<string, string> =
+      await TelemetryUsageResourceNames.resolve({
         projectId: data.projectId,
         resources: Array.from(resources.values()),
         props: data.nameProps,
-      },
-    );
+      });
 
     summary.resources = Array.from(resources.values())
       .map(
@@ -391,9 +390,7 @@ export default class TelemetryUsageReads {
    * application keeps its recordings for days of their own (7 unless
    * changed), never for the telemetry retention.
    */
-  public static getRetention(
-    byProduct: Map<ProductType, number>,
-  ): {
+  public static getRetention(byProduct: Map<ProductType, number>): {
     retentionInDays: number | null;
     sessionReplayRetentionInDays: number | null;
   } {

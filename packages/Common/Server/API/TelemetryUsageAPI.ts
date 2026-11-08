@@ -63,11 +63,13 @@ import {
  */
 const router: ExpressRouter = Express.getRouter();
 
-const READ_OPTIONS: { projectWideOnly: boolean; labelledBlocksRefuse: boolean } =
-  {
-    projectWideOnly: true,
-    labelledBlocksRefuse: true,
-  };
+const READ_OPTIONS: {
+  projectWideOnly: boolean;
+  labelledBlocksRefuse: boolean;
+} = {
+  projectWideOnly: true,
+  labelledBlocksRefuse: true,
+};
 
 export const TELEMETRY_USAGE_READ_REFUSAL: string =
   "You need a role that reads this project's telemetry across the whole project (Project Owner, Project Admin, Project Member, Viewer or a Telemetry role), or a billing role, to see its telemetry usage.";
