@@ -67,6 +67,8 @@ Le menu latéral d'un service compte cinq sections :
 | **Développeurs** | **Terraform**, **API**, **CLI** et **Assistants IA** : le service géré depuis du code. Cette section est d'abord repliée. |
 | **Avancé** | **Paramètres**, **Journaux d'audit** et **Supprimer le service**. **Avancé** est replié au départ : dépliez-le d'abord. |
 
+À côté de son nom, la **Vue d'ensemble** d'un service indique si sa télémétrie arrive : **Reçoit des données** tant que quelque chose est arrivé au cours des 30 dernières minutes, **Aucune donnée récente** dès que plus rien n'arrive, et **En attente de données** avant sa première télémétrie. Un service qui n'envoie des spans que lorsqu'il traite des requêtes affiche **Aucune donnée récente** dès que personne ne l'appelle : à lui seul, ce n'est donc pas une panne.
+
 Les propriétaires comptent au-delà de la page : un rôle dont la portée est Owned lit la télémétrie des services qui vous appartiennent, à vous ou à vos équipes. Voir [Télémétrie](/docs/permissions/index#télémétrie).
 
 ## Modifier un service
@@ -110,6 +112,10 @@ Vérifiez que sa télémétrie porte un `service.name`. La télémétrie d'un na
 
 :::details Dernière fois vu est en retard
 **Dernière fois vu** est mis à jour environ une fois par minute, pas à chaque lot, et peut donc avoir une minute environ de retard sur la télémétrie en direct.
+:::
+
+:::details Un service affiche « Aucune donnée récente »
+Rien n'est arrivé de ce service au cours des 30 dernières minutes. C'est normal pour un service qui n'envoie de la télémétrie que lorsqu'il traite des requêtes, quand personne ne l'appelle. S'il devrait traiter des requêtes, vérifiez qu'il tourne, que son exportateur OpenTelemetry atteint OneUptime et qu'il envoie toujours le même `service.name` : un nouveau nom crée un nouveau service.
 :::
 
 ## Étapes suivantes

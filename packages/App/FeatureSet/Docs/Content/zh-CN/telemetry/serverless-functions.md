@@ -189,6 +189,8 @@ az functionapp config appsettings set \
 - **实例**：函数报告的 `faas.instance` 值的实时列表。
 - 限定于该函数的完整 **日志**、**追踪** 和 **指标** 页面。
 
+函数的遥测数据持续到达时显示 **正在接收数据** ；15 分钟内没有任何遥测数据时显示 **近期无调用** ，这在两次运行之间是正常的：函数只在运行时发送遥测数据。通过 API 添加的函数在收到第一批遥测数据之前显示 **正在等待数据** 。
+
 ## 为函数添加标签并分配所有者
 
 以 `oneuptime.label.` 开头的资源属性会成为函数上的项目标签：`oneuptime.label.team=payments` 会添加标签 `team:payments`。把这些属性添加到 `OTEL_RESOURCE_ATTRIBUTES`：
@@ -215,8 +217,8 @@ OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=paymen
 函数的 **概览**、**日志**、**追踪** 和 **指标** 显示的是 `faas.name` 与函数名称完全相同（包括大小写）的遥测数据。通过 FaaS 类型的 `cloud.platform` 及其 `service.name` 命名的函数不需要自己的 `faas.name`：OneUptime 会在遥测数据到达时，把 `service.name` 作为 `faas.name` 写入其中。在 OneUptime 开始填入 `faas.name` 之前存储的遥测数据不会被更新，也不会出现在页面中：请调用函数以发送新的遥测数据。还要检查页面顶部的时间范围。
 :::
 
-:::details 函数显示为已断开
-当 OneUptime 在 15 分钟内没有从函数收到任何数据时，函数会变为已断开；OneUptime 每 5 分钟检查一次，并且它自身未在接收数据的时间不计入在内。只是偶尔运行的函数在两次运行之间处于已断开状态：收到它的下一批遥测数据后，它会重新变为已连接。
+:::details 函数显示“近期无调用”
+当 OneUptime 在 15 分钟内没有从函数收到任何数据时，函数会显示 **近期无调用** ；OneUptime 每 5 分钟检查一次，并且它自身未在接收数据的时间不计入在内。对于只是偶尔运行的函数，这是正常的：收到它的下一批遥测数据后，它会重新显示 **正在接收数据** 。如果函数正在被调用，请按上文中函数未出现时的检查项逐一检查。
 :::
 
 ## 后续步骤

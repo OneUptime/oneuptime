@@ -67,6 +67,8 @@ En tjänsts sidomeny har fem avsnitt:
 | **Utvecklare** | **Terraform**, **API**, **CLI** och **AI-assistenter**: tjänsten styrd från kod. Avsnittet är hopfällt från början. |
 | **Avancerad** | **Inställningar**, **Granskningsloggar** och **Ta bort tjänst**. **Avancerad** är hopfälld från början: fäll ut den först. |
 
+Bredvid namnet visar en tjänsts **Översikt** om dess telemetri kommer: **Tar emot data** så länge något har kommit under de senaste 30 minuterna, **Inga data nyligen** när inget längre kommer, och **Väntar på data** före dess första telemetri. En tjänst som bara skickar spans medan den hanterar förfrågningar visar **Inga data nyligen** när ingen anropar den, så det i sig är inget fel.
+
 Ägare spelar roll även utanför sidan: en roll med omfånget Owned läser telemetrin för de tjänster som du eller dina team äger. Se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Ändra en tjänst
@@ -110,6 +112,10 @@ Kontrollera att dess telemetri har ett `service.name`. Telemetri från en webbl�
 
 :::details Senast sedd ligger efter
 **Senast sedd** uppdateras ungefär en gång i minuten, inte vid varje batch, så den kan ligga ungefär en minut efter den levande telemetrin.
+:::
+
+:::details En tjänst visar "Inga data nyligen"
+Inget har kommit från den under de senaste 30 minuterna. Det är väntat för en tjänst som bara skickar telemetri medan den hanterar förfrågningar, när ingen anropar den. Om den borde hantera förfrågningar, kontrollera att den körs, att dess OpenTelemetry-exportör når OneUptime och att den fortfarande rapporterar samma `service.name`: ett nytt namn startar en ny tjänst.
 :::
 
 ## Nästa steg

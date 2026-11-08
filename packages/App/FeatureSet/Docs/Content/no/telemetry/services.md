@@ -67,6 +67,8 @@ Sidemenyen til en tjeneste har fem seksjoner:
 | **Utvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: tjenesten styrt fra kode. Seksjonen er slått sammen fra start. |
 | **Avansert** | **Innstillinger**, **Revisjonslogger** og **Slett tjeneste**. **Avansert** er lukket i starten: åpne den først. |
 
+Ved siden av navnet viser **Oversikt** for en tjeneste om telemetrien kommer: **Mottar data** så lenge noe har kommet de siste 30 minuttene, **Ingen nylige data** når ingenting kommer lenger, og **Venter på data** før den første telemetrien. En tjeneste som bare sender spans mens den behandler forespørsler, viser **Ingen nylige data** når ingen kaller den, så det alene er ikke en feil.
+
 Eiere betyr noe også utenfor siden: en rolle med omfanget Owned leser telemetrien til tjenestene som du eller teamene dine eier. Se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Endre en tjeneste
@@ -110,6 +112,10 @@ Kontroller at telemetrien har et `service.name`. Telemetri fra en nettleser elle
 
 :::details Sist sett henger etter
 **Sist sett** oppdateres omtrent én gang i minuttet, ikke for hver batch, så den kan henge omtrent et minutt etter den levende telemetrien.
+:::
+
+:::details En tjeneste viser «Ingen nylige data»
+Ingenting har kommet fra den de siste 30 minuttene. Det er ventet for en tjeneste som bare sender telemetri mens den behandler forespørsler, når ingen kaller den. Hvis den burde behandle forespørsler, sjekk at den kjører, at OpenTelemetry-eksportøren når OneUptime, og at den fortsatt rapporterer samme `service.name`: et nytt navn starter en ny tjeneste.
 :::
 
 ## Neste steg
