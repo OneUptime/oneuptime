@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import OneUptimeDate from "../../../Types/Date";
 import LlmConnectionProvider from "../../../Types/LlmObservability/LlmConnectionProvider";
 import {
@@ -796,4 +798,273 @@ describe("the Setup check card: a connection", () => {
       expect(PROVIDER_READS[provider]).toBeTruthy();
     }
   });
+});
+
+/*
+ * In every language the Dashboard speaks: each sentence of the setup check
+ * is looked up whole in that language's locale file, so it reads in that
+ * language - never English, never a {{placeholder}} left unfilled - with
+ * the values (an app, a host, a count, the tools) inside it.
+ */
+describe("the setup check in every language", () => {
+  const LOCALES: string = path.join(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+  const LANGUAGES: Array<string> = [
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ];
+
+  function translatorFor(language: string): Translator {
+    const table: Record<string, string> = JSON.parse(
+      fs.readFileSync(path.join(LOCALES, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+
+    return createTranslator((key: string): string => {
+      return table[key] || key;
+    }, language);
+  }
+
+  const FINDINGS: Array<LlmEmptyViewFinding> = [
+    {
+      key: LlmEmptyViewFindingKey.CallsOutsideWindow,
+      newestCallAt: daysAgo(10).toISOString(),
+    },
+    {
+      key: LlmEmptyViewFindingKey.Uninstrumented,
+      uninstrumented: {
+        serviceId: "svc-checkout",
+        host: "contoso.openai.azure.com",
+        provider: "azure.ai.openai",
+        calls: 42,
+      },
+    },
+    {
+      key: LlmEmptyViewFindingKey.Uninstrumented,
+      uninstrumented: {
+        serviceId: "svc-unknown",
+        host: "api.openai.com",
+        provider: "openai",
+        calls: 1,
+      },
+    },
+    {
+      key: LlmEmptyViewFindingKey.CompanyToolsQuiet,
+      connections: [
+        connection({
+          kind: "company-tool",
+          provider: LlmConnectionProvider.ClaudeEnterprise,
+        }),
+      ],
+    },
+    {
+      key: LlmEmptyViewFindingKey.CompanyToolsQuiet,
+      connections: [
+        connection({
+          kind: "company-tool",
+          provider: LlmConnectionProvider.ClaudeEnterprise,
+          lastError: "HTTP 401",
+          lastSuccessfulReadAt: null,
+        }),
+      ],
+    },
+    {
+      key: LlmEmptyViewFindingKey.ProviderAccountsOnly,
+      connections: [connection()],
+    },
+    {
+      key: LlmEmptyViewFindingKey.ProviderAccountsOnly,
+      connections: [connection(), connection({ connectionId: "c2" })],
+    },
+    {
+      key: LlmEmptyViewFindingKey.CodingToolsOnly,
+      metricSources: [LlmMetricSource.ClaudeCode],
+    },
+    {
+      key: LlmEmptyViewFindingKey.CodingToolsOnly,
+      metricSources: [LlmMetricSource.ClaudeCode, LlmMetricSource.Cursor],
+    },
+    { key: LlmEmptyViewFindingKey.Nothing },
+  ];
+
+  function sentencesIn(translator: Translator): Array<string> {
+    const sentences: Array<string> = [];
+
+    for (const finding of FINDINGS) {
+      for (const view of ["conversations", "calls"] as Array<LlmEmptyView>) {
+        const result: LlmEmptyViewWords = getLlmEmptyViewWords({
+          finding,
+          view,
+          translator,
+          serviceName,
+          now: NOW,
+        });
+
+        sentences.push(translator.translateText(result.title) || result.title);
+        sentences.push(result.description);
+      }
+    }
+
+    const appsCases: Array<LlmSetupCheckApps> = [
+      apps({
+        callsRecently: 1240,
+        newestCallAt: daysAgo(0.1).toISOString(),
+        services: [
+          { serviceId: "svc-checkout", calls: 1000, newestAt: null },
+          { serviceId: "svc-unknown", calls: 240, newestAt: null },
+        ],
+        providers: [{ name: "azure.ai.openai", calls: 1240 }],
+        answersRecently: 40,
+        answersWithContent: 0,
+        contentInLogs: true,
+      }),
+      apps({
+        callsRecently: 1,
+        services: [{ serviceId: "svc-unknown", calls: 1, newestAt: null }],
+        answersRecently: 3,
+        answersWithContent: 2,
+      }),
+      apps({
+        callsRecently: 5,
+        services: [{ serviceId: "svc-checkout", calls: 5, newestAt: null }],
+        answersRecently: 5,
+        answersWithContent: 0,
+        contentInLogs: false,
+      }),
+      apps({ newestCallAt: daysAgo(12).toISOString() }),
+      apps(),
+    ];
+
+    for (const value of appsCases) {
+      for (const line of getAppsLines({
+        apps: value,
+        translator,
+        serviceName,
+        now: NOW,
+      })) {
+        sentences.push(line.text);
+
+        if (line.detail) {
+          sentences.push(line.detail);
+        }
+      }
+    }
+
+    const connectionCases: Array<LlmSetupCheckConnection> = [
+      connection({ isEnabled: false }),
+      connection({ lastError: "HTTP 401", lastSuccessfulReadAt: null }),
+      connection({ lastSuccessfulReadAt: null }),
+      connection({
+        kind: "company-tool",
+        provider: LlmConnectionProvider.ClaudeEnterprise,
+        callsRecently: 1,
+      }),
+      connection({
+        kind: "company-tool",
+        provider: LlmConnectionProvider.ClaudeEnterprise,
+        callsRecently: 31,
+      }),
+      connection({ newestUsageAt: "2026-11-03T00:00:00.000Z" }),
+      connection({
+        provider: LlmConnectionProvider.AzureOpenAI,
+        resources: 0,
+      }),
+      connection({
+        provider: LlmConnectionProvider.Anthropic,
+        readSince: "2026-10-01T00:00:00.000Z",
+      }),
+      connection({ provider: LlmConnectionProvider.AwsBedrock }),
+    ];
+
+    for (const value of connectionCases) {
+      const line: LlmSetupCheckLine = getConnectionLine({
+        connection: value,
+        translator,
+        now: NOW,
+      });
+
+      sentences.push(line.text);
+
+      if (line.detail) {
+        sentences.push(line.detail);
+      }
+    }
+
+    for (const range of [
+      { range: TimeRange.PAST_ONE_MONTH },
+      { range: TimeRange.PAST_THREE_MONTHS },
+      { range: TimeRange.CUSTOM, startTime: daysAgo(120) },
+    ]) {
+      sentences.push(getWidenTitle(range, translator));
+    }
+
+    return sentences;
+  }
+
+  const english: Array<string> = sentencesIn(ENGLISH);
+
+  test("English is the reference: every sentence is there", () => {
+    expect(english.length).toBeGreaterThan(50);
+    expect(english.join(" ")).not.toContain("{{");
+  });
+
+  test.each(LANGUAGES)("%s reads every sentence in its own words", (language: string) => {
+    const sentences: Array<string> = sentencesIn(translatorFor(language));
+
+    expect(sentences).toHaveLength(english.length);
+
+    sentences.forEach((sentence: string, index: number) => {
+      // The values are in: no placeholder is left.
+      expect(sentence).not.toContain("{{");
+      // Looked up, so never the English sentence.
+      expect({ index, sentence }).not.toEqual({
+        index,
+        sentence: english[index],
+      });
+    });
+  });
+
+  test.each(LANGUAGES)(
+    "%s keeps the values a sentence carries",
+    (language: string) => {
+      const translator: Translator = translatorFor(language);
+      const uninstrumented: LlmEmptyViewWords = getLlmEmptyViewWords({
+        finding: FINDINGS[1]!,
+        view: "conversations",
+        translator,
+        serviceName,
+        now: NOW,
+      });
+
+      expect(uninstrumented.description).toContain("checkout");
+      expect(uninstrumented.description).toContain("contoso.openai.azure.com");
+
+      const failing: LlmSetupCheckLine = getConnectionLine({
+        connection: connection({
+          lastError: "HTTP 401",
+          lastSuccessfulReadAt: null,
+        }),
+        translator,
+        now: NOW,
+      });
+
+      // The server's own words are not translated.
+      expect(failing.text).toContain("HTTP 401");
+    },
+  );
 });
