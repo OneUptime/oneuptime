@@ -10,7 +10,9 @@ import Response from "../../../Server/Utils/Response";
 import DashboardComponentType, {
   DataSourceComponentTypes,
 } from "../../../Types/Dashboard/DashboardComponentType";
+import { DashboardVariableType } from "../../../Types/Dashboard/DashboardVariable";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
+import { PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES } from "../../../Types/Dashboard/PublicDashboardServedSettings";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
@@ -1076,6 +1078,140 @@ describe("DashboardAPI public Data Source strip", () => {
               expect([label, body["metricsUsed"]]).toEqual([label, []]);
             }
           }
+        }
+      },
+    );
+  });
+
+  /*
+   * Issue #6338: the Log Chart, Trace Chart, Trace Table, Security Events
+   * and Security Events Flow widgets are drawn on a public dashboard as
+   * their title and a note that they are not available there - and both
+   * routes served their whole settings: a log chart's search text and
+   * filters, a trace table's span names and grouping, a security events
+   * list's message search. And every variable whole, a legacy Query
+   * variable's ClickHouse query included. Driven off the shared list, so a
+   * widget added to it later is covered on every route the day it is added.
+   */
+  describe("a widget the public page cannot draw, and a Query variable, publish nothing but what the page draws (issue #6338)", () => {
+    const FILTER_SECRETS: Array<string> = [
+      "password reset for alice@example.com",
+      "payments-internal",
+      "/internal/billing/charge",
+      "internal.example.com",
+      "enduser.id",
+      "root login from 10.0.0.7",
+    ];
+
+    const QUERY_SECRET: string =
+      "SELECT DISTINCT region FROM internal_billing.accounts";
+
+    // What every one of those widgets may hold, whatever its type.
+    const FILTERS: JSONObject = {
+      bodyContains: "password reset for alice@example.com",
+      severityFilters: ["Fatal"],
+      attributeFilters: { "url.host": "internal.example.com" },
+      attributeFilterQuery: "k8s.namespace.name = payments-internal",
+      spanNameContains: "/internal/billing/charge",
+      groupByAttribute: "enduser.id",
+      messageContains: "root login from 10.0.0.7",
+      classNameFilters: ["Authentication"],
+      sort: "time:desc",
+      notes: "payments-internal",
+    };
+
+    it.each(PUBLIC_CONFIG_ROUTES)(
+      "$name serves each of them its title alone, and no variable its query",
+      async (route: PublicConfigRoute) => {
+        const widgets: Array<BuiltWidget> =
+          PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES.map(
+            (componentType: DashboardComponentType): BuiltWidget => {
+              return buildWidget(componentType, {
+                title: `${componentType} title`,
+                ...FILTERS,
+              });
+            },
+          );
+
+        dashboard.dashboardViewConfig = {
+          _type: "DashboardViewConfig",
+          heightInDashboardUnits: 24,
+          components: widgets.map((built: BuiltWidget): JSONObject => {
+            return built.widget;
+          }),
+          variables: [
+            {
+              id: "region",
+              name: "region",
+              label: "Region",
+              type: DashboardVariableType.Query,
+              query: QUERY_SECRET,
+              defaultValue: "eu",
+            },
+          ],
+        } as unknown as DashboardViewConfig;
+
+        await callRoute(route);
+
+        const body: JSONObject = getResponseBody();
+        const servedBody: string = JSON.stringify(body);
+
+        for (const secret of [...FILTER_SECRETS, QUERY_SECRET]) {
+          expect([route.name, secret, servedBody.includes(secret)]).toEqual([
+            route.name,
+            secret,
+            false,
+          ]);
+        }
+
+        // Each is served its type, its place and its title, under its id.
+        expect(
+          getServedComponents(body).map((component: JSONObject): unknown => {
+            return [
+              component["componentId"],
+              component["componentType"],
+              component["arguments"],
+            ];
+          }),
+        ).toEqual(
+          widgets.map((built: BuiltWidget): unknown => {
+            return [
+              built.componentId,
+              built.widget["componentType"],
+              { title: `${String(built.widget["componentType"])} title` },
+            ];
+          }),
+        );
+
+        // The variable is served its picker.
+        expect(
+          (body["dashboardViewConfig"] as JSONObject)["variables"],
+        ).toEqual([
+          {
+            id: "region",
+            name: "region",
+            label: "Region",
+            type: DashboardVariableType.Query,
+            defaultValue: "eu",
+          },
+        ]);
+
+        // The overview still names each widget and its title.
+        if (route.servesComponentSummaries) {
+          expect(
+            (body["components"] as unknown as Array<JSONObject>).map(
+              (summary: JSONObject): unknown => {
+                return [summary["componentType"], summary["title"]];
+              },
+            ),
+          ).toEqual(
+            PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES.map(
+              (componentType: DashboardComponentType): unknown => {
+                return [componentType, `${componentType} title`];
+              },
+            ),
+          );
+          expect(body["metricsUsed"]).toEqual([]);
         }
       },
     );

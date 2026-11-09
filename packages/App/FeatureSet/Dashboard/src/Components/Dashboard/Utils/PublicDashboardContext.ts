@@ -1,4 +1,7 @@
-import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import DashboardComponentType, {
+  DataSourceComponentTypes,
+} from "Common/Types/Dashboard/DashboardComponentType";
+import { isPublicDashboardUndrawnWidgetType } from "Common/Types/Dashboard/PublicDashboardServedSettings";
 import ObjectID from "Common/Types/ObjectID";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -69,37 +72,27 @@ export function isPublicDashboard(): boolean {
 }
 
 /*
- * The widgets a public dashboard cannot draw: its API reads no logs, no
- * traces, no security events and no external data source, so each of them
- * says so in its place ("Log charts are not available on public
- * dashboards.", DataSourceWidgetPlaceholder). The board lays them out as
- * the words they are: on a phone each takes two rows at most, and a chart
- * among them no chart's floor (Canvas, DashboardBoardLayout isPlaceholder).
+ * Whether a widget of this type is drawn on the dashboard being shown.
+ *
+ * A public dashboard cannot draw two kinds of widget, and each says so in
+ * its place: those whose data its API does not read - logs, traces and
+ * security events ("Log charts are not available on public dashboards.",
+ * PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES, the list the server serves their
+ * title only by, issue #6338) - and the external Data Source widgets
+ * (DataSourceWidgetPlaceholder), which the server leaves out altogether.
+ * The board lays them out as the words they are: on a phone each takes
+ * two rows at most, and a chart among them no chart's floor (Canvas,
+ * DashboardBoardLayout isPlaceholder).
  */
-export const PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES: ReadonlyArray<DashboardComponentType> =
-  [
-    DashboardComponentType.LogChart,
-    DashboardComponentType.TraceChart,
-    DashboardComponentType.TraceTable,
-    DashboardComponentType.SecurityEventsList,
-    DashboardComponentType.SecurityEventsFlow,
-    DashboardComponentType.DataSourceChart,
-    DashboardComponentType.DataSourceValue,
-    DashboardComponentType.DataSourceGauge,
-    DashboardComponentType.DataSourceTable,
-  ];
-
-// Whether a widget of this type is drawn on the dashboard being shown.
 export function isWidgetDrawnHere(
   componentType: DashboardComponentType | string | undefined,
 ): boolean {
   return !(
     isPublicDashboard() &&
-    PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES.some(
-      (undrawn: DashboardComponentType) => {
-        return undrawn === componentType;
-      },
-    )
+    (isPublicDashboardUndrawnWidgetType(componentType) ||
+      DataSourceComponentTypes.some((dataSource: DashboardComponentType) => {
+        return dataSource === componentType;
+      }))
   );
 }
 

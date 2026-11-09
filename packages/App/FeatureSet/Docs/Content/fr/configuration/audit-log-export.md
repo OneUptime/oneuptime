@@ -147,6 +147,8 @@ Chaque entrée est un objet JSON, dont les clés sont toujours dans cet ordre :
 
 Un fichier contient une entrée par ligne, compressée avec gzip, et il est classé selon l'heure de sa première entrée : `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Chaque `oldValue` et `newValue` est la valeur du champ : du texte, un nombre, `true` ou `false`, ou du JSON pour un réglage composé de plusieurs parties. Un numéro de téléphone, une adresse e-mail ou une URL est son texte, par exemple `+14155550100`, et un port est son numéro.
+
 Les clés, jetons et mots de passe ne sortent jamais : ils sont enregistrés comme `[REDACTED]`, et les champs que personne ne peut lire sont omis de chaque entrée.
 
 ## Versions de l'enregistrement

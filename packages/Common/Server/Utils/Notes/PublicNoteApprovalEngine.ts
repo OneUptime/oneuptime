@@ -34,11 +34,13 @@ import DatabaseService from "../../Services/DatabaseService";
 import TeamService from "../../Services/TeamService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import CreateBy from "../../Types/Database/CreateBy";
+import DeleteBy from "../../Types/Database/DeleteBy";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
+import type WorkspacePublicNoteApprovalMessage from "../../../Models/DatabaseModels/WorkspacePublicNoteApprovalMessage";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import PublicNoteApprovalFeed, {
@@ -192,10 +194,27 @@ export interface PublicNoteApprovalUpdate {
   // Published notes whose waiting edit was dropped by an edit back to the published text.
   droppedEditNoteIds: Array<string>;
   /*
+   * Published notes whose waiting edit gave way to an edit that applies as
+   * it is: their project no longer asks for approval. The edit is announced
+   * as any edit is; only the waiting one's chat messages are replaced.
+   */
+  withdrawnEditNoteIds?: Array<string> | undefined;
+  // The project of the one note an edit approval governs.
+  projectId?: string | undefined;
+  /*
    * The edit tells subscribers nothing now: the note is not published, or
    * its edit waits (its notification is queued when it is approved).
    */
   isUpdateNotificationHeld: boolean;
+}
+
+/*
+ * What onBeforeDelete hands onDeleteSuccess: the chat copies of the approval
+ * messages of the notes the delete removes, read before the database
+ * deletes them with the notes (ON DELETE CASCADE).
+ */
+export interface PublicNoteApprovalDelete {
+  chatMessages: Array<WorkspacePublicNoteApprovalMessage>;
 }
 
 // What a decision, a resubmission or a withdrawal leaves the note as.
@@ -445,6 +464,8 @@ export default class PublicNoteApprovalEngine {
     const note: NoteFields = notes[0]!;
     const noteId: string = this.idOf(note as unknown as BaseModel) || "";
     const state: PublicNoteApprovalState = PublicNoteApproval.getState(note);
+    // Whose chat messages the edit replaces, when it ends a round (afterUpdate).
+    const projectId: string | undefined = note.projectId?.toString();
     const round: PublicNoteApprovalRound | null = PublicNoteApproval.readRound(
       note.approval,
     );
@@ -476,6 +497,7 @@ export default class PublicNoteApprovalEngine {
         );
         this.holdToVersionRead(data.updateBy, note);
         result.resentNoteIds.push(noteId);
+        result.projectId = projectId;
       }
 
       return result;
@@ -493,6 +515,8 @@ export default class PublicNoteApprovalEngine {
           data.updateBy.data,
           PublicNoteApprovalWrites.forDroppedEdit(round),
         );
+        result.withdrawnEditNoteIds = [noteId];
+        result.projectId = projectId;
       }
 
       return result;
@@ -522,6 +546,7 @@ export default class PublicNoteApprovalEngine {
         );
         this.holdToVersionRead(data.updateBy, note);
         result.droppedEditNoteIds.push(noteId);
+        result.projectId = projectId;
         result.isUpdateNotificationHeld = true;
       }
 
@@ -548,6 +573,7 @@ export default class PublicNoteApprovalEngine {
 
     this.holdToVersionRead(data.updateBy, note);
     result.heldEditNoteIds.push(noteId);
+    result.projectId = projectId;
     result.isUpdateNotificationHeld = true;
 
     return result;
@@ -591,7 +617,8 @@ export default class PublicNoteApprovalEngine {
     if (
       update.heldEditNoteIds.length === 0 &&
       update.resentNoteIds.length === 0 &&
-      update.droppedEditNoteIds.length === 0
+      update.droppedEditNoteIds.length === 0 &&
+      (update.withdrawnEditNoteIds || []).length === 0
     ) {
       return null;
     }
@@ -645,6 +672,24 @@ export default class PublicNoteApprovalEngine {
 
     const handled: boolean = heldNoteIds.length > 0;
 
+    /*
+     * The edit ended the round each of these notes' approval messages asked
+     * about - sent it again, or dropped the edit that waited: the chat
+     * copies say so instead, in the background.
+     */
+    this.replaceChatMessagesOf({
+      host: data.host,
+      projectId: data.update.projectId,
+      noteIds: [
+        ...heldNoteIds,
+        ...(data.update.withdrawnEditNoteIds || []).filter(
+          (noteId: string): boolean => {
+            return written.has(noteId.toLowerCase());
+          },
+        ),
+      ],
+    });
+
     try {
       for (const noteId of [
         ...data.update.heldEditNoteIds,
@@ -687,6 +732,25 @@ export default class PublicNoteApprovalEngine {
     return handled;
   }
 
+  // The chat copies of these notes' approval messages, replaced in the background.
+  private static replaceChatMessagesOf<TNote extends BaseModel>(data: {
+    host: PublicNoteApprovalKind<TNote>;
+    projectId: string | undefined;
+    noteIds: Array<string>;
+  }): void {
+    if (!data.projectId) {
+      return;
+    }
+
+    for (const noteId of new Set<string>(data.noteIds)) {
+      PublicNoteApprovalNotifications.replaceChatMessages({
+        kind: data.host.kind,
+        projectId: new ObjectID(data.projectId),
+        noteId: new ObjectID(noteId),
+      });
+    }
+  }
+
   /*
    * The notes an update writes, as they are, for beforeUpdate - and the
    * update held to them (DatabaseService.findRowsAndHoldUpdateToThem): the
@@ -704,6 +768,139 @@ export default class PublicNoteApprovalEngine {
       data.updateBy,
       this.noteSelect(data.host),
     );
+  }
+
+  // ---------- deleting a note ----------
+
+  /*
+   * A delete of notes (onBeforeDelete): the notes it removes - the delete
+   * held to them (DatabaseService.findRowsAndHoldDeleteToThem) - and the
+   * chat copies of their approval messages, which the database deletes with
+   * them. afterDelete replaces those copies once the delete is done: "this
+   * public note was deleted", with no Approve or Reject left on them.
+   */
+  @CaptureSpan()
+  public static async beforeDelete<TNote extends BaseModel>(data: {
+    host: PublicNoteApprovalKind<TNote>;
+    deleteBy: DeleteBy<TNote>;
+  }): Promise<PublicNoteApprovalDelete> {
+    const notes: Array<NoteFields> =
+      (await data.host.service.findRowsAndHoldDeleteToThem(data.deleteBy, {
+        _id: true,
+        projectId: true,
+      } as Select<TNote>)) as unknown as Array<NoteFields>;
+
+    // Best effort: a delete never fails for its notes' chat copies.
+    try {
+      return {
+        chatMessages:
+          await PublicNoteApprovalNotifications.getChatMessages().readForNotes({
+            kind: data.host.kind,
+            notes: notes.map((note: NoteFields) => {
+              const id: string | null = this.idOf(note as unknown as BaseModel);
+
+              return {
+                id: id ? new ObjectID(id) : null,
+                projectId: note.projectId,
+              };
+            }),
+          }),
+      };
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not read the chat messages of public notes being deleted.",
+      );
+      logger.error(error);
+      return { chatMessages: [] };
+    }
+  }
+
+  /*
+   * After a delete of notes (onDeleteSuccess): the copies beforeDelete read,
+   * of the notes the delete removed, replaced in the background.
+   */
+  public static afterDelete(data: {
+    delete: PublicNoteApprovalDelete | null | undefined;
+    deletedIds: Array<ObjectID>;
+  }): void {
+    if (!data.delete || data.delete.chatMessages.length === 0) {
+      return;
+    }
+
+    try {
+      PublicNoteApprovalNotifications.getChatMessages().replaceDeleted({
+        kept: data.delete.chatMessages,
+        deletedIds: data.deletedIds,
+        by: "note",
+      });
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not replace the chat messages of deleted public notes.",
+      );
+      logger.error(error);
+    }
+  }
+
+  /*
+   * A delete of records - incidents, episodes, scheduled maintenance events
+   * - takes their public notes (of `kind`) with it, and with them the chat
+   * copies of the notes' approval messages: read here, before the delete
+   * (the record service's onBeforeDelete, with the records it removes), and
+   * replaced once it is done (afterRecordsDelete). Best effort: a delete
+   * never fails for them.
+   */
+  @CaptureSpan()
+  public static async beforeRecordsDelete(data: {
+    kind: PublicNoteKind;
+    records: Array<{
+      id?: ObjectID | null | undefined;
+      projectId?: ObjectID | undefined;
+    }>;
+  }): Promise<PublicNoteApprovalDelete> {
+    try {
+      return {
+        chatMessages:
+          await PublicNoteApprovalNotifications.getChatMessages().readForRecords(
+            {
+              kind: data.kind,
+              records: data.records,
+            },
+          ),
+      };
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not read the chat messages of the public notes of records being deleted.",
+      );
+      logger.error(error);
+      return { chatMessages: [] };
+    }
+  }
+
+  /*
+   * After a delete of records (onDeleteSuccess): the copies
+   * beforeRecordsDelete read, of the records the delete removed, replaced
+   * in the background.
+   */
+  public static afterRecordsDelete(data: {
+    delete: PublicNoteApprovalDelete | null | undefined;
+    deletedIds: Array<ObjectID>;
+  }): void {
+    if (!data.delete || data.delete.chatMessages.length === 0) {
+      return;
+    }
+
+    try {
+      PublicNoteApprovalNotifications.getChatMessages().replaceDeleted({
+        kept: data.delete.chatMessages,
+        deletedIds: data.deletedIds,
+        by: "record",
+      });
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not replace the chat messages of the public notes of deleted records.",
+      );
+      logger.error(error);
+    }
   }
 
   // ---------- deciding ----------
@@ -1776,6 +1973,19 @@ export default class PublicNoteApprovalEngine {
 
     if (written === 0) {
       throw new BadDataException(PublicNoteApprovalMessages.decidedMeanwhile);
+    }
+
+    /*
+     * Every such write decides, sends again or withdraws what the note's
+     * approval messages asked about: the chat copies that no longer ask
+     * what is true say what happened instead, in the background.
+     */
+    if (note.projectId) {
+      PublicNoteApprovalNotifications.replaceChatMessages({
+        kind: host.kind,
+        projectId: note.projectId,
+        noteId: new ObjectID(noteId),
+      });
     }
   }
 

@@ -840,3 +840,83 @@ describe("the project a press is read in", () => {
     }
   });
 });
+
+/*
+ * THE MESSAGE IN PLACE OF ONE THAT ASKED (#6317): what happened, and View in
+ * OneUptime - no Approve, no Reject - with the line a notification or a
+ * screen reader shows.
+ */
+describe("the message that replaces an approval message", () => {
+  const ANSWER: { markdown: string; text: string } = {
+    markdown:
+      "✅ This public note on [Incident INC-42](https://oneuptime.example/notes) was approved by **Bob**.",
+    text: "This public note was approved",
+  };
+
+  test("says what happened, and keeps View in OneUptime to the note's record", () => {
+    const message: WorkspaceDirectMessage =
+      WorkspacePublicNoteApproval.getReplacementMessage({
+        answer: ANSWER,
+        notesUrl: "https://oneuptime.example/notes",
+      });
+
+    expect(message.notificationText).toBe("This public note was approved");
+    expect(message.messageBlocks).toHaveLength(2);
+    expect((message.messageBlocks[0] as WorkspacePayloadMarkdown).text).toBe(
+      ANSWER.markdown,
+    );
+
+    const buttons: Array<WorkspaceMessagePayloadButton> = (
+      message.messageBlocks[1] as WorkspacePayloadButtons
+    ).buttons;
+
+    expect(
+      buttons.map((button: WorkspaceMessagePayloadButton) => {
+        return [button.title, button.actionId, button.url?.toString()];
+      }),
+    ).toEqual([
+      [
+        "View in OneUptime",
+        SlackActionType.OpenInOneUptime,
+        "https://oneuptime.example/notes",
+      ],
+    ]);
+  });
+
+  test("with no record left to open - or none that is a web address - it is the words alone", () => {
+    for (const notesUrl of [undefined, "", "not a web address"]) {
+      const message: WorkspaceDirectMessage =
+        WorkspacePublicNoteApproval.getReplacementMessage({
+          answer: ANSWER,
+          notesUrl: notesUrl,
+        });
+
+      expect(message.messageBlocks).toHaveLength(1);
+      expect(message.messageBlocks[0]!._type).toBe("WorkspacePayloadMarkdown");
+    }
+  });
+
+  test("nothing on it asks: no Approve, no Reject, in any chat", () => {
+    const message: WorkspaceDirectMessage =
+      WorkspacePublicNoteApproval.getReplacementMessage({
+        answer: ANSWER,
+        notesUrl: "https://oneuptime.example/notes",
+      });
+
+    const slack: string = JSON.stringify(
+      SlackUtil.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: message.messageBlocks,
+      }),
+    );
+    const teams: string = JSON.stringify(
+      MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
+        messageBlocks: message.messageBlocks,
+      }),
+    );
+
+    for (const sent of [slack, teams]) {
+      expect(sent).not.toContain(SlackActionType.ApprovePublicNote);
+      expect(sent).not.toContain(SlackActionType.ViewRejectPublicNote);
+    }
+  });
+});
