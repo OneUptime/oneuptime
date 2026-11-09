@@ -55,11 +55,14 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/Monitor/ResponseContentSwitchCopy";
 import JavaScriptExpressionValues from "Common/Server/Utils/Monitor/JavaScriptExpressionValues";
 import MonitorEvidenceRedaction from "Common/Server/Utils/Monitor/MonitorEvidenceRedaction";
+import MonitorQuotedValue from "Common/Server/Utils/Monitor/MonitorQuotedValue";
+import MonitorRecordEvidence from "Common/Server/Utils/Monitor/MonitorRecordEvidence";
 import ResponseExcerpt, {
   MatchExcerptResult,
   ResponseText,
 } from "Common/Server/Utils/Monitor/ResponseExcerpt";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import { JSONObject } from "Common/Types/JSON";
 import {
   MonitorEvaluationDetailsVersion,
   MonitorEvaluationExcerpt,
@@ -496,6 +499,9 @@ const MONITOR_INCIDENT: string = readCommonSource(
 );
 const MONITOR_ALERT: string = readCommonSource(
   "Server/Utils/Monitor/MonitorAlert.ts",
+);
+const MONITOR_LOG_UTIL: string = readCommonSource(
+  "Server/Utils/Monitor/MonitorLogUtil.ts",
 );
 const CRITERIA_INSTANCE_FORM: string = readDashboardSource(
   "Components/Form/Monitor/MonitorCriteriaInstance.tsx",
@@ -1707,6 +1713,42 @@ describe("what an incident or alert keeps of the check", () => {
     );
   });
 
+  it("masks the monitor's Monitoring Logs, and a value a root cause quotes, the same way", () => {
+    // The monitor's logs: each check, by the name and the text rules.
+    expect(MONITOR_MENU).toContain('title: "Monitoring Logs"');
+    expect(MONITOR_LOG_UTIL).toContain(
+      "logBody: MonitorRecordEvidence.redactCheck({",
+    );
+
+    const logged: JSONObject = MonitorRecordEvidence.redactCheck({
+      check: {
+        responseCode: 500,
+        responseHeaders: { authorization: "Basic YWxhZGRpbjpvcGVu" },
+        responseBody: { status: "down", email: "ana.lopez" },
+        failureCause: "checkout failed for ana@example.com",
+      },
+      keepResponseContent: true,
+    });
+
+    expect(logged).toEqual({
+      responseCode: 500,
+      responseHeaders: { authorization: REDACTED },
+      responseBody: { status: "down", email: REDACTED },
+      failureCause: `checkout failed for ${REDACTED}`,
+    });
+
+    // A root cause's quote of a value the check carried.
+    expect(
+      MonitorQuotedValue.quote(
+        "checkout failed for ana@example.com\nretry with password=hunter2",
+      ),
+    ).toBe(`checkout failed for ${REDACTED} retry with password=${REDACTED}`);
+
+    expect(kept).toContain(
+      "The monitor's **Monitoring Logs**, and any value a root cause quotes, are masked the same way.",
+    );
+  });
+
   it("keeps the URL as the monitor was set up: a secret's name, never its value, and no secret query value", () => {
     expect(
       MonitorEvidenceRedaction.redactUrl(
@@ -1733,14 +1775,14 @@ describe("what an incident or alert keeps of the check", () => {
     ]);
     expect(RESPONSE_CONTENT_SWITCH_COPY.cardTitle).toBe("Response content");
     expect(RESPONSE_CONTENT_SWITCH_COPY.switchTitle).toBe(
-      "Keep response content on incidents and alerts",
+      "Keep response content",
     );
     expect(RESPONSE_CONTENT_SWITCH_COPY.offDescription).toBe(
-      "Incidents and alerts keep no part of the response: only which filters matched, the status code and the response time.",
+      "Monitoring logs, incidents and alerts keep no part of the response: only which filters matched, the status code and the response time.",
     );
     expect(REQUEST_CONTENT_SWITCH_COPY.cardTitle).toBe("Request content");
     expect(REQUEST_CONTENT_SWITCH_COPY.switchTitle).toBe(
-      "Keep request content on incidents and alerts",
+      "Keep request content",
     );
 
     // On to start: a monitor keeps its response content until it is told not to.
@@ -1766,8 +1808,33 @@ describe("what an incident or alert keeps of the check", () => {
       "keepResponseContent: MonitorRecordEvidence.keepsResponseContent(",
     );
 
+    // And what the monitor's logs keep of each check it runs: off, no body and no headers.
+    expect(MONITOR_LOG_UTIL).toContain(
+      "keepResponseContent: data.keepResponseContent,",
+    );
+    expect(compact(MONITOR_RESOURCE)).toContain(
+      compact(
+        "keepResponseContent: MonitorRecordEvidence.keepsResponseContent(monitor),",
+      ),
+    );
+    expect(
+      MonitorRecordEvidence.redactCheck({
+        check: {
+          responseCode: 503,
+          responseTimeInMs: 840,
+          responseHeaders: { "content-type": "application/json" },
+          responseBody: '{"status":"down"}',
+        },
+        keepResponseContent: false,
+      }),
+    ).toEqual({
+      responseCode: 503,
+      responseTimeInMs: 840,
+      isResponseContentOmitted: true,
+    });
+
     expect(kept).toContain(
-      "> When a Website or API monitor's responses are sensitive in themselves, turn off **Keep response content on incidents and alerts** in the **Response content** card on its **Advanced → Settings** page. Its incidents and alerts then keep which filters matched, the status code and the response time, and no part of the response. An Incoming Request monitor has the same switch for the requests it receives: **Keep request content on incidents and alerts**, in the **Request content** card. The switch applies to the incidents and alerts opened after you change it.",
+      "> When a Website or API monitor's responses are sensitive in themselves, turn off **Keep response content** in the **Response content** card on its **Advanced → Settings** page. Its monitoring logs, incidents and alerts then keep which filters matched, the status code and the response time, and no part of the response. An Incoming Request monitor has the same switch for the requests it receives: **Keep request content**, in the **Request content** card. The switch applies to the checks that run, and the incidents and alerts that open, after you change it.",
     );
   });
 
