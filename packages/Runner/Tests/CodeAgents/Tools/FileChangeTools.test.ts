@@ -41,9 +41,9 @@ function call(
   return tool(context, args as never);
 }
 
-// The paths git would stage with `git add --all -- <paths>`, and how.
+// The paths the pipeline would stage (RepositoryManager.addPaths), and how.
 function stagedChanges(root: string, paths: Array<string>): string {
-  git(root, ["add", "--all", "--", ...paths]);
+  git(root, ["--literal-pathspecs", "add", "--all", "--", ...paths]);
   return git(root, ["diff", "--cached", "--name-status", "-M"]).trim();
 }
 

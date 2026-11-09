@@ -589,11 +589,15 @@ describe("what counts as the agent's change", () => {
 
     expect(result.filesModified).toContain("a file with spaces.ts");
 
-    // The real assertion: git accepts it.
-    execFileSync("git", ["add", "--all", "--", ...result.filesModified], {
-      cwd: workspace,
-      stdio: "ignore",
-    });
+    // The real assertion: git accepts it, staged as the pipeline stages it.
+    execFileSync(
+      "git",
+      ["--literal-pathspecs", "add", "--all", "--", ...result.filesModified],
+      {
+        cwd: workspace,
+        stdio: "ignore",
+      },
+    );
 
     expect(
       execFileSync("git", ["diff", "--cached", "--name-only"], {

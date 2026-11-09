@@ -12,7 +12,11 @@
  *   - a change across files: an edit, a new file, a deleted one, a moved one;
  *   - the repository's own tests run before and after the fix;
  *   - a long test run read whole, its failure found in the middle;
- *   - the same change on a global Runner, with the file tools alone.
+ *   - the same change on a global Runner, with the file tools alone;
+ *   - a task that needs no change: checked, answered, nothing changed.
+ *
+ * A task that outgrows the model's context window is in
+ * InHouseCodeAgentLongTask.test.ts.
  * ---------------------------------------------------------------------------
  */
 
@@ -232,7 +236,13 @@ async function runAgent(
 
 // What the pipeline would commit: the reported files, staged as it stages them.
 function stage(workspace: string, result: CodeAgentResult): string {
-  git(workspace, ["add", "--all", "--", ...result.filesModified]);
+  git(workspace, [
+    "--literal-pathspecs",
+    "add",
+    "--all",
+    "--",
+    ...result.filesModified,
+  ]);
   return git(workspace, ["diff", "--cached", "--name-status", "-M"]).trim();
 }
 
@@ -605,5 +615,63 @@ describe("on a global Runner", () => {
     expect(model.requests[0]!.messages[0]!.content).toContain(
       "- There is no command-running tool on this Runner",
     );
+  });
+});
+
+describe("a task that needs no change", () => {
+  test("is checked - the code read, the tests run - and answered, and nothing is changed", async () => {
+    const workspace: string = makeRepository({
+      "src/discount.js":
+        "exports.discount = (total) => { return total * 0.9; };\n",
+      "test.js": [
+        "const { discount } = require('./src/discount.js');",
+        "if (discount(100) !== 90) {",
+        "  console.log('FAIL discount');",
+        "  process.exitCode = 1;",
+        "} else {",
+        "  console.log('PASS discount');",
+        "}",
+        "",
+      ].join("\n"),
+    });
+    const answer: string =
+      "No change is needed: discount(100) already returns 90, and node test.js passes.";
+
+    const model: ScriptedModel = scriptModel([
+      () => {
+        return [
+          call("search_files", { pattern: "discount", glob: "*.js" }),
+          call("read_file", { path: "src/discount.js" }),
+        ];
+      },
+      (shown: Array<string>) => {
+        expect(last(shown)).toBe(
+          "     1\texports.discount = (total) => { return total * 0.9; };",
+        );
+        return [
+          call("run_command", { command: "node test.js" }),
+          call("git", { action: "status" }),
+        ];
+      },
+      (shown: Array<string>) => {
+        expect(shown.slice(-2)).toEqual([
+          "Exit code: 0\nPASS discount",
+          "## main",
+        ]);
+        return answer;
+      },
+    ]);
+
+    const result: CodeAgentResult = await runAgent(workspace);
+
+    expectNoTurnErrors(model);
+
+    // The answer is the work: a success that changed nothing, in its words.
+    expect(result.success).toBe(true);
+    expect(result.summary).toBe(answer);
+    expect(result.filesModified).toEqual([]);
+    expect(result.needsInput).toBeUndefined();
+    expect(git(workspace, ["status", "--porcelain"])).toBe("");
+    expect(model.requests).toHaveLength(3);
   });
 });
