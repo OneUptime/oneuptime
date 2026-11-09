@@ -88,18 +88,18 @@ function makeHolder(): Holder {
     hold: (text: string): string => {
       held.push(text);
 
-      return `${held.length - 1}`;
+      return `\uE005${held.length - 1}\uE006`;
     },
     putBack: (text: string): string => {
       let restored: string = "";
       let restoredUpTo: number = 0;
 
       for (
-        let open: number = text.indexOf("");
+        let open: number = text.indexOf("\uE005");
         open !== -1;
-        open = text.indexOf("", restoredUpTo)
+        open = text.indexOf("\uE005", restoredUpTo)
       ) {
-        const close: number = text.indexOf("", open);
+        const close: number = text.indexOf("\uE006", open);
 
         restored +=
           text.slice(restoredUpTo, open) +
@@ -168,14 +168,12 @@ describe("getBase64Runs", () => {
     expect(getBase64Runs(short)).toEqual([]);
     expect(getBase64Runs(long)).toEqual([{ start: 8, end: 8 + 1024 }]);
     expect(getBase64Runs(short, 1023)).toEqual([{ start: 8, end: 8 + 1023 }]);
-    expect(getBase64Runs(`![](data:image/png;base64,${PNG_1X1})`, 1)).toEqual(
-      [
-        {
-          start: 26,
-          end: 26 + PNG_1X1.length - 2,
-        },
-      ],
-    );
+    expect(getBase64Runs(`![](data:image/png;base64,${PNG_1X1})`, 1)).toEqual([
+      {
+        start: 26,
+        end: 26 + PNG_1X1.length - 2,
+      },
+    ]);
   });
 
   test.each([
@@ -187,19 +185,16 @@ describe("getBase64Runs", () => {
     ["base64url's minus", "-AAAA"],
     ["base64url's underscore", "_AAAA"],
     ["a percent sign", "%2BAAAA"],
-    ["a token character", ""],
+    ["a token character", "\uE005"],
     ["a letter of another alphabet", "éAAAA"],
     ["an emoji", "😀AAAA"],
-  ])(
-    "ends a run at %s",
-    (_label: string, after: string) => {
-      const data: string = base64Characters(1500, 5);
+  ])("ends a run at %s", (_label: string, after: string) => {
+    const data: string = base64Characters(1500, 5);
 
-      expect(getBase64Runs(`;base64,${data}${after}`)).toEqual([
-        { start: 8, end: 8 + data.length },
-      ]);
-    },
-  );
+    expect(getBase64Runs(`;base64,${data}${after}`)).toEqual([
+      { start: 8, end: 8 + data.length },
+    ]);
+  });
 
   test("finds every run, in order - one right after another too", () => {
     const first: string = base64Characters(1100, 6);
@@ -252,7 +247,7 @@ describe("holdBackBase64Data", () => {
 
     expect(holder.held).toEqual([data.slice(0, -1)]);
     expect(markdown).toBe(
-      `Monitor is down - Timeout 30000ms exceeded\n![](data:image/jpeg;base64,0${data.slice(-1)}==)`,
+      `Monitor is down - Timeout 30000ms exceeded\n![](data:image/jpeg;base64,\uE0050\uE006${data.slice(-1)}==)`,
     );
     expect(holder.putBack(markdown)).toBe(text);
   });
@@ -274,7 +269,7 @@ describe("holdBackBase64Data", () => {
 
     expect(
       holdBackBase64Data(`![](data:image/png;base64,${data})`, holder.hold),
-    ).toBe(`![](data:image/png;base64,0${data.slice(-1)})`);
+    ).toBe(`![](data:image/png;base64,\uE0050\uE006${data.slice(-1)})`);
     expect(holder.held).toEqual([data.slice(0, -1)]);
   });
 
@@ -322,9 +317,7 @@ describe("holdBackBase64Data", () => {
 
       const markdown: string = holdBackBase64Data(text, holder.hold);
 
-      expect(markdown).toBe(
-        `${before}0${data.slice(-1)}) and after`,
-      );
+      expect(markdown).toBe(`${before}\uE0050\uE006${data.slice(-1)}) and after`);
       expect(holder.putBack(markdown)).toBe(text);
     },
   );
@@ -344,9 +337,9 @@ describe("holdBackBase64Data", () => {
       const data: string = base64Characters(2000, 15);
       const holder: Holder = makeHolder();
 
-      expect(
-        holdBackBase64Data(`;base64,${data}${after}`, holder.hold),
-      ).toBe(`;base64,0${data.slice(-1)}${after}`);
+      expect(holdBackBase64Data(`;base64,${data}${after}`, holder.hold)).toBe(
+        `;base64,\uE0050\uE006${data.slice(-1)}${after}`,
+      );
     },
   );
 
@@ -464,7 +457,7 @@ describe("holdBackBase64Data", () => {
           return holdBackBase64Data(text, (): string => {
             held++;
 
-            return "";
+            return "\uE005\uE006";
           });
         },
         limitInMs: 2000,
