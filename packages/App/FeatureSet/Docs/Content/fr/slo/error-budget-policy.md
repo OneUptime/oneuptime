@@ -1,11 +1,12 @@
 # Politique de budget d'erreur
 
-Une politique de budget d'erreur écrit ce que votre équipe s'est engagée à faire à mesure que le budget d'erreur d'un SLO diminue, par exemple examiner les changements risqués une fois la moitié dépensée, ou geler les mises en production une fois le budget épuisé. OneUptime place le SLO dans le palier de la politique que son budget a atteint, affiche l'engagement de l'équipe pour ce palier sur les pages du SLO, et peut déclencher une alerte ou déclarer un incident quand le SLO entre dans un palier. C'est la pratique de politique de budget d'erreur du [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+Une politique de budget d'erreur écrit ce que votre équipe s'est engagée à faire à mesure que le budget d'erreur d'un SLO diminue, par exemple examiner les changements risqués une fois la moitié dépensée, ou geler les mises en production une fois le budget épuisé. OneUptime place le SLO dans le palier de la politique que son budget a atteint, affiche l'engagement de l'équipe pour ce palier sur les pages du SLO, peut déclencher une alerte ou déclarer un incident quand le SLO entre dans un palier, et indique à vos pipelines CI/CD s'ils doivent retenir les mises en production. C'est la pratique de politique de budget d'erreur du [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Fonctionnement des paliers](#fonctionnement-des-paliers): Quel palier s'applique, et quand le SLO le quitte.
 - [Mettre en place une politique](#mettre-en-place-une-politique): Partir de la politique recommandée, ou écrire vos propres paliers.
 - [Alertes et incidents](#alertes-et-incidents): Alerter votre équipe quand le SLO entre dans un palier.
+- [Barrière de déploiement](#barrière-de-déploiement): Retenir les mises en production dans la CI/CD tant qu'un palier gèle les déploiements.
 - [Lire le palier par l'API](#lire-le-palier-par-lapi): Vérifier le palier depuis la CI et des scripts.
 :::
 
@@ -20,6 +21,8 @@ Une politique est un ensemble de paliers. Chaque palier a trois champs :
 | **Ce que nous faisons** | Ce que l'équipe s'est engagée à faire tant que le SLO est dans le palier, en Markdown. Obligatoire, jusqu'à 10 000 caractères. |
 
 Un palier s'applique tant que le budget restant est égal ou inférieur à son seuil : un palier à 0 % est donc celui d'un budget épuisé. Quand plusieurs paliers s'appliquent, le SLO est dans celui qui a le seuil le plus bas : le plus grave. Quand aucun ne s'applique, le SLO n'est dans aucun palier. Avec des paliers à 50 %, 25 % et 0 %, un SLO à qui il reste 30 % de son budget est dans le palier à 50 %, et un SLO à qui il en reste 10 % est dans le palier à 25 %.
+
+Un palier peut aussi geler les déploiements tant que le SLO s'y trouve : voir [Barrière de déploiement](#barrière-de-déploiement).
 
 ### Entrer dans un palier et en sortir
 
@@ -59,7 +62,7 @@ Tant que le SLO n'a aucun palier, la page propose **Utiliser la politique recomm
 
 ### Ou ajouter un palier vous-même
 
-Cliquez sur **Créer : Palier de politique de budget d'erreur du SLO**. Saisissez un **Nom** et un **Seuil de budget restant (%)**, et écrivez l'engagement de l'équipe dans **Ce que nous faisons**.
+Cliquez sur **Créer : Palier de politique de budget d'erreur du SLO**. Saisissez un **Nom** et un **Seuil de budget restant (%)**, et écrivez l'engagement de l'équipe dans **Ce que nous faisons**. Activez **Geler les déploiements** si les pipelines doivent retenir les mises en production tant que le SLO est dans le palier.
 
 ### Choisir ce que le palier déclenche
 
@@ -72,21 +75,21 @@ Ajouter, modifier ou supprimer un palier prend effet tout de suite : OneUptime �
 
 **Utiliser la politique recommandée** ajoute trois paliers, à la moitié du budget, au quart et à zéro, avec ce texte en anglais :
 
-| Palier | S'applique à | Ce que fait l'équipe |
-| --- | --- | --- |
-| **Caution** | 50 % restant ou moins | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. |
-| **Reliability first** | 25 % restant ou moins | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. |
-| **Budget exhausted** | 0 % restant ou moins | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. |
+| Palier | S'applique à | Ce que fait l'équipe | Déploiements |
+| --- | --- | --- | --- |
+| **Caution** | 50 % restant ou moins | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. | Autorisés |
+| **Reliability first** | 25 % restant ou moins | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | Autorisés |
+| **Budget exhausted** | 0 % restant ou moins | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | Gelés |
 
-Aucun d'eux ne déclenche d'alerte ni ne déclare d'incident tant que vous ne l'activez pas. Seuls les paliers que le SLO n'a pas sont ajoutés : un palier avec le même nom, ou avec le même seuil, compte comme présent, qu'il soit activé ou non. Le demander deux fois, depuis un deuxième onglet ou par l'API, n'ajoute donc rien en double. Chaque palier ajouté ainsi est enregistré dans les journaux d'audit du SLO comme ajouté par vous.
+Aucun d'eux ne déclenche d'alerte ni ne déclare d'incident tant que vous ne l'activez pas. **Budget exhausted** gèle les déploiements, comme le dit son engagement, et la confirmation le signale : voir [Barrière de déploiement](#barrière-de-déploiement). Les paliers ajoutés avant que la barrière existe ne gèlent rien tant que vous n'activez pas le gel. Seuls les paliers que le SLO n'a pas sont ajoutés : un palier avec le même nom, ou avec le même seuil, compte comme présent, qu'il soit activé ou non. Le demander deux fois, depuis un deuxième onglet ou par l'API, n'ajoute donc rien en double. Chaque palier ajouté ainsi est enregistré dans les journaux d'audit du SLO comme ajouté par vous.
 
 ## Où le palier apparaît
 
-- La **Vue d'ensemble** du SLO affiche le palier dans lequel il se trouve et ce que l'équipe s'est engagée à y faire, pour que chaque personne qui ouvre le SLO voie l'engagement qui s'applique maintenant.
+- La **Vue d'ensemble** du SLO affiche le palier dans lequel il se trouve et ce que l'équipe s'est engagée à y faire, pour que chaque personne qui ouvre le SLO voie l'engagement qui s'applique maintenant. Tant que le palier gèle les déploiements, un badge rouge sous son nom indique depuis quand.
 - Le graphique **Consommation du budget d'erreur** trace une ligne libellée au seuil de chaque palier, à côté de celle du seuil à risque.
-- Le **Fil d'activité** du SLO publie chaque changement de palier : le palier que le SLO a quitté et celui où il est entré, le budget restant, et ce que l'équipe s'est engagée à faire dans le nouveau palier.
-- Les **Journaux d'audit** du SLO enregistrent chaque changement de palier comme un changement fait par OneUptime lui-même, et ne l'affichent donc qu'avec **Stocker les événements système** activé : voir [Activer les journaux d'audit](/docs/slo/feed-and-audit-logs#activer-les-journaux-daudit). L'ajout, la modification et la suppression d'un palier sont enregistrés au nom de la personne qui les a faits.
-- L'API de lecture du SLO renvoie le palier : voir [Lire le palier par l'API](#lire-le-palier-par-lapi).
+- Le **Fil d'activité** du SLO publie chaque changement de palier : le palier que le SLO a quitté et celui où il est entré, le budget restant, ce que l'équipe s'est engagée à faire dans le nouveau palier, et si le changement a gelé les déploiements ou les a de nouveau autorisés.
+- Les **Journaux d'audit** du SLO enregistrent chaque changement de palier, ainsi que chaque gel des déploiements et chaque nouvelle autorisation, comme un changement fait par OneUptime lui-même, et ne les affichent donc qu'avec **Stocker les événements système** activé : voir [Activer les journaux d'audit](/docs/slo/feed-and-audit-logs#activer-les-journaux-daudit). L'ajout, la modification et la suppression d'un palier sont enregistrés au nom de la personne qui les a faits.
+- L'API de lecture du SLO renvoie le palier, et si les déploiements sont autorisés : voir [Lire le palier par l'API](#lire-le-palier-par-lapi) et [Barrière de déploiement](#barrière-de-déploiement).
 
 ## Alertes et incidents
 
@@ -124,6 +127,98 @@ La description intégrée nomme le palier, compare le budget restant au seuil du
 - Un SLO **En pause** ou **Mal configuré** ne mesure aucun budget : son palier reste donc où il était, et ce que le palier a déclenché reste ouvert jusqu'à la reprise de la mesure. Les règles de taux de consommation, elles, résolvent alors ce qu'elles ont d'ouvert.
 - Désactiver l'évaluation du SLO, ou archiver le SLO, résout ce que ses paliers ont déclenché. Le palier dans lequel se trouve le SLO reste tel quel.
 - Supprimer le SLO supprime ses paliers et résout ce qu'ils ont déclenché.
+- Dans chacun de ces cas, le SLO garde la réponse qu'il donnait sur les déploiements, parce qu'il garde son palier : voir [Barrière de déploiement](#barrière-de-déploiement).
+
+## Barrière de déploiement
+
+Un palier peut geler les déploiements. Tant que le SLO est dans un palier où **Geler les déploiements** est activé, le champ `deploymentsAllowed` du SLO vaut `false` : un pipeline CI/CD qui le vérifie avant une mise en production retient donc la mise en production. Sinon, il vaut `true` : quand le SLO n'a pas de politique, tant que son budget est au-dessus de tous les paliers, et dans un palier qui ne gèle pas les déploiements. Le palier **Budget exhausted** de la politique recommandée gèle les déploiements.
+
+:::steps
+### Activer Geler les déploiements
+
+Ouvrez la **Politique de budget d'erreur** du SLO, modifiez le palier, activez **Geler les déploiements** et enregistrez. Dans le tableau, la colonne **Déploiements** du palier indique alors **Gelés**.
+
+### Donner une clé au pipeline
+
+Créez une [clé d'API](/docs/api-reference/api-reference) du projet qui peut lire le SLO, et enregistrez-la comme secret du pipeline sous le nom `ONEUPTIME_API_KEY`.
+
+### Vérifier le SLO avant la mise en production
+
+Ajoutez la vérification ci-dessous comme étape avant celle qui déploie, avec l'ID du SLO à la place de `<slo-id>`.
+:::
+
+:::tabs
+@tab Shell
+```bash
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
+```
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop while the error budget policy freezes deployments
+        env:
+          ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+          SLO_ID: <slo-id>
+        run: |
+          SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item" \
+            -H "ApiKey: $ONEUPTIME_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
+            echo "Not deploying: $SLO"
+            exit 1
+          fi
+      - name: Deploy
+        run: ./deploy.sh
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+error-budget-gate:
+  stage: test
+  image: alpine:3.20
+  variables:
+    SLO_ID: <slo-id>
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - >
+      SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item"
+      -H "ApiKey: $ONEUPTIME_API_KEY"
+      -H 'Content-Type: application/json'
+      -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+    - echo "$SLO"
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
+```
+:::
+
+La vérification ne réussit que si la réponse est `true`. Un SLO gelé, une réponse sans le champ (la clé ne peut pas lire le SLO, ou l'ID est faux) et l'absence de toute réponse arrêtent chacun l'étape : un pipeline ne met donc jamais en production sur la foi d'une réponse qu'il n'a pas reçue. Dans GitLab CI, le job s'exécute dans le stage test, si bien qu'un SLO gelé arrête le stage deploy qui le suit ; ajoutez `ONEUPTIME_API_KEY` comme variable CI/CD masquée. Sur une installation auto-hébergée, utilisez sa propre adresse au lieu de oneuptime.com.
+
+Le SLO répond avec deux champs, qui se lisent avec l'autorisation de lecture du SLO lui-même :
+
+| Champ | Ce qu'il contient |
+| --- | --- |
+| `deploymentsAllowed` | `false` tant que le SLO est dans un palier qui gèle les déploiements, `true` sinon. |
+| `deploymentsFrozenAt` | Le moment où les déploiements ont été gelés. Vide tant qu'ils sont autorisés. |
+
+Comment la réponse évolue :
+
+- Les déploiements sont gelés par l'évaluation qui place le SLO dans un palier qui les gèle, et de nouveau autorisés par celle qui l'en fait sortir, avec les marges de sortie propres au palier : voir [Entrer dans un palier et en sortir](#entrer-dans-un-palier-et-en-sortir). D'un palier qui gèle à un autre, ils restent gelés, et `deploymentsFrozenAt` garde son heure.
+- Activer ou désactiver **Geler les déploiements** pour le palier dans lequel se trouve le SLO prend effet en une minute environ. Pour mettre en production avant que le budget se rétablisse, désactivez-le : le changement est enregistré à votre nom dans les journaux d'audit du SLO.
+- Un SLO **En pause** ou **Mal configuré** garde la réponse qu'il avait, comme il garde son palier : une fenêtre de maintenance qui met en pause tous les moniteurs ne lève pas de gel et n'en déclenche pas non plus. Un SLO désactivé ou archivé n'est pas évalué du tout, il garde donc lui aussi sa réponse.
+- Tant que les déploiements sont gelés, la **Vue d'ensemble** du SLO indique depuis quand, et son **Fil d'activité** indique quand ils sont gelés puis de nouveau autorisés.
 
 ## Lire le palier par l'API
 
@@ -164,7 +259,7 @@ Ces autorisations se trouvent dans le groupe SLO d'un rôle. Les rôles Project 
 
 ## Pas encore disponible
 
-Certaines parties d'une politique de budget d'erreur ne sont pas encore disponibles : une barrière de déploiement qui bloque les mises en production d'elle-même (une tâche de CI peut lire le palier par l'API à la place), des déclencheurs de workflow et des notifications Slack ou Microsoft Teams pour chaque palier, une politique partagée par plusieurs SLO, l'acquittement d'un palier ou l'octroi d'une exception, et des paliers fondés sur l'autonomie du budget plutôt que sur le budget restant.
+Certaines parties d'une politique de budget d'erreur ne sont pas encore disponibles : des déclencheurs de workflow et des notifications Slack ou Microsoft Teams pour chaque palier, une politique partagée par plusieurs SLO, l'acquittement d'un palier ou l'octroi d'une exception, et des paliers fondés sur l'autonomie du budget plutôt que sur le budget restant. OneUptime n'arrête pas de lui-même une mise en production : c'est un pipeline qui vérifie `deploymentsAllowed` qui le fait, comme le montre [Barrière de déploiement](#barrière-de-déploiement).
 
 ## Prochaines étapes
 

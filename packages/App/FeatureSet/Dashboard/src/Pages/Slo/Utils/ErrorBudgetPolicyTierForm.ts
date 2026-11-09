@@ -32,8 +32,11 @@ import {
  *
  * A tier is a level of budget left and what the team agreed to do there
  * (Common/Utils/Slo/SloErrorBudgetPolicy), so the form asks exactly that
- * first: its Name, its Budget Left Threshold (%) and What We Do. Most tiers
- * stop there - a policy is an agreement, not a page.
+ * first: its Name, its Budget Left Threshold (%) and What We Do, and under
+ * them Freeze Deployments - whether CI/CD pipelines hold releases back while
+ * the SLO is in the tier, which is part of the agreement rather than
+ * something the tier raises. Most tiers stop there - a policy is an
+ * agreement, not a page.
  *
  * The alert and incident a tier can raise when the SLO enters it are folded
  * away in one section, both switched off, as the columns default: open it,
@@ -288,6 +291,22 @@ export const ERROR_BUDGET_POLICY_TIER_FORM_FIELDS: Array<
     validation: {
       maxLength: SLO_POLICY_TIER_WHAT_WE_DO_MAX_LENGTH,
     },
+  },
+  /*
+   * The deploy gate's switch, with the tier's own fields: it raises nothing,
+   * so it is not folded away with the alert and incident options. Off by
+   * default, as its column is - BasicForm applies only a truthy
+   * defaultValue, so none is set.
+   */
+  {
+    field: {
+      freezesDeployments: true,
+    },
+    title: "Freeze Deployments",
+    description:
+      "While the SLO is in this tier, CI/CD pipelines that check it hold back releases.",
+    fieldType: FormFieldSchemaType.Toggle,
+    required: false,
   },
   /*
    * A new tier starts enabled (the column's default), so the switch is on

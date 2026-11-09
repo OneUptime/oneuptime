@@ -1519,6 +1519,11 @@ jobs:
           # SLO Burn Rate grew by the SLO list's Add recommended rules (3
           # tests, about 0.2 minutes locally: the confirmation, the add and a
           # second run, and a phone's width) on 2026-11-08: 1.9, so 21.8.
+          # It grew again by the deploy gate (2 tests, about 0.1 minutes
+          # locally: an SLO whose tier freezes deployments, its Overview's
+          # "Deployments frozen since" badge at 1280 and 390 pixels, and an
+          # SLO in a tier that freezes nothing, with no badge) on 2026-11-09:
+          # 2.0, so 21.9.
           - group: 17
             suites: >-
               test-snmp-walk-ui
