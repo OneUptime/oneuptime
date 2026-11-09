@@ -229,9 +229,14 @@ const RemediationFixStepList: FunctionComponent<ComponentProps> = (
                 {/*
                   Why, or what went wrong. What OneUptime AI or an agent wrote
                   reads in its own direction, two lines of it: the open step
-                  has all of it (and so says it once, not twice).
+                  has all of it (and so says it once, not twice) - as it has
+                  a summary its details say again (isSummaryInDetails).
                 */}
-                {step.summary && !(isOpen && step.isSummaryWritten) ? (
+                {step.summary &&
+                !(
+                  isOpen &&
+                  (step.isSummaryWritten || step.isSummaryInDetails)
+                ) ? (
                   <p
                     dir={step.isSummaryWritten ? "auto" : undefined}
                     data-testid={

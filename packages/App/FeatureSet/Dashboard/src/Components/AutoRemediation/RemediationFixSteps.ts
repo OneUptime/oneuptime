@@ -40,8 +40,21 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import {
   REMEDIATION_FIX_STEP_COPY,
+  REMEDIATION_ROUND_COPY,
   REMEDIATION_TWO_APPROVALS_COPY,
 } from "./RemediationStepCopy";
+import {
+  getRemediationRoundRetryWait,
+  hasRemediationRoundDetails,
+  isRemediationRoundUnfinished,
+  RemediationRoundView,
+} from "./RemediationRoundView";
+import {
+  describeAiRunFailureCause,
+  describeAttemptEnd,
+  readAiRunFailure,
+} from "../AI/AiRunFailureWords";
+import { AIRunAttemptEnd } from "Common/Types/AI/AIRunAttempt";
 
 /*
  * A FIX ON THE AI CARD'S REMEDIATION STEP, STEP BY STEP (issue #5598).
@@ -116,6 +129,12 @@ export interface RemediationFixStep {
    */
   summary: string | null;
   isSummaryWritten: boolean;
+  /*
+   * The summary is said again, whole, where the step opens - as a written
+   * summary always is - so the open step leaves it out: a round that
+   * stopped says why in its notice (issue #6436).
+   */
+  isSummaryInDetails?: boolean | undefined;
   // When it happened, when that is known.
   at: Date | null;
   // It opens to more: the reasoning, the commands, their output.
@@ -626,6 +645,14 @@ export function getRemediationFixSteps(data: {
    */
   isTwoApprovalsRuleOn?: boolean | undefined;
   readerUserId?: string | undefined;
+  /*
+   * How the fix's round went, as the step read it (RemediationRoundView,
+   * issue #6436): a round that stopped says so - not that it found no fix
+   * - and why; one that found none says why in the AI's words; one that
+   * waits to try again says when. Left out (not read yet, or not an AI
+   * round), the fix reads as its row says.
+   */
+  round?: RemediationRoundView | undefined;
 }): Array<RemediationFixStep> {
   const translator: Translator = data.translator || getGlobalTranslator();
   const suggestion: RemediationFixStepSuggestion = data.suggestion;
@@ -665,10 +692,48 @@ export function getRemediationFixSteps(data: {
   );
 
   const steps: Array<RemediationFixStep> = [];
+  const round: RemediationRoundView | undefined = data.round;
+  const hasRoundDetails: boolean = hasRemediationRoundDetails(round);
 
   // --- plan: what OneUptime AI worked out, or that it found nothing ---
 
+  /*
+   * Its round stopped without its answer - its run failed, stopped
+   * answering or expired in the queue - and changed nothing: that is what
+   * happened, never "Found no safe fix" (issue #6436). Why, in the
+   * reader's language, under it; what to do and Try again where it opens.
+   */
+  if (isRemediationRoundUnfinished({ status, round })) {
+    steps.push({
+      kind: "plan",
+      tone: "failed",
+      title: text(
+        isRunbook
+          ? REMEDIATION_ROUND_COPY.unfinishedRunbook
+          : REMEDIATION_ROUND_COPY.unfinishedFix,
+      ),
+      summary: describeAiRunFailureCause(
+        readAiRunFailure({
+          events: round!.events,
+          errorMessage: round!.run?.errorMessage || undefined,
+        }),
+        translator,
+      ),
+      isSummaryWritten: false,
+      // Its notice, where the step opens, starts with the same words.
+      isSummaryInDetails: true,
+      at: readRemediationMoment(round!.run?.completedAt) || createdAt,
+      hasDetails: true,
+    });
+
+    return steps;
+  }
+
   if (status === AutoRemediationSuggestionStatus.Planning) {
+    // Its last attempt did not finish, and it tries again on its own.
+    const retryWait: AIRunAttemptEnd | null =
+      getRemediationRoundRetryWait(round);
+
     steps.push({
       kind: "plan",
       tone: "live",
@@ -677,16 +742,24 @@ export function getRemediationFixSteps(data: {
           ? REMEDIATION_FIX_STEP_COPY.pickingRunbook
           : REMEDIATION_FIX_STEP_COPY.composing,
       ),
-      summary: null,
+      summary: retryWait ? describeAttemptEnd(retryWait, translator) : null,
       isSummaryWritten: false,
       at: createdAt,
-      hasDetails: false,
+      // The commands it has checked with so far.
+      hasDetails: hasRoundDetails,
     });
 
     return steps;
   }
 
   if (status === AutoRemediationSuggestionStatus.NoneApplicable) {
+    /*
+     * Why it found none, as the AI said it when it ended (explain_no_fix):
+     * one or two sentences. Older rounds, and an AI that did not say,
+     * read their reasoning as before.
+     */
+    const reason: string | null = round?.explanation?.reason || reasoning;
+
     steps.push({
       kind: "plan",
       tone: "idle",
@@ -695,10 +768,14 @@ export function getRemediationFixSteps(data: {
           ? REMEDIATION_FIX_STEP_COPY.noRunbook
           : REMEDIATION_FIX_STEP_COPY.noSafeFix,
       ),
-      summary: reasoning,
-      isSummaryWritten: Boolean(reasoning),
+      summary: reason,
+      isSummaryWritten: Boolean(reason),
       at: createdAt,
-      hasDetails: hasReasoning,
+      /*
+       * What it ruled out and what it checked, once its round is read -
+       * and always that no fix ran and nobody was asked to approve one.
+       */
+      hasDetails: true,
     });
 
     return steps;
@@ -730,6 +807,7 @@ export function getRemediationFixSteps(data: {
     at: createdAt,
     hasDetails:
       hasReasoning ||
+      hasRoundDetails ||
       commands.length > 0 ||
       // Changes not sent yet are read where they were planned.
       (calls.length > 0 && sentCalls.length === 0),

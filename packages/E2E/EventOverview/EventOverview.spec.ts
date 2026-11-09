@@ -22823,6 +22823,442 @@ test.describe("a fix that did not work, step by step (?fixes=rolled-back)", () =
 });
 
 /*
+ * A ROUND OF AN AI FIX, SAID AS IT WENT (?fixes=unfinished | no-fix, issues
+ * #6436 and #6487). "No safe fix found" told a reader nothing: not why, not
+ * what OneUptime AI checked, not which fix was not safe, not whether anyone
+ * was asked to approve one. The step reads each fix's round
+ * (POST /auto-remediation/round) and says what it did. A round that stopped
+ * says so, why and what to do, with Try again for whoever may change the
+ * incident (POST /auto-remediation/round-try-again). A round that found no
+ * safe fix says why in the AI's words, the fixes it ruled out with the
+ * commands each would run and why not, the commands it checked with and how
+ * each went, and that no fix ran and nobody was asked to approve one.
+ */
+const UNFINISHED_ROUND_FIX_ID: string = "93000000-0000-4000-8000-000000000010";
+const ROUND_TIMEOUT_CAUSE: string =
+  "The AI provider did not answer within 120 seconds.";
+// The fixture's refusal of the round's Try again (?fail=round-try-again).
+const ROUND_LIMIT_REFUSAL: string =
+  "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.";
+const NO_FIX_REASON: string =
+  "checkout-api's pods are healthy and the HPA has room to scale. The latency began with the 17:52 rollout, and rolling it back is not safe: that release also changed the database schema.";
+
+async function openRound(page: Page, query: string): Promise<Locator> {
+  await open(page, INCIDENT_PATH, query);
+  const fix: Locator = remediationStep(page).getByTestId("remediation-fix");
+  await expect(fix).toHaveCount(1, { timeout: 30000 });
+  await expectWhatHappenedSettled(page);
+
+  return fix;
+}
+
+function roundPlanTitle(fix: Locator): Locator {
+  return fixStep(fix, "plan").getByTestId("remediation-fix-step-title");
+}
+
+async function openRoundPlan(fix: Locator): Promise<Locator> {
+  await fixStep(fix, "plan").getByTestId("remediation-fix-step-toggle").click();
+  const details: Locator = fixStep(fix, "plan").getByTestId(
+    "remediation-fix-step-details",
+  );
+  await expect(details).toBeVisible();
+
+  return details;
+}
+
+function roundNotice(fix: Locator): Locator {
+  return fixStep(fix, "plan").getByTestId("remediation-round-failure");
+}
+
+function roundTryAgain(fix: Locator): Locator {
+  return roundNotice(fix).getByRole("button", { name: "Try again" });
+}
+
+test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix)", () => {
+  test("a round that stopped says so and why - never that it found no safe fix - and opens to what to do, Try again and what it checked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(
+      page,
+      "fixes=unfinished&state=ongoing",
+    );
+    await expect(roundPlanTitle(fix)).toHaveText(
+      "Stopped before it found a fix",
+      { timeout: 30000 },
+    );
+
+    expect(await stepWords(fix, "plan")).toEqual({
+      title: "Stopped before it found a fix",
+      summary: ROUND_TIMEOUT_CAUSE,
+    });
+    await expect(fix.getByTestId("remediation-fix-status")).toHaveText(
+      "Did not finish",
+    );
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).toHaveText("Did not finish");
+    await expect(remediationStep(page)).not.toContainText("Found no safe fix");
+
+    const details: Locator = await openRoundPlan(fix);
+    const notice: Locator = roundNotice(fix);
+    await expect(
+      notice.getByText("Why it stopped", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      notice.getByTestId("remediation-round-failure-cause"),
+    ).toHaveText(ROUND_TIMEOUT_CAUSE);
+    // The notice starts with the step's summary: the open step says it once.
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-fix-step-summary"),
+    ).toHaveCount(0);
+    await expect(
+      notice.getByTestId("remediation-round-failure-tries"),
+    ).toHaveText("OneUptime tried 3 times.");
+    await expect(
+      notice.getByTestId("remediation-round-failure-fix"),
+    ).toContainText("Response Timeout");
+    await expect(roundTryAgain(fix)).toBeEnabled();
+    await expect(
+      notice.getByRole("link", { name: "Open LLM Providers" }),
+    ).toHaveAttribute("href", `${DASHBOARD}/settings/llm-providers`);
+
+    // The provider's own words wait under Details.
+    await notice.getByRole("button", { name: "Details" }).click();
+    await expect(
+      notice.getByTestId("remediation-round-failure-details"),
+    ).toHaveText(
+      "OpenAI API request failed: the LLM provider did not respond within 120 seconds.",
+    );
+
+    // What it checked before it stopped, and that nothing ran or was asked.
+    expect(
+      await details
+        .getByTestId("remediation-round-check-command")
+        .allTextContents(),
+    ).toEqual([
+      "kubectl get hpa checkout-api -n checkout",
+      "kubectl top pods -n checkout -l app=checkout-api",
+    ]);
+    await expect(details.getByTestId("remediation-round-approval")).toHaveText(
+      "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.",
+    );
+
+    // The sweep's note says less than the notice: it gives way.
+    await expect(details).not.toContainText("the planning run failed");
+    expect(
+      await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+    ).toEqual([]);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-did-not-finish",
+    );
+  });
+
+  test("Try again starts the round again, once, for this fix, and the step works on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(
+      page,
+      "fixes=unfinished&state=ongoing",
+    );
+    await expect(roundPlanTitle(fix)).toHaveText(
+      "Stopped before it found a fix",
+      { timeout: 30000 },
+    );
+    await openRoundPlan(fix);
+
+    await roundTryAgain(fix).click();
+
+    await expect(roundPlanTitle(fix)).toHaveText("Working out a fix…", {
+      timeout: 30000,
+    });
+    await expect(roundNotice(fix)).toHaveCount(0);
+    await expect(fix.getByTestId("remediation-fix-status")).not.toHaveText(
+      "Did not finish",
+    );
+
+    const started: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/auto-remediation/round-try-again",
+    );
+    expect(started).toHaveLength(1);
+    expect(started[0]!.method).toBe("POST");
+    expect(started[0]!.body).toEqual({
+      suggestionId: UNFINISHED_ROUND_FIX_ID,
+    });
+
+    // Its new round is read, for the new run.
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await apiRequestsTo(page, "/auto-remediation/round")).length;
+      })
+      .toBeGreaterThanOrEqual(2);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-tried-again",
+    );
+  });
+
+  test("a refusal is said under the button, in the server's words, and the round reads as it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(
+      page,
+      "fixes=unfinished&state=ongoing&fail=round-try-again",
+    );
+    await expect(roundPlanTitle(fix)).toHaveText(
+      "Stopped before it found a fix",
+      { timeout: 30000 },
+    );
+    await openRoundPlan(fix);
+
+    await roundTryAgain(fix).click();
+
+    const refusal: Locator = roundNotice(fix).getByRole("alert");
+    await expect(refusal).toHaveText(ROUND_LIMIT_REFUSAL);
+    await expect(refusal).toHaveAttribute(
+      "data-testid",
+      "remediation-round-failure-try-again-error",
+    );
+    await expect(roundTryAgain(fix)).toBeEnabled();
+    /*
+     * The round reads as it was: stopped, for the same cause - which the
+     * open step says once, in its notice.
+     */
+    expect(await stepWords(fix, "plan")).toEqual({
+      title: "Stopped before it found a fix",
+      summary: "",
+    });
+    await expect(
+      roundNotice(fix).getByTestId("remediation-round-failure-cause"),
+    ).toHaveText(ROUND_TIMEOUT_CAUSE);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-try-again-refused",
+    );
+  });
+
+  test("on a resolved incident it still says why it stopped, with no Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(page, "fixes=unfinished");
+    await expect(roundPlanTitle(fix)).toHaveText(
+      "Stopped before it found a fix",
+      { timeout: 30000 },
+    );
+    await openRoundPlan(fix);
+
+    await expect(
+      roundNotice(fix).getByTestId("remediation-round-failure-cause"),
+    ).toHaveText(ROUND_TIMEOUT_CAUSE);
+    await expect(roundTryAgain(fix)).toHaveCount(0);
+    expect(
+      await apiRequestsTo(page, "/auto-remediation/round-try-again"),
+    ).toEqual([]);
+  });
+
+  test("a round that found no safe fix says why, each fix it ruled out with its commands and why not, what it checked and how each went, and that nobody was asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(page, "fixes=no-fix");
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-fix-step-summary"),
+    ).toHaveText(NO_FIX_REASON, { timeout: 30000 });
+    expect(await stepTitles(fix)).toEqual(["Found no safe fix"]);
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).toHaveText("No fix found");
+
+    const details: Locator = await openRoundPlan(fix);
+
+    // Why, whole, first: the open step leaves its two-line summary out.
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-fix-step-summary"),
+    ).toHaveCount(0);
+    await expect(details.getByTestId("remediation-round-reason")).toHaveText(
+      NO_FIX_REASON,
+    );
+
+    // The fixes it ruled out: what each would do, why not, its commands.
+    const ruledOut: Locator = details.getByTestId(
+      "remediation-round-ruled-out-fix",
+    );
+    expect(
+      await ruledOut
+        .getByTestId("remediation-round-ruled-out-what")
+        .allTextContents(),
+    ).toEqual([
+      "Roll checkout-api back to the revision before the 17:52 rollout",
+      "Restart checkout-api's pods",
+      "Scale checkout-api out to 6 replicas",
+    ]);
+    await expect(
+      ruledOut.first().getByTestId("remediation-round-ruled-out-why"),
+    ).toHaveText(
+      "Not safe: the 17:52 release ran a database migration, and the revision before it does not read the new schema.",
+    );
+    expect(
+      await details
+        .getByTestId("remediation-round-ruled-out-command")
+        .allTextContents(),
+    ).toEqual([
+      "kubectl rollout undo deployment/checkout-api -n checkout",
+      "kubectl rollout restart deployment/checkout-api -n checkout",
+      "kubectl scale deployment/checkout-api -n checkout --replicas=6",
+    ]);
+
+    // What it checked, in order, each with how it went.
+    const checks: Locator = details.getByTestId("remediation-round-check");
+    expect(
+      await checks.evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return `${element.getAttribute("data-status")}: ${
+            element
+              .querySelector("[data-testid='remediation-round-check-mark']")
+              ?.getAttribute("aria-label") || ""
+          }`;
+        });
+      }),
+    ).toEqual(["ran: Ran", "ran: Ran", "ran: Ran", "failed: Failed"]);
+    expect(
+      await details
+        .getByTestId("remediation-round-check-command")
+        .allTextContents(),
+    ).toEqual([
+      "kubectl get hpa checkout-api -n checkout",
+      "kubectl top pods -n checkout -l app=checkout-api",
+      "kubectl rollout history deployment/checkout-api -n checkout",
+      "kubectl get events -n checkout --field-selector type=Warning",
+    ]);
+    await expect(
+      checks.last().getByTestId("remediation-round-check-error"),
+    ).toContainText("Error from server (Forbidden)");
+    await expect(
+      details.getByTestId("remediation-round-other-checks"),
+    ).toHaveText("It also queried the project's telemetry 4 times.");
+
+    // Nobody was asked: it proposed nothing. And nothing to try again.
+    await expect(details.getByTestId("remediation-round-approval")).toHaveText(
+      "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.",
+    );
+    await expect(details.getByTestId("remediation-round-failure")).toHaveCount(
+      0,
+    );
+    await expect(
+      details.getByRole("button", { name: "Try again" }),
+    ).toHaveCount(0);
+
+    expect(
+      await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+    ).toEqual([]);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-no-safe-fix",
+    );
+  });
+
+  for (const [width, theme] of [
+    [390, "light"],
+    [1280, "dark"],
+  ] as const) {
+    test(`a round that found no safe fix, opened, at ${width}px (${theme}): nothing reaches past the step`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      const fix: Locator = await openRound(
+        page,
+        theme === "dark" ? "fixes=no-fix&theme=dark" : "fixes=no-fix",
+      );
+      await expect(
+        fixStep(fix, "plan").getByTestId("remediation-fix-step-summary"),
+      ).toHaveText(NO_FIX_REASON, { timeout: 30000 });
+      const details: Locator = await openRoundPlan(fix);
+      const body: Box = await documentBox(
+        page.getByTestId("ai-card-step-remediation-body"),
+      );
+
+      for (const line of await details
+        .locator(
+          "[data-testid='remediation-round-ruled-out-command'], [data-testid='remediation-round-check-command'], [data-testid='remediation-round-check-error']",
+        )
+        .all()) {
+        const box: Box = await documentBox(line);
+        expect(box.x).toBeGreaterThanOrEqual(body.x - 1);
+        expect(box.x + box.width).toBeLessThanOrEqual(body.x + body.width + 1);
+      }
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        remediationStep(page),
+        `remediation-round-no-safe-fix-${width}-${theme}`,
+      );
+    });
+  }
+
+  test("in Persian at 390px: the words read right to left, the commands left to right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 1000 });
+    const fix: Locator = await openRound(
+      page,
+      "fixes=unfinished&state=ongoing&lang=fa&dir=auto",
+    );
+    // Its round is read: the plan step says it stopped.
+    await expect(fixStep(fix, "plan")).toHaveAttribute("data-tone", "failed", {
+      timeout: 30000,
+    });
+    const details: Locator = await openRoundPlan(fix);
+
+    expect(
+      await details
+        .getByTestId("remediation-round-approval")
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+    ).toBe("rtl");
+    expect(
+      await details
+        .getByTestId("remediation-round-check-command")
+        .first()
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+    ).toBe("ltr");
+    await expect(
+      details.getByTestId("remediation-round-approval"),
+    ).not.toHaveText(
+      "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.",
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-round-did-not-finish-fa-390",
+    );
+  });
+});
+
+/*
  * The verdict at the end of an opened report, on the narrowest phone: its
  * two answers share the row, half each. Side by side at their own width,
  * they reached 2px past a 320px card.

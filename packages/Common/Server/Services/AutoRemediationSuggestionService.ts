@@ -69,6 +69,20 @@ export interface FirstApprovalSet {
   firstApprovedFrom: AutoRemediationApprovalSource;
 }
 
+/*
+ * What starting a round of an AI fix again sets (RemediationRound.tryAgain),
+ * and what putting it back sets when its run could not be created: its
+ * status, its run, and what its last run left on it. ObjectID-backed
+ * columns as their string form, like SuggestionTransitionSet.
+ */
+export interface RoundRunChangeSet {
+  status: AutoRemediationSuggestionStatus;
+  aiRunId: string | null;
+  commandPlan: JSONObject | null;
+  mcpToolCallPlan: JSONObject | null;
+  rationaleMarkdown: string | null;
+}
+
 // What the outcome verifier may set when a verification concludes.
 export interface VerificationTransitionSet {
   verificationStatus: AutoRemediationVerificationStatus;
@@ -174,6 +188,40 @@ export class Service extends DatabaseService<Model> {
       .where('"_id" = :id', { id: data.suggestionId.toString() })
       .andWhere('"status" = :fromStatus', { fromStatus: data.fromStatus })
       .andWhere('"deletedAt" IS NULL');
+
+    const result: UpdateResult = await queryBuilder.execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * A round of an AI fix started again, or put back (RemediationRound
+   * .tryAgain): one conditional UPDATE whose WHERE carries the round as it
+   * was read - its status AND its run - so of two presses at once exactly
+   * one starts it, and a round that moved on meanwhile (its stranded run
+   * settled, a person dismissed it) is left alone. Returns the rows
+   * changed; 0 means another actor won.
+   */
+  @CaptureSpan()
+  public async attemptRoundRunChange(data: {
+    suggestionId: ObjectID;
+    fromStatus: AutoRemediationSuggestionStatus;
+    fromAiRunId: ObjectID | null;
+    set: RoundRunChangeSet;
+  }): Promise<number> {
+    let queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set(data.set as unknown as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.suggestionId.toString() })
+      .andWhere('"status" = :fromStatus', { fromStatus: data.fromStatus })
+      .andWhere('"deletedAt" IS NULL');
+
+    queryBuilder = data.fromAiRunId
+      ? queryBuilder.andWhere('"aiRunId" = :fromAiRunId', {
+          fromAiRunId: data.fromAiRunId.toString(),
+        })
+      : queryBuilder.andWhere('"aiRunId" IS NULL');
 
     const result: UpdateResult = await queryBuilder.execute();
 
