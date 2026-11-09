@@ -965,6 +965,9 @@ export class Service extends ProjectReferencesService<Model> {
         currentErrorBudgetPolicyTierId: true,
         currentErrorBudgetPolicyTierName: true,
         currentErrorBudgetPolicyTierEnteredAt: true,
+        // The deploy gate it answers, written only when the tier moves it.
+        deploymentsAllowed: true,
+        deploymentsFrozenAt: true,
         lastEvaluatedAt: true,
         nextEvaluationAt: true,
         lastAccumulatedBucketEndAt: true,

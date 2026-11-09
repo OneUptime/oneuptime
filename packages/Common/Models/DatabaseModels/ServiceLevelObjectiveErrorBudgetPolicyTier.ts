@@ -62,9 +62,10 @@ const decimalTransformer: ValueTransformer = {
 
 /*
  * ONE TIER OF AN SLO'S ERROR BUDGET POLICY: a budget-left threshold, a name,
- * and what the team agreed to do while the SLO is in it
- * (Common/Utils/Slo/SloErrorBudgetPolicy explains the policy, and how the
- * tier an SLO is in is decided).
+ * what the team agreed to do while the SLO is in it, and whether it freezes
+ * deployments - the yes/no CI/CD reads on the SLO as deploymentsAllowed
+ * (Common/Utils/Slo/SloErrorBudgetPolicy explains the policy, how the tier
+ * an SLO is in is decided, and the deploy gate).
  *
  * A model of its own rather than a "budget left" condition on burn rate
  * rules: rules fire independently of each other, while tiers are mutually
@@ -399,6 +400,50 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     type: ColumnType.Markdown,
   })
   public whatWeDo?: string = undefined;
+
+  /*
+   * The deploy gate. While the SLO is in a tier with this on, the evaluation
+   * worker writes deploymentsAllowed = false on the SLO, so a CI/CD pipeline
+   * that reads it holds back releases (Common/Utils/Slo/SloErrorBudgetPolicy,
+   * "The deploy gate"). Part of the agreement, not an output: it raises
+   * nothing, so it sits with the tier's own fields rather than with the
+   * alert and incident options. Off by default, and written back by the
+   * service as a real boolean, like the outputs.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveErrorBudgetPolicyTier,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveErrorBudgetPolicyTier,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveErrorBudgetPolicyTier,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Freeze Deployments",
+    description:
+      "While the SLO is in this tier, its deploymentsAllowed field is false, so CI/CD pipelines that check it hold back releases. Disabled by default.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public freezesDeployments?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [

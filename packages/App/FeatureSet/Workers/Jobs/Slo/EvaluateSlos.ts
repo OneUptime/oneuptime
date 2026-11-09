@@ -113,18 +113,24 @@ import {
   renderSloBurnRateTemplate,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import {
+  SloDeploymentGateChange,
+  SloDeploymentGateTransition,
   computeSloPolicyTier,
   formatSloPolicyTierThreshold,
+  getSloDeploymentGateChange,
   isMoreSevereSloPolicyTier,
   isSameSloPolicyTier,
 } from "Common/Utils/Slo/SloErrorBudgetPolicy";
 import {
+  SloFeedDeploymentGate,
   SloFeedMarkdown,
   SloFeedStatusMeasurement,
+  getSloDeploymentGateChangedFeedMarkdown,
   getSloPolicyTierChangedFeedMarkdown,
   getSloStatusChangedFeedMarkdown,
 } from "Common/Utils/Slo/SloFeedMarkdown";
 import {
+  getSloDeploymentGateColor,
   getSloPolicyTierColor,
   getSloStatusColor,
 } from "Common/Utils/Slo/SloStatusColor";
@@ -191,7 +197,8 @@ const SWEEP_LOCK_TIMEOUT_MS: number =
  * - writes SloHistory rows for charting,
  * - notifies owners on AtRisk / BudgetExhausted transitions,
  * - evaluates multi-window burn rate rules and raises / resolves Alerts,
- * - moves the SLO between the tiers of its error budget policy, and raises /
+ * - moves the SLO between the tiers of its error budget policy, answers its
+ *   deploy gate (deploymentsAllowed) from the tier it is in, and raises /
  *   resolves what each tier is set to raise.
  */
 RunCron(
@@ -808,6 +815,22 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     now: now,
   });
 
+  /*
+   * The deploy gate, read off the tier just decided: deploymentsAllowed is
+   * false while that tier freezes deployments, so it is frozen and allowed
+   * again with the tier's own hysteresis, and a disabled or deleted tier -
+   * which no longer holds the SLO - freezes nothing.
+   */
+  const deploymentGateChange: SloDeploymentGateChange =
+    getSloDeploymentGateChange({
+      tier: policyTier,
+      stored: {
+        deploymentsAllowed: slo.deploymentsAllowed,
+        deploymentsFrozenAt: slo.deploymentsFrozenAt,
+      },
+      now: now,
+    });
+
   const stateUpdate: {
     currentSliPercentage: number;
     errorBudgetRemainingPercentage: number;
@@ -818,6 +841,8 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     currentErrorBudgetPolicyTierId?: ObjectID | null;
     currentErrorBudgetPolicyTierName?: string | null;
     currentErrorBudgetPolicyTierEnteredAt?: Date | null;
+    deploymentsAllowed?: boolean | undefined;
+    deploymentsFrozenAt?: Date | null | undefined;
   } = {
     // Decimal columns — persisted unrounded.
     currentSliPercentage: sli.sliPercentage,
@@ -834,6 +859,12 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
      * name (a system event; the SLO's other worker columns are ignored).
      */
     ...policyTierChange.columns,
+    /*
+     * And the deploy gate beside them, for the same reasons: CI/CD reads it,
+     * a workflow can follow it, and the audit log records deploymentsAllowed
+     * (its freeze time is bookkeeping, and ignored).
+     */
+    ...deploymentGateChange.columns,
   };
 
   /*
@@ -900,28 +931,19 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   }
 
   /*
-   * ErrorBudgetPolicyTierChanged, for a tier change this write committed -
-   * after it, so a failed write posts nothing and the next tick meets the
-   * same change again.
+   * What the error budget policy did on this evaluation, for a change this
+   * write committed - after it, so a failed write posts nothing and the next
+   * tick meets the same change again.
    */
-  if (policyTierChange.isTierChange) {
-    await postPolicyTierChangedFeedItem({
-      slo: slo,
-      previousTierName: slo.currentErrorBudgetPolicyTierName,
-      previousTier:
-        allPolicyTiers.find(
-          (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
-            return isSameSloPolicyTier(
-              tier.id,
-              slo.currentErrorBudgetPolicyTierId,
-            );
-          },
-        ) || null,
-      newTier: policyTier,
-      budget: budget,
-      now: now,
-    });
-  }
+  await postPolicyChangeFeedItem({
+    slo: slo,
+    allPolicyTiers: allPolicyTiers,
+    policyTier: policyTier,
+    policyTierChange: policyTierChange,
+    deploymentGateChange: deploymentGateChange,
+    budget: budget,
+    now: now,
+  });
 
   // History rows (unrounded values, minute-floored bucket). Non-fatal.
   try {
@@ -1114,6 +1136,8 @@ const POLICY_TIER_SELECT: Select<ServiceLevelObjectiveErrorBudgetPolicyTier> = {
   name: true,
   thresholdPercentage: true,
   whatWeDo: true,
+  // The deploy gate: whether the tier the SLO is in freezes deployments.
+  freezesDeployments: true,
   isEnabled: true,
   shouldCreateAlert: true,
   shouldCreateIncident: true,
@@ -1248,10 +1272,72 @@ function getPolicyTierChange(data: {
 }
 
 /*
+ * What the error budget policy posts to the SLO feed for an evaluation, in
+ * one place: a sink that follows these changes beyond the feed (a chat
+ * message of the same change) belongs here too, after the same committed
+ * write.
+ *
+ *   - A tier change: ErrorBudgetPolicyTierChanged, which also says when the
+ *     change froze deployments or allowed them again.
+ *   - No tier change, but the deploy gate flipped - Freeze Deployments was
+ *     switched on or off for the tier the SLO is in:
+ *     ErrorBudgetPolicyDeploymentsFrozen or ...DeploymentsAllowed.
+ *   - Otherwise nothing: a renamed tier refreshes its name quietly.
+ *
+ * Never throws: each item catches its own failure.
+ */
+async function postPolicyChangeFeedItem(data: {
+  slo: ServiceLevelObjective;
+  allPolicyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>;
+  policyTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
+  policyTierChange: PolicyTierChange;
+  deploymentGateChange: SloDeploymentGateChange;
+  budget: ErrorBudgetResult;
+  now: Date;
+}): Promise<void> {
+  const { slo, deploymentGateChange } = data;
+
+  if (data.policyTierChange.isTierChange) {
+    await postPolicyTierChangedFeedItem({
+      slo: slo,
+      previousTierName: slo.currentErrorBudgetPolicyTierName,
+      previousTier:
+        data.allPolicyTiers.find(
+          (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
+            return isSameSloPolicyTier(
+              tier.id,
+              slo.currentErrorBudgetPolicyTierId,
+            );
+          },
+        ) || null,
+      newTier: data.policyTier,
+      deployments: {
+        isAllowed: deploymentGateChange.gate.deploymentsAllowed,
+        hasChanged: deploymentGateChange.transition !== null,
+      },
+      budget: data.budget,
+      now: data.now,
+    });
+    return;
+  }
+
+  if (deploymentGateChange.transition) {
+    await postDeploymentGateChangedFeedItem({
+      slo: slo,
+      tier: data.policyTier,
+      transition: deploymentGateChange.transition,
+      budget: data.budget,
+      now: data.now,
+    });
+  }
+}
+
+/*
  * ErrorBudgetPolicyTierChanged on the SLO feed: the tier left, the tier
  * entered and the agreement for it, colored like the tier (red for a tier at
- * 0%, yellow for any other, green for none). No acting user - the worker
- * decided this - and posted at the evaluation's clock.
+ * 0%, yellow for any other, green for none), and what the change did to the
+ * deploy gate. No acting user - the worker decided this - and posted at the
+ * evaluation's clock.
  *
  * Never throws: the feed must not cost the outputs that follow.
  */
@@ -1261,6 +1347,8 @@ async function postPolicyTierChangedFeedItem(data: {
   previousTierName: string | undefined;
   previousTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
   newTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
+  // The deploy gate after the change.
+  deployments: SloFeedDeploymentGate;
   budget: ErrorBudgetResult;
   now: Date;
 }): Promise<void> {
@@ -1301,6 +1389,7 @@ async function postPolicyTierChangedFeedItem(data: {
       isEscalation: isEscalation,
       errorBudgetRemainingPercentage: data.budget.budgetRemainingPercentage,
       errorBudgetRemainingSeconds: data.budget.budgetRemainingSeconds,
+      deployments: data.deployments,
     });
 
     await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
@@ -1316,6 +1405,70 @@ async function postPolicyTierChangedFeedItem(data: {
   } catch (err) {
     logger.error(
       `Slo:EvaluateSlos - Error posting the error budget policy tier change feed item for SLO ${data.slo.id.toString()}: ${err}`,
+      {
+        projectId: data.slo.projectId.toString(),
+        sloId: data.slo.id.toString(),
+      } as LogAttributes,
+    );
+  }
+}
+
+/*
+ * ErrorBudgetPolicyDeploymentsFrozen / ...DeploymentsAllowed on the SLO
+ * feed: the deploy gate flipped while the SLO stayed in its tier. Red while
+ * frozen, green once allowed; no acting user (the person who switched the
+ * tier's Freeze Deployments is in the audit log), posted at the evaluation's
+ * clock.
+ *
+ * Never throws: the feed must not cost the outputs that follow.
+ */
+async function postDeploymentGateChangedFeedItem(data: {
+  slo: ServiceLevelObjective;
+  // The tier the SLO is in, whose switch moved the gate.
+  tier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
+  transition: SloDeploymentGateTransition;
+  budget: ErrorBudgetResult;
+  now: Date;
+}): Promise<void> {
+  if (!data.slo.id || !data.slo.projectId) {
+    return;
+  }
+
+  const isAllowed: boolean =
+    data.transition === SloDeploymentGateTransition.Allowed;
+
+  try {
+    const sloMarkdownLink: MarkdownText =
+      await ServiceLevelObjectiveService.getSloMarkdownLink({
+        projectId: data.slo.projectId,
+        sloId: data.slo.id,
+        sloName: data.slo.name || "",
+      });
+
+    const markdown: SloFeedMarkdown = getSloDeploymentGateChangedFeedMarkdown({
+      sloMarkdownLink: sloMarkdownLink,
+      // The tier's own name, or the one the SLO recorded it under.
+      tierName:
+        data.tier?.name || data.slo.currentErrorBudgetPolicyTierName || "",
+      isAllowed: isAllowed,
+      errorBudgetRemainingPercentage: data.budget.budgetRemainingPercentage,
+      errorBudgetRemainingSeconds: data.budget.budgetRemainingSeconds,
+    });
+
+    await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
+      serviceLevelObjectiveId: data.slo.id,
+      projectId: data.slo.projectId,
+      serviceLevelObjectiveFeedEventType: isAllowed
+        ? ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed
+        : ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+      displayColor: getSloDeploymentGateColor(isAllowed),
+      feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+      moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+      postedAt: data.now,
+    });
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error posting the deploy gate feed item for SLO ${data.slo.id.toString()}: ${err}`,
       {
         projectId: data.slo.projectId.toString(),
         sloId: data.slo.id.toString(),
@@ -1575,6 +1728,12 @@ async function postSloStatusChangedFeedItem(data: {
  * it was and the next tick tries the whole thing again; the resolve itself is
  * idempotent, so the retry is harmless, and the status guard still keeps it to
  * once per transition in the happy path.
+ *
+ * The error budget policy's tier, and the deploy gate read off it
+ * (deploymentsAllowed), are left exactly as they were: an unmeasured budget
+ * is not a recovered one, so a Paused or Misconfigured SLO keeps the answer
+ * it gave CI/CD - a nightly maintenance pause neither lifts a freeze nor
+ * starts one.
  */
 async function setGuardStatusAndResolveOpenAlerts(data: {
   slo: ServiceLevelObjective;
