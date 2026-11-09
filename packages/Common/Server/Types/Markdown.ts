@@ -15,9 +15,13 @@ import {
 } from "../../Types/HtmlMarkup";
 import {
   InlineImageDataUri,
-  isBase64Character,
   parseInlineImageDataUri,
 } from "../../Utils/Markdown/InlineImageDataUri";
+import {
+  Base64Run,
+  getBase64Runs,
+  holdBackBase64Data,
+} from "../../Utils/Markdown/Base64Data";
 import {
   holdBackOverLongLines,
   holdBackOverLongText,
@@ -91,18 +95,8 @@ export const PLAIN_TEXT_MARKUP_READING: MarkupInTextReading = {
  */
 const HELD_DATA_OPEN: string = "\uE005";
 const HELD_DATA_CLOSE: string = "\uE006";
-
-/*
- * Where the base64 data of a data: URL starts, or a sentinel already in the
- * input. It has no quantifier, so matching it never backtracks.
- */
-const BASE64_DATA_START_OR_SENTINEL: RegExp = /;base64,|[\uE005\uE006]/gi;
-
-/*
- * Base64 data at least this long is held back. A screenshot runs to millions
- * of characters; shorter data is no trouble to marked and stays in place.
- */
-const HELD_BASE64_MIN_LENGTH: number = 1024;
+const HELD_DATA_OPEN_CODE: number = 0xe005;
+const HELD_DATA_CLOSE_CODE: number = 0xe006;
 
 /*
  * The most Markdown marked reads for an email once what it cannot read
@@ -143,12 +137,6 @@ export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
 const MAX_EMAIL_FIT_ATTEMPTS: number = 5;
 const EMAIL_FIT_MARGIN: number = 0.9;
 
-// A run of base64 data after ";base64," in a text: where it starts and ends.
-interface Base64Run {
-  start: number;
-  end: number;
-}
-
 /*
  * Where an image is in Markdown: "![", its address and where its data ends
  * (after any "=" padding), and after its ")".
@@ -159,9 +147,6 @@ interface MarkdownImagePosition {
   addressEnd: number;
   end: number;
 }
-
-// The start of base64 data after a data: URL's media type.
-const BASE64_DATA_START: RegExp = /;base64,/gi;
 
 /*
  * What a data: URL's media type and encoding read, before its data - any
@@ -978,7 +963,7 @@ export default class Markdown {
       return Markdown.renderEmailMarkdown(markdown, renderer);
     }
 
-    const runs: Array<Base64Run> = Markdown.getBase64Runs(markdown);
+    const runs: Array<Base64Run> = getBase64Runs(markdown);
     const weight: number = Markdown.getEmailMarkdownWeight(markdown, runs);
 
     /*
@@ -1076,41 +1061,6 @@ export default class Markdown {
 
       return Markdown.getEmailTextHtml(markdown);
     }
-  }
-
-  /*
-   * The runs of base64 data in `text` of at least `minLength` characters
-   * (by default those long enough to matter: a screenshot, see
-   * HELD_BASE64_MIN_LENGTH), each after a ";base64,", in order. Found with
-   * a pattern that has no quantifier and a loop over the data.
-   */
-  private static getBase64Runs(
-    text: string,
-    minLength: number = HELD_BASE64_MIN_LENGTH,
-  ): Array<Base64Run> {
-    const runs: Array<Base64Run> = [];
-    const pattern: RegExp = new RegExp(BASE64_DATA_START.source, "gi");
-
-    for (
-      let match: RegExpExecArray | null = pattern.exec(text);
-      match !== null;
-      match = pattern.exec(text)
-    ) {
-      const start: number = match.index + match[0].length;
-      let end: number = start;
-
-      while (end < text.length && isBase64Character(text.charCodeAt(end))) {
-        end++;
-      }
-
-      pattern.lastIndex = end;
-
-      if (end - start >= minLength) {
-        runs.push({ start: start, end: end });
-      }
-    }
-
-    return runs;
   }
 
   /*
@@ -1248,7 +1198,7 @@ export default class Markdown {
   public static cutEmailMarkdown(
     markdown: string,
     weight: number,
-    runs: Array<Base64Run> = Markdown.getBase64Runs(markdown),
+    runs: Array<Base64Run> = getBase64Runs(markdown),
   ): string {
     if (Markdown.getEmailMarkdownWeight(markdown, runs) <= weight) {
       return markdown;
@@ -1335,8 +1285,9 @@ export default class Markdown {
    *
    *   - each run of base64 after ";base64," long enough to matter (a
    *     screenshot, see Utils/Markdown/InlineImageDataUri) leaves it, all
-   *     but its last character. The last character stays so that whatever
-   *     follows the data reads exactly as it did.
+   *     but its last character (Utils/Markdown/Base64Data, as the
+   *     dashboard's viewer does). The last character stays so that
+   *     whatever follows the data reads exactly as it did.
    *   - the middle of every over-long line, and the plain lines of every
    *     over-long run of lines, leave it (Utils/Markdown/OverLongText): the
    *     line keeps its start and end, and the run the lines that give it its
@@ -1432,52 +1383,30 @@ export default class Markdown {
         ? markdown.replace(/\r\n|\r/g, "\n")
         : markdown;
 
-    let text: string = "";
-    let copiedUpTo: number = 0;
+    // A sentinel already in the input is held back as it is.
+    let text: string = source;
 
-    const pattern: RegExp = new RegExp(
-      BASE64_DATA_START_OR_SENTINEL.source,
-      "gi",
-    );
-
-    for (
-      let match: RegExpExecArray | null = pattern.exec(source);
-      match !== null;
-      match = pattern.exec(source)
+    if (
+      source.indexOf(HELD_DATA_OPEN) !== -1 ||
+      source.indexOf(HELD_DATA_CLOSE) !== -1
     ) {
-      let holdFrom: number = match.index;
-      let holdTo: number = match.index + match[0].length;
+      let copiedUpTo: number = 0;
 
-      if (match[0].length > 1) {
-        // ";base64,": the data runs on for as long as it is base64.
-        holdFrom = holdTo;
+      text = "";
 
-        let dataEnd: number = holdFrom;
+      for (let index: number = 0; index < source.length; index++) {
+        const code: number = source.charCodeAt(index);
 
-        while (
-          dataEnd < source.length &&
-          isBase64Character(source.charCodeAt(dataEnd))
-        ) {
-          dataEnd++;
+        if (code === HELD_DATA_OPEN_CODE || code === HELD_DATA_CLOSE_CODE) {
+          text += source.slice(copiedUpTo, index) + hold(source.charAt(index));
+          copiedUpTo = index + 1;
         }
-
-        pattern.lastIndex = dataEnd;
-
-        if (dataEnd - holdFrom < HELD_BASE64_MIN_LENGTH) {
-          continue;
-        }
-
-        holdTo = dataEnd - 1;
       }
 
-      // Otherwise a sentinel already in the input, held back as it is.
-      text +=
-        source.slice(copiedUpTo, holdFrom) +
-        hold(source.slice(holdFrom, holdTo));
-      copiedUpTo = holdTo;
+      text += source.slice(copiedUpTo);
     }
 
-    text = holdBackOverLongText(text + source.slice(copiedUpTo), hold);
+    text = holdBackOverLongText(holdBackBase64Data(text, hold), hold);
 
     /*
      * Blocks marked would take too long to read - emphasis, code spans or
@@ -1522,7 +1451,7 @@ export default class Markdown {
     let html: string = "";
     let copiedUpTo: number = 0;
 
-    for (const run of Markdown.getBase64Runs(text, 1)) {
+    for (const run of getBase64Runs(text, 1)) {
       const found: MarkdownImagePosition | null = Markdown.findImageAround(
         text,
         run,
