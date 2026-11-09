@@ -274,6 +274,8 @@ export default class CodeAgentTelemetryScope {
         triggeredByAlertId: true,
         taskContext: true,
         toolCallCount: true,
+        // When this attempt was claimed: the run's time limit runs from here.
+        startedAt: true,
       },
       props: { isRoot: true },
     });

@@ -81,9 +81,10 @@ export { CLUSTER_TOOL_NAMES, isClusterToolName } from "../AI/ClusterToolFormat";
  * own events. The server records a command that reached kubectl as a
  * completed call (rowCount 1 when it succeeded, 0 when kubectl returned an
  * error), a command that never reached kubectl — refused, never picked up
- * by the cluster's Runner, or out of budget — as a failed call, and a
- * command a Runner took whose result never came back as a failed call
- * marked "result unknown". The three are never confused for one another.
+ * by the cluster's Runner, or past the run's time limit or a cap the
+ * project set — as a failed call, and a command a Runner took whose result
+ * never came back as a failed call marked "result unknown". The three are
+ * never confused for one another.
  */
 export interface KubectlActivitySummary {
   // run_kubectl calls that ran on the cluster.
@@ -1711,15 +1712,34 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     }
 
     if (step.kind === "log") {
+      /*
+       * A log line is the server's own sentence, often English on a page in
+       * another language - the line that a limit stopped the run, for one.
+       * dir="auto" reads it in its own direction: on a right-to-left page an
+       * English line keeps its full stop at its end, not before its first
+       * word, and the line still starts beside its mark like every step.
+       */
       if (step.severity === "Error" || step.severity === "Fatal") {
-        return <span className="break-words text-red-600">{step.text}</span>;
+        return (
+          <span dir="auto" className="break-words text-red-600">
+            {step.text}
+          </span>
+        );
       }
 
       if (step.severity === "Warning") {
-        return <span className="break-words text-amber-600">{step.text}</span>;
+        return (
+          <span dir="auto" className="break-words text-amber-600">
+            {step.text}
+          </span>
+        );
       }
 
-      return <span className="break-words text-gray-500">{step.text}</span>;
+      return (
+        <span dir="auto" className="break-words text-gray-500">
+          {step.text}
+        </span>
+      );
     }
 
     return (

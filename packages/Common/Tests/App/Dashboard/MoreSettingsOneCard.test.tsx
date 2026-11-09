@@ -353,8 +353,8 @@ const PAGES: Array<MoreSettingsPage> = [
       return <AIFeatures {...PAGE_PROPS} />;
     },
     sectionTestId: PROJECT_AI_ADVANCED_SECTION_TEST_ID,
-    // The daily limits, then who approves a riskier fix (FixApprovalsCopy).
-    sectionTitles: ["Daily limits", "Fix approvals"],
+    // The daily limits, the limits per run, then who approves a riskier fix.
+    sectionTitles: ["Daily limits", "Limits per run", "Fix approvals"],
     namesSectionsByTitle: false,
     tableCount: 0,
   },

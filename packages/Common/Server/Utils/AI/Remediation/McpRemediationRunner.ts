@@ -51,10 +51,6 @@ import { ConfidenceSignal } from "../SRE/ConfidenceSignal";
 import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import ToolOutputPager from "../Chat/ToolOutputPager";
 import ToolResultSerializer from "../Toolbox/Serializer";
-import {
-  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
-  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
-} from "../../../../Types/AI/AIAgentRunLimits";
 import ExternalMcpServerConnection from "../Mcp/ExternalMcpServerConnection";
 import McpRunToolkit, {
   CALL_MCP_TOOL_TOOL_NAME,
@@ -356,9 +352,7 @@ export default class McpRemediationRunner {
             // Why the fix ends without a change, for the Remediation step.
             buildExplainNoFixTool(),
           ],
-          maxLlmCalls: AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
-          maxToolCalls: AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
-          maxWallClockMs: undefined,
+          // The project's limits per run: the engine reads them.
           maxOutputTokens: MAX_OUTPUT_TOKENS,
           postAnalysis: async (postData: {
             analysisMarkdown: string;

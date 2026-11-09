@@ -36,9 +36,6 @@ import {
  * the branch / commit / PR wording.
  */
 export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHandler {
-  // Default timeout for code agent execution (30 minutes)
-  protected static readonly CODE_AGENT_TIMEOUT_MS: number = 30 * 60 * 1000;
-
   // Single-line subject-title length caps for commit subjects / PR titles.
   protected static readonly COMMIT_SUBJECT_TITLE_LENGTH: number = 50;
   protected static readonly PR_TITLE_SUBJECT_LENGTH: number = 70;
@@ -319,10 +316,10 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
 
     // Execute the code agent
     await this.log(context, "Running code agent...");
+    // The agent keeps to the run's time limit, which the server gives it.
     const codeAgentTask: CodeAgentTask = {
       workingDirectory: cloneResult.repositoryPath,
       prompt,
-      timeoutMs: SubjectPullRequestTaskHandler.CODE_AGENT_TIMEOUT_MS,
     };
 
     if (repo.servicePathInRepository) {
