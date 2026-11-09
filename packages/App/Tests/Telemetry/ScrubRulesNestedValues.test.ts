@@ -456,7 +456,10 @@ describe.each(ENGINES)(
             wide: new Array<string>(100_000).fill("ada@example.com"),
           };
 
-          // A hundred lists of a hundred fill the record's allowance.
+          /*
+           * A hundred lists of a hundred fill the record's allowance, so the
+           * two hundred after them are held as their text.
+           */
           for (let index: number = 0; index < 300; index++) {
             attributes[`list${index}`] = new Array<string>(100).fill(
               "SECRET-X1 from 10.0.0.1",
