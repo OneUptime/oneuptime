@@ -675,8 +675,8 @@ describe("the words, in every Dashboard language", () => {
     ]),
   );
 
-  test("are seventeen locales", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("are eighteen locales", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
   });
 
   test("every word is a key of every locale", () => {

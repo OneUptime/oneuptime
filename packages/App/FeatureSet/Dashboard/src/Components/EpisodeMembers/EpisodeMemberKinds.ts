@@ -8,6 +8,7 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IconProp from "Common/Types/Icon/IconProp";
+import { PluralTemplate } from "Common/Types/Translator";
 import {
   ALERT_EPISODE_ID_KEY,
   ALERT_IDS_KEY,
@@ -108,6 +109,13 @@ export interface EpisodeMemberKindConfig {
   plural: string;
   singularTitle: string;
   pluralTitle: string;
+  /*
+   * How many it is, as an episode's count of them: "{{count}} alerts". Each
+   * language words a count of alerts its own way - Arabic as a label and
+   * its count, "التنبيهات: 3" - which "{{count}} {{itemsName}}" could not:
+   * it put the number before the noun, "3 التنبيهات".
+   */
+  memberCount: PluralTemplate;
 
   recordViewPage: PageMap;
   episodeViewPage: PageMap;
@@ -143,6 +151,7 @@ export const ALERT_EPISODE_MEMBER_KIND: EpisodeMemberKindConfig = {
   plural: "alerts",
   singularTitle: "Alert",
   pluralTitle: "Alerts",
+  memberCount: { one: "{{count}} alert", other: "{{count}} alerts" },
   recordViewPage: PageMap.ALERT_VIEW,
   episodeViewPage: PageMap.ALERT_EPISODE_VIEW,
 };
@@ -177,6 +186,7 @@ export const INCIDENT_EPISODE_MEMBER_KIND: EpisodeMemberKindConfig = {
   plural: "incidents",
   singularTitle: "Incident",
   pluralTitle: "Incidents",
+  memberCount: { one: "{{count}} incident", other: "{{count}} incidents" },
   recordViewPage: PageMap.INCIDENT_VIEW,
   episodeViewPage: PageMap.INCIDENT_EPISODE_VIEW,
 };

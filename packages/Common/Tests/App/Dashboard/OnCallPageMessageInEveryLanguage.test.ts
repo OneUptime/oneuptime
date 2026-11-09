@@ -58,6 +58,7 @@ const PAGING_SENTENCE: string =
 
 // The stem of each language's word for an on-call page.
 const PAGE_WORD: Record<string, string> = {
+  ar: "استدعاء",
   da: "tilkald",
   de: "alarm",
   es: "avis",
@@ -107,7 +108,7 @@ describe("the on-call run's Page Message, in the Dashboard's locales", () => {
   });
 
   test("every language but English is checked, with its word for a page", () => {
-    expect(LANGUAGES).toHaveLength(17);
+    expect(LANGUAGES).toHaveLength(18);
     expect(Object.keys(PAGE_WORD).sort()).toEqual(OTHER_LANGUAGES);
   });
 

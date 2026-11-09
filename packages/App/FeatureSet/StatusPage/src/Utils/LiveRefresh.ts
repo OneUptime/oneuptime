@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 /*
  * When the status page refreshes itself, and how it says how old what you are
  * looking at is.
@@ -92,7 +93,7 @@ export default class StatusPageLiveRefreshUtil {
 
     try {
       const formatter: Intl.RelativeTimeFormat = new Intl.RelativeTimeFormat(
-        data.locale || "en",
+        getNumberLocale(data.locale || "en"),
         { numeric: "auto" },
       );
 

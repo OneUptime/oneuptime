@@ -353,6 +353,7 @@ const incidentCardProps: IncidentCardPropsFunction = (
     title: "Incidents in this episode",
     singularNoun: "incident",
     pluralNoun: "incidents",
+    countTemplate: { one: "{{count}} incident", other: "{{count}} incidents" },
     viewAllRoute: RouteUtil.populateRouteParams(
       RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS] as Route,
       { modelId: new ObjectID(EPISODE_ID) },
@@ -382,6 +383,7 @@ const alertCardProps: AlertCardPropsFunction = (): AlertCardProps => {
     title: "Alerts in this episode",
     singularNoun: "alert",
     pluralNoun: "alerts",
+    countTemplate: { one: "{{count}} alert", other: "{{count}} alerts" },
     viewAllRoute: RouteUtil.populateRouteParams(
       RouteMap[PageMap.ALERT_EPISODE_VIEW_ALERTS] as Route,
       { modelId: new ObjectID(EPISODE_ID) },

@@ -221,7 +221,7 @@ describe("OneUptime AI's table columns", () => {
     expect(root).toEqual({ directory: TOOLBOX_DIRECTORY, kind: "keys" });
   });
 
-  test("every name is in en.json, and translated in all sixteen languages", () => {
+  test("every name is in en.json, and translated in all seventeen languages", () => {
     const english: LocaleTree = readLocale("en");
     const globalSame: Set<string> = new Set(readGlobalSameAsEnglish());
 
@@ -232,7 +232,7 @@ describe("OneUptime AI's table columns", () => {
       });
     }
 
-    expect(TRANSLATED_LOCALES).toHaveLength(16);
+    expect(TRANSLATED_LOCALES).toHaveLength(17);
 
     const untranslated: Array<string> = [];
 

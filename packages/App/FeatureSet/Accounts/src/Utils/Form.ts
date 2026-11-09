@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { FORM_PUBLIC_API_URL } from "./ApiPaths";
 import FormAPI from "./FormAPI";
 import { getFormDomainPageOrigin } from "./FormDomainPage";
@@ -860,10 +861,9 @@ export const formatFormRetryAfter: FormatFormRetryAfterFunction = (
   }
 
   try {
-    return new Intl.RelativeTimeFormat(locale, { numeric: "always" }).format(
-      value,
-      unit,
-    );
+    return new Intl.RelativeTimeFormat(getNumberLocale(locale), {
+      numeric: "always",
+    }).format(value, unit);
   } catch {
     // An unknown language tag, or no Intl.RelativeTimeFormat at all.
     return null;

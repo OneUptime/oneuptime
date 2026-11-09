@@ -70,6 +70,7 @@ const LOCALES: ReadonlyArray<string> = [
   "en",
   "es",
   "fa",
+  "ar",
   "fr",
   "hi",
   "it",

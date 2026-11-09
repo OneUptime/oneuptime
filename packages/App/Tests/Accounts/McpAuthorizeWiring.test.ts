@@ -470,6 +470,7 @@ const ALL_LOCALES: Array<string> = [
   "en",
   "es",
   "fa",
+  "ar",
   "fr",
   "hi",
   "it",
@@ -802,7 +803,7 @@ describe("the keys the consent screen asks for", () => {
 });
 
 describe("the consent screen's section in every locale", () => {
-  test("all seventeen locale files are being looked at", () => {
+  test("all eighteen locale files are being looked at", () => {
     expect(
       fs
         .readdirSync(LOCALES_DIR)

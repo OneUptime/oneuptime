@@ -510,6 +510,72 @@ describe("a delivery writes each channel in the language of the person it pages"
     );
   });
 
+  /*
+   * A person whose language is Arabic: every channel OneUptime words is in
+   * Arabic, read from the right, its figures in Latin digits, and the
+   * record's own values as the team wrote them.
+   */
+  test("Arabic: the email, the text, the push, Telegram and Slack are in Arabic", async () => {
+    const language: jest.SpyInstance = jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockResolvedValue("ar");
+
+    const delivered: Delivered = await deliver();
+    // A value set apart, so it reads its own way inside the Arabic line.
+    const own: (value: string) => string = (value: string): string => {
+      return `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`;
+    };
+
+    expect(language).toHaveBeenCalledTimes(1);
+    expect(String(language.mock.calls[0]![0])).toBe(USER.toString());
+    expect(delivered.email.language).toBe("ar");
+    expect({
+      subject: delivered.email.subject,
+      currentState: delivered.email.vars["currentState"],
+      incidentSeverity: delivered.email.vars["incidentSeverity"],
+      incidentTitle: delivered.email.vars["incidentTitle"],
+      resourcesAffected: delivered.email.vars["resourcesAffected"],
+      sms: delivered.sms.message,
+      pushTitle: delivered.push.title,
+      pushBody: delivered.push.body,
+    }).toEqual({
+      subject: `إجراء مطلوب: أُنشئت الحادثة ${own("INC-42")} - ${own("Checkout is down")}`,
+      // OneUptime's own state name in Arabic; the project's severity as written.
+      currentState: "تم التحديد",
+      incidentSeverity: "Sev 1",
+      incidentTitle: "Checkout is down",
+      resourcesAffected: "لم تُحدَّد أي موارد",
+      sms: `OneUptime: ${own(`الحادثة ${own("INC-42")} (Sev 1)`)} في ${own("Acme")}: Checkout is down. أقِرّ أو صعّد: https://oneuptime.example.com/l/1`,
+      pushTitle: `حادثة جديدة ${own("INC-42")}: ${own("Checkout is down")}`,
+      pushBody: `أُنشئت حادثة جديدة: ${own("INC-42 (Checkout is down)")} في ${own("Acme")}. انقر لعرض التفاصيل.`,
+    });
+
+    // What the app routes a tap by is unchanged.
+    expect(delivered.push.data).toEqual({
+      type: "incident-created",
+      entityType: "incident",
+      entityId: RECORD.toString(),
+      projectId: PROJECT.toString(),
+      incidentTitle: "Checkout is down",
+      projectName: "Acme",
+      url: VIEW,
+    });
+
+    // Telegram and Slack are in Arabic, with no Persian or Arabic-Indic digit.
+    const slack: string = markdown(delivered.slack.messageBlocks);
+
+    for (const text of [delivered.telegram, slack]) {
+      expect(text).toMatch(/[ء-ي]/);
+      expect(text).not.toMatch(/[٠-٩۰-۹]/);
+      expect(text).toContain("Checkout is down");
+    }
+
+    // The call is spoken in English, as every page's call is.
+    expect(sayMessages(delivered.call)[1]).toBe(
+      "A new incident has been created",
+    );
+  });
+
   test("German, paged again: every message says it is still not resolved, in German", async () => {
     jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("de");
     runs.mockResolvedValue(run(1) as never);
