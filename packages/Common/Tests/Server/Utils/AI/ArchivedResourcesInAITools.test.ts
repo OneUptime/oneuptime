@@ -152,6 +152,8 @@ describe("query_monitors and archived monitors", () => {
     expect(query["currentMonitorStatus"]).toEqual({
       isOperationalState: false,
     });
+    // Nor one whose monitoring is off: its status is stale (#6400).
+    expect(query["disableActiveMonitoring"]).toBe(false);
     expect(query["name"]).toBeDefined();
   });
 

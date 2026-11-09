@@ -62,6 +62,20 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+// The group Overview's Monitoring card: none of its monitors to count here.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMonitoringAPI",
+  () => {
+    return {
+      __esModule: true,
+      fetchMonitorGroupMonitoringSummary: (): Promise<unknown> => {
+        return Promise.resolve({ monitorCount: 0, monitoringOffCount: 0 });
+      },
+      setMonitorGroupMonitoring: jest.fn(),
+    };
+  },
+);
+
 jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return {
     __esModule: true,

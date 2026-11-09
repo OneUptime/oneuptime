@@ -28,6 +28,7 @@ flowchart TB
 
 - **Arkiverede monitorer tæller ikke.** En arkiveret monitor kontrolleres ikke, så dens status er frosset; gruppen udelader den.
 - **En tom gruppe er driftsklar.** En gruppe uden monitorer, eller kun med arkiverede, viser din driftsklare status. Indtil du tilføjer en monitor, viser dashboardet **Ingen monitorer endnu** i stedet for gruppens status.
+- **Overvågning slået fra viser Deaktiveret.** Når overvågning er slået fra for alle monitorer i en gruppe, tjekker intet dem, så dashboardet viser **Deaktiveret** i stedet for gruppens status.
 - **Rækkefølgen er din.** Hvilken status der er den værste, følger rækkefølgen under **Overvågninger → Indstillinger → Monitorstatus**. Se [Monitorstatusser](/docs/monitor/criteria-and-statuses#monitorstatusser).
 
 En monitorgruppe er ikke en statussidegruppe. En statussidegruppe er en overskrift på én statusside, der rummer rækker. En monitorgruppe er én række, der står for flere monitorer, og enhver statusside kan vise den.
@@ -80,7 +81,7 @@ For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række unde
 
 | Side | Hvad den viser |
 | --- | --- |
-| **Oversigt** | **Detaljer om overvågningsgruppe**, **Aktuel status** og **Oppetidgraf** med gruppens oppetidsprocent over de seneste 90 dage. En gruppe uden monitorer tilbyder **Tilføj monitorer** i stedet for grafen. |
+| **Oversigt** | **Detaljer om overvågningsgruppe**, **Aktuel status**, **Overvågning** og **Oppetidgraf** med gruppens oppetidsprocent over de seneste 90 dage. En gruppe uden monitorer tilbyder **Tilføj monitorer** i stedet for grafen. |
 | **Monitorer** | **Overvågninger i gruppe**, med **Tilføj monitorer** og **Fjern**. |
 | **Hændelser** | Hændelserne på enhver monitor i gruppen. |
 | **Advarsler** | Advarslerne på enhver monitor i gruppen. |
@@ -91,6 +92,17 @@ For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række unde
 Oppetiden på **Oversigt** tæller enhver status undtagen den driftsklare som nedetid. En statusside tæller kun statusserne på sin egen liste **Tæller som nedetid**: se [Vælg, hvad siden viser](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden).
 
 Listen **Monitorgrupper** kan filtrere grupper efter ejer og etiket, sætte etiketter og ejere på mange grupper på én gang og eksportere eller importere grupper som JSON.
+
+## Slå overvågning fra for en hel gruppe
+
+Kortet **Overvågning** på en gruppes **Oversigt** slår overvågning fra, eller til igen, for alle monitorer i gruppen på én gang.
+
+- **Slå overvågning fra** spørger først. Derefter tjekker intet gruppens monitorer, før overvågningen slås til igen, så de åbner ingen hændelser eller advarsler, og gruppen viser **Deaktiveret** i stedet for sin status.
+- **Slå overvågning til** gemmer med det samme. Hver monitors næste tjek sætter dens status igen.
+
+At slå overvågning fra løser også monitorernes åbne hændelser og advarsler, der er sat til automatisk løsning, sådan som hver monitor ville have gjort ved gendannelse. Hændelser og advarsler, der er oprettet i hånden, eller hvis kriterier ikke løser automatisk, forbliver åbne. At slå overvågningen fra for én monitor, på dens side **Indstillinger**, gør det samme.
+
+Kortet ændrer monitorerne, ikke gruppen: hver monitors eget kort **Overvågning** viser ændringen, og en monitor, der tilføjes gruppen senere, beholder sin egen indstilling. Arkiverede monitorer forbliver, som de er. Så længe overvågning kun er slået fra for nogle af monitorerne, siger kortet hvor mange og tilbyder begge knapper.
 
 ## Vis en gruppe på en statusside
 

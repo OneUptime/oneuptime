@@ -298,6 +298,33 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
     );
   });
 
+  test("a monitor disabled resolves its open incidents and alerts set to auto-resolve: the update hook hands every monitor it turns off to MonitorTurnedOff, which keeps only those", () => {
+    const monitorService: string = readSource(
+      "Common/Server/Services/MonitorService.ts",
+    );
+
+    // The monitors the update turns off are found before it is saved...
+    expect(monitorService).toContain(
+      "const monitorIdsTurnedOff: Array<string> =\n      await this.findMonitorIdsTurnedOff(updateBy);",
+    );
+    // ...and each one's incidents and alerts resolved after.
+    expect(monitorService).toContain(
+      "await MonitorTurnedOff.resolveWhatItWouldHaveResolved({",
+    );
+
+    const turnedOff: string = readSource(
+      "Common/Server/Utils/Monitor/MonitorTurnedOff.ts",
+    );
+
+    // Only what auto-resolve would have resolved: the monitor's own rule.
+    expect(turnedOff).toContain(
+      "return MonitorIncident.isAutoResolveConfiguredForIncident({",
+    );
+    expect(turnedOff).toContain(
+      "return MonitorAlert.isAutoResolveConfiguredForAlert({",
+    );
+  });
+
   test("a disabled workflow does not run on its trigger, and a person can still run it from the Builder (a test run)", () => {
     const queue: string = readSource(
       "App/FeatureSet/Workflow/Services/QueueWorkflow.ts",

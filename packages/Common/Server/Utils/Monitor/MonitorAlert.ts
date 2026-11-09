@@ -1373,8 +1373,11 @@ export default class MonitorAlert {
    * Alert auto-resolve lists templates by criteria; the presence of any
    * template for a criteria means "this criteria's alerts are configured
    * to auto-resolve".
+   *
+   * Turning monitoring off asks the same (MonitorTurnedOff): it resolves
+   * exactly the alerts this says the monitor would have resolved.
    */
-  private static isAutoResolveConfiguredForAlert(input: {
+  public static isAutoResolveConfiguredForAlert(input: {
     openAlert: Alert;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
   }): boolean {
