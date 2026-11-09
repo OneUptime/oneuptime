@@ -15,7 +15,10 @@ import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/Monitor
 import SeriesResourceLinker from "../../../../Server/Utils/Monitor/SeriesResourceLinker";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
+import URL from "../../../../Types/API/URL";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorSummarySnapshot from "../../../../Types/Monitor/MonitorSummarySnapshot";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -539,6 +542,200 @@ describe("Incidents and alerts store payload copies Postgres can hold", () => {
       expect(alertStateTimelines[0]!.stateChangeLog!["responseBody"]).toBe(
         STORED_ZIP_BODY,
       );
+    });
+  });
+
+  /*
+   * The check an incident or an alert keeps, and the check that resolves
+   * it, are cut as the monitor's logs are (#6341): credentials and personal
+   * data masked, the destination as the check's step configured it, and
+   * nothing of the response for a monitor that keeps no response content.
+   * The rules are pinned on every copy in MonitorCheckCopiesRedaction.
+   */
+  describe("the checks an incident and an alert keep are cut as the monitor's logs are", () => {
+    const CONFIGURED: string =
+      "https://api.acme.example/health?tenant={{monitorSecrets.Tenant}}";
+
+    function apiStep(): MonitorStep {
+      const step: MonitorStep = new MonitorStep();
+      step.data!.monitorDestination = URL.fromString(CONFIGURED);
+      return step;
+    }
+
+    function monitorWith(
+      step: MonitorStep,
+      keepResponseContent?: boolean,
+    ): Monitor {
+      const monitorSteps: MonitorSteps = new MonitorSteps();
+      monitorSteps.data = {
+        monitorStepsInstanceArray: [step],
+        defaultMonitorStatusId: undefined,
+      };
+
+      const model: Monitor = monitor();
+      model.monitorType = MonitorType.API;
+      model.monitorSteps = monitorSteps;
+
+      if (keepResponseContent !== undefined) {
+        model.keepResponseContent = keepResponseContent;
+      }
+
+      return model;
+    }
+
+    // An API's answer, the destination as the probe echoed it.
+    function apiCheck(step: MonitorStep): ProbeMonitorResponse {
+      return {
+        ...probeResult(),
+        monitorStepId: step.id,
+        responseCode: 401,
+        responseBody: '{"error":"expired","owner":"jane@acme.example"}',
+        responseHeaders: {
+          "content-type": "application/json",
+          authorization: "Bearer live-token",
+        },
+        monitorDestination: URL.fromString(
+          "https://api.acme.example/health?tenant=acme-prod-7781",
+        ),
+      } as unknown as ProbeMonitorResponse;
+    }
+
+    function expectCut(check: JSONObject): void {
+      expect(check["responseHeaders"]).toEqual({
+        "content-type": "application/json",
+        authorization: "[REDACTED]",
+      });
+      expect(check["responseBody"]).toBe(
+        '{"error":"expired","owner":"[REDACTED]"}',
+      );
+      expect(check["monitorDestination"]).toBe(CONFIGURED);
+      expect(check["responseCode"]).toBe(401);
+    }
+
+    function expectNoContent(check: JSONObject): void {
+      expect(check["responseHeaders"]).toBeUndefined();
+      expect(check["responseBody"]).toBeUndefined();
+      expect(check["isResponseContentOmitted"]).toBe(true);
+      expect(check["monitorDestination"]).toBe(CONFIGURED);
+      expect(check["responseCode"]).toBe(401);
+    }
+
+    it("an incident keeps the check cut, its destination as the step configured it", async () => {
+      const step: MonitorStep = apiStep();
+
+      await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+        criteriaInstance: criteriaInstance({
+          createIncidents: true,
+          createAlerts: false,
+        }),
+        monitor: monitorWith(step),
+        dataToProcess: apiCheck(step),
+        rootCause: "Monitor is offline",
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary: NO_AUTO_RESOLVE,
+        monitorSummary: null,
+        props: {},
+      });
+
+      expectCut(createdIncidents[0]!.createdStateLog!);
+    });
+
+    it("an alert keeps the check cut the same way", async () => {
+      const step: MonitorStep = apiStep();
+
+      await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+        criteriaInstance: criteriaInstance({
+          createIncidents: false,
+          createAlerts: true,
+        }),
+        monitor: monitorWith(step),
+        dataToProcess: apiCheck(step),
+        rootCause: "Monitor is offline",
+        autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+        monitorSummary: null,
+        props: {},
+      });
+
+      expectCut(createdAlerts[0]!.createdStateLog!);
+    });
+
+    it("neither keeps the response of a monitor that keeps no response content", async () => {
+      const step: MonitorStep = apiStep();
+
+      await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+        criteriaInstance: criteriaInstance({
+          createIncidents: true,
+          createAlerts: false,
+        }),
+        monitor: monitorWith(step, false),
+        dataToProcess: apiCheck(step),
+        rootCause: "Monitor is offline",
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary: NO_AUTO_RESOLVE,
+        monitorSummary: null,
+        props: {},
+      });
+
+      await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+        criteriaInstance: criteriaInstance({
+          createIncidents: false,
+          createAlerts: true,
+        }),
+        monitor: monitorWith(step, false),
+        dataToProcess: apiCheck(step),
+        rootCause: "Monitor is offline",
+        autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+        monitorSummary: null,
+        props: {},
+      });
+
+      expectNoContent(createdIncidents[0]!.createdStateLog!);
+      expectNoContent(createdAlerts[0]!.createdStateLog!);
+    });
+
+    it("the check that resolves them is cut the same way, by the step it ran", async () => {
+      const step: MonitorStep = apiStep();
+
+      const openIncident: Incident = new Incident();
+      openIncident._id = ObjectID.generate().toString();
+      openIncident.projectId = PROJECT_ID;
+      openIncident.createdCriteriaId = "criteria-1";
+      openIncident.createdIncidentTemplateId = "incident-template-1";
+
+      const openAlert: Alert = new Alert();
+      openAlert._id = ObjectID.generate().toString();
+      openAlert.projectId = PROJECT_ID;
+      openAlert.createdCriteriaId = "criteria-1";
+
+      jest.spyOn(IncidentService, "findBy").mockResolvedValue([openIncident]);
+      jest.spyOn(AlertService, "findBy").mockResolvedValue([openAlert]);
+
+      await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary: {
+          "criteria-1": ["incident-template-1"],
+        },
+        rootCause: "No monitoring criteria met.",
+        criteriaInstance: null,
+        dataToProcess: apiCheck(step),
+        keepResponseContent: true,
+        monitorStep: step,
+      });
+
+      await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        autoResolveCriteriaInstanceIdAlertIdsDictionary: {
+          "criteria-1": ["alert-template-1"],
+        },
+        rootCause: "No monitoring criteria met.",
+        criteriaInstance: null,
+        dataToProcess: apiCheck(step),
+        keepResponseContent: false,
+        monitorStep: step,
+      });
+
+      expectCut(incidentStateTimelines[0]!.stateChangeLog!);
+      expectNoContent(alertStateTimelines[0]!.stateChangeLog!);
     });
   });
 });

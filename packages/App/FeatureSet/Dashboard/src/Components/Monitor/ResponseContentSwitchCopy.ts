@@ -3,12 +3,14 @@ import { translationKey } from "Common/Types/Translator";
 
 /*
  * "Response content", on the Settings page of a Website, API or Incoming
- * Request monitor: whether the incidents and alerts it opens keep the
- * content of the check that opened them - the excerpt of the response
- * around what a filter matched in their Evaluation details, and the
- * response (or request) body in their Monitor Summary. On by default.
- * Secrets and personal data are masked either way; this is for a monitor
- * whose responses are sensitive in themselves.
+ * Request monitor: whether the monitor keeps the content of its checks -
+ * the body and headers of the response (or request) in its Monitoring Logs,
+ * its status timeline and each probe's latest check, and, on the incidents
+ * and alerts it opens, the excerpt of the response around what a filter
+ * matched in their Evaluation details and the body in their Monitor
+ * Summary. On by default. Secrets and personal data are masked either way
+ * (MonitorRecordEvidence); this is for a monitor whose responses are
+ * sensitive in themselves.
  *
  * It writes Monitor.keepResponseContent and saves when it is flipped. React-
  * free, so the card and App/Tests read the same strings.
@@ -34,12 +36,12 @@ export const RESPONSE_CONTENT_SWITCH_COPY: ResponseContentSwitchCopyForType = {
   cardDescription: translationKey(
     "Turn this off for a monitor whose responses are sensitive.",
   ),
-  switchTitle: translationKey("Keep response content on incidents and alerts"),
+  switchTitle: translationKey("Keep response content"),
   onDescription: translationKey(
-    "Incidents and alerts show the part of the response that matched, and the response body, with secrets and personal data masked.",
+    "Monitoring logs, incidents and alerts show the part of the response that matched, and the response body, with secrets and personal data masked.",
   ),
   offDescription: translationKey(
-    "Incidents and alerts keep no part of the response: only which filters matched, the status code and the response time.",
+    "Monitoring logs, incidents and alerts keep no part of the response: only which filters matched, the status code and the response time.",
   ),
 };
 
@@ -49,12 +51,12 @@ export const REQUEST_CONTENT_SWITCH_COPY: ResponseContentSwitchCopyForType = {
   cardDescription: translationKey(
     "Turn this off for a monitor whose requests are sensitive.",
   ),
-  switchTitle: translationKey("Keep request content on incidents and alerts"),
+  switchTitle: translationKey("Keep request content"),
   onDescription: translationKey(
-    "Incidents and alerts show the part of the request that matched, and the request body, with secrets and personal data masked.",
+    "Monitoring logs, incidents and alerts show the part of the request that matched, and the request body, with secrets and personal data masked.",
   ),
   offDescription: translationKey(
-    "Incidents and alerts keep no part of the request: only which filters matched.",
+    "Monitoring logs, incidents and alerts keep no part of the request: only which filters matched.",
   ),
 };
 

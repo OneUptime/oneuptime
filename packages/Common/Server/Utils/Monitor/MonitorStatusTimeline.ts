@@ -12,11 +12,11 @@ import MonitorStatusTimelineService, {
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import ServerException from "../../../Types/Exception/ServerException";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
-import { toStorableJson } from "../Database/PostgresStorableValue";
-import { JSONObject } from "../../../Types/JSON";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
 
 export default class MonitorStatusTimelineUtil {
   @CaptureSpan()
@@ -24,6 +24,8 @@ export default class MonitorStatusTimelineUtil {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
     dataToProcess: DataToProcess;
+    // The step the check ran: the log names the destination it configures.
+    monitorStep?: MonitorStep | undefined;
     rootCause: string;
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
@@ -174,10 +176,18 @@ export default class MonitorStatusTimelineUtil {
       /*
        * Storable copy: a NUL in the payload (a binary response body, say)
        * would make Postgres refuse the jsonb and fail the status change.
+       * Everyone who reads the monitor reads it, for as long as the
+       * timeline is kept, so it is cut as the monitor's logs are
+       * (MonitorRecordEvidence).
        */
-      monitorStatusTimeline.statusChangeLog = toStorableJson(
-        input.dataToProcess,
-      ) as unknown as JSONObject;
+      monitorStatusTimeline.statusChangeLog =
+        MonitorRecordEvidence.toStoredCheck({
+          dataToProcess: input.dataToProcess,
+          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
+          monitorStep: input.monitorStep,
+        });
       monitorStatusTimeline.rootCause = input.rootCause;
 
       try {
