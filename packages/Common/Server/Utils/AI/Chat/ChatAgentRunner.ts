@@ -57,11 +57,14 @@ import {
 import { buildObservabilityChatSystemPrompt } from "./ObservabilityChatPrompt";
 import { ObservabilityAssistantExtraTool } from "./ObservabilityAssistant";
 import {
+  AgentContextBudget,
   AgentWrapUpReason,
   buildSkippedToolCallText,
   buildWrapUpInstruction,
+  callWithContextOverflowRecovery,
   compactAgentContext,
   CONTINUE_ANSWER_INSTRUCTION,
+  DEFAULT_MAX_CONTEXT_CHARS,
   joinAnswerContinuation,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
@@ -957,6 +960,10 @@ export default class ChatAgentRunner {
     let wrapUpReason: AgentWrapUpReason | null = null;
     // Follow-up calls that finish an answer the output limit cut off.
     let continuationCount: number = 0;
+    // Lowered for the rest of the turn if the model rejects the transcript.
+    const contextBudget: AgentContextBudget = {
+      maxChars: DEFAULT_MAX_CONTEXT_CHARS,
+    };
 
     while (true) {
       /*
@@ -991,7 +998,7 @@ export default class ChatAgentRunner {
        * tool results once the transcript outgrows the context window,
        * instead of failing on an oversized request.
        */
-      compactAgentContext(messages);
+      compactAgentContext(messages, { maxChars: contextBudget.maxChars });
 
       await this.heartbeat(request, state);
 
@@ -999,23 +1006,31 @@ export default class ChatAgentRunner {
         eventType: AIRunEventType.LlmCallStarted,
       });
 
-      const response: AILogResponse = await AIService.executeWithLogging({
-        projectId: request.projectId,
-        userId: request.userId,
-        aiRunId: request.aiRunId,
-        // Every turn of the chat is one conversation in OneUptime's telemetry.
-        conversationId: request.conversationId,
-        llmProviderId: request.llmProviderId,
-        feature: request.feature || OBSERVABILITY_CHAT_FEATURE,
+      const response: AILogResponse = await callWithContextOverflowRecovery({
         messages: messages,
-        tools: budgetExhausted ? undefined : this.getToolDefinitions(request),
-        maxTokens: MAX_OUTPUT_TOKENS,
-        temperature: TEMPERATURE,
-        /*
-         * Chat conversations are personal; do not persist prompt/response
-         * previews into LlmLog, which is readable by all project members.
-         */
-        storeContentPreviews: false,
+        budget: contextBudget,
+        call: (): Promise<AILogResponse> => {
+          return AIService.executeWithLogging({
+            projectId: request.projectId,
+            userId: request.userId,
+            aiRunId: request.aiRunId,
+            // Every turn of the chat is one conversation in OneUptime's telemetry.
+            conversationId: request.conversationId,
+            llmProviderId: request.llmProviderId,
+            feature: request.feature || OBSERVABILITY_CHAT_FEATURE,
+            messages: messages,
+            tools: budgetExhausted
+              ? undefined
+              : this.getToolDefinitions(request),
+            maxTokens: MAX_OUTPUT_TOKENS,
+            temperature: TEMPERATURE,
+            /*
+             * Chat conversations are personal; do not persist prompt/response
+             * previews into LlmLog, which is readable by all project members.
+             */
+            storeContentPreviews: false,
+          });
+        },
       });
 
       state.llmCallCount++;
