@@ -974,8 +974,9 @@ describe("Incidents → AI → Settings", () => {
     expect(detailValue("Max Concurrent Incident Investigations")).toBe(
       "No limit",
     );
+    // Unset, an investigation runs within the project's time limit per run.
     expect(detailValue("Incident Investigation Time Limit (Minutes)")).toBe(
-      "No time limit",
+      "The project's time limit",
     );
     expect(detailValue("Daily Incident AI Token Limit")).toBe("No limit");
     expect(detailValue("Daily Incident AI Fix Task Limit")).toBe("No limit");
@@ -1369,7 +1370,7 @@ describe("Alerts → AI → Settings", () => {
       { timeout: WAIT_TIMEOUT },
     );
     expect(detailValue("Alert Investigation Time Limit (Minutes)")).toBe(
-      "No time limit",
+      "The project's time limit",
     );
     expect(detailValue("Daily Alert AI Token Limit")).toBe("No limit");
     expect(detailValue("Daily Alert AI Fix Task Limit")).toBe("No limit");

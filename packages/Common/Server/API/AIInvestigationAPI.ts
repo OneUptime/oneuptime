@@ -21,7 +21,8 @@ import Query from "../../Types/BaseDatabase/Query";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunHumanVerdict from "../../Types/AI/AIRunHumanVerdict";
-import AIRunStatus from "../../Types/AI/AIRunStatus";
+import AIRunStatus, { AIRunStatusHelper } from "../../Types/AI/AIRunStatus";
+import InvestigationTryAgain from "../Utils/AI/SRE/InvestigationTryAgain";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
@@ -448,6 +449,8 @@ async function sendLatestInvestigation(
       toolCallCount: true,
       totalTokens: true,
       createdAt: true,
+      // When a run waiting between attempts tries again (issue #6438).
+      retryAt: true,
       codeFixRecommendation: true,
       // The AI-written summary the panel shows above the report.
       analysisTldr: true,
@@ -503,6 +506,7 @@ async function sendLatestInvestigation(
             ...subject,
           })) as unknown as JSONObject),
       waitingInvestigation,
+      mayTryAgain: false,
       events: [],
       analysisMarkdown: null,
       analysisTldr: null,
@@ -536,11 +540,31 @@ async function sendLatestInvestigation(
        */
       ...(isEvidenceEligible ? { citationId: true, toolArguments: true } : {}),
     },
-    sort: { sequence: SortOrder.Ascending },
+    /*
+     * The newest events, put back in order below: a long run's latest steps
+     * - its last attempt, and how it ended - are what the panel must show.
+     * Reading the oldest ones left the end of a run past the cap out, and
+     * its last steps open forever (issue #6437).
+     */
+    sort: { sequence: SortOrder.Descending },
     limit: MAX_EVENTS,
     skip: 0,
     props: { isRoot: true },
   });
+
+  events.reverse();
+
+  /*
+   * Try again, for an investigation that did not finish, to whoever may
+   * start one: the one who may change the incident or alert (issue #6438).
+   */
+  const mayTryAgain: boolean =
+    AIRunStatusHelper.didNotFinish(run.status) &&
+    (await canViewerStartInvestigation({
+      subjectType: viewer.subjectType,
+      subjectId: (subject.incidentId || subject.alertId)!,
+      viewerProps: viewer.props,
+    }));
 
   const runJson: JSONObject | undefined = BaseModel.toJSONArray(
     [run],
@@ -617,6 +641,7 @@ async function sendLatestInvestigation(
     run: runJson || null,
     notInvestigatedReason: null,
     waitingInvestigation: null,
+    mayTryAgain,
     events: eventsJson,
     analysisMarkdown,
     analysisTldr,
@@ -1009,6 +1034,67 @@ router.post(
 );
 
 /*
+ * The incident or alert a person asks to investigate (Investigate now, Try
+ * again), checked the same way for both: an authenticated member of the
+ * tenant, who may read it inside the tenant and change it - the
+ * investigation posts its report to it. Throws what stopped it: 401 with
+ * no user session, 400 for a bad body, 403 without the permission.
+ */
+interface SubjectToInvestigate {
+  tenantId: ObjectID;
+  subjectType: "incident" | "alert";
+  subjectId: ObjectID;
+}
+
+async function readSubjectViewerMayInvestigate(
+  req: ExpressRequest,
+  action: string,
+): Promise<SubjectToInvestigate> {
+  const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+  const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+  CommonAPI.assertAuthenticatedProjectMember(props);
+  const viewerProps: DatabaseCommonInteractionProps = pinPropsToTenant(props);
+
+  const subjectType: unknown = req.body["subjectType"];
+
+  if (subjectType !== "incident" && subjectType !== "alert") {
+    throw new BadDataException('subjectType must be "incident" or "alert".');
+  }
+
+  const subjectIdRaw: unknown = req.body["subjectId"];
+
+  if (typeof subjectIdRaw !== "string" || !subjectIdRaw.trim()) {
+    throw new BadDataException("subjectId is required.");
+  }
+
+  ObjectID.validateUUID(subjectIdRaw.trim());
+
+  const subjectId: ObjectID = new ObjectID(subjectIdRaw.trim());
+
+  // Access check under the USER's permissions, inside the tenant.
+  await assertSubjectReadableInTenant({
+    subjectType,
+    subjectId,
+    tenantId,
+    viewerProps,
+  });
+
+  if (
+    !(await canViewerStartInvestigation({
+      subjectType,
+      subjectId,
+      viewerProps,
+    }))
+  ) {
+    throw new NotAuthorizedException(
+      `You do not have permission to change this ${subjectType}, so you cannot ${action}.`,
+    );
+  }
+
+  return { tenantId, subjectType, subjectId };
+}
+
+/*
  * "Investigate now" on the AI Investigation card, while an investigation
  * rule makes OneUptime AI wait before it investigates the incident or alert
  * (issue #5074): start it now. A manual start ignores the wait - and the
@@ -1030,55 +1116,15 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
-      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
-      CommonAPI.assertAuthenticatedProjectMember(props);
-      const viewerProps: DatabaseCommonInteractionProps =
-        pinPropsToTenant(props);
+      const subject: SubjectToInvestigate =
+        await readSubjectViewerMayInvestigate(req, "start its investigation");
 
-      const subjectType: unknown = req.body["subjectType"];
-
-      if (subjectType !== "incident" && subjectType !== "alert") {
-        throw new BadDataException(
-          'subjectType must be "incident" or "alert".',
-        );
-      }
-
-      const subjectIdRaw: unknown = req.body["subjectId"];
-
-      if (typeof subjectIdRaw !== "string" || !subjectIdRaw.trim()) {
-        throw new BadDataException("subjectId is required.");
-      }
-
-      ObjectID.validateUUID(subjectIdRaw.trim());
-
-      const subjectId: ObjectID = new ObjectID(subjectIdRaw.trim());
-
-      // Access check under the USER's permissions, inside the tenant.
-      await assertSubjectReadableInTenant({
-        subjectType,
-        subjectId,
-        tenantId,
-        viewerProps,
-      });
-
-      if (
-        !(await canViewerStartInvestigation({
-          subjectType,
-          subjectId,
-          viewerProps,
-        }))
-      ) {
-        throw new NotAuthorizedException(
-          `You do not have permission to change this ${subjectType}, so you cannot start its investigation.`,
-        );
-      }
-
-      const lane: RuleWaitLane = subjectType === "alert" ? "Alert" : "Incident";
+      const lane: RuleWaitLane =
+        subject.subjectType === "alert" ? "Alert" : "Incident";
       const result: StartNowResult = await InvestigationRuleWait.startNow({
         lane,
-        projectId: tenantId,
-        subjectId,
+        projectId: subject.tenantId,
+        subjectId: subject.subjectId,
       });
 
       if (!result.isStarted) {
@@ -1087,6 +1133,48 @@ router.post(
 
       Response.sendJsonObjectResponse(req, res, {
         runId: result.runId.toString(),
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Try again (issue #6438): start an incident's or alert's investigation
+ * again after its last one did not finish - it failed, stopped reporting
+ * progress, or expired in the queue (InvestigationTryAgain). Only the one
+ * who may change the incident or alert may: the investigation posts its
+ * report to it, the same rule as Investigate now and Ask AI's
+ * start_investigation.
+ * Body: { subjectType: "incident" | "alert", subjectId }.
+ * Response: { runId }, or 400 with what stopped it.
+ */
+router.post(
+  "/ai-investigation/try-again",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const subject: SubjectToInvestigate =
+        await readSubjectViewerMayInvestigate(
+          req,
+          "start its investigation again",
+        );
+
+      const runId: ObjectID = await InvestigationTryAgain.tryAgain({
+        projectId: subject.tenantId,
+        subjectType: subject.subjectType,
+        subjectId: subject.subjectId,
+      });
+
+      Response.sendJsonObjectResponse(req, res, {
+        runId: runId.toString(),
       });
       return;
     } catch (err) {

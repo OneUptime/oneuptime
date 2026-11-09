@@ -58,6 +58,16 @@ export const AKS_ID: string = armId(
   "Microsoft.ContainerService/managedClusters",
   "prod-aks",
 );
+export const SERVICE_BUS_ID: string = armId(
+  "rg-Prod",
+  "Microsoft.ServiceBus/namespaces",
+  "sb-orders",
+);
+export const EVENT_HUBS_ID: string = armId(
+  "rg-Prod",
+  "Microsoft.EventHub/namespaces",
+  "eh-clicks",
+);
 
 function resource(data: {
   id: string;
@@ -133,6 +143,20 @@ export function streamContext(
           group: "rg-Data",
           region: "eastus",
         }),
+        resource({
+          id: SERVICE_BUS_ID,
+          name: "sb-orders",
+          type: "Microsoft.ServiceBus/namespaces",
+          group: "rg-Prod",
+          region: "eastus",
+        }),
+        resource({
+          id: EVENT_HUBS_ID,
+          name: "eh-clicks",
+          type: "Microsoft.EventHub/namespaces",
+          group: "rg-Prod",
+          region: "eastus",
+        }),
       ].map((item: AzureStreamResource): [string, AzureStreamResource] => {
         return [item.resourceId.toLowerCase(), item];
       }),
@@ -204,6 +228,41 @@ export function streamContext(
             aggregation: "Average",
             unit: "Bytes",
             grain: "PT1H",
+          },
+        ],
+      ],
+      // Read split by EntityName: one series per queue, topic or event hub.
+      [
+        "Microsoft.ServiceBus/namespaces",
+        [
+          {
+            name: "IncomingMessages",
+            aggregation: "Total",
+            unit: "Count",
+            grain: "PT1M",
+          },
+          {
+            name: "ActiveMessages",
+            aggregation: "Average",
+            unit: "Count",
+            grain: "PT1M",
+          },
+        ],
+      ],
+      [
+        "Microsoft.EventHub/namespaces",
+        [
+          {
+            name: "IncomingMessages",
+            aggregation: "Total",
+            unit: "Count",
+            grain: "PT1M",
+          },
+          {
+            name: "ServerErrors",
+            aggregation: "Total",
+            unit: "Count",
+            grain: "PT1M",
           },
         ],
       ],

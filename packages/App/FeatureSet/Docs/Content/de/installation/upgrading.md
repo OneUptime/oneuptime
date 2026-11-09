@@ -435,6 +435,14 @@ Um die alten Limits zu behalten, setzen Sie sie selbst: **Mindestschweregrad fü
 
 Auch die KI-Seiten in den Seitenleisten von Vorfällen und Warnungen haben sich geändert. Der Bereich **KI** jeder Seitenleiste, direkt nach **Episoden** und eingeklappt, bis Sie ihn öffnen, enthält alles, was OneUptime AI für diese Art von Signal tut: **Einblicke** und **Protokolle**, die neu sind, dann **Einstellungen**, die Seite, die **Untersuchung** hieß, und **Auto-Behebungsregeln**, die Seite, die **Behebung** hieß. Ihre Adressen sind von `…/settings/ai` und `…/settings/auto-remediation-rules` zu `…/ai/settings` und `…/ai/auto-remediation-rules` umgezogen. Die alten Adressen öffnen die neuen Seiten, Lesezeichen funktionieren also weiter.
 
+### KI-Ausführungen sind nur noch an ein Zeitlimit gebunden
+
+Eine Ausführung von OneUptime AI stoppte früher bei festen Zahlen, etwa 100 Modellaufrufen und 300 Tool-Aufrufen für eine Untersuchung und 40 Modellaufrufen und 100.000 Ausgabe-Token für eine Code-Aufgabe. Diese sind weg: Eine Ausführung macht jetzt so viele Aufrufe, wie ihre Arbeit braucht, bis zu 120 Minuten lang. Eine Untersuchung ohne gesetztes Zeitlimit, die bisher keines hatte, stoppt jetzt ebenfalls nach 120 Minuten. Die Schleifenerkennung stoppt weiterhin eine Untersuchung oder Antwort, die sich im Kreis dreht, und Sie können jede Ausführung stoppen.
+
+Für ein bestehendes Projekt kann eine schwierige Frage jetzt mehr Aufrufe brauchen als bisher und damit mehr Token und, auf OneUptime Cloud, mehr KI-Guthaben; die täglichen Limits des Projekts begrenzen den Tag weiterhin. Um jede Ausführung enger zu begrenzen, legen Sie **Modellaufrufe pro Ausführung**, **Tool-Aufrufe pro Ausführung**, **Tokens pro Ausführung** oder **Zeitlimit pro Ausführung (Minuten)** auf **Projekteinstellungen → KI → KI-Funktionen** fest, unter **Weitere Einstellungen**. Eine Ausführung, die eines davon erreicht, antwortet mit dem, was sie gefunden hat, und nennt das Limit, das sie gestoppt hat. Nichts wird migriert: Kein Projekt hatte diese Einstellungen bisher.
+
+Ein Runner von vor diesem Release stoppt eine Code-Aufgabe weiterhin bei 40 Modellaufrufen und 100.000 Ausgabe-Token; aktualisieren Sie ihn, um diese Grenzen aufzuheben.
+
 ### Die AI Logs bekommen einen Index für die täglichen KI-Limits
 
 Die täglichen KI-Limits eines Projekts (**Projekteinstellungen → KI → KI-Funktionen → Weitere Einstellungen**) und die täglichen Token-Limits für Vorfälle und Warnungen addieren vor jedem KI-Aufruf die AI Logs des Tages. Bisher las das jedes AI Log, das das Projekt je geschrieben hatte, und eine selbst gehostete Installation behält sie alle. Das Upgrade fügt einen Index auf den AI Logs (`LlmLog`) hinzu, über das Projekt und den Zeitpunkt jedes Aufrufs, sodass jede Prüfung nur die des Tages liest. Auch die Seite der AI Logs listet die Logs eines Projekts schneller.

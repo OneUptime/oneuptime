@@ -172,6 +172,14 @@ const AI_INVESTIGATION_ROUTES: Array<HumanOnlyRoute> = [
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "incidentRead",
   },
+  // Try again, after an investigation did not finish (issue #6438).
+  {
+    uri: "/ai-investigation/try-again",
+    params: {},
+    body: { subjectType: "incident", subjectId: SUBJECT_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "incidentRead",
+  },
   {
     uri: "/ai-investigation/evidence",
     params: {},
@@ -316,6 +324,14 @@ const AI_INSIGHT_ROUTES: Array<HumanOnlyRoute> = [
   },
   {
     uri: "/ai-insight/triage-run",
+    params: {},
+    body: { insightId: INSIGHT_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "insightRead",
+  },
+  // Try again, after a triage did not finish (issue #6438).
+  {
+    uri: "/ai-insight/triage-try-again",
     params: {},
     body: { insightId: INSIGHT_ID.toString() },
     notAUserMessage: USER_SESSION_REQUIRED,

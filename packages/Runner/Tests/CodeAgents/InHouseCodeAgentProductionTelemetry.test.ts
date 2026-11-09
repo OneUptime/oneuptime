@@ -15,9 +15,12 @@
  *     chose; the server decides what the run may read.
  *   - NEVER A WORKSPACE TOOL. A server tool named like read_file or
  *     write_file is not taken: a file write must never leave the Runner.
- *   - THE BUDGET. Calls stop being offered once the run's are spent, a call
- *     past them is refused here, and the calls made since the last
- *     completion count in the wind-down, as the server counts them.
+ *   - AN OLDER SERVER'S BUDGET. A server from before #6440 gives the calls
+ *     a count of their own (these tests' mocks send no `limits`): they stop
+ *     being offered once the run's are spent, a call past them is refused
+ *     here, and the calls made since the last completion count in the
+ *     wind-down, as that server counts them. A current server's limits -
+ *     no count of their own - are InHouseCodeAgentRunLimits.test.ts's.
  *   - WITHOUT TELEMETRY THE TASK GOES ON. A server that offers none, or
  *     cannot say (an older one), leaves the task as it was.
  * ---------------------------------------------------------------------------

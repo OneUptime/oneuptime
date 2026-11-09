@@ -981,6 +981,7 @@ describe("the queues and topics a collector reads", () => {
           return {
             series: new Set<string>([ORDERS_INCOMING]),
             wholeNamespaces: new Set<string>(),
+            namespaceTotals: new Set<string>(),
           };
         },
       } as never);
@@ -1054,6 +1055,7 @@ describe("the queues and topics a collector reads", () => {
               namespace: "sb-orders",
             }),
           ]),
+          namespaceTotals: new Set<string>(),
         };
       },
     });
@@ -1163,5 +1165,327 @@ describe("the queues and topics a collector reads", () => {
       "azure_activemessages_average|orders",
       "azure_activemessages_average|invoices",
     ]);
+  });
+
+  // Each imported datapoint as metric|queue|the resource it adds to, or none.
+  function importedOn(): Array<string> {
+    const found: Array<string> = [];
+
+    for (const entry of imported) {
+      for (const rm of entry.payload["resourceMetrics"] as Array<JSONObject>) {
+        for (const sm of rm["scopeMetrics"] as Array<JSONObject>) {
+          for (const metric of sm["metrics"] as Array<JSONObject>) {
+            for (const point of (metric["gauge"] as JSONObject)[
+              "dataPoints"
+            ] as Array<JSONObject>) {
+              const valueOf: (key: string) => string = (
+                key: string,
+              ): string => {
+                const attribute: JSONObject | undefined = (
+                  point["attributes"] as Array<JSONObject>
+                ).find((candidate: JSONObject): boolean => {
+                  return candidate["key"] === key;
+                });
+
+                return attribute
+                  ? ((attribute["value"] as JSONObject)[
+                      "stringValue"
+                    ] as string)
+                  : "none";
+              };
+
+              found.push(
+                `${metric["name"] as string}|${valueOf(
+                  "metadata_entityname",
+                )}|${valueOf("azuremonitor.resource_id") === SERVICE_BUS ? "sb-orders" : valueOf("azuremonitor.resource_id")}`,
+              );
+            }
+          }
+        }
+      }
+    }
+
+    return found;
+  }
+
+  test("a namespace's own total a collector sent keeps the read's queues of that metric off the namespace, each still on its queue", async () => {
+    await CloudConnectionPullRunner.run(CONNECTION, {
+      importMetrics,
+      now: () => {
+        return NOW;
+      },
+      findCollectorQueues: async (): Promise<CollectorMessagingQueues> => {
+        return {
+          series: new Set<string>(),
+          wholeNamespaces: new Set<string>(),
+          namespaceTotals: new Set<string>([
+            getMessagingNamespaceSeriesKey({
+              metricName: "azure_incomingmessages_total",
+              type: "Microsoft.ServiceBus/namespaces",
+              namespace: "sb-orders",
+            }),
+          ]),
+        };
+      },
+    });
+
+    expect(importedOn()).toEqual([
+      "azure_incomingmessages_total|orders|none",
+      "azure_incomingmessages_total|invoices|none",
+      "azure_activemessages_average|orders|sb-orders",
+      "azure_activemessages_average|invoices|sb-orders",
+    ]);
+    // Nothing is left out: every queue is written, on its queue.
+    expect(
+      (lastRecord()["lastPullResult"] as JSONObject)["pointsWritten"],
+    ).toBe(4);
+    // The readings come from all of it, as read.
+    expect((readingsWritten[0]!["payloads"] as Array<JSONObject>)[0]).toBe(
+      PAYLOAD,
+    );
+  });
+
+  test("the stored metrics' total of a namespace, split by no queue, is a collector's total of it", async () => {
+    jest.spyOn(MetricService, "aggregateBy").mockResolvedValue({
+      data: [
+        {
+          timestamp: NOW,
+          value: 30,
+          name: "azure_activemessages_average",
+          attributes: {
+            type: "Microsoft.ServiceBus/namespaces",
+            name: "sb-orders",
+            metadata_entityname: "",
+            metadata_EntityName: "",
+          },
+        },
+      ],
+    });
+
+    await run();
+
+    expect(importedOn()).toEqual([
+      "azure_incomingmessages_total|orders|sb-orders",
+      "azure_incomingmessages_total|invoices|sb-orders",
+      "azure_activemessages_average|orders|none",
+      "azure_activemessages_average|invoices|none",
+    ]);
+  });
+});
+
+describe("an Azure read while its event hubs deliver", () => {
+  const SUBSCRIPTION: string = "d0cfe6b2-9ac0-4464-9919-dccaee2e48c0";
+  const VM: string = `/subscriptions/${SUBSCRIPTION}/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/web-01`;
+  const SERVICE_BUS: string = `/subscriptions/${SUBSCRIPTION}/resourceGroups/rg/providers/Microsoft.ServiceBus/namespaces/sb-orders`;
+
+  function azurePoint(data: {
+    resourceId: string;
+    name: string;
+    type: string;
+    entity?: string;
+  }): JSONObject {
+    return {
+      timeUnixNano: "1792584000000000000",
+      asDouble: 3,
+      attributes: [
+        {
+          key: "azuremonitor.resource_id",
+          value: { stringValue: data.resourceId },
+        },
+        { key: "name", value: { stringValue: data.name } },
+        { key: "type", value: { stringValue: data.type } },
+        { key: "location", value: { stringValue: "westeurope" } },
+        { key: "timegrain", value: { stringValue: "PT1M" } },
+        ...(data.entity
+          ? [
+              {
+                key: "metadata_entityname",
+                value: { stringValue: data.entity },
+              },
+            ]
+          : []),
+      ],
+    } as unknown as JSONObject;
+  }
+
+  function vmPoint(): JSONObject {
+    return azurePoint({
+      resourceId: VM,
+      name: "web-01",
+      type: "Microsoft.Compute/virtualMachines",
+    });
+  }
+
+  function queuePoint(entity: string): JSONObject {
+    return azurePoint({
+      resourceId: SERVICE_BUS,
+      name: "sb-orders",
+      type: "Microsoft.ServiceBus/namespaces",
+      entity,
+    });
+  }
+
+  const PAYLOAD: JSONObject = {
+    resourceMetrics: [
+      {
+        resource: {
+          attributes: [
+            {
+              key: "azuremonitor.subscription_id",
+              value: { stringValue: SUBSCRIPTION },
+            },
+          ],
+        },
+        scopeMetrics: [
+          {
+            metrics: [
+              {
+                name: "azure_percentage_cpu_average",
+                gauge: { dataPoints: [vmPoint()] },
+              },
+              {
+                name: "azure_network_in_total_total",
+                gauge: { dataPoints: [vmPoint()] },
+              },
+              {
+                name: "azure_incomingmessages_total",
+                gauge: {
+                  dataPoints: [queuePoint("orders"), queuePoint("invoices")],
+                },
+              },
+              {
+                name: "azure_activemessages_average",
+                gauge: { dataPoints: [queuePoint("orders")] },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  } as unknown as JSONObject;
+
+  // Each imported datapoint as metric|resource|queue.
+  function importedPoints(): Array<string> {
+    const found: Array<string> = [];
+
+    for (const entry of imported) {
+      for (const rm of entry.payload["resourceMetrics"] as Array<JSONObject>) {
+        for (const sm of rm["scopeMetrics"] as Array<JSONObject>) {
+          for (const metric of sm["metrics"] as Array<JSONObject>) {
+            for (const point of (metric["gauge"] as JSONObject)[
+              "dataPoints"
+            ] as Array<JSONObject>) {
+              const valueOf: (key: string) => string = (
+                key: string,
+              ): string => {
+                const attribute: JSONObject | undefined = (
+                  point["attributes"] as Array<JSONObject>
+                ).find((candidate: JSONObject): boolean => {
+                  return candidate["key"] === key;
+                });
+
+                return attribute
+                  ? ((attribute["value"] as JSONObject)[
+                      "stringValue"
+                    ] as string)
+                  : "";
+              };
+
+              found.push(
+                `${metric["name"] as string}|${valueOf(
+                  "azuremonitor.resource_id",
+                )
+                  .split("/")
+                  .slice(-1)[0]!}|${valueOf("metadata_entityname")}`,
+              );
+            }
+          }
+        }
+      }
+    }
+
+    return found;
+  }
+
+  beforeEach(() => {
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockResolvedValue({ written: 1, needingAttention: 0, cleared: 0 });
+    connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
+    connection.streamSummary = {
+      lastDeliveryAt: new Date(NOW.getTime() - 2 * MINUTE).toISOString(),
+      metricSources: [
+        {
+          accountId: SUBSCRIPTION,
+          region: "westeurope",
+          namespaces: [
+            "Microsoft.Compute/virtualMachines",
+            "Microsoft.ServiceBus/namespaces",
+          ],
+          lastAt: new Date(NOW.getTime() - 2 * MINUTE).toISOString(),
+        },
+      ],
+      logSources: [],
+    };
+    readResult = async () => {
+      return result({ payloads: [PAYLOAD], pointsWritten: 5 });
+    };
+  });
+
+  test("leaves the stream only what a diagnostic setting exports, and every queue's series to itself, on its namespace", async () => {
+    await CloudConnectionPullRunner.run(CONNECTION, {
+      importMetrics,
+      now: () => {
+        return NOW;
+      },
+      findCollectorQueues: async (): Promise<CollectorMessagingQueues> => {
+        return NO_COLLECTOR_QUEUES;
+      },
+    });
+
+    expect(importedPoints()).toEqual([
+      // A diagnostic setting cannot export it: still the read's.
+      "azure_network_in_total_total|web-01|",
+      // A namespace the read splits by queue: never the stream's.
+      "azure_incomingmessages_total|sb-orders|orders",
+      "azure_incomingmessages_total|sb-orders|invoices",
+      "azure_activemessages_average|sb-orders|orders",
+    ]);
+    // Only the virtual machine's CPU is the stream's.
+    expect(
+      (lastRecord()["lastPullResult"] as JSONObject)["pointsWritten"],
+    ).toBe(4);
+  });
+
+  test("a queue a collector reads is still the collector's on a streamed namespace", async () => {
+    await CloudConnectionPullRunner.run(CONNECTION, {
+      importMetrics,
+      now: () => {
+        return NOW;
+      },
+      findCollectorQueues: async (): Promise<CollectorMessagingQueues> => {
+        return {
+          series: new Set<string>([
+            getMessagingQueueSeriesKey({
+              metricName: "azure_incomingmessages_total",
+              type: "Microsoft.ServiceBus/namespaces",
+              namespace: "sb-orders",
+              entity: "orders",
+            }),
+          ]),
+          wholeNamespaces: new Set<string>(),
+          namespaceTotals: new Set<string>(),
+        };
+      },
+    });
+
+    expect(importedPoints()).toEqual([
+      "azure_network_in_total_total|web-01|",
+      "azure_incomingmessages_total|sb-orders|invoices",
+      "azure_activemessages_average|sb-orders|orders",
+    ]);
+    expect(
+      (lastRecord()["lastPullResult"] as JSONObject)["pointsWritten"],
+    ).toBe(3);
   });
 });

@@ -1,6 +1,7 @@
 import ArrowGluedText from "./ArrowGluedText";
 import InvestigationNotice, {
   NOTICE_ICON_CLASS_NAME,
+  NOTICE_LINK_CLASS_NAME,
 } from "./InvestigationNotice";
 import {
   INVESTIGATION_LOG_STALL_COPY,
@@ -34,10 +35,6 @@ export interface ComponentProps {
   stall: InvestigationLogStall;
   subjectType: InvestigationLogStallSubject;
 }
-
-// The card's own link look, as the AI-off summary's links.
-const LINK_CLASS_NAME: string =
-  "min-w-0 break-words rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 export function getLogsSetUpRoute(): Route {
   return RouteUtil.populateRouteParams(
@@ -79,7 +76,7 @@ const InvestigationLogStallNotice: FunctionComponent<ComponentProps> = (
         <>
           <Link
             to={getLogsSetUpRoute()}
-            className={LINK_CLASS_NAME}
+            className={NOTICE_LINK_CLASS_NAME}
             dataTestId={INVESTIGATION_LOG_STALL_TEST_IDS.setUpLogs}
           >
             <ArrowGluedText
@@ -93,7 +90,7 @@ const InvestigationLogStallNotice: FunctionComponent<ComponentProps> = (
           {offersLogsAi(props.stall) ? (
             <Link
               to={getLogsAiRoute()}
-              className={LINK_CLASS_NAME}
+              className={NOTICE_LINK_CLASS_NAME}
               dataTestId={INVESTIGATION_LOG_STALL_TEST_IDS.logsAi}
             >
               <ArrowGluedText
