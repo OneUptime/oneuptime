@@ -5,6 +5,10 @@ import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import { applyIncidentEpisodeSelfPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
+import PublicNoteApprovalEngine, {
+  PublicNoteApprovalDelete,
+  PublicNoteKind,
+} from "../Utils/Notes/PublicNoteApprovalEngine";
 import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentStateService from "./IncidentStateService";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -360,7 +364,47 @@ export class Service extends ProjectReferencesService<Model> {
       deleteBy.query,
       deleteBy.props,
     );
-    return { deleteBy, carryForward: null };
+
+    // The episodes the delete removes, and the delete held to them.
+    const episodes: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        projectId: true,
+      },
+    );
+
+    return {
+      deleteBy,
+      carryForward: {
+        /*
+         * The chat copies of the approval messages of their public notes,
+         * which the database deletes with them: replaced once they are gone.
+         */
+        publicNoteApproval: await PublicNoteApprovalEngine.beforeRecordsDelete({
+          kind: PublicNoteKind.IncidentEpisode,
+          records: episodes,
+        }),
+      },
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    // Their public notes' approval messages say the notes were deleted.
+    PublicNoteApprovalEngine.afterRecordsDelete({
+      delete: (
+        onDelete.carryForward as {
+          publicNoteApproval?: PublicNoteApprovalDelete;
+        } | null
+      )?.publicNoteApproval,
+      deletedIds: deletedIds,
+    });
+
+    return onDelete;
   }
 
   @CaptureSpan()
