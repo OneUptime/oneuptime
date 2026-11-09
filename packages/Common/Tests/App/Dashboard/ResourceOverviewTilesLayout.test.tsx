@@ -6,8 +6,9 @@ import { MemoryRouter } from "react-router-dom";
 
 /*
  * ResourceOverview's golden-metric tiles, laid out by the overview's own
- * width (every telemetry overview page: services, hosts, databases, queues
- * and more).
+ * width (every telemetry overview page: services, databases, queues,
+ * serverless functions, RUM applications, app platforms and cloud
+ * resources).
  *
  *   - Four to a row only where the overview holds four tiles of some 200px:
  *     a container query on the tiles' frame, never the screen's width. A
