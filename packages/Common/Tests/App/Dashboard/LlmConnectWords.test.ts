@@ -20,6 +20,11 @@ import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import {
   getLlmConnectionHealth,
   getLlmConnectionLastReadSummary,
+  getLlmConnectionPeopleSummary,
+  getLlmConnectionReadingNote,
+  LLM_CONNECTION_ACTIVE_MEMBERS,
+  LLM_CONNECTION_MEMBERS,
+  LLM_CONNECTION_STILL_READING,
   LlmConnectionSummary,
   formatLlmUsageDay,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectionHealth";
@@ -398,6 +403,137 @@ describe("what the last read brought in", () => {
   });
 });
 
+/*
+ * #5547: a Cursor team counts its members, and its first read of a busy
+ * team takes more than one run - the row says both under what it read.
+ */
+describe("a team's people, and a read still catching up", () => {
+  test("how many of the team's members were active in the past 7 days", () => {
+    const summary: LlmConnectionSummary | undefined =
+      getLlmConnectionPeopleSummary(
+        connectionWith({
+          lastPullResult: {
+            kind: "usage",
+            status: "success",
+            members: 40,
+            activeMembers: 12,
+          },
+        }),
+      );
+
+    expect(summary).toEqual({
+      template: LLM_CONNECTION_ACTIVE_MEMBERS.other,
+      values: { active: "12" },
+      plural: LLM_CONNECTION_ACTIVE_MEMBERS,
+      count: 40,
+    });
+    expect(
+      getGlobalTranslator().translatePlural(
+        summary!.plural!,
+        summary!.count!,
+        summary!.values,
+      ),
+    ).toBe("12 of 40 members active in the last 7 days");
+  });
+
+  test("one member reads in the singular; no more active than there are", () => {
+    const summary: LlmConnectionSummary | undefined =
+      getLlmConnectionPeopleSummary(
+        connectionWith({
+          lastPullResult: { kind: "usage", members: 1, activeMembers: 3 },
+        }),
+      );
+
+    expect(
+      getGlobalTranslator().translatePlural(
+        summary!.plural!,
+        summary!.count!,
+        summary!.values,
+      ),
+    ).toBe("1 of 1 member active in the last 7 days");
+  });
+
+  test("the members alone when who was active could not be read", () => {
+    expect(
+      getLlmConnectionPeopleSummary(
+        connectionWith({ lastPullResult: { kind: "usage", members: 25 } }),
+      ),
+    ).toEqual({
+      template: LLM_CONNECTION_MEMBERS.other,
+      values: {},
+      plural: LLM_CONNECTION_MEMBERS,
+      count: 25,
+    });
+  });
+
+  test.each([
+    [undefined],
+    // A provider that does not count people.
+    [{ kind: "usage", status: "success", costUsd: 4 }],
+    [{ kind: "conversations", members: 40 }],
+    [{ kind: "usage", members: "40" }],
+  ] as Array<[JSONObject | undefined]>)(
+    "nothing to say of people for %p",
+    (lastPullResult: JSONObject | undefined) => {
+      expect(
+        getLlmConnectionPeopleSummary(
+          connectionWith(lastPullResult ? { lastPullResult } : {}),
+        ),
+      ).toBe(undefined);
+    },
+  );
+
+  test("a read that is still catching up says so, until it has", () => {
+    expect(
+      getLlmConnectionReadingNote(
+        connectionWith({
+          lastPullResult: { kind: "usage", status: "partial", days: 7 },
+        }),
+      ),
+    ).toBe(LLM_CONNECTION_STILL_READING);
+    expect(LLM_CONNECTION_STILL_READING).toBe("Still reading earlier usage");
+
+    for (const lastPullResult of [
+      { kind: "usage", status: "success", days: 7 },
+      { kind: "usage", status: "failed" },
+      { kind: "conversations", status: "partial" },
+    ] as Array<JSONObject>) {
+      expect(
+        getLlmConnectionReadingNote(connectionWith({ lastPullResult })),
+      ).toBe(undefined);
+    }
+
+    // A connection turned off is not reading anything.
+    expect(
+      getLlmConnectionReadingNote(
+        connectionWith({
+          isEnabled: false,
+          lastPullResult: { kind: "usage", status: "partial" },
+        }),
+      ),
+    ).toBe(undefined);
+  });
+
+  test("a read still catching up is working, with what it has read so far", () => {
+    const connection: LlmObservabilityConnection = connectionWith({
+      lastPulledAt: minutesAgo(5),
+      lastSuccessfulPullAt: minutesAgo(5),
+      lastPullResult: {
+        kind: "usage",
+        status: "partial",
+        days: 7,
+        costUsd: 96.25,
+      },
+    });
+
+    expect(getLlmConnectionHealth(connection).key).toBe("working");
+    expect(getLlmConnectionLastReadSummary(connection)).toEqual({
+      template: "${{cost}} over the last {{days}} days",
+      values: { cost: "96.25", days: "7" },
+    });
+  });
+});
+
 describe("what a test says", () => {
   test("a provider account that works shows the last 7 days", () => {
     expect(
@@ -596,6 +732,38 @@ describe("why a saved connection's last read failed", () => {
       }),
     ).toBe(undefined);
   });
+
+  /*
+   * Cursor has no role or scope to give: what it refuses is a personal key,
+   * or a team whose plan has no Admin API.
+   */
+  test("a Cursor key that may not read the team: Cursor's own words", () => {
+    expect(
+      getLlmConnectionReadFailureWords({
+        definition: definitionOf(LlmConnectionProvider.Cursor),
+        lastPullResult: { status: "failed", failureKind: "permission" },
+      }),
+    ).toEqual({
+      headline:
+        "Cursor accepted the key, but it may not read the team's usage.",
+      advice:
+        "Use an Admin API key of a Teams or Enterprise team: a team admin creates it in the Cursor dashboard, under Settings, Cursor Admin API Keys. Then test again.",
+    });
+
+    // Its other failures keep the words every provider has.
+    expect(
+      getLlmConnectionReadFailureWords({
+        definition: definitionOf(LlmConnectionProvider.Cursor),
+        lastPullResult: { status: "failed", failureKind: "authentication" },
+      })?.headline,
+    ).toBe("The key or secret was not accepted.");
+    expect(
+      getLlmConnectionReadFailureWords({
+        definition: definitionOf(LlmConnectionProvider.Cursor),
+        lastPullResult: { status: "failed", failureKind: "rate-limited" },
+      })?.headline,
+    ).toBe("The provider asked OneUptime to slow down.");
+  });
 });
 
 describe("the figures a test shows", () => {
@@ -665,6 +833,45 @@ describe("the figures a test shows", () => {
         }),
       ),
     ).toEqual([{ key: "conversations", label: "Conversations", value: "0" }]);
+  });
+
+  test("a Cursor team's members, beside the people who used it", () => {
+    expect(
+      getLlmConnectionTestFigures(
+        result({
+          provider: LlmConnectionProvider.Cursor,
+          counts: {
+            costUsd: 96.25,
+            inputTokens: 5_400_000,
+            outputTokens: 610_000,
+            requests: 2310,
+            models: 4,
+            people: 12,
+            members: 40,
+          },
+        }),
+        LlmConnectionProvider.Cursor,
+      ),
+    ).toEqual([
+      { key: "cost", label: "Cost", value: "$96.25" },
+      { key: "tokens", label: "Tokens", value: "6.0M" },
+      { key: "requests", label: "Requests", value: "2,310" },
+      { key: "models", label: "Models", value: "4" },
+      { key: "people", label: "People", value: "12" },
+      { key: "members", label: "Members", value: "40" },
+    ]);
+
+    // A team of none: no figure.
+    expect(
+      getLlmConnectionTestFigures(
+        result({
+          provider: LlmConnectionProvider.Cursor,
+          status: "warn",
+          counts: { members: 0 },
+        }),
+        LlmConnectionProvider.Cursor,
+      ),
+    ).toEqual([]);
   });
 
   test("money reads as money: thousands set apart, cents kept", () => {

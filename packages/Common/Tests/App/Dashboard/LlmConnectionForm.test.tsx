@@ -173,6 +173,111 @@ describe("connecting a provider account", () => {
   });
 });
 
+/*
+ * #5547: Cursor's form asks for a team Admin API key, says it brings usage
+ * and cost and not conversations, and names the other way Cursor comes in -
+ * its OpenTelemetry Export - beside the key, so nobody picks one not
+ * knowing of the other.
+ */
+describe("connecting Cursor", () => {
+  test("an Admin API key, usage and cost not conversations, and the OpenTelemetry Export beside it", async () => {
+    const cursor: LlmConnectionDefinition = definitionOf(
+      LlmConnectionProvider.Cursor,
+    );
+
+    await openForm({ provider: LlmConnectionProvider.Cursor });
+
+    expect(await stepTitles()).toEqual(["Credentials", "Test"]);
+    expect(within(modal()).getByText("Connect Cursor")).toBeInTheDocument();
+    expect(within(modal()).getByTestId("modal-description")).toHaveTextContent(
+      "Not what they asked it.",
+    );
+
+    const hint: HTMLElement = await within(modal()).findByTestId(
+      "llm-connection-credentials-hint",
+    );
+
+    expect(hint).toHaveTextContent(cursor.hint);
+    expect(
+      within(hint)
+        .getByTestId("llm-connection-guide-link")
+        .getAttribute("href"),
+    ).toMatch(/\/telemetry\/ai-provider-accounts#cursor$/);
+
+    const otherWay: HTMLElement = within(hint).getByTestId(
+      "llm-connection-other-way",
+    );
+    const link: HTMLElement = within(otherWay).getByTestId(
+      "llm-connection-other-way-link",
+    );
+
+    expect(link).toHaveTextContent("Cursor Enterprise: OpenTelemetry Export");
+    expect(link.getAttribute("href")).toMatch(/\/docs\/telemetry\/cursor$/);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(otherWay).toHaveTextContent(
+      "Cursor's servers send the team's metrics and request logs as they happen, with no key here.",
+    );
+
+    // A secret, in a password box, under its own name.
+    const key: HTMLElement = within(modal()).getByPlaceholderText("crsr_...");
+
+    expect(key).toHaveAttribute("type", "password");
+    expect(within(modal()).getByText("Admin API key")).toBeInTheDocument();
+  });
+
+  test("another provider's form names no other way", async () => {
+    await openForm({ provider: LlmConnectionProvider.OpenAI });
+
+    const hint: HTMLElement = await within(modal()).findByTestId(
+      "llm-connection-credentials-hint",
+    );
+
+    expect(
+      within(hint).queryByTestId("llm-connection-other-way"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the key is what is saved, as the Admin API key", async () => {
+    const onSaved: MockFunction = getJestMockFunction();
+
+    await openForm({ provider: LlmConnectionProvider.Cursor, onSaved });
+    await stepTitles();
+
+    fireEvent.change(within(modal()).getByPlaceholderText("crsr_..."), {
+      target: { value: `crsr_${"0a".repeat(32)}` },
+    });
+
+    await next();
+    await waitFor(() => {
+      expect(
+        within(modal()).getByTestId("llm-connection-test-panel"),
+      ).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByTestId("modal-footer-submit-button"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const saved: LlmObservabilityConnection = createSpy.mock.calls[0]![0]
+      .model as LlmObservabilityConnection;
+
+    expect(saved.provider).toBe(LlmConnectionProvider.Cursor);
+    expect(saved.name).toBe("Cursor");
+    expect(saved.config).toEqual({});
+    expect(JSON.parse(saved.secrets as unknown as string)).toEqual({
+      apiKey: `crsr_${"0a".repeat(32)}`,
+    });
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("connecting a company AI tool", () => {
   test("Credentials, Privacy, Test - and no word about usage and cost", async () => {
     await openForm({ provider: LlmConnectionProvider.ClaudeEnterprise });
