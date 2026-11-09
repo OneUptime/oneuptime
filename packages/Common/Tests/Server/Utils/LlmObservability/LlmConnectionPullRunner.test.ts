@@ -1140,3 +1140,301 @@ describe("LlmConnectionPullRunner.run - what a provider account's reads have cov
     expect(Object.keys(result)).not.toContain("newestUsageDay");
   });
 });
+
+/*
+ * A provider read by the hour (Cursor): it plans its own window from where
+ * the last read got to, can stop part way, and says what its past 7 days
+ * add up to from what is stored - a read covers a few hours, not the week.
+ */
+describe("LlmConnectionPullRunner.run - a provider read by the hour", () => {
+  const HOURLY_STATE: JSONObject = {
+    windowEnd: "2026-10-19T14:00:00.000Z",
+    pendingWindows: [
+      { start: "2026-09-20T00:00:00.000Z", end: "2026-10-01T00:00:00.000Z" },
+    ],
+    settledDay: "2026-10-18T00:00:00.000Z",
+    membersDay: "2026-10-19",
+  };
+  const PLANNED: LlmUsageWindow = {
+    startDay: new Date("2026-10-19T11:00:00Z"),
+    endDay: new Date("2026-10-19T15:00:00Z"),
+  };
+  const NEXT_STATE: JSONObject = {
+    windowEnd: "2026-10-19T15:00:00.000Z",
+    pendingWindows: [
+      { start: "2026-10-19T11:00:00.000Z", end: "2026-10-19T12:00:00.000Z" },
+      { start: "2026-09-20T00:00:00.000Z", end: "2026-10-01T00:00:00.000Z" },
+    ],
+    settledDay: "2026-10-18T00:00:00.000Z",
+    membersDay: "2026-10-19",
+  };
+
+  let plans: Array<JSONObject>;
+  let reads: Array<{
+    window: LlmUsageWindow;
+    options: LlmConnectorCallOptions;
+  }>;
+  let totals: jest.SpiedFunction<
+    typeof LlmProviderUsageWriter.readUsageTotals
+  >;
+
+  function hourlyConnector(result: Partial<LlmUsageFetchResult>): LlmConnector {
+    return {
+      provider: LlmConnectionProvider.Cursor,
+      kind: LlmConnectionKind.ProviderAccount,
+      validateSettings: () => {},
+      testConnection: async () => {
+        throw new Error("not used");
+      },
+      planUsageWindow: (data: JSONObject): LlmUsageWindow => {
+        plans.push(data);
+        return PLANNED;
+      },
+      fetchUsage: async (
+        _settings: LlmConnectionSettings,
+        window: LlmUsageWindow,
+        options: LlmConnectorCallOptions,
+      ): Promise<LlmUsageFetchResult> => {
+        reads.push({ window, options });
+        return {
+          records: [
+            usageRecord({
+              day: new Date("2026-10-19T14:00:00Z"),
+              person: "ana@sysnetix.com",
+              model: "claude-4.5-sonnet",
+              inputTokens: 160,
+              outputTokens: 20,
+              requests: 1,
+              costUsd: 0.02,
+            }),
+          ],
+          requestCount: 200,
+          warnings: [],
+          bucket: "hour",
+          coveredWindow: {
+            startDay: new Date("2026-10-19T12:00:00Z"),
+            endDay: new Date("2026-10-19T15:00:00Z"),
+          },
+          complete: false,
+          nextState: NEXT_STATE,
+          members: 40,
+          activeMembers: 12,
+          ...result,
+        } as LlmUsageFetchResult;
+      },
+    } as unknown as LlmConnector;
+  }
+
+  beforeEach(() => {
+    plans = [];
+    reads = [];
+    connection.provider = LlmConnectionProvider.Cursor;
+    connection.name = "Cursor";
+    connection.pullState = { ...HOURLY_STATE, junk: 1 };
+    connector = hourlyConnector({});
+    totals = jest
+      .spyOn(LlmProviderUsageWriter, "readUsageTotals")
+      .mockResolvedValue({
+        inputTokens: 52000000,
+        outputTokens: 1800000,
+        requests: 8200,
+        costUsd: 412.35,
+        daysWithUsage: 6,
+      });
+  });
+
+  test("it plans from where the last read got to, and writes only the hours it read, by the hour", async () => {
+    const outcome: LlmConnectionPullOutcome = await run();
+
+    expect(plans).toHaveLength(1);
+    expect(plans[0]).toMatchObject({ now: NOW, backfillDays: 30 });
+    expect(plans[0]!["state"]).toMatchObject(HOURLY_STATE);
+    expect(reads[0]!.window).toEqual(PLANNED);
+    expect(reads[0]!.options.state).toMatchObject(HOURLY_STATE);
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.window).toEqual({
+      startDay: new Date("2026-10-19T12:00:00Z"),
+      endDay: new Date("2026-10-19T15:00:00Z"),
+    });
+    expect((writes[0] as unknown as { bucket: string }).bucket).toBe("hour");
+    expect(writes[0]!.target).toMatchObject({
+      connectionName: "Cursor",
+      genAiProviderName: "cursor",
+      costIsEstimated: false,
+    });
+    expect(outcome.status).toBe("partial");
+  });
+
+  test("a read that stopped part way: partial, what is left kept, and read again in a minute", async () => {
+    await run();
+
+    expect(lastRecord()).toMatchObject({
+      lastSuccessfulPullAt: NOW,
+      lastError: null,
+      pullState: NEXT_STATE,
+      nextPullAt: new Date(NOW.getTime() + MINUTE),
+    });
+  });
+
+  test("what it used is its past 7 days as stored, with the team's people", async () => {
+    await run();
+
+    expect(totals).toHaveBeenCalledTimes(1);
+    expect(totals.mock.calls[0]![0]).toMatchObject({
+      startTime: new Date("2026-10-13T00:00:00Z"),
+      endTime: new Date(NOW.getTime() + 1),
+    });
+    expect(lastRecord()["lastPullResult"]).toMatchObject({
+      status: "partial",
+      kind: "usage",
+      days: 7,
+      bucket: "hour",
+      hoursRead: 3,
+      complete: false,
+      daysWithUsage: 6,
+      inputTokens: 52000000,
+      outputTokens: 1800000,
+      requests: 8200,
+      costUsd: 412.35,
+      members: 40,
+      activeMembers: 12,
+      requestCount: 200,
+      // A day start, though the read began at noon.
+      readSince: "2026-10-19T00:00:00.000Z",
+      newestUsageDay: "2026-10-19T00:00:00.000Z",
+    });
+  });
+
+  test("a read that finished is read again in an hour, and keeps the last count of people it did not make", async () => {
+    connection.lastPullResult = {
+      status: "success",
+      kind: "usage",
+      members: 40,
+      activeMembers: 12,
+      readSince: "2026-09-20T00:00:00.000Z",
+    };
+    connector = hourlyConnector({
+      complete: true,
+      members: undefined,
+      activeMembers: undefined,
+      nextState: { windowEnd: "2026-10-19T15:00:00.000Z" },
+    });
+
+    const outcome: LlmConnectionPullOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    const data: JSONObject = lastRecord();
+    expect(data["nextPullAt"]).toEqual(new Date(NOW.getTime() + 60 * MINUTE));
+    expect(data["lastPullResult"]).toMatchObject({
+      status: "success",
+      complete: true,
+      members: 40,
+      activeMembers: 12,
+      readSince: "2026-09-20T00:00:00.000Z",
+    });
+  });
+
+  test("a provider read by the day reads no totals back", async () => {
+    connection.provider = LlmConnectionProvider.OpenAI;
+    connector = usageConnector(async () => {
+      return { records: [], requestCount: 1, warnings: [] };
+    });
+
+    await run();
+
+    expect(totals).not.toHaveBeenCalled();
+    const result: JSONObject = lastRecord()["lastPullResult"] as JSONObject;
+    expect(Object.keys(result)).not.toContain("bucket");
+    expect(Object.keys(result)).not.toContain("members");
+  });
+});
+
+describe("LlmConnectionPullRunner - an hourly read's resume point and people", () => {
+  test("ranges still to read, the day settled and the day people were counted are read back; anything else is dropped", () => {
+    const state: JSONObject = LlmConnectionPullRunner.readPullState({
+      windowEnd: "2026-10-19T15:00:00.000Z",
+      pendingWindows: [
+        { start: "2026-09-20T00:00:00.000Z", end: "2026-10-01T00:00:00.000Z" },
+        { start: "soon", end: "2026-10-01T00:00:00.000Z" },
+        { start: 5, end: "2026-10-01T00:00:00.000Z" },
+        "nope",
+        null,
+      ],
+      settledDay: "2026-10-18T00:00:00.000Z",
+      membersDay: "2026-10-19",
+    }) as unknown as JSONObject;
+
+    expect(state).toEqual({
+      cursor: undefined,
+      windowStart: undefined,
+      windowEnd: "2026-10-19T15:00:00.000Z",
+      pageToken: undefined,
+      nextIndex: undefined,
+      pendingWindows: [
+        { start: "2026-09-20T00:00:00.000Z", end: "2026-10-01T00:00:00.000Z" },
+      ],
+      settledDay: "2026-10-18T00:00:00.000Z",
+      membersDay: "2026-10-19",
+    });
+
+    const odd: JSONObject = LlmConnectionPullRunner.readPullState({
+      pendingWindows: "all of them",
+      settledDay: 3,
+      membersDay: "",
+    }) as unknown as JSONObject;
+
+    expect(Object.keys(odd)).not.toContain("pendingWindows");
+    expect(Object.keys(odd)).not.toContain("settledDay");
+    expect(Object.keys(odd)).not.toContain("membersDay");
+  });
+
+  test("a read's people: its own count, else the last one kept, never a made-up number", () => {
+    const fetched: LlmUsageFetchResult = {
+      records: [],
+      requestCount: 0,
+      warnings: [],
+    };
+
+    expect(
+      LlmConnectionPullRunner.getUsageMembers({
+        previous: { members: 9, activeMembers: 3 },
+        fetched: { ...fetched, members: 40.4, activeMembers: 12 },
+      }),
+    ).toEqual({ members: 40, activeMembers: 12 });
+    expect(
+      LlmConnectionPullRunner.getUsageMembers({
+        previous: { members: 9, activeMembers: 3 },
+        fetched: { ...fetched, members: 40 },
+      }),
+    ).toEqual({ members: 40, activeMembers: undefined });
+    expect(
+      LlmConnectionPullRunner.getUsageMembers({
+        previous: { members: 9, activeMembers: 3 },
+        fetched,
+      }),
+    ).toEqual({ members: 9, activeMembers: 3 });
+    expect(
+      LlmConnectionPullRunner.getUsageMembers({
+        previous: { members: "many", activeMembers: -1 },
+        fetched,
+      }),
+    ).toEqual({ members: undefined, activeMembers: undefined });
+    expect(
+      LlmConnectionPullRunner.getUsageMembers({ previous: null, fetched }),
+    ).toEqual({ members: undefined, activeMembers: undefined });
+  });
+
+  test("read since is a day start, for a read by the hour that began mid-day", () => {
+    expect(
+      LlmConnectionPullRunner.getUsageCoverage({
+        previous: undefined,
+        window: {
+          startDay: new Date("2026-10-04T15:00:00Z"),
+          endDay: new Date("2026-10-19T15:00:00Z"),
+        },
+        records: [],
+      }).readSince,
+    ).toBe("2026-10-04T00:00:00.000Z");
+  });
+});

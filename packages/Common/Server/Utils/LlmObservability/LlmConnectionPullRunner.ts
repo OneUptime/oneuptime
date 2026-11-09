@@ -312,10 +312,12 @@ export default class LlmConnectionPullRunner {
     }
 
     const previousSince: number = readDay(previous["readSince"]);
+    // A day start, also for a read by the hour that began mid-day.
+    const windowSince: number = LlmUsageDays.startOfUtcDay(
+      data.window.startDay,
+    ).getTime();
     const since: number =
-      previousSince > 0
-        ? Math.min(previousSince, data.window.startDay.getTime())
-        : data.window.startDay.getTime();
+      previousSince > 0 ? Math.min(previousSince, windowSince) : windowSince;
 
     return {
       newestUsageDay: newest > 0 ? new Date(newest).toISOString() : undefined,
