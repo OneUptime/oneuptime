@@ -89,13 +89,18 @@ export interface LlmLogEventCall {
 
 /*
  * How long before a call's start, and after its end, its records are looked
- * for. A record carries the time it was emitted, within its call; but one
- * that sends no time of its own (Python on a newer SDK, the Java agent) is
- * stored at the time it arrived - after its export's batch delay and the
- * ingest queue.
+ * for. A record is stored at the time it was emitted, within its call: its
+ * own time, or - one that sends none (Python on a newer SDK, the Java
+ * agent) - the time its SDK observed it, set as it was emitted, on the same
+ * clock as the call's span (#6395). A minute either side is for a record a
+ * collector on another host observed, and for one stored before #6395, at
+ * the time it arrived: after its export's batch delay - a second by default
+ * - and the ingest queue. Such a record that arrived more than a minute
+ * after its call is no longer read; it was stored before the change, and
+ * leaves with the log retention.
  */
 export const LLM_LOG_EVENT_BEFORE_CALL_MS: number = 60 * 1000;
-export const LLM_LOG_EVENT_AFTER_CALL_MS: number = 10 * 60 * 1000;
+export const LLM_LOG_EVENT_AFTER_CALL_MS: number = 60 * 1000;
 
 // How deep a body's nested values are read; deeper ones are left out.
 const MAX_VALUE_DEPTH: number = 32;
@@ -489,8 +494,10 @@ export default class LlmLogEventsUtil {
   /*
    * When a record happened, for ordering and matching: the earlier of its
    * own time and the time it was observed. A record that sends no time of
-   * its own (Python on a newer SDK, the Java agent) is stored at the time it
-   * arrived, later than it happened; its observed time says when it did.
+   * its own (Python on a newer SDK, the Java agent) is stored at its
+   * observed time (#6395), so the two are one; one stored before that was
+   * stored at the time it arrived, later than it happened, and its observed
+   * time still says when it did.
    */
   public static getTimeDigits(record: LlmLogEventRecord): string {
     const time: string = toNanoDigits(record.timeUnixNano);
