@@ -1,6 +1,6 @@
 # Kontoer hos AI-leverandører
 
-Se hva kontoene dine hos AI-leverandører har brukt og hva det har kostet, uten å endre appene dine. Koble til en konto hos OpenAI, Anthropic, Azure OpenAI og Microsoft Foundry, Amazon Bedrock eller Google Vertex AI med påloggingsinformasjon som bare kan lese, så leser OneUptime forbruket hvert 15. minutt inn i **Forbruk**, **Budsjetter** og målinger du kan varsle på.
+Se hva kontoene dine hos AI-leverandører har brukt og hva det har kostet, uten å endre appene dine. Koble til en konto hos OpenAI, Anthropic, Azure OpenAI og Microsoft Foundry, Amazon Bedrock eller Google Vertex AI med påloggingsinformasjon som bare kan lese, så leser OneUptime forbruket hvert 15. minutt inn i **Forbruk**, **Budsjetter** og målinger du kan varsle på. Et Cursor-team kobles til på samme måte, med administrator-API-nøkkelen sin, og leses hver time.
 
 :::cards
 - [Koble til en konto](#koble-til-en-konto): Velg leverandøren, lim inn påloggingsinformasjonen, test den og koble til.
@@ -11,7 +11,7 @@ Se hva kontoene dine hos AI-leverandører har brukt og hva det har kostet, uten 
 
 ## Slik fungerer det
 
-Hvert 15. minutt ber OneUptime hver tilkoblede konto om forbruket per UTC-døgn og lagrer det som tre målinger i tilkoblingens egen tjeneste. Hver lesing tar dagene siden forrige lesing, og de siste 3 dagene på nytt, i dag medregnet, fordi leverandørene fortsetter å legge til i dag og retter dagene som nettopp er gått.
+Hvert 15. minutt ber OneUptime hver tilkoblede konto om forbruket per UTC-døgn og lagrer det som tre målinger i tilkoblingens egen tjeneste. Hver lesing tar dagene siden forrige lesing, og de siste 3 dagene på nytt, i dag medregnet, fordi leverandørene fortsetter å legge til i dag og retter dagene som nettopp er gått. Et Cursor-team leses i stedet hver time, time for time: se [Cursor](#cursor).
 
 ```mermaid title="Fra en leverandørkonto til Forbruk og Budsjetter"
 flowchart TB
@@ -60,10 +60,11 @@ Tilkoblede kontoer står under flisene, med **Status** og **Sist lest**. **Les n
 | Azure OpenAI og Microsoft Foundry | Anslått ut fra tokens | Ressurs og modell | En app med Monitoring Reader |
 | Amazon Bedrock | Anslått ut fra tokens | Region og modell | En tilgangsnøkkel som leser CloudWatch |
 | Google Vertex AI | Anslått ut fra tokens | Region og modell | En tjenestekonto med Monitoring Viewer |
+| Cursor | Det Cursor rapporterer | Person, modell og tjenestekonto, per time | Et teams administrator-API-nøkkel |
 
 Alle leverandører unntatt Anthropic teller også forespørsler: forbruksrapporten til Anthropic har ingen. En anslått kostnad bruker prislisten fra [Hva et kall koster](/docs/telemetry/ai-llm-observability#hva-et-kall-koster) og dine egne priser fra **Priser**, og er merket som et anslag. En modell prislisten ikke kjenner, har ingen kostnad før du priser den der.
 
-Ingen av disse påloggingene kan kalle en modell: hver av dem leser forbruk, kostnader eller målinger og ingenting annet.
+Ingen av disse påloggingene kan kalle en modell: hver av dem leser forbruk, kostnader eller målinger og ingenting annet. Cursors administrator-API-nøkkel er unntaket: den kan også endre noen teaminnstillinger, som forbruksgrenser, og OneUptime leser bare med den.
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ Lag en tjenestekonto med rollen Monitoring Viewer i prosjektet, og en JSON-nøkk
 Fyll ut **Prosjekt-ID**, og lim inn hele nøkkelfilen som **Tjenestekontonøkkel (JSON)**.
 :::
 
+## Cursor
+
+OneUptime leser Cursor-teamet ditt med en administrator-API-nøkkel: hver forespørsel fra medlemmene, med modell, tokens og det Cursor tok betalt for den, lagt sammen per time, person, modell og tjenestekonto, og hvor mange av medlemmene som brukte Cursor de siste 7 dagene. En forespørsel gjort med en tjenestekonto vises under kontoens navn som API-nøkkelen dens. Den har ingen prompter, kode eller svar: Cursors Admin API har ingen.
+
+:::steps
+### Opprett en administrator-API-nøkkel i Cursor
+
+Åpne Settings, Cursor Admin API Keys i Cursors dashbord, og opprett en nøkkel. Bare en teamadministrator kan det, og nøkkelen følger med Teams- og Enterprise-abonnementene. Den begynner med `crsr_`.
+
+### Koble til Cursor
+
+Lim inn nøkkelen som **Administrator-API-nøkkel**. Testen viser også teamets **Medlemmer**, og som **Personer** hvor mange av dem som brukte Cursor.
+:::
+
+Cursor legger sammen forbruket time for time og ber om å bli lest høyst én gang i timen, så OneUptime leser et Cursor-team hver time og lagrer forbruket per time. Hver lesing tar timene siden forrige og de 3 timene før dem på nytt, fordi Cursor legger til forespørsler sent, og leser en dag på nytt i sin helhet når 6 timer av den neste har gått. Den første lesingen går 30 dager tilbake, nyeste først, én dag om gangen: et travelt team trenger noen lesinger med et minutts mellomrom, og linjen viser **Leser fortsatt tidligere forbruk** til de er ferdige.
+
+Med Enterprise-abonnementet kan Cursor også sende forbruket mens det skjer, med OpenTelemetry Export: se [Cursor](/docs/telemetry/cursor). De to holdes atskilt: denne kontoen vises under **Leverandørkontoer**, eksporten under **AI-kallene dine**, aldri lagt sammen, og et budsjett teller én av dem.
+
 ## Se forbruket
 
 Åpne **Forbruk**, og velg **Leverandørkontoer**. Der ser du kostnadene, tokens og forespørslene kontoene dine rapporterte for tidsrommet, rangert etter **Modell**, **Person**, **Leverandør**, **Prosjekt eller ressurs**, **API-nøkkel** eller **Tilkobling**. Tidsrommet starter ved midnatt UTC den første dagen, fordi leverandørene rapporterer hele dager.
@@ -157,7 +176,7 @@ Forbruket til hver konto lagres som tre målinger, som du kan vise på et [dashb
 | `oneuptime.llm.provider.tokens` | Tokens for en dag, etter `gen_ai.token.type`: `input` (hurtigbufrede tokens medregnet), `output`, `cache_read` og `cache_write` |
 | `oneuptime.llm.provider.requests` | Forespørslene for en dag |
 
-Hvert punkt får tidsstempelet for starten av sitt UTC-døgn. Det bærer `oneuptime.llm.connection.id` og `oneuptime.llm.connection.name`, og det leverandøren nevner: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` og `oneuptime.llm.provider.api_key`. En anslått kostnad bærer `oneuptime.llm.cost.estimated`.
+Hvert punkt får tidsstempelet for starten av sitt UTC-døgn. Det bærer `oneuptime.llm.connection.id` og `oneuptime.llm.connection.name`, og det leverandøren nevner: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` og `oneuptime.llm.provider.api_key`. En anslått kostnad bærer `oneuptime.llm.cost.estimated`. Punktene til et Cursor-team holder hver en times forbruk, tidsstemplet ved starten av UTC-timen sin.
 
 ## Når det leses
 
@@ -168,6 +187,9 @@ Hvert punkt får tidsstempelet for starten av sitt UTC-døgn. Det bærer `oneupt
 | Etter at en nøkkel eller tillatelse er avvist | 60 minutter senere |
 | Etter enhver annen feil | 15 minutter senere |
 | Slått av | Ingen før den slås på igjen |
+| De neste for et Cursor-team | Hver time |
+| En Cursor-lesing som stoppet underveis | Et minutt senere |
+| Et Cursor-team, etter enhver feil | 60 minutter senere |
 
 En plan uten telemetrifunksjoner leser ingenting. Å fjerne en tilkobling stopper lesingen og beholder det den har lest til tjenestens oppbevaring fjerner det.
 
@@ -183,6 +205,14 @@ Sjekk at du kopierte alt, at den ikke er tilbakekalt, og at det er den typen den
 
 :::details Påloggingen virker, men får ikke lese det tilkoblingen trenger
 Gi den rollen denne siden nevner for leverandøren: Monitoring Reader på Azure-abonnementet, de to CloudWatch-handlingene i AWS, Monitoring Viewer på Google Cloud-prosjektet.
+:::
+
+:::details Cursor godtok nøkkelen, men den får ikke lese teamets forbruk
+Bruk en administrator-API-nøkkel fra et team på Teams- eller Enterprise-abonnementet: en teamadministrator oppretter den i Cursors dashbord, under Settings, Cursor Admin API Keys. Test så på nytt.
+:::
+
+:::details Cursor ba OneUptime om å senke farten
+Cursors Admin API tar imot 20 forespørsler i minuttet fra et team, 60 for brukshendelser, delt med alle verktøy som leser det. OneUptime venter ett minutt én gang og fortsetter. Avviser Cursor fortsatt, beholder lesingen det den har lest helt, og fortsetter et minutt senere; en lesing som ikke fikk noe, prøver igjen en time senere.
 :::
 
 :::details Testen går gjennom, men ingenting vises for i dag

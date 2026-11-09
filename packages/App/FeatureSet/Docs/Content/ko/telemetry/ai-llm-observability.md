@@ -44,7 +44,7 @@ flowchart TB
 | 연결 방법 | 얻는 것 | 방법 |
 | --- | --- | --- |
 | **내 앱** | 일어나는 즉시 모든 AI 호출: 대화, 사람, 프롬프트와 답변, 토큰, 비용, 오류 | 코드나 게이트웨이에서 보내는 OpenTelemetry, 다섯 단계로 설정 |
-| **AI 공급자 계정** | OpenAI, Anthropic, Azure, Bedrock, Vertex AI 각 계정의 일별 사용량과 비용 | 읽기 전용 자격 증명만 있으면 되고 코드는 필요 없음: [AI 공급자 계정](/docs/telemetry/ai-provider-accounts) |
+| **AI 공급자 계정** | OpenAI, Anthropic, Azure, Bedrock, Vertex AI, Cursor 각 계정의 일별 또는 시간별 사용량과 비용 | 읽기 전용 자격 증명만 있으면 되고 코드는 필요 없음: [AI 공급자 계정](/docs/telemetry/ai-provider-accounts) |
 | **회사의 AI 도구** | 직원들이 Claude Enterprise나 Microsoft 365 Copilot에 묻는 내용, 사람별 | 읽기 전용 자격 증명만 있으면 되고 코드는 필요 없음: [회사의 AI 도구](/docs/telemetry/ai-company-tools) |
 
 공급자 계정과 코딩 도우미는 사용량과 비용을 가져올 뿐 호출은 가져오지 않습니다. 이들이 채우는 곳은 **사용량**이며, **대화**와 **호출**은 앱이 AI 호출을 보내거나 회사의 AI 도구가 연결될 때까지 비어 있습니다. 어떤 방식이 무엇을 가져오는지는 [들어오는 내용 확인하기](#들어오는-내용-확인하기)에서 볼 수 있습니다.
@@ -240,7 +240,7 @@ trace.get_current_span().add_event(
 
 **사용량** 탭은 기간(다른 기간을 고르지 않으면 지난 7일)의 호출, 토큰, 비용과, 다섯 가지 분류( **직원** , **팀** , **모델** , **공급자** , **애플리케이션 / 서비스** ) 중 하나에 따른 상위 25개 표를 보여 줍니다. 아무도 지목하지 않는 호출은 **미지정** 으로 집계되며, 버려지지 않습니다.
 
-이것은 **내 AI 호출**입니다. 연결된 OpenAI, Anthropic, Azure, Bedrock, Vertex AI 계정에 청구된 금액을 보려면 대신 **공급자 계정**을 선택하세요. [AI 공급자 계정](/docs/telemetry/ai-provider-accounts#사용량-보기)을 참고하세요. 두 데이터는 절대 합산되지 않습니다.
+이것은 **내 AI 호출**입니다. 연결된 OpenAI, Anthropic, Azure, Bedrock, Vertex AI, Cursor 계정에 청구된 금액을 보려면 대신 **공급자 계정**을 선택하세요. [AI 공급자 계정](/docs/telemetry/ai-provider-accounts#사용량-보기)을 참고하세요. 두 데이터는 절대 합산되지 않습니다.
 
 사람과 팀은 호출의 신원 속성에서 가져옵니다. [직원 및 팀 귀속](/docs/telemetry/ai-coding-assistants#직원-및-팀-귀속)을 참조하세요.
 
@@ -386,7 +386,7 @@ OneUptime은 OpenTelemetry GenAI 규칙과 함께 OpenLLMetry, OpenInference, Ve
 ## 다음 단계
 
 :::cards
-- [AI 공급자 계정](/docs/telemetry/ai-provider-accounts): OpenAI, Anthropic, Azure, Bedrock, Vertex AI 계정의 사용량과 비용을 코드 없이.
+- [AI 공급자 계정](/docs/telemetry/ai-provider-accounts): OpenAI, Anthropic, Azure, Bedrock, Vertex AI, Cursor 계정의 사용량과 비용을 코드 없이.
 - [회사의 AI 도구](/docs/telemetry/ai-company-tools): 직원들이 Claude Enterprise와 Microsoft 365 Copilot에 묻는 내용.
 - [AI 코딩 어시스턴트](/docs/telemetry/ai-coding-assistants): Claude Code, Cursor, Codex, Gemini CLI, Copilot의 엔지니어별 지출.
 - [AI 게이트웨이](/docs/telemetry/ai-gateways): LiteLLM 또는 Portkey 게이트웨이 하나로 모든 앱의 모델 호출을 트레이스합니다.

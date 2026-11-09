@@ -108,6 +108,10 @@ Om de woorden te bewaren maar delen ervan te maskeren, zoals e-mailadressen of k
 
 Deze tools hebben geen API waarmee OneUptime de chats van mensen kan lezen, of vragen een andere route.
 
+### Cursor
+
+De Admin API van Cursor geeft gebruik en kosten per persoon, geen gesprekken, dus een Cursor-team wordt gekoppeld als [provideraccount](/docs/telemetry/ai-provider-accounts#cursor), met zijn beheerders-API-sleutel. Met het Enterprise-abonnement stuurt zijn OpenTelemetry Export het gebruik ook door terwijl het gebeurt: zie [Cursor](/docs/telemetry/cursor).
+
 ### ChatGPT Enterprise
 
 OpenAI stelt zijn Compliance API alleen op verzoek open voor een workspace en publiceert niet wat de records bevatten, dus OneUptime kan chats uit ChatGPT Enterprise nog niet lezen. Je OpenAI-organisatie koppelen als [provideraccount](/docs/telemetry/ai-provider-accounts#openai) toont het API-gebruik en de API-kosten, waar ChatGPT niet bij zit.
@@ -146,7 +150,7 @@ Verleen voor Copilot beheerderstoestemming voor de Graph-machtigingen van de app
 
 :::cards
 - [AI- / LLM-observability](/docs/telemetry/ai-llm-observability): Gesprekken lezen en afspelen, en horen wanneer antwoorden misgaan.
-- [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts): Gebruik en kosten van je accounts bij OpenAI, Anthropic, Azure, Bedrock en Vertex AI.
+- [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts): Gebruik en kosten van je accounts bij OpenAI, Anthropic, Azure, Bedrock, Vertex AI en Cursor.
 - [AI-codeerassistenten](/docs/telemetry/ai-coding-assistants): Uitgaven per engineer aan de codeertools.
 - [Gegevensbewaring](/docs/telemetry/data-retention): Hoe lang de gesprekken bewaard blijven.
 :::

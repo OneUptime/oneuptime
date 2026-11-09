@@ -188,7 +188,7 @@ Codex envoie aussi ses métriques à OpenAI par défaut : voir [OpenAI Codex](/d
 
 ## Ce que OneUptime ne fait pas encore
 
-- **Aucun connecteur d'administration des outils de code.** OneUptime lit les comptes OpenAI, Anthropic, Azure, Bedrock et Vertex AI derrière les outils ([Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts)), mais ni l'API d'administration de Cursor, ni la facturation Copilot de GitHub, ni les API de Windsurf ou de JetBrains.
+- **Aucun connecteur d'administration des outils de code, sauf celui de Cursor.** OneUptime lit les comptes OpenAI, Anthropic, Azure, Bedrock et Vertex AI derrière les outils, et l'API d'administration d'une équipe Cursor ([Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts)), mais ni la facturation Copilot de GitHub, ni les API de Windsurf ou de JetBrains.
 - **Le coût est une estimation, sauf si un outil le fournit.** Un coût fourni est utilisé tel quel ; sinon OneUptime tarifie les jetons aux prix catalogue. Le `cursor.cost.usage` de Cursor est lui-même une estimation.
 - **L'identité des enregistrements de log n'est pas lue.** Le `user.email` de Codex, qu'il n'envoie que dans les logs, n'est pas relié aux dépenses.
 - **Le `cursor.user.email` de Cursor n'est pas encore lu**, donc les utilisateurs de Cursor apparaissent sous leur entier `cursor.user.id`.
@@ -201,7 +201,7 @@ Déployez dans cet ordre ; chaque étape est utile à elle seule. Utilisez un pr
 
 1. **Gemini CLI**, si quelqu'un l'utilise. Il envoie `user.email` sans configuration, il montre donc l'attribution de bout en bout. Activez aussi ses traces : il n'envoie aucune métrique de coût.
 2. **Claude Code** : un fichier de paramètres gérés pour la flotte, `user.email` sans effort, une vraie métrique de coût, ainsi que le taux d'acceptation, les commits, les pull requests et les lignes de code par développeur.
-3. **Cursor**, avec l'offre Enterprise : un écran dans le tableau de bord de Cursor, aucun poste de développeur touché, même si les personnes arrivent sous forme d'entiers.
+3. **Cursor**, avec l'offre Enterprise : un écran dans le tableau de bord de Cursor, aucun poste de développeur touché, même si les personnes arrivent sous forme d'entiers. Avec l'offre Teams, ou pour ce que Cursor a facturé par personne, connectez sa clé d'API d'administration comme [compte de fournisseur](/docs/telemetry/ai-provider-accounts#cursor), avec ou sans l'export.
 4. **Copilot et Codex**, qui ont tous deux besoin d'une identité définie sur chaque poste. Faites-le lors du provisionnement : les appels arrivés sans identité ne peuvent pas être attribués après coup.
 5. **Une passerelle LiteLLM** pour tout le reste, avec une clé virtuelle par employé.
 

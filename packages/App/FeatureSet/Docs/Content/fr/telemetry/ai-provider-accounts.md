@@ -1,6 +1,6 @@
 # Comptes de fournisseurs d'IA
 
-Voyez ce que vos comptes de fournisseurs d'IA ont consommé et ce qu'ils ont coûté, sans rien changer à vos applications. Connectez un compte OpenAI, Anthropic, Azure OpenAI et Microsoft Foundry, Amazon Bedrock ou Google Vertex AI avec un identifiant qui ne peut que lire, et OneUptime lit son utilisation toutes les 15 minutes dans **Utilisation**, **Budgets** et des métriques sur lesquelles vous pouvez alerter.
+Voyez ce que vos comptes de fournisseurs d'IA ont consommé et ce qu'ils ont coûté, sans rien changer à vos applications. Connectez un compte OpenAI, Anthropic, Azure OpenAI et Microsoft Foundry, Amazon Bedrock ou Google Vertex AI avec un identifiant qui ne peut que lire, et OneUptime lit son utilisation toutes les 15 minutes dans **Utilisation**, **Budgets** et des métriques sur lesquelles vous pouvez alerter. Une équipe Cursor se connecte de la même façon, avec sa clé d'API d'administration, et est lue toutes les heures.
 
 :::cards
 - [Connecter un compte](#connecter-un-compte): Choisissez le fournisseur, collez l'identifiant, testez-le et connectez.
@@ -11,7 +11,7 @@ Voyez ce que vos comptes de fournisseurs d'IA ont consommé et ce qu'ils ont co�
 
 ## Comment ça marche
 
-Toutes les 15 minutes, OneUptime demande à chaque compte connecté son utilisation par jour UTC et la conserve sous forme de trois métriques du service propre à la connexion. Chaque lecture prend les jours depuis la dernière lecture, et de nouveau les 3 derniers jours, aujourd'hui compris, car les fournisseurs complètent sans cesse la journée en cours et corrigent les jours tout juste passés.
+Toutes les 15 minutes, OneUptime demande à chaque compte connecté son utilisation par jour UTC et la conserve sous forme de trois métriques du service propre à la connexion. Chaque lecture prend les jours depuis la dernière lecture, et de nouveau les 3 derniers jours, aujourd'hui compris, car les fournisseurs complètent sans cesse la journée en cours et corrigent les jours tout juste passés. Une équipe Cursor est lue toutes les heures à la place, heure par heure : voir [Cursor](#cursor).
 
 ```mermaid title="D'un compte de fournisseur à Utilisation et Budgets"
 flowchart TB
@@ -60,10 +60,11 @@ Les comptes connectés sont listés sous les tuiles, avec leur **Statut** et leu
 | Azure OpenAI et Microsoft Foundry | Estimé à partir des jetons | Ressource et modèle | Une application avec Monitoring Reader |
 | Amazon Bedrock | Estimé à partir des jetons | Région et modèle | Une clé d'accès qui lit CloudWatch |
 | Google Vertex AI | Estimé à partir des jetons | Région et modèle | Un compte de service avec Monitoring Viewer |
+| Cursor | Ce que déclare Cursor | Personne, modèle et compte de service, par heure | La clé d'API d'administration d'une équipe |
 
 Tous les fournisseurs sauf Anthropic comptent aussi les requêtes : le rapport d'utilisation d'Anthropic n'en a pas. Un coût estimé utilise la liste de prix de [Ce que coûte un appel](/docs/telemetry/ai-llm-observability#ce-que-coûte-un-appel) et vos propres prix de **Tarifs**, et il est marqué comme estimation. Un modèle que la liste de prix ne connaît pas n'a aucun coût tant que vous ne lui donnez pas de prix là-bas.
 
-Aucun de ces identifiants ne peut appeler un modèle : chacun lit l'utilisation, les coûts ou des métriques, et rien d'autre.
+Aucun de ces identifiants ne peut appeler un modèle : chacun lit l'utilisation, les coûts ou des métriques, et rien d'autre. La clé d'API d'administration de Cursor est l'exception : elle peut aussi modifier certains paramètres de l'équipe, comme les plafonds de dépenses, et OneUptime ne fait que lire avec elle.
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ Dans le projet, créez un compte de service avec le rôle Monitoring Viewer, et 
 Remplissez **ID du projet** et collez le fichier de clé entier comme **Clé du compte de service (JSON)**.
 :::
 
+## Cursor
+
+OneUptime lit votre équipe Cursor avec une clé d'API d'administration : chaque requête de ses membres, avec son modèle, ses jetons et ce que Cursor l'a facturée, additionnée par heure, personne, modèle et compte de service, et combien de membres ont utilisé Cursor au cours des 7 derniers jours. Une requête faite avec un compte de service apparaît sous le nom du compte, comme sa clé d'API. Elle ne contient ni prompts, ni code, ni réponses : l'API d'administration de Cursor n'en a pas.
+
+:::steps
+### Créer une clé d'API d'administration Cursor
+
+Dans le tableau de bord de Cursor, ouvrez Settings, Cursor Admin API Keys, et créez une clé. Seul un administrateur de l'équipe le peut, et la clé est incluse dans les offres Teams et Enterprise. Elle commence par `crsr_`.
+
+### Connecter Cursor
+
+Collez la clé dans **Clé d'API d'administration**. Le test affiche aussi les **Membres** de l'équipe, et en **Personnes** combien d'entre eux ont utilisé Cursor.
+:::
+
+Cursor additionne son utilisation heure par heure et demande à n'être lu qu'une fois par heure au plus, donc OneUptime lit une équipe Cursor toutes les heures et garde son utilisation par heure. Chaque lecture prend les heures écoulées depuis la précédente et relit les 3 heures d'avant, car Cursor ajoute des requêtes en retard, et relit un jour en entier une fois que 6 heures du suivant sont passées. La première lecture remonte 30 jours, du plus récent au plus ancien, un jour à la fois : une équipe très active demande quelques lectures, à une minute d'intervalle, et sa ligne affiche **Lecture de l'utilisation antérieure en cours** jusqu'à ce qu'elles soient terminées.
+
+Avec l'offre Enterprise, Cursor peut aussi envoyer son utilisation au fil de l'eau, avec son OpenTelemetry Export : voir [Cursor](/docs/telemetry/cursor). Les deux restent séparés : ce compte apparaît sous **Comptes fournisseurs**, l'export sous **Vos appels d'IA**, jamais additionnés, et un budget compte l'un des deux.
+
 ## Voir l'utilisation
 
 Ouvrez **Utilisation** et choisissez **Comptes fournisseurs**. Vous y voyez le coût, les jetons et les requêtes que vos comptes ont déclarés pour la période, classés par **Modèle**, **Personne**, **Fournisseur**, **Projet ou ressource**, **Clé API** ou **Connexion**. La période commence à minuit UTC de son premier jour, car les fournisseurs déclarent des jours entiers.
@@ -157,7 +176,7 @@ L'utilisation de chaque compte est conservée sous forme de trois métriques, qu
 | `oneuptime.llm.provider.tokens` | Les jetons d'une journée, par `gen_ai.token.type` : `input` (jetons en cache compris), `output`, `cache_read` et `cache_write` |
 | `oneuptime.llm.provider.requests` | Les requêtes d'une journée |
 
-Chaque point est horodaté au début de sa journée UTC. Il porte `oneuptime.llm.connection.id` et `oneuptime.llm.connection.name`, et ce que nomme le fournisseur : `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` et `oneuptime.llm.provider.api_key`. Un coût estimé porte `oneuptime.llm.cost.estimated`.
+Chaque point est horodaté au début de sa journée UTC. Il porte `oneuptime.llm.connection.id` et `oneuptime.llm.connection.name`, et ce que nomme le fournisseur : `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` et `oneuptime.llm.provider.api_key`. Un coût estimé porte `oneuptime.llm.cost.estimated`. Les points d'une équipe Cursor contiennent chacun l'utilisation d'une heure, horodatés au début de leur heure UTC.
 
 ## Quand les lectures ont lieu
 
@@ -168,6 +187,9 @@ Chaque point est horodaté au début de sa journée UTC. Il porte `oneuptime.llm
 | Après le refus d'une clé ou d'une permission | 60 minutes plus tard |
 | Après tout autre échec | 15 minutes plus tard |
 | Désactivée | Aucune tant qu'elle n'est pas réactivée |
+| Les suivantes d'une équipe Cursor | Toutes les heures |
+| Une lecture Cursor arrêtée en cours de route | Une minute plus tard |
+| Une équipe Cursor, après tout échec | 60 minutes plus tard |
 
 Une offre sans fonctions de télémétrie ne lit rien. Retirer une connexion arrête ses lectures et garde ce qu'elle a lu jusqu'à ce que la rétention du service le supprime.
 
@@ -183,6 +205,14 @@ Vérifiez que vous l'avez copiée en entier, qu'elle n'a pas été révoquée et
 
 :::details L'identifiant fonctionne, mais ne peut pas lire ce dont la connexion a besoin
 Donnez-lui le rôle que cette page nomme pour le fournisseur : Monitoring Reader sur l'abonnement Azure, les deux actions CloudWatch sur AWS, Monitoring Viewer sur le projet Google Cloud.
+:::
+
+:::details Cursor a accepté la clé, mais elle ne peut pas lire l'utilisation de l'équipe
+Utilisez une clé d'API d'administration d'une équipe sur l'offre Teams ou Enterprise : un administrateur de l'équipe la crée dans le tableau de bord de Cursor, sous Settings, Cursor Admin API Keys. Puis testez à nouveau.
+:::
+
+:::details Cursor a demandé à OneUptime de ralentir
+L'API d'administration de Cursor accepte 20 requêtes par minute d'une équipe, 60 pour les événements d'utilisation, partagées avec tous les outils qui la lisent. OneUptime attend une minute, une fois, puis continue. Si Cursor refuse encore, la lecture garde ce qu'elle a lu en entier et reprend une minute plus tard ; une lecture qui n'a rien obtenu réessaie une heure plus tard.
 :::
 
 :::details Le test réussit, mais rien n'apparaît pour aujourd'hui

@@ -108,6 +108,10 @@ OneUptime تاریخچهٔ تعامل هر شخص با Copilot را از Microso
 
 این ابزارها APIای ندارند که OneUptime بتواند چت‌های افراد را با آن بخواند، یا به راه دیگری نیاز دارند.
 
+### Cursor
+
+Admin API از Cursor مصرف و هزینه را بر پایهٔ شخص می‌دهد، نه گفتگوها، پس یک تیم Cursor با کلید API مدیر خودش به‌عنوان یک [حساب ارائه‌دهنده](/docs/telemetry/ai-provider-accounts#cursor) وصل می‌شود. در پلن Enterprise، OpenTelemetry Export آن هم مصرف را همان لحظه می‌فرستد: [Cursor](/docs/telemetry/cursor) را ببینید.
+
 ### ChatGPT Enterprise
 
 OpenAI رابط Compliance API خود را فقط با درخواست برای یک فضای کاری باز می‌کند و منتشر نمی‌کند رکوردهایش چه دارند، پس OneUptime هنوز نمی‌تواند چت‌های ChatGPT Enterprise را بخواند. وصل کردن سازمان OpenAI شما به‌عنوان [حساب ارائه‌دهنده](/docs/telemetry/ai-provider-accounts#openai) مصرف و هزینهٔ API آن را نشان می‌دهد که ChatGPT را در بر نمی‌گیرد.
@@ -146,7 +150,7 @@ Claude Code، Codex، Gemini CLI، GitHub Copilot و Cursor تله‌متری Op
 
 :::cards
 - [مشاهده‌پذیری هوش مصنوعی / LLM](/docs/telemetry/ai-llm-observability): گفتگوها را بخوانید و بازپخش کنید، و وقتی پاسخ‌ها خراب می‌شوند باخبر شوید.
-- [حساب‌های ارائه‌دهنده هوش مصنوعی](/docs/telemetry/ai-provider-accounts): مصرف و هزینهٔ حساب‌های OpenAI، Anthropic، Azure، Bedrock و Vertex AI شما.
+- [حساب‌های ارائه‌دهنده هوش مصنوعی](/docs/telemetry/ai-provider-accounts): مصرف و هزینهٔ حساب‌های OpenAI، Anthropic، Azure، Bedrock، Vertex AI و Cursor شما.
 - [دستیارهای کدنویسی هوش مصنوعی](/docs/telemetry/ai-coding-assistants): خرج هر مهندس برای ابزارهای کدنویسی.
 - [نگهداری داده](/docs/telemetry/data-retention): گفتگوها چه مدت نگه داشته می‌شوند.
 :::

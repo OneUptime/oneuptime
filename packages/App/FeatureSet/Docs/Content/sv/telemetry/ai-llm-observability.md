@@ -44,7 +44,7 @@ Alla tre finns under **Produkter → AI / LLM → Anslut**. Använd en, två ell
 | Väg in | Vad du får | Hur |
 | --- | --- | --- |
 | **Dina appar** | Varje AI-anrop medan det sker: konversationen, personen, prompten och svaret, tokens, kostnad och fel | OpenTelemetry från din kod eller en gateway, i fem steg |
-| **Dina konton hos AI-leverantörer** | Vad varje konto hos OpenAI, Anthropic, Azure, Bedrock eller Vertex AI använde och kostade, per dag | Inloggningsuppgifter som bara läser, och ingen kod: [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts) |
+| **Dina konton hos AI-leverantörer** | Vad varje konto hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI eller Cursor använde och kostade, per dag eller per timme | Inloggningsuppgifter som bara läser, och ingen kod: [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts) |
 | **Ditt företags AI-verktyg** | Vad dina medarbetare frågar Claude Enterprise eller Microsoft 365 Copilot, per person | Inloggningsuppgifter som bara läser, och ingen kod: [Företagets AI-verktyg](/docs/telemetry/ai-company-tools) |
 
 Leverantörskonton och kodassistenter ger användning och kostnad, aldrig ett anrop: de fyller **Användning**, och **Konversationer** och **Anrop** förblir tomma tills dina appar skickar sina AI-anrop eller ett AI-verktyg i företaget ansluts. [Kontrollera vad som kommer in](#kontrollera-vad-som-kommer-in) visar vilken väg som ger vad.
@@ -240,7 +240,7 @@ Ett färdigt larm skapar ett larm som löser sig själv, och visar monitorn som 
 
 Fliken **Användning** visar anrop, tokens och kostnad för en tidsperiod (de senaste 7 dagarna om du inte väljer en annan) och en tabell över de 25 största i en av fem uppdelningar: **Anställd**, **Team**, **Modell**, **Leverantör** och **Applikation / Tjänst**. Anrop som inte nämner någon räknas under **Ej tilldelat** och slängs aldrig.
 
-Det här är **Dina AI-anrop**. Välj **Leverantörskonton** i stället för att se vad dina anslutna konton hos OpenAI, Anthropic, Azure, Bedrock och Vertex AI fakturerades: se [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts#se-användningen). De två läggs aldrig ihop.
+Det här är **Dina AI-anrop**. Välj **Leverantörskonton** i stället för att se vad dina anslutna konton hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI och Cursor fakturerades: se [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts#se-användningen). De två läggs aldrig ihop.
 
 Personer och team kommer från identitetsattribut på anropet: se [Tilldelning till anställda och team](/docs/telemetry/ai-coding-assistants#tilldelning-till-anställda-och-team).
 
@@ -386,7 +386,7 @@ Monitorns rullande fönster är kortare än 15 minuter, så ibland hittar den in
 ## Nästa steg
 
 :::cards
-- [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts): Användning och kostnad för dina konton hos OpenAI, Anthropic, Azure, Bedrock och Vertex AI, utan kod.
+- [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts): Användning och kostnad för dina konton hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI och Cursor, utan kod.
 - [Företagets AI-verktyg](/docs/telemetry/ai-company-tools): Vad dina medarbetare frågar Claude Enterprise och Microsoft 365 Copilot.
 - [AI-kodassistenter](/docs/telemetry/ai-coding-assistants): Kostnad per utvecklare för Claude Code, Cursor, Codex, Gemini CLI och Copilot.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): Traca alla appars modellanrop från en enda LiteLLM- eller Portkey-gateway.

@@ -44,7 +44,7 @@ Toutes trois se trouvent sous **Produits → IA / LLM → Connecter**. Utilisez-
 | Façon d'entrer | Ce que vous obtenez | Comment |
 | --- | --- | --- |
 | **Vos applications** | Chaque appel d'IA au moment où il a lieu : la conversation, la personne, le prompt et la réponse, les jetons, le coût et les erreurs | OpenTelemetry depuis votre code ou une passerelle, en cinq étapes |
-| **Vos comptes de fournisseurs d'IA** | Ce que chaque compte OpenAI, Anthropic, Azure, Bedrock ou Vertex AI a consommé et coûté, par jour | Un identifiant en lecture seule et aucun code : [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts) |
+| **Vos comptes de fournisseurs d'IA** | Ce que chaque compte OpenAI, Anthropic, Azure, Bedrock, Vertex AI ou Cursor a consommé et coûté, par jour ou par heure | Un identifiant en lecture seule et aucun code : [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts) |
 | **Les outils d'IA de votre entreprise** | Ce que vos équipes demandent à Claude Enterprise ou Microsoft 365 Copilot, par personne | Un identifiant en lecture seule et aucun code : [Outils d'IA de l'entreprise](/docs/telemetry/ai-company-tools) |
 
 Les comptes de fournisseurs et les assistants de code apportent l'utilisation et le coût, jamais un appel : ils remplissent **Utilisation**, et **Conversations** et **Appels** restent vides tant que vos applications n'envoient pas leurs appels d'IA ou qu'aucun outil d'IA de l'entreprise n'est connecté. [Vérifier ce qui arrive](#vérifier-ce-qui-arrive) montre quelle voie apporte quoi.
@@ -240,7 +240,7 @@ Une alerte prête à l'emploi déclenche une alerte qui se résout d'elle-même,
 
 L'onglet **Utilisation** montre les appels, jetons et coûts d'une période (les 7 derniers jours si vous n'en choisissez pas une autre), et un tableau des 25 premiers selon l'une de cinq ventilations : **Employé**, **Équipe**, **Modèle**, **Fournisseur** et **Application / Service**. Les appels qui ne nomment personne sont comptés sous **Non attribué**, jamais écartés.
 
-Ce sont **Vos appels d'IA**. Choisissez plutôt **Comptes fournisseurs** pour voir ce qui a été facturé à vos comptes OpenAI, Anthropic, Azure, Bedrock et Vertex AI connectés : voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#voir-lutilisation). Les deux ne sont jamais additionnés.
+Ce sont **Vos appels d'IA**. Choisissez plutôt **Comptes fournisseurs** pour voir ce qui a été facturé à vos comptes OpenAI, Anthropic, Azure, Bedrock, Vertex AI et Cursor connectés : voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#voir-lutilisation). Les deux ne sont jamais additionnés.
 
 Les personnes et les équipes viennent des attributs d'identité de l'appel : voir [Attribution aux employés et aux équipes](/docs/telemetry/ai-coding-assistants#attribution-aux-employés-et-aux-équipes).
 
@@ -386,7 +386,7 @@ La fenêtre glissante du moniteur fait moins de 15 minutes, si bien qu'il ne tro
 ## Étapes suivantes
 
 :::cards
-- [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts): Utilisation et coût de vos comptes OpenAI, Anthropic, Azure, Bedrock et Vertex AI, sans code.
+- [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts): Utilisation et coût de vos comptes OpenAI, Anthropic, Azure, Bedrock, Vertex AI et Cursor, sans code.
 - [Outils d'IA de l'entreprise](/docs/telemetry/ai-company-tools): Ce que vos équipes demandent à Claude Enterprise et Microsoft 365 Copilot.
 - [Assistants de code IA](/docs/telemetry/ai-coding-assistants): Les dépenses par ingénieur pour Claude Code, Cursor, Codex, Gemini CLI et Copilot.
 - [Passerelles IA](/docs/telemetry/ai-gateways): Tracer les appels de modèle de chaque application depuis une passerelle LiteLLM ou Portkey.
