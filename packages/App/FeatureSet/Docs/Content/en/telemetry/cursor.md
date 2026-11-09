@@ -1,13 +1,26 @@
 # Cursor
 
-Cursor exports its team's telemetry from Cursor's own servers. A team admin adds OneUptime as the destination once, in Cursor's dashboard, and the whole team's tokens, estimated cost and tool calls arrive: nothing to install or set on developer machines.
+Cursor exports its team's telemetry from Cursor's own servers. A team admin adds OneUptime as the destination once, in Cursor's dashboard, and the whole team's tokens, estimated cost and tool calls arrive: nothing to install or set on developer machines. On the Teams plan too, OneUptime can read the team's usage and what Cursor charged, by person, with an Admin API key instead or as well.
 
 :::cards
+- [Two ways in](#two-ways-in): An Admin API key in OneUptime, or Cursor's OpenTelemetry Export.
 - [Set it up](#set-it-up): Create a key in OneUptime and a destination in Cursor.
 - [What you get](#what-you-get-and-what-you-dont): Metrics and logs; no traces.
 - [Who spent what](#employee-attribution): People arrive as Cursor user ids.
 - [Troubleshooting](#troubleshooting): What to check when nothing arrives.
 :::
+
+## Two ways in
+
+| | Admin API key | OpenTelemetry Export |
+| --- | --- | --- |
+| Cursor plan | Teams or Enterprise | Enterprise |
+| Set up | In OneUptime, under **Products → AI / LLM → Connect** | In Cursor's dashboard, under **Team Settings → OpenTelemetry Export** |
+| What arrives | Tokens, requests and what Cursor charged, by hour, person and model, and how many members use Cursor | Tokens, estimated cost and tool calls, and a log event per request |
+| From when | The last 30 days, then every hour | As it happens, from the day you enable it |
+| Shows in **Usage** under | **Provider accounts** | **Your AI calls** |
+
+Both bring usage and cost, not conversations. Use one or both: the two are kept apart and never added together, and a budget counts one of them, as its **Count spend from** says. To connect the key, see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#cursor); the rest of this page sets up the OpenTelemetry Export.
 
 ## How it works
 
@@ -129,7 +142,7 @@ Cursor sends metrics and no GenAI spans, and the metrics only fill in for spans:
 A Cursor row carries cost only: its calls and token cells show `—`, because `cursor.cost.usage` has no per-call detail. `cursor.token.usage` still feeds the token totals above the table (its `input` and `output` types; cache tokens are left out), and you can chart it on a dashboard by `cursor.token.type`.
 
 :::details Turning a Cursor user id into a person
-Names and billed amounts are in Cursor's Admin API, which OneUptime does not call: run it yourself if you need it. It is Enterprise-only, at `https://api.cursor.com`, and takes an admin API key as the user name with an empty password:
+Names and billed amounts are in Cursor's Admin API, which OneUptime reads when you connect its key as a [provider account](/docs/telemetry/ai-provider-accounts#cursor): that account names people by email. To match a `cursor.user.id` yourself, call the API at `https://api.cursor.com`, with an Admin API key as the user name and an empty password:
 
 ```bash
 curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
@@ -150,7 +163,7 @@ These change what you see in charts, so know them before you report a gap:
 
 ## Cost is an estimate, not an invoice
 
-Cursor documents `cursor.cost.usage` as a best-effort estimate. It does not separate included usage from usage billed on demand; with your own model keys, it reflects only Cursor's token rate, not your provider's bill; and a later `cursor.api.correction` can take back usage it already counted. Read it as a trend. For a figure that matches the invoice, add up `chargedCents` from Cursor's Admin API.
+Cursor documents `cursor.cost.usage` as a best-effort estimate. It does not separate included usage from usage billed on demand; with your own model keys, it reflects only Cursor's token rate, not your provider's bill; and a later `cursor.api.correction` can take back usage it already counted. Read it as a trend. For a figure that matches the invoice, add up `chargedCents` from Cursor's Admin API. A Cursor team connected as a [provider account](/docs/telemetry/ai-provider-accounts#cursor) does that for you, by the hour.
 
 ## Troubleshooting
 
@@ -174,6 +187,7 @@ That is `cursor.user.id`, read when Cursor sends no `cursor.user.email`. Map it 
 
 :::cards
 - [AI Coding Assistants](/docs/telemetry/ai-coding-assistants): How spend is attributed across every coding assistant.
+- [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#cursor): Read a Cursor team's usage and what Cursor charged with an Admin API key.
 - [AI Gateways](/docs/telemetry/ai-gateways): Full traces and prompts for the model calls your own apps make.
 - [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on `cursor.cost.usage`, `cursor.token.usage` or `cursor.tool.calls`.
 :::

@@ -10,6 +10,7 @@ import {
   LlmMetricSource,
   LlmSetupCheckApps,
   LlmSetupCheckConnection,
+  LlmSetupCheckMetricSource,
   LlmSetupCheckResponse,
 } from "../../../Types/Telemetry/LlmSetupCheckApi";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -19,6 +20,7 @@ import {
 } from "../../../UI/Utils/TranslateTemplate";
 import { formatLlmUsageDay } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectionHealth";
 import {
+  CURSOR_BOTH_WAYS,
   LlmEmptyView,
   LlmEmptyViewWords,
   LlmSetupCheckLine,
@@ -943,9 +945,141 @@ describe("the Setup check card: a connection", () => {
       LlmConnectionProvider.Anthropic,
       LlmConnectionProvider.AwsBedrock,
       LlmConnectionProvider.GoogleVertexAI,
+      LlmConnectionProvider.Cursor,
     ]) {
       expect(PROVIDER_READS[provider]).toBeTruthy();
     }
+  });
+});
+
+/*
+ * #5547: a Cursor team read with its Admin API key. Its reads go an hour at
+ * a time, and its OpenTelemetry Export may arrive as well: the same
+ * requests, which Usage keeps apart and a budget counts once - the
+ * account's line says so whenever both arrive.
+ */
+describe("the Setup check card: a Cursor account", () => {
+  const CURSOR_OTEL: Array<LlmSetupCheckMetricSource> = [
+    {
+      source: LlmMetricSource.Cursor,
+      points: 320,
+      newestAt: daysAgo(0.02).toISOString(),
+    },
+  ];
+
+  function cursorLine(
+    overrides: Partial<LlmSetupCheckConnection>,
+    metricSources?: Array<LlmSetupCheckMetricSource> | null,
+  ): LlmSetupCheckLine {
+    return getConnectionLine({
+      connection: connection({
+        provider: LlmConnectionProvider.Cursor,
+        name: "Cursor",
+        ...overrides,
+      }),
+      translator: ENGLISH,
+      now: NOW,
+      metricSources,
+    });
+  }
+
+  test("with usage and no OpenTelemetry Export: one line, as any account", () => {
+    const result: LlmSetupCheckLine = cursorLine(
+      { newestUsageAt: "2026-11-03T00:00:00.000Z" },
+      [],
+    );
+
+    expect(result.tone).toBe("ok");
+    expect(result.detail).toBeUndefined();
+  });
+
+  test("with usage and the OpenTelemetry Export too: the two are never added together", () => {
+    const result: LlmSetupCheckLine = cursorLine(
+      { newestUsageAt: "2026-11-03T00:00:00.000Z" },
+      CURSOR_OTEL,
+    );
+
+    expect(result.tone).toBe("ok");
+    expect(result.detail).toBe(CURSOR_BOTH_WAYS);
+    expect(result.detail).toContain("never added together");
+    expect(result.detail).toContain("a budget counts one of them");
+  });
+
+  test("no usage yet, the Export arriving: the two ways first, before what the reads cover", () => {
+    const result: LlmSetupCheckLine = cursorLine(
+      { readSince: "2026-10-01T00:00:00.000Z" },
+      CURSOR_OTEL,
+    );
+
+    expect(result.tone).toBe("warning");
+    expect(result.detail).toBe(CURSOR_BOTH_WAYS);
+  });
+
+  test("no usage yet, and no Export: what Cursor's reads cover - an hour at a time", () => {
+    const result: LlmSetupCheckLine = cursorLine(
+      { readSince: "2026-10-01T00:00:00.000Z" },
+      null,
+    );
+
+    expect(result.tone).toBe("warning");
+    expect(result.detail).toBe(PROVIDER_READS[LlmConnectionProvider.Cursor]);
+    expect(result.detail).toContain("an hour at a time");
+  });
+
+  test("another tool's metrics, or Cursor's with no points, are not Cursor's Export", () => {
+    for (const metricSources of [
+      [{ source: LlmMetricSource.ClaudeCode, points: 90, newestAt: null }],
+      [{ source: LlmMetricSource.Cursor, points: 0, newestAt: null }],
+    ] as Array<Array<LlmSetupCheckMetricSource>>) {
+      expect(
+        cursorLine({ newestUsageAt: "2026-11-03T00:00:00.000Z" }, metricSources)
+          .detail,
+      ).toBeUndefined();
+    }
+  });
+
+  test("another provider's account never speaks of Cursor's Export", () => {
+    expect(
+      getConnectionLine({
+        connection: connection({ newestUsageAt: "2026-11-03T00:00:00.000Z" }),
+        translator: ENGLISH,
+        now: NOW,
+        metricSources: CURSOR_OTEL,
+      }).detail,
+    ).toBeUndefined();
+  });
+
+  test("a key that may not read the team: Cursor's words, not a role or scope", () => {
+    const result: LlmSetupCheckLine = cursorLine(
+      {
+        lastError:
+          "Cursor accepted the key but refused the team members request (HTTP 403: Enterprise access required).",
+        failureKind: "permission",
+        lastSuccessfulReadAt: null,
+      },
+      CURSOR_OTEL,
+    );
+
+    expect(result.tone).toBe("error");
+    expect(result.text).toBe(
+      "Cursor accepted the key, but it may not read the team's usage.",
+    );
+    expect(result.detail).toContain(
+      "Use an Admin API key of a Teams or Enterprise team",
+    );
+    // A failure says what to fix, not that the two ways are apart.
+    expect(result.detail).not.toBe(CURSOR_BOTH_WAYS);
+    expect(result.error).toBeUndefined();
+  });
+
+  test("a rate limit says to wait, as for any provider", () => {
+    const result: LlmSetupCheckLine = cursorLine({
+      lastError: "Cursor asked OneUptime to slow down (HTTP 429).",
+      failureKind: "rate-limited",
+      lastSuccessfulReadAt: null,
+    });
+
+    expect(result.text).toBe("The provider asked OneUptime to slow down.");
   });
 });
 

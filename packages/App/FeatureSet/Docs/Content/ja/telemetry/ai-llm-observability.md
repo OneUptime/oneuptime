@@ -44,7 +44,7 @@ flowchart TB
 | 接続方法 | 得られるもの | 方法 |
 | --- | --- | --- |
 | **自社アプリ** | 発生したその場ですべての AI 呼び出し: 会話、ユーザー、プロンプトと回答、トークン、コスト、エラー | コードまたはゲートウェイからの OpenTelemetry。五つのステップで設定します |
-| **AI プロバイダーのアカウント** | OpenAI、Anthropic、Azure、Bedrock、Vertex AI の各アカウントの日ごとの使用量とコスト | 読み取り専用の認証情報だけでコードは不要: [AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts) |
+| **AI プロバイダーのアカウント** | OpenAI、Anthropic、Azure、Bedrock、Vertex AI、Cursor の各アカウントの日ごとまたは時間ごとの使用量とコスト | 読み取り専用の認証情報だけでコードは不要: [AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts) |
 | **社内の AI ツール** | 社員が Claude Enterprise や Microsoft 365 Copilot に尋ねた内容 (ユーザー別) | 読み取り専用の認証情報だけでコードは不要: [社内の AI ツール](/docs/telemetry/ai-company-tools) |
 
 プロバイダー アカウントとコーディング アシスタントが届けるのは使用量とコストで、呼び出しは届けません。これらが埋めるのは **使用量** で、 **会話** と **呼び出し** は、アプリが AI 呼び出しを送信するか社内の AI ツールを接続するまで空のままです。どの方法で何が届くかは [届いているものを確認する](#届いているものを確認する) でわかります。
@@ -241,7 +241,7 @@ trace.get_current_span().add_event(
 
 **使用量** タブには、期間内 (別の期間を選ばない限り過去 7 日間) の呼び出し、トークン、コストと、5 つの内訳 ( **従業員** 、 **チーム** 、 **モデル** 、 **プロバイダー** 、 **アプリケーション / サービス** ) のいずれかによる上位 25 件の表が表示されます。誰も特定できない呼び出しは **帰属なし** として数えられ、捨てられることはありません。
 
-これは **自社の AI 呼び出し** です。接続した OpenAI、Anthropic、Azure、Bedrock、Vertex AI のアカウントへの請求額を見るには、代わりに **プロバイダー アカウント** を選びます。[AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts#使用量を見る) を参照してください。両者が合算されることはありません。
+これは **自社の AI 呼び出し** です。接続した OpenAI、Anthropic、Azure、Bedrock、Vertex AI、Cursor のアカウントへの請求額を見るには、代わりに **プロバイダー アカウント** を選びます。[AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts#使用量を見る) を参照してください。両者が合算されることはありません。
 
 人とチームは、呼び出しの ID 属性から取得されます。[従業員とチームへの帰属](/docs/telemetry/ai-coding-assistants#従業員とチームへの帰属)を参照してください。
 
@@ -391,7 +391,7 @@ ID のキー (誰が呼び出したか、そのチーム) は [従業員とチ�
 ## 次のステップ
 
 :::cards
-- [AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts): OpenAI、Anthropic、Azure、Bedrock、Vertex AI のアカウントの使用量とコストを、コードなしで。
+- [AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts): OpenAI、Anthropic、Azure、Bedrock、Vertex AI、Cursor のアカウントの使用量とコストを、コードなしで。
 - [社内の AI ツール](/docs/telemetry/ai-company-tools): 社員が Claude Enterprise と Microsoft 365 Copilot に尋ねている内容。
 - [AI コーディングアシスタント](/docs/telemetry/ai-coding-assistants): Claude Code、Cursor、Codex、Gemini CLI、Copilot のエンジニア別の支出。
 - [AI ゲートウェイ](/docs/telemetry/ai-gateways): 1 つの LiteLLM または Portkey ゲートウェイから、すべてのアプリのモデル呼び出しをトレースします。

@@ -1,6 +1,8 @@
 import {
   AI_GATEWAYS,
+  ASSISTANTS,
   COMPANY_TOOLS,
+  CURSOR,
   LLM,
   PROVIDER_ACCOUNTS,
 } from "./AiObservabilityDocsPages";
@@ -86,7 +88,11 @@ const SOURCES: Record<string, string> = {
   claudeEnterprise: `${SERVER}/Connectors/ClaudeEnterprise/ClaudeEnterpriseConnector.ts`,
   copilot: `${SERVER}/Connectors/Microsoft365Copilot/Microsoft365CopilotConnector.ts`,
   azure: `${SERVER}/Connectors/AzureOpenAI/AzureOpenAIConnector.ts`,
+  cursor: `${SERVER}/Connectors/Cursor/CursorConnector.ts`,
+  cursorClient: `${SERVER}/Connectors/Cursor/CursorAdminClient.ts`,
+  usageWriter: `${SERVER}/LlmProviderUsageWriter.ts`,
   connectionHealth: `${DASHBOARD}/Components/AI/Connect/LlmConnectionHealth.ts`,
+  testWords: `${DASHBOARD}/Components/AI/Connect/LlmConnectionTestWords.ts`,
   setupCheckWords: `${DASHBOARD}/Components/AI/SetupCheck/LlmSetupCheckWords.ts`,
 };
 
@@ -193,6 +199,11 @@ const CREDENTIAL_NEEDS: Record<LlmConnectionProvider, Array<string>> = {
     "cloudwatch:ListMetrics",
   ],
   [LlmConnectionProvider.GoogleVertexAI]: ["Monitoring Viewer", "JSON key"],
+  [LlmConnectionProvider.Cursor]: [
+    "Settings, Cursor Admin API Keys",
+    "team admin",
+    "Teams and Enterprise",
+  ],
   [LlmConnectionProvider.ClaudeEnterprise]: [
     "primary owner",
     "Compliance API",
@@ -346,17 +357,36 @@ describe("the AI Provider Accounts page", () => {
     }
   });
 
-  it("says every account is read every 15 minutes, and the first read goes back 30 days", () => {
+  it("says every account is read every 15 minutes but a Cursor team, read every hour, and the first read goes back 30 days", () => {
+    const rows: Array<Array<string>> = rowsOf(page, "How reads are scheduled");
+
     for (const definition of accounts) {
-      expect(definition.pullIntervalInMinutes).toBe(15);
-      expect(definition.backfillDays).toBe(30);
+      expect({
+        provider: definition.provider,
+        interval: definition.pullIntervalInMinutes,
+        backfill: definition.backfillDays,
+      }).toEqual({
+        provider: definition.provider,
+        interval:
+          definition.provider === LlmConnectionProvider.Cursor ? 60 : 15,
+        backfill: 30,
+      });
     }
 
     expect(page).toContain("OneUptime reads its usage every 15 minutes");
+    expect(page).toContain(
+      "A Cursor team connects the same way, with its Admin API key, and is read every hour.",
+    );
     expect(page).toContain("brings in the last 30 days");
-    expect(
-      rowNamed(rowsOf(page, "How reads are scheduled"), "The first")[1],
-    ).toBe("Within a minute of connecting, back 30 days");
+    expect(rowNamed(rows, "The first")[1]).toBe(
+      "Within a minute of connecting, back 30 days",
+    );
+    expect(rowNamed(rows, "The next ones")[1]).toBe("Every 15 minutes");
+    expect(rowNamed(rows, "A Cursor team's next ones")[1]).toBe("Every hour");
+    // The list of connections says so above its rows.
+    expect(source("connectionsTable")).toContain(
+      '"Read every 15 minutes, Cursor every hour. Usage and cost arrive in Usage, under Provider accounts, and a budget can count them."',
+    );
   });
 
   it("reads the last days again on every read, as many as the reads reopen", () => {
@@ -551,6 +581,154 @@ describe("the AI Provider Accounts page: an account that reads no usage", () => 
     expect(page).toContain(
       "[Check what is arriving](/docs/telemetry/ai-llm-observability#check-what-is-arriving)",
     );
+  });
+});
+
+/*
+ * #5547: a Cursor team, connected with its Admin API key and read by the
+ * hour. The Cursor section, the schedule and the troubleshooting are held
+ * to the connector, its Admin API client, the pull runner, the writer and
+ * the words the Dashboard draws.
+ */
+describe("the AI Provider Accounts page: a Cursor team", () => {
+  const page: string = englishPage(PROVIDER_ACCOUNTS);
+  const cursor: string = section(page, "Cursor");
+
+  it("reads by the hour, the last hours again, and a day again once it is over, as the connector does", () => {
+    const connector: string = source("cursor");
+
+    expect(connector).toContain(
+      "export const CURSOR_REREAD_HOURS: number = 3;",
+    );
+    expect(connector).toContain(
+      "export const CURSOR_SETTLE_AFTER_HOURS: number = 6;",
+    );
+    expect(connector).toContain(
+      "export const CURSOR_MAX_PIECE_HOURS: number = 24;",
+    );
+    expect(cursor).toContain(
+      "so OneUptime reads a Cursor team every hour and keeps its usage by the hour",
+    );
+    expect(cursor).toContain(
+      "the 3 hours before them again, because Cursor adds requests late",
+    );
+    expect(cursor).toContain(
+      "reads a day again in full once 6 hours of the next have passed",
+    );
+    expect(cursor).toContain(
+      "The first read goes back 30 days, newest first, a day at a time",
+    );
+  });
+
+  it("goes on a minute after a read that stopped part way, and waits an hour after a failure, as the pull runner does", () => {
+    const runner: string = source("pullRunner");
+    const rows: Array<Array<string>> = rowsOf(page, "How reads are scheduled");
+
+    expect(runner).toContain("const CONTINUE_AFTER_MS: number = 60 * 1000;");
+    expect(runner).toContain(": Math.max(interval, RETRY_AFTER_FAILURE_MS);");
+    expect(rowNamed(rows, "A Cursor read that stopped part way")[1]).toBe(
+      "A minute later",
+    );
+    expect(rowNamed(rows, "A Cursor team's, after any failure")[1]).toBe(
+      "60 minutes later",
+    );
+  });
+
+  it("names the rate limits of Cursor's Admin API, and the one wait a read takes", () => {
+    const client: string = source("cursorClient");
+
+    expect(client).toContain(
+      "60 usage-event requests a minute per team and 20 a\n * minute for the other endpoints",
+    );
+    expect(client).toContain(
+      "export const CURSOR_RATE_LIMIT_WAIT_MS: number = 60 * 1000;",
+    );
+    expect(page).toContain(
+      "Cursor's Admin API takes 20 requests a minute from a team, 60 for usage events, shared with every tool that reads it. OneUptime waits a minute once and goes on.",
+    );
+  });
+
+  it("says what the test and the list show of a team, as the Dashboard draws them", () => {
+    expect(source("testWords")).toContain(
+      'add("members", translationKey("Members")',
+    );
+    expect(source("testWords")).toContain(
+      'add("people", translationKey("People")',
+    );
+    expect(source("connectionHealth")).toContain(
+      '"Still reading earlier usage"',
+    );
+    expect(cursor).toContain(
+      "The test also shows the team's **Members**, and as **People** how many of them used Cursor.",
+    );
+    expect(cursor).toContain(
+      "its line says **Still reading earlier usage** until they are done",
+    );
+  });
+
+  it("answers the test's permission failure with the Dashboard's own words", () => {
+    expect(source("testWords")).toContain(
+      '"Cursor accepted the key, but it may not read the team\'s usage."',
+    );
+    expect(page).toContain(
+      ":::details Cursor accepted the key, but it may not read the team's usage",
+    );
+  });
+
+  it("stamps a Cursor team's points at the start of their UTC hour, as the writer does", () => {
+    expect(source("usageWriter")).toContain("toStartOfHour(time, 'UTC')");
+    expect(page).toContain(
+      "A Cursor team's points hold an hour's usage each, stamped at the start of its UTC hour.",
+    );
+  });
+
+  it("points to the other way in, and keeps the two apart as the setup check says", () => {
+    expect(source("setupCheckWords")).toContain(
+      "never added together, and a budget counts one of them.",
+    );
+    expect(cursor).toContain("[Cursor](/docs/telemetry/cursor)");
+    expect(cursor).toContain(
+      "this account shows under **Provider accounts**, the export under **Your AI calls**, never added together, and a budget counts one of them.",
+    );
+  });
+
+  it("says the key can change team settings, and that OneUptime only reads with it", () => {
+    expect(page).toContain(
+      "Cursor's Admin API key is the exception: it can also change some team settings, such as spend limits, and OneUptime only reads with it.",
+    );
+  });
+});
+
+describe("the Cursor page", () => {
+  const page: string = englishPage(CURSOR);
+
+  it("sets the two ways in side by side, and links to the account's guide", () => {
+    const rows: Array<Array<string>> = rowsOf(page, "Two ways in");
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual([
+      "Cursor plan",
+      "Set up",
+      "What arrives",
+      "From when",
+      "Shows in **Usage** under",
+    ]);
+    expect(rowNamed(rows, "Shows in **Usage** under").slice(1)).toEqual([
+      "**Provider accounts**",
+      "**Your AI calls**",
+    ]);
+    expect(section(page, "Two ways in")).toContain(
+      "[AI Provider Accounts](/docs/telemetry/ai-provider-accounts#cursor)",
+    );
+    expect(page).toContain("Both bring usage and cost, not conversations.");
+  });
+
+  it("no longer says OneUptime does not call Cursor's Admin API, or that it is Enterprise-only", () => {
+    expect(page).not.toContain("which OneUptime does not call");
+    expect(page).not.toContain("It is Enterprise-only");
   });
 });
 
@@ -769,6 +947,33 @@ describe("the other AI pages", () => {
     expect(page).not.toContain("OpenAI's usage and costs endpoints");
     expect(page).toContain(
       "[AI Provider Accounts](/docs/telemetry/ai-provider-accounts)",
+    );
+  });
+
+  it("AI Coding Assistants reads Cursor's Admin API now, and says where", () => {
+    const page: string = englishPage(ASSISTANTS);
+
+    expect(page).not.toContain("but not Cursor's Admin API");
+    expect(page).toContain("**No coding-tool admin connector but Cursor's.**");
+    expect(page).toContain(
+      "connect its Admin API key as a [provider account](/docs/telemetry/ai-provider-accounts#cursor)",
+    );
+  });
+
+  it("AI / LLM Observability and Company AI Tools list Cursor among the provider accounts", () => {
+    const llm: string = englishPage(LLM);
+
+    expect(llm).toContain(
+      "What each OpenAI, Anthropic, Azure, Bedrock, Vertex AI or Cursor account used and cost, by day or by hour",
+    );
+    expect(llm).toContain(
+      "your connected OpenAI, Anthropic, Azure, Bedrock, Vertex AI and Cursor accounts were billed",
+    );
+    expect(llm).toContain(
+      "Usage and cost of your OpenAI, Anthropic, Azure, Bedrock, Vertex AI and Cursor accounts, with no code.",
+    );
+    expect(englishPage(COMPANY_TOOLS)).toContain(
+      "Usage and cost of your OpenAI, Anthropic, Azure, Bedrock, Vertex AI and Cursor accounts.",
     );
   });
 });

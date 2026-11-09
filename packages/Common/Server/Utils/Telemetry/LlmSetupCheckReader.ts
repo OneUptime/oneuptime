@@ -711,10 +711,16 @@ export default class LlmSetupCheckReader {
     const lastReadNewest: number = Date.parse(
       readJsonString(result, "newestUsageDay"),
     );
-    const newestUsageAtMs: number = Math.max(
+    const newestAtMs: number = Math.max(
       data.newestUsageAtMs,
       Number.isFinite(lastReadNewest) ? lastReadNewest : 0,
     );
+    /*
+     * The newest DAY with usage: a provider read by the hour (Cursor) has
+     * its points at the start of their hour, and the day is what is said.
+     */
+    const newestUsageAtMs: number =
+      newestAtMs > 0 ? Math.floor(newestAtMs / DAY_IN_MS) * DAY_IN_MS : 0;
     const resources: unknown = result ? result["resources"] : undefined;
     const readSince: string = readJsonString(result, "readSince");
     /*

@@ -40,8 +40,9 @@ import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import logger from "../Logger";
 import TelemetryUtil from "../Telemetry/Telemetry";
-import { LlmUsageWindow } from "./LlmConnectorTypes";
+import { LlmUsageBucket, LlmUsageWindow } from "./LlmConnectorTypes";
 import LlmUsageCost from "./LlmUsageCost";
+import LlmUsageDays from "./LlmUsageDays";
 
 /*
  * KEEPS A PROVIDER ACCOUNT'S DAILY FIGURES AS METRICS, EXACTLY.
@@ -63,7 +64,10 @@ import LlmUsageCost from "./LlmUsageCost";
  *
  * Points are stamped at the start of their UTC day and belong to the
  * connection's telemetry service, so who may read them, how long they are
- * kept and which charts list them follow that service.
+ * kept and which charts list them follow that service. A provider read by
+ * the hour (Cursor) has its points stamped at the start of their hour, and
+ * the writer compares sums hour by hour: a read that covered some hours of
+ * a day leaves the day's other hours as they are.
  */
 
 const METRIC_TABLE: string = AnalyticsTableName.Metric;
@@ -111,6 +115,16 @@ export interface LlmProviderUsageWriteResult {
   requests: number;
   costUsd: number;
   // Days of the window with any usage.
+  daysWithUsage: number;
+}
+
+// What a connection's stored points add up to over a time range.
+export interface LlmProviderUsageTotals {
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+  costUsd: number;
+  // UTC days of the range with any usage.
   daysWithUsage: number;
 }
 
@@ -331,18 +345,22 @@ export default class LlmProviderUsageWriter {
 
   /*
    * The stored sums of a connection's series over a window: one row per
-   * day, metric and series attributes.
+   * day (or hour, for a provider read by the hour), metric and series
+   * attributes.
    */
   public static buildStoredSumsStatement(data: {
     projectId: ObjectID;
     serviceId: ObjectID;
     connectionId: ObjectID;
     window: LlmUsageWindow;
+    bucket?: LlmUsageBucket | undefined;
   }): Statement {
     const statement: Statement = new Statement();
 
     statement.append(
-      "SELECT toUnixTimestamp(toStartOfDay(time, 'UTC')) AS daySeconds, name AS metricName",
+      data.bucket === "hour"
+        ? "SELECT toUnixTimestamp(toStartOfHour(time, 'UTC')) AS daySeconds, name AS metricName"
+        : "SELECT toUnixTimestamp(toStartOfDay(time, 'UTC')) AS daySeconds, name AS metricName",
     );
 
     LlmProviderSeriesAttributeKeys.forEach((key: string, index: number) => {
@@ -500,6 +518,8 @@ export default class LlmProviderUsageWriter {
     window: LlmUsageWindow;
     records: Array<LlmUsageRecord>;
     now: Date;
+    // How the records are stamped: by the day unless told.
+    bucket?: LlmUsageBucket | undefined;
   }): Promise<LlmProviderUsageWriteResult> {
     const desired: Array<LlmProviderSeriesPoint> =
       LlmProviderUsageWriter.toSeriesPoints({
@@ -514,6 +534,7 @@ export default class LlmProviderUsageWriter {
         serviceId: data.target.serviceId,
         connectionId: data.target.connectionId,
         window: data.window,
+        bucket: data.bucket,
       }),
     );
     const response: DbJSONResponse = await result.json<{
@@ -568,7 +589,8 @@ export default class LlmProviderUsageWriter {
     const days: Set<number> = new Set<number>();
 
     for (const point of desired) {
-      days.add(point.day.getTime());
+      // A day, also for points stamped by the hour.
+      days.add(LlmUsageDays.startOfUtcDay(point.day).getTime());
 
       if (point.metricName === LLM_PROVIDER_COST_METRIC_NAME) {
         summary.costUsd += point.value;
@@ -591,6 +613,131 @@ export default class LlmProviderUsageWriter {
     summary.costUsd = Math.round(summary.costUsd * 1e6) / 1e6;
 
     return summary;
+  }
+
+  /*
+   * What a connection's stored points add up to over a time range, by
+   * metric, token type and UTC day: a handful of rows, whatever the number
+   * of people and models. A provider read by the hour reads a few hours at a
+   * time, so what its connection says it used is read back from here.
+   */
+  public static buildTotalsStatement(data: {
+    projectId: ObjectID;
+    serviceId: ObjectID;
+    connectionId: ObjectID;
+    startTime: Date;
+    endTime: Date;
+  }): Statement {
+    const statement: Statement = new Statement();
+
+    statement.append(
+      SQL`SELECT name AS metricName, attributes[${{
+        type: TableColumnType.Text,
+        value: LLM_PROVIDER_TOKEN_TYPE_ATTRIBUTE,
+      }}] AS tokenType, toUnixTimestamp(toStartOfDay(time, 'UTC')) AS daySeconds, sum(value) AS total`,
+    );
+    statement.append(` FROM ${METRIC_TABLE}`);
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND primaryEntityId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.serviceId,
+      }} AND name IN ${{
+        type: TableColumnType.ArrayText,
+        value: LlmProviderUsageMetricNames,
+      }} AND time >= ${{
+        type: TableColumnType.Date,
+        value: data.startTime,
+      }} AND time < ${{
+        type: TableColumnType.Date,
+        value: data.endTime,
+      }} AND attributes[${{
+        type: TableColumnType.Text,
+        value: LLM_CONNECTION_ID_ATTRIBUTE,
+      }}] = ${{
+        type: TableColumnType.Text,
+        value: data.connectionId.toString(),
+      }}`,
+    );
+    statement.append(" GROUP BY metricName, tokenType, daySeconds");
+    statement.append(READ_QUERY_SETTINGS);
+
+    return statement;
+  }
+
+  // Rows of the totals query, added up. A day counts when it used anything.
+  public static readTotals(rows: Array<JSONObject>): LlmProviderUsageTotals {
+    const totals: LlmProviderUsageTotals = {
+      inputTokens: 0,
+      outputTokens: 0,
+      requests: 0,
+      costUsd: 0,
+      daysWithUsage: 0,
+    };
+    const days: Set<number> = new Set<number>();
+
+    for (const row of rows) {
+      const total: number = Number(row["total"]);
+      const daySeconds: number = Number(row["daySeconds"]);
+      const metricName: unknown = row["metricName"];
+      const tokenType: unknown = row["tokenType"];
+
+      if (!Number.isFinite(total) || !Number.isFinite(daySeconds)) {
+        continue;
+      }
+
+      if (metricName === LLM_PROVIDER_COST_METRIC_NAME) {
+        totals.costUsd += total;
+      } else if (metricName === LLM_PROVIDER_REQUESTS_METRIC_NAME) {
+        totals.requests += total;
+      } else if (metricName === LLM_PROVIDER_TOKENS_METRIC_NAME) {
+        if (tokenType === LlmProviderTokenType.Input) {
+          totals.inputTokens += total;
+        } else if (tokenType === LlmProviderTokenType.Output) {
+          totals.outputTokens += total;
+        }
+      } else {
+        continue;
+      }
+
+      // Corrections can leave a day at zero: only usage counts it.
+      if (total > COST_EPSILON) {
+        days.add(daySeconds);
+      }
+    }
+
+    totals.daysWithUsage = days.size;
+    totals.costUsd = Math.round(totals.costUsd * 1e6) / 1e6;
+    totals.inputTokens = Math.round(totals.inputTokens);
+    totals.outputTokens = Math.round(totals.outputTokens);
+    totals.requests = Math.round(totals.requests);
+
+    return totals;
+  }
+
+  public static async readUsageTotals(data: {
+    target: LlmProviderUsageWriteTarget;
+    startTime: Date;
+    endTime: Date;
+  }): Promise<LlmProviderUsageTotals> {
+    const result: Results = await MetricService.executeQuery(
+      LlmProviderUsageWriter.buildTotalsStatement({
+        projectId: data.target.projectId,
+        serviceId: data.target.serviceId,
+        connectionId: data.target.connectionId,
+        startTime: data.startTime,
+        endTime: data.endTime,
+      }),
+    );
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return LlmProviderUsageWriter.readTotals(
+      (response.data || []) as Array<JSONObject>,
+    );
   }
 
   /*

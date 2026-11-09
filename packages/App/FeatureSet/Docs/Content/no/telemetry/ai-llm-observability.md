@@ -44,7 +44,7 @@ Alle tre ligger under **Produkter → AI / LLM → Koble til**. Bruk én, to ell
 | Vei inn | Hva du får | Hvordan |
 | --- | --- | --- |
 | **Appene dine** | Hvert AI-kall mens det skjer: samtalen, personen, prompten og svaret, tokens, kostnad og feil | OpenTelemetry fra koden din eller en gateway, i fem steg |
-| **Kontoene dine hos AI-leverandører** | Hva hver konto hos OpenAI, Anthropic, Azure, Bedrock eller Vertex AI brukte og kostet, per dag | Påloggingsinformasjon som bare leser, og ingen kode: [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts) |
+| **Kontoene dine hos AI-leverandører** | Hva hver konto hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI eller Cursor brukte og kostet, per dag eller per time | Påloggingsinformasjon som bare leser, og ingen kode: [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts) |
 | **Virksomhetens AI-verktøy** | Hva folkene dine spør Claude Enterprise eller Microsoft 365 Copilot om, per person | Påloggingsinformasjon som bare leser, og ingen kode: [Virksomhetens AI-verktøy](/docs/telemetry/ai-company-tools) |
 
 Leverandørkontoer og kodeassistenter henter forbruk og kostnad, aldri et kall: de fyller **Forbruk**, og **Samtaler** og **Kall** forblir tomme til appene dine sender AI-kallene sine eller et AI-verktøy i virksomheten er koblet til. [Sjekk hva som kommer inn](#sjekk-hva-som-kommer-inn) viser hvilken vei som henter hva.
@@ -241,7 +241,7 @@ Et ferdig varsel oppretter et varsel som løser seg selv, og viser monitoren som
 
 Fanen **Forbruk** viser kall, tokens og kostnad for et tidsrom (de siste 7 dagene, med mindre du velger et annet) og en tabell over de 25 største i én av fem inndelinger: **Ansatt**, **Team**, **Modell**, **Leverandør** og **Applikasjon / Tjeneste**. Kall som ikke nevner noen, telles under **Ikke tilordnet** og kastes aldri.
 
-Dette er **AI-kallene dine**. Velg **Leverandørkontoer** i stedet for å se hva de tilkoblede kontoene dine hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI ble fakturert: se [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts#se-forbruket). De to legges aldri sammen.
+Dette er **AI-kallene dine**. Velg **Leverandørkontoer** i stedet for å se hva de tilkoblede kontoene dine hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI og Cursor ble fakturert: se [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts#se-forbruket). De to legges aldri sammen.
 
 Personer og team kommer fra identitetsattributter på kallet: se [Tilordning til ansatte og team](/docs/telemetry/ai-coding-assistants#tilordning-til-ansatte-og-team).
 
@@ -391,7 +391,7 @@ Monitorens rullerende vindu er kortere enn 15 minutter, så noen ganger finner d
 ## Neste steg
 
 :::cards
-- [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts): Forbruk og kostnad for kontoene dine hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI, uten kode.
+- [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts): Forbruk og kostnad for kontoene dine hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI og Cursor, uten kode.
 - [Virksomhetens AI-verktøy](/docs/telemetry/ai-company-tools): Hva folkene dine spør Claude Enterprise og Microsoft 365 Copilot om.
 - [AI-kodeassistenter](/docs/telemetry/ai-coding-assistants): Forbruk per utvikler for Claude Code, Cursor, Codex, Gemini CLI og Copilot.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): Trace modellkallene til alle apper fra én LiteLLM- eller Portkey-gateway.

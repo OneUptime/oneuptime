@@ -44,7 +44,7 @@ Alle drie staan onder **Producten → AI / LLM → Koppelen**. Gebruik er een, t
 | Manier erin | Wat je krijgt | Hoe |
 | --- | --- | --- |
 | **Je apps** | Elke AI-aanroep terwijl die gebeurt: het gesprek, de persoon, de prompt en het antwoord, tokens, kosten en fouten | OpenTelemetry uit je code of een gateway, in vijf stappen |
-| **Je accounts bij AI-providers** | Wat elk account bij OpenAI, Anthropic, Azure, Bedrock of Vertex AI verbruikte en kostte, per dag | Inloggegevens die alleen lezen en geen code: [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts) |
+| **Je accounts bij AI-providers** | Wat elk account bij OpenAI, Anthropic, Azure, Bedrock, Vertex AI of Cursor verbruikte en kostte, per dag of per uur | Inloggegevens die alleen lezen en geen code: [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts) |
 | **De AI-tools van je bedrijf** | Wat je mensen aan Claude Enterprise of Microsoft 365 Copilot vragen, per persoon | Inloggegevens die alleen lezen en geen code: [AI-tools van je bedrijf](/docs/telemetry/ai-company-tools) |
 
 Provideraccounts en codeerassistenten brengen gebruik en kosten, nooit een aanroep: ze vullen **Gebruik**, en **Gesprekken** en **Aanroepen** blijven leeg tot je apps hun AI-aanroepen sturen of er een AI-tool van je bedrijf gekoppeld is. [Controleer wat er binnenkomt](#controleer-wat-er-binnenkomt) toont welke route wat brengt.
@@ -241,7 +241,7 @@ Een kant-en-klare waarschuwing maakt een waarschuwing die zichzelf oplost, en to
 
 Het tabblad **Gebruik** toont de aanroepen, tokens en kosten van een periode (de laatste 7 dagen, tenzij je een andere kiest), en een tabel met de top 25 in een van vijf uitsplitsingen: **Medewerker**, **Team**, **Model**, **Provider** en **Applicatie / Service**. Aanroepen die niemand noemen, worden geteld onder **Niet toegewezen**, nooit weggegooid.
 
-Dit zijn **Je AI-aanroepen**. Kies in plaats daarvan **Provideraccounts** om te zien wat je gekoppelde accounts bij OpenAI, Anthropic, Azure, Bedrock en Vertex AI in rekening kregen: zie [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts#het-gebruik-bekijken). De twee worden nooit opgeteld.
+Dit zijn **Je AI-aanroepen**. Kies in plaats daarvan **Provideraccounts** om te zien wat je gekoppelde accounts bij OpenAI, Anthropic, Azure, Bedrock, Vertex AI en Cursor in rekening kregen: zie [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts#het-gebruik-bekijken). De twee worden nooit opgeteld.
 
 Personen en teams komen uit identiteitsattributen op de aanroep: zie [Toewijzing aan medewerkers en teams](/docs/telemetry/ai-coding-assistants#toewijzing-aan-medewerkers-en-teams).
 
@@ -391,7 +391,7 @@ Het voortschrijdende venster van de monitor is korter dan 15 minuten, dus soms v
 ## Volgende stappen
 
 :::cards
-- [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts): Gebruik en kosten van je accounts bij OpenAI, Anthropic, Azure, Bedrock en Vertex AI, zonder code.
+- [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts): Gebruik en kosten van je accounts bij OpenAI, Anthropic, Azure, Bedrock, Vertex AI en Cursor, zonder code.
 - [AI-tools van je bedrijf](/docs/telemetry/ai-company-tools): Wat je mensen aan Claude Enterprise en Microsoft 365 Copilot vragen.
 - [AI-codeerassistenten](/docs/telemetry/ai-coding-assistants): Uitgaven per engineer voor Claude Code, Cursor, Codex, Gemini CLI en Copilot.
 - [AI-gateways](/docs/telemetry/ai-gateways): Trace de modelaanroepen van elke app vanuit één LiteLLM- of Portkey-gateway.

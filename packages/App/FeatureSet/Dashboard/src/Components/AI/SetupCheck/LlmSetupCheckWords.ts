@@ -524,7 +524,20 @@ export const PROVIDER_READS: Partial<Record<LlmConnectionProvider, string>> = {
   [LlmConnectionProvider.GoogleVertexAI]: translationKey(
     "Reads Cloud Monitoring's Vertex AI metrics of the project.",
   ),
+  [LlmConnectionProvider.Cursor]: translationKey(
+    "Reads the requests of your Cursor team's members with Cursor's Admin API, an hour at a time: the newest hour arrives with the next read.",
+  ),
 };
+
+/*
+ * A Cursor team read with an Admin API key whose OpenTelemetry Export
+ * arrives as well: the same requests, counted twice over if anything added
+ * the two. Nothing does - Usage keeps them apart and a budget counts one -
+ * and the account's line says so, so nobody adds them up by hand.
+ */
+export const CURSOR_BOTH_WAYS: string = translationKey(
+  "Cursor's OpenTelemetry Export arrives too. Usage shows it under Your AI calls and this account under Provider accounts, never added together, and a budget counts one of them.",
+);
 
 /*
  * The apps a sentence names: up to three by name; with more, or with one
@@ -735,6 +748,12 @@ export function getConnectionLine(data: {
   connection: LlmSetupCheckConnection;
   translator: Translator;
   now: Date;
+  /*
+   * The coding assistants' metrics the check found (Cursor's OpenTelemetry
+   * Export among them): a Cursor account's line then says the two are
+   * kept apart.
+   */
+  metricSources?: Array<LlmSetupCheckMetricSource> | null | undefined;
 }): LlmSetupCheckLine {
   const { connection, translator } = data;
   const key: string = `connection-${connection.connectionId}`;
@@ -828,6 +847,20 @@ export function getConnectionLine(data: {
     : undefined;
 
   /*
+   * Both of Cursor's ways in at once: said on the account's line whatever
+   * its reads found, before what its reads cover.
+   */
+  const bothWays: string | undefined =
+    connection.provider === LlmConnectionProvider.Cursor &&
+    (data.metricSources || []).some(
+      (metric: LlmSetupCheckMetricSource): boolean => {
+        return metric.source === LlmMetricSource.Cursor && metric.points > 0;
+      },
+    )
+      ? translator.translateText(CURSOR_BOTH_WAYS) || CURSOR_BOTH_WAYS
+      : undefined;
+
+  /*
    * Before the day of the last usage: a read that found no resource reads
    * nothing now, even when an earlier read - before the role was taken
    * away - found usage.
@@ -850,6 +883,7 @@ export function getConnectionLine(data: {
         translator.translateTemplate(CONNECTION_LAST_USED, { time, date }),
         date,
       ),
+      ...(bothWays ? { detail: bothWays } : {}),
     };
   }
 
@@ -866,7 +900,7 @@ export function getConnectionLine(data: {
         }),
         date,
       ),
-      detail: translatedDetail,
+      detail: bothWays || translatedDetail,
     };
   }
 
@@ -874,6 +908,6 @@ export function getConnectionLine(data: {
     key,
     tone: "warning",
     text: translator.translateTemplate(CONNECTION_NO_USAGE, { time }),
-    detail: translatedDetail,
+    detail: bothWays || translatedDetail,
   };
 }

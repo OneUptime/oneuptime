@@ -1,6 +1,6 @@
 # AI 提供者帳戶
 
-不必修改應用程式，就能查看你的 AI 提供者帳戶用了多少、花了多少。用只能讀取的憑證連線 OpenAI、Anthropic、Azure OpenAI 和 Microsoft Foundry、Amazon Bedrock 或 Google Vertex AI 帳戶，OneUptime 就會每 15 分鐘讀取一次它的使用量，寫入 **使用量** 、 **預算** 以及可以設定警示的指標。
+不必修改應用程式，就能查看你的 AI 提供者帳戶用了多少、花了多少。用只能讀取的憑證連線 OpenAI、Anthropic、Azure OpenAI 和 Microsoft Foundry、Amazon Bedrock 或 Google Vertex AI 帳戶，OneUptime 就會每 15 分鐘讀取一次它的使用量，寫入 **使用量** 、 **預算** 以及可以設定警示的指標。Cursor 團隊也以同樣的方式連線，使用它的管理員 API 金鑰，每小時讀取一次。
 
 :::cards
 - [連線帳戶](#連線帳戶): 選擇提供者，貼上憑證，測試後連線。
@@ -11,7 +11,7 @@
 
 ## 運作方式
 
-OneUptime 每 15 分鐘向每個已連線的帳戶要求依 UTC 日統計的使用量，並把它儲存為該連線專屬服務的三個指標。每次讀取都會取得上次讀取以來的日期，並重新讀取包含今天在內的最近 3 天，因為提供者會持續補上今天的資料，並修正剛過去的幾天。
+OneUptime 每 15 分鐘向每個已連線的帳戶要求依 UTC 日統計的使用量，並把它儲存為該連線專屬服務的三個指標。每次讀取都會取得上次讀取以來的日期，並重新讀取包含今天在內的最近 3 天，因為提供者會持續補上今天的資料，並修正剛過去的幾天。Cursor 團隊則改為每小時讀取一次，按小時記錄：請參閱 [Cursor](#cursor)。
 
 ```mermaid title="從提供者帳戶到使用量與預算"
 flowchart TB
@@ -60,10 +60,11 @@ flowchart TB
 | Azure OpenAI 和 Microsoft Foundry | 依 token 估算 | 資源和模型 | 具備 Monitoring Reader 的應用程式 |
 | Amazon Bedrock | 依 token 估算 | 區域和模型 | 可讀取 CloudWatch 的存取金鑰 |
 | Google Vertex AI | 依 token 估算 | 區域和模型 | 具備 Monitoring Viewer 的服務帳戶 |
+| Cursor | Cursor 回報的金額 | 人員、模型和服務帳戶，按小時 | 團隊的管理員 API 金鑰 |
 
 除了 Anthropic，每個提供者也會統計請求數：Anthropic 的使用量報告沒有請求數。估算成本使用 [一次呼叫的成本](/docs/telemetry/ai-llm-observability#一次呼叫的成本) 中的價目表和你在 **定價** 中設定的價格，並標示為估算值。價目表不認得的模型沒有成本，直到你在那裡為它定價。
 
-這些憑證都不能呼叫模型：每一種都只讀取使用量、成本或指標。
+這些憑證都不能呼叫模型：每一種都只讀取使用量、成本或指標。Cursor 的管理員 API 金鑰是例外：它還能變更一些團隊設定，例如支出上限，而 OneUptime 只用它讀取。
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ OneUptime 讀取 Vertex AI 為其模型（Gemini 以及 Claude 等合作夥伴�
 填寫 **專案 ID** ，並把整個金鑰檔案貼到 **服務帳戶金鑰（JSON）** 中。
 :::
 
+## Cursor
+
+OneUptime 使用管理員 API 金鑰讀取你的 Cursor 團隊：成員的每個請求，連同其模型、token 和 Cursor 為它收取的費用，按小時、人員、模型和服務帳戶加總，以及過去 7 天內有多少成員使用了 Cursor。用服務帳戶發出的請求會以該帳戶的名稱作為其 API 金鑰顯示。其中沒有提示詞、程式碼或回答：Cursor 的 Admin API 沒有這些內容。
+
+:::steps
+### 建立 Cursor 管理員 API 金鑰
+
+在 Cursor 儀表板中，開啟 Settings, Cursor Admin API Keys，然後建立一個金鑰。只有團隊管理員可以建立，此金鑰隨 Teams 和 Enterprise 方案提供。它以 `crsr_` 開頭。
+
+### 連線 Cursor
+
+把金鑰貼到 **管理員 API 金鑰** 中。測試還會顯示團隊的 **成員** ，並在 **人員** 中顯示其中有多少人使用了 Cursor。
+:::
+
+Cursor 按小時加總使用量，並要求每小時最多讀取一次，因此 OneUptime 每小時讀取一次 Cursor 團隊，並按小時保存其使用量。每次讀取會取上次讀取以來的小時，並重新讀取之前的 3 個小時，因為 Cursor 會延遲加入請求；當下一天過去 6 個小時後，還會完整地重新讀取前一天。第一次讀取回溯 30 天，從最新的開始，一次一天：使用量大的團隊需要讀取幾次，每次間隔一分鐘，在完成之前，它所在的列會顯示 **仍在讀取較早的使用量** 。
+
+在 Enterprise 方案中，Cursor 還可以透過它的 OpenTelemetry Export 即時傳送使用量：請參閱 [Cursor](/docs/telemetry/cursor)。兩者分開保存：這個帳戶顯示在 **提供者帳戶** 下，匯出顯示在 **你的 AI 呼叫** 下，兩者絕不會相加，一個預算只計算其中之一。
+
 ## 查看使用量
 
 開啟 **使用量** 並選擇 **提供者帳戶** 。這裡會顯示你的帳戶在該時間範圍內回報的成本、token 和請求，並依 **模型** 、 **人員** 、 **提供者** 、 **專案或資源** 、 **API 金鑰** 或 **連線** 排名。由於提供者按整日回報，時間範圍從第一天的 UTC 午夜開始。
@@ -157,7 +176,7 @@ OneUptime 讀取 Vertex AI 為其模型（Gemini 以及 Claude 等合作夥伴�
 | `oneuptime.llm.provider.tokens` | 一天的 token 數，依 `gen_ai.token.type` 區分：`input`（包含快取的 token）、`output`、`cache_read` 和 `cache_write` |
 | `oneuptime.llm.provider.requests` | 一天的請求數 |
 
-每個資料點的時間戳記都是其 UTC 日的開始。它帶有 `oneuptime.llm.connection.id` 和 `oneuptime.llm.connection.name`，以及提供者給出的 `gen_ai.provider.name`、`gen_ai.request.model`、`user.email`、`oneuptime.llm.provider.project` 和 `oneuptime.llm.provider.api_key`。估算成本帶有 `oneuptime.llm.cost.estimated`。
+每個資料點的時間戳記都是其 UTC 日的開始。它帶有 `oneuptime.llm.connection.id` 和 `oneuptime.llm.connection.name`，以及提供者給出的 `gen_ai.provider.name`、`gen_ai.request.model`、`user.email`、`oneuptime.llm.provider.project` 和 `oneuptime.llm.provider.api_key`。估算成本帶有 `oneuptime.llm.cost.estimated`。Cursor 團隊的每個資料點保存一小時的使用量，時間戳記為其 UTC 小時的開始。
 
 ## 何時讀取
 
@@ -168,6 +187,9 @@ OneUptime 讀取 Vertex AI 為其模型（Gemini 以及 Claude 等合作夥伴�
 | 金鑰或權限被拒絕之後 | 60 分鐘後 |
 | 其他任何失敗之後 | 15 分鐘後 |
 | 已關閉 | 重新開啟前不讀取 |
+| Cursor 團隊之後的讀取 | 每小時 |
+| 中途停止的 Cursor 讀取 | 一分鐘後 |
+| Cursor 團隊任何失敗之後 | 60 分鐘後 |
 
 沒有遙測功能的方案不會讀取任何內容。移除連線會停止它的讀取，並保留它讀取過的內容，直到服務的保留期將其刪除。
 
@@ -183,6 +205,14 @@ OneUptime 讀取你的帳戶；它從不位於你的應用程式和提供者之�
 
 :::details 憑證有效，但無法讀取連線所需的內容
 為它指派本頁為該提供者列出的角色：Azure 訂用帳戶上的 Monitoring Reader、AWS 上的兩個 CloudWatch 動作、Google Cloud 專案上的 Monitoring Viewer。
+:::
+
+:::details Cursor 接受了金鑰，但它無權讀取團隊的使用量
+使用 Teams 或 Enterprise 方案團隊的管理員 API 金鑰：團隊管理員在 Cursor 儀表板的 Settings, Cursor Admin API Keys 下建立它。然後再測試一次。
+:::
+
+:::details Cursor 要求 OneUptime 放慢速度
+Cursor 的 Admin API 每分鐘接受一個團隊的 20 個請求，使用量事件為 60 個，由讀取它的所有工具共用。OneUptime 會等一分鐘再繼續，只等一次。如果 Cursor 仍然拒絕，這次讀取會保留已完整讀取的內容，並在一分鐘後繼續；什麼都沒讀到的讀取會在一小時後重試。
 :::
 
 :::details 測試通過，但今天沒有任何資料

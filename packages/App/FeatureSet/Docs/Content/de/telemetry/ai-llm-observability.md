@@ -44,7 +44,7 @@ Alle drei liegen unter **Produkte → KI / LLM → Verbinden**. Nutzen Sie einen
 | Weg hinein | Was Sie bekommen | Wie |
 | --- | --- | --- |
 | **Deine Apps** | Jeder KI-Aufruf, während er passiert: die Unterhaltung, die Person, der Prompt und die Antwort, Tokens, Kosten und Fehler | OpenTelemetry aus Ihrem Code oder einem Gateway, in fünf Schritten |
-| **Deine KI-Anbieterkonten** | Was jedes Konto bei OpenAI, Anthropic, Azure, Bedrock oder Vertex AI verbraucht und gekostet hat, pro Tag | Zugangsdaten, die nur lesen, und kein Code: [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts) |
+| **Deine KI-Anbieterkonten** | Was jedes Konto bei OpenAI, Anthropic, Azure, Bedrock, Vertex AI oder Cursor verbraucht und gekostet hat, pro Tag oder pro Stunde | Zugangsdaten, die nur lesen, und kein Code: [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts) |
 | **Die KI-Tools deines Unternehmens** | Was Ihre Leute Claude Enterprise oder Microsoft 365 Copilot fragen, pro Person | Zugangsdaten, die nur lesen, und kein Code: [KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools) |
 
 Anbieterkonten und Coding-Assistenten bringen Nutzung und Kosten, nie einen Aufruf: Diese füllen **Nutzung**, und **Unterhaltungen** und **Aufrufe** bleiben leer, bis Ihre Apps ihre KI-Aufrufe senden oder ein KI-Tool des Unternehmens verbunden ist. [Prüfen, was ankommt](#prüfen-was-ankommt) zeigt, welcher Weg was bringt.
@@ -241,7 +241,7 @@ Eine fertige Warnung löst eine Warnung aus, die sich selbst auflöst, und zeigt
 
 Der Tab **Nutzung** zeigt die Aufrufe, Tokens und Kosten eines Zeitraums (die letzten 7 Tage, wenn Sie keinen anderen wählen) und eine Tabelle der Top 25 nach einer von fünf Aufschlüsselungen: **Mitarbeiter**, **Team**, **Modell**, **Anbieter** und **Anwendung / Dienst**. Aufrufe, die niemanden nennen, werden unter **Nicht zugeordnet** gezählt, nie verworfen.
 
-Das sind **Deine KI-Aufrufe**. Wählen Sie stattdessen **Anbieterkonten**, um zu sehen, was Ihren verbundenen Konten bei OpenAI, Anthropic, Azure, Bedrock und Vertex AI berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#die-nutzung-ansehen). Beides wird nie addiert.
+Das sind **Deine KI-Aufrufe**. Wählen Sie stattdessen **Anbieterkonten**, um zu sehen, was Ihren verbundenen Konten bei OpenAI, Anthropic, Azure, Bedrock, Vertex AI und Cursor berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#die-nutzung-ansehen). Beides wird nie addiert.
 
 Personen und Teams kommen aus Identitätsattributen des Aufrufs: siehe [Zuordnung zu Mitarbeitern und Teams](/docs/telemetry/ai-coding-assistants#zuordnung-zu-mitarbeitern-und-teams).
 
@@ -391,7 +391,7 @@ Das rollierende Fenster des Monitors ist kürzer als 15 Minuten, daher findet er
 ## Nächste Schritte
 
 :::cards
-- [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts): Nutzung und Kosten Ihrer Konten bei OpenAI, Anthropic, Azure, Bedrock und Vertex AI, ohne Code.
+- [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts): Nutzung und Kosten Ihrer Konten bei OpenAI, Anthropic, Azure, Bedrock, Vertex AI und Cursor, ohne Code.
 - [KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools): Was Ihre Leute Claude Enterprise und Microsoft 365 Copilot fragen.
 - [KI-Coding-Assistenten](/docs/telemetry/ai-coding-assistants): Ausgaben pro Entwickler für Claude Code, Cursor, Codex, Gemini CLI und Copilot.
 - [KI-Gateways](/docs/telemetry/ai-gateways): Die Modellaufrufe jeder App über ein LiteLLM- oder Portkey-Gateway tracen.
