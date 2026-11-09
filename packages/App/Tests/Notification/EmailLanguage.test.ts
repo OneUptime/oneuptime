@@ -997,6 +997,115 @@ describe("every on-call page email, in every language", () => {
       expect(text).toContain("Why am I receiving this email?");
     },
   );
+
+  /*
+   * An observer's page (OnCallObserverPage): the service words what an
+   * observer's page is and why they get it, and leaves the escalate link
+   * out; the template words its own line and button. In every language.
+   */
+  const OBSERVER_VARIABLES: Record<string, string> = {
+    ...ON_CALL_PAGE_VARIABLES,
+    observerPageInfo: "Zorbex observer notice",
+    observerPageWhy: "Zorbex observer why",
+  };
+  delete OBSERVER_VARIABLES["passOnLink"];
+
+  const renderObserverPage: (
+    templateType: EmailTemplateType,
+    language: string | undefined,
+  ) => Promise<RenderedEmail> = (
+    templateType: EmailTemplateType,
+    language: string | undefined,
+  ): Promise<RenderedEmail> => {
+    return MailService.render(
+      email(templateType, language, OBSERVER_VARIABLES),
+    );
+  };
+
+  test.each(ON_CALL_PAGE_TEMPLATES)(
+    "%s as an observer's page reads none of OneUptime's English words in another language",
+    async (templateType: EmailTemplateType) => {
+      const english: string = visibleText(
+        (await renderObserverPage(templateType, undefined)).body,
+      );
+      const problems: Array<string> = [];
+
+      // The observer's own line and button are there in English, to be worded.
+      expect(english).toContain("Seen it? Let the people responding know.");
+      expect(english).toContain("I've seen it");
+      expect(english).not.toContain("Escalate");
+
+      for (const language of TRANSLATED_LANGUAGES) {
+        const text: string = visibleText(
+          (await renderObserverPage(templateType, language)).body,
+        );
+
+        for (const sentence of wordedApart(language)) {
+          for (const words of wordsOf(sentence.english)) {
+            if (!english.includes(words)) {
+              continue;
+            }
+
+            if (holdsWords(text, words) && !sentence.worded.includes(words)) {
+              problems.push(`${language}: "${words}"`);
+            }
+          }
+        }
+
+        // The button is one short sentence: worded too.
+        if (text.includes("I've seen it")) {
+          problems.push(`${language}: "I've seen it"`);
+        }
+
+        // What the service worded, and why they get it, as given.
+        for (const value of ["Zorbex observer notice", "Zorbex observer why"]) {
+          if (!text.includes(value)) {
+            problems.push(`${language}: no "${value}"`);
+          }
+        }
+      }
+
+      expect(problems).toEqual([]);
+    },
+  );
+
+  test("German observer's page: seen it, the button, and nothing to escalate", async () => {
+    const text: string = visibleText(
+      (await renderObserverPage(EmailTemplateType.AcknowledgeIncident, "de"))
+        .body,
+    );
+
+    expect(text).toContain(
+      "Gesehen? Geben Sie den Zuständigen Bescheid. Der Vorfall wird dadurch nicht bestätigt.",
+    );
+    expect(text).toContain("Ich habe es gesehen");
+    expect(text).not.toContain("Vorfall bestätigen");
+    expect(text).not.toContain("Eskalieren");
+    expect(text).not.toContain("HANDLUNG ERFORDERLICH");
+  });
+
+  /*
+   * The header's name keeps its space from OneUptime's logo on the side it
+   * meets it: the right, in an email laid out from the right.
+   */
+  test.each(ON_CALL_PAGE_TEMPLATES)(
+    "%s in Persian keeps the logo's name apart from the logo, on the right",
+    async (templateType: EmailTemplateType) => {
+      const persian: string = (await renderPage(templateType, "fa")).body;
+      const english: string = (await renderPage(templateType, undefined))
+        .body;
+
+      const nameCell: (html: string) => string = (html: string): string => {
+        return attributeOf(startTagOf(html, 'aria-hidden="true"'), "style")!;
+      };
+
+      expect(nameCell(persian)).toContain("padding-right: 10px;");
+      expect(nameCell(persian)).not.toContain("padding-left");
+      // An email read from the left keeps it where it always was.
+      expect(nameCell(english)).toContain("padding-left: 10px;");
+      expect(nameCell(english)).not.toContain("padding-right");
+    },
+  );
 });
 
 /*
