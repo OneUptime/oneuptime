@@ -24210,7 +24210,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "जब कोई आपको किसी प्रोजेक्ट या टीम में आमंत्रित करता है, तो आमंत्रण यहां तब तक रहता है जब तक आप उसे स्वीकार या अस्वीकार नहीं करते।",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "इस सुविधा का उपयोग करने से पहले आपको Twilio कॉन्फ़िगरेशन जोड़ना होगा। अपना Twilio Account SID और Auth Token जोड़ने के लिए प्रोजेक्ट सेटिंग्स → सूचनाएं → सूचना सेटिंग्स पर जाएं।",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "आपके ऐप और कलेक्टर अपनी टेलीमेट्री के साथ यह कुंजी भेजते हैं, ताकि वह इस प्रोजेक्ट में पहुंचे।",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "आपका नाम और ईमेल जैसा आपकी टीम उन्हें देखती है, और वह टाइमज़ोन जिसमें OneUptime समय दिखाता है।",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "आपका प्रोब इस ID और कुंजी से OneUptime से जुड़ता है। कुंजी को गुप्त रखें।",
   "Your team's measurements, worked out for this alert.": "इस अलर्ट के लिए निकाले गए आपकी टीम के माप।",
   "Your team's measurements, worked out for this incident.": "इस घटना के लिए निकाले गए आपकी टीम के माप।",
@@ -47170,5 +47169,8 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "निगरानी फिर से चालू होने तक इस मॉनिटर की कोई जाँच नहीं होगी, इसलिए यह कोई घटना या अलर्ट नहीं खोलेगा। इसकी खुली घटनाएँ और अलर्ट, जो स्वतः समाधान पर सेट हैं, अभी सुलझा दिए जाते हैं।",
   "The monitors of this group could not be read. Please try again.": "इस समूह के मॉनिटर पढ़े नहीं जा सके। कृपया फिर से कोशिश करें।",
   "Turn monitoring off or on for every monitor in this group at once.": "इस समूह के सभी मॉनिटर के लिए निगरानी एक साथ बंद या चालू करें।",
-  "Turn off monitoring for this group?": "इस समूह के लिए निगरानी बंद करें?"
+  "Turn off monitoring for this group?": "इस समूह के लिए निगरानी बंद करें?",
+  "Not set (English)": "सेट नहीं (अंग्रेज़ी)",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "आपका नाम और ईमेल जैसा आपकी टीम उन्हें देखती है, और वह टाइमज़ोन और भाषा जिसे OneUptime आपके लिए इस्तेमाल करता है।",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "आपके ऑन-कॉल पेज और डैशबोर्ड हर ब्राउज़र में इसी भाषा का इस्तेमाल करते हैं।"
 }

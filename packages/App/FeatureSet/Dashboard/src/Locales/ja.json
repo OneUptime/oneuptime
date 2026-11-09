@@ -24210,7 +24210,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "プロジェクトやチームに招待されると、承諾または拒否するまで招待がここに表示されます。",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "この機能を使用する前に、Twilio の設定を追加する必要があります。「プロジェクト設定 → 通知 → 通知設定」に移動して、Twilio の Account SID と Auth Token を追加してください。",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "アプリやコレクターがテレメトリと一緒にこのキーを送信すると、データがこのプロジェクトに届きます。",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "チームに表示されるあなたの名前とメールアドレス、そして OneUptime が時刻を表示するタイムゾーン。",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "プローブはこの ID とキーで OneUptime に接続します。キーは秘密にしてください。",
   "Your team's measurements, worked out for this alert.": "このアラートについて算出した、チームの測定値。",
   "Your team's measurements, worked out for this incident.": "このインシデントについて算出した、チームの測定値。",
@@ -47170,5 +47169,8 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "監視を再びオンにするまで、このモニターは何もチェックされず、インシデントもアラートも作成されません。自動解決が設定されている未解決のインシデントとアラートは、今すぐ解決されます。",
   "The monitors of this group could not be read. Please try again.": "このグループのモニターを読み込めませんでした。もう一度お試しください。",
   "Turn monitoring off or on for every monitor in this group at once.": "このグループのすべてのモニターの監視を一度にオフまたはオンにします。",
-  "Turn off monitoring for this group?": "このグループの監視をオフにしますか？"
+  "Turn off monitoring for this group?": "このグループの監視をオフにしますか？",
+  "Not set (English)": "未設定（英語）",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "チームに表示されるあなたの名前とメールアドレス、そして OneUptime があなたに使うタイムゾーンと言語。",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "オンコールの呼び出しとダッシュボードは、どのブラウザでもこの言語を使います。"
 }

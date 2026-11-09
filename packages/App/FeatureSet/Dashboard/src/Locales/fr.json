@@ -24210,7 +24210,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "Quand quelqu'un vous invite dans un projet ou une équipe, l'invitation attend ici jusqu'à ce que vous l'acceptiez ou la refusiez.",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "Vous devez ajouter une configuration Twilio avant de pouvoir utiliser cette fonctionnalité. Accédez à Paramètres du projet → Notifications → Paramètres de notification pour ajouter votre Twilio Account SID et Auth Token.",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "Vos applications et collecteurs envoient cette clé avec leur télémétrie, pour qu'elle arrive dans ce projet.",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "Votre nom et votre e-mail tels que votre équipe les voit, et le fuseau horaire dans lequel OneUptime affiche les heures.",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "Votre sonde se connecte à OneUptime avec cet ID et cette clé. Gardez la clé secrète.",
   "Your team's measurements, worked out for this alert.": "Les mesures de votre équipe, calculées pour cette alerte.",
   "Your team's measurements, worked out for this incident.": "Les mesures de votre équipe, calculées pour cet incident.",
@@ -47170,5 +47169,8 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Rien ne vérifie ce moniteur tant que la surveillance n'est pas réactivée : il n'ouvre donc ni incident ni alerte. Ses incidents et alertes ouverts configurés pour se résoudre automatiquement sont résolus maintenant.",
   "The monitors of this group could not be read. Please try again.": "Les moniteurs de ce groupe n'ont pas pu être lus. Veuillez réessayer.",
   "Turn monitoring off or on for every monitor in this group at once.": "Désactivez ou activez la surveillance de tous les moniteurs de ce groupe en une seule fois.",
-  "Turn off monitoring for this group?": "Désactiver la surveillance pour ce groupe ?"
+  "Turn off monitoring for this group?": "Désactiver la surveillance pour ce groupe ?",
+  "Not set (English)": "Non définie (anglais)",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Votre nom et votre e-mail tels que votre équipe les voit, et le fuseau horaire et la langue qu'OneUptime utilise avec vous.",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "Vos appels d'astreinte et le tableau de bord utilisent cette langue, sur chaque navigateur."
 }

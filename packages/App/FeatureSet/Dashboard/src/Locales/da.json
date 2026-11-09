@@ -24210,7 +24210,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "Når nogen inviterer dig til et projekt eller et team, venter invitationen her, indtil du accepterer eller afviser den.",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "Du skal tilføje en Twilio-konfiguration, før du kan bruge denne funktion. Gå til Projektindstillinger → Notifikationer → Notifikationsindstillinger for at tilføje din Twilio Account SID og Auth Token.",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "Dine apps og collectors sender denne nøgle med deres telemetri, så den havner i dette projekt.",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "Dit navn og din e-mail, som dit team ser dem, og den tidszone, OneUptime viser tidspunkter i.",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "Din sonde forbinder til OneUptime med dette id og denne nøgle. Hold nøglen hemmelig.",
   "Your team's measurements, worked out for this alert.": "Jeres teams målinger, beregnet for denne advarsel.",
   "Your team's measurements, worked out for this incident.": "Jeres teams målinger, beregnet for denne hændelse.",
@@ -47170,5 +47169,8 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Intet tjekker denne overvågning, før overvågningen slås til igen, så den åbner ingen hændelser eller advarsler. Dens åbne hændelser og advarsler, der er sat til automatisk løsning, bliver løst nu.",
   "The monitors of this group could not be read. Please try again.": "Monitorerne i denne gruppe kunne ikke læses. Prøv igen.",
   "Turn monitoring off or on for every monitor in this group at once.": "Slå overvågning fra eller til for alle monitorer i denne gruppe på én gang.",
-  "Turn off monitoring for this group?": "Slå overvågning fra for denne gruppe?"
+  "Turn off monitoring for this group?": "Slå overvågning fra for denne gruppe?",
+  "Not set (English)": "Ikke valgt (engelsk)",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Dit navn og din e-mail, som dit team ser dem, og den tidszone og det sprog, OneUptime bruger med dig.",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "Dine vagtkald og dashboardet bruger dette sprog i alle browsere."
 }

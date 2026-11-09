@@ -24210,7 +24210,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "當有人邀請您加入專案或團隊時，邀請會在此等候，直到您接受或拒絕。",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "使用此功能前需要新增 Twilio 設定。請前往「專案設定 → 通知 → 通知設定」，新增您的 Twilio Account SID 與 Auth Token。",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "您的應用程式和收集器會隨遙測資料一起傳送此金鑰，讓資料進入此專案。",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "團隊看到的您的姓名和電子郵件，以及 OneUptime 顯示時間所用的時區。",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "您的探測器會使用此 ID 和金鑰連線到 OneUptime。請妥善保管金鑰。",
   "Your team's measurements, worked out for this alert.": "為此警示計算的團隊測量。",
   "Your team's measurements, worked out for this incident.": "為此事件計算的團隊測量。",
@@ -47170,5 +47169,8 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "在重新開啟監測之前，沒有任何東西會檢查此監測器，因此它不會建立事件或警示。它設定為自動解決的未解決事件和警示將立即被解決。",
   "The monitors of this group could not be read. Please try again.": "無法讀取此群組的監測器。請再試一次。",
   "Turn monitoring off or on for every monitor in this group at once.": "一次關閉或開啟此群組中所有監測器的監測。",
-  "Turn off monitoring for this group?": "要關閉此群組的監測嗎？"
+  "Turn off monitoring for this group?": "要關閉此群組的監測嗎？",
+  "Not set (English)": "未設定（英文）",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "團隊看到的您的姓名和電子郵件，以及 OneUptime 對您使用的時區和語言。",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "你的待命呼叫和儀表板在任何瀏覽器中都使用此語言。"
 }
