@@ -32,7 +32,7 @@ Hvert minutt teller OneUptime loggene som samsvarer med monitorens filtre og har
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Eller søk i loggutforskeren etter loggene du vil ha beskjed om, og klikk på **Opprett monitor** (bjella) i verktøylinjen: den nye monitoren følger fra start med på utforskerens søk, alvorlighetsgrader, tjenester og attributter.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Eller søk i loggutforskeren etter loggene du vil ha beskjed om, og klikk på **Opprett monitor** (bjella) i verktøylinjen: den nye monitoren følger fra start med på utforskerens søk, alvorlighetsgrader, tjenester og attributter. En alvorlighetsgrad eller en attributtverdi du har utelatt i utforskeren, forblir utelatt; pek på knappen for å se hva den ikke kan ta med, for eksempel en utelatt tjeneste.
 
 ### Velg Logs
 

@@ -103,7 +103,7 @@ Für mehr schalten Sie die Liste von **Spans** auf **Analysen** um. Wählen Sie 
 
 - Klicken Sie über der Liste auf **Pausiert**, um Live-Aktualisierungen einzuschalten. Die Schaltfläche zeigt dann **Live**, und die Liste sucht alle 10 Sekunden nach neuen Spans. Klicken Sie erneut darauf, um zu pausieren.
 - **Gespeicherte Ansichten** behält eine Suche, ihre Filter und den Zeitraum unter einem Namen, für alle im Projekt. Gespeicherte Ansichten funktionieren wie im [Protokoll-Explorer](/docs/telemetry/logs-explorer#eine-ansicht-speichern).
-- Die Schaltflächen **Protokolle** und **Metriken** öffnen diese Explorer für dasselbe Zeitfenster, mit so viel von Ihrer Filterung, wie sie nutzen können. Zeigen Sie auf eine Schaltfläche, um zu sehen, was sie nicht übernehmen kann.
+- Die Schaltflächen **Protokolle** und **Metriken** öffnen diese Explorer für dasselbe Zeitfenster, mit so viel von Ihrer Filterung, wie sie nutzen können. Zeigen Sie auf eine Schaltfläche, um zu sehen, was sie nicht übernehmen kann. Ein Dienst, ein Host oder ein Attributwert, den Sie ausgeschlossen haben, bleibt im Log-Explorer ausgeschlossen.
 
 ## Trace-Einblicke
 

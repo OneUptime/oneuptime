@@ -111,7 +111,7 @@ A leading `-` inverts any filter, including the ones above:
 | `-@k:>100` | 100 or less |
 | `-@k:~abc` | does not contain `abc` |
 
-On the Traces explorer, `-` excludes attributes only. `-status:error` is read as text to find in span names, and finds nothing; ask for the values you want instead, such as `status:(ok OR unset)`.
+On the Traces explorer, `-` excludes attributes and the `status`, `kind` and `hasException` fields: `-status:error` leaves the error spans out of the list, the chart and the counts. On any other trace field it is read as text to find in span names, and finds nothing.
 
 ## Fields by signal
 
@@ -129,7 +129,7 @@ Field names are not case-sensitive: `statusMessage:` and `statusmessage:` are th
 
 ### Traces
 
-Trace fields take a plain value or an any-of list such as `status:(ok OR unset)`, and `duration` also takes `>` and `<`. Wildcards, `~`, `!` and a leading `-` work only on attributes here.
+Trace fields take a plain value or an any-of list such as `status:(ok OR unset)`, and `duration` also takes `>` and `<`. Wildcards, `~` and `!` work only on attributes here, and a leading `-` on attributes, `status`, `kind` and `hasException`.
 
 | Field | Notes |
 | --- | --- |

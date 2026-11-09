@@ -111,7 +111,7 @@ Un `-` inicial invierte cualquier filtro, incluidos los anteriores:
 | `-@k:>100` | 100 o menos |
 | `-@k:~abc` | no contiene `abc` |
 
-En el explorador de trazas, `-` solo excluye atributos. `-status:error` se lee como texto que buscar en los nombres de span, y no encuentra nada; pida en su lugar los valores que quiere, como `status:(ok OR unset)`.
+En el explorador de trazas, `-` excluye atributos y los campos `status`, `kind` y `hasException`: `-status:error` deja fuera los spans con error de la lista, el gráfico y los recuentos. En cualquier otro campo de traza se lee como texto que buscar en los nombres de span, y no encuentra nada.
 
 ## Campos por señal
 
@@ -129,7 +129,7 @@ Los nombres de campo no distinguen mayúsculas y minúsculas: `statusMessage:` y
 
 ### Trazas
 
-Los campos de traza aceptan un valor simple o una lista como `status:(ok OR unset)`, y `duration` además acepta `>` y `<`. Los comodines, `~`, `!` y un `-` inicial aquí solo funcionan con atributos.
+Los campos de traza aceptan un valor simple o una lista como `status:(ok OR unset)`, y `duration` además acepta `>` y `<`. Los comodines, `~` y `!` aquí solo funcionan con atributos, y un `-` inicial con atributos, `status`, `kind` y `hasException`.
 
 | Campo | Notas |
 | --- | --- |

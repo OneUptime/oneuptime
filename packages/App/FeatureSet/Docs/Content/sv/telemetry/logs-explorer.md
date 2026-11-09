@@ -54,6 +54,8 @@ Välj ett intervall i tidsväljaren, eller dra över volymdiagrammet ovanför li
 
 Skriv en fråga i sökrutan och tryck på Enter, till exempel `severity:error service:checkout timeout`. Lösa ord söker i meddelandet, och `@key:value` söker i ett attribut. Se [Söksyntax](/docs/telemetry/search-syntax#loggar).
 
+**I meddelandet** i [Kopplade signaler](/docs/telemetry/security-connected-signals) öppnar utforskaren med ett chip **Ord i meddelandet**: raderna vars meddelande innehåller värdet som ett helt ord. `10.0.0.1` hittar där `from 10.0.0.1:52144`, aldrig `10.0.0.12`.
+
 ### Avgränsa med filter
 
 Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip: en allvarlighetsgrad, en tjänst, eller en värd, ett kluster eller en annan resurs som har skickat loggar. Varje värde visar hur många loggar som har det. Klicka på minustecknet bredvid ett värde för att i stället utesluta de loggarna. Klicka på värdet igen för att ångra. På en telefon trycker du på **Filter** för att öppna sidopanelen.
@@ -118,7 +120,7 @@ Klicka på **Lista** för att gå tillbaka till själva raderna.
 
 ## Öppna tillhörande spår och mätvärden
 
-Knapparna **Spår** och **Mätvärden** bredvid **Sparade vyer** öppnar [Spårutforskare](/docs/telemetry/traces-explorer) eller [Måttutforskare](/docs/telemetry/metrics-explorer) för samma tidsfönster, med så mycket av din filtrering som den utforskaren kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
+Knapparna **Spår** och **Mätvärden** bredvid **Sparade vyer** öppnar [Spårutforskare](/docs/telemetry/traces-explorer) eller [Måttutforskare](/docs/telemetry/metrics-explorer) för samma tidsfönster, med så mycket av din filtrering som den utforskaren kan använda. Peka på en knapp för att se vad den inte kan ta med sig. Ett värde som du har uteslutit med minustecknet förblir uteslutet i utforskaren för spår.
 
 ## Insikter i loggar
 

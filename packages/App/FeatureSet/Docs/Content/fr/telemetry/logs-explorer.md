@@ -54,6 +54,8 @@ Choisissez une plage dans le sélecteur de temps, ou faites glisser la souris su
 
 Tapez une requête dans la zone de recherche et appuyez sur Entrée, par exemple `severity:error service:checkout timeout`. Les mots seuls cherchent dans le message, et `@key:value` cherche dans un attribut. Voir [Syntaxe de recherche](/docs/telemetry/search-syntax#journaux).
 
+**Dans le message** dans [Signaux connectés](/docs/telemetry/security-connected-signals) ouvre l'explorateur sur une puce **Mot dans le message** : les lignes dont le message contient la valeur comme un mot entier. `10.0.0.1` y trouve `from 10.0.0.1:52144`, jamais `10.0.0.12`.
+
 ### Affiner avec des filtres
 
 Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme puce : une gravité, un service, ou un hôte, un cluster ou une autre ressource qui a envoyé des journaux. Chaque valeur indique combien de journaux la portent. Cliquez plutôt sur le signe moins à côté d'une valeur pour exclure ces journaux. Cliquez de nouveau sur la valeur pour annuler. Sur un téléphone, touchez **Filtres** pour ouvrir la barre latérale.
@@ -118,7 +120,7 @@ Cliquez sur **Liste** pour revenir aux lignes elles-mêmes.
 
 ## Ouvrir les traces et les métriques liées
 
-Les boutons **Traces** et **Métriques** à côté de **Vues enregistrées** ouvrent l'[Explorateur de traces](/docs/telemetry/traces-explorer) ou l'[Explorateur de métriques](/docs/telemetry/metrics-explorer) sur la même fenêtre de temps, avec autant de votre filtrage que cet explorateur peut en utiliser. Pointez un bouton pour voir ce qu'il ne peut pas reprendre.
+Les boutons **Traces** et **Métriques** à côté de **Vues enregistrées** ouvrent l'[Explorateur de traces](/docs/telemetry/traces-explorer) ou l'[Explorateur de métriques](/docs/telemetry/metrics-explorer) sur la même fenêtre de temps, avec autant de votre filtrage que cet explorateur peut en utiliser. Pointez un bouton pour voir ce qu'il ne peut pas reprendre. Une valeur exclue avec le moins reste exclue dans l'explorateur de traces.
 
 ## Analyses des journaux
 

@@ -111,7 +111,7 @@ Ein vorangestelltes `-` kehrt jeden Filter um, auch die oben gezeigten:
 | `-@k:>100` | 100 oder weniger |
 | `-@k:~abc` | enthält `abc` nicht |
 
-Im Traces-Explorer schließt `-` nur Attribute aus. `-status:error` wird als Text gelesen, der in Span-Namen gesucht wird, und findet nichts; fragen Sie stattdessen nach den Werten, die Sie wollen, etwa `status:(ok OR unset)`.
+Im Traces-Explorer schließt `-` Attribute und die Felder `status`, `kind` und `hasException` aus: `-status:error` lässt die fehlerhaften Spans aus der Liste, dem Diagramm und den Zählungen heraus. Bei jedem anderen Trace-Feld wird es als Text gelesen, der in Span-Namen gesucht wird, und findet nichts.
 
 ## Felder nach Signal
 
@@ -129,7 +129,7 @@ Feldnamen unterscheiden keine Groß- und Kleinschreibung: `statusMessage:` und `
 
 ### Traces
 
-Trace-Felder nehmen einen einfachen Wert oder eine Liste wie `status:(ok OR unset)`, und `duration` nimmt zusätzlich `>` und `<`. Platzhalter, `~`, `!` und ein vorangestelltes `-` funktionieren hier nur bei Attributen.
+Trace-Felder nehmen einen einfachen Wert oder eine Liste wie `status:(ok OR unset)`, und `duration` nimmt zusätzlich `>` und `<`. Platzhalter, `~` und `!` funktionieren hier nur bei Attributen, ein vorangestelltes `-` bei Attributen, `status`, `kind` und `hasException`.
 
 | Feld | Hinweise |
 | --- | --- |

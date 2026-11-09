@@ -103,7 +103,7 @@ Per altro, passate l'elenco da **Span** ad **Analisi**. Scegliete una serie temp
 
 - Fate clic su **In pausa** sopra l'elenco per attivare gli aggiornamenti in diretta. Il pulsante mostra poi **In diretta**, e l'elenco cerca nuovi span ogni 10 secondi. Fate di nuovo clic per mettere in pausa.
 - **Viste salvate** conserva una ricerca, i suoi filtri e l'intervallo di tempo sotto un nome, per tutti nel progetto. Le viste salvate funzionano come nell'[Esploratore log](/docs/telemetry/logs-explorer#salvare-una-vista).
-- I pulsanti **Registri** e **Metriche** aprono quegli esploratori per la stessa finestra di tempo, con tutto il vostro filtraggio che possono usare. Puntate un pulsante per vedere che cosa non può riportare.
+- I pulsanti **Registri** e **Metriche** aprono quegli esploratori per la stessa finestra di tempo, con tutto il vostro filtraggio che possono usare. Puntate un pulsante per vedere che cosa non può riportare. Un servizio, un host o un valore di attributo che avete escluso resta escluso nell'esploratore dei log.
 
 ## Informazioni sulle tracce
 

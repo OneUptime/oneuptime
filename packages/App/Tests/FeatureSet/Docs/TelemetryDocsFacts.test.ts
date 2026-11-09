@@ -54,6 +54,7 @@ import {
 } from "../../../FeatureSet/Telemetry/Utils/PyroscopeAuthorization";
 import {
   SPAN_KIND_VALUE_MAP,
+  TRACE_EXCLUDABLE_FIELD_KEYS,
   TRACE_FIELD_ALIAS_MAP,
   ParsedTraceSearch,
   parseTraceSearch,
@@ -587,18 +588,42 @@ describe("Search Syntax", () => {
       );
     });
 
-    it("takes an any-of list, and reads an excluded field as text", () => {
+    it("takes an any-of list", () => {
       const list: ParsedTraceSearch = parseTraceSearch("status:(ok OR unset)");
 
       expect(list.fieldFilters["statusCode"]).toEqual(["ok", "unset"]);
+    });
 
-      const excluded: ParsedTraceSearch = parseTraceSearch("-status:error");
-
-      expect(excluded.fieldFilters).toEqual({});
-      expect(excluded.freeText).toBe("-status:error");
+    /*
+     * A leading `-` leaves values out of exactly the trace fields the page
+     * names (TRACE_EXCLUDABLE_FIELD_KEYS); on any other field it is text.
+     */
+    it("leaves status, kind and hasException out with a leading -, and reads it as text on any other field", () => {
       expect(page).toContain(
-        "`-status:error` is read as text to find in span names, and finds nothing",
+        "`-` excludes attributes and the `status`, `kind` and `hasException` fields: `-status:error` leaves the error spans out of the list, the chart and the counts. On any other trace field it is read as text to find in span names, and finds nothing.",
       );
+      expect(page).toContain(
+        "a leading `-` on attributes, `status`, `kind` and `hasException`",
+      );
+      expect(Array.from(TRACE_EXCLUDABLE_FIELD_KEYS).sort()).toEqual(
+        ["statusCode", "kind", "hasException"].sort(),
+      );
+
+      for (const [typed, column] of [
+        ["-status:error", "statusCode"],
+        ["-kind:client", "kind"],
+        ["-hasException:true", "hasException"],
+      ] as Array<[string, string]>) {
+        const excluded: ParsedTraceSearch = parseTraceSearch(typed);
+
+        expect(Object.keys(excluded.excludedFieldFilters)).toEqual([column]);
+        expect(excluded.freeText).toBe("");
+      }
+
+      const other: ParsedTraceSearch = parseTraceSearch("-name:GET");
+
+      expect(other.excludedFieldFilters).toEqual({});
+      expect(other.freeText).toBe("-name:GET");
     });
 
     it("matches a single name or status message value as any part of it", () => {

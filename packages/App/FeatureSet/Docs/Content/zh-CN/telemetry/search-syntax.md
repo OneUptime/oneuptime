@@ -111,7 +111,7 @@ name:"SELECT wp_options"
 | `-@k:>100` | 100 或更小 |
 | `-@k:~abc` | 不包含 `abc` |
 
-在追踪浏览器中，`-` 只排除属性。`-status:error` 会被读作要在 span 名称中查找的文本，因此什么也找不到；请改为指定你想要的值，例如 `status:(ok OR unset)`。
+在追踪浏览器中，`-` 可以排除属性以及 `status`、`kind` 和 `hasException` 字段：`-status:error` 会把出错的 span 排除在列表、图表和计数之外。在其他任何追踪字段上，它会被读作要在 span 名称中查找的文本，因此什么也找不到。
 
 ## 各信号的字段
 
@@ -129,7 +129,7 @@ name:"SELECT wp_options"
 
 ### 追踪
 
-追踪字段接受单个值或“任一”列表，例如 `status:(ok OR unset)`，`duration` 还接受 `>` 和 `<`。通配符、`~`、`!` 和前置的 `-` 在这里只对属性有效。
+追踪字段接受单个值或“任一”列表，例如 `status:(ok OR unset)`，`duration` 还接受 `>` 和 `<`。通配符、`~` 和 `!` 在这里只对属性有效，前置的 `-` 对属性、`status`、`kind` 和 `hasException` 有效。
 
 | 字段 | 说明 |
 | --- | --- |

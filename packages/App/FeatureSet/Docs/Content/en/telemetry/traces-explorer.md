@@ -103,7 +103,7 @@ For more, switch the list from **Spans** to **Analytics**. Pick a time series, a
 
 - Click **Paused** above the list to turn on live updates. The button then reads **Live**, and the list checks for new spans every 10 seconds. Click it again to pause.
 - **Saved Views** keeps a search, its filters and the time range under a name, for everyone in the project. Saved views work as they do in the [Logs Explorer](/docs/telemetry/logs-explorer#save-a-view).
-- The **Logs** and **Metrics** buttons open those explorers for the same time window, with as much of your filtering as they can use. Point at a button to see anything it cannot carry over.
+- The **Logs** and **Metrics** buttons open those explorers for the same time window, with as much of your filtering as they can use. Point at a button to see anything it cannot carry over. A service, host or attribute value you left out stays left out in the Logs Explorer.
 
 ## Traces Insights
 

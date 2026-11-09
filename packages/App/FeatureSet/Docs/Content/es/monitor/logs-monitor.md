@@ -32,7 +32,7 @@ Cada minuto, OneUptime cuenta los registros que coinciden con los filtros del mo
 :::steps
 ### Empezar un monitor nuevo
 
-Ve a **Monitores** y haz clic en **Crear monitor**. O, en el explorador de registros, busca los registros de los que quieres enterarte y haz clic en **Crear monitor** (la campana) en su barra de herramientas: el nuevo monitor empieza vigilando la búsqueda, las gravedades, los servicios y los atributos del explorador.
+Ve a **Monitores** y haz clic en **Crear monitor**. O, en el explorador de registros, busca los registros de los que quieres enterarte y haz clic en **Crear monitor** (la campana) en su barra de herramientas: el nuevo monitor empieza vigilando la búsqueda, las gravedades, los servicios y los atributos del explorador. Una gravedad o un valor de atributo que hayas excluido en el explorador sigue excluido; apunta al botón para ver lo que no puede trasladar, como un servicio excluido.
 
 ### Elegir Logs
 

@@ -111,7 +111,7 @@ Um `-` no início inverte qualquer filtro, inclusive os acima:
 | `-@k:>100` | 100 ou menos |
 | `-@k:~abc` | não contém `abc` |
 
-No explorador de traces, `-` exclui apenas atributos. `-status:error` é lido como texto a procurar nos nomes de span, e não encontra nada; peça os valores que você quer, como `status:(ok OR unset)`.
+No explorador de traces, `-` exclui atributos e os campos `status`, `kind` e `hasException`: `-status:error` deixa os spans com erro de fora da lista, do gráfico e das contagens. Em qualquer outro campo de trace, é lido como texto a procurar nos nomes de span, e não encontra nada.
 
 ## Campos por sinal
 
@@ -129,7 +129,7 @@ Nomes de campo não diferenciam maiúsculas de minúsculas: `statusMessage:` e `
 
 ### Traces
 
-Os campos de trace aceitam um valor simples ou uma lista como `status:(ok OR unset)`, e `duration` também aceita `>` e `<`. Curingas, `~`, `!` e um `-` no início aqui só funcionam com atributos.
+Os campos de trace aceitam um valor simples ou uma lista como `status:(ok OR unset)`, e `duration` também aceita `>` e `<`. Curingas, `~` e `!` aqui só funcionam com atributos, e um `-` no início com atributos, `status`, `kind` e `hasException`.
 
 | Campo | Observações |
 | --- | --- |

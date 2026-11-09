@@ -103,7 +103,7 @@ Para ir além, mude a lista de **Spans** para **Análises**. Escolha uma série 
 
 - Clique em **Pausado** acima da lista para ativar as atualizações ao vivo. O botão passa a mostrar **Ao vivo**, e a lista procura spans novos a cada 10 segundos. Clique de novo para pausar.
 - **Visualizações salvas** guarda uma pesquisa, seus filtros e o intervalo de tempo com um nome, para todos no projeto. As visualizações salvas funcionam como no [Explorador de registros](/docs/telemetry/logs-explorer#salvar-uma-visualização).
-- Os botões **Registros** e **Métricas** abrem esses exploradores na mesma janela de tempo, com tanto da sua filtragem quanto eles puderem usar. Aponte para um botão para ver o que ele não consegue levar junto.
+- Os botões **Registros** e **Métricas** abrem esses exploradores na mesma janela de tempo, com tanto da sua filtragem quanto eles puderem usar. Aponte para um botão para ver o que ele não consegue levar junto. Um serviço, host ou valor de atributo que você excluiu continua excluído no explorador de logs.
 
 ## Insights de traços
 

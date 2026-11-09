@@ -103,7 +103,7 @@ Para más, cambie la lista de **Spans** a **Analítica**. Elija una serie tempor
 
 - Haga clic en **Pausado** encima de la lista para activar las actualizaciones en vivo. El botón pasa a mostrar **En vivo**, y la lista busca spans nuevos cada 10 segundos. Haga clic de nuevo para pausar.
 - **Vistas guardadas** conserva una búsqueda, sus filtros y el intervalo de tiempo con un nombre, para todos en el proyecto. Las vistas guardadas funcionan como en el [Explorador de registros](/docs/telemetry/logs-explorer#guardar-una-vista).
-- Los botones **Registros** y **Métricas** abren esos exploradores para la misma ventana de tiempo, con tanto de su filtrado como puedan usar. Apunte a un botón para ver lo que no puede trasladar.
+- Los botones **Registros** y **Métricas** abren esos exploradores para la misma ventana de tiempo, con tanto de su filtrado como puedan usar. Apunte a un botón para ver lo que no puede trasladar. Un servicio, un host o un valor de atributo que haya excluido sigue excluido en el explorador de registros.
 
 ## Análisis de trazas
 

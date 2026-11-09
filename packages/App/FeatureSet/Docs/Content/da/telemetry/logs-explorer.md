@@ -54,6 +54,8 @@ Vælg et interval i tidsvælgeren, eller træk hen over volumendiagrammet over l
 
 Skriv en forespørgsel i søgefeltet, og tryk på Enter, for eksempel `severity:error service:checkout timeout`. Løse ord søger i beskeden, og `@key:value` søger i en attribut. Se [Søgesyntaks](/docs/telemetry/search-syntax#logs).
 
+**I beskeden** i [Forbundne signaler](/docs/telemetry/security-connected-signals) åbner udforskeren med en chip **Ord i beskeden**: de linjer, hvis besked indeholder værdien som et helt ord. `10.0.0.1` finder dér `from 10.0.0.1:52144`, aldrig `10.0.0.12`.
+
 ### Indsnævr med filtre
 
 Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip: en alvorlighed, en tjeneste eller en vært, en klynge eller en anden ressource, der har sendt protokoller. Hver værdi viser, hvor mange protokoller der har den. Klik på minustegnet ved siden af en værdi for i stedet at udelade de protokoller. Klik på værdien igen for at fortryde. På en telefon trykker du på **Filtre** for at åbne sidepanelet.
@@ -118,7 +120,7 @@ Klik på **Liste** for at gå tilbage til selve linjerne.
 
 ## Åbn tilhørende spor og metrikker
 
-Knapperne **Spor** og **Metrikker** ved siden af **Gemte visninger** åbner [Sporudforsker](/docs/telemetry/traces-explorer) eller [Måleudforsker](/docs/telemetry/metrics-explorer) for det samme tidsvindue, med så meget af din filtrering, som den udforsker kan bruge. Peg på en knap for at se, hvad den ikke kan tage med.
+Knapperne **Spor** og **Metrikker** ved siden af **Gemte visninger** åbner [Sporudforsker](/docs/telemetry/traces-explorer) eller [Måleudforsker](/docs/telemetry/metrics-explorer) for det samme tidsvindue, med så meget af din filtrering, som den udforsker kan bruge. Peg på en knap for at se, hvad den ikke kan tage med. En værdi, du har udeladt med minusset, forbliver udeladt i udforskeren for spor.
 
 ## Indsigter i protokoller
 

@@ -103,7 +103,7 @@ Pour aller plus loin, passez la liste de **Spans** à **Analytique**. Choisissez
 
 - Cliquez sur **En pause** au-dessus de la liste pour activer les mises à jour en direct. Le bouton affiche alors **En direct**, et la liste cherche de nouveaux spans toutes les 10 secondes. Cliquez de nouveau pour mettre en pause.
 - **Vues enregistrées** garde une recherche, ses filtres et la plage de temps sous un nom, pour tout le projet. Les vues enregistrées fonctionnent comme dans l'[Explorateur de journaux](/docs/telemetry/logs-explorer#enregistrer-une-vue).
-- Les boutons **Journaux** et **Métriques** ouvrent ces explorateurs sur la même fenêtre de temps, avec autant de votre filtrage qu'ils peuvent en utiliser. Pointez un bouton pour voir ce qu'il ne peut pas reprendre.
+- Les boutons **Journaux** et **Métriques** ouvrent ces explorateurs sur la même fenêtre de temps, avec autant de votre filtrage qu'ils peuvent en utiliser. Pointez un bouton pour voir ce qu'il ne peut pas reprendre. Un service, un hôte ou une valeur d'attribut que vous avez exclu reste exclu dans l'explorateur de journaux.
 
 ## Analyses des traces
 

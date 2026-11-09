@@ -54,6 +54,8 @@ Scegliete un intervallo nel selettore del tempo, oppure trascinate sul grafico d
 
 Digitate una query nella casella di ricerca e premete Invio, ad esempio `severity:error service:checkout timeout`. Le parole semplici cercano nel messaggio, e `@key:value` cerca in un attributo. Vedere [Sintassi di ricerca](/docs/telemetry/search-syntax#log).
 
+**Nel messaggio** in [Segnali collegati](/docs/telemetry/security-connected-signals) apre l'explorer su un chip **Parola nel messaggio**: le righe il cui messaggio contiene il valore come parola intera. `10.0.0.1` lì trova `from 10.0.0.1:52144`, mai `10.0.0.12`.
+
 ### Restringere con i filtri
 
 Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip: una gravità, un servizio, oppure un host, un cluster o un'altra risorsa che ha inviato log. Ogni valore indica quanti log lo riportano. Fate clic sul segno meno accanto a un valore per escludere invece quei log. Fate di nuovo clic sul valore per annullare. Su un telefono, toccate **Filtri** per aprire la barra laterale.
@@ -118,7 +120,7 @@ Fate clic su **Elenco** per tornare alle righe stesse.
 
 ## Aprire tracce e metriche collegate
 
-I pulsanti **Tracce** e **Metriche** accanto a **Viste salvate** aprono l'[Esploratore tracce](/docs/telemetry/traces-explorer) o l'[Esploratore metriche](/docs/telemetry/metrics-explorer) per la stessa finestra di tempo, con tutto il vostro filtraggio che quell'esploratore può usare. Puntate un pulsante per vedere che cosa non può riportare.
+I pulsanti **Tracce** e **Metriche** accanto a **Viste salvate** aprono l'[Esploratore tracce](/docs/telemetry/traces-explorer) o l'[Esploratore metriche](/docs/telemetry/metrics-explorer) per la stessa finestra di tempo, con tutto il vostro filtraggio che quell'esploratore può usare. Puntate un pulsante per vedere che cosa non può riportare. Un valore escluso con il meno resta escluso nell'explorer delle tracce.
 
 ## Informazioni sui log
 

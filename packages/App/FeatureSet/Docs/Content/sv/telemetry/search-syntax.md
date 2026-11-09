@@ -111,7 +111,7 @@ Ett `-` först vänder på vilket filter som helst, även dem ovan:
 | `-@k:>100` | 100 eller mindre |
 | `-@k:~abc` | innehåller inte `abc` |
 
-I utforskaren för spår utesluter `-` bara attribut. `-status:error` läses som text att söka efter i span-namn, och hittar ingenting; fråga i stället efter de värden du vill ha, till exempel `status:(ok OR unset)`.
+I utforskaren för spår utesluter `-` attribut och fälten `status`, `kind` och `hasException`: `-status:error` håller spans med fel utanför listan, diagrammet och räkningarna. På alla andra spårfält läses det som text att söka efter i span-namn, och hittar ingenting.
 
 ## Fält per signal
 
@@ -129,7 +129,7 @@ Fältnamn skiljer inte på versaler och gemener: `statusMessage:` och `statusmes
 
 ### Spår
 
-Spårfält tar ett vanligt värde eller en lista som `status:(ok OR unset)`, och `duration` tar även `>` och `<`. Jokertecken, `~`, `!` och ett `-` först fungerar här bara på attribut.
+Spårfält tar ett vanligt värde eller en lista som `status:(ok OR unset)`, och `duration` tar även `>` och `<`. Jokertecken, `~` och `!` fungerar här bara på attribut, och ett `-` först på attribut, `status`, `kind` och `hasException`.
 
 | Fält | Anteckningar |
 | --- | --- |

@@ -111,7 +111,7 @@ Een `-` vooraan keert elk filter om, ook de filters hierboven:
 | `-@k:>100` | 100 of minder |
 | `-@k:~abc` | bevat `abc` niet |
 
-In de traceverkenner sluit `-` alleen attributen uit. `-status:error` wordt gelezen als tekst die in spannamen wordt gezocht, en vindt niets; vraag in plaats daarvan om de waarden die u wilt, zoals `status:(ok OR unset)`.
+In de traceverkenner sluit `-` attributen en de velden `status`, `kind` en `hasException` uit: `-status:error` laat de spans met een fout weg uit de lijst, de grafiek en de tellingen. Bij elk ander traceveld wordt het gelezen als tekst die in spannamen wordt gezocht, en vindt het niets.
 
 ## Velden per signaal
 
@@ -129,7 +129,7 @@ Veldnamen zijn niet hoofdlettergevoelig: `statusMessage:` en `statusmessage:` zi
 
 ### Traces
 
-Tracevelden nemen een gewone waarde of een lijst zoals `status:(ok OR unset)`, en `duration` neemt ook `>` en `<`. Jokertekens, `~`, `!` en een `-` vooraan werken hier alleen op attributen.
+Tracevelden nemen een gewone waarde of een lijst zoals `status:(ok OR unset)`, en `duration` neemt ook `>` en `<`. Jokertekens, `~` en `!` werken hier alleen op attributen, en een `-` vooraan op attributen, `status`, `kind` en `hasException`.
 
 | Veld | Opmerkingen |
 | --- | --- |

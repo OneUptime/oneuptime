@@ -103,7 +103,7 @@ For mer bytter du listen fra **Spans** til **Analyser**. Velg en tidsserie, en t
 
 - Klikk på **Pauset** over listen for å slå på direkteoppdateringer. Knappen viser da **Direkte**, og listen ser etter nye spans hvert 10. sekund. Klikk igjen for å sette på pause.
 - **Lagrede visninger** tar vare på et søk, filtrene og tidsintervallet under et navn, for alle i prosjektet. Lagrede visninger fungerer som i [Loggutforsker](/docs/telemetry/logs-explorer#lagre-en-visning).
-- Knappene **Logger** og **Målinger** åpner de utforskerne for det samme tidsvinduet, med så mye av filtreringen din som de kan bruke. Pek på en knapp for å se hva den ikke kan ta med.
+- Knappene **Logger** og **Målinger** åpner de utforskerne for det samme tidsvinduet, med så mye av filtreringen din som de kan bruke. Pek på en knapp for å se hva den ikke kan ta med. En tjeneste, en vert eller en attributtverdi du har utelatt, forblir utelatt i loggutforskeren.
 
 ## Innsikt i spor
 

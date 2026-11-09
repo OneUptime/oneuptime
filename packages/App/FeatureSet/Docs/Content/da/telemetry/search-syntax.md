@@ -111,7 +111,7 @@ Et `-` foran vender ethvert filter om, også dem ovenfor:
 | `-@k:>100` | 100 eller mindre |
 | `-@k:~abc` | indeholder ikke `abc` |
 
-I udforskeren for spor udelukker `-` kun attributter. `-status:error` læses som tekst, der søges efter i span-navne, og finder intet; spørg i stedet efter de værdier, du vil have, for eksempel `status:(ok OR unset)`.
+I udforskeren for spor udelukker `-` attributter og felterne `status`, `kind` og `hasException`: `-status:error` udelader spans med fejl fra listen, diagrammet og optællingerne. På ethvert andet sporfelt læses det som tekst, der søges efter i span-navne, og finder intet.
 
 ## Felter pr. signal
 
@@ -129,7 +129,7 @@ Feltnavne skelner ikke mellem store og små bogstaver: `statusMessage:` og `stat
 
 ### Spor
 
-Sporfelter tager en almindelig værdi eller en liste som `status:(ok OR unset)`, og `duration` tager også `>` og `<`. Jokertegn, `~`, `!` og et `-` foran virker her kun på attributter.
+Sporfelter tager en almindelig værdi eller en liste som `status:(ok OR unset)`, og `duration` tager også `>` og `<`. Jokertegn, `~` og `!` virker her kun på attributter, og et `-` foran på attributter, `status`, `kind` og `hasException`.
 
 | Felt | Bemærkninger |
 | --- | --- |

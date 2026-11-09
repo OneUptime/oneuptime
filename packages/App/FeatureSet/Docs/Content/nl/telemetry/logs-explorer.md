@@ -54,6 +54,8 @@ Kies een bereik in de tijdkiezer, of sleep over de volumegrafiek boven de lijst 
 
 Typ een zoekopdracht in het zoekvak en druk op Enter, bijvoorbeeld `severity:error service:checkout timeout`. Losse woorden doorzoeken het bericht, en `@key:value` doorzoekt een attribuut. Zie [Zoeksyntaxis](/docs/telemetry/search-syntax#logboeken).
 
+**In het bericht** in [Verbonden signalen](/docs/telemetry/security-connected-signals) opent de verkenner met een chip **Woord in bericht**: de regels waarvan het bericht de waarde als heel woord bevat. `10.0.0.1` vindt daar `from 10.0.0.1:52144`, nooit `10.0.0.12`.
+
 ### Beperken met filters
 
 Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen: een ernstniveau, een service, of een host, cluster of andere bron die logboeken stuurde. Elke waarde laat zien hoeveel logboeken hem dragen. Klik op het minteken naast een waarde om die logboeken juist uit te sluiten. Klik nogmaals op de waarde om dat ongedaan te maken. Tik op een telefoon op **Filters** om de zijbalk te openen.
@@ -118,7 +120,7 @@ Klik op **Lijst** om terug te gaan naar de regels zelf.
 
 ## Bijbehorende traces en metrieken openen
 
-De knoppen **Traces** en **Metrieken** naast **Opgeslagen weergaven** openen de [Traceverkenner](/docs/telemetry/traces-explorer) of de [Metriekverkenner](/docs/telemetry/metrics-explorer) voor hetzelfde tijdvenster, met zoveel van uw filtering als die verkenner kan gebruiken. Wijs een knop aan om te zien wat hij niet kan meenemen.
+De knoppen **Traces** en **Metrieken** naast **Opgeslagen weergaven** openen de [Traceverkenner](/docs/telemetry/traces-explorer) of de [Metriekverkenner](/docs/telemetry/metrics-explorer) voor hetzelfde tijdvenster, met zoveel van uw filtering als die verkenner kan gebruiken. Wijs een knop aan om te zien wat hij niet kan meenemen. Een waarde die u met de min hebt uitgesloten, blijft uitgesloten in de traceverkenner.
 
 ## Inzichten in logboeken
 

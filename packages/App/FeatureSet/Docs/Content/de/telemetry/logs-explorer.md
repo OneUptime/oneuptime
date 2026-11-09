@@ -54,6 +54,8 @@ Wählen Sie einen Zeitraum in der Zeitauswahl, oder ziehen Sie über das Volumen
 
 Geben Sie eine Abfrage in das Suchfeld ein und drücken Sie Enter, zum Beispiel `severity:error service:checkout timeout`. Freie Wörter durchsuchen die Nachricht, und `@key:value` durchsucht ein Attribut. Siehe [Suchsyntax](/docs/telemetry/search-syntax#protokolle).
 
+**In der Nachricht** in [Verbundene Signale](/docs/telemetry/security-connected-signals) öffnet den Explorer mit einem Chip **Wort in der Meldung**: die Zeilen, deren Meldung den Wert als ganzes Wort enthält. `10.0.0.1` findet dort `from 10.0.0.1:52144`, nie `10.0.0.12`.
+
 ### Mit Filtern eingrenzen
 
 Klicken Sie auf einen Wert in der Seitenleiste **Filter**, um ihn als Chip hinzuzufügen: einen Schweregrad, einen Dienst oder einen Host, Cluster oder eine andere Ressource, die Protokolle gesendet hat. Jeder Wert zeigt, wie viele Protokolle ihn tragen. Klicken Sie stattdessen auf das Minuszeichen neben einem Wert, um diese Protokolle auszuschließen. Klicken Sie erneut auf den Wert, um das rückgängig zu machen. Auf einem Telefon tippen Sie auf **Filter**, um die Seitenleiste zu öffnen.
@@ -118,7 +120,7 @@ Klicken Sie auf **Liste**, um zu den Zeilen selbst zurückzukehren.
 
 ## Zugehörige Traces und Metriken öffnen
 
-Die Schaltflächen **Traces** und **Metriken** neben **Gespeicherte Ansichten** öffnen den [Trace-Explorer](/docs/telemetry/traces-explorer) oder den [Metrik-Explorer](/docs/telemetry/metrics-explorer) für dasselbe Zeitfenster, mit so viel von Ihrer Filterung, wie dieser Explorer nutzen kann. Zeigen Sie auf eine Schaltfläche, um zu sehen, was sie nicht übernehmen kann.
+Die Schaltflächen **Traces** und **Metriken** neben **Gespeicherte Ansichten** öffnen den [Trace-Explorer](/docs/telemetry/traces-explorer) oder den [Metrik-Explorer](/docs/telemetry/metrics-explorer) für dasselbe Zeitfenster, mit so viel von Ihrer Filterung, wie dieser Explorer nutzen kann. Zeigen Sie auf eine Schaltfläche, um zu sehen, was sie nicht übernehmen kann. Ein Wert, den Sie mit dem Minus ausgeschlossen haben, bleibt im Trace-Explorer ausgeschlossen.
 
 ## Protokoll-Einblicke
 

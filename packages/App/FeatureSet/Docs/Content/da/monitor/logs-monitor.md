@@ -32,7 +32,7 @@ Hvert minut tæller OneUptime de logs, der matcher monitorens filtre og er ankom
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Eller søg i log-explorer efter de logs, du vil have besked om, og klik på **Opret monitor** (klokken) i dens værktøjslinje: den nye monitor holder fra starten øje med explorerens søgning, alvorligheder, tjenester og attributter.
+Gå til **Monitorer**, og klik på **Opret monitor**. Eller søg i log-explorer efter de logs, du vil have besked om, og klik på **Opret monitor** (klokken) i dens værktøjslinje: den nye monitor holder fra starten øje med explorerens søgning, alvorligheder, tjenester og attributter. Et alvorlighedsniveau eller en attributværdi, du har udeladt i exploreren, forbliver udeladt; peg på knappen for at se, hvad den ikke kan tage med, for eksempel en udeladt tjeneste.
 
 ### Vælg Logs
 

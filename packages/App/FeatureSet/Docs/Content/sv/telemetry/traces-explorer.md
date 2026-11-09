@@ -103,7 +103,7 @@ För mer byter du listan från **Spans** till **Analyser**. Välj en tidsserie, 
 
 - Klicka på **Pausad** ovanför listan för att slå på liveuppdateringar. Knappen visar då **Live**, och listan letar efter nya spans var tionde sekund. Klicka igen för att pausa.
 - **Sparade vyer** behåller en sökning, dess filter och tidsintervallet under ett namn, för alla i projektet. Sparade vyer fungerar som i [Loggutforskare](/docs/telemetry/logs-explorer#spara-en-vy).
-- Knapparna **Loggar** och **Mätvärden** öppnar de utforskarna för samma tidsfönster, med så mycket av din filtrering som de kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
+- Knapparna **Loggar** och **Mätvärden** öppnar de utforskarna för samma tidsfönster, med så mycket av din filtrering som de kan använda. Peka på en knapp för att se vad den inte kan ta med sig. En tjänst, en värd eller ett attributvärde som du har uteslutit förblir uteslutet i loggutforskaren.
 
 ## Insikter i spår
 

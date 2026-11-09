@@ -111,7 +111,7 @@ Un `-` iniziale inverte qualsiasi filtro, compresi quelli sopra:
 | `-@k:>100` | 100 o meno |
 | `-@k:~abc` | non contiene `abc` |
 
-Nell'explorer delle tracce, `-` esclude solo attributi. `-status:error` viene letto come testo da cercare nei nomi degli span, e non trova nulla; chiedete invece i valori che volete, per esempio `status:(ok OR unset)`.
+Nell'explorer delle tracce, `-` esclude gli attributi e i campi `status`, `kind` e `hasException`: `-status:error` lascia fuori gli span in errore dall'elenco, dal grafico e dai conteggi. Su qualunque altro campo delle tracce viene letto come testo da cercare nei nomi degli span, e non trova nulla.
 
 ## Campi per segnale
 
@@ -129,7 +129,7 @@ I nomi dei campi non distinguono maiuscole e minuscole: `statusMessage:` e `stat
 
 ### Tracce
 
-I campi delle tracce accettano un valore semplice o un elenco come `status:(ok OR unset)`, e `duration` accetta anche `>` e `<`. Caratteri jolly, `~`, `!` e un `-` iniziale qui funzionano solo sugli attributi.
+I campi delle tracce accettano un valore semplice o un elenco come `status:(ok OR unset)`, e `duration` accetta anche `>` e `<`. Caratteri jolly, `~` e `!` qui funzionano solo sugli attributi, e un `-` iniziale sugli attributi, su `status`, `kind` e `hasException`.
 
 | Campo | Note |
 | --- | --- |

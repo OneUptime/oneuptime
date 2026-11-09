@@ -103,7 +103,7 @@ Wilt u meer, zet de lijst dan van **Spans** op **Analyses**. Kies een tijdreeks,
 
 - Klik boven de lijst op **Gepauzeerd** om live-updates aan te zetten. De knop toont dan **Live**, en de lijst kijkt elke 10 seconden of er nieuwe spans zijn. Klik nogmaals om te pauzeren.
 - **Opgeslagen weergaven** bewaart een zoekopdracht, de filters en het tijdsbereik onder een naam, voor iedereen in het project. Opgeslagen weergaven werken zoals in de [Logboekverkenner](/docs/telemetry/logs-explorer#een-weergave-opslaan).
-- De knoppen **Logboeken** en **Metrieken** openen die verkenners voor hetzelfde tijdvenster, met zoveel van uw filtering als ze kunnen gebruiken. Wijs een knop aan om te zien wat hij niet kan meenemen.
+- De knoppen **Logboeken** en **Metrieken** openen die verkenners voor hetzelfde tijdvenster, met zoveel van uw filtering als ze kunnen gebruiken. Wijs een knop aan om te zien wat hij niet kan meenemen. Een service, host of attribuutwaarde die u hebt uitgesloten, blijft uitgesloten in de logverkenner.
 
 ## Inzichten in traces
 

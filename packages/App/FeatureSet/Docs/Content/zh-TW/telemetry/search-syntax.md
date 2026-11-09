@@ -111,7 +111,7 @@ name:"SELECT wp_options"
 | `-@k:>100` | 100 或更小 |
 | `-@k:~abc` | 不包含 `abc` |
 
-在追蹤瀏覽器中，`-` 只會排除屬性。`-status:error` 會被解讀為要在 span 名稱中尋找的文字，因此什麼也找不到；請改為指定你想要的值，例如 `status:(ok OR unset)`。
+在追蹤瀏覽器中，`-` 可以排除屬性以及 `status`、`kind` 與 `hasException` 欄位：`-status:error` 會把出錯的 span 排除在清單、圖表與計數之外。在其他任何追蹤欄位上，它會被解讀為要在 span 名稱中尋找的文字，因此什麼也找不到。
 
 ## 各訊號的欄位
 
@@ -129,7 +129,7 @@ name:"SELECT wp_options"
 
 ### 追蹤
 
-追蹤欄位接受單一值或「任一」清單，例如 `status:(ok OR unset)`，`duration` 還接受 `>` 與 `<`。萬用字元、`~`、`!` 與前置的 `-` 在這裡只對屬性有效。
+追蹤欄位接受單一值或「任一」清單，例如 `status:(ok OR unset)`，`duration` 還接受 `>` 與 `<`。萬用字元、`~` 與 `!` 在這裡只對屬性有效，前置的 `-` 對屬性、`status`、`kind` 與 `hasException` 有效。
 
 | 欄位 | 說明 |
 | --- | --- |

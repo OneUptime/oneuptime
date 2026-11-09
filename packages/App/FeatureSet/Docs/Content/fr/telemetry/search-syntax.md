@@ -111,7 +111,7 @@ Un `-` initial inverse n'importe quel filtre, y compris ceux ci-dessus :
 | `-@k:>100` | 100 ou moins |
 | `-@k:~abc` | ne contient pas `abc` |
 
-Dans l'explorateur des traces, `-` n'exclut que des attributs. `-status:error` est lu comme un texte à chercher dans les noms de spans, et ne trouve rien ; demandez plutôt les valeurs voulues, par exemple `status:(ok OR unset)`.
+Dans l'explorateur des traces, `-` exclut les attributs et les champs `status`, `kind` et `hasException` : `-status:error` retire les spans en erreur de la liste, du graphique et des comptes. Sur tout autre champ de trace, il est lu comme un texte à chercher dans les noms de spans, et ne trouve rien.
 
 ## Champs par signal
 
@@ -129,7 +129,7 @@ Les noms de champs ne sont pas sensibles à la casse : `statusMessage:` et `stat
 
 ### Traces
 
-Les champs de trace acceptent une valeur simple ou une liste comme `status:(ok OR unset)`, et `duration` accepte aussi `>` et `<`. Les jokers, `~`, `!` et un `-` initial ne fonctionnent ici que sur les attributs.
+Les champs de trace acceptent une valeur simple ou une liste comme `status:(ok OR unset)`, et `duration` accepte aussi `>` et `<`. Les jokers, `~` et `!` ne fonctionnent ici que sur les attributs, et un `-` initial sur les attributs, `status`, `kind` et `hasException`.
 
 | Champ | Remarques |
 | --- | --- |

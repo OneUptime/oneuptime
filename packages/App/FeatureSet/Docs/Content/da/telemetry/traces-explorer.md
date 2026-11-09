@@ -103,7 +103,7 @@ For mere skal du skifte listen fra **Spans** til **Analyser**. Vælg en tidsseri
 
 - Klik på **Sat på pause** over listen for at slå live-opdateringer til. Knappen viser derefter **Live**, og listen kigger efter nye spans hvert 10. sekund. Klik igen for at sætte på pause.
 - **Gemte visninger** gemmer en søgning, dens filtre og tidsintervallet under et navn til alle i projektet. Gemte visninger fungerer som i [Protokoludforsker](/docs/telemetry/logs-explorer#gem-en-visning).
-- Knapperne **Protokoller** og **Metrikker** åbner de udforskere for det samme tidsvindue, med så meget af din filtrering, som de kan bruge. Peg på en knap for at se, hvad den ikke kan tage med.
+- Knapperne **Protokoller** og **Metrikker** åbner de udforskere for det samme tidsvindue, med så meget af din filtrering, som de kan bruge. Peg på en knap for at se, hvad den ikke kan tage med. En tjeneste, en vært eller en attributværdi, du har udeladt, forbliver udeladt i log-explorer.
 
 ## Indsigter i spor
 

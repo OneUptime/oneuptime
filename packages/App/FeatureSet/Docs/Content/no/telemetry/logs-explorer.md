@@ -54,6 +54,8 @@ Velg et intervall i tidsvelgeren, eller dra over volumdiagrammet over listen for
 
 Skriv et søk i søkefeltet og trykk Enter, for eksempel `severity:error service:checkout timeout`. Løse ord søker i meldingen, og `@key:value` søker i et attributt. Se [Søkesyntaks](/docs/telemetry/search-syntax#logger).
 
+**I meldingen** i [Tilkoblede signaler](/docs/telemetry/security-connected-signals) åpner utforskeren med en brikke **Ord i meldingen**: linjene der meldingen inneholder verdien som et helt ord. `10.0.0.1` finner der `from 10.0.0.1:52144`, aldri `10.0.0.12`.
+
 ### Snevre inn med filtre
 
 Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke: en alvorlighetsgrad, en tjeneste, eller en vert, en klynge eller en annen ressurs som har sendt logger. Hver verdi viser hvor mange logger som har den. Klikk på minustegnet ved siden av en verdi for i stedet å utelate de loggene. Klikk på verdien igjen for å angre. På en telefon trykker du på **Filtre** for å åpne sidepanelet.
@@ -118,7 +120,7 @@ Klikk på **Liste** for å gå tilbake til selve linjene.
 
 ## Åpne tilhørende spor og målinger
 
-Knappene **Spor** og **Målinger** ved siden av **Lagrede visninger** åpner [Sporutforsker](/docs/telemetry/traces-explorer) eller [Metrikkutforsker](/docs/telemetry/metrics-explorer) for det samme tidsvinduet, med så mye av filtreringen din som den utforskeren kan bruke. Pek på en knapp for å se hva den ikke kan ta med.
+Knappene **Spor** og **Målinger** ved siden av **Lagrede visninger** åpner [Sporutforsker](/docs/telemetry/traces-explorer) eller [Metrikkutforsker](/docs/telemetry/metrics-explorer) for det samme tidsvinduet, med så mye av filtreringen din som den utforskeren kan bruke. Pek på en knapp for å se hva den ikke kan ta med. En verdi du har utelatt med minustegnet, forblir utelatt i sporutforskeren.
 
 ## Innsikt i logger
 

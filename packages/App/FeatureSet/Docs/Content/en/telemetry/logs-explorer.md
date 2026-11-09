@@ -54,6 +54,8 @@ Pick a range in the time picker, or drag across the volume chart above the list 
 
 Type a query in the search box and press Enter, for example `severity:error service:checkout timeout`. Bare words search the message, and `@key:value` searches an attribute. See [Search Syntax](/docs/telemetry/search-syntax#logs).
 
+**In the message** in [Connected Signals](/docs/telemetry/security-connected-signals) opens the explorer on a **Word in message** chip: the lines whose message holds the value as a whole word. `10.0.0.1` there finds `from 10.0.0.1:52144`, never `10.0.0.12`.
+
 ### Narrow it down with filters
 
 Click a value in the **Filters** sidebar to add it as a chip: a severity, a service, or a host, cluster or other resource that sent logs. Each value shows how many logs carry it. Click the minus beside a value to leave those logs out instead. Click the value again to undo it. On a phone, tap **Filters** to open the sidebar.
@@ -118,7 +120,7 @@ Click **List** to go back to the lines themselves.
 
 ## Open related traces and metrics
 
-The **Traces** and **Metrics** buttons beside **Saved Views** open the [Traces Explorer](/docs/telemetry/traces-explorer) or the [Metrics Explorer](/docs/telemetry/metrics-explorer) for the same time window, with as much of your filtering as that explorer can use. Point at a button to see anything it cannot carry over.
+The **Traces** and **Metrics** buttons beside **Saved Views** open the [Traces Explorer](/docs/telemetry/traces-explorer) or the [Metrics Explorer](/docs/telemetry/metrics-explorer) for the same time window, with as much of your filtering as that explorer can use. Point at a button to see anything it cannot carry over. A value you left out with the minus stays left out in the Traces Explorer.
 
 ## Logs Insights
 

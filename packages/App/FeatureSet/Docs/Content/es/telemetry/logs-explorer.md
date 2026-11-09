@@ -54,6 +54,8 @@ Elija un intervalo en el selector de tiempo, o arrastre sobre el gráfico de vol
 
 Escriba una consulta en el cuadro de búsqueda y pulse Intro, por ejemplo `severity:error service:checkout timeout`. Las palabras sueltas buscan en el mensaje, y `@key:value` busca en un atributo. Consulte [Sintaxis de búsqueda](/docs/telemetry/search-syntax#registros).
 
+**En el mensaje** en [Señales conectadas](/docs/telemetry/security-connected-signals) abre el explorador con un chip **Palabra en el mensaje**: las líneas cuyo mensaje contiene el valor como una palabra completa. `10.0.0.1` encuentra ahí `from 10.0.0.1:52144`, nunca `10.0.0.12`.
+
 ### Acotar con filtros
 
 Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip: una gravedad, un servicio, o un host, un clúster u otro recurso que haya enviado registros. Cada valor indica cuántos registros lo llevan. Haga clic en el signo menos junto a un valor para excluir esos registros. Vuelva a hacer clic en el valor para deshacerlo. En un teléfono, toque **Filtros** para abrir la barra lateral.
@@ -118,7 +120,7 @@ Haga clic en **Lista** para volver a las propias líneas.
 
 ## Abrir trazas y métricas relacionadas
 
-Los botones **Trazas** y **Métricas** junto a **Vistas guardadas** abren el [Explorador de trazas](/docs/telemetry/traces-explorer) o el [Explorador de métricas](/docs/telemetry/metrics-explorer) para la misma ventana de tiempo, con tanto de su filtrado como ese explorador pueda usar. Apunte a un botón para ver lo que no puede trasladar.
+Los botones **Trazas** y **Métricas** junto a **Vistas guardadas** abren el [Explorador de trazas](/docs/telemetry/traces-explorer) o el [Explorador de métricas](/docs/telemetry/metrics-explorer) para la misma ventana de tiempo, con tanto de su filtrado como ese explorador pueda usar. Apunte a un botón para ver lo que no puede trasladar. Un valor que haya excluido con el signo menos sigue excluido en el explorador de trazas.
 
 ## Análisis de registros
 
