@@ -57,7 +57,7 @@ describe("what a write stores as a person's language", () => {
     }
 
     expect(UNSUPPORTED_USER_LANGUAGE_MESSAGE).toContain(
-      "Leave it empty to be written to in English.",
+      "Leave it empty for English.",
     );
   });
 });

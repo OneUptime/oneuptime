@@ -37,7 +37,7 @@ import {
  * What somebody is told who sets a language OneUptime does not write in
  * (through the API): the codes it takes.
  */
-export const UNSUPPORTED_USER_LANGUAGE_MESSAGE: string = `Language must be one of: ${READER_LANGUAGE_CODES.join(", ")}. Leave it empty to be written to in English.`;
+export const UNSUPPORTED_USER_LANGUAGE_MESSAGE: string = `Language must be one of: ${READER_LANGUAGE_CODES.join(", ")}. Leave it empty for English.`;
 
 export interface UserWithLanguage {
   language?: string | null | undefined;
