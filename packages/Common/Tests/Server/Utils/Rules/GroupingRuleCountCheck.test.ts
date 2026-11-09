@@ -59,7 +59,9 @@ describe("GroupingRuleCountCheck", () => {
   );
 });
 
-type CheckFunction = (write: { data: Record<string, unknown> }) => Promise<void>;
+type CheckFunction = (write: {
+  data: Record<string, unknown>;
+}) => Promise<void>;
 
 interface ServiceCase {
   name: string;

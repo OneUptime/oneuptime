@@ -90,6 +90,7 @@ jest.mock(
 );
 
 import MessageQueueBrokerHealthSection, {
+  BROKER_HEALTH_CONNECT_AZURE_LINK_LABEL,
   BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL,
   BROKER_HEALTH_NO_DATA_TITLE,
   BROKER_HEALTH_SETUP_LINK_LABEL,
@@ -823,6 +824,49 @@ describe("Broker health with nothing to chart: where the metrics come from", () 
       expect(source.reachesQueue).toBe(hasCuratedMetrics);
 
       /*
+       * A connected Azure subscription reads Service Bus and Event Hubs per
+       * queue: the guidance offers it, on Cloud > Connect's Azure form.
+       */
+      const connectsAzure: boolean = ["servicebus", "eventhubs"].includes(
+        system,
+      );
+      const connect: HTMLElement | null = within(guidance).queryByText(
+        BROKER_HEALTH_CONNECT_AZURE_LINK_LABEL,
+      );
+      expect(connect !== null).toBe(connectsAzure);
+      if (connect) {
+        expect(connect.closest("a")).toHaveAttribute(
+          "href",
+          `/dashboard/${PROJECT_ID}/cloud/connect?cloud=azure`,
+        );
+      }
+
+      /*
+       * The ways in first, in the order the words give them - a connected
+       * subscription, then the queue's setup or the Metrics explorer - and
+       * the guide last.
+       */
+      const labels: Array<string> = Array.from(
+        guidance.querySelectorAll("a"),
+      ).map((anchor: HTMLAnchorElement): string => {
+        return anchor.textContent || "";
+      });
+      expect(labels[labels.length - 1]).toBe(
+        `${descriptor.displayName} broker metrics in the Queues guide →`,
+      );
+      expect(labels.slice(0, -1)).toEqual(
+        [
+          connectsAzure ? BROKER_HEALTH_CONNECT_AZURE_LINK_LABEL : null,
+          hasCuratedMetrics ? BROKER_HEALTH_SETUP_LINK_LABEL : null,
+          !hasCuratedMetrics && descriptor.brokerMetrics.kind !== "none"
+            ? BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL
+            : null,
+        ].filter((label: string | null): boolean => {
+          return label !== null;
+        }),
+      );
+
+      /*
        * Where the Broker metrics card is drawn (metrics that reach the
        * queue), the guidance is in it, in place of its summary: the
        * section's one card, under its header. Elsewhere the guidance is
@@ -899,6 +943,10 @@ describe("Broker health with nothing to chart: where the metrics come from", () 
       expect(
         within(guidance).getByText(BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL),
       ).toBeInTheDocument();
+      // A connection's metrics would not reach it either.
+      expect(
+        within(guidance).queryByText(BROKER_HEALTH_CONNECT_AZURE_LINK_LABEL),
+      ).toBeNull();
 
       // With its namespace, the same system's queue is set up as usual.
       cleanup();
@@ -912,6 +960,12 @@ describe("Broker health with nothing to chart: where the metrics come from", () 
       ).toHaveAttribute(
         "href",
         `/dashboard/${PROJECT_ID}/queues/${MODEL_ID.toString()}/documentation`,
+      );
+      expect(
+        screen.getByText(BROKER_HEALTH_CONNECT_AZURE_LINK_LABEL).closest("a"),
+      ).toHaveAttribute(
+        "href",
+        `/dashboard/${PROJECT_ID}/cloud/connect?cloud=azure`,
       );
     },
   );
@@ -953,9 +1007,43 @@ describe("Broker health with nothing to chart: where the metrics come from", () 
     expect(getMessageQueueBrokerMetricsGuidance("aws_sqs").sourceLabel).toBe(
       "Cloud monitoring: the aws_cloudwatch receiver (or awsfirehose)",
     );
-    expect(getMessageQueueBrokerMetricsGuidance("servicebus").sourceLabel).toBe(
+    // A connected Azure subscription reads Service Bus and Event Hubs per queue.
+    for (const system of ["servicebus", "eventhubs"]) {
+      expect(getMessageQueueBrokerMetricsGuidance(system).sourceLabel).toBe(
+        "Cloud monitoring: a connected Azure subscription, or the azure_monitor receiver",
+      );
+    }
+    // Event Grid's metrics reach no queue: the receiver alone.
+    expect(getMessageQueueBrokerMetricsGuidance("eventgrid").sourceLabel).toBe(
       "Cloud monitoring: the azure_monitor receiver",
     );
+  });
+
+  test("a queue a connected Azure subscription can read: connecting it is offered first", () => {
+    const serviceBus: MessageQueueBrokerMetricsGuidance =
+      getMessageQueueBrokerMetricsGuidance("servicebus", {
+        brokerScope: "orders-prod",
+      });
+    expect(serviceBus.connectsCloudAccount).toBe(true);
+    expect(serviceBus.description).toBe(
+      "No Azure Service Bus broker metric has arrived for this queue yet. A connected Azure subscription reads the namespace's key metrics for each queue and topic, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per queue and topic by the EntityName dimension.",
+    );
+    expect(
+      getMessageQueueBrokerMetricsGuidance("eventhubs", {
+        brokerScope: "telemetry-ns",
+      }).connectsCloudAccount,
+    ).toBe(true);
+    // Without a namespace its metrics never reach it; other systems never.
+    expect(
+      getMessageQueueBrokerMetricsGuidance("servicebus", { brokerScope: "" })
+        .connectsCloudAccount,
+    ).toBe(false);
+    for (const system of ["kafka", "aws_sqs", "eventgrid", "rabbitmq"]) {
+      expect(
+        getMessageQueueBrokerMetricsGuidance(system, { brokerScope: "x" })
+          .connectsCloudAccount,
+      ).toBe(false);
+    }
   });
 
   test("a system OneUptime does not know links the overview of broker metrics", () => {

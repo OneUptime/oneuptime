@@ -14,6 +14,10 @@
   from screen readers (aria-hidden), and stays on screen. Gmail, Outlook
   and Apple Mail read aria-hidden; a client that drops it reads the name
   twice, as every client did before. Standing alone, the name is read.
+
+  The name keeps its space from the logo on the side it meets it: the
+  left in an email read from the left, the right in one read from the
+  right (Persian), where the row starts at the right.
 --}}
 <table role="presentation" class="st-Header st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
   <tr><td class="st-Gutter" style="padding: 32px 40px 28px;">
@@ -31,7 +35,7 @@
           <img src="{{{@root.oneUptimeLogoUrl}}}" width="32" height="32" alt="OneUptime" style="display: block; width: 32px; height: 32px; border-radius: 6px;">
         {{#if homeURL}}</a>{{else}}{{#if homeUrl}}</a>{{/if}}{{/if}}
       </td>
-      {{/if}}<td{{#if @root.oneUptimeLogoUrl}} aria-hidden="true"{{/if}} style="{{#if @root.oneUptimeLogoUrl}}padding-left: 10px; {{/if}}font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -0.5px; color: #0f172a;">OneUptime</td>
+      {{/if}}<td{{#if @root.oneUptimeLogoUrl}} aria-hidden="true"{{/if}} style="{{#if @root.oneUptimeLogoUrl}}{{#if @root.isEmailRightToLeft}}padding-right: 10px; {{else}}padding-left: 10px; {{/if}}{{/if}}font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -0.5px; color: #0f172a;">OneUptime</td>
     </tr></table>{{/if}}{{/if}}
   </td></tr>
 </table>

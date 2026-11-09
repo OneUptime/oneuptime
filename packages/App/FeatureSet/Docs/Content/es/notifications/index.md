@@ -7,6 +7,7 @@ OneUptime te contacta de dos maneras. Te avisa cuando un incidente o una alerta 
 - [Dónde encontrarlos](#dónde-encontrarlos): Las páginas de los ajustes de usuario, sección por sección.
 - [Con qué empiezas](#con-qué-empiezas): Los métodos, reglas y ajustes que recibe un miembro nuevo.
 - [Cuando ninguna regla coincide](#cuando-ninguna-regla-coincide): Cómo un aviso te llega igualmente, y a quién se le informa.
+- [El idioma de tus avisos](#el-idioma-de-tus-avisos): Avisos en el idioma que elegiste, y lo que se queda en inglés.
 :::
 
 ## Cómo funciona
@@ -96,6 +97,18 @@ Un aviso puede llegarte para un tipo y una gravedad para los que no tienes regla
 
 Recibes un correo avisándote, y también los propietarios de la política de guardia, o los del proyecto si la política no tiene. Si no hay nada verificado, el aviso no se puede entregar, y el correo dice eso. Estos correos se retienen mientras siguen llegando avisos, para que una tormenta de avisos no sea una tormenta de correos. Para añadir la regla que falta, consulta [Reglas de guardia personales](/docs/notifications/on-call-rules#cuando-una-gravedad-no-tiene-regla).
 
+## El idioma de tus avisos
+
+Tus avisos se escriben en tu idioma: el que eliges en el menú de idiomas al pie de cualquier página, o en **Idioma** en **Perfil de usuario**. Hasta que elijas uno, están en inglés.
+
+| Canal | Idioma |
+| --- | --- |
+| Correo, SMS, notificaciones push y Telegram | Tu idioma |
+| Tus propios mensajes de Slack, Microsoft Teams y Mattermost | Tu idioma |
+| Llamadas telefónicas y WhatsApp | Inglés |
+
+Lo que cambia son las palabras de OneUptime: asuntos, encabezados, botones y frases, y los nombres con los que empieza cada proyecto nuevo, como Identificado e Incidente crítico. Lo que escribió tu equipo se queda como está: títulos, descripciones, causas raíz y los nombres de proyectos, equipos y estados que tu proyecto nombró. Un SMS en un idioma con su propio alfabeto, como el ruso, el japonés o el persa, ocupa más partes que uno en inglés.
+
 ## Solución de problemas
 
 :::details Estaba de guardia, pero no me llegó nada
@@ -104,6 +117,10 @@ Abre **Ajustes de usuario → Registros de guardia**. Si no hay fila para el inc
 
 :::details Recibo correos sobre registros que nunca pedí
 Eres propietario del registro, directamente o a través de un equipo, o el registro no tiene propietarios y tú eres propietario del proyecto. Desactiva el evento en **Ajustes de usuario → Ajustes de notificaciones**, o reduce el volumen en **Ajustes de usuario → Preferencias de correo**.
+:::
+
+:::details Mis avisos están en inglés, aunque el panel no
+El panel sigue a tu navegador hasta que eliges un idioma. Elígelo en el menú de idiomas al pie de cualquier página, o en **Idioma** en **Perfil de usuario**. Las llamadas telefónicas y los mensajes de WhatsApp se quedan en inglés.
 :::
 
 :::details Añadí un número de teléfono, pero no está en mis reglas

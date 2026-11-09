@@ -284,6 +284,8 @@ As chamadas que o OneUptime faz são cobradas da sua conta de nuvem, aos preços
 | Google Cloud | As primeiras 1.000.000 séries temporais lidas por mês são gratuitas, depois $0.50 por milhão |
 | Custos do Google Cloud | O BigQuery cobra a consulta da sua exportação de faturamento: o primeiro 1 TiB por mês é gratuito, depois $6.25 por TiB |
 
+As métricas principais de um namespace do Service Bus ou do Event Hubs são lidas para cada uma de suas filas, tópicos e event hubs, divididas pela dimensão `EntityName`, na mesma única chamada por namespace e leitura: com uma leitura a cada 5 minutos, um namespace de 50 filas custa 12 chamadas por hora, o mesmo que um namespace de uma só fila. Uma leitura pega até 1.000 deles por namespace, e avisa quando há mais. As métricas de cada um aparecem na página dele em [Filas](/docs/telemetry/queues#azure-service-bus), atribuídas como o receptor `azure_monitor` do coletor as atribui, e quando esse receptor também lê uma métrica de uma fila, os valores dele são mantidos e os da conexão deixados de fora, então nada é contado duas vezes.
+
 ## O que você vê no OneUptime
 
 - **A página de uma conta.** Em **Nuvem → Contas**, a visão geral de uma conta conta os recursos dela por tipo e região e diz quando uma conexão a leu pela última vez. Os **Recursos** dela os listam, as **Alterações** listam o que mudou nela, os mais recentes primeiro, e a **Topologia** desenha as regiões, as redes nelas e o que roda em cada uma, com os incidentes e alertas abertos nos recursos aos quais estão vinculados. Em **Alterações**, uma alteração feita pelo OneUptime AI mostra **OneUptime AI**, com o incidente ou alerta que ela corrigiu, quem a aprovou ou que foi aplicada sozinha, e um link para a entrada dela nos **Registros de IA** da conta. O **Feed** dela registra como a conta chegou ao OneUptime, quando o agente de IA de nuvem dela se conectou ou foi redefinido, e quem alterou o que o OneUptime AI pode fazer nela.
@@ -334,6 +336,10 @@ A primeira leitura lista cada recurso da conta, informe ele métricas ou não. S
 
 :::details Faltam algumas contas da organização
 Uma conexão lê até 50 contas, assinaturas ou projetos, e cada leitura avisa quando há mais. Conecte as outras com uma conexão própria.
+:::
+
+:::details Uma leitura tem avisos
+Uma leitura que funciona ainda pode deixar algo de fora, como uma métrica que a nuvem não retornou para alguns recursos, ou as filas de um namespace além das primeiras 1.000. Em **Nuvem → Conectar**, o status da conexão diz então quantos avisos a última leitura dela teve: selecione-os para ler cada um.
 :::
 
 ## Próximos passos

@@ -310,7 +310,7 @@ describe.each(CASES)("the $name on-call email", (entry: OnCallCase) => {
       ),
     );
     expect(html.match(/class="st-ColorDot"/g)).toHaveLength(2);
-    expect(html).toMatch(/color: #64748b; font-weight: 600;">Severity:/);
+    expect(html).toMatch(/color: #64748b; font-weight: 600;">Severity</);
   });
 
   test("an unusable colour is left out and the names render plain", async () => {
