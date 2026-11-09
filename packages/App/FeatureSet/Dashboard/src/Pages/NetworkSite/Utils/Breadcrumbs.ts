@@ -33,7 +33,7 @@ export function getNetworkSiteBreadcrumbs(
       "Project",
       "Network",
       "View Site",
-      "Endpoints",
+      "Discovered Devices",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_TRAFFIC, [
       "Project",

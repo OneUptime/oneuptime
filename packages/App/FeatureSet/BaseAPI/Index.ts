@@ -2068,6 +2068,7 @@ import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
@@ -6505,6 +6506,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
     );
+
+    /*
+     * The Discovered Devices list (Network > Discovered Devices): every
+     * device switches and controllers saw, searched and paged in the
+     * database, hidden from the map and shown on it again in bulk. A bare
+     * router: the list reads three tables at once, so there is no one
+     * model's CRUD API to extend, and its own checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkDiscoveredDeviceAPI);
 
     /*
      * Refresh: a network device read again now - by its probe, and by the

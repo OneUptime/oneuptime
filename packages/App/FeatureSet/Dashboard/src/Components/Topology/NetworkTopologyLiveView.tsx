@@ -15,6 +15,21 @@ import AddNeighborToMonitoringModal from "./AddNeighborToMonitoringModal";
 import { isAdoptableNode } from "./AdoptNeighborUtil";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
+import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
+import AddDiscoveredDevicesDialog from "../NetworkDevice/DiscoveredDevices/AddDiscoveredDevicesDialog";
+import { showEverythingOnMap } from "../NetworkDevice/DiscoveredDevices/DiscoveredDeviceApi";
+import {
+  DiscoveredDeviceItem,
+  getDiscoveredDeviceItemForNode,
+} from "../NetworkDevice/DiscoveredDevices/DiscoveredDeviceItems";
+import useDiscoveredDeviceCount from "../NetworkDevice/DiscoveredDevices/useDiscoveredDeviceCount";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
+import Navigation from "Common/UI/Utils/Navigation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import NetworkLinkDetailPanel from "./NetworkLinkDetailPanel";
 import { edgeKeyForEdge } from "./NetworkTopologyMeta";
@@ -67,9 +82,8 @@ import Link from "Common/UI/Components/Link/Link";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import NetworkTopologySuppression from "Common/Models/DatabaseModels/NetworkTopologySuppression";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Logger } from "Common/UI/Utils/Logger";
 import useTranslateValue from "Common/UI/Utils/Translation";
@@ -213,6 +227,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const [topology, setTopology] = useState<TopologyViewData>(EMPTY_TOPOLOGY);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -231,6 +246,27 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   const [nodeToAdopt, setNodeToAdopt] = useState<NetworkTopologyNode | null>(
     null,
   );
+  /*
+   * The discovered device (an endpoint node) the Discovered Devices list's
+   * Add to monitoring is open for (issue #5775): the discovery import's own
+   * dialog, for the one device.
+   */
+  const [endpointToAdd, setEndpointToAdd] =
+    useState<DiscoveredDeviceItem | null>(null);
+  /*
+   * How many discovered devices are not monitored, for the button to their
+   * list: read again whenever the map changes what is monitored or hidden.
+   */
+  const [discoveredCountKey, setDiscoveredCountKey] = useState<number>(0);
+  const canReadDiscoveredDevices: boolean = PermissionGate.check(
+    new NetworkEndpoint(),
+    ModelAction.Read,
+  ).isAllowed;
+  const discoveredCount: number | null = useDiscoveredDeviceCount({
+    siteId: props.siteId,
+    isEnabled: canReadDiscoveredDevices,
+    refreshKey: discoveredCountKey,
+  });
   /*
    * Issue #5378: the layout the project opens its network maps on, so the
    * whole team reads the network the same way. undefined until it has been
@@ -412,6 +448,9 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         modelType: NetworkTopologySuppression,
       })
         .then(() => {
+          setDiscoveredCountKey((key: number): number => {
+            return key + 1;
+          });
           return fetchTopology(true);
         })
         .catch((err: Error) => {
@@ -443,30 +482,23 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     ModelAction.Create,
   ).isAllowed;
 
+  /*
+   * Every hidden node shown again, in one request (issue #5775): it used to
+   * delete the project's hidden nodes one request at a time, which a few
+   * thousand devices hidden from the Discovered Devices list would have made
+   * minutes.
+   */
   const restoreAllHiddenNodes: () => void = useCallback((): void => {
     setSuppressionError("");
 
-    ModelAPI.getList<NetworkTopologySuppression>({
-      modelType: NetworkTopologySuppression,
-      query: {},
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: { _id: true },
-      sort: {},
-    })
-      .then(async (result: ListResult<NetworkTopologySuppression>) => {
-        for (const row of result.data) {
-          if (!row.id) {
-            continue;
-          }
-          await ModelAPI.deleteItem<NetworkTopologySuppression>({
-            modelType: NetworkTopologySuppression,
-            id: row.id,
-          });
-        }
+    showEverythingOnMap()
+      .then(() => {
+        setDiscoveredCountKey((key: number): number => {
+          return key + 1;
+        });
         return fetchTopology(true);
       })
-      .catch((err: Error) => {
+      .catch((err: unknown) => {
         setSuppressionError(API.getFriendlyMessage(err));
       });
   }, [fetchTopology]);
@@ -839,6 +871,15 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
    */
   const selectedNode: NetworkTopologyNode | null =
     (selectedNodeId && nodeById.get(selectedNodeId)) || null;
+  /*
+   * The selected node as a row of the Discovered Devices list, when it is a
+   * discovered device (an endpoint) with an address to add it by: the drawer
+   * offers Add to monitoring for it, through the discovery import (issue
+   * #5775).
+   */
+  const selectedEndpoint: DiscoveredDeviceItem | null = selectedNode
+    ? getDiscoveredDeviceItemForNode(selectedNode)
+    : null;
   const selectedEdge: NetworkTopologyEdge | null = useMemo(() => {
     if (!selectedEdgeKey) {
       return null;
@@ -931,6 +972,13 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     <Card
       title="Network Topology"
       description="See how your network devices connect. Select a device to inspect its health, or a connection to inspect its ports."
+      /*
+       * A row of controls - when it was updated, Discovered Devices, Export
+       * PDF and Refresh - beside the title, and the description under both
+       * across the card: beside them it was squeezed into a column a few
+       * words wide, seven lines of it in German.
+       */
+      headerLayout="toolbar"
       rightElement={
         <span
           className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500"
@@ -948,6 +996,43 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         </span>
       }
       buttons={[
+        /*
+         * Every discovered device OneUptime does not monitor, a click away
+         * (issue #5775): the endpoints on this map, and the ones hidden
+         * from it, found by name, address, MAC or vendor and added to
+         * monitoring or hidden many at a time.
+         */
+        ...(canReadDiscoveredDevices
+          ? [
+              {
+                title:
+                  discoveredCount === null
+                    ? "Discovered Devices"
+                    : translator.translateTemplate(
+                        "Discovered Devices ({{count}})",
+                        { count: translator.formatNumber(discoveredCount) },
+                      ),
+                buttonStyle: ButtonStyleType.NORMAL,
+                icon: IconProp.Squares,
+                tooltip:
+                  "Every device your switches, routers and network controllers have seen that OneUptime does not monitor yet. Add them to monitoring, or hide them from this map, many at a time.",
+                onClick: () => {
+                  Navigation.navigate(
+                    props.siteId
+                      ? RouteUtil.populateRouteParams(
+                          RouteMap[
+                            PageMap.NETWORK_SITE_VIEW_ENDPOINTS
+                          ] as Route,
+                          { modelId: new ObjectID(props.siteId) },
+                        )
+                      : RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS] as Route,
+                        ),
+                  );
+                },
+              },
+            ]
+          : []),
         {
           title: "Export PDF",
           buttonStyle: ButtonStyleType.NORMAL,
@@ -1080,9 +1165,13 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           className="mb-3 text-xs text-gray-500"
           data-testid="network-topology-suppressed-note"
         >
-          {`${topology.suppressedNodeCount} ${
-            topology.suppressedNodeCount === 1 ? "node is" : "nodes are"
-          } hidden from this map. `}
+          {translator.translatePlural(
+            {
+              one: "{{count}} node is hidden from this map.",
+              other: "{{count}} nodes are hidden from this map.",
+            },
+            topology.suppressedNodeCount,
+          )}{" "}
           <button
             type="button"
             className="font-medium text-indigo-600 underline hover:text-indigo-800"
@@ -1266,7 +1355,17 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
                   setSelectedNodeId(null);
                   setNodeToAdopt(node);
                 }
-              : undefined
+              : canCreateDevice && selectedEndpoint
+                ? () => {
+                    /*
+                     * A discovered device (an endpoint) is added through
+                     * the discovery import, as from the Discovered Devices
+                     * list - the drawer closes first here too.
+                     */
+                    setSelectedNodeId(null);
+                    setEndpointToAdd(selectedEndpoint);
+                  }
+                : undefined
           }
         />
       ) : (
@@ -1296,6 +1395,31 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
              * rather than reporting an error about a device that WAS
              * created.
              */
+            fetchTopology(true).catch(() => {
+              // Non-fatal: the next scheduled refresh picks the device up.
+            });
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {endpointToAdd ? (
+        <AddDiscoveredDevicesDialog
+          key={endpointToAdd.id}
+          devices={[endpointToAdd]}
+          onClose={() => {
+            setEndpointToAdd(null);
+          }}
+          onImportsChanged={() => {
+            /*
+             * The new device absorbs the endpoint node on the server, as an
+             * adopted neighbour does: read the map again, in the background,
+             * so the viewport and the arrangement stay.
+             */
+            setDiscoveredCountKey((key: number): number => {
+              return key + 1;
+            });
             fetchTopology(true).catch(() => {
               // Non-fatal: the next scheduled refresh picks the device up.
             });

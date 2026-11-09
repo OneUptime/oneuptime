@@ -597,7 +597,7 @@ describe("the Network Overview", () => {
     ["Devices", "fleetDevices"],
     ["Interfaces Down", "fleetInterfacesDown"],
     ["Sites", "fleetSites"],
-    ["Endpoints", "fleetEndpoints"],
+    ["Discovered Devices", "fleetEndpoints"],
   ];
 
   test("the four fleet cards and the vendor card carry an (i); the lists do not", async () => {

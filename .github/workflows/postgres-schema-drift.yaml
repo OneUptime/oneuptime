@@ -648,6 +648,26 @@ jobs:
           Tests/Server/Services/NetworkEndpointControllerClientsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated NetworkEndpoint, NetworkDevice and
+      # NetworkTopologySuppression tables into an isolated schema and runs
+      # the Discovered Devices list against them (issue #5775): which rows a
+      # device monitors (by MAC anywhere, by address only while current and
+      # in the same site), search, counts, paging and the bulk Hide / Show
+      # writes - raw SQL across three tables only a database can check, run
+      # through TypeORM's driver, whose answer to a bare DELETE is not rows.
+      - name: Test the Discovered Devices list against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DISCOVERED_DEVICES_TESTS: "true"
+          DISCOVERED_DEVICES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DISCOVERED_DEVICES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DISCOVERED_DEVICES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/NetworkDevice/DiscoveredDeviceListPostgres.test.ts
+          --forceExit
+
       # Clones the migrated CloudResource table into an isolated schema and
       # runs the discovered resources' sweeps against it: Not reporting,
       # auto-archive, restore when a resource reports again, and the budget's
