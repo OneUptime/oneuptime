@@ -1423,10 +1423,11 @@ export default class AIInvestigationEngine {
 
     /*
      * A run a limit stopped says so under its analysis, in OneUptime's own
-     * words, with the link to the setting (AIRunLimitsReader.getStopNote).
+     * words, with the link to the setting (AIRunLimitsReader.getStopNote):
+     * Markdown OneUptime built, placed as it was written.
      */
     if (result.stopNoteInMarkdown) {
-      markdown += `\n\n${result.stopNoteInMarkdown}`;
+      markdown += mdText`\n\n${FeedMarkdown.asMarkdown(result.stopNoteInMarkdown)}`;
     }
 
     const citations: Array<AIChatCitation> = result.citations || [];

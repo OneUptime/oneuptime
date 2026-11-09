@@ -1,9 +1,12 @@
 import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
+import { ObservabilityAssistantResult } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIAgentRunLimitsHelper, {
   AIAgentRunLimits,
+  AIRunStopReason,
   AIRunTimeLimitSource,
+  PROJECT_AI_RUN_LIMITS_LOCATION,
 } from "../../../../Types/AI/AIAgentRunLimits";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -185,5 +188,80 @@ describe("AIInvestigationEngine.getRunLimitsForProject", () => {
     await expect(
       AIInvestigationEngine.getRunLimitsForProject(PROJECT_ID, "Incident"),
     ).resolves.toEqual(AIAgentRunLimitsHelper.getDefault());
+  });
+});
+
+/*
+ * The report of an investigation a limit stopped, as the subject's feed,
+ * its note and its Slack and Teams channels show it: the note OneUptime
+ * wrote (AIRunLimitsReader.getStopNote) goes under the analysis as it was
+ * written - its link to the setting a link, its italics italics - and
+ * before the evidence. Placed as text, its Markdown would be escaped, and
+ * the link would read as brackets and an address.
+ */
+describe("AIInvestigationEngine.buildBrandedMarkdown: a run a limit stopped", () => {
+  const ANALYSIS: string = "**Summary** — checkout is failing.";
+  const SETTINGS_URL: string = `https://oneuptime.example/dashboard/${PROJECT_ID.toString()}/settings/ai-features#LimitsPerRun`;
+
+  function report(stopNoteInMarkdown?: string): string {
+    const result: ObservabilityAssistantResult = {
+      contentInMarkdown: ANALYSIS,
+      citations: [
+        {
+          id: "C1",
+          toolName: "search_logs",
+          label: "Error logs of checkout",
+          queryArguments: {},
+          rowCount: 12,
+        },
+      ],
+      totalTokens: 100,
+      llmCallCount: 40,
+      toolCallCount: 1,
+      modelName: "gpt-test",
+      ...(stopNoteInMarkdown ? { stopNoteInMarkdown } : {}),
+    };
+
+    return AIInvestigationEngine.buildBrandedMarkdown(result, ANALYSIS);
+  }
+
+  test("the note sits under the analysis as written, its link a link, before the evidence", () => {
+    const note: string = AIAgentRunLimitsHelper.getStopNote({
+      reason: AIRunStopReason.ModelCalls,
+      limits: AIAgentRunLimitsHelper.fromSettings({ maxModelCalls: 40 }),
+      settingsUrl: SETTINGS_URL,
+    });
+
+    expect(note).toBe(
+      `_This run stopped at this project's limit of 40 model calls per run. Change it in [${PROJECT_AI_RUN_LIMITS_LOCATION}](${SETTINGS_URL})._`,
+    );
+
+    const markdown: string = report(note);
+
+    expect(markdown).toContain(`\n\n${note}\n\n**Evidence checked**\n`);
+    expect(markdown.indexOf(ANALYSIS)).toBeLessThan(markdown.indexOf(note));
+    // Not escaped as text: no backslash before its brackets or italics.
+    expect(markdown).not.toContain(`\\[${PROJECT_AI_RUN_LIMITS_LOCATION}`);
+    expect(markdown).not.toContain("\\_This run stopped");
+  });
+
+  test("a loop's note, which links nowhere, is placed the same way", () => {
+    const note: string = AIAgentRunLimitsHelper.getStopNote({
+      reason: AIRunStopReason.Loop,
+      limits: AIAgentRunLimitsHelper.getDefault(),
+      settingsUrl: SETTINGS_URL,
+    });
+
+    expect(note).toBe(
+      "_This run stopped early: it kept repeating calls that showed it nothing new._",
+    );
+    expect(report(note)).toContain(`\n\n${note}\n\n**Evidence checked**\n`);
+  });
+
+  test("a run no limit stopped has no note: the analysis is followed by the evidence", () => {
+    const markdown: string = report();
+
+    expect(markdown).not.toContain("stopped");
+    expect(markdown).toContain(`${ANALYSIS}\n\n**Evidence checked**\n`);
   });
 });
