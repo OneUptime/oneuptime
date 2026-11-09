@@ -305,14 +305,16 @@ export const AI_ACTION_LINES: {
  * branch has them (issue #6313). Ask AI writes each file whole, from what
  * read_code_file showed it, so a commit - on a branch, or a pull request's
  * - would undo what was pushed to a file since, or replace a file Ask AI
- * read on another branch, or never read. Each names the files, as
- * {{files}}: a list of AI_ACTION_CODE_FILE, the first few written out and
- * the rest counted (moreFiles). {{count}} is how many files it names.
+ * read on another branch, or never read, or read only part of (issue
+ * #6330). Each names the files, as {{files}}: a list of
+ * AI_ACTION_CODE_FILE, the first few written out and the rest counted
+ * (moreFiles). {{count}} is how many files it names.
  */
 export const AI_ACTION_PLURAL_LINES: {
   codeFilesChangedSinceRead: PluralTemplate;
   codeFilesReadOnAnotherBranch: PluralTemplate;
   codeFilesNotRead: PluralTemplate;
+  codeFilesReadInPart: PluralTemplate;
   codeFilesNotChecked: PluralTemplate;
   moreFiles: PluralTemplate;
 } = {
@@ -345,6 +347,19 @@ export const AI_ACTION_PLURAL_LINES: {
     ),
     other: translationKey(
       "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}.",
+    ),
+  },
+  /*
+   * The version on the branch is the one Ask AI read, but it read only some
+   * of its lines - read_code_file shows a file a window at a time - and
+   * the change writes all of it, dropping the lines Ask AI never saw.
+   */
+  codeFilesReadInPart: {
+    one: translationKey(
+      "Ask AI read only part of this file, and its version replaces all of it: {{files}}.",
+    ),
+    other: translationKey(
+      "Ask AI read only part of these {{count}} files, and its versions replace all of them: {{files}}.",
     ),
   },
   // The branch could not be read: never said to be unchanged.

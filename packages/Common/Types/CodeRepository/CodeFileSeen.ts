@@ -1,8 +1,11 @@
 import {
+  AIChatLineRange,
+  AIChatLinesShown,
   AIChatRecordPartSeen,
   AIChatRecordSeen,
   AIChatRecordSeenType,
   MAX_RECORD_ID_LENGTHS,
+  readAIChatLineRanges,
   readAIChatRecordSeen,
 } from "../AI/AIChatRecordSeen";
 
@@ -36,6 +39,15 @@ import {
  *   - never seen, and on the branch: the commit replaces what is there;
  *   - not on the branch at all: a new file, nothing to say;
  *   - and when the branch could not be read: never "unchanged".
+ *
+ * And a version Ask AI saw is not one it saw all of (issue #6330):
+ * read_code_file shows a file a window at a time - at most so many lines
+ * and bytes, often only the lines around a stack frame - and a read keeps
+ * which lines it showed. Ask AI's reads of the version the branch has add
+ * up, on every branch it read it on, from where it last saw another
+ * version there; a line none of them showed is one the commit drops
+ * unseen. A commit of Ask AI's own wrote all of a file, and a citation
+ * from before OneUptime kept lines reads as all of it.
  *
  * Pure: no host, no clock, no key. The fingerprints are the caller's.
  */
@@ -155,16 +167,22 @@ type SeeCodeFileFunction = (
   data: CodeFileAddress & {
     // The version shown; null: there was no such file on the branch.
     fingerprint: string | null;
+    // The lines shown, when only some were (getCodeFileLinesShown); left out, all of them.
+    linesShown?: AIChatLinesShown | undefined;
   },
 ) => AIChatRecordSeen | null;
 
 /*
  * What a result showed the model of one file on one branch: a whole
  * record, as a file is written whole. A file has no revision of its own:
- * its version is its one part.
+ * its version is its one part - and the lines shown of it, when only some
+ * were, are said beside it.
  */
 export const seeCodeFile: SeeCodeFileFunction = (
-  data: CodeFileAddress & { fingerprint: string | null },
+  data: CodeFileAddress & {
+    fingerprint: string | null;
+    linesShown?: AIChatLinesShown | undefined;
+  },
 ): AIChatRecordSeen | null => {
   const recordId: string | null = getCodeFileRecordId(data);
 
@@ -181,7 +199,154 @@ export const seeCodeFile: SeeCodeFileFunction = (
     recordId: recordId,
     revision: 0,
     parts: parts,
+    ...(data.fingerprint && data.linesShown
+      ? {
+          linesShown: {
+            lineCount: data.linesShown.lineCount,
+            ranges: data.linesShown.ranges.map(
+              (range: AIChatLineRange): AIChatLineRange => {
+                return { first: range.first, last: range.last };
+              },
+            ),
+          },
+        }
+      : {}),
   };
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * Which lines of a file Ask AI was shown (issue #6330).
+ * ---------------------------------------------------------------------------
+ */
+
+type LinesShownFunction = (data: {
+  // How many lines the file has, as read_code_file numbers them.
+  lineCount: number;
+  // The first and last line shown; a last line before the first shows none.
+  firstLine: number;
+  lastLine: number;
+}) => AIChatLinesShown | undefined;
+
+/*
+ * What a read showed of a file's lines: nothing to keep when it showed
+ * every one of them - an empty file's none included - or the run it
+ * showed, which may be no line at all.
+ */
+export const getCodeFileLinesShown: LinesShownFunction = (data: {
+  lineCount: number;
+  firstLine: number;
+  lastLine: number;
+}): AIChatLinesShown | undefined => {
+  if (
+    data.lineCount <= 0 ||
+    (data.firstLine <= 1 && data.lastLine >= data.lineCount)
+  ) {
+    return undefined;
+  }
+
+  const first: number = Math.max(1, data.firstLine);
+  const last: number = Math.min(data.lineCount, data.lastLine);
+
+  return {
+    lineCount: data.lineCount,
+    ranges: first <= last ? [{ first, last }] : [],
+  };
+};
+
+type AddLineRangesFunction = (
+  ranges: ReadonlyArray<AIChatLineRange>,
+) => Array<AIChatLineRange>;
+
+/*
+ * Runs of lines put together: in order, each run joined to every run it
+ * overlaps or touches, so lines 1 to 400 and 401 to 800 are 1 to 800.
+ */
+export const addLineRanges: AddLineRangesFunction = (
+  ranges: ReadonlyArray<AIChatLineRange>,
+): Array<AIChatLineRange> => {
+  const sorted: Array<AIChatLineRange> = ranges
+    .filter((range: AIChatLineRange): boolean => {
+      return range.first <= range.last;
+    })
+    .map((range: AIChatLineRange): AIChatLineRange => {
+      return { first: range.first, last: range.last };
+    })
+    .sort((a: AIChatLineRange, b: AIChatLineRange): number => {
+      return a.first - b.first || a.last - b.last;
+    });
+
+  const added: Array<AIChatLineRange> = [];
+
+  for (const range of sorted) {
+    const previous: AIChatLineRange | undefined = added[added.length - 1];
+
+    if (previous && range.first <= previous.last + 1) {
+      previous.last = Math.max(previous.last, range.last);
+    } else {
+      added.push(range);
+    }
+  }
+
+  return added;
+};
+
+type LinesNotShownFunction = (
+  shown: AIChatLinesShown,
+) => Array<AIChatLineRange>;
+
+// The runs of a file's lines that none of the runs shown holds, in order.
+export const getLinesNotShown: LinesNotShownFunction = (
+  shown: AIChatLinesShown,
+): Array<AIChatLineRange> => {
+  const notShown: Array<AIChatLineRange> = [];
+  let next: number = 1;
+
+  for (const range of addLineRanges(shown.ranges)) {
+    if (range.first > next) {
+      notShown.push({
+        first: next,
+        last: Math.min(range.first - 1, shown.lineCount),
+      });
+    }
+
+    next = Math.max(next, range.last + 1);
+  }
+
+  if (next <= shown.lineCount) {
+    notShown.push({ first: next, last: shown.lineCount });
+  }
+
+  return notShown.filter((range: AIChatLineRange): boolean => {
+    return range.first <= range.last;
+  });
+};
+
+type AddLinesShownFunction = (
+  shown: AIChatLinesShown | undefined,
+  more: AIChatLinesShown | undefined,
+) => AIChatLinesShown | undefined;
+
+/*
+ * What two views of one version showed of it, added up: all of it - left
+ * out - when either did, or when together they show every line. Their
+ * line counts are one version's, so the same; were they not, the longer
+ * is the one held to, which only ever leaves more unread.
+ */
+export const addLinesShown: AddLinesShownFunction = (
+  shown: AIChatLinesShown | undefined,
+  more: AIChatLinesShown | undefined,
+): AIChatLinesShown | undefined => {
+  if (!shown || !more) {
+    return undefined;
+  }
+
+  const added: AIChatLinesShown = {
+    lineCount: Math.max(shown.lineCount, more.lineCount),
+    ranges: addLineRanges([...shown.ranges, ...more.ranges]),
+  };
+
+  return getLinesNotShown(added).length === 0 ? undefined : added;
 };
 
 // What the model last saw of a file on one branch.
@@ -191,6 +356,11 @@ export interface CodeFileView {
   fingerprint: string | null;
   // Where it stands among what the model was shown: the larger, the later.
   order: number;
+  /*
+   * The lines of that version it was shown there, its reads of it since
+   * it last saw another version there added up; left out, all of them.
+   */
+  linesShown?: AIChatLinesShown | undefined;
 }
 
 type CodeFileViewsFunction = (data: {
@@ -202,8 +372,10 @@ type CodeFileViewsFunction = (data: {
 
 /*
  * What the model was shown of one file of a repository: its last view of
- * it on each branch, oldest first. A record that is not well formed, or
- * that is only part of one, shows nothing.
+ * it on each branch, oldest first - with the lines of that version every
+ * view of it there showed since it last saw another (issue #6330). A
+ * record that is not well formed, or that is only part of one, shows
+ * nothing.
  */
 export const getCodeFileViews: CodeFileViewsFunction = (data: {
   records: ReadonlyArray<unknown> | null | undefined;
@@ -244,13 +416,26 @@ export const getCodeFileViews: CodeFileViewsFunction = (data: {
         return part.id === CODE_FILE_VERSION_PART;
       },
     );
+    const fingerprint: string | null = version?.fingerprint ?? null;
+    const before: CodeFileView | undefined = byBranch.get(address.branchName);
 
-    // The last view on each branch replaces the ones before it.
+    /*
+     * The last view on each branch replaces the ones before it; one of the
+     * same version adds the lines it showed to theirs.
+     */
+    const linesShown: AIChatLinesShown | undefined =
+      fingerprint === null
+        ? undefined
+        : before && before.fingerprint === fingerprint
+          ? addLinesShown(before.linesShown, record.linesShown)
+          : record.linesShown;
+
     byBranch.delete(address.branchName);
     byBranch.set(address.branchName, {
       branchName: address.branchName,
-      fingerprint: version?.fingerprint ?? null,
+      fingerprint: fingerprint,
       order: order,
+      ...(linesShown ? { linesShown } : {}),
     });
   }
 
@@ -272,6 +457,11 @@ export enum CodeFileUnseen {
   ReadOnAnotherBranch = "ReadOnAnotherBranch",
   // Ask AI never saw it, and the branch has it.
   NotRead = "NotRead",
+  /*
+   * Ask AI saw this version, but only some of its lines (issue #6330): the
+   * change writes all of it, and drops what Ask AI never saw.
+   */
+  ReadInPart = "ReadInPart",
   // The branch could not be read, so nothing can be said of it.
   NotChecked = "NotChecked",
 }
@@ -281,7 +471,61 @@ export interface CodeFileUnseenFinding {
   unseen: CodeFileUnseen;
   // ReadOnAnotherBranch: the branch Ask AI last saw it on.
   readOnBranch?: string | undefined;
+  // ReadInPart: how many lines the file has, and the runs of them Ask AI never saw.
+  lineCount?: number | undefined;
+  linesNotRead?: Array<AIChatLineRange> | undefined;
 }
+
+type FindLinesNotReadFunction = (data: {
+  views: ReadonlyArray<CodeFileView>;
+  // The version the branch has now.
+  fingerprint: string | null;
+}) => Omit<CodeFileUnseenFinding, "filePath"> | null;
+
+/*
+ * What Ask AI never saw of a version it saw (issue #6330): its views of
+ * that version add up, on whichever branch - one version is the same
+ * lines everywhere. Null when they showed every line, or when there is no
+ * file.
+ */
+const findLinesNotRead: FindLinesNotReadFunction = (data: {
+  views: ReadonlyArray<CodeFileView>;
+  fingerprint: string | null;
+}): Omit<CodeFileUnseenFinding, "filePath"> | null => {
+  if (data.fingerprint === null) {
+    return null;
+  }
+
+  const ofVersion: Array<CodeFileView> = data.views.filter(
+    (view: CodeFileView): boolean => {
+      return view.fingerprint === data.fingerprint;
+    },
+  );
+
+  if (ofVersion.length === 0) {
+    return null;
+  }
+
+  let shown: AIChatLinesShown | undefined = ofVersion[0]!.linesShown;
+
+  for (const view of ofVersion.slice(1)) {
+    shown = addLinesShown(shown, view.linesShown);
+  }
+
+  if (!shown) {
+    return null;
+  }
+
+  const linesNotRead: Array<AIChatLineRange> = getLinesNotShown(shown);
+
+  return linesNotRead.length === 0
+    ? null
+    : {
+        unseen: CodeFileUnseen.ReadInPart,
+        lineCount: shown.lineCount,
+        linesNotRead: linesNotRead,
+      };
+};
 
 type FindCodeFileUnseenFunction = (data: {
   views: ReadonlyArray<CodeFileView>;
@@ -294,7 +538,8 @@ type FindCodeFileUnseenFunction = (data: {
  * What writing a file whole would undo that Ask AI never saw, or null for
  * nothing: the rules at the top of this file. Ask AI's last view of the
  * file on the branch the change writes to decides it; with none, the file
- * as the branch has it must be one Ask AI saw somewhere.
+ * as the branch has it must be one Ask AI saw somewhere - and then all of
+ * it (issue #6330).
  */
 export const findCodeFileUnseen: FindCodeFileUnseenFunction = (data: {
   views: ReadonlyArray<CodeFileView>;
@@ -316,7 +561,7 @@ export const findCodeFileUnseen: FindCodeFileUnseenFunction = (data: {
 
   if (onBranch) {
     return onBranch.fingerprint === fingerprintNow
-      ? null
+      ? findLinesNotRead({ views: data.views, fingerprint: fingerprintNow })
       : { unseen: CodeFileUnseen.ChangedSinceRead };
   }
 
@@ -336,7 +581,7 @@ export const findCodeFileUnseen: FindCodeFileUnseenFunction = (data: {
       return view.fingerprint === fingerprintNow;
     })
   ) {
-    return null;
+    return findLinesNotRead({ views: data.views, fingerprint: fingerprintNow });
   }
 
   let latestWithFile: CodeFileView | null = null;
@@ -439,6 +684,39 @@ const isRecord: IsRecordFunction = (
   return value !== null && typeof value === "object" && !Array.isArray(value);
 };
 
+type ReadLinesNotReadFunction = (
+  finding: Record<string, unknown>,
+) => { lineCount: number; linesNotRead: Array<AIChatLineRange> } | null;
+
+/*
+ * The lines a finding of a file read in part says Ask AI never saw, or
+ * null for none that are well formed: a note for the pull request's
+ * reviewer, so a damaged one leaves out the note, never the finding.
+ */
+const readLinesNotRead: ReadLinesNotReadFunction = (
+  finding: Record<string, unknown>,
+): { lineCount: number; linesNotRead: Array<AIChatLineRange> } | null => {
+  const lineCount: unknown = finding["lineCount"];
+
+  if (
+    finding["unseen"] !== CodeFileUnseen.ReadInPart ||
+    typeof lineCount !== "number" ||
+    !Number.isSafeInteger(lineCount) ||
+    lineCount < 1
+  ) {
+    return null;
+  }
+
+  const linesNotRead: Array<AIChatLineRange> | null = readAIChatLineRanges(
+    finding["linesNotRead"],
+    lineCount,
+  );
+
+  return linesNotRead && linesNotRead.length > 0
+    ? { lineCount, linesNotRead }
+    : null;
+};
+
 type ReadProposedOnFunction = (value: unknown) => CodeChangeProposedOn | null;
 
 /*
@@ -510,6 +788,7 @@ export const readCodeChangeProposedOn: ReadProposedOnFunction = (
       ...(finding["readOnBranch"] !== undefined
         ? { readOnBranch: finding["readOnBranch"] as string }
         : {}),
+      ...(readLinesNotRead(finding) || {}),
     });
   }
 
