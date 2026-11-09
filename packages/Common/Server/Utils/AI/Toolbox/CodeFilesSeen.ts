@@ -1140,12 +1140,22 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
     data.findings.every((finding: CodeFileUnseenFinding): boolean => {
       return finding.unseen === CodeFileUnseen.ValuesHidden;
     });
+  // Only files read in an earlier answer (issue #6365): read, but no longer in hand.
+  const onlyEarlier: boolean =
+    data.findings.length > 0 &&
+    data.findings.every((finding: CodeFileUnseenFinding): boolean => {
+      return finding.unseen === CodeFileUnseen.ReadInEarlierAnswer;
+    });
   const lines: Array<string> = [
     onlyHidden
       ? isCommit
         ? `Not done: nothing was committed to ${branch}, because your version of these files writes placeholders where values were hidden from you:`
         : `Not done: no pull request was opened, because your version of these files writes placeholders where values were hidden from you:`
-      : isCommit
+      : onlyEarlier
+        ? isCommit
+          ? `Not done: nothing was committed to ${branch}, because you read these files in an earlier answer and no longer have their text:`
+          : `Not done: no pull request was opened, because you read these files in an earlier answer and no longer have their text:`
+        : isCommit
         ? `Not done: nothing was committed to ${branch}, because writing these files whole would undo or replace what you have not read there:`
         : `Not done: no pull request was opened, because writing these files whole on top of ${branch}, the branch it starts from, would undo or replace what you have not read there:`,
   ];
