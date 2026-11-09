@@ -162,28 +162,95 @@ export function getCloudChangeTitleDirection(
 }
 
 /*
- * A value of a change's title - its operation, its resource - as a box of
- * its own: it moves to the next line whole rather than breaking at its
- * hyphen ("nightly-" / "export", "sg-" / "0f1e2d3c..." on a phone), and only
- * a value longer than the line is broken, inside its box. Set apart (bdi),
- * so a Latin name keeps its place in a Persian sentence.
+ * A value of a change's title - its operation, its resource - is set apart
+ * (bdi), so a Latin name keeps its place in a Persian sentence, and flows
+ * with the sentence's words. Each of its pieces is a box of its own
+ * (CloudChangeTitlePiece): it moves to the next line whole rather than
+ * breaking at its hyphen ("nightly-" / "export", "sg-" / "0f1e2d3c..." on
+ * a phone), and only a piece longer than the line is broken, inside its
+ * box. A resource is one piece; an operation is as many as its name has
+ * (getCloudOperationPieces), so it breaks between them -
+ * "elasticloadbalancing:" / "ModifyLoadBalancerAttributes" - where the line
+ * runs out, and the words after it go on beside its last piece.
+ *
+ * The pieces, not the whole value, are the boxes: an operation held in one
+ * box that broke inside it took the column's whole width, so "on web-alb"
+ * went to a line of its own, a failed one stood four lines tall in German
+ * ("Fehlgeschlagen:" / "elasticloadbalancing:" / "DeleteLoadBalancer" /
+ * "für web-alb"), and on a Persian page the box's first line stood at the
+ * left, away from the sentence it is part of.
  *
  * break-words, never overflow-wrap:anywhere: anywhere lowers what the
  * table's column must hold, and the table then narrowed "What changed"
  * until an operation broke inside ("UpdateFunctionCode20150331v" / "2").
  */
-export const CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME: string =
+export const CLOUD_CHANGE_TITLE_PIECE_CLASS_NAME: string =
   "inline-block max-w-full break-words";
 
-const TitleValue: FunctionComponent<{ text: string }> = (props: {
+// Where an operation's name may move to the next line: after one of these.
+export const CLOUD_OPERATION_BREAK_AFTER: ReadonlyArray<string> = [
+  ":",
+  "/",
+  ".",
+];
+
+/*
+ * An operation's name in the pieces it may break between: its service and
+ * its action ("elasticloadbalancing:" "ModifyLoadBalancerAttributes"), an
+ * Azure operation's provider, type and verb
+ * ("Microsoft.Network/" "networkSecurityGroups/" "write"), a Google Cloud
+ * method's names ("v1." "compute." "instances." "stop"). The cloud writes
+ * them as one word, often longer than the column or a phone's card holds
+ * whole: held whole, the longest held the table past its card at 1280 in
+ * German, and broke inside a word on a phone. Each piece stays whole.
+ */
+export function getCloudOperationPieces(operation: string): Array<string> {
+  const pieces: Array<string> = [];
+  let piece: string = "";
+
+  for (const character of operation) {
+    piece += character;
+
+    if (CLOUD_OPERATION_BREAK_AFTER.includes(character)) {
+      pieces.push(piece);
+      piece = "";
+    }
+  }
+
+  if (piece) {
+    pieces.push(piece);
+  }
+
+  return pieces;
+}
+
+const TitleValue: FunctionComponent<{
   text: string;
+  // An operation's name, which may break between its pieces.
+  isOperation?: boolean | undefined;
+}> = (props: {
+  text: string;
+  isOperation?: boolean | undefined;
 }): ReactElement => {
+  const pieces: Array<string> = props.isOperation
+    ? getCloudOperationPieces(props.text)
+    : [props.text];
+
   return (
-    <bdi
-      className={CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME}
-      data-testid="cloud-change-title-value"
-    >
-      {props.text}
+    <bdi data-testid="cloud-change-title-value">
+      {pieces.map((piece: string, index: number): ReactElement => {
+        return (
+          <React.Fragment key={index}>
+            {index > 0 ? <wbr /> : <></>}
+            <span
+              className={CLOUD_CHANGE_TITLE_PIECE_CLASS_NAME}
+              data-testid="cloud-change-title-piece"
+            >
+              {piece}
+            </span>
+          </React.Fragment>
+        );
+      })}
     </bdi>
   );
 };
@@ -211,14 +278,14 @@ export const CloudChangeTitle: FunctionComponent<{
   const sentence: string | null = getCloudChangeTitleSentence(facts);
 
   if (!sentence) {
-    return <TitleValue text={operation} />;
+    return <TitleValue text={operation} isOperation={true} />;
   }
 
   return (
     <TranslatedSentence
       template={sentence}
       slots={{
-        operation: <TitleValue text={operation} />,
+        operation: <TitleValue text={operation} isOperation={true} />,
         ...(resource ? { resource: <TitleValue text={resource} /> } : {}),
       }}
     />

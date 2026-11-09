@@ -224,7 +224,9 @@ describe("Apps and deploys, on Cloud Environments", () => {
  * chip, and Cloud's Overview links its App Platforms counts to those lists
  * with the chip already set. The hub says so, and Cloud's own page names
  * the card - each against the code that draws it, read as text (the
- * Dashboard's modules reach React).
+ * Dashboard's modules reach React). #6227: the chip names each account as
+ * Cloud > Accounts names it, its ID under the name, and Cloud's All
+ * Resources has the chip too, set from a connection's resource count.
  */
 describe("the lists by cloud account, on Cloud Environments", () => {
   const DASHBOARD: string = path.join(PACKAGES, "App/FeatureSet/Dashboard/src");
@@ -245,6 +247,10 @@ describe("the lists by cloud account, on Cloud Environments", () => {
       PACKAGES,
       "App/FeatureSet/Docs/Content/en/telemetry/cloud-accounts.md",
     ),
+    "utf8",
+  );
+  const CHIP_READS: string = fs.readFileSync(
+    path.join(DASHBOARD, "Components/Cloud/CloudAccountChipReads.ts"),
     "utf8",
   );
   const paragraph: string | undefined = hub
@@ -272,12 +278,24 @@ describe("the lists by cloud account, on Cloud Environments", () => {
       'CLOUD_ACCOUNT_FACET_OPERATORS: Array<FilterOperator> = [\n  "is",\n  "is_not",\n];',
     );
     // Each account under its cloud: the option's group.
-    expect(FACET).toContain("...(provider ? { group: provider } : {}),");
+    expect(FACET).toContain("...(group ? { group } : {}),");
+    /*
+     * Named as Cloud > Accounts names it (CloudAccount.name), its ID under
+     * the name: the option's label and sublabel.
+     */
+    expect(FACET).toContain("label: isNamed ? name : account.accountId,");
+    expect(FACET).toContain(
+      "...(isNamed ? { sublabel: account.accountId } : {}),",
+    );
+    expect(CHIP_READS).toContain("modelType: CloudAccount,");
+    expect(CHIP_READS).toContain(
+      "select: { provider: true, accountId: true, name: true },",
+    );
     expect(paragraph).toContain(
       "filter **All Environments** or **All Apps** by the **Cloud Account** chip",
     );
     expect(paragraph).toContain(
-      "it lists each account the environments are in, under its cloud, and keeps the accounts you pick, or every other one.",
+      "it lists each account the environments are in, under its cloud, named as **Cloud → Accounts** names it with its ID under the name, and keeps the accounts you pick, or every other one.",
     );
     // Both lists draw it.
     expect(
@@ -286,12 +304,13 @@ describe("the lists by cloud account, on Cloud Environments", () => {
         "utf8",
       ),
     ).toContain("getEnvironmentsCloudAccountFacet(");
-    expect(
-      fs.readFileSync(
-        path.join(DASHBOARD, "Components/AppPlatforms/CloudAppsTable.tsx"),
-        "utf8",
-      ),
-    ).toContain("getAppsCloudAccountFacet(props.environments)");
+    const appsTable: string = fs.readFileSync(
+      path.join(DASHBOARD, "Components/AppPlatforms/CloudAppsTable.tsx"),
+      "utf8",
+    );
+    expect(appsTable).toContain("getAppsCloudAccountFacet(");
+    // All Apps names its accounts the same way.
+    expect(appsTable).toContain("fetchCloudAccountNames,");
   });
 
   it("says Cloud's Overview counts link to the lists with the chip set, as the card's links are built", () => {
@@ -312,6 +331,43 @@ describe("the lists by cloud account, on Cloud Environments", () => {
       "On **Cloud → Overview**, the **App Platforms** card counts the environments and apps in your connected cloud accounts, and each count opens its list with the chip already set to those accounts.",
     );
     expect(paragraph).toContain("Clear the chip to see the whole list.");
+  });
+
+  /*
+   * Cloud's All Resources has the same chip, in place of its typed Account
+   * filter, and a connection's resource count on Cloud > Connect opens it
+   * with the chip set to the accounts the connection reads.
+   */
+  it("says Cloud's All Resources has the chip, set from a connection's resource count, as the page and the count's link are built", () => {
+    const bullet: string | undefined = ACCOUNTS.split("\n").find(
+      (line: string): boolean => {
+        return line.startsWith("- **Each resource has a page of its own.**");
+      },
+    );
+
+    expect(
+      fs.readFileSync(
+        path.join(DASHBOARD, "Pages/Cloud/MonitoredResources.tsx"),
+        "utf8",
+      ),
+    ).toContain(
+      "getResourcesCloudAccountFacet(fetchResourcesCloudAccountOptions)",
+    );
+    expect(
+      fs.readFileSync(
+        path.join(
+          DASHBOARD,
+          "Components/Cloud/Connect/CloudConnectionsTable.tsx",
+        ),
+        "utf8",
+      ),
+    ).toContain("to={props.getResourcesRoute(summary.accounts)}");
+    expect(
+      fs.readFileSync(path.join(DASHBOARD, "Pages/Cloud/Connect.tsx"), "utf8"),
+    ).toContain("getResourcesRoute={getCloudResourcesRoute}");
+    expect(bullet).toContain(
+      "The list's **Cloud Account** chip keeps the resources of the accounts you pick, and each connection's resource count on **Cloud → Connect** opens the list with the chip set to the accounts the connection reads.",
+    );
   });
 
   it("is named on Cloud's own page, where its Overview is", () => {

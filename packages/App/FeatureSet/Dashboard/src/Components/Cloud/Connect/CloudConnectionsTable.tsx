@@ -118,8 +118,12 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
 export interface ComponentProps {
   refreshToggle: string;
   updateGate: PermissionGateResult;
-  // Where the resources are listed: Cloud > All Resources.
-  resourcesRoute: Route;
+  /*
+   * Where the resources a connection read are listed: Cloud > All
+   * Resources, with its Cloud Account chip set to the accounts it reads
+   * (getCloudResourcesRoute), so its count opens what it counted.
+   */
+  getResourcesRoute: (accountIds: ReadonlyArray<string>) => Route;
   onEdit: (connection: CloudConnection) => void;
   // Each time the list loads: how many connections it found.
   onConnectionsLoaded: (totalCount: number) => void;
@@ -1055,7 +1059,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                 return (
                   <div className="min-w-0">
                     <AppLink
-                      to={props.resourcesRoute}
+                      to={props.getResourcesRoute(summary.accounts)}
                       className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
                     >
                       <span data-testid="cloud-connection-resource-count">

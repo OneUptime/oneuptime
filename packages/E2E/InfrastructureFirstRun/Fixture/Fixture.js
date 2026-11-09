@@ -175,6 +175,8 @@ const store = {
   // The Owners column of Cloud > Resources, once a resource is there.
   CloudResourceOwnerUser: [],
   CloudResourceOwnerTeam: [],
+  // The names Cloud > Resources' Cloud Account chip offers its accounts by.
+  CloudAccount: [],
   Label: [],
   TableView: [],
   TelemetryIngestionKey: [],

@@ -95,7 +95,9 @@ const ROLLBACK_WORDS: ReadonlyArray<string> = ["rollback", "revert"];
 /*
  * What kind of change an operation is: a health event is the provider's;
  * scaling and deploys by their verbs; everything else a change of
- * configuration.
+ * configuration. A call its connector read as one that only changed how
+ * many run is scaling, though the verb is a deploy's: an ECS UpdateService
+ * that set the desired count alone (isAwsScaleOnlyUpdate).
  */
 export function classifyCloudChange(change: CloudChange): ChangeEventType {
   if (change.kind === "health") {
@@ -110,6 +112,10 @@ export function classifyCloudChange(change: CloudChange): ChangeEventType {
     })
   ) {
     return ChangeEventType.Rollback;
+  }
+
+  if (change.isScalingOnly) {
+    return ChangeEventType.Scaling;
   }
 
   if (

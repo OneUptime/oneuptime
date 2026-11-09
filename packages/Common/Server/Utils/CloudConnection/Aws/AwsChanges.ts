@@ -31,8 +31,10 @@ import { describeAwsHealthEventType } from "../../../../Utils/Telemetry/CloudCha
  *   machinery rather than a change - signing in, assuming a role, an ECS
  *   agent reporting a task's state - are left out (isAwsChangeNoise). Of
  *   CloudTrailEvent only the error code, the Region and who called
- *   (userIdentity.arn) are read: its request parameters can carry
- *   anything, and are never kept - unless the project's Security Events
+ *   (userIdentity.arn) are read, and of an ECS UpdateService which
+ *   parameters it set - whether it only set the desired count
+ *   (isAwsScaleOnlyUpdate): its request parameters can carry anything,
+ *   and their values are never kept - unless the project's Security Events
  *   read the account's audit log (Cloud audit logs, keepAuditRecords):
  *   then each event's CloudTrailEvent is handed back whole, sign-ins too,
  *   for the CloudTrail parser to judge.
@@ -103,6 +105,66 @@ export function isAwsChangeNoise(
   );
 }
 
+/*
+ * AN ECS UPDATESERVICE THAT ONLY SCALES.
+ *
+ * ECS changes a service's desired count, its task definition, its network
+ * and the rest with one call, UpdateService, so its name alone reads as a
+ * deploy. Most of them are not: Application Auto Scaling scales a service
+ * with it, and so do `aws ecs update-service --desired-count`, a
+ * pipeline's and the Cloud AI agent's scale-out. Such a request names the
+ * service and its cluster and sets the desired count - and nothing that
+ * starts a deployment: no task definition, no forced deployment (Terraform
+ * sends forceNewDeployment false with every update), no network, capacity
+ * or load balancer change. Only that is scaling; anything else it sets
+ * keeps it a deploy, as before.
+ */
+const ECS_UPDATE_SERVICE_OPERATION: string = "ecs:UpdateService";
+const ECS_DESIRED_COUNT_PARAMETER: string = "desiredCount";
+
+// What names the service a request changes: never a change of its own.
+const ECS_SERVICE_NAMING_PARAMETERS: ReadonlyArray<string> = [
+  "cluster",
+  "service",
+];
+
+// Starts a deployment when true; the same as left out when false.
+const ECS_FORCE_NEW_DEPLOYMENT_PARAMETER: string = "forceNewDeployment";
+
+/*
+ * Whether a CloudTrail event is an ECS UpdateService that only set the
+ * desired count. Reads the names of its request parameters, and whether a
+ * forced deployment was asked for - never what any of them was set to.
+ */
+export function isAwsScaleOnlyUpdate(
+  operation: string,
+  trail: JSONObject,
+): boolean {
+  if (operation !== ECS_UPDATE_SERVICE_OPERATION) {
+    return false;
+  }
+
+  const parameters: JSONObject = readObject(trail["requestParameters"]);
+  const names: Array<string> = Object.keys(parameters);
+
+  if (!names.includes(ECS_DESIRED_COUNT_PARAMETER)) {
+    return false;
+  }
+
+  return names.every((name: string): boolean => {
+    if (
+      name === ECS_DESIRED_COUNT_PARAMETER ||
+      ECS_SERVICE_NAMING_PARAMETERS.includes(name)
+    ) {
+      return true;
+    }
+
+    return (
+      name === ECS_FORCE_NEW_DEPLOYMENT_PARAMETER && parameters[name] === false
+    );
+  });
+}
+
 // A CloudTrailEvent document, for its error code; {} when unreadable.
 export function parseTrailEvent(value: unknown): JSONObject {
   if (typeof value !== "string" || !value.trim().startsWith("{")) {
@@ -144,6 +206,7 @@ export function readAwsTrailEvent(data: {
   }
 
   const trail: JSONObject = parseTrailEvent(data.event["CloudTrailEvent"]);
+  const operation: string = awsOperationOf(eventSource, eventName);
 
   return {
     kind: "change",
@@ -152,7 +215,7 @@ export function readAwsTrailEvent(data: {
     region: readText(trail["awsRegion"]) || data.region,
     time,
     eventId,
-    operation: awsOperationOf(eventSource, eventName),
+    operation,
     actor: readText(data.event["Username"]),
     actorIdentity:
       readText(readObject(trail["userIdentity"])["arn"]) || undefined,
@@ -168,6 +231,8 @@ export function readAwsTrailEvent(data: {
         return resource.id.length > 0;
       }),
     failed: Boolean(readText(trail["errorCode"])),
+    // Said only when it is so: every other change keeps the shape it had.
+    ...(isAwsScaleOnlyUpdate(operation, trail) ? { isScalingOnly: true } : {}),
   };
 }
 

@@ -20,10 +20,12 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 import React, {
+  MutableRefObject,
   ReactElement,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
@@ -234,6 +236,20 @@ export interface UseResourceOwnersResult<TResource extends BaseModel> {
   restoreFacetState: (state: JSONObject | null) => void;
 }
 
+/*
+ * Where a facet's option list read once (fetchOptions) is: being read,
+ * read, or not read.
+ */
+type FacetOptionRead = "reading" | "read" | "failed";
+
+/*
+ * A facet whose options the hook reads once, when the list opens; a facet
+ * with loadOptions reads its own as it is searched.
+ */
+function isReadOnceFacet(facet: ResourceFacet): boolean {
+  return Boolean(facet.fetchOptions) && !facet.loadOptions;
+}
+
 const useResourceOwners: <TResource extends BaseModel>(
   options: UseResourceOwnersOptions,
 ) => UseResourceOwnersResult<TResource> = <TResource extends BaseModel>(
@@ -365,6 +381,37 @@ const useResourceOwners: <TResource extends BaseModel>(
     [facetKey: string]: Array<FilterChipDropdownOption>;
   }>({});
   /*
+   * Where each option list read once (fetchOptions) is: being read, read,
+   * or not read. Its chip says Loading... while it is read, and that it
+   * could not be read - with Try again - when the read failed: a chip
+   * opened before its list came back said "Nothing to show - No options
+   * available", as though there was nothing to pick, and one whose read
+   * failed said so for good. Cloud's All Resources reads its Cloud Account
+   * chip's accounts a few rows at a time, one read after another.
+   */
+  const [facetOptionReads, setFacetOptionReads] = useState<{
+    [facetKey: string]: FacetOptionRead;
+  }>(() => {
+    const optionReads: { [facetKey: string]: FacetOptionRead } = {};
+
+    for (const facet of extraFacets) {
+      if (isReadOnceFacet(facet)) {
+        optionReads[facet.key] = "reading";
+      }
+    }
+
+    return optionReads;
+  });
+  const isMountedRef: MutableRefObject<boolean> = useRef<boolean>(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+  /*
    * For facets with `computeMatchingResourceIds`, the resolver's result is
    * cached here keyed by facet.key. `null` means "not yet computed / no
    * selection" (don't constrain). An empty array means "selection produced
@@ -374,16 +421,30 @@ const useResourceOwners: <TResource extends BaseModel>(
     [facetKey: string]: Array<string> | null;
   }>({});
 
+  const setFacetOptionRead: (
+    facetKey: string,
+    optionRead: FacetOptionRead,
+  ) => void = useCallback(
+    (facetKey: string, optionRead: FacetOptionRead): void => {
+      setFacetOptionReads((prev: { [k: string]: FacetOptionRead }) => {
+        return { ...prev, [facetKey]: optionRead };
+      });
+    },
+    [],
+  );
+
   useEffect(() => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     if (!projectId) {
+      // No project to read for: no list is being read.
+      setFacetOptionReads({});
       return;
     }
 
     const facetsToFetch: Array<ResourceFacet> = extraFacets.filter(
       (f: ResourceFacet) => {
         // Skip facets with loadOptions — the chip will lazy-load instead.
-        return Boolean(f.fetchOptions) && !f.loadOptions;
+        return isReadOnceFacet(f);
       },
     );
 
@@ -406,16 +467,22 @@ const useResourceOwners: <TResource extends BaseModel>(
               return { ...prev, [facet.key]: opts };
             },
           );
+          setFacetOptionRead(facet.key, "read");
         } catch (err) {
           /*
-           * Surface the error to the console so the chip's empty state has
-           * a debuggable trail; the chip itself still renders gracefully.
+           * Surface the error to the console so the chip's error state has
+           * a debuggable trail; the chip says the list could not be loaded,
+           * with Try again.
            */
           // eslint-disable-next-line no-console
           console.error(
             `[useResourceOwners] Failed to load options for facet "${facet.key}":`,
             err,
           );
+          if (cancelled) {
+            return;
+          }
+          setFacetOptionRead(facet.key, "failed");
         }
       }
     };
@@ -426,6 +493,47 @@ const useResourceOwners: <TResource extends BaseModel>(
       cancelled = true;
     };
   }, []);
+
+  // Try again on a chip whose list could not be read: one more read.
+  const readFacetOptionsAgain: (facet: ResourceFacet) => Promise<void> =
+    useCallback(
+      async (facet: ResourceFacet): Promise<void> => {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+        if (!projectId || !facet.fetchOptions) {
+          return;
+        }
+
+        setFacetOptionRead(facet.key, "reading");
+
+        try {
+          const opts: Array<FilterChipDropdownOption> =
+            await facet.fetchOptions(projectId);
+
+          if (!isMountedRef.current) {
+            return;
+          }
+
+          setFacetDynamicOptions(
+            (prev: { [k: string]: Array<FilterChipDropdownOption> }) => {
+              return { ...prev, [facet.key]: opts };
+            },
+          );
+          setFacetOptionRead(facet.key, "read");
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error(
+            `[useResourceOwners] Failed to load options for facet "${facet.key}":`,
+            err,
+          );
+
+          if (isMountedRef.current) {
+            setFacetOptionRead(facet.key, "failed");
+          }
+        }
+      },
+      [setFacetOptionRead],
+    );
 
   /*
    * Pre-fetch matching parent IDs for facets that filter across multiple
@@ -1391,6 +1499,10 @@ const useResourceOwners: <TResource extends BaseModel>(
 
           const opts: Array<FilterChipDropdownOption> =
             facet.options || facetDynamicOptions[facet.key] || [];
+          // A list read once: where its read is, while it has no options of its own.
+          const optionRead: FacetOptionRead | undefined = facet.options
+            ? undefined
+            : facetOptionReads[facet.key];
           const value: string | Array<string> | null = facet.isMultiSelect
             ? selected
             : selected[0] || null;
@@ -1428,6 +1540,15 @@ const useResourceOwners: <TResource extends BaseModel>(
               options={loadOptions ? undefined : opts}
               loadOptions={loadOptions}
               resolveOptions={resolveOptions}
+              isLoadingOptions={optionRead === "reading"}
+              hasOptionsLoadFailed={optionRead === "failed"}
+              onRetryLoadOptions={
+                optionRead === "failed"
+                  ? () => {
+                      readFacetOptionsAgain(facet);
+                    }
+                  : undefined
+              }
               isMultiSelect={facet.isMultiSelect}
               value={value}
               searchPlaceholder={facet.searchPlaceholder}
@@ -1470,6 +1591,8 @@ const useResourceOwners: <TResource extends BaseModel>(
     extraFacets,
     facetSelections,
     facetDynamicOptions,
+    facetOptionReads,
+    readFacetOptionsAgain,
     ownerOperator,
     labelOperator,
     facetOperators,

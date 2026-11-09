@@ -70,11 +70,12 @@ modelled" stub (`data-testid="stub-page"`).
 
 Query parameters on any page:
 
-| Parameter | Values                                                                                                                                          |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `state`   | `empty`: no environment yet (the Overview's first-run guide); `connected`: every environment connected (the strip breaks them down by provider) |
-| `lang`    | `de` or `fa` (Persian, laid out right to left)                                                                                                  |
-| `theme`   | `dark` adds `html.dark` (server.js)                                                                                                             |
+| Parameter  | Values                                                                                                                                                                                                                                                                              |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `state`    | `empty`: no environment yet (the Overview's first-run guide); `connected`: every environment connected (the strip breaks them down by provider)                                                                                                                                     |
+| `lang`     | `de` or `fa` (Persian, laid out right to left)                                                                                                                                                                                                                                      |
+| `theme`    | `dark` adds `html.dark` (server.js)                                                                                                                                                                                                                                                 |
+| `accounts` | `named`: Cloud > Accounts names the AWS account (Checkout production) and the Azure subscription (Core production), so the Cloud Account chips offer them by name; `refused`: the reader may not read Cloud Accounts (a 422), so the chips offer ids. Left out, no account is named |
 
 ## What the fixture records
 

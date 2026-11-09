@@ -4,7 +4,7 @@ En **Molnmiljö** är platsen där dina containrar körs på en hanterad molnpla
 
 Miljöer listas i Appplattformar, en egen produkt: **Appplattformar → Översikt** grupperar dem efter plattform och visar först de som har tystnat, **Appplattformar → Alla appar** listar varje app som körs i dem, och **Appplattformar → Alla miljöer** listar alla. Resurserna i dina molnkonton, som virtuella maskiner, buckets och hanterade databaser, finns i Moln: se [Molnresurser](/docs/telemetry/cloud-resources).
 
-För att se ett molnkontos miljöer eller appar filtrerar du **Alla miljöer** eller **Alla appar** med filterchippet **Molnkonto**: Det listar varje konto som miljöerna finns i, under sitt moln, och behåller de konton du väljer, eller alla andra. På **Moln → Översikt** räknar kortet **Appplattformar** miljöerna och apparna i dina anslutna molnkonton, och varje tal öppnar sin lista med chippet redan satt till de kontona. Ta bort chippet för att se hela listan.
+För att se ett molnkontos miljöer eller appar filtrerar du **Alla miljöer** eller **Alla appar** med filterchippet **Molnkonto**: Det listar varje konto som miljöerna finns i, under sitt moln, med namnet det har under **Moln → Konton** och dess ID under namnet, och behåller de konton du väljer, eller alla andra. På **Moln → Översikt** räknar kortet **Appplattformar** miljöerna och apparna i dina anslutna molnkonton, och varje tal öppnar sin lista med chippet redan satt till de kontona. Ta bort chippet för att se hela listan.
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Uppgifter på Fargate eller EC2, med CPU och minne per uppgift.

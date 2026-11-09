@@ -312,23 +312,31 @@ describe("the chip on each list", () => {
     expect(facet.supportedOperators).toEqual(CLOUD_ACCOUNT_FACET_OPERATORS);
     expect(facet.queryField).toBeUndefined();
 
+    /*
+     * Each id as written, and in upper case where that differs: an id
+     * written either way is one account (#6149's follow-up).
+     */
     const is: unknown = facet.toQueryValue!([AWS_ACCOUNT, GCP_PROJECT], "is");
-    expect(valuesOf(is)).toEqual([AWS_ACCOUNT, GCP_PROJECT]);
+    expect(valuesOf(is)).toEqual([AWS_ACCOUNT, GCP_PROJECT, "SHOP-PROD"]);
     expect(facet.toQueryValue!([AWS_ACCOUNT], "is_not")).toBeInstanceOf(
       IncludesNone,
     );
   });
 
-  test("All Apps filters an app by its environment, offering the accounts it has read", () => {
+  test("All Apps filters an app by its environment, offering the accounts it has read", async () => {
     const facet: ResourceFacet = getAppsCloudAccountFacet(environmentsById());
 
     expect(facet.key).toBe(CLOUD_ACCOUNT_FACET_KEY);
     expect(facet.queryField).toBe("cloudResourceId");
     expect(facet.supportedOperators).toEqual(["is", "is_not"]);
+    // Read once, with the accounts' names (none here): the ids it has read.
+    expect(facet.options).toBeUndefined();
     expect(
-      (facet.options || []).map((option: FilterChipDropdownOption) => {
-        return option.value;
-      }),
+      (await facet.fetchOptions!(new ObjectID(PROJECT_ID))).map(
+        (option: FilterChipDropdownOption) => {
+          return option.value;
+        },
+      ),
     ).toEqual([AWS_ACCOUNT, OTHER_AWS_ACCOUNT, GCP_PROJECT]);
     expect(valuesOf(facet.toQueryValue!([GCP_PROJECT], "is"))).toEqual([
       CLOUD_RUN,
@@ -406,6 +414,7 @@ describe("All Environments", () => {
       expect(valuesOf(query[CLOUD_ACCOUNT_FACET_KEY])).toEqual([
         AWS_ACCOUNT,
         GCP_PROJECT,
+        "SHOP-PROD",
       ]);
       expect(query["cloudResourceKind"]).toBe("environment");
       expect(query["isArchived"]).toBe(false);

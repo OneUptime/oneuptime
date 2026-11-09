@@ -34,6 +34,10 @@ const TITLES: string = path.resolve(
   __dirname,
   "../../../../Common/Utils/Telemetry/CloudChangeTitle.ts",
 );
+const AWS_CHANGES: string = path.resolve(
+  __dirname,
+  "../../../../Common/Server/Utils/CloudConnection/Aws/AwsChanges.ts",
+);
 const PAGE: string = "telemetry/change-events.md";
 
 function readPage(language: string, page: string): string {
@@ -63,6 +67,7 @@ const englishLines: Array<string> = english.split("\n");
 const recorder: string = fs.readFileSync(RECORDER, "utf8");
 const markers: string = fs.readFileSync(MARKERS, "utf8");
 const titles: string = fs.readFileSync(TITLES, "utf8");
+const awsChanges: string = fs.readFileSync(AWS_CHANGES, "utf8");
 
 // The lines of the English page that are about a cloud account.
 function lineIndex(predicate: (line: string) => boolean): number {
@@ -184,6 +189,56 @@ describe("Deploys and Changes, on a connected cloud account", () => {
     expect(recorder).toContain(
       'if (change.kind === "health") {\n    return ChangeEventType.ProviderEvent;\n  }',
     );
+  });
+
+  /*
+   * #6149's follow-up: an ECS UpdateService that only sets a service's
+   * desired count - Application Auto Scaling's, a `--desired-count`, the
+   * Cloud AI agent's scale-out - is scaling, though ECS deploys with the same
+   * call. The page says so where it says how a type is given, and the code
+   * does what it says: the AWS reader tells such a call by the names of its
+   * request's parameters, and the recorder calls it scaling before reading
+   * the operation's verbs.
+   */
+  it("says an ECS UpdateService that only changes the desired count is scaling, as the recorder classifies it", () => {
+    expect(english).toContain(
+      `An ECS \`UpdateService\` that only changes a service's desired count, as Application Auto Scaling does, is \`${ChangeEventType.Scaling}\`, not a deploy.`,
+    );
+
+    const scaling: number = recorder.indexOf(
+      "if (change.isScalingOnly) {\n    return ChangeEventType.Scaling;\n  }",
+    );
+
+    expect(scaling).toBeGreaterThan(-1);
+    // Before the verbs: "UpdateService" reads as a deploy's.
+    expect(scaling).toBeLessThan(recorder.indexOf("DEPLOY_WORDS.some("));
+    expect(recorder).toContain('  "updateservice",');
+
+    expect(awsChanges).toContain(
+      'const ECS_UPDATE_SERVICE_OPERATION: string = "ecs:UpdateService";',
+    );
+    expect(awsChanges).toContain(
+      'const ECS_DESIRED_COUNT_PARAMETER: string = "desiredCount";',
+    );
+    expect(awsChanges).toContain(
+      "...(isAwsScaleOnlyUpdate(operation, trail) ? { isScalingOnly: true } : {}),",
+    );
+
+    // Every translation names the call and the type in its own words.
+    for (const language of languages()) {
+      const paragraph: string =
+        readPage(language, PAGE)
+          .split("\n")
+          .find((line: string): boolean => {
+            return line.includes("(/docs/telemetry/cloud-accounts)");
+          }) || "";
+
+      expect({
+        language,
+        call: paragraph.includes("`UpdateService`"),
+        scalingSpans: paragraph.split(`\`${ChangeEventType.Scaling}\``).length,
+      }).toEqual({ language, call: true, scalingSpans: 3 });
+    }
   });
 
   it("names every attribute the recorder keeps a cloud change under", () => {
