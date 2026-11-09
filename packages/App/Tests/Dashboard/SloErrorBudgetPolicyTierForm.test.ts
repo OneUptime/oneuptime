@@ -849,8 +849,7 @@ describe("the deploy gate, as the SLO's pages draw it", () => {
     });
 
     // The API hands a date over as text.
-    slo.deploymentsFrozenAt =
-      "2026-11-08T10:00:00.000Z" as unknown as Date;
+    slo.deploymentsFrozenAt = "2026-11-08T10:00:00.000Z" as unknown as Date;
     expect(getSloDeploymentFreeze(slo)?.frozenAt?.toISOString()).toBe(
       "2026-11-08T10:00:00.000Z",
     );

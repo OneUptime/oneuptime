@@ -2796,9 +2796,9 @@ describe("Deployment gate, against the policy, the worker and the API", () => {
 
     expect(column.title).toBe("Freeze Deployments");
     expect(column.defaultValue).toBe(false);
-    expect(fieldTypeOf(readSource("policyTierForm"), "Freeze Deployments")).toBe(
-      "Toggle",
-    );
+    expect(
+      fieldTypeOf(readSource("policyTierForm"), "Freeze Deployments"),
+    ).toBe("Toggle");
     expect(gate).toContain(
       "Open the SLO's **Error Budget Policy**, edit the tier, switch on **Freeze Deployments** and save.",
     );
@@ -2810,9 +2810,7 @@ describe("Deployment gate, against the policy, the worker and the API", () => {
   it("names the tiers table's column and what it says, as the page draws them", () => {
     expect(readSource("policyPage")).toContain('title: "Deployments",');
     expect(readSource("policyTierCopy")).toContain('translationKey("Frozen")');
-    expect(readSource("policyTierCopy")).toContain(
-      'translationKey("Allowed")',
-    );
+    expect(readSource("policyTierCopy")).toContain('translationKey("Allowed")');
     expect(gate).toContain(
       "The tier's **Deployments** column in the table says **Frozen**.",
     );
@@ -2892,9 +2890,7 @@ describe("Deployment gate, against the policy, the worker and the API", () => {
     expect(gate.split("jq -r '.deploymentsAllowed'").length - 1).toBe(3);
     expect(gate.split('= "true"').length - 1).toBe(3);
     expect(gate).not.toContain("jq -e");
-    expect(gate).toContain(
-      "The check passes only when the answer is `true`.",
-    );
+    expect(gate).toContain("The check passes only when the answer is `true`.");
   });
 
   it("is frozen and allowed again with the tier the worker puts the SLO in, in its one state write", () => {
@@ -2943,7 +2939,10 @@ describe("Deployment gate, against the policy, the worker and the API", () => {
             thresholdPercentage: number;
             freezesDeployments: boolean;
           }) => {
-            return { ...entry, freezesDeployments: entry.thresholdPercentage < 50 };
+            return {
+              ...entry,
+              freezesDeployments: entry.thresholdPercentage < 50,
+            };
           },
         ),
       }),
@@ -2986,7 +2985,11 @@ describe("Deployment gate, against the policy, the worker and the API", () => {
 
   it("applies a switched freeze within about a minute: the switch asks for the SLO's next evaluation", () => {
     expect(
-      blockFrom(readSource("policyTierService"), "const EVALUATION_COLUMNS", "];"),
+      blockFrom(
+        readSource("policyTierService"),
+        "const EVALUATION_COLUMNS",
+        "];",
+      ),
     ).toContain('"freezesDeployments"');
     expect(gate).toContain(
       "Switching **Freeze Deployments** on or off for the tier the SLO is in applies within about a minute.",

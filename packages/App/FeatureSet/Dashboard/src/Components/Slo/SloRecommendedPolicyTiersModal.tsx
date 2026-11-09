@@ -16,8 +16,9 @@ export const USE_RECOMMENDED_POLICY_TITLE: string = translationKey(
 );
 
 // The mark of a listed tier that freezes deployments, and what it means.
-export const RECOMMENDED_TIER_FREEZES_DEPLOYMENTS_TEXT: string =
-  translationKey("Freezes deployments");
+export const RECOMMENDED_TIER_FREEZES_DEPLOYMENTS_TEXT: string = translationKey(
+  "Freezes deployments",
+);
 export const RECOMMENDED_POLICY_FREEZE_NOTE: string = translationKey(
   "A tier marked Freezes deployments tells CI/CD pipelines that check this SLO to hold back releases while the SLO is in it.",
 );
@@ -72,64 +73,64 @@ const SloRecommendedPolicyTiersModal: FunctionComponent<ComponentProps> = (
     >
       {/* ConfirmModal takes one child: the note and the list, together. */}
       <>
-      {isAnyTierFreezing ? (
-        <p
-          data-testid={RECOMMENDED_POLICY_FREEZE_NOTE_TEST_ID}
-          className="mb-3 text-sm text-gray-600"
+        {isAnyTierFreezing ? (
+          <p
+            data-testid={RECOMMENDED_POLICY_FREEZE_NOTE_TEST_ID}
+            className="mb-3 text-sm text-gray-600"
+          >
+            {translator.translateText(RECOMMENDED_POLICY_FREEZE_NOTE)}
+          </p>
+        ) : (
+          <></>
+        )}
+        <ul
+          data-testid="slo-recommended-policy-tiers"
+          className="divide-y divide-gray-100 rounded-md border border-gray-200"
         >
-          {translator.translateText(RECOMMENDED_POLICY_FREEZE_NOTE)}
-        </p>
-      ) : (
-        <></>
-      )}
-      <ul
-        data-testid="slo-recommended-policy-tiers"
-        className="divide-y divide-gray-100 rounded-md border border-gray-200"
-      >
-        {props.tiers.map((tier: SloRecommendedPolicyTierToAdd) => {
-          return (
-            <li
-              key={tier.name}
-              data-testid="slo-recommended-policy-tier"
-              className="px-4 py-3"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                <span className="text-sm font-medium text-gray-900">
-                  {tier.name}
-                </span>
-                <span className="flex-shrink-0 text-sm tabular-nums text-gray-700">
-                  {translator.translateTemplate(
-                    POLICY_TIER_BUDGET_LEFT_TEMPLATE,
-                    {
-                      threshold: formatSloPolicyTierThreshold(
-                        tier.thresholdPercentage,
-                      ),
-                    },
-                  )}
-                </span>
-              </div>
-              {tier.whatWeDo ? (
-                <p className="mt-1 text-sm text-gray-600">{tier.whatWeDo}</p>
-              ) : (
-                <></>
-              )}
-              {tier.freezesDeployments ? (
-                <p
-                  data-testid={RECOMMENDED_TIER_FREEZES_TEST_ID}
-                  className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200"
-                >
-                  <Icon icon={IconProp.Lock} className="h-3 w-3" />
-                  {translator.translateText(
-                    RECOMMENDED_TIER_FREEZES_DEPLOYMENTS_TEXT,
-                  )}
-                </p>
-              ) : (
-                <></>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+          {props.tiers.map((tier: SloRecommendedPolicyTierToAdd) => {
+            return (
+              <li
+                key={tier.name}
+                data-testid="slo-recommended-policy-tier"
+                className="px-4 py-3"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <span className="text-sm font-medium text-gray-900">
+                    {tier.name}
+                  </span>
+                  <span className="flex-shrink-0 text-sm tabular-nums text-gray-700">
+                    {translator.translateTemplate(
+                      POLICY_TIER_BUDGET_LEFT_TEMPLATE,
+                      {
+                        threshold: formatSloPolicyTierThreshold(
+                          tier.thresholdPercentage,
+                        ),
+                      },
+                    )}
+                  </span>
+                </div>
+                {tier.whatWeDo ? (
+                  <p className="mt-1 text-sm text-gray-600">{tier.whatWeDo}</p>
+                ) : (
+                  <></>
+                )}
+                {tier.freezesDeployments ? (
+                  <p
+                    data-testid={RECOMMENDED_TIER_FREEZES_TEST_ID}
+                    className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200"
+                  >
+                    <Icon icon={IconProp.Lock} className="h-3 w-3" />
+                    {translator.translateText(
+                      RECOMMENDED_TIER_FREEZES_DEPLOYMENTS_TEXT,
+                    )}
+                  </p>
+                ) : (
+                  <></>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       </>
     </ConfirmModal>
   );

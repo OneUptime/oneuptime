@@ -7478,10 +7478,7 @@ describe("Slo:EvaluateSlos worker", () => {
         );
         // Never through the hookless path: CI and workflows follow it.
         expect(
-          payloadsContaining(
-            sloHooklessUpdatePayloads(),
-            "deploymentsAllowed",
-          ),
+          payloadsContaining(sloHooklessUpdatePayloads(), "deploymentsAllowed"),
         ).toEqual([]);
       });
 

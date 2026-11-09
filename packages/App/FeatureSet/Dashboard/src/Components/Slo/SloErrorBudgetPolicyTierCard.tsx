@@ -203,7 +203,9 @@ const SloErrorBudgetPolicyTierCard: FunctionComponent<ComponentProps> = (
                     )}
                   </time>
                 ) : (
-                  <span>{translator.translateText(DEPLOYMENTS_FROZEN_TEXT)}</span>
+                  <span>
+                    {translator.translateText(DEPLOYMENTS_FROZEN_TEXT)}
+                  </span>
                 )}
               </p>
             ) : (

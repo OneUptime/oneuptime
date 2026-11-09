@@ -314,12 +314,11 @@ test("the Overview says since when deployments are frozen while the SLO is in a 
   await page.goto(`${SLO_PATH}?policy=frozen`);
 
   const card: Locator = page.getByTestId("slo-overview-policy-tier");
-  const exhausted: SloRecommendedPolicyTier =
-    SLO_RECOMMENDED_POLICY_TIERS.find(
-      (tier: SloRecommendedPolicyTier): boolean => {
-        return tier.freezesDeployments;
-      },
-    )!;
+  const exhausted: SloRecommendedPolicyTier = SLO_RECOMMENDED_POLICY_TIERS.find(
+    (tier: SloRecommendedPolicyTier): boolean => {
+      return tier.freezesDeployments;
+    },
+  )!;
 
   await expect(card).toBeVisible();
   await expect(card).toContainText(exhausted.name);
