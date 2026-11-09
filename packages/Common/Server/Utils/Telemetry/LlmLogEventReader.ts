@@ -52,11 +52,12 @@ import {
  *
  * That query is bounded the way the Log table is laid out (sorted by
  * project and time, with bloom filters on traceId and spanId): one time
- * window per trace - from a minute before its first call to ten minutes
- * after its last, since a record that sends no time of its own (Python on a
- * newer SDK, the Java agent) is stored at the time it arrived - with that
- * trace's ids, windows that overlap merged. So a conversation that spans
- * days reads minutes of logs, not days. Only records named as GenAI content
+ * window per trace - from a minute before its first call to a minute after
+ * its last, since a record is stored at the time it was emitted, within its
+ * call, even one that sends no time of its own (Python on a newer SDK, the
+ * Java agent: stored at its observed time, #6395) - with that trace's ids,
+ * windows that overlap merged. So a conversation that spans days reads
+ * minutes of logs, not days. Only records named as GenAI content
  * events, or carrying the details event's attributes, come back; a body
  * longer than the parser reads comes back empty. The newest records are
  * kept when there are more than LLM_LOG_EVENT_MAX_RECORDS: a later call's
@@ -86,6 +87,16 @@ export const LLM_LOG_EVENT_MAX_WINDOWS: number = 100;
 
 // The records a conversation list row's title is looked for in, per trace.
 export const LLM_LOG_EVENT_TITLE_RECORDS_PER_TRACE: number = 50;
+
+/*
+ * How long a conversation's first calls are taken to last, for its title's
+ * read. The read knows only when the conversation started - not when its
+ * first call ended, nor which call first holds the person's words - and a
+ * details record is emitted as its call ends, minutes after its start for a
+ * long answer. With the minute after a call (LLM_LOG_EVENT_AFTER_CALL_MS),
+ * it reads the ten minutes after the start it always read.
+ */
+export const LLM_LOG_EVENT_TITLE_CALLS_MS: number = 9 * 60 * 1000;
 
 // The column list every read selects, as LlmLogEventRecord reads it.
 const RECORD_COLUMNS_SQL: string =
@@ -393,7 +404,7 @@ export default class LlmLogEventReader {
           spanId: "",
           traceId: request.traceId,
           startMs: request.startedAtMs,
-          endMs: request.startedAtMs,
+          endMs: request.startedAtMs + LLM_LOG_EVENT_TITLE_CALLS_MS,
           isModelCall: true,
         };
       }),
