@@ -920,7 +920,7 @@ describe("the Builder's add button in the Dashboard's languages", () => {
   });
 
   test("every Dashboard language is read", () => {
-    expect(LANGUAGES).toHaveLength(16);
+    expect(LANGUAGES).toHaveLength(17);
     expect(LANGUAGES).toContain("de");
     expect(LANGUAGES).toContain("zh-TW");
   });

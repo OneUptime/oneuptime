@@ -125,8 +125,8 @@ const placeholdersOf: (text: string) => Array<string> = (
 };
 
 describe("the empty-level strings in the Dashboard's locales", () => {
-  test("there are seventeen locales", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("there are eighteen locales", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
   });
 
   test.each(NEW_STRINGS)(

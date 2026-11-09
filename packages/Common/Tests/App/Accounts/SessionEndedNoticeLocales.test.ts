@@ -46,6 +46,7 @@ const LANGUAGES: Array<string> = [
   "zh-TW",
   "hi",
   "fa",
+  "ar",
 ];
 
 type SessionEndedCopy = { lengthReached?: unknown; inactive?: unknown };

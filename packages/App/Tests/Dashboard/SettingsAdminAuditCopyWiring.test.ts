@@ -271,8 +271,9 @@ describe("the Admin Dashboard's locales word what its pages now draw", () => {
     "The teams of that project they join.",
   ];
 
-  test("all seventeen languages", () => {
-    expect(files).toHaveLength(17);
+  test("all eighteen languages", () => {
+    expect(files).toHaveLength(18);
+    expect(files).toContain("ar.json");
   });
 
   test.each(files)("%s", (file: string) => {

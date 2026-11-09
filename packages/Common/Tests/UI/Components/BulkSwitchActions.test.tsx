@@ -1048,7 +1048,7 @@ describe("in the reader's language", () => {
         return file.replace(".json", "");
       });
 
-    expect(languages).toHaveLength(16);
+    expect(languages).toHaveLength(17);
 
     const placeholdersOf: (text: string) => Array<string> = (
       text: string,

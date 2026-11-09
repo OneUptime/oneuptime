@@ -693,6 +693,10 @@ const IncidentEpisodeView: FunctionComponent<
             title="Incidents in this episode"
             singularNoun="incident"
             pluralNoun="incidents"
+            countTemplate={{
+              one: "{{count}} incident",
+              other: "{{count}} incidents",
+            }}
             viewAllRoute={RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS] as Route,
               { modelId: modelId },

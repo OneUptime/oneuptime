@@ -173,8 +173,8 @@ describe("the words", () => {
       return file.endsWith(".json");
     });
 
-  test("there is a file for each of the 17 languages", () => {
-    expect(LOCALES.length).toBe(17);
+  test("there is a file for each of the 18 languages", () => {
+    expect(LOCALES.length).toBe(18);
   });
 
   test.each(LOCALES)("%s has them, translated", (file: string) => {
