@@ -168,7 +168,11 @@ export const ALERTS_SHOWCASE: ResourceShowcase = {
       },
       {
         name: "ALT-116",
-        detail: translationKey("Certificate expires soon"),
+        /*
+         * Not "Certificate expires soon": the SSL monitor's documentation
+         * leads a paragraph with that, in its own words in each language.
+         */
+        detail: translationKey("Certificate expiring soon"),
         status: ShowcaseStatus.Healthy,
         statusText: translationKey("Resolved"),
       },

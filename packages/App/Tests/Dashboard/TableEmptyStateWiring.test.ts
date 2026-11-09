@@ -103,7 +103,12 @@ const FACET_TABLES: Array<string> = DASHBOARD_FILES.filter(
         // An infrastructure list puts its chips away until its first record.
         code.includes(
           "topContent={getFirstRunTopContent({ topContent: filterBar,",
-        )) &&
+        ) ||
+        /*
+         * So does a product's list, while it explains the product under its
+         * empty table (Components/ProductOnboarding, useProductFirstRun).
+         */
+        code.includes("topContent={firstRun.getTopContent(filterBar)}")) &&
       !file.endsWith(path.join("ResourceOwners", "useResourceOwners.tsx"))
     );
   },
@@ -144,6 +149,12 @@ describe("tables under a facet bar tell their empty state about the chips", () =
         path.join("Pages", "Service", "Services.tsx"),
         path.join("Pages", "NetworkSite", "Sites.tsx"),
         path.join("Pages", "Slo", "Slos.tsx"),
+        // Product lists that explain their product while they have none.
+        path.join("Pages", "StatusPages", "StatusPages.tsx"),
+        path.join("Pages", "OnCallDuty", "OnCallDutyPolicies.tsx"),
+        path.join("Pages", "Dashboards", "Dashboards.tsx"),
+        path.join("Pages", "Workflow", "Workflows.tsx"),
+        path.join("Pages", "Runbook", "Runbooks.tsx"),
       ]),
     );
   });
@@ -160,7 +171,12 @@ describe("tables under a facet bar tell their empty state about the chips", () =
           // An infrastructure list's first run: the chips' state, carried through.
           code.includes(
             "emptyState={getFirstRunEmptyState({ emptyState: facetEmptyState,",
-          ),
+          ) ||
+          /*
+           * A product list's first run (getProductFirstRunEmptyState): the
+           * same, the Create button left to the explanation's.
+           */
+          code.includes("emptyState={firstRun.getEmptyState(facetEmptyState)}"),
       ).toBe(true);
     },
   );
