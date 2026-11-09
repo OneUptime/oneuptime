@@ -125,6 +125,7 @@ export class Service extends DatabaseService<Model> {
         apiKey: true,
         baseUrl: true,
         modelName: true,
+        requestTimeoutInSeconds: true,
         additionalParams: true,
         isGlobalLlm: true,
         // isUnownedGlobalProvider reads it.
@@ -153,6 +154,7 @@ export class Service extends DatabaseService<Model> {
         apiKey: true,
         baseUrl: true,
         modelName: true,
+        requestTimeoutInSeconds: true,
         additionalParams: true,
         isGlobalLlm: true,
         projectId: true,
@@ -204,6 +206,7 @@ export class Service extends DatabaseService<Model> {
       apiKey: boolean;
       baseUrl: boolean;
       modelName: boolean;
+      requestTimeoutInSeconds: boolean;
       additionalParams: boolean;
       isGlobalLlm: boolean;
       costPerMillionTokensInUSDCents: boolean;
@@ -214,6 +217,7 @@ export class Service extends DatabaseService<Model> {
       apiKey: true,
       baseUrl: true,
       modelName: true,
+      requestTimeoutInSeconds: true,
       additionalParams: true,
       isGlobalLlm: true,
       costPerMillionTokensInUSDCents: true,
@@ -285,6 +289,7 @@ export class Service extends DatabaseService<Model> {
         apiKey: true,
         baseUrl: true,
         modelName: true,
+        requestTimeoutInSeconds: true,
         additionalParams: true,
         isGlobalLlm: true,
         costPerMillionTokensInUSDCents: true,
@@ -386,6 +391,7 @@ export class Service extends DatabaseService<Model> {
           apiKey: true,
           baseUrl: true,
           modelName: true,
+          requestTimeoutInSeconds: true,
           additionalParams: true,
           isGlobalLlm: true,
           projectId: true,
@@ -426,6 +432,7 @@ export class Service extends DatabaseService<Model> {
             description: true,
             llmType: true,
             modelName: true,
+            requestTimeoutInSeconds: true,
             isDefault: true,
             isGlobalLlm: true,
           },
@@ -450,6 +457,7 @@ export class Service extends DatabaseService<Model> {
             description: true,
             llmType: true,
             modelName: true,
+            requestTimeoutInSeconds: true,
             isDefault: true,
             isGlobalLlm: true,
           },

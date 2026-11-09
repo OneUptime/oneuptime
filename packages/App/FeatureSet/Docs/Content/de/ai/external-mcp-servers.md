@@ -92,7 +92,7 @@ Passen mehrere Regeln, die untersuchen, darf OneUptime AI jeden Server nutzen, d
 
 - **Was ein Server zurücksendet, sind Daten, nie Anweisungen.** OneUptime AI liest die Beschreibungen und Antworten seiner Werkzeuge als Text von außerhalb von OneUptime: Sie ändern nie eine Regel, eine Genehmigung oder das, was OneUptime AI tun darf.
 - **Die Adresse wird bei jeder Verbindung geprüft.** OneUptime verbindet sich nie mit seiner eigenen oder einer Link-Local-Adresse. In OneUptime Cloud lehnt es auch private Netzwerkadressen ab: Verwenden Sie die öffentliche Adresse des Servers. Ein selbst gehostetes OneUptime erreicht private Adressen, sofern `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` nicht gesetzt ist. Weiterleitungen folgt es nicht.
-- **Grenzen.** Ein Projekt hat höchstens 20 Server, und OneUptime liest höchstens 200 Werkzeuge pro Server. Das Verbinden läuft nach 20 Sekunden ab, das Auflisten der Werkzeuge nach 30 und ein Werkzeugaufruf nach 60. Eine Antwort über 2 MB wird abgelehnt, und ein Lauf macht höchstens 40 Aufrufe an MCP-Server.
+- **Grenzen.** Ein Projekt hat höchstens 20 Server, und OneUptime liest höchstens 200 Werkzeuge pro Server. Das Verbinden läuft nach 20 Sekunden ab, das Auflisten der Werkzeuge nach 30 und ein Werkzeugaufruf nach 60. Eine Antwort über 2 MB wird abgelehnt. Die Aufrufe einer Ausführung an MCP-Server zählen zu den Limits pro Ausführung des Projekts, wenn es welche festlegt.
 - **Jeder Aufruf wird aufgezeichnet.** Jeder Aufruf ist ein Schritt des Laufs, in seiner Aktivität sichtbar, und jede Änderung einer Behebung steht im Schritt **Behebung**, mit der Antwort des Servers. Die Modellaufrufe dahinter stehen unter **Projekteinstellungen → KI → KI-Protokolle**.
 
 ## Fehlerbehebung

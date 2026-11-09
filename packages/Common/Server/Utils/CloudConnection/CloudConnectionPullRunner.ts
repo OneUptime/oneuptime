@@ -318,10 +318,12 @@ export default class CloudConnectionPullRunner {
 
       /*
        * A namespace a stream delivered lately is the stream's to write: the
-       * read leaves its datapoints out of what it writes, and keeps them
-       * for the resources' readings below. Only while the connection has a
-       * stream key: once Stop streaming refuses what its streams deliver,
-       * the read writes everything again at once.
+       * read leaves out the datapoints the stream writes in its place
+       * (CloudStreamedMetrics: never an Azure metric a diagnostic setting
+       * cannot export, nor a Service Bus or Event Hubs namespace's), and
+       * keeps them for the resources' readings below. Only while the
+       * connection has a stream key: once Stop streaming refuses what its
+       * streams deliver, the read writes everything again at once.
        */
       const streamedKeys: Set<string> = connection.streamKeyCreatedAt
         ? getStreamedMetricKeys({
@@ -335,7 +337,10 @@ export default class CloudConnectionPullRunner {
        * A queue or topic a collector delivered lately is the collector's
        * (CloudCollectorQueues): the read leaves its series out of what it
        * writes - per queue and per metric - so no queue is counted twice,
-       * and keeps them for the resources' readings below.
+       * and keeps them for the resources' readings below. Where a collector
+       * sent a namespace's own total of a metric, the read's queues' series
+       * of it are written off the namespace, whose totals are then the
+       * collector's alone.
        */
       const collector: {
         queues: CollectorMessagingQueues;

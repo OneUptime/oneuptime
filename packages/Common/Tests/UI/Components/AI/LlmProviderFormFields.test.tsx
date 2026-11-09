@@ -109,7 +109,7 @@ describe("the form's steps and fields", () => {
     ]);
   });
 
-  test("a project's provider: the provider, how to reach it, its name, then its description, default switch and parameters folded", () => {
+  test("a project's provider: the provider, how to reach it, its name, then its description, default switch, parameters and response timeout folded", () => {
     const fields: Array<ProviderField> = getProjectLlmProviderFormFields();
 
     expect(fields.map(columnOf)).toEqual([
@@ -121,6 +121,7 @@ describe("the form's steps and fields", () => {
       "description",
       "isDefault",
       "additionalParams",
+      "requestTimeoutInSeconds",
     ]);
     expect(
       fields
@@ -128,7 +129,12 @@ describe("the form's steps and fields", () => {
           return Boolean(field.collapsibleSection);
         })
         .map(columnOf),
-    ).toEqual(["description", "isDefault", "additionalParams"]);
+    ).toEqual([
+      "description",
+      "isDefault",
+      "additionalParams",
+      "requestTimeoutInSeconds",
+    ]);
     // One fold, and a new provider is the default.
     expect(
       new Set(
@@ -155,6 +161,7 @@ describe("the form's steps and fields", () => {
       "name",
       "description",
       "additionalParams",
+      "requestTimeoutInSeconds",
     ]);
 
     const billed: Array<ProviderField> = getGlobalLlmProviderFormFields({
@@ -185,6 +192,52 @@ describe("the form's steps and fields", () => {
           ];
         }),
       );
+    }
+  });
+});
+
+/*
+ * How long OneUptime waits for the provider to answer one request (issue
+ * #6438): a customer's self-hosted model took longer than the 120 seconds
+ * every OpenAI-compatible provider was given, and nothing could change it.
+ * Empty is the default; the bounds are the server's
+ * (LLMService.getProviderTimeoutInMs).
+ */
+describe("the response timeout", () => {
+  test.each([
+    ["a project's", getProjectLlmProviderFormFields()],
+    ["a global", getGlobalLlmProviderFormFields({ includeCost: true })],
+  ])(
+    "%s provider can be given longer to answer, under More fields",
+    (_name: string, fields: Array<ProviderField>) => {
+      const field: ProviderField = fieldOf(fields, "requestTimeoutInSeconds");
+
+      expect(field.title).toBe("Response Timeout (Seconds)");
+      expect(field.stepId).toBe("connection");
+      expect(Boolean(field.collapsibleSection)).toBe(true);
+      expect(isRequired(field, LlmType.OpenAI)).toBe(false);
+      expect(isRequired(field, LlmType.Ollama)).toBe(false);
+      expect(field.validation).toEqual({ minValue: 10, maxValue: 3600 });
+      // No one number: the default is 120 seconds, but 300 for Ollama.
+      expect(field.placeholder).toBeUndefined();
+      expect(field.description).toBe(
+        LlmProviderFormCopy.responseTimeoutDescription,
+      );
+      // The defaults LLMService gives a provider with none of its own.
+      expect(field.description).toContain(
+        "Leave empty for 120 (300 for Ollama)",
+      );
+    },
+  );
+
+  test("it is asked of every provider", () => {
+    const field: ProviderField = fieldOf(
+      getProjectLlmProviderFormFields(),
+      "requestTimeoutInSeconds",
+    );
+
+    for (const type of Object.values(LlmType)) {
+      expect(isShown(field, type)).toBe(true);
     }
   });
 });

@@ -38,9 +38,6 @@ import {
  * the code-agent prompt and the branch / commit / PR wording.
  */
 export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHandler {
-  // Default timeout for code agent execution (30 minutes)
-  protected static readonly CODE_AGENT_TIMEOUT_MS: number = 30 * 60 * 1000;
-
   // Branch names are `<branchPrefix><first 8 chars of the task id>`.
   protected abstract readonly branchPrefix: string;
 
@@ -366,10 +363,10 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
 
     // Execute the code agent
     await this.log(context, "Running code agent...");
+    // The agent keeps to the run's time limit, which the server gives it.
     const codeAgentTask: CodeAgentTask = {
       workingDirectory: cloneResult.repositoryPath,
       prompt,
-      timeoutMs: ExceptionPullRequestTaskHandler.CODE_AGENT_TIMEOUT_MS,
     };
 
     if (repo.servicePathInRepository) {
