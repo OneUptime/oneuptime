@@ -32140,7 +32140,7 @@
   "No host runs this config yet. A host gets it once it reports and this config is the first that applies to it.": "Ingen vært kører denne konfiguration endnu. En vært får den, så snart den rapporterer, og dette er den første konfiguration, der gælder for den.",
   "No versions yet.": "Ingen versioner endnu.",
   "No word from this host's collector for more than 15 minutes. Check that its service runs and that the host can reach OneUptime.": "Intet nyt fra denne værts collector i mere end 15 minutter. Tjek, at dens tjeneste kører, og at værten kan nå OneUptime.",
-  "OneUptime collector": "OneUptime-collector",
+  "OneUptime collector": "OneUptime-collectoren",
   "OneUptime default": "OneUptime-standard",
   "OneUptime default for Linux": "OneUptime-standard til Linux",
   "OneUptime default for Windows": "OneUptime-standard til Windows",

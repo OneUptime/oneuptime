@@ -46788,8 +46788,8 @@
   "This vCenter stopped sending data": "Этот vCenter перестал отправлять данные",
   "Workspace Public Note Approval Message": "Workspace Public Note Approval Message",
   "Workspace Public Note Approval Messages": "Workspace Public Note Approval Messages",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "{{variable}} в файле .env агента по-прежнему должна быть «{{name}}». С другим именем данные уйдут в другое облако.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "{{variable}} в файле .env агента по-прежнему должна быть «{{name}}». С другим именем данные уйдут в другой кластер.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "{{variable}} в файле .env агента по-прежнему должна быть «{{name}}». С другим именем данные уйдут в другую систему хранения.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} в файле .env агента по-прежнему должна быть «{{name}}». С другим именем данные уйдут в другой vCenter."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "Значение {{variable}} в файле .env агента по-прежнему должно быть «{{name}}». С другим именем данные уйдут в другое облако.",
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "Значение {{variable}} в файле .env агента по-прежнему должно быть «{{name}}». С другим именем данные уйдут в другой кластер.",
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "Значение {{variable}} в файле .env агента по-прежнему должно быть «{{name}}». С другим именем данные уйдут в другую систему хранения.",
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "Значение {{variable}} в файле .env агента по-прежнему должно быть «{{name}}». С другим именем данные уйдут в другой vCenter."
 }

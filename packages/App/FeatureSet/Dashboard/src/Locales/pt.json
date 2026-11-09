@@ -32140,7 +32140,7 @@
   "No host runs this config yet. A host gets it once it reports and this config is the first that applies to it.": "Nenhum host executa esta configuração ainda. Um host a recebe assim que se reporta e esta é a primeira configuração que se aplica a ele.",
   "No versions yet.": "Ainda não há versões.",
   "No word from this host's collector for more than 15 minutes. Check that its service runs and that the host can reach OneUptime.": "Nenhuma notícia do coletor deste host há mais de 15 minutos. Verifique se o serviço dele está em execução e se o host consegue alcançar o OneUptime.",
-  "OneUptime collector": "Coletor do OneUptime",
+  "OneUptime collector": "coletor do OneUptime",
   "OneUptime default": "Padrão do OneUptime",
   "OneUptime default for Linux": "Padrão do OneUptime para Linux",
   "OneUptime default for Windows": "Padrão do OneUptime para Windows",

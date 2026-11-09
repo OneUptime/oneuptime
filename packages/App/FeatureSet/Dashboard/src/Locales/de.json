@@ -15438,7 +15438,7 @@
   "Run the collector with Docker": "Collector mit Docker ausführen",
   "Run the diagnostic script": "Diagnoseskript ausführen",
   "Run the diagnostic script first": "Zuerst das Diagnoseskript ausführen",
-  "Run the helm install command from the setup guide against this cluster. Keep clusterName exactly as below so the data lands on this cluster:": "Führen Sie den helm-install-Befehl aus der Einrichtungsanleitung für diesen Cluster aus. Behalten Sie clusterName genau wie unten bei, damit die Daten bei diesem Cluster landen:",
+  "Run the helm install command from the setup guide against this cluster. Keep clusterName exactly as below so the data lands on this cluster:": "Führen Sie den Befehl helm install aus der Einrichtungsanleitung für diesen Cluster aus. Behalten Sie clusterName genau wie unten bei, damit die Daten bei diesem Cluster landen:",
   "Run the install script on a manager node": "Installationsskript auf einem Manager-Knoten ausführen",
   "Run the installation test": "Installationstest ausführen",
   "Run this Docker command on a host inside the infrastructure you want this Runner to work in. It polls OneUptime for work assigned to it, does the work locally, and reports results back — so the credentials it uses never leave your network.": "Führen Sie diesen Docker-Befehl auf einem Host innerhalb der Infrastruktur aus, in der dieser Runner arbeiten soll. Er fragt bei OneUptime nach ihm zugewiesener Arbeit, erledigt sie lokal und meldet die Ergebnisse zurück — so verlassen die verwendeten Anmeldedaten nie Ihr Netzwerk.",
