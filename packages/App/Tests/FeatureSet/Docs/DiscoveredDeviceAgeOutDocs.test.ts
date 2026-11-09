@@ -23,7 +23,7 @@ import {
 
 /*
  * Issue #6389: the network device guide's Discovered devices section says
- * that devices nothing has seen for a while are removed, what always stays,
+ * that devices not seen for a while are removed, what always stays,
  * and where a Project Owner or Admin changes how long - in every docs
  * language. Markdown is not compiled, so these tests hold the guide to the
  * Dashboard's own labels (a translation to the labels its language's
@@ -197,10 +197,10 @@ describe("the English guide says what the code does", () => {
     );
   });
 
-  test("says nothing is removed while the switch or controller that saw it reports nothing", () => {
+  test("says nothing is removed while the switch or controller that saw it isn't reporting", () => {
     expect(AGE_OUT_REPORTING_WINDOW_MS).toBeGreaterThan(0);
     expect(paragraph).toContain(
-      "nothing a switch or controller saw is removed while it reports nothing",
+      "nothing a switch or controller saw is removed while it isn't reporting",
     );
   });
 

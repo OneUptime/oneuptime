@@ -47277,7 +47277,7 @@
   "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} مصرفی است که تیمی را مشخص نمی‌کند، مثلاً بدون {{teamId}} فرستاده شده.",
   "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} مصرفی است که مشخص نمی‌کند چه کسی آن را انجام داده، مثلاً بدون {{userEmail}} فرستاده شده.",
   "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "متریک‌های مصرف کنار گذاشته شده‌اند: نقش شما نمی‌تواند متریک‌ها را بخواند. از یک مدیر پروژه دسترسی بخواهید.",
-  "Checked every hour. Nothing is removed while the switch or controller that saw a device reports nothing, and a device seen again comes back as new.": "هر ساعت بررسی می‌شود. تا وقتی سوئیچ یا کنترلری که دستگاهی را دیده چیزی گزارش نمی‌کند، چیزی حذف نمی‌شود، و دستگاهی که دوباره دیده شود به‌عنوان دستگاه جدید برمی‌گردد.",
+  "Checked every hour. Nothing is removed while the switch or controller that saw a device isn't reporting, and a device seen again comes back as new.": "هر ساعت بررسی می‌شود. تا وقتی سوئیچ یا کنترلری که دستگاهی را دیده چیزی گزارش نمی‌کند، چیزی حذف نمی‌شود، و دستگاهی که دوباره دیده شود به‌عنوان دستگاه جدید برمی‌گردد.",
   "Devices not seen for {{count}} days are removed, unless they are monitored or classified.": "دستگاه‌هایی که {{count}} روز دیده نشده‌اند حذف می‌شوند، مگر اینکه پایش‌شده یا طبقه‌بندی‌شده باشند.",
   "Devices not seen for {{count}} days are removed, unless they are monitored or classified._one": "دستگاه‌هایی که {{count}} روز دیده نشده‌اند حذف می‌شوند، مگر اینکه پایش‌شده یا طبقه‌بندی‌شده باشند.",
   "Devices stay on this list however long ago they were last seen.": "دستگاه‌ها در این فهرست می‌مانند، هر چقدر هم از آخرین مشاهده‌شان گذشته باشد.",
@@ -47289,7 +47289,7 @@
   "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host still on the Discovered Devices list is counted, including ones not seen recently.": "میزبان‌هایی مانند رایانه‌ها، تلفن‌ها و چاپگرها که در پیمایش‌های SNMP در جدول‌های نشانی سوئیچ‌ها و روترهای شما (جدول‌های ARP و ارسال MAC) پیدا شده‌اند. هر میزبانی که هنوز در فهرست دستگاه‌های کشف‌شده است شمرده می‌شود، حتی آن‌هایی که اخیراً دیده نشده‌اند.",
   "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host still on the Discovered Devices list is counted, including ones not seen recently.": "میزبان‌هایی مانند رایانه‌ها، تلفن‌ها و چاپگرها که دستگاه‌های اختصاص‌یافته به این سایت در جدول‌های نشانی خود (جدول‌های ARP و ارسال MAC) پیدا کرده‌اند. هر میزبانی که هنوز در فهرست دستگاه‌های کشف‌شده است شمرده می‌شود، حتی آن‌هایی که اخیراً دیده نشده‌اند.",
   "Remove after": "حذف پس از",
-  "Remove discovered devices nothing has seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "دستگاه‌های کشف‌شده‌ای را که مدتی دیده نشده‌اند حذف کنید. دستگاه‌های پایش‌شده و طبقه‌بندی‌شده، و آن‌هایی که کسی افزوده یا تغییر داده، همیشه می‌مانند.",
+  "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "دستگاه‌های کشف‌شده‌ای را که مدتی دیده نشده‌اند حذف کنید. دستگاه‌های پایش‌شده و طبقه‌بندی‌شده، و آن‌هایی که کسی افزوده یا تغییر داده، همیشه می‌مانند.",
   "Unseen Devices": "دستگاه‌های دیده‌نشده",
   "Add an AI provider in Project Settings > AI > LLM Providers, then try again.": "در تنظیمات پروژه > هوش مصنوعی > ارائه‌دهندگان LLM یک ارائه‌دهندهٔ هوش مصنوعی اضافه کنید و سپس دوباره تلاش کنید.",
   "Attempt {{number}}": "تلاش {{number}}",
@@ -47368,5 +47368,6 @@
   "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} وظیفه را نمی‌توان دوباره امتحان کرد: {{reason}}",
   "AI could not finish after {{count}} attempts.": "هوش مصنوعی پس از {{count}} تلاش نتوانست کار را تمام کند.",
   "AI opens a pull request for a person to review. Nothing merges by itself.": "هوش مصنوعی یک Pull Request باز می‌کند تا یک انسان آن را بازبینی کند. هیچ چیز خودبه‌خود ادغام نمی‌شود.",
-  "Failed after {{count}} attempts": "ناموفق پس از {{count}} تلاش"
+  "Failed after {{count}} attempts": "ناموفق پس از {{count}} تلاش",
+  "Never removed": "هرگز حذف نمی‌شوند"
 }

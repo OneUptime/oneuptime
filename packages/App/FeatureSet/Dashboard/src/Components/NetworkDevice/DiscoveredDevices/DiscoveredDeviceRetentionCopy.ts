@@ -27,7 +27,7 @@ import {
  *   - The setting is one pick, "Remove after", that saves the moment it is
  *     made: a card folded under the Discovered Devices page's More settings,
  *     at #unseen-devices. Folded, the header says what it is set to while it
- *     is not the default ("Unseen Devices: Never").
+ *     is not the default ("Unseen Devices: Never removed").
  *
  * Kept free of React so the card, the list, the page and their tests read
  * these exact strings. Every string is a whole sentence or a whole name,
@@ -53,6 +53,7 @@ export const DiscoveredDeviceRetentionCopy: {
   cardDescription: string;
   label: string;
   never: string;
+  neverRemoved: string;
   onDescription: string;
   offDescription: string;
   keptLine: string;
@@ -60,13 +61,18 @@ export const DiscoveredDeviceRetentionCopy: {
 } = {
   cardTitle: translationKey("Unseen Devices"),
   cardDescription: translationKey(
-    "Remove discovered devices nothing has seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.",
+    "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.",
   ),
   label: translationKey("Remove after"),
   never: translationKey("Never"),
+  /*
+   * The folded header's value for Never: "Unseen Devices: Never" left the
+   * reader to guess never what.
+   */
+  neverRemoved: translationKey("Never removed"),
   // Under the pick, for a length.
   onDescription: translationKey(
-    "Checked every hour. Nothing is removed while the switch or controller that saw a device reports nothing, and a device seen again comes back as new.",
+    "Checked every hour. Nothing is removed while the switch or controller that saw a device isn't reporting, and a device seen again comes back as new.",
   ),
   // Under the pick, for Never.
   offDescription: translationKey(
@@ -161,8 +167,8 @@ export const getDiscoveredDeviceRetentionLine: (
 
 /*
  * Unseen Devices as the page's folded More settings names it: a chip with
- * what it is set to while that is not the default ("Unseen Devices:
- * Never", "Unseen Devices: 90 days"), its name otherwise - where every
+ * what it is set to while that is not the default ("Unseen Devices: Never
+ * removed", "Unseen Devices: 90 days"), its name otherwise - where every
  * project starts. Unread (undefined), its name.
  */
 export const getDiscoveredDeviceRetentionFoldedItem: (
@@ -172,16 +178,23 @@ export const getDiscoveredDeviceRetentionFoldedItem: (
   retentionInDays: number | undefined,
   translator: Translator,
 ): FoldedSectionItem => {
-  const isSet: boolean =
-    typeof retentionInDays === "number" &&
-    retentionInDays !== DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS;
+  if (
+    typeof retentionInDays !== "number" ||
+    retentionInDays === DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS
+  ) {
+    return foldedSectionItem(DiscoveredDeviceRetentionCopy.cardTitle, {
+      key: DISCOVERED_DEVICE_RETENTION_PLACE,
+      isSet: false,
+    });
+  }
 
   return foldedSectionItem(DiscoveredDeviceRetentionCopy.cardTitle, {
     key: DISCOVERED_DEVICE_RETENTION_PLACE,
-    isSet: isSet,
-    value: isSet
-      ? getDiscoveredDeviceRetentionText(retentionInDays as number, translator)
-      : undefined,
+    isSet: true,
+    value: isDiscoveredDeviceRetentionOn(retentionInDays)
+      ? getDiscoveredDeviceRetentionText(retentionInDays, translator)
+      : translator.translateText(DiscoveredDeviceRetentionCopy.neverRemoved) ||
+        DiscoveredDeviceRetentionCopy.neverRemoved,
   });
 };
 

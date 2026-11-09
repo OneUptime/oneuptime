@@ -63,6 +63,7 @@ const SENTENCES: Array<string> = [
   DiscoveredDeviceRetentionCopy.cardTitle,
   DiscoveredDeviceRetentionCopy.cardDescription,
   DiscoveredDeviceRetentionCopy.label,
+  DiscoveredDeviceRetentionCopy.neverRemoved,
   DiscoveredDeviceRetentionCopy.onDescription,
   DiscoveredDeviceRetentionCopy.offDescription,
   DiscoveredDeviceRetentionCopy.keptLine,
@@ -117,7 +118,7 @@ describe("the words, in English", () => {
   test("the sentence under the pick says what a length means, and what Never means", () => {
     for (const days of [7, 30, 365]) {
       expect(getDiscoveredDeviceRetentionDescription(days)).toBe(
-        "Checked every hour. Nothing is removed while the switch or controller that saw a device reports nothing, and a device seen again comes back as new.",
+        "Checked every hour. Nothing is removed while the switch or controller that saw a device isn't reporting, and a device seen again comes back as new.",
       );
     }
 
@@ -129,7 +130,7 @@ describe("the words, in English", () => {
   test("the card says what it removes, and what always stays", () => {
     expect(DiscoveredDeviceRetentionCopy.cardTitle).toBe("Unseen Devices");
     expect(DiscoveredDeviceRetentionCopy.cardDescription).toBe(
-      "Remove discovered devices nothing has seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.",
+      "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.",
     );
     expect(DiscoveredDeviceRetentionCopy.label).toBe("Remove after");
   });
@@ -155,10 +156,17 @@ describe("the folded More settings header", () => {
   });
 
   test("says what it is set to otherwise, in the reader's words", () => {
+    /*
+     * Never as the chip says it: "Unseen Devices: Never removed" - the
+     * pick's own "Never" left the reader to guess never what.
+     */
     expect(getDiscoveredDeviceRetentionFoldedItem(0, english)).toMatchObject({
       isSet: true,
-      value: "Never",
+      value: "Never removed",
     });
+    expect(
+      getDiscoveredDeviceRetentionFoldedItem(0, translatorFor("de")),
+    ).toMatchObject({ isSet: true, value: "Nie entfernt" });
     expect(getDiscoveredDeviceRetentionFoldedItem(90, english)).toMatchObject({
       isSet: true,
       value: "90 days",

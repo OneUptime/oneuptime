@@ -987,7 +987,7 @@ Select devices, or every device that matches the search, then:
 
 A row's own buttons do the same for one device. On the map, a node's IP address is drawn under its name, and the search finds a node by its IP address or MAC address too, however a switch printed it. Click a discovered device on the map and its panel offers **Add to Monitoring**, which adds it the same way, as well as **Hide from map**.
 
-A device not seen for 30 days is removed from the list and the map, unless it is monitored, classified, or one someone added or changed. The line under the list says how long devices stay; Project Owners and Project Admins change it under **More settings → Unseen Devices → Remove after**: 7, 14, 30, 60, 90, 180 or 365 days, or **Never**. The list is checked every hour, and nothing a switch or controller saw is removed while it reports nothing. A removed device that is seen again comes back as a new one, shown on the map even if it was hidden before.
+A device not seen for 30 days is removed from the list and the map, unless it is monitored, classified, or one someone added or changed. The line under the list says how long devices stay; Project Owners and Project Admins change it under **More settings → Unseen Devices → Remove after**: 7, 14, 30, 60, 90, 180 or 365 days, or **Never**. The list is checked every hour, and nothing a switch or controller saw is removed while it isn't reporting. A removed device that is seen again comes back as a new one, shown on the map even if it was hidden before.
 
 ### Choose the layout the map opens on
 

@@ -50,7 +50,7 @@ import React, {
  *   goes back to what the project has, with the reason under it.
  * - The sentence under it says what the pick means: with a length, that the
  *   list is checked every hour, that nothing goes while the switch that saw
- *   a device reports nothing, and that a device seen again comes back; with
+ *   a device isn't reporting, and that a device seen again comes back; with
  *   Never, that every device stays.
  * - Someone who may not change it (anyone but a Project Owner or Admin) sees
  *   it locked, with the permission that is missing.

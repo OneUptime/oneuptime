@@ -1281,7 +1281,9 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
    * stays, once the list or the page has said, and only while there is a
    * device to say it of. Change, for whoever may change it, opens the
    * project's Discovered Devices page at the setting - from a site's list
-   * too, as it is the project's.
+   * too, as it is the project's. A footnote, as the product writes one
+   * under a table (text-xs, the size of the pager's "Showing 1-20 of 20
+   * devices" beside it): at text-sm it outweighed the list's own footer.
    */
   const retentionInDays: number | undefined =
     props.retentionInDays ?? listedRetentionInDays;
@@ -1450,7 +1452,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
 
           {retentionInDays !== undefined && counts && counts.all > 0 ? (
             <p
-              className="mt-4 text-sm text-gray-500"
+              className="mt-3 text-xs text-gray-500"
               data-testid={DISCOVERED_DEVICES_RETENTION_LINE_TEST_ID}
             >
               {getDiscoveredDeviceRetentionLine(retentionInDays, translator)}

@@ -47,7 +47,7 @@ import DiscoveredDevicesFakeServer, {
 /*
  * UNSEEN DEVICES, RENDERED (OneUptime issue #6389).
  *
- * Discovered devices nothing has seen for a while are removed from the
+ * Discovered devices not seen for a while are removed from the
  * list; how long they stay is the project's Discovered Device Retention.
  * The real list, the real Unseen Devices card and the real Discovered
  * Devices page, over an in-memory list API (DiscoveredDevicesFakeServer)
@@ -647,6 +647,15 @@ describe("the Unseen Devices card", () => {
     ).toHaveTextContent(DiscoveredDeviceRetentionCopy.label);
     expect(picked()).toBe("30 days");
     expect(updateSpy).not.toHaveBeenCalled();
+
+    /*
+     * And it looks locked before anyone hovers it: grey, as a locked field
+     * is, not white like a pick that opens (UI review of #6389).
+     */
+    const control: HTMLElement | null = locked.closest(".ou-select__control");
+
+    expect(control).toHaveClass("!bg-gray-100");
+    expect(control).not.toHaveClass("!bg-white");
   });
 
   test("a project read before the setting existed shows the default", async () => {
@@ -718,7 +727,7 @@ describe("the Discovered Devices page", () => {
     });
     expect(
       within(moreSettings()).getByTestId("folded-section-contents"),
-    ).toHaveTextContent("Never");
+    ).toHaveTextContent("Unseen Devices: Never removed");
   });
 
   test("a link to the card's place opens the fold at it", async () => {
