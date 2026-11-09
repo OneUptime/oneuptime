@@ -1961,7 +1961,9 @@ const sqlServerTemplates: Array<DatabaseAlertTemplate> = [
   buildDatabaseTemplate({
     id: "database-sqlserver-sessions-blocked",
     name: translationKey("Sessions Blocked"),
-    summary: translationKey("Blocked sessions are seen throughout 10 minutes."),
+    summary: translationKey(
+      "Sessions stay blocked by another session's lock for 10 minutes.",
+    ),
     description:
       "Alert when sessions waiting on another session's lock are seen throughout ten minutes — a blocking chain that is not clearing. Reads sqlserver.processes.blocked, which the receiver only emits once it is enabled (the Database Agent enables it).",
     category: "Performance",

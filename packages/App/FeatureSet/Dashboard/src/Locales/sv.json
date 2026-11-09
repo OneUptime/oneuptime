@@ -47390,7 +47390,7 @@
   "Bare Metal Power State Unexpected": "Bare Metal Power State Unexpected",
   "Block Storage API Down": "Block Storage API Down",
   "Block Storage Service Down": "Block Storage Service Down",
-  "Blocked sessions are seen throughout 10 minutes.": "Blocked sessions are seen throughout 10 minutes.",
+  "Sessions stay blocked by another session's lock for 10 minutes.": "Sessions stay blocked by another session's lock for 10 minutes.",
   "Both tunnels of the VPN connection are down.": "Both tunnels of the VPN connection are down.",
   "Browsers report an unresolved exception within 5 minutes.": "Browsers report an unresolved exception within 5 minutes.",
   "Buffer Cache Hit Ratio Low": "Buffer Cache Hit Ratio Low",
