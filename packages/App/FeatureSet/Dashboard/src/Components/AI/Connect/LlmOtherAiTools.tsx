@@ -1,5 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -116,7 +117,12 @@ const LlmOtherAiTools: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 props.onConnect?.(connects);
               }}
-              className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 disabled:cursor-not-allowed disabled:text-gray-400"
+              className={`inline-flex items-center gap-1 text-sm font-medium text-indigo-600 ${getHandDrawnButtonStateClassName(
+                {
+                  isLocked: !canConnect,
+                  hoverClassName: "hover:text-indigo-700",
+                },
+              )}`}
             >
               <Icon icon={IconProp.Link} className="h-4 w-4" />
               <span>
