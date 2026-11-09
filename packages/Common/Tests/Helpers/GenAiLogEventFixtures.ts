@@ -154,7 +154,10 @@ function forEachLogRecord(
  */
 export function toStoredLogRecords(
   fixture: GenAiLogEventFixtureFile,
-  options?: { stampEventName?: boolean; arrivedAtNano?: string },
+  options?: {
+    stampEventName?: boolean | undefined;
+    arrivedAtNano?: string | undefined;
+  },
 ): Array<LlmLogEventRecord> {
   const records: Array<LlmLogEventRecord> = [];
   const stampEventName: boolean = options?.stampEventName !== false;

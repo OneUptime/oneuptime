@@ -47107,5 +47107,6 @@
   "No device hidden from the map matches this search.": "沒有已從地圖隱藏的裝置符合此搜尋。",
   "No device that is not monitored matches this search.": "沒有未監控的裝置符合此搜尋。",
   "No monitored device matches this search.": "沒有已監控的裝置符合此搜尋。",
-  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime 尚未監控此裝置。新增後會定期檢查它，並可選擇它停止回應時通知誰。"
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime 尚未監控此裝置。新增後會定期檢查它，並可選擇它停止回應時通知誰。",
+  "The AI answered. What it said isn't shown.": "AI 已回答，但未顯示回答內容。"
 }

@@ -47107,5 +47107,6 @@
   "No device hidden from the map matches this search.": "मैप से छिपा कोई भी डिवाइस इस खोज से मेल नहीं खाता।",
   "No device that is not monitored matches this search.": "निगरानी से बाहर कोई भी डिवाइस इस खोज से मेल नहीं खाता।",
   "No monitored device matches this search.": "निगरानी वाला कोई भी डिवाइस इस खोज से मेल नहीं खाता।",
-  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime अभी इस डिवाइस की निगरानी नहीं करता। इसे जोड़ें ताकि इसकी नियमित जाँच हो, और चुनें कि इसके जवाब देना बंद करने पर किसे पता चले।"
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime अभी इस डिवाइस की निगरानी नहीं करता। इसे जोड़ें ताकि इसकी नियमित जाँच हो, और चुनें कि इसके जवाब देना बंद करने पर किसे पता चले।",
+  "The AI answered. What it said isn't shown.": "AI ने जवाब दिया। उसने क्या कहा, यह दिखाया नहीं गया है।"
 }

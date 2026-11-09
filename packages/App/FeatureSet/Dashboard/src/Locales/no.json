@@ -47107,5 +47107,6 @@
   "No device hidden from the map matches this search.": "Ingen enheter skjult på kartet samsvarer med dette søket.",
   "No device that is not monitored matches this search.": "Ingen enheter som ikke overvåkes, samsvarer med dette søket.",
   "No monitored device matches this search.": "Ingen overvåkede enheter samsvarer med dette søket.",
-  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime overvåker ikke denne enheten ennå. Legg den til for å sjekke den jevnlig, og velg hvem som får vite det når den slutter å svare."
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime overvåker ikke denne enheten ennå. Legg den til for å sjekke den jevnlig, og velg hvem som får vite det når den slutter å svare.",
+  "The AI answered. What it said isn't shown.": "AI-en svarte. Det den sa, vises ikke."
 }

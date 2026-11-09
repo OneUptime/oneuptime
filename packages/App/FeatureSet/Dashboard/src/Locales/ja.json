@@ -47107,5 +47107,6 @@
   "No device hidden from the map matches this search.": "マップで非表示のデバイスで、この検索に一致するものはありません。",
   "No device that is not monitored matches this search.": "未監視のデバイスで、この検索に一致するものはありません。",
   "No monitored device matches this search.": "監視中のデバイスで、この検索に一致するものはありません。",
-  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime はまだこのデバイスを監視していません。追加すると定期的にチェックされ、応答しなくなったときに誰に知らせるかを選べます。"
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "OneUptime はまだこのデバイスを監視していません。追加すると定期的にチェックされ、応答しなくなったときに誰に知らせるかを選べます。",
+  "The AI answered. What it said isn't shown.": "AI は回答しましたが、その内容は表示されていません。"
 }

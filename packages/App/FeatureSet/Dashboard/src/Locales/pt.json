@@ -47107,5 +47107,6 @@
   "No device hidden from the map matches this search.": "Nenhum dispositivo oculto no mapa corresponde a esta pesquisa.",
   "No device that is not monitored matches this search.": "Nenhum dispositivo não monitorado corresponde a esta pesquisa.",
   "No monitored device matches this search.": "Nenhum dispositivo monitorado corresponde a esta pesquisa.",
-  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "O OneUptime ainda não monitora este dispositivo. Adicione-o para verificá-lo regularmente e escolha quem fica sabendo quando ele parar de responder."
+  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.": "O OneUptime ainda não monitora este dispositivo. Adicione-o para verificá-lo regularmente e escolha quem fica sabendo quando ele parar de responder.",
+  "The AI answered. What it said isn't shown.": "A IA respondeu. O que ela disse não é mostrado."
 }

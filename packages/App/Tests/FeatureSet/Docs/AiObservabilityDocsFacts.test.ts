@@ -101,7 +101,10 @@ import LlmLogEventsUtil, {
   LlmLogEventCall,
   LlmLogEventRecord,
 } from "Common/Utils/Telemetry/LlmLogEvents";
-import { LlmCallContent } from "Common/Utils/Telemetry/LlmMessageParser";
+import {
+  LlmCallContent,
+  LlmMessage,
+} from "Common/Utils/Telemetry/LlmMessageParser";
 import LogEventName, {
   LogEventNameAttributeKey,
 } from "Common/Types/Log/LogEventName";
@@ -1614,12 +1617,16 @@ describe("the AI / LLM Observability page: what is arriving, and from where", ()
     expect(LlmLogEventsUtil.mergeContent(empty, logs).input).toEqual(
       logs.input,
     );
+    const spanQuestion: LlmMessage = {
+      role: "user",
+      name: "",
+      parts: [],
+      finishReason: "",
+    };
     expect(
-      LlmLogEventsUtil.mergeContent(
-        { ...empty, input: [{ role: "user", parts: [] }] },
-        logs,
-      ).input,
-    ).toEqual([{ role: "user", parts: [] }]);
+      LlmLogEventsUtil.mergeContent({ ...empty, input: [spanQuestion] }, logs)
+        .input,
+    ).toEqual([spanQuestion]);
 
     expect(page).toContain(
       "When a call's span holds no prompt or no answer, it is read from the log records that carry the call's trace and span id",

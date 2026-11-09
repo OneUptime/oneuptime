@@ -713,6 +713,10 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
                   step.call.spanId,
                 )}
                 setupRoute={setupRoute}
+                isContentHidden={
+                  data.logEvents === LlmLogEventsRead.NotAllowed ||
+                  data.logEvents === LlmLogEventsRead.Failed
+                }
                 onReplayFromHere={() => {
                   replay.goToStep(index);
                   replay.play();

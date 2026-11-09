@@ -178,3 +178,12 @@ export const LLM_LOG_EVENTS_SOURCE: string = translationKey(
 export const LLM_LOG_EVENTS_LOADING: string = translationKey(
   "Reading this call's log events…",
 );
+
+/*
+ * An answer whose content is not on screen while the log events were not
+ * read (LLM_LOG_EVENTS_NOT_ALLOWED, LLM_LOG_EVENTS_FAILED): it may well have
+ * been recorded, so it is not said to be missing.
+ */
+export const LLM_SILENT_ANSWER_NOT_SHOWN: string = translationKey(
+  "The AI answered. What it said isn't shown.",
+);

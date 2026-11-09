@@ -319,6 +319,21 @@ describe("prompts and answers sent as log events", () => {
     return LlmConversationTranscriptUtil.build([call({ spanId: "c1" })]);
   }
 
+  // What the answer that has no content says, and whether it links setup.
+  function silentAnswer(): { text: string; linksSetup: boolean } {
+    const step: HTMLElement = screen
+      .getAllByTestId("llm-step")
+      .find((element: HTMLElement): boolean => {
+        return element.getAttribute("data-step-type") === "silent_answer";
+      })!;
+
+    return {
+      text: step.textContent || "",
+      linksSetup:
+        within(step).queryByText("How to record prompts and answers") !== null,
+    };
+  }
+
   test("read from the logs: shown like any other, with no note", async () => {
     respondWith(
       conversationResponse(travelTranscript(), {
@@ -361,6 +376,12 @@ describe("prompts and answers sent as log events", () => {
       screen.queryByTestId("llm-conversation-no-content-note"),
     ).not.toBeInTheDocument();
     expect(stepTypes()).toEqual(["silent_answer"]);
+    // The answer is not said to be unrecorded, nor sent to set recording up.
+    expect(silentAnswer().text).toContain(
+      "The AI answered. What it said isn't shown.",
+    );
+    expect(silentAnswer().text).not.toContain("not recorded");
+    expect(silentAnswer().linksSetup).toBe(false);
   });
 
   test("some calls' logs readable, others not: still told some are not shown", async () => {
@@ -398,6 +419,10 @@ describe("prompts and answers sent as log events", () => {
     expect(
       screen.queryByTestId("llm-conversation-no-content-note"),
     ).not.toBeInTheDocument();
+    expect(silentAnswer().text).toContain(
+      "The AI answered. What it said isn't shown.",
+    );
+    expect(silentAnswer().linksSetup).toBe(false);
 
     respondWith(
       conversationResponse(travelTranscript(), {
@@ -438,6 +463,11 @@ describe("prompts and answers sent as log events", () => {
     expect(
       screen.queryByTestId("llm-conversation-log-events-note"),
     ).not.toBeInTheDocument();
+    // Nothing hidden: the answer was not recorded, and says how to record it.
+    expect(silentAnswer().text).toContain(
+      "The AI answered. What it said was not recorded.",
+    );
+    expect(silentAnswer().linksSetup).toBe(true);
   });
 });
 
