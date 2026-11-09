@@ -78,11 +78,12 @@ export function formatNumberedWindow(data: {
       );
       /*
        * A line given the whole window (one read alone) shows all any read
-       * shows: no read shows more of it.
+       * shows: no read shows more of it. (A search shows no more of it
+       * either: a match on a long line is cut too.)
        */
       line =
         data.maxLineChars >= data.maxChars
-          ? `${line.substring(0, data.maxLineChars)} [... ${more} more characters on this line, more than one read shows; search_files finds text in it]`
+          ? `${line.substring(0, data.maxLineChars)} [... ${more} more characters on this line, more than one read shows]`
           : `${line.substring(0, data.maxLineChars)} [... ${more} more characters on this line; read this line alone (start_line and end_line ${lineNumber}) to see more of it]`;
       cutLines++;
     }

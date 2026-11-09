@@ -22,8 +22,9 @@ import { StringDecoder } from "string_decoder";
  *     refreshing the index, which the pipeline owns; git diff, which
  *     refreshes it regardless, is given a copy of it (indexFile); and no
  *     command here writes anything else;
- *   - runs no program the repository names: fsmonitor is off, and the
- *     diff-showing commands pass --no-ext-diff and --no-textconv;
+ *   - runs no program the repository names: fsmonitor is off, the
+ *     diff-showing commands pass --no-ext-diff and --no-textconv, and
+ *     blame passes --no-textconv;
  *   - never waits on a prompt or a pager;
  *   - stops at its timeout and at its output limit (the process is killed,
  *     and the result says it was cut).

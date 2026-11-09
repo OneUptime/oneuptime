@@ -323,7 +323,7 @@ describe("read_file and long lines", () => {
     );
   });
 
-  test("a line longer than any window says what finds text in it", async () => {
+  test("a line longer than any window says how much of it no read shows", async () => {
     const huge: string = "z".repeat(READ_FILE_MAX_WINDOW_CHARS + 10);
     const root: string = makeRepository({ "bundle.min.js": `${huge}\n` });
 
@@ -331,8 +331,10 @@ describe("read_file and long lines", () => {
       path: "bundle.min.js",
     });
 
-    expect(result.output).toContain(
-      "[... 10 more characters on this line, more than one read shows; search_files finds text in it]",
+    expect(result.output).toBe(
+      `     1\t${"z".repeat(
+        READ_FILE_MAX_WINDOW_CHARS,
+      )} [... 10 more characters on this line, more than one read shows]`,
     );
   });
 });

@@ -144,7 +144,9 @@ export default class GitTool {
           `--max-count=${count}`,
           "--date=short",
           "--format=%h %ad %an: %s",
-          ...(patch ? ["-p", "--no-ext-diff", "--no-textconv"] : []),
+          "--no-ext-diff",
+          "--no-textconv",
+          ...(patch ? ["-p"] : []),
           ...(statOnly && !patch ? ["--stat"] : []),
           ...(revision ? [revision] : []),
           ...pathspec,
@@ -158,6 +160,8 @@ export default class GitTool {
           "--no-textconv",
           ...(statOnly ? ["--stat"] : []),
           revision || "HEAD",
+          // A file at a revision (HEAD:path) is that file: no path limits it.
+          ...(revision.includes(":") ? [] : pathspec),
         ];
         break;
       default: {
@@ -188,6 +192,8 @@ export default class GitTool {
 
         gitArgs = [
           "blame",
+          // Blame runs a file's textconv filter unless told not to.
+          "--no-textconv",
           "--date=short",
           ...range,
           ...(revision ? [revision] : []),

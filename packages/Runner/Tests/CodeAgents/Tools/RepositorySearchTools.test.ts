@@ -194,6 +194,51 @@ describe("search_files", () => {
     ).toBe("src/discount.ts:2:  return total * 0.9;");
   });
 
+  test("path and glob together: the folder is the one named, even when its name reads like a pattern", async () => {
+    const root: string = makeProject();
+    // What app/[id] would match as a pattern: app/i and app/d.
+    writeFile(root, "app/i/page.tsx", "export const decoy = 1;\n");
+    writeFile(root, "app/d/page.tsx", "export const decoy = 2;\n");
+    writeFile(root, "app/[*?]/x/page.tsx", "export const odd = 3;\n");
+    const context: CodeAgentToolContext = makeContext(root);
+
+    expect(
+      (
+        await search(context, {
+          pattern: "export",
+          path: "app/[id]",
+          glob: "*.tsx",
+        })
+      ).output,
+    ).toBe(
+      "app/[id]/page.tsx:1:export default function Page(): null { return null; }",
+    );
+    expect(
+      (
+        await search(context, {
+          pattern: "export",
+          path: "app/[*?]",
+          glob: "x/*.tsx",
+        })
+      ).output,
+    ).toBe("app/[*?]/x/page.tsx:1:export const odd = 3;");
+    // The glob itself is still a pattern.
+    expect(
+      (
+        await search(context, {
+          pattern: "decoy",
+          path: "app",
+          glob: "[id]/*.tsx",
+        })
+      ).output
+        .split("\n")
+        .sort(),
+    ).toEqual([
+      "app/d/page.tsx:1:export const decoy = 2;",
+      "app/i/page.tsx:1:export const decoy = 1;",
+    ]);
+  });
+
   test("context_lines shows the lines around each match", async () => {
     const root: string = makeProject();
 

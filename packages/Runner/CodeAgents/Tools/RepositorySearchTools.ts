@@ -33,6 +33,18 @@ export const FIND_FILES_TOOL_NAME: string = "find_files";
 const NO_PCRE_PATTERN: RegExp =
   /perl-compatible|USE_LIBPCRE|not compiled with/i;
 
+// The characters a :(glob) pathspec reads as a pattern (or an escape).
+const GLOB_PATTERN_CHARACTER: RegExp = /[\\*?[]/g;
+
+/*
+ * A path as a :(glob) pathspec reads it: as written, each character a glob
+ * would take for a pattern escaped - a folder such as app/[id] (a route of
+ * many web frameworks) is that folder, never app/i or app/d.
+ */
+function escapeGlobPath(text: string): string {
+  return text.replace(GLOB_PATTERN_CHARACTER, "\\$&");
+}
+
 /*
  * Finding things in the repository (issue #6441): files by name
  * (find_files), lines by text or pattern (search_files), and what a folder
@@ -403,7 +415,8 @@ export default class RepositorySearchTools {
 
   /*
    * The pathspecs a search is held to: the path (literal, never pathspec
-   * magic) and the glob - or what is wrong with them.
+   * magic) and the glob - or what is wrong with them. With both, the path
+   * leads the glob, escaped so it is read as written.
    */
   private static async searchPathspecs(
     context: CodeAgentToolContext,
@@ -432,7 +445,8 @@ export default class RepositorySearchTools {
         return "glob matches paths inside the folder searched: no .. and no leading /.";
       }
 
-      const prefix: string = relativePath === "." ? "" : `${relativePath}/`;
+      const prefix: string =
+        relativePath === "." ? "" : `${escapeGlobPath(relativePath)}/`;
       const pattern: string = glob.includes("/") ? glob : `**/${glob}`;
 
       return [`:(glob)${prefix}${pattern.replace(/^\.\//, "")}`];

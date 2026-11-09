@@ -1603,7 +1603,7 @@ export default class InHouseCodeAgent implements CodeAgent {
     );
 
     /*
-     * What the model asked for (two minutes when it asked for nothing, 30
+     * What the model asked for (two minutes when it asked for nothing, ten
      * at most), never past the time this task has left.
      */
     const timeoutMs: number = getAgentCommandTimeoutMs({
@@ -1679,7 +1679,7 @@ export default class InHouseCodeAgent implements CodeAgent {
    * says what failed, is never lost.
    *
    * While it runs, the run is kept alive (keepRunAlive): a command makes no
-   * LLM call and posts no log, and one given up to thirty minutes would
+   * LLM call and posts no log, and one given up to ten minutes would
    * otherwise let the stale-run sweeper fail the run underneath it.
    */
   private runShellCommand(

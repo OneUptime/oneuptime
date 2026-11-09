@@ -176,6 +176,43 @@ describe("what the git tool shows", () => {
     ).toBe("export const price = 10;\nexport const tax = 1;");
   });
 
+  test("show with a path shows only that file's change in the commit", async () => {
+    const root: string = makeHistory();
+    writeFile(
+      root,
+      "src/price.ts",
+      "export const price = 14;\nexport const tax = 1;\n",
+    );
+    writeFile(root, "README.md", "# shop\n\nSells more things.\n");
+    git(root, ["commit", "-q", "-am", "Raise the price and say so"]);
+    const context: CodeAgentToolContext = makeContext(root);
+
+    const whole: string = (await run(context, { action: "show" })).output;
+    expect(whole).toContain("+export const price = 14;");
+    expect(whole).toContain("+Sells more things.");
+
+    const result: ToolExecution = await run(context, {
+      action: "show",
+      path: "src/price.ts",
+    });
+    expect(result.output).toContain("Raise the price and say so");
+    expect(result.output).toContain("+export const price = 14;");
+    expect(result.output).not.toContain("README.md");
+    expect(result.output).not.toContain("Sells more things.");
+    expect(result.narration).toBe("ran git show -- src/price.ts");
+
+    // A file at a revision is that file, whatever path says.
+    expect(
+      (
+        await run(context, {
+          action: "show",
+          revision: "HEAD~3:src/price.ts",
+          path: "src/price.ts",
+        })
+      ).output,
+    ).toBe("export const price = 10;\nexport const tax = 1;");
+  });
+
   test("blame says who last changed each line, for the lines asked", async () => {
     const root: string = makeHistory();
 
@@ -293,6 +330,52 @@ describe("what the git tool refuses", () => {
     await expect(
       run(makeContext(root), { action: "blame", path: "../secret.txt" }),
     ).rejects.toThrow();
+  });
+
+  test("no action runs a program the git configuration names to show a file (a textconv filter)", async () => {
+    const root: string = makeHistory();
+    const scratch: string = makeTemporaryDirectory("git-textconv-");
+    const marker: string = path.join(scratch, "textconv-ran");
+    const filter: string = path.join(scratch, "textconv.sh");
+    fs.writeFileSync(filter, `#!/bin/sh\ntouch '${marker}'\ncat "$1"\n`);
+    fs.chmodSync(filter, 0o755);
+    git(root, ["config", "diff.shout.textconv", filter]);
+    writeFile(root, ".gitattributes", "*.ts diff=shout\n");
+    git(root, ["add", ".gitattributes"]);
+    git(root, ["commit", "-q", "-m", "Name a diff driver"]);
+    writeFile(
+      root,
+      "src/price.ts",
+      "export const price = 16;\nexport const tax = 1;\n",
+    );
+
+    // The filter works: git runs it when asked to.
+    git(root, ["blame", "--textconv", "--", "src/price.ts"]);
+    expect(fs.existsSync(marker)).toBe(true);
+    fs.rmSync(marker);
+
+    const context: CodeAgentToolContext = makeContext(root);
+    const actions: Array<Record<string, unknown>> = [
+      { action: "blame", path: "src/price.ts" },
+      { action: "blame", path: "src/price.ts", revision: "HEAD~1" },
+      { action: "log", path: "src/price.ts", stat: true },
+      { action: "log", path: "src/price.ts", patch: true },
+      { action: "show", revision: "HEAD~2" },
+      { action: "show", revision: "HEAD~2", stat: true },
+      { action: "diff" },
+      { action: "diff", stat: true },
+    ];
+
+    for (const action of actions) {
+      const result: ToolExecution = await run(context, action);
+
+      // Each action on its own: a failure names the one that ran it.
+      expect({
+        action,
+        failed: result.output.startsWith("Error"),
+        filterRan: fs.existsSync(marker),
+      }).toEqual({ action, failed: false, filterRan: false });
+    }
   });
 
   test("nothing it does writes to the repository: not the index, not a ref, not a lock", async () => {
