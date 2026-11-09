@@ -71,6 +71,7 @@ const WORDS: Array<string> = [
   "Did not finish: {{cause}} Trying again.",
   "If it is a slow or self-hosted model, give it more time: raise the provider's Response Timeout in Project Settings > AI > LLM Providers. Then try again.",
   "Nothing needs to change: try again.",
+  "OneUptime AI will try again",
   "OneUptime tried {{count}} times.",
   "OneUptime tried {{count}} times._one",
   "Paused: the server running it shut down. It goes on from the start on another server.",

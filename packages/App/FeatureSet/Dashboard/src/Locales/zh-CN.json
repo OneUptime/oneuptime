@@ -47303,5 +47303,6 @@
   "· {{count}} times_one": "· {{count}} 次",
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "项目所有者或拥有 Manage Billing 权限的人可以在“项目设置 → 人工智能 → AI 积分”中添加 AI 积分。",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "等待提供商响应单个请求的秒数。留空则为 120（Ollama 为 300）。对于较慢或自托管的模型，请调高此值。",
-  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI 提供商拒绝了请求：其 API 密钥或模型可能有误，或其账户可能没有访问权限或余额。"
+  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI 提供商拒绝了请求：其 API 密钥或模型可能有误，或其账户可能没有访问权限或余额。",
+  "OneUptime AI will try again": "OneUptime AI 将重试"
 }

@@ -1934,12 +1934,18 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       >
         <div>
           <h3 className="text-sm font-semibold text-gray-900">
+            {/*
+              Between attempts nothing is investigating: the heading says
+              what comes next, as the pill's clock does (issue #6438).
+            */}
             {translator.translateText(
               isFailed
                 ? "What the investigation got through"
-                : isFollowUpCheckRun(events)
-                  ? "OneUptime AI is checking again"
-                  : "OneUptime AI is investigating",
+                : retryAt
+                  ? "OneUptime AI will try again"
+                  : isFollowUpCheckRun(events)
+                    ? "OneUptime AI is checking again"
+                    : "OneUptime AI is investigating",
             )}
           </h3>
           <p className="mt-1 text-sm leading-6 text-gray-500">

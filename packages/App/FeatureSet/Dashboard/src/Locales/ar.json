@@ -47303,5 +47303,6 @@
   "· {{count}} times_one": "· عدد المرات: {{count}}",
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "يمكن لمالك المشروع أو لمن لديه صلاحية «إدارة الفوترة» إضافة أرصدة الذكاء الاصطناعي في إعدادات المشروع ← الذكاء الاصطناعي ← أرصدة الذكاء الاصطناعي.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "عدد الثواني التي يُنتظر فيها رد الموفّر على طلب واحد. اتركه فارغًا ليكون 120 (300 في Ollama). ارفعه لنموذج بطيء أو مستضاف ذاتيًا.",
-  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "رفض موفّر الذكاء الاصطناعي الطلب: ربما يكون مفتاح API أو النموذج خاطئًا، أو ربما يفتقر حسابه إلى صلاحية الوصول أو الرصيد."
+  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "رفض موفّر الذكاء الاصطناعي الطلب: ربما يكون مفتاح API أو النموذج خاطئًا، أو ربما يفتقر حسابه إلى صلاحية الوصول أو الرصيد.",
+  "OneUptime AI will try again": "سيحاول OneUptime AI مرة أخرى"
 }

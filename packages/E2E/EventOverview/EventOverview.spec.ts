@@ -3683,6 +3683,14 @@ test.describe("a run that did not finish (issues #6437, #6438)", () => {
       "data-indicator",
       "waiting",
     );
+    // Nothing is investigating between attempts: the heading says what is next.
+    await expect(
+      step.getByRole("heading", {
+        level: 3,
+        name: "OneUptime AI will try again",
+      }),
+    ).toBeVisible();
+    await expect(step).not.toContainText("OneUptime AI is investigating");
     await expect(step).toContainText(
       new RegExp(
         `The last attempt did not finish\\. OneUptime tries again at ${RETRY_TIME}; its steps so far are below\\.`,

@@ -47303,5 +47303,6 @@
   "· {{count}} times_one": "· {{count}} keer",
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Een projecteigenaar of iemand met Manage Billing kan AI-tegoeden toevoegen in Projectinstellingen → AI → AI-tegoeden.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Aantal seconden dat op het antwoord van de provider op één verzoek wordt gewacht. Laat leeg voor 120 (300 voor Ollama). Verhoog dit voor een traag of zelf gehost model.",
-  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "De AI-provider weigerde het verzoek: de API-sleutel of het model is mogelijk onjuist, of het account heeft geen toegang of tegoed."
+  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "De AI-provider weigerde het verzoek: de API-sleutel of het model is mogelijk onjuist, of het account heeft geen toegang of tegoed.",
+  "OneUptime AI will try again": "OneUptime AI probeert het opnieuw"
 }

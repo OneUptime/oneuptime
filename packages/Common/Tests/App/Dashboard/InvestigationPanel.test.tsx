@@ -5987,6 +5987,15 @@ describe("InvestigationPanel Try again", () => {
         { use12HourFormat: false },
       )}; its steps so far are below.`,
     );
+    // Nothing is investigating between attempts: the heading says what is next.
+    expect(
+      within(screen.getByLabelText("Live investigation")).getByRole("heading", {
+        level: 3,
+      }),
+    ).toHaveTextContent("OneUptime AI will try again");
+    expect(screen.getByLabelText("Live investigation")).not.toHaveTextContent(
+      "OneUptime AI is investigating",
+    );
     // It is not a failure: no notice, and nothing to press.
     expect(screen.queryByTestId("investigation-error")).toBeNull();
     expect(tryAgainButton()).toBeNull();

@@ -47303,5 +47303,6 @@
   "· {{count}} times_one": "· {{count}} gang",
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "En projektejer eller en person med Manage Billing kan tilføje AI-kreditter under Projektindstillinger → AI → AI-kreditter.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Sekunder, der ventes på udbyderens svar på én forespørgsel. Lad feltet stå tomt for 120 (300 for Ollama). Hæv værdien for en langsom eller selvhostet model.",
-  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI-udbyderen afviste forespørgslen: API-nøglen eller modellen kan være forkert, eller kontoen mangler adgang eller kredit."
+  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI-udbyderen afviste forespørgslen: API-nøglen eller modellen kan være forkert, eller kontoen mangler adgang eller kredit.",
+  "OneUptime AI will try again": "OneUptime AI prøver igen"
 }

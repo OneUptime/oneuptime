@@ -47303,5 +47303,6 @@
   "· {{count}} times_one": "· {{count}} раз",
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Владелец проекта или пользователь с правом Manage Billing может добавить кредиты ИИ в разделе «Настройки проекта → ИИ → Кредиты ИИ».",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Сколько секунд ждать ответа провайдера на один запрос. Оставьте пустым для 120 (300 для Ollama). Увеличьте значение для медленной или самостоятельно размещённой модели.",
-  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "Провайдер ИИ отклонил запрос: возможно, неверны ключ API или модель, либо у учётной записи нет доступа или средств."
+  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "Провайдер ИИ отклонил запрос: возможно, неверны ключ API или модель, либо у учётной записи нет доступа или средств.",
+  "OneUptime AI will try again": "OneUptime AI попробует снова"
 }

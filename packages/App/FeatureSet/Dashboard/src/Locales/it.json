@@ -47303,5 +47303,6 @@
   "· {{count}} times_one": "· {{count}} volta",
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Un proprietario del progetto o chi ha Manage Billing può aggiungere crediti IA in Impostazioni del progetto → IA → Crediti IA.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Secondi di attesa della risposta del provider a una richiesta. Lascia vuoto per 120 (300 per Ollama). Aumentalo per un modello lento o self-hosted.",
-  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "Il provider di IA ha rifiutato la richiesta: la chiave API o il modello potrebbero essere errati, oppure all'account mancano l'accesso o il credito."
+  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "Il provider di IA ha rifiutato la richiesta: la chiave API o il modello potrebbero essere errati, oppure all'account mancano l'accesso o il credito.",
+  "OneUptime AI will try again": "OneUptime AI riproverà"
 }

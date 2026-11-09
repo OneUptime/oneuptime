@@ -47303,5 +47303,6 @@
   "· {{count}} times_one": "· {{count}} time",
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.",
-  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit."
+  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
+  "OneUptime AI will try again": "OneUptime AI will try again"
 }
