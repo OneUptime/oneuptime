@@ -2000,8 +2000,8 @@ describe("in every language the Dashboard ships", () => {
     OWNER_RULE_INHERIT_NAME_WORDING.somePicks.other,
   ];
 
-  test("covers all sixteen", () => {
-    expect(LANGUAGES).toHaveLength(16);
+  test("covers all seventeen", () => {
+    expect(LANGUAGES).toHaveLength(17);
   });
 
   test.each(LANGUAGES)(

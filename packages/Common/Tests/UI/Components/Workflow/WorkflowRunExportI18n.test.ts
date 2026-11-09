@@ -55,6 +55,7 @@ const OTHER_LOCALES: Array<string> = [
   "zh-TW",
   "hi",
   "fa",
+  "ar",
 ];
 
 type ReadLocaleFunction = (locale: string) => Record<string, string>;
@@ -99,7 +100,7 @@ describe("a workflow run's Copy log and Download in every dashboard language", (
     );
   });
 
-  test("there are seventeen locale files", () => {
+  test("there are eighteen locale files", () => {
     const files: Array<string> = fs
       .readdirSync(LOCALES_DIR)
       .filter((file: string) => {

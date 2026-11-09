@@ -377,7 +377,7 @@ describe("the Language column of the subscriber lists", () => {
         return file.endsWith(".json");
       });
 
-    expect(files).toHaveLength(17);
+    expect(files).toHaveLength(18);
 
     for (const file of files) {
       const words: Record<string, unknown> = JSON.parse(

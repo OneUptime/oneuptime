@@ -124,8 +124,8 @@ describe("Usage History says telemetry kept under 7 days is billed as 7", () => 
 });
 
 describe("every Dashboard language says it", () => {
-  test("there are sixteen languages besides English", () => {
-    expect(NON_ENGLISH).toHaveLength(16);
+  test("there are seventeen languages besides English", () => {
+    expect(NON_ENGLISH).toHaveLength(17);
   });
 
   test("English maps the description to itself", () => {

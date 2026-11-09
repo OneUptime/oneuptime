@@ -1219,15 +1219,16 @@ describe("User two factor auth page route", () => {
 });
 
 describe("User two factor auth translations", () => {
-  test("all seventeen locale files are being looked at", () => {
+  test("all eighteen locale files are being looked at", () => {
     /*
      * The loops below prove nothing if the directory read comes back short, and
      * i18next's fallbackLng is "en", so a locale file that simply lacks these
      * keys renders an English page with no error to notice. Pinned as the exact
-     * list rather than a count, so an eighteenth language added without these
+     * list rather than a count, so a nineteenth language added without these
      * keys is a failure here rather than a half-translated page.
      */
     expect(localeFileNames).toEqual([
+      "ar.json",
       "da.json",
       "de.json",
       "en.json",

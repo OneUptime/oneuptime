@@ -43,6 +43,7 @@ import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
 import german from "../../../../App/FeatureSet/Accounts/src/Locales/de.json";
 import persian from "../../../../App/FeatureSet/Accounts/src/Locales/fa.json";
+import arabic from "../../../../App/FeatureSet/Accounts/src/Locales/ar.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
 import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register";
@@ -808,6 +809,44 @@ describe("The other ways to sign in", () => {
         "Mit einem Passkey anmelden",
       );
       expect(german.common.or).toBe("oder");
+    });
+
+    test("Arabic: the page, its divider and every way in are in Arabic, each laid out by its own direction", async () => {
+      microsoftClientIdForTest = "microsoft-client-id";
+      googleClientIdForTest = "google-client-id";
+      await i18n.changeLanguage("ar");
+      await renderLogin();
+
+      expect(screen.getByText("سجّل الدخول إلى حسابك")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "استخدم كلمة المرور، أو تسجيل الدخول الموحد (SSO) لمؤسستك، أو مفتاح المرور.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("sign-in-options-divider")).toHaveTextContent(
+        /^أو$/,
+      );
+      expect(ssoOption()).toHaveAccessibleName("تسجيل الدخول باستخدام SSO");
+      expect(googleOption()).toHaveAccessibleName("المتابعة باستخدام Google");
+      expect(microsoftOption()).toHaveAccessibleName(
+        "تسجيل الدخول باستخدام Microsoft",
+      );
+      expect(passkeyOption()).toHaveAccessibleName("تسجيل الدخول بمفتاح مرور");
+
+      // A label that ends in a Latin name is laid out by its first letter.
+      for (const label of [
+        arabic.login.signInWithSso,
+        arabic.login.signInWithMicrosoft,
+        arabic.common.continueWithGoogle,
+        arabic.login.passkey.signIn,
+        arabic.common.or,
+      ]) {
+        expect(screen.getByText(label)).toHaveAttribute("dir", "auto");
+      }
+
+      // No English is left on the page's own words.
+      expect(screen.queryByText(english.login.signInWithSso)).toBeNull();
+      expect(screen.queryByText(english.common.or)).toBeNull();
     });
 
     test("the footer's language switcher changes the divider and the options in place", async () => {

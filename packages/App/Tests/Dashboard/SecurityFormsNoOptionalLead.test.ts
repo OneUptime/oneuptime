@@ -202,7 +202,7 @@ describe("Security Events says what a field is for, not that it is optional", ()
         return name.endsWith(".json");
       });
 
-    expect(files.length).toBe(17);
+    expect(files.length).toBe(18);
 
     for (const file of files) {
       const values: Record<string, string> = JSON.parse(

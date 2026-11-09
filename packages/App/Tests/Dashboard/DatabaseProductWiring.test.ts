@@ -529,8 +529,8 @@ describe("the navbar entry is translated everywhere", () => {
       return file.endsWith(".json");
     });
 
-  test("all 17 locale files are present", () => {
-    expect(localeFiles.length).toBe(17);
+  test("all 18 locale files are present", () => {
+    expect(localeFiles.length).toBe(18);
   });
 
   test.each(localeFiles)(

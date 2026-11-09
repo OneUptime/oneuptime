@@ -298,7 +298,7 @@ describe("the status page picker's access banner stays removed", () => {
           "packages/App/FeatureSet/Dashboard/src/Locales/",
         );
       }),
-    ).toHaveLength(17);
+    ).toHaveLength(18);
     expect(paths.length).toBeGreaterThan(17);
   });
 
