@@ -1,6 +1,6 @@
 # Transmitir métricas e logs do Azure Monitor
 
-Uma assinatura do Azure conectada pode transmitir as métricas do Azure Monitor e os logs de recursos para o OneUptime. As configurações de diagnóstico os enviam para hubs de eventos da sua assinatura, e o OneUptime lê os hubs de eventos a cada minuto: as métricas principais chegam poucos minutos depois de o Azure Monitor tê-las, em vez de esperar a próxima leitura da conexão, e os logs de recursos chegam como logs do OneUptime, cada um arquivado sob o recurso a que se refere. Um único comando no Azure Cloud Shell configura tudo, e não há nada para executar.
+Uma assinatura do Azure conectada pode transmitir as métricas do Azure Monitor e os logs de recursos para o OneUptime. As configurações de diagnóstico os enviam para hubs de eventos da sua assinatura, e o OneUptime lê os hubs de eventos a cada minuto: a maioria das métricas principais chega poucos minutos depois de o Azure Monitor tê-las, em vez de esperar a próxima leitura da conexão, e os logs de recursos chegam como logs do OneUptime, cada um arquivado sob o recurso a que se refere. Um único comando no Azure Cloud Shell configura tudo, e não há nada para executar.
 
 :::cards
 - [Como funciona](#como-funciona): As configurações de diagnóstico enviam para um hub de eventos em cada região, e o OneUptime os lê.
@@ -22,7 +22,7 @@ flowchart TB
 
 - **Um hub de eventos em cada região.** Uma configuração de diagnóstico só envia para um hub de eventos da região do seu recurso, então o comando cria um namespace do Event Hubs em cada região onde estão seus recursos, todos em um único grupo de recursos, e aponta a configuração de diagnóstico de cada recurso para o da região dele.
 - **O OneUptime os lê.** O Azure Monitor só envia para um hub de eventos, uma conta de armazenamento ou um workspace do Log Analytics, nunca para um endereço seu: um hub de eventos que o OneUptime lê é o caminho que não exige que você execute nada. O OneUptime entra como o aplicativo da conexão, que pode ler esses hubs de eventos e nada mais.
-- **As leituras deixam as métricas transmitidas para o fluxo.** Enquanto o fluxo entrega as métricas principais de um tipo de recurso em uma região, as leituras da conexão deixam de gravá-las, então nenhum ponto de dados é contado duas vezes. As leituras continuam encontrando recursos, o estado deles e suas alterações, e retomam as métricas depois de 15 minutos sem um evento.
+- **As leituras deixam as métricas transmitidas para o fluxo.** Enquanto o fluxo entrega as métricas principais de um tipo de recurso em uma região, as leituras da conexão deixam de gravar as que ele leva, então nenhum ponto de dados é contado duas vezes, e continuam gravando [as que ele não pode levar](#o-que-chega). As leituras continuam encontrando recursos, o estado deles e suas alterações, e retomam as métricas depois de 15 minutos sem um evento.
 - **Nada se perde enquanto o OneUptime não pode ler.** Os eventos esperam nos hubs de eventos até o OneUptime lê-los, enquanto os hubs de eventos os guardarem, e o OneUptime guarda até onde leu cada partição, para continuar de onde parou.
 
 ## Antes de começar
@@ -41,7 +41,7 @@ Vá para **Nuvem → Conectar** e, na linha da assinatura do Azure, escolha **Tr
 
 ### Escolher o que transmitir
 
-**Métricas** transmite cada métrica principal de cada recurso, minuto a minuto: as métricas que o OneUptime exibe em gráficos e usa para avaliar cada recurso. **Métricas e logs** acrescenta os logs próprios de cada recurso, cada categoria que o Azure mantém para ele, e **Registros** transmite só os logs de recursos.
+**Métricas** transmite as métricas principais de cada recurso, minuto a minuto, as métricas que o OneUptime exibe em gráficos e usa para avaliar cada recurso, exceto [as que uma configuração de diagnóstico não pode enviar](#o-que-chega), que a conexão continua lendo. **Métricas e logs** acrescenta os logs próprios de cada recurso, cada categoria que o Azure mantém para ele, e **Registros** transmite só os logs de recursos.
 
 ### Ativar a leitura
 
@@ -75,7 +75,20 @@ Quando a primeira assinatura não é aquela em que o OneUptime lê os hubs de ev
 | Logs de recursos | No explorador de logs, sob o serviço de telemetria da conexão, com a assinatura, a região e a categoria como atributos |
 | Logs de um recurso que o OneUptime conhece | Também nesse recurso: a página dele na Nuvem ganha uma aba **Registros** |
 
-O fluxo leva as métricas principais que a conexão lê minuto a minuto. Uma métrica que ela lê em uma granularidade maior, como a capacidade usada de uma conta de armazenamento, continua com as leituras. Um log é arquivado sob o recurso pelo ID do ARM do recurso, levado como `cloud.resource_id`, e mantém a categoria, a operação, o resultado e as propriedades como atributos, por exemplo `azure.category`.
+O fluxo leva as métricas principais que a conexão lê minuto a minuto. As leituras continuam gravando o resto no seu agendamento: uma métrica que elas leem em uma granularidade maior, como o armazenamento usado de um registro de contêiner, e cada métrica principal que uma configuração de diagnóstico não pode enviar, que a lista de métricas compatíveis do Azure Monitor marca como não exportável na coluna DS Export:
+
+- Máquinas virtuais e conjuntos de dimensionamento: `Network In Total`, `Network Out Total`.
+- Discos: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
+- Contas do Azure Cosmos DB: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
+- Contas de armazenamento: `UsedCapacity`.
+- Clusters do AKS: `kube_pod_status_ready`.
+- Gateways de aplicativo: `ApplicationGatewayTotalTime`, `Throughput`.
+- Firewalls: `Throughput`.
+- Gateways NAT: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+
+Um namespace do Service Bus ou do Event Hubs não transmite métricas. As leituras leem as métricas principais dele para cada fila, tópico e hub de eventos, e os totais próprios do namespace as somam, enquanto uma configuração de diagnóstico envia só os totais do namespace, e não envia 4 das 6 métricas principais de um namespace do Service Bus, nem 2 das 4 de um namespace do Event Hubs. Então as leituras gravam todas elas, com ou sem fluxo, e nenhuma mensagem é contada duas vezes.
+
+Um log é arquivado sob o recurso pelo ID do ARM do recurso, levado como `cloud.resource_id`, e mantém a categoria, a operação, o resultado e as propriedades como atributos, por exemplo `azure.category`.
 
 Máquinas virtuais, conjuntos de dimensionamento, discos, interfaces de rede, redes virtuais, pontos de extremidade privados, gateways NAT, zonas DNS e planos do App Service não enviam logs de recursos próprios, então as páginas deles não têm a aba **Registros**. Os logs de uma conta de armazenamento são os dos seus serviços, e os de um aplicativo de contêiner, os do seu ambiente.
 

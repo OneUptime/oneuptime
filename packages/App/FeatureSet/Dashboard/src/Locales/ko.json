@@ -45713,7 +45713,7 @@
   "Event hub": "이벤트 허브",
   "Every entry of severity WARNING or above: what went wrong, not every request.": "심각도가 WARNING 이상인 모든 항목: 모든 요청이 아니라 문제가 생긴 것만.",
   "Every entry the projects write but the Data Access audit logs, which record every read. A busy project's logs can cost far more.": "모든 읽기를 기록하는 Data Access 감사 로그를 제외하고 프로젝트가 기록하는 모든 항목. 사용량이 많은 프로젝트의 로그는 비용이 훨씬 많이 들 수 있습니다.",
-  "Every key metric of every resource, a minute at a time: what OneUptime charts and judges each resource by.": "모든 리소스의 모든 핵심 메트릭을 1분 단위로: OneUptime이 각 리소스를 차트로 보여 주고 판단하는 기준입니다.",
+  "The key metrics Azure can stream, a minute at a time: the connection keeps reading the rest.": "Azure가 스트리밍할 수 있는 핵심 메트릭을 1분 단위로: 나머지는 연결이 계속 읽습니다.",
   "Every log": "모든 로그",
   "Every stream key of {{name}} stops working at once, and what Pub/Sub pushes is refused from now on. What was delivered stays.": "{{name}}의 모든 스트림 키가 즉시 작동을 멈추고, 이제부터 Pub/Sub가 푸시하는 것은 거부됩니다. 이미 전달된 것은 남습니다.",
   "Have Cloud Logging push its logs through Pub/Sub as they are written.": "Cloud Logging이 로그를 기록되는 즉시 Pub/Sub를 통해 푸시하게 합니다.",

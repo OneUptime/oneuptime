@@ -12,6 +12,7 @@ import MetricService from "../../Services/MetricService";
 import {
   COLLECTOR_ENTITY_ATTRIBUTES,
   CollectorMessagingQueues,
+  NO_COLLECTOR_QUEUES,
   getMessagingNamespaceSeriesKey,
   getMessagingQueueSeriesKey,
   isSplitMessagingType,
@@ -26,7 +27,9 @@ import {
  * (metadata_entityname, or the documented metadata_EntityName), of the
  * series that carry no cloud connection's id - what a collector sent, never
  * what a connection's read or stream did. A series of another resource
- * type sharing a name (azure_incomingmessages_total) is left out here.
+ * type sharing a name (azure_incomingmessages_total) is left out here. A
+ * group with no entity is the namespace's own total of the metric, as a
+ * receiver with its dimensions off sends it (namespaceTotals).
  */
 
 // Groups one lookup lists at most; past it, whole namespaces are the collector's.
@@ -44,6 +47,7 @@ export function readCollectorQueuesFromRows(data: {
 }): CollectorMessagingQueues {
   const series: Set<string> = new Set<string>();
   const wholeNamespaces: Set<string> = new Set<string>();
+  const namespaceTotals: Set<string> = new Set<string>();
 
   for (const row of data.rows) {
     const attributes: JSONObject =
@@ -61,7 +65,15 @@ export function readCollectorQueuesFromRows(data: {
       entity = entity || readText(attributes[key]);
     }
 
-    if (!metricName || !namespace || !entity || !isSplitMessagingType(type)) {
+    if (!metricName || !namespace || !isSplitMessagingType(type)) {
+      continue;
+    }
+
+    // The namespace's own total, split by no queue: the collector's to count.
+    if (!entity) {
+      namespaceTotals.add(
+        getMessagingNamespaceSeriesKey({ metricName, type, namespace }),
+      );
       continue;
     }
 
@@ -76,7 +88,7 @@ export function readCollectorQueuesFromRows(data: {
     }
   }
 
-  return { series, wholeNamespaces };
+  return { series, wholeNamespaces, namespaceTotals };
 }
 
 export async function findCollectorMessagingQueues(data: {
@@ -86,7 +98,7 @@ export async function findCollectorMessagingQueues(data: {
   until: Date;
 }): Promise<CollectorMessagingQueues> {
   if (data.metricNames.length === 0) {
-    return { series: new Set<string>(), wholeNamespaces: new Set<string>() };
+    return NO_COLLECTOR_QUEUES;
   }
 
   const result: AggregatedResult = await MetricService.aggregateBy({
