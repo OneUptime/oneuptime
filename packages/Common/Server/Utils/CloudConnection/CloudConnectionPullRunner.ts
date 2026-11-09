@@ -19,6 +19,15 @@ import DataSourceHttpFetch from "../DataSource/HttpFetch";
 import LlmConnectionPullRunner from "../LlmObservability/LlmConnectionPullRunner";
 import LlmProviderError from "../LlmObservability/LlmProviderError";
 import logger from "../Logger";
+import {
+  COLLECTOR_QUEUE_LOOKBACK_MS,
+  CollectorMessagingQueues,
+  CollectorMessagingQueuesFinder,
+  NO_COLLECTOR_QUEUES,
+  getSplitMessagingMetricNames,
+  withoutCollectorQueues,
+} from "./CloudCollectorQueues";
+import { findCollectorMessagingQueues } from "./CloudCollectorQueuesReader";
 import CloudConnectionResourceSync, {
   CloudConnectionSyncResult,
 } from "./CloudConnectionResourceSync";
@@ -58,7 +67,9 @@ import {
  *      and hands the metrics to the metrics ingest (the importer the App
  *      gives it), exactly as a collector's cloud receiver would - but for
  *      the namespaces the connection's streams deliver lately
- *      (CloudStreamedMetrics), which the stream writes instead;
+ *      (CloudStreamedMetrics), which the stream writes instead, and the
+ *      queues and topics a collector's azure_monitor receiver delivers
+ *      lately (CloudCollectorQueues), which the collector writes instead;
  *   5. on their own slower beat, lists every resource of the accounts (the
  *      inventory) and keeps the connection's cloud accounts
  *      (CloudConnectionLanes);
@@ -107,7 +118,13 @@ export interface CloudConnectionPullDependencies {
   transport?: CloudConnectorTransport | undefined;
   now?: (() => Date) | undefined;
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
+  // Which queues a collector delivered lately: the stored metrics, unless a test's.
+  findCollectorQueues?: CollectorMessagingQueuesFinder | undefined;
 }
+
+// Said when the read could not tell which queues a collector reads.
+export const COLLECTOR_QUEUES_UNKNOWN_WARNING: string =
+  "Could not tell which queues and topics a collector already reads, so this read wrote all of them.";
 
 export interface CloudConnectionPullOutcome {
   status: CloudConnectionReadStatus | "skipped";
@@ -146,6 +163,50 @@ export default class CloudConnectionPullRunner {
     }
 
     return new Date(data.now.getTime() + interval);
+  }
+
+  /*
+   * The queues and topics a collector delivered lately, of the Service Bus
+   * and Event Hubs metrics a read split per queue: none when it split
+   * none (nothing is looked up). A lookup that fails leaves nothing out,
+   * and says so: a queue counted twice for one read, never one missing.
+   */
+  public static async findCollectorQueues(data: {
+    projectId: ObjectID;
+    payloads: Array<JSONObject>;
+    now: Date;
+    find: CollectorMessagingQueuesFinder;
+  }): Promise<{ queues: CollectorMessagingQueues; warning: string | null }> {
+    const metricNames: Array<string> = getSplitMessagingMetricNames(
+      data.payloads,
+    );
+
+    if (metricNames.length === 0) {
+      return { queues: NO_COLLECTOR_QUEUES, warning: null };
+    }
+
+    try {
+      return {
+        queues: await data.find({
+          projectId: data.projectId,
+          metricNames,
+          since: new Date(data.now.getTime() - COLLECTOR_QUEUE_LOOKBACK_MS),
+          until: data.now,
+        }),
+        warning: null,
+      };
+    } catch (error) {
+      logger.error(
+        `Cloud connection read: the queues a collector reads could not be looked up: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      return {
+        queues: NO_COLLECTOR_QUEUES,
+        warning: COLLECTOR_QUEUES_UNKNOWN_WARNING,
+      };
+    }
   }
 
   public static async run(
@@ -270,6 +331,23 @@ export default class CloudConnectionPullRunner {
         : new Set<string>();
       let pointsLeftToStreams: number = 0;
 
+      /*
+       * A queue or topic a collector delivered lately is the collector's
+       * (CloudCollectorQueues): the read leaves its series out of what it
+       * writes - per queue and per metric - so no queue is counted twice,
+       * and keeps them for the resources' readings below.
+       */
+      const collector: {
+        queues: CollectorMessagingQueues;
+        warning: string | null;
+      } = await CloudConnectionPullRunner.findCollectorQueues({
+        projectId: connection.projectId,
+        payloads: read.payloads,
+        now,
+        find: dependencies.findCollectorQueues || findCollectorMessagingQueues,
+      });
+      let pointsLeftToCollectors: number = 0;
+
       for (const payload of read.payloads) {
         const toWrite: { payload: JSONObject | null; leftOut: number } =
           withoutStreamedMetrics({ payload, streamedKeys });
@@ -280,13 +358,29 @@ export default class CloudConnectionPullRunner {
           continue;
         }
 
+        const ownToWrite: { payload: JSONObject | null; leftOut: number } =
+          withoutCollectorQueues({
+            payload: toWrite.payload,
+            collector: collector.queues,
+          });
+
+        pointsLeftToCollectors += ownToWrite.leftOut;
+
+        if (!ownToWrite.payload) {
+          continue;
+        }
+
         await dependencies.importMetrics({
           projectId: connection.projectId,
-          payload: toWrite.payload,
+          payload: ownToWrite.payload,
         });
       }
 
       const warnings: Array<string> = [...read.warnings];
+
+      if (collector.warning) {
+        warnings.push(collector.warning);
+      }
 
       if (synced.hasMore) {
         warnings.push(
@@ -414,7 +508,10 @@ export default class CloudConnectionPullRunner {
           synced.newResources + (inventory.synced?.newResources || 0),
         archivedResources:
           synced.archivedResources + (inventory.synced?.archivedResources || 0),
-        pointsWritten: Math.max(0, read.pointsWritten - pointsLeftToStreams),
+        pointsWritten: Math.max(
+          0,
+          read.pointsWritten - pointsLeftToStreams - pointsLeftToCollectors,
+        ),
         changesRecorded: changes.recorded,
         requestCount: read.requestCount,
         warnings: warnings.slice(0, 10),

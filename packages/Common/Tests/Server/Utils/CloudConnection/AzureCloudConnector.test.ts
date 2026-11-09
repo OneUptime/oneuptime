@@ -880,6 +880,7 @@ describe("choosing metrics", () => {
         metricName: "Percentage CPU",
         unit: "Percent",
         points: [{ timeMs: Date.parse("2026-10-21T12:00:00Z"), value: 4 }],
+        dimensions: [],
       },
     ]);
   });
