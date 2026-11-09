@@ -10,7 +10,6 @@ import AIRunService from "../../../../Server/Services/AIRunService";
 import AIService from "../../../../Server/Services/AIService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
-import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
 import Project from "../../../../Models/DatabaseModels/Project";
 import {
   AIRunAttemptOutcome,
@@ -321,7 +320,7 @@ describe("AIInvestigationQueue — an attempt that cannot say how it ended", () 
   beforeEach(() => {
     appendEvent = jest
       .spyOn(AIRunEventService, "appendEventToRun")
-      .mockResolvedValue({} as unknown as AIRunEvent);
+      .mockResolvedValue(undefined);
   });
 
   afterEach(() => {
