@@ -1064,6 +1064,8 @@
   "e.g. Production OpenAI": "напр. OpenAI для продакшена",
   "What this provider is for.": "Для чего этот провайдер.",
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Дополнительные JSON-параметры, отправляемые поставщику с каждым запросом, например {\"temperature\": 0.2}. Оставьте пустым, если модели они не нужны.",
+  "Response Timeout (Seconds)": "Тайм-аут ответа (секунды)",
+  "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Сколько секунд ждать ответа провайдера на один запрос. Оставьте пустым для 120 (300 для Ollama). Увеличьте значение для медленной или самостоятельно размещённой модели.",
   "Never put keys here.": "Никогда не указывайте здесь ключи.",
   "Your deployment's name, exactly as Foundry shows it.": "Имя вашего развёртывания точно так, как его показывает Foundry.",
   "{{name}} (default)": "{{name}} (по умолчанию)",

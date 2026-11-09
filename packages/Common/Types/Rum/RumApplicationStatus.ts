@@ -18,13 +18,16 @@
  *                       by hand and its app has not sent anything yet.
  *                       Grey; its Overview shows how to set it up.
  *
- * There is no warning state, on purpose. OneUptime has no signal that a RUM
- * application's SDK is broken: a revoked key, a key switched off and an
- * origin a Browser key does not allow are all refused by the ingest
- * middleware before the request is read, so before it names an application.
- * A state saying "something is wrong" would be a guess. (Session Replay's
- * own refusals are counted per application, and its Recording Health row
- * and Health page say them.)
+ * There is no warning state, on purpose. A revoked key, a key switched off
+ * and an origin a Browser key does not allow are all refused by the ingest
+ * middleware before the request is read, so before it names an application:
+ * ingest counts those refusals per key (TelemetryIngestionKeyRefusal, issue
+ * #6378), never per application. Only a key pinned to an application, or a
+ * refusal of the whole project, is surely about it, so a state saying
+ * "something is wrong" would often be a guess. Where a refusal does apply,
+ * the application's setup check and its empty charts say it. (Session
+ * Replay's own refusals are counted per application, and its Recording
+ * Health row and Health page say them.)
  *
  * Every place that says it reads it from here: the RUM Applications list
  * (its Status column), an application's Overview (the pill in its hero and

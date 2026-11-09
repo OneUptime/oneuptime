@@ -25,6 +25,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * AN AUTO IMPORT RULE'S RUN NOW, FROM THE ROUTE TO THE WRITES (issue #6323).
@@ -157,7 +158,12 @@ const RUNNER_ID: ObjectID = new ObjectID(
 const SCAN_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 const KEY_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+/*
+ * jest-mock's Mock, which takes the function it stands in for. jest.Mock
+ * here is @types/jest's, whose first parameter is what the mock returns,
+ * and @jest/globals' jest (28) has no Mock type of its own.
+ */
+type AnyMock = Mock<(...args: Array<any>) => any>;
 
 function mocked(fn: unknown): AnyMock {
   return fn as AnyMock;

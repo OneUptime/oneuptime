@@ -435,6 +435,14 @@ För att behålla de gamla gränserna sätter du dem själv: **Lägsta allvarlig
 
 AI-sidorna har också ändrats i sidomenyerna för Incidenter och Larm. Varje menys avsnitt **AI**, direkt efter **Episoder** och hopfällt tills du öppnar det, innehåller allt som OneUptime AI gör för den typen av signal: **Insikter** och **Loggar**, som är nya, sedan **Inställningar**, sidan som hette **Utredning**, och **Regler för automatisk åtgärd**, sidan som hette **Åtgärd**. Deras adresser har flyttat från `…/settings/ai` och `…/settings/auto-remediation-rules` till `…/ai/settings` och `…/ai/auto-remediation-rules`. De gamla adresserna öppnar de nya sidorna, så bokmärken fortsätter att fungera.
 
+### AI-körningar har bara en tidsgräns
+
+En körning av OneUptime AI stoppade tidigare vid fasta antal, till exempel 100 modellanrop och 300 verktygsanrop för en utredning, och 40 modellanrop och 100 000 utdatatokens för en koduppgift. De är borta: en körning gör nu så många anrop som arbetet behöver, i upp till 120 minuter. En utredning utan angiven tidsgräns, som tidigare inte hade någon, stoppar nu också efter 120 minuter. Loopdetektering stoppar fortfarande en utredning eller ett svar som går runt i cirklar, och du kan stoppa vilken körning som helst.
+
+För ett befintligt projekt kan en svår fråga nu kräva fler anrop än tidigare, och därmed fler tokens och, på OneUptime Cloud, fler AI-krediter; projektets dagliga gränser begränsar fortfarande dygnet. Vill du hålla varje körning till mindre anger du **Modellanrop per körning**, **Verktygsanrop per körning**, **Tokens per körning** eller **Tidsgräns per körning (minuter)** på **Projektinställningar → AI → AI-funktioner**, under **Fler inställningar**. En körning som når någon av dem svarar med det den hittade och säger vilken gräns som stoppade den. Inget migreras: inget projekt hade de här inställningarna tidigare.
+
+En Runner från före den här versionen stoppar fortfarande en koduppgift vid 40 modellanrop och 100 000 utdatatokens; uppgradera den för att ta bort de gränserna.
+
 ### AI Logs får ett index för de dagliga AI-gränserna
 
 Ett projekts dagliga AI-gränser (**Projektinställningar → AI → AI-funktioner → Fler inställningar**) och de dagliga tokengränserna för incidenter och larm summerar dagens AI Logs före varje AI-anrop. Hittills läste det alla AI Logs som projektet någonsin hade skrivit, och en självhostad installation behåller dem alla. Uppgraderingen lägger till ett index på AI Logs (`LlmLog`), på projektet och tidpunkten för varje anrop, så varje kontroll läser bara dagens. Sidan med AI Logs listar också ett projekts loggar snabbare.

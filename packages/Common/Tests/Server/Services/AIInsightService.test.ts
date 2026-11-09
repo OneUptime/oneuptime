@@ -528,13 +528,14 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
     expect(eventsFindBy).not.toHaveBeenCalled();
   });
 
-  test("happy path: run + events read as root, events ordered by sequence asc and capped at 500", async () => {
+  test("happy path: run + events read as root, the newest 500 events, in sequence order", async () => {
     const triageAiRunId: ObjectID = ObjectID.generate();
     const run: AIRun = fakeRun();
+    // The read asks for the newest first.
     const events: Array<AIRunEvent> = [
-      fakeEvent(1),
-      fakeEvent(2),
       fakeEvent(3),
+      fakeEvent(2),
+      fakeEvent(1),
     ];
 
     jest
@@ -551,7 +552,12 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       await AIInsightService.getLatestTriageRunWithEvents({ insightId });
 
     expect(result.run).toBe(run);
-    expect(result.events).toBe(events);
+    // ...and hands them back in the order they happened.
+    expect(
+      result.events.map((event: AIRunEvent): number | undefined => {
+        return event.sequence;
+      }),
+    ).toEqual([1, 2, 3]);
 
     /*
      * Triage runs are system-authored and hidden by the per-user pin on
@@ -564,12 +570,22 @@ describe("AIInsightService.getLatestTriageRunWithEvents", () => {
       }),
     );
 
+    /*
+     * The newest: a run past the cap still shows its latest steps and how
+     * it ended, never its oldest steps open forever (issue #6437).
+     */
     expect(eventsFindBy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({ aiRunId: run.id }),
-        sort: expect.objectContaining({ sequence: SortOrder.Ascending }),
+        sort: expect.objectContaining({ sequence: SortOrder.Descending }),
         limit: MAX_TRIAGE_RUN_EVENTS,
         props: expect.objectContaining({ isRoot: true }),
+      }),
+    );
+    // The run's next attempt time is read with it (issue #6438).
+    expect(runFindOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ retryAt: true }),
       }),
     );
 

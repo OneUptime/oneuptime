@@ -219,7 +219,7 @@ function levelText(
 
 describe("the How it works card in every language", () => {
   test("ships for every Dashboard language", () => {
-    expect(LANGUAGES).toHaveLength(17);
+    expect(LANGUAGES).toHaveLength(18);
   });
 
   for (const [name, guide] of GUIDES) {

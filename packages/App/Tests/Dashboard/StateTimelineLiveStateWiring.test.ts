@@ -266,8 +266,8 @@ describe("the shared pieces in Common", () => {
 });
 
 describe('"Currently Active" translations', () => {
-  test("there are seventeen Dashboard locales", () => {
-    expect(localeFiles).toHaveLength(17);
+  test("there are eighteen Dashboard locales", () => {
+    expect(localeFiles).toHaveLength(18);
   });
 
   test("en.json maps it to itself", () => {

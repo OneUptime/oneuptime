@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 /*
  * "2 hours ago", "in 3 days", "vor 2 Stunden", "dans 3 jours" - the times
  * Home puts next to an incident, a maintenance window or the last refresh.
@@ -114,7 +115,7 @@ export const formatRelativeTime: (data: {
   });
 
   try {
-    return new Intl.RelativeTimeFormat(data.language || "en", {
+    return new Intl.RelativeTimeFormat(getNumberLocale(data.language || "en"), {
       numeric: "auto",
     }).format(parts.value, parts.unit);
   } catch {

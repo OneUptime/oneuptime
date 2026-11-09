@@ -1,6 +1,6 @@
 # Stream Azure Monitor Metrics and Logs
 
-A connected Azure subscription can stream its Azure Monitor metrics and resource logs to OneUptime. Diagnostic settings send them to event hubs in your subscription, and OneUptime reads the event hubs every minute: key metrics arrive within minutes of Azure Monitor having them, instead of at the connection's next read, and resource logs arrive as OneUptime logs, each filed under the resource it is about. One command in Azure Cloud Shell sets it up, and there is nothing to run.
+A connected Azure subscription can stream its Azure Monitor metrics and resource logs to OneUptime. Diagnostic settings send them to event hubs in your subscription, and OneUptime reads the event hubs every minute: most key metrics arrive within minutes of Azure Monitor having them, instead of at the connection's next read, and resource logs arrive as OneUptime logs, each filed under the resource it is about. One command in Azure Cloud Shell sets it up, and there is nothing to run.
 
 :::cards
 - [How it works](#how-it-works): Diagnostic settings send to an event hub in each region, and OneUptime reads them.
@@ -22,7 +22,7 @@ flowchart TB
 
 - **An event hub in each region.** A diagnostic setting sends only to an event hub in its resource's own region, so the command makes an Event Hubs namespace in each region your resources are in, all in one resource group, and points each resource's diagnostic setting at its region's.
 - **OneUptime reads them.** Azure Monitor sends only to an event hub, a storage account or a Log Analytics workspace, never to an address of yours: an event hub that OneUptime reads is the way that needs nothing of yours to run. OneUptime signs in as the connection's own app, which may read those event hubs and nothing else.
-- **The reads leave streamed metrics to the stream.** While the stream delivers a resource type's key metrics in a region, the connection's reads stop writing them, so no data point is counted twice. The reads go on finding resources, their health and their changes, and take the metrics back after 15 minutes without an event.
+- **The reads leave streamed metrics to the stream.** While the stream delivers a resource type's key metrics in a region, the connection's reads stop writing the ones it carries, so no data point is counted twice, and keep writing [the ones it cannot carry](#what-arrives). The reads go on finding resources, their health and their changes, and take the metrics back after 15 minutes without an event.
 - **Nothing is lost while OneUptime cannot read.** Events wait in the event hubs until OneUptime reads them, for as long as the event hubs keep them, and OneUptime keeps where it read each partition to, so it picks up where it stopped.
 
 ## Before you begin
@@ -41,7 +41,7 @@ Go to **Cloud → Connect**, and on the Azure subscription's row choose **Stream
 
 ### Choose what to stream
 
-**Metrics** streams every key metric of every resource, a minute at a time: the metrics OneUptime charts and judges each resource by. **Metrics and logs** adds each resource's own logs, every category Azure keeps for it, and **Logs** streams resource logs alone.
+**Metrics** streams each resource's key metrics a minute at a time, the metrics OneUptime charts and judges each resource by, except [those a diagnostic setting cannot send](#what-arrives), which the connection keeps reading. **Metrics and logs** adds each resource's own logs, every category Azure keeps for it, and **Logs** streams resource logs alone.
 
 ### Turn on reading
 
@@ -75,7 +75,20 @@ When the first subscription is not the one OneUptime reads the event hubs in, th
 | Resource logs | In the Logs explorer, under the connection's telemetry service, with the subscription, region and category as attributes |
 | Logs of a resource OneUptime knows | On that resource too: its page in Cloud gains a **Logs** tab |
 
-The stream carries the key metrics the connection reads a minute at a time. A metric it reads at a coarser grain, such as a storage account's used capacity, stays with the reads. A log is filed under its resource by the resource's ARM ID, carried as `cloud.resource_id`, and keeps its category, operation, result and properties as attributes, such as `azure.category`.
+The stream carries the key metrics the connection reads a minute at a time. The reads keep writing the rest on their schedule: a metric they read at a coarser grain, such as a container registry's storage used, and every key metric a diagnostic setting cannot send, which Azure Monitor's list of supported metrics marks No under DS Export:
+
+- Virtual machines and scale sets: `Network In Total`, `Network Out Total`.
+- Disks: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
+- Azure Cosmos DB accounts: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
+- Storage accounts: `UsedCapacity`.
+- AKS clusters: `kube_pod_status_ready`.
+- Application gateways: `ApplicationGatewayTotalTime`, `Throughput`.
+- Firewalls: `Throughput`.
+- NAT gateways: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+
+A Service Bus or Event Hubs namespace streams no metrics. The reads read its key metrics for each queue, topic and event hub, and the namespace's own totals add those up, while a diagnostic setting sends only the namespace's totals, and not 4 of a Service Bus namespace's 6 key metrics, or 2 of an Event Hubs namespace's 4. So the reads write all of them, streaming or not, and no message is counted twice.
+
+A log is filed under its resource by the resource's ARM ID, carried as `cloud.resource_id`, and keeps its category, operation, result and properties as attributes, such as `azure.category`.
 
 Virtual machines, scale sets, disks, network interfaces, virtual networks, private endpoints, NAT gateways, DNS zones and App Service plans send no resource logs of their own, so their pages have no **Logs** tab. A storage account's logs are its services', and a container app's are its environment's.
 

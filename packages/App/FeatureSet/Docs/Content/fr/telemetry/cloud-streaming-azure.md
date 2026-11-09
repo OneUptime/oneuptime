@@ -1,6 +1,6 @@
 # Diffuser les métriques et journaux Azure Monitor
 
-Un abonnement Azure connecté peut diffuser ses métriques Azure Monitor et ses journaux de ressources vers OneUptime. Des paramètres de diagnostic les envoient vers des hubs d'événements de votre abonnement, et OneUptime lit ces hubs chaque minute : les métriques clés arrivent quelques minutes après qu'Azure Monitor les a, au lieu d'attendre la prochaine lecture de la connexion, et les journaux de ressources arrivent sous forme de journaux OneUptime, chacun classé sous la ressource qu'il concerne. Une seule commande dans Azure Cloud Shell met tout en place, et il n'y a rien à exécuter.
+Un abonnement Azure connecté peut diffuser ses métriques Azure Monitor et ses journaux de ressources vers OneUptime. Des paramètres de diagnostic les envoient vers des hubs d'événements de votre abonnement, et OneUptime lit ces hubs chaque minute : la plupart des métriques clés arrivent quelques minutes après qu'Azure Monitor les a, au lieu d'attendre la prochaine lecture de la connexion, et les journaux de ressources arrivent sous forme de journaux OneUptime, chacun classé sous la ressource qu'il concerne. Une seule commande dans Azure Cloud Shell met tout en place, et il n'y a rien à exécuter.
 
 :::cards
 - [Fonctionnement](#fonctionnement): Des paramètres de diagnostic envoient vers un hub d'événements dans chaque région, et OneUptime les lit.
@@ -22,7 +22,7 @@ flowchart TB
 
 - **Un hub d'événements dans chaque région.** Un paramètre de diagnostic n'envoie qu'à un hub d'événements de la région de sa ressource : la commande crée donc un espace de noms Event Hubs dans chaque région où se trouvent vos ressources, tous dans un même groupe de ressources, et dirige le paramètre de diagnostic de chaque ressource vers celui de sa région.
 - **OneUptime les lit.** Azure Monitor n'envoie qu'à un hub d'événements, un compte de stockage ou un espace de travail Log Analytics, jamais à une adresse à vous : un hub d'événements que OneUptime lit est le moyen qui ne demande rien à exécuter chez vous. OneUptime se connecte en tant qu'application de la connexion, autorisée à lire ces hubs d'événements et rien d'autre.
-- **Les lectures laissent les métriques diffusées au flux.** Tant que le flux livre les métriques clés d'un type de ressource dans une région, les lectures de la connexion cessent de les écrire, si bien qu'aucun point de données n'est compté deux fois. Les lectures continuent de trouver les ressources, leur état et leurs modifications, et reprennent les métriques après 15 minutes sans événement.
+- **Les lectures laissent les métriques diffusées au flux.** Tant que le flux livre les métriques clés d'un type de ressource dans une région, les lectures de la connexion cessent d'écrire celles qu'il transporte, si bien qu'aucun point de données n'est compté deux fois, et continuent d'écrire [celles qu'il ne peut pas transporter](#ce-qui-arrive). Les lectures continuent de trouver les ressources, leur état et leurs modifications, et reprennent les métriques après 15 minutes sans événement.
 - **Rien n'est perdu tant que OneUptime ne peut pas lire.** Les événements attendent dans les hubs d'événements que OneUptime les lise, aussi longtemps que les hubs les conservent, et OneUptime retient jusqu'où il a lu chaque partition, pour reprendre là où il s'est arrêté.
 
 ## Avant de commencer
@@ -41,7 +41,7 @@ Allez dans **Cloud → Connecter** et, sur la ligne de l'abonnement Azure, chois
 
 ### Choisir ce qu'il faut diffuser
 
-**Métriques** diffuse chaque métrique clé de chaque ressource, minute par minute : les métriques que OneUptime trace pour chaque ressource et sur lesquelles il la juge. **Métriques et journaux** ajoute les journaux propres à chaque ressource, chaque catégorie qu'Azure conserve pour elle, et **Journaux** diffuse les journaux de ressources seuls.
+**Métriques** diffuse les métriques clés de chaque ressource, minute par minute, les métriques que OneUptime trace pour chaque ressource et sur lesquelles il la juge, sauf [celles qu'un paramètre de diagnostic ne peut pas envoyer](#ce-qui-arrive), que la connexion continue de lire. **Métriques et journaux** ajoute les journaux propres à chaque ressource, chaque catégorie qu'Azure conserve pour elle, et **Journaux** diffuse les journaux de ressources seuls.
 
 ### Activer la lecture
 
@@ -75,7 +75,20 @@ Quand le premier abonnement n'est pas celui où OneUptime lit les hubs d'événe
 | Journaux de ressources | Dans l'explorateur de journaux, sous le service de télémétrie de la connexion, avec l'abonnement, la région et la catégorie comme attributs |
 | Journaux d'une ressource que OneUptime connaît | Aussi sur cette ressource : sa page dans Cloud gagne un onglet **Journaux** |
 
-Le flux transporte les métriques clés que la connexion lit minute par minute. Une métrique qu'elle lit à une granularité plus grossière, comme la capacité utilisée d'un compte de stockage, reste aux lectures. Un journal est classé sous sa ressource par l'ID ARM de la ressource, porté en `cloud.resource_id`, et garde sa catégorie, son opération, son résultat et ses propriétés comme attributs, par exemple `azure.category`.
+Le flux transporte les métriques clés que la connexion lit minute par minute. Les lectures continuent d'écrire le reste selon leur calendrier : une métrique qu'elles lisent à une granularité plus grossière, comme le stockage utilisé d'un registre de conteneurs, et chaque métrique clé qu'un paramètre de diagnostic ne peut pas envoyer, que la liste des métriques prises en charge par Azure Monitor marque comme non exportable dans la colonne DS Export :
+
+- Machines virtuelles et groupes identiques : `Network In Total`, `Network Out Total`.
+- Disques : `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
+- Comptes Azure Cosmos DB : `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
+- Comptes de stockage : `UsedCapacity`.
+- Clusters AKS : `kube_pod_status_ready`.
+- Passerelles d'application : `ApplicationGatewayTotalTime`, `Throughput`.
+- Pare-feu : `Throughput`.
+- Passerelles NAT : `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+
+Un espace de noms Service Bus ou Event Hubs ne diffuse aucune métrique. Les lectures lisent ses métriques clés pour chaque file, topic et hub d'événements, et les totaux propres à l'espace de noms les additionnent, alors qu'un paramètre de diagnostic n'envoie que les totaux de l'espace de noms, et n'envoie pas du tout 4 des 6 métriques clés d'un espace de noms Service Bus, ni 2 des 4 d'un espace de noms Event Hubs. Les lectures les écrivent donc toutes, avec ou sans diffusion, et aucun message n'est compté deux fois.
+
+Un journal est classé sous sa ressource par l'ID ARM de la ressource, porté en `cloud.resource_id`, et garde sa catégorie, son opération, son résultat et ses propriétés comme attributs, par exemple `azure.category`.
 
 Les machines virtuelles, groupes identiques, disques, interfaces réseau, réseaux virtuels, points de terminaison privés, passerelles NAT, zones DNS et plans App Service n'envoient pas de journaux de ressources propres : leurs pages n'ont donc pas d'onglet **Journaux**. Les journaux d'un compte de stockage sont ceux de ses services, et ceux d'une application conteneur ceux de son environnement.
 

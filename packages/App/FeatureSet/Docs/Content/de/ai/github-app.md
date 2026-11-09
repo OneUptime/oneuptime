@@ -31,7 +31,7 @@ flowchart TB
     R --> O["Derselbe Kommentar,<br/>neu geschrieben mit<br/>dem Ergebnis"]
 ```
 
-Es ist derselbe Agent und derselbe Runner wie in [Code](/docs/ai/ai-agent), mit denselben Budgets; nur der Auslöser unterscheidet sich.
+Es ist derselbe Agent und derselbe Runner wie in [Code](/docs/ai/ai-agent), mit denselben Limits; nur der Auslöser unterscheidet sich.
 
 ## Bevor Sie beginnen
 
@@ -122,7 +122,7 @@ Sie ignoriert außerdem jeden Kommentar, den ein Bot geschrieben hat, ihre eigen
 
 ## Was es kostet und wie Sie es begrenzen
 
-Jeder Befehl, der Arbeit startet, ist ein vollständiger Agent-Lauf: ein Klon, bis zu 40 LLM-Aufrufe und 100.000 Ausgabe-Tokens sowie, auf einem eigenen Runner, die Build- und Testprüfungen, die die `AGENTS.md` Ihres Repositorys beschreibt. Die Produktionsabfragen eines Reviews, höchstens 12, zählen zu denselben 40 Aufrufen.
+Jeder Befehl, der Arbeit startet, ist eine vollständige Agent-Ausführung: ein Klon, so viele LLM-Aufrufe, wie die Arbeit braucht, innerhalb des Zeitlimits der Ausführung (120 Minuten, sofern das Projekt kein eigenes festlegt), und auf einem eigenen Runner die Build- und Testprüfungen, die die `AGENTS.md` Ihres Repositorys beschreibt. Die Produktionsabfragen eines Reviews zählen als Tool-Aufrufe zu den Limits pro Ausführung des Projekts.
 
 GitHub-Befehle sind KI-Arbeit außerhalb von Vorfällen und Warnungen, daher gilt für sie kein tägliches Limit für Korrekturaufgaben; die eigenen täglichen KI-Limits des Projekts gelten, wenn das Projekt sie festlegt. Die einzige weitere Grenze ist die, die bereits für die Aufgaben in [Code](/docs/ai/ai-agent) gilt:
 

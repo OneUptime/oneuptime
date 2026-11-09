@@ -46,6 +46,7 @@ export const SUPPORTED_STATUS_PAGE_LANGUAGES: Array<StatusPageLanguage> = [
   },
   { code: "hi", nativeName: "हिन्दी", englishName: "Hindi" },
   { code: "fa", nativeName: "فارسی", englishName: "Persian" },
+  { code: "ar", nativeName: "العربية", englishName: "Arabic" },
 ];
 
 export const SUPPORTED_STATUS_PAGE_LANGUAGE_CODES: Array<string> =

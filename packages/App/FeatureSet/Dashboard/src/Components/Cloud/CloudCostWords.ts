@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import {
   CloudAccountCostSummary,
   CloudCostState,
@@ -173,12 +174,15 @@ export function formatCloudMoney(data: {
     (data.wholeWhenRound === true && Number.isInteger(amount));
 
   try {
-    return new Intl.NumberFormat(data.translator.language || "en", {
-      style: "currency",
-      currency: (data.currency || "USD").toUpperCase(),
-      minimumFractionDigits: isWhole ? 0 : 2,
-      maximumFractionDigits: isWhole ? 0 : 2,
-    }).format(amount);
+    return new Intl.NumberFormat(
+      getNumberLocale(data.translator.language || "en"),
+      {
+        style: "currency",
+        currency: (data.currency || "USD").toUpperCase(),
+        minimumFractionDigits: isWhole ? 0 : 2,
+        maximumFractionDigits: isWhole ? 0 : 2,
+      },
+    ).format(amount);
   } catch {
     return `${(data.currency || "USD").toUpperCase()} ${amount.toFixed(isWhole ? 0 : 2)}`;
   }

@@ -18,6 +18,7 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { decodedQueryParams } from "../../Helpers/StatementEcho";
 
 /*
  * The error-pattern reads are what turn the Logs Insights page from a pile
@@ -196,7 +197,7 @@ describe("getTopErrorPatterns", () => {
     await LogAggregationService.getTopErrorPatterns(baseFilters());
 
     expect(captured[0]!.query).toContain("AND severityText IN (");
-    expect(Object.values(captured[0]!.query_params)).toContainEqual(
+    expect(Object.values(decodedQueryParams(captured[0]!))).toContainEqual(
       DEFAULT_ERROR_LOG_SEVERITIES,
     );
   });
@@ -209,10 +210,10 @@ describe("getTopErrorPatterns", () => {
       severityTexts: ["Warning"],
     });
 
-    expect(Object.values(captured[0]!.query_params)).toContainEqual([
+    expect(Object.values(decodedQueryParams(captured[0]!))).toContainEqual([
       "Warning",
     ]);
-    expect(Object.values(captured[0]!.query_params)).not.toContainEqual(
+    expect(Object.values(decodedQueryParams(captured[0]!))).not.toContainEqual(
       DEFAULT_ERROR_LOG_SEVERITIES,
     );
   });
@@ -225,7 +226,7 @@ describe("getTopErrorPatterns", () => {
       severityTexts: [],
     });
 
-    expect(Object.values(captured[0]!.query_params)).toContainEqual(
+    expect(Object.values(decodedQueryParams(captured[0]!))).toContainEqual(
       DEFAULT_ERROR_LOG_SEVERITIES,
     );
   });
@@ -279,7 +280,7 @@ describe("getTopErrorPatterns", () => {
     expect(captured[0]!.query).toMatch(
       /AND primaryEntityId IN \(\{p\d+:Array\(String\)\}\)/,
     );
-    expect(Object.values(captured[0]!.query_params)).toContainEqual([
+    expect(Object.values(decodedQueryParams(captured[0]!))).toContainEqual([
       serviceId.toString(),
     ]);
   });
@@ -297,7 +298,9 @@ describe("getTopErrorPatterns", () => {
     });
 
     const query: string = captured[0]!.query;
-    const values: Array<unknown> = Object.values(captured[0]!.query_params);
+    const values: Array<unknown> = Object.values(
+      decodedQueryParams(captured[0]!),
+    );
 
     expect(query).toContain("hasAny(entityKeys,");
     expect(query).toMatch(/AND traceId IN \(\{p\d+:Array\(String\)\}\)/);
@@ -313,7 +316,7 @@ describe("getTopErrorPatterns", () => {
       statement: Statement,
     ): number => {
       const numbers: Array<number> = Object.values(
-        statement.query_params,
+        decodedQueryParams(statement),
       ).filter((value: unknown): value is number => {
         return typeof value === "number";
       });
@@ -413,7 +416,9 @@ describe("error-pattern drill-downs share the top list's scope", () => {
       await run(detailRequest());
 
       const statement: Statement = captured[0]!;
-      const values: Array<unknown> = Object.values(statement.query_params);
+      const values: Array<unknown> = Object.values(
+        decodedQueryParams(statement),
+      );
 
       expect(statement.query).toContain("replaceRegexpAll(");
       expect(values).toContain(pattern);
@@ -433,7 +438,7 @@ describe("error-pattern drill-downs share the top list's scope", () => {
 
       await run(detailRequest({ serviceIds: [serviceId] }));
 
-      expect(Object.values(captured[0]!.query_params)).toContainEqual([
+      expect(Object.values(decodedQueryParams(captured[0]!))).toContainEqual([
         serviceId.toString(),
       ]);
     },
@@ -450,7 +455,9 @@ describe("error-pattern drill-downs share the top list's scope", () => {
 
       expect(captured[0]!.query).not.toContain("UNION");
       expect(captured[0]!.query).not.toContain(injection);
-      expect(Object.values(captured[0]!.query_params)).toContain(injection);
+      expect(Object.values(decodedQueryParams(captured[0]!))).toContain(
+        injection,
+      );
     },
   );
 
@@ -463,7 +470,7 @@ describe("error-pattern drill-downs share the top list's scope", () => {
       await run(detailRequest({ pattern: oversized }));
 
       const echoed: Array<string> = Object.values(
-        captured[0]!.query_params,
+        decodedQueryParams(captured[0]!),
       ).filter((value: unknown): value is string => {
         return typeof value === "string" && value.startsWith("yyy");
       });
@@ -515,7 +522,7 @@ describe("error-pattern drill-downs share the top list's scope", () => {
       expect(referenced.length).toBeGreaterThan(0);
 
       for (const name of referenced) {
-        expect(captured[0]!.query_params).toHaveProperty(name);
+        expect(decodedQueryParams(captured[0]!)).toHaveProperty(name);
       }
 
       // Every read stays tenant-scoped, on every path.
@@ -549,7 +556,7 @@ describe("getErrorPatternTimeline", () => {
     expect(captured[0]!.query).toMatch(
       /toStartOfInterval\(time, INTERVAL \{p\d+:Int32\} SECOND\) AS bucket/,
     );
-    expect(Object.values(captured[0]!.query_params)).toContain(15 * 60);
+    expect(Object.values(decodedQueryParams(captured[0]!))).toContain(15 * 60);
     expect(captured[0]!.query).toContain("ORDER BY bucket ASC");
   });
 
@@ -563,7 +570,7 @@ describe("getErrorPatternTimeline", () => {
       );
 
       const seconds: Array<number> = Object.values(
-        captured[0]!.query_params,
+        decodedQueryParams(captured[0]!),
       ).filter((value: unknown): value is number => {
         return typeof value === "number";
       });

@@ -19,6 +19,8 @@ import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIInsightService from "../Services/AIInsightService";
 import InsightHighlights from "../Utils/AI/SRE/Insights/InsightHighlights";
+import InsightTriage from "../Utils/AI/SRE/Insights/Triage";
+import { AIRunStatusHelper } from "../../Types/AI/AIRunStatus";
 import {
   AI_INSIGHT_HIGHLIGHTS_PATH,
   AIInsightHighlights,
@@ -291,6 +293,50 @@ router.post(
       Response.sendJsonObjectResponse(req, res, {
         run: runJson || null,
         events: eventsJson,
+        /*
+         * Try again is offered for a triage that did not finish, to whoever
+         * may act on the insight - this route's reader (issue #6438).
+         */
+        mayTryAgain: Boolean(
+          result.run && AIRunStatusHelper.didNotFinish(result.run.status),
+        ),
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Try again (issue #6438): triage the insight again after its last triage
+ * did not finish (InsightTriage.tryAgain). Who may: whoever may act on the
+ * insight - Confirm, Dismiss and Resolve's rule, the insight's read access
+ * (Project Owner, Admin and Member). The new run goes through the
+ * scanner's gates: the AI switches, an LLM provider, the AI budget, one
+ * triage at a time.
+ * Body: { insightId }. Response: { runId }, or 400 with what stopped it.
+ */
+router.post(
+  "/ai-insight/triage-try-again",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      const insight: AIInsight = await findAccessibleInsight(req, props);
+
+      const runId: ObjectID = await InsightTriage.tryAgain({
+        insightId: insight.id!,
+      });
+
+      Response.sendJsonObjectResponse(req, res, {
+        runId: runId.toString(),
       });
       return;
     } catch (err) {

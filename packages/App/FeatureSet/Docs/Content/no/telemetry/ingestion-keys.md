@@ -122,6 +122,8 @@ For å bytte en hemmelighet uten å miste data oppretter du en ny nøkkel, flytt
 
 En avvist forespørsel får en status og en setning som sier hvorfor.
 
+Nøkkelens side teller også: **Avvist telemetri** viser hva som er avvist fra nøkkelen de siste 30 dagene, hvorfor, på hvilket endepunkt, hvor mange forespørsler og når. En manglende eller feilskrevet nøkkel hører ikke til noe prosjekt, så ingenting teller den.
+
 | Svar | Hva det betyr |
 | --- | --- |
 | `401` med `Missing ingestion token` | Forespørselen har ingen nøkkel. Send den i `x-oneuptime-token`. |

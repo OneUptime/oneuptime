@@ -31,7 +31,7 @@ flowchart TB
     R --> O["Dezelfde opmerking,<br/>herschreven met<br/>de uitkomst"]
 ```
 
-Het is dezelfde agent en dezelfde Runner als in [Code](/docs/ai/ai-agent), met hetzelfde budget; alleen de trigger verschilt.
+Het is dezelfde agent en dezelfde Runner als in [Code](/docs/ai/ai-agent), met dezelfde limieten; alleen de trigger verschilt.
 
 ## Voordat je begint
 
@@ -122,7 +122,7 @@ Hij negeert ook elke opmerking die een bot schreef, zijn eigen inbegrepen, en ve
 
 ## Wat het kost en hoe je het begrenst
 
-Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-aanroepen en 100.000 uitvoertokens, en, op een eigen Runner, de build- en testcontroles die de `AGENTS.md` van je repository beschrijft. De productiequery's van een review, hoogstens 12, tellen mee voor dezelfde 40 aanroepen.
+Elke opdracht die werk start, is een volledige agent-run: een kloon, zoveel LLM-aanroepen als het werk nodig heeft binnen de tijdslimiet van de run (120 minuten, tenzij het project een eigen limiet instelt), en, op een eigen Runner, de build- en testcontroles die de `AGENTS.md` van je repository beschrijft. De productiequery's van een review tellen als tool-aanroepen mee voor de limieten per run van het project.
 
 GitHub-opdrachten zijn AI-werk buiten incidenten en waarschuwingen, dus er geldt geen dagelijkse limiet voor hersteltaken; de eigen dagelijkse AI-limieten van het project gelden wel, als het project die instelt. De enige andere limiet is die al geldt voor de taken in [Code](/docs/ai/ai-agent):
 

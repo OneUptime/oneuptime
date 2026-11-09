@@ -171,6 +171,8 @@ import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
+import type { ActivityFeedRun } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ActivityFeedRun";
 import type { MarkdownInlineReferenceRenderers } from "../../../UI/Components/Markdown.tsx/InlineReferences";
 
 interface MarkdownViewerProps {
@@ -185,6 +187,8 @@ interface ActivityFeedProps {
   showLiveIndicator?: boolean | undefined;
   maxVisibleSteps?: number | undefined;
   hideChrome?: boolean | undefined;
+  run?: ActivityFeedRun | undefined;
+  showStepTimes?: boolean | undefined;
 }
 
 interface InvestigationPayloadOptions {
@@ -854,10 +858,19 @@ describe("InvestigationPanel report lifecycle", () => {
     await flush();
 
     expect(screen.getByText("Did not finish")).toBeVisible();
-    expect(screen.getByText("The model provider timed out.")).toBeVisible();
     expect(
       screen.getByText("The investigation stopped before it could report."),
     ).toBeVisible();
+    /*
+     * What happened, in words to act on (issue #6438); the provider's own
+     * error waits under Details.
+     */
+    expect(screen.getByTestId("investigation-error-cause")).toHaveTextContent(
+      "The AI provider did not answer in time.",
+    );
+    expect(screen.getByText("The model provider timed out.")).not.toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    expect(screen.getByText("The model provider timed out.")).toBeVisible();
     expect(
       screen.getByText("What the investigation got through"),
     ).toBeVisible();
@@ -1293,7 +1306,10 @@ describe("InvestigationPanel TL;DR", () => {
     await flush();
 
     expect(screen.queryByLabelText("Investigation summary")).toBeNull();
-    expect(screen.getByText("The provider timed out.")).toBeVisible();
+    expect(screen.getByTestId("investigation-error")).toBeVisible();
+    expect(screen.getByTestId("investigation-error-details")).toHaveTextContent(
+      "The provider timed out.",
+    );
   });
 
   /*
@@ -5429,7 +5445,11 @@ describe("InvestigationPanel says what happened in a notice, not a box", () => {
 
     const failure: HTMLElement = screen.getByTestId("investigation-error");
     expect(failure).toHaveTextContent(
-      "The investigation stopped before it could report.The provider timed out.",
+      "The investigation stopped before it could report.The AI provider did not answer in time.",
+    );
+    // The provider's own words are a quoted line under Details, not a box.
+    expect(screen.getByTestId("investigation-error-details")).toHaveTextContent(
+      "The provider timed out.",
     );
     expect(boxesInside(failure)).toEqual([]);
 
@@ -5742,5 +5762,315 @@ describe("InvestigationPanel folds a finished investigation", () => {
         .querySelector("svg"),
     ).not.toBeNull();
     expect(lastRemediationStepProps().investigationStage).toBe("reported");
+  });
+});
+
+/*
+ * TRY AGAIN, AND A RUN THAT WAITS TO (issues #6437, #6438).
+ *
+ * An investigation that did not finish offered nothing to press. Now the
+ * server says whether this reader may start it again (mayTryAgain: who may
+ * change the incident or alert), the card offers Try again to them, and
+ * pressing it starts a new run the card then follows. A run whose attempt
+ * failed and that waits to try again by itself says so and when, and the
+ * activity is told the run's status and times, so no step spins after the
+ * run stopped and each step says when it happened.
+ */
+describe("InvestigationPanel Try again", () => {
+  const TRY_AGAIN_PATH: string = "/ai-investigation/try-again";
+  const RETRY_AT: string = "2026-08-07T12:05:00.000Z";
+
+  function failedRunPayload(
+    status: AIRunStatus = AIRunStatus.Error,
+    mayTryAgain: boolean = true,
+  ): JSONObject {
+    const payload: JSONObject = investigationPayload({
+      status,
+      errorMessage: "The model provider timed out.",
+      events: [activityEvent],
+    });
+
+    payload["mayTryAgain"] = mayTryAgain;
+
+    return payload;
+  }
+
+  function queuedPayload(retryAt?: string): JSONObject {
+    const payload: JSONObject = investigationPayload({
+      status: AIRunStatus.Queued,
+      runId: NEXT_RUN_ID,
+      events: [activityEvent],
+    });
+
+    if (retryAt) {
+      (payload["run"] as JSONObject)["retryAt"] = retryAt;
+    }
+
+    return payload;
+  }
+
+  function tryAgainPosts(): Array<PostRequest> {
+    return (postMock.mock.calls as Array<Array<PostRequest>>)
+      .map((call: Array<PostRequest>): PostRequest => {
+        return call[0]!;
+      })
+      .filter((request: PostRequest): boolean => {
+        return request.url.toString().endsWith(TRY_AGAIN_PATH);
+      });
+  }
+
+  function tryAgainButton(): HTMLElement | null {
+    return screen.queryByRole("button", { name: "Try again" });
+  }
+
+  test.each([AIRunStatus.Error, AIRunStatus.Stale, AIRunStatus.Cancelled])(
+    "a %s run offers Try again to who may start it, and pressing it starts a new run the card follows",
+    async (status: AIRunStatus) => {
+      let hasTriedAgain: boolean = false;
+      postMock.mockImplementation((request: unknown): unknown => {
+        const url: string = (request as PostRequest).url.toString();
+
+        if (url.endsWith(TRY_AGAIN_PATH)) {
+          hasTriedAgain = true;
+          return Promise.resolve(successfulResponse({ aiRunId: NEXT_RUN_ID }));
+        }
+
+        return Promise.resolve(
+          successfulResponse(
+            hasTriedAgain ? queuedPayload() : failedRunPayload(status),
+          ),
+        );
+      });
+
+      renderPanel();
+      await flush();
+
+      expect(screen.getByTestId("investigation-error")).toBeVisible();
+      const button: HTMLElement = tryAgainButton()!;
+      expect(button).toHaveAttribute(
+        "data-testid",
+        "investigation-error-try-again",
+      );
+
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      await flush();
+
+      expect(tryAgainPosts()).toHaveLength(1);
+      expect(tryAgainPosts()[0]!.data).toEqual({
+        subjectType: "incident",
+        subjectId: INCIDENT_ID.toString(),
+      });
+      // The card read where the run stands at once: the new run is queued.
+      expect(screen.queryByTestId("investigation-error")).toBeNull();
+      expect(
+        screen.getByTestId("ai-card-step-investigation-pill"),
+      ).toHaveTextContent("Queued");
+    },
+  );
+
+  test("an alert's Try again starts the alert's investigation", async () => {
+    postMock.mockImplementation((request: unknown): unknown => {
+      const url: string = (request as PostRequest).url.toString();
+
+      return Promise.resolve(
+        successfulResponse(
+          url.endsWith(TRY_AGAIN_PATH)
+            ? { aiRunId: NEXT_RUN_ID }
+            : failedRunPayload(),
+        ),
+      );
+    });
+
+    renderPanel({ subjectType: "alert", subjectId: ALERT_ID });
+    await flush();
+
+    await act(async () => {
+      fireEvent.click(tryAgainButton()!);
+    });
+    await flush();
+
+    expect(tryAgainPosts()[0]!.data).toEqual({
+      subjectType: "alert",
+      subjectId: ALERT_ID.toString(),
+    });
+  });
+
+  test("who may not start it again gets the notice, and no Try again", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(failedRunPayload(AIRunStatus.Error, false)) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByTestId("investigation-error")).toBeVisible();
+    expect(tryAgainButton()).toBeNull();
+  });
+
+  test("an older server that does not say gets no Try again", async () => {
+    const payload: JSONObject = failedRunPayload();
+    delete payload["mayTryAgain"];
+    postMock.mockResolvedValue(successfulResponse(payload) as never);
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByTestId("investigation-error")).toBeVisible();
+    expect(tryAgainButton()).toBeNull();
+  });
+
+  test("a refusal is said under the button, in the server's words", async () => {
+    postMock.mockImplementation((request: unknown): unknown => {
+      const url: string = (request as PostRequest).url.toString();
+
+      if (url.endsWith(TRY_AGAIN_PATH)) {
+        return Promise.resolve(
+          new HTTPErrorResponse(
+            400,
+            {
+              message:
+                "This incident's investigation is queued or running already.",
+            },
+            {},
+          ),
+        );
+      }
+
+      return Promise.resolve(successfulResponse(failedRunPayload()));
+    });
+
+    renderPanel();
+    await flush();
+
+    await act(async () => {
+      fireEvent.click(tryAgainButton()!);
+    });
+    await flush();
+
+    expect(
+      screen.getByTestId("investigation-error-try-again-error"),
+    ).toHaveTextContent(
+      "This incident's investigation is queued or running already.",
+    );
+    expect(tryAgainButton()).not.toBeDisabled();
+  });
+
+  test("a run waiting to try again by itself says so, and when", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(queuedPayload(RETRY_AT)) as never,
+    );
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+
+    renderPanel();
+    await flush();
+
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveTextContent("Trying again soon");
+    /*
+     * Nothing moves until its time: the pill shows the calm clock of a
+     * wait, not the pulse of a run at work.
+     */
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveAttribute("data-indicator", "waiting");
+    expect(
+      document.querySelector('[class~="motion-safe:animate-ping"]'),
+    ).toBeNull();
+    expect(screen.getByLabelText("Live investigation")).toHaveTextContent(
+      `The last attempt did not finish. OneUptime tries again at ${OneUptimeDate.getLocalTimeString(
+        new Date(RETRY_AT),
+        { use12HourFormat: false },
+      )}; its steps so far are below.`,
+    );
+    // Nothing is investigating between attempts: the heading says what is next.
+    expect(
+      within(screen.getByLabelText("Live investigation")).getByRole("heading", {
+        level: 3,
+      }),
+    ).toHaveTextContent("OneUptime AI will try again");
+    expect(screen.getByLabelText("Live investigation")).not.toHaveTextContent(
+      "OneUptime AI is investigating",
+    );
+    // It is not a failure: no notice, and nothing to press.
+    expect(screen.queryByTestId("investigation-error")).toBeNull();
+    expect(tryAgainButton()).toBeNull();
+  });
+
+  test("once its time has passed it is a queued run, waiting for a worker", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(queuedPayload("2026-08-07T11:59:00.000Z")) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveTextContent("Queued");
+    expect(screen.getByLabelText("Live investigation")).toHaveTextContent(
+      "Waiting for a worker to pick this up",
+    );
+  });
+
+  test("the activity is told the run's status and times, and shows each step's time", async () => {
+    const payload: JSONObject = investigationPayload({
+      status: AIRunStatus.Running,
+      events: [activityEvent],
+    });
+    (payload["run"] as JSONObject)["startedAt"] = "2026-08-07T11:58:00.000Z";
+    postMock.mockResolvedValue(successfulResponse(payload) as never);
+
+    renderPanel();
+    await flush();
+
+    const props: ActivityFeedProps = lastActivityProps();
+    expect(props.showStepTimes).toBe(true);
+    expect(props.run?.status).toBe(AIRunStatus.Running);
+    expect(new Date(props.run!.startedAt!).toISOString()).toBe(
+      "2026-08-07T11:58:00.000Z",
+    );
+  });
+
+  test("a failed run's activity is told it is over, so nothing in it spins", async () => {
+    postMock.mockResolvedValue(successfulResponse(failedRunPayload()) as never);
+
+    renderPanel();
+    await flush();
+
+    expect(lastActivityProps().run?.status).toBe(AIRunStatus.Error);
+  });
+
+  test("a report's activity is told the run's times, so it says when the run started and how long it took", async () => {
+    const payload: JSONObject = investigationPayload({
+      status: AIRunStatus.Completed,
+      analysisMarkdown: ANALYSIS,
+      events: [activityEvent],
+      completedAt: COMPLETED_AT,
+    });
+    (payload["run"] as JSONObject)["createdAt"] = "2026-08-07T11:54:00.000Z";
+    (payload["run"] as JSONObject)["startedAt"] = "2026-08-07T11:55:00.000Z";
+    postMock.mockResolvedValue(successfulResponse(payload) as never);
+
+    renderPanel();
+    await flush();
+
+    // The report's activity sits in its run details.
+    expect(detailsToggle()).toHaveTextContent("Investigation activity");
+    const run: ActivityFeedRun | undefined = lastActivityProps().run;
+    expect(run?.status).toBe(AIRunStatus.Completed);
+    expect(new Date(run!.createdAt!).toISOString()).toBe(
+      "2026-08-07T11:54:00.000Z",
+    );
+    expect(new Date(run!.startedAt!).toISOString()).toBe(
+      "2026-08-07T11:55:00.000Z",
+    );
+    expect(new Date(run!.completedAt!).toISOString()).toBe(COMPLETED_AT);
+    // Finished: no wait for another attempt is carried into the report.
+    expect(run?.retryAt).toBeUndefined();
   });
 });

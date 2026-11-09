@@ -732,7 +732,7 @@ describe("the split's copy, in every language", () => {
     });
 
   test("every language is checked", () => {
-    expect(LOCALES).toHaveLength(16);
+    expect(LOCALES).toHaveLength(17);
   });
 
   test("each string is a key of its own in English", () => {

@@ -1,8 +1,8 @@
 /*
  * WHICH WAY A LANGUAGE IS READ.
  *
- * Persian - the one such language OneUptime is translated into today - is
- * written from right to left, like Arabic, Hebrew and Urdu; every other
+ * Persian and Arabic - the two such languages OneUptime is translated into
+ * today - are written from right to left, like Hebrew and Urdu; every other
  * language of the product from left to right. A page says which on <html
  * dir> (Common/UI/Utils/PageLanguage), and its layout follows: rows and
  * grids run from the right, and Tailwind's left and right utilities mean

@@ -235,8 +235,8 @@ const findProblems: ProblemsFunction = (
 };
 
 describe("the user override form's strings", () => {
-  test("seventeen locales are checked", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("eighteen locales are checked", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
     expect(LOCALE_FILES).toContain("en.json");
   });
 
