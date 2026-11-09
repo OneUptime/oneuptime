@@ -715,9 +715,9 @@ test.describe("Profiler → AI → Insights", () => {
   }, testInfo: TestInfo) => {
     await page.goto(`${AI}/insights/${GREW_INSIGHT}`);
 
-    await expect(
-      page.getByText("View the fix task and pull request"),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByTestId("ai-insight-fix-view-task")).toBeVisible({
+      timeout: 60000,
+    });
     await expect(page.getByTestId("profiles-fix")).toHaveCount(0);
 
     if (isPhone(testInfo)) {

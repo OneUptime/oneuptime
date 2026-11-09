@@ -3,6 +3,9 @@ import AIInsightSeverity from "Common/Types/AI/AIInsightSeverity";
 import AIInsightStatus from "Common/Types/AI/AIInsightStatus";
 import AIInsightType from "Common/Types/AI/AIInsightType";
 import IconProp from "Common/Types/Icon/IconProp";
+import { CodeTaskSummaryJSON } from "Common/Types/AI/CodeTask";
+import CodeTaskStageUtil from "Common/Types/AI/CodeTaskStage";
+import CodeTaskStageBadge from "../Code/CodeTaskStageBadge";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -50,7 +53,13 @@ export const INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
 export const STATUS_LABELS: Record<AIInsightStatus, string> = {
   [AIInsightStatus.Detected]: translationKey("Detected"),
   [AIInsightStatus.ActionRequired]: translationKey("Needs Attention"),
-  [AIInsightStatus.FixOpened]: translationKey("Fix Opened"),
+  /*
+   * A fix task is attached. Where it stands - in progress, its pull request
+   * open, failed - is the task's to say (getStatusElement with the task),
+   * never this status: it is set when the task starts, before any pull
+   * request.
+   */
+  [AIInsightStatus.FixOpened]: translationKey("Fix task"),
   [AIInsightStatus.Resolved]: translationKey("Resolved"),
   [AIInsightStatus.Dismissed]: translationKey("Dismissed"),
 };
@@ -261,10 +270,26 @@ export function getSeverityInlineElement(
 
 export function getStatusElement(
   status: AIInsightStatus | undefined,
+  /*
+   * The insight's fix task, when it was read: an insight with one says
+   * where the task stands ("Task in progress", "Pull request open", "Task
+   * failed") instead of only that it has one.
+   */
+  fixTask?: CodeTaskSummaryJSON | null | undefined,
 ): ReactElement {
   if (!status) {
     return <></>;
   }
+
+  if (status === AIInsightStatus.FixOpened && fixTask) {
+    return (
+      <CodeTaskStageBadge
+        stage={CodeTaskStageUtil.fromSummary(fixTask)}
+        dataTestId="ai-insight-fix-status"
+      />
+    );
+  }
+
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${

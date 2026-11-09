@@ -117,6 +117,7 @@ import HostAddressUtil from "../../Utils/HostAddressUtil";
 import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
+import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
 import InfrastructureResourceBinding from "../Utils/Monitor/InfrastructureResourceBinding";
 import OpenStackMonitorDependencies from "../Utils/OpenStack/OpenStackMonitorDependencies";
 import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
@@ -917,6 +918,11 @@ export class Service extends ProjectReferencesService<Model> {
               monitors.length === 1 ? monitors[0]!.monitorSteps : undefined,
           });
         }
+
+        // As on create: a Metrics query sent without an aggregation.
+        MetricQueryCloudAggregation.fillMissingAggregationsOfSteps(
+          writtenMonitorSteps,
+        );
 
         (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
           writtenMonitorSteps;
@@ -2258,6 +2264,15 @@ export class Service extends ProjectReferencesService<Model> {
           monitorSteps: createBy.data.monitorSteps as MonitorSteps,
         });
       }
+
+      /*
+       * A Metrics query sent without an aggregation (the API, Terraform)
+       * reads with the catalog's where its cloud resource adds the metric
+       * up: a namespace's messages, the total of its queues.
+       */
+      MetricQueryCloudAggregation.fillMissingAggregationsOfSteps(
+        createBy.data.monitorSteps as MonitorSteps,
+      );
     }
 
     return { createBy, carryForward: null };

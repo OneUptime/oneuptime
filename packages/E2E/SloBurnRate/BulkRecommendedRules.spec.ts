@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Bulk Actions > Add recommended rules on the real SLO list, against the
@@ -267,14 +268,7 @@ test("the confirmation fits a phone's width", async ({
     dialog.getByTestId("slo-bulk-recommended-rules-headline"),
   ).toBeVisible();
 
-  const overflow: number = await page.evaluate(() => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-
-  expect(overflow).toBeLessThanOrEqual(0);
+  await expectNoSidewaysScroll(page);
 
   await screenshot(page, "slo-list-bulk-recommended-rules-phone");
 });

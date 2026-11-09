@@ -300,9 +300,7 @@ describe("a slow-code finding's page", () => {
     );
 
     // The finding is read again: its fix task now shows, and the offer goes.
-    expect(
-      await screen.findByText("View the fix task and pull request"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("View the task")).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.queryByTestId("profiles-fix")).not.toBeInTheDocument();
     });

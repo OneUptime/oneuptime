@@ -126,6 +126,7 @@ import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUni
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
+import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -966,6 +967,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RecordApproversAskedAboutWaitingPublicNotes(),
+  /*
+   * Metrics monitors on a Service Bus or Event Hubs namespace that read its
+   * metrics with the average a minute at a time read the average queue
+   * since Azure reports them once per queue (#6415): each moves to the Sum
+   * its namespace's Metrics tab reads (CloudResourceMetricAggregation), so
+   * it reads the namespace's number again, and says so in its feed.
+   * Postgres-only and idempotent, with no order of its own, so it sits
+   * above the runbook moves, which keep their places right before the last
+   * slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RestoreNamespaceMetricMonitorTotals(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
