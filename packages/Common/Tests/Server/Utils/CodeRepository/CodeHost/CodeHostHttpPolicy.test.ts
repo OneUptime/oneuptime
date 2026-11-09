@@ -240,7 +240,7 @@ describe("the answer", () => {
     expect(response.headers["location"]).toBe("http://169.254.169.254/");
   });
 
-  test("an answer past the cap is refused, not read", async () => {
+  test("an answer past the cap is refused, not read - as too large, which asking again does not change", async () => {
     await expect(
       CodeHostHttp.createUnguardedTransportForTests({ maxResponseBytes: 1024 })(
         {
@@ -250,7 +250,10 @@ describe("the answer", () => {
           timeoutInMs: 2000,
         },
       ),
-    ).rejects.toMatchObject({ kind: CodeHostHttpErrorKind.Unavailable });
+    ).rejects.toMatchObject({
+      kind: CodeHostHttpErrorKind.TooLarge,
+      message: `${new URL(origin).host} answered with more than OneUptime reads at once.`,
+    });
   });
 
   test("its JSON is read, and its headers lowercased", async () => {

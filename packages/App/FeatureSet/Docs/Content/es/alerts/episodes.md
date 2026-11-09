@@ -177,6 +177,8 @@ Un episodio que creas tú no tiene regla de agrupación, así que la lista muest
 
 **Desarrolladores** y **Avanzado** empiezan plegadas. En la **Vista general**, la cabecera nombra a los **Propietarios** del episodio, primero los equipos, y el primer recuadro, **Creado**, dice cuándo se creó el episodio —**Automáticamente**, cuando lo abrió una regla de agrupación—. La tarjeta **Qué pasó** encabeza la página —la descripción del episodio y su **Causa raíz**—, después **Alertas de este episodio** y el **Feed del episodio**, junto a la tarjeta **Detalles del episodio**: su número, estado, gravedad, número de alertas, regla de agrupación y políticas de guardia. Su cabecera tiene **Reconocer** y **Resolver**, y **Mover el episodio a** en el menú **⋯**.
 
+La página **Causa raíz** traza las métricas que hay detrás del episodio junto a su causa raíz: las de su primera alerta, la creada antes, como las traza la tarjeta de telemetría de su **Vista general**, alrededor del inicio del episodio y con sus momentos marcados, para que puedas leerlas en cualquier intervalo a su alrededor mientras escribes por qué ocurrió. Cuando esa alerta no guardó ninguna instantánea de una comprobación de métricas (una creada a mano sobre un monitor de métricas, por ejemplo), la página traza las métricas de ese monitor tal como el monitor las lee ahora, y lo indica.
+
 **Alertas → Episodios activos** muestra los episodios que aún no se han resuelto, y la insignia a su lado los cuenta.
 
 ## Solución de problemas

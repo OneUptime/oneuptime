@@ -11,6 +11,8 @@ import {
 } from "../../../Types/DataObservability/DataAlertFeedback";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import OnBehalfOfProps from "../AuditLog/OnBehalfOfProps";
 import AlertService from "../../Services/AlertService";
 import AlertStateService from "../../Services/AlertStateService";
 import DataAlertService from "../../Services/DataAlertService";
@@ -24,6 +26,11 @@ import { getDataAlertMetricName } from "./DataAlertCause";
  * "Not an issue" also retunes what raised it (DataAlertFeedback), so the same
  * thing stays quiet next time. Whether the likely cause was right is only
  * kept, for the measure it feeds.
+ *
+ * The alert is resolved on the behalf of whoever said so (OnBehalfOfProps),
+ * so its state change is theirs in the audit log, as resolving it by hand
+ * is - not System's. The retune is OneUptime's own: a threshold it works
+ * out from what people said.
  */
 export default class DataAlertFeedbackRecorder {
   public static async record(data: {
@@ -32,6 +39,8 @@ export default class DataAlertFeedbackRecorder {
     userId: ObjectID | null;
     feedback?: string | undefined;
     isCauseConfirmed?: boolean | undefined;
+    // Who said it: the route's props.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
     if (
       data.feedback !== undefined &&
@@ -107,7 +116,7 @@ export default class DataAlertFeedbackRecorder {
         rootCause: `Marked ${data.feedback.toLowerCase()} in Data Observability.`,
         stateChangeLog: undefined,
         ...(data.userId ? { createdByUserId: data.userId } : {}),
-        props: { isRoot: true },
+        props: data.props ? OnBehalfOfProps.get(data.props) : { isRoot: true },
       });
     }
   }

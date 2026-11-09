@@ -123,6 +123,7 @@ import {
   useInMemoryTable,
 } from "../../../TestingUtils/InMemoryRepository";
 import { stubProjectDirectory } from "../../../TestingUtils/ProjectDirectory";
+import { stubPublicNoteApproval } from "../../../TestingUtils/PublicNoteApproval";
 import { stubReadableParents } from "../../../TestingUtils/ReadableParents";
 import { mockProjectStates } from "../../../TestingUtils/Services/ProjectStatesHelper";
 
@@ -367,6 +368,8 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
+  // Public note approval off: every note is published as it is posted.
+  stubPublicNoteApproval({});
   connector.posts = [];
   channelMessages = [];
   graphReads = 0;

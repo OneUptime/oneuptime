@@ -1,3 +1,4 @@
+import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import IncidentEpisodeRoleMember from "../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
 import OnCallDutyPolicyOwnerTeam from "../../../Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
@@ -224,7 +225,9 @@ export default class WorkspaceRecordPeople {
   /*
    * The people an on-call policy has paged for the record so far: one
    * UserOnCallLog row per page (UserNotificationRuleService
-   * .startUserNotificationRulesExecution).
+   * .startUserNotificationRulesExecution). Not those paged as observers
+   * (OnCallObserverPage): they are kept informed, not pulled into the
+   * response - unless a page as a responder reached them too.
    */
   private static async getPagedUserIds(
     record: WorkspaceRecord,
@@ -249,6 +252,9 @@ export default class WorkspaceRecordPeople {
       query: query,
       select: {
         userId: true,
+        onCallDutyPolicyExecutionLog: {
+          isObserverPage: true,
+        },
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -258,9 +264,13 @@ export default class WorkspaceRecordPeople {
     });
 
     return WorkspaceRecordPeople.unique(
-      pages.map((page: UserOnCallLog): ObjectID | undefined => {
-        return page.userId;
-      }),
+      pages
+        .filter((page: UserOnCallLog): boolean => {
+          return !isOnCallObserverPage(page.onCallDutyPolicyExecutionLog);
+        })
+        .map((page: UserOnCallLog): ObjectID | undefined => {
+          return page.userId;
+        }),
     );
   }
 

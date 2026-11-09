@@ -705,7 +705,7 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
   /*
    * What the raised alert SAYS and who it belongs to - the options a monitor
    * criteria's alert template offers. Every column is nullable or defaulted to
-   * today's behaviour, so the two rules seeded on SLO create, and every rule
+   * today's behaviour, so the rules seeded on SLO create, and every rule
    * that existed before these options, keep raising exactly the alert they
    * always did. A blank template means "use the built-in text".
    *

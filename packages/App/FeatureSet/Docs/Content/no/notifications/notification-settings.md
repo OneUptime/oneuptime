@@ -50,7 +50,7 @@ Når du blir medlem av et prosjekt, er disse hendelsene slått på, via e-post. 
 | **Hendelser** | **Hendelse opprettet**, **Hendelsestilstand endret**, **Påminnelse om hendelse**, **SLA for hendelse brutt**, **Hendelsesepisode opprettet**, **Tilstand for hendelsesepisode endret**, **Hendelse lagt til i hendelsesepisode** | **Hendelsesnotat publisert**, **Lagt til som hendelseseier**, **Tildelt en hendelse**, **Notat for hendelsesepisode publisert**, **Lagt til som hendelsesepisode-eier** |
 | **Varsler** | **Varsel opprettet**, **Varseltilstand endret**, **Påminnelse om varsel**, **Varselepisode opprettet**, **Tilstand for varselepisode endret**, **Varsel lagt til i varselepisode** | **Varselnotat publisert**, **Lagt til som varseleier**, **Notat for varselepisode publisert**, **Lagt til som varselepisode-eier** |
 | **Overvåking** | **Sondestatus endret for overvåkingen din**, **Overvåking har ingen aktive sonder**, **SLO-status endret**, **Lagt til som SLO-eier**, **Unntak tildelt meg**, **Sondestatus endret**, **Lagt til som sonde-eier** | **Overvåking opprettet**, **Overvåkingsstatus endret**, **Lagt til som overvåkingseier**, **AI-agentstatus endret**, **Lagt til som AI-agenteier** |
-| **Statussider** | Ingen | **Statusside opprettet**, **Statusside-kunngjøring publisert**, **Lagt til som statussideeier** |
+| **Statussider** | **Mitt offentlige notat godkjent eller avvist**, og også via push: **Offentlig notat venter på min godkjenning** | **Statusside opprettet**, **Statusside-kunngjøring publisert**, **Lagt til som statussideeier** |
 | **Planlagt vedlikehold** | **Påminnelse om vedlikehold** | **Vedlikeholdshendelse opprettet**, **Vedlikeholdstilstand endret**, **Vedlikeholdsnotat publisert**, **Lagt til som vedlikeholdseier** |
 | **Vakt** | **Du går på vakt**, **Du er neste på vakt**, **Du går av vakt**, **Lagt til i vakttjeneste-retningslinje**, **Fjernet fra vaktordning-retningslinje**, **Tapt anrop**, og også via push: **Før vakten min starter**, **Min kommende vakt blir tildelt noen andre** | Ingen |
 | **Sikkerhet** | Også via push: **Ny sikkerhetssak** (saker med prioritet High og Kritisk), **Sikkerhetssak tildelt meg**, **Playbook-trinn venter på min godkjenning**, **Responsmål for sikkerhetssak**, **Oppgave i sikkerhetssak tildelt meg**, **En hunt fant sikkerhetshendelser** | Ingen |
@@ -76,6 +76,15 @@ Fanen **Sikkerhet** handler om sikkerhetssakene du kan se:
 - **Playbook-trinn venter på min godkjenning** ber deg godkjenne eller avvise et playbook-steg på en sak der du kan godkjenne steg.
 
 Se [Sikkerhetssaker](/docs/telemetry/security-cases#varslinger).
+
+## Godkjenning av offentlige notater
+
+Kortet **Godkjenning av offentlige notater** på fanen **Statussider** gjelder offentlige notater som venter på godkjenning før de publiseres, i et prosjekt som krever det:
+
+- **Offentlig notat venter på min godkjenning** forteller deg at et offentlig notat, eller en redigering av et, venter på et trinn du godkjenner, ved navn eller gjennom et team. Du blir ikke spurt om et notat du selv har sendt, eller om et trinn etter et du har godkjent. Du blir spurt om hvert trinn én gang: når notatet kommer til det, eller når du blir en av godkjennerne mens notatet venter, fordi godkjenningstrinnene ble endret eller du ble med i et team et trinn nevner. Det er slått på fra start via e-post og push, og **Email Rollup** holder det aldri tilbake: kundene notatet er skrevet for, venter på det.
+- **Mitt offentlige notat godkjent eller avvist** forteller deg at et notat du sendte til godkjenning, ble godkjent og publisert, eller avvist, med begrunnelsen. Det er slått på fra start via e-post.
+
+Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
 
 ## Færre e-poster
 

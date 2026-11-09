@@ -1,13 +1,26 @@
 # Cursor
 
-Cursor 會從 Cursor 自己的伺服器匯出團隊的遙測。團隊管理員在 Cursor 儀表板中把 OneUptime 新增為目的地一次，整個團隊的 token、估算成本和工具呼叫就會抵達：不需要在開發人員機器上安裝或設定任何東西。
+Cursor 會從 Cursor 自己的伺服器匯出團隊的遙測。團隊管理員在 Cursor 儀表板中把 OneUptime 新增為目的地一次，整個團隊的 token、估算成本和工具呼叫就會抵達：不需要在開發人員機器上安裝或設定任何東西。在 Teams 方案上，OneUptime 也可以用管理員 API 金鑰按人員讀取團隊的使用量和 Cursor 收取的費用，可以取代匯出，也可以同時使用。
 
 :::cards
+- [兩種方式](#兩種方式): 在 OneUptime 中使用管理員 API 金鑰，或使用 Cursor 的 OpenTelemetry Export。
 - [開始設定](#開始設定): 在 OneUptime 中建立金鑰，在 Cursor 中建立目的地。
 - [你能得到什麼](#你能得到什麼得不到什麼): 指標和日誌；沒有追蹤。
 - [誰花了什麼](#員工歸屬): 人員會以 Cursor 使用者 ID 的形式抵達。
 - [疑難排解](#疑難排解): 什麼都沒有抵達時要檢查什麼。
 :::
+
+## 兩種方式
+
+| | 管理員 API 金鑰 | OpenTelemetry Export |
+| --- | --- | --- |
+| Cursor 方案 | Teams 或 Enterprise | Enterprise |
+| 設定位置 | 在 OneUptime 中，位於 **產品 → AI / LLM → 連線** | 在 Cursor 儀表板中，位於 **Team Settings → OpenTelemetry Export** |
+| 抵達的內容 | token、請求和 Cursor 收取的費用，按小時、人員和模型，以及有多少成員使用 Cursor | token、估算成本和工具呼叫，以及每個請求一個日誌事件 |
+| 從何時開始 | 過去 30 天，之後每小時 | 即時，從你啟用它的那天開始 |
+| 在 **使用量** 中顯示於 | **提供者帳戶** | **你的 AI 呼叫** |
+
+兩者都帶來使用量和成本，而不是對話。可以使用其中一種，也可以兩種都用：兩者分開保存，絕不會相加，一個預算按其 **支出統計來源** 只計算其中之一。要連線金鑰，請參閱 [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts#cursor)；本頁其餘部分設定 OpenTelemetry Export。
 
 ## 運作方式
 
@@ -108,10 +121,10 @@ Cursor 只使用以 HTTP 傳輸、二進位 protobuf 格式的 OTLP（不支援 
 
 ## 員工歸屬
 
-**Cursor 用 `cursor.user.id` 指明一個人，這是一個只有 Cursor 才能轉換成姓名的整數，而且雲端代理程式經常省略它。** OneUptime 會把它讀取為員工，把 `cursor.team.id` 讀取為團隊，因此 **使用量** 分頁不需要設定就能為人員和團隊排名，但人員會顯示為整數。
+**Cursor 用 `cursor.user.id` 指明一個人，這是一個只有 Cursor 才能轉換成姓名的整數，而且雲端代理程式經常省略它。** Cursor 傳送 `cursor.user.email` 時，OneUptime 會把它讀取為員工，未傳送時讀取 `cursor.user.id`，並把 `cursor.team.id` 讀取為團隊，因此 **使用量** 分頁不需要設定就能為人員和團隊排名；沒有電子郵件的人員會顯示為整數。
 
 - 兩者都以資源屬性（`resource.cursor.user.id`、`resource.cursor.team.id`）的形式抵達，OneUptime 會讀取它們。
-- Cursor 也可以傳送 `cursor.user.email`，但 OneUptime 還不會讀取它，因此對 Cursor 而言，員工電子郵件欄會保持空白。
+- `cursor.user.email` 會先於 `cursor.user.id` 讀取，因此 Cursor 以電子郵件指明的人員會依電子郵件顯示。
 - `gen_ai.user`、`llm.user` 和 LiteLLM 的終端使用者 ID 絕不會被讀取為員工：它們指的是你的客戶，而不是你的員工。請參閱 [員工和團隊歸屬](/docs/telemetry/ai-coding-assistants#員工和團隊歸屬)。
 
 ### Cursor 在使用量分頁上的顯示位置
@@ -120,7 +133,7 @@ Cursor 傳送指標而不傳送 GenAI span，而指標只用來補充 span： **
 
 | 細分 | 對 Cursor 而言 |
 | --- | --- |
-| **員工** | 是，依 `cursor.user.id` |
+| **員工** | 是，依 `cursor.user.email`，否則依 `cursor.user.id` |
 | **團隊** | 是，依 `cursor.team.id` |
 | **模型** | 是，依 `cursor.model.name` |
 | **提供者** | 否：Cursor 從不說明是哪個提供者處理了呼叫 |
@@ -129,7 +142,7 @@ Cursor 傳送指標而不傳送 GenAI span，而指標只用來補充 span： **
 Cursor 的資料列只攜帶成本：其呼叫和 token 儲存格顯示 `—`，因為 `cursor.cost.usage` 沒有逐次呼叫的細節。`cursor.token.usage` 仍會為表格上方的 token 總數提供資料（它的 `input` 和 `output` 類型；不計快取 token），你也可以在儀表板上依 `cursor.token.type` 繪製它。
 
 :::details 把 Cursor 使用者 ID 轉換成人員
-姓名和計費金額位於 Cursor 的 Admin API 中，OneUptime 不會呼叫它：如有需要，請自行呼叫。它僅限 Enterprise，位址為 `https://api.cursor.com`，使用管理員 API 金鑰作為使用者名稱，密碼留空：
+姓名和計費金額位於 Cursor 的 Admin API 中，當你把它的金鑰作為 [提供者帳戶](/docs/telemetry/ai-provider-accounts#cursor) 連線時，OneUptime 會讀取它：該帳戶按電子郵件識別人員。要自行比對 `cursor.user.id`，請呼叫 `https://api.cursor.com` 上的 API，使用管理員 API 金鑰作為使用者名稱，密碼留空：
 
 ```bash
 curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
@@ -150,7 +163,7 @@ curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
 
 ## 成本是估算，不是帳單
 
-Cursor 將 `cursor.cost.usage` 描述為盡力而為的估算。它不區分方案內含的使用量和隨需計費的使用量；使用你自己的模型金鑰時，它只反映 Cursor 的 token 費率，而不是你的提供者的帳單；而且之後抵達的 `cursor.api.correction` 可能會撤回已經計入的使用量。請把它當作趨勢來看。如需與帳單一致的數字，請把 Cursor Admin API 中的 `chargedCents` 加總。
+Cursor 將 `cursor.cost.usage` 描述為盡力而為的估算。它不區分方案內含的使用量和隨需計費的使用量；使用你自己的模型金鑰時，它只反映 Cursor 的 token 費率，而不是你的提供者的帳單；而且之後抵達的 `cursor.api.correction` 可能會撤回已經計入的使用量。請把它當作趨勢來看。如需與帳單一致的數字，請把 Cursor Admin API 中的 `chargedCents` 加總。作為 [提供者帳戶](/docs/telemetry/ai-provider-accounts#cursor) 連線的 Cursor 團隊會按小時替你完成這件事。
 
 ## 疑難排解
 
@@ -167,13 +180,14 @@ Cursor 會從自己的伺服器發起連線：你的 OTLP 端點必須能透過�
 :::
 
 :::details 人員顯示為數字
-那就是 `cursor.user.id`：這是 OneUptime 目前從 Cursor 讀取的唯一人員 ID。請用 Cursor 的 Admin API 把它對應到姓名。
+那就是 `cursor.user.id`，在 Cursor 未傳送 `cursor.user.email` 時讀取。請用 Cursor 的 Admin API 把它對應到姓名。
 :::
 
 ## 後續步驟
 
 :::cards
 - [AI 程式設計助理](/docs/telemetry/ai-coding-assistants): 支出如何在所有程式設計助理之間歸屬。
+- [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts#cursor): 使用管理員 API 金鑰讀取 Cursor 團隊的使用量和 Cursor 收取的費用。
 - [AI 閘道](/docs/telemetry/ai-gateways): 為你自己的應用程式發起的模型呼叫提供完整的追蹤和提示。
 - [指標監控](/docs/monitor/metrics-monitor): 針對 `cursor.cost.usage`、`cursor.token.usage` 或 `cursor.tool.calls` 設定警示。
 :::

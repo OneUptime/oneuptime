@@ -79,6 +79,7 @@ flowchart TB
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ flowchart TB
 | `recordType`、`record` | 呼叫涉及的对象：`incident`、`alert`、`incidentEpisode` 或 `alertEpisode` |
 | `onCallPolicy`、`escalationRule` | 呼叫此人的策略和级别 |
 | `isPageAgain` | 当记录在一段时间前已被确认但仍未解决时为 `true` |
+| `isObserverPage` | 作为观察者被呼叫时为 `true`：在其他人处理时获知进展，确认呼叫只表示已看到 |
 | `actions` | 你的服务为 [处理呼叫](#处理呼叫) 而调用的链接 |
 
 发给多人的呼叫会为每人发送一个请求，每个请求都带有该人自己的链接，这样 OneUptime 就知道是谁做出的回应。标题、消息和描述合计不超过 16,384 个字符；更长的描述会被截断，并以“… (truncated — see OneUptime for the full text)”结尾。
@@ -170,6 +172,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

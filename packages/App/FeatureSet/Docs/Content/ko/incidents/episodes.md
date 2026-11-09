@@ -85,3 +85,7 @@ curl -X POST 'https://oneuptime.com/api/incident-episode-member/add-incidents' \
 인시던트가 에피소드 하나에만 있을 수 있는 프로젝트에서는, 다른 에피소드에 있는 인시던트가 `Already in another episode. An incident can be in only one episode in this project.`라는 이유와 함께 `notAdded`로 돌아옵니다.
 
 알림의 경우 `alertEpisodeId`와 `alertIds`를 `/api/alert-episode-member/add-alerts`로 보냅니다. 인시던트가 들어 있는 에피소드를 만들려면, 에피소드를 만드는 요청 `POST /api/incident-episode`에 그 ID들을 `{ "data": { "title": "Checkout outage" }, "miscDataProps": { "incidentIdsToAdd": ["<incident id>"] } }` 형태로 함께 보냅니다. 알림 에피소드는 `POST /api/alert-episode`에 `alertIdsToAdd`를 함께 보냅니다. 그중 하나라도 추가할 수 없으면 에피소드가 만들어지지 않습니다.
+
+## 근본 원인 적어 두기
+
+에피소드의 **근본 원인** 페이지는 왜 일어났는지를 그 안의 모든 인시던트에 대해 한 번에 적어 두는 곳입니다. 근본 원인 옆에는 에피소드 뒤에 있는 메트릭을 보여 줍니다. 가장 먼저 선언된 첫 인시던트의 메트릭을 에피소드 **개요**의 텔레메트리 카드처럼 에피소드 시작 전후로, 에피소드 자체의 시점을 표시해 보여 줍니다. 다른 시간 범위를 고르거나, 차트 위를 드래그해 확대하거나, 그 자리에서 메트릭을 바꾸고 더할 수 있으며, 페이지 주소가 바꾼 내용을 기억하므로 그 링크를 열면 같은 차트가 열립니다. 그 인시던트가 메트릭 검사의 스냅샷을 남기지 않았다면 (메트릭 모니터에 대해 직접 선언한 인시던트 등), 그 모니터가 지금 읽는 방식대로 모니터의 메트릭을 보여 주고 그렇다고 알립니다. 첫 인시던트 뒤에 메트릭이 없는 에피소드는 근본 원인만 보여 줍니다.

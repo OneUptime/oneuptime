@@ -58,6 +58,7 @@ import WorkspaceConnectRequest, {
   WorkspacePendingMessage,
 } from "../WorkspaceConnectRequest";
 import { WorkspaceEventType } from "../WorkspaceMemberActions";
+import { PublicNoteApprovalWaitingFor } from "../../Notes/PublicNoteApprovalFeed";
 import WorkspaceProjectResolver from "../WorkspaceProjectResolution";
 
 // A Teams channel OneUptime created for an incident / alert / ...
@@ -854,6 +855,17 @@ export default class MicrosoftTeamsReactionNoteSync {
       const display: { label: string; link: URL } =
         await WorkspaceReactionNote.getResourceDisplay(resource);
 
+      // A public note that waits for approval says so, and who it waits for.
+      const isHeldForApproval: boolean =
+        saveResult === WorkspaceNoteSaveResult.SavedForApproval;
+
+      const waitingFor: PublicNoteApprovalWaitingFor | null = isHeldForApproval
+        ? await WorkspaceReactionNote.getApprovalWaitingFor({
+            resource: resource,
+            sourceMessageKey: sourceMessageKey,
+          })
+        : null;
+
       await this.replyInThread({
         channel: channel,
         threadId: reaction.threadId,
@@ -863,6 +875,8 @@ export default class MicrosoftTeamsReactionNoteSync {
           resourceLink: display.link.toString(),
           askedNoteType: reaction.noteType,
           resourceType: resource.resourceType,
+          isHeldForApproval: isHeldForApproval,
+          waitingFor: waitingFor,
         }).toString(),
       });
     } catch (err) {

@@ -57,6 +57,13 @@ import UserFlowMap, {
 import UserFlowDetailPanel from "../../../Components/UserFlow/UserFlowDetailPanel";
 import UserFlowJourneys from "../../../Components/UserFlow/UserFlowJourneys";
 import UserFlowOverview from "../../../Components/UserFlow/UserFlowOverview";
+import {
+  getClearedUserFlowFilters,
+  getUserFlowPageSections,
+  getUserFlowPageState,
+  UserFlowPageSection,
+  UserFlowPageState,
+} from "../../../Components/UserFlow/UserFlowPageSections";
 import UserFlowScopeBanner from "../../../Components/UserFlow/UserFlowScopeBanner";
 import UserFlowScopeFilter from "../../../Components/UserFlow/UserFlowScopeFilter";
 import UserFlowTables from "../../../Components/UserFlow/UserFlowTables";
@@ -88,8 +95,10 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
  * the controls move. The whole state lives in the URL.
  *
  * One person, or one session, is the same page over fewer journeys, plus a
- * line per session saying what they did. It is a request, not a re-fold: the
- * read holds the newest sessions in the window, and they may not be among them.
+ * line per session saying what they did, under the map. It is a request, not
+ * a re-fold: the read holds the newest sessions in the window, and they may
+ * not be among them. What the body shows, and in what order, is
+ * UserFlowPageSections.ts.
  */
 
 type FlowMode = "start" | "forward" | "backward";
@@ -608,22 +617,28 @@ const RumApplicationUserFlows: FunctionComponent<
     { modelId: modelId },
   );
 
+  const reload: () => void = (): void => {
+    setReloadToken((token: number): number => {
+      return token + 1;
+    });
+  };
+
+  const pageState: UserFlowPageState = getUserFlowPageState({
+    isLoading: isLoading,
+    error: error,
+    scope: scope,
+    sessionsRead: data ? data.sessions.length : null,
+    journeysKept: analysis ? analysis.journeys.length : 0,
+    options: options,
+  });
+
   let body: ReactElement;
 
-  if (isLoading && !data) {
+  if (pageState === "loading") {
     body = <ComponentLoader />;
-  } else if (error && !data) {
-    body = (
-      <ErrorMessage
-        message={error}
-        onRefreshClick={(): void => {
-          setReloadToken((token: number): number => {
-            return token + 1;
-          });
-        }}
-      />
-    );
-  } else if (scope && data && data.sessions.length === 0) {
+  } else if (pageState === "error") {
+    body = <ErrorMessage message={error} onRefreshClick={reload} />;
+  } else if (pageState === "scope-empty" && scope) {
     body = (
       <EmptyState
         id="user-flow-scope-empty"
@@ -658,7 +673,146 @@ const RumApplicationUserFlows: FunctionComponent<
         }
       />
     );
-  } else if (!analysis || !data || data.sessions.length === 0) {
+  } else if (pageState === "filtered-out") {
+    /*
+     * Said once, where the map would be. Five tiles of zeros and an empty map
+     * say nothing the line does not, and the banner and the filters stay above.
+     */
+    body = (
+      <EmptyState
+        id="user-flow-filtered-empty"
+        icon={IconProp.Filter}
+        title="No session matches these filters"
+        paddingClassName="py-16"
+        description={
+          <span>
+            {translator.translateText(
+              "Sessions were recorded in this range, but none of them match the filters above.",
+            )}
+          </span>
+        }
+        footer={
+          <Button
+            title="Clear filters"
+            buttonSize={ButtonSize.Small}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            dataTestId="user-flow-filtered-empty-clear"
+            onClick={(): void => {
+              updateOptions(getClearedUserFlowFilters());
+            }}
+          />
+        }
+      />
+    );
+  } else if (pageState === "ready" && analysis && data) {
+    const sections: Record<UserFlowPageSection, ReactElement> = {
+      overview: (
+        <UserFlowOverview
+          summary={analysis.summary}
+          insights={analysis.insights}
+          sessionsRead={data.sessions.length}
+          sessionsInWindow={data.sessionsInWindow}
+          isSampled={data.isSampled}
+          scopeKind={scope?.kind ?? null}
+          onFocusPage={anchorOn}
+        />
+      ),
+      map: (
+        <>
+          <div className="relative rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+            {isLoading ? (
+              <div className="absolute right-4 top-4 text-xs text-gray-500">
+                {translator.translateText("Updating…")}
+              </div>
+            ) : (
+              <></>
+            )}
+            {anchorMissing ? (
+              <div
+                className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800"
+                data-testid="user-flow-anchor-missing"
+              >
+                <TranslatedSentence
+                  template="No session visited {{page}} in this range with the current filters. Pick another page, or {{startLink}}."
+                  slots={{
+                    page: <code>{options.anchorPage}</code>,
+                    startLink: (
+                      <button
+                        type="button"
+                        className="font-medium underline"
+                        onClick={(): void => {
+                          setMode("start");
+                        }}
+                      >
+                        {translator.translateText(
+                          "start from the landing page",
+                        )}
+                      </button>
+                    ),
+                  }}
+                />
+              </div>
+            ) : (
+              <UserFlowMap
+                graph={analysis.graph}
+                selection={selection}
+                onSelect={setSelection}
+              />
+            )}
+          </div>
+
+          {selection ? (
+            <UserFlowDetailPanel
+              selection={selection}
+              analysis={analysis}
+              rumApplicationId={modelId}
+              timeRange={timeRange}
+              onAnchor={anchorOn}
+              onHide={hidePage}
+              onClose={(): void => {
+                setSelection(null);
+              }}
+            />
+          ) : (
+            <p className="text-xs text-gray-500">
+              {translator.translateText(
+                "Click a page or a band for details, sessions to watch and where to go next. Paths are built from the pages each recorded session visited, in order; a page reloaded or revisited back to back counts once.",
+              )}
+            </p>
+          )}
+        </>
+      ),
+      journeys: (
+        <UserFlowJourneys
+          journeys={analysis.journeys}
+          rumApplicationId={modelId}
+        />
+      ),
+      tables: (
+        <UserFlowTables
+          paths={analysis.paths}
+          pages={analysis.pages}
+          loops={analysis.loops}
+          rumApplicationId={modelId}
+          onAnchor={anchorOn}
+        />
+      ),
+    };
+
+    body = (
+      <div className="space-y-5" data-testid="user-flow-sections">
+        {getUserFlowPageSections(scope).map(
+          (section: UserFlowPageSection): ReactElement => {
+            return (
+              <div key={section} className="space-y-5" data-section={section}>
+                {sections[section]}
+              </div>
+            );
+          },
+        )}
+      </div>
+    );
+  } else {
     body = (
       <EmptyState
         id="user-flow-empty"
@@ -681,96 +835,6 @@ const RumApplicationUserFlows: FunctionComponent<
           </AppLink>
         }
       />
-    );
-  } else {
-    body = (
-      <div className="space-y-5">
-        {/* What someone narrows to one person for comes first. */}
-        {scope ? (
-          <UserFlowJourneys
-            journeys={analysis.journeys}
-            rumApplicationId={modelId}
-          />
-        ) : (
-          <></>
-        )}
-
-        <UserFlowOverview
-          summary={analysis.summary}
-          insights={analysis.insights}
-          sessionsInWindow={data.sessionsInWindow}
-          isSampled={data.isSampled}
-          onFocusPage={anchorOn}
-        />
-
-        <div className="relative rounded-lg border border-gray-200 bg-gray-50/50 p-4">
-          {isLoading ? (
-            <div className="absolute right-4 top-4 text-xs text-gray-500">
-              {translator.translateText("Updating…")}
-            </div>
-          ) : (
-            <></>
-          )}
-          {anchorMissing ? (
-            <div
-              className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800"
-              data-testid="user-flow-anchor-missing"
-            >
-              <TranslatedSentence
-                template="No session visited {{page}} in this range with the current filters. Pick another page, or {{startLink}}."
-                slots={{
-                  page: <code>{options.anchorPage}</code>,
-                  startLink: (
-                    <button
-                      type="button"
-                      className="font-medium underline"
-                      onClick={(): void => {
-                        setMode("start");
-                      }}
-                    >
-                      {translator.translateText("start from the landing page")}
-                    </button>
-                  ),
-                }}
-              />
-            </div>
-          ) : (
-            <UserFlowMap
-              graph={analysis.graph}
-              selection={selection}
-              onSelect={setSelection}
-            />
-          )}
-        </div>
-
-        {selection ? (
-          <UserFlowDetailPanel
-            selection={selection}
-            analysis={analysis}
-            rumApplicationId={modelId}
-            timeRange={timeRange}
-            onAnchor={anchorOn}
-            onHide={hidePage}
-            onClose={(): void => {
-              setSelection(null);
-            }}
-          />
-        ) : (
-          <p className="text-xs text-gray-500">
-            {translator.translateText(
-              "Click a page or a band for details, sessions to watch and where to go next. Paths are built from the pages each recorded session visited, in order; a page reloaded or revisited back to back counts once.",
-            )}
-          </p>
-        )}
-
-        <UserFlowTables
-          paths={analysis.paths}
-          pages={analysis.pages}
-          loops={analysis.loops}
-          rumApplicationId={modelId}
-          onAnchor={anchorOn}
-        />
-      </div>
     );
   }
 

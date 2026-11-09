@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useId } from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -35,6 +35,14 @@ import { splitCommandAtAddressSlashes } from "../SetupGuide/CommandDisplay";
  * Two situations, two sets of steps (see ResourceConnectionState):
  * - never connected: install the agent;
  * - connected once, then stopped: check on the agent.
+ *
+ * A resource that sends data only while it is used (its guide's idleCopy:
+ * a RUM application, a serverless function) is idle, not broken, when
+ * nothing has arrived for a while. Its card then says so in grey, with
+ * when data last arrived, and folds the checks away behind one line for
+ * when it should be busy (issues #6191, #6269): an amber "stopped sending
+ * data" card every night a site has no visitors, or between a nightly
+ * job's runs, sent people looking for a fault that was not there.
  */
 
 export interface ComponentProps {
@@ -51,6 +59,15 @@ interface StateCopy {
   title: string;
   description: string;
   steps: Array<ResourceConnectionGuideStep>;
+  /*
+   * The steps start folded behind this line, which shows them (an idle
+   * resource's checks: most of the time nothing needs checking).
+   */
+  foldedStepsLabel?: string | undefined;
+  // The link drawn as the quieter, outlined button.
+  isLinkSecondary?: boolean | undefined;
+  // What the card is saying, for its data-variant (and its tests).
+  variant: "setup" | "starting" | "stopped" | "idle";
   accent: {
     border: string;
     gradient: string;
@@ -59,6 +76,12 @@ interface StateCopy {
     stepBadge: string;
   };
 }
+
+const PRIMARY_LINK_CLASS_NAME: string =
+  "inline-flex flex-shrink-0 items-center justify-center gap-1.5 self-start rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
+const SECONDARY_LINK_CLASS_NAME: string =
+  "inline-flex flex-shrink-0 items-center justify-center gap-1.5 self-start rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 const getStateCopy: (
   state: ResourceConnectionState,
@@ -71,31 +94,51 @@ const getStateCopy: (
   lastSeenAt: Date | null,
   translator: Translator,
 ): StateCopy => {
-  // The resource and its agent as they read in the middle of a sentence.
-  const resourceNoun: TranslatableTerm = translatableTerm(guide.resourceNoun, {
-    inSentence: true,
-  });
+  /*
+   * What sends the resource's data, as it reads in a sentence. The
+   * sentences about the resource itself are the guide's own, one set for
+   * each kind of resource (ResourceConnectionGuide's setupCopy).
+   */
   const agentName: TranslatableTerm = translatableTerm(guide.agentName);
 
   if (state === ResourceConnectionState.Disconnected) {
-    const lastHeard: string = lastSeenAt
+    // Translated with the sentence it goes into, as a date is.
+    const lastHeard: string | TranslatableTerm = lastSeenAt
       ? OneUptimeDate.fromNow(lastSeenAt)
-      : translator.translateTemplate("a while ago");
+      : translatableTerm("a while ago");
+
+    // Idle, not broken: said in grey, the checks folded away.
+    if (guide.idleCopy) {
+      return {
+        icon: IconProp.Clock,
+        title:
+          translator.translateText(guide.idleCopy.title) ||
+          guide.idleCopy.title,
+        description: translator.translateTemplate(guide.idleCopy.description, {
+          lastHeard: lastHeard,
+        }),
+        steps: guide.troubleshootingSteps,
+        foldedStepsLabel: translator.translateText(guide.idleCopy.checksLabel),
+        isLinkSecondary: true,
+        variant: "idle",
+        accent: {
+          border: "border-gray-200",
+          gradient: "from-gray-50",
+          iconRing: "ring-gray-200",
+          iconText: "text-gray-500",
+          stepBadge: "bg-gray-50 text-gray-700 ring-gray-200",
+        },
+      };
+    }
 
     return {
+      variant: "stopped",
       icon: IconProp.SignalSlash,
-      title: translator.translateTemplate(
-        "This {{resourceNoun}} stopped sending data",
-        { resourceNoun: resourceNoun },
-      ),
-      description: translator.translateTemplate(
-        "OneUptime last heard from this {{resourceNoun}} {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
-        {
-          resourceNoun: resourceNoun,
-          lastHeard: lastHeard,
-          agentName: agentName,
-        },
-      ),
+      title: translator.translateTemplate(guide.stoppedCopy.title),
+      description: translator.translateTemplate(guide.stoppedCopy.description, {
+        lastHeard: lastHeard,
+        agentName: agentName,
+      }),
       steps: guide.troubleshootingSteps,
       accent: {
         border: "border-amber-200",
@@ -109,6 +152,7 @@ const getStateCopy: (
 
   if (guide.startingCopy) {
     return {
+      variant: "starting",
       icon: IconProp.RocketLaunch,
       title: translator.translateTemplate(guide.startingCopy.title),
       description: translator.translateTemplate(guide.startingCopy.description),
@@ -124,14 +168,19 @@ const getStateCopy: (
   }
 
   return {
+    variant: "setup",
     icon: IconProp.RocketLaunch,
-    title: translator.translateTemplate("Connect this {{resourceNoun}}", {
-      resourceNoun: resourceNoun,
-    }),
-    description: translator.translateTemplate(
-      "No data has arrived from this {{resourceNoun}} yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
-      { resourceNoun: resourceNoun, agentName: agentName },
-    ),
+    title: translator.translateTemplate(guide.setupCopy.title),
+    /*
+     * A resource that is idle when unused never shows "Disconnected": its
+     * pill says it is waiting for data, so its sentence does not name it.
+     */
+    description: guide.idleCopy
+      ? translator.translateText(guide.idleCopy.waitingDescription) ||
+        guide.idleCopy.waitingDescription
+      : translator.translateTemplate(guide.setupCopy.description, {
+          agentName: agentName,
+        }),
     steps: guide.setupSteps,
     accent: {
       border: "border-indigo-200",
@@ -148,7 +197,11 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   // Before the early return: hooks run on every render.
   const titleId: string = useId();
+  const stepsId: string = useId();
   const translator: Translator = useTranslator();
+  // An idle resource's checks, shown once the line that names them is used.
+  const [areFoldedStepsShown, setAreFoldedStepsShown] =
+    useState<boolean>(false);
 
   const state: ResourceConnectionState = getResourceConnectionState({
     status: props.status,
@@ -166,16 +219,22 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
     translator,
   );
 
+  const hasFoldedSteps: boolean =
+    Boolean(copy.foldedStepsLabel) && copy.steps.length > 0;
+  const areStepsShown: boolean =
+    copy.steps.length > 0 && (!hasFoldedSteps || areFoldedStepsShown);
+
   return (
     <section
       data-testid="resource-connection-guide"
       data-state={state}
+      data-variant={copy.variant}
       aria-labelledby={titleId}
       className={`mb-6 overflow-hidden rounded-xl border bg-white shadow-sm ${copy.accent.border} ${props.className || ""}`}
     >
       <div
         className={`flex flex-col gap-4 bg-gradient-to-br ${copy.accent.gradient} via-white to-white px-6 py-5 sm:flex-row sm:items-start sm:justify-between ${
-          copy.steps.length > 0 ? "border-b border-gray-100" : ""
+          areStepsShown ? "border-b border-gray-100" : ""
         }`}
       >
         <div className="flex min-w-0 items-start gap-4">
@@ -192,11 +251,43 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
               {copy.title}
             </h2>
             <p className="mt-1 text-sm text-gray-600">{copy.description}</p>
+            {hasFoldedSteps ? (
+              <button
+                type="button"
+                data-testid="resource-connection-guide-steps-toggle"
+                aria-expanded={areFoldedStepsShown}
+                aria-controls={stepsId}
+                onClick={(): void => {
+                  setAreFoldedStepsShown(!areFoldedStepsShown);
+                }}
+                /*
+                 * Left-aligned, its chevron on the first line: on a phone
+                 * the words wrap, and a button centres them by default.
+                 */
+                className="mt-2 inline-flex items-start gap-1 rounded text-left text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              >
+                <Icon
+                  icon={
+                    areFoldedStepsShown
+                      ? IconProp.ChevronDown
+                      : IconProp.ChevronRight
+                  }
+                  className="mt-0.5 h-4 w-4 flex-shrink-0"
+                />
+                <span>{copy.foldedStepsLabel}</span>
+              </button>
+            ) : (
+              <></>
+            )}
           </div>
         </div>
         <Link
           to={props.documentationRoute}
-          className="inline-flex flex-shrink-0 items-center justify-center gap-1.5 self-start rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          className={
+            copy.isLinkSecondary
+              ? SECONDARY_LINK_CLASS_NAME
+              : PRIMARY_LINK_CLASS_NAME
+          }
         >
           <Icon icon={IconProp.BookOpen} className="h-4 w-4" />
           <span>
@@ -207,9 +298,21 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
         </Link>
       </div>
 
-      {/* A resource that is only starting has no steps to take yet. */}
+      {/*
+       * A resource that is only starting has no steps to take yet. Folded
+       * steps stay in the page, hidden, for the line that shows them to
+       * point at.
+       */}
       {copy.steps.length > 0 ? (
-        <ol className="grid grid-cols-1 gap-px bg-gray-100 md:grid-cols-3">
+        <ol
+          id={stepsId}
+          hidden={!areStepsShown}
+          className={
+            areStepsShown
+              ? "grid grid-cols-1 gap-px bg-gray-100 md:grid-cols-3"
+              : "hidden"
+          }
+        >
           {copy.steps.map(
             (
               step: ResourceConnectionGuideStep,

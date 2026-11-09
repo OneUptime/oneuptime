@@ -13,8 +13,7 @@ const IncidentEpisodeAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Incident Episode Audit Logs"
       description="All changes made to this incident episode."
-      resourceType="Incident Episode"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

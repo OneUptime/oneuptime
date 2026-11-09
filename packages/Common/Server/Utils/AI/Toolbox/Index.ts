@@ -1,5 +1,6 @@
 import { JSONObject } from "../../../../Types/JSON";
 import Permission, { PermissionHelper } from "../../../../Types/Permission";
+import ConflictException from "../../../../Types/Exception/ConflictException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import HeldPermissionsUtil, {
@@ -529,6 +530,24 @@ export default class AIToolbox {
             error instanceof PaymentRequiredException
               ? AIToolRefusal.Plan
               : AIToolRefusal.NotAllowed,
+        };
+      }
+
+      /*
+       * What the change was made to moved on before it ran
+       * (ConflictException): a workflow saved after Ask AI proposed a change
+       * to it that the save touched too (issue #6274). Nothing was done,
+       * and nothing in the arguments is wrong: the message says what to do
+       * instead - read the record again and propose the change once more.
+       * The check doing its job is no fault, so it is not logged as one.
+       */
+      if (error instanceof ConflictException) {
+        logger.debug(`AI toolbox tool ${data.name} was not done: ${message}`);
+
+        return {
+          success: false,
+          textForLlm: `Not done: ${message}`,
+          errorMessage: message,
         };
       }
 

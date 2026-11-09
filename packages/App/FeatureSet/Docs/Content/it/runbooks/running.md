@@ -89,6 +89,8 @@ Mentre l'esecuzione è in pausa, puoi anche saltare un passaggio automatico succ
 
 Completare, approvare, saltare e annullare richiedono gli stessi ruoli dell'avvio di un'esecuzione, oppure l'autorizzazione **Edit Runbook Execution**.
 
+La pagina **Registri di audit** del runbook registra chi ha avviato ogni esecuzione, chi ha approvato, completato o saltato ciascuno dei suoi passaggi e chi l'ha annullata. Un passaggio vi compare come ciò che gli è stato fatto, ad esempio `Approved "Restart the API" (step 3)`, mai con ciò che il passaggio ha stampato né con la nota lasciata con esso.
+
 ## Alternare passaggi manuali e automatici
 
 Il flusso classico:

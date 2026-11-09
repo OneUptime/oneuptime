@@ -200,6 +200,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AICreditsRunOutPostgres.test.ts --forceExit
 
+      # The SLO deploy gate (#6333): the migration run on tables that already
+      # hold an SLO and a tier leaves the SLO allowing deployments and the
+      # tier freezing nothing; a key that may only read SLOs reads
+      # deploymentsAllowed through the real get-item route, by POST and by
+      # GET; a key that may edit SLOs may not write it; a key that may edit
+      # tiers switches Freeze Deployments on - on structure-only copies of
+      # the migrated tables in schemas of their own.
+      - name: Test the SLO deploy gate through the API on Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SLO_DEPLOYMENT_GATE_TESTS: "true"
+          SLO_DEPLOYMENT_GATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SLO_DEPLOYMENT_GATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SLO_DEPLOYMENT_GATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/ServiceLevelObjectiveDeploymentGatePostgres.test.ts
+          --forceExit
+
       # The balance SMS, calls, WhatsApp and Telegram are paid from: costs
       # and recharge credits are one statement each, so messages sent
       # together all pay and a cost taken while a charge was out is kept;
@@ -628,6 +648,26 @@ jobs:
           Tests/Server/Services/NetworkEndpointControllerClientsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated NetworkEndpoint, NetworkDevice and
+      # NetworkTopologySuppression tables into an isolated schema and runs
+      # the Discovered Devices list against them (issue #5775): which rows a
+      # device monitors (by MAC anywhere, by address only while current and
+      # in the same site), search, counts, paging and the bulk Hide / Show
+      # writes - raw SQL across three tables only a database can check, run
+      # through TypeORM's driver, whose answer to a bare DELETE is not rows.
+      - name: Test the Discovered Devices list against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DISCOVERED_DEVICES_TESTS: "true"
+          DISCOVERED_DEVICES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DISCOVERED_DEVICES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DISCOVERED_DEVICES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/NetworkDevice/DiscoveredDeviceListPostgres.test.ts
+          --forceExit
+
       # Clones the migrated CloudResource table into an isolated schema and
       # runs the discovered resources' sweeps against it: Not reporting,
       # auto-archive, restore when a resource reports again, and the budget's
@@ -883,6 +923,28 @@ jobs:
           Tests/Server/Utils/StatusPage/IncidentStatusPageScopeQueriesPostgres.test.ts
           Tests/Server/API/StatusPageIncidentScopePostgres.test.ts
           Tests/Server/Services/StatusPageVisibilityWritePostgres.test.ts --forceExit
+
+      # A public note is on status pages only once it is published (#5720):
+      # every public page read - the overview, the incident, episode and
+      # maintenance lists and each one opened - runs on clones of the tables
+      # it reads, with notes in every approval state, and shows the
+      # published ones (an edited one as it was approved) and nothing of
+      # the rest. And an edit of a note is written only at the version it
+      # was worked out from: an approval written between the edit's read
+      # and its save - its UPDATE, or the save() of an edit that sends the
+      # note's files - stands, and the edit writes nothing.
+      - name: Test public note approval on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PUBLIC_NOTE_APPROVAL_TESTS: "true"
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/StatusPagePublicNoteApprovalPostgres.test.ts
+          Tests/Server/Services/PublicNoteEditHeldToVersionPostgres.test.ts --forceExit
 
       # Clones the migrated Project, StatusPage and
       # StatusPageHistoryChartBarColorRule tables (with the rules' foreign

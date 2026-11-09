@@ -340,6 +340,14 @@ Un registro así solo se cambia con los permisos de los equipos que son sus prop
 
 Un equipo que es propietario de registros privados pero no tiene permisos, uno que solo sirve para agrupar personas, deja que sus miembros los vean y no cambien ninguno. En la página de un registro privado, un cambio que los equipos propietarios de la persona no pueden hacer aparece bloqueado y dice por qué. Para que pueda hacerlo, dé el permiso a un equipo propietario, haga propietario a un equipo que tenga el permiso o haga propietaria a la persona.
 
+### Reglas que pertenecen a equipos
+
+Una regla de guardia de incidentes o de alertas, una regla de guardia de episodios, una regla de propietarios de incidentes y una regla de notificación de Slack o Microsoft Teams pueden pertenecer a equipos. Una regla que no pertenece a ningún equipo es del proyecto: la cambian todos aquellos cuyos permisos les dejan cambiar reglas de su tipo. Una regla que pertenece a equipos solo se cambia y se elimina con los permisos de los equipos a los que pertenece, y también la cambian los propietarios y administradores del proyecto. Todos los que pueden leer reglas la siguen leyendo y ven a qué equipos pertenece.
+
+Elija los equipos en el formulario de la regla, en **Equipos responsables** dentro de **Más campos**. Elegirlos requiere el permiso sobre los equipos del tipo de regla, como `CreateIncidentOnCallRuleOwningTeam`, que tienen los propietarios y administradores del proyecto. Añadir o quitar equipos de una regla cambia la regla, así que, en cuanto una regla pertenece a equipos, solo esos equipos y los propietarios y administradores del proyecto cambian a quién pertenece. En una lista de reglas, una regla que solo pertenece a otros equipos es de solo lectura para usted: sus acciones de editar y eliminar están bloqueadas y nombran los equipos a los que pertenece.
+
+El permiso de cada equipo alcanza las reglas que pertenecen a ese equipo. Alguien que está en dos equipos, uno que puede editar reglas de guardia y otro que solo puede leerlas, edita todas las reglas que no pertenecen a ningún equipo y las del primer equipo, y solo lee las que pertenecen únicamente al segundo. Una clave de API solo cambia una regla que pertenece a equipos con `ProjectOwner` o `ProjectAdmin`; un paso de un workflow actúa como administrador del proyecto. A través de la API y de Terraform, los equipos responsables de una regla son registros propios, como `oneuptime_incident_on_call_rule_owning_team`.
+
 ## Recetas
 
 **Un equipo que solo observa.** Cree el equipo con **Visor** en **Acceso**. Para solo algunas áreas, elija **Elegir los permisos más tarde** y añada los roles `*Viewer` por área que deba ver.

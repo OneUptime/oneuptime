@@ -84,6 +84,7 @@ import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import TelemetryUtil from "../../../Server/Utils/Telemetry/Telemetry";
 import WaitingRunsOnRecordChange from "../../../Server/Utils/OnCall/WaitingRunsOnRecordChange";
+import IncidentRulesOnChange from "../../../Server/Utils/Incident/IncidentRulesOnChange";
 import MutableMetric from "../../../Models/AnalyticsModels/MutableMetric";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
@@ -280,6 +281,7 @@ describe("PUT an incident", () => {
   let recalculate: MockFunction;
   let refreshReminders: MockFunction;
   let startWaitingRuns: MockFunction;
+  let rulesAgain: MockFunction;
   let metrics: MockFunction;
 
   function storedIncident(): Incident {
@@ -343,6 +345,13 @@ describe("PUT an incident", () => {
       .spyOn(WaitingRunsOnRecordChange, "startForIncident")
       .mockImplementation(startWaitingRuns as never);
 
+    // The owner and on-call rules running again (IncidentRulesOnChange).
+    rulesAgain = getJestMockFunction();
+    rulesAgain.mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentRulesOnChange, "onIncidentChanged")
+      .mockImplementation(rulesAgain as never);
+
     jest
       .spyOn(IncidentService, "getIncidentMetricContext")
       .mockResolvedValue({ baseMetricAttributes: {} } as never);
@@ -396,6 +405,21 @@ describe("PUT an incident", () => {
     // A run waiting for working hours may now match a rule that pages right away.
     expect(startWaitingRuns).toHaveBeenCalledTimes(1);
     expect(String(startWaitingRuns.mock.calls[0]![0])).toBe(RECORD_ID);
+    // And the rules run again: a rule for Critical may now page or add owners.
+    expect(rulesAgain).toHaveBeenCalledTimes(1);
+    expect(
+      rulesAgain.mock.calls[0]![0] as {
+        incidentId: unknown;
+        change: unknown;
+      },
+    ).toMatchObject({
+      change: { isSeverityChanged: true, isLabelsChanged: false },
+    });
+    expect(
+      String(
+        (rulesAgain.mock.calls[0]![0] as { incidentId: unknown }).incidentId,
+      ),
+    ).toBe(RECORD_ID);
   });
 
   test("a new severity by the relation, as the dashboard sends it, does the same, once", async () => {
@@ -427,6 +451,7 @@ describe("PUT an incident", () => {
       expect(severityChanges()).toHaveLength(0);
       // Nothing the on-call rules read changed.
       expect(startWaitingRuns).not.toHaveBeenCalled();
+      expect(rulesAgain).not.toHaveBeenCalled();
     },
   );
 
@@ -443,6 +468,11 @@ describe("PUT an incident", () => {
     expect(severityChanges()).toHaveLength(0);
     // An on-call rule may match the title.
     expect(startWaitingRuns).toHaveBeenCalledTimes(1);
+    /*
+     * A title fixed as people learn more is no reason to page anybody: the
+     * rules run again for a severity or labels change only.
+     */
+    expect(rulesAgain).not.toHaveBeenCalled();
   });
 
   test("a master admin writing the whole incident back, notify flag included, re-sends nothing", async () => {

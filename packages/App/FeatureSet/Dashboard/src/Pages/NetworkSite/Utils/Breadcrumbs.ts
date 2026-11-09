@@ -33,7 +33,7 @@ export function getNetworkSiteBreadcrumbs(
       "Project",
       "Network",
       "View Site",
-      "Endpoints",
+      "Discovered Devices",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_TRAFFIC, [
       "Project",
@@ -56,6 +56,12 @@ export function getNetworkSiteBreadcrumbs(
       "Network",
       "View Site",
       "Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Network",
+      "View Site",
+      "Audit Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_DELETE, [
       "Project",

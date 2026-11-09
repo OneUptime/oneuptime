@@ -108,6 +108,10 @@ OneUptime читает историю взаимодействий каждог�
 
 У этих инструментов нет API, через который OneUptime мог бы читать чаты людей, или им нужен другой путь.
 
+### Cursor
+
+Admin API Cursor отдаёт использование и стоимость по людям, а не разговоры, поэтому команда Cursor подключается как [аккаунт провайдера](/docs/telemetry/ai-provider-accounts#cursor), со своим API-ключом администратора. На тарифе Enterprise её OpenTelemetry Export также присылает использование по мере того, как оно происходит: см. [Cursor](/docs/telemetry/cursor).
+
 ### ChatGPT Enterprise
 
 OpenAI открывает свой Compliance API для workspace только по запросу и не публикует, что содержат его записи, поэтому OneUptime пока не может читать чаты ChatGPT Enterprise. Подключение вашей организации OpenAI как [аккаунта провайдера](/docs/telemetry/ai-provider-accounts#openai) показывает её использование и стоимость API, в которые ChatGPT не входит.
@@ -146,7 +150,7 @@ Claude Code, Codex, Gemini CLI, GitHub Copilot и Cursor отправляют с
 
 :::cards
 - [Наблюдаемость ИИ / LLM](/docs/telemetry/ai-llm-observability): Читайте и воспроизводите разговоры и узнавайте, когда ответы идут не так.
-- [Аккаунты ИИ-провайдеров](/docs/telemetry/ai-provider-accounts): Использование и стоимость ваших аккаунтов OpenAI, Anthropic, Azure, Bedrock и Vertex AI.
+- [Аккаунты ИИ-провайдеров](/docs/telemetry/ai-provider-accounts): Использование и стоимость ваших аккаунтов OpenAI, Anthropic, Azure, Bedrock, Vertex AI и Cursor.
 - [ИИ-ассистенты для программирования](/docs/telemetry/ai-coding-assistants): Расходы на инструменты программирования по инженерам.
 - [Хранение данных](/docs/telemetry/data-retention): Как долго хранятся разговоры.
 :::

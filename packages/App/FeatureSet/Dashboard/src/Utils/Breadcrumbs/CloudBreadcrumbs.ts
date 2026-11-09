@@ -111,6 +111,12 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "View Resource",
       "Documentation",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Cloud",
+      "View Resource",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_DELETE, [
       "Project",
       "Cloud",
@@ -215,6 +221,13 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "Accounts",
       "View Account",
       "Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+      "Audit Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_DELETE, [
       "Project",

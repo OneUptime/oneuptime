@@ -385,6 +385,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/slo/burn-rate-alerts",
       },
       {
+        title: "Error Budget Policy",
+        url: "/docs/slo/error-budget-policy",
+      },
+      {
         title: "SLO Metrics and Dashboards",
         url: "/docs/slo/metrics",
       },
@@ -700,6 +704,16 @@ const DocsNav: NavGroup[] = [
       {
         title: "Data Retention",
         url: "/docs/telemetry/data-retention",
+      },
+      // How much of it each project and service sends, on every install.
+      {
+        title: "Telemetry Usage",
+        url: "/docs/telemetry/usage",
+      },
+      // How much of it each project and ingestion key may send in a day.
+      {
+        title: "Ingestion Budgets",
+        url: "/docs/telemetry/ingestion-budgets",
       },
       {
         title: "Continuous Profiling",

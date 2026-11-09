@@ -45,7 +45,7 @@ import {
  * Everything below the recorder bundle, exercised the way a customer's
  * browser exercises it: a real ingestion key, real chunk frames posted to
  * /telemetry/session-replay/v1/chunk, and then the real dashboard reading
- * them back - the roster's Connected pill, the Health page, the list with
+ * them back - the roster's Receiving data pill, the Health page, the list with
  * its search grammar and sort, the player, the rail and the audit log.
  *
  * This is the only coverage of several hops that unit tests cannot reach,
@@ -64,7 +64,9 @@ import {
  *   - The player rendered its chrome and then never played (#3601), and the
  *     spec of the day asserted only that the chrome was there.
  *   - A replay-only install read "Disconnected" on the roster (#3527)
- *     because liveness was refreshed from the OTel path alone.
+ *     because liveness was refreshed from the OTel path alone. (The roster
+ *     says Receiving data, No recent traffic or Waiting for data now:
+ *     issue #6191.)
  *   - The recorder gzips every payload it sends and no test had ever fed a
  *     real gzip frame to the real ingest: chunk 1 of the journey below is
  *     compressed, and the error it carries is read back from the rail.
@@ -373,7 +375,8 @@ test.describe("Session Replay", () => {
      * Liveness used to be refreshed from the OTel path only, so a site
      * instrumented with the replay snippet alone read "Disconnected" on the
      * roster while its recorders were posting to this very server. The
-     * stamp is fire-and-forget and throttled, hence the poll.
+     * stamp is fire-and-forget and throttled, hence the poll. The pill says
+     * Receiving data while data arrives (issue #6191).
      */
     const rosterRow: Locator = page
       .getByRole("row")
@@ -381,13 +384,13 @@ test.describe("Session Replay", () => {
 
     await pollUntil({
       page,
-      what: `application ${appIdentifier} reading Connected`,
+      what: `application ${appIdentifier} reading Receiving data`,
       timeoutMs: 120000,
       run: async (): Promise<boolean> => {
         await openRumApplications({ page, projectId });
 
         return rosterRow
-          .getByText("Connected", { exact: true })
+          .getByText("Receiving data", { exact: true })
           .first()
           .isVisible();
       },
@@ -396,17 +399,20 @@ test.describe("Session Replay", () => {
     /*
      * Said again as an assertion, so a failure names the regression rather
      * than reading "Timed out waiting for ...". Both halves matter: the
-     * pill must SAY Connected, and it must not still be the Disconnected
-     * one that #3527 reported while recorders were posting to this server.
+     * pill must SAY Receiving data, and it must not be one of the quiet
+     * ones - the "Disconnected" #3527 reported while recorders were posting
+     * to this server reads No recent traffic or Waiting for data now.
      */
     await expect(
-      rosterRow.getByText("Connected", { exact: true }).first(),
-      "#3527: session replay chunks alone must keep the application Connected - liveness used to be refreshed from the OTel path only",
+      rosterRow.getByText("Receiving data", { exact: true }).first(),
+      "#3527: session replay chunks alone must keep the application receiving data - liveness used to be refreshed from the OTel path only",
     ).toBeVisible();
-    await expect(
-      rosterRow.getByText("Disconnected", { exact: true }),
-      "#3527: a replay-only install must never read Disconnected while it is uploading",
-    ).toHaveCount(0);
+    for (const quiet of ["No recent traffic", "Waiting for data"]) {
+      await expect(
+        rosterRow.getByText(quiet, { exact: true }),
+        `#3527: a replay-only install must never read ${quiet} while it is uploading`,
+      ).toHaveCount(0);
+    }
 
     /* Hop 3: the session reaches the list. */
     const listRow: Locator = page.locator(

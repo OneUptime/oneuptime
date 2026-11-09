@@ -71,49 +71,39 @@ Un cambio en estos ajustes se aplica en menos de un minuto.
 
 Filtre por **Tipo de recurso**, **Nombre del recurso**, **Acción**, **Correo electrónico del usuario** u **Hora**. Una modificación solo enumera los campos que cambiaron, antes y después, y un guardado que no cambia nada no añade ninguna entrada.
 
+Un recurso sin nombre propio recibe el nombre de lo que lo nombra en OneUptime: una excepción, por su tipo y el comienzo de su mensaje, con los identificadores, las direcciones y todo lo que parezca un secreto enmascarados; una ejecución de un runbook, por su runbook; el número de teléfono de una política de llamadas entrantes, por el número; y una plantilla o un dominio, por su propio nombre.
+
 Los monitores, incidentes, alertas, páginas de estado, SLO y muchos otros recursos tienen también su propia página **Registros de auditoría**, en una sección plegada de su menú lateral como **Avanzado**. Solo enumera las entradas de ese recurso, con las de lo que le pertenece: la página de un SLO muestra también sus reglas y propietarios.
 
 ## Qué se registra
 
-| Recurso | **Tipo de recurso** en el registro |
+Se registra todo lo que las personas crean, cambian o eliminan en un proyecto: monitores, incidentes, alertas, páginas de estado, flujos de trabajo y sus pasos, colas, paneles, políticas de guardia, equipos y quién está en ellos, claves de API y cada ajuste. **Tipo de recurso** indica de qué trata una entrada, por ejemplo `Monitor`, `Workflow` o `Queue`.
+
+| No se registra | Por qué |
 | --- | --- |
-| Monitores | `Monitor` |
-| Incidentes | `Incident` |
-| Alertas | `Alert` |
-| Páginas de estado | `Status Page` |
-| Eventos de mantenimiento programado | `Scheduled Maintenance Event` |
-| Políticas de guardia | `On-Call Policy` |
-| SLO | `Service Level Objective` |
-| Las reglas y propietarios de un SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Equipos | `Team` |
-| Roles personalizados, y los equipos y claves de API que reciben uno | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Etiquetas | `Label` |
-| Estados y gravedades de incidente | `Incident State`, `Incident Severity` |
-| Estados y gravedades de alerta | `Alert State`, `Alert Severity` |
-| Estados de monitor | `Monitor Status` |
-| Estados de mantenimiento programado | `Scheduled Maintenance State` |
-| Roles de incidente | `Incident Role` |
-| Estados de post mortem | `Postmortem Status` |
-| Claves de API | `API Key` |
-| Clientes MCP que conectan las personas | `MCP Client Authorization` |
-| Elementos del inventario | `Inventory Item` |
-| Configuraciones del recolector | `Collector Config` |
-| vCenter | `vCenter` |
-| Nubes OpenStack, y las comprobaciones que se ejecutan contra ellas | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Capturas de paquetes, y sus descargas | `Packet Capture` |
-| Casos de seguridad y sus prioridades y estados, playbooks y sus ejecuciones, entidades protegidas, criticidad de entidades, y el riesgo de una entidad cuando alguien lo restablece | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Excepciones de regla | `Rule Exception` |
-| Listas de seguimiento | `Watchlist` |
-| Valores de lista de seguimiento | `Watchlist Value` |
-| Cacerías | `Hunt` |
-| Tareas y evidencias de los casos de seguridad | `Security Case Task`, `Security Case Evidence` |
-| Los almacenes de datos y sus hallazgos, y los problemas, los ajustes, los ajustes de las comprobaciones, los tipos de datos personalizados y las reglas de residencia de Seguridad de datos | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Ajustes de Observabilidad de datos | `Data Observability Setting` |
-| Exportaciones del registro de auditoría | `Audit Log Export` |
+| Registros de mensajes | Cada uno ya es la constancia de un correo, SMS, llamada, notificación push o mensaje de chat que OneUptime envió o recibió. |
+| Registros de ejecuciones | Cada uno ya es la constancia de una ejecución de un flujo de trabajo, una escalada de guardia, un análisis, una importación o una ejecución de IA. |
+| Lo que informan los agentes y la telemetría | Los recursos descubiertos, las lecturas y el uso cambian con cada informe, no porque alguien los haya cambiado. |
+| Fuentes de actividad | Una fuente muestra cambios que el registro de auditoría ya registra. |
+| El estado de trabajo de OneUptime | Sesiones, trabajos en cola y otro estado que OneUptime guarda mientras trabaja. |
+| La configuración de notificaciones propia de una persona | Las direcciones, los números y las reglas de guardia personales de cada persona son solo suyos. |
 
 También se registra que un administrador añada o quite un método de notificación o una regla de guardia personal en la cuenta de otra persona, sin la dirección ni el número en sí.
 
-Otros datos no están en el registro de auditoría, como quién está en un equipo o un permiso añadido por separado a un equipo. Los campos que nadie puede leer se omiten en cada entrada, y las claves, los tokens y las contraseñas se registran como `[REDACTED]`: la entrada muestra que cambiaron, nunca su valor.
+Los campos que solo escribe OneUptime, como cuándo se vio un host por última vez, se omiten en cada entrada, igual que los campos que nadie puede leer. Cuando OneUptime escribe uno porque alguien se lo pidió, como al fusionar una excepción con otra o restablecer una URL de webhook, la entrada lo registra como un cambio de esa persona. Las claves, los tokens y las contraseñas se registran como `[REDACTED]`: la entrada muestra que cambiaron, nunca su valor. Los pasos de un flujo de trabajo se registran como lo que cambió, con los nombres de los ajustes de un paso, pero nunca lo que se escribió en ellos, y mover un paso en el lienzo no se registra.
+
+Lo que OneUptime hace porque alguien se lo pidió también se registra como un cambio de esa persona, guarde o no el proyecto los eventos del sistema:
+
+- Iniciar, aprobar, completar, omitir y cancelar una ejecución de un runbook. Sus pasos se registran como lo que se le hizo a cada uno, por ejemplo `Approved "Restart the API" (step 3)`, nunca con lo que imprimió un paso.
+- Lo que cambia una regla cuando alguien la ejecuta: las etiquetas y los propietarios que añade, los registros que una regla de privacidad hace privados, los dispositivos que mueve una regla de asignación de sitio, los dispositivos y monitores que crea una regla de importación automática, y lo que una regla de monitores de una página de estado o de un SLO cambia en su página o en su SLO.
+- Comprar, asociar y liberar el número de teléfono de una política de llamadas entrantes.
+- Resolver una alerta de datos que alguien marca como esperada o como que no es un problema.
+- Restablecer el enlace de un feed de calendario.
+- Los equipos a los que alguien se une al iniciar sesión con SSO.
+
+Lo que una regla hace por sí sola es un cambio del propio OneUptime y se registra con **Almacenar eventos del sistema** activado: las etiquetas y los propietarios que una regla añade al crearse un registro, y un registro que hace privado entonces; los dispositivos y monitores que una regla de importación automática crea a partir de nuevos resultados de escaneo; y lo que una regla de monitores de una página de estado o de un SLO cambia cuando se guarda una regla, un monitor o una etiqueta.
+
+Restablecer el agente de IA de un host, un clúster o una cuenta en la nube se registra en la propia página **Registros de auditoría** de ese recurso, como el cambio de `aiAgentResetAt` hecho por quien lo restableció: quién, y cuándo. Lo mismo ocurre al crear una clave para el agente de IA de una cuenta en la nube: las claves aparecen como cambiadas, nunca con una clave o un hash. Lo que un agente informa al conectarse y al reportarse queda fuera, como antes.
 
 ## Cuánto tiempo se conservan las entradas
 

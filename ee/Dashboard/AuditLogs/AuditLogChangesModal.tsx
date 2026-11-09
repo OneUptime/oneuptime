@@ -4,6 +4,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
+import { readAuditLogChange } from "Common/Utils/AuditLog/AuditLogTypedValues";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export type AuditLogModalAction = "Create" | "Update" | "Delete" | string;
@@ -17,11 +18,73 @@ export interface ComponentProps {
   changes: JSONArray | undefined;
 }
 
-interface ChangeRow {
+export interface ChangeRow {
   field: string;
   oldValue: JSONValue | undefined;
   newValue: JSONValue | undefined;
+  /*
+   * What changed, in plain lines, for a field the entry describes rather
+   * than copies (a workflow's steps) and for JSON (the paths that changed).
+   */
+  summary: Array<string>;
 }
+
+// The lines of a change's summary: text only, anything else left out.
+export const readChangeSummary: (value: unknown) => Array<string> = (
+  value: unknown,
+): Array<string> => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((line: unknown): line is string => {
+    return typeof line === "string" && line.trim().length > 0;
+  });
+};
+
+/*
+ * The fields of an entry as the dialog lists them, by name. Each change is
+ * read as the recorder writes one now (readAuditLogChange): a phone number,
+ * an email address or a URL an older entry recorded as its JSON
+ * ({ "_type": "Phone", "value": "+14155550100" }) - and which the API client
+ * hands over as a Phone again - reads as the number, without the "Changed
+ * the value" its JSON was described by; a hash as "[REDACTED]".
+ */
+export const readChangeRows: (changes: unknown) => Array<ChangeRow> = (
+  changes: unknown,
+): Array<ChangeRow> => {
+  if (!Array.isArray(changes)) {
+    return [];
+  }
+
+  const rows: Array<ChangeRow> = [];
+
+  for (const raw of changes) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      continue;
+    }
+
+    const entry: JSONObject = readAuditLogChange(raw as JSONObject);
+    const field: unknown = entry["field"];
+
+    if (typeof field !== "string" || field.length === 0) {
+      continue;
+    }
+
+    rows.push({
+      field,
+      oldValue: entry["oldValue"] as JSONValue | undefined,
+      newValue: entry["newValue"] as JSONValue | undefined,
+      summary: readChangeSummary(entry["summary"]),
+    });
+  }
+
+  rows.sort((a: ChangeRow, b: ChangeRow) => {
+    return a.field.localeCompare(b.field);
+  });
+
+  return rows;
+};
 
 const humanizeFieldName: (field: string) => string = (
   field: string,
@@ -96,30 +159,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const rows: Array<ChangeRow> = useMemo(() => {
-    if (!props.changes || !Array.isArray(props.changes)) {
-      return [];
-    }
-
-    const mapped: Array<ChangeRow> = [];
-    for (const raw of props.changes) {
-      if (!raw || typeof raw !== "object") {
-        continue;
-      }
-      const entry: JSONObject = raw as JSONObject;
-      const field: unknown = entry["field"];
-      if (typeof field !== "string" || field.length === 0) {
-        continue;
-      }
-      mapped.push({
-        field,
-        oldValue: entry["oldValue"] as JSONValue | undefined,
-        newValue: entry["newValue"] as JSONValue | undefined,
-      });
-    }
-    mapped.sort((a: ChangeRow, b: ChangeRow) => {
-      return a.field.localeCompare(b.field);
-    });
-    return mapped;
+    return readChangeRows(props.changes);
   }, [props.changes]);
 
   if (!props.isOpen) {
@@ -180,6 +220,26 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                       {row.field}
                     </span>
                   </div>
+
+                  {row.summary.length > 0 ? (
+                    <ul
+                      className="mb-2 list-disc space-y-1 pl-5 text-sm text-gray-800"
+                      data-testid="audit-log-change-summary"
+                    >
+                      {row.summary.map((line: string, index: number) => {
+                        return (
+                          <li
+                            key={`${row.field}-${index}`}
+                            className="break-words"
+                          >
+                            {line}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <></>
+                  )}
 
                   {showBoth ? (
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-2 md:gap-3 items-start">

@@ -86,7 +86,7 @@ OneUptime finner applikasjonen ut fra `service.name`, uten å skille mellom stor
 
 Tallene kommer fra spennene instrumenteringen din sender. **Sideinnlastinger** teller spennet `documentLoad`, som instrumenteringen for sideinnlasting registrerer ved hver fullstendige innlasting, så et ruteskifte i en enkeltsideapp er ikke en sideinnlasting.
 
-En applikasjon viser **Tilkoblet** så lenge telemetri kommer inn, og **Frakoblet** etter 15 minutter uten. Tid da OneUptime selv var nede eller tok igjen inntakskøen sin, teller ikke med i de 15 minuttene.
+En applikasjon viser **Mottar data** så lenge telemetri kommer inn, og **Ingen nylig trafikk** etter 15 minutter uten, noe som er normalt mens ingen bruker appen. En applikasjon som er lagt til for hånd, viser **Venter på data** til de første dataene kommer. Tid da OneUptime selv var nede eller tok igjen inntakskøen sin, teller ikke med i de 15 minuttene.
 
 ## Kom i gang
 

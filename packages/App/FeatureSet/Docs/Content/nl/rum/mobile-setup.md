@@ -215,8 +215,8 @@ De service die al is aangemaakt, wordt geen RUM-applicatie, dus verwijder hem on
 Clientrijen komen alleen uit `device.model.identifier`. Een SDK die alleen `device.id` of `device.manufacturer` instelt, deelt de app in als mobiele RUM, maar toont geen clients: stel ook `device.model.identifier` in.
 :::
 
-:::details De status zegt Verbinding verbroken terwijl de app wordt gebruikt
-De status springt naar **Verbinding verbroken** na 15 minuten zonder telemetrie. Als mensen de app gebruiken:
+:::details De status zegt Geen recent verkeer terwijl de app wordt gebruikt
+De status springt naar **Geen recent verkeer** na 15 minuten zonder telemetrie. Als mensen de app gebruiken:
 
 - Een sampler gooit misschien alles weg: zoek naar een always-off-sampler of een zeer lage ratio.
 - De app verstuurt misschien alleen telemetrie voor acties die in die tijd niemand uitvoerde.

@@ -23,6 +23,8 @@ export interface StoredExport {
   secrets: JSONObject;
   isEnabled: boolean;
   startsAt: Date;
+  // The record version it sends: 1 unless said, as the column's default gives a row saved before version 2.
+  schemaVersion: number;
   createdAt: Date;
   cursorCreatedAt: Date | null;
   cursorEntryId: string | null;
@@ -60,6 +62,7 @@ export function newStoredExport(
     secrets: {},
     isEnabled: true,
     startsAt: new Date("2026-10-24T00:00:00.000Z"),
+    schemaVersion: 1,
     createdAt: new Date("2026-10-24T00:00:00.000Z"),
     cursorCreatedAt: null,
     cursorEntryId: null,
@@ -74,9 +77,21 @@ export function newStoredExport(
   };
 }
 
-function toModel(row: StoredExport): AuditLogExport {
+/*
+ * A row as a read answers it. The record version only when the read asks
+ * for it, as Postgres would: an exporter that forgot to read it would send
+ * every export as version 1, and its suite would not see why.
+ */
+function toModel(
+  row: StoredExport,
+  select?: Record<string, unknown> | undefined,
+): AuditLogExport {
   const item: AuditLogExport = new AuditLogExport();
   item.id = new ObjectID(row._id);
+
+  if (!select || select["schemaVersion"]) {
+    item.schemaVersion = row.schemaVersion;
+  }
 
   if (row.projectId) {
     item.projectId = new ObjectID(row.projectId);
@@ -165,19 +180,27 @@ export function useInMemoryExports(rows: Array<StoredExport>): InMemoryExports {
 
   jest
     .spyOn(AuditLogExportService, "findAllBy")
-    .mockImplementation((async (data: { query: JSONObject }) => {
+    .mockImplementation((async (data: {
+      query: JSONObject;
+      select?: Record<string, unknown>;
+    }) => {
       return Array.from(store.values())
         .filter((row: StoredExport): boolean => {
           return data.query["isEnabled"] === undefined || row.isEnabled;
         })
-        .map(toModel);
+        .map((row: StoredExport): AuditLogExport => {
+          return toModel(row, data.select);
+        });
     }) as never);
 
   jest
     .spyOn(AuditLogExportService, "findOneById")
-    .mockImplementation((async (data: { id: ObjectID }) => {
+    .mockImplementation((async (data: {
+      id: ObjectID;
+      select?: Record<string, unknown>;
+    }) => {
       const row: StoredExport | undefined = store.get(data.id.toString());
-      return row ? toModel(row) : null;
+      return row ? toModel(row, data.select) : null;
     }) as never);
 
   jest

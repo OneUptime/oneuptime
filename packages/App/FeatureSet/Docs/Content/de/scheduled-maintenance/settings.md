@@ -20,7 +20,7 @@ Die Konfiguration der Wartung liegt in **Geplante Wartung**, nicht in den **Proj
 | **Beschriftungsregeln** | Fügt passenden Ereignissen Beschriftungen hinzu.               |
 | **Erinnerungsregeln** | Erinnert Eigentümer in einem Intervall, bis ein Ereignis abgeschlossen ist. |
 
-Der Abschnitt **Einstellungen** enthält **Ereignisstatus**, behandelt unter [Wartungsstatus](/docs/scheduled-maintenance/states), **Ereignis-Vorlagen**, behandelt unter [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates), dann **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen** und **Nummerierung**. **Kalendereinstellungen** wird unter [Wartungskalender](/docs/scheduled-maintenance/calendar#externe-kalender) behandelt, der Rest unten.
+Der Abschnitt **Einstellungen** enthält **Ereignisstatus**, behandelt unter [Wartungsstatus](/docs/scheduled-maintenance/states), **Ereignis-Vorlagen**, behandelt unter [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates), dann **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen** und **Nummerierung**. **Kalendereinstellungen** wird unter [Wartungskalender](/docs/scheduled-maintenance/calendar#externe-kalender) behandelt, der Rest unten.
 
 Der Abschnitt **Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln, die Ereignisse in Kanäle posten. Siehe [Slack](/docs/workspace-connections/slack#benachrichtigungsregeln) und [Microsoft Teams](/docs/workspace-connections/microsoft-teams#benachrichtigungsregeln).
 
@@ -93,6 +93,10 @@ Diese Erinnerungen sind für Ihr Team. Die Erinnerungen, die die Abonnenten Ihre
 ### Notizvorlagen
 
 **Geplante Wartung → Einstellungen → Notiz-Vorlagen** enthält vorgefertigte Texte für Wartungs-Updates. Die Karte **Vorlagen für öffentliche oder private Notizen für geplante Wartungsereignisse** listet sie auf; **Notizvorlage für geplante Wartungen erstellen** fragt nach einem **Vorlagenname**, einer **Vorlagenbeschreibung** und der **Notiz**. Eine Vorlage wird angeboten, wenn jemand eine öffentliche oder private Notiz zu einem Ereignis schreibt und wenn jemand seinen Status ändert, und ihr Text lässt sich vor dem Posten bearbeiten. Anders als Notizvorlagen für Vorfälle füllen Notizvorlagen für Wartungen keine Variablen aus.
+
+### Genehmigung öffentlicher Notizen
+
+**Geplante Wartung → Einstellungen → Genehmigung öffentlicher Notizen** lässt die öffentlichen Notizen geplanter Wartungsereignisse genehmigen, bevor sie veröffentlicht werden. Die Seite funktioniert wie die der Vorfälle, mit eigenem Schalter und eigenen Schritten: Schalten Sie **Genehmigung verlangen, bevor öffentliche Notizen veröffentlicht werden** ein und wählen Sie unter **Wer genehmigt**, wer genehmigt. So können Wartungsnotizen eine Genehmigung brauchen, während Vorfallnotizen keine brauchen, oder von anderen Personen genehmigt werden. Nur **Projektinhaber** und **Projektadministrator** können sie ändern. Siehe [Genehmigung öffentlicher Notizen](/docs/incidents/settings#genehmigung-öffentlicher-notizen) für die Schritte und [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen) dafür, was eine Notiz tut, während sie wartet.
 
 ### Benutzerdefinierte Felder
 

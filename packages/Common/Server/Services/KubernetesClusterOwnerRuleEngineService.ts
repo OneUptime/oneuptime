@@ -25,7 +25,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
@@ -118,6 +120,7 @@ class KubernetesClusterOwnerRuleEngineServiceClass
         kubernetesCluster: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running Kubernetes cluster owner rules: ${error}`, {
@@ -134,6 +137,8 @@ class KubernetesClusterOwnerRuleEngineServiceClass
     kubernetesCluster: KubernetesCluster;
     rules: Array<KubernetesClusterOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { kubernetesCluster, rules } = data;
 
@@ -265,7 +270,7 @@ class KubernetesClusterOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: KubernetesClusterOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -283,7 +288,7 @@ class KubernetesClusterOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: KubernetesClusterOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

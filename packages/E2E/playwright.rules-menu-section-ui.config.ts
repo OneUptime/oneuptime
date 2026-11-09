@@ -3,8 +3,9 @@ import path from "path";
 
 /*
  * The Rules section of a status page's and an SLO's side menus - folded by
- * default, holding Monitor Rules (and an SLO's Burn Rate Rules) - in real
- * Chromium, with no backend: RulesMenuSection/Fixture/server.js bundles the
+ * default, holding Monitor Rules (and an SLO's Burn Rate Rules and Error
+ * Budget Policy) - in real Chromium, with no backend:
+ * RulesMenuSection/Fixture/server.js bundles the
  * production view layouts (header, breadcrumbs, side menu) with the app's
  * esbuild config, Tailwind, theme and font, around stand-in pages. What
  * jsdom cannot show is checked here: a folded section out of sight and out

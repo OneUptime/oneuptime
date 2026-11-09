@@ -215,8 +215,8 @@ Le service déjà créé ne devient pas une application RUM : supprimez-le sous 
 Les lignes de clients viennent uniquement de `device.model.identifier`. Un SDK qui ne définit que `device.id` ou `device.manufacturer` classe l'application comme RUM mobile, mais ne liste aucun client : définissez aussi `device.model.identifier`.
 :::
 
-:::details Le statut indique Déconnecté alors que l'application est utilisée
-Le statut passe à **Déconnecté** après 15 minutes sans télémétrie. Si des personnes utilisent l'application :
+:::details Le statut indique Aucun trafic récent alors que l'application est utilisée
+Le statut passe à **Aucun trafic récent** après 15 minutes sans télémétrie. Si des personnes utilisent l'application :
 
 - Un échantillonneur rejette peut-être tout : cherchez un échantillonneur always-off ou un taux très faible.
 - L'application n'envoie peut-être de la télémétrie que pour des actions que personne n'a faites pendant ce temps.

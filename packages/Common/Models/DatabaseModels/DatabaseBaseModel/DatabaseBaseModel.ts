@@ -3,6 +3,7 @@ import Route from "../../../Types/API/Route";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import EnableAuditLogOn from "../../../Types/BaseDatabase/EnableAuditLogOn";
+import { getCachedDefaultAuditLogOn } from "../../../Types/AuditLog/AuditLogCoverage";
 import EnableWorkflowOn from "../../../Types/BaseDatabase/EnableWorkflowOn";
 import ModelPermission from "../../../Types/BaseDatabase/ModelPermission";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -186,7 +187,27 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public enableWorkflowOn!: EnableWorkflowOn;
 
-  public enableAuditLogOn!: EnableAuditLogOn | undefined;
+  /*
+   * What the audit log records of this model's changes. A model that
+   * declares @EnableAuditLog has exactly what it declares: the decorator sets
+   * it on the model's prototype, through the setter below, and that own
+   * value is read before this getter is ever reached. A model that declares
+   * nothing is audited by default when it holds a project's records, unless
+   * it is exempt (Types/AuditLog/AuditLogCoverage, issue #6187).
+   */
+  public get enableAuditLogOn(): EnableAuditLogOn | undefined {
+    return getCachedDefaultAuditLogOn(this);
+  }
+
+  public set enableAuditLogOn(value: EnableAuditLogOn | undefined) {
+    // An own value on whatever it is set on, as a plain assignment made it.
+    Object.defineProperty(this, "enableAuditLogOn", {
+      value: value,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    });
+  }
 
   public enableDocumentation!: boolean;
   public isMasterAdminApiDocs!: boolean;

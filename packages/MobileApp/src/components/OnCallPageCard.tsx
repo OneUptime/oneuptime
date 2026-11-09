@@ -6,6 +6,7 @@ import { spacing } from "../theme/tokens";
 import { formatRelativeTime } from "../utils/date";
 import type { OnCallPageItem } from "../api/types";
 import { PASS_ON_TEXT } from "../oncall/passOn";
+import { OBSERVER_PAGE_TEXT } from "../oncall/observerPage";
 import AppText from "./AppText";
 import Card from "./Card";
 import IconBadge from "./IconBadge";
@@ -74,14 +75,20 @@ export function getPageSubject(page: OnCallPageItem): PageSubject {
   return { title: "On-call notification", kind: "unknown", id: null };
 }
 
-/** Delivery completion never substitutes for a responder's acknowledgement. */
-export default function OnCallPageCard({
-  page,
-  onPress,
-}: OnCallPageCardProps): React.JSX.Element {
-  const { theme } = useTheme();
-  const subject: PageSubject = getPageSubject(page);
-  const isAcknowledged: boolean = Boolean(page.acknowledgedAt);
+/*
+ * What a page's badge says. Delivery completion never substitutes for a
+ * responder's acknowledgement.
+ *
+ * An observer's page (oncall/observerPage.ts) was answered by saying they
+ * had seen it - its record was not acknowledged by that - so it says Seen,
+ * or Not seen yet, and never Acknowledged. Nothing is required of an
+ * observer, so not seen yet is no warning.
+ */
+export function getPageStatus(page: OnCallPageItem): {
+  label: string;
+  tone: StatusTone;
+} {
+  const isAnswered: boolean = Boolean(page.acknowledgedAt);
   const isError: boolean = page.status === "Error";
   /*
    * They could not take it and escalated it: the policy paged its next
@@ -89,21 +96,39 @@ export default function OnCallPageCard({
    * server stores it as "Passed On"; it reads "Escalated".
    */
   const isPassedOn: boolean = page.status === PASS_ON_TEXT.passedOnStatus;
-  const tone: StatusTone = isAcknowledged
-    ? "success"
-    : isError
-      ? "danger"
-      : isPassedOn
-        ? "neutral"
-        : "warning";
+
+  if (isAnswered) {
+    return {
+      label: page.isObserverPage
+        ? OBSERVER_PAGE_TEXT.seenStatus
+        : "Acknowledged",
+      tone: "success",
+    };
+  }
+
+  if (isError) {
+    return { label: "Failed to notify", tone: "danger" };
+  }
+
+  if (isPassedOn) {
+    return { label: PASS_ON_TEXT.passedOnLabel, tone: "neutral" };
+  }
+
+  return page.isObserverPage
+    ? { label: OBSERVER_PAGE_TEXT.notSeenStatus, tone: "info" }
+    : { label: "Not acknowledged", tone: "warning" };
+}
+
+export default function OnCallPageCard({
+  page,
+  onPress,
+}: OnCallPageCardProps): React.JSX.Element {
+  const { theme } = useTheme();
+  const subject: PageSubject = getPageSubject(page);
+  const status: { label: string; tone: StatusTone } = getPageStatus(page);
+  const tone: StatusTone = status.tone;
   const toneColor: string = getToneColors(theme, tone).text;
-  const statusLabel: string = isAcknowledged
-    ? "Acknowledged"
-    : isError
-      ? "Failed to notify"
-      : isPassedOn
-        ? PASS_ON_TEXT.passedOnLabel
-        : "Not acknowledged";
+  const statusLabel: string = status.label;
   const isPressable: boolean = Boolean(onPress && subject.id);
 
   return (
@@ -117,7 +142,11 @@ export default function OnCallPageCard({
           : undefined
       }
       accessibilityLabel={
-        isPressable ? `${subject.title}. ${statusLabel}.` : undefined
+        isPressable
+          ? `${subject.title}. ${
+              page.isObserverPage ? `${OBSERVER_PAGE_TEXT.label}. ` : ""
+            }${statusLabel}.`
+          : undefined
       }
       accessibilityHint={
         isPressable
@@ -143,13 +172,34 @@ export default function OnCallPageCard({
               gap: spacing.sm,
             }}
           >
-            <StatusPill
-              testID={`page-status-${page._id}`}
-              label={statusLabel}
-              tone={tone}
-              size="sm"
-              dotColor={toneColor}
-            />
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: spacing.xs + 2,
+              }}
+            >
+              {page.isObserverPage ? (
+                /*
+                 * Kept informed while others respond: said first, in the
+                 * server's words, before what came of it.
+                 */
+                <StatusPill
+                  testID={`page-observer-${page._id}`}
+                  label={OBSERVER_PAGE_TEXT.label}
+                  tone="info"
+                  size="sm"
+                />
+              ) : null}
+              <StatusPill
+                testID={`page-status-${page._id}`}
+                label={statusLabel}
+                tone={tone}
+                size="sm"
+                dotColor={toneColor}
+              />
+            </View>
             {page.createdAt ? (
               <AppText
                 variant="caption"

@@ -11,6 +11,7 @@
  * come from an earlier step instead.
  */
 
+import OnCallPageAs from "../../../../Types/OnCallDutyPolicy/OnCallPageAs";
 import { JSONObject } from "../../../../Types/JSON";
 import {
   PageStepTarget,
@@ -21,6 +22,7 @@ import {
   PAGE_ARGUMENT_IDS,
   PageAbout,
   readPageAbout,
+  readPageAs,
 } from "../../../../Types/Workflow/Components/OnCallPageSettings";
 import {
   PluralTemplate,
@@ -77,6 +79,13 @@ export const PAGE_ABOUT_PHRASE: Record<PageAbout, string> = {
   [PageAbout.Incident]: translationKey("Incident"),
   [PageAbout.Alert]: translationKey("Alert"),
 };
+
+/*
+ * Said after what the page is about when it pages observers
+ * (OnCallObserverPage): "1 team · Incident · As observers". Responders, the
+ * default, are not said.
+ */
+export const PAGE_AS_OBSERVERS_PHRASE: string = translationKey("As observers");
 
 export const PAGE_SUMMARY_SEPARATOR: string = " · ";
 
@@ -139,7 +148,19 @@ export const summarizePageStep: SummarizePageStepFunction = (
     return who;
   }
 
-  return `${who}${PAGE_SUMMARY_SEPARATOR}${
-    translateText(PAGE_ABOUT_PHRASE[about]) || PAGE_ABOUT_PHRASE[about]
-  }`;
+  const aboutPhrase: string =
+    translateText(PAGE_ABOUT_PHRASE[about]) || PAGE_ABOUT_PHRASE[about];
+
+  // Observers are kept informed about an incident or an alert already there.
+  const isObservers: boolean =
+    about !== PageAbout.NewAlert &&
+    readPageAs(values[PAGE_ARGUMENT_IDS.pageAs]) === OnCallPageAs.Observers;
+
+  if (isObservers) {
+    return `${who}${PAGE_SUMMARY_SEPARATOR}${aboutPhrase}${PAGE_SUMMARY_SEPARATOR}${
+      translateText(PAGE_AS_OBSERVERS_PHRASE) || PAGE_AS_OBSERVERS_PHRASE
+    }`;
+  }
+
+  return `${who}${PAGE_SUMMARY_SEPARATOR}${aboutPhrase}`;
 };

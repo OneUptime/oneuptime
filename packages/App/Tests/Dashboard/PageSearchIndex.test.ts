@@ -337,7 +337,6 @@ describe("the page index is sound", () => {
         `${PageSearchGate.Billing}:${PageMap.SETTINGS_AI_CREDITS}`,
         `${PageSearchGate.Billing}:${PageMap.SETTINGS_BILLING}`,
         `${PageSearchGate.Billing}:${PageMap.SETTINGS_BILLING_INVOICES}`,
-        `${PageSearchGate.Billing}:${PageMap.SETTINGS_USAGE_HISTORY}`,
         `${PageSearchGate.MonitorGroups}:${PageMap.MONITOR_GROUPS}`,
       ].sort(),
     );
@@ -532,7 +531,6 @@ describe("buildPageSearchCommandDescriptors", () => {
 
     for (const key of [
       PageMap.SETTINGS_BILLING,
-      PageMap.SETTINGS_USAGE_HISTORY,
       PageMap.SETTINGS_BILLING_INVOICES,
       PageMap.SETTINGS_AI_CREDITS,
       PageMap.MONITOR_GROUPS,
@@ -550,6 +548,8 @@ describe("buildPageSearchCommandDescriptors", () => {
     // Everything else in Project Settings is offered either way.
     expect(findPage(off, PageMap.SETTINGS_APIKEYS)).toBeDefined();
     expect(findPage(off, PageMap.SETTINGS_SSO)).toBeDefined();
+    // Usage too: it is counted where billing is off (issue #5916).
+    expect(findPage(off, PageMap.SETTINGS_USAGE_HISTORY)).toBeDefined();
   });
 
   test("without a project only the pages outside a project are offered", () => {

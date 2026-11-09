@@ -79,6 +79,7 @@ Elke oproep is een `POST`-verzoek met een JSON-body:
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ Elke oproep is een `POST`-verzoek met een JSON-body:
 | `recordType`, `record` | Waar de oproep over gaat: een `incident`, `alert`, `incidentEpisode` of `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | Het beleid en het niveau dat de persoon opriep |
 | `isPageAgain` | `true` als het item een tijd geleden is bevestigd en nog steeds niet is opgelost |
+| `isObserverPage` | `true` wanneer iemand als waarnemer wordt opgeroepen: op de hoogte gehouden terwijl anderen reageren. De oproep bevestigen zegt alleen dat ze die gezien hebben |
 | `actions` | De links die uw dienst aanroept om [op de oproep te reageren](#op-een-oproep-reageren) |
 
 Een oproep aan meerdere personen is één verzoek per persoon, elk met de eigen links van die persoon, zodat OneUptime weet wie heeft gereageerd. Titel, bericht en beschrijving samen zijn beperkt tot 16.384 tekens; een langere beschrijving wordt ingekort en eindigt met "… (truncated — see OneUptime for the full text)".
@@ -170,6 +172,7 @@ Een melding gaat naar elk kanaal dat aan staat, als één verzoek per kanaal, me
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

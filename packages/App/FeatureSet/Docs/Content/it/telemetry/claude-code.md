@@ -161,7 +161,7 @@ Ogni metrica è un contatore, e porta gli attributi standard oltre ai propri.
 
 Gli attributi standard sono `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` e `terminal.type`, più i tuoi `OTEL_RESOURCE_ATTRIBUTES`. Alcuni si possono disattivare: vedi [Tieni basso il volume delle metriche](#tieni-basso-il-volume-delle-metriche).
 
-- I tipi di token della cache sono in camelCase: `cacheRead` e `cacheCreation`. I totali dei token di OneUptime contano solo `input` e `output`.
+- I tipi di token della cache sono in camelCase: `cacheRead` e `cacheCreation`. L'`input` di Claude Code li esclude, quindi OneUptime li conta anche come token di input.
 - Sulle metriche di costo e di token, i nomi dei tuoi agenti e server MCP, e dei plugin e delle skill di terze parti, compaiono come `custom` o `third-party` a meno che non sia impostato `OTEL_LOG_TOOL_DETAILS=1` (Claude Code 2.1.273 o successivo).
 
 ## Eventi
@@ -220,7 +220,7 @@ Claude Code invia metriche delta per impostazione predefinita: ogni punto dati �
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Fissa `cumulative` solo se ogni esportatore della tua organizzazione lo usa, e non mescolare i due in una flotta.
+Fissa `cumulative` solo se ogni esportatore della tua organizzazione lo usa, e non mescolare i due in una flotta. La scheda Utilizzo e i budget di OneUptime contano entrambi: un delta sommandone i punti, un contatore cumulativo in base a quanto è cresciuto nell'intervallo.
 
 ## Tracce (beta)
 

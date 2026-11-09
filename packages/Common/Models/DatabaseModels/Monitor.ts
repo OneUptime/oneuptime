@@ -2139,6 +2139,60 @@ export default class Monitor extends BaseModel {
   })
   public disableActiveMonitoring?: boolean = undefined;
 
+  /*
+   * Whether the incidents and alerts this monitor opens keep the content of
+   * the check that opened them: the excerpt of the response around what a
+   * filter matched, the values a JavaScript expression read, and the
+   * response or request body in their monitor summary. Credentials and
+   * personal data are masked either way (MonitorEvidenceRedaction); this
+   * is for a monitor whose responses are sensitive in themselves. Website,
+   * API and Incoming Request monitors offer it (MonitorRecordEvidence).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Keep Response Content",
+    description:
+      "Keep the response part that matched, and the response body and headers, in this monitor's logs and on its incidents and alerts. Secrets are masked either way.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public keepResponseContent?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

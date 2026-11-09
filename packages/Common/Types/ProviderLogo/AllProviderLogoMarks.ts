@@ -15,6 +15,7 @@ import GoogleCloudMark from "./Marks/google-cloud";
 import OpenAIMark from "./Marks/openai";
 import AnthropicMark from "./Marks/anthropic";
 import ClaudeMark from "./Marks/claude";
+import CursorMark from "./Marks/cursor";
 import MistralAIMark from "./Marks/mistral-ai";
 import OllamaMark from "./Marks/ollama";
 import GoogleCalendarMark from "./Marks/google-calendar";
@@ -118,6 +119,7 @@ const ALL_PROVIDER_LOGO_MARKS: Readonly<
   [ProviderLogo.OpenAI]: OpenAIMark,
   [ProviderLogo.Anthropic]: AnthropicMark,
   [ProviderLogo.Claude]: ClaudeMark,
+  [ProviderLogo.Cursor]: CursorMark,
   [ProviderLogo.MistralAI]: MistralAIMark,
   [ProviderLogo.Ollama]: OllamaMark,
   [ProviderLogo.GoogleCalendar]: GoogleCalendarMark,

@@ -46,8 +46,9 @@ import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
  * handler - the 14 "Hide the form card" sites, the 4 cards of the incident
  * card's menu (Change Severity, Assign Role, Page Someone, Edit Custom
  * Fields), the two create forms (whose create flow
- * MicrosoftTeamsCreateSubmit.test.ts covers in depth) and the approval card
- * of a fix OneUptime AI proposes (Approve and run) - with
+ * MicrosoftTeamsCreateSubmit.test.ts covers in depth), the approval card
+ * of a fix OneUptime AI proposes (Approve and run) and the card a public
+ * note's Reject answers with (its reason sent) - with
  * Teams refusing the removal, removing it, answering it only later, and with
  * no form to remove; then once more through handleBotInvokeActivity, where
  * "Sorry, that action failed" would come from. The rest of the contract
@@ -141,10 +142,21 @@ import {
   MicrosoftTeamsAlertEpisodeActionType,
   MicrosoftTeamsIncidentActionType,
   MicrosoftTeamsIncidentEpisodeActionType,
+  MicrosoftTeamsPublicNoteApprovalActionType,
   MicrosoftTeamsRemediationActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 import MicrosoftTeamsRemediationActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Remediation";
+import MicrosoftTeamsPublicNoteApprovalActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/PublicNoteApproval";
+import { PublicNoteKind } from "../../../../../Server/Utils/Notes/PublicNoteApprovalEngine";
+import WorkspacePublicNoteApproval, {
+  PUBLIC_NOTE_REJECT_REASON_FIELD,
+  PublicNoteApprovalButtonValue,
+} from "../../../../../Server/Utils/Workspace/WorkspacePublicNoteApproval";
+import WorkspacePublicNoteApprovalActions, {
+  PublicNoteApprovalPressAnswer,
+  PublicNoteApprovalPressOutcome,
+} from "../../../../../Server/Utils/Workspace/WorkspacePublicNoteApprovalActions";
 import AutoRemediationSuggestion from "../../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import RemediationApproval from "../../../../../Server/Utils/AutoRemediation/RemediationApproval";
 import RemediationChatMessage from "../../../../../Server/Utils/AutoRemediation/RemediationChatMessage";
@@ -220,6 +232,37 @@ const CREATED_ID: ObjectID = new ObjectID(
 // A fix OneUptime AI proposes for an incident, and its plan's fingerprint.
 const SUGGESTION_ID: string = "bf2a3b4c-5d6e-4f7a-8b8c-9d0e1f2a3b4c";
 const PLAN_FINGERPRINT: string = "0123456789abcdef";
+
+/*
+ * A public note waiting for approval on the incident, as the signed value of
+ * the card its Reject answers with names it, and the reason typed there.
+ */
+const PUBLIC_NOTE_ID: string = "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f";
+const PUBLIC_NOTE_APPROVAL_VALUE: PublicNoteApprovalButtonValue = {
+  kind: PublicNoteKind.Incident,
+  projectId: PROJECT_ID,
+  recordId: new ObjectID(INCIDENT_ID),
+  noteId: new ObjectID(PUBLIC_NOTE_ID),
+  submittedAt: "2026-11-07T09:00:00.000Z",
+  stepId: "5e000000-0000-4000-8000-000000000001",
+  isFinal: false,
+  isEdit: false,
+  textDigest: WorkspacePublicNoteApproval.getTextDigest(
+    "We are looking into it.",
+  ),
+};
+const PUBLIC_NOTE_REJECT_REASON: string =
+  "The time we give for the fix is not confirmed yet.";
+
+// What rejecting it answers; its words are pinned in WorkspacePublicNoteApprovalActions.test.ts.
+const PUBLIC_NOTE_REJECTED: PublicNoteApprovalPressAnswer = {
+  outcome: PublicNoteApprovalPressOutcome.Decided,
+  answer: {
+    markdown:
+      "↩️ You rejected a **public note** on Incident INC-42. It is not published, and its author sees your reason.",
+    text: "You rejected a public note",
+  },
+};
 
 const NOTE: string = "Rolled back the 14:02 deploy; the error rate is normal.";
 
@@ -444,7 +487,8 @@ type HandlerFamily =
   | "alert episode"
   | "incident episode"
   | "scheduled maintenance"
-  | "remediation";
+  | "remediation"
+  | "public note approval";
 
 /*
  * THE INCIDENT CARD'S MENU (…). Each of its cards, submitted, acts on the
@@ -1348,6 +1392,45 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
       };
     },
   },
+  {
+    name: "public note: Reject, with its reason",
+    family: "public note approval",
+    actionType:
+      MicrosoftTeamsPublicNoteApprovalActionType.SubmitRejectPublicNote,
+    actionValue: WorkspacePublicNoteApproval.encodeValue(
+      PUBLIC_NOTE_APPROVAL_VALUE,
+    ),
+    fields: { [PUBLIC_NOTE_REJECT_REASON_FIELD]: PUBLIC_NOTE_REJECT_REASON },
+    confirmation: menuConfirmation(
+      PUBLIC_NOTE_REJECTED.answer.markdown,
+      PUBLIC_NOTE_REJECTED.answer.text,
+    ),
+    failureReply: ACTION_FAILED,
+    stubWrite: (failure?: Error): WriteCheck => {
+      // What the press decides is pinned in WorkspacePublicNoteApprovalActions.test.ts.
+      const reject: SpyInstance<
+        typeof WorkspacePublicNoteApprovalActions.reject
+      > = jest
+        .spyOn(WorkspacePublicNoteApprovalActions, "reject")
+        .mockImplementation((): Promise<PublicNoteApprovalPressAnswer> => {
+          return writeOutcome(PUBLIC_NOTE_REJECTED, failure);
+        });
+      jest
+        .spyOn(WorkspacePublicNoteApprovalActions, "logPress")
+        .mockResolvedValue();
+
+      return (): void => {
+        expect(reject).toHaveBeenCalledTimes(1);
+        expect(reject).toHaveBeenCalledWith({
+          // The note, its round and its step, as the value was signed.
+          value: PUBLIC_NOTE_APPROVAL_VALUE,
+          // Rejected by the member, with their own props.
+          props: MEMBER_PROPS,
+          reason: PUBLIC_NOTE_REJECT_REASON,
+        });
+      };
+    },
+  },
 ];
 
 const CREATE_FORMS: ReadonlyArray<SubmittedForm> = SUBMITTED_FORMS.filter(
@@ -1454,6 +1537,7 @@ const FAMILY_SOURCE_FILES: Record<HandlerFamily, string> = {
   "incident episode": "Actions/IncidentEpisode.ts",
   "scheduled maintenance": "Actions/ScheduledMaintenance.ts",
   remediation: "Actions/Remediation.ts",
+  "public note approval": "Actions/PublicNoteApproval.ts",
 };
 
 // The submit's value: the card's action data plus what the user filled in.
@@ -1576,6 +1660,14 @@ const HANDLERS: Record<HandlerFamily, SubmitHandler> = {
       oneUptimeUserId: USER_ID,
       turnContext: turnContext,
     });
+  },
+  "public note approval": (
+    form: SubmittedForm,
+    turnContext: TurnContext,
+  ): Promise<void> => {
+    return MicrosoftTeamsPublicNoteApprovalActions.handle(
+      botActionArguments(form, turnContext),
+    );
   },
 };
 

@@ -5,18 +5,27 @@ import AuditLogExportDestinationType, {
 } from "../../../../Types/AuditLog/Export/AuditLogExportDestinationType";
 import {
   AUDIT_LOG_EXPORT_DEFAULT_FOLDER,
+  AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT,
+  AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE,
   AUDIT_LOG_EXPORT_DOCS_PATH,
+  AUDIT_LOG_EXPORT_MAX_SYSLOG_UDP_MESSAGE_SIZE,
+  AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE,
+  AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT,
   AuditLogExportAzureAuthentication,
   AuditLogExportDestinationCatalog,
   AuditLogExportDestinationDefinition,
   AuditLogExportDestinationField,
   AuditLogExportDestinationKind,
+  AuditLogExportSyslogFraming,
+  AuditLogExportSyslogProtocol,
   getAuditLogExportDestinationDefinition,
   getAuditLogExportDestinationTitle,
+  getAuditLogExportFieldDefault,
   isAuditLogExportFieldShown,
   readAuditLogExportConfigValue,
 } from "../../../../Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import { DATA_SOURCE_MAX_RESPONSE_SIZE_IN_BYTES } from "../../../../Types/DataSource/DataSourceLimits";
+import { JSONObject } from "../../../../Types/JSON";
 
 /*
  * The catalog of audit log destinations: what the form asks for, what the
@@ -240,6 +249,71 @@ describe("the recommended audit log destinations", () => {
   );
 
   test.each(AuditLogExportDestinationCatalog)(
+    "$title: a range is a number field's, holds its default, and a followed default follows a dropdown's choices",
+    (definition: AuditLogExportDestinationDefinition) => {
+      for (const field of allFields(definition)) {
+        if (field.minValue !== undefined || field.maxValue !== undefined) {
+          expect([field.key, field.type]).toEqual([field.key, "number"]);
+          expect(field.minValue).toBeDefined();
+          expect(field.maxValue).toBeDefined();
+          expect(field.minValue!).toBeLessThanOrEqual(field.maxValue!);
+
+          const defaults: Array<string | number> = [
+            ...(field.defaultValue === undefined ? [] : [field.defaultValue]),
+            ...Object.values(field.defaultFollows?.values || {}),
+            ...(field.placeholder ? [Number(field.placeholder)] : []),
+          ] as Array<string | number>;
+
+          for (const value of defaults) {
+            expect(Number(value)).toBeGreaterThanOrEqual(field.minValue!);
+            expect(Number(value)).toBeLessThanOrEqual(field.maxValue!);
+          }
+        }
+
+        if (!field.defaultFollows) {
+          continue;
+        }
+
+        const controller: AuditLogExportDestinationField | undefined =
+          definition.configFields.find(
+            (candidate: AuditLogExportDestinationField): boolean => {
+              return candidate.key === field.defaultFollows!.key;
+            },
+          );
+        const choices: Array<string> = (controller?.options || []).map(
+          (option: { value: string }): string => {
+            return option.value;
+          },
+        );
+
+        expect(controller?.type).toBe("dropdown");
+
+        for (const choice of Object.keys(field.defaultFollows.values)) {
+          expect(choices).toContain(choice);
+        }
+
+        /*
+         * The field's own default is the one of the controller's default
+         * choice, so a config that names no choice reads the same default
+         * either way.
+         */
+        const defaultChoice: string = String(controller?.defaultValue);
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            field.defaultFollows.values,
+            defaultChoice,
+          )
+        ) {
+          expect(field.defaultFollows.values[defaultChoice]).toBe(
+            field.defaultValue,
+          );
+        }
+      }
+    },
+  );
+
+  test.each(AuditLogExportDestinationCatalog)(
     "$title: a batch fits one request the egress-guarded client sends",
     (definition: AuditLogExportDestinationDefinition) => {
       expect(definition.maxEntriesPerBatch).toBeGreaterThan(0);
@@ -391,6 +465,48 @@ describe("which fields apply to a config", () => {
     ).toBe(false);
   });
 
+  test("syslog framing is asked over TLS and TCP, the maximum message size over UDP only", () => {
+    const syslog: AuditLogExportDestinationDefinition = definitionOf(
+      AuditLogExportDestinationType.Syslog,
+    );
+    const shown: (key: string, config: JSONObject) => boolean = (
+      key: string,
+      config: JSONObject,
+    ): boolean => {
+      return isAuditLogExportFieldShown({
+        definition: syslog,
+        field: syslog.configFields.find(
+          (field: AuditLogExportDestinationField): boolean => {
+            return field.key === key;
+          },
+        )!,
+        config,
+      });
+    };
+
+    // No protocol named is TLS, the default.
+    expect(shown("framing", {})).toBe(true);
+    expect(shown("framing", { protocol: "tcp" })).toBe(true);
+    expect(shown("framing", { protocol: "udp" })).toBe(false);
+
+    expect(shown("maxMessageSize", {})).toBe(false);
+    expect(shown("maxMessageSize", { protocol: "tcp" })).toBe(false);
+    expect(shown("maxMessageSize", { protocol: "udp" })).toBe(true);
+
+    expect(shown("caCertificate", { protocol: "udp" })).toBe(false);
+
+    // Host, port and protocol are asked whatever the protocol.
+    for (const protocol of ["tls", "tcp", "udp"]) {
+      for (const key of ["host", "port", "protocol"]) {
+        expect([key, protocol, shown(key, { protocol })]).toEqual([
+          key,
+          protocol,
+          true,
+        ]);
+      }
+    }
+  });
+
   test("readAuditLogExportConfigValue falls back to the default for empty values", () => {
     const region: AuditLogExportDestinationField = definitionOf(
       AuditLogExportDestinationType.AmazonS3,
@@ -409,5 +525,164 @@ describe("which fields apply to a config", () => {
     expect(readAuditLogExportConfigValue({ region: "eu-west-1" }, region)).toBe(
       "eu-west-1",
     );
+  });
+});
+
+/*
+ * Issue #6392: syslog over UDP, for receivers that take nothing else - one
+ * datagram per message (RFC 5426), on port 514 unless the export says
+ * another, at most Maximum message size bytes each.
+ */
+describe("syslog over UDP", () => {
+  const syslog: AuditLogExportDestinationDefinition = definitionOf(
+    AuditLogExportDestinationType.Syslog,
+  );
+  const fieldOf: (key: string) => AuditLogExportDestinationField = (
+    key: string,
+  ): AuditLogExportDestinationField => {
+    return syslog.configFields.find(
+      (field: AuditLogExportDestinationField): boolean => {
+        return field.key === key;
+      },
+    )!;
+  };
+
+  test("the protocol offers TLS, TCP and UDP, stored as they always will be; TLS stays the default", () => {
+    expect(AuditLogExportSyslogProtocol.Tls).toBe("tls");
+    expect(AuditLogExportSyslogProtocol.Tcp).toBe("tcp");
+    expect(AuditLogExportSyslogProtocol.Udp).toBe("udp");
+    expect(fieldOf("protocol").options).toEqual([
+      { label: "TLS", value: "tls" },
+      { label: "TCP", value: "tcp" },
+      { label: "UDP", value: "udp" },
+    ]);
+    expect(fieldOf("protocol").defaultValue).toBe("tls");
+    expect(syslog.description).toBe(
+      "One RFC 5424 message per entry to a syslog receiver, over TLS, TCP or UDP.",
+    );
+  });
+
+  test("the protocol's description says UDP is plain text, and confirms nothing", () => {
+    expect(fieldOf("protocol").description).toBe(
+      "TLS encrypts the audit log on the way. TCP sends it as plain text. UDP sends it as plain text, with nothing to confirm it arrived.",
+    );
+  });
+
+  test("the numbers RFC 5426 and rsyslog set", () => {
+    expect(AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT).toBe(514);
+    expect(AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT).toBe(6514);
+    // rsyslog's own default: what it keeps of a message unless told otherwise.
+    expect(AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE).toBe(8192);
+    // The 1024 bytes of BSD syslog (RFC 3164), which older receivers still read by.
+    expect(AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE).toBe(1024);
+    // 65,535 bytes less the IPv4 header (20) and the UDP header (8).
+    expect(AUDIT_LOG_EXPORT_MAX_SYSLOG_UDP_MESSAGE_SIZE).toBe(65535 - 20 - 8);
+  });
+
+  test("the port is a number from 1 to 65535 whose default follows the protocol: 514 over UDP", () => {
+    const port: AuditLogExportDestinationField = fieldOf("port");
+
+    expect(port.type).toBe("number");
+    expect([port.minValue, port.maxValue]).toEqual([1, 65535]);
+    expect(port.defaultValue).toBe(6514);
+    expect(port.defaultFollows).toEqual({
+      key: "protocol",
+      values: { tls: 6514, udp: 514 },
+    });
+    expect(port.description).toBe(
+      "The receiver's port: 6514 for syslog over TLS, 514 over UDP, often 514 or 601 over TCP.",
+    );
+  });
+
+  test("a port nobody named reads the protocol's default; TCP keeps 6514, as it always has", () => {
+    const port: AuditLogExportDestinationField = fieldOf("port");
+    const cases: Array<[JSONObject | null, number]> = [
+      [null, 6514],
+      [{}, 6514],
+      [{ protocol: "tls" }, 6514],
+      [{ protocol: "tcp" }, 6514],
+      [{ protocol: "udp" }, 514],
+      [{ protocol: " udp " }, 514],
+      [{ protocol: "udp", port: "" }, 514],
+      [{ protocol: "udp", port: "  " }, 514],
+      [{ protocol: "udp", port: null }, 514],
+      // A choice the catalog does not know keeps the field's own default.
+      [{ protocol: "sctp" }, 6514],
+      [{ protocol: 17 }, 6514],
+      // A name every object holds is never read as a choice.
+      [{ protocol: "constructor" }, 6514],
+      [{ protocol: "__proto__" }, 6514],
+      [{ protocol: "toString" }, 6514],
+    ];
+
+    for (const [config, expected] of cases) {
+      expect([config, readAuditLogExportConfigValue(config, port)]).toEqual([
+        config,
+        expected,
+      ]);
+    }
+
+    // A port someone named is the port, whatever the protocol.
+    expect(
+      readAuditLogExportConfigValue({ protocol: "udp", port: 1514 }, port),
+    ).toBe(1514);
+    expect(
+      readAuditLogExportConfigValue({ protocol: "tls", port: 514 }, port),
+    ).toBe(514);
+  });
+
+  test("getAuditLogExportFieldDefault is a field's own default when it follows nothing", () => {
+    expect(
+      getAuditLogExportFieldDefault({ protocol: "udp" }, fieldOf("framing")),
+    ).toBe(AuditLogExportSyslogFraming.OctetCounting);
+    expect(
+      getAuditLogExportFieldDefault({ protocol: "udp" }, fieldOf("host")),
+    ).toBeUndefined();
+    expect(getAuditLogExportFieldDefault(null, fieldOf("port"))).toBe(6514);
+    expect(getAuditLogExportFieldDefault(undefined, fieldOf("port"))).toBe(
+      6514,
+    );
+  });
+
+  test("the maximum message size: optional, folded, UDP only, from 1024 to 65507, 8192 when left empty", () => {
+    const size: AuditLogExportDestinationField = fieldOf("maxMessageSize");
+
+    expect(size.title).toBe("Maximum message size");
+    expect(size.type).toBe("number");
+    expect(size.required).toBe(false);
+    expect(size.isAdvanced).toBe(true);
+    expect(size.showWhen).toEqual({ key: "protocol", values: ["udp"] });
+    expect([size.minValue, size.maxValue]).toEqual([1024, 65507]);
+    // Nothing is stored for it: an export that names no size follows the release's default.
+    expect(size.defaultValue).toBeUndefined();
+    expect(size.placeholder).toBe("8192");
+    expect(size.description).toBe(
+      "The longest message the receiver takes, in bytes. A longer entry is shortened to fit, and says so. Leave empty for 8192.",
+    );
+  });
+
+  test("framing is folded and asked over TLS and TCP only: a datagram is its own frame", () => {
+    expect(fieldOf("framing").isAdvanced).toBe(true);
+    expect(fieldOf("framing").showWhen).toEqual({
+      key: "protocol",
+      values: ["tls", "tcp"],
+    });
+  });
+
+  test("the form asks host, port and protocol first, then folds framing, the size and the CA certificate", () => {
+    expect(
+      syslog.configFields.map(
+        (field: AuditLogExportDestinationField): [string, boolean] => {
+          return [field.key, Boolean(field.isAdvanced)];
+        },
+      ),
+    ).toEqual([
+      ["host", false],
+      ["port", false],
+      ["protocol", false],
+      ["framing", true],
+      ["maxMessageSize", true],
+      ["caCertificate", true],
+    ]);
   });
 });

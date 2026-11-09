@@ -39,6 +39,38 @@ import {
 import { POSTMORTEM_RULE_TEMPLATES_TITLE } from "../../../FeatureSet/Dashboard/src/Components/AISettings/PostmortemRulesCopy";
 import { StatusPageDisplaySettingsCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
 import MonitorGroupMonitorsCopy from "../../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMonitorsCopy";
+import MonitorGroupMonitoringCopy from "../../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMonitoringCopy";
+import MonitoringSwitchCopy from "../../../FeatureSet/Dashboard/src/Components/Monitor/MonitoringSwitchCopy";
+import {
+  EVALUATION_DETAILS_HEADING,
+  EVALUATION_FACT_LABELS,
+  FILTER_FACT_LABELS,
+  SHOW_EVALUATION_DETAILS,
+  getShownFilters,
+  hasDetailsToShow,
+} from "../../../FeatureSet/Dashboard/src/Components/EventView/EventEvaluationDetailsCopy";
+import {
+  REQUEST_CONTENT_SWITCH_COPY,
+  RESPONSE_CONTENT_MONITOR_TYPES,
+  RESPONSE_CONTENT_SWITCH_COLUMN,
+  RESPONSE_CONTENT_SWITCH_COPY,
+} from "../../../FeatureSet/Dashboard/src/Components/Monitor/ResponseContentSwitchCopy";
+import JavaScriptExpressionValues from "Common/Server/Utils/Monitor/JavaScriptExpressionValues";
+import MonitorEvidenceRedaction from "Common/Server/Utils/Monitor/MonitorEvidenceRedaction";
+import MonitorQuotedValue from "Common/Server/Utils/Monitor/MonitorQuotedValue";
+import MonitorRecordEvidence from "Common/Server/Utils/Monitor/MonitorRecordEvidence";
+import ResponseExcerpt, {
+  MatchExcerptResult,
+  ResponseText,
+} from "Common/Server/Utils/Monitor/ResponseExcerpt";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  MonitorEvaluationDetailsVersion,
+  MonitorEvaluationExcerpt,
+  MonitorEvaluationFieldValue,
+  MonitorEvaluationFilterDetails,
+} from "Common/Types/Monitor/MonitorEvaluationDetails";
 import SubscriberNotificationResendCopy from "../../../FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -103,6 +135,8 @@ import PostmortemStatusUtil, {
   PostmortemProgress,
 } from "Common/Utils/Incident/PostmortemStatus";
 import ArchivedMonitorResources from "Common/Utils/StatusPage/ArchivedMonitorResources";
+import MonitorGroupMonitoring from "Common/Utils/Monitor/MonitorGroupMonitoring";
+import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
 import {
   STATE_LISTS,
@@ -470,6 +504,9 @@ const MONITOR_INCIDENT: string = readCommonSource(
 const MONITOR_ALERT: string = readCommonSource(
   "Server/Utils/Monitor/MonitorAlert.ts",
 );
+const MONITOR_LOG_UTIL: string = readCommonSource(
+  "Server/Utils/Monitor/MonitorLogUtil.ts",
+);
 const CRITERIA_INSTANCE_FORM: string = readDashboardSource(
   "Components/Form/Monitor/MonitorCriteriaInstance.tsx",
 );
@@ -530,6 +567,24 @@ const EPISODE_MENU: string = readDashboardSource(
 const SUMMARY_CARD: string = readDashboardSource(
   "Components/Monitor/SummaryView/Summary.tsx",
 );
+const WHAT_HAPPENED_CARD: string = readDashboardSource(
+  "Components/EventView/EventWhatHappenedCard.tsx",
+);
+const EVALUATION_DETAILS_SECTION: string = readDashboardSource(
+  "Components/EventView/EventEvaluationDetails.tsx",
+);
+const INCIDENT_VIEW_PAGE: string = readDashboardSource(
+  "Pages/Incidents/View/Index.tsx",
+);
+const ALERT_VIEW_PAGE: string = readDashboardSource(
+  "Pages/Alerts/View/Index.tsx",
+);
+const MONITOR_SETTINGS_PAGE: string = readDashboardSource(
+  "Pages/Monitor/View/Settings.tsx",
+);
+const EVALUATION_DETAILS_BUILDER: string = readCommonSource(
+  "Server/Utils/Monitor/MonitorEvaluationDetailsBuilder.ts",
+);
 const GROUPS_PAGE: string = readDashboardSource(
   "Pages/MonitorGroup/MonitorGroups.tsx",
 );
@@ -545,6 +600,13 @@ const GROUP_CURRENT_STATUS: string = readDashboardSource(
 );
 const NO_MONITORS_STATUS: string = readDashboardSource(
   "Components/MonitorGroup/NoMonitorsStatus.tsx",
+);
+// The Overview's Monitoring card, and the Disabled it and the list draw (#6401).
+const GROUP_MONITORING_CARD: string = readDashboardSource(
+  "Components/MonitorGroup/MonitorGroupMonitoringCard.tsx",
+);
+const GROUP_DISABLED_STATUS: string = readDashboardSource(
+  "Components/MonitorGroup/MonitorGroupDisabledStatus.tsx",
 );
 const GROUP_MENU: string = readDashboardSource(
   "Pages/MonitorGroup/View/SideMenu.tsx",
@@ -660,6 +722,10 @@ const MONITOR_GROUP_SERVICE: string = readCommonSource(
 );
 const MONITOR_GROUP_RESOURCE_SERVICE: string = readCommonSource(
   "Server/Services/MonitorGroupResourceService.ts",
+);
+// What turning a monitor's monitoring off resolves (#6400).
+const MONITOR_TURNED_OFF: string = readCommonSource(
+  "Server/Utils/Monitor/MonitorTurnedOff.ts",
 );
 const STATUS_PAGE_SERVICE: string = readCommonSource(
   "Server/Services/StatusPageService.ts",
@@ -1436,6 +1502,370 @@ describe("when a criteria's incidents and alerts open and close", () => {
   });
 });
 
+// ---- What an incident or alert keeps of the check -------------------------------------------
+
+describe("what an incident or alert keeps of the check", () => {
+  const kept: string = section(
+    english(CRITERIA_AND_STATUSES),
+    "## What an incident or alert keeps of the check",
+  );
+  const REDACTED: string = MonitorEvidenceRedaction.REDACTED;
+
+  it("is kept on the incident or the alert itself, which only OneUptime writes: one opened by hand has none", () => {
+    for (const model of [new Incident(), new Alert()]) {
+      const access: ColumnAccessControl | null =
+        model.getColumnAccessControlFor("evaluationDetails");
+
+      expect(access?.create).toEqual([]);
+      expect(access?.update).toEqual([]);
+      expect((access?.read || []).length).toBeGreaterThan(0);
+    }
+
+    // The monitor's incident and alert creators write it, from the check.
+    expect(MONITOR_INCIDENT).toContain("evaluationDetails");
+    expect(MONITOR_ALERT).toContain("evaluationDetails");
+    expect(kept).toContain(
+      "An incident or an alert a monitor opens keeps the check that opened it, so you can see why long after the monitor's own logs are gone.",
+    );
+    expect(kept).toContain(
+      "An incident or alert opened by hand, or before evaluation details were kept, has none.",
+    );
+  });
+
+  it("shows Evaluation details under the root cause: the criteria and what each filter that matched found, the rest and the check itself behind Show details", () => {
+    expect(EVALUATION_DETAILS_HEADING).toBe("Evaluation details");
+    expect(SHOW_EVALUATION_DETAILS).toBe("Show details");
+    expect([
+      EVALUATION_FACT_LABELS.request,
+      EVALUATION_FACT_LABELS.checked,
+      EVALUATION_FACT_LABELS.probe,
+      EVALUATION_FACT_LABELS.statusCode,
+      EVALUATION_FACT_LABELS.responseTime,
+    ]).toEqual(["Request", "Checked", "Probe", "Status code", "Response time"]);
+
+    const matched: MonitorEvaluationFilterDetails = {
+      checkOn: CheckOn.ResponseStatusCode,
+      filterType: FilterType.GreaterThan,
+      value: 499,
+      met: true,
+      message: "Response Status Code was 503, above the 499 threshold.",
+      actual: "503",
+    };
+    const notMatched: MonitorEvaluationFilterDetails = {
+      checkOn: CheckOn.ResponseTime,
+      filterType: FilterType.GreaterThan,
+      value: 5000,
+      met: false,
+      message: "Response Time (in ms) was 120 ms.",
+    };
+
+    // Folded: the filters that matched. Show details adds the others.
+    expect(getShownFilters([notMatched, matched], false)).toEqual([matched]);
+    expect(getShownFilters([notMatched, matched], true)).toEqual([
+      matched,
+      notMatched,
+    ]);
+
+    // The check itself - the request, when, the probe, what came back - opens with them.
+    expect(EVALUATION_DETAILS_SECTION).toContain(
+      "<CheckFacts details={details} isOpen={isShowingDetails} />",
+    );
+    expect(
+      hasDetailsToShow({
+        version: MonitorEvaluationDetailsVersion,
+        monitorType: MonitorType.API,
+        evaluatedAt: new Date("2026-11-08T10:04:12.000Z"),
+        filterCondition: FilterCondition.All,
+        filters: [matched],
+        request: { method: "GET", url: "https://api.example.com/health" },
+        response: { statusCode: 503, responseTimeInMs: 1234 },
+      }),
+    ).toBe(true);
+
+    // Under the root cause of the What happened card, on both pages.
+    const rootCause: number = WHAT_HAPPENED_CARD.indexOf(
+      'translator.translateText("Root cause")',
+    );
+
+    expect(rootCause).toBeGreaterThan(0);
+    expect(
+      WHAT_HAPPENED_CARD.indexOf("<EventEvaluationDetails"),
+    ).toBeGreaterThan(rootCause);
+
+    for (const page of [INCIDENT_VIEW_PAGE, ALERT_VIEW_PAGE]) {
+      expect(page).toContain("evaluationDetails: true,");
+      expect(page).toContain("evaluationDetails={");
+    }
+
+    expect(kept).toContain(
+      "Under its root cause, **Evaluation details** names the criteria that matched and, for each filter that matched, what the check found. **Show details** adds the rest of the evidence, the filters that did not match, and the check itself: the request, when it ran, from which probe and what came back. What a filter found can be:",
+    );
+  });
+
+  it("names where a Response Body filter matched, with a short excerpt around the match, marked, never the whole body", () => {
+    const body: string = JSON.stringify({
+      padding: "x".repeat(5000),
+      checks: [
+        { name: "database", status: "ok" },
+        { name: "cache", status: "down: connection refused" },
+      ],
+    });
+    const response: ResponseText = ResponseExcerpt.readText(
+      body,
+    ) as ResponseText;
+    const found: MatchExcerptResult = ResponseExcerpt.aroundMatch({
+      response: response,
+      needle: "down",
+    }) as MatchExcerptResult;
+    const excerpt: MonitorEvaluationExcerpt =
+      found.excerpt as MonitorEvaluationExcerpt;
+    const excerptText: string = `${excerpt.before}${excerpt.match}${excerpt.after}`;
+
+    expect(found.path).toBe("checks[1].status");
+    expect(excerpt.match).toBe("down");
+    expect(excerpt.isCutAtStart).toBe(true);
+    expect(excerptText.length).toBeLessThan(body.length / 4);
+
+    // The section names the place and marks the match.
+    expect(FILTER_FACT_LABELS.field).toBe("Found at");
+    expect(FILTER_FACT_LABELS.excerpt).toBe("Excerpt");
+    expect(EVALUATION_DETAILS_SECTION).toContain(
+      'data-testid="evaluation-excerpt-match"',
+    );
+
+    expect(CheckOn.ResponseBody).toBe("Response Body");
+    expect(CheckOn.ResponseHeaderValue).toBe("Response Header Value");
+    expect(kept).toContain(
+      "- **The field.** Where a **Response Body** filter matched in a JSON body, such as `checks[1].status`, or the header a **Response Header Value** filter matched.",
+    );
+    expect(kept).toContain(
+      "- **An excerpt.** A short piece of the response around the match, with the match marked: never the whole body.",
+    );
+  });
+
+  it("lists what each value a JavaScript Expression reads held when it ran", () => {
+    const values: Array<MonitorEvaluationFieldValue> =
+      JavaScriptExpressionValues.readReferences({
+        expression: "{{responseBody.status}} === 'down'",
+        storageMap: { responseBody: { status: "down" } },
+      }).values;
+
+    // The section writes each one as "path = value".
+    expect(EVALUATION_DETAILS_SECTION).toContain('{" = "}');
+    expect(
+      values.map((value: MonitorEvaluationFieldValue): string => {
+        return `${value.path} = ${value.value}`;
+      }),
+    ).toEqual(['responseBody.status = "down"']);
+    expect(FILTER_FACT_LABELS.values).toBe("Values");
+
+    expect(CheckOn.JavaScriptExpression).toBe("JavaScript Expression");
+    expect(kept).toContain(
+      '- **The values.** What each value a **JavaScript Expression** reads held when it ran, such as `responseBody.status = "down"`.',
+    );
+  });
+
+  it("masks secrets and personal data first: by a header's or a field's name, and text shaped like one", () => {
+    expect(
+      MonitorEvidenceRedaction.redactHeaders({
+        Authorization: "Bearer 8f2b1c9d0e7a",
+        Cookie: "sid=42",
+        "Set-Cookie": "sid=42; HttpOnly",
+        "Content-Type": "application/json",
+      }),
+    ).toEqual({
+      Authorization: REDACTED,
+      Cookie: REDACTED,
+      "Set-Cookie": REDACTED,
+      "Content-Type": "application/json",
+    });
+
+    // Values no text rule would catch: the names alone mask them.
+    expect(
+      MonitorEvidenceRedaction.redactJson({
+        password: "hunter2",
+        token: "t-1",
+        api_key: "k-1",
+        session: "s-1",
+        email: "ana.lopez",
+        status: "down",
+      }),
+    ).toEqual({
+      password: REDACTED,
+      token: REDACTED,
+      api_key: REDACTED,
+      session: REDACTED,
+      email: REDACTED,
+      status: "down",
+    });
+
+    const jwt: string =
+      "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
+
+    for (const secret of [
+      "Bearer 8f2b1c9d0e7a5b3c",
+      jwt,
+      "4111111111111111",
+      "ana@example.com",
+    ]) {
+      const text: string = MonitorEvidenceRedaction.redactText(
+        `checkout failed for ${secret} at step 2`,
+      );
+
+      expect({ secret, kept: text.includes(secret) }).toEqual({
+        secret,
+        kept: false,
+      });
+    }
+
+    // Ids and times are the evidence, and stay.
+    expect(
+      MonitorEvidenceRedaction.redactText("order 1700000000000 failed"),
+    ).toBe("order 1700000000000 failed");
+
+    expect(kept).toContain(
+      "Secrets and personal data are masked before anything is kept: headers such as `Authorization`, `Cookie` and `Set-Cookie`, fields whose names say `password`, `token`, `key`, `session` or `email`, and text that looks like a bearer token, a JWT, a card number or an email address.",
+    );
+  });
+
+  it("masks the monitor's Monitoring Logs, and a value a root cause quotes, the same way", () => {
+    // The monitor's logs: each check, by the name and the text rules.
+    expect(MONITOR_MENU).toContain('title: "Monitoring Logs"');
+    expect(MONITOR_LOG_UTIL).toContain(
+      "logBody: MonitorRecordEvidence.redactCheck({",
+    );
+
+    const logged: JSONObject = MonitorRecordEvidence.redactCheck({
+      check: {
+        responseCode: 500,
+        responseHeaders: { authorization: "Basic YWxhZGRpbjpvcGVu" },
+        responseBody: { status: "down", email: "ana.lopez" },
+        failureCause: "checkout failed for ana@example.com",
+      },
+      keepResponseContent: true,
+    });
+
+    expect(logged).toEqual({
+      responseCode: 500,
+      responseHeaders: { authorization: REDACTED },
+      responseBody: { status: "down", email: REDACTED },
+      failureCause: `checkout failed for ${REDACTED}`,
+    });
+
+    // A root cause's quote of a value the check carried.
+    expect(
+      MonitorQuotedValue.quote(
+        "checkout failed for ana@example.com\nretry with password=hunter2",
+      ),
+    ).toBe(`checkout failed for ${REDACTED} retry with password=${REDACTED}`);
+
+    expect(kept).toContain(
+      "The monitor's **Monitoring Logs**, and any value a root cause quotes, are masked the same way.",
+    );
+  });
+
+  it("keeps the URL as the monitor was set up: a secret's name, never its value, and no secret query value", () => {
+    expect(
+      MonitorEvidenceRedaction.redactUrl(
+        "https://api.example.com/v1/{{monitorSecrets.TENANT}}/health?api_key=abc123&page=2",
+      ),
+    ).toBe(
+      `https://api.example.com/v1/{{monitorSecrets.TENANT}}/health?api_key=${REDACTED}&page=2`,
+    );
+
+    // The details read the step as configured, not what the probe was handed.
+    expect(EVALUATION_DETAILS_BUILDER).toContain(
+      "MonitorRecordEvidence.getStepDestination(input.monitorStep)",
+    );
+    expect(kept).toContain(
+      "The request's URL is the one the monitor was set up with, so `{{monitorSecrets.NAME}}` stays a name, and a secret query value is masked.",
+    );
+  });
+
+  it("keeps no part of the response for a Website or API monitor set not to, on its Advanced → Settings page; an Incoming Request monitor has the same switch for requests", () => {
+    expect(RESPONSE_CONTENT_MONITOR_TYPES).toEqual([
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.IncomingRequest,
+    ]);
+    expect(RESPONSE_CONTENT_SWITCH_COPY.cardTitle).toBe("Response content");
+    expect(RESPONSE_CONTENT_SWITCH_COPY.switchTitle).toBe(
+      "Keep response content",
+    );
+    expect(RESPONSE_CONTENT_SWITCH_COPY.offDescription).toBe(
+      "Monitoring logs, incidents and alerts keep no part of the response: only which filters matched, the status code and the response time.",
+    );
+    expect(REQUEST_CONTENT_SWITCH_COPY.cardTitle).toBe("Request content");
+    expect(REQUEST_CONTENT_SWITCH_COPY.switchTitle).toBe(
+      "Keep request content",
+    );
+
+    // On to start: a monitor keeps its response content until it is told not to.
+    expect(
+      new Monitor().getTableColumnMetadata(RESPONSE_CONTENT_SWITCH_COLUMN)
+        .defaultValue,
+    ).toBe(true);
+
+    // The card is on the monitor's Settings page, in its menu's Advanced section.
+    expect(MONITOR_SETTINGS_PAGE).toContain("<ResponseContentCard");
+    expect(between(MONITOR_MENU, "const advancedItems", "];")).toContain(
+      'title: "Settings"',
+    );
+    expect(compact(MONITOR_MENU)).toContain(
+      compact('title: "Advanced", items: advancedItems,'),
+    );
+
+    // What it changes is what a record keeps when it is opened.
+    expect(MONITOR_INCIDENT).toContain(
+      "keepResponseContent: MonitorRecordEvidence.keepsResponseContent(",
+    );
+    expect(MONITOR_ALERT).toContain(
+      "keepResponseContent: MonitorRecordEvidence.keepsResponseContent(",
+    );
+
+    // And what the monitor's logs keep of each check it runs: off, no body and no headers.
+    expect(MONITOR_LOG_UTIL).toContain(
+      "keepResponseContent: data.keepResponseContent,",
+    );
+    expect(compact(MONITOR_RESOURCE)).toContain(
+      compact(
+        "keepResponseContent: MonitorRecordEvidence.keepsResponseContent(monitor),",
+      ),
+    );
+    expect(
+      MonitorRecordEvidence.redactCheck({
+        check: {
+          responseCode: 503,
+          responseTimeInMs: 840,
+          responseHeaders: { "content-type": "application/json" },
+          responseBody: '{"status":"down"}',
+        },
+        keepResponseContent: false,
+      }),
+    ).toEqual({
+      responseCode: 503,
+      responseTimeInMs: 840,
+      isResponseContentOmitted: true,
+    });
+
+    expect(kept).toContain(
+      "> When a Website or API monitor's responses are sensitive in themselves, turn off **Keep response content** in the **Response content** card on its **Advanced → Settings** page. Its monitoring logs, incidents and alerts then keep which filters matched, the status code and the response time, and no part of the response. An Incoming Request monitor has the same switch for the requests it receives: **Keep request content**, in the **Request content** card. The switch applies to the checks that run, and the incidents and alerts that open, after you change it.",
+    );
+  });
+
+  it("is named on the incident's and the alert's Overview, which link here", () => {
+    const link: string =
+      "See [What an incident or alert keeps of the check](/docs/monitor/criteria-and-statuses#what-an-incident-or-alert-keeps-of-the-check).";
+
+    expect(english("incidents/index")).toContain(
+      `When a monitor declared the incident, **Evaluation details** under its root cause names the filters that matched and what each found, and **Show details** adds an excerpt of the response and the check itself. ${link}`,
+    );
+    expect(english("alerts/index")).toContain(
+      `When a monitor created the alert, **Evaluation details** under its root cause names the filters that matched and what each found, and **Show details** adds an excerpt of the response and the check itself. ${link}`,
+    );
+  });
+});
+
 // ---- Changing a monitor's criteria ---------------------------------------------------------
 
 describe("changing a monitor's criteria", () => {
@@ -1754,9 +2184,37 @@ describe("where a monitor's status counts", () => {
       "Not Operational",
     );
     expect(attention).toContain("badgeType: BadgeType.DANGER,");
-    expect(attention).toContain("isOperationalState: false,");
+    expect(attention).toContain("...NotOperationalMonitorQuery.getQuery(),");
+    expect(NotOperationalMonitorQuery.getQuery().currentMonitorStatus).toEqual({
+      isOperationalState: false,
+    });
     expect(rows[0]).toContain(
       "**Not Operational** lists the monitors in any status but the operational one, with a red count beside it.",
+    );
+  });
+
+  it("leaves monitors with monitoring turned off out of Not Operational, for Disabled to list (#6400)", () => {
+    const monitors: Array<MenuSection> = menuSections(MONITORS_MENU_SOURCE, {
+      "...(workspaceSection ? [workspaceSection] : [])": workspaceSection(),
+      "addDeveloperSideMenuSection(sections": developerSection(),
+    });
+    const disabled: string = between(
+      MONITORS_MENU_SOURCE,
+      'title: "Disabled",',
+      'title: "Probe Disconnected",',
+    );
+
+    expect(NotOperationalMonitorQuery.getQuery()).toEqual({
+      isArchived: false,
+      disableActiveMonitoring: false,
+      currentMonitorStatus: { isOperationalState: false },
+    });
+    expect(sectionByTitle(monitors, "Attention Required").items).toContain(
+      "Disabled",
+    );
+    expect(disabled).toContain("disableActiveMonitoring: true,");
+    expect(rows[0]).toContain(
+      "Monitors with monitoring turned off are left out: nothing checks them, and **Disabled** lists them.",
     );
   });
 
@@ -2053,6 +2511,44 @@ describe("a monitor group's status", () => {
     );
   });
 
+  it("says Disabled in the Dashboard for a group whose monitors all have monitoring off, on its Overview and in the list (#6401)", () => {
+    expect(MonitorGroupMonitoringCopy.disabledStatus).toBe("Disabled");
+    // The status bubble translates its own text, as the Monitors list's does.
+    expect(GROUP_DISABLED_STATUS).toContain(
+      "text={MonitorGroupMonitoringCopy.disabledStatus}",
+    );
+
+    for (const source of [GROUP_OVERVIEW_PAGE, GROUP_CURRENT_STATUS]) {
+      expect(source).toContain(
+        "MonitorGroupMonitoring.isMonitoringOffForEveryMonitor(",
+      );
+      expect(source).toContain("return <MonitorGroupDisabledStatus />;");
+    }
+
+    // Every monitor that counts - none archived - has monitoring off.
+    expect(
+      MonitorGroupMonitoring.isMonitoringOffForEveryMonitor({
+        monitorCount: 2,
+        monitoringOffCount: 2,
+      }),
+    ).toBe(true);
+    expect(
+      MonitorGroupMonitoring.isMonitoringOffForEveryMonitor({
+        monitorCount: 2,
+        monitoringOffCount: 1,
+      }),
+    ).toBe(false);
+    expect(
+      MonitorGroupMonitoring.isMonitoringOffForEveryMonitor({
+        monitorCount: 0,
+        monitoringOffCount: 0,
+      }),
+    ).toBe(false);
+    expect(groupsPage).toContain(
+      "- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status.",
+    );
+  });
+
   it("is not a status page group", () => {
     expect(groupsPage).toContain(
       "A monitor group is not a status page group. A status page group is a heading on one status page that holds rows. A monitor group is one row that stands for several monitors, and any status page can show it.",
@@ -2297,13 +2793,15 @@ describe("a monitor group's pages", () => {
     );
   });
 
-  it("show the group's details and its uptime over the last 90 days on Overview", () => {
+  it("show the group's details, its Monitoring and its uptime over the last 90 days on Overview", () => {
     expect(GROUP_OVERVIEW_PAGE).toContain('title: "Monitor Group Details",');
     expect(GROUP_OVERVIEW_PAGE).toContain(
       "startDate: OneUptimeDate.getSomeDaysAgo(90),",
     );
+    expect(GROUP_OVERVIEW_PAGE).toContain("<MonitorGroupMonitoringCard");
+    expect(MonitorGroupMonitoringCopy.cardTitle).toBe("Monitoring");
     expect(pages).toContain(
-      "| **Overview** | **Monitor Group Details**, **Current Status**, and **Uptime Graph** with the group's uptime percentage over the last 90 days. A group with no monitors offers **Add Monitors** in place of the graph. |",
+      "| **Overview** | **Monitor Group Details**, **Current Status**, **Monitoring**, and **Uptime Graph** with the group's uptime percentage over the last 90 days. A group with no monitors offers **Add Monitors** in place of the graph. |",
     );
     expect(GROUP_OVERVIEW_PAGE).toContain(
       "title={MonitorGroupMonitorsCopy.emptyGroupCardTitle}",
@@ -2327,6 +2825,85 @@ describe("a monitor group's pages", () => {
     expect(GROUPS_PAGE).toContain("enableJsonImportExport={true}");
     expect(groupsPage).toContain(
       "The **Monitor Groups** list can filter groups by owner and label, set labels and owners on many groups at once, and export or import groups as JSON.",
+    );
+  });
+});
+
+describe("turning monitoring off for a whole group (#6401)", () => {
+  const groupsPage: string = english(MONITOR_GROUPS);
+  const turning: string = section(
+    groupsPage,
+    "## Turn monitoring off for a whole group",
+  );
+  const setMonitoring: string = between(
+    MONITOR_GROUP_SERVICE,
+    "public async setMonitoringForMonitorsInGroup(",
+    "\n  }\n",
+  );
+
+  it("is the Monitoring card on the group's Overview, for every monitor in it", () => {
+    expect(GROUP_OVERVIEW_PAGE).toContain("<MonitorGroupMonitoringCard");
+    expect(MonitorGroupMonitoringCopy.cardTitle).toBe("Monitoring");
+    expect(MonitorGroupMonitoringCopy.cardDescription).toBe(
+      "Turn monitoring off or on for every monitor in this group at once.",
+    );
+    expect(turning).toContain(
+      "The **Monitoring** card on a group's **Overview** turns monitoring off, or back on, for every monitor in the group at once.",
+    );
+  });
+
+  it("asks before turning it off, and turns it back on at once", () => {
+    expect(MonitorGroupMonitoringCopy.turnOffButton).toBe(
+      "Turn off monitoring",
+    );
+    expect(MonitorGroupMonitoringCopy.turnOnButton).toBe("Turn monitoring on");
+    // Off opens the dialog; on saves.
+    expect(GROUP_MONITORING_CARD).toContain("setIsConfirmingOff(true);");
+    expect(GROUP_MONITORING_CARD).toContain("void turn(true);");
+    expect(GROUP_MONITORING_CARD).toContain("<ConfirmModal");
+    expect(turning).toContain(
+      "- **Turn off monitoring** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.",
+    );
+    expect(turning).toContain(
+      "- **Turn monitoring on** saves at once. Each monitor's next check sets its status again.",
+    );
+  });
+
+  it("resolves only what each monitor's auto-resolve would have, in the save hook every way of turning it off goes through", () => {
+    expect(MONITOR_SERVICE).toContain(
+      "await MonitorTurnedOff.resolveWhatItWouldHaveResolved({",
+    );
+    expect(MONITOR_TURNED_OFF).toContain(
+      "return MonitorIncident.isAutoResolveConfiguredForIncident({",
+    );
+    expect(MONITOR_TURNED_OFF).toContain(
+      "return MonitorAlert.isAutoResolveConfiguredForAlert({",
+    );
+    // A monitor's own switch is the same column, saved the same way.
+    expect(MonitoringSwitchCopy.cardTitle).toBe("Monitoring");
+    expect(MONITOR_SETTINGS_PAGE).toContain(
+      "<MonitoringCard monitorId={modelId} />",
+    );
+    expect(setMonitoring).toContain("await MonitorService.updateBy({");
+    expect(turning).toContain(
+      "Turning monitoring off also resolves the monitors' open incidents and alerts that are set to auto-resolve, as each monitor would have on recovery. Incidents and alerts declared by hand, or whose criteria do not auto-resolve, stay open. Turning off one monitor's monitoring, on its **Settings** page, does the same.",
+    );
+  });
+
+  it("changes the monitors, not the group: archived ones are left alone, and the card counts a mix", () => {
+    // The group keeps no switch of its own.
+    expect(new MonitorGroup().getTableColumns().columns).not.toContain(
+      "disableActiveMonitoring",
+    );
+    expect(setMonitoring).toContain("isArchived: false,");
+    expect(setMonitoring).toContain(
+      "disableActiveMonitoring: !disableActiveMonitoring,",
+    );
+    expect(MonitorGroupMonitoringCopy.mixedLine).toBe(
+      "Monitoring is off for {{off}} of {{total}} monitors in this group.",
+    );
+    expect(turning).toContain(
+      "The card changes the monitors, not the group: each monitor's own **Monitoring** card shows the change, and a monitor added to the group later keeps its own setting. Archived monitors are left as they are. While only some of the monitors have monitoring off, the card says how many and offers both buttons.",
     );
   });
 });

@@ -3,13 +3,19 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import {
+  NETWORK_TRAFFIC_USAGE_LIST_KINDS,
+  NetworkTrafficUsageApplianceLinkStatus,
   NetworkTrafficUsageApplicationRow,
   NetworkTrafficUsageClientRow,
   NetworkTrafficUsageConnection,
   NetworkTrafficUsageConversationRow,
   NetworkTrafficUsageDestinationRow,
+  NetworkTrafficUsageDeviceAppliance,
   NetworkTrafficUsageKind,
   NetworkTrafficUsageKindTotals,
+  NetworkTrafficUsageListKind,
+  NetworkTrafficUsageListRequest,
+  NetworkTrafficUsageListResult,
   NetworkTrafficUsageNetworkRow,
   NetworkTrafficUsageRequest,
   NetworkTrafficUsageSeriesPoint,
@@ -18,6 +24,11 @@ import {
   NetworkTrafficUsageUplinkRow,
   NetworkTrafficUsageUplinkSeriesPoint,
 } from "Common/Types/NetFlow/NetworkTrafficUsage";
+import {
+  NetworkControllerLinkableAppliance,
+  NetworkControllerLinkableApplianceList,
+} from "Common/Types/NetworkController/NetworkControllerApplianceLink";
+import { NameLikenessReason } from "Common/Utils/NetworkDevice/DeviceNameLikeness";
 import { NetworkControllerConnectionStatus } from "Common/Types/NetworkController/NetworkControllerConnectionHealth";
 import {
   NetworkControllerDeviceAddRequest,
@@ -47,6 +58,16 @@ import { APP_API_URL } from "Common/UI/Config";
 
 export const NETWORK_TRAFFIC_USAGE_SUMMARY_PATH: string =
   "/network-traffic/usage-summary";
+// A page of a whole list: every network, application or client (issue #5762).
+export const NETWORK_TRAFFIC_USAGE_LIST_PATH: string =
+  "/network-traffic/usage-list";
+// A device's link to the Meraki appliance it is (issue #5762).
+export const NETWORK_TRAFFIC_USAGE_APPLIANCES_PATH: string =
+  "/network-traffic/usage-appliances";
+export const NETWORK_TRAFFIC_LINK_APPLIANCE_PATH: string =
+  "/network-traffic/link-appliance";
+export const NETWORK_TRAFFIC_UNLINK_APPLIANCE_PATH: string =
+  "/network-traffic/unlink-appliance";
 export const NETWORK_CONTROLLER_CONNECTION_PATH: string =
   "/network-controller-connection";
 
@@ -108,6 +129,86 @@ export function parseNetworkTrafficUsageConnection(
   };
 }
 
+export function parseNetworkTrafficUsageNetworkRow(
+  row: JSONObject,
+): NetworkTrafficUsageNetworkRow {
+  return {
+    controllerNetworkId: toText(row["controllerNetworkId"]),
+    name: toText(row["name"]),
+    sentOctets: toNumber(row["sentOctets"]),
+    receivedOctets: toNumber(row["receivedOctets"]),
+  };
+}
+
+export function parseNetworkTrafficUsageApplicationRow(
+  row: JSONObject,
+): NetworkTrafficUsageApplicationRow {
+  return {
+    application: toText(row["application"]),
+    protocol: toText(row["protocol"]),
+    port: toNumber(row["port"]),
+    sentOctets: toNumber(row["sentOctets"]),
+    receivedOctets: toNumber(row["receivedOctets"]),
+    flows: toNumber(row["flows"]),
+  };
+}
+
+export function parseNetworkTrafficUsageClientRow(
+  row: JSONObject,
+): NetworkTrafficUsageClientRow {
+  return {
+    clientKey: toText(row["clientKey"]),
+    name: toText(row["name"]),
+    ip: toText(row["ip"]),
+    mac: toText(row["mac"]),
+    manufacturer: toText(row["manufacturer"]),
+    controllerNetworkName: toText(row["controllerNetworkName"]),
+    sentOctets: toNumber(row["sentOctets"]),
+    receivedOctets: toNumber(row["receivedOctets"]),
+  };
+}
+
+/*
+ * Which appliance a device's page is of, as the server says (issue #5762):
+ * linked or unlinked, and nothing else - a status it does not know reads as
+ * no Meraki side, never as one it is not.
+ */
+export function parseNetworkTrafficUsageDeviceAppliance(
+  value: unknown,
+): NetworkTrafficUsageDeviceAppliance | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const row: JSONObject = value as JSONObject;
+  const status: unknown = row["status"];
+
+  if (
+    status !== NetworkTrafficUsageApplianceLinkStatus.Linked &&
+    status !== NetworkTrafficUsageApplianceLinkStatus.Unlinked
+  ) {
+    return undefined;
+  }
+
+  if (status === NetworkTrafficUsageApplianceLinkStatus.Unlinked) {
+    return { status };
+  }
+
+  const serial: string | undefined = optionalText(row["serial"]);
+  const name: string | undefined = optionalText(row["name"]);
+  const networkName: string | undefined = optionalText(
+    row["controllerNetworkName"],
+  );
+
+  return {
+    status,
+    ...(serial ? { serial } : {}),
+    ...(name ? { name } : {}),
+    ...(networkName ? { controllerNetworkName: networkName } : {}),
+    isLinkedBySerialNumber: row["isLinkedBySerialNumber"] === true,
+  };
+}
+
 export function parseNetworkTrafficUsageSummary(
   data: JSONObject | undefined,
 ): NetworkTrafficUsageSummary {
@@ -123,6 +224,9 @@ export function parseNetworkTrafficUsageSummary(
       receivedOctets: toNumber(row["receivedOctets"]),
     };
   };
+
+  const deviceAppliance: NetworkTrafficUsageDeviceAppliance | undefined =
+    parseNetworkTrafficUsageDeviceAppliance(value["deviceAppliance"]);
 
   return {
     isAvailable: value["isAvailable"] === true,
@@ -152,14 +256,7 @@ export function parseNetworkTrafficUsageSummary(
     ),
     topNetworks: listOf(
       value["topNetworks"],
-      (row: JSONObject): NetworkTrafficUsageNetworkRow => {
-        return {
-          controllerNetworkId: toText(row["controllerNetworkId"]),
-          name: toText(row["name"]),
-          sentOctets: toNumber(row["sentOctets"]),
-          receivedOctets: toNumber(row["receivedOctets"]),
-        };
-      },
+      parseNetworkTrafficUsageNetworkRow,
     ),
     topUplinks: listOf(
       value["topUplinks"],
@@ -208,16 +305,7 @@ export function parseNetworkTrafficUsageSummary(
     ),
     topApplications: listOf(
       value["topApplications"],
-      (row: JSONObject): NetworkTrafficUsageApplicationRow => {
-        return {
-          application: toText(row["application"]),
-          protocol: toText(row["protocol"]),
-          port: toNumber(row["port"]),
-          sentOctets: toNumber(row["sentOctets"]),
-          receivedOctets: toNumber(row["receivedOctets"]),
-          flows: toNumber(row["flows"]),
-        };
-      },
+      parseNetworkTrafficUsageApplicationRow,
     ),
     topDestinations: listOf(
       value["topDestinations"],
@@ -232,21 +320,7 @@ export function parseNetworkTrafficUsageSummary(
         };
       },
     ),
-    topClients: listOf(
-      value["topClients"],
-      (row: JSONObject): NetworkTrafficUsageClientRow => {
-        return {
-          clientKey: toText(row["clientKey"]),
-          name: toText(row["name"]),
-          ip: toText(row["ip"]),
-          mac: toText(row["mac"]),
-          manufacturer: toText(row["manufacturer"]),
-          controllerNetworkName: toText(row["controllerNetworkName"]),
-          sentOctets: toNumber(row["sentOctets"]),
-          receivedOctets: toNumber(row["receivedOctets"]),
-        };
-      },
-    ),
+    topClients: listOf(value["topClients"], parseNetworkTrafficUsageClientRow),
     topConversations: listOf(
       value["topConversations"],
       (row: JSONObject): NetworkTrafficUsageConversationRow => {
@@ -264,6 +338,10 @@ export function parseNetworkTrafficUsageSummary(
         };
       },
     ),
+    networkCount: toNumber(value["networkCount"]),
+    applicationCount: toNumber(value["applicationCount"]),
+    clientCount: toNumber(value["clientCount"]),
+    ...(deviceAppliance ? { deviceAppliance } : {}),
     lastUplinkAt: optionalText(value["lastUplinkAt"]) || null,
     lastAnalyticsAt: optionalText(value["lastAnalyticsAt"]) || null,
     uplinksReadTo: optionalText(value["uplinksReadTo"]) || null,
@@ -272,6 +350,178 @@ export function parseNetworkTrafficUsageSummary(
       parseNetworkTrafficUsageConnection,
     ),
   };
+}
+
+/*
+ * A page of a whole list, read as the list it was asked for: rows of
+ * another kind are none of its own, and a count that is not one is 0.
+ */
+export function parseNetworkTrafficUsageListResult(
+  data: JSONObject | undefined,
+  list: NetworkTrafficUsageListKind,
+): NetworkTrafficUsageListResult {
+  const value: JSONObject = data || {};
+
+  return {
+    list,
+    count: toNumber(value["count"]),
+    networks:
+      list === NetworkTrafficUsageListKind.Networks
+        ? listOf(value["networks"], parseNetworkTrafficUsageNetworkRow)
+        : [],
+    applications:
+      list === NetworkTrafficUsageListKind.Applications
+        ? listOf(value["applications"], parseNetworkTrafficUsageApplicationRow)
+        : [],
+    clients:
+      list === NetworkTrafficUsageListKind.Clients
+        ? listOf(value["clients"], parseNetworkTrafficUsageClientRow)
+        : [],
+  };
+}
+
+export async function fetchNetworkTrafficUsageList(
+  request: NetworkTrafficUsageListRequest,
+): Promise<NetworkTrafficUsageListResult> {
+  if (!NETWORK_TRAFFIC_USAGE_LIST_KINDS.includes(request.list)) {
+    throw new Error(`Unknown list: ${String(request.list)}`);
+  }
+
+  const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+    NETWORK_TRAFFIC_USAGE_LIST_PATH,
+  );
+
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: url,
+      data: request as unknown as JSONObject,
+      headers: { ...ModelAPI.getCommonHeaders() },
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return parseNetworkTrafficUsageListResult(response.data, request.list);
+}
+
+const LIKENESS_REASONS: Array<string> = Object.values(NameLikenessReason);
+
+export function parseLinkableAppliance(
+  row: JSONObject,
+): NetworkControllerLinkableAppliance {
+  const linkedDeviceId: unknown = row["linkedDeviceId"];
+  const reason: string = toText(row["likenessReason"]);
+  const linkedDeviceName: string | undefined = optionalText(
+    row["linkedDeviceName"],
+  );
+  const shared: string | undefined = optionalText(row["likenessShared"]);
+
+  return {
+    serial: toText(row["serial"]),
+    name: toText(row["name"]),
+    controllerNetworkId: toText(row["controllerNetworkId"]),
+    controllerNetworkName: toText(row["controllerNetworkName"]),
+    connectionName: toText(row["connectionName"]),
+    lastSeenAt: toText(row["lastSeenAt"]),
+    octets: toNumber(row["octets"]),
+    ...(typeof linkedDeviceId === "string" &&
+    ObjectID.isValidUUID(linkedDeviceId)
+      ? { linkedDeviceId }
+      : {}),
+    ...(linkedDeviceName ? { linkedDeviceName } : {}),
+    isLikely: row["isLikely"] === true,
+    ...(LIKENESS_REASONS.includes(reason)
+      ? { likenessReason: reason as NameLikenessReason }
+      : {}),
+    ...(shared ? { likenessShared: shared } : {}),
+  };
+}
+
+export function parseLinkableApplianceList(
+  data: JSONObject | undefined,
+): NetworkControllerLinkableApplianceList {
+  const value: JSONObject = data || {};
+
+  return {
+    appliances: listOf(value["appliances"], parseLinkableAppliance).filter(
+      (appliance: NetworkControllerLinkableAppliance): boolean => {
+        return Boolean(appliance.serial);
+      },
+    ),
+    total: toNumber(value["total"]),
+    matching: toNumber(value["matching"]),
+  };
+}
+
+// The appliances a device can be linked to, the likely ones first.
+export async function fetchLinkableAppliances(data: {
+  networkDeviceId: ObjectID;
+  search: string;
+}): Promise<NetworkControllerLinkableApplianceList> {
+  const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+    NETWORK_TRAFFIC_USAGE_APPLIANCES_PATH,
+  );
+
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: url,
+      data: {
+        networkDeviceId: data.networkDeviceId.toString(),
+        search: data.search,
+      },
+      headers: { ...ModelAPI.getCommonHeaders() },
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return parseLinkableApplianceList(response.data);
+}
+
+// Link a device to the appliance it is: its serial number written on it.
+export async function linkMerakiAppliance(data: {
+  networkDeviceId: ObjectID;
+  deviceSerial: string;
+}): Promise<void> {
+  const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+    NETWORK_TRAFFIC_LINK_APPLIANCE_PATH,
+  );
+
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: url,
+      data: {
+        networkDeviceId: data.networkDeviceId.toString(),
+        deviceSerial: data.deviceSerial,
+      },
+      headers: { ...ModelAPI.getCommonHeaders() },
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+}
+
+// Undo a link: the serial number taken off, its traffic back to the network's page.
+export async function unlinkMerakiAppliance(
+  networkDeviceId: ObjectID,
+): Promise<void> {
+  const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+    NETWORK_TRAFFIC_UNLINK_APPLIANCE_PATH,
+  );
+
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: url,
+      data: { networkDeviceId: networkDeviceId.toString() },
+      headers: { ...ModelAPI.getCommonHeaders() },
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
 }
 
 export async function fetchNetworkTrafficUsage(

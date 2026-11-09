@@ -22,7 +22,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import PatternWorkScope, { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -128,6 +130,7 @@ class IncidentPrivacyRuleEngineServiceClass
       return await this.applyRules({
         incident: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running incident privacy rules: ${error}`, {
@@ -143,6 +146,8 @@ class IncidentPrivacyRuleEngineServiceClass
   private async applyRules(data: {
     incident: Incident;
     rules: Array<IncidentPrivacyRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { incident, rules } = data;
 
@@ -186,7 +191,7 @@ class IncidentPrivacyRuleEngineServiceClass
     await IncidentService.updateOneById({
       id: incident.id,
       data: { isPrivate: true },
-      props: { isRoot: true },
+      props: RuleRunWriteProps.get(data.props),
     });
 
     // Mirror in memory so downstream onCreateSuccess steps see the change.

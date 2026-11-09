@@ -10,7 +10,10 @@ import {
   getViewInProductTitle,
   REMEDIATION_CHAT_WORDS,
   REMEDIATION_PRESSES,
+  TWO_APPROVALS_MESSAGE_NOTE,
 } from "../../../../Server/Utils/AutoRemediation/RemediationChatWords";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import Project from "../../../../Models/DatabaseModels/Project";
 import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
 import SlackActionType from "../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import AlertService from "../../../../Server/Services/AlertService";
@@ -682,6 +685,171 @@ describe("the message's blocks", () => {
         commandPlan: { commands: [cloudChange()] },
       }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * Two people approve a riskier fix (#6148's follow-up): where the project
+ * asks for it, the message of a fix that holds a riskier change says, in
+ * its quiet line, that nothing runs until two people approve it; and the
+ * dialog's last part says whether the press is the first approval or the
+ * second, and whose came first.
+ */
+describe("a riskier fix two people must approve", () => {
+  function proposal(): AutoRemediationSuggestion {
+    const suggestion: AutoRemediationSuggestion =
+      new AutoRemediationSuggestion();
+    suggestion.id = SUGGESTION_ID;
+    suggestion.projectId = PROJECT_ID;
+    suggestion.incidentId = INCIDENT_ID;
+    return suggestion;
+  }
+
+  function notes(blocks: Array<MessageBlocksByWorkspaceType>): Array<string> {
+    return blocks.map((each: MessageBlocksByWorkspaceType): string => {
+      const note: WorkspaceMessageBlock | undefined = each.messageBlocks.find(
+        (block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadContext";
+        },
+      );
+
+      return (note as WorkspacePayloadContext).text;
+    });
+  }
+
+  function ruleIs(value: boolean): void {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      requireTwoApprovalsForRiskierFixes: value,
+    } as unknown as Project);
+  }
+
+  test("the quiet line of a riskier fix says nothing runs until two people approve it, in both chats", async () => {
+    ruleIs(true);
+
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await RemediationChatMessage.getProposalBlocks({
+        suggestion: proposal(),
+        commandPlan: { commands: [cloudChange(), kubectlChange()] },
+      });
+
+    expect(notes(blocks)).toEqual([
+      TWO_APPROVALS_MESSAGE_NOTE,
+      TWO_APPROVALS_MESSAGE_NOTE,
+    ]);
+    expect(TWO_APPROVALS_MESSAGE_NOTE).toBe(
+      "Review and approve shows the whole fix first. Nothing runs until two people approve it.",
+    );
+    expect(getApprovalMessageNote(2)).toBe(TWO_APPROVALS_MESSAGE_NOTE);
+  });
+
+  test("a fix of safe changes, a runbook, the rule off or a rule that cannot be read keep the one-approval line", async () => {
+    const one: string = getApprovalMessageNote();
+
+    ruleIs(true);
+    expect(
+      notes(
+        await RemediationChatMessage.getProposalBlocks({
+          suggestion: proposal(),
+          commandPlan: { commands: [cloudChange()] },
+        }),
+      ),
+    ).toEqual([one, one]);
+    expect(
+      notes(
+        await RemediationChatMessage.getProposalBlocks({
+          suggestion: proposal(),
+          runbook: {
+            id: new ObjectID("a0000000-0000-4000-8000-00000000000a"),
+            name: "Restart pods",
+          },
+        }),
+      ),
+    ).toEqual([one, one]);
+
+    ruleIs(false);
+    expect(
+      notes(
+        await RemediationChatMessage.getProposalBlocks({
+          suggestion: proposal(),
+          commandPlan: { commands: [kubectlChange()] },
+        }),
+      ),
+    ).toEqual([one, one]);
+
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockRejectedValue(new Error("database not connected"));
+    expect(
+      notes(
+        await RemediationChatMessage.getProposalBlocks({
+          suggestion: proposal(),
+          commandPlan: { commands: [kubectlChange()] },
+        }),
+      ),
+    ).toEqual([one, one]);
+  });
+
+  test("the dialog of a first approval says it runs nothing yet, and nothing of watching", () => {
+    const parts: Array<string> = RemediationChatMessage.describeApprovalParts({
+      fix: commandFix([kubectlChange()]),
+      subjectName: "Incident INC-42",
+      approvals: { needed: 2, hasFirstApproval: false },
+    }).map((part: { toString: () => string }): string => {
+      return part.toString();
+    });
+
+    expect(parts[parts.length - 1]).toBe(
+      "This fix holds a riskier change, so two people must approve it, and yours is the first. It runs once someone else approves it too.",
+    );
+  });
+
+  test("the dialog of a second approval names whose came first, set apart as a name, and says what approving runs", () => {
+    const text: string = RemediationChatMessage.describeApproval({
+      fix: commandFix([kubectlChange()]),
+      subjectName: "Incident INC-42",
+      approvals: {
+        needed: 2,
+        hasFirstApproval: true,
+        firstApproverName: "Maya *Chen*",
+      },
+    }).toString();
+
+    // A name is a value: its asterisks cannot make the line bold.
+    expect(text).toContain(
+      "**Maya \\*Chen\\*** approved this fix first. Approving it too runs exactly what is shown, under your name. OneUptime then watches the monitors for 15 minutes",
+    );
+  });
+
+  test("a first approver whose name cannot be read is someone else", () => {
+    const text: string = RemediationChatMessage.describeApproval({
+      fix: commandFix([kubectlChange()]),
+      subjectName: "Incident INC-42",
+      approvals: { needed: 2, hasFirstApproval: true },
+    }).toString();
+
+    expect(text).toContain(
+      "Someone else approved this fix first. Approving it too runs exactly what is shown, under your name.",
+    );
+  });
+
+  test("one approval, or none said, reads as it always has", () => {
+    for (const approvals of [
+      undefined,
+      { needed: 1, hasFirstApproval: false },
+      // A first approval of a fix one approval runs now: the rule went off.
+      { needed: 1, hasFirstApproval: true, firstApproverName: "Maya Chen" },
+    ]) {
+      const text: string = RemediationChatMessage.describeApproval({
+        fix: commandFix([kubectlChange()]),
+        subjectName: "Incident INC-42",
+        approvals,
+      }).toString();
+
+      expect(text).toContain(
+        "Approving runs exactly what is shown, under your name. OneUptime then watches",
+      );
+      expect(text).not.toContain("approved this fix first");
+    }
   });
 });
 

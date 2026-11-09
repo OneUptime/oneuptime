@@ -169,7 +169,7 @@ If you've connected a workspace, responders never have to leave the channel. Bot
 Three details worth knowing:
 
 - **Duplicate protection** — each note records the Slack message it came from (`postedFromSlackMessageId`, formatted `channel_id:message_ts`), so several people reacting to the same message produce one note, not five.
-- **Notes echo back** — posting either kind of note also pushes a message into the connected incident channel, because the note's feed item is created with workspace notification enabled.
+- **Notes echo back** — posting either kind of note also pushes a message into the connected incident channel, because the note's feed item is created with workspace notification enabled. A public note that waits for approval is pushed there once it is published: see [Public note approval](#public-note-approval).
 - **Posted as the person who asked** — a note from the modal or from a reaction is posted with that person's OneUptime permissions, so it needs their permission to post that kind of note on the incident. When it is refused, they are told why — in a direct message in Slack, and in the conversation in Microsoft Teams (in the message's thread, for a reaction) — and nothing is posted.
 
 ## When a public note actually reaches subscribers
@@ -240,6 +240,34 @@ A sent update is not offered again: edit the note with the checkbox ticked to se
 
 The actual message subscribers get is templated per status page and per channel — email, SMS, Slack and Microsoft Teams each have their own template for the **Subscriber Incident Note Created** event, with variables for the status page name and URL, the details link, the resources affected, the incident severity and title, the note body, the incident's labels, affected status pages and custom fields, and a per-subscriber unsubscribe link. The default email, Slack and Microsoft Teams messages also list the incident's custom fields marked **Include in Subscriber Notifications**, with their current values. See [Subscribers & Announcements](/docs/status-pages/subscribers) for how those templates and channels are configured.
 
+## Public note approval
+
+A project can have its public notes approved before customers read them, so that somebody checks an update, such as one about a breach, before it goes out. It is off until a project owner or admin turns it on and chooses who approves: at **Incidents → Settings → Public Note Approval** for incidents and incident episodes, and at **Scheduled Maintenance → Settings → Public Note Approval** for scheduled maintenance events. See [Public note approval](/docs/incidents/settings#public-note-approval).
+
+While it is on, the composer says the note is published once it is approved and names who approves it, and **Post update** reads **Send for approval**. The note is saved with a **Waiting for approval** badge, and says under it who can approve it, and which step it waits for when there are several. Until it is approved, a note:
+
+- is shown on no status page, and in none of their RSS and Atom feeds;
+- tells no subscriber: its notification goes out when it is published, if **Notify status page subscribers** was ticked. See [Public notes that wait for approval](/docs/status-pages/subscribers#public-notes-that-wait-for-approval);
+- is not posted to the incident's Slack, Microsoft Teams or Mattermost channels, and its owners are told about it only once it is published;
+- starts no workflow, and is left out of what OneUptime AI reads, so it never turns up in a drafted note;
+- shows its images to the project's members only.
+
+Every new public note waits, wherever it is written: in the dashboard, through the API, by a workflow or OneUptime AI, from Slack, Microsoft Teams or Mattermost, by an SLA rule's reminder or with a state change.
+
+**Approving and rejecting.** The people named on the step a note waits for, and the members of the teams named on it, see **Approve** and **Reject** on the note, and are told it is waiting through the notification settings they chose: see [Public note approval](/docs/notifications/notification-settings#public-note-approval). On the last step **Approve** reads **Approve and publish**, and the note is published at once, dated the moment it is published unless its time was chosen when it was written. Once published, it carries an **Approved** badge and a line naming who approved it, and its entry in the feed and its message in the incident's channels end with the same names. **Reject** asks **Why are you rejecting it?**, and the note's author sees the reason. Nobody approves or rejects a note they sent, nobody approves two steps of the same note, and an API key approves nothing: approvers are people.
+
+**Sending it again.** A rejected note stays off status pages, marked **Rejected**. Whoever may edit it can change it, or send it as it is with **Send for approval again**; either way its approval starts again from the first step. Editing a note that is still waiting starts its approval again too: an approval is of the words it was given.
+
+**Editing a published note.** An edit waits as well. The edit form says so, and **Send edit for approval** saves it. Status pages keep showing the note as it was approved, the note shows the edit under **Proposed edit**, marked **Edit waiting for approval** or, once rejected, **Edit rejected**, and **Withdraw edit** drops it. A published note's files cannot change while approval is on: post a new note with the files instead. An edit sent while somebody decides on the note is not saved: refresh the page, and make it again.
+
+**Turning approval off.** From then on, new notes are published as soon as they are posted. A note that was still waiting, or was rejected, offers **Publish now** to whoever may edit it, which publishes it as it is, without an approval, and the feed says so.
+
+**From Slack, Microsoft Teams and Mattermost.** The add-note form says a public note is posted on the status page once it is approved. Whoever sends one is told that it was sent for approval and who it waits for: in a message only they can see in Slack and Mattermost, and in the conversation in Microsoft Teams. A note saved from a 📣 or 📢 reaction says the same in its confirmation. The channel hears of the note when it is published.
+
+**Approving from Slack, Microsoft Teams and Mattermost.** Approvers who turn on Slack, Microsoft Teams or Mattermost for **Public Note Approval** in **User Settings → Notification Settings** get the note there, in a direct message from OneUptime: who sent it, the step it waits for, and buttons to approve it, reject it or open it in OneUptime. A press decides as the OneUptime account their chat account is connected to, by the same rules as the buttons on the note, and a rejection needs a reason there too. Only they see the answer. If somebody else decided first, or the note or its steps changed after the message was sent, nothing is decided and the answer says what happened. Once the note is decided, every approver's message about it changes to say what happened, and keeps only its link to OneUptime. When the approval steps change while it waits, the messages about a step it no longer waits for change the same way, and so does the message of anybody its step no longer asks; whoever it waits for now gets a message of their own, with the buttons. See [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) and [Mattermost](/docs/workspace-connections/mattermost).
+
+The feed records each step as a `PublicNoteApproval` entry: a note sent for approval, approved, rejected, an edit withdrawn, or a note published without approval. These entries are not posted to chat channels; the published note is.
+
 ## The incident feed
 
 The **Incident Feed** card sits at the bottom of the left column on the incident **Overview** page. It's the story of the incident as a timeline. Each day has a heading with its date, says when it is today or yesterday, and names the time zone the times are in: the one in your user settings, or else your browser's. Every item shows the time it happened, unless the item above it happened in the same minute, and for the last hour how long ago; point at the time for the full date and time. Beside the time are the icon of the item's kind and a sentence that starts with the avatar and name of whoever caused it. What someone wrote, such as a note or a root cause, is set apart in a card under that sentence. Three or more items of the same kind in a row within five minutes, such as on-call updates, owner or subscriber notifications or rules that ran, fold under the first one, behind a button that shows the rest. By default the newest items are at the top.
@@ -249,7 +277,7 @@ Some items carry extra detail — an owner notification lists everyone who was m
 The card header also has an **Actions** menu so you can act without leaving the timeline:
 
 - **Execute Runbook** — start a [runbook](/docs/runbooks/index) against this incident.
-- **Execute On-Call Policy** — page a policy on demand. An archived policy pages no one: its execution log on the incident says it was not executed because the policy is archived.
+- **Execute On-Call Policy** — page a policy on demand. An archived policy pages no one: its execution log on the incident says it was not executed because the policy is archived. Turn on **Page them as observers** to keep the policy's people informed instead: their answer only says they have seen the page, and the incident is not acknowledged.
 - **Add Public Note** — the **Public Notes** page's composer, in a dialog: write the note, then **Post update**. Templates, **Draft with AI**, attachments, **Notify status page subscribers** with who it will reach, and **Preview** are all there. The note is posted now; to backdate it, choose **Posted now**.
 - **Add Private Note** — the **Private Notes** page's composer, in a dialog: write the note, then **Add note**.
 
@@ -269,7 +297,7 @@ Everything else is behind the **⋯** button next to it, the same **More options
 Feed items are written by the incident service itself, by both note services, by the state timeline, by owner and member changes, by linking and unlinking alerts, by the rule engines, by on-call execution, by the AI investigation and postmortem runners, and by the notification cron jobs. The event types cover:
 
 - **The incident itself** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. An `IncidentUpdated` entry records what an edit changed: the title, description, root cause, remediation notes, labels, severity, monitors and the status put on them, and the status pages added to or removed from the incident's scope. It has a line for each value that changed and none for a value saved as it was, so saving a card with nothing changed, or an API client or a workflow writing the incident back as it is, adds no entry at all. Text that reads the same is the same (line endings and the spaces around it aside), and labels are the same set in any order; a value that was cleared reads as removed, and taking every label off as "All labels removed.". An alert's **Alert updated** entries work the same way.
-- **Notes and write-ups** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. A `PostmortemNote` item is written when the postmortem's note changes, not every time the postmortem is saved.
+- **Notes and write-ups** — `PublicNote`, `PublicNoteApproval`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. A `PostmortemNote` item is written when the postmortem's note changes, not every time the postmortem is saved.
 - **People** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`, and `ChannelMemberAdded`, shown as **Channel Member Added**, for someone added to the incident's Slack or Mattermost channel from its page. See [Who is in a record's channel](/docs/workspace-connections/slack#who-is-in-a-records-channel).
 - **Linked alerts** — `AlertLinked` and `AlertUnlinked`, shown as **Alert Linked** and **Alert Unlinked**.
 - **Notifications** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
@@ -304,7 +332,7 @@ There are five routes onto the owners list:
 
 - **When declaring** — the person who declares an incident becomes an owner, and **Owners**, under **More fields** on **Declare Incident**, adds more: each team they are a member of is one click away under it. See [Who will own it](/docs/incidents/declaring-incidents#who-will-own-it).
 - **From an incident template** — templates carry an **Owners** field: the people and teams who own the incident and will be notified when it is created or updated, picked from the same list as **Add owner**. Creating an incident from the template prefills them, and they are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. The dashboard, and a workflow's **Create One Incident** step with an **Incident Template** picked, add them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added. See [Declaring an Incident](/docs/incidents/declaring-incidents).
-- **From Incident Owner Rules** — matching rules add owners automatically at creation time.
+- **From Incident Owner Rules** — matching rules add owners automatically at creation time, and again when the incident's severity or labels change.
 - **At creation through the API** — owner users and teams passed with the create call are added the same way, once the channels exist, and without the "you were added" notification.
 - **By hand** — the **Add owner** control on the **Owners** page, at any point during the incident, or **Add** under the owners in the **Overview**'s header while it is open.
 
@@ -324,6 +352,8 @@ A new rule has to add someone: pick at least one owner, turn on an **Inherit Own
 **Notify Owners**, under **More fields**, controls whether people find out. Leave it on for real routing; turn it off to add owners silently — useful when a rule is a bookkeeping convenience rather than a page.
 
 Every rule execution is written to the incident feed, so you can always tell whether a person was added by a rule or by a human.
+
+Rules run when an incident is declared, and again whenever its severity or labels change while it is open. An incident raised to a severity a rule matches, or given a label one matches, gets that rule's owners then, notified as the rule says, and its feed says the rule now matches it, and why: that is how a team takes an incident over once it turns out to be org-wide. Owners are never removed when the incident stops matching.
 
 ## What owners get notified about
 

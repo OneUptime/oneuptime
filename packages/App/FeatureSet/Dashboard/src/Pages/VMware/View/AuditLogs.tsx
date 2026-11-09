@@ -17,8 +17,7 @@ const VMwareVCenterAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="vCenter Audit Logs"
       description="All changes made to this vCenter."
-      resourceType="vCenter"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

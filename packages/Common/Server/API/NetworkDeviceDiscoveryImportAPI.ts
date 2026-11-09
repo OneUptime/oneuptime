@@ -3,6 +3,8 @@ import NetworkDeviceDiscoveryScan from "../../Models/DatabaseModels/NetworkDevic
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import Includes from "../../Types/BaseDatabase/Includes";
+import IsNull from "../../Types/BaseDatabase/IsNull";
+import NotNull from "../../Types/BaseDatabase/NotNull";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -23,6 +25,7 @@ import Express, {
 import DiscoveryImportRunner, {
   DISCOVERY_IMPORT_VIEW_SELECT,
 } from "../Utils/NetworkDiscovery/DiscoveryImportRunner";
+import DiscoveredDevices from "../Utils/NetworkDevice/DiscoveredDevices";
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
 
@@ -32,6 +35,10 @@ import CommonAPI from "./CommonAPI";
  *
  *   POST /network-device-discovery-import/start
  *        { scanId, ipAddresses, settings }        ask for an import
+ *   POST /network-device-discovery-import/start-from-discovered-devices
+ *        { endpointIds, settings }                ask for an import of
+ *                                                 devices from the
+ *                                                 Discovered Devices list
  *   GET  /network-device-discovery-import/import/:importId[?results=all]
  *                                                 one import, as it stands
  *   GET  /network-device-discovery-import/scan/:scanId/latest
@@ -50,7 +57,9 @@ import CommonAPI from "./CommonAPI";
  *  - Seeing imports needs the right to read discovery scans: an import is a
  *    scan's results becoming devices, and everybody who can see the scan
  *    can see that someone is importing it, how far it has got and what
- *    failed. Imports are a team's shared state, not one person's.
+ *    failed. Imports are a team's shared state, not one person's. An
+ *    import from the Discovered Devices list (issue #5775) has no scan:
+ *    seeing it needs the right to read the list instead.
  *  - Asking for one, retrying one and stopping one need the right to create
  *    network devices - and, for monitors, monitors - checked by the runner
  *    with the person's own permissions (DiscoveryImportRunner).
@@ -99,6 +108,53 @@ export function assertCanSeeImports(
   }
 }
 
+// Whether a check of the person's rights passes, without its refusal.
+function isAllowed(check: () => void): boolean {
+  try {
+    check();
+    return true;
+  } catch (error) {
+    if (error instanceof NotAuthorizedException) {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+/*
+ * Refused unless the person may see where this import's hosts came from:
+ * its scan, or the Discovered Devices list.
+ */
+export function assertCanSeeImport(
+  props: DatabaseCommonInteractionProps,
+  row: Pick<NetworkDeviceDiscoveryImport, "networkDeviceDiscoveryScanId">,
+): void {
+  if (row.networkDeviceDiscoveryScanId) {
+    assertCanSeeImports(props);
+    return;
+  }
+
+  DiscoveredDevices.assertCanRead(props);
+}
+
+async function findImportAsPerson(data: {
+  importId: ObjectID;
+  projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}): Promise<NetworkDeviceDiscoveryImport> {
+  const row: NetworkDeviceDiscoveryImport =
+    await DiscoveryImportRunner.findImport({
+      importId: data.importId,
+      projectId: data.projectId,
+      select: DISCOVERY_IMPORT_VIEW_SELECT,
+    });
+
+  assertCanSeeImport(data.props, row);
+
+  return row;
+}
+
 function readIdParam(
   req: ExpressRequest,
   name: string,
@@ -125,12 +181,11 @@ async function readImportView(data: {
   props: DatabaseCommonInteractionProps;
   allResults: boolean;
 }): Promise<JSONObject> {
-  const row: NetworkDeviceDiscoveryImport =
-    await DiscoveryImportRunner.findImport({
-      importId: data.importId,
-      projectId: data.projectId,
-      select: DISCOVERY_IMPORT_VIEW_SELECT,
-    });
+  const row: NetworkDeviceDiscoveryImport = await findImportAsPerson({
+    importId: data.importId,
+    projectId: data.projectId,
+    props: data.props,
+  });
 
   return DiscoveryImportRunner.toView({
     row: row,
@@ -176,6 +231,42 @@ router.post(
   },
 );
 
+router.post(
+  "/network-device-discovery-import/start-from-discovered-devices",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { props, projectId } = await getPersonProps(req);
+      const body: JSONObject = readBody(req);
+
+      DiscoveredDevices.assertCanRead(props);
+
+      const created: NetworkDeviceDiscoveryImport =
+        await DiscoveryImportRunner.startFromDiscoveredDevices({
+          projectId: projectId,
+          props: props,
+          endpointIds: body["endpointIds"],
+          settings: body["settings"],
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        import: await readImportView({
+          importId: created.id!,
+          projectId: projectId,
+          props: props,
+          allResults: false,
+        }),
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 router.get(
   "/network-device-discovery-import/import/:importId",
   UserMiddleware.getUserMiddleware,
@@ -186,8 +277,6 @@ router.get(
   ): Promise<void> => {
     try {
       const { props, projectId } = await getPersonProps(req);
-
-      assertCanSeeImports(props);
 
       return Response.sendJsonObjectResponse(req, res, {
         import: await readImportView({
@@ -258,13 +347,34 @@ router.get(
     try {
       const { props, projectId } = await getPersonProps(req);
 
-      assertCanSeeImports(props);
+      /*
+       * The imports the person may see: a scan's to whoever may see the
+       * scans, the Discovered Devices list's to whoever may read the list
+       * (issue #5775), both to whoever may do both.
+       */
+      const canSeeScans: boolean = isAllowed(() => {
+        assertCanSeeImports(props);
+      });
+      const canSeeList: boolean = isAllowed(() => {
+        DiscoveredDevices.assertCanRead(props);
+      });
+
+      if (!canSeeScans && !canSeeList) {
+        assertCanSeeImports(props);
+      }
 
       const active: Array<NetworkDeviceDiscoveryImport> =
         await NetworkDeviceDiscoveryImportService.findBy({
           query: {
             projectId: projectId,
             status: new Includes([...ACTIVE_DISCOVERY_IMPORT_STATUSES]),
+            ...(canSeeScans && canSeeList
+              ? {}
+              : {
+                  networkDeviceDiscoveryScanId: canSeeScans
+                    ? new NotNull()
+                    : new IsNull(),
+                }),
           },
           select: DISCOVERY_IMPORT_VIEW_SELECT as never,
           sort: { createdAt: SortOrder.Ascending },
@@ -303,7 +413,11 @@ router.post(
         "This import was not found.",
       );
 
-      assertCanSeeImports(props);
+      await findImportAsPerson({
+        importId: importId,
+        projectId: projectId,
+        props: props,
+      });
 
       await DiscoveryImportRunner.stop({
         projectId: projectId,
@@ -335,14 +449,23 @@ router.post(
   ): Promise<void> => {
     try {
       const { props, projectId } = await getPersonProps(req);
+      const importId: ObjectID = readIdParam(
+        req,
+        "importId",
+        "This import was not found.",
+      );
 
-      assertCanSeeImports(props);
+      await findImportAsPerson({
+        importId: importId,
+        projectId: projectId,
+        props: props,
+      });
 
       const created: NetworkDeviceDiscoveryImport =
         await DiscoveryImportRunner.retry({
           projectId: projectId,
           props: props,
-          importId: readIdParam(req, "importId", "This import was not found."),
+          importId: importId,
         });
 
       return Response.sendJsonObjectResponse(req, res, {

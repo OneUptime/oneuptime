@@ -76,12 +76,19 @@ export interface ComponentProps {
   telemetryQuery: TelemetryQuery;
   snapshotWindow: InBetween<Date> | null;
   /*
-   * True while the host has zoomed the snapshot (see TelemetrySnapshotZoom).
+   * True while the host has zoomed the snapshot (see TelemetrySnapshotPanel).
    * snapshotWindow is then the slice, not the whole snapshot window, and
    * the tabs' copy says so: "no logs found" must not claim the whole
    * window was empty.
    */
   isSnapshotZoomed?: boolean | undefined;
+  /*
+   * What the window the tabs show is, when the host picks it rather than
+   * the monitor: an incident's metric investigation hands the tabs the
+   * time range picked on it ("selected"). Left out, the snapshot window, or
+   * its zoomed part (see getCompanionWindow).
+   */
+  companionWindow?: CompanionWindow | undefined;
   // Shared with the page's own preview cards (may be undefined — no window).
   snapshotWindowAlert?: ReactElement | undefined;
   /*
@@ -107,9 +114,10 @@ const TAB_LABELS: Dictionary<string> = {
 /*
  * The window a companion card shows: the snapshot's whole window, or the
  * part of it the host zoomed into - "no logs found" must not claim the
- * whole window was empty.
+ * whole window was empty - or a time range picked on the card, which is
+ * what an incident's metric investigation hands the tabs (issue #5954).
  */
-export type CompanionWindow = "snapshot" | "zoomed";
+export type CompanionWindow = "snapshot" | "zoomed" | "selected";
 
 export type CompanionEventNoun = "incident" | "alert" | "view";
 
@@ -141,6 +149,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       zoomed: translationKey(
         "Logs in this incident's telemetry scope during the zoomed part of the snapshot window.",
       ),
+      selected: translationKey(
+        "Logs in this incident's telemetry scope during the selected time range.",
+      ),
     },
     alert: {
       snapshot: translationKey(
@@ -149,6 +160,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       zoomed: translationKey(
         "Logs in this alert's telemetry scope during the zoomed part of the snapshot window.",
       ),
+      selected: translationKey(
+        "Logs in this alert's telemetry scope during the selected time range.",
+      ),
     },
     view: {
       snapshot: translationKey(
@@ -156,6 +170,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       ),
       zoomed: translationKey(
         "Logs in this view's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Logs in this view's telemetry scope during the selected time range.",
       ),
     },
   },
@@ -167,6 +184,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       zoomed: translationKey(
         "Spans in this incident's telemetry scope during the zoomed part of the snapshot window.",
       ),
+      selected: translationKey(
+        "Spans in this incident's telemetry scope during the selected time range.",
+      ),
     },
     alert: {
       snapshot: translationKey(
@@ -175,6 +195,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       zoomed: translationKey(
         "Spans in this alert's telemetry scope during the zoomed part of the snapshot window.",
       ),
+      selected: translationKey(
+        "Spans in this alert's telemetry scope during the selected time range.",
+      ),
     },
     view: {
       snapshot: translationKey(
@@ -182,6 +205,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       ),
       zoomed: translationKey(
         "Spans in this view's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Spans in this view's telemetry scope during the selected time range.",
       ),
     },
   },
@@ -193,6 +219,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       zoomed: translationKey(
         "Exceptions in this incident's telemetry scope during the zoomed part of the snapshot window.",
       ),
+      selected: translationKey(
+        "Exceptions in this incident's telemetry scope during the selected time range.",
+      ),
     },
     alert: {
       snapshot: translationKey(
@@ -201,6 +230,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       zoomed: translationKey(
         "Exceptions in this alert's telemetry scope during the zoomed part of the snapshot window.",
       ),
+      selected: translationKey(
+        "Exceptions in this alert's telemetry scope during the selected time range.",
+      ),
     },
     view: {
       snapshot: translationKey(
@@ -208,6 +240,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       ),
       zoomed: translationKey(
         "Exceptions in this view's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Exceptions in this view's telemetry scope during the selected time range.",
       ),
     },
   },
@@ -219,6 +254,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       zoomed: translationKey(
         "Metrics in this incident's telemetry scope during the zoomed part of the snapshot window.",
       ),
+      selected: translationKey(
+        "Metrics in this incident's telemetry scope during the selected time range.",
+      ),
     },
     alert: {
       snapshot: translationKey(
@@ -227,6 +265,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       zoomed: translationKey(
         "Metrics in this alert's telemetry scope during the zoomed part of the snapshot window.",
       ),
+      selected: translationKey(
+        "Metrics in this alert's telemetry scope during the selected time range.",
+      ),
     },
     view: {
       snapshot: translationKey(
@@ -234,6 +275,9 @@ export const COMPANION_DESCRIPTIONS: Record<
       ),
       zoomed: translationKey(
         "Metrics in this view's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Metrics in this view's telemetry scope during the selected time range.",
       ),
     },
   },
@@ -249,18 +293,21 @@ export const COMPANION_EMPTY_MESSAGES: Record<
     zoomed: translationKey(
       "Nothing was logged in the zoomed part of the snapshot window.",
     ),
+    selected: translationKey("Nothing was logged in the selected time range."),
   },
   spans: {
     snapshot: translationKey("No spans found in the snapshot window."),
     zoomed: translationKey(
       "No spans found in the zoomed part of the snapshot window.",
     ),
+    selected: translationKey("No spans found in the selected time range."),
   },
   exceptions: {
     snapshot: translationKey("No exceptions found in the snapshot window."),
     zoomed: translationKey(
       "No exceptions found in the zoomed part of the snapshot window.",
     ),
+    selected: translationKey("No exceptions found in the selected time range."),
   },
   metrics: {
     snapshot: translationKey(
@@ -268,6 +315,9 @@ export const COMPANION_EMPTY_MESSAGES: Record<
     ),
     zoomed: translationKey(
       "No metrics were found in this scope during the zoomed part of the snapshot window.",
+    ),
+    selected: translationKey(
+      "No metrics were found in this scope during the selected time range.",
     ),
   },
 };
@@ -407,7 +457,9 @@ const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
           noLogsMessage={
             props.window === "zoomed"
               ? "Nothing was logged in the zoomed part of the snapshot window."
-              : "Nothing was logged in the snapshot window."
+              : props.window === "selected"
+                ? "Nothing was logged in the selected time range."
+                : "Nothing was logged in the snapshot window."
           }
         />
       </Card>
@@ -806,9 +858,8 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
     companions.exceptions,
   );
   const primaryType: TelemetryType | null = companions.primaryType;
-  const companionWindow: CompanionWindow = getCompanionWindow(
-    props.isSnapshotZoomed,
-  );
+  const companionWindow: CompanionWindow =
+    props.companionWindow || getCompanionWindow(props.isSnapshotZoomed);
 
   const handleTabChange: (tab: Tab) => void = useCallback((_tab: Tab): void => {
     // Selection is transient; Tabs owns which panel is mounted.

@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertLabelRule from "../../Models/DatabaseModels/AlertLabelRule";
@@ -147,6 +149,7 @@ class AlertLabelRuleEngineServiceClass
       return await this.applyRules({
         alert: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running alert label rules: ${error}`, {
@@ -162,6 +165,8 @@ class AlertLabelRuleEngineServiceClass
   private async applyRules(data: {
     alert: Alert;
     rules: Array<AlertLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { alert, rules } = data;
 
@@ -396,11 +401,12 @@ class AlertLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await AlertService.getRepository()
-      .createQueryBuilder()
-      .relation(Alert, "labels")
-      .of(alert.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: AlertService,
+      resourceId: alert.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory alert.labels with the now-persisted set so downstream

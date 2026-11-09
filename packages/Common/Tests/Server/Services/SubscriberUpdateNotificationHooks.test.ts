@@ -29,6 +29,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 
 /*
  * Editing an announcement or a public note notifies subscribers only when the
@@ -101,6 +102,11 @@ const SERVICE_CASES: Array<ServiceCase> = [
     readOnlyPermission: Permission.ReadIncidentEpisodePublicNote,
   },
 ];
+
+// Public note approval off: every note is published as it is posted.
+beforeEach(() => {
+  stubPublicNoteApproval({});
+});
 
 const ROW_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -298,6 +304,8 @@ describe.each(SERVICE_CASES)(
 
     beforeEach(() => {
       jest.restoreAllMocks();
+      // Public note approval off: every note is published as it is posted.
+      stubPublicNoteApproval({});
 
       const foundItem: BaseModel = new serviceCase.modelType();
       foundItem._id = ROW_ID.toString();

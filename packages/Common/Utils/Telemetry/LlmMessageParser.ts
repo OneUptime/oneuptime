@@ -8,6 +8,7 @@ import {
   LlmEvaluationResultEventName,
   LlmEvaluationScoreLabelAttributeKey,
   LlmEvaluationScoreValueAttributeKey,
+  LlmEventContentAttributeKey,
   LlmFinishReasonAttributeKeys,
   LlmIndexedMessageConvention,
   LlmInferenceDetailsEventName,
@@ -1466,9 +1467,22 @@ export default class LlmMessageParser {
           continue;
         }
 
-        recorded = true;
+        const eventReader: AttributeReader =
+          LlmMessageParser.eventAttributes(event);
+
+        /*
+         * A choice event says the answer was recorded only when it carries
+         * the answer. Azure's AI Inference SDK sends one with nothing but its
+         * finish reason and index when content recording is off; read as
+         * recorded, every such answer was "empty". Its finish reason still
+         * counts (a cut-off or a refusal shows without the text).
+         */
+        if (LlmMessageParser.eventCarriesContent(eventReader, maxJsonLength)) {
+          recorded = true;
+        }
+
         const message: LlmMessage | null = LlmMessageParser.messageFromEvent(
-          LlmMessageParser.eventAttributes(event),
+          eventReader,
           "assistant",
           maxJsonLength,
         );
@@ -1659,6 +1673,49 @@ export default class LlmMessageParser {
     return eventMessages;
   }
 
+  /*
+   * Whether a message event carries its message: a content, tool call or
+   * refusal field among the event's own attributes (ingest flattens them:
+   * content, message.content, message.tool_calls.0.id ...) or in its
+   * gen_ai.event.content JSON. An empty content is still a recorded one.
+   */
+  private static eventCarriesContent(
+    attributes: AttributeReader,
+    maxJsonLength: number,
+  ): boolean {
+    const fields: Array<string> = ["content", "tool_calls", "refusal"];
+
+    for (const field of fields) {
+      for (const key of [field, `message.${field}`]) {
+        if (
+          attributes.get(key) !== undefined ||
+          attributes.keysWithPrefix(`${key}.`).length > 0
+        ) {
+          return true;
+        }
+      }
+    }
+
+    const eventContent: Dictionary | null = asDictionary(
+      toStructured(
+        attributes.get(LlmEventContentAttributeKey),
+        LlmEventContentAttributeKey,
+        maxJsonLength,
+      ),
+    );
+
+    if (!eventContent) {
+      return false;
+    }
+
+    const message: Dictionary =
+      asDictionary(eventContent["message"]) || eventContent;
+
+    return fields.some((field: string): boolean => {
+      return message[field] !== undefined && message[field] !== null;
+    });
+  }
+
   private static messageFromEvent(
     attributes: AttributeReader,
     defaultRole: string,
@@ -1689,6 +1746,44 @@ export default class LlmMessageParser {
 
       if (value !== undefined && source[field] === undefined) {
         source[field] = toStructured(value, field, maxJsonLength);
+      }
+    }
+
+    /*
+     * Azure's AI Inference SDK and Semantic Kernel write the whole message
+     * as one JSON string under gen_ai.event.content: {"role": "user",
+     * "content": "..."} on a message event, {"message": {...},
+     * "finish_reason": "stop", "index": 0} on gen_ai.choice. Its fields fill
+     * only what the event's own attributes (read above) leave out.
+     */
+    const eventContent: Dictionary | null = asDictionary(
+      toStructured(
+        attributes.get(LlmEventContentAttributeKey),
+        LlmEventContentAttributeKey,
+        maxJsonLength,
+      ),
+    );
+
+    if (eventContent) {
+      const contentMessage: Dictionary | null = asDictionary(
+        eventContent["message"],
+      );
+      const base: Dictionary = contentMessage
+        ? { ...contentMessage }
+        : { ...eventContent };
+
+      if (
+        contentMessage &&
+        base["finish_reason"] === undefined &&
+        eventContent["finish_reason"] !== undefined
+      ) {
+        base["finish_reason"] = eventContent["finish_reason"];
+      }
+
+      for (const field of Object.keys(base)) {
+        if (source[field] === undefined) {
+          source[field] = base[field];
+        }
       }
     }
 

@@ -9,7 +9,6 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import CurrentUserCanAccessRecordBy from "../../Types/Database/CurrentUserCanAccessRecordBy";
-import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -20,9 +19,16 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
-@EnableDocumentation({
-  isMasterAdminApiDocs: true,
-})
+/*
+ * Not in the API. Sign-in, refresh and sign-out keep these sessions
+ * (UserSessionService), and no router serves /user-session: a CRUD route
+ * would let every master admin, and the master API key, list everyone's
+ * sessions with their IP addresses and user agents, and delete sessions
+ * without the revocation that records why each one ended. So the model is
+ * neither mounted nor documented (#5803): an API Reference page and an
+ * OpenAPI path for it sent people, and the Terraform provider, to a 404.
+ * CrudApiEndpointRouteMountGuard (packages/App/Tests/BaseAPI) lists it.
+ */
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
   create: [Permission.CurrentUser],

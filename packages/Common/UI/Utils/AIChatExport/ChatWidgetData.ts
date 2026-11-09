@@ -1,5 +1,6 @@
 import OneUptimeDate from "../../../Types/Date";
 import {
+  AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME,
   AIChatWidget,
   AIChatWidgetColumn,
   AIChatWidgetSpan,
@@ -167,6 +168,10 @@ export function formatToolArguments(args: JSONObject): string {
   for (const key of Object.keys(args)) {
     const value: unknown = args[key];
     if (value === undefined || value === null || value === "") {
+      continue;
+    }
+    // What OneUptime keeps in an action for itself: nothing to read.
+    if (AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME.includes(key)) {
       continue;
     }
     const valueString: string =

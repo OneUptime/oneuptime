@@ -79,6 +79,9 @@ function emptyAggregates(
     topDestinations: [],
     topClients: [],
     topConversations: [],
+    networkCount: 0,
+    applicationCount: 0,
+    clientCount: 0,
   };
 }
 

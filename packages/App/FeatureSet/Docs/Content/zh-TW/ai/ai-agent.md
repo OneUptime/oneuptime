@@ -221,7 +221,7 @@ OneUptime 知道你的程式碼在正式環境中做了什麼，因此它能用�
 | **GitHub** | OneUptime GitHub App，安裝在它選擇的儲存庫上。 | 本頁介紹的一切，以及來自 GitHub 的命令（請參閱 [GitHub App](/docs/ai/github-app)），以及每次[正式環境審查](#拉取請求的正式環境審查)的檢查。 |
 | **GitLab**，位於 GitLab.com 或你自己的 GitLab | 存取權杖：具有 `api` 和 `write_repository` 範圍、且角色至少為 Developer 的個人、群組或專案權杖。 | 任務和修正，每次變更都放在合併請求中；[正式環境審查](#拉取請求的正式環境審查)；分支選擇；堆疊追蹤或效能剖析經過的程式碼；一次部署的提交；修正是否已合併，以及發布後正式環境顯示了什麼。 |
 | **Forgejo 或 Gitea**，位於 Codeberg 或你自己的伺服器 | 對儲存庫和議題具有讀寫權限、對使用者具有讀取權限的存取權杖。 | 與 GitLab 相同，每次變更都放在拉取請求中。 |
-| **任何 Git 伺服器**，透過 HTTPS | 你複製儲存庫所用的位址、使用者名稱，以及能讀取儲存庫並向其推送的密碼或存取權杖。 | AI 複製儲存庫，把每次變更推送到新分支，並在回覆中說明是哪個分支：由你開啟拉取請求。在 Bitbucket 和 Azure DevOps 上，它會連結到開啟拉取請求的位置。 |
+| **任何 Git 伺服器**，透過 HTTPS | 你複製儲存庫所用的位址、使用者名稱，以及能讀取儲存庫並向其推送的密碼或存取權杖。 | AI 複製儲存庫，把每次變更推送到新分支，並在回覆中說明是哪個分支：由你開啟拉取請求。在 Bitbucket 和 Azure DevOps 上，它會連結到開啟拉取請求的位置。 在 Azure DevOps（Services，或 Server 2019 及更新版本）上，OneUptime 也會用相同的憑證讀取程式碼：堆疊追蹤或效能剖析經過的程式碼，以及 OneUptime AI 讀取的檔案。 |
 
 來自留言的命令需要 GitHub App，因此目前僅適用於 GitHub 儲存庫，儲存庫的 **設定** 也會這樣說明。Git 伺服器沒有拉取請求，因此也沒有正式環境審查。
 
@@ -233,7 +233,7 @@ OneUptime 使用儲存庫連接時所用的使用者名稱和密碼或存取權�
 
 ### AI 在 Git 儲存庫中讀取什麼
 
-Git 伺服器沒有可用來讀取儲存庫檔案的 API，因此對於此類伺服器上的儲存庫，OneUptime 只讀取其分支，供分支選擇使用。[詢問 AI](/docs/ai/ask-ai) 和 [AI 調查](/docs/ai/ai-sre) 讀取的是 GitHub、GitLab、Forgejo 和 Gitea 儲存庫的程式碼；被問到 Git 儲存庫的程式碼時，它們會說明無法開啟。程式碼中的任務在 Git 儲存庫中仍然可用：Runner 複製儲存庫，AI 在複本中讀取並修改程式碼，然後把變更推送到新分支。
+Git 伺服器沒有可用來讀取儲存庫檔案的 API，因此對於此類伺服器上的儲存庫，OneUptime 只讀取其分支，供分支選擇使用。Azure DevOps 是例外：在 Azure DevOps Services 以及 Azure DevOps Server 2019 及更新版本上，OneUptime 會透過 Azure DevOps 自己的 API、用相同的憑證讀取儲存庫的程式碼。[詢問 AI](/docs/ai/ask-ai) 和 [AI 調查](/docs/ai/ai-sre) 讀取的是 GitHub、GitLab、Forgejo、Gitea 和 Azure DevOps 儲存庫的程式碼；被問到其他 Git 儲存庫的程式碼時，它們會說明無法開啟。程式碼中的任務在 Git 儲存庫中仍然可用：Runner 複製儲存庫，AI 在複本中讀取並修改程式碼，然後把變更推送到新分支。
 
 ### 私有網路中的 Git 伺服器
 

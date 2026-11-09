@@ -254,6 +254,36 @@ async function pickDestination(title: string): Promise<void> {
   await next();
 }
 
+// The syslog port, as the form shows it.
+function portInput(): HTMLInputElement {
+  return within(dialog()).getByLabelText(/^Port/) as HTMLInputElement;
+}
+
+// Opens a dropdown found by its label, and picks the option with this label.
+async function pickOption(label: RegExp, option: string): Promise<void> {
+  await act(async () => {
+    fireEvent.keyDown(within(dialog()).getByRole("combobox", { name: label }), {
+      key: "ArrowDown",
+      code: "ArrowDown",
+    });
+  });
+
+  const menu: HTMLElement = await waitFor((): HTMLElement => {
+    const found: HTMLElement | null =
+      document.querySelector<HTMLElement>(".ou-select__menu");
+
+    if (!found) {
+      throw new Error("The dropdown's menu did not open");
+    }
+
+    return found;
+  });
+
+  await act(async () => {
+    fireEvent.click(within(menu).getByText(option));
+  });
+}
+
 async function fillS3(): Promise<void> {
   await act(async () => {
     fireEvent.change(screen.getByLabelText(/^Bucket/), {
@@ -937,6 +967,8 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
         accessKeyId: "AKIAIOSFODNN7EXAMPLE",
       },
       secrets: { secretAccessKey: SECRET },
+      // Tested in the record version it will send: the newest (issue #6247).
+      schemaVersion: 2,
     });
     expect(posts()[0]!["headers"]).toEqual({
       tenantid: PROJECT_ID.toString(),
@@ -974,6 +1006,8 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
     expect(saved.isEnabled).toBe(true);
     // From now on: no Export From picked.
     expect(saved.startsAt).toBeUndefined();
+    // The newest record version, the More fields default.
+    expect(saved.schemaVersion).toBe(2);
   });
 
   test("a destination that refuses the test says what to fix", async () => {
@@ -1072,6 +1106,62 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
         accessKeyId: "AKIAIOSFODNN7EXAMPLE",
       },
     });
+  });
+
+  /*
+   * Issue #6247: an export saved before version 2 sends version 1. Its edit
+   * form shows that under More fields, tests in it, and a save that does not
+   * change it writes no version - so editing an export never switches what
+   * a reader receives.
+   */
+  test("editing an export saved before version 2 shows version 1, tests in it, and keeps it", async () => {
+    await renderProjectPage();
+
+    await act(async () => {
+      action("Edit").onClick(savedExport({ schemaVersion: 1 }), () => {});
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("audit-log-export-send-test"));
+    });
+
+    expect(posts()[0]!["data"]).toEqual({
+      exportId: EXPORT_ID,
+      config: {
+        bucket: "acme-audit-logs",
+        region: "eu-west-1",
+        accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+      },
+      secrets: {},
+      schemaVersion: 1,
+    });
+
+    await next();
+
+    // Folded under More fields, named with the value that is not the default.
+    const folded: HTMLElement | undefined = within(dialog())
+      .getAllByTestId("folded-section-item")
+      .find((item: HTMLElement): boolean => {
+        return item.getAttribute("data-item-key") === "schemaVersion";
+      });
+
+    expect(folded).toHaveAttribute("data-item-set", "true");
+    expect(folded).toHaveTextContent("Record version: Version 1 (original)");
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog()).getByRole("button", { name: "Save changes" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(ModelAPI.updateById).toHaveBeenCalledTimes(1);
+    });
+
+    const update: { data: JSONObject } = jest.mocked(ModelAPI.updateById).mock
+      .calls[0]![0] as unknown as { data: JSONObject };
+
+    expect(update.data).not.toHaveProperty("schemaVersion");
   });
 
   test("the edit form has no on/off switch: its last step is the name and Export From", async () => {
@@ -1189,6 +1279,113 @@ describe("the instance's exports: Admin Dashboard > Settings > Audit Log Export"
     });
     expect(JSON.parse(saved.secrets!)).toEqual({});
     expect(ModelAPI.create).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Issue #6392: syslog over UDP, in the real form. Picking UDP moves the
+   * port nobody typed to 514; framing, a stream's, gives way under More
+   * fields to the maximum message size; and what is tested and saved is
+   * what the form shows.
+   */
+  test("syslog over UDP: the port follows the protocol, framing gives way to the size, and that is tested and saved", async () => {
+    await renderInstancePage();
+    await openCreateForm();
+    await pickDestination("Syslog");
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(/^Host/), {
+        target: { value: "10.20.0.15" },
+      });
+    });
+
+    expect(portInput()).toHaveValue(6514);
+
+    await pickOption(/^Protocol/, "UDP");
+
+    await waitFor(() => {
+      expect(portInput()).toHaveValue(514);
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog()).getByRole("button", { name: /^More fields/ }),
+      );
+    });
+
+    expect(within(dialog()).queryByLabelText(/^Framing/)).toBeNull();
+    expect(within(dialog()).queryByLabelText(/^CA certificate/)).toBeNull();
+    expect(
+      within(dialog()).getByLabelText(/^Maximum message size/),
+    ).toHaveAttribute("placeholder", "8192");
+
+    await act(async () => {
+      fireEvent.change(
+        within(dialog()).getByLabelText(/^Maximum message size/),
+        {
+          target: { value: "2048" },
+        },
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("audit-log-export-send-test"));
+    });
+
+    expect((posts()[0]!["data"] as JSONObject)["config"]).toEqual({
+      host: "10.20.0.15",
+      port: 514,
+      protocol: "udp",
+      maxMessageSize: 2048,
+    });
+
+    await next();
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog()).getByRole("button", { name: "Start exporting" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(AdminModelAPI.create).toHaveBeenCalledTimes(1);
+    });
+
+    const saved: AuditLogExport = jest.mocked(AdminModelAPI.create).mock
+      .calls[0]![0].model as AuditLogExport;
+
+    expect(saved.config).toEqual({
+      host: "10.20.0.15",
+      port: 514,
+      protocol: "udp",
+      maxMessageSize: 2048,
+    });
+  });
+
+  test("syslog: a port someone typed stays when the protocol changes, and TLS brings back framing", async () => {
+    await renderInstancePage();
+    await openCreateForm();
+    await pickDestination("Syslog");
+
+    await act(async () => {
+      fireEvent.change(portInput(), { target: { value: "1514" } });
+    });
+
+    await pickOption(/^Protocol/, "UDP");
+    expect(portInput()).toHaveValue(1514);
+
+    await pickOption(/^Protocol/, "TLS");
+    expect(portInput()).toHaveValue(1514);
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog()).getByRole("button", { name: /^More fields/ }),
+      );
+    });
+
+    expect(within(dialog()).getByLabelText(/^Framing/)).toBeInTheDocument();
+    expect(
+      within(dialog()).queryByLabelText(/^Maximum message size/),
+    ).toBeNull();
   });
 
   test("the license stops it here too", async () => {

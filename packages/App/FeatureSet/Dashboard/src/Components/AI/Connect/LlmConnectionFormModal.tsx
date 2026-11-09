@@ -6,6 +6,7 @@ import {
   LlmConnectionDefinition,
   LlmConnectionField,
   LlmConnectionKind,
+  LlmConnectionOtherWay,
   getLlmConnectionDefinition,
 } from "Common/Types/LlmObservability/LlmConnectionCatalog";
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
@@ -239,6 +240,8 @@ export const LlmConnectionCredentialsHint: FunctionComponent<{
   const translator: Translator = useTranslator();
   const isTool: boolean =
     props.definition.kind === LlmConnectionKind.CompanyTool;
+  // Another way the same product comes in (Cursor's OpenTelemetry Export).
+  const otherWay: LlmConnectionOtherWay | undefined = props.definition.otherWay;
 
   return (
     <div
@@ -263,22 +266,63 @@ export const LlmConnectionCredentialsHint: FunctionComponent<{
           <Icon icon={IconProp.Book} className="h-4 w-4" />
           <span>{translator.translateText("Step-by-step guide")}</span>
         </a>
-        {isTool ? (
-          <></>
-        ) : (
+        {/*
+         * Footnotes, under one rule: what OneUptime does with an admin key,
+         * and another way the product comes in - an addition with its own
+         * guide, never a step to take before pasting the key.
+         */}
+        {!isTool || otherWay ? (
           <div
-            className="mt-2 flex items-start gap-1.5 border-t border-gray-200 pt-2 text-xs text-gray-500"
-            data-testid="llm-connection-reads-only"
+            className="mt-2 space-y-1.5 border-t border-gray-200 pt-2 text-xs text-gray-500"
+            data-testid="llm-connection-footnotes"
           >
-            <Icon
-              icon={IconProp.ShieldCheck}
-              className="mt-px h-3.5 w-3.5 flex-shrink-0"
-            />
-            {/* The field below says the credential is stored encrypted. */}
-            <span>
-              {translator.translateText("OneUptime only reads usage and cost.")}
-            </span>
+            {isTool ? (
+              <></>
+            ) : (
+              <div
+                className="flex items-start gap-1.5"
+                data-testid="llm-connection-reads-only"
+              >
+                <Icon
+                  icon={IconProp.ShieldCheck}
+                  className="mt-px h-3.5 w-3.5 flex-shrink-0"
+                />
+                {/* The field below says the credential is stored encrypted. */}
+                <span>
+                  {translator.translateText(
+                    "OneUptime only reads usage and cost.",
+                  )}
+                </span>
+              </div>
+            )}
+            {otherWay ? (
+              <div
+                className="flex items-start gap-1.5"
+                data-testid="llm-connection-other-way"
+              >
+                <Icon
+                  icon={IconProp.Signal}
+                  className="mt-px h-3.5 w-3.5 flex-shrink-0"
+                />
+                <span>
+                  {translator.translateText(otherWay.description)}{" "}
+                  <a
+                    href={llmConnectionDocsUrl(otherWay.docsPath).toString()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="llm-connection-other-way-link"
+                    className="whitespace-nowrap font-medium text-indigo-600 hover:text-indigo-700"
+                  >
+                    {translator.translateText("Read how")}
+                  </a>
+                </span>
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
+        ) : (
+          <></>
         )}
       </div>
     </div>

@@ -235,6 +235,7 @@ Al crear un flujo de trabajo, las plantillas de **De guardia** tienen este ya pr
 | **Page About** | De qué trata el aviso: **A new alert**, **An incident** o **An alert**. Reconocer el aviso también lo reconoce. |
 | **Title** y **Message** | Para una alerta nueva. OneUptime crea una alerta con ellos, y se queda entre tus alertas como cualquier otra. |
 | **Incident ID** o **Alert ID** | Para un incidente o una alerta que ya existe, normalmente aquel con el que empezó el flujo de trabajo: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Page As** | Para un incidente o una alerta que ya existe, en **Más campos**. Los **Responders** se hacen cargo. Los **Observers** se mantienen informados mientras otros responden: confirmar su aviso solo indica que lo han visto, y el incidente o la alerta no se confirma. |
 | **Severity** | Para una alerta nueva, en **Más campos**. Decide cuáles de las reglas de guardia de cada persona le avisan. Si se deja vacía, es la más grave del proyecto. |
 
 Un bloque añadido a un flujo de trabajo que empieza con un incidente o una alerta ya está configurado para avisar sobre ese registro, así que solo pregunta a quién avisar.

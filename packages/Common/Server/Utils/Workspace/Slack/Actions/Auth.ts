@@ -40,6 +40,7 @@ import WorkspaceCommands, {
 import SlackProjectChoice, {
   SlackProjectChoiceKind,
 } from "../SlackProjectChoice";
+import WorkspacePublicNoteApproval from "../../WorkspacePublicNoteApproval";
 
 // The forms whose value is the channel they were opened in.
 const NEW_RECORD_FORMS: ReadonlyArray<SlackActionType> = [
@@ -489,6 +490,18 @@ export default class SlackAuthAction {
       };
 
       actions.push(action);
+    }
+
+    /*
+     * Approve or Reject on a public note's approval message names the
+     * project its message was signed for (WorkspacePublicNoteApproval), as a
+     * form names the project it was drawn for: in a workspace connected to
+     * more than one, the press is read there. Its direct message is no
+     * record's channel, and the person may be in several of the projects.
+     */
+    if (!drawnForProjectId) {
+      drawnForProjectId =
+        WorkspacePublicNoteApproval.getSignedProjectId(actions);
     }
 
     /*

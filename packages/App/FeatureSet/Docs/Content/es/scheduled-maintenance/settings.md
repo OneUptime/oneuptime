@@ -20,7 +20,7 @@ Abre **Mantenimiento programado** desde el menú **Productos** de la barra super
 | **Reglas de etiquetas** | Añade etiquetas a los eventos que coinciden.                   |
 | **Reglas de recordatorio** | Recuerda a los propietarios a intervalos hasta que un evento se completa. |
 
-La sección **Ajustes** contiene **Estado del evento**, tratado en [Estados del mantenimiento](/docs/scheduled-maintenance/states), **Plantillas de eventos**, tratado en [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Ajustes del calendario** y **Numeración**. **Ajustes del calendario** se trata en [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#calendarios-externos), y el resto más abajo.
+La sección **Ajustes** contiene **Estado del evento**, tratado en [Estados del mantenimiento](/docs/scheduled-maintenance/states), **Plantillas de eventos**, tratado en [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates), y después **Plantillas de notas**, **Aprobación de notas públicas**, **Campos personalizados**, **Mediciones**, **Ajustes del calendario** y **Numeración**. **Ajustes del calendario** se trata en [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#calendarios-externos), y el resto más abajo.
 
 La sección **Espacio de trabajo** contiene las reglas de Slack y Microsoft Teams que publican eventos en canales. Consulta [Slack](/docs/workspace-connections/slack#reglas-de-notificación) y [Microsoft Teams](/docs/workspace-connections/microsoft-teams#reglas-de-notificación).
 
@@ -93,6 +93,10 @@ Estos recordatorios son para tu equipo. Los recordatorios que reciben los suscri
 ### Plantillas de notas
 
 **Mantenimiento programado → Ajustes → Plantillas de notas** guarda textos listos para las actualizaciones de mantenimiento. La tarjeta **Plantillas de notas públicas o privadas para eventos de mantenimiento programado** los lista; **Crear Plantilla de nota de mantenimiento programado** pide un **Nombre de la plantilla**, una **Descripción de la plantilla** y la **Nota**. Se ofrece una plantilla cuando alguien escribe una nota pública o privada en un evento y cuando cambia su estado, y su texto se puede editar antes de publicarlo. A diferencia de las plantillas de notas de incidentes, las plantillas de notas de mantenimiento no rellenan variables.
+
+### Aprobación de notas públicas
+
+**Mantenimiento programado → Ajustes → Aprobación de notas públicas** hace que las notas públicas de los eventos de mantenimiento programado se aprueben antes de publicarse. Funciona como la página de los incidentes, con su propio interruptor y sus propios pasos: activa **Exigir aprobación antes de publicar las notas públicas** y elige quién aprueba en **Quién aprueba**. Así, las notas de mantenimiento pueden necesitar aprobación mientras las de incidentes no, o aprobarlas otras personas. Solo **Propietario del proyecto** y **Administrador del proyecto** pueden cambiarla. Consulta [Aprobación de notas públicas](/docs/incidents/settings#aprobación-de-notas-públicas) para los pasos, y [Aprobación de notas públicas](/docs/incidents/notes-owners-and-feed#aprobación-de-notas-públicas) para lo que hace una nota mientras espera.
 
 ### Campos personalizados
 

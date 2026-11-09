@@ -118,13 +118,17 @@ L'**Identifiant**, comme `Bearer <token>`, est envoyé dans l'en-tête choisi so
 
 ### Syslog
 
-Chaque entrée est un message RFC 5424 envoyé à l'**Hôte** et au **Port**, en TLS sur le port `6514` sauf si **Protocole** indique TCP, avec la facility 13 (log audit) et la severity 6 (informational) :
+Chaque entrée est un message RFC 5424 envoyé à l'**Hôte** et au **Port**, en TLS sur le port `6514` sauf si **Protocole** indique TCP ou UDP, avec la facility 13 (log audit) et la severity 6 (informational) :
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-Les messages sont délimités par comptage d'octets (RFC 5425), sauf si **Délimitation** indique un message par ligne. Un récepteur dont le certificat a été signé par une AC privée a besoin du certificat de cette AC dans **Certificat de l'AC**. Les deux attendent sous **Plus de champs**.
+En TLS et en TCP, les messages sont délimités par comptage d'octets (RFC 5425), sauf si **Délimitation** indique un message par ligne. Un récepteur dont le certificat a été signé par une AC privée a besoin du certificat de cette AC dans **Certificat de l'AC**. Les deux attendent sous **Plus de champs**.
+
+En UDP, **Port** commence à `514`, et chaque message est un datagramme à part entière (RFC 5426) : aucun n'est donc délimité. UDP envoie le journal d'audit en texte clair, et rien ne confirme qu'un message est arrivé : quand l'hôte du récepteur répond que son port est fermé, le lot échoue et est réessayé, mais un message perdu en route n'est pas renvoyé. Après un test en UDP, vérifiez que l'entrée de test est arrivée. Quand chaque entrée doit arriver, choisissez TLS ou TCP.
+
+En UDP, un message fait au plus la **Taille maximale des messages**, en octets : `8192`, sauf si vous la changez sous **Plus de champs**, de `1024` à `65507`. Une entrée plus longue est raccourcie pour tenir et reste un seul objet JSON : ses valeurs sont d'abord coupées, comme le journal d'audit les coupe, par exemple `[… 1,234 more characters]` ou `[12.3 KB of JSON]`, puis les modifications qui ne tiennent toujours pas sont comptées en une seule, par exemple `[… 12 more changes]`.
 
 ## Ce qui est envoyé
 
@@ -132,7 +136,7 @@ Chaque entrée est un objet JSON, dont les clés sont toujours dans cet ordre :
 
 | Clé | Ce qu'elle contient |
 | --- | --- |
-| `schemaVersion` | `1`. Un changement de schéma vient avec une nouvelle version. |
+| `schemaVersion` | `2` pour un nouvel export, `1` pour un export enregistré avant la version 2. Une version ne fait qu'ajouter des clés. |
 | `id` | L'id de l'entrée. La même entrée envoyée deux fois a le même id. |
 | `createdAt` | Quand la modification a été enregistrée, en UTC. |
 | `projectId` | Le projet dans lequel la modification a été faite. |
@@ -143,11 +147,22 @@ Chaque entrée est un objet JSON, dont les clés sont toujours dans cet ordre :
 | `apiKeyId`, `apiKeyName` | La clé API avec laquelle elle a été faite, le cas échéant. |
 | `mcpOAuthGrantId`, `mcpClientName` | Le client MCP par lequel elle a été faite, le cas échéant. |
 | `workflowId`, `workflowName` | Le workflow qui l'a faite, le cas échéant. |
-| `changes` | Chaque champ modifié : `field`, avec `oldValue` et `newValue`. |
+| `changes` | Chaque champ modifié : `field`, avec `oldValue` et `newValue`, et dans la version 2 `summary`. |
 
 Un fichier contient une entrée par ligne, compressée avec gzip, et il est classé selon l'heure de sa première entrée : `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Chaque `oldValue` et `newValue` est la valeur du champ : du texte, un nombre, `true` ou `false`, ou du JSON pour un réglage composé de plusieurs parties. Un numéro de téléphone, une adresse e-mail ou une URL est son texte, par exemple `+14155550100`, et un port est son numéro.
+
 Les clés, jetons et mots de passe ne sortent jamais : ils sont enregistrés comme `[REDACTED]`, et les champs que personne ne peut lire sont omis de chaque entrée.
+
+## Versions de l'enregistrement
+
+| Version | Ce qu'elle envoie |
+| --- | --- |
+| `2` | Chaque modification porte aussi `summary` : ce qui a changé, dans les lignes que montre le journal d'audit, comme `Added "Send Email" (send-email-1)` pour une étape d'un workflow ou le chemin qui a changé dans le JSON, sinon `null`. Les lignes nomment des réglages et des chemins, jamais des valeurs. |
+| `1` | L'entrée telle qu'elle a été envoyée au début, sans `summary`. Les étapes d'un workflow partent sous la forme de leur taille avant et après, comme `3 steps and 2 connections`. |
+
+Un nouvel export envoie la version 2. Un export enregistré avant la version 2 continue d'envoyer la version 1, donc ce qui le lit n'a rien à changer : quand il est prêt pour `summary`, cliquez sur **Modifier** sur l'export et choisissez la version 2 dans **Version de l'enregistrement**, sous **Plus de champs**. La version s'applique aux entrées envoyées à partir de là, et chaque entrée indique la sienne dans `schemaVersion`.
 
 ## Quand les entrées sont envoyées
 
@@ -177,7 +192,7 @@ L'export d'un projet sur OneUptime Cloud ne peut pas joindre une adresse de rés
 :::
 
 :::details Rien n'arrive
-Vérifiez que la journalisation d'audit est activée dans le projet, et que quelqu'un a modifié quelque chose après l'enregistrement de l'export. Un stockage ne reçoit un fichier qu'une fois un lot plein ou âgé de cinq minutes.
+Vérifiez que la journalisation d'audit est activée dans le projet, et que quelqu'un a modifié quelque chose après l'enregistrement de l'export. Un stockage ne reçoit un fichier qu'une fois un lot plein ou âgé de cinq minutes. En UDP, un pare-feu rejette les messages sans rien dire : vérifiez qu'UDP peut atteindre le port du récepteur.
 :::
 
 ## Étapes suivantes

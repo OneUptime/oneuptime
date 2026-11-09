@@ -169,7 +169,7 @@ Har du forbundet et arbejdsområde, behøver de, der reagerer, aldrig at forlade
 Tre detaljer, der er værd at kende:
 
 - **Beskyttelse mod dubletter** — hver note registrerer den Slack-besked, den kom fra (`postedFromSlackMessageId`, i formatet `channel_id:message_ts`), så flere personer, der reagerer på den samme besked, giver én note, ikke fem.
-- **Noter vender tilbage** — at slå begge slags noter op sender også en besked ind i den forbundne hændelseskanal, fordi notens feedpost oprettes med notifikation til arbejdsområdet slået til.
+- **Noter vender tilbage** — at slå begge slags noter op sender også en besked ind i den forbundne hændelseskanal, fordi notens feedpost oprettes med notifikation til arbejdsområdet slået til. En offentlig note, der venter på godkendelse, sendes derind, når den er offentliggjort: se [Godkendelse af offentlige noter](#godkendelse-af-offentlige-noter).
 - **Slået op som den, der bad om det** — en note fra dialogen eller fra en reaktion slås op med den persons OneUptime-tilladelser, så det kræver vedkommendes tilladelse til at slå den slags note op på hændelsen. Afvises den, får vedkommende at vide hvorfor — i en direkte besked i Slack og i samtalen i Microsoft Teams (i beskedens tråd, ved en reaktion) — og intet slås op.
 
 ## Hvornår en offentlig note faktisk når abonnenterne
@@ -240,6 +240,34 @@ En sendt opdatering tilbydes ikke igen: rediger noten med afkrydsningsfeltet mar
 
 Den faktiske besked, abonnenterne får, bygges med en skabelon pr. statusside og pr. kanal — e-mail, SMS, Slack og Microsoft Teams har hver deres skabelon til begivenheden **Subscriber Incident Note Created**, med variabler for statussidens navn og URL, linket til detaljerne, de berørte ressourcer, hændelsens alvorsgrad og titel, notens tekst, hændelsens etiketter, berørte statussider og brugerdefinerede felter samt et afmeldingslink pr. abonnent. Standardbeskederne pr. e-mail, i Slack og i Microsoft Teams viser også hændelsens brugerdefinerede felter, der er markeret med **Medtag i abonnentnotifikationer**, med deres aktuelle værdier. Se [Abonnenter og meddelelser](/docs/status-pages/subscribers) for, hvordan de skabeloner og kanaler sættes op.
 
+## Godkendelse af offentlige noter
+
+Et projekt kan få sine offentlige noter godkendt, før kunderne læser dem, så nogen tjekker en opdatering, for eksempel om et sikkerhedsbrud, før den går ud. Godkendelse er slået fra, indtil en projektejer eller -administrator slår den til og vælger, hvem der godkender: under **Hændelser → Indstillinger → Godkendelse af offentlige noter** for hændelser og hændelsesepisoder, og under **Planlagt vedligeholdelse → Indstillinger → Godkendelse af offentlige noter** for planlagte vedligeholdelsesbegivenheder. Se [Godkendelse af offentlige noter](/docs/incidents/settings#godkendelse-af-offentlige-noter).
+
+Mens den er slået til, siger editoren, at noten offentliggøres, når den er godkendt, og nævner, hvem der godkender den, og **Slå opdatering op** bliver til **Send til godkendelse**. Noten gemmes med mærket **Venter på godkendelse** og viser under det, hvem der kan godkende den, og ved flere trin, hvilket den venter på. Indtil den er godkendt, gælder det for en note, at den:
+
+- ikke vises på nogen statusside og ikke i nogen af deres RSS- og Atom-feeds;
+- ikke giver nogen abonnent besked: dens notifikation sendes, når den offentliggøres, hvis **Giv abonnenter på statussiden besked** var markeret. Se [Offentlige noter, der venter på godkendelse](/docs/status-pages/subscribers#offentlige-noter-der-venter-på-godkendelse);
+- ikke slås op i hændelsens Slack-, Microsoft Teams- eller Mattermost-kanaler, og at dens ejere først får besked om den, når den er offentliggjort;
+- ikke starter nogen workflow og holdes uden for det, OneUptime AI læser, så den aldrig dukker op i en udkastnote;
+- kun viser sine billeder til projektets medlemmer.
+
+Enhver ny offentlig note venter, uanset hvor den skrives: i dashboardet, gennem API'et, af en workflow eller OneUptime AI, fra Slack, Microsoft Teams eller Mattermost, af en SLA-regels påmindelse eller sammen med et tilstandsskift.
+
+**Godkende og afvise.** De personer, som det trin, en note venter på, nævner, og medlemmerne af de teams, det nævner, ser **Godkend** og **Afvis** på noten og får besked om, at den venter, gennem de notifikationsindstillinger, de har valgt: se [Godkendelse af offentlige noter](/docs/notifications/notification-settings#godkendelse-af-offentlige-noter). På det sidste trin hedder **Godkend** i stedet **Godkend og offentliggør**, og noten offentliggøres med det samme, dateret til det øjeblik, den offentliggøres, medmindre dens tidspunkt blev valgt, da den blev skrevet. Når den er offentliggjort, bærer den mærket **Godkendt** og en linje, der nævner, hvem der godkendte den, og dens post i feedet og dens besked i hændelsens kanaler slutter med de samme navne. **Afvis** spørger **Hvorfor afviser du den?**, og den, der skrev noten, ser begrundelsen. Ingen godkender eller afviser en note, de selv har sendt, ingen godkender to trin af den samme note, og en API-nøgle godkender intet: godkendere er mennesker.
+
+**Send den igen.** En afvist note holdes væk fra statussider, markeret **Afvist**. Den, der må redigere den, kan ændre den eller sende den, som den er, med **Send til godkendelse igen**; i begge tilfælde begynder dens godkendelse forfra fra det første trin. At redigere en note, der stadig venter, starter også dens godkendelse forfra: en godkendelse gælder de ord, den fik forelagt.
+
+**Rediger en offentliggjort note.** En redigering venter også. Redigeringsformularen siger det, og **Send redigering til godkendelse** gemmer den. Statussider bliver ved med at vise noten, som den blev godkendt, noten viser redigeringen under **Foreslået redigering**, markeret **Redigering venter på godkendelse** eller, når den er afvist, **Redigering afvist**, og **Træk redigering tilbage** kasserer den. Filerne på en offentliggjort note kan ikke ændres, mens godkendelse er slået til: slå i stedet en ny note op med filerne. En redigering, der sendes, mens nogen tager stilling til noten, gemmes ikke: genindlæs siden, og lav den igen.
+
+**Slå godkendelse fra.** Fra da af offentliggøres nye noter, så snart de slås op. En note, der stadig ventede eller blev afvist, tilbyder **Offentliggør nu** til dem, der må redigere den, hvilket offentliggør den, som den er, uden godkendelse, og feedet siger det.
+
+**Fra Slack, Microsoft Teams og Mattermost.** Formularen til at tilføje en note siger, at en offentlig note slås op på statussiden, når den er godkendt. Den, der sender en, får at vide, at den er sendt til godkendelse, og hvem den venter på: i en besked, kun vedkommende kan se, i Slack og Mattermost, og i samtalen i Microsoft Teams. En note, der gemmes fra en 📣- eller 📢-reaktion, siger det samme i sin bekræftelse. Kanalen hører om noten, når den offentliggøres.
+
+**Godkend fra Slack, Microsoft Teams og Mattermost.** Godkendere, der slår Slack, Microsoft Teams eller Mattermost til for **Godkendelse af offentlige noter** under **Brugerindstillinger → Notifikationsindstillinger**, får noten der, i en direkte besked fra OneUptime: hvem der sendte den, hvilket trin den venter på, og knapper til at godkende den, afvise den eller åbne den i OneUptime. Et tryk afgør som den OneUptime-konto, deres chatkonto er forbundet til, efter de samme regler som knapperne på noten, og en afvisning kræver også en begrundelse der. Kun de ser svaret. Hvis en anden afgjorde først, eller noten eller dens trin ændrede sig, efter beskeden blev sendt, afgøres intet, og svaret siger, hvad der skete. Når noten er afgjort, ændres hver godkenders besked om den, så den siger, hvad der skete, og kun linket til OneUptime er tilbage. Når godkendelsestrinnene ændres, mens den venter, ændres beskederne om et trin, den ikke længere venter på, på samme måde, og det samme gør beskeden til enhver, som dens trin ikke længere spørger; dem, den nu venter på, får deres egen besked med knapperne. Se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) og [Mattermost](/docs/workspace-connections/mattermost).
+
+Feedet registrerer hvert trin som en post af typen `PublicNoteApproval`: en note sendt til godkendelse, godkendt eller afvist, en trukket redigering eller en note offentliggjort uden godkendelse. Disse poster slås ikke op i chatkanaler; den offentliggjorte note gør.
+
 ## Hændelsens feed
 
 Kortet **Hændelsesfeed** står nederst i venstre kolonne på hændelsens side **Oversigt**. Det er hændelsens historie som en tidslinje. Hver dag har en overskrift med sin dato, siger, når det er i dag eller i går, og nævner den tidszone, tidspunkterne står i: den fra dine brugerindstillinger, ellers din browsers. Hver post viser det tidspunkt, den skete, medmindre posten over den skete i samme minut, og i den seneste time også hvor længe siden; peg på tidspunktet for den fulde dato og tid. Ved siden af tidspunktet står ikonet for postens type og en sætning, der begynder med avataren og navnet på den, der forårsagede den. Det, nogen har skrevet, som en note eller en grundårsag, står for sig selv i et kort under sætningen. Tre eller flere poster af samme type i træk inden for fem minutter, som vagtopdateringer, notifikationer til ejere eller abonnenter eller regler, der kørte, foldes sammen under den første bag en knap, der viser resten. Som standard står de nyeste poster øverst.
@@ -249,7 +277,7 @@ Nogle poster har ekstra detaljer — en notifikation til ejerne viser for eksemp
 Kortets hoved har også en menu **Handlinger**, så du kan handle uden at forlade tidslinjen:
 
 - **Kør runbook** — start et [runbook](/docs/runbooks/index) for denne hændelse.
-- **Udfør vagtpolitik** — tilkald en politik efter behov. En arkiveret politik tilkalder ingen: dens udførelseslog på hændelsen siger, at den ikke blev udført, fordi politikken er arkiveret.
+- **Udfør vagtpolitik** — tilkald en politik efter behov. En arkiveret politik tilkalder ingen: dens udførelseslog på hændelsen siger, at den ikke blev udført, fordi politikken er arkiveret. Slå **Tilkald dem som observatører** til for i stedet at holde politikkens personer orienteret: Deres svar siger kun, at de har set tilkaldet, og hændelsen bliver ikke bekræftet.
 - **Tilføj offentlig note** — siden **Offentlige noter**'s editor, i en dialog: skriv noten, og derefter **Slå opdatering op**. Skabeloner, **Udkast med AI**, vedhæftninger, **Giv abonnenter på statussiden besked** med hvem den når, og **Forhåndsvisning** er der alle. Noten slås op nu; for at tilbagedatere den vælger du **Slået op nu**.
 - **Tilføj privat note** — siden **Private noter**'s editor, i en dialog: skriv noten, og derefter **Tilføj note**.
 
@@ -269,7 +297,7 @@ Alt andet ligger bag knappen **⋯** ved siden af, den samme knap **Flere indsti
 Feedposter skrives af selve hændelsestjenesten, af begge notetjenester, af tilstandstidslinjen, af ændringer af ejere og medlemmer, af tilknytning og frakobling af advarsler, af regelmotorerne, af vagtens udførelse, af kørslerne af AI-undersøgelsen og postmortemmen og af cronjobbene til notifikationer. Begivenhedstyperne dækker:
 
 - **Selve hændelsen** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. En post `IncidentUpdated` registrerer, hvad en redigering ændrede: titlen, beskrivelsen, grundårsagen, afhjælpningsnoterne, etiketterne, alvorsgraden, monitorerne og den status, der blev sat på dem, og de statussider, der blev tilføjet til eller fjernet fra hændelsens omfang. Den har en linje for hver værdi, der ændrede sig, og ingen for en værdi, der blev gemt, som den var, så at gemme et kort uden ændringer, eller en API-klient eller et workflow, der skriver hændelsen tilbage, som den er, tilføjer slet ingen post. Tekst, der lyder ens, er ens (linjeskift og mellemrummene omkring den undtaget), og etiketter er det samme sæt i enhver rækkefølge; en værdi, der blev ryddet, lyder som fjernet, og at fjerne alle etiketter som "All labels removed.". En advarsels poster **Alert updated** virker på samme måde.
-- **Noter og rapporter** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. En post `PostmortemNote` skrives, når postmortemmens note ændres, ikke hver gang postmortemmen gemmes.
+- **Noter og rapporter** — `PublicNote`, `PublicNoteApproval`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. En post `PostmortemNote` skrives, når postmortemmens note ændres, ikke hver gang postmortemmen gemmes.
 - **Personer** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved` og `ChannelMemberAdded`, vist som **Kanalmedlem tilføjet**, for en person, der er tilføjet til hændelsens Slack- eller Mattermost-kanal fra dens side. Se [Hvem der er i en posts kanal](/docs/workspace-connections/slack#hvem-der-er-i-en-posts-kanal).
 - **Tilknyttede advarsler** — `AlertLinked` og `AlertUnlinked`, vist som **Advarsel tilknyttet** og **Advarsel frakoblet**.
 - **Notifikationer** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
@@ -304,7 +332,7 @@ Der er fem veje ind på listen over ejere:
 
 - **Ved erklæring** — den person, der erklærer en hændelse, bliver ejer, og **Ejere** under **Flere felter** på **Erklær hændelse** tilføjer flere: hvert team, personen er medlem af, er ét klik væk under feltet. Se [Hvem der ejer den](/docs/incidents/declaring-incidents#hvem-der-ejer-den).
 - **Fra en hændelsesskabelon** — skabeloner har et felt **Ejere**: de personer og teams, der ejer hændelsen og får besked, når den oprettes eller opdateres, valgt fra den samme liste som **Tilføj ejer**. At oprette en hændelse fra skabelonen udfylder dem på forhånd, og de tilføjes, når hændelsens Slack- og Microsoft Teams-kanaler findes, så en notifikationsregel, der inviterer hændelsens ejere til en ny kanal, også inviterer dem. Dashboardet, og et workflows trin **Create One Incident** med en valgt **Incident Template**, tilføjer dem uden beskeden "du er blevet tilføjet"; en [formular](/docs/forms/on-submit) med en skabelon giver dem besked og holder hændelsens notifikation **Hændelse oprettet** tilbage, indtil de er tilføjet. Se [Opret en hændelse](/docs/incidents/declaring-incidents).
-- **Fra Ejerregler for hændelse** — matchende regler tilføjer ejere automatisk ved oprettelsen.
+- **Fra Ejerregler for hændelse** — matchende regler tilføjer ejere automatisk ved oprettelsen og igen, når hændelsens alvorlighed eller etiketter ændres.
 - **Ved oprettelse via API'et** — brugere og teams, der angives som ejere med oprettelseskaldet, tilføjes på samme måde, når kanalerne findes, og uden beskeden "du er blevet tilføjet".
 - **By hand** — elementet **Tilføj ejer** på siden **Ejere**, når som helst under hændelsen, eller **Tilføj** under ejerne i hovedet på **Oversigt**, så længe den er åben.
 
@@ -324,6 +352,8 @@ En ny regel skal tilføje nogen: vælg mindst én ejer, slå en kontakt under **
 **Underret ejere**, under **Flere felter**, styrer, om folk får det at vide. Lad det være slået til for rigtig routing; slå det fra for at tilføje ejere i stilhed — nyttigt, når en regel er en administrativ bekvemmelighed og ikke en tilkaldelse.
 
 Hver kørsel af en regel skrives i hændelsens feed, så du altid kan se, om en person blev tilføjet af en regel eller af et menneske.
+
+Regler kører, når en hændelse oprettes, og igen, hver gang dens alvorlighed eller etiketter ændres, mens den er åben. En hændelse, der hæves til en alvorlighed, som en regel matcher, eller får en etiket, som en regel matcher, får den regels ejere med det samme, med besked, som reglen siger, og hændelsens feed fortæller, at reglen nu matcher den, og hvorfor: Sådan overtager et team en hændelse, når den viser sig at ramme hele organisationen. Ejere fjernes aldrig, når hændelsen ikke længere matcher.
 
 ## Hvad ejerne får besked om
 

@@ -146,6 +146,7 @@ describe("a cloud resource's menu", () => {
     ]);
     expect(linksIn("Advanced")).toEqual([
       { title: "Owners", href: `${RESOURCE_PATH}/owners` },
+      { title: "Audit Logs", href: `${RESOURCE_PATH}/audit-logs` },
       { title: "Delete Resource", href: `${RESOURCE_PATH}/delete` },
     ]);
     // Every link stays in Cloud, on this resource.
@@ -193,7 +194,7 @@ describe("a cloud resource's menu", () => {
 });
 
 describe("a cloud account's menu", () => {
-  test("its overview, resources, map, recommended monitors and costs; its AI agent; its changes and its feed; its settings, Developer pages and delete", async () => {
+  test("its overview, resources, map, recommended monitors and costs; its AI agent; its changes and its feed; its settings, Developer pages, audit logs and delete", async () => {
     goTo(ACCOUNT_PATH);
     await renderMenu(
       <CloudAccountSideMenu modelId={new ObjectID(ACCOUNT_ID)} />,
@@ -242,6 +243,7 @@ describe("a cloud account's menu", () => {
       },
     ]);
     expect(linksIn("Advanced")).toEqual([
+      { title: "Audit Logs", href: `${ACCOUNT_PATH}/audit-logs` },
       { title: "Delete Account", href: `${ACCOUNT_PATH}/delete` },
     ]);
 

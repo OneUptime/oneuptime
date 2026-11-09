@@ -1,4 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
+import { isPageAsObservers } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
+import { translationKey } from "Common/Types/Translator";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -22,6 +24,16 @@ export const WORKING_HOURS_SUMMARY_TEST_ID: string =
   "on-call-rule-working-hours-summary";
 export const WORKING_HOURS_ROW_SUMMARY_TEST_ID: string =
   "on-call-rule-row-working-hours";
+export const OBSERVERS_ROW_SUMMARY_TEST_ID: string =
+  "on-call-rule-row-observers";
+
+/*
+ * Under the name of a rule that pages its policies as observers
+ * (OnCallObserverPage): the one thing that makes it unlike most rules.
+ */
+export const OBSERVERS_ROW_SUMMARY: string = translationKey(
+  "Pages as observers: kept informed, nothing is acknowledged",
+);
 
 export interface ComponentProps {
   rule: WorkingHoursOfRule;
@@ -63,7 +75,8 @@ const WorkingHoursSummary: FunctionComponent<ComponentProps> = (
 
 export interface RowComponentProps {
   name: string;
-  rule: WorkingHoursOfRule;
+  // When it pages, and what its policies page as (OnCallPageAs).
+  rule: WorkingHoursOfRule & { pageAs?: string | null | undefined };
 }
 
 /*
@@ -79,24 +92,41 @@ export const OnCallRuleNameCell: FunctionComponent<RowComponentProps> = (
     translator: translator,
     use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
   });
+  const pagesObservers: boolean = isPageAsObservers(props.rule.pageAs);
 
-  if (!summary) {
+  if (!summary && !pagesObservers) {
     return <>{props.name}</>;
   }
 
   return (
     <div className="min-w-0">
       <div className="truncate">{props.name}</div>
-      <div
-        className="mt-0.5 flex items-start gap-1 whitespace-normal text-xs font-normal text-gray-500"
-        data-testid={WORKING_HOURS_ROW_SUMMARY_TEST_ID}
-      >
-        <Icon
-          icon={IconProp.Clock}
-          className="mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400"
-        />
-        <span className="min-w-0">{summary}</span>
-      </div>
+      {pagesObservers ? (
+        <div
+          className="mt-0.5 flex items-start gap-1 whitespace-normal text-xs font-normal text-gray-500"
+          data-testid={OBSERVERS_ROW_SUMMARY_TEST_ID}
+        >
+          <Icon
+            icon={IconProp.Eye}
+            className="mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+          />
+          <span className="min-w-0">
+            {translator.translateText(OBSERVERS_ROW_SUMMARY)}
+          </span>
+        </div>
+      ) : null}
+      {summary ? (
+        <div
+          className="mt-0.5 flex items-start gap-1 whitespace-normal text-xs font-normal text-gray-500"
+          data-testid={WORKING_HOURS_ROW_SUMMARY_TEST_ID}
+        >
+          <Icon
+            icon={IconProp.Clock}
+            className="mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+          />
+          <span className="min-w-0">{summary}</span>
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -43,6 +43,13 @@ export enum ScheduledMaintenanceFeedEventType {
   OwnerRuleExecuted = "OwnerRuleExecuted",
   LabelRuleExecuted = "LabelRuleExecuted",
   ChannelMemberAdded = "ChannelMemberAdded",
+  /*
+   * A public note's approval: sent for approval, approved for a step,
+   * rejected, an edit withdrawn (PublicNoteApprovalFeed). Never posted to a
+   * chat channel; the note itself is posted as a PublicNote once it is
+   * published.
+   */
+  PublicNoteApproval = "PublicNoteApproval",
 }
 
 @EnableDocumentation()

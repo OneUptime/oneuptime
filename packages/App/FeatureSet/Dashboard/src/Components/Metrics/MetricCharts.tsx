@@ -51,6 +51,7 @@ import {
 import { LineChartPalette } from "Common/UI/Components/Charts/Line/LineChart";
 import { AreaChartPalette } from "Common/UI/Components/Charts/Area/AreaChart";
 import { BarChartPalette } from "Common/UI/Components/Charts/Bar/BarChart";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import MetricUtil, {
   DEFAULT_TOP_N_SERIES,
   SHOW_ALL_SERIES_TOP_N,
@@ -98,6 +99,10 @@ import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import { PREVIOUS_PERIOD_SERIES_SUFFIX } from "Common/UI/Components/Charts/ChartLibrary/Utils/TooltipEntries";
 import InvestigationDrawer from "../Telemetry/InvestigationDrawer";
 import ExplorerLink from "./Utils/ExplorerLink";
+import {
+  MetricChartThreshold,
+  buildMetricChartThresholdLines,
+} from "./Utils/MetricChartThresholds";
 import TimeRange from "Common/Types/Time/TimeRange";
 import {
   DictionaryEntryValue,
@@ -134,6 +139,12 @@ export interface ComponentProps {
    * red line is the value its rule is being given.
    */
   thresholdLinesExtendAxis?: boolean | undefined;
+  /*
+   * Lines a page draws for values that are not the queries' own: a
+   * monitor's criteria thresholds, each on the chart of the query or
+   * formula it compares (MetricChartThresholds). Drawn only, never saved.
+   */
+  thresholds?: Array<MetricChartThreshold> | undefined;
   /*
    * Keep a minimum plot height under hideCard (see ChartGroup's
    * minPlotHeight). Only for hosts whose panel can grow: a fixed-height
@@ -605,7 +616,10 @@ function navigateMenuWithKeyboard(input: {
   items[nextIndex]?.focus();
 }
 
-// Composite key for exemplar fetch/state: metric name + sanitized filters.
+/*
+ * Composite key for exemplar fetch/state: metric name + sanitized filters,
+ * and the services the query reads for (issue #6266).
+ */
 function getExemplarStateKey(queryConfig: MetricQueryConfigData): string {
   const metricName: string =
     queryConfig.metricQueryData.filterData.metricName?.toString() || "";
@@ -615,7 +629,11 @@ function getExemplarStateKey(queryConfig: MetricQueryConfigData): string {
         | Dictionary<DictionaryEntryValue>
         | undefined,
     );
-  return `${metricName}::${MetricUtil.serializeAttributeFiltersForKey(sanitized)}`;
+  const serviceIds: Array<string> =
+    MetricQueryServices.getServiceIds(queryConfig);
+  return `${metricName}::${MetricUtil.serializeAttributeFiltersForKey(sanitized)}${
+    serviceIds.length > 0 ? `::${serviceIds.join(",")}` : ""
+  }`;
 }
 
 function getXAxisAggregationTypeForQuery(
@@ -1608,6 +1626,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     key: string;
     metricName: string;
     attributes: Dictionary<DictionaryEntryValue> | undefined;
+    serviceIds: Array<string>;
   }
 
   const exemplarTargets: Array<ExemplarTarget> = (() => {
@@ -1633,6 +1652,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             | Dictionary<DictionaryEntryValue>
             | undefined,
         ),
+        serviceIds: MetricQueryServices.getServiceIds(queryConfig),
       });
     }
     return Array.from(targetsByKey.values());
@@ -1670,6 +1690,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         metricName: target.metricName,
         startAndEndDate,
         attributes: target.attributes,
+        serviceIds: target.serviceIds,
       })
         .then((exemplars: Array<ExemplarPoint>) => {
           setExemplarsByQueryKey(
@@ -2711,6 +2732,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             formatterOptions: { metricName: member.metricName },
             extendsDomain: props.thresholdLinesExtendAxis,
           }),
+          ...buildMetricChartThresholdLines({
+            thresholds: props.thresholds,
+            metricVariable: member.queryConfig.metricAliasData?.metricVariable,
+            unit: member.unit,
+            formatterOptions: { metricName: member.metricName },
+            drawnValues: [
+              member.queryConfig.warningThreshold,
+              member.queryConfig.criticalThreshold,
+            ],
+          }),
         );
       }
 
@@ -3325,13 +3356,23 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         });
       }
 
-      const formulaReferenceLines: Array<ChartReferenceLineProps> =
-        buildThresholdReferenceLines({
+      const formulaReferenceLines: Array<ChartReferenceLineProps> = [
+        ...buildThresholdReferenceLines({
           warningThreshold: formulaConfig.warningThreshold,
           criticalThreshold: formulaConfig.criticalThreshold,
           unit: formulaUnit,
           extendsDomain: props.thresholdLinesExtendAxis,
-        });
+        }),
+        ...buildMetricChartThresholdLines({
+          thresholds: props.thresholds,
+          metricVariable: formulaConfig.metricAliasData?.metricVariable,
+          unit: formulaUnit,
+          drawnValues: [
+            formulaConfig.warningThreshold,
+            formulaConfig.criticalThreshold,
+          ],
+        }),
+      ];
 
       const formulaMetricInfo: ChartMetricInfo = {
         metricName:

@@ -2,6 +2,8 @@
 
 **Köer** ger varje meddelandekö, varje topic och varje prenumeration som dina applikationer använder en egen sida: vilka tjänster som publicerar till den och vilka som konsumerar från den, hur många meddelanden som passerar, hur många som misslyckas och hur lång tid bearbetningen tar, dess spår och mätvärden och, så snart brokerns egna mätvärden når OneUptime, dess eftersläpning, konsumentlagg, dead letters och strypning. Köer har etiketter, ägare, etikett- och ägarregler och arkivering, precis som alla andra resurser. Öppna dem under **Produkter → Resurser → Köer**.
 
+**Köer → Topologi** visar hur meddelanden flödar mellan dina tjänster: varje kö mellan tjänsterna som publicerar till den och de som konsumerar från den. Varje linje visar sin meddelandetakt, sin felfrekvens och sin p95-tid, räknade som köns kort **Producenter** och **Konsumenter** räknar dem, och så snart en brokers mätvärden når OneUptime visar dess köer sin konsumentlagg eller eftersläpning och sina dead letters. Sök i vyn, filtrera den efter broker eller behåll bara det som behöver uppmärksamhet. Köns egen flik **Topologi** visar varifrån dess meddelanden kommer och vart de går.
+
 :::cards
 - [Instrumentera applikationer](#instrumentera-applikationer): De meddelandespan som din OpenTelemetry-instrumentering redan skickar.
 - [Brokerns hälsomätvärden](#brokerns-hälsomätvärden): Eftersläpning, lagg och dead letters från din broker, system för system.
@@ -213,6 +215,10 @@ builder.Services.AddOpenTelemetry()
 En broker vet det som ingen applikation kan se: hur många meddelanden som väntar, hur långt efter varje konsumentgrupp ligger, vad som hamnade i en dead-letter-kö. Varje avsnitt nedan har collectorkonfigurationen för ett system: en komplett OpenTelemetry Collector-konfiguration som slutar med OTLP-exportören som skickar till OneUptime. Lägg en telemetri-intagningsnyckel (**Projektinställningar → Telemetri och APM → Intagningsnycklar**) i `x-oneuptime-token`, ersätt `https://oneuptime.com` med din egen värd om du självhostar, och kör den med `otel/opentelemetry-collector-contrib` 0.161.0 eller senare (varje konfiguration här är validerad mot 0.161.0). Nyare collectorer loggar att `otlphttp` är föråldrad till förmån för `otlp_http`; båda namnen är samma exportör. För att samla in flera system slår du ihop deras receivrar i en collector.
 
 Avsnittet **Brokerhälsa** för varje kö visar de mätvärden som listas för dess system (en gauge som sitt värde, ett antal per period summerat per intervall, en räknare som takt per sekund) och kombinerar en kös serier så som varje mätvärde kräver (de redo och obekräftade meddelandena i en RabbitMQ-kö läggs ihop; den konsumentgrupp som ligger längst efter är laggen). Allt som collectorn skickar finns också i utforskaren **Mätvärden**. Så länge inget listat mätvärde har kommit in för en kö visar avsnittet var det systemets mätvärden kommer ifrån, med en länk till dess avsnitt här.
+
+Där ingen spårad applikation publicerar till eller konsumerar från en kö läser köns rutor **Publicerade**, **Konsumerade** och **Fel** och dess diagram **Meddelanden** i stället brokerns egna räkningar (meddelanden in, meddelanden ut och dess fel sammanlagda, med strypta begäranden räknade för sig under **Fel**), och var och en säger det under sitt tal. En kö med span behåller dem, eftersom de säger vilken tjänst som gjorde vad. Rutan **p95 processing time** kommer bara från konsumenternas spår, eftersom ingen broker mäter hur lång tid en konsument tar på sig för ett meddelande: utan dem står det **Kräver spår från konsumenter**.
+
+Kortet **Brokermätvärden** överst i avsnittet listar varje mätvärde som visas i diagram för köns system: om det har kommit in för kön i det valda intervallet, när det senast gjorde det och varför vart och ett av de andra inte gjorde det. Ett antal kan ha inget att rapportera (inga strypta begäranden är goda nyheter); en nivå som brokern rapporterar hela tiden och som aldrig kommer in är en som collectorn inte ber om, och kortet ger raderna som dess konfiguration behöver; ett mätvärde kan också sluta komma in. För en Service Bus- eller Event Hubs-kö där inget av mätvärdena kommer in läser kortet också vad dess namespace skickar i stället (se [Brokerhälsan förblir tom](#brokerhälsan-förblir-tom)). Under sammanfattningen anger kortet vad som har läst köns mätvärden på senare tid: collectorns receiver, dina molnanslutningar, länkade till **Moln → Anslut**, eller båda. På en kö som bara en [ansluten Azure-prenumeration](/docs/telemetry/cloud-accounts) läser är ett mätvärde som prenumerationen inte läser **Endast collector**, med raden som lägger till det i receivern, i stället för att saknas.
 
 ### Amazon SNS
 
@@ -589,7 +595,9 @@ OneUptime visar inte Event Grids mätvärden på en kös sida: Azure Monitor rap
 
 ### Azure Event Hubs
 
-Läs namespacets mätvärden från Azure Monitor med collectorns `azure_monitor`-receiver, som delar upp dem per event hub efter dimensionen EntityName.
+En ansluten Azure-prenumeration läser namespacets viktigaste mätvärden för varje event hub, utan att du behöver köra något. För att läsa alla kör du collectorns `azure_monitor`-receiver, som delar upp dem per event hub efter dimensionen EntityName.
+
+En [ansluten Azure-prenumeration](/docs/telemetry/cloud-accounts) läser `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` och `azure_throttledrequests_total` för upp till 1 000 event hubs i ett namespace, med ett Azure Monitor-anrop per namespace och läsning, hur många event hubs namespacet än har. De andra tre läser bara receivern, och en event hubs kort **Brokermätvärden** markerar dem som **Endast collector**. Där båda läser ett mätvärde för en event hub behålls receiverns och prenumerationens utelämnas, så inget räknas två gånger.
 
 Receivern loggar in via tillägget `azure_auth`. Ge tjänstens huvudnamn rollen **Monitoring Reader** på prenumerationen:
 
@@ -617,6 +625,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -648,10 +657,13 @@ Azure Monitor har inget mätvärde för konsumentlagg för Event Hubs: dess `Con
 | `azure_usererrors_total` | Användarfel | Antal per period |
 | `azure_quotaexceedederrors_total` | Fel vid överskriden kvot | Antal per period |
 | `azure_throttledrequests_total` | Strypta begäranden | Antal per period |
+| `azure_size_average` | Storlek | Gauge |
 
 ### Azure Service Bus
 
-Läs namespacets mätvärden från Azure Monitor med collectorns `azure_monitor`-receiver, som delar upp dem per kö och topic efter dimensionen EntityName.
+En ansluten Azure-prenumeration läser namespacets viktigaste mätvärden för varje kö och topic, utan att du behöver köra något. För att läsa alla kör du collectorns `azure_monitor`-receiver, som delar upp dem per kö och topic efter dimensionen EntityName.
+
+En [ansluten Azure-prenumeration](/docs/telemetry/cloud-accounts) läser `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` och `azure_throttledrequests_total` för upp till 1 000 köer och topics i ett namespace, med ett Azure Monitor-anrop per namespace och läsning, hur många köer namespacet än har: med en läsning var 5:e minut kostar ett namespace med 50 köer 12 anrop i timmen, lika mycket som ett namespace med en enda kö. De andra sex läser bara receivern, och en kös kort **Brokermätvärden** markerar dem som **Endast collector**. Där båda läser ett mätvärde för en kö behålls receiverns och prenumerationens utelämnas, så inget räknas två gånger.
 
 Receivern loggar in via tillägget `azure_auth`. Ge tjänstens huvudnamn rollen **Monitoring Reader** på prenumerationen:
 
@@ -677,6 +689,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -684,6 +698,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -706,13 +721,17 @@ service:
 - Mätvärdena hittar sin kö eller sitt topic via namespacet (`name`) och entiteten (`EntityName`); SDK:ernas span namnger samma namespace som `<namespace>.servicebus.windows.net`. Ett span på `orders/Subscriptions/billing` eller `orders/$DeadLetterQueue` hör till `orders`, precis som mätvärdena.
 - `maximum_number_of_records_per_resource` är hur många serier Azure returnerar per mätvärde och namespace, 10 om du inte höjer det: håll det över ditt antal köer och topics (felmätvärdena delar dessutom upp varje entitet efter resultat), annars rapporteras inte resten.
 - Azure Monitor delar inte upp efter topicprenumeration: ett topics räkningar täcker alla dess prenumerationer.
-- Listan `metrics` samlar in exakt det som kösidan visar, vart och ett med den enda aggregering som den visar; lägg till ett mätvärde (`ScheduledMessages`, `Size`, …) för att samla in det också.
+- Listan `metrics` samlar in exakt det som kösidan visar, vart och ett med den enda aggregering som den visar; lägg till ett mätvärde (`IncomingRequests`, `Messages`, …) för att samla in det också. En collector vars lista är äldre än `ScheduledMessages`, `Size` eller `ServerSendLatency` skickar inget av dem: köns kort **Brokermätvärden** nämner raderna som ska läggas till.
+- En [ansluten Azure-prenumeration](/docs/telemetry/cloud-accounts) delar upp sina sex mätvärden efter kö och topic precis som den här receivern. En diagnostikinställning som exporterar mätvärden skickar namespacets totaler, utan `EntityName`, så ingen av dem når en kö: namespacets egen sida under **Moln → Alla resurser** har dem, och en kös kort **Brokermätvärden** säger varför köns egna saknas.
+- Inget av de här mätvärdena beror på namespacets nivå. `ServerSendLatency` rapporteras per sändning, så en kö som inget skickades till under intervallet har inga.
 - Receivern listar dina namespaces en gång om dagen, så ett nytt namespace kan ta upp till 24 timmar att dyka upp.
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
 | `azure_activemessages_average` | Aktiva meddelanden | Gauge |
 | `azure_deadletteredmessages_average` | Meddelanden i dead-letter | Gauge |
+| `azure_scheduledmessages_average` | Schemalagda meddelanden | Gauge |
+| `azure_size_average` | Storlek | Gauge |
 | `azure_incomingmessages_total` | Inkommande meddelanden | Antal per period |
 | `azure_outgoingmessages_total` | Utgående meddelanden | Antal per period |
 | `azure_completemessage_total` | Slutförda meddelanden | Antal per period |
@@ -720,6 +739,7 @@ service:
 | `azure_servererrors_total` | Serverfel | Antal per period |
 | `azure_usererrors_total` | Användarfel | Antal per period |
 | `azure_throttledrequests_total` | Strypta begäranden | Antal per period |
+| `azure_serversendlatency_average` | Serverns sändningslatens | Gauge |
 
 ### BullMQ
 
@@ -1046,6 +1066,10 @@ När dess span faktiskt namnger den skapar du den manuellt med samma system och 
 - Receivern rapporterar den inte. Kafka rapporterar en konsumentgrupps lagg först när gruppen har committat ett offset; RabbitMQ rapporterar bara köerna i de virtuella värdar som dess användare har åtkomst till, och loggar inget fel för resten (se [RabbitMQ](#rabbitmq)); RabbitMQ:s räknare dyker upp vid den första aktiviteten; Azure Monitor returnerar 10 köer per mätvärde och namespace om inte `maximum_number_of_records_per_resource` höjs; Cloud Monitoring läser bara typerna i `metrics_list`.
 - Den är fördröjd. `aws_cloudwatch` väntar `delay` (10 minuter) på att CloudWatch publicerar, så dess punkter kommer 11 till 17 minuter sent, och Pub/Subs mätvärden kommer minuter sent.
 - Systemet har inga mätvärden i diagram: Azure Event Grid, NATS, andra JMS-brokrar än ActiveMQ och BullMQ (se deras avsnitt). Deras mätvärden finns i utforskaren **Mätvärden**.
+- Öppna köns kort **Brokermätvärden**: det listar vilka mätvärden som kommer in och varför de andra inte gör det. För en Service Bus- eller Event Hubs-kö där inget av mätvärdena kommer in säger det också vad namespacet skickar i stället, en av tre saker.
+- **Inget från namespacet**: inget läser det, eller så misslyckas varje läsning. Anslut dess Azure-prenumeration under **Moln → Anslut**, eller kör receivern `azure_monitor`. Ge anslutningens app eller tjänstens huvudnamn för receivern rollen **Monitoring Reader**, och titta på anslutningens senaste läsning, eller leta i collectorns logg efter `AuthorizationFailed` eller `401`: en utgången klienthemlighet stoppar varje läsning.
+- **Bara totaler**: namespacets mätvärden kommer in för namespacet som helhet, utan någon kö eller något topic i dem. En diagnostikinställning skickar bara dem: anslut namespacets prenumeration, eller läs också namespacet med receivern `azure_monitor`; båda delar upp dem efter `EntityName`. En [ansluten Azure-prenumeration](/docs/telemetry/cloud-accounts) skickade bara dem innan den läste varje kö, eller när dess läsningar av köerna misslyckas: dess senaste läsning under **Moln → Anslut** säger varför.
+- **Bara andra köer**: mätvärden kommer in för andra köer och topics i namespacet, men inte för den här. Receiverns `maximum_number_of_records_per_resource` (10 om du inte höjer det) utelämnade den: höj det över antalet köer och topics i namespacet. En ansluten prenumeration läser upp till 1 000 av dem: finns det fler, läs då också namespacet med receivern.
 
 ### Två köer för en destination
 

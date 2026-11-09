@@ -228,6 +228,59 @@ describe("who sees the button", () => {
   });
 });
 
+/*
+ * An observer's page (oncall/observerPage.ts) is answered with "I've seen
+ * it" (useObserverPageAction): there is nothing for an observer to escalate,
+ * so it never brings the button, and never counts as a page of theirs here.
+ */
+describe("an observer's page", () => {
+  const OBSERVER_PAGE: OnCallPassOnPage = {
+    ...PAGE,
+    executionLogId: "run-observer",
+    isObserverPage: true,
+  };
+
+  test("alone brings no Escalate, and is no open page for a push's Escalate", async () => {
+    fetchMock.mockResolvedValue([OBSERVER_PAGE]);
+    const client: QueryClient = createTestQueryClient();
+
+    const rendered: HookRender = await renderPassOn(client);
+
+    await waitFor(() => {
+      return expect(rendered.result.current.pagesSettled).toBe(true);
+    });
+    expect(rendered.result.current.action).toBeNull();
+    expect(rendered.result.current.acknowledgeAgainAction).toBeNull();
+    expect(rendered.result.current.hasOpenPages).toBe(false);
+    expect(rendered.result.current.pagesKnown).toBe(true);
+  });
+
+  test("beside a responder's page, Escalate asks about the responder's only", async () => {
+    fetchMock.mockResolvedValue([
+      {
+        ...OBSERVER_PAGE,
+        sentence: "Observers: this will page the next level of observers.",
+      },
+      PAGE,
+    ]);
+    const client: QueryClient = createTestQueryClient();
+
+    const rendered: HookRender = await renderPassOn(client);
+
+    await waitFor(() => {
+      return expect(rendered.result.current.action).not.toBeNull();
+    });
+    expect(rendered.result.current.hasOpenPages).toBe(true);
+
+    await act(async () => {
+      rendered.result.current.askToPassOn();
+    });
+
+    expect(lastAlert().message).toContain(PAGE.sentence);
+    expect(lastAlert().message).not.toContain("Observers:");
+  });
+});
+
 describe("pressing it", () => {
   async function pagedAndReady(
     client: QueryClient,

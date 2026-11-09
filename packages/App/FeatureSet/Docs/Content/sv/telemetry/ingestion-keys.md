@@ -26,6 +26,7 @@ flowchart TB
 
 - **Nyckeln bestämmer projektet.** Du skickar aldrig ett projekt-ID: data som skickas med en nyckel hamnar i det projekt som nyckeln tillhör.
 - **Ändringar når alla servrar inom en minut.** Att stänga av en nyckel, återställa dess hemlighet eller ändra dess ursprung, utgång eller gräns får effekt inom ungefär en minut.
+- **En nyckel kan ha egna budgetar.** En daglig budget och en hastighet per sekund för varje signal, inom projektets: se [Intagningsbudgetar](/docs/telemetry/ingestion-budgets).
 - **En servernyckel är ett lösenord.** Den som har den kan skicka telemetri till ditt projekt. Förvara den bland dina servrars hemligheter, aldrig i versionshantering eller på en webbsida.
 
 ## Server eller Browser
@@ -155,4 +156,5 @@ Inget har skickat data med den här nyckeln sedan OneUptime började registrera 
 - [Tjänstekatalog](/docs/telemetry/services): Se tjänsterna som din telemetri läggs under.
 - [Datalagring](/docs/telemetry/data-retention): Bestäm hur länge data sparas.
 - [Drop-filter och scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Kassera eller maskera data innan den lagras.
+- [Intagningsbudgetar](/docs/telemetry/ingestion-budgets): Begränsa hur mycket varje nyckel får skicka under en dag.
 :::

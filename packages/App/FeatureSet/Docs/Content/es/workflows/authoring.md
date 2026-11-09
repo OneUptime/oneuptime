@@ -13,7 +13,7 @@ Haz clic en una plantilla para ver lo que hace: su disparador, los bloques que l
 
 Los flujos de trabajo se crean desactivados, así que su disparador no los inicia hasta que los actives. Un flujo de trabajo nuevo se abre en el **Constructor**, el lienzo donde lo diseñas.
 
-También puedes describirle un flujo de trabajo a Ask AI y dejar que lo cree por ti. Encuentra el disparador y los pasos, los configura y los conecta, y te pide que apruebes el flujo de trabajo antes de guardarlo. Un flujo de trabajo nuevo empieza desactivado: léelo en el Builder, completa las contraseñas, tokens o URL de webhook que te haya dejado, porque Ask AI nunca los pide en la conversación, y luego actívalo tú. Ask AI puede cambiar un flujo de trabajo de la misma manera. Desde la página de un flujo de trabajo, "este flujo de trabajo" significa ese. Guarda en tu nombre, así que solo puede hacer lo que tú puedes hacer en el Builder, y el Builder muestra sus cambios en cuanto se guardan.
+También puedes describirle un flujo de trabajo a Ask AI y dejar que lo cree por ti. Encuentra el disparador y los pasos, los configura y los conecta, y te pide que apruebes el flujo de trabajo antes de guardarlo. Un flujo de trabajo nuevo empieza desactivado: léelo en el Builder, completa las contraseñas, tokens o URL de webhook que te haya dejado, porque Ask AI nunca los pide en la conversación, y luego actívalo tú. Ask AI puede cambiar un flujo de trabajo de la misma manera. Desde la página de un flujo de trabajo, "este flujo de trabajo" significa ese. Guarda en tu nombre, así que solo puede hacer lo que tú puedes hacer en el Builder, y el Builder muestra sus cambios en cuanto se guardan. Si el flujo de trabajo se guarda mientras un cambio de Ask AI espera tu aprobación, ya sea tú en el Builder u otra persona, aprobarlo conserva lo que se guardó. Cuando los dos cambios son de pasos distintos, Ask AI hace su cambio sobre lo que se guardó y lo dice. Cuando tocan el mismo paso, no se cambia nada: Ask AI dice que el flujo de trabajo cambió y vuelve a proponer su cambio sobre el flujo de trabajo tal como está ahora. Ask AI escribe un cambio a partir del flujo de trabajo tal como lo leyó por última vez. Si el flujo de trabajo se guardó después, y el cambio desharía parte de lo que se guardó, la tarjeta lo dice antes de que lo apruebes y nombra los pasos, por ejemplo "Este cambio deshace lo que se guardó después de que la IA leyera el flujo de trabajo: Send Message to Slack." Para conservar lo que se guardó, omite el cambio y pide a Ask AI que vuelva a leer el flujo de trabajo. Mover tarjetas nunca cuenta, ni tampoco un ajuste cambiado en un paso que el cambio de Ask AI deja como está. Si Ask AI nunca leyó los pasos del flujo de trabajo, la tarjeta también lo dice. En Ejecución automática, donde nadie aprueba las acciones, Ask AI no hace ese cambio: vuelve a leer el flujo de trabajo y hace su cambio sobre el flujo de trabajo tal como está ahora.
 
 ## El lienzo
 
@@ -21,7 +21,9 @@ Un flujo de trabajo creado desde cero se abre con un único bloque discontinuo q
 
 Todo flujo de trabajo tiene exactamente un **disparador** en la parte superior. Todo lo demás es un **componente** que hace algo. Para cambiar el disparador, elimínalo: el marcador discontinuo vuelve a su lugar y, al hacer clic en él, puedes elegir otro. Al eliminar un bloque también se eliminan sus líneas, así que vuelve a conectar el nuevo disparador al primer bloque.
 
-Los cambios se guardan automáticamente. Una píldora en la barra de herramientas lo indica: **Guardando…** mientras el cambio está en curso, después **Guardado**, o **No se pudo guardar** si no ha funcionado. El lienzo no tiene botón de guardar ni un paso de publicación aparte.
+Los cambios se guardan automáticamente, un momento después de hacerlos. Una píldora en la barra de herramientas lo indica: **Guardando…** mientras el cambio está en camino, después **Guardado**. Si un cambio no se pudo guardar, la píldora dice **No se pudo guardar**, con el motivo al pasar el cursor por encima, y **Volver a intentar** al lado. Mientras tanto, tus cambios se quedan en el lienzo, y el siguiente cambio que hagas vuelve a intentarlo. Si sales de la página antes de que se guarde un cambio, primero se te pregunta. El lienzo no tiene botón de guardar ni un paso de publicación aparte. Un error también se guarda, así que el Constructor conserva cada cambio para que puedas revertirlo: consulta [Deshacer, rehacer e historial de versiones](#deshacer-rehacer-e-historial-de-versiones).
+
+Dos personas pueden tener abierto el mismo flujo de trabajo. Si otra persona lo guarda después de que lo abrieras, en otro Constructor o a través de la API, el Constructor no guarda tu cambio encima del suyo: la píldora dice **No guardada** y un diálogo enumera lo que cambiaron. **Mostrar sus cambios** pone su versión en el lienzo y **Deshacer** recupera la tuya. **Conservar la mía** guarda tu versión, y la suya se queda en el historial de versiones. No se pierde nada, elijas lo que elijas.
 
 ## Añadir bloques
 
@@ -169,6 +171,26 @@ Para pausar un flujo de trabajo sin eliminarlo, desactiva **Habilitado**. Su dis
 - Para eliminar un bloque, haz clic en él y usa **Eliminar** al pie de su diálogo de ajustes. Seleccionar un bloque o una línea y pulsar la tecla de retroceso también lo quita.
 - No hay forma de duplicar un solo bloque. **Duplicar Flujo de trabajo** en la página **Ajustes** del flujo de trabajo copia todo. El nombre de la copia viene rellenado, numerado a partir de los flujos de trabajo del proyecto ("Nightly Sync" se copia como "Nightly Sync 2"), y la copia se abre, deshabilitada.
 - Apila los bloques de arriba abajo para que se lean en la dirección en la que se ejecutan: las entradas están en el borde superior y las salidas en el inferior, así que el flujo va naturalmente hacia abajo.
+
+## Deshacer, rehacer e historial de versiones
+
+Cada cambio que haces en el lienzo se puede revertir, aunque se haya guardado al instante.
+
+- **Deshacer** y **Rehacer** están al principio de la barra de herramientas. Pasa el cursor por cualquiera de los dos para ver qué revertiría o volvería a hacer, y de qué bloque se trata. Cada cambio se deshace de una vez: añadir, eliminar o mover un bloque, conectar o desconectar dos bloques y guardar los ajustes de un bloque. Arrastrar un bloque cuenta como un solo cambio, por lejos que lo arrastres.
+- El teclado también funciona: ⌘Z en un Mac, o Ctrl+Z, deshace, y ⇧⌘Z, Ctrl+Shift+Z o Ctrl+Y rehace. Mientras escribes en un campo o en un editor de código, las mismas teclas deshacen lo que has escrito.
+- Lo que deshaces se guarda como cualquier otro cambio. Deshacer abarca lo que has hecho desde que abriste el Constructor; el historial de versiones llega más atrás.
+
+**Historial de versiones**, en la barra de herramientas, muestra cada versión guardada del flujo de trabajo, la más reciente primero: quién la guardó, cuándo y qué cambió, como `Added "Send Email" (send-email-1)`. Los cambios que guardas con menos de 10 minutos de diferencia entre sí forman una sola versión, así que una versión es una parte del trabajo y no cada clic. Los cambios que se hacen mediante la API también son versiones, y cada cambio que hace Ask AI es una versión propia, que indica que Ask AI lo hizo por ti. Restaurar la versión anterior deshace exactamente lo que hizo Ask AI. Cuando el cambio de Ask AI se hizo sobre un cambio que aún no habías visto, el Builder los muestra como dos pasos: Deshacer revierte solo el cambio de Ask AI, y el cambio guardado antes es el paso anterior.
+
+Para volver a una versión anterior:
+
+:::steps
+1. Haz clic en **Historial de versiones** en la barra de herramientas.
+2. Haz clic en **Vista previa** en la versión. La vista previa muestra qué cambiaría al restaurarla y presenta la versión en un lienzo propio. Haz clic en un bloque de ese lienzo para leer sus ajustes.
+3. Haz clic en **Restaurar esta versión**. La versión vuelve al lienzo y se guarda al instante.
+:::
+
+Restaurar es un cambio como cualquier otro. Se guarda como una versión nueva que indica qué versión restauró, así que puedes deshacerlo o restaurar la versión que tenías antes. Cualquier persona que pueda abrir el flujo de trabajo puede ver su historial; restaurar una versión requiere permiso para editar el flujo de trabajo. Se conservan las 100 versiones más recientes de cada flujo de trabajo.
 
 ## Siguientes pasos
 

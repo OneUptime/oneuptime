@@ -475,8 +475,13 @@ export const ON_CALL_RESPONDERS_TITLE: string = translationKey(
   "On-call responders, as they are paged",
 );
 
+/*
+ * People paged as observers (OnCallObserverPage) are kept informed, not
+ * pulled into the response: this does not add them. Naming their team on
+ * the rule does.
+ */
 export const ON_CALL_RESPONDERS_DESCRIPTION: string = translationKey(
-  "Everyone paged by an on-call policy.",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.",
 );
 
 export const INCIDENT_ROLES_TITLE: string = translationKey(

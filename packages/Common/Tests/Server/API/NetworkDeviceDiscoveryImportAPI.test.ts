@@ -15,6 +15,8 @@ import Response from "../../../Server/Utils/Response";
 import NetworkDeviceDiscoveryImport from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryImport";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -23,6 +25,7 @@ import {
   DiscoveryImportAlerting,
   DiscoveryImportDeviceOutcome,
   DiscoveryImportMonitorOutcome,
+  DiscoveryImportSource,
   DiscoveryImportStatus,
 } from "../../../Types/NetworkDevice/DiscoveryImport";
 import ObjectID from "../../../Types/ObjectID";
@@ -85,6 +88,7 @@ jest.mock(
       DISCOVERY_IMPORT_VIEW_SELECT: actual.DISCOVERY_IMPORT_VIEW_SELECT,
       default: {
         start: jest.fn(),
+        startFromDiscoveredDevices: jest.fn(),
         stop: jest.fn(),
         retry: jest.fn(),
         findImport: jest.fn(),
@@ -554,5 +558,213 @@ describe("stopping and retrying", () => {
     expect((payload!["import"] as JSONObject)["retryOfImportId"]).toBe(
       IMPORT_ID.toString(),
     );
+  });
+});
+
+/*
+ * An import from the Discovered Devices list (issue #5775) has no scan, so
+ * the right to see it is the right to read that list, not the scans - for
+ * asking for one, reading one, stopping one and retrying one.
+ */
+describe("an import from the Discovered Devices list", () => {
+  const START: string =
+    "/network-device-discovery-import/start-from-discovered-devices";
+  const ENDPOINT_ID: string = "ee000000-0000-4000-8000-000000000011";
+  const LIST_READER: Array<Permission> = [Permission.ReadNetworkEndpoint];
+
+  function listImport(): NetworkDeviceDiscoveryImport {
+    const row: NetworkDeviceDiscoveryImport = importRow();
+    delete row.networkDeviceDiscoveryScanId;
+    return row;
+  }
+
+  test("is asked for through the user middleware", () => {
+    expect(route("POST", START).middleware).toBe(
+      UserMiddleware.getUserMiddleware,
+    );
+  });
+
+  test("is refused to a member who may read the scans but not the list", async () => {
+    callerProps = propsWith(SCAN_READER);
+
+    const { thrown } = await call("POST", START, {
+      body: { endpointIds: [ENDPOINT_ID], settings: {} },
+    });
+
+    expect(thrown).toEqual(
+      new NotAuthorizedException(
+        "You may not see this project's discovered devices.",
+      ),
+    );
+    expect(
+      DiscoveryImportRunner.startFromDiscoveredDevices,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("hands the selection and the settings to the runner, as the person, and answers with the import", async () => {
+    callerProps = propsWith(LIST_READER);
+    (
+      DiscoveryImportRunner.startFromDiscoveredDevices as jest.Mock
+    ).mockResolvedValue(listImport());
+    (DiscoveryImportRunner.findImport as jest.Mock).mockResolvedValue(
+      listImport(),
+    );
+
+    const settings: JSONObject = {
+      pollingIntervalInMinutes: 5,
+      alerting: DiscoveryImportAlerting.None,
+    };
+    const { thrown, payload } = await call("POST", START, {
+      body: { endpointIds: [ENDPOINT_ID], settings: settings },
+    });
+
+    expect(thrown).toBeUndefined();
+    expect(
+      DiscoveryImportRunner.startFromDiscoveredDevices,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      props: callerProps,
+      endpointIds: [ENDPOINT_ID],
+      settings: settings,
+    });
+
+    const view: JSONObject = payload!["import"] as JSONObject;
+
+    expect(view["scanId"]).toBe("");
+    expect(view["source"]).toBe(DiscoveryImportSource.DiscoveredDevices);
+  });
+
+  test("is read with the right to read the list; the right to read scans is not enough", async () => {
+    (DiscoveryImportRunner.findImport as jest.Mock).mockResolvedValue(
+      listImport(),
+    );
+
+    callerProps = propsWith(LIST_READER);
+    const allowed: { thrown: unknown; payload: unknown } = await call(
+      "GET",
+      "/network-device-discovery-import/import/:importId",
+      { params: IDS },
+    );
+
+    expect(allowed.thrown).toBeUndefined();
+
+    callerProps = propsWith(SCAN_READER);
+    const refused: { thrown: unknown } = await call(
+      "GET",
+      "/network-device-discovery-import/import/:importId",
+      { params: IDS },
+    );
+
+    expect(refused.thrown).toBeInstanceOf(NotAuthorizedException);
+  });
+
+  test("a scan's import is still read with the right to read scans, not the list", async () => {
+    callerProps = propsWith(LIST_READER);
+
+    const { thrown } = await call(
+      "GET",
+      "/network-device-discovery-import/import/:importId",
+      { params: IDS },
+    );
+
+    expect(thrown).toEqual(
+      new NotAuthorizedException(
+        "You may not see this project's discovery scans, so you cannot see their imports.",
+      ),
+    );
+  });
+
+  test.each([
+    [
+      "the list's imports only, to a person who may read the list",
+      LIST_READER,
+      IsNull,
+    ],
+    [
+      "the scans' imports only, to a person who may read the scans",
+      SCAN_READER,
+      NotNull,
+    ],
+  ])(
+    "the imports still running are %s",
+    async (
+      _name: string,
+      permissions: Array<Permission>,
+      kind: typeof IsNull | typeof NotNull,
+    ) => {
+      callerProps = propsWith(permissions);
+      (
+        NetworkDeviceDiscoveryImportService.findBy as jest.Mock
+      ).mockResolvedValue([listImport()]);
+
+      const { thrown, payload } = await call(
+        "GET",
+        "/network-device-discovery-import/active",
+      );
+
+      expect(thrown).toBeUndefined();
+      expect((payload!["imports"] as Array<JSONObject>).length).toBe(1);
+
+      const query: Record<string, unknown> = (
+        (NetworkDeviceDiscoveryImportService.findBy as jest.Mock).mock
+          .calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+
+      expect(query["projectId"]).toBe(PROJECT_ID);
+      expect(query["networkDeviceDiscoveryScanId"]).toBeInstanceOf(kind);
+    },
+  );
+
+  test("the imports still running are every one, to a person who may read both", async () => {
+    callerProps = propsWith([...SCAN_READER, ...LIST_READER]);
+    (NetworkDeviceDiscoveryImportService.findBy as jest.Mock).mockResolvedValue(
+      [importRow(), listImport()],
+    );
+
+    const { payload } = await call(
+      "GET",
+      "/network-device-discovery-import/active",
+    );
+
+    expect(
+      (payload!["imports"] as Array<JSONObject>).map(
+        (view: JSONObject): unknown => {
+          return view["source"];
+        },
+      ),
+    ).toEqual([
+      DiscoveryImportSource.Scan,
+      DiscoveryImportSource.DiscoveredDevices,
+    ]);
+
+    const query: Record<string, unknown> = (
+      (NetworkDeviceDiscoveryImportService.findBy as jest.Mock).mock
+        .calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(query).not.toHaveProperty("networkDeviceDiscoveryScanId");
+  });
+
+  test("is not stopped or retried by someone who may not see it", async () => {
+    (DiscoveryImportRunner.findImport as jest.Mock).mockResolvedValue(
+      listImport(),
+    );
+    callerProps = propsWith([...SCAN_READER, Permission.CreateNetworkDevice]);
+
+    const stopped: { thrown: unknown } = await call(
+      "POST",
+      "/network-device-discovery-import/import/:importId/stop",
+      { params: IDS },
+    );
+    const retried: { thrown: unknown } = await call(
+      "POST",
+      "/network-device-discovery-import/import/:importId/retry",
+      { params: IDS },
+    );
+
+    expect(stopped.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect(retried.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect(DiscoveryImportRunner.stop).not.toHaveBeenCalled();
+    expect(DiscoveryImportRunner.retry).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
 import { EntityManager } from "./DatabaseService";
+import AuditLogService from "./AuditLogService";
 import FileService from "./FileService";
 import NetworkDeviceService from "./NetworkDeviceService";
 import ProbeService from "./ProbeService";
@@ -15,11 +16,13 @@ import File from "../../Models/DatabaseModels/File";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import Model from "../../Models/DatabaseModels/PacketCapture";
 import Probe from "../../Models/DatabaseModels/Probe";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import MimeType from "../../Types/File/MimeType";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PacketCaptureCapabilityUtil, {
   PacketCaptureCapability,
@@ -950,18 +953,30 @@ export class Service extends ProjectReferencesService<Model> {
    * Asks the probe to stop a running capture early: it stops at its next
    * check, within about ten seconds, and uploads what it has. Scoped to the
    * project by the caller, whose permission to stop it the route checked.
+   *
+   * The write goes round DatabaseService's hooks, so who stopped it is
+   * recorded here, in the project's audit log, when the route hands over
+   * the person who asked (`props`). A second Stop changes nothing, and is
+   * not recorded again.
    */
   @CaptureSpan()
   public async requestStop(data: {
     packetCaptureId: ObjectID;
     projectId: ObjectID;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
     const capture: Model | null = await this.findOneBy({
       query: {
         _id: data.packetCaptureId.toString(),
         projectId: data.projectId,
       },
-      select: { _id: true, status: true },
+      select: {
+        _id: true,
+        projectId: true,
+        name: true,
+        status: true,
+        stopRequestedAt: true,
+      },
       props: { isRoot: true },
     });
 
@@ -988,7 +1003,7 @@ export class Service extends ProjectReferencesService<Model> {
               AND "projectId" = $2
               AND "status" = $3
               AND "deletedAt" IS NULL
-            RETURNING "_id"
+            RETURNING "_id", "stopRequestedAt"
           `,
           [
             data.packetCaptureId.toString(),
@@ -999,9 +1014,25 @@ export class Service extends ProjectReferencesService<Model> {
       },
     );
 
+    const stopped: Record<string, unknown> | undefined =
+      readReturnedRows(result)[0];
+
     // It finished between the read and the write.
-    if (readReturnedRows(result).length === 0) {
+    if (!stopped) {
       throw new BadDataException(ALREADY_FINISHED_MESSAGE);
+    }
+
+    if (data.props) {
+      await AuditLogService.recordUpdate({
+        model: new Model(),
+        before: capture,
+        updatedFields: {
+          stopRequestedAt: (stopped["stopRequestedAt"] as Date) || null,
+        } as unknown as JSONObject,
+        itemId: data.packetCaptureId,
+        props: data.props,
+        includeColumns: ["stopRequestedAt"],
+      });
     }
   }
 

@@ -23,7 +23,7 @@ flowchart TB
 ```
 
 - El `service.name` es la identidad de la aplicación y se compara sin distinguir mayúsculas y minúsculas: `Storefront-Web` y `storefront-web` son una sola aplicación.
-- Un `service.name` nuevo inicia una aplicación nueva. La antigua conserva su historial y pasa a **Desconectado**, la nueva empieza vacía, y las dos nunca se fusionan.
+- Un `service.name` nuevo inicia una aplicación nueva. La antigua conserva su historial y muestra **Sin tráfico reciente** en cuanto dejan de llegar sus datos, la nueva empieza vacía, y las dos nunca se fusionan.
 - Usa un `service.name` por aplicación, no uno por entorno. Distingue los entornos con una etiqueta como `oneuptime.label.env=production`, para que compartan una aplicación y un historial.
 
 ### Cambiar el nombre de una aplicación
@@ -52,13 +52,19 @@ A continuación, su guía de configuración se abre sola, con el nombre de la ap
 
 Si el proyecto ya tiene una aplicación con ese `service.name`, descubierta, añadida antes o archivada, el formulario lo indica en lugar de crear una segunda.
 
-## Estado de la conexión
+## Estado
 
-Una aplicación muestra **Conectado** mientras llega telemetría y **Desconectado** tras 15 minutos sin ninguna. Cuentan tanto la telemetría de OpenTelemetry como el tráfico de reproducción de sesiones.
+El **Estado** de una aplicación dice si llegan sus datos, y al pasar el ratón por encima dice qué significa. Cuentan tanto la telemetría de OpenTelemetry como el tráfico de reproducción de sesiones.
+
+| Estado | Qué significa |
+| --- | --- |
+| **Recibiendo datos** | Llegó telemetría en los últimos 15 minutos. |
+| **Sin tráfico reciente** | Llegó telemetría antes, pero ninguna en los últimos 15 minutos. Una aplicación solo envía datos mientras la gente la usa, así que es normal cuando nadie la usa, por ejemplo por la noche. |
+| **Esperando datos** | Todavía no ha llegado nada: la aplicación se añadió a mano y su app aún no ha enviado nada. Su **Vista general** muestra cómo configurarla. |
 
 **Visto por última vez** se actualiza cada pocos minutos en lugar de con cada lote, así que puede ir hasta unos cinco minutos por detrás del tráfico real, y los 15 minutos dejan margen para ello. El tiempo en que el propio OneUptime estaba caído o poniéndose al día con su cola de ingesta no cuenta.
 
-**Desconectado** no es un error por sí solo: una herramienta interna sin visitantes por la noche está realmente desconectada. Si hay personas usando la aplicación, consulta [Solución de problemas de RUM](/docs/rum/troubleshooting).
+**Sin tráfico reciente** no es un error. Si hay gente usando la aplicación ahora mismo, la **Vista general** de la aplicación indica qué comprobar, y [Solución de problemas de RUM](/docs/rum/troubleshooting) repasa cada comprobación.
 
 ## Etiquetas
 
@@ -180,5 +186,5 @@ Limita a la aplicación el monitor que crees, para que no lo dispare un servicio
 - [Reproducción de sesiones](/docs/telemetry/session-replay): Graba lo que vieron los usuarios, con su propia política y retención.
 - [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owner-rules): Los dos formularios de regla, paso a paso.
 - [Ejecutar reglas sobre recursos existentes](/docs/configuration/run-rules-now): Aplica una regla nueva a las aplicaciones que ya tienes.
-- [Solución de problemas de RUM](/docs/rum/troubleshooting): Cuando una aplicación falta, está vacía o aparece Desconectado.
+- [Solución de problemas de RUM](/docs/rum/troubleshooting): Cuando una aplicación falta o está vacía, o no tiene tráfico reciente mientras la gente la usa.
 :::

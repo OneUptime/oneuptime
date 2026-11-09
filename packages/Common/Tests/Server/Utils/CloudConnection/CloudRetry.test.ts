@@ -55,6 +55,14 @@ describe("which failures are asked again", () => {
     expect(isRetryableCloudFailure(failure(504))).toBe(true);
   });
 
+  test("Azure Monitor's metrics answering 529 while their queries are throttled", () => {
+    expect(isRetryableCloudFailure(failure(529))).toBe(true);
+    // Whatever kind the failure was read as.
+    expect(
+      isRetryableCloudFailure(failure(529, CloudConnectionFailureKind.Other)),
+    ).toBe(true);
+  });
+
   test("never a refusal, a bad request, a timeout or an error that is not the provider's", () => {
     expect(
       isRetryableCloudFailure(

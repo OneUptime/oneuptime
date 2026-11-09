@@ -76,6 +76,34 @@ export default class SlackActionAuthorization {
   }
 
   /*
+   * The props of the member behind a request, as the Dashboard builds them
+   * for a signed-in request (WorkspaceActionAuthorization
+   * .getProjectMemberProps), for a press whose own checks are made by what
+   * it calls - a public note's approval, which the engine decides with the
+   * Dashboard's rules. Refused where they pressed, and null, when they are
+   * no longer a member of the project, or it or they are blocked.
+   */
+  @CaptureSpan()
+  public static async getMemberProps(data: {
+    requester: SlackActionRequester;
+    action: string;
+  }): Promise<DatabaseCommonInteractionProps | null> {
+    return await this.refuseInPlace({
+      requester: data.requester,
+      action: data.action,
+      run: async (
+        userId: ObjectID,
+        projectId: ObjectID,
+      ): Promise<DatabaseCommonInteractionProps> => {
+        return await WorkspaceActionAuthorization.getProjectMemberProps({
+          userId: userId,
+          projectId: projectId,
+        });
+      },
+    });
+  }
+
+  /*
    * authorize, for a button that changes a record (`event`): the same
    * checks, refused the same way, and the record as the check read it
    * (WorkspaceMemberActions.authorize) - for the button's own answer

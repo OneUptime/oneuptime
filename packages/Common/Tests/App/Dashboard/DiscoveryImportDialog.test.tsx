@@ -37,6 +37,7 @@ import {
   DISCOVERY_IMPORT_STOPPED_REASON,
   DiscoveryImportAlerting,
   DiscoveryImportDeviceOutcome,
+  DiscoveryImportSource,
   DiscoveryImportStatus,
   DiscoveryImportView,
   MAX_HOSTS_PER_DISCOVERY_IMPORT,
@@ -1912,6 +1913,7 @@ describe("the scans table row of a scan being imported", () => {
     return {
       id: "import-on-row",
       scanId: SCAN_ID.toString(),
+      source: DiscoveryImportSource.Scan,
       status: status,
       settings: { ...DEFAULT_DISCOVERY_IMPORT_SETTINGS },
       progress: {

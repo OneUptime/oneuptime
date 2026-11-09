@@ -20,6 +20,15 @@
  * The Dashboard's routes (AutoRemediationAPI) and a Slack or Microsoft Teams
  * press on the fix's message (WorkspaceRemediationActions) both come here,
  * so a fix is approved by the same checks wherever the person is.
+ *
+ * A project can ask two people to approve a riskier fix
+ * (Project.requireTwoApprovalsForRiskierFixes): an AI command plan holding a
+ * riskier change then runs only on its second approval, by someone other
+ * than whoever approved it first. The first approval passes every check a
+ * lone one does and is recorded on the fix (firstApprovedBy*, its status
+ * stays Suggested); the first approver's own second press is refused, and
+ * says why. Both writes are guarded in their WHERE, so of two presses at
+ * once only one is the first, and the other is read again as the second.
  */
 
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -71,7 +80,9 @@ import Project from "../../../Models/DatabaseModels/Project";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import ProjectService from "../../Services/ProjectService";
 import AlertFeedService from "../../Services/AlertFeedService";
-import AutoRemediationSuggestionService from "../../Services/AutoRemediationSuggestionService";
+import AutoRemediationSuggestionService, {
+  SuggestionTransitionSet,
+} from "../../Services/AutoRemediationSuggestionService";
 import IncidentFeedService from "../../Services/IncidentFeedService";
 import RunbookRuleEngineService from "../../Services/RunbookRuleEngineService";
 import RunbookTriggerType from "../../../Types/Runbook/RunbookTriggerType";
@@ -121,6 +132,13 @@ import {
   getRemediationPlanFingerprint,
   isRemediationPlanFingerprint,
 } from "./RemediationPlanFingerprint";
+import { getFixApprovalsNeeded } from "./RemediationApprovalsNeeded";
+import {
+  ALREADY_APPROVED_FIRST_MESSAGE,
+  isSameApprover,
+} from "../../../Types/AutoRemediation/RemediationApprovals";
+import User from "../../../Models/DatabaseModels/User";
+import UserService from "../../Services/UserService";
 
 // What an approval, a dry run or a dismissal answers, as the routes send it.
 export type RemediationApprovalResult = JSONObject;
@@ -133,6 +151,16 @@ export type RemediationApprovalResult = JSONObject;
  */
 export function getFixChangedSinceMessage(): string {
   return `This fix changed after the message you pressed was posted, so nothing was done. Open it in ${ProductBrandingText.getProductName()} to see what it runs now.`;
+}
+
+/*
+ * Why a press of the person who gave a riskier fix's first approval does
+ * nothing (Project.requireTwoApprovalsForRiskierFixes): the fix runs on a
+ * second approval, from someone else. The AI card, Slack and Microsoft
+ * Teams say it in these words, before the press where they can.
+ */
+export function getAlreadyApprovedFirstMessage(): string {
+  return ALREADY_APPROVED_FIRST_MESSAGE;
 }
 
 /*
@@ -877,6 +905,10 @@ async function loadSuggestionAsRoot(
         suggestionType: true,
         commandPlan: true,
         mcpToolCallPlan: true,
+        // The first of two approvals, where a riskier fix needs two.
+        firstApprovedByUserId: true,
+        firstApprovedAt: true,
+        firstApprovedFrom: true,
       },
       props: { isRoot: true },
     });
@@ -886,6 +918,96 @@ async function loadSuggestionAsRoot(
   }
 
   return suggestion;
+}
+
+// Who approved a fix, by name, else by email: null when it cannot be read.
+async function getApproverName(userId: ObjectID): Promise<string | null> {
+  try {
+    const user: User | null = await UserService.findOneById({
+      id: userId,
+      select: { name: true, email: true },
+      props: { isRoot: true },
+    });
+
+    const name: string =
+      user?.name?.toString().trim() || user?.email?.toString().trim() || "";
+
+    return name || null;
+  } catch (error) {
+    logger.debug(
+      `RemediationApproval: could not read the name of who approved a fix first: ${error}`,
+    );
+    return null;
+  }
+}
+
+/*
+ * The approval of a riskier fix that needs two, as this press makes it:
+ * the first - recorded now, and nothing runs - or the second, after the
+ * first approver named, which runs the fix.
+ */
+type TwoApprovalsPress =
+  | { kind: "first" }
+  | { kind: "second"; firstApprovedByUserId: ObjectID };
+
+/*
+ * Records the first approval of a fix that needs two, or reads the one
+ * recorded: a fix nobody approved yet is approved first by this press (a
+ * conditional write - of two presses at once one is first, and the other
+ * is read again as the second); a fix approved first by someone else is
+ * approved a second time by it; one the presser approved first is refused,
+ * with why. Every check of the approver has passed by now: the first
+ * approval is held to the same bar as a lone one.
+ */
+async function takeTwoApprovalsPress(data: {
+  suggestion: AutoRemediationSuggestion;
+  props: DatabaseCommonInteractionProps;
+  from?: WorkspaceType | undefined;
+}): Promise<TwoApprovalsPress> {
+  const { suggestion, props } = data;
+  const recordedFirst: ObjectID | undefined = suggestion.firstApprovedByUserId;
+
+  if (recordedFirst) {
+    if (isSameApprover(recordedFirst, props.userId)) {
+      throw new BadDataException(getAlreadyApprovedFirstMessage());
+    }
+
+    return { kind: "second", firstApprovedByUserId: recordedFirst };
+  }
+
+  const recorded: number =
+    await AutoRemediationSuggestionService.attemptFirstApproval({
+      suggestionId: suggestion.id!,
+      set: {
+        firstApprovedByUserId: props.userId!.toString(),
+        firstApprovedAt: OneUptimeDate.getCurrentDate(),
+        firstApprovedFrom: getRemediationApprovalSource(data.from),
+      },
+    });
+
+  if (recorded > 0) {
+    return { kind: "first" };
+  }
+
+  // Someone acted on the fix meanwhile: it is read again, as it is now.
+  const now: AutoRemediationSuggestion = await loadSuggestionAsRoot(
+    suggestion.id!,
+  );
+
+  if (
+    now.status !== AutoRemediationSuggestionStatus.Suggested ||
+    !now.firstApprovedByUserId
+  ) {
+    throw new BadDataException(
+      "This suggestion was just actioned by someone else. Refresh to see its current state.",
+    );
+  }
+
+  if (isSameApprover(now.firstApprovedByUserId, props.userId)) {
+    throw new BadDataException(getAlreadyApprovedFirstMessage());
+  }
+
+  return { kind: "second", firstApprovedByUserId: now.firstApprovedByUserId };
 }
 
 /*
@@ -1158,6 +1280,8 @@ export default class RemediationApproval {
         select: {
           _id: true,
           enableAi: true,
+          // Whether a riskier fix needs two people's approval, as of now.
+          requireTwoApprovalsForRiskierFixes: true,
         },
         props: { isRoot: true },
       });
@@ -1306,24 +1430,82 @@ export default class RemediationApproval {
         projectId: suggestion.projectId,
       });
 
-      const claimedPlan: number =
-        await AutoRemediationSuggestionService.attemptStatusTransition({
-          suggestionId: suggestion.id!,
-          fromStatus: AutoRemediationSuggestionStatus.Suggested,
-          set: {
-            status: AutoRemediationSuggestionStatus.Approved,
-            approvedByUserId: props.userId!.toString(),
-            approvedAt: OneUptimeDate.getCurrentDate(),
-            // Where it was approved: the card, or the fix's chat message.
-            approvedFrom: getRemediationApprovalSource(data.from),
-            verificationStatus: AutoRemediationVerificationStatus.Pending,
-            verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
-              OneUptimeDate.getCurrentDate(),
-              suggestion.verificationWindowMinutes ||
-                DEFAULT_VERIFICATION_WINDOW_MINUTES,
-            ),
-          },
+      /*
+       * Two people approve a riskier fix where the project asks for it, as
+       * the project and the plan are now: the rule turned on after the fix
+       * was proposed holds it, and turned off, one approval runs it. A
+       * change the policies tier riskier now counts as one, whatever the
+       * plan stored.
+       */
+      let secondApprovalAfter: ObjectID | undefined = undefined;
+
+      if (
+        getFixApprovalsNeeded({
+          project,
+          suggestionType: suggestion.suggestionType,
+          plan,
+        }) > 1
+      ) {
+        const press: TwoApprovalsPress = await takeTwoApprovalsPress({
+          suggestion,
+          props,
+          from: data.from,
         });
+
+        if (press.kind === "first") {
+          /*
+           * Nothing runs: the incident's or alert's feed - and its chat
+           * channels, where the fix's message waits - says it needs
+           * someone else's approval now.
+           */
+          await postFeedItem({
+            suggestion,
+            markdown:
+              mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}. It holds a riskier change, so it runs once someone else approves it too.`.toString(),
+            userId: props.userId!,
+            pingWorkspace: true,
+          });
+
+          return {
+            suggestionId: suggestion.id!.toString(),
+            status: AutoRemediationSuggestionStatus.Suggested,
+            suggestionType: AutoRemediationSuggestionType.CommandPlan,
+            isWaitingForSecondApproval: true,
+          };
+        }
+
+        secondApprovalAfter = press.firstApprovedByUserId;
+      }
+
+      const approvalSet: SuggestionTransitionSet = {
+        status: AutoRemediationSuggestionStatus.Approved,
+        approvedByUserId: props.userId!.toString(),
+        approvedAt: OneUptimeDate.getCurrentDate(),
+        // Where it was approved: the card, or the fix's chat message.
+        approvedFrom: getRemediationApprovalSource(data.from),
+        verificationStatus: AutoRemediationVerificationStatus.Pending,
+        verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
+          OneUptimeDate.getCurrentDate(),
+          suggestion.verificationWindowMinutes ||
+            DEFAULT_VERIFICATION_WINDOW_MINUTES,
+        ),
+      };
+
+      /*
+       * The second of two approvals is claimed only while the first is
+       * the one read and someone else's (attemptSecondApproval).
+       */
+      const claimedPlan: number = secondApprovalAfter
+        ? await AutoRemediationSuggestionService.attemptSecondApproval({
+            suggestionId: suggestion.id!,
+            firstApprovedByUserId: secondApprovalAfter.toString(),
+            set: approvalSet,
+          })
+        : await AutoRemediationSuggestionService.attemptStatusTransition({
+            suggestionId: suggestion.id!,
+            fromStatus: AutoRemediationSuggestionStatus.Suggested,
+            set: approvalSet,
+          });
 
       if (claimedPlan === 0) {
         throw new BadDataException(
@@ -1345,10 +1527,23 @@ export default class RemediationApproval {
         );
       });
 
+      const running: string = `${describeCommandCount(plan.commands.length)} ${plan.commands.length === 1 ? "is" : "are"} being run`;
+      let approvedMarkdown: string =
+        mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}: ${running}. Verification will watch the monitors for recovery.`.toString();
+
+      // The second of two approvals says whose came first.
+      if (secondApprovalAfter) {
+        const firstName: string | null =
+          await getApproverName(secondApprovalAfter);
+
+        approvedMarkdown = firstName
+          ? mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}, after **${firstName}** approved it first: ${running}. Verification will watch the monitors for recovery.`.toString()
+          : mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}, the second of two approvals: ${running}. Verification will watch the monitors for recovery.`.toString();
+      }
+
       await postFeedItem({
         suggestion,
-        markdown:
-          mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}: ${describeCommandCount(plan.commands.length)} ${plan.commands.length === 1 ? "is" : "are"} being run. Verification will watch the monitors for recovery.`.toString(),
+        markdown: approvedMarkdown,
         userId: props.userId!,
         pingWorkspace: true,
       });

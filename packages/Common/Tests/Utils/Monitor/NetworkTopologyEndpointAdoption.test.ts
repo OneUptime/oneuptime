@@ -750,8 +750,50 @@ describe("NetworkTopologyUtil.buildTopology — endpoints that are managed devic
 
       const node: NetworkTopologyNode = nodeById(result, "till")!;
       expect(node.macAddress).toBe("aa:bb:cc:00:00:11");
-      expect(node.ipAddress).toBeUndefined();
+      /*
+       * The address it is polled at, drawn under its name (issue #5775) -
+       * its own, not one a forwarding table lent it: nothing adopted it.
+       */
+      expect(node.ipAddress).toBe("10.0.0.5");
       expect(node.vlanId).toBeUndefined();
+    });
+
+    it("keeps the address it is polled at over the one an adopted row was seen at", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [accessSwitch(), register({ macAddress: "aa:bb:cc:00:00:12" })],
+        now,
+        [],
+        [
+          registerRow({
+            macAddress: "aa:bb:cc:00:00:12",
+            ipAddress: "10.0.0.77",
+          }),
+        ],
+      );
+
+      expect(nodeById(result, "till")!.ipAddress).toBe("10.0.0.5");
+    });
+
+    it("lends a device registered by a DNS name the address its row was seen at", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          accessSwitch(),
+          register({
+            hostname: "till-4.store.example.com",
+            macAddress: "aa:bb:cc:00:00:12",
+          }),
+        ],
+        now,
+        [],
+        [
+          registerRow({
+            macAddress: "aa:bb:cc:00:00:12",
+            ipAddress: "10.0.0.77",
+          }),
+        ],
+      );
+
+      expect(nodeById(result, "till")!.ipAddress).toBe("10.0.0.77");
     });
 
     it("fills gaps only: a declared MAC is not overwritten by the MAC an address match found", () => {

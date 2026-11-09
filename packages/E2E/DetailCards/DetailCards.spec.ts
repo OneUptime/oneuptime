@@ -412,7 +412,7 @@ async function cardBackground(locator: Locator): Promise<string> {
 }
 
 test.describe("the maintainer's screenshot: User Settings > Profile", () => {
-  test("Name and Email share one top, and the rule above Timezone runs the whole card", async ({
+  test("Name and Email share one top, and Timezone and Language the next, under a rule across the card", async ({
     page,
   }: {
     page: Page;
@@ -420,7 +420,8 @@ test.describe("the maintainer's screenshot: User Settings > Profile", () => {
     await open(page, PROFILE, 1280);
     const card: Locator = cardTitled(page, "Basic Info");
 
-    const [name, email, timezone] = (await measureFields(card)) as [
+    const [name, email, timezone, language] = (await measureFields(card)) as [
+      FieldMeasure,
       FieldMeasure,
       FieldMeasure,
       FieldMeasure,
@@ -432,15 +433,27 @@ test.describe("the maintainer's screenshot: User Settings > Profile", () => {
     expect(name.borderTop).toBe(0);
     expect(email.borderTop).toBe(0);
 
-    // Timezone is the second row, under a rule across the grid's whole width.
+    /*
+     * Timezone and Language are the second row, side by side, each under the
+     * rule that runs the grid's whole width (fu-i18n-larger added Language).
+     */
     const grid: Box = await box(card.locator("#user-profile"));
     expect(timezone.cell.y).toBeGreaterThan(name.cell.y + name.cell.height - 1);
+    expect(Math.abs(timezone.label!.y - language.label!.y)).toBeLessThanOrEqual(
+      0.5,
+    );
     expect(timezone.borderTop).toBe(1);
+    expect(language.borderTop).toBe(1);
     expect(Math.abs(timezone.cell.x - grid.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(timezone.cell.width - grid.width)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(language.cell.x + language.cell.width - (grid.x + grid.width)),
+    ).toBeLessThanOrEqual(1);
 
     // Two equal columns, the second starting halfway.
     expect(Math.abs(email.cell.x - (grid.x + grid.width / 2))).toBeLessThan(2);
+    expect(Math.abs(language.cell.x - (grid.x + grid.width / 2))).toBeLessThan(
+      2,
+    );
 
     await expectAlignedRows(card, "profile at 1280");
     await expectFieldsUnderTitle(card, "profile at 1280");
@@ -512,12 +525,12 @@ test.describe("the maintainer's screenshot: User Settings > Profile", () => {
     const card: Locator = cardTitled(page, "Basic Info");
     const fields: Array<FieldMeasure> = await measureFields(card);
 
-    expect(rowsOf(fields)).toHaveLength(3);
+    expect(rowsOf(fields)).toHaveLength(4);
     expect(
       fields.map((field: FieldMeasure): number => {
         return field.borderTop;
       }),
-    ).toEqual([0, 1, 1]);
+    ).toEqual([0, 1, 1, 1]);
 
     await expectAlignedRows(card, "profile at 390");
     await expectFieldsUnderTitle(card, "profile at 390");
@@ -568,6 +581,41 @@ test.describe("the maintainer's screenshot: User Settings > Profile", () => {
     await expect(timezone.getByTestId("detail-value")).toHaveText(
       "No timezone selected",
     );
+    // Quiet, as the unset Language beside it reads.
+    await expect(
+      timezone.getByTestId("detail-value").getByText("No timezone selected"),
+    ).toHaveCSS("color", "rgb(107, 114, 128)");
+  });
+
+  /*
+   * The language a person picked (User.language) reads in its own words,
+   * then its English name, set apart so it keeps its own direction; none
+   * says what that means - English - as quiet text (fu-i18n-larger).
+   */
+  test("a picked language reads in its own words, an unset one says English, quietly", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PROFILE, 1280);
+    let card: Locator = cardTitled(page, "Basic Info");
+    let language: Locator = card
+      .getByTestId("detail-field")
+      .filter({ hasText: "Language" });
+
+    await expect(language.getByTestId("user-profile-language")).toHaveText(
+      "Deutsch (German)",
+    );
+
+    await open(page, `${PROFILE}?data=empty`, 1280);
+    card = cardTitled(page, "Basic Info");
+    language = card.getByTestId("detail-field").filter({ hasText: "Language" });
+
+    const notSet: Locator = language.getByTestId(
+      "user-profile-language-not-set",
+    );
+    await expect(notSet).toHaveText("Not set (English)");
+    await expect(notSet).toHaveCSS("color", "rgb(107, 114, 128)");
   });
 
   test("Edit User opens the edit dialog", async ({ page }: { page: Page }) => {
@@ -1034,7 +1082,8 @@ test.describe("loading and failing", () => {
     await expect(skeleton).toBeVisible();
     await expect(skeleton).toHaveAttribute("role", "status");
     await expect(skeleton).toHaveAttribute("aria-label", "Loading");
-    await expect(skeleton.getByTestId("detail-skeleton-cell")).toHaveCount(3);
+    // A cell for each of its fields: Name, Email, Timezone and Language.
+    await expect(skeleton.getByTestId("detail-skeleton-cell")).toHaveCount(4);
     await expect(card.getByTestId("bar-loader")).toHaveCount(0);
 
     const loadingHeight: number = (await box(card)).height;

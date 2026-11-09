@@ -25,6 +25,21 @@ import ObjectID from "../ObjectID";
  */
 
 /*
+ * What an import's hosts were picked from.
+ *
+ *  - Scan: a discovery scan's results (Network > Discovery > Review
+ *    Results). The scan is where its probe and credentials come from.
+ *  - DiscoveredDevices: the devices switches, routers and network
+ *    controllers saw on the network (Network > Discovered Devices, issue
+ *    #5775). Each is polled by the probe that polls the switch that saw it,
+ *    or its site's probe, and keeps the MAC it was seen with.
+ */
+export enum DiscoveryImportSource {
+  Scan = "scan",
+  DiscoveredDevices = "discoveredDevices",
+}
+
+/*
  * Where an import is.
  *
  *  - Queued: waiting for its turn. One import of a project runs at a time,
@@ -151,6 +166,19 @@ export interface DiscoveryImportSettings {
    * alerting is MonitorTemplate.
    */
   monitorTemplateId?: string | undefined;
+  /*
+   * What the devices are (a Network Device Role of the project), when the
+   * person said. Left out, a device that answers SNMP is told by its
+   * sysObjectID as before, and one that only answers ping has none.
+   */
+  networkDeviceRoleId?: string | undefined;
+  /*
+   * The SNMP credential profile the devices are walked with, when the
+   * person picked one. Left out, a device in a site with credentials uses
+   * the site's, and one in no such site is checked by ping. A scan's import
+   * never sets it: the scan's own credentials are the ones that answered.
+   */
+  snmpCredentialProfileId?: string | undefined;
 }
 
 export const DEFAULT_DISCOVERY_IMPORT_SETTINGS: DiscoveryImportSettings = {
@@ -260,6 +288,44 @@ export function readDiscoveryImportSettings(
     settings.monitorTemplateId = monitorTemplateId.trim();
   }
 
+  const networkDeviceRoleId: unknown = record["networkDeviceRoleId"];
+
+  if (
+    networkDeviceRoleId !== undefined &&
+    networkDeviceRoleId !== null &&
+    networkDeviceRoleId !== ""
+  ) {
+    if (
+      typeof networkDeviceRoleId !== "string" ||
+      !ObjectID.isValidUUID(networkDeviceRoleId.trim())
+    ) {
+      throw new BadDataException(
+        "Pick what the devices are from the list, or leave it to the devices.",
+      );
+    }
+
+    settings.networkDeviceRoleId = networkDeviceRoleId.trim();
+  }
+
+  const snmpCredentialProfileId: unknown = record["snmpCredentialProfileId"];
+
+  if (
+    snmpCredentialProfileId !== undefined &&
+    snmpCredentialProfileId !== null &&
+    snmpCredentialProfileId !== ""
+  ) {
+    if (
+      typeof snmpCredentialProfileId !== "string" ||
+      !ObjectID.isValidUUID(snmpCredentialProfileId.trim())
+    ) {
+      throw new BadDataException(
+        "Pick the SNMP credentials from the list, or check the devices by ping.",
+      );
+    }
+
+    settings.snmpCredentialProfileId = snmpCredentialProfileId.trim();
+  }
+
   return settings;
 }
 
@@ -339,6 +405,12 @@ export const DISCOVERY_IMPORT_OWN_REASONS: ReadonlyArray<string> = [
 
 export interface DiscoveryImportHostResult {
   ipAddress: string;
+  /*
+   * The discovered device (NetworkEndpoint row) this host is, on an import
+   * from the Discovered Devices list. Two of those may share an address -
+   * every branch has a 10.0.0.5 - so their results are told apart by it.
+   */
+  endpointId?: string | undefined;
   // The name the device was given, or will be given.
   name: string;
   // The host answered ping but not SNMP.
@@ -522,7 +594,9 @@ export function getRetryableHostResults(
  */
 export interface DiscoveryImportView {
   id: string;
+  // Empty on an import from the Discovered Devices list.
   scanId: string;
+  source: DiscoveryImportSource;
   status: DiscoveryImportStatus;
   settings: DiscoveryImportSettings;
   // The template's name when the import began, so the summary can say it.
@@ -623,10 +697,15 @@ export function readDiscoveryImportHostResult(
       : DiscoveryImportMonitorOutcome.Pending,
   };
 
+  const endpointId: string | undefined = readOptionalText(record["endpointId"]);
   const deviceId: string | undefined = readOptionalText(record["deviceId"]);
   const deviceError: string | undefined = readOptionalText(
     record["deviceError"],
   );
+
+  if (endpointId) {
+    result.endpointId = endpointId;
+  }
   const monitorId: string | undefined = readOptionalText(record["monitorId"]);
   const monitorError: string | undefined = readOptionalText(
     record["monitorError"],
@@ -673,6 +752,18 @@ export function readDiscoveryImportHostResults(
 }
 
 /*
+ * What tells one host's result from another's: the discovered device it is,
+ * on an import from the Discovered Devices list, else its address - a scan
+ * finds each address once.
+ */
+export function getDiscoveryImportHostKey(host: {
+  ipAddress: string;
+  endpointId?: string | undefined;
+}): string {
+  return host.endpointId ? `endpoint:${host.endpointId}` : host.ipAddress;
+}
+
+/*
  * An import as the server described it, checked: one whose status this
  * build does not know is dropped rather than drawn half-known.
  */
@@ -704,6 +795,11 @@ export function readDiscoveryImportView(
   const view: DiscoveryImportView = {
     id: record["id"],
     scanId: record["scanId"],
+    // Older servers knew only scans.
+    source:
+      record["source"] === DiscoveryImportSource.DiscoveredDevices
+        ? DiscoveryImportSource.DiscoveredDevices
+        : DiscoveryImportSource.Scan,
     status: record["status"],
     settings: settings,
     progress: readDiscoveryImportProgress(record["progress"]),

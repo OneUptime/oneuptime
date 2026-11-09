@@ -1,6 +1,6 @@
 # Votre compte
 
-Votre compte est ce par quoi OneUptime vous connaît : l'adresse e-mail et le mot de passe avec lesquels vous vous connectez, votre nom et votre fuseau horaire, et ce qui protège votre connexion. Un compte peut appartenir à de nombreux projets, et ces paramètres vous suivent dans chacun d'eux. La façon dont OneUptime vous joint, et le moment où il vous alerte, se règlent dans chaque projet, sous **Paramètres utilisateur**.
+Votre compte est ce par quoi OneUptime vous connaît : l'adresse e-mail et le mot de passe avec lesquels vous vous connectez, votre nom, votre fuseau horaire et votre langue, et ce qui protège votre connexion. Un compte peut appartenir à de nombreux projets, et ces paramètres vous suivent dans chacun d'eux. La façon dont OneUptime vous joint, et le moment où il vous alerte, se règlent dans chaque projet, sous **Paramètres utilisateur**.
 
 ```mermaid title="Ce qui appartient à votre compte, et ce que chaque projet garde pour vous"
 flowchart TB
@@ -11,7 +11,7 @@ flowchart TB
 ```
 
 :::cards
-- [Votre profil](#votre-profil): Votre nom, votre adresse e-mail, votre fuseau horaire et votre photo.
+- [Votre profil](#votre-profil): Votre nom, votre adresse e-mail, votre fuseau horaire, votre langue et votre photo.
 - [Se connecter en sécurité](#se-connecter-en-sécurité): Votre mot de passe, les liens de connexion, vos clés d'accès et l'authentification à deux facteurs.
 - [Vos projets](#vos-projets): Changer de projet, en créer un et accepter des invitations.
 - [Paramètres utilisateur](#ce-que-chaque-projet-garde-pour-vous): Comment OneUptime vous joint dans chaque projet.
@@ -23,7 +23,7 @@ Cliquez sur votre photo en haut à droite du tableau de bord.
 
 | Élément | Ce qu'il fait |
 | --- | --- |
-| **Profil** | Ouvre **Profil utilisateur** : votre nom, votre adresse e-mail, votre fuseau horaire, votre photo et la sécurité de votre connexion. |
+| **Profil** | Ouvre **Profil utilisateur** : votre nom, votre adresse e-mail, votre fuseau horaire, votre langue, votre photo et la sécurité de votre connexion. |
 | **Paramètres admin** | Ouvre l'Admin Dashboard. Seuls les administrateurs principaux d'une installation auto-hébergée le voient. |
 | **Thème** | Règle le thème du tableau de bord : **Clair**, **Sombre** ou **Système**, qui est clair ou sombre selon le réglage de votre appareil. |
 | **Se déconnecter** | Vous déconnecte. |
@@ -35,7 +35,7 @@ Cliquez sur votre photo en haut à droite du tableau de bord.
 :::steps
 ### Ouvrir votre profil
 
-Cliquez sur votre photo en haut à droite et choisissez **Profil**. La page **Vue d'ensemble** s'ouvre sur la carte **Informations de base** : votre nom, votre adresse e-mail et votre fuseau horaire.
+Cliquez sur votre photo en haut à droite et choisissez **Profil**. La page **Vue d'ensemble** s'ouvre sur la carte **Informations de base** : votre nom, votre adresse e-mail, votre fuseau horaire et votre langue.
 
 ### Modifier vos informations
 
@@ -44,6 +44,7 @@ Cliquez sur **Modifier : Utilisateur** et changez ce dont vous avez besoin :
 - **E-mail** : l'adresse avec laquelle vous vous connectez. Si vous la changez, vous vérifiez à nouveau la nouvelle adresse.
 - **Nom complet** : le nom que votre équipe voit partout dans OneUptime.
 - **Fuseau horaire** : le fuseau dans lequel le tableau de bord affiche et lit les heures, et celui des heures indiquées dans les notifications qui vous sont envoyées.
+- **Langue** : la langue du tableau de bord dans chaque navigateur où vous vous connectez, et celle de vos alertes d'astreinte. Non définie, vos alertes sont en anglais et le tableau de bord suit votre navigateur.
 
 Cliquez sur **Enregistrer les modifications**.
 
@@ -146,9 +147,9 @@ Les **Paramètres utilisateur**, à droite dans la barre sous la barre supérieu
 
 ## Langue et thème
 
-Les deux sont enregistrés dans votre navigateur, pas dans votre compte : réglez-les à nouveau dans un autre navigateur ou sur un autre appareil. Ils sont conservés lorsque vous vous déconnectez : sur un ordinateur partagé, la personne suivante commence donc avec vos réglages.
+Votre thème est enregistré dans votre navigateur : réglez-le à nouveau dans un autre navigateur ou sur un autre appareil. Votre langue est enregistrée dans votre compte dès que vous la choisissez, et chaque navigateur où vous vous connectez démarre dans cette langue. Ils sont conservés lorsque vous vous déconnectez : sur un ordinateur partagé, la personne suivante commence donc avec vos réglages.
 
-- **Langue** : le tableau de bord démarre dans la langue de votre navigateur. Pour la changer, utilisez le menu des langues en bas de chaque page. Cette documentation a son propre menu des langues, en haut.
+- **Langue** : le tableau de bord démarre dans la langue de votre navigateur. Pour la changer, utilisez le menu des langues en bas de chaque page. Votre choix est enregistré dans votre compte, comme **Langue** dans votre profil, et OneUptime rédige vos alertes d'astreinte dans cette langue. Voir [La langue de vos alertes](/docs/notifications/index#la-langue-de-vos-alertes). Cette documentation a son propre menu des langues, en haut.
 - **Thème** : choisissez **Clair**, **Sombre** ou **Système** dans le menu utilisateur. **Système** est clair ou sombre selon le réglage de votre appareil, et change avec lui ; chaque navigateur démarre avec lui. Les pages de connexion utilisent le même thème.
 
 ## Supprimer votre compte

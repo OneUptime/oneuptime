@@ -235,6 +235,7 @@ Når du oppretter en arbeidsflyt, har malene under **Vakt** denne klar, og en so
 | **Page About** | Hva tilkallingen gjelder: **A new alert**, **An incident** eller **An alert**. Å bekrefte tilkallingen bekrefter også den. |
 | **Title** og **Message** | For et nytt varsel. OneUptime oppretter et varsel av dem, og det blir værende blant varslene dine som alle andre. |
 | **Incident ID** eller **Alert ID** | For en hendelse eller et varsel som allerede finnes, vanligvis det arbeidsflyten startet på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Page As** | For en hendelse eller et varsel som allerede finnes, under **Flere felt**. **Responders** tar seg av den. **Observers** holdes orientert mens andre håndterer den: når de bekrefter tilkallingen sin, betyr det bare at de har sett den, og hendelsen eller varselet blir ikke bekreftet. |
 | **Severity** | For et nytt varsel, under **Flere felt**. Den avgjør hvilke av hver persons vaktregler som tilkaller personen. Står den tom, er det prosjektets mest alvorlige. |
 
 En blokk som legges til i en arbeidsflyt som starter på en hendelse eller et varsel, er allerede satt til å tilkalle om den posten, så den bare spør hvem som skal tilkalles.

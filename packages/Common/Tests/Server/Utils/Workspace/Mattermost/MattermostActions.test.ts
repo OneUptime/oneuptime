@@ -37,6 +37,11 @@ import IncidentPublicNoteService from "../../../../../Server/Services/IncidentPu
 import IncidentInternalNoteService from "../../../../../Server/Services/IncidentInternalNoteService";
 import AlertInternalNoteService from "../../../../../Server/Services/AlertInternalNoteService";
 import ScheduledMaintenancePublicNoteService from "../../../../../Server/Services/ScheduledMaintenancePublicNoteService";
+import IncidentEpisodePublicNoteService from "../../../../../Server/Services/IncidentEpisodePublicNoteService";
+import IncidentEpisodeService from "../../../../../Server/Services/IncidentEpisodeService";
+import PublicNoteApprovalEngine from "../../../../../Server/Utils/Notes/PublicNoteApprovalEngine";
+import { PublicNoteApprovalWaitingFor } from "../../../../../Server/Utils/Notes/PublicNoteApprovalFeed";
+import PublicNoteApprovalPolicy from "../../../../../Server/Utils/Notes/PublicNoteApprovalPolicy";
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -987,6 +992,199 @@ describe("MattermostActions", () => {
 
       expect(answer.error).toContain("Connect your Mattermost account");
     });
+  });
+
+  /*
+   * A public note held for approval (#6254) is posted to no channel until
+   * it is approved, and a form closes saying nothing: so its sender is told
+   * in the channel, in a post only they see, that it waits and for whom.
+   */
+  describe("a public note that waits for approval", () => {
+    const WAITING_FOR: PublicNoteApprovalWaitingFor = {
+      position: {
+        step: {
+          id: "s1",
+          name: "Support",
+          order: 1,
+          userIds: [],
+          teamIds: [],
+        },
+        number: 1,
+        count: 2,
+        isFinal: false,
+        isAskedAgain: false,
+      },
+      approverNames: ["Bob", "Platform"],
+    };
+    const HELD_ANSWER: string =
+      "⏳ Sent for approval: your public note on **[Incident INC-42](https://oneuptime.example/incidents/42)** is published on status pages once it is approved. It waits for step 1 of 2 (Support): Bob, Platform.";
+
+    let postEphemeral: jest.SpyInstance;
+
+    beforeEach(() => {
+      jest.spyOn(WorkspaceNoteForm, "isPrivateRecord").mockResolvedValue(false);
+      jest
+        .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+        .mockResolvedValue(undefined);
+      jest
+        .spyOn(PublicNoteApprovalEngine, "getWaitingForNote")
+        .mockResolvedValue(WAITING_FOR);
+      jest
+        .spyOn(WorkspaceMemberActions, "findEventForMember")
+        .mockResolvedValue({ record: {}, event: event } as never);
+      jest.spyOn(WorkspaceActionAnswers, "getRecordName").mockResolvedValue({
+        label: "Incident INC-42",
+        link: "https://oneuptime.example/incidents/42",
+      });
+      postEphemeral = jest
+        .spyOn(MattermostUtil, "postEphemeral")
+        .mockResolvedValue(undefined);
+    });
+
+    test.each([
+      [
+        "an incident",
+        SlackActionType.SubmitIncidentNote,
+        IncidentPublicNoteService,
+      ],
+      [
+        "an incident episode",
+        SlackActionType.SubmitIncidentEpisodeNote,
+        IncidentEpisodePublicNoteService,
+      ],
+      [
+        "a scheduled maintenance event",
+        SlackActionType.SubmitScheduledMaintenanceNote,
+        ScheduledMaintenancePublicNoteService,
+      ],
+    ])(
+      "on %s: the form closes, and its sender alone is told it waits, and for whom",
+      async (
+        _record: string,
+        actionId: string,
+        service:
+          | typeof IncidentPublicNoteService
+          | typeof IncidentEpisodePublicNoteService
+          | typeof ScheduledMaintenancePublicNoteService,
+      ) => {
+        jest
+          .spyOn(IncidentEpisodeService, "findOneById")
+          .mockResolvedValue({ projectId: projectId } as never);
+        jest
+          .spyOn(service, "addNote")
+          .mockResolvedValue({ isPublished: false } as never);
+
+        const answer: MattermostDialogAnswer =
+          await MattermostActions.handleDialogSubmission(
+            submission(actionId, {
+              [MATTERMOST_NOTE_FIELD]: "We are rolling back the deploy.",
+              [MATTERMOST_NOTE_TYPE_FIELD]: "public",
+            }),
+          );
+
+        expect(answer).toEqual({});
+        expect(postEphemeral).toHaveBeenCalledTimes(1);
+        expect(postEphemeral).toHaveBeenCalledWith({
+          authToken: AUTH_TOKEN,
+          userId: MATTERMOST_USER_ID,
+          channelId: CHANNEL_ID,
+          markdown: HELD_ANSWER,
+        });
+      },
+    );
+
+    test("published as it was posted: nothing more is posted, as before", async () => {
+      jest
+        .spyOn(IncidentPublicNoteService, "addNote")
+        .mockResolvedValue({ isPublished: true } as never);
+
+      await MattermostActions.handleDialogSubmission(
+        submission(SlackActionType.SubmitIncidentNote, {
+          [MATTERMOST_NOTE_FIELD]: "We are rolling back the deploy.",
+          [MATTERMOST_NOTE_TYPE_FIELD]: "public",
+        }),
+      );
+
+      expect(postEphemeral).not.toHaveBeenCalled();
+    });
+
+    test("a private note is never held, and nothing is posted", async () => {
+      jest
+        .spyOn(IncidentInternalNoteService, "addNote")
+        .mockResolvedValue({} as never);
+
+      await MattermostActions.handleDialogSubmission(
+        submission(SlackActionType.SubmitIncidentNote, {
+          [MATTERMOST_NOTE_FIELD]: "Rolled back 4.2.1.",
+          [MATTERMOST_NOTE_TYPE_FIELD]: "private",
+        }),
+      );
+
+      expect(postEphemeral).not.toHaveBeenCalled();
+    });
+
+    test("the note is written by now: an answer that cannot be posted still closes the form as done", async () => {
+      jest
+        .spyOn(IncidentPublicNoteService, "addNote")
+        .mockResolvedValue({ isPublished: false } as never);
+      postEphemeral.mockRejectedValue(new Error("Mattermost is down"));
+
+      await expect(
+        MattermostActions.handleDialogSubmission(
+          submission(SlackActionType.SubmitIncidentNote, {
+            [MATTERMOST_NOTE_FIELD]: "We are rolling back the deploy.",
+            [MATTERMOST_NOTE_TYPE_FIELD]: "public",
+          }),
+        ),
+      ).resolves.toEqual({});
+    });
+
+    test("a form sent from no channel has nowhere to say it, and posts nothing", async () => {
+      jest
+        .spyOn(IncidentPublicNoteService, "addNote")
+        .mockResolvedValue({ isPublished: false } as never);
+
+      await expect(
+        MattermostActions.handleDialogSubmission(
+          submission(
+            SlackActionType.SubmitIncidentNote,
+            {
+              [MATTERMOST_NOTE_FIELD]: "We are rolling back the deploy.",
+              [MATTERMOST_NOTE_TYPE_FIELD]: "public",
+            },
+            { channel_id: undefined },
+          ),
+        ),
+      ).resolves.toEqual({});
+      expect(postEphemeral).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      [SlackActionType.ViewAddIncidentNote],
+      [SlackActionType.ViewAddScheduledMaintenanceNote],
+    ])(
+      "the note form (%s) says the public note is posted once approved",
+      async (actionId: string) => {
+        jest
+          .spyOn(PublicNoteApprovalPolicy, "isRequired")
+          .mockResolvedValue(true);
+
+        await MattermostActions.handlePress(press(actionId));
+
+        const modalBlock: WorkspaceModalBlock =
+          showModal.mock.calls[0][0].modalBlock;
+        const noteType: WorkspaceDropdownBlock = modalBlock.blocks.find(
+          (block: { _type: string }) => {
+            return block._type === "WorkspaceDropdownBlock";
+          },
+        ) as WorkspaceDropdownBlock;
+
+        expect(noteType.options[0]).toEqual({
+          label: "Public Note (Posted on Status Page once approved)",
+          value: "public",
+        });
+      },
+    );
   });
 
   describe("the action table", () => {

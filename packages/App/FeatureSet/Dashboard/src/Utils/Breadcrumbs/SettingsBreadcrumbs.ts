@@ -141,7 +141,7 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_USAGE_HISTORY, [
       "Project",
       "Settings",
-      "Usage History",
+      "Usage",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_BILLING_INVOICES, [
       "Project",

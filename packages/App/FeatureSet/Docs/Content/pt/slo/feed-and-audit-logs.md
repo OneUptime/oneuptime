@@ -7,7 +7,7 @@ Um SLO guarda dois registros da sua história, e eles respondem a perguntas dife
 | | **Feed** | **Registros de auditoria** |
 | --- | --- | --- |
 | Responde a | O que aconteceu com o SLO | Quem mudou o quê, e quando |
-| Registra | Mudanças de status, alertas e incidentes de taxa de consumo, e mudanças no SLO, nas regras, nos monitores e nos proprietários dele | Cada mudança que pessoas fizeram no SLO, nas regras de taxa de consumo, nas regras de monitor e nos proprietários dele, com os valores antigo e novo |
+| Registra | Mudanças de status, mudanças de nível da política de orçamento de erros, os alertas e incidentes das regras de taxa de consumo e dos níveis, e mudanças no SLO, nas regras, nos monitores e nos proprietários dele | Cada mudança que pessoas fizeram no SLO, nas regras de taxa de consumo, nas regras de monitor, nos níveis da política de orçamento de erros e nos proprietários dele, com os valores antigo e novo |
 | Inclui o trabalho do próprio OneUptime | Sim: as avaliações e as regras de monitor que associam monitores | Só com **Armazenar Eventos do Sistema** ligado |
 | Planos | Todos os planos | O plano Enterprise no OneUptime Cloud, ou a Enterprise Edition em uma instalação auto-hospedada |
 | Mantido por | Três anos no OneUptime Cloud | 7 dias por padrão, até 180 |
@@ -32,9 +32,14 @@ O feed fica na página **Feed** do SLO, e os itens mais recentes dele em **Ativi
 | SLO habilitado ou desabilitado | A avaliação é ligada ou desligada. |
 | SLO arquivado ou restaurado | O SLO é arquivado ou desarquivado. |
 | Status alterado | Uma avaliação leva o SLO a um novo status. Mostra o SLI, o orçamento de erros, a taxa de consumo e o limite de risco que o explicam, e o motivo no caso de **Pausado** ou **Mal configurado**. |
+| Nível da política de orçamento de erros mudou | Uma avaliação leva o SLO a um nível da sua política de orçamento de erros, a outro nível ou para fora de todos os níveis. Mostra o nível que ele deixou e o nível em que entrou, o orçamento restante e o que a equipe combinou fazer no novo nível, e diz quando a mudança congelou as implantações ou voltou a permiti-las. Veja [Política de orçamento de erros](/docs/slo/error-budget-policy). |
+| Implantações congeladas ou permitidas de novo | Alguém ligou ou desligou **Congelar implantações** no nível em que o SLO está, e a avaliação seguinte congelou as implantações ou voltou a permiti-las. Quando isso acontece por uma mudança de nível, é o próprio item dessa mudança que o diz. Veja [Bloqueio de implantações](/docs/slo/error-budget-policy#bloqueio-de-implantações). |
 | Alerta de taxa de consumo gerado | Uma regra de taxa de consumo cria um alerta. Leva a ele e mostra as taxas de consumo que o dispararam. |
 | Incidente de taxa de consumo declarado | Uma regra de taxa de consumo declara um incidente. Leva a ele e mostra as taxas de consumo que o dispararam. |
 | Alerta ou incidente de taxa de consumo resolvido | O alerta ou o incidente de uma regra é fechado: resolvido automaticamente, ou à mão enquanto a resolução automática estava desligada. |
+| Alerta da política de orçamento de erros gerado | Um nível da política de orçamento de erros cria um alerta. Leva até ele. |
+| Incidente da política de orçamento de erros declarado | Um nível da política de orçamento de erros declara um incidente. Leva até ele. |
+| Alerta ou incidente da política de orçamento de erros resolvido | O alerta ou o incidente de um nível é fechado: substituído por um nível mais grave, resolvido automaticamente, ou manualmente enquanto a resolução automática estava desligada. |
 | Regra de taxa de consumo adicionada, alterada ou removida | Alguém cria, edita ou exclui uma regra de taxa de consumo. As regras padrão de um SLO novo aparecem no item "SLO criado" dele. |
 | Regra de monitor adicionada, alterada ou removida | Alguém cria, edita ou exclui uma regra de monitor. Um salvamento que não muda nada relevante não é publicado. |
 | Monitores associados ou desassociados | Monitores são adicionados ao SLO ou removidos dele, à mão ou por uma regra de monitor. Listas longas nomeiam os primeiros monitores "e mais N". |
@@ -55,6 +60,7 @@ A página **Registros de auditoria** do SLO lista as mudanças feitas em:
 
 - o próprio SLO: detalhes, configurações, rótulos, monitores e arquivamento;
 - as regras de taxa de consumo dele;
+- os níveis da política de orçamento de erros dele;
 - as regras de monitor dele;
 - os usuários proprietários e as equipes proprietárias dele.
 
@@ -62,7 +68,7 @@ As mudanças nas regras e nos proprietários são registradas na regra ou no pro
 
 Duas coisas ficam de fora:
 
-- **Os resultados das avaliações.** O SLI, o orçamento de erros, a taxa de consumo, o status e os horários de avaliação mudam a cada poucos minutos. O histórico deles está na **Visão geral**, na página **Métricas** e no **Feed**.
+- **Os resultados das avaliações.** O SLI, o orçamento de erros, a taxa de consumo, o status e os horários de avaliação mudam a cada poucos minutos. O histórico deles está na **Visão geral**, na página **Métricas** e no **Feed**. O nível da política de orçamento de erros em que o SLO está, e se as implantações dele são permitidas, são a exceção: uma mudança em qualquer um dos dois é registrada como uma mudança feita pelo próprio OneUptime.
 - **As mudanças que o próprio OneUptime faz**, como uma regra de monitor que associa ou desassocia um monitor, a menos que **Armazenar Eventos do Sistema** esteja ligado no projeto. O **Feed** registra as associações e desassociações de monitores de qualquer forma.
 
 ### Ligar os registros de auditoria

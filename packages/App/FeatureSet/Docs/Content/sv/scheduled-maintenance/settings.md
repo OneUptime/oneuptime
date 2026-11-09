@@ -20,7 +20,7 @@ Konfigurationen av underhåll finns i **Schemalagt underhåll**, inte i **Projek
 | **Etikettregler**  | Lägger till etiketter på matchande händelser.                       |
 | **Påminnelseregler** | Påminner ägarna med ett intervall tills en händelse är slutförd.    |
 
-Avsnittet **Inställningar** rymmer **Händelsestatus**, som beskrivs på [Underhållsstatusar](/docs/scheduled-maintenance/states), **Händelsemallar**, som beskrivs på [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates), och sedan **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar** och **Numrering**. **Kalenderinställningar** beskrivs på [Underhållskalender](/docs/scheduled-maintenance/calendar#externa-kalendrar), resten nedan.
+Avsnittet **Inställningar** rymmer **Händelsestatus**, som beskrivs på [Underhållsstatusar](/docs/scheduled-maintenance/states), **Händelsemallar**, som beskrivs på [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates), och sedan **Anteckningsmallar**, **Godkännande av offentliga anteckningar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar** och **Numrering**. **Kalenderinställningar** beskrivs på [Underhållskalender](/docs/scheduled-maintenance/calendar#externa-kalendrar), resten nedan.
 
 Avsnittet **Arbetsyta** rymmer Slack- och Microsoft Teams-reglerna som publicerar händelser i kanaler. Se [Slack](/docs/workspace-connections/slack#aviseringsregler) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams#aviseringsregler).
 
@@ -93,6 +93,10 @@ De här påminnelserna är för ditt team. De påminnelser som dina statussidepr
 ### Anteckningsmallar
 
 **Schemalagt underhåll → Inställningar → Anteckningsmallar** rymmer färdigskriven text för uppdateringar om underhåll. Kortet **Mallar för offentliga eller privata anteckningar för schemalagda underhållshändelser** listar dem; **Skapa Anteckningsmall för schemalagt underhåll** frågar efter ett **Mallnamn**, en **Mallbeskrivning** och **Anteckning**. En mall erbjuds när någon skriver en offentlig eller privat anteckning på en händelse, och när de ändrar dess tillstånd, och dess text kan redigeras innan den publiceras. Till skillnad från anteckningsmallar för incidenter fyller anteckningsmallar för underhåll inte i några variabler.
+
+### Godkännande av offentliga anteckningar
+
+**Schemalagt underhåll → Inställningar → Godkännande av offentliga anteckningar** låter de offentliga anteckningarna på schemalagda underhållshändelser godkännas innan de publiceras. Sidan fungerar som incidenternas, med en egen brytare och egna steg: slå på **Kräv godkännande innan offentliga anteckningar publiceras** och välj under **Vem godkänner** vem som godkänner. Så kan underhållsanteckningar kräva godkännande medan incidentanteckningar inte gör det, eller godkännas av andra personer. Bara **Projektägare** och **Projektadministratör** kan ändra den. Se [Godkännande av offentliga anteckningar](/docs/incidents/settings#godkännande-av-offentliga-anteckningar) för stegen, och [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar) för vad en anteckning gör medan den väntar.
 
 ### Anpassade fält
 

@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 Monte-os com o mesmo objeto `resource`. Um pipeline de registros ou de métricas cujo recurso não tenha `browser.*` é arquivado como um serviço de backend separado.
 
+Um pipeline de registros envia só as entradas que o seu código escreve, então escreva uma onde quer que aconteça algo que valha a pena saber:
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## Referência de endpoints
 
 | Sinal | Endpoint | Cabeçalho |

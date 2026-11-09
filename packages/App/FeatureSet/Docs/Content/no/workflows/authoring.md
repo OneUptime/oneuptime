@@ -13,7 +13,7 @@ Klikk på en mal for å se hva den gjør: triggeren, blokkene den består av, og
 
 Arbeidsflyter opprettes avslått, så triggeren deres starter dem ikke før du slår dem på. En ny arbeidsflyt åpnes i **Bygger**, lerretet der du designer den.
 
-Du kan også beskrive en arbeidsflyt for Ask AI og la den bygge den for deg. Den finner utløseren og trinnene, setter dem opp og kobler dem sammen, og ber deg godkjenne arbeidsflyten før den lagres. En ny arbeidsflyt starter avslått: les den i Builder, fyll inn passord, tokener eller webhook-URL-er den har latt stå til deg, for Ask AI spør aldri om dem i samtalen, og slå den deretter på selv. Ask AI kan endre en arbeidsflyt på samme måte. På en arbeidsflyts side betyr «denne arbeidsflyten» akkurat den. Den lagrer som deg, så den kan bare gjøre det du kan gjøre i Builder, og Builder viser endringene så snart de er lagret.
+Du kan også beskrive en arbeidsflyt for Ask AI og la den bygge den for deg. Den finner utløseren og trinnene, setter dem opp og kobler dem sammen, og ber deg godkjenne arbeidsflyten før den lagres. En ny arbeidsflyt starter avslått: les den i Builder, fyll inn passord, tokener eller webhook-URL-er den har latt stå til deg, for Ask AI spør aldri om dem i samtalen, og slå den deretter på selv. Ask AI kan endre en arbeidsflyt på samme måte. På en arbeidsflyts side betyr «denne arbeidsflyten» akkurat den. Den lagrer som deg, så den kan bare gjøre det du kan gjøre i Builder, og Builder viser endringene så snart de er lagret. Hvis arbeidsflyten blir lagret mens en endring fra Ask AI venter på godkjenningen din, av deg i Builder eller av noen andre, beholder godkjenningen det som ble lagret. Når de to endringene gjelder ulike trinn, gjør Ask AI endringen sin oppå det som ble lagret, og sier det. Når de berører det samme trinnet, endres ingenting: Ask AI sier at arbeidsflyten er endret, og foreslår endringen sin på nytt for arbeidsflyten slik den er nå. Ask AI skriver en endring ut fra arbeidsflyten slik den sist leste den. Hvis arbeidsflyten er lagret etter det, og endringen ville omgjøre noe av det som ble lagret, sier kortet det før du godkjenner, og nevner trinnene, for eksempel «Denne endringen omgjør det som ble lagret etter at AI leste arbeidsflyten: Send Message to Slack.» Vil du beholde det som ble lagret, hopper du over endringen og ber Ask AI lese arbeidsflyten på nytt. Flyttede kort teller aldri, og det gjør heller ikke en endret innstilling på et trinn som endringen fra Ask AI lar være som det er. Har Ask AI aldri lest trinnene i arbeidsflyten, sier kortet det også. I Kjør automatisk, der ingen godkjenner handlinger, gjør ikke Ask AI en slik endring: den leser arbeidsflyten på nytt og gjør endringen sin på arbeidsflyten slik den er nå.
 
 ## Lerretet
 
@@ -21,7 +21,9 @@ En arbeidsflyt fra bunnen åpnes med én enkelt stiplet blokk med teksten **Velg
 
 Hver arbeidsflyt har nøyaktig én **trigger** øverst. Alt annet er en **komponent** som gjør noe. For å bytte trigger sletter du den: den stiplede plassholderen kommer tilbake på plassen dens, og et klikk på den lar deg velge en annen. Når du sletter en blokk, slettes linjene dens også, så koble den nye triggeren til den første blokken igjen.
 
-Endringer lagres automatisk. En pille i verktøylinjen følger med på det: **Lagrer…** mens endringen er på vei, deretter **Lagret**, eller **Kunne ikke lagre** hvis det ikke lyktes. Lerretet har ingen lagreknapp og ikke noe eget publiseringstrinn.
+Endringer lagres automatisk, et øyeblikk etter at du har gjort dem. En pille i verktøylinjen følger med på det: **Lagrer…** mens endringen er på vei, deretter **Lagret**. Hvis en endring ikke kunne lagres, står det **Kunne ikke lagre** på pillen, med årsaken når du holder musen over den, og **Prøv igjen** ved siden av. Endringene dine blir værende på lerretet i mellomtiden, og neste endring du gjør, prøver igjen. Forlater du siden før en endring er lagret, blir du spurt først. Lerretet har ingen lagreknapp og ikke noe eget publiseringstrinn. En feil blir også lagret, og derfor tar Bygger vare på hver endring, så du kan ta den tilbake: se [Angre, gjør om og versjonshistorikk](#angre-gjør-om-og-versjonshistorikk).
+
+To personer kan ha den samme arbeidsflyten åpen. Hvis noen andre lagrer den etter at du åpnet den, i en annen Bygger eller gjennom API-et, lagrer ikke Bygger endringen din over deres: pillen viser **Ikke lagret**, og en dialog viser hva de har endret. **Vis endringene deres** legger versjonen deres på lerretet, og **Angre** henter din tilbake. **Behold min** lagrer versjonen din, og deres blir værende i versjonshistorikken. Ingenting går tapt, uansett hva du velger.
 
 ## Legg til blokker
 
@@ -169,6 +171,26 @@ For å sette en arbeidsflyt på pause uten å slette den slår du av **Aktivert*
 - For å slette en blokk klikker du på den og bruker **Slett** nederst i innstillingsdialogen. Å merke en blokk eller en linje og trykke på Backspace fjerner den også.
 - Det finnes ingen måte å duplisere én enkelt blokk på. **Dupliser Arbeidsflyt** på arbeidsflytens side **Innstillinger** kopierer alt. Navnet på kopien er fylt ut og nummerert forbi prosjektets arbeidsflyter ("Nightly Sync" kopieres som "Nightly Sync 2"), og kopien åpnes, deaktivert.
 - Plasser blokkene ovenfra og ned, slik at de leses i den retningen de kjører — inngangen er på den øverste kanten, utgangene på den nederste, så flyten naturlig går nedover.
+
+## Angre, gjør om og versjonshistorikk
+
+Hver endring du gjør på lerretet, kan tas tilbake, selv om den ble lagret med en gang.
+
+- **Angre** og **Gjør om** sitter først i verktøylinjen. Hold musen over en av dem for å se hva den ville tatt tilbake eller gjort på nytt, og hvilken blokk det gjelder. Hver endring er ett steg: å legge til, slette eller flytte en blokk, å koble sammen to blokker eller koble dem fra hverandre, og å lagre innstillingene til en blokk. Å dra en blokk er ett steg, uansett hvor langt du drar den.
+- Tastaturet virker også: ⌘Z på en Mac, eller Ctrl+Z, angrer, og ⇧⌘Z, Ctrl+Shift+Z eller Ctrl+Y gjør om. Mens du skriver i et felt eller en kodeeditor, angrer de samme tastene i stedet det du har skrevet.
+- Det du angrer, lagres som enhver annen endring. Angre rekker bare tilbake til det du har gjort siden du åpnet Bygger; versjonshistorikken går lenger tilbake.
+
+**Versjonshistorikk**, i verktøylinjen, viser hver lagret versjon av arbeidsflyten, med den nyeste først: hvem som lagret den, når, og hva den endret, for eksempel `Added "Send Email" (send-email-1)`. Endringene du lagrer innen 10 minutter etter hverandre, blir én versjon, så en versjon er et stykke arbeid og ikke hvert eneste klikk. Endringer gjort via API-et er også versjoner, og hver endring Ask AI gjør, er en egen versjon som sier at Ask AI gjorde den for deg. Gjenoppretter du versjonen før den, tar du tilbake nøyaktig det Ask AI gjorde. Når endringen fra Ask AI ble gjort oppå en endring du ennå ikke hadde sett, viser Builder dem som to trinn: Angre tar bare tilbake endringen fra Ask AI, og endringen som ble lagret før den, er trinnet før.
+
+For å gå tilbake til en tidligere versjon:
+
+:::steps
+1. Klikk på **Versjonshistorikk** i verktøylinjen.
+2. Klikk på **Forhåndsvisning** ved versjonen. Forhåndsvisningen viser hva en gjenoppretting ville endret, og viser versjonen på et eget lerret. Klikk på en blokk der for å lese innstillingene.
+3. Klikk på **Gjenopprett denne versjonen**. Versjonen kommer tilbake på lerretet og lagres med en gang.
+:::
+
+En gjenoppretting er en endring som enhver annen. Den lagres som en ny versjon som sier hvilken versjon den gjenopprettet, så du kan angre den eller gjenopprette versjonen du hadde før. Alle som kan åpne arbeidsflyten, kan se historikken; bare personer som har lov til å redigere arbeidsflyten, kan gjenopprette en versjon. De 100 nyeste versjonene av hver arbeidsflyt beholdes.
 
 ## Neste trinn
 

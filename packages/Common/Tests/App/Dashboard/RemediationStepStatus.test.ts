@@ -219,6 +219,8 @@ describe("getRemediationFixFacts: one fix as the pill reads it", () => {
       hasRun: false,
       hasFailed: false,
       isVerified: false,
+      // A runbook needs one approval: nobody's first of two (#6148's follow-up).
+      isFirstApprovedByReader: false,
     });
   });
 

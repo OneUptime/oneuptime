@@ -9,6 +9,7 @@ import ObjectID from "../../Types/ObjectID";
 import DashboardVariableInterpolation, {
   ResolvedVariableValue,
 } from "./VariableInterpolation";
+import DashboardWidgetIds from "./DashboardWidgetIds";
 
 export interface DashboardLabelFilterData {
   labelIds?: Array<string> | undefined;
@@ -55,14 +56,25 @@ export default class DashboardLabelVariable {
   public static getFilter(
     data: DashboardLabelFilterData,
   ): Includes | IncludesAnyOfGroups | undefined {
-    const fixed: Array<string> = [...new Set(data.labelIds || [])];
+    /*
+     * The labels and the variable as the ids they name - text, or an
+     * ObjectID stored as its JSON (issue #6328). Compared as stored, an
+     * ObjectID matched no variable, and the widget said its variable was
+     * missing; two of the same label were both kept.
+     */
+    const fixed: Array<string> = [
+      ...new Set(DashboardWidgetIds.readIdList(data.labelIds) || []),
+    ];
     if (!data.labelVariableId) {
       return fixed.length > 0 ? new Includes(fixed) : undefined;
     }
 
+    const labelVariableId: string | null = DashboardWidgetIds.readId(
+      data.labelVariableId,
+    );
     const matching: Array<DashboardVariable> = (data.variables || []).filter(
       (variable: DashboardVariable) => {
-        return variable.id === data.labelVariableId;
+        return labelVariableId !== null && variable.id === labelVariableId;
       },
     );
     const variable: DashboardVariable | undefined = matching[0];

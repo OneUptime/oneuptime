@@ -1,6 +1,6 @@
 # RUM-probleemoplossing
 
-Wanneer een RUM-applicatie ontbreekt, leeg is of **Verbinding verbroken** toont, loop je deze pagina in volgorde door. Elke controle sluit een deel van de weg tussen je app en OneUptime uit, in de volgorde waarin deze problemen meestal optreden.
+Wanneer een RUM-applicatie ontbreekt of leeg is, of **Geen recent verkeer** toont terwijl mensen haar gebruiken, loop je deze pagina in volgorde door. Elke controle sluit een deel van de weg tussen je app en OneUptime uit, in de volgorde waarin deze problemen meestal optreden.
 
 :::cards
 - [De sleutel controleren](#de-sleutel-controleren): De snelste controle, en al het andere hangt ervan af.
@@ -109,6 +109,33 @@ De applicatie bestaat, maar de pagina's ervan tonen niets.
 - **Wacht een paar minuten.** Ingestie loopt via een wachtrij, en **Laatst gezien** wordt om de paar minuten bijgewerkt in plaats van bij elke batch.
 - **Controleer het project.** Een sleutel schrijft naar zijn eigen project, dus telemetrie die met de sleutel van een ander project is verstuurd, staat daar en niet hier.
 
+## Uitzonderingen of logs zijn leeg
+
+Paginaladingen en verzoeken komen binnen, maar **Uitzonderingen** of **Logboeken** blijven leeg. De OpenTelemetry-browser-SDK verstuurt uit zichzelf traces van paginaladingen en verzoeken, maar geen uitzonderingen en geen logs, dus een applicatie kan verbonden lijken terwijl deze twee voorgoed leeg blijven.
+
+De lege grafiek op het **Overzicht** van de applicatie zegt welk geval het is, en de **Configuratiecontrole** op de pagina **Documentatie** ervan toont elke soort telemetrie met wanneer de nieuwste binnenkwam:
+
+| De grafiek zegt | Wat het betekent |
+| --- | --- |
+| **Uitzonderingen zijn niet ingesteld** of **Logboeken zijn niet ingesteld** | Van deze app is er nog nooit een binnengekomen. **Uitzonderingen instellen** of **Logboeken instellen** toont de code die ze verstuurt, met je URL en sleutel al ingevuld. |
+| **Geen uitzonderingen in dit tijdsbereik** of **Geen logboeken in dit tijdsbereik** | Er kwamen er eerder binnen, en de grafiek zegt wanneer de laatste binnenkwam. Kies de langere periode die hij aanbiedt. |
+| **Er is nog niets van deze app binnengekomen** | Er komt geen enkele telemetrie binnen: begin bij [De sleutel controleren](#de-sleutel-controleren). |
+| **De OpenTelemetry SDK rapporteert niet** | Alleen sessieherhaling rapporteert vanuit deze app: stel de SDK in zoals in [Browserconfiguratie](/docs/rum/browser-setup). |
+
+Uitzonderingen hebben een foutafhandelaar nodig, omdat de SDK onafgevangen fouten niet opvangt: [Onafgevangen fouten melden](/docs/rum/browser-setup#onafgevangen-fouten-melden) heeft de code. Een fout die een error boundary of een `try`/`catch` afhandelt, bereikt het venster nooit, dus leg hem vast waar je hem afhandelt, met `span.recordException`.
+
+Logs hebben een logpipeline nodig en code die logrecords schrijft, omdat een `LoggerProvider` op zichzelf niets verstuurt: [Logs en metrieken toevoegen](/docs/rum/browser-setup#logs-en-metrieken-toevoegen) heeft allebei. Bouw de pipeline met dezelfde `resource` als je traces, anders worden de logs onder een backend-service ingedeeld.
+
+Als paginaladingen binnenkomen, laten de sleutel, de toegestane origins ervan en je Content Security Policy ook uitzonderingen en logs door, zolang de logexporter dezelfde sleutel en host gebruikt. Een foutafhandelaar die nog niets heeft opgevangen, verstuurt niets, precies zoals een die nooit is toegevoegd, dus gooi een testfout vanuit de console van de browser om de twee uit elkaar te houden:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Binnen een minuut staat hij op het **Overzicht** van de applicatie, onder **Uitzonderingen**.
+
 ## De pagina Clients is leeg
 
 De pagina **Clients** toont `browser.platform` op het web en `device.model.identifier` op mobiel. Twee redenen waarom ze leeg blijft terwijl al het andere werkt:
@@ -120,15 +147,15 @@ De pagina **Clients** toont `browser.platform` op het web en `device.model.ident
 
 De kaart vult zich alleen met metrieken die je app verstuurt, dus traces alleen vullen haar nooit. Controleer of je metrieken exporteert, of de namen ervan bij de namen horen die OneUptime leest en of ze op de pagina **Metrieken** van de applicatie verschijnen. [De kaart zegt «No web vitals reported yet»](/docs/rum/web-vitals#probleemoplossing) loopt elke controle door, inclusief waarden die verloren gaan wanneer een bezoeker het tabblad sluit voor de volgende export.
 
-## De status zegt Verbinding verbroken terwijl mensen de app gebruiken
+## De status zegt Geen recent verkeer terwijl mensen de app gebruiken
 
-Een applicatie gaat naar **Verbinding verbroken** na 15 minuten zonder telemetrie. Als mensen de app gebruiken:
+Een applicatie gaat naar **Geen recent verkeer** na 15 minuten zonder telemetrie. Als mensen de app gebruiken:
 
 - **Een sampler gooit misschien alles weg.** Controleer of je geen sampler hebt ingesteld die altijd uit staat, of een heel lage verhouding.
 - **De app verstuurt misschien alleen telemetrie bij bepaalde interacties**, en niemand heeft die in die tijd gebruikt.
 - **De sleutel is misschien ingetrokken of uitgeschakeld** na de uitrol: voer de [sleutelcontrole](#de-sleutel-controleren) opnieuw uit.
 
-Een interne app of een app met weinig verkeer zonder bezoekers 's nachts is echt niet verbonden. Dat is geen storing.
+Een interne app of een app met weinig verkeer zonder bezoekers 's nachts toont ook **Geen recent verkeer**. Dat is normaal, geen storing.
 
 ## Problemen met sessieherhaling
 

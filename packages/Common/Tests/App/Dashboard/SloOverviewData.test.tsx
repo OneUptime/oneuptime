@@ -51,12 +51,14 @@ import useSloOverviewData, {
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveMonitorRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import ServiceLevelObjectiveOwnerTeam from "../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveOwnerUser from "../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import ObjectID from "../../../Types/ObjectID";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
@@ -109,6 +111,14 @@ burnRule.name = "Fast burn";
 burnRule.isEnabled = true;
 burnRule.burnRateThreshold = 14.4;
 
+const policyTier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+  new ServiceLevelObjectiveErrorBudgetPolicyTier();
+policyTier._id = "5f8b7c1e2d3a4b5c6d7e8001";
+policyTier.name = "Reliability first";
+policyTier.thresholdPercentage = 25;
+policyTier.whatWeDo = "Only reliability work ships.";
+policyTier.isEnabled = true;
+
 const ownerUser: ServiceLevelObjectiveOwnerUser =
   new ServiceLevelObjectiveOwnerUser();
 ownerUser.user = new User();
@@ -136,6 +146,7 @@ const listResultOf: ListResultOfFunction = (
 type StubApiFunction = (options: {
   slo?: ServiceLevelObjective | null;
   rulesError?: Error | undefined;
+  tiersError?: Error | undefined;
   countError?: Error | undefined;
   ownersError?: Error | undefined;
 }) => void;
@@ -143,6 +154,7 @@ type StubApiFunction = (options: {
 const stubApi: StubApiFunction = (options: {
   slo?: ServiceLevelObjective | null;
   rulesError?: Error | undefined;
+  tiersError?: Error | undefined;
   countError?: Error | undefined;
   ownersError?: Error | undefined;
 }): void => {
@@ -157,6 +169,12 @@ const stubApi: StubApiFunction = (options: {
       return options.rulesError
         ? Promise.reject(options.rulesError)
         : Promise.resolve(listResultOf([burnRule]));
+    }
+
+    if (request.modelType === ServiceLevelObjectiveErrorBudgetPolicyTier) {
+      return options.tiersError
+        ? Promise.reject(options.tiersError)
+        : Promise.resolve(listResultOf([policyTier]));
     }
 
     if (options.ownersError) {
@@ -464,6 +482,86 @@ describe("useSloOverviewData", () => {
     expect(result.current.burnRateRulesError).toBe("Rules are unavailable.");
     expect(result.current.monitorRuleCount).toBeNull();
     expect(result.current.enabledMonitorRuleCount).toBeNull();
+  });
+
+  test("loads the error budget policy's tiers with the rules, highest threshold first, on every poll", async () => {
+    stubApi({});
+
+    const { result } = renderDataHook();
+
+    await waitFor(() => {
+      expect(result.current.refreshCount).toBe(1);
+    });
+
+    const tierRequests: Array<
+      ModelRequest & { sort?: Record<string, unknown> }
+    > = getListMock.mock.calls
+      .map((args: Array<unknown>) => {
+        return args[0] as ModelRequest & { sort?: Record<string, unknown> };
+      })
+      .filter((request: ModelRequest) => {
+        return request.modelType === ServiceLevelObjectiveErrorBudgetPolicyTier;
+      });
+
+    expect(tierRequests).toHaveLength(1);
+    expect(tierRequests[0]!.query!["serviceLevelObjectiveId"]).toBe(SLO_ID);
+    // Disabled tiers too: the page decides what each card shows.
+    expect(tierRequests[0]!.query).not.toHaveProperty("isEnabled");
+    expect(tierRequests[0]!.select).toEqual(
+      expect.objectContaining({
+        name: true,
+        thresholdPercentage: true,
+        whatWeDo: true,
+        isEnabled: true,
+      }),
+    );
+    expect(tierRequests[0]!.sort).toEqual({
+      thresholdPercentage: SortOrder.Descending,
+    });
+    expect(result.current.policyTiers).toEqual([policyTier]);
+    expect(result.current.policyTiersError).toBe("");
+
+    // The SLO row carries the tier it is in, and the deploy gate's answer.
+    expect(Object.keys(SLO_OVERVIEW_SELECT)).toEqual(
+      expect.arrayContaining([
+        "currentErrorBudgetPolicyTierId",
+        "currentErrorBudgetPolicyTierName",
+        "currentErrorBudgetPolicyTierEnteredAt",
+        "deploymentsAllowed",
+        "deploymentsFrozenAt",
+      ]),
+    );
+
+    tick();
+
+    await waitFor(() => {
+      expect(result.current.refreshCount).toBe(2);
+    });
+
+    expect(
+      getListMock.mock.calls.filter((args: Array<unknown>) => {
+        return (
+          (args[0] as ModelRequest).modelType ===
+          ServiceLevelObjectiveErrorBudgetPolicyTier
+        );
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("a tiers failure blanks only the tiers", async () => {
+    stubApi({ tiersError: new Error("Tiers are unavailable.") });
+
+    const { result } = renderDataHook();
+
+    await waitFor(() => {
+      expect(result.current.hasLoaded).toBe(true);
+    });
+
+    expect(result.current.slo).not.toBeNull();
+    expect(result.current.error).toBe("");
+    expect(result.current.burnRateRules).toEqual([burnRule]);
+    expect(result.current.policyTiers).toEqual([]);
+    expect(result.current.policyTiersError).toBe("Tiers are unavailable.");
   });
 
   test("an owners failure leaves owners unknown rather than empty", async () => {

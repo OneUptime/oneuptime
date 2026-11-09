@@ -29,7 +29,8 @@ export interface ComponentProps {
 /*
  * A repository's menu in Code: its tasks first - that is where AI is asked
  * and where its work is read - then its pull requests' production reviews,
- * its settings, its Developer pages and, apart, removing it.
+ * its settings, its Developer pages and, apart, who changed it (Audit Logs)
+ * and removing it.
  *
  * Production reviews are every host's with pull requests - GitHub's,
  * GitLab's, Forgejo's and Gitea's: a repository on a Git server has none,
@@ -116,6 +117,16 @@ const CodeRepositorySideMenu: FunctionComponent<ComponentProps> = (
       })}
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
         <SideMenuItem
           link={{
             title: "Delete Repository",

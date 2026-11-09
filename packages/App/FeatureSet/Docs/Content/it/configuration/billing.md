@@ -106,7 +106,7 @@ Quando la tua banca sta ancora elaborando un pagamento, OneUptime lo segnala: al
 
 ## Cronologia utilizzo
 
-**Impostazioni del progetto → Fatturazione e fatture → Cronologia utilizzo** mostra la telemetria inviata dal progetto, una riga per prodotto, servizio e giorno:
+**Impostazioni del progetto → Telemetria e APM → Utilizzo** mostra quanta telemetria ha inviato il progetto, per giorno, segnale e risorsa: vedi [Utilizzo della telemetria](/docs/telemetry/usage). Su OneUptime Cloud, il suo elenco **Cronologia di utilizzo della telemetria** dice anche quanto è costato ogni giorno, una riga per prodotto, servizio e giorno:
 
 | Colonna | Che cosa mostra |
 | --- | --- |
@@ -117,7 +117,7 @@ Quando la tua banca sta ancora elaborando un pagamento, OneUptime lo segnala: al
 | **Conservazione dei dati (in giorni)** | Per quanto tempo viene conservata. |
 | **Costo totale** | Quanto è costata, in dollari statunitensi. |
 
-L'utilizzo di un giorno compare quando il giorno è finito. Filtra per **Prodotto**, **Giorno** o **Servizio** per trovare che cosa è cresciuto.
+L'utilizzo di un giorno compare quando il giorno è finito, entro le 08:00 UTC circa del giorno dopo. Filtra per **Prodotto**, **Giorno** o **Servizio** per trovare che cosa è cresciuto.
 
 ## Saldi prepagati
 
@@ -188,8 +188,8 @@ Un progetto con fatture non pagate diventa inattivo, e viene eliminato se restan
 Il progetto non ha ancora un metodo di pagamento. Aggiungine uno, poi cambia il piano.
 :::
 
-:::details La cronologia utilizzo è vuota
-L'utilizzo si conta per giorno, e un giorno compare quando è finito. Un progetto che non ha inviato telemetria non ha righe.
+:::details L'elenco Cronologia di utilizzo della telemetria è vuoto
+L'utilizzo si conta per giorno, e un giorno compare quando è finito, entro le 08:00 UTC circa del giorno dopo. Un progetto che non ha inviato telemetria non ha righe.
 :::
 
 ## Passi successivi

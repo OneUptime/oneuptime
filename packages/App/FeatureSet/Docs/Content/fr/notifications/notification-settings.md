@@ -50,7 +50,7 @@ Quand vous rejoignez un projet, ces événements sont activés, par e-mail. Tout
 | **Incidents** | **Incident créé**, **État de l'incident modifié**, **Rappel d'incident**, **SLA d'incident non respecté**, **Épisode d'incident créé**, **État de l'épisode d'incident modifié**, **Incident ajouté à l'épisode d'incident** | **Note d'incident publiée**, **Ajouté comme propriétaire de l'incident**, **Affecté à un incident**, **Note d'épisode d'incident publiée**, **Ajouté comme propriétaire de l'épisode d'incident** |
 | **Alertes** | **Alerte créée**, **État de l'alerte modifié**, **Rappel d'alerte**, **Épisode d'alerte créé**, **État de l'épisode d'alerte modifié**, **Alerte ajoutée à l'épisode d'alerte** | **Note d'alerte publiée**, **Ajouté comme propriétaire de l'alerte**, **Note d'épisode d'alerte publiée**, **Ajouté comme propriétaire de l'épisode d'alerte** |
 | **Surveillance** | **Statut de la sonde modifié pour votre moniteur**, **Le moniteur n'a aucune sonde active**, **Statut du SLO modifié**, **Ajouté comme propriétaire du SLO**, **Exception qui m'est attribuée**, **Statut de la sonde modifié**, **Ajouté comme propriétaire de la sonde** | **Moniteur créé**, **Statut du moniteur modifié**, **Ajouté comme propriétaire du moniteur**, **Statut de l'agent IA modifié**, **Ajouté comme propriétaire de l'agent IA** |
-| **Pages de statut** | Aucun | **Page de statut créée**, **Annonce de page de statut publiée**, **Ajouté comme propriétaire de la page de statut** |
+| **Pages de statut** | **Ma note publique approuvée ou rejetée**, et aussi par push : **Note publique en attente de mon approbation** | **Page de statut créée**, **Annonce de page de statut publiée**, **Ajouté comme propriétaire de la page de statut** |
 | **Maintenance planifiée** | **Rappel de maintenance** | **Événement de maintenance créé**, **État de la maintenance modifié**, **Note de maintenance publiée**, **Ajouté comme propriétaire de la maintenance** |
 | **Astreinte** | **Vous prenez l'astreinte**, **Vous êtes le prochain d'astreinte**, **Vous quittez l'astreinte**, **Ajouté à la politique d'astreinte**, **Retiré de la politique d'astreinte**, **Appel manqué**, et aussi par push : **Avant le début de ma permanence d'astreinte**, **Ma prochaine permanence d'astreinte est réattribuée** | Aucun |
 | **Sécurité** | Aussi par push : **Nouveau dossier de sécurité** (dossiers de priorité Élevé et Critique), **Dossier de sécurité qui m'est attribué**, **Étape de playbook en attente de mon approbation**, **Objectif de réponse d'un dossier de sécurité**, **Tâche d'un dossier de sécurité qui m'est attribuée**, **Une chasse a trouvé des événements de sécurité** | Aucun |
@@ -76,6 +76,15 @@ L'onglet **Sécurité** parle des dossiers de sécurité que vous pouvez voir :
 - **Étape de playbook en attente de mon approbation** vous demande d'approuver ou de rejeter une étape de playbook sur un dossier où vous pouvez donner votre approbation.
 
 Voir [Dossiers de sécurité](/docs/telemetry/security-cases#notifications).
+
+## Approbation des notes publiques
+
+La carte **Approbation des notes publiques**, sur l'onglet **Pages de statut**, concerne les notes publiques qui attendent une approbation avant d'être publiées, dans un projet qui l'exige :
+
+- **Note publique en attente de mon approbation** vous indique qu'une note publique, ou sa modification, attend une étape que vous approuvez, nommément ou par une équipe. On ne vous demande rien sur une note que vous avez envoyée, ni sur une étape qui suit une étape que vous avez approuvée. Vous êtes sollicité une fois pour chaque étape : quand la note l'atteint, ou quand vous devenez l'un de ses approbateurs pendant que la note attend, parce que les étapes d'approbation ont changé ou que vous avez rejoint une équipe qu'une étape nomme. Elle est activée au départ par e-mail et par push, et **Récapitulatif par e-mail** ne la retient jamais : les clients pour qui la note est écrite l'attendent.
+- **Ma note publique approuvée ou rejetée** vous indique qu'une note que vous avez envoyée pour approbation a été approuvée et publiée, ou rejetée, avec la raison. Elle est activée au départ par e-mail.
+
+Voir [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques).
 
 ## Moins d'e-mails
 

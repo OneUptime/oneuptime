@@ -15,6 +15,12 @@ import UserService from "Common/Server/Services/UserService";
 import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
+import {
+  AuditLogColumnSummarizer,
+  AuditLogValueSummary,
+  getAuditLogColumnSummarizer,
+} from "Common/Server/Utils/AuditLog/AuditLogColumnSummaries";
+import { getAuditLogResourceName } from "Common/Server/Utils/AuditLog/AuditLogResourceNames";
 import ColumnValueChange from "Common/Server/Utils/Database/ColumnValueChange";
 import RelationValueUtil from "Common/Server/Utils/Database/RelationValueUtil";
 import logger from "Common/Server/Utils/Logger";
@@ -23,6 +29,10 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import {
+  AUDIT_LOG_SECRET_COLUMNS,
+  looksLikeSecretColumn,
+} from "Common/Types/AuditLog/AuditLogCoverage";
 import {
   getAuditLogRedactedColumns,
   redactAuditLogValue,
@@ -33,10 +43,24 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { getColumnAccessControlForAllColumns } from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserType from "Common/Types/UserType";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  describeLargeJson,
+  getJsonChangeLines,
+  getJsonLength,
+  isJsonStructure,
+  isLargeJson,
+  limitChangedText,
+  limitText,
+  redactSecretsInJson,
+} from "Common/Utils/AuditLog/AuditLogValues";
+import {
+  getAuditLogHeldValue,
+  readAuditLogValue,
+} from "Common/Utils/AuditLog/AuditLogTypedValues";
 
 /*
  * The recording half of the audit log (OneUptime Enterprise).
@@ -66,7 +90,32 @@ import OneUptimeDate from "Common/Types/Date";
  *     as a license is activated. An unknown license state counts as active,
  *     so a license read error never drops entries.
  *   - Then, everywhere, the project's own settings: audit logging switched on,
- *     and system events only when the project stores them.
+ *     and system events only when the project stores them. The change that
+ *     switches audit logging on or off is itself always recorded
+ *     (withAuditSwitchRecorded): who turned the audit log off is the one
+ *     entry an audit log must never lose.
+ *
+ * WHAT AN ENTRY SAYS OF A VALUE (shapeSnapshotValue / shapeUpdateChange):
+ *   - a typed value - a phone number, an email address, a URL, a port - is
+ *     what people read, "+14155550100", as an id and a time are, never the
+ *     { _type, value } JSON it is written as; a hash is "[REDACTED]"
+ *     (Common/Utils/AuditLog/AuditLogTypedValues);
+ *   - a column described rather than copied - a workflow's graph - is the
+ *     lines of what changed, with the values before and after in a few words
+ *     (Common/Server/Utils/AuditLog/AuditLogColumnSummaries); a save that
+ *     changes nothing a workflow does (a card moved) is no change at all;
+ *   - JSON has every value under a secret-looking key redacted, comes with
+ *     the paths that changed, and is recorded by its size when it is large;
+ *   - long text keeps the part around the first difference
+ *     (Common/Utils/AuditLog/AuditLogValues).
+ *
+ * WHAT A WRITE ROUND THE HOOKS RECORDS (recordUpdate's includeColumns): a
+ * write OneUptime makes for a person outside DatabaseService - a merge of
+ * exceptions, a webhook URL reset - records the change itself, and names
+ * the columns that say what the person did. They are recorded although the
+ * model's configuration leaves them out as OneUptime's own bookkeeping, on
+ * that entry only; one nobody may read, or a secret, as changed and never
+ * with its value. The row's id and timestamps are never recorded.
  */
 
 // Where an entry is written: core's AuditLog analytics service by default.
@@ -207,6 +256,7 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     updatedFields: JSONObject;
     itemId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    includeColumns?: Array<string> | undefined;
   }): Promise<void> {
     try {
       /*
@@ -219,6 +269,7 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
         model: data.model,
         before: data.before,
         updatedFields: data.updatedFields,
+        includeColumns: data.includeColumns,
       });
 
       if (changes.length === 0) {
@@ -238,7 +289,16 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
       const settings: CachedProjectSettings | null =
         await this.getProjectSettings(projectId);
 
-      if (!this.isEligible(settings, data.props)) {
+      if (
+        !this.isEligible(
+          this.withAuditSwitchRecorded({
+            settings,
+            model: data.model,
+            changes,
+          }),
+          data.props,
+        )
+      ) {
         return;
       }
 
@@ -535,6 +595,34 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     return EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
   }
 
+  /*
+   * The project's settings as the entry for this change reads them. The
+   * change that turns audit logging on or off is recorded either way: on its
+   * way off it is the last entry the project gets, and on its way on the
+   * first - and the settings read here may already say either, depending on
+   * whether they were cached before the write. Everything else about
+   * eligibility (the plan, the license, system events) still applies.
+   */
+  private withAuditSwitchRecorded<TModel extends BaseModel>(data: {
+    settings: CachedProjectSettings | null;
+    model: TModel;
+    changes: JSONArray;
+  }): CachedProjectSettings | null {
+    if (!data.settings || data.model.tableName !== "Project") {
+      return data.settings;
+    }
+
+    const turnsTheSwitch: boolean = data.changes.some(
+      (change: unknown): boolean => {
+        return (change as JSONObject)["field"] === "enableAuditLogs";
+      },
+    );
+
+    return turnsTheSwitch
+      ? { ...data.settings, enableAuditLogs: true }
+      : data.settings;
+  }
+
   private isSystemEvent(props: DatabaseCommonInteractionProps): boolean {
     /*
      * A system event is one not initiated by a user — no userType is set and
@@ -718,22 +806,93 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
   /*
    * Everything an entry leaves out: bookkeeping fields, columns nobody may read
    * (read ACL `[]`, so recording them would leak them to audit readers), and
-   * the model's ignored columns.
+   * the model's ignored columns - but for the columns a write round the hooks
+   * names as what a person did (`included`, see getIncludedColumns).
    */
   private getExcludedFields<TModel extends BaseModel>(
     model: TModel,
+    included: ReadonlySet<string> = new Set<string>(),
   ): Set<string> {
     const excluded: Set<string> = new Set<string>(SKIPPED_FIELDS);
 
     for (const field of this.getRedactedFields(model)) {
-      excluded.add(field);
+      if (!included.has(field)) {
+        excluded.add(field);
+      }
     }
 
     for (const field of model.enableAuditLogOn?.ignoreColumns || []) {
-      excluded.add(field);
+      if (!included.has(field)) {
+        excluded.add(field);
+      }
     }
 
     return excluded;
+  }
+
+  /*
+   * The included columns whose values an entry never carries: one nobody
+   * may read (a runbook's webhook key), and one holding a secret by the
+   * rules the defaults redact by - its type or its name says so, or
+   * AUDIT_LOG_SECRET_COLUMNS lists it. The defaults leave a secret only
+   * OneUptime writes out of entries (a data product's badge token), so they
+   * never list it to redact; included, it is redacted here. Each is recorded
+   * as changed - who reset it, and when - never with its value.
+   */
+  private getIncludedSecrets<TModel extends BaseModel>(
+    model: TModel,
+    included: ReadonlySet<string>,
+  ): Set<string> {
+    const secrets: Set<string> = new Set<string>();
+
+    if (included.size === 0) {
+      return secrets;
+    }
+
+    const unreadable: Set<string> = this.getRedactedFields(model);
+    const listed: ReadonlyArray<string> =
+      (model.tableName &&
+      Object.prototype.hasOwnProperty.call(
+        AUDIT_LOG_SECRET_COLUMNS,
+        model.tableName,
+      )
+        ? AUDIT_LOG_SECRET_COLUMNS[model.tableName]
+        : undefined) || [];
+
+    for (const column of included) {
+      if (
+        unreadable.has(column) ||
+        listed.includes(column) ||
+        looksLikeSecretColumn(
+          column,
+          model.getTableColumnMetadata(column)?.type,
+        )
+      ) {
+        secrets.add(column);
+      }
+    }
+
+    return secrets;
+  }
+
+  /*
+   * The columns of `includeColumns` that are the model's own. Its id,
+   * timestamps and version stay out of every entry whoever names them
+   * (SKIPPED_FIELDS, which getExcludedFields always leaves out).
+   */
+  private getIncludedColumns<TModel extends BaseModel>(
+    model: TModel,
+    includeColumns: Array<string> | undefined,
+  ): Set<string> {
+    const included: Set<string> = new Set<string>();
+
+    for (const column of includeColumns || []) {
+      if (typeof column === "string" && model.isTableColumn(column)) {
+        included.add(column);
+      }
+    }
+
+    return included;
   }
 
   private getRedactedFields<TModel extends BaseModel>(
@@ -780,26 +939,163 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
         continue;
       }
 
+      // A secret is recorded as set, never with its value (AuditLogRedaction).
+      if (redactedFields.has(column)) {
+        changes.push({
+          field: column,
+          [data.valueKey]: redactAuditLogValue(value),
+        } as JSONObject);
+        continue;
+      }
+
+      const summarizer: AuditLogColumnSummarizer | null =
+        getAuditLogColumnSummarizer(data.model.tableName, column);
+
+      if (summarizer) {
+        const described: { value: JSONValue; summary: Array<string> } =
+          summarizer.summarizeSnapshot(value);
+
+        changes.push({
+          field: column,
+          [data.valueKey]: described.value,
+          summary: described.summary,
+        } as JSONObject);
+        continue;
+      }
+
+      const serialized: unknown = this.serializeValue(
+        data.model,
+        column,
+        value,
+      );
+
       changes.push({
         field: column,
-        // A secret is recorded as set, never with its value (AuditLogRedaction).
-        [data.valueKey]: redactedFields.has(column)
-          ? redactAuditLogValue(value)
-          : this.serializeValue(data.model, column, value),
+        [data.valueKey]: this.getRelationMetadata(data.model, column)
+          ? serialized
+          : this.shapeSnapshotValue(serialized),
       } as JSONObject);
     }
 
     return changes;
   }
 
+  /*
+   * A value of a created or deleted record as its entry keeps it: JSON with
+   * its secrets redacted, or by its size when it is too large to read; text
+   * up to the limit.
+   */
+  private shapeSnapshotValue(value: unknown): unknown {
+    if (typeof value === "string") {
+      return limitText(value);
+    }
+
+    if (!isJsonStructure(value)) {
+      return value;
+    }
+
+    if (isLargeJson(value)) {
+      return describeLargeJson(getJsonLength(value));
+    }
+
+    return redactSecretsInJson(value);
+  }
+
+  /*
+   * One changed field as its entry keeps it. JSON comes with the paths that
+   * changed (keys named, values never quoted), its secrets redacted, and is
+   * recorded by its size when either side is too large to read; two texts
+   * keep the part around where they first differ.
+   */
+  private shapeUpdateChange(data: {
+    field: string;
+    oldValue: unknown;
+    newValue: unknown;
+  }): JSONObject {
+    const { field, oldValue, newValue } = data;
+
+    if (isJsonStructure(oldValue) || isJsonStructure(newValue)) {
+      const summary: Array<string> = getJsonChangeLines({
+        before: oldValue,
+        after: newValue,
+      });
+      const isLarge: boolean = isLargeJson(oldValue) || isLargeJson(newValue);
+
+      const shapeSide: (value: unknown) => unknown = (
+        value: unknown,
+      ): unknown => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+
+        if (!isJsonStructure(value)) {
+          return typeof value === "string" ? limitText(value) : value;
+        }
+
+        return isLarge
+          ? describeLargeJson(getJsonLength(value))
+          : redactSecretsInJson(value);
+      };
+
+      const change: JSONObject = {
+        field,
+        oldValue: shapeSide(oldValue) as JSONValue,
+        newValue: shapeSide(newValue) as JSONValue,
+      };
+
+      if (summary.length > 0) {
+        change["summary"] = summary;
+      }
+
+      return change;
+    }
+
+    if (typeof oldValue === "string" || typeof newValue === "string") {
+      const limited: { before: string; after: string } = limitChangedText({
+        before: typeof oldValue === "string" ? oldValue : "",
+        after: typeof newValue === "string" ? newValue : "",
+      });
+
+      return {
+        field,
+        oldValue:
+          typeof oldValue === "string"
+            ? limited.before
+            : (oldValue as JSONValue),
+        newValue:
+          typeof newValue === "string"
+            ? limited.after
+            : (newValue as JSONValue),
+      };
+    }
+
+    return {
+      field,
+      oldValue: oldValue as JSONValue,
+      newValue: newValue as JSONValue,
+    };
+  }
+
   private buildUpdateDiff<TModel extends BaseModel>(data: {
     model: TModel;
     before: TModel;
     updatedFields: JSONObject;
+    includeColumns?: Array<string> | undefined;
   }): JSONArray {
     const changes: JSONArray = [];
-    const excludedFields: Set<string> = this.getExcludedFields(data.model);
+    const included: Set<string> = this.getIncludedColumns(
+      data.model,
+      data.includeColumns,
+    );
+    const excludedFields: Set<string> = this.getExcludedFields(
+      data.model,
+      included,
+    );
     const redactedFields: Set<string> = getAuditLogRedactedColumns(data.model);
+
+    for (const field of this.getIncludedSecrets(data.model, included)) {
+      redactedFields.add(field);
+    }
     const beforeRecord: Record<string, unknown> =
       data.before as unknown as Record<string, unknown>;
 
@@ -835,11 +1131,54 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
         continue;
       }
 
-      changes.push({
+      const summarizer: AuditLogColumnSummarizer | null =
+        getAuditLogColumnSummarizer(data.model.tableName, field);
+
+      if (summarizer) {
+        const described: AuditLogValueSummary | null =
+          summarizer.summarizeUpdate(oldValue, newValue);
+
+        // The two do the same thing (a workflow's cards moved): no change.
+        if (!described) {
+          continue;
+        }
+
+        changes.push({
+          field,
+          oldValue: described.oldValue ?? null,
+          newValue: described.newValue ?? null,
+          summary: described.summary,
+        } as JSONObject);
+        continue;
+      }
+
+      const serializedOld: unknown = this.serializeValue(
+        data.model,
         field,
-        oldValue: this.serializeValue(data.model, field, oldValue),
-        newValue: this.serializeValue(data.model, field, newValue),
-      } as JSONObject);
+        oldValue,
+      );
+      const serializedNew: unknown = this.serializeValue(
+        data.model,
+        field,
+        newValue,
+      );
+
+      if (this.getRelationMetadata(data.model, field)) {
+        changes.push({
+          field,
+          oldValue: serializedOld,
+          newValue: serializedNew,
+        } as JSONObject);
+        continue;
+      }
+
+      changes.push(
+        this.shapeUpdateChange({
+          field,
+          oldValue: serializedOld,
+          newValue: serializedNew,
+        }),
+      );
     }
 
     return changes;
@@ -855,6 +1194,12 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
    * order, and a relation naming the same rows (whatever else the
    * before-row's join or the payload carried with them) are all the same
    * value. A field the write sends as undefined writes nothing.
+   *
+   * A typed value is compared as what it holds (getAuditLogHeldValue): a
+   * Phone written back as its { _type, value } JSON or its text is the same
+   * number, as an entry would read it, and two different numbers in the
+   * same shape are two numbers. A hash is compared by its hash, so a
+   * changed secret is still a change. A relation is compared as it is.
    */
   private areValuesEqual<TModel extends BaseModel>(data: {
     model: TModel;
@@ -865,11 +1210,18 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     // A field that is not a column has none: compared as of no known type.
     const metadata: TableColumnMetadata | undefined =
       data.model.getTableColumnMetadata(data.field);
+    const isRelation: boolean =
+      metadata?.type === TableColumnType.Entity ||
+      metadata?.type === TableColumnType.EntityArray;
 
     return !ColumnValueChange.isChanged({
       columnType: metadata?.type,
-      storedValue: data.oldValue,
-      writtenValue: data.newValue,
+      storedValue: isRelation
+        ? data.oldValue
+        : getAuditLogHeldValue(data.oldValue),
+      writtenValue: isRelation
+        ? data.newValue
+        : getAuditLogHeldValue(data.newValue),
     });
   }
 
@@ -964,11 +1316,21 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     ) {
       return value;
     }
+
+    let json: unknown;
+
     try {
-      return JSON.parse(JSON.stringify(value));
+      json = JSON.parse(JSON.stringify(value));
     } catch {
       return String(value);
     }
+
+    /*
+     * A typed value - a Phone, an Email, a URL - is written as
+     * { _type, value }: it is recorded as what it holds, "+14155550100", as
+     * an id and a time are above (AuditLogTypedValues).
+     */
+    return readAuditLogValue(json);
   }
 
   /*
@@ -1210,9 +1572,15 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
       string,
       unknown
     >;
+    /*
+     * A name nobody may read does not name the entry either: the entry is
+     * read by people who may not read the row, and its name would be the
+     * one field of it they could.
+     */
+    const unreadable: Set<string> = this.getRedactedFields(item);
 
     for (const field of NAME_CANDIDATE_FIELDS) {
-      if (!item.isTableColumn(field)) {
+      if (!item.isTableColumn(field) || unreadable.has(field)) {
         continue;
       }
 
@@ -1240,6 +1608,13 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
 
     if (ownName) {
       return ownName;
+    }
+
+    const columnsName: string | null =
+      await this.getResourceNameFromColumns(data);
+
+    if (columnsName) {
+      return columnsName;
     }
 
     const relation: string | undefined =
@@ -1288,6 +1663,92 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
       logger.warn(err);
       return null;
     }
+  }
+
+  /*
+   * The name of a row with no name of its own, from the columns that name it
+   * (EnableAuditLogOn.resourceNameColumns): an exception by its type and the
+   * start of its message, a run by its runbook (AuditLogResourceNames). A
+   * column nobody may read names nothing, as everywhere else. A write round
+   * the hooks hands the recorder a row with only its id and project - an
+   * exception merged - so a column the row does not carry is read, inside
+   * the row's project. Best effort: an entry is never lost for want of a
+   * name.
+   */
+  private async getResourceNameFromColumns<TModel extends BaseModel>(data: {
+    model: TModel;
+    item: TModel;
+    projectId: ObjectID;
+  }): Promise<string | null> {
+    const unreadable: Set<string> = this.getRedactedFields(data.model);
+    const columns: Array<string> = (
+      data.model.enableAuditLogOn?.resourceNameColumns || []
+    ).filter((column: string): boolean => {
+      return data.model.isTableColumn(column) && !unreadable.has(column);
+    });
+
+    if (columns.length === 0) {
+      return null;
+    }
+
+    const values: Record<string, unknown> = {};
+    const itemRecord: Record<string, unknown> = data.item as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const column of columns) {
+      values[column] = itemRecord[column];
+    }
+
+    const tenantColumn: string | null = data.model.getTenantColumn();
+
+    if (
+      data.item.id &&
+      tenantColumn &&
+      columns.some((column: string): boolean => {
+        return values[column] === undefined;
+      })
+    ) {
+      try {
+        const select: Record<string, boolean> = { _id: true };
+
+        for (const column of columns) {
+          select[column] = true;
+        }
+
+        const row: BaseModel | null = await this.getRelatedModelService(
+          (data.model as unknown as { constructor: RelatedModelType })
+            .constructor,
+        ).findOneBy({
+          query: {
+            _id: data.item.id,
+            [tenantColumn]: data.projectId,
+          } as Query<BaseModel>,
+          select: select as Select<BaseModel>,
+          props: { isRoot: true, ignoreHooks: true },
+        });
+
+        for (const column of columns) {
+          if (values[column] === undefined && row) {
+            values[column] = (row as unknown as Record<string, unknown>)[
+              column
+            ];
+          }
+        }
+      } catch (err) {
+        logger.warn(
+          "AuditLog: could not read what names the resource; recording the entry without a name",
+        );
+        logger.warn(err);
+      }
+    }
+
+    return getAuditLogResourceName({
+      tableName: data.model.tableName,
+      columns,
+      values,
+    });
   }
 
   /*

@@ -10,6 +10,7 @@ import {
   AuditLogExportDestinationField,
   AuditLogExportSyslogProtocol,
   getAuditLogExportDestinationDefinition,
+  getAuditLogExportFieldDefault,
   isAuditLogExportFieldShown,
   readAuditLogExportConfigValue,
 } from "../../../../Types/AuditLog/Export/AuditLogExportDestinationCatalog";
@@ -431,23 +432,42 @@ export default class AuditLogExportSettingsUtil {
       });
     };
 
+    /*
+     * A required field left empty is asked for only when it has no default
+     * to fall back on. Only the fields shown get one: a default of a field
+     * this config hides (syslog's framing over UDP) would be a setting the
+     * check below refuses as unknown.
+     */
+    const shownConfigFields: Array<AuditLogExportDestinationField> = shown(
+      definition.configFields,
+    );
     const configWithDefaults: JSONObject = { ...normalized.config };
 
-    for (const field of definition.configFields) {
+    for (const field of shownConfigFields) {
+      const fallback: JSONValue | undefined = getAuditLogExportFieldDefault(
+        normalized.config,
+        field,
+      );
+
       if (
         configWithDefaults[field.key] === undefined &&
-        field.defaultValue !== undefined
+        fallback !== undefined
       ) {
-        configWithDefaults[field.key] = field.defaultValue;
+        configWithDefaults[field.key] = fallback;
       }
     }
 
     SecurityEventConnectionService.validateFields({
       definition,
-      fields: shown(definition.configFields),
+      fields: shownConfigFields,
       values: configWithDefaults,
       label: "Configuration",
       requireRequiredFields: true,
+    });
+
+    this.validateNumberRanges({
+      fields: shownConfigFields,
+      config: configWithDefaults,
     });
 
     SecurityEventConnectionService.validateFields({
@@ -469,6 +489,56 @@ export default class AuditLogExportSettingsUtil {
     });
 
     return settings;
+  }
+
+  /*
+   * A number field with a range (a syslog port, the longest UDP message)
+   * holds a whole number inside it, both ends included, or is refused with
+   * a sentence naming both ends. An empty optional field has nothing to
+   * check; its default is in range.
+   */
+  private static validateNumberRanges(data: {
+    fields: Array<AuditLogExportDestinationField>;
+    config: JSONObject;
+  }): void {
+    for (const field of data.fields) {
+      if (
+        field.type !== "number" ||
+        (field.minValue === undefined && field.maxValue === undefined)
+      ) {
+        continue;
+      }
+
+      const raw: JSONValue | undefined = data.config[field.key];
+
+      if (
+        raw === undefined ||
+        raw === null ||
+        (typeof raw === "string" && raw.trim() === "")
+      ) {
+        continue;
+      }
+
+      const value: number =
+        typeof raw === "string" ? Number(raw.trim()) : Number(raw);
+      const min: number = field.minValue ?? Number.MIN_SAFE_INTEGER;
+      const max: number = field.maxValue ?? Number.MAX_SAFE_INTEGER;
+
+      if (
+        typeof raw === "boolean" ||
+        !Number.isInteger(value) ||
+        value < min ||
+        value > max
+      ) {
+        throw new BadDataException(
+          field.minValue !== undefined && field.maxValue !== undefined
+            ? `${field.title} must be a whole number from ${field.minValue} to ${field.maxValue}.`
+            : field.minValue !== undefined
+              ? `${field.title} must be a whole number of at least ${field.minValue}.`
+              : `${field.title} must be a whole number of at most ${field.maxValue}.`,
+        );
+      }
+    }
   }
 
   // A config setting as text, with the field's default when it has none.
@@ -725,14 +795,7 @@ export default class AuditLogExportSettingsUtil {
           );
         }
 
-        const port: number = Number(read("port"));
-
-        if (!Number.isInteger(port) || port < 1 || port > 65535) {
-          throw new BadDataException(
-            "Port must be a whole number from 1 to 65535.",
-          );
-        }
-
+        // The port's range is the catalog's (validateNumberRanges).
         const certificate: string = read("caCertificate");
 
         if (

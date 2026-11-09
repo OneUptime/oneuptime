@@ -71,6 +71,14 @@ export interface NoteRecord {
     | StatusPageSubscriberNotificationStatus
     | undefined;
   subscriberNotificationStatusMessageOnNoteUpdated?: string | undefined;
+  /*
+   * A public note's approval (Common/Types/StatusPage/PublicNoteApproval):
+   * whether it is published, where it stands, and an edit of a published
+   * note that waits for approval.
+   */
+  isPublished?: boolean | undefined;
+  approvalStatus?: string | undefined;
+  pendingNote?: string | undefined;
 }
 
 export type NoteSortOrder = "newest" | "oldest";
@@ -541,6 +549,14 @@ const IN_FLIGHT_STATUSES: Array<StatusPageSubscriberNotificationStatus> = [
 // Whether any note is waiting on a notification that has not settled yet.
 export function hasNotificationInFlight(notes: Array<NoteRecord>): boolean {
   return notes.some((note: NoteRecord) => {
+    /*
+     * A note waiting for approval keeps its notification queued until it is
+     * published: nothing is on its way, so nothing is waited for.
+     */
+    if (note.isPublished === false) {
+      return false;
+    }
+
     return (
       (note.subscriberNotificationStatusOnNoteCreated !== undefined &&
         IN_FLIGHT_STATUSES.includes(
@@ -759,6 +775,10 @@ export function buildNotesSelect(data: {
     candidates["subscriberNotificationStatusMessage"] = true;
     candidates["subscriberNotificationStatusOnNoteUpdated"] = true;
     candidates["subscriberNotificationStatusMessageOnNoteUpdated"] = true;
+    // Where the note stands in approval, and an edit waiting for it.
+    candidates["isPublished"] = true;
+    candidates["approvalStatus"] = true;
+    candidates["pendingNote"] = true;
   }
 
   const select: JSONObject = {};

@@ -1,0 +1,1354 @@
+{
+  "source": {
+    "instrumentation": "@opentelemetry/instrumentation-openai 0.23.0",
+    "sdk": "@opentelemetry/sdk-node 0.301.0 (@opentelemetry/sdk-logs 3.1.0)",
+    "client": "openai 6.49.0 (Node.js 26)",
+    "settings": "content capture off (the default)",
+    "protocol": "http/protobuf",
+    "calls": "Against a fake OpenAI server: a plain chat with a system prompt, a tool round trip (the model asks for get_weather, the app answers it), a request for two choices and a streamed answer; JavaScript also makes one Responses API call.",
+    "captured": "2026-11-09"
+  },
+  "logs": {
+    "resourceLogs": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "js-openai-app"
+              }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": {
+                "stringValue": "nodejs"
+              }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": {
+                "stringValue": "opentelemetry"
+              }
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "value": {
+                "stringValue": "3.1.0"
+              }
+            }
+          ]
+        },
+        "scopeLogs": [
+          {
+            "scope": {
+              "name": "@opentelemetry/instrumentation-openai",
+              "version": "0.23.0"
+            },
+            "logRecords": [
+              {
+                "timeUnixNano": "1794198569394000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {}
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.system.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "1EwlWjPXj8vTvdrogw+3hQ==",
+                "spanId": "e9NwpOKM+kY=",
+                "observedTimeUnixNano": "1794198569394000000"
+              },
+              {
+                "timeUnixNano": "1794198569394000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {}
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.user.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "1EwlWjPXj8vTvdrogw+3hQ==",
+                "spanId": "e9NwpOKM+kY=",
+                "observedTimeUnixNano": "1794198569395000000"
+              },
+              {
+                "timeUnixNano": "1794198569427000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "stop"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "0"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {}
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "1EwlWjPXj8vTvdrogw+3hQ==",
+                "spanId": "e9NwpOKM+kY=",
+                "observedTimeUnixNano": "1794198569427000000"
+              },
+              {
+                "timeUnixNano": "1794198569428000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {}
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.user.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "wkSFSJXARC9XR2kHyzTCSw==",
+                "spanId": "JV0iUpPl4mA=",
+                "observedTimeUnixNano": "1794198569428000000"
+              },
+              {
+                "timeUnixNano": "1794198569431000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "tool_calls"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "0"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "tool_calls",
+                                "value": {
+                                  "arrayValue": {
+                                    "values": [
+                                      {
+                                        "kvlistValue": {
+                                          "values": [
+                                            {
+                                              "key": "id",
+                                              "value": {
+                                                "stringValue": "call_weather_paris"
+                                              }
+                                            },
+                                            {
+                                              "key": "type",
+                                              "value": {
+                                                "stringValue": "function"
+                                              }
+                                            },
+                                            {
+                                              "key": "function",
+                                              "value": {
+                                                "kvlistValue": {
+                                                  "values": [
+                                                    {
+                                                      "key": "name",
+                                                      "value": {
+                                                        "stringValue": "get_weather"
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "wkSFSJXARC9XR2kHyzTCSw==",
+                "spanId": "JV0iUpPl4mA=",
+                "observedTimeUnixNano": "1794198569431000000"
+              },
+              {
+                "timeUnixNano": "1794198569431000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {}
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.user.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "6ESooe+5FNhcV6EW0nEmxA==",
+                "spanId": "FATtuGyycfc=",
+                "observedTimeUnixNano": "1794198569431000000"
+              },
+              {
+                "timeUnixNano": "1794198569431000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "tool_calls",
+                        "value": {
+                          "arrayValue": {
+                            "values": [
+                              {
+                                "kvlistValue": {
+                                  "values": [
+                                    {
+                                      "key": "id",
+                                      "value": {
+                                        "stringValue": "call_weather_paris"
+                                      }
+                                    },
+                                    {
+                                      "key": "type",
+                                      "value": {
+                                        "stringValue": "function"
+                                      }
+                                    },
+                                    {
+                                      "key": "function",
+                                      "value": {
+                                        "kvlistValue": {
+                                          "values": [
+                                            {
+                                              "key": "name",
+                                              "value": {
+                                                "stringValue": "get_weather"
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.assistant.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "6ESooe+5FNhcV6EW0nEmxA==",
+                "spanId": "FATtuGyycfc=",
+                "observedTimeUnixNano": "1794198569431000000"
+              },
+              {
+                "timeUnixNano": "1794198569431000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "id",
+                        "value": {
+                          "stringValue": "call_weather_paris"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.tool.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "6ESooe+5FNhcV6EW0nEmxA==",
+                "spanId": "FATtuGyycfc=",
+                "observedTimeUnixNano": "1794198569431000000"
+              },
+              {
+                "timeUnixNano": "1794198569435000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "stop"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "0"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {}
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "6ESooe+5FNhcV6EW0nEmxA==",
+                "spanId": "FATtuGyycfc=",
+                "observedTimeUnixNano": "1794198569435000000"
+              },
+              {
+                "timeUnixNano": "1794198569435000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {}
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.user.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "Bwjk4lJTtT06A+ChMdvMUw==",
+                "spanId": "r4hkvwf3BRI=",
+                "observedTimeUnixNano": "1794198569435000000"
+              },
+              {
+                "timeUnixNano": "1794198569437000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "stop"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "0"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {}
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "Bwjk4lJTtT06A+ChMdvMUw==",
+                "spanId": "r4hkvwf3BRI=",
+                "observedTimeUnixNano": "1794198569437000000"
+              },
+              {
+                "timeUnixNano": "1794198569437000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "stop"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "1"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {}
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "Bwjk4lJTtT06A+ChMdvMUw==",
+                "spanId": "r4hkvwf3BRI=",
+                "observedTimeUnixNano": "1794198569437000000"
+              },
+              {
+                "timeUnixNano": "1794198569437000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {}
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.user.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "cQAzvGMdcKNtbLyYLDQ/Qw==",
+                "spanId": "0KESB2A0ExM=",
+                "observedTimeUnixNano": "1794198569437000000"
+              },
+              {
+                "timeUnixNano": "1794198569440000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "stop"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "0"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {}
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "cQAzvGMdcKNtbLyYLDQ/Qw==",
+                "spanId": "0KESB2A0ExM=",
+                "observedTimeUnixNano": "1794198569440000000"
+              },
+              {
+                "timeUnixNano": "1794198569441000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "attributes": [
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.input.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "system"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "user"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "hl3YqeA3w9yOWz4J5jbxUA==",
+                "spanId": "i03VOLSZYZQ=",
+                "observedTimeUnixNano": "1794198569441000000",
+                "eventName": "gen_ai.client.inference.operation.details"
+              },
+              {
+                "timeUnixNano": "1794198569443000000",
+                "severityNumber": "SEVERITY_NUMBER_INFO",
+                "attributes": [
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.output.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "assistant"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "key": "finish_reason",
+                                  "value": {
+                                    "stringValue": "stop"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "flags": 1,
+                "traceId": "hl3YqeA3w9yOWz4J5jbxUA==",
+                "spanId": "i03VOLSZYZQ=",
+                "observedTimeUnixNano": "1794198569443000000",
+                "eventName": "gen_ai.client.inference.operation.details"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "traces": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "js-openai-app"
+              }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": {
+                "stringValue": "nodejs"
+              }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": {
+                "stringValue": "opentelemetry"
+              }
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "value": {
+                "stringValue": "3.1.0"
+              }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {
+              "name": "@opentelemetry/instrumentation-openai",
+              "version": "0.23.0"
+            },
+            "spans": [
+              {
+                "traceId": "1EwlWjPXj8vTvdrogw+3hQ==",
+                "spanId": "e9NwpOKM+kY=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198569394000000",
+                "endTimeUnixNano": "1794198569427495417",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "server.address",
+                    "value": {
+                      "stringValue": "127.0.0.1"
+                    }
+                  },
+                  {
+                    "key": "server.port",
+                    "value": {
+                      "intValue": "18741"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake15"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "droppedEventsCount": 0,
+                "droppedLinksCount": 0,
+                "status": {
+                  "code": "STATUS_CODE_UNSET"
+                },
+                "flags": 257
+              },
+              {
+                "traceId": "wkSFSJXARC9XR2kHyzTCSw==",
+                "spanId": "JV0iUpPl4mA=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198569428000000",
+                "endTimeUnixNano": "1794198569431631931",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "server.address",
+                    "value": {
+                      "stringValue": "127.0.0.1"
+                    }
+                  },
+                  {
+                    "key": "server.port",
+                    "value": {
+                      "intValue": "18741"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "tool_calls"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake16"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "droppedEventsCount": 0,
+                "droppedLinksCount": 0,
+                "status": {
+                  "code": "STATUS_CODE_UNSET"
+                },
+                "flags": 257
+              },
+              {
+                "traceId": "6ESooe+5FNhcV6EW0nEmxA==",
+                "spanId": "FATtuGyycfc=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198569431000000",
+                "endTimeUnixNano": "1794198569434368468",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "server.address",
+                    "value": {
+                      "stringValue": "127.0.0.1"
+                    }
+                  },
+                  {
+                    "key": "server.port",
+                    "value": {
+                      "intValue": "18741"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake17"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "droppedEventsCount": 0,
+                "droppedLinksCount": 0,
+                "status": {
+                  "code": "STATUS_CODE_UNSET"
+                },
+                "flags": 257
+              },
+              {
+                "traceId": "Bwjk4lJTtT06A+ChMdvMUw==",
+                "spanId": "r4hkvwf3BRI=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198569435000000",
+                "endTimeUnixNano": "1794198569436875558",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "server.address",
+                    "value": {
+                      "stringValue": "127.0.0.1"
+                    }
+                  },
+                  {
+                    "key": "server.port",
+                    "value": {
+                      "intValue": "18741"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          },
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "droppedEventsCount": 0,
+                "droppedLinksCount": 0,
+                "status": {
+                  "code": "STATUS_CODE_UNSET"
+                },
+                "flags": 257
+              },
+              {
+                "traceId": "cQAzvGMdcKNtbLyYLDQ/Qw==",
+                "spanId": "0KESB2A0ExM=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198569437000000",
+                "endTimeUnixNano": "1794198569440727484",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.system",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "server.address",
+                    "value": {
+                      "stringValue": "127.0.0.1"
+                    }
+                  },
+                  {
+                    "key": "server.port",
+                    "value": {
+                      "intValue": "18741"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake19"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "droppedEventsCount": 0,
+                "droppedLinksCount": 0,
+                "status": {
+                  "code": "STATUS_CODE_UNSET"
+                },
+                "flags": 257
+              },
+              {
+                "traceId": "hl3YqeA3w9yOWz4J5jbxUA==",
+                "spanId": "i03VOLSZYZQ=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198569441000000",
+                "endTimeUnixNano": "1794198569443468198",
+                "attributes": [
+                  {
+                    "key": "gen_ai.system_instructions",
+                    "value": {
+                      "stringValue": "Answer in one sentence."
+                    }
+                  },
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "server.address",
+                    "value": {
+                      "stringValue": "127.0.0.1"
+                    }
+                  },
+                  {
+                    "key": "server.port",
+                    "value": {
+                      "intValue": "18741"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "resp_fake1"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "20"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "5"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "droppedAttributesCount": 0,
+                "droppedEventsCount": 0,
+                "droppedLinksCount": 0,
+                "status": {
+                  "code": "STATUS_CODE_UNSET"
+                },
+                "flags": 257
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

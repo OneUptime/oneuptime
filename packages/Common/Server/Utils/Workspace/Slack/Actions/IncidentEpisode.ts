@@ -43,7 +43,11 @@ import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
 import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
-import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import {
+  WorkspaceAnswer,
+  WorkspaceLatePress,
+} from "../../WorkspaceActionAnswers";
+import WorkspaceHeldPublicNote from "../../WorkspaceHeldPublicNote";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class SlackIncidentEpisodeActions {
@@ -846,19 +850,22 @@ export default class SlackIncidentEpisodeActions {
     }
 
     // Posted by the member, as the dashboard posts it for them.
-    const isAdded: boolean | null =
+    const added: { publicNote: IncidentEpisodePublicNote | null } | null =
       await SlackActionAuthorization.runForRequester({
         requester: data.slackRequest,
         action: "add the note",
-        run: async (): Promise<boolean> => {
+        run: async (): Promise<{
+          publicNote: IncidentEpisodePublicNote | null;
+        }> => {
           if (isPublic) {
-            await IncidentEpisodePublicNoteService.addNote({
-              incidentEpisodeId: episodeId,
-              note: note,
-              projectId: data.slackRequest.projectId!,
-              props: props,
-            });
-            return true;
+            return {
+              publicNote: await IncidentEpisodePublicNoteService.addNote({
+                incidentEpisodeId: episodeId,
+                note: note,
+                projectId: data.slackRequest.projectId!,
+                props: props,
+              }),
+            };
           }
 
           await IncidentEpisodeInternalNoteService.addNote({
@@ -867,31 +874,51 @@ export default class SlackIncidentEpisodeActions {
             projectId: data.slackRequest.projectId!,
             props: props,
           });
-          return true;
+          return { publicNote: null };
         },
       });
 
-    if (!isAdded || !submitted.isPublicAskedOnPrivateRecord) {
+    if (!added) {
       return;
     }
 
-    /*
-     * Not the note they chose: told wherever they opened the form, with
-     * what it became and why.
-     */
     const place: SlackAnswerPlace | null = SlackActionAnswer.getPlace(
       data.slackRequest,
     );
 
-    if (place) {
-      await SlackActionAnswer.answer({
-        place: place,
-        answer: await WorkspaceNoteForm.getSavedPrivatelyAnswer({
-          kind: PrivateRecordKind.IncidentEpisode,
-          recordId: episodeId,
-          props: props,
-        }),
+    if (submitted.isPublicAskedOnPrivateRecord) {
+      /*
+       * Not the note they chose: told wherever they opened the form, with
+       * what it became and why.
+       */
+      if (place) {
+        await SlackActionAnswer.answer({
+          place: place,
+          answer: await WorkspaceNoteForm.getSavedPrivatelyAnswer({
+            kind: PrivateRecordKind.IncidentEpisode,
+            recordId: episodeId,
+            props: props,
+          }),
+        });
+      }
+
+      return;
+    }
+
+    /*
+     * Held for approval: posted to no channel until it is approved, so told
+     * here, to them alone, that it waits, and for whom
+     * (WorkspaceHeldPublicNote).
+     */
+    const heldAnswer: WorkspaceAnswer | null =
+      await WorkspaceHeldPublicNote.getAnswerForAddedNote({
+        event: { type: WorkspaceEventType.IncidentEpisode, id: episodeId },
+        note: added.publicNote,
+        props: props,
       });
+
+    if (heldAnswer && place) {
+      await SlackActionAnswer.answer({ place: place, answer: heldAnswer });
     }
   }
 
@@ -931,6 +958,11 @@ export default class SlackIncidentEpisodeActions {
               projectId: data.slackRequest.projectId,
             })
           : false,
+        isPublicNoteApprovalRequired:
+          await WorkspaceHeldPublicNote.isApprovalRequired({
+            type: WorkspaceEventType.IncidentEpisode,
+            projectId: data.slackRequest.projectId,
+          }),
       });
 
     const modalBlock: WorkspaceModalBlock = {

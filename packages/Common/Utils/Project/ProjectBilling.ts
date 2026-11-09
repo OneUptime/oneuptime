@@ -161,13 +161,34 @@ export const PROJECT_CUSTOMER_BALANCE_READ_PERMISSIONS: ReadonlyArray<Permission
     ...PROJECT_BILLING_READ_ROLES,
   ];
 
-// Who reads the project's usage history (TelemetryUsageBilling).
+/*
+ * Who reads what the project's telemetry usage cost: the cost of each usage
+ * row (TelemetryUsageBilling.totalCostInUSD) and the marketplace usage sums.
+ */
 export const PROJECT_USAGE_READ_PERMISSIONS: ReadonlyArray<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.ManageProjectBilling,
   ...PROJECT_BILLING_READ_ROLES,
 ];
+
+/*
+ * Who reads how much telemetry the project sent (TelemetryUsageBilling, every
+ * column but the cost): Project Settings > Telemetry & APM > Usage. Usage is
+ * not billing data - a server without billing counts it too - so whoever
+ * reads the project's telemetry reads how much of it there is: the roles that
+ * read every log, trace and metric (Project Member, Viewer and the Telemetry
+ * roles), and everyone who reads its cost.
+ */
+export const PROJECT_TELEMETRY_USAGE_READ_PERMISSIONS: ReadonlyArray<Permission> =
+  [
+    ...PROJECT_USAGE_READ_PERMISSIONS,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.TelemetryAdmin,
+    Permission.TelemetryMember,
+    Permission.TelemetryViewer,
+  ];
 
 /*
  * Who adds a payment method (POST /billing-payment-methods/setup, and the

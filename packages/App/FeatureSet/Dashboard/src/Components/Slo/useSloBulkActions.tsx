@@ -14,6 +14,7 @@ import {
   SLO_BULK_ARCHIVE_CONFIRM_MESSAGE,
   SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE,
 } from "./SloArchiveCopy";
+import useSloRecommendedRulesBulkAction from "./useSloRecommendedRulesBulkAction";
 import React, { ReactElement } from "react";
 
 /**
@@ -43,6 +44,16 @@ export interface SloBulkActionsResult {
   archiveBulkActions: Array<BulkActionButtonSchema<ServiceLevelObjective>>;
   unarchiveBulkActions: Array<BulkActionButtonSchema<ServiceLevelObjective>>;
   /*
+   * Add recommended rules (useSloRecommendedRulesBulkAction): the burn rate
+   * rules OneUptime recommends, added to every selected SLO missing one.
+   * Handed back on its own too, for the live SLO list alone: an archived
+   * SLO's rules never fire, and the monitor's SLOs tab is about the
+   * monitor.
+   */
+  recommendedRulesBulkActions: Array<
+    BulkActionButtonSchema<ServiceLevelObjective>
+  >;
+  /*
    * Each row's ⋯ menu: Enable or Disable (the one that changes the row),
    * and Archive on the live list or Unarchive on the Archived page - the
    * same split as the bulk ones.
@@ -57,7 +68,8 @@ export type UseSloBulkActionsFunction = () => SloBulkActionsResult;
 
 /**
  * "Enable" / "Disable", "Add Labels" / "Remove Labels" / "Add Owner" /
- * "Remove Owner", plus "Archive" / "Unarchive", for a table of SLOs.
+ * "Remove Owner", plus "Archive" / "Unarchive" and "Add recommended rules",
+ * for a table of SLOs.
  *
  * Labels are how SLOs get grouped into a team's or a service's view, and
  * owners are who gets notified when one of them changes status — both were
@@ -118,6 +130,14 @@ export const useSloBulkActions: UseSloBulkActionsFunction =
       unarchiveConfirmMessage: SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE,
     });
 
+    /*
+     * Confirmed through the action bar's own dialog too, with what each
+     * selected SLO would get read when it opens: no modals of its own.
+     */
+    const recommendedRulesBulkActions: Array<
+      BulkActionButtonSchema<ServiceLevelObjective>
+    > = useSloRecommendedRulesBulkAction();
+
     return {
       bulkActions: [
         ...switchBulkActions,
@@ -126,6 +146,7 @@ export const useSloBulkActions: UseSloBulkActionsFunction =
       ],
       archiveBulkActions: archiveBulkActions,
       unarchiveBulkActions: unarchiveBulkActions,
+      recommendedRulesBulkActions: recommendedRulesBulkActions,
       rowActions: switchRowActions,
       archiveRowActions: archiveRowActions,
       unarchiveRowActions: unarchiveRowActions,

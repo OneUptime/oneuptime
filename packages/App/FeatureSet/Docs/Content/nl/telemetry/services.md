@@ -67,6 +67,8 @@ Het zijmenu van een service heeft vijf secties:
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: de service vanuit code beheerd. Deze sectie is eerst ingeklapt. |
 | **Geavanceerd** | **Instellingen**, **Auditlogboeken** en **Service verwijderen**. **Geavanceerd** is eerst ingeklapt: klap het eerst uit. |
 
+Naast de naam toont het **Overzicht** van een service of de telemetrie binnenkomt: **Ontvangt gegevens** zolang er in de afgelopen 30 minuten iets is binnengekomen, **Geen recente gegevens** zodra er niets meer binnenkomt, en **Wachten op gegevens** vóór de eerste telemetrie. Een service die alleen spans stuurt terwijl die verzoeken afhandelt, toont **Geen recente gegevens** zodra niemand de service aanroept, dus dat alleen is geen storing.
+
 Eigenaren tellen ook buiten de pagina: een rol met het bereik Owned leest de telemetrie van de services die van u of uw teams zijn. Zie [Telemetrie](/docs/permissions/index#telemetrie).
 
 ## Een service wijzigen
@@ -110,6 +112,10 @@ Controleer of de telemetrie ervan een `service.name` bevat. Telemetrie uit een b
 
 :::details Laatst gezien loopt achter
 **Laatst gezien** wordt ongeveer één keer per minuut bijgewerkt, niet bij elke batch, dus het kan ongeveer een minuut achterlopen op de live telemetrie.
+:::
+
+:::details Een service toont "Geen recente gegevens"
+In de afgelopen 30 minuten is er niets van de service binnengekomen. Dat is te verwachten bij een service die alleen telemetrie stuurt terwijl die verzoeken afhandelt, als niemand de service aanroept. Zou de service verzoeken moeten afhandelen, controleer dan of die draait, of de OpenTelemetry-exporter OneUptime bereikt en of die nog dezelfde `service.name` meldt: een nieuwe naam begint een nieuwe service.
 :::
 
 ## Volgende stappen

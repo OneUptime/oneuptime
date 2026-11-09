@@ -89,6 +89,8 @@ Enquanto a execução está pausada, você também pode pular uma etapa automati
 
 Concluir, aprovar, pular e cancelar exigem as mesmas funções que iniciar uma execução, ou a permissão **Edit Runbook Execution**.
 
+A página **Registros de auditoria** do runbook registra quem iniciou cada execução, quem aprovou, concluiu ou pulou cada uma de suas etapas e quem a cancelou. Uma etapa aparece como o que foi feito com ela, por exemplo `Approved "Restart the API" (step 3)`, nunca com o que a etapa imprimiu nem com a nota deixada com ela.
+
 ## Intercalar etapas manuais e automatizadas
 
 O fluxo clássico:

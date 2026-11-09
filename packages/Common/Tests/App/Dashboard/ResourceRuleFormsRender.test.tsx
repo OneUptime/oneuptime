@@ -667,6 +667,13 @@ describe.each(PAGES)("$name", (page: PageCase) => {
       expect(listedNames(moreFields())).toEqual([
         "Notify Owners",
         "Description",
+        /*
+         * An incident owner rule can belong to teams: the teams that alone
+         * may change it, last (RuleOwningTeams).
+         */
+        ...(page.name === "Incidents > Settings > Owner Rules"
+          ? ["Owning Teams"]
+          : []),
       ]);
     }
 

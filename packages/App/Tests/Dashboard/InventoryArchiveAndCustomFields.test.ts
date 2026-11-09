@@ -228,7 +228,8 @@ describe("audit logging is scoped to what a person did", () => {
       "AuditLogs.tsx",
     );
 
-    expect(page).toContain('resourceType="Inventory Item"');
+    // Everything that rolls up to the item (AuditLogCoverage, issue #6187).
+    expect(page).toContain("rootResourceId={modelId}");
     expect(page.toLowerCase()).toContain("not recorded");
   });
 });

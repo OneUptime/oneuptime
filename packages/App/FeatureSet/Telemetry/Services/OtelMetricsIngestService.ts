@@ -21,6 +21,7 @@ import {
 } from "Common/Models/AnalyticsModels/Metric";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
+import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
@@ -214,6 +215,9 @@ import TelemetryFanInWriter, {
 import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_METRIC_NAME_PREFIX,
 } from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
+import TelemetryIngestionBudgetMetricTypeUtil, {
+  TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX,
+} from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import ContainerStatsPercentUnit from "Common/Utils/Metrics/ContainerStatsPercentUnit";
 
 type MetricTimestamp = {
@@ -1468,6 +1472,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({
             projectId,
             attributes: resourceAttributes_raw,
+            signal: RumTelemetrySignal.Metrics,
           });
 
           const serviceMetadata: TelemetryServiceMetadata =
@@ -1749,6 +1754,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   ) {
                     logger.debug(
                       `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics.`,
+                    );
+                    continue;
+                  }
+
+                  /*
+                   * Likewise the ingestion budget sweep's readings: they
+                   * open budget incidents and are left out of usage and
+                   * billing by name, so no sender may write one.
+                   */
+                  if (
+                    TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(
+                      metricName,
+                    )
+                  ) {
+                    logger.debug(
+                      `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry ingestion budget metrics.`,
                     );
                     continue;
                   }
@@ -2193,6 +2214,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         ) {
                           logger.debug(
                             `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics.`,
+                          );
+                          continue;
+                        }
+
+                        if (
+                          finalMetricName !== metricName &&
+                          typeof finalMetricName === "string" &&
+                          TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(
+                            finalMetricName,
+                          )
+                        ) {
+                          logger.debug(
+                            `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry ingestion budget metrics.`,
                           );
                           continue;
                         }

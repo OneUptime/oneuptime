@@ -32,6 +32,7 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock } from "jest-mock";
 import CallProviderFactory from "../../FeatureSet/Notification/Providers/CallProviderFactory";
 import { getProjectTwilioConfig } from "../../FeatureSet/Notification/Utils/TwilioConfigHelper";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
 type AnyMock = Mock<(...args: Array<any>) => any>;
 
@@ -1870,6 +1871,8 @@ describe("targeted and legacy phone-number release", () => {
         phoneNumberPurchasedAt: null,
       },
       props: { isRoot: true },
+      // The entry says which number went (issue #6301).
+      auditLogIncludeColumns: ["routingPhoneNumber"],
     });
     expect(numberService.syncPrimaryPhoneNumberToPolicy).toHaveBeenCalledWith(
       POLICY_ID,
@@ -2025,4 +2028,334 @@ describe("internal provider release", () => {
       expect(provider.releaseNumber).not.toHaveBeenCalled();
     },
   );
+});
+
+/*
+ * WHOSE BUYING, ATTACHING AND RELEASING A NUMBER IS IN THE AUDIT LOG
+ * (issue #6301).
+ *
+ * The number rows are nobody's to write through the API, so the routes
+ * write them as root once their own checks pass. Plain root was System's in
+ * the audit log - kept only when the project stores system events, and
+ * naming nobody - for a number someone bought, which costs money. Each
+ * write now carries who the person is, and none of what they may do
+ * (OnBehalfOfProps), so the entry is theirs. Who may do it is decided
+ * exactly as before; the legacy number a policy kept in its own columns is
+ * still moved into a row as OneUptime's own.
+ */
+describe("whose a number's purchase, attachment and release is", () => {
+  const PERSON_ID: ObjectID = new ObjectID(
+    "66666666-6666-4666-8666-666666666666",
+  );
+  const KEY_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
+
+  // The person's request, permissions and all.
+  const PERSON: Record<string, unknown> = memberProps([
+    Permission.ProjectAdmin,
+  ]);
+
+  // What the number's write carries of it: who they are, as root.
+  const ON_THEIR_BEHALF: Record<string, unknown> = {
+    isRoot: true,
+    userId: PERSON_ID,
+    userType: UserType.User,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    projectService.findOneById.mockResolvedValue(makeProject());
+    configService.findOneById.mockResolvedValue(makeConfig());
+    policyService.findOneById.mockResolvedValue(makePolicy());
+    policyService.updateOneById.mockResolvedValue(undefined);
+    installAllowedPolicyEditAuthorization(PERSON);
+    numberService.findOneBy.mockResolvedValue(null);
+    numberService.deleteOneById.mockResolvedValue(1);
+    numberService.syncPrimaryPhoneNumberToPolicy.mockResolvedValue(undefined);
+    twilioConfig.mockResolvedValue(TWILIO_CONFIG);
+    providerFactory.getProviderWithConfig.mockReturnValue(
+      provider as unknown as ICallProvider,
+    );
+    provider.assignExistingNumber.mockResolvedValue({
+      phoneNumberId: "PN-assigned",
+      phoneNumber: "+14155550101",
+    });
+    provider.purchaseNumber.mockResolvedValue({
+      phoneNumberId: "PN-purchased",
+      phoneNumber: "+14155550102",
+    });
+    provider.releaseNumber.mockResolvedValue(undefined);
+    numberService.create.mockImplementation(
+      ({ data }: { data: IncomingCallPolicyPhoneNumber }) => {
+        data.id = NUMBER_ROW_1;
+        return Promise.resolve(data);
+      },
+    );
+    responseUtil.sendJsonObjectResponse.mockImplementation(
+      (_request: ExpressRequest, response: ExpressResponse) => {
+        return response;
+      },
+    );
+  });
+
+  async function buy(): Promise<Invocation> {
+    return await invoke("post", "/purchase", {
+      body: {
+        phoneNumber: "+14155550102",
+        incomingCallPolicyId: POLICY_ID.toString(),
+      },
+    });
+  }
+
+  async function attach(): Promise<Invocation> {
+    return await invoke("post", "/assign-existing", {
+      body: {
+        phoneNumberId: "PN-assigned",
+        phoneNumber: "+14155550101",
+        incomingCallPolicyId: POLICY_ID.toString(),
+      },
+    });
+  }
+
+  async function release(): Promise<Invocation> {
+    numberService.findOneBy.mockResolvedValue(
+      makeNumberRow({
+        id: NUMBER_ROW_2,
+        sid: "PN-second",
+        phone: "+14155550102",
+      }),
+    );
+
+    return await invoke(
+      "delete",
+      "/release/:incomingCallPolicyId/:incomingCallPolicyPhoneNumberId",
+      {
+        params: {
+          incomingCallPolicyId: POLICY_ID.toString(),
+          incomingCallPolicyPhoneNumberId: NUMBER_ROW_2.toString(),
+        },
+      },
+    );
+  }
+
+  function createProps(callIndex: number = 0): Record<string, unknown> {
+    return numberService.create.mock.calls[callIndex]?.[0].props;
+  }
+
+  test("a number someone buys is created on their behalf: the Create entry is theirs", async () => {
+    const result: Invocation = await buy();
+
+    expect(result.next).not.toHaveBeenCalled();
+    expect(provider.purchaseNumber).toHaveBeenCalledTimes(1);
+    expect(numberService.create).toHaveBeenCalledTimes(1);
+    expect(createProps()).toEqual(ON_THEIR_BEHALF);
+    expect(createdRow().phoneNumber?.toString()).toBe("+14155550102");
+  });
+
+  test("a number someone attaches from their account is created on their behalf too", async () => {
+    const result: Invocation = await attach();
+
+    expect(result.next).not.toHaveBeenCalled();
+    expect(numberService.create).toHaveBeenCalledTimes(1);
+    expect(createProps()).toEqual(ON_THEIR_BEHALF);
+    expect(createdRow().callProviderPhoneNumberId).toBe("PN-assigned");
+  });
+
+  test("a number someone releases is deleted on their behalf: the Delete entry is theirs", async () => {
+    const result: Invocation = await release();
+
+    expect(result.next).not.toHaveBeenCalled();
+    expect(provider.releaseNumber).toHaveBeenCalledWith("PN-second");
+    expect(numberService.deleteOneById).toHaveBeenCalledWith({
+      id: NUMBER_ROW_2,
+      props: ON_THEIR_BEHALF,
+    });
+  });
+
+  test("a number a policy kept only in its own columns is released on their behalf, the entry naming the number", async () => {
+    policyService.findOneById.mockResolvedValue(
+      makePolicy({ legacySid: "PN-scalar", legacyPhone: "+14155550100" }),
+    );
+
+    const result: Invocation = await invoke(
+      "delete",
+      "/release/:incomingCallPolicyId",
+      { params: { incomingCallPolicyId: POLICY_ID.toString() } },
+    );
+
+    expect(result.next).not.toHaveBeenCalled();
+    expect(numberService.deleteOneById).not.toHaveBeenCalled();
+    expect(policyService.updateOneById).toHaveBeenCalledTimes(1);
+
+    const update: Record<string, unknown> =
+      policyService.updateOneById.mock.calls[0]?.[0];
+
+    expect(update["props"]).toEqual(ON_THEIR_BEHALF);
+    // The number itself, never the provider's id for it.
+    expect(update["auditLogIncludeColumns"]).toEqual(["routingPhoneNumber"]);
+  });
+
+  test("the legacy number moved into a row before attaching another stays OneUptime's own", async () => {
+    policyService.findOneById.mockResolvedValue(
+      makePolicy({
+        legacySid: "PN-legacy-primary",
+        legacyPhone: "+442079460000",
+      }),
+    );
+
+    const result: Invocation = await attach();
+
+    expect(result.next).not.toHaveBeenCalled();
+    expect(numberService.create).toHaveBeenCalledTimes(2);
+    // The move: a system event.
+    expect(createdRow(0).callProviderPhoneNumberId).toBe("PN-legacy-primary");
+    expect(createProps(0)).toEqual({ isRoot: true });
+    // The number they attached: theirs.
+    expect(createdRow(1).callProviderPhoneNumberId).toBe("PN-assigned");
+    expect(createProps(1)).toEqual(ON_THEIR_BEHALF);
+  });
+
+  test("an API key's purchase is the key's, by id and name, and nothing of what it may do", async () => {
+    installAllowedPolicyEditAuthorization({
+      isRoot: false,
+      isMasterAdmin: false,
+      tenantId: PROJECT_ID,
+      userType: UserType.API,
+      apiKeyId: KEY_ID,
+      apiKeyName: "Provisioning bot",
+      userTenantAccessPermission: {},
+    });
+
+    await buy();
+
+    expect(createProps()).toEqual({
+      isRoot: true,
+      userType: UserType.API,
+      apiKeyId: KEY_ID,
+      apiKeyName: "Provisioning bot",
+    });
+  });
+
+  test("who may buy, attach or release is unchanged: a refused person writes nothing, buys nothing and releases nothing", async () => {
+    for (const act of [buy, attach, release]) {
+      jest.clearAllMocks();
+      installAllowedPolicyEditAuthorization(PERSON);
+      modelPermission.checkUpdatePermissionByModel.mockRejectedValueOnce(
+        new Error("You do not have permission to edit this policy."),
+      );
+
+      const result: Invocation = await act();
+
+      expectNextError(
+        result.next,
+        "You do not have permission to edit this policy.",
+      );
+      expect(provider.purchaseNumber).not.toHaveBeenCalled();
+      expect(provider.assignExistingNumber).not.toHaveBeenCalled();
+      expect(provider.releaseNumber).not.toHaveBeenCalled();
+      expect(numberService.create).not.toHaveBeenCalled();
+      expect(numberService.deleteOneById).not.toHaveBeenCalled();
+      expect(policyService.updateOneById).not.toHaveBeenCalled();
+    }
+  });
+
+  test("a scoped grant that does not reach the policy still refuses, before anything is bought", async () => {
+    policyService.findOneBy.mockReset().mockResolvedValue(null);
+
+    const result: Invocation = await buy();
+
+    expectNextError(
+      result.next,
+      "You do not have permission to edit this incoming call policy.",
+    );
+    expect(provider.purchaseNumber).not.toHaveBeenCalled();
+    expect(numberService.create).not.toHaveBeenCalled();
+  });
+
+  test("the policy's edit is still asked with the person's own props, not the props the row is written with", async () => {
+    await buy();
+
+    expect(modelPermission.checkUpdatePermissionByModel).toHaveBeenCalledWith(
+      expect.objectContaining({ props: PERSON }),
+    );
+    expect(modelPermission.checkUpdateQueryPermissions).toHaveBeenCalledWith(
+      IncomingCallPolicy,
+      { _id: POLICY_ID, projectId: PROJECT_ID },
+      {},
+      PERSON,
+    );
+  });
+
+  test("a number bought and then refused by the database is still rolled back, whoever bought it", async () => {
+    numberService.create.mockRejectedValueOnce(new Error("unique violation"));
+
+    const result: Invocation = await buy();
+
+    expect(createProps()).toEqual(ON_THEIR_BEHALF);
+    expect(provider.releaseNumber).toHaveBeenCalledWith("PN-purchased");
+    expectNextError(result.next, "unique violation");
+  });
+
+  /*
+   * Whatever a request's props hold besides who made it - a project, any
+   * permission, a plan, teams, a read-only credential - the row is written
+   * with exactly who made it, as root, and none of the rest.
+   */
+  test("over 60 mixes of what a request carries, each write carries only who made it", async () => {
+    const random: SeededRandom = seededRandom(6301);
+    const identities: Array<Record<string, unknown>> = [
+      { userId: PERSON_ID, userType: UserType.User },
+      { userType: UserType.API, apiKeyId: KEY_ID, apiKeyName: "Deploy bot" },
+      {
+        userId: PERSON_ID,
+        userType: UserType.User,
+        mcpOAuthGrantId: new ObjectID("88888888-8888-4888-8888-888888888888"),
+        mcpClientName: "Claude",
+      },
+      { userId: PERSON_ID, userType: UserType.MasterAdmin },
+    ];
+    const extras: Array<Record<string, unknown>> = [
+      { tenantId: PROJECT_ID },
+      { isMasterAdmin: true },
+      { userTeamIds: [POLICY_ID] },
+      { isReadOnlyCredential: true },
+      { isSubscriptionUnpaid: true },
+      { userTenantAccessPermission: PERSON["userTenantAccessPermission"] },
+    ];
+    const acts: Array<() => Promise<Invocation>> = [buy, attach, release];
+
+    for (let draw: number = 0; draw < 60; draw++) {
+      const identity: Record<string, unknown> =
+        identities[random(identities.length)]!;
+      let props: Record<string, unknown> = { isRoot: false, ...identity };
+
+      for (const extra of extras) {
+        if (random(2) === 1) {
+          props = { ...props, ...extra };
+        }
+      }
+
+      jest.clearAllMocks();
+      installAllowedPolicyEditAuthorization(props);
+      numberService.findOneBy.mockResolvedValue(null);
+
+      const act: () => Promise<Invocation> = acts[random(acts.length)]!;
+      await act();
+
+      const written: Array<Record<string, unknown>> = [
+        ...numberService.create.mock.calls,
+        ...numberService.deleteOneById.mock.calls,
+      ].map((call: Array<any>): Record<string, unknown> => {
+        return call[0].props;
+      });
+
+      expect(written.length).toBeGreaterThan(0);
+
+      for (const writeProps of written) {
+        expect([draw, writeProps]).toEqual([
+          draw,
+          { isRoot: true, ...identity },
+        ]);
+      }
+    }
+  });
 });

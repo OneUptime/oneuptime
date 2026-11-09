@@ -655,3 +655,76 @@ describe("WorkspaceConnectRequest.getConnectLink", () => {
     expect(errorLog).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * Approve on a public note's approval message, pressed before the account
+ * was connected (#6289): kept with what its button carried, to be decided
+ * once the account is - and never without it.
+ */
+describe("a public note's Approve to decide once the account is connected", () => {
+  const VALUE: string = "pna1.payload.signature";
+
+  test("round-trips with what its button carried", async () => {
+    const { token } = await WorkspaceConnectRequest.create({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      projectId: PROJECT_ID,
+      workspaceUserId: "entra-bob",
+      purpose: "approve this public note",
+      pendingAction: {
+        kind: WorkspacePendingActionKind.ApprovePublicNote,
+        eventType: WorkspaceEventType.Incident,
+        eventId: INCIDENT_ID,
+        publicNoteApproval: VALUE,
+      },
+    });
+
+    const record: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.take(token);
+
+    expect(record!.pendingAction).toEqual({
+      kind: WorkspacePendingActionKind.ApprovePublicNote,
+      eventType: WorkspaceEventType.Incident,
+      eventId: INCIDENT_ID,
+      publicNoteApproval: VALUE,
+    });
+  });
+
+  async function storeRaw(pendingAction: unknown): Promise<string> {
+    const token: string = crypto.randomBytes(32).toString("base64url");
+    store.set(`${NAMESPACE}-${sha256(token)}`, {
+      value: JSON.stringify({
+        workspaceType: WorkspaceType.Slack,
+        projectId: PROJECT_ID.toString(),
+        workspaceUserId: "U0BOB",
+        purpose: "approve this public note",
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        pendingAction: pendingAction,
+      }),
+      expiresAt: Date.now() + 60_000,
+    });
+    return token;
+  }
+
+  test.each([
+    ["without what its button carried", undefined],
+    ["with it empty", ""],
+    ["with it not text", 42],
+    ["with it longer than any button carries", "v".repeat(1025)],
+  ])(
+    "%s, it is kept without anything to finish",
+    async (_label: string, value: unknown) => {
+      const record: WorkspaceConnectRequestRecord | null =
+        await WorkspaceConnectRequest.peek(
+          await storeRaw({
+            kind: WorkspacePendingActionKind.ApprovePublicNote,
+            eventType: WorkspaceEventType.Incident,
+            eventId: INCIDENT_ID.toString(),
+            publicNoteApproval: value,
+          }),
+        );
+
+      expect(record).not.toBeNull();
+      expect(record!.pendingAction).toBeUndefined();
+    },
+  );
+});
