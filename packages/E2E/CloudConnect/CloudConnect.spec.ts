@@ -4822,13 +4822,18 @@ test.describe("streaming an Azure subscription and a Google Cloud project", () =
     ).toBeVisible();
     await expect(streamDialog(page)).toHaveAttribute("data-provider", "azure");
 
-    // One question, three answers, metrics by default.
+    /*
+     * One question, three answers, metrics by default: the key metrics
+     * Azure can stream, not every one (isAzureStreamedKeyMetric).
+     */
     const question: Locator = streamDialog(page).getByRole("radiogroup", {
       name: "What should it stream?",
     });
     await expect(question.getByRole("radio")).toHaveCount(3);
     await expect(
-      question.getByRole("radio", { name: /^Metrics Every key metric/ }),
+      question.getByRole("radio", {
+        name: /^Metrics The key metrics Azure can stream, a minute at a time: the connection keeps reading the rest\.$/,
+      }),
     ).toHaveAttribute("aria-checked", "true");
 
     // Three numbered steps: reading, the command, the first events.

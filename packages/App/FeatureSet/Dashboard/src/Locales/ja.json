@@ -45713,7 +45713,7 @@
   "Event hub": "イベント ハブ",
   "Every entry of severity WARNING or above: what went wrong, not every request.": "重大度 WARNING 以上のすべてのエントリ: すべてのリクエストではなく、問題が起きたものだけ。",
   "Every entry the projects write but the Data Access audit logs, which record every read. A busy project's logs can cost far more.": "プロジェクトが書き込むすべてのエントリ。ただし、すべての読み取りを記録する Data Access 監査ログを除きます。負荷の高いプロジェクトのログは、はるかに多くのコストがかかることがあります。",
-  "Every key metric of every resource, a minute at a time: what OneUptime charts and judges each resource by.": "すべてのリソースのすべての主要メトリクスを 1 分ごとに: OneUptime が各リソースをグラフ化し評価するときの基準です。",
+  "The key metrics Azure can stream, a minute at a time: the connection keeps reading the rest.": "Azure がストリーミングできる主要メトリクスを 1 分ごとに: 残りは接続が引き続き読み取ります。",
   "Every log": "すべてのログ",
   "Every stream key of {{name}} stops working at once, and what Pub/Sub pushes is refused from now on. What was delivered stays.": "{{name}} のすべてのストリームキーは直ちに使えなくなり、今後 Pub/Sub からのプッシュは拒否されます。配信済みのものは残ります。",
   "Have Cloud Logging push its logs through Pub/Sub as they are written.": "Cloud Logging のログを、書き込まれたそばから Pub/Sub 経由でプッシュさせます。",
