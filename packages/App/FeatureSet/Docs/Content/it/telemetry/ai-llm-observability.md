@@ -245,31 +245,32 @@ Queste sono **Le tue chiamate IA**. Scegli invece **Account provider** per veder
 
 Persone e team vengono dagli attributi di identità della chiamata: vedi [Attribuzione a dipendenti e team](/docs/telemetry/ai-coding-assistants#attribuzione-a-dipendenti-e-team).
 
-### Prima gli span, le metriche colmano i vuoti
+### Ogni servizio è conteggiato da ciò che invia
 
-Gli span GenAI portano il modello, i token e il costo di una chiamata, quindi dove esistono rispondono a tutto. Alcuni strumenti pubblicano metriche di token e di costo senza span GenAI, come la maggior parte degli assistenti di programmazione. OneUptime legge quelle metriche solo per un valore per cui gli span non hanno riportato nulla, e non somma mai le due cose: molte strumentazioni inviano entrambe per la stessa chiamata, e sommarle conterebbe ogni dollaro due volte.
+L'utilizzo dell'IA arriva in due forme. Gli span GenAI sono chiamate IA: uno per chiamata, con il suo modello, i suoi token e il suo costo. Le metriche GenAI sono metriche di utilizzo: contatori di token e di costo che la maggior parte degli assistenti di programmazione invia al posto degli span, e alcune strumentazioni accanto ai loro span, per le stesse chiamate. Sommarle conterebbe quelle chiamate due volte, quindi OneUptime conteggia ogni servizio da una sola delle due: i suoi token dalle sue chiamate IA quando riportano token, altrimenti dalle sue metriche di utilizzo, e il suo costo allo stesso modo, a parte. Un assistente di programmazione che invia solo metriche viene così conteggiato accanto alle app che inviano span, nello stesso progetto, e un'app che invia entrambi viene conteggiata una volta.
 
-```mermaid title="Da dove viene un valore della scheda Utilizzo"
+```mermaid title="Da dove vengono i token o il costo di un servizio"
 flowchart TB
-    spans{"Gli span GenAI<br/>lo riportano?"}
-    spans -->|"Sì"| fromSpans["Mostrato<br/>dagli span"]
-    spans -->|"No"| metrics{"Le metriche GenAI<br/>lo riportano?"}
-    metrics -->|"Sì"| fromMetrics["Mostrato dalle metriche,<br/>con la dicitura<br/>dalle metriche GenAI"]
-    metrics -->|"No"| nothing["Niente<br/>da mostrare"]
+    spans{"Le sue chiamate IA<br/>lo riportano?"}
+    spans -->|"Sì"| fromSpans["Conteggiato dalle<br/>chiamate IA"]
+    spans -->|"No"| metrics{"Le sue metriche<br/>di utilizzo<br/>lo riportano?"}
+    metrics -->|"Sì"| fromMetrics["Conteggiato dalle<br/>metriche di utilizzo"]
+    metrics -->|"No"| nothing["Niente<br/>da conteggiare"]
 ```
 
-| Dove | Cosa ripiega sulle metriche | Quando |
+| Dove | Dalle chiamate IA | Dalle metriche di utilizzo |
 | --- | --- | --- |
-| Token di input e di output | Entrambi i totali | I totali di token degli span sono entrambi 0 |
-| Costo (USD) | Il costo, con il costo in micro-USD di Codex convertito in USD | Il totale di costo degli span è 0 |
-| Chiamate LLM | Niente: solo span | — |
-| Tabelle **Dipendente**, **Team**, **Modello** | Il costo, e i token dove le metriche li contano; la cella delle chiamate mostra `—` | Quella tabella non ha trovato righe di span |
-| Tabelle **Provider**, **Applicazione / Servizio** | Niente: solo span | — |
-| Conversazioni | Niente: le conversazioni sono costruite dagli span | — |
+| Token di input e di output | I token di ogni chiamata al modello, una volta | I token di un servizio, quando le sue chiamate IA non ne riportano |
+| Costo (USD) | Il costo di ogni chiamata al modello, una volta | Il costo di un servizio, quando le sue chiamate IA non ne riportano, con il costo in micro-USD di Codex convertito in USD |
+| Chiamate IA | Ogni chiamata IA, come le elenca **Chiamate** | Mai: una metrica non conta chiamate |
+| Tabelle **Dipendente**, **Team**, **Modello**, **Provider**, **Applicazione / Servizio** | Le chiamate, i token e il costo di ogni riga | I token e il costo dei servizi conteggiati dalle metriche, sotto la persona, il team, il modello o il provider che i loro punti nominano |
+| Conversazioni | Costruite dalle chiamate IA | Mai |
 
-Un valore preso dalle metriche porta la dicitura **dalle metriche GenAI**, perché non ha righe corrispondenti in **Chiamate**. Quindi, quando i tuoi span GenAI riportano un valore, la quota di uno strumento che invia solo metriche non compare. Per vedere da sola la spesa di uno strumento del genere, invialo a un progetto tutto suo, dove non arrivano span GenAI.
+Sotto ogni valore, la scheda Utilizzo dice da dove viene: **Dalle chiamate IA**, **Dalle metriche di utilizzo**, oppure **Dalle chiamate IA e dalle metriche di utilizzo** quando alcuni servizi hanno inviato chiamate e altri metriche. Una riga della tabella conteggiata dalle metriche di utilizzo lo dice sotto il suo nome, e la sua cella delle chiamate mostra `—` quando non ha alcuna chiamata IA, perché una metrica non ha dettagli per chiamata; l'intestazione della tabella nomina i servizi conteggiati dalle metriche di utilizzo, tranne in **Applicazione / Servizio**, le cui righe sono i servizi stessi. Una metrica di utilizzo che non nomina alcun servizio viene conteggiata in **Servizio sconosciuto**, un servizio come un altro. Se il tuo ruolo può leggere le tracce ma non le metriche, le metriche di utilizzo vengono escluse, e la tabella lo dice.
 
-Una metrica di token o di costo è un contatore. I punti di un contatore delta si sommano; un contatore cumulativo, il predefinito degli SDK OpenTelemetry, conta di quanto è cresciuto nell'intervallo, ogni serie per conto suo, quindi un totale progressivo esportato ogni minuto si conta una volta sola. I budget contano le metriche GenAI allo stesso modo.
+Ogni chiamata al modello viene conteggiata una volta. Un'esecuzione di agente, o lo span di un framework attorno allo span dell'SDK, ripete spesso i token e il costo delle chiamate che contiene: i token di uno span, o il suo costo, restano fuori ovunque una chiamata al suo interno li riporti, e un'esecuzione di agente conserva i propri valori quando nessuna chiamata al suo interno li riporta. I budget e l'elenco **Conversazioni** contano allo stesso modo, mentre **Chiamate** elenca ogni span con i propri valori.
+
+Una metrica di token o di costo è un contatore. I punti di un contatore delta vengono sommati; un contatore cumulativo, il predefinito degli SDK OpenTelemetry, conta di quanto è cresciuto nell'intervallo, ogni serie a sé, così un totale progressivo esportato ogni minuto viene contato una volta, e un calo viene letto come una ripartenza da 0, come lo legge `increase()` di Prometheus. I budget contano le metriche GenAI allo stesso modo.
 
 ## Quanto costa una chiamata
 
@@ -283,7 +284,7 @@ Per dare tu un prezzo a un modello (una tariffa negoziata, un modello con fine-t
 
 ## Budget di costo giornalieri
 
-Un budget segue la spesa di un giorno, in USD, sul giorno UTC. Ogni 15 minuti OneUptime somma la spesa di IA della giornata (dagli span, o dalle metriche di costo GenAI quando nessuno span ne ha riportata), la mostra sul budget e pubblica due metriche. Un budget il cui **Conta la spesa da** è **Account provider** conta invece ciò che è stato addebitato ai tuoi account collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#budget-e-avvisi).
+Un budget segue la spesa di un giorno, in USD, sul giorno UTC. Ogni 15 minuti OneUptime somma la spesa di IA della giornata (ogni servizio dalle sue chiamate IA, o dalle sue metriche di costo quando le sue chiamate non riportano alcun costo), la mostra sul budget e pubblica due metriche. Un budget il cui **Conta la spesa da** è **Account provider** conta invece ciò che è stato addebitato ai tuoi account collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#budget-e-avvisi).
 
 | Metrica | Cos'è |
 | --- | --- |
@@ -380,8 +381,12 @@ Le chiamate non portano un id di conversazione. Imposta `gen_ai.conversation.id`
 Il modello non è nel listino integrato, oppure lo span non nomina nessun modello. Aggiungi i prezzi del modello nella scheda **Prezzi**; le chiamate che arrivano dopo hanno un prezzo. Una chiamata ad Azure OpenAI ha il prezzo del modello che l'ha servita, `gen_ai.response.model`: se il suo span non ne nomina nessuno, dai un prezzo al nome del deployment.
 :::
 
-:::details La scheda Utilizzo dice dalle metriche GenAI e mostra `—` per le chiamate
-I valori vengono da uno strumento che invia metriche e nessuno span GenAI, come un assistente di programmazione. Una metrica porta il costo e i token ma nessun dettaglio per chiamata, quindi le celle delle chiamate restano vuote. Vedi [Prima gli span, le metriche colmano i vuoti](#prima-gli-span-le-metriche-colmano-i-vuoti).
+:::details La scheda Utilizzo dice Dalle metriche di utilizzo e mostra `—` per le chiamate
+I valori vengono da un servizio che invia metriche e nessuno span GenAI, come un assistente di programmazione. Una metrica porta costo e token ma nessun dettaglio per chiamata, quindi le celle delle chiamate restano vuote. Vedi [Ogni servizio è conteggiato da ciò che invia](#ogni-servizio-è-conteggiato-da-ciò-che-invia).
+:::
+
+:::details Il costo della scheda Utilizzo è inferiore alla somma dei costi in Chiamate
+Alcuni span ripetono i token e il costo delle chiamate che contengono, come un'esecuzione di agente o lo span di un framework attorno allo span dell'SDK. **Chiamate** elenca ogni span con i propri valori, mentre la scheda Utilizzo, i budget e l'elenco **Conversazioni** contano ogni chiamata al modello una volta.
 :::
 
 :::details Un monitor di budget oscilla tra due stati

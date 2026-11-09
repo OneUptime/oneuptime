@@ -12,6 +12,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../../AppLink/AppLink";
 import { TELEMETRY_FIRST_STEPS_GUTTER_CLASS_NAME } from "../../Telemetry/TelemetryFirstStepsEmptyState";
 import { RumSignalState } from "./RumSignalDiagnosis";
+import { getRumActionRoute } from "./RumRefusalRoutes";
 import {
   RumPanelSignal,
   RumSignalAction,
@@ -24,6 +25,10 @@ import {
  * ("chart"), and on its Logs page ("page", drawn like every empty
  * explorer). The words are RumSignalWords', already in the reader's
  * language; this only lays them out and wires the action.
+ *
+ * When what carries the signal is refused at ingest (issue #6378), the
+ * action is the refusal's fix: another key in a dialog (onPickKey), or a
+ * link to the key's page, the budgets or Billing.
  */
 
 export interface ComponentProps {
@@ -36,6 +41,8 @@ export interface ComponentProps {
   onSetUp: (signal: RumPanelSignal) => void;
   onRangeChange?: ((timeRange: RangeStartAndEndDateTime) => void) | undefined;
   onRetry?: (() => void) | undefined;
+  // "Pick another key": the application's setup guide in a dialog.
+  onPickKey?: (() => void) | undefined;
 }
 
 const SMALL_BUTTON_CLASS_NAME: string =
@@ -51,6 +58,10 @@ const ACTION_ICONS: Record<RumSignalAction["kind"], IconProp> = {
   "recording-health": IconProp.Heart,
   "set-range": IconProp.Calendar,
   retry: IconProp.Refresh,
+  "pick-key": IconProp.Key,
+  "open-key": IconProp.Key,
+  budgets: IconProp.ChartBar,
+  billing: IconProp.Billing,
 };
 
 const RumSignalEmptyState: FunctionComponent<ComponentProps> = (
@@ -78,16 +89,27 @@ const RumSignalEmptyState: FunctionComponent<ComponentProps> = (
       case "retry":
         props.onRetry?.();
         return;
-      default:
+      case "pick-key":
+        props.onPickKey?.();
         return;
+      default: {
+        const route: Route | null = getRumActionRoute(item);
+
+        if (route) {
+          Navigation.navigate(route);
+        }
+
+        return;
+      }
     }
   };
 
-  // A longer range or a retry the page cannot take is not offered.
+  // A longer range, a retry or a dialog the page cannot take is not offered.
   const isActionAvailable: boolean = Boolean(
     action &&
       (action.kind !== "set-range" || props.onRangeChange) &&
-      (action.kind !== "retry" || props.onRetry),
+      (action.kind !== "retry" || props.onRetry) &&
+      (action.kind !== "pick-key" || props.onPickKey),
   );
 
   if (props.variant === "page") {
@@ -150,37 +172,41 @@ const RumSignalEmptyState: FunctionComponent<ComponentProps> = (
       </>
     );
 
-    actionElement =
-      action.kind === "documentation" ? (
-        <AppLink
-          to={props.documentationRoute}
-          className={SMALL_BUTTON_CLASS_NAME}
-          dataTestId={`${testId}-action`}
-        >
-          {content}
-        </AppLink>
-      ) : action.kind === "docs" ? (
-        <a
-          href={action.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={SMALL_BUTTON_CLASS_NAME}
-          data-testid={`${testId}-action`}
-        >
-          {content}
-        </a>
-      ) : (
-        <button
-          type="button"
-          className={SMALL_BUTTON_CLASS_NAME}
-          data-testid={`${testId}-action`}
-          onClick={(): void => {
-            runAction(action);
-          }}
-        >
-          {content}
-        </button>
-      );
+    const actionRoute: Route | null =
+      action.kind === "documentation"
+        ? props.documentationRoute
+        : getRumActionRoute(action);
+
+    actionElement = actionRoute ? (
+      <AppLink
+        to={actionRoute}
+        className={SMALL_BUTTON_CLASS_NAME}
+        dataTestId={`${testId}-action`}
+      >
+        {content}
+      </AppLink>
+    ) : action.kind === "docs" ? (
+      <a
+        href={action.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={SMALL_BUTTON_CLASS_NAME}
+        data-testid={`${testId}-action`}
+      >
+        {content}
+      </a>
+    ) : (
+      <button
+        type="button"
+        className={SMALL_BUTTON_CLASS_NAME}
+        data-testid={`${testId}-action`}
+        onClick={(): void => {
+          runAction(action);
+        }}
+      >
+        {content}
+      </button>
+    );
   }
 
   return (

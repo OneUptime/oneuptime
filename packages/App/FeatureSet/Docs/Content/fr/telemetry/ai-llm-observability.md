@@ -245,31 +245,32 @@ Ce sont **Vos appels d'IA**. Choisissez plutôt **Comptes fournisseurs** pour vo
 
 Les personnes et les équipes viennent des attributs d'identité de l'appel : voir [Attribution aux employés et aux équipes](/docs/telemetry/ai-coding-assistants#attribution-aux-employés-et-aux-équipes).
 
-### Les spans d'abord, les métriques en relais
+### Chaque service est compté à partir de ce qu'il envoie
 
-Les spans GenAI portent le modèle, les jetons et le coût d'un appel : là où ils existent, ils répondent à tout. Certains outils publient des métriques de jetons et de coût sans spans GenAI, comme la plupart des assistants de code. OneUptime lit ces métriques seulement pour un chiffre que les spans n'ont pas fourni, et n'additionne jamais les deux : beaucoup d'instrumentations envoient les deux pour le même appel, et les additionner compterait chaque dollar deux fois.
+L'utilisation de l'IA arrive sous deux formes. Les spans GenAI sont des appels d'IA : un par appel, avec son modèle, ses jetons et son coût. Les métriques GenAI sont des métriques d'utilisation : des compteurs de jetons et de coût que la plupart des assistants de code envoient à la place des spans, et que certaines instrumentations envoient à côté de leurs spans, pour les mêmes appels. Additionner les deux compterait ces appels deux fois, donc OneUptime compte chaque service à partir de l'un des deux : ses jetons depuis ses appels d'IA quand ils indiquent des jetons, sinon depuis ses métriques d'utilisation, et son coût de la même façon, à part. Un assistant de code qui n'envoie que des métriques est alors compté à côté des applications qui envoient des spans, dans le même projet, et une application qui envoie les deux est comptée une fois.
 
-```mermaid title="D'où vient un chiffre de l'onglet Utilisation"
+```mermaid title="D'où viennent les jetons ou le coût d'un service"
 flowchart TB
-    spans{"Les spans GenAI<br/>le donnent-ils ?"}
-    spans -->|"Oui"| fromSpans["Affiché depuis<br/>les spans"]
-    spans -->|"Non"| metrics{"Les métriques GenAI<br/>le donnent-elles ?"}
-    metrics -->|"Oui"| fromMetrics["Affiché depuis les<br/>métriques, marqué<br/>depuis les métriques<br/>GenAI"]
-    metrics -->|"Non"| nothing["Rien<br/>à afficher"]
+    spans{"Ses appels d'IA<br/>l'indiquent ?"}
+    spans -->|"Oui"| fromSpans["Compté depuis<br/>les appels d'IA"]
+    spans -->|"Non"| metrics{"Ses métriques<br/>d'utilisation<br/>l'indiquent ?"}
+    metrics -->|"Oui"| fromMetrics["Compté depuis<br/>les métriques<br/>d'utilisation"]
+    metrics -->|"Non"| nothing["Rien<br/>à compter"]
 ```
 
-| Où | Ce qui passe aux métriques | Quand |
+| Où | Depuis les appels d'IA | Depuis les métriques d'utilisation |
 | --- | --- | --- |
-| Jetons en entrée et en sortie | Les deux totaux | Les totaux de jetons des spans valent tous deux 0 |
-| Coût (USD) | Le coût, avec le coût en micro-USD de Codex converti en USD | Le total des coûts des spans vaut 0 |
-| Appels LLM | Rien : spans uniquement | — |
-| Tableaux **Employé**, **Équipe**, **Modèle** | Le coût, et les jetons quand les métriques les comptent ; la cellule des appels affiche `—` | Ce tableau n'a trouvé aucune ligne de span |
-| Tableaux **Fournisseur**, **Application / Service** | Rien : spans uniquement | — |
-| Conversations | Rien : les conversations sont construites à partir des spans | — |
+| Jetons en entrée et en sortie | Les jetons de chaque appel au modèle, une fois | Les jetons d'un service, quand ses appels d'IA n'en indiquent aucun |
+| Coût (USD) | Le coût de chaque appel au modèle, une fois | Le coût d'un service, quand ses appels d'IA n'en indiquent aucun, avec le coût en micro-USD de Codex converti en USD |
+| Appels d'IA | Chaque appel d'IA, tel que **Appels** les liste | Jamais : une métrique ne compte aucun appel |
+| Tableaux **Employé**, **Équipe**, **Modèle**, **Fournisseur**, **Application / Service** | Les appels, les jetons et le coût de chaque ligne | Les jetons et le coût des services comptés depuis les métriques, sous la personne, l'équipe, le modèle ou le fournisseur que nomment leurs points |
+| Conversations | Construites à partir des appels d'IA | Jamais |
 
-Un chiffre tiré des métriques est marqué **depuis les métriques GenAI**, car il n'a pas de lignes correspondantes dans **Appels**. Ainsi, dès que vos spans GenAI fournissent un chiffre, la part d'un outil qui n'envoie que des métriques n'apparaît pas. Pour voir les dépenses d'un tel outil à part, envoyez-le dans un projet à lui, où n'arrive aucun span GenAI.
+Sous chaque chiffre, l'onglet Utilisation indique d'où il vient : **Depuis les appels d'IA**, **Depuis les métriques d'utilisation**, ou **Depuis les appels d'IA et les métriques d'utilisation** quand certains services ont envoyé des appels et d'autres des métriques. Une ligne du tableau comptée depuis les métriques d'utilisation le dit sous son nom, et sa cellule d'appels affiche `—` quand elle n'a aucun appel d'IA, car une métrique n'a aucun détail par appel ; l'en-tête du tableau nomme les services comptés depuis les métriques d'utilisation, sauf dans **Application / Service**, dont les lignes sont les services eux-mêmes. Une métrique d'utilisation qui ne nomme aucun service est comptée sous **Service inconnu**, un service comme un autre. Si votre rôle peut lire les traces mais pas les métriques, les métriques d'utilisation sont exclues, et le tableau le dit.
 
-Une métrique de jetons ou de coût est un compteur. Les points d'un compteur delta sont additionnés ; un compteur cumulatif, celui des SDK OpenTelemetry par défaut, compte ce dont il a augmenté sur la période, chaque série à part, si bien qu'un total courant exporté chaque minute n'est compté qu'une fois. Les budgets comptent les métriques GenAI de la même façon.
+Chaque appel au modèle est compté une fois. Une exécution d'agent, ou le span d'un framework autour du span propre au SDK, répète souvent les jetons et le coût des appels qu'il contient : les jetons d'un span, ou son coût, sont écartés partout où un appel qu'il contient les indique, et une exécution d'agent garde ses propres chiffres quand aucun appel qu'elle contient ne les indique. Les budgets et la liste **Conversations** comptent de la même façon, tandis que **Appels** liste chaque span avec ses propres chiffres.
+
+Une métrique de jetons ou de coût est un compteur. Les points d'un compteur delta sont additionnés ; un compteur cumulatif, le défaut des SDK OpenTelemetry, compte ce dont il a augmenté sur la période, chaque série à part, si bien qu'un total courant exporté chaque minute est compté une fois, et une baisse est lue comme un redémarrage depuis 0, comme la lit `increase()` de Prometheus. Les budgets comptent les métriques GenAI de la même façon.
 
 ## Ce que coûte un appel
 
@@ -283,7 +284,7 @@ Pour tarifer un modèle vous-même (un tarif négocié, un modèle affiné ou un
 
 ## Budgets de coût quotidiens
 
-Un budget suit les dépenses d'une journée, en USD, sur la journée UTC. Toutes les 15 minutes, OneUptime additionne les dépenses d'IA du jour (depuis les spans, ou depuis les métriques de coût GenAI quand aucun span n'en a fourni), les affiche sur le budget et publie deux métriques. Un budget dont **Compter les dépenses à partir de** vaut **Comptes fournisseurs** compte à la place ce qui a été facturé à vos comptes connectés : voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#budgets-et-alertes).
+Un budget suit les dépenses d'une journée, en USD, sur la journée UTC. Toutes les 15 minutes, OneUptime additionne les dépenses d'IA du jour (chaque service depuis ses appels d'IA, ou depuis ses métriques de coût quand ses appels n'indiquent aucun coût), les affiche sur le budget et publie deux métriques. Un budget dont **Compter les dépenses à partir de** vaut **Comptes fournisseurs** compte à la place ce qui a été facturé à vos comptes connectés : voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#budgets-et-alertes).
 
 | Métrique | Ce qu'elle est |
 | --- | --- |
@@ -380,8 +381,12 @@ Les appels ne portent aucun identifiant de conversation. Définissez `gen_ai.con
 Le modèle ne figure pas dans la liste de prix intégrée, ou le span ne nomme aucun modèle. Ajoutez les prix du modèle dans l'onglet **Tarifs** ; les appels qui arrivent ensuite sont tarifés. Un appel Azure OpenAI est tarifé selon le modèle qui l'a servi, `gen_ai.response.model` : si son span n'en nomme aucun, tarifez le nom du déploiement.
 :::
 
-:::details L'onglet Utilisation indique depuis les métriques GenAI et affiche `—` pour les appels
-Les chiffres viennent d'un outil qui envoie des métriques sans spans GenAI, comme un assistant de code. Une métrique porte le coût et les jetons mais aucun détail par appel, donc les cellules des appels restent vides. Voir [Les spans d'abord, les métriques en relais](#les-spans-dabord-les-métriques-en-relais).
+:::details L'onglet Utilisation indique Depuis les métriques d'utilisation et affiche `—` pour les appels
+Les chiffres viennent d'un service qui envoie des métriques et aucun span GenAI, comme un assistant de code. Une métrique porte un coût et des jetons, mais aucun détail par appel, donc les cellules d'appels restent vides. Voir [Chaque service est compté à partir de ce qu'il envoie](#chaque-service-est-compté-à-partir-de-ce-quil-envoie).
+:::
+
+:::details Le coût de l'onglet Utilisation est inférieur à la somme des coûts dans Appels
+Certains spans répètent les jetons et le coût des appels qu'ils contiennent, comme une exécution d'agent ou le span d'un framework autour du span propre au SDK. **Appels** liste chaque span avec ses propres chiffres, tandis que l'onglet Utilisation, les budgets et la liste **Conversations** comptent chaque appel au modèle une fois.
 :::
 
 :::details Un moniteur de budget oscille entre deux états

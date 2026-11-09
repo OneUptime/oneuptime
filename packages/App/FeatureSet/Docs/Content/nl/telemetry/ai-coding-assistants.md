@@ -105,7 +105,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 
 Stel het in waar je ontwikkelaarsmachines al inricht: een MDM-profiel, een bestand met beheerde instellingen, of een shellprofiel uit je dotfiles. Waarden mogen geen spaties bevatten: gebruik underscores, of procentcodering zoals `%20`. Codex heeft geen resource-attributen, dus zet dezelfde sleutels in plaats daarvan in zijn `[otel.span_attributes]`.
 
-Om uitgaven per applicatie te scheiden, gebruik je de servicenaam (`OTEL_SERVICE_NAME`, of de eigen instelling van de tool). De uitsplitsing **Applicatie / Service** dekt alleen tools die GenAI-spans sturen.
+Om uitgaven per applicatie te scheiden, gebruik je de servicenaam (`OTEL_SERVICE_NAME`, of de eigen instelling van de tool). De uitsplitsing **Applicatie / Service** rangschikt elke service, of hij nu GenAI-spans stuurt of alleen metrieken.
 
 ### Wat bewust niet als de medewerker wordt behandeld
 
@@ -144,21 +144,21 @@ Twee dingen om te weten voordat je de getallen leest:
 
 Open **Producten → AI / LLM** en ga naar **Gebruik**. Het rangschikt **Medewerker**, **Team**, **Model**, **Provider** en **Applicatie / Service** op uitgaven, over de laatste 7 dagen, tenzij je een andere periode kiest. Aanroepen die niemand noemen, worden geteld onder **Niet toegewezen**: een grote rij **Niet toegewezen** vertelt je welke tool zijn identiteit nog moet krijgen.
 
-### Metrieken van codeerassistenten zijn een terugval, geen aanvulling
+### Metrieken van codeerassistenten worden naast de aanroepen van je apps geteld
 
-GenAI-spans gaan voor: de metrieken worden alleen gelezen voor een getal waarvoor de spans niets meldden, en de twee worden nooit bij elkaar opgeteld ([waarom](/docs/telemetry/ai-llm-observability#spans-eerst-metrieken-vullen-aan)). Voor codeerassistenten heeft dat één botte consequentie: **als hetzelfde project GenAI-spans met kosten ontvangt, verschijnen de uitgaven van de codeerassistenten niet.** Geef de codeerassistenten een eigen project, met een eigen ingestiesleutel.
+Elke service wordt geteld uit wat hij stuurt ([hoe](/docs/telemetry/ai-llm-observability#elke-service-wordt-geteld-uit-wat-hij-stuurt)). De metrieken van een codeerassistent komen binnen onder zijn eigen service, dus worden zijn uitgaven opgeteld bij de AI-aanroepen die je apps naar hetzelfde project sturen, nooit in hun plaats, en een app die voor dezelfde aanroepen GenAI-spans en metrieken stuurt, wordt één keer geteld, uit zijn spans.
 
-Als de terugval wel geldt, kan elke uitsplitsing dit tonen voor een tool die alleen metrieken stuurt:
+Dit toont elke uitsplitsing voor een tool die alleen metrieken stuurt:
 
 | Uitsplitsing | Uit metrieken |
 | --- | --- |
 | **Medewerker** | Ja, uit elke identiteitssleutel hierboven, met en zonder voorvoegsel `resource.` |
 | **Team** | Ja, uit de teamsleutels |
 | **Model** | Ja: Claude Code en Codex sturen een kale `model`, Cursor `cursor.model.name` |
-| **Provider** | Nee: de metrieken van codeerassistenten noemen geen provider |
-| **Applicatie / Service** | Nee: hun metrieken horen bij geen enkele OneUptime-service |
+| **Provider** | Onder **Niet toegewezen**: de metrieken van codeerassistenten noemen geen provider |
+| **Applicatie / Service** | Ja: elke tool onder de service die zijn metrieken noemen, zoals `cursor` |
 
-Een rij die uit metrieken is gelezen, draagt alleen kosten: de cellen voor aanroepen en tokens tonen `—`, omdat een uitgaventeller geen details per aanroep heeft, en een 0 daar zou beweren dat de persoon geen aanroepen deed. De tabel is gemarkeerd met **uit GenAI-metrieken**.
+Een rij die uit metrieken is gelezen, zegt **Uit gebruiksmetrieken** onder haar naam. Haar cel voor aanroepen toont `—`, omdat een teller geen details per aanroep heeft, en een 0 daar zou beweren dat de persoon geen aanroepen deed; haar cellen voor tokens tonen de tokens die haar metrieken telden.
 
 ## Geen OpenTelemetry? Zet er een gateway voor
 
@@ -197,7 +197,7 @@ Codex stuurt zijn metrieken ook standaard naar OpenAI: zie [OpenAI Codex](/docs/
 
 ## Waar je begint
 
-Rol uit in deze volgorde; elke stap is op zichzelf nuttig. Gebruik een project dat nog geen GenAI-spans van je eigen apps ontvangt, anders houdt [de terugvalregel](#metrieken-van-codeerassistenten-zijn-een-terugval-geen-aanvulling) de uitgaven van de codeerassistenten van de pagina.
+Rol uit in deze volgorde; elke stap is op zichzelf nuttig. De codeerassistenten kunnen een project delen met je eigen apps: [elk wordt ernaast geteld](#metrieken-van-codeerassistenten-worden-naast-de-aanroepen-van-je-apps-geteld).
 
 1. **Gemini CLI**, als iemand het gebruikt. Het stuurt `user.email` zonder instellingen, dus het laat de toewijzing van begin tot eind werken. Zet ook zijn traces aan: het stuurt geen kostenmetriek.
 2. **Claude Code**: één bestand met beheerde instellingen voor de vloot, `user.email` gratis, een echte kostenmetriek, en acceptatiegraad, commits, pull requests en regels code per ontwikkelaar.

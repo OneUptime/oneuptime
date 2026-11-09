@@ -64,7 +64,7 @@ export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
 
 ### 检查数据是否到达
 
-打开 **指标** 并查找 `claude_code.token.usage`，然后打开 **产品 → AI / LLM** 并进入 **用量** ：你的成本会显示在你的邮箱下，并标注 **来自 GenAI 指标** 。
+打开 **指标** 并查找 `claude_code.token.usage`，然后打开 **产品 → AI / LLM** 并进入 **用量** ：你的成本会显示在你的邮箱下，并标注 **来自用量指标** 。
 :::
 
 若要把指标和事件发送到不同的地方，请改为设置 `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` 和 `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`，并使用完整路径（`https://oneuptime.com/otlp/v1/metrics`、`https://oneuptime.com/otlp/v1/logs`）。
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 在 **产品 → AI / LLM → 用量** 中，`claude_code.cost.usage` 为 **员工** 、 **团队** 和 **模型** 表提供数据，`claude_code.token.usage` 为 token 总数提供数据。你看到的内容由两条规则决定：
 
-- **指标只补充 span，从不与之相加。** 如果同一个项目从你自己的应用接收带成本的 GenAI span，Claude Code 的支出就不会显示。请把 Claude Code 发送到单独的项目。请参阅 [span 优先，指标补充](/docs/telemetry/ai-llm-observability#span-优先指标补充)。
-- **来自指标的行只携带成本。** 其调用和 token 单元格显示 `—`， **提供商** 和 **应用 / 服务** 表保持为空：这些指标不指明提供商，也不属于任何 OneUptime 服务。
+- **Claude Code 与你的应用一起计数。** 它的指标归在它自己的服务下，因此它的支出会加到你的应用发送到同一个项目的 AI 调用上。如果你开启它的跟踪（测试版），请为所有人开启：从那时起，Claude Code 只按其跟踪计数，只计一次。请参阅 [每个服务按其发送的数据计数](/docs/telemetry/ai-llm-observability#每个服务按其发送的数据计数)。
+- **来自指标的行不指明任何调用。** 它会在名称下方注明 **来自用量指标** ，其调用单元格显示 `—`， **提供商** 表会把它归入 **未归属** ：这些指标不指明提供商。
 
 其他所有内容，例如按开发者划分的接受率、代码行数、提交和拉取请求，或按 `query_source` 划分的支出，都可以根据下面的指标在 [仪表盘](/docs/dashboards/index) 上绘制，并用 [指标监控](/docs/monitor/metrics-monitor) 设置警报。
 

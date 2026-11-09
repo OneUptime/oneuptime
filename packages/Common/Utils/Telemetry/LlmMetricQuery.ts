@@ -28,8 +28,11 @@ import {
  * the browser under the signed-in user's permissions. Keeping the shapes here
  * means the two cannot drift into disagreeing about what "LLM cost" means.
  *
- * The server wrapper (Common/Server/Utils/Telemetry/LlmMetricSpend.ts) adds
- * the AggregateBy envelope and executes them.
+ * The Usage tab and the cost budgets no longer read through these: both
+ * read LlmUsageReader (Common/Server/Utils/Telemetry/LlmUsageReader.ts),
+ * which counts a cumulative counter by what it grew, resets included, and
+ * each service from the signal it sends. These remain for the callers that
+ * build a metric query by hand.
  *
  * Scoping caveat, deliberate: provider/model narrowing matches the PRIMARY
  * semantic-convention attribute key only (gen_ai.system, gen_ai.request.model).

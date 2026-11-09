@@ -172,6 +172,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   ServerlessFunctionInstance: AuditLogExemptionKind.Reported,
   StorageArrayResource: AuditLogExemptionKind.Reported,
   TelemetryExceptionActivity: AuditLogExemptionKind.Reported,
+  TelemetryIngestionKeyRefusal: AuditLogExemptionKind.Reported,
   TelemetryUsageBilling: AuditLogExemptionKind.Reported,
   VMwareResource: AuditLogExemptionKind.Reported,
 

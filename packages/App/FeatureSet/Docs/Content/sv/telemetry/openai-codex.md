@@ -124,10 +124,10 @@ OneUptime läser personer från spans och från datapunkter för mätvärden, al
 
 Med konfigurationen ovan blir resultatet på fliken **Användning** så här:
 
-- Tokens kommer från spans, per person, och `codex.turn.token_usage` läggs inte till ovanpå: de två läggs aldrig ihop ([varför](/docs/telemetry/ai-llm-observability#spans-först-mätvärden-fyller-i)).
+- Tokens kommer från spans, per person, och `codex.turn.token_usage` läggs inte till ovanpå: de två läggs aldrig ihop ([varför](/docs/telemetry/ai-llm-observability#varje-tjänst-räknas-utifrån-det-den-skickar)).
 - Codex spans nämner ingen modell, så OneUptime kan inte prissätta dem, och deras kostnad är 0. Kostnadstotalerna tar då Codex kostnad från `codex.turn.cost_microusd`, omräknad till USD åt dig.
-- Tabellerna **Anställd**, **Team** och **Modell** visar raderna från spans: tokens per person, men ingen kostnad per person.
-- Utan traces fyller mätvärdena de tabellerna i stället, bara med kostnad, allt under **Ej tilldelat**, eftersom Codex mätvärden inte nämner någon.
+- Tabellerna **Anställd** och **Team** visar spansens tokens per person och Codex kostnad på en enda rad **Ej tilldelat**, eftersom dess mätvärden inte nämner någon. Tabellen **Modell** är tvärtom: kostnaden per modell, tokens under **Ej tilldelat**.
+- Utan traces räknar mätvärdena Codex tokens och kostnad: under **Ej tilldelat** i tabellerna **Anställd** och **Team**, och per modell i tabellen **Modell**.
 
 Den mest exakta kostnaden per tur, med personen på, är loggposten `codex.turn_cost`. OneUptime kopplar ännu inte loggposter till kostnader, men låt loggexportören vara påslagen: historiken finns där när det sker.
 

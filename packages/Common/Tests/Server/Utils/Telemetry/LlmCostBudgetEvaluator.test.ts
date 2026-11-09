@@ -1,11 +1,10 @@
 import LlmCostBudget from "../../../../Models/DatabaseModels/LlmCostBudget";
-import Span from "../../../../Models/AnalyticsModels/Span";
 import { MetricPointType } from "../../../../Models/AnalyticsModels/Metric";
-import InBetween from "../../../../Types/BaseDatabase/InBetween";
-import Query from "../../../../Types/BaseDatabase/Query";
+import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
+import { LlmUsageDimension } from "../../../../Types/Telemetry/LlmUsageApi";
 import LlmCostBudgetEvaluator, {
   LLM_BUDGET_ID_ATTRIBUTE,
   LLM_BUDGET_MODEL_ATTRIBUTE,
@@ -14,13 +13,13 @@ import LlmCostBudgetEvaluator, {
   LLM_BUDGET_PROVIDER_ATTRIBUTE,
   LLM_BUDGET_SERVICE_ID_ATTRIBUTE,
   LLM_BUDGET_SPEND_METRIC_NAME,
+  LlmResolvedSpend,
 } from "../../../../Server/Utils/Telemetry/LlmCostBudgetEvaluator";
+import { LlmUsageReadQuery } from "../../../../Server/Utils/Telemetry/LlmUsageReader";
 import LlmCostBudgetService from "../../../../Server/Services/LlmCostBudgetService";
 import MetricService from "../../../../Server/Services/MetricService";
 import SpanService from "../../../../Server/Services/SpanService";
 import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
-import { LlmMetricScope } from "../../../../Utils/Telemetry/LlmMetricQuery";
-import Includes from "../../../../Types/BaseDatabase/Includes";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 /*
  * `jest` deliberately comes from the global scope, not @jest/globals — the
@@ -30,11 +29,22 @@ import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement"
  */
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
+/*
+ * A budget's spend is what the Usage tab counts for the same scope
+ * (LlmUsageReader): one read of the AI calls and one of the usage metrics,
+ * each service counted from the signal it sends. These tests answer the two
+ * reads as ClickHouse would - one total row per service - and pin what the
+ * budget makes of them: an app's calls, a coding tool's metrics beside
+ * them, an app that sends both counted once, and a failed read that fails
+ * the evaluation rather than reading as nothing spent.
+ */
+
 jest.mock("../../../../Server/Services/SpanService", () => {
   return {
     __esModule: true,
     default: {
-      aggregateBy: jest.fn(),
+      // The AI calls' read (LlmUsageReader.buildSpanStatement).
+      executeQuery: jest.fn(),
     },
   };
 });
@@ -44,12 +54,7 @@ jest.mock("../../../../Server/Services/MetricService", () => {
     __esModule: true,
     default: {
       insertJsonRows: jest.fn(),
-      aggregateBy: jest.fn(),
-      /*
-       * executeQuery backs the metric-sourced spend fallback that
-       * resolveSpend reaches for when the span stream is empty: it runs
-       * LlmMetricUsageReader's statement.
-       */
+      // The usage metrics' read (LlmMetricUsageReader.buildStatement).
       executeQuery: jest.fn(),
     },
   };
@@ -76,51 +81,18 @@ jest.mock("../../../../Server/Utils/Telemetry/Telemetry", () => {
 
 type MockedFn = jest.Mock;
 
-const mockedSpanService: { aggregateBy: MockedFn } = SpanService as unknown as {
-  aggregateBy: MockedFn;
-};
+const mockedSpanService: { executeQuery: MockedFn } =
+  SpanService as unknown as {
+    executeQuery: MockedFn;
+  };
 
 const mockedMetricService: {
   insertJsonRows: MockedFn;
-  aggregateBy: MockedFn;
   executeQuery: MockedFn;
 } = MetricService as unknown as {
   insertJsonRows: MockedFn;
-  aggregateBy: MockedFn;
   executeQuery: MockedFn;
 };
-
-/*
- * What ClickHouse answers LlmMetricUsageReader: one row per metric, group
- * and token type, the usage its series added in the window.
- */
-function readerAnswer(rows: Array<JSONObject>): unknown {
-  return {
-    json: async (): Promise<{ data: Array<JSONObject> }> => {
-      return {
-        data: rows.map((row: JSONObject): JSONObject => {
-          return {
-            metric: (row["metric"] as string) || "claude_code.cost.usage",
-            groupKey: "",
-            tokenType: (row["tokenType"] as string) || "",
-            value: row["value"] as number,
-          };
-        }),
-      };
-    },
-  };
-}
-
-/*
- * Metric-sourced cost is one read of every cost and token metric
- * (LlmMetricUsageReader), folded with USD and Codex's micro-USD scaled
- * apart. These rows are the project's USD spend: Claude Code's cost counter.
- */
-function mockUsdMetricRows(rows: Array<JSONObject>): void {
-  mockedMetricService.executeQuery.mockResolvedValue(
-    readerAnswer(rows) as never,
-  );
-}
 
 const mockedBudgetService: {
   findBy: MockedFn;
@@ -134,6 +106,85 @@ const mockedTelemetryUtil: { indexMetricNameServiceNameMap: MockedFn } =
   TelemetryUtil as unknown as {
     indexMetricNameServiceNameMap: MockedFn;
   };
+
+// The services the reads answer for: an app, and the coding tools.
+const APP: string = "a1000000000000000000000000000001";
+const CLAUDE_CODE: string = "a1000000000000000000000000000002";
+const CODEX: string = "a1000000000000000000000000000003";
+
+interface SpanTotal {
+  service: string;
+  calls?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  costUsd?: number;
+}
+
+interface MetricTotal {
+  service: string;
+  // Claude Code's cost counter unless said.
+  metric?: string;
+  tokenType?: string;
+  value: number;
+}
+
+function answer(data: Array<JSONObject>): unknown {
+  return {
+    json: async (): Promise<{ data: Array<JSONObject> }> => {
+      return { data: data };
+    },
+  };
+}
+
+// What ClickHouse answers the AI calls' read: one total row per service.
+function mockSpanTotals(rows: Array<SpanTotal>): void {
+  mockedSpanService.executeQuery.mockResolvedValue(
+    answer(
+      rows.map((row: SpanTotal): JSONObject => {
+        return {
+          serviceKey: row.service,
+          groupKey: "",
+          calls: row.calls ?? 1,
+          erroredCalls: 0,
+          inputTokens: row.inputTokens ?? 0,
+          outputTokens: row.outputTokens ?? 0,
+          totalTokens: (row.inputTokens ?? 0) + (row.outputTokens ?? 0),
+          costUsd: row.costUsd ?? 0,
+        };
+      }),
+    ) as never,
+  );
+}
+
+// What ClickHouse answers the usage metrics' read: one row per metric and service.
+function mockMetricTotals(rows: Array<MetricTotal>): void {
+  mockedMetricService.executeQuery.mockResolvedValue(
+    answer(
+      rows.map((row: MetricTotal): JSONObject => {
+        return {
+          metric: row.metric || "claude_code.cost.usage",
+          serviceKey: row.service,
+          groupKey: "",
+          groupAttribute: "",
+          tokenType: row.tokenType || "",
+          value: row.value,
+        };
+      }),
+    ) as never,
+  );
+}
+
+function spanStatement(): Statement {
+  return mockedSpanService.executeQuery.mock.calls[0]![0] as Statement;
+}
+
+function metricStatement(): Statement {
+  return mockedMetricService.executeQuery.mock.calls[0]![0] as Statement;
+}
+
+function values(statement: Statement): Array<unknown> {
+  return Object.values(statement.query_params);
+}
 
 // 2026-08-22 14:30:00 UTC — an arbitrary mid-day instant.
 const NOW: Date = new Date(Date.UTC(2026, 7, 22, 14, 30, 0));
@@ -219,51 +270,56 @@ describe("LlmCostBudgetEvaluator.getUtcDayStart", () => {
   });
 });
 
-describe("LlmCostBudgetEvaluator.buildSpanQuery", () => {
+describe("LlmCostBudgetEvaluator.buildUsageQuery", () => {
   const dayStart: Date = LlmCostBudgetEvaluator.getUtcDayStart(NOW);
 
-  test("base query filters project, LLM spans, and the day window", () => {
+  test("the project's UTC day so far, totals only", () => {
     const budget: LlmCostBudget = makeBudget();
 
-    const query: Query<Span> = LlmCostBudgetEvaluator.buildSpanQuery({
+    const query: LlmUsageReadQuery = LlmCostBudgetEvaluator.buildUsageQuery({
       budget,
       dayStart,
       now: NOW,
     });
 
-    const record: Record<string, unknown> = query as Record<string, unknown>;
-
-    expect(record["projectId"]).toBe(budget.projectId);
-    expect(record["isLlmSpan"]).toBe(true);
-    expect(record["startTime"]).toBeInstanceOf(InBetween);
-    expect(record["primaryEntityId"]).toBeUndefined();
-    expect(record["llmSystem"]).toBeUndefined();
-    expect(record["llmRequestModel"]).toBeUndefined();
+    expect(query.projectId).toBe(budget.projectId);
+    expect(query.startTime).toBe(dayStart);
+    expect(query.endTime).toBe(NOW);
+    expect(query.dimension).toBe(LlmUsageDimension.None);
   });
 
-  test("optional scoping filters are applied when set", () => {
-    const serviceId: ObjectID = ObjectID.generate();
-    const budget: LlmCostBudget = makeBudget({
-      serviceId: serviceId,
-      llmSystem: "openai",
-      llmModel: "gpt-4o",
+  test("leaves an unscoped budget unscoped — it must see every call and point", () => {
+    const query: LlmUsageReadQuery = LlmCostBudgetEvaluator.buildUsageQuery({
+      budget: makeBudget(),
+      dayStart,
+      now: NOW,
     });
 
-    const query: Record<string, unknown> =
-      LlmCostBudgetEvaluator.buildSpanQuery({
-        budget,
-        dayStart,
-        now: NOW,
-      }) as Record<string, unknown>;
+    expect(query.serviceId).toBeUndefined();
+    expect(query.llmSystem).toBeUndefined();
+    expect(query.llmModel).toBeUndefined();
+    // A budget is not a person: no read scope, and the metrics are read.
+    expect(query.serviceIds).toBeUndefined();
+    expect(query.excludedServiceIds).toBeUndefined();
+    expect(query.metricFilter).toBeUndefined();
+  });
 
-    expect(query["primaryEntityId"]).toBe(serviceId);
-    // Every spelling the provider is stored under (LlmProviders).
-    expect(query["llmSystem"]).toBeInstanceOf(Includes);
-    expect((query["llmSystem"] as Includes).values).toEqual([
-      "openai",
-      "OpenAI",
-    ]);
-    expect(query["llmRequestModel"]).toBe("gpt-4o");
+  test("carries the budget's service / provider / model scoping", () => {
+    const serviceId: ObjectID = ObjectID.generate();
+
+    const query: LlmUsageReadQuery = LlmCostBudgetEvaluator.buildUsageQuery({
+      budget: makeBudget({
+        serviceId: serviceId,
+        llmSystem: "anthropic",
+        llmModel: "claude-sonnet-4",
+      }),
+      dayStart,
+      now: NOW,
+    });
+
+    expect(query.serviceId).toBe(serviceId);
+    expect(query.llmSystem).toBe("anthropic");
+    expect(query.llmModel).toBe("claude-sonnet-4");
   });
 });
 
@@ -376,24 +432,24 @@ describe("LlmCostBudgetEvaluator.buildBudgetMetricRows", () => {
   });
 });
 
+function resetReads(): void {
+  jest.clearAllMocks();
+  mockSpanTotals([]);
+  mockMetricTotals([]);
+  mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
+  mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
+  mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
+    undefined as never,
+  );
+}
+
 describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockedSpanService.aggregateBy.mockResolvedValue({ data: [] } as never);
-    mockedMetricService.executeQuery.mockResolvedValue(
-      readerAnswer([]) as never,
-    );
-    mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
-    mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
-    mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
-      undefined as never,
-    );
+    resetReads();
   });
 
   function mockSpend(valueInUSD: number): void {
-    mockedSpanService.aggregateBy.mockResolvedValue({
-      data: [{ timestamp: NOW, value: valueInUSD }],
-    } as never);
+    mockSpanTotals([{ service: APP, costUsd: valueInUSD }]);
   }
 
   test("stamps spend on the budget row", async () => {
@@ -449,14 +505,12 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
     );
   });
 
-  test("multiple aggregation rows are summed", async () => {
+  test("every service's spend is added up", async () => {
     const budget: LlmCostBudget = makeBudget();
-    mockedSpanService.aggregateBy.mockResolvedValue({
-      data: [
-        { timestamp: NOW, value: 3.5 },
-        { timestamp: NOW, value: 4.5 },
-      ],
-    } as never);
+    mockSpanTotals([
+      { service: APP, costUsd: 3.5 },
+      { service: CLAUDE_CODE, costUsd: 4.5 },
+    ]);
 
     await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
 
@@ -473,43 +527,58 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
 
     await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
 
-    expect(mockedSpanService.aggregateBy).not.toHaveBeenCalled();
+    expect(mockedSpanService.executeQuery).not.toHaveBeenCalled();
+    expect(mockedMetricService.executeQuery).not.toHaveBeenCalled();
     expect(mockedBudgetService.updateOneById).not.toHaveBeenCalled();
     expect(mockedMetricService.insertJsonRows).not.toHaveBeenCalled();
   });
 
-  test("the ClickHouse aggregation is scoped and fails loud", async () => {
+  test("both reads cover the UTC day so far, and fail loud", async () => {
     const budget: LlmCostBudget = makeBudget();
     mockSpend(1);
 
     await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
 
-    const aggregateArg: Record<string, unknown> = mockedSpanService.aggregateBy
-      .mock.calls[0]![0] as Record<string, unknown>;
-
-    expect(aggregateArg["aggregateColumnName"]).toBe("llmCost");
-    expect(aggregateArg["timeoutOverflowMode"]).toBe("throw");
-    expect(aggregateArg["startTimestamp"]).toEqual(
+    const dayStart: string = OneUptimeDate.toClickhouseDateTime64(
       LlmCostBudgetEvaluator.getUtcDayStart(NOW),
     );
-    expect(aggregateArg["endTimestamp"]).toBe(NOW);
-    expect(
-      (aggregateArg["query"] as Record<string, unknown>)["isLlmSpan"],
-    ).toBe(true);
+    const now: string = OneUptimeDate.toClickhouseDateTime64(NOW);
+
+    for (const statement of [spanStatement(), metricStatement()]) {
+      expect(values(statement)).toContain(budget.projectId!.toString());
+      expect(values(statement)).toContain(dayStart);
+      expect(values(statement)).toContain(now);
+      expect(statement.query).toContain("timeout_overflow_mode = 'throw'");
+      expect(statement.query).not.toContain("'break'");
+    }
+
+    expect(spanStatement().query).toContain("AND isLlmSpan = 1");
+  });
+
+  /*
+   * An agent run's, or a wrapper span's, repeat of its calls' cost is left
+   * out of the sum (LlmCountedCallsSql), as on the Usage tab.
+   */
+  test("each model call's cost counts once", async () => {
+    mockSpend(1);
+
+    await LlmCostBudgetEvaluator.evaluateBudget({
+      budget: makeBudget(),
+      now: NOW,
+    });
+
+    expect(spanStatement().query).toContain(
+      "sum(if(costCovered, 0, llmCost)) AS costUsd",
+    );
+    expect(spanStatement().query).toContain(
+      "if(llmCost > 0, (cityHash64(traceId, spanId, 'c') IN (",
+    );
   });
 });
 
 describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockedMetricService.executeQuery.mockResolvedValue(
-      readerAnswer([]) as never,
-    );
-    mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
-    mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
-    mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
-      undefined as never,
-    );
+    resetReads();
   });
 
   test("one failing budget never aborts the sweep", async () => {
@@ -517,19 +586,34 @@ describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () =>
     const healthy: LlmCostBudget = makeBudget({ name: "healthy" });
 
     mockedBudgetService.findBy.mockResolvedValue([failing, healthy] as never);
-    mockedSpanService.aggregateBy
+    mockedSpanService.executeQuery
       .mockRejectedValueOnce(new Error("ClickHouse timeout") as never)
-      .mockResolvedValueOnce({
-        data: [{ timestamp: NOW, value: 5 }],
-      } as never);
+      .mockResolvedValueOnce(
+        answer([
+          {
+            serviceKey: APP,
+            groupKey: "",
+            calls: 1,
+            erroredCalls: 0,
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            costUsd: 5,
+          },
+        ]) as never,
+      );
 
     await LlmCostBudgetEvaluator.evaluateAllBudgets();
 
     // The healthy budget still got its spend stamped and metrics published.
     expect(mockedBudgetService.updateOneById).toHaveBeenCalledTimes(1);
-    const updateArg: { id: ObjectID } = mockedBudgetService.updateOneById.mock
-      .calls[0]![0] as { id: ObjectID };
+    const updateArg: { id: ObjectID; data: Record<string, unknown> } =
+      mockedBudgetService.updateOneById.mock.calls[0]![0] as {
+        id: ObjectID;
+        data: Record<string, unknown>;
+      };
     expect(updateArg.id.toString()).toBe(healthy.id!.toString());
+    expect(updateArg.data["currentDaySpendInUSD"]).toBe(5);
     expect(mockedMetricService.insertJsonRows).toHaveBeenCalledTimes(1);
   });
 
@@ -538,7 +622,7 @@ describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () =>
 
     await LlmCostBudgetEvaluator.evaluateAllBudgets();
 
-    expect(mockedSpanService.aggregateBy).not.toHaveBeenCalled();
+    expect(mockedSpanService.executeQuery).not.toHaveBeenCalled();
     expect(mockedMetricService.executeQuery).not.toHaveBeenCalled();
   });
 
@@ -555,283 +639,197 @@ describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () =>
   });
 });
 
-describe("LlmCostBudgetEvaluator.buildMetricScope", () => {
-  const DAY_START: Date = new Date(Date.UTC(2026, 7, 22, 0, 0, 0));
-
-  test("carries the project and the day-so-far window", () => {
-    const budget: LlmCostBudget = makeBudget();
-
-    const scope: LlmMetricScope = LlmCostBudgetEvaluator.buildMetricScope({
-      budget,
-      dayStart: DAY_START,
-      now: NOW,
-    });
-
-    expect(scope.projectId).toBe(budget.projectId);
-    expect(scope.startTime).toBe(DAY_START);
-    expect(scope.endTime).toBe(NOW);
-  });
-
-  test("leaves an unscoped budget unscoped — it must see every datapoint", () => {
-    const scope: LlmMetricScope = LlmCostBudgetEvaluator.buildMetricScope({
-      budget: makeBudget(),
-      dayStart: DAY_START,
-      now: NOW,
-    });
-
-    expect(scope.serviceId).toBeUndefined();
-    expect(scope.llmSystem).toBeUndefined();
-    expect(scope.llmModel).toBeUndefined();
-  });
-
-  test("mirrors the budget's service / provider / model scoping", () => {
-    const serviceId: ObjectID = ObjectID.generate();
-
-    const scope: LlmMetricScope = LlmCostBudgetEvaluator.buildMetricScope({
-      budget: makeBudget({
-        serviceId: serviceId,
-        llmSystem: "anthropic",
-        llmModel: "claude-sonnet-4",
-      }),
-      dayStart: DAY_START,
-      now: NOW,
-    });
-
-    expect(scope.serviceId).toBe(serviceId);
-    expect(scope.llmSystem).toBe("anthropic");
-    expect(scope.llmModel).toBe("claude-sonnet-4");
-  });
-
-  /*
-   * The span query and the metric query must narrow to the same slice of
-   * traffic, or the fallback would silently measure something else.
-   */
-  test("agrees with buildSpanQuery on the service scope", () => {
-    const serviceId: ObjectID = ObjectID.generate();
-    const budget: LlmCostBudget = makeBudget({ serviceId: serviceId });
-
-    const spanQuery: Record<string, unknown> =
-      LlmCostBudgetEvaluator.buildSpanQuery({
-        budget,
-        dayStart: DAY_START,
-        now: NOW,
-      }) as unknown as Record<string, unknown>;
-
-    const scope: LlmMetricScope = LlmCostBudgetEvaluator.buildMetricScope({
-      budget,
-      dayStart: DAY_START,
-      now: NOW,
-    });
-
-    expect(spanQuery["primaryEntityId"]).toBe(scope.serviceId);
-  });
-});
-
-describe("LlmCostBudgetEvaluator.resolveSpend — source selection", () => {
+describe("LlmCostBudgetEvaluator.resolveSpend — each service from its signal", () => {
   const DAY_START: Date = new Date(Date.UTC(2026, 7, 22, 0, 0, 0));
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockedSpanService.aggregateBy.mockResolvedValue({ data: [] } as never);
-    mockedMetricService.executeQuery.mockResolvedValue(
-      readerAnswer([]) as never,
-    );
+    resetReads();
   });
 
-  function mockSpanSpend(value: number): void {
-    mockedSpanService.aggregateBy.mockResolvedValue({
-      data: [{ timestamp: NOW, value: value }],
-    } as never);
-  }
-
-  function mockMetricSpend(value: number): void {
-    mockUsdMetricRows([{ timestamp: NOW, value: value }]);
-  }
-
-  test("uses spans when the span stream reported spend", async () => {
-    mockSpanSpend(42);
-    mockMetricSpend(999);
-
-    await expect(
-      LlmCostBudgetEvaluator.resolveSpend({
-        budget: makeBudget(),
-        dayStart: DAY_START,
-        now: NOW,
-      }),
-    ).resolves.toEqual({ spendInUSD: 42, source: "spans" });
-  });
-
-  /*
-   * The double-counting guard, and the reason this is a fallback rather than a
-   * sum: an SDK emitting both signals would otherwise report 1041 here, and a
-   * budget that fires on spend that never happened is worse than one that
-   * misses.
-   */
-  test("never adds metric spend on top of span spend", async () => {
-    mockSpanSpend(42);
-    mockMetricSpend(999);
-
-    const resolved: { spendInUSD: number } =
-      await LlmCostBudgetEvaluator.resolveSpend({
-        budget: makeBudget(),
-        dayStart: DAY_START,
-        now: NOW,
-      });
-
-    expect(resolved.spendInUSD).toBe(42);
-    expect(resolved.spendInUSD).not.toBe(1041);
-  });
-
-  test("does not query metrics at all when spans answered", async () => {
-    mockSpanSpend(42);
-
-    await LlmCostBudgetEvaluator.resolveSpend({
-      budget: makeBudget(),
+  async function resolve(budget?: LlmCostBudget): Promise<LlmResolvedSpend> {
+    return await LlmCostBudgetEvaluator.resolveSpend({
+      budget: budget || makeBudget(),
       dayStart: DAY_START,
       now: NOW,
     });
+  }
 
-    expect(mockedMetricService.executeQuery).not.toHaveBeenCalled();
-  });
+  test("an app's AI calls: their cost", async () => {
+    mockSpanTotals([{ service: APP, costUsd: 42 }]);
 
-  test("falls back to metrics when the span stream is empty", async () => {
-    mockMetricSpend(17.5);
-
-    await expect(
-      LlmCostBudgetEvaluator.resolveSpend({
-        budget: makeBudget(),
-        dayStart: DAY_START,
-        now: NOW,
-      }),
-    ).resolves.toEqual({ spendInUSD: 17.5, source: "metrics" });
-  });
-
-  test("reports source 'none' when both streams are empty", async () => {
-    await expect(
-      LlmCostBudgetEvaluator.resolveSpend({
-        budget: makeBudget(),
-        dayStart: DAY_START,
-        now: NOW,
-      }),
-    ).resolves.toEqual({ spendInUSD: 0, source: "none" });
-  });
-
-  test("treats a zero-valued span bucket as no span spend", async () => {
-    mockSpanSpend(0);
-    mockMetricSpend(8);
-
-    await expect(
-      LlmCostBudgetEvaluator.resolveSpend({
-        budget: makeBudget(),
-        dayStart: DAY_START,
-        now: NOW,
-      }),
-    ).resolves.toEqual({ spendInUSD: 8, source: "metrics" });
-  });
-
-  test("a zero metric total still resolves to 'none', not 'metrics'", async () => {
-    mockMetricSpend(0);
-
-    await expect(
-      LlmCostBudgetEvaluator.resolveSpend({
-        budget: makeBudget(),
-        dayStart: DAY_START,
-        now: NOW,
-      }),
-    ).resolves.toEqual({ spendInUSD: 0, source: "none" });
+    await expect(resolve()).resolves.toEqual({
+      spendInUSD: 42,
+      source: "spans",
+    });
   });
 
   /*
-   * Returning 0 on a failed metric query would silently suppress a real
-   * breach — the same reasoning behind the span aggregate's
-   * timeoutOverflowMode: 'throw'. evaluateAllBudgets isolates the failure.
+   * The double-counting guard: an SDK that sends both signals for the same
+   * calls (OpenLLMetry) would otherwise read 1041 here, and a budget that
+   * fires on spend that never happened is worse than one that misses.
    */
-  test("propagates a metric-query failure rather than reporting zero spend", async () => {
+  test("an app that sends both signals counts once, from its calls", async () => {
+    mockSpanTotals([{ service: APP, costUsd: 42 }]);
+    mockMetricTotals([{ service: APP, value: 999 }]);
+
+    const resolved: LlmResolvedSpend = await resolve();
+
+    expect(resolved).toEqual({ spendInUSD: 42, source: "spans" });
+    expect(resolved.spendInUSD).not.toBe(1041);
+  });
+
+  /*
+   * THE FIX. The metrics were read only when the whole project's calls
+   * added up to nothing, so Claude Code's spend vanished from every budget
+   * as soon as any app sent a priced call.
+   */
+  test("a coding tool's usage metrics count beside an app's calls", async () => {
+    mockSpanTotals([{ service: APP, costUsd: 42 }]);
+    mockMetricTotals([{ service: CLAUDE_CODE, value: 17.5 }]);
+
+    await expect(resolve()).resolves.toEqual({
+      spendInUSD: 59.5,
+      source: "both",
+    });
+  });
+
+  test("a metrics-only project counts its metrics", async () => {
+    mockMetricTotals([{ service: CLAUDE_CODE, value: 17.5 }]);
+
+    await expect(resolve()).resolves.toEqual({
+      spendInUSD: 17.5,
+      source: "metrics",
+    });
+  });
+
+  test("calls with tokens and no price leave the cost to the service's cost metric", async () => {
+    mockSpanTotals([{ service: APP, costUsd: 0, inputTokens: 1200 }]);
+    mockMetricTotals([{ service: APP, value: 8 }]);
+
+    await expect(resolve()).resolves.toEqual({
+      spendInUSD: 8,
+      source: "metrics",
+    });
+  });
+
+  test("Codex's millionths of a USD are scaled before they are added", async () => {
+    mockMetricTotals([
+      { service: CODEX, metric: "codex.turn.cost_microusd", value: 2500000 },
+      { service: CLAUDE_CODE, value: 1.25 },
+    ]);
+
+    const resolved: LlmResolvedSpend = await resolve();
+
+    expect(resolved.source).toBe("metrics");
+    expect(resolved.spendInUSD).toBeCloseTo(3.75, 10);
+  });
+
+  /*
+   * Points that name no service are the project's Unknown Service (its id
+   * is the project's), one service like any other.
+   */
+  test("metrics that name no service count as the Unknown Service", async () => {
+    const budget: LlmCostBudget = makeBudget();
+    mockSpanTotals([{ service: APP, costUsd: 42 }]);
+    mockMetricTotals([{ service: budget.projectId!.toString(), value: 5 }]);
+
+    await expect(resolve(budget)).resolves.toEqual({
+      spendInUSD: 47,
+      source: "both",
+    });
+  });
+
+  test("reports source 'none' when both reads are empty", async () => {
+    await expect(resolve()).resolves.toEqual({ spendInUSD: 0, source: "none" });
+  });
+
+  test("calls with no cost and no cost metric are 'none', not 'spans'", async () => {
+    mockSpanTotals([{ service: APP, costUsd: 0, inputTokens: 1200 }]);
+
+    await expect(resolve()).resolves.toEqual({ spendInUSD: 0, source: "none" });
+  });
+
+  test("a zero metric total still resolves to 'none', not 'metrics'", async () => {
+    mockMetricTotals([{ service: CLAUDE_CODE, value: 0 }]);
+
+    await expect(resolve()).resolves.toEqual({ spendInUSD: 0, source: "none" });
+  });
+
+  /*
+   * Returning 0 on a failed read would silently suppress a real breach.
+   * evaluateAllBudgets isolates the failure to the one budget.
+   */
+  test("propagates a metric-read failure rather than reporting zero spend", async () => {
+    mockSpanTotals([{ service: APP, costUsd: 42 }]);
     mockedMetricService.executeQuery.mockRejectedValue(
       new Error("clickhouse timeout") as never,
     );
 
-    await expect(
-      LlmCostBudgetEvaluator.resolveSpend({
-        budget: makeBudget(),
-        dayStart: DAY_START,
-        now: NOW,
-      }),
-    ).rejects.toThrow("clickhouse timeout");
+    await expect(resolve()).rejects.toThrow("clickhouse timeout");
   });
 
-  test("propagates a span-query failure without reaching the fallback", async () => {
-    mockedSpanService.aggregateBy.mockRejectedValue(
+  test("propagates a call-read failure rather than counting the metrics alone", async () => {
+    mockMetricTotals([{ service: CLAUDE_CODE, value: 17.5 }]);
+    mockedSpanService.executeQuery.mockRejectedValue(
       new Error("span boom") as never,
     );
 
-    await expect(
-      LlmCostBudgetEvaluator.resolveSpend({
-        budget: makeBudget(),
-        dayStart: DAY_START,
-        now: NOW,
-      }),
-    ).rejects.toThrow("span boom");
-
-    expect(mockedMetricService.executeQuery).not.toHaveBeenCalled();
+    await expect(resolve()).rejects.toThrow("span boom");
   });
 
-  test("sums multiple metric buckets", async () => {
-    mockUsdMetricRows([
-      { timestamp: NOW, value: 1.5 },
-      { timestamp: NOW, value: 2.5 },
-    ]);
-
-    await expect(
-      LlmCostBudgetEvaluator.resolveSpend({
-        budget: makeBudget(),
-        dayStart: DAY_START,
-        now: NOW,
-      }),
-    ).resolves.toEqual({ spendInUSD: 4, source: "metrics" });
-  });
-
-  test("passes the budget's scope through to the metric query", async () => {
+  test("passes the budget's scope through to both reads", async () => {
     const serviceId: ObjectID = ObjectID.generate();
-    mockMetricSpend(3);
+    mockSpanTotals([{ service: serviceId.toString(), costUsd: 3 }]);
 
-    await LlmCostBudgetEvaluator.resolveSpend({
-      budget: makeBudget({ serviceId: serviceId, llmSystem: "openai" }),
-      dayStart: DAY_START,
-      now: NOW,
-    });
-
-    const statement: Statement = mockedMetricService.executeQuery.mock
-      .calls[0]![0] as Statement;
-    const values: Array<unknown> = Object.values(statement.query_params);
-
-    expect(statement.query).toContain("AND primaryEntityId = ");
-    expect(values).toContain(serviceId.toString());
-    // The provider under every spelling it is sent as, on either key.
-    expect(statement.query).toContain("attributes['gen_ai.system'] IN (");
-    expect(statement.query).toContain(
-      "attributes['gen_ai.provider.name'] IN (",
+    await resolve(
+      makeBudget({
+        serviceId: serviceId,
+        llmSystem: "openai",
+        llmModel: "gpt-4o",
+      }),
     );
-    expect(values).toContainEqual(["openai", "OpenAI"]);
+
+    const calls: Statement = spanStatement();
+
+    expect(calls.query).toContain("AND primaryEntityId = ");
+    expect(values(calls)).toContain(serviceId.toString());
+    // The provider under every spelling it is stored as.
+    expect(calls.query).toContain("AND llmSystem IN (");
+    expect(values(calls)).toContainEqual(["openai", "OpenAI"]);
+    expect(calls.query).toContain("AND llmRequestModel = ");
+    expect(values(calls)).toContain("gpt-4o");
+
+    const metrics: Statement = metricStatement();
+
+    expect(metrics.query).toContain("AND primaryEntityId = ");
+    expect(values(metrics)).toContain(serviceId.toString());
+    // The provider under every spelling it is sent as, on either key.
+    expect(metrics.query).toContain("attributes['gen_ai.system'] IN (");
+    expect(metrics.query).toContain("attributes['gen_ai.provider.name'] IN (");
+    expect(values(metrics)).toContainEqual(["openai", "OpenAI"]);
+    expect(values(metrics)).toContain("gpt-4o");
+  });
+
+  test("an unscoped budget reads every service", async () => {
+    mockSpanTotals([{ service: APP, costUsd: 3 }]);
+
+    await resolve();
+
+    for (const statement of [spanStatement(), metricStatement()]) {
+      expect(statement.query).not.toContain("AND primaryEntityId = ");
+      expect(statement.query).not.toContain("AND primaryEntityId IN (");
+      expect(statement.query).not.toContain("AND primaryEntityId NOT IN (");
+    }
   });
 });
 
 describe("LlmCostBudgetEvaluator.evaluateBudget — metric-sourced spend", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockedSpanService.aggregateBy.mockResolvedValue({ data: [] } as never);
-    mockedMetricService.executeQuery.mockResolvedValue(
-      readerAnswer([]) as never,
-    );
-    mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
-    mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
-    mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
-      undefined as never,
-    );
+    resetReads();
   });
 
   test("a metrics-only project gets its spend stamped on the budget row", async () => {
-    mockUsdMetricRows([{ timestamp: NOW, value: 60 }]);
+    mockMetricTotals([{ service: CLAUDE_CODE, value: 60 }]);
 
     const budget: LlmCostBudget = makeBudget({ dailyBudgetInUSD: 100 });
 
@@ -846,7 +844,7 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — metric-sourced spend", () =>
   });
 
   test("a metrics-only project publishes the same budget series as a span-backed one", async () => {
-    mockUsdMetricRows([{ timestamp: NOW, value: 80 }]);
+    mockMetricTotals([{ service: CLAUDE_CODE, value: 80 }]);
 
     await LlmCostBudgetEvaluator.evaluateBudget({
       budget: makeBudget({ dailyBudgetInUSD: 100 }),
@@ -869,7 +867,8 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — metric-sourced spend", () =>
    * have to learn about the source.
    */
   test("the published series carries no source-specific attribute", async () => {
-    mockUsdMetricRows([{ timestamp: NOW, value: 5 }]);
+    mockSpanTotals([{ service: APP, costUsd: 2 }]);
+    mockMetricTotals([{ service: CLAUDE_CODE, value: 5 }]);
 
     const budget: LlmCostBudget = makeBudget();
 
@@ -877,6 +876,8 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — metric-sourced spend", () =>
 
     const rows: Array<Record<string, unknown>> = mockedMetricService
       .insertJsonRows.mock.calls[0]![0] as Array<Record<string, unknown>>;
+
+    expect(rows[0]!["value"]).toBe(7);
 
     const attributes: Record<string, string> = rows[0]!["attributes"] as Record<
       string,
