@@ -6,6 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
 import Service from "Common/Models/DatabaseModels/Service";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -141,7 +142,10 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
  *      of whose metrics arrives also gets one read of what its namespace
  *      sent instead (fetchMessageQueueNamespaceSeries) — the only read the
  *      page makes without the queue's key, since its point is to find the
- *      metrics that did not reach the queue.
+ *      metrics that did not reach the queue. The arrivals also say which
+ *      cloud connections read the queue (an Azure connection reads Service
+ *      Bus and Event Hubs per queue), whose names the card links to Cloud >
+ *      Connect.
  *
  * Every query goes through Components/MessageQueue/MessageQueueTelemetryQueries,
  * scoped by the queue's entity key — built from its queueIdentifier (the
@@ -166,6 +170,10 @@ const MessageQueueOverview: FunctionComponent<
     EMPTY_MESSAGE_QUEUE_SERVICES,
   );
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
+  // The names of the cloud connections that read the queue, by id.
+  const [connectionNames, setConnectionNames] = useState<
+    Record<string, string>
+  >({});
   const [brokerMetrics, setBrokerMetrics] = useState<
     Array<MessageQueueBrokerMetricResult>
   >([]);
@@ -446,6 +454,50 @@ const MessageQueueOverview: FunctionComponent<
             };
 
           /*
+           * The names of the cloud connections that read the queue, for the
+           * Broker metrics card's source line. A name it cannot read (a
+           * connection since deleted, no access) leaves the line naming
+           * Cloud > Connect instead.
+           */
+          const readConnectionNames: () => Promise<void> =
+            async (): Promise<void> => {
+              const ids: Array<string> = arrivals?.sources.connectionIds || [];
+              if (ids.length === 0) {
+                return;
+              }
+              try {
+                const result: ListResult<CloudConnection> =
+                  await ModelAPI.getList<CloudConnection>({
+                    modelType: CloudConnection,
+                    query: {
+                      _id: new Includes(
+                        ids.map((id: string): ObjectID => {
+                          return new ObjectID(id);
+                        }),
+                      ),
+                    },
+                    select: { _id: true, name: true },
+                    sort: {},
+                    skip: 0,
+                    limit: ids.length,
+                  });
+                if (ignore) {
+                  return;
+                }
+                const names: Record<string, string> = {};
+                for (const connection of result.data || []) {
+                  const id: string = connection._id?.toString() || "";
+                  if (id && connection.name) {
+                    names[id] = connection.name;
+                  }
+                }
+                setConnectionNames(names);
+              } catch {
+                // Names are decoration; the line names Cloud > Connect.
+              }
+            };
+
+          /*
            * Nothing of the queue's arrives, and not because of the range: an
            * Azure queue asks what its namespace sent instead (other queues
            * only, its totals only, or nothing), which the Broker metrics
@@ -498,7 +550,11 @@ const MessageQueueOverview: FunctionComponent<
               setBrokerHealthAnswered(true);
             };
 
-          await Promise.all([readServiceNames(), readNamespace()]);
+          await Promise.all([
+            readServiceNames(),
+            readConnectionNames(),
+            readNamespace(),
+          ]);
         },
       )
       .catch(() => {
@@ -962,6 +1018,7 @@ const MessageQueueOverview: FunctionComponent<
           windowEnd={chartWindow?.end ?? null}
           arrivals={brokerArrivals}
           namespaceFinding={namespaceFinding}
+          connectionNames={connectionNames}
         />
       </div>
     </TimeRangeZoomScope>

@@ -2,6 +2,7 @@ import { BUTTON_DISABLED_CLASS_NAME } from "Common/UI/Components/Button/ButtonSt
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { getConnectRouteFor } from "../Cloud/Connect/CloudConnectCallout";
 import ChartCard from "../TelemetryResource/ChartCard";
 import { MESSAGE_QUEUE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/MessageQueueMetricDescriptions";
 import {
@@ -46,6 +47,7 @@ import {
   isDatabaseMetricWholeNumberUnit,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import Route from "Common/Types/API/Route";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import { MessageQueueIdentity } from "Common/Types/MessageQueue/MessageQueueIdentity";
@@ -119,6 +121,11 @@ export interface ComponentProps {
    * metrics arrives (getMessageQueueNamespaceFinding); null otherwise.
    */
   namespaceFinding?: MessageQueueNamespaceFinding | null | undefined;
+  /*
+   * The names of the cloud connections that read the queue's metrics, by
+   * id (the arrivals' sources), for the Broker metrics card's source line.
+   */
+  connectionNames?: Readonly<Record<string, string>> | undefined;
   // The moment the card's relative times count from; the present by default.
   now?: Date | undefined;
 }
@@ -138,6 +145,14 @@ export const BROKER_HEALTH_CREATE_MONITOR_LABEL: string =
  */
 export const BROKER_HEALTH_SETUP_LINK_LABEL: string = translationKey(
   "Set up broker metrics for this queue →",
+);
+
+/*
+ * Cloud > Connect, opened on the Azure form: a connected subscription reads
+ * a Service Bus or Event Hubs namespace's key metrics per queue.
+ */
+export const BROKER_HEALTH_CONNECT_AZURE_LINK_LABEL: string = translationKey(
+  "Connect an Azure subscription →",
 );
 
 /*
@@ -295,6 +310,17 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
         >
           {guidance.docsLabel}
         </Link>
+        {guidance.connectsCloudAccount ? (
+          <AppLink
+            to={getConnectRouteFor(CloudProvider.Azure)}
+            className="text-sm font-medium text-indigo-600 hover:underline"
+          >
+            {translator.translateText(BROKER_HEALTH_CONNECT_AZURE_LINK_LABEL) ||
+              ""}
+          </AppLink>
+        ) : (
+          <></>
+        )}
         {guidance.reachesQueue ? (
           <AppLink
             to={documentationRoute}
@@ -332,6 +358,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
         status={metricsStatus}
         namespaceFinding={props.namespaceFinding ?? null}
         setupGuidance={guidanceBox}
+        connectionNames={props.connectionNames}
         now={props.now || OneUptimeDate.getCurrentDate()}
       />
     ) : null;

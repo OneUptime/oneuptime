@@ -10,6 +10,11 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  *     week — with the minute winning, and no answer at all (null) when a
  *     read fails or comes back cut off, so the card never says a metric
  *     never arrived on half an answer;
+ *   - what READ them lately: the week's count is grouped by the cloud
+ *     connection's id too, so each connection (an Azure connection reads a
+ *     Service Bus namespace per queue) and a collector (no id) is a source
+ *     while it delivered within MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS of
+ *     the newest arrival — one that stopped longer before was replaced;
  *   - the cache that keeps those arrivals across the Overview's refreshes
  *     (a week-long pair of reads per auto-refresh tick otherwise), which
  *     never keeps a failure;
@@ -35,13 +40,16 @@ import {
   MESSAGE_QUEUE_BROKER_METRIC_ARRIVALS_TTL_MS,
   MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS,
   MESSAGE_QUEUE_BROKER_METRIC_RECENT_HOURS,
+  MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS,
   MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY,
   MessageQueueBrokerMetricArrivals,
   MessageQueueBrokerMetricArrivalsCache,
+  MessageQueueBrokerMetricSources,
   MessageQueueNamespaceSeries,
   fetchMessageQueueBrokerMetricArrivals,
   fetchMessageQueueBrokerMetricArrivalsCached,
   fetchMessageQueueNamespaceSeries,
+  getMessageQueueBrokerMetricSources,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
@@ -188,13 +196,21 @@ describe("when a queue's broker metrics last arrived", () => {
     // The lookback's start is what a metric absent from the answer missed.
     expect(arrivals?.since.getTime()).toBe(NOW.getTime() - 7 * DAY_MS);
 
+    // Only the week's read is grouped by what delivered each count.
+    expect(recent.aggregateBy.groupByAttributeKeys).toBeUndefined();
+    expect(week.aggregateBy.groupByAttributeKeys).toEqual([
+      MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY,
+    ]);
+    expect(MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY).toBe(
+      `resource.${CLOUD_CONNECTION_ID_ATTRIBUTE}`,
+    );
+
     for (const read of [recent, week]) {
       const by: AggregateRequest["aggregateBy"] = read.aggregateBy;
       expect(by.endTimestamp.getTime()).toBe(NOW.getTime());
       // A count of datapoints: no value is ever read.
       expect(by.aggregationType).toBe(AggregationType.Count);
       expect(by.groupBy).toEqual({ name: true });
-      expect(by.groupByAttributeKeys).toBeUndefined();
 
       const query: Record<string, unknown> = by.query;
       expect(Object.keys(query).sort()).toEqual(
@@ -308,6 +324,184 @@ describe("when a queue's broker metrics last arrived", () => {
   });
 });
 
+// A week's row of a metric's count, from a cloud connection or (no id) a collector.
+function sourceRow(
+  at: string,
+  connectionId?: unknown,
+  value: number = 1,
+  name: string = "azure_activemessages_average",
+): AggregatedModel {
+  return {
+    name: name,
+    timestamp: new Date(at),
+    value: value,
+    attributes:
+      connectionId === undefined
+        ? {}
+        : { [MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY]: connectionId },
+  } as unknown as AggregatedModel;
+}
+
+async function sourcesOf(
+  week: Array<AggregatedModel>,
+  recent: Array<AggregatedModel> = [],
+): Promise<MessageQueueBrokerMetricSources | undefined> {
+  answers[AggregationInterval.Hour] = { data: week };
+  answers[AggregationInterval.Minute] = { data: recent };
+  const arrivals: MessageQueueBrokerMetricArrivals | null =
+    await fetchMessageQueueBrokerMetricArrivals({
+      projectId: PROJECT_ID,
+      keys: KEYS,
+      metrics: SERVICE_BUS,
+      now: NOW,
+    });
+  return arrivals?.sources;
+}
+
+describe("what read a queue's broker metrics lately", () => {
+  test("each cloud connection by its id, once, sorted; a collector by no id", async () => {
+    expect(
+      await sourcesOf([
+        sourceRow("2026-03-04T12:00:00.000Z", "conn-b"),
+        sourceRow("2026-03-04T11:00:00.000Z", "conn-a"),
+        sourceRow(
+          "2026-03-04T12:00:00.000Z",
+          "conn-a",
+          3,
+          "azure_incomingmessages_total",
+        ),
+        sourceRow("2026-03-04T12:00:00.000Z"),
+      ]),
+    ).toEqual({ connectionIds: ["conn-a", "conn-b"], fromCollector: true });
+  });
+
+  test("only a cloud connection: no collector", async () => {
+    expect(
+      await sourcesOf([
+        sourceRow("2026-03-04T12:00:00.000Z", "conn-a"),
+        sourceRow("2026-03-03T12:00:00.000Z", "conn-a"),
+      ]),
+    ).toEqual({ connectionIds: ["conn-a"], fromCollector: false });
+  });
+
+  test("a source that stopped well before the newest arrival was replaced, either way round", async () => {
+    expect(MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS).toBe(2);
+
+    // The collector read the queue until three days ago; the connection since.
+    expect(
+      await sourcesOf([
+        sourceRow("2026-03-01T12:00:00.000Z"),
+        sourceRow("2026-03-04T12:00:00.000Z", "conn-a"),
+      ]),
+    ).toEqual({ connectionIds: ["conn-a"], fromCollector: false });
+
+    // The connection read it until yesterday; a collector since.
+    expect(
+      await sourcesOf([
+        sourceRow("2026-03-03T12:00:00.000Z", "conn-a"),
+        sourceRow("2026-03-04T12:00:00.000Z"),
+      ]),
+    ).toEqual({ connectionIds: [], fromCollector: true });
+  });
+
+  test("the edge: two hours before the newest arrival still counts, three do not", async () => {
+    expect(
+      await sourcesOf([
+        sourceRow("2026-03-04T12:00:00.000Z", "conn-a"),
+        sourceRow("2026-03-04T10:00:00.000Z"),
+        sourceRow("2026-03-04T09:00:00.000Z", "conn-b"),
+      ]),
+    ).toEqual({ connectionIds: ["conn-a"], fromCollector: true });
+  });
+
+  test("a stopped queue's sources are what read it last, however long ago", async () => {
+    expect(
+      await sourcesOf([
+        sourceRow("2026-02-27T08:00:00.000Z", "conn-a"),
+        sourceRow("2026-02-27T07:00:00.000Z", "conn-a"),
+        sourceRow("2026-02-26T08:00:00.000Z"),
+      ]),
+    ).toEqual({ connectionIds: ["conn-a"], fromCollector: false });
+  });
+
+  test("an empty interval is no source; a blank or unreadable id is a collector's", async () => {
+    // A count of nothing from a connection says nothing about it.
+    expect(
+      await sourcesOf([
+        sourceRow("2026-03-04T12:00:00.000Z", "conn-a", 0),
+        sourceRow("2026-03-04T12:00:00.000Z"),
+      ]),
+    ).toEqual({ connectionIds: [], fromCollector: true });
+
+    for (const id of ["", "   ", 42, null]) {
+      expect(
+        await sourcesOf([sourceRow("2026-03-04T12:00:00.000Z", id)]),
+      ).toEqual({ connectionIds: [], fromCollector: true });
+    }
+
+    // An id is trimmed, so one connection is one source.
+    expect(
+      await sourcesOf([
+        sourceRow("2026-03-04T12:00:00.000Z", " conn-a "),
+        sourceRow("2026-03-04T11:00:00.000Z", "conn-a"),
+      ]),
+    ).toEqual({ connectionIds: ["conn-a"], fromCollector: false });
+  });
+
+  test("nothing in the week: no source at all", async () => {
+    expect(await sourcesOf([])).toEqual({
+      connectionIds: [],
+      fromCollector: false,
+    });
+    expect(getMessageQueueBrokerMetricSources(null)).toEqual({
+      connectionIds: [],
+      fromCollector: false,
+    });
+    expect(getMessageQueueBrokerMetricSources(undefined)).toEqual({
+      connectionIds: [],
+      fromCollector: false,
+    });
+  });
+
+  test("the minute read, which is not grouped by source, never makes a collector of a connection", async () => {
+    expect(
+      await sourcesOf(
+        [sourceRow("2026-03-04T12:00:00.000Z", "conn-a")],
+        [row("azure_activemessages_average", "2026-03-04T12:29:00.000Z")],
+      ),
+    ).toEqual({ connectionIds: ["conn-a"], fromCollector: false });
+  });
+
+  test("the cache keeps the sources with the arrivals", async () => {
+    answers[AggregationInterval.Hour] = {
+      data: [sourceRow("2026-03-04T12:00:00.000Z", "conn-a")],
+    };
+    const cache: MessageQueueBrokerMetricArrivalsCache =
+      new MessageQueueBrokerMetricArrivalsCache();
+    const first: MessageQueueBrokerMetricArrivals | null =
+      await fetchMessageQueueBrokerMetricArrivalsCached({
+        projectId: PROJECT_ID,
+        keys: KEYS,
+        metrics: SERVICE_BUS,
+        cache: cache,
+        now: NOW,
+      });
+    const second: MessageQueueBrokerMetricArrivals | null =
+      await fetchMessageQueueBrokerMetricArrivalsCached({
+        projectId: PROJECT_ID,
+        keys: KEYS,
+        metrics: SERVICE_BUS,
+        cache: cache,
+        now: NOW,
+      });
+    expect(second).toBe(first);
+    expect(second?.sources).toEqual({
+      connectionIds: ["conn-a"],
+      fromCollector: false,
+    });
+  });
+});
+
 describe("the arrivals cache across the Overview's refreshes", () => {
   test("an entry is kept per project, key set and metric set", () => {
     const base: string = MessageQueueBrokerMetricArrivalsCache.keyOf({
@@ -341,6 +535,7 @@ describe("the arrivals cache across the Overview's refreshes", () => {
     const arrivals: MessageQueueBrokerMetricArrivals = {
       since: new Date(NOW.getTime() - 7 * DAY_MS),
       lastArrivedAt: new Map(),
+      sources: { connectionIds: [], fromCollector: false },
     };
     cache.set("a", arrivals, 5000);
     expect(cache.get("a", 5000)).toBe(arrivals);

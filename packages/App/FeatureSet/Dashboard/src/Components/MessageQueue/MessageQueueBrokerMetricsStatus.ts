@@ -2,6 +2,7 @@ import {
   MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS,
   MessageQueueBrokerMetricArrivals,
   MessageQueueBrokerMetricResult,
+  MessageQueueBrokerMetricSources,
   MessageQueueNamespaceSeries,
   MessageQueueTimePoint,
 } from "./MessageQueueTelemetryQueries";
@@ -15,6 +16,11 @@ import {
   MessageQueueSignal,
   getMessageQueueMetricId,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import {
+  CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE,
+  doesCloudConnectionReadQueueMetric,
+  isCloudConnectionPerQueueSystem,
+} from "Common/Types/MessageQueue/MessageQueueCloudConnectionMetrics";
 import {
   MessagingBrokerMetricsSource,
   getMessagingBrokerMetricsSource,
@@ -49,10 +55,20 @@ import {
  *     every metric it reads), or its receiver leaves it off by default; or
  *     a send's latency that never arrived while the queue's published count
  *     shows sends in the range, each of which it is reported with;
+ *   - collector only: a metric a cloud connection does not read, of a
+ *     queue only a cloud connection reads (an Azure connection reads a
+ *     Service Bus or Event Hubs namespace's key metrics per queue, not the
+ *     rest of the catalog): the collector's receiver can add it. Not a
+ *     problem either;
  *   - stopped: such a level that arrived in the lookback and no longer
  *     does, while the others still arrive;
  *   - not received / not in this range: nothing of the queue's arrived in
  *     the range, which the card says once, for all of them.
+ *
+ * What read the queue's metrics lately (the lookback's sources: each cloud
+ * connection, and a collector) decides whose fix the card gives: a cloud
+ * connection's last read on Cloud > Connect, or the collector's
+ * configuration.
  *
  * Without the lookback (its read failed) nothing is claimed about a metric
  * outside the range: a level missing from it reads "Not in this range".
@@ -72,6 +88,7 @@ export type MessageQueueBrokerMetricState =
   | "arriving"
   | "nothingToReport"
   | "notCollected"
+  | "collectorOnly"
   | "stopped"
   | "notReceived"
   | "notInRange";
@@ -91,6 +108,16 @@ export type MessageQueueBrokerMetricReason =
    * queue's published count shows sends in the range without it.
    */
   | "reportedWithSends"
+  /*
+   * notCollected: a cloud connection alone reads the queue, it reads this
+   * level too, and none arrived while the others do: its reads of it fail.
+   */
+  | "missedByConnection"
+  /*
+   * collectorOnly: a cloud connection alone reads the queue, and it does not
+   * read this metric; the collector's receiver can.
+   */
+  | "notReadByConnection"
   // stopped: it arrived in the lookback, and the others still arrive.
   | "stoppedWhileOthersArrive";
 
@@ -138,6 +165,23 @@ export interface MessageQueueBrokerMetricsStatus {
   lastReceivedAt: Date | null;
   // Whether the lookback was read; without it the card claims nothing more.
   knowsLookback: boolean;
+  /*
+   * What read the queue's metrics lately (the lookback's sources); null when
+   * the lookback was not read or holds nothing.
+   */
+  sources: MessageQueueBrokerMetricSources | null;
+}
+
+/**
+ * Whether a cloud connection reads the queue's metrics and no collector
+ * does: the connection's own read is then what to look at.
+ */
+export function isReadByCloudConnectionOnly(
+  sources: MessageQueueBrokerMetricSources | null | undefined,
+): boolean {
+  return Boolean(
+    sources && sources.connectionIds.length > 0 && !sources.fromCollector,
+  );
 }
 
 /*
@@ -245,6 +289,13 @@ export function getMessageQueueBrokerMetricsStatus(data: {
     data.window.end.getTime() -
     MESSAGE_QUEUE_BROKER_METRIC_LATE_MINUTES * 60 * 1000;
   const knowsLookback: boolean = data.arrivals !== null;
+  const sources: MessageQueueBrokerMetricSources | null =
+    data.arrivals &&
+    (data.arrivals.sources.connectionIds.length > 0 ||
+      data.arrivals.sources.fromCollector)
+      ? data.arrivals.sources
+      : null;
+  const connectionOnly: boolean = isReadByCloudConnectionOnly(sources);
 
   // First pass: what arrived in the range, and when each last arrived.
   const reads: Array<{
@@ -296,6 +347,17 @@ export function getMessageQueueBrokerMetricsStatus(data: {
       const descriptor: MessageQueueMetricDescriptor = read.descriptor;
       const everyPeriod: boolean =
         isMessageQueueMetricReportedEveryPeriod(descriptor);
+      /*
+       * Whether the cloud connection that alone reads the queue reads this
+       * metric: null when a collector reads the queue too, or its system is
+       * not one a connection reads per queue.
+       */
+      const readByConnection: boolean | null = connectionOnly
+        ? doesCloudConnectionReadQueueMetric({
+            system: system,
+            metricName: descriptor.metricName,
+          })
+        : null;
       let state: MessageQueueBrokerMetricState;
       let reason: MessageQueueBrokerMetricReason | null = null;
 
@@ -306,6 +368,10 @@ export function getMessageQueueBrokerMetricsStatus(data: {
         state = "notReceived";
       } else if (!knowsLookback) {
         state = "notInRange";
+      } else if (readByConnection === false) {
+        // Only a collector's receiver reads it, and none reads this queue.
+        state = "collectorOnly";
+        reason = "notReadByConnection";
       } else if (read.lastArrivedAt !== null) {
         if (read.lastArrivedAt >= lateFrom) {
           // Late, or after a range that ends in the past.
@@ -326,9 +392,11 @@ export function getMessageQueueBrokerMetricsStatus(data: {
          * collector does not ask for it.
          */
         state = "notCollected";
-        reason = descriptor.enabledByDefault
-          ? "reportedWithSends"
-          : "offByDefault";
+        reason = readByConnection
+          ? "missedByConnection"
+          : descriptor.enabledByDefault
+            ? "reportedWithSends"
+            : "offByDefault";
       } else if (!everyPeriod) {
         /*
          * A count that never arrived had no activity, or is not collected:
@@ -336,6 +404,10 @@ export function getMessageQueueBrokerMetricsStatus(data: {
          */
         state = "nothingToReport";
         reason = "onlyWithActivity";
+      } else if (readByConnection) {
+        // The connection reads it with the others, and none of it arrives.
+        state = "notCollected";
+        reason = "missedByConnection";
       } else if (!descriptor.enabledByDefault) {
         state = "notCollected";
         reason = "offByDefault";
@@ -395,6 +467,7 @@ export function getMessageQueueBrokerMetricsStatus(data: {
     missing: missing,
     lastReceivedAt: newest === null ? null : new Date(newest),
     knowsLookback: knowsLookback,
+    sources: sources,
   };
 }
 
@@ -426,9 +499,16 @@ export type MessageQueueNamespaceFinding =
   /*
    * Other queues and topics of the namespace arrived, not this one: the
    * receiver's cap on series per metric and namespace
-   * (maximum_number_of_records_per_resource, 10 by default) left it out.
+   * (maximum_number_of_records_per_resource, 10 by default) left it out -
+   * or, when a cloud connection sent all of them, its cap
+   * (CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE), or the queue is gone.
    */
-  | { kind: "otherEntitiesOnly"; namespace: string; entityCount: number };
+  | {
+      kind: "otherEntitiesOnly";
+      namespace: string;
+      entityCount: number;
+      fromCloudConnection: boolean;
+    };
 
 /**
  * Whether to ask what the queue's namespace sent instead
@@ -489,6 +569,7 @@ export function getMessageQueueNamespaceFinding(data: {
   }
 
   const otherEntities: Set<string> = new Set<string>();
+  let othersFromCollector: boolean = false;
   let hasTotals: boolean = false;
   let totalsFromCloudConnection: boolean = false;
   for (const series of ofNamespace) {
@@ -504,6 +585,7 @@ export function getMessageQueueNamespaceFinding(data: {
       return null;
     }
     otherEntities.add(entity);
+    othersFromCollector = othersFromCollector || !series.fromCloudConnection;
   }
 
   if (otherEntities.size > 0) {
@@ -511,6 +593,7 @@ export function getMessageQueueNamespaceFinding(data: {
       kind: "otherEntitiesOnly",
       namespace: namespace,
       entityCount: otherEntities.size,
+      fromCloudConnection: !othersFromCollector,
     };
   }
   if (hasTotals) {
@@ -539,6 +622,8 @@ export function getMessageQueueBrokerMetricStateLabel(
       );
     case "notCollected":
       return translator.translateText("Not collected") || "Not collected";
+    case "collectorOnly":
+      return translator.translateText("Collector only") || "Collector only";
     case "stopped":
       return translator.translateText("Stopped") || "Stopped";
     case "notReceived":
@@ -633,6 +718,20 @@ export function getMessageQueueBrokerMetricStatusLine(
         "The `{{receiver}}` receiver leaves it off unless its configuration turns it on.",
         { receiver: metric.descriptor.receiver },
       );
+    case "missedByConnection":
+      return translator.translateTemplate(
+        "Your cloud connection reads it, and none arrived while this queue's other metrics do: its last read on Cloud > Connect says why.",
+      );
+    case "notReadByConnection":
+      return metric.configLine
+        ? translator.translateTemplate(
+            "Your cloud connection does not read it. The collector's `{{receiver}}` receiver can: add `{{line}}` to its metrics list.",
+            { receiver: metric.descriptor.receiver, line: metric.configLine },
+          )
+        : translator.translateTemplate(
+            "Your cloud connection does not read it. The collector's `{{receiver}}` receiver can.",
+            { receiver: metric.descriptor.receiver },
+          );
     case "stoppedWhileOthersArrive":
       return metric.lastArrivedAt
         ? translator.translateTemplate(
@@ -699,6 +798,72 @@ export function getMessageQueueBrokerMetricsLastReceived(
 }
 
 /*
+ * The slot of the source line (getMessageQueueBrokerMetricsSourceLine) that
+ * the card draws as a link to Cloud > Connect, with the connections' names.
+ */
+export const MESSAGE_QUEUE_BROKER_METRICS_CONNECTIONS_SLOT: string =
+  "connections";
+
+/*
+ * The card's line saying what reads the queue's metrics: an English
+ * template for the reader's translator, whose {{connections}} slot (when
+ * `namesConnections`) the card fills itself, as a link.
+ */
+export interface MessageQueueBrokerMetricsSourceLine {
+  template: string;
+  values: Record<string, string>;
+  namesConnections: boolean;
+}
+
+/**
+ * What reads the queue's metrics, as the card says it under its summary:
+ * the cloud connection, the collector's receiver, or both. Null when the
+ * lookback says nothing, and for a collector alone on a system no cloud
+ * connection reads per queue - where it could be nothing else.
+ */
+export function getMessageQueueBrokerMetricsSourceLine(
+  status: Pick<MessageQueueBrokerMetricsStatus, "sources">,
+  messagingSystem: string | null | undefined,
+): MessageQueueBrokerMetricsSourceLine | null {
+  const sources: MessageQueueBrokerMetricSources | null = status.sources;
+  if (!sources) {
+    return null;
+  }
+  const reader: BrokerMetricsReader = getBrokerMetricsReader(messagingSystem);
+  const receiver: string | null =
+    reader.kind === "receiver" ? reader.name : null;
+  const fromConnection: boolean = sources.connectionIds.length > 0;
+
+  if (fromConnection && !sources.fromCollector) {
+    return {
+      template: "Read by your cloud connection ({{connections}}).",
+      values: {},
+      namesConnections: true,
+    };
+  }
+  if (fromConnection && receiver) {
+    return {
+      template:
+        "Read by your collector's `{{receiver}}` receiver and your cloud connection ({{connections}}): where both read a metric, the receiver's is kept.",
+      values: { receiver: receiver },
+      namesConnections: true,
+    };
+  }
+  if (
+    !fromConnection &&
+    receiver &&
+    isCloudConnectionPerQueueSystem(messagingSystem)
+  ) {
+    return {
+      template: "Read by your collector's `{{receiver}}` receiver.",
+      values: { receiver: receiver },
+      namesConnections: false,
+    };
+  }
+  return null;
+}
+
+/*
  * One thing the card asks the reader to look at: a headline, what it means,
  * the steps that fix it, and the lines to add to the collector's
  * configuration, if any. Inline code is set off in backticks.
@@ -750,7 +915,8 @@ function getBrokerMetricsReader(
  * Monitor, the lines its receiver's `metrics` list needs.
  */
 export function getMessageQueueMissingMetricsFinding(
-  status: Pick<MessageQueueBrokerMetricsStatus, "missing">,
+  status: Pick<MessageQueueBrokerMetricsStatus, "missing"> &
+    Partial<Pick<MessageQueueBrokerMetricsStatus, "sources">>,
   messagingSystem: string | null | undefined,
   translator: Translator = getGlobalTranslator(),
 ): MessageQueueBrokerMetricsFinding | null {
@@ -758,6 +924,11 @@ export function getMessageQueueMissingMetricsFinding(
     return null;
   }
   const system: string = getMessageQueueSystemLabel(messagingSystem);
+  /*
+   * A cloud connection alone reads the queue: its own read says why these
+   * did not arrive, and no collector configuration would help.
+   */
+  const connectionOnly: boolean = isReadByCloudConnectionOnly(status.sources);
   const configLines: Array<string> = [];
   for (const metric of status.missing) {
     if (metric.configLine && !configLines.includes(metric.configLine)) {
@@ -766,13 +937,20 @@ export function getMessageQueueMissingMetricsFinding(
   }
   const reader: BrokerMetricsReader = getBrokerMetricsReader(messagingSystem);
   const everyMissingIsListed: boolean =
+    !connectionOnly &&
     configLines.length > 0 &&
     status.missing.every((metric: MessageQueueBrokerMetricStatus): boolean => {
       return metric.configLine !== null;
     });
 
   const steps: Array<string> = [];
-  if (everyMissingIsListed && reader.kind === "receiver") {
+  if (connectionOnly) {
+    steps.push(
+      translator.translateTemplate(
+        "Open Cloud > Connect: the connection's last read says which metrics it could not read.",
+      ),
+    );
+  } else if (everyMissingIsListed && reader.kind === "receiver") {
     steps.push(
       translator.translateTemplate(
         "Add the lines below to the `{{receiver}}` receiver's `metrics` list, under the namespace type, and restart the collector.",
@@ -835,7 +1013,8 @@ export function getMessageQueueMissingMetricsFinding(
  * nothing to it), the card shows that one instead.
  */
 export function getMessageQueueStoppedMetricsFinding(
-  status: Pick<MessageQueueBrokerMetricsStatus, "health" | "lastReceivedAt">,
+  status: Pick<MessageQueueBrokerMetricsStatus, "health" | "lastReceivedAt"> &
+    Partial<Pick<MessageQueueBrokerMetricsStatus, "sources">>,
   messagingSystem: string | null | undefined,
   now: Date,
   translator: Translator = getGlobalTranslator(),
@@ -844,21 +1023,43 @@ export function getMessageQueueStoppedMetricsFinding(
     return null;
   }
   const reader: BrokerMetricsReader = getBrokerMetricsReader(messagingSystem);
-  let step: string;
-  if (reader.kind === "receiver") {
-    step = translator.translateTemplate(
-      "Check that the collector running the `{{receiver}}` receiver is up, and look in its log for errors: an expired credential or a removed permission stops every read.",
-      { receiver: reader.name },
+  const sources: MessageQueueBrokerMetricSources | null =
+    status.sources || null;
+  const fromConnection: boolean = Boolean(
+    sources && sources.connectionIds.length > 0,
+  );
+  const steps: Array<string> = [];
+  // A cloud connection read them last: its own read says why they stopped.
+  if (fromConnection) {
+    steps.push(
+      translator.translateTemplate(
+        "Check the connection's last read on Cloud > Connect: it says why its reads fail, such as an expired secret or a removed permission.",
+      ),
     );
-  } else if (reader.kind === "scraper") {
-    step = translator.translateTemplate(
-      "Check that the {{scraper}} that reports this queue's metrics is still running, and look in its log for errors.",
-      { scraper: reader.name },
-    );
-  } else {
-    step = translator.translateTemplate(
-      "Check that what reports this queue's metrics is still running, and look in its log for errors.",
-    );
+  }
+  // A collector read them last, or nothing says what did.
+  if (!fromConnection || sources?.fromCollector) {
+    if (reader.kind === "receiver") {
+      steps.push(
+        translator.translateTemplate(
+          "Check that the collector running the `{{receiver}}` receiver is up, and look in its log for errors: an expired credential or a removed permission stops every read.",
+          { receiver: reader.name },
+        ),
+      );
+    } else if (reader.kind === "scraper") {
+      steps.push(
+        translator.translateTemplate(
+          "Check that the {{scraper}} that reports this queue's metrics is still running, and look in its log for errors.",
+          { scraper: reader.name },
+        ),
+      );
+    } else {
+      steps.push(
+        translator.translateTemplate(
+          "Check that what reports this queue's metrics is still running, and look in its log for errors.",
+        ),
+      );
+    }
   }
   return {
     kind: "stopped",
@@ -869,7 +1070,7 @@ export function getMessageQueueStoppedMetricsFinding(
     description: translator.translateTemplate(
       "This queue's metrics arrived before and none has since: what sends them stopped, or its reads fail.",
     ),
-    steps: [step],
+    steps: steps,
     configLines: [],
   };
 }
@@ -895,13 +1096,13 @@ export function getMessageQueueNamespaceFindingWords(
         ),
         steps: [
           translator.translateTemplate(
-            "Run the collector's `azure_monitor` receiver for the namespace's subscription: this queue's Documentation tab has the configuration.",
+            "Connect the namespace's Azure subscription on Cloud > Connect, which reads the metrics of each of its queues and topics, or run the collector's `azure_monitor` receiver: this queue's Documentation tab has its configuration.",
           ),
           translator.translateTemplate(
-            "Give the receiver's service principal the Monitoring Reader role on the subscription or the namespace.",
+            "Give the connection's app or the receiver's service principal the Monitoring Reader role on the subscription or the namespace.",
           ),
           translator.translateTemplate(
-            "Look in the collector's log for `AuthorizationFailed` or `401`: a missing role or an expired client secret stops every read.",
+            "Look at the connection's last read on Cloud > Connect, or in the collector's log for `AuthorizationFailed` or `401`: a missing role or an expired client secret stops every read.",
           ),
         ],
         configLines: [],
@@ -915,15 +1116,19 @@ export function getMessageQueueNamespaceFindingWords(
         ),
         description: finding.fromCloudConnection
           ? translator.translateTemplate(
-              "Your Azure cloud connection reads this namespace's metrics for the namespace as a whole, not for each queue and topic, so none of them can be shown here.",
+              "Your Azure cloud connection sent only the namespace's totals in the selected range, not its figures for each queue and topic.",
             )
           : translator.translateTemplate(
               "This namespace's metrics arrive for the namespace as a whole, not for each queue and topic, so none of them reach this queue. Metrics exported through diagnostic settings carry no queue or topic.",
             ),
         steps: [
-          translator.translateTemplate(
-            "Read the namespace with the collector's `azure_monitor` receiver too: it splits every metric by queue and topic (the EntityName dimension), and this queue's Documentation tab has the configuration.",
-          ),
+          finding.fromCloudConnection
+            ? translator.translateTemplate(
+                "Check the connection's last read on Cloud > Connect: it says which resources it could not read.",
+              )
+            : translator.translateTemplate(
+                "Connect the namespace's Azure subscription on Cloud > Connect, or read the namespace with the collector's `azure_monitor` receiver: either splits every metric by queue and topic (the EntityName dimension).",
+              ),
         ],
         configLines: [],
       };
@@ -939,13 +1144,31 @@ export function getMessageQueueNamespaceFindingWords(
           finding.entityCount,
           { namespace: finding.namespace },
         ),
-        description: translator.translateTemplate(
-          "The `azure_monitor` receiver asks Azure Monitor for at most `maximum_number_of_records_per_resource` series per metric and namespace, 10 unless it is raised, so the queues and topics past it go unreported.",
-        ),
+        description: finding.fromCloudConnection
+          ? translator.translateTemplate(
+              "Your Azure cloud connection reads up to {{max}} queues and topics of a namespace, and Azure Monitor sent none of this one's metrics in the selected range.",
+              {
+                max: translator.formatNumber(
+                  CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE,
+                ),
+              },
+            )
+          : translator.translateTemplate(
+              "The `azure_monitor` receiver asks Azure Monitor for at most `maximum_number_of_records_per_resource` series per metric and namespace, 10 unless it is raised, so the queues and topics past it go unreported.",
+            ),
         steps: [
-          translator.translateTemplate(
-            "Raise `maximum_number_of_records_per_resource` above the number of queues and topics in the namespace (1000 in the Queues guide's configuration), and restart the collector.",
-          ),
+          finding.fromCloudConnection
+            ? translator.translateTemplate(
+                "If the namespace has more than {{max}} queues and topics, read it with the collector's `azure_monitor` receiver too, with `maximum_number_of_records_per_resource` above that number. Otherwise, check that the queue still exists under this name.",
+                {
+                  max: translator.formatNumber(
+                    CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE,
+                  ),
+                },
+              )
+            : translator.translateTemplate(
+                "Raise `maximum_number_of_records_per_resource` above the number of queues and topics in the namespace (1000 in the Queues guide's configuration), and restart the collector.",
+              ),
         ],
         configLines: [],
       };
