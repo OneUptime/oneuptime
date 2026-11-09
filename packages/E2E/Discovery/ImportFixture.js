@@ -363,6 +363,7 @@ export function createImportApi(control) {
     return {
       id: record.id,
       scanId: record.scanId,
+      ...(record.source ? { source: record.source } : {}),
       status: record.status,
       settings: record.settings,
       ...(record.monitorTemplateName
@@ -415,6 +416,18 @@ export function createImportApi(control) {
           ? "AlreadyAdded"
           : "Created";
         result.deviceId = `${DEVICE_ID_PREFIX}${pad(deviceCounter, 12)}`;
+        /*
+         * A device from the Discovered Devices list is that row's device
+         * from now on: the list reads it back as Monitored (issue #5775).
+         */
+        if (result.endpointId && control.onDiscoveredDeviceAdded) {
+          control.onDiscoveredDeviceAdded({
+            endpointId: result.endpointId,
+            deviceId: result.deviceId,
+            name: result.name,
+            isCreated: result.device === "Created",
+          });
+        }
         const source = record.sourceHosts?.get(result.ipAddress);
         if (result.device === "Created" && source && record.scan) {
           const device = buildNetworkDeviceFromDiscoveredHost({
@@ -490,6 +503,7 @@ export function createImportApi(control) {
     const record = {
       id,
       scanId: data.scanId,
+      ...(data.source ? { source: data.source } : {}),
       status: "Queued",
       settings: data.settings,
       monitorTemplateName: data.monitorTemplateName,
@@ -503,6 +517,7 @@ export function createImportApi(control) {
       results: data.hosts.map((host) => {
         return {
           ipAddress: host.ipAddress,
+          ...(host.endpointId ? { endpointId: host.endpointId } : {}),
           name: host.name,
           isPingOnly: host.isPingOnly,
           device: "Pending",
@@ -558,6 +573,55 @@ export function createImportApi(control) {
         );
         const record = create({
           scanId: body.scanId,
+          settings: body.settings,
+          hosts,
+          monitorTemplateName: template?.templateName,
+        });
+        return { import: view(record, false) };
+      }
+      /*
+       * Rows of the Discovered Devices list (issue #5775), as the server
+       * starts them: no scan, each device under the name the list showed,
+       * only the ones with an address, and none at all refused with the
+       * server's own sentence. Walked only with the profile picked (or the
+       * site's), so the rest are pinged.
+       */
+      if (
+        method === "POST" &&
+        path ===
+          "/network-device-discovery-import/start-from-discovered-devices"
+      ) {
+        control.discoveredImportStarts.push(JSON.parse(JSON.stringify(body)));
+        if (control.refuseStart) {
+          throw new Error(control.refuseStart);
+        }
+        const hosts = (body.endpointIds || [])
+          .map((endpointId) => {
+            return control.discoveredDeviceById(String(endpointId));
+          })
+          .filter((device) => {
+            return Boolean(device && device.ipAddress);
+          })
+          .map((device) => {
+            return {
+              ipAddress: device.ipAddress,
+              endpointId: device.id,
+              name: device.name,
+              isPingOnly: !body.settings.snmpCredentialProfileId,
+            };
+          });
+        if (hosts.length === 0) {
+          throw new Error(
+            "None of the selected devices has an IP address, so OneUptime cannot check them. A device is listed with its address once a router's ARP table or a network controller reports one.",
+          );
+        }
+        const template = control.templates.find(
+          (item) => item._id === body.settings.monitorTemplateId,
+        );
+        const record = create({
+          scanId: "",
+          // As the server names it (DiscoveryImportSource.DiscoveredDevices).
+          source: "discoveredDevices",
           settings: body.settings,
           hosts,
           monitorTemplateName: template?.templateName,
@@ -630,6 +694,8 @@ export function createImportApi(control) {
           }
           const retried = create({
             scanId: record.scanId,
+            // A retry comes from where the import came from, as on the server.
+            ...(record.source ? { source: record.source } : {}),
             settings: record.settings,
             monitorTemplateName: record.monitorTemplateName,
             retryOf: record.id,

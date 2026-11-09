@@ -16,6 +16,7 @@ import {
 import {
   ENDPOINT_LABEL_MAX_CHARS,
   ENDPOINT_LABEL_MAX_LINES,
+  footprintForNode,
   wrapNodeLabel,
 } from "./TopologyFootprint";
 
@@ -131,8 +132,15 @@ export const TIERED_TIER_GAP: number = 170;
 export const TIERED_ROW_GAP: number = 92;
 // Horizontal centre-to-centre spacing for device/unmanaged nodes.
 export const TIERED_NODE_SPACING: number = 112;
-// Endpoints are drawn smaller, so they pack tighter.
+/*
+ * Endpoints are drawn smaller, so they pack tighter: this is the closest
+ * two are ever placed. Labels wider than it - an IP address under a name
+ * (issue #5775) - space every endpoint of the map further apart
+ * (getTieredEndpointSpacing).
+ */
 export const TIERED_ENDPOINT_NODE_SPACING: number = 76;
+// Kept clear between the widest labels of two neighbouring endpoints.
+export const TIERED_ENDPOINT_LABEL_GAP: number = 4;
 // Kept clear at each side of the widest possible row.
 export const TIERED_SIDE_MARGIN: number = 48;
 /*
@@ -273,6 +281,31 @@ interface TieredColumn {
   spanHalf: number;
   centerX: number;
 }
+
+/*
+ * The centre-to-centre distance between neighbouring endpoints: their
+ * widest label line side by side, a gap between, and never closer than
+ * TIERED_ENDPOINT_NODE_SPACING. One spacing for the whole map, so every
+ * switch's block keeps the same rhythm. Under each name is its address
+ * (issue #5775) - fifteen characters for 192.168.100.254 - which at the
+ * old fixed 76 ran into the next endpoint's label ("Seiko Epson Co..IEEE
+ * Registrat..."); a map whose labels are all short keeps the 76.
+ */
+export const getTieredEndpointSpacing: (
+  endpoints: Array<NetworkTopologyNode>,
+) => number = (endpoints: Array<NetworkTopologyNode>): number => {
+  let widestLabelHalfWidth: number = 0;
+  for (const endpoint of endpoints) {
+    widestLabelHalfWidth = Math.max(
+      widestLabelHalfWidth,
+      footprintForNode(endpoint).labelHalfWidth,
+    );
+  }
+  return Math.max(
+    TIERED_ENDPOINT_NODE_SPACING,
+    Math.ceil(widestLabelHalfWidth * 2 + TIERED_ENDPOINT_LABEL_GAP),
+  );
+};
 
 /*
  * Horizontal distance between two adjacent columns' centres. The group gap
@@ -454,7 +487,7 @@ export const computeTieredTopologyModel: (
     });
 
   const usableWidth: number = Math.max(1, width - 2 * TIERED_SIDE_MARGIN);
-  const endpointSpacing: number = TIERED_ENDPOINT_NODE_SPACING;
+  const endpointSpacing: number = getTieredEndpointSpacing(tiers[2]);
   /*
    * n endpoints spaced s apart span (n - 1) * s, so the widest row that
    * still keeps every centre inside the margins holds floor(u / s) + 1.

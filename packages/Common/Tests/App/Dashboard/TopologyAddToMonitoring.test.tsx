@@ -175,6 +175,34 @@ describe("the topology drawer for an unmanaged neighbour", () => {
    * answer for a peer nobody wants to monitor — a printer, a contractor's
    * laptop. The new action is an addition, not a replacement.
    */
+  /*
+   * Issue #5775: a device a switch saw opens the Discovered Devices list's
+   * own dialog, and the button says what that dialog is called; the
+   * sentence above it says what adding does, in a line or two.
+   */
+  test("a discovered device's drawer names its button as the dialog it opens", () => {
+    const camera: NetworkTopologyNode = {
+      id: "endpoint:51000000-0000-4000-8000-000000000001",
+      name: "Lobby camera",
+      isManaged: false,
+      kind: "endpoint",
+      role: "camera",
+      status: "up",
+      ipAddress: "10.20.0.11",
+    };
+
+    renderPanel({ node: camera, onAddToMonitoring: () => {} });
+
+    expect(
+      screen.getByTestId("network-topology-add-to-monitoring"),
+    ).toHaveTextContent("Add to monitoring");
+    expect(
+      screen.getByText(
+        "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   test("still offers to hide the node, which was the only action before", () => {
     renderPanel({
       node: PHONE_NODE,

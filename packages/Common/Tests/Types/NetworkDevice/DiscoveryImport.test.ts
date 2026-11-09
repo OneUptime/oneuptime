@@ -12,6 +12,7 @@ import {
   DiscoveryImportMonitorOutcome,
   DiscoveryImportProgress,
   DiscoveryImportSettings,
+  DiscoveryImportSource,
   DiscoveryImportStatus,
   DiscoveryImportView,
   countSettledDevices,
@@ -515,6 +516,8 @@ describe("reading a record back", () => {
     expect(view).toEqual({
       id: "import-1",
       scanId: "scan-1",
+      // A server that did not say is one that knew only scans.
+      source: DiscoveryImportSource.Scan,
       status: DiscoveryImportStatus.Completed,
       settings: {
         pollingIntervalInMinutes: 10,
