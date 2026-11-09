@@ -383,7 +383,8 @@ describe("how long a device nothing sees stays (issue #6389)", () => {
 
     expectParametersLineUp(statement);
     expect(statement.params).toEqual([SCOPE.projectId]);
-    expect(statement.sql).toBe(`SELECT p."discoveredDeviceRetentionInDays" AS "retentionInDays"
+    expect(statement.sql)
+      .toBe(`SELECT p."discoveredDeviceRetentionInDays" AS "retentionInDays"
 FROM "Project" p
 WHERE p."_id" = $1::uuid`);
   });

@@ -82,7 +82,9 @@ const WORKERS_DIR: string = path.join(
 const mockedLogger: { info: jest.Mock; error: jest.Mock } =
   logger as unknown as { info: jest.Mock; error: jest.Mock };
 
-function summaryOf(fields: Record<string, unknown> = {}): Record<string, unknown> {
+function summaryOf(
+  fields: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     projects: 0,
     failedProjects: 0,

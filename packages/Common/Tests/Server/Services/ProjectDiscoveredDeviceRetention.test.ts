@@ -142,7 +142,9 @@ describe("Project.discoveredDeviceRetentionInDays: the column", () => {
     }
 
     expect(description).toContain("0 to keep all");
-    expect(description).toContain("Monitored and classified devices always stay");
+    expect(description).toContain(
+      "Monitored and classified devices always stay",
+    );
   });
 
   it("a Project Owner or Project Admin writes it, and no one else", () => {

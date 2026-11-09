@@ -199,8 +199,9 @@ describe("buildDueProjectsStatement", () => {
 describe("buildReportingDevicesStatement", () => {
   test("lists the switches and controllers that saw any live device of the project since then", () => {
     const since: Date = new Date(NOW.getTime() - DAY);
-    const statement: DiscoveredDeviceStatement =
-      buildReportingDevicesStatement({ projectId: PROJECT_A, since: since });
+    const statement: DiscoveredDeviceStatement = buildReportingDevicesStatement(
+      { projectId: PROJECT_A, since: since },
+    );
 
     expect(statement.params).toEqual([PROJECT_A, since]);
     expect(statement.sql).toContain(
@@ -261,15 +262,16 @@ describe("buildAgeOutStatement", () => {
     expect(sql).toContain(`COALESCE(d."isArchived", false) = false`);
     // Twelve hex digits, however either side wrote the MAC.
     expect(sql).toContain(`length(${macKey(`d."macAddress"`)}) = 12`);
-    expect(sql).toContain(
-      `WHERE m."macKey" = ${macKey(`e."macAddress"`)}`,
-    );
+    expect(sql).toContain(`WHERE m."macKey" = ${macKey(`e."macAddress"`)}`);
     expect(sql).toContain("AND NOT EXISTS (");
   });
 
   test("a classified, an edited and a person-added device is never due, nor one never seen", () => {
     const sql: string = statementOf().sql;
-    const due: string = sql.slice(sql.indexOf("due AS ("), sql.indexOf("removed AS ("));
+    const due: string = sql.slice(
+      sql.indexOf("due AS ("),
+      sql.indexOf("removed AS ("),
+    );
 
     expect(due).toContain(`e."projectId" = $1::uuid`);
     expect(due).toContain(`e."deletedAt" IS NULL`);
@@ -350,9 +352,11 @@ describe("DiscoveredDeviceAgeOut.run", () => {
       unhidden: 0,
       isCutShort: false,
     });
-    expect(ran.map((statement: Ran): Kind => {
-      return kindOf(statement.sql);
-    })).toEqual(["due"]);
+    expect(
+      ran.map((statement: Ran): Kind => {
+        return kindOf(statement.sql);
+      }),
+    ).toEqual(["due"]);
   });
 
   test("each project is cut off at its own days, and the switches that reported in the last day are asked", async () => {
@@ -470,7 +474,11 @@ describe("DiscoveredDeviceAgeOut.run", () => {
   test("one project gets no more than its batches a run, and the next project still gets its turn", async () => {
     duePages = [[dueRow(PROJECT_A), dueRow(PROJECT_B)]];
 
-    for (let batch: number = 0; batch < MAX_AGE_OUT_BATCHES_PER_PROJECT; batch++) {
+    for (
+      let batch: number = 0;
+      batch < MAX_AGE_OUT_BATCHES_PER_PROJECT;
+      batch++
+    ) {
       ageOutAnswers.push([{ removed: AGE_OUT_BATCH_SIZE, unhidden: 0 }]);
     }
 
@@ -518,12 +526,14 @@ describe("DiscoveredDeviceAgeOut.run", () => {
   test("once the time budget is spent, no new batch or project is started", async () => {
     duePages = [[dueRow(PROJECT_A), dueRow(PROJECT_B)]];
 
-    for (let batch: number = 0; batch < 10; batch++) {
-      ageOutAnswers.push(() => {
-        clock += 3 * MINUTE;
-        return [{ removed: AGE_OUT_BATCH_SIZE, unhidden: 0 }];
-      });
-    }
+    // Ten full batches, each taking three minutes.
+    const slowBatch: () => Array<Record<string, unknown>> = (): Array<
+      Record<string, unknown>
+    > => {
+      clock += 3 * MINUTE;
+      return [{ removed: AGE_OUT_BATCH_SIZE, unhidden: 0 }];
+    };
+    ageOutAnswers = new Array(10).fill(slowBatch);
 
     const summary: DiscoveredDeviceAgeOutSummary =
       await DiscoveredDeviceAgeOut.run({ timeBudgetMs: 8 * MINUTE });

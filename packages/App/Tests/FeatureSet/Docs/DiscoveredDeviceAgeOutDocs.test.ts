@@ -98,9 +98,11 @@ describe.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
       const paragraph: string = ageOutParagraph(language);
 
       for (const days of DISCOVERED_DEVICE_RETENTION_CHOICES_IN_DAYS) {
-        expect({ language, days, said: paragraph.includes(String(days)) }).toEqual(
-          { language, days, said: true },
-        );
+        expect({
+          language,
+          days,
+          said: paragraph.includes(String(days)),
+        }).toEqual({ language, days, said: true });
       }
     });
 
@@ -124,7 +126,9 @@ describe.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
         SECTION_HEADING,
       );
 
-      expect(section).toContain(`**${drawnNetworkLabel(language, "Last Seen")}**`);
+      expect(section).toContain(
+        `**${drawnNetworkLabel(language, "Last Seen")}**`,
+      );
     });
   },
 );
@@ -150,7 +154,9 @@ describe("the English guide says what the code does", () => {
   });
 
   test("the lengths it lists are the pick's, in its order", () => {
-    const choices: Array<number> = [...DISCOVERED_DEVICE_RETENTION_CHOICES_IN_DAYS];
+    const choices: Array<number> = [
+      ...DISCOVERED_DEVICE_RETENTION_CHOICES_IN_DAYS,
+    ];
     const last: number = choices.pop() as number;
 
     expect(paragraph).toContain(

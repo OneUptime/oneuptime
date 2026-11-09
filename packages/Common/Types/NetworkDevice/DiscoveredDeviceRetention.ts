@@ -96,12 +96,15 @@ export function isDiscoveredDeviceRetentionOn(days: number): boolean {
   return days !== KEEP_EVERY_DISCOVERED_DEVICE;
 }
 
+// Days as a form or an API client may send them: as text.
+const DAYS_AS_TEXT: RegExp = /^\d{1,4}$/;
+
 function toNumber(value: unknown): number | null {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
   }
 
-  if (typeof value === "string" && /^\d{1,4}$/.test(value.trim())) {
+  if (typeof value === "string" && DAYS_AS_TEXT.test(value.trim())) {
     return Number(value.trim());
   }
 

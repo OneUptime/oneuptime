@@ -273,13 +273,17 @@ describe("reading an answer", () => {
 
   test("a retention that is missing or not a choice is left out, rather than guessed", () => {
     for (const retentionInDays of [undefined, null, 45, -1, "never", {}]) {
-      const response: Record<string, unknown> = readDiscoveredDeviceListResponse(
-        { rows: [], count: 0, counts: {}, retentionInDays: retentionInDays },
-      ) as unknown as Record<string, unknown>;
+      const response: Record<string, unknown> =
+        readDiscoveredDeviceListResponse({
+          rows: [],
+          count: 0,
+          counts: {},
+          retentionInDays: retentionInDays,
+        }) as unknown as Record<string, unknown>;
 
-      expect(Object.prototype.hasOwnProperty.call(response, "retentionInDays")).toBe(
-        false,
-      );
+      expect(
+        Object.prototype.hasOwnProperty.call(response, "retentionInDays"),
+      ).toBe(false);
     }
   });
 

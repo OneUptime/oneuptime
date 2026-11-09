@@ -40,11 +40,16 @@ const MIGRATION_DIRECTORY: string = path.join(
   "../../../../Server/Infrastructure/Postgres/SchemaMigrations",
 );
 
-const MIGRATIONS: Array<{
+interface OurMigration {
   timestamp: string;
   baseName: string;
   migration: MigrationInterface;
-}> = [
+}
+
+// A registered migration's name ends with its 13-figure number.
+const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
+
+const MIGRATIONS: Array<OurMigration> = [
   {
     timestamp: "1809080263890",
     baseName: "AddDiscoveredDeviceRetention",
@@ -169,8 +174,7 @@ describe("AddNetworkEndpointLastSeenIndex1809080263891", () => {
         const columns: unknown = index.columns;
 
         return (
-          Array.isArray(columns) &&
-          columns.join(",") === "projectId,lastSeenAt"
+          Array.isArray(columns) && columns.join(",") === "projectId,lastSeenAt"
         );
       });
 
@@ -221,7 +225,7 @@ describe("the three, registered", () => {
 
   test.each(MIGRATIONS)(
     "$baseName is registered once, under its own name, and its file is named for it",
-    ({ timestamp, baseName, migration }) => {
+    ({ timestamp, baseName, migration }: OurMigration): void => {
       const className: string = `${baseName}${timestamp}`;
 
       expect(
@@ -240,7 +244,7 @@ describe("the three, registered", () => {
 
   test("run in order - the columns, then the index, then the backfill - after every migration before them", () => {
     const positions: Array<number> = MIGRATIONS.map(
-      ({ timestamp, baseName }): number => {
+      ({ timestamp, baseName }: OurMigration): number => {
         return names.indexOf(`${baseName}${timestamp}`);
       },
     );
@@ -259,9 +263,11 @@ describe("the three, registered", () => {
       .filter((value: number): boolean => {
         return Number.isFinite(value) && value > 0;
       });
-    const ours: Array<number> = MIGRATIONS.map(({ timestamp }): number => {
-      return Number(timestamp);
-    });
+    const ours: Array<number> = MIGRATIONS.map(
+      ({ timestamp }: OurMigration): number => {
+        return Number(timestamp);
+      },
+    );
 
     // Each timestamp is a file of its own, and later than every other file before it.
     for (const timestamp of ours) {
@@ -276,7 +282,7 @@ describe("the three, registered", () => {
     const before: Array<number> = names
       .slice(0, positions[0])
       .map((name: string): number => {
-        return Number(/(\d{13})$/.exec(name)?.[1] || 0);
+        return Number(TRAILING_TIMESTAMP.exec(name)?.[1] || 0);
       });
 
     expect(before.length).toBeGreaterThan(100);

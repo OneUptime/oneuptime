@@ -195,7 +195,9 @@ function retentionLine(): HTMLElement | null {
 }
 
 function changeLink(): HTMLElement | null {
-  return screen.queryByTestId(`${DISCOVERED_DEVICES_RETENTION_LINE_TEST_ID}-change`);
+  return screen.queryByTestId(
+    `${DISCOVERED_DEVICES_RETENTION_LINE_TEST_ID}-change`,
+  );
 }
 
 function listRequests(): number {
@@ -227,9 +229,9 @@ function removeAfter(): HTMLElement {
 // What the pick shows: react-select's single value beside its input.
 function picked(): string {
   return (
-    within(screen.getByTestId(DISCOVERED_DEVICE_RETENTION_SETTING_TEST_ID))
-      .queryByText(/days?$|^Never$/)
-      ?.textContent || ""
+    within(
+      screen.getByTestId(DISCOVERED_DEVICE_RETENTION_SETTING_TEST_ID),
+    ).queryByText(/days?$|^Never$/)?.textContent || ""
   );
 }
 
@@ -252,8 +254,9 @@ async function pick(optionText: string): Promise<void> {
 
 function settingDescription(): string {
   return (
-    screen.getByTestId(`${DISCOVERED_DEVICE_RETENTION_SETTING_TEST_ID}-description`)
-      .textContent || ""
+    screen.getByTestId(
+      `${DISCOVERED_DEVICE_RETENTION_SETTING_TEST_ID}-description`,
+    ).textContent || ""
   );
 }
 
@@ -318,11 +321,9 @@ beforeEach(() => {
   jest.spyOn(Navigation, "navigate").mockImplementation((): void => {});
 
   storedRetention = 30;
-  getItemSpy = jest
-    .spyOn(ModelAPI, "getItem")
-    .mockImplementation((async () => {
-      return projectWith(storedRetention);
-    }) as never);
+  getItemSpy = jest.spyOn(ModelAPI, "getItem").mockImplementation((async () => {
+    return projectWith(storedRetention);
+  }) as never);
   updateSpy = jest
     .spyOn(ModelAPI, "updateById")
     .mockImplementation((async (data: { data: JSONObject }) => {
@@ -529,13 +530,19 @@ describe("the Unseen Devices card", () => {
       }),
     );
     expect(picked()).toBe("90 days");
-    expect(settingDescription()).toBe(DiscoveredDeviceRetentionCopy.onDescription);
+    expect(settingDescription()).toBe(
+      DiscoveredDeviceRetentionCopy.onDescription,
+    );
     expect(told).toEqual([90]);
     expect(
       screen.getByTestId(DISCOVERED_DEVICE_RETENTION_CARD_TEST_ID),
     ).toBeInTheDocument();
-    expect(document.getElementById(DISCOVERED_DEVICE_RETENTION_PLACE)).not.toBeNull();
-    expect(screen.getByText(DiscoveredDeviceRetentionCopy.cardTitle)).toBeInTheDocument();
+    expect(
+      document.getElementById(DISCOVERED_DEVICE_RETENTION_PLACE),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(DiscoveredDeviceRetentionCopy.cardTitle),
+    ).toBeInTheDocument();
   });
 
   test("offers every length, shortest first, then Never", async () => {
@@ -583,11 +590,15 @@ describe("the Unseen Devices card", () => {
     });
     await waitFor(() => {
       expect(
-        screen.getByTestId(`${DISCOVERED_DEVICE_RETENTION_SETTING_TEST_ID}-status`),
+        screen.getByTestId(
+          `${DISCOVERED_DEVICE_RETENTION_SETTING_TEST_ID}-status`,
+        ),
       ).toHaveTextContent("Saved");
     });
     expect(picked()).toBe("Never");
-    expect(settingDescription()).toBe(DiscoveredDeviceRetentionCopy.offDescription);
+    expect(settingDescription()).toBe(
+      DiscoveredDeviceRetentionCopy.offDescription,
+    );
     expect(told).toEqual([30, 0]);
   });
 
@@ -607,7 +618,9 @@ describe("the Unseen Devices card", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByTestId(`${DISCOVERED_DEVICE_RETENTION_SETTING_TEST_ID}-error`),
+        screen.getByTestId(
+          `${DISCOVERED_DEVICE_RETENTION_SETTING_TEST_ID}-error`,
+        ),
       ).toHaveTextContent("You may not change this project's settings.");
     });
     expect(picked()).toBe("30 days");
@@ -660,7 +673,9 @@ describe("the Unseen Devices card", () => {
     ).toBeNull();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Try again|Refresh/i }));
+      fireEvent.click(
+        screen.getByRole("button", { name: /Try again|Refresh/i }),
+      );
     });
 
     expect(
@@ -707,13 +722,19 @@ describe("the Discovered Devices page", () => {
   });
 
   test("a link to the card's place opens the fold at it", async () => {
-    window.history.replaceState(null, "", `#${DISCOVERED_DEVICE_RETENTION_PLACE}`);
+    window.history.replaceState(
+      null,
+      "",
+      `#${DISCOVERED_DEVICE_RETENTION_PLACE}`,
+    );
 
     await renderPage();
 
     expect(moreSettingsHeader()).toHaveAttribute("aria-expanded", "true");
     expect(
-      within(moreSettings()).getByTestId(DISCOVERED_DEVICE_RETENTION_CARD_TEST_ID),
+      within(moreSettings()).getByTestId(
+        DISCOVERED_DEVICE_RETENTION_CARD_TEST_ID,
+      ),
     ).toBeVisible();
   });
 

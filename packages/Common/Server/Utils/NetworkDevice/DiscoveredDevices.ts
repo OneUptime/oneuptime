@@ -264,7 +264,9 @@ export default class DiscoveredDevices {
     });
 
     const retentionInDays: number | undefined =
-      readDiscoveredDeviceRetentionInDays(retentionRows[0]?.["retentionInDays"]);
+      readDiscoveredDeviceRetentionInDays(
+        retentionRows[0]?.["retentionInDays"],
+      );
 
     return {
       rows: rows.map((row: ClassifiedDiscoveredDevice): DiscoveredDeviceRow => {

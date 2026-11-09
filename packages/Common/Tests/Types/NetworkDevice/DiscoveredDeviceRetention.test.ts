@@ -56,9 +56,12 @@ describe("isDiscoveredDeviceRetentionInDays", () => {
     },
   );
 
-  test.each(NOT_A_CHOICE)("refuses %p, which is not a choice", (days: number) => {
-    expect(isDiscoveredDeviceRetentionInDays(days)).toBe(false);
-  });
+  test.each(NOT_A_CHOICE)(
+    "refuses %p, which is not a choice",
+    (days: number) => {
+      expect(isDiscoveredDeviceRetentionInDays(days)).toBe(false);
+    },
+  );
 
   test.each([NaN, Infinity, -Infinity, "30", null, undefined, {}, [], true])(
     "refuses %p, which is not a number",

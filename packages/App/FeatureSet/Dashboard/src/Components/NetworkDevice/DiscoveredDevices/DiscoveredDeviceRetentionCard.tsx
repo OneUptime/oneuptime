@@ -64,8 +64,9 @@ export interface ComponentProps {
 }
 
 // The column the card reads and writes.
-const RETENTION_COLUMN: "discoveredDeviceRetentionInDays" =
-  "discoveredDeviceRetentionInDays";
+type RetentionColumn = "discoveredDeviceRetentionInDays";
+
+const RETENTION_COLUMN: RetentionColumn = "discoveredDeviceRetentionInDays";
 
 interface SettingProps {
   projectId: ObjectID;

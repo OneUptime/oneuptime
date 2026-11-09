@@ -5,7 +5,10 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import NetworkEndpointService from "../../Services/NetworkEndpointService";
 import logger from "../Logger";
-import { DiscoveredDeviceStatement, StatementParams } from "./DiscoveredDeviceQuery";
+import {
+  DiscoveredDeviceStatement,
+  StatementParams,
+} from "./DiscoveredDeviceQuery";
 
 /*
  * REMOVING DISCOVERED DEVICES NOTHING SEES ANY MORE (OneUptime issue #6389).
@@ -311,12 +314,10 @@ export default class DiscoveredDeviceAgeOut {
     let isLastPage: boolean = false;
 
     while (!isLastPage) {
-      const page: DueDiscoveredDeviceProjectsPage = await this.findDueProjects(
-        {
-          now: this.now(),
-          afterProjectId: afterProjectId,
-        },
-      );
+      const page: DueDiscoveredDeviceProjectsPage = await this.findDueProjects({
+        now: this.now(),
+        afterProjectId: afterProjectId,
+      });
 
       for (const project of page.projects) {
         if (isOutOfTime()) {
@@ -327,12 +328,13 @@ export default class DiscoveredDeviceAgeOut {
         summary.projects += 1;
 
         try {
-          const result: DiscoveredDeviceAgeOutResult =
-            await this.ageOutProject({
+          const result: DiscoveredDeviceAgeOutResult = await this.ageOutProject(
+            {
               projectId: project.projectId,
               retentionInDays: project.retentionInDays,
               isOutOfTime: isOutOfTime,
-            });
+            },
+          );
 
           summary.removed += result.removed;
           summary.unhidden += result.unhidden;

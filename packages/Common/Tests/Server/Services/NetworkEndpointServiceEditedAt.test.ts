@@ -134,10 +134,7 @@ describe("a device a person adds", () => {
   test("is stamped edited as it is written", async () => {
     const endpoint: NetworkEndpoint = new NetworkEndpoint();
     endpoint.macAddress = "00:11:22:33:44:55";
-    const onCreate: OnCreate<NetworkEndpoint> = onCreateOf(
-      endpoint,
-      AS_PERSON,
-    );
+    const onCreate: OnCreate<NetworkEndpoint> = onCreateOf(endpoint, AS_PERSON);
 
     await service.onCreatePermitted(onCreate);
 
