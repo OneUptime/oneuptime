@@ -7,12 +7,12 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { JSONObject } from "Common/Types/JSON";
 import {
-  LLM_METRIC_USAGE_ROUTE,
-  LlmMetricUsageDimension,
-  LlmMetricUsageRequestBody,
-  LlmMetricUsageResponse,
-  readLlmMetricUsageResponse,
-} from "Common/Types/Telemetry/LlmMetricUsageApi";
+  LLM_USAGE_ROUTE,
+  LlmUsageDimension,
+  LlmUsageRequestBody,
+  LlmUsageResponse,
+  readLlmUsageResponse,
+} from "Common/Types/Telemetry/LlmUsageApi";
 import {
   LLM_SETUP_CHECK_ROUTE,
   LlmSetupCheckRequestBody,
@@ -23,9 +23,10 @@ import {
 /*
  * The client half of two AI / LLM reads:
  *
- *   - /telemetry/llm/metric-usage: what the GenAI metrics of a range add up
- *     to, counted the way a counter counts (the Usage tab's figures for the
- *     coding assistants and the SDKs that send metrics);
+ *   - /telemetry/llm/usage: what a range's AI usage adds up to - the AI
+ *     calls, each model call once, and the usage metrics, each service
+ *     counted from the signal it sends (the Usage tab's tiles and
+ *     breakdown);
  *   - /telemetry/llm/setup-check: what the project's AI is sending, way by
  *     way (the empty Conversations and Calls views, and Connect).
  *
@@ -52,10 +53,10 @@ async function post(route: string, data: JSONObject): Promise<JSONObject> {
   return (response.data || {}) as JSONObject;
 }
 
-export function buildLlmMetricUsageBody(data: {
+export function buildLlmUsageBody(data: {
   range: InBetween<Date>;
-  dimension: LlmMetricUsageDimension;
-}): LlmMetricUsageRequestBody {
+  dimension: LlmUsageDimension;
+}): LlmUsageRequestBody {
   return {
     startTime: data.range.startValue.toISOString(),
     endTime: data.range.endValue.toISOString(),
@@ -63,16 +64,16 @@ export function buildLlmMetricUsageBody(data: {
   };
 }
 
-export async function fetchLlmMetricUsage(data: {
+export async function fetchLlmUsage(data: {
   range: InBetween<Date>;
-  dimension: LlmMetricUsageDimension;
-}): Promise<LlmMetricUsageResponse> {
+  dimension: LlmUsageDimension;
+}): Promise<LlmUsageResponse> {
   const body: JSONObject = await post(
-    LLM_METRIC_USAGE_ROUTE,
-    buildLlmMetricUsageBody(data) as unknown as JSONObject,
+    LLM_USAGE_ROUTE,
+    buildLlmUsageBody(data) as unknown as JSONObject,
   );
 
-  return readLlmMetricUsageResponse(body);
+  return readLlmUsageResponse(body);
 }
 
 export function buildLlmSetupCheckBody(

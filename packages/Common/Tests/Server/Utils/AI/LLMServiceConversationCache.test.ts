@@ -401,7 +401,8 @@ describe("issue #5073 — an agent loop's call marks its conversation for the pr
 
     messages.push({
       role: "user",
-      content: "You have made a very large number of calls. Answer now.",
+      content:
+        "This run has reached its time limit of 120 minutes. Answer now with the findings so far.",
     });
 
     await complete(anthropic(), { messages: messages });

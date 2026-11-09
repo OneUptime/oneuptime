@@ -890,7 +890,7 @@ describe("the onboarding copy in every language", () => {
     }
 
     expect(newKeys.length).toBeGreaterThanOrEqual(43);
-    expect(locales).toHaveLength(16);
+    expect(locales).toHaveLength(17);
   });
 
   test("English maps each to itself", () => {

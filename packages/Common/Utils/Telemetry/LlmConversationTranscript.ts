@@ -10,6 +10,7 @@ import LlmMessageParser, {
   LlmMessagePart,
   LlmMessagePartType,
 } from "./LlmMessageParser";
+import LlmCallCountingUtil, { LlmCountedFigures } from "./LlmCallCounting";
 
 /*
  * ONE CONVERSATION, READ AS A CONVERSATION.
@@ -43,7 +44,10 @@ import LlmMessageParser, {
  *
  * Agent and chain spans that wrap other recorded calls contribute no
  * messages of their own - their children say the same thing - but a wrapper
- * that failed when none of its children did still shows the failure.
+ * that failed when none of its children did still shows the failure. The
+ * conversation's tokens and cost count each model call once
+ * (LlmCallCountingUtil): a wrapper's repeat of what its calls report is
+ * left out, each figure on its own, as the Usage tab counts them.
  *
  * Pure and synchronous; the replay timing lives in LlmConversationReplay.
  */
@@ -754,6 +758,10 @@ export default class LlmConversationTranscriptUtil {
     let answerCount: number = 0;
     let contentRecorded: boolean = false;
 
+    // Whose tokens and cost count: each model call's, once.
+    const counted: Map<string, LlmCountedFigures> =
+      LlmCallCountingUtil.getCounted(calls);
+
     for (const call of calls) {
       const meta: LlmTranscriptCallMeta = callMeta(call);
       const children: Array<LlmConversationCall> =
@@ -764,12 +772,9 @@ export default class LlmConversationTranscriptUtil {
           return hasContent(child.content);
         },
       );
-      const childrenCost: number = children.reduce(
-        (sum: number, child: LlmConversationCall): number => {
-          return sum + child.costUsd;
-        },
-        0,
-      );
+      const countedFigures: LlmCountedFigures = counted.get(
+        LlmCallCountingUtil.getKey(call.traceId, call.spanId),
+      ) || { tokens: true, cost: true };
 
       for (const issue of call.issues) {
         issueCounts[issue] = (issueCounts[issue] || 0) + 1;
@@ -780,11 +785,14 @@ export default class LlmConversationTranscriptUtil {
       addUnique(serviceIds, call.serviceId);
 
       /*
-       * A wrapper's cost and tokens are usually its children's again; count
-       * them only when the children report none.
+       * A wrapper's cost and tokens are usually its calls' again: each is
+       * counted only when no call inside it reports that figure.
        */
-      if (!isWrapper || childrenCost === 0) {
+      if (countedFigures.cost) {
         costUsd += call.costUsd;
+      }
+
+      if (countedFigures.tokens) {
         inputTokens += call.inputTokens;
         outputTokens += call.outputTokens;
       }

@@ -62,6 +62,7 @@ const LANGUAGES: ReadonlyArray<string> = [
   "zh-TW",
   "hi",
   "fa",
+  "ar",
 ];
 
 // German writes the word as English does: "(Optional)".

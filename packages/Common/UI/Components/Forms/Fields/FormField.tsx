@@ -1413,6 +1413,15 @@ const FormField: <T extends GenericObject>(
                     : undefined)
                 }
                 isOwnCredential={props.field.isOwnCredential}
+                /*
+                 * A phone number: a phone offers its dial pad, and the field
+                 * reads left to right on every page (Input).
+                 */
+                inputMode={
+                  props.field.fieldType === FormFieldSchemaType.Phone
+                    ? "tel"
+                    : undefined
+                }
                 onChange={(value: string) => {
                   onChange(value);
                   props.setFieldValue(props.fieldName, value);

@@ -149,8 +149,8 @@ const cardDescription: (source: string) => string = (
 };
 
 describe("the locale files", () => {
-  test("all 17 are present", () => {
-    expect(localeFiles).toHaveLength(17);
+  test("all 18 are present", () => {
+    expect(localeFiles).toHaveLength(18);
   });
 
   test("the navbar and help sections have the same keys in the same order everywhere", () => {

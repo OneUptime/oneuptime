@@ -97,8 +97,8 @@ const endsWithOneOf: (value: string, endings: Array<string>) => boolean = (
 };
 
 describe("the first responders change's strings", () => {
-  test("seventeen locales are checked", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("eighteen locales are checked", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
     expect(LOCALE_FILES).toContain("en.json");
   });
 

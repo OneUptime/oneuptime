@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { formatRelativeTime, toDate } from "./HomeRelativeTime";
 import { HOME_ROW_CARD_BODY_CLASS_NAME } from "./HomeRowCard";
 import AppLink from "../AppLink/AppLink";
@@ -16,6 +17,11 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import React, {
@@ -103,7 +109,7 @@ export const formatCalendarPart: (data: {
     data.part === "month" ? { month: "short" } : { day: "numeric" };
 
   try {
-    return new Intl.DateTimeFormat(data.language || "en", {
+    return new Intl.DateTimeFormat(getNumberLocale(data.language || "en"), {
       ...options,
       timeZone: OneUptimeDate.getCurrentTimezone().toString(),
     }).format(data.date);
@@ -194,6 +200,10 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
         {items.map((event: ScheduledMaintenance): ReactElement => {
           const id: string = event._id?.toString() || "";
           const startsAt: Date | undefined = toDate(event.startsAt);
+          const titleDirection: ReadingDirection | undefined = getLineDirection(
+            event.title,
+            translator.language,
+          );
 
           return (
             <li key={id}>
@@ -239,7 +249,19 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
                     )}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-gray-900">
+                    {/*
+                     * Cut short at its own end: an English title on an
+                     * Arabic page loses its end, not its start
+                     * (LineDirection).
+                     */}
+                    <span
+                      className={`block truncate text-sm font-medium text-gray-900${
+                        titleDirection
+                          ? ` ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                          : ""
+                      }`}
+                      dir={titleDirection}
+                    >
                       {event.title || translator.translateText("Untitled")}
                     </span>
                     {startsAt ? (

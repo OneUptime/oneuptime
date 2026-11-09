@@ -122,6 +122,8 @@ To change a secret without losing data, create a second key, move your senders t
 
 A refused request is answered with a status and a sentence that says why.
 
+The key's page keeps count too: **Refused Telemetry** lists what was refused from the key in the past 30 days, why, on which endpoint, how many requests and when. A missing or mistyped key belongs to no project, so nothing counts it.
+
 | Answer | What it means |
 | --- | --- |
 | `401` with `Missing ingestion token` | The request has no key. Send it in `x-oneuptime-token`. |

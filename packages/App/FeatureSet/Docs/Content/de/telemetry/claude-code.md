@@ -64,7 +64,7 @@ Die Variablen werden beim Start von Claude Code gelesen. Metriken werden alle 60
 
 ### Prüfen, ob Daten ankommen
 
-Öffnen Sie **Metriken** und suchen Sie nach `claude_code.token.usage`, öffnen Sie dann **Produkte → KI / LLM** und gehen Sie zu **Nutzung**: Ihre Kosten erscheinen unter Ihrer E-Mail, markiert mit **aus GenAI-Metriken**.
+Öffnen Sie **Metriken** und suchen Sie nach `claude_code.token.usage`, öffnen Sie dann **Produkte → KI / LLM** und gehen Sie zu **Nutzung**: Ihre Kosten erscheinen unter Ihrer E-Mail, markiert mit **Aus Nutzungsmetriken**.
 :::
 
 Um Metriken und Ereignisse an verschiedene Orte zu senden, setzen Sie stattdessen `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` und `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, mit dem vollständigen Pfad (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 Unter **Produkte → KI / LLM → Nutzung** speist `claude_code.cost.usage` die Tabellen **Mitarbeiter**, **Team** und **Modell**, und `claude_code.token.usage` die Token-Summen. Zwei Regeln entscheiden, was Sie sehen:
 
-- **Die Metriken springen für Spans ein; sie werden nie zu ihnen addiert.** Wenn dasselbe Projekt GenAI-Spans mit Kosten aus Ihren eigenen Apps bekommt, erscheinen die Ausgaben von Claude Code nicht. Senden Sie Claude Code in ein eigenes Projekt. Siehe [Spans zuerst, Metriken springen ein](/docs/telemetry/ai-llm-observability#spans-zuerst-metriken-springen-ein).
-- **Eine Zeile aus Metriken trägt nur Kosten.** Ihre Zellen für Aufrufe und Tokens zeigen `—`, und die Tabellen **Anbieter** und **Anwendung / Dienst** bleiben leer: Die Metriken nennen keinen Anbieter und gehören zu keinem OneUptime-Dienst.
+- **Claude Code wird neben Ihren Apps gezählt.** Seine Metriken kommen unter seinem eigenen Dienst an, also werden seine Ausgaben zu den KI-Aufrufen addiert, die Ihre Apps an dasselbe Projekt senden. Wenn Sie seine Traces (Beta) einschalten, schalten Sie sie für alle ein: Von da an wird Claude Code nur aus seinen Traces gezählt, einmal. Siehe [Jeder Dienst wird aus dem gezählt, was er sendet](/docs/telemetry/ai-llm-observability#jeder-dienst-wird-aus-dem-gezählt-was-er-sendet).
+- **Eine Zeile aus Metriken nennt keinen Aufruf.** Sie sagt **Aus Nutzungsmetriken** unter ihrem Namen, ihre Zelle für Aufrufe zeigt `—`, und die Tabelle **Anbieter** führt sie unter **Nicht zugeordnet**: Die Metriken nennen keinen Anbieter.
 
 Alles andere, etwa Annahmequote, Codezeilen, Commits und Pull Requests pro Entwickler oder Ausgaben nach `query_source`, stellen Sie in einem [Dashboard](/docs/dashboards/index) aus den Metriken unten dar und warnen darauf mit einer [Metriken-Überwachung](/docs/monitor/metrics-monitor).
 

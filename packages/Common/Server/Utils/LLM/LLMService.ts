@@ -20,6 +20,10 @@ import RejectedRequestParameter from "./RejectedRequestParameter";
 import LlmProviderEndpoint, {
   AzureOpenAIRequestEndpoint,
 } from "../../../Utils/LLM/LlmProviderEndpoint";
+import {
+  LLM_PROVIDER_DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS,
+  OLLAMA_DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS,
+} from "../../../Utils/LLM/LlmProviderResponseTimeout";
 import { withoutTrailingSlashes } from "../../../Utils/TrailingRuns";
 import crypto from "crypto";
 import OldestKeyMap from "../../../Utils/OldestKeyMap";
@@ -144,6 +148,13 @@ export interface LLMProviderConfig {
    * provider row only, never from anything a request carries.
    */
   isGlobalProvider?: boolean | undefined;
+  /*
+   * How long to wait for the provider to answer one request, in seconds
+   * (LlmProvider.requestTimeoutInSeconds): what a slow or self-hosted
+   * model needs. Unset: the provider type's default, 120 seconds (300 for
+   * Ollama). A request's own requestTimeoutInMs still wins.
+   */
+  requestTimeoutInSeconds?: number | undefined;
 }
 
 /**
@@ -380,6 +391,10 @@ export default class LLMService {
    * exactly that.
    */
   private static readonly MIN_FULL_TIMEOUT_ATTEMPTS_WITHIN_DEADLINE: number = 3;
+
+  // The response timeouts a provider may set (LlmProvider.requestTimeoutInSeconds).
+  public static readonly MIN_PROVIDER_TIMEOUT_IN_SECONDS: number = 10;
+  public static readonly MAX_PROVIDER_TIMEOUT_IN_SECONDS: number = 3600;
 
   /*
    * Provider-level parameters allowed on protected, unattended completions.
@@ -1125,9 +1140,13 @@ export default class LLMService {
   private static buildRequestPolicy(data: {
     request: LLMCompletionRequest;
     defaultTimeoutInMs: number;
+    // The provider's own response timeout, when it has one.
+    providerTimeoutInSeconds?: number | undefined;
   }): RequestOptions {
     const timeoutInMs: number =
-      data.request.requestTimeoutInMs ?? data.defaultTimeoutInMs;
+      data.request.requestTimeoutInMs ??
+      this.getProviderTimeoutInMs(data.providerTimeoutInSeconds) ??
+      data.defaultTimeoutInMs;
 
     return {
       retries: data.request.requestRetries ?? this.DEFAULT_REQUEST_ATTEMPTS - 1,
@@ -1137,6 +1156,33 @@ export default class LLMService {
       totalTimeoutInMs: this.getRetryDeadlineInMs(data.request, timeoutInMs),
       timeout: timeoutInMs,
     };
+  }
+
+  /*
+   * The provider's response timeout, in milliseconds, held to what the
+   * provider form allows (10 seconds to an hour): undefined when it has
+   * none, or none that makes sense, so the provider type's default holds.
+   */
+  public static getProviderTimeoutInMs(
+    timeoutInSeconds: number | undefined,
+  ): number | undefined {
+    if (
+      typeof timeoutInSeconds !== "number" ||
+      !Number.isFinite(timeoutInSeconds) ||
+      timeoutInSeconds <= 0
+    ) {
+      return undefined;
+    }
+
+    return (
+      Math.min(
+        Math.max(
+          Math.round(timeoutInSeconds),
+          this.MIN_PROVIDER_TIMEOUT_IN_SECONDS,
+        ),
+        this.MAX_PROVIDER_TIMEOUT_IN_SECONDS,
+      ) * 1000
+    );
   }
 
   private static getRetryDeadlineInMs(
@@ -1292,7 +1338,9 @@ export default class LLMService {
         isGlobalProvider: data.config.isGlobalProvider,
         options: this.buildRequestPolicy({
           request: data.request,
-          defaultTimeoutInMs: 120000,
+          defaultTimeoutInMs:
+            LLM_PROVIDER_DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS * 1000,
+          providerTimeoutInSeconds: data.config.requestTimeoutInSeconds,
         }),
         logAttributes: data.logAttributes,
       });
@@ -2436,7 +2484,7 @@ export default class LLMService {
        * Anthropic requires strictly alternating user/assistant turns and
        * returns a 400 on two consecutive same-role messages. The agent loop
        * can legitimately emit back-to-back user turns (e.g. a tool_result
-       * user message immediately followed by the "budget exhausted, answer
+       * user message immediately followed by the "time limit reached, answer
        * now" nudge), so coalesce a run of same-role messages into one instead
        * of failing the whole request.
        */
@@ -2918,7 +2966,9 @@ export default class LLMService {
         isGlobalProvider: data.config.isGlobalProvider,
         options: this.buildRequestPolicy({
           request: data.request,
-          defaultTimeoutInMs: 120000,
+          defaultTimeoutInMs:
+            LLM_PROVIDER_DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS * 1000,
+          providerTimeoutInSeconds: data.config.requestTimeoutInSeconds,
         }),
         logAttributes: data.logAttributes,
       });
@@ -3388,7 +3438,10 @@ export default class LLMService {
           isGlobalProvider: config.isGlobalProvider,
           options: this.buildRequestPolicy({
             request: request,
-            defaultTimeoutInMs: 300000, // Ollama may be slower
+            // Ollama may be slower: it runs on its owner's own hardware.
+            defaultTimeoutInMs:
+              OLLAMA_DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS * 1000,
+            providerTimeoutInSeconds: config.requestTimeoutInSeconds,
           }),
           logAttributes: ollamaLogAttributes,
         }),

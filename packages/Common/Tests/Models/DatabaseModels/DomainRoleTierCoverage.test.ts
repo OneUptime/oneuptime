@@ -111,6 +111,13 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
   "TelemetryIngestionKey",
 
   /*
+   * What ingest refused from an ingestion key (issue #6378) is read with
+   * the key, by the same people: a row names the key and what was refused
+   * from it, so a role kept from the keys is kept from their refusals too.
+   */
+  "TelemetryIngestionKeyRefusal",
+
+  /*
    * Secrets and credentials. These hold the values a monitor or runbook step
    * authenticates with; the whole point of them is that the people who
    * configure the resource cannot read them back. (Runbook credentials were

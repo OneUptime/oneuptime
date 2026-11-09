@@ -92,7 +92,7 @@ When several rules that investigate match, OneUptime AI may use every server any
 
 - **What a server sends back is data, never instructions.** OneUptime AI reads its tools' descriptions and answers as text from outside OneUptime: they never change a rule, an approval or what OneUptime AI may do.
 - **The address is checked on every connection.** OneUptime never connects to its own or a link-local address. On OneUptime Cloud it also refuses private network addresses: use the server's public address. A self-hosted OneUptime reaches private addresses unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` is set. Redirects are not followed.
-- **Limits.** A project has at most 20 servers, and OneUptime reads at most 200 tools of each. Connecting times out after 20 seconds, listing the tools after 30 and a tool call after 60. An answer larger than 2 MB is refused, and a run makes at most 40 calls to MCP servers.
+- **Limits.** A project has at most 20 servers, and OneUptime reads at most 200 tools of each. Connecting times out after 20 seconds, listing the tools after 30 and a tool call after 60. An answer larger than 2 MB is refused. A run's calls to MCP servers count toward the project's limits per run, when it sets them.
 - **Every call is recorded.** Each call is a step of the run, shown in its activity, and each change a fix makes is in the **Remediation** step with what the server answered. The model calls behind them are in **Project Settings → AI → AI Logs**.
 
 ## Troubleshooting

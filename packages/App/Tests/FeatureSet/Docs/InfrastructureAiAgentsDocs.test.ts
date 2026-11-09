@@ -77,7 +77,6 @@ import {
   MAX_POSTURE_LIST_ENTRIES,
   MAX_POSTURE_STRING_LENGTH,
   MAX_RESOURCE_AGENT_OUTPUT_BYTES,
-  MAX_RESOURCE_COMMANDS_PER_INVESTIGATION,
   MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM,
   MAX_RESOURCE_COMMAND_TIMEOUT_MS,
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
@@ -1192,9 +1191,15 @@ describe("Infrastructure AI Agents docs", (): void => {
       expect(flat).toContain(
         `counts as online for ${RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes`,
       );
+      /*
+       * No count of commands: an investigation runs as many as it needs,
+       * within its run's time limit and any limits per run the project sets
+       * (#6440).
+       */
       expect(flat).toContain(
-        `up to ${MAX_RESOURCE_COMMANDS_PER_INVESTIGATION} per investigation, a guard against a runaway loop`,
+        "runs as many commands as the investigation needs, each cited like any other evidence",
       );
+      expect(flat).not.toMatch(/runaway|per investigation, a guard/i);
       expect(flat).toContain(
         `${DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS / 1000} seconds by default and ${
           MAX_RESOURCE_COMMAND_TIMEOUT_MS / 60000

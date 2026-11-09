@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 En webbapp behöver en **Webbläsare**-nyckel, och en mobilapp en **Server**-nyckel: se [Webbläsarkonfiguration](/docs/rum/browser-setup) och [Mobilkonfiguration](/docs/rum/mobile-setup). Exportslutpunkterna avvisar också en felaktig nyckel med `401`, som OTLP-specifikationen kräver, så ett väluppfostrat SDK loggar avvisningen i stället för att försöka igen. Den raden är lätt att missa i webbläsarkonsolen, och den här kontrollen svarar direkt.
 
+OneUptime räknar också vad den avvisar från en nyckel den känner till. Nyckelns sida under **Projektinställningar → Telemetri och APM → Intagningsnycklar** visar under **Avvisad telemetri** vad som avvisats de senaste 30 dagarna, och **Konfigurationskontroll** på applikationens sida **Dokumentation** säger vilken sorts telemetri som avvisas, varför och hur du åtgärdar det. En saknad eller okänd nyckel pekar inte ut något projekt, så inget räknar den: den här kontrollen och `401` är allt som finns.
+
 ## Kontrollera vad som lämnar webbläsaren
 
 Öppna webbläsarens utvecklarverktyg på appens sida, välj fliken Nätverk och filtrera på `otlp`. Du letar efter `POST /otlp/v1/traces` som besvaras med en `2xx`-status.
@@ -121,6 +123,7 @@ Det tomma diagrammet på applikationens **Översikt** säger vilket fall det är
 | **Inga undantag i det här tidsintervallet** eller **Inga loggar i det här tidsintervallet** | Några kom tidigare, och diagrammet säger när den senaste kom. Välj det längre tidsintervall som det erbjuder. |
 | **Inget har kommit från den här appen än** | Ingen telemetri alls kommer in: börja med [Kontrollera nyckeln](#kontrollera-nyckeln). |
 | **OpenTelemetry SDK:t rapporterar inte** | Bara sessionsuppspelning rapporterar från den här appen: konfigurera SDK:t som i [Webbläsarkonfiguration](/docs/rum/browser-setup). |
+| **Undantag avvisas** eller **Loggar avvisas** | OneUptime har avvisat dem efter att den senaste kom in, och diagrammet säger varför och när: nyckeln är avstängd eller har gått ut, den tillåter inte webbplatsens ursprung, en gräns eller budget är förbrukad, eller projektet har ingen betalningsmetod. Dess knapp åtgärdar det: **Välj en annan nyckel**, **Öppna nyckeln**, **Se budgetar** eller **Lägg till en betalningsmetod**. |
 
 Undantag behöver en felhanterare, eftersom SDK:t inte fångar ohanterade fel: [Rapportera ohanterade fel](/docs/rum/browser-setup#rapportera-ohanterade-fel) har koden. Ett fel som en error boundary eller en `try`/`catch` hanterar når aldrig fönstret, så registrera det där du hanterar det, med `span.recordException`.
 

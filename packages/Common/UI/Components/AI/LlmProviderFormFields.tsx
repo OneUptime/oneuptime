@@ -396,11 +396,40 @@ function getLlmProviderAdditionalParamsField(
   };
 }
 
+/*
+ * How long OneUptime waits for the provider to answer one request, under
+ * More fields: empty is the default (120 seconds, 300 for Ollama), which a
+ * slow or self-hosted model may need raised (issue #6438).
+ */
+function getLlmProviderResponseTimeoutField(
+  advancedSection: FormFieldCollapsibleSection<LlmProvider>,
+): Field<LlmProvider> {
+  return {
+    field: {
+      requestTimeoutInSeconds: true,
+    },
+    title: "Response Timeout (Seconds)",
+    description: LlmProviderFormCopy.responseTimeoutDescription,
+    stepId: "connection",
+    fieldType: FormFieldSchemaType.Number,
+    required: false,
+    collapsibleSection: advancedSection,
+    /*
+     * No placeholder: one number is wrong for some provider (Ollama waits
+     * 300 seconds, the rest 120), and the description says both.
+     */
+    validation: {
+      minValue: 10,
+      maxValue: 3600,
+    },
+  };
+}
+
 /**
  * A project's LLM provider (Project Settings > AI > LLM Providers, and a
  * provider's own page): the provider, how to reach it and its name, then
- * under More fields its description, whether it is the project's default
- * and its extra parameters.
+ * under More fields its description, whether it is the project's default,
+ * its extra parameters and how long it is given to answer.
  */
 export const getProjectLlmProviderFormFields: () => Array<
   Field<LlmProvider>
@@ -428,6 +457,7 @@ export const getProjectLlmProviderFormFields: () => Array<
       defaultValue: true,
     },
     getLlmProviderAdditionalParamsField(advancedSection),
+    getLlmProviderResponseTimeoutField(advancedSection),
   ];
 };
 
@@ -449,6 +479,7 @@ export const getGlobalLlmProviderFormFields: (options: {
     ...getLlmProviderMainFields(),
     getLlmProviderDescriptionField(advancedSection),
     getLlmProviderAdditionalParamsField(advancedSection),
+    getLlmProviderResponseTimeoutField(advancedSection),
     ...(options.includeCost
       ? [
           {
