@@ -122,7 +122,8 @@ function response(data: {
   content?: string;
   stopReason?: string;
   toolCalls?: Array<{ id: string; name: string; arguments: JSONObject }>;
-  tokens?: number;
+  // Left out, or undefined when a model's tokens per call are not set: 10.
+  tokens?: number | undefined;
 }): AILogResponse {
   return {
     content: data.content ?? "",
