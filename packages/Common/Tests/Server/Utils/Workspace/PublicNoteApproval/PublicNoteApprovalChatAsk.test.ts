@@ -21,7 +21,9 @@ import UserMicrosoftTeamsService from "../../../../../Server/Services/UserMicros
 import UserNotificationSettingService from "../../../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../../../Server/Services/UserService";
 import UserSlackService from "../../../../../Server/Services/UserSlackService";
-import WorkspaceUserNotificationService from "../../../../../Server/Services/WorkspaceUserNotificationService";
+import WorkspaceUserNotificationService, {
+  WorkspaceSentDirectMessage,
+} from "../../../../../Server/Services/WorkspaceUserNotificationService";
 import logger from "../../../../../Server/Utils/Logger";
 import PublicNoteApprovalEngine, {
   PublicNoteKind,
@@ -32,8 +34,10 @@ import PublicNoteApprovalNotifications, {
 } from "../../../../../Server/Utils/Notes/PublicNoteApprovalNotifications";
 import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import WorkspacePublicNoteApproval, {
+  PublicNoteApprovalButtonValue,
   WorkspaceDirectMessage,
 } from "../../../../../Server/Utils/Workspace/WorkspacePublicNoteApproval";
+import WorkspacePublicNoteApprovalMessages from "../../../../../Server/Utils/Workspace/WorkspacePublicNoteApprovalMessages";
 import { CallRequestMessage } from "../../../../../Types/Call/CallRequest";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { EmailEnvelope } from "../../../../../Types/Email/EmailMessage";
@@ -267,6 +271,45 @@ describe("UserNotificationSettingService.sendUserNotification - an event's own c
     }
   });
 
+  test("each chat's send is told where its copy landed, to keep it (#6317)", async () => {
+    jest.spyOn(UserNotificationSettingService, "findOneBy").mockResolvedValue(
+      settings({
+        alertBySlack: true,
+        alertByMicrosoftTeams: true,
+        alertByMattermost: true,
+      }) as never,
+    );
+    const onSent: AnySpy = jest.fn(async (): Promise<void> => {
+      return undefined;
+    }) as AnySpy;
+
+    await send({ ...askMessage(), onSent: onSent as never });
+
+    expect(sendDm).toHaveBeenCalledTimes(3);
+
+    for (const call of sendDm.mock.calls) {
+      expect((call[0] as { onSent?: unknown }).onSent).toBe(onSent);
+    }
+  });
+
+  test("a message made from the subject and the SMS keeps nothing: there is no copy of the event's own to replace", async () => {
+    jest
+      .spyOn(UserNotificationSettingService, "findOneBy")
+      .mockResolvedValue(settings({ alertBySlack: true }) as never);
+    const onSent: AnySpy = jest.fn() as AnySpy;
+
+    await send({
+      messageBlocks: [],
+      notificationText: "Approval needed",
+      onSent: onSent as never,
+    });
+
+    expect(sendDm).toHaveBeenCalledTimes(1);
+    expect((sendDm.mock.calls[0]![0] as { onSent?: unknown }).onSent).toBe(
+      undefined,
+    );
+  });
+
   test("only the chats a person chose: Mattermost alone, and no other", async () => {
     jest
       .spyOn(UserNotificationSettingService, "findOneBy")
@@ -393,7 +436,13 @@ describe("PublicNoteApprovalNotifications.askApprovers - the chat message", () =
 
     const message: WorkspaceDirectMessage = sent[0]!.data.workspaceMessage;
 
-    expect(sent[1]!.data.workspaceMessage).toBe(message);
+    // The same message for both: only who keeps where it landed is their own.
+    expect(sent[1]!.data.workspaceMessage.messageBlocks).toBe(
+      message.messageBlocks,
+    );
+    expect(sent[1]!.data.workspaceMessage.notificationText).toBe(
+      message.notificationText,
+    );
     expect(message.notificationText).toBe(
       "Approval needed: public note on Incident INC-42 - Checkout is down",
     );
@@ -420,6 +469,66 @@ describe("PublicNoteApprovalNotifications.askApprovers - the chat message", () =
       isEdit: false,
       textDigest: WorkspacePublicNoteApproval.getTextDigest(NOTE_TEXT),
     });
+  });
+
+  /*
+   * Each copy is kept as it is sent (#6317): who it was sent to, and what
+   * its buttons carry - so it can be replaced once the note is decided.
+   */
+  test("each approver's copy is kept as it lands: for them, with what its buttons carry", async () => {
+    const keep: AnySpy = jest
+      .spyOn(WorkspacePublicNoteApprovalMessages, "keep")
+      .mockResolvedValue(undefined as never) as AnySpy;
+
+    await ask(chat());
+
+    const landed: WorkspaceSentDirectMessage = {
+      workspaceType: WorkspaceType.Slack,
+      workspaceProjectId: "T0TEAM",
+      channelId: "D0BOB",
+      messageId: "1760000000.000001",
+    };
+
+    for (const each of sent) {
+      await (each.data.workspaceMessage as WorkspaceDirectMessage).onSent!(
+        landed,
+      );
+    }
+
+    expect(keep).toHaveBeenCalledTimes(2);
+    expect(
+      keep.mock.calls.map((call: Array<any>): string => {
+        return (call[0] as { userId: ObjectID }).userId.toString();
+      }),
+    ).toEqual([BOB_ID, CAROL]);
+
+    for (const call of keep.mock.calls) {
+      const kept: {
+        value: PublicNoteApprovalButtonValue;
+        sent: WorkspaceSentDirectMessage;
+      } = call[0] as never;
+
+      expect(kept.sent).toBe(landed);
+      expect(kept.value).toEqual({
+        kind: PublicNoteKind.Incident,
+        projectId: PROJECT_ID,
+        recordId: INCIDENT_ID,
+        noteId: NOTE_ID,
+        submittedAt: SUBMITTED_AT,
+        stepId: SUPPORT.id,
+        isFinal: false,
+        isEdit: false,
+        textDigest: WorkspacePublicNoteApproval.getTextDigest(NOTE_TEXT),
+      });
+    }
+  });
+
+  test("a step asked with no buttons keeps nothing: there is nothing to replace", async () => {
+    await ask(undefined);
+
+    for (const each of sent) {
+      expect(each.data.workspaceMessage).toBeUndefined();
+    }
   });
 
   test("an edit's message says so, and its buttons say it is an edit", async () => {
@@ -476,8 +585,8 @@ describe("the engine asks with what the message's buttons need", () => {
     startWorld();
   });
 
-  afterEach(() => {
-    restoreWorld();
+  afterEach(async () => {
+    await restoreWorld();
   });
 
   test("a step approved: the next step is asked, its round, its step, and that approving it publishes the note", async () => {

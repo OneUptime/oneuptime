@@ -39,6 +39,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceBase, {
   WorkspaceChannel,
   WorkspaceChannelToCreate,
+  WorkspaceDirectMessageLocation,
   WorkspaceMessageLocation,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
@@ -1605,14 +1606,15 @@ export default class MattermostUtil extends WorkspaceBase {
   /*
    * A direct message from the bot to an account. Its buttons are signed for
    * its own channel (MattermostActionContext): a press in a direct message
-   * names no team.
+   * names no team. Says where it landed: the direct message channel and the
+   * post's id, what an edit of it names.
    */
   @CaptureSpan()
   public static override async sendDirectMessageToUser(data: {
     authToken: string;
     workspaceUserId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
-  }): Promise<void> {
+  }): Promise<WorkspaceDirectMessageLocation | null> {
     const connection: MattermostConnectionData =
       MattermostConnection.fromAuthToken(data.authToken);
 
@@ -1621,7 +1623,7 @@ export default class MattermostUtil extends WorkspaceBase {
       workspaceUserId: data.workspaceUserId,
     });
 
-    await MattermostUtil.postToChannel({
+    const thread: WorkspaceThread = await MattermostUtil.postToChannel({
       connection: connection,
       channelId: channelId,
       post: MattermostUtil.toPost({
@@ -1634,6 +1636,10 @@ export default class MattermostUtil extends WorkspaceBase {
         directMessageChannelId: channelId,
       }),
     });
+
+    return thread.threadId
+      ? { channelId: channelId, messageId: thread.threadId }
+      : null;
   }
 
   // The direct message channel between the bot and an account, made if it has none.
