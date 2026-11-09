@@ -1,6 +1,6 @@
 # Din konto
 
-Din konto er den måde, OneUptime kender dig på: den e-mail og adgangskode, du logger ind med, dit navn og din tidszone, og det, der beskytter dit login. Én konto kan høre til mange projekter, og disse indstillinger følger dig ind i hvert af dem. Hvordan OneUptime kontakter dig, og hvornår du bliver tilkaldt, indstilles i hvert projekt under **Brugerindstillinger**.
+Din konto er den måde, OneUptime kender dig på: den e-mail og adgangskode, du logger ind med, dit navn, din tidszone og dit sprog, og det, der beskytter dit login. Én konto kan høre til mange projekter, og disse indstillinger følger dig ind i hvert af dem. Hvordan OneUptime kontakter dig, og hvornår du bliver tilkaldt, indstilles i hvert projekt under **Brugerindstillinger**.
 
 ```mermaid title="Det, der hører til din konto, og det, hvert projekt gemmer for dig"
 flowchart TB
@@ -11,7 +11,7 @@ flowchart TB
 ```
 
 :::cards
-- [Din profil](#din-profil): Dit navn, din e-mail, din tidszone og dit billede.
+- [Din profil](#din-profil): Dit navn, din e-mail, din tidszone, dit sprog og dit billede.
 - [Log sikkert ind](#log-sikkert-ind): Din adgangskode, login-links, adgangsnøgler og totrinsgodkendelse.
 - [Dine projekter](#dine-projekter): Skift projekt, opret et, og accepter invitationer.
 - [Brugerindstillinger](#det-hvert-projekt-gemmer-for-dig): Hvordan OneUptime kontakter dig i hvert projekt.
@@ -23,7 +23,7 @@ Klik på dit billede øverst til højre i dashboardet.
 
 | Punkt | Hvad det gør |
 | --- | --- |
-| **Profil** | Åbner **Brugerprofil**: dit navn, din e-mail, din tidszone, dit billede og sikkerheden ved dit login. |
+| **Profil** | Åbner **Brugerprofil**: dit navn, din e-mail, din tidszone, dit sprog, dit billede og sikkerheden ved dit login. |
 | **Admin-indstillinger** | Åbner Admin Dashboard. Kun hovedadministratorer på en selvhostet installation ser det. |
 | **Tema** | Vælger dashboardets tema: **Lyst**, **Mørkt** eller **System**, som er lyst eller mørkt, alt efter hvordan din enhed er indstillet. |
 | **Log ud** | Logger dig ud. |
@@ -35,7 +35,7 @@ Klik på dit billede øverst til højre i dashboardet.
 :::steps
 ### Åbn din profil
 
-Klik på dit billede øverst til højre, og vælg **Profil**. Siden **Oversigt** åbner på kortet **Grundlæggende oplysninger**: dit navn, din e-mail og din tidszone.
+Klik på dit billede øverst til højre, og vælg **Profil**. Siden **Oversigt** åbner på kortet **Grundlæggende oplysninger**: dit navn, din e-mail, din tidszone og dit sprog.
 
 ### Rediger dine oplysninger
 
@@ -44,6 +44,7 @@ Klik på **Rediger Bruger**, og ret det, du har brug for:
 - **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, bekræfter du den nye adresse igen.
 - **Fulde navn**: det navn, dit team ser overalt i OneUptime.
 - **Tidszone**: den tidszone, dashboardet viser og læser tider i, og den, der bruges til tiderne i notifikationer til dig.
+- **Sprog**: sproget i dashboardet i alle browsere, du logger ind i, og i dine vagttilkald. Ikke valgt: dine tilkald er på engelsk, og dashboardet følger din browser.
 
 Klik på **Gem ændringer**.
 
@@ -146,9 +147,9 @@ Du kan høre til så mange projekter, du vil. Projektvælgeren øverst til venst
 
 ## Sprog og tema
 
-Begge gemmes i din browser, ikke på din konto, så indstil dem igen i en anden browser eller på en anden enhed. De bevares, når du logger ud, så på en delt computer starter den næste person med dine indstillinger.
+Dit tema gemmes i din browser, så indstil det igen i en anden browser eller på en anden enhed. Dit sprog gemmes på din konto, så snart du vælger det, og alle browsere, du logger ind i, starter på det. De bevares, når du logger ud, så på en delt computer starter den næste person med dine indstillinger.
 
-- **Sprog**: dashboardet starter på din browsers sprog. Brug sprogmenuen nederst på hver side for at skifte. Denne dokumentation har sin egen sprogmenu øverst.
+- **Sprog**: dashboardet starter på din browsers sprog. Brug sprogmenuen nederst på hver side for at skifte. Dit valg gemmes på din konto, ligesom **Sprog** på din profil, og OneUptime skriver dine vagttilkald på det. Se [Sproget i dine tilkald](/docs/notifications/index#sproget-i-dine-tilkald). Denne dokumentation har sin egen sprogmenu øverst.
 - **Tema**: vælg **Lyst**, **Mørkt** eller **System** i brugermenuen. **System** er lyst eller mørkt, alt efter hvordan din enhed er indstillet, og skifter med den; alle browsere starter med det. Login-siderne bruger samme tema.
 
 ## Slet din konto

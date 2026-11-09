@@ -318,6 +318,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "The edit dialog of a shared calendar link's settings card, one page as the personal link's is: two switches and two day counts that the card lists, plus the minimum gap, which shows only while coverage gaps are switched on. Someone who opens Edit came to change one of them; as three steps (one of them a single switch) they first had to find which.",
   },
+  {
+    file: `${DASHBOARD}/Pages/Global/UserProfile/Index.tsx`,
+    form: "CardModelDetail: User Profile > Basic Info",
+    reason:
+      "The edit dialog of a person's own Basic Info card, one page: the email, the name, the time zone and the language the card lists - four short fields, two of them pickers. Someone who opens Edit User came to change one of them; as steps they would first have to find which, and the time zone and the language, read together on the card, would sit apart.",
+  },
 ];
 
 /*

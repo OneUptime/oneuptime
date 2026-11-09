@@ -61,6 +61,10 @@ import TwoFactorWrongCodes from "../Utils/TwoFactorWrongCodes";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { getPasswordValidationError } from "../../Types/Password";
+import {
+  normalizeUserLanguageToStore,
+  UNSUPPORTED_USER_LANGUAGE_MESSAGE,
+} from "../../Types/UserLanguage";
 import UserAuthenticationStatus from "../../Types/UserAuthenticationStatus";
 import TwoFactorAuthStatus from "../../Types/TwoFactorAuthStatus";
 import Name from "../../Types/Name";
@@ -414,7 +418,37 @@ export class Service extends DatabaseService<Model> {
 
     Attribution.boundUtmColumns(createBy.data as unknown as JSONObject);
 
+    this.normalizeLanguage(createBy.data as unknown as JSONObject);
+
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * A person's language as it is stored (Types/UserLanguage): one of the
+   * codes OneUptime writes in ("de-AT" is "de"), or none for an empty one.
+   * A language OneUptime does not write in is refused, so nobody is written
+   * to in English by mistake. Left alone when the write does not name one:
+   * only what the write itself carries is rewritten, so the caller is held
+   * to their own permission to write it (HookWritesCallersMayMake).
+   */
+  private normalizeLanguage(data: JSONObject | undefined): void {
+    if (!data) {
+      return;
+    }
+
+    if (data["language"] === undefined) {
+      return;
+    }
+
+    const language: string | null | undefined = normalizeUserLanguageToStore(
+      data["language"],
+    );
+
+    if (language === undefined) {
+      throw new BadDataException(UNSUPPORTED_USER_LANGUAGE_MESSAGE);
+    }
+
+    data["language"] = language;
   }
 
   @CaptureSpan()
@@ -519,6 +553,8 @@ export class Service extends DatabaseService<Model> {
     ) {
       throw new BadDataException("enableTwoFactorAuth must be a boolean.");
     }
+
+    this.normalizeLanguage(updateBy.data as unknown as JSONObject);
 
     let carryForward: Array<Model> = [];
 

@@ -3,7 +3,15 @@ import {
   OnCallPersonPageNotice,
   getOnCallPersonPageCallSentence,
   getOnCallPersonPageLead,
+  getOnCallPersonPagePager,
 } from "./OnCallPersonPage";
+import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "../Translator";
 
 /*
  * A PAGE THAT KEEPS PEOPLE INFORMED: AN OBSERVER'S PAGE.
@@ -52,7 +60,34 @@ import {
  *
  * This file holds the rule and its words, for the server, the Dashboard and
  * the docs tests. It imports nothing that needs a server or React.
+ *
+ * The words an observer's page sends the people it pages are written in
+ * each one's language (Types/UserLanguage), as a responder's page's are
+ * (OnCallPageWords): each function that writes one takes the translator of
+ * their language, and writes English - exactly as before - without one.
+ * Each sentence is whole for each kind of record, so a language words
+ * "this incident" and "this alert" with its own articles. A call's words
+ * stay English: a call is spoken by a voice that speaks English.
  */
+
+// The translator of what nobody asked to read in another language: English.
+let englishTranslator: Translator | null = null;
+
+const getEnglishTranslator: () => Translator = (): Translator => {
+  if (!englishTranslator) {
+    englishTranslator = createTranslator(undefined, DEFAULT_LANGUAGE);
+  }
+
+  return englishTranslator;
+};
+
+// A fixed sentence in a translator's language, or as written without one.
+const say: (translator: Translator, sentence: string) => string = (
+  translator: Translator,
+  sentence: string,
+): string => {
+  return translator.translateText(sentence) || sentence;
+};
 
 // A run, a person's page or a step of one, read with what tells them apart.
 export interface OnCallObserverPageRun {
@@ -105,6 +140,78 @@ export type OnCallObserverPageRecordKind =
   | "incident episode"
   | "alert episode";
 
+// Every sentence an observer's page writes about one kind of record.
+interface OnCallObserverPageKindWords {
+  // What the page tells the people it reaches (getOnCallObserverPageNotice).
+  notice: string;
+  // Why the person gets the email (getOnCallObserverPageEmailWhy).
+  emailWhy: string;
+  // A push's body, with the project and without (getOnCallObserverPagePushBody).
+  pushBodyInProject: string;
+  pushBody: string;
+}
+
+const OBSERVER_KIND_WORDS: Readonly<
+  Record<OnCallObserverPageRecordKind, OnCallObserverPageKindWords>
+> = {
+  incident: {
+    notice: translationKey(
+      "You're paged as an observer, to keep you informed: the people responding stay on this incident. Acknowledging this page only says you've seen it. It does not acknowledge the incident.",
+    ),
+    emailWhy: translationKey(
+      "You are receiving this email because you are paged as an observer: to keep you informed about this incident while the people responding stay on it.",
+    ),
+    pushBodyInProject: translationKey(
+      "{{lead}}, in {{project}}: the people responding stay on this incident. Tap to view.",
+    ),
+    pushBody: translationKey(
+      "{{lead}}: the people responding stay on this incident. Tap to view.",
+    ),
+  },
+  alert: {
+    notice: translationKey(
+      "You're paged as an observer, to keep you informed: the people responding stay on this alert. Acknowledging this page only says you've seen it. It does not acknowledge the alert.",
+    ),
+    emailWhy: translationKey(
+      "You are receiving this email because you are paged as an observer: to keep you informed about this alert while the people responding stay on it.",
+    ),
+    pushBodyInProject: translationKey(
+      "{{lead}}, in {{project}}: the people responding stay on this alert. Tap to view.",
+    ),
+    pushBody: translationKey(
+      "{{lead}}: the people responding stay on this alert. Tap to view.",
+    ),
+  },
+  "incident episode": {
+    notice: translationKey(
+      "You're paged as an observer, to keep you informed: the people responding stay on this incident episode. Acknowledging this page only says you've seen it. It does not acknowledge the incident episode.",
+    ),
+    emailWhy: translationKey(
+      "You are receiving this email because you are paged as an observer: to keep you informed about this incident episode while the people responding stay on it.",
+    ),
+    pushBodyInProject: translationKey(
+      "{{lead}}, in {{project}}: the people responding stay on this incident episode. Tap to view.",
+    ),
+    pushBody: translationKey(
+      "{{lead}}: the people responding stay on this incident episode. Tap to view.",
+    ),
+  },
+  "alert episode": {
+    notice: translationKey(
+      "You're paged as an observer, to keep you informed: the people responding stay on this alert episode. Acknowledging this page only says you've seen it. It does not acknowledge the alert episode.",
+    ),
+    emailWhy: translationKey(
+      "You are receiving this email because you are paged as an observer: to keep you informed about this alert episode while the people responding stay on it.",
+    ),
+    pushBodyInProject: translationKey(
+      "{{lead}}, in {{project}}: the people responding stay on this alert episode. Tap to view.",
+    ),
+    pushBody: translationKey(
+      "{{lead}}: the people responding stay on this alert episode. Tap to view.",
+    ),
+  },
+};
+
 /*
  * What an observer's page tells the people it reaches, after what it is
  * about, in every notification with room for a sentence: an email, a push,
@@ -112,8 +219,9 @@ export type OnCallObserverPageRecordKind =
  */
 export function getOnCallObserverPageNotice(
   kind: OnCallObserverPageRecordKind,
+  translator: Translator = getEnglishTranslator(),
 ): string {
-  return `You're paged as an observer, to keep you informed: the people responding stay on this ${kind}. Acknowledging this page only says you've seen it. It does not acknowledge the ${kind}.`;
+  return say(translator, OBSERVER_KIND_WORDS[kind].notice);
 }
 
 /*
@@ -165,16 +273,41 @@ export const ON_CALL_OBSERVER_PAGE_CALL_ANSWERED: string =
  */
 export function getOnCallObserverPageLead(
   personPage?: OnCallPersonPageNotice | undefined,
+  translator: Translator = getEnglishTranslator(),
 ): string {
   if (!personPage) {
-    return "You're paged as an observer";
+    return say(translator, translationKey("You're paged as an observer"));
   }
 
-  const asWhat: string = (personPage.teamName || "").trim()
-    ? "as observers"
-    : "as an observer";
+  /*
+   * Who was paged as the person who paged named them, as a person's page
+   * says it (getOnCallPersonPageLead) - each a whole sentence, so a
+   * language puts "as an observer" where its grammar wants it.
+   */
+  const teamName: string = (personPage.teamName || "").trim();
 
-  return `${getOnCallPersonPageLead(personPage)} ${asWhat}`;
+  if (teamName) {
+    return translator.translateTemplate(
+      "{{pager}} paged {{team}} as observers",
+      { pager: getOnCallPersonPagePager(personPage), team: teamName },
+    );
+  }
+
+  const scheduleName: string = (personPage.scheduleName || "").trim();
+
+  if (scheduleName) {
+    return translator.translateTemplate(
+      "{{pager}} paged whoever is on call in {{schedule}} as an observer",
+      {
+        pager: getOnCallPersonPagePager(personPage),
+        schedule: scheduleName,
+      },
+    );
+  }
+
+  return translator.translateTemplate("{{pager}} paged you as an observer", {
+    pager: getOnCallPersonPagePager(personPage),
+  });
 }
 
 /*
@@ -187,12 +320,31 @@ export function getOnCallObserverPageEmailSubject(data: {
   recordLabel: string;
   recordTitle: string;
   personPage?: OnCallPersonPageNotice | undefined;
+  translator?: Translator | undefined;
 }): string {
-  const about: string = `${data.recordLabel.trim()} - ${data.recordTitle.trim()}`;
+  const translator: Translator = data.translator || getEnglishTranslator();
+  const personPage: OnCallPersonPageNotice | undefined = data.personPage;
 
-  return data.personPage
-    ? `FYI (observer): ${getOnCallPersonPageLead(data.personPage)} about ${about}`
-    : `FYI (observer): ${about}`;
+  if (personPage) {
+    return translator.translateTemplate(
+      "FYI (observer): {{lead}} about {{record}} - {{title}}",
+      {
+        lead: composedValue((sentence: Translator): string => {
+          return getOnCallPersonPageLead(personPage, sentence);
+        }),
+        record: data.recordLabel.trim(),
+        title: data.recordTitle.trim(),
+      },
+    );
+  }
+
+  return translator.translateTemplate(
+    "FYI (observer): {{record}} - {{title}}",
+    {
+      record: data.recordLabel.trim(),
+      title: data.recordTitle.trim(),
+    },
+  );
 }
 
 /*
@@ -202,8 +354,14 @@ export function getOnCallObserverPageEmailSubject(data: {
 export function getOnCallObserverPagePushTitle(data: {
   recordLabel: string;
   recordTitle: string;
+  translator?: Translator | undefined;
 }): string {
-  return `FYI: ${data.recordLabel.trim()}: ${data.recordTitle.trim()}`;
+  const translator: Translator = data.translator || getEnglishTranslator();
+
+  return translator.translateTemplate("FYI: {{record}}: {{title}}", {
+    record: data.recordLabel.trim(),
+    title: data.recordTitle.trim(),
+  });
 }
 
 /*
@@ -214,29 +372,61 @@ export function getOnCallObserverPagePushBody(data: {
   kind: OnCallObserverPageRecordKind;
   projectName: string;
   personPage?: OnCallPersonPageNotice | undefined;
+  translator?: Translator | undefined;
 }): string {
+  const translator: Translator = data.translator || getEnglishTranslator();
   const project: string = data.projectName.trim();
+  const words: OnCallObserverPageKindWords = OBSERVER_KIND_WORDS[data.kind];
 
-  return `${getOnCallObserverPageLead(data.personPage)}${
-    project ? `, in ${project}` : ""
-  }: the people responding stay on this ${data.kind}. Tap to view.`;
+  return translator.translateTemplate(
+    project ? words.pushBodyInProject : words.pushBody,
+    {
+      lead: composedValue((sentence: Translator): string => {
+        return getOnCallObserverPageLead(data.personPage, sentence);
+      }),
+      project: project,
+    },
+  );
 }
 
 /*
  * The words before a text message's link, where a responder's says "Ack or
  * escalate:": opening the link only marks the page seen.
  */
-export const ON_CALL_OBSERVER_PAGE_SMS_ACTION: string = "Mark seen:";
+export const ON_CALL_OBSERVER_PAGE_SMS_ACTION: string =
+  translationKey("Mark seen:");
 
 // What a text message says after the product, before what it is about.
-export const ON_CALL_OBSERVER_PAGE_SMS_LEAD: string = "FYI (observer)";
+export const ON_CALL_OBSERVER_PAGE_SMS_LEAD: string =
+  translationKey("FYI (observer)");
+
+// The two in a person's language (Utils/Sms/OnCallPageSms).
+export function getOnCallObserverPageSmsAction(
+  translator: Translator = getEnglishTranslator(),
+): string {
+  return say(translator, ON_CALL_OBSERVER_PAGE_SMS_ACTION);
+}
+
+export function getOnCallObserverPageSmsLead(
+  translator: Translator = getEnglishTranslator(),
+): string {
+  return say(translator, ON_CALL_OBSERVER_PAGE_SMS_LEAD);
+}
 
 /*
  * The link that answers an observer's page, in a chat or Telegram message,
  * an email's button and the page it opens, where a responder's says
  * "Acknowledge": answering only says they have seen it.
  */
-export const ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL: string = "I've seen it";
+export const ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL: string =
+  translationKey("I've seen it");
+
+// The link in a person's language: "Ich habe es gesehen".
+export function getOnCallObserverPageAcknowledgeLabel(
+  translator: Translator = getEnglishTranslator(),
+): string {
+  return say(translator, ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL);
+}
 
 /*
  * "I'VE SEEN IT" FROM THE MOBILE APP: the person answers their own page as
@@ -282,8 +472,9 @@ export interface OnCallObserverPageSeenAnswer {
  */
 export function getOnCallObserverPageEmailWhy(
   kind: OnCallObserverPageRecordKind,
+  translator: Translator = getEnglishTranslator(),
 ): string {
-  return `You are receiving this email because you are paged as an observer: to keep you informed about this ${kind} while the people responding stay on it.`;
+  return say(translator, OBSERVER_KIND_WORDS[kind].emailWhy);
 }
 
 /*
