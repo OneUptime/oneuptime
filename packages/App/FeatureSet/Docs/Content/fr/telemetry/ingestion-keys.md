@@ -122,6 +122,8 @@ Pour changer de secret sans perdre de données, créez une deuxième clé, bascu
 
 Une requête refusée reçoit un statut et une phrase qui dit pourquoi.
 
+La page de la clé tient aussi le compte : **Télémétrie refusée** liste ce qui a été refusé de la clé ces 30 derniers jours, pourquoi, sur quel point de terminaison, combien de requêtes et quand. Une clé absente ou mal saisie n'appartient à aucun projet, donc rien ne la compte.
+
 | Réponse | Ce qu'elle signifie |
 | --- | --- |
 | `401` avec `Missing ingestion token` | La requête n'a pas de clé. Envoyez-la dans `x-oneuptime-token`. |

@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 Un'app web ha bisogno di una chiave **Browser**, e un'app mobile di una chiave **Server**: vedi [Configurazione browser](/docs/rum/browser-setup) e [Configurazione mobile](/docs/rum/mobile-setup). Anche gli endpoint di esportazione rifiutano una chiave errata con `401`, come richiede la specifica OTLP, quindi un SDK ben fatto registra il rifiuto invece di riprovare. Quella riga passa facilmente inosservata nella console del browser, e questa verifica risponde direttamente.
 
+OneUptime conta anche ciò che rifiuta da una chiave che conosce. La pagina della chiave, in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**, mostra in **Telemetria rifiutata** ciò che è stato rifiutato negli ultimi 30 giorni, e la **Verifica della configurazione** nella pagina **Documentazione** dell'applicazione dice quale tipo di telemetria viene rifiutato, perché e come rimediare. Una chiave mancante o sconosciuta non indica alcun progetto, quindi nulla la conta: questa verifica e il `401` sono tutto ciò che c'è.
+
 ## Verificare cosa esce dal browser
 
 Apri gli strumenti per sviluppatori del browser sulla pagina dell'app, seleziona la scheda Rete e filtra per `otlp`. Cerchi `POST /otlp/v1/traces` con una risposta di stato `2xx`.
@@ -121,6 +123,7 @@ Il grafico vuoto nella **Panoramica** dell'applicazione dice di quale caso si tr
 | **Nessuna eccezione in questo intervallo di tempo** o **Nessun registro in questo intervallo di tempo** | Ne sono arrivati prima, e il grafico dice quando è arrivato l'ultimo. Scegli l'intervallo più lungo che propone. |
 | **Da questa app non è ancora arrivato nulla** | Non arriva telemetria di alcun tipo: inizia da [Verificare la chiave](#verificare-la-chiave). |
 | **L'SDK di OpenTelemetry non sta inviando dati** | Da questa app invia dati solo la riproduzione delle sessioni: configura l'SDK come in [Configurazione browser](/docs/rum/browser-setup). |
+| **Le eccezioni vengono rifiutate** o **I registri vengono rifiutati** | OneUptime li ha rifiutati dopo l'arrivo dell'ultimo, e il grafico dice perché e quando: la chiave è disattivata o scaduta, non consente l'origine del tuo sito, un limite o un budget è esaurito, oppure il progetto non ha un metodo di pagamento. Il suo pulsante rimedia: **Scegli un'altra chiave**, **Apri la chiave**, **Vedi i budget** o **Aggiungi un metodo di pagamento**. |
 
 Le eccezioni hanno bisogno di un gestore degli errori, perché l'SDK non cattura gli errori non gestiti: [Segnalare gli errori non gestiti](/docs/rum/browser-setup#segnalare-gli-errori-non-gestiti) contiene il codice. Un errore gestito da un error boundary o da un `try`/`catch` non raggiunge mai la finestra, quindi registralo dove lo gestisci, con `span.recordException`.
 

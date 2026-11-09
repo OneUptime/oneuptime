@@ -470,6 +470,7 @@ import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
 import UserWebAuthn from "./UserWebAuthn";
 
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
+import TelemetryIngestionKeyRefusal from "./TelemetryIngestionKeyRefusal";
 
 import TelemetryException from "./TelemetryException";
 import TelemetryExceptionActivity from "./TelemetryExceptionActivity";
@@ -1130,6 +1131,7 @@ const AllModelTypes: Array<{
   UserWebAuthn,
 
   TelemetryIngestionKey,
+  TelemetryIngestionKeyRefusal,
 
   TelemetryException,
   TelemetryExceptionActivity,

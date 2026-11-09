@@ -1,6 +1,8 @@
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import TelemetryIngestionKeyRefusal from "Common/Models/DatabaseModels/TelemetryIngestionKeyRefusal";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import OneUptimeDate from "Common/Types/Date";
+import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -10,7 +12,15 @@ import ObjectID from "Common/Types/ObjectID";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { RUM_WEB_VITALS_LOOKBACK_DAYS } from "./RumSignalDiagnosis";
+import {
+  RUM_SETUP_CHECK_RECENT_WINDOW_MS,
+  RUM_WEB_VITALS_LOOKBACK_DAYS,
+} from "./RumSignalDiagnosis";
+import {
+  INGEST_REFUSAL_SELECT,
+  IngestRefusalFact,
+  toIngestRefusalFacts,
+} from "../../Telemetry/IngestRefusalFacts";
 import { getWebVitalMetricNames, toDateOrNull } from "./RumSignalFacts";
 
 /*
@@ -27,6 +37,10 @@ import { getWebVitalMetricNames, toDateOrNull } from "./RumSignalFacts";
  * - Web Vitals: the newest point of a vital's metric in the past 30 days -
  *   one ClickHouse row, whose sort key leads with the metric's name and the
  *   application, so the read touches only those granules.
+ *
+ * - refusals (issue #6378): what the project's ingestion keys were refused
+ *   in the past day - a row per key, reason and surface, a handful even on
+ *   a busy project, through the lastRefusedAt index.
  *
  * A read that fails throws: the caller says "couldn't be checked" rather
  * than "none".
@@ -81,4 +95,30 @@ export async function fetchNewestRumWebVitalAt(data: {
   });
 
   return toDateOrNull(result.data[0]?.time);
+}
+
+/*
+ * What the project's ingestion keys were refused in the past day, newest
+ * first, with each key's name and type. A reader who may not read the
+ * project's keys may not read this either: the read throws, and the caller
+ * goes on without it.
+ */
+export async function fetchRecentIngestRefusals(
+  now: Date,
+): Promise<Array<IngestRefusalFact>> {
+  const result: ListResult<TelemetryIngestionKeyRefusal> =
+    await ModelAPI.getList<TelemetryIngestionKeyRefusal>({
+      modelType: TelemetryIngestionKeyRefusal,
+      query: {
+        lastRefusedAt: new GreaterThanOrEqual<Date>(
+          new Date(now.getTime() - RUM_SETUP_CHECK_RECENT_WINDOW_MS),
+        ),
+      },
+      select: INGEST_REFUSAL_SELECT,
+      sort: { lastRefusedAt: SortOrder.Descending },
+      limit: 100,
+      skip: 0,
+    });
+
+  return toIngestRefusalFacts(result.data);
 }

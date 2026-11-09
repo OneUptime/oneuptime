@@ -23,6 +23,7 @@ import { TelemetryIngestionBudgetValueKind } from "Common/Types/Telemetry/Teleme
 import TelemetryIngestionBudgetStatusCard from "Common/UI/Components/TelemetryIngestionBudget/TelemetryIngestionBudgetStatusCard";
 import { fetchProjectTelemetryIngestionBudgetStatus } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 import IngestionKeyBudgetSummary from "../../Components/TelemetryIngestionBudget/IngestionKeyBudgetSummary";
+import IngestionKeyRefusalsCard from "../../Components/Telemetry/IngestionKeyRefusalsCard";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -384,6 +385,12 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
           modelId: modelId,
         }}
       />
+
+      {/*
+       * What the ingest endpoints refused from this key lately, and why
+       * (issue #6378): the other half of Last Used At's question.
+       */}
+      <IngestionKeyRefusalsCard ingestionKeyId={modelId} />
 
       {/*
        * The key's own ingestion budgets: a daily budget and, folded into a
