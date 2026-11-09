@@ -32,11 +32,15 @@ const PAGE: string = "ai/ask-ai";
 const BULLET_FILE: string = "src/billing/charge.ts";
 const FILE: string = "config/servers.ts";
 
-const lineFor: (template: typeof AI_ACTION_PLURAL_LINES.codeFilesValuesHidden) => AIActionSentence = (
+const lineFor: (
+  template: typeof AI_ACTION_PLURAL_LINES.codeFilesValuesHidden,
+) => AIActionSentence = (
   template: typeof AI_ACTION_PLURAL_LINES.codeFilesValuesHidden,
 ): AIActionSentence => {
   return aiActionPluralSentence(template, 1, {
-    files: aiActionList([aiActionSentence(AI_ACTION_CODE_FILE, { file: FILE })]),
+    files: aiActionList([
+      aiActionSentence(AI_ACTION_CODE_FILE, { file: FILE }),
+    ]),
   });
 };
 

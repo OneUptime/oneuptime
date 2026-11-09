@@ -388,16 +388,17 @@ type HoldingPlaceholdersFunction = (
  * in them, in its order: the only files whose text on the branch is read.
  * A change that holds none - nearly every one - reads no text at all.
  */
-export const getCodeChangesHoldingPlaceholders: HoldingPlaceholdersFunction =
-  (changes: ReadonlyArray<CodeHostFileWrite>): Array<string> => {
-    return changes
-      .filter((change: CodeHostFileWrite): boolean => {
-        return holdsCodePlaceholder(change.content, REDACTION_PLACEHOLDERS);
-      })
-      .map((change: CodeHostFileWrite): string => {
-        return change.filePath;
-      });
-  };
+export const getCodeChangesHoldingPlaceholders: HoldingPlaceholdersFunction = (
+  changes: ReadonlyArray<CodeHostFileWrite>,
+): Array<string> => {
+  return changes
+    .filter((change: CodeHostFileWrite): boolean => {
+      return holdsCodePlaceholder(change.content, REDACTION_PLACEHOLDERS);
+    })
+    .map((change: CodeHostFileWrite): string => {
+      return change.filePath;
+    });
+};
 
 type ReadTextsNowFunction = (data: {
   filePaths: Array<string>;
@@ -550,84 +551,83 @@ type LinesWithValuesHiddenFunction = (data: {
  * ever added between two lines, so what follows a changed run starts with
  * a later line's number.
  */
-export const findLinesWithValuesHidden: LinesWithValuesHiddenFunction =
-  (data: {
-    numberedLines: ReadonlyArray<string>;
-    firstLine: number;
-    prefixLength: number;
-    shown: string;
-  }): CodeFileLinesWithValuesHidden => {
-    const lines: Array<AIChatLineRange> = [];
-    const placeholders: Set<string> = new Set<string>();
+export const findLinesWithValuesHidden: LinesWithValuesHiddenFunction = (data: {
+  numberedLines: ReadonlyArray<string>;
+  firstLine: number;
+  prefixLength: number;
+  shown: string;
+}): CodeFileLinesWithValuesHidden => {
+  const lines: Array<AIChatLineRange> = [];
+  const placeholders: Set<string> = new Set<string>();
 
-    if (data.shown === "" || data.numberedLines.length === 0) {
-      return { lines: [], placeholders: [] };
+  if (data.shown === "" || data.numberedLines.length === 0) {
+    return { lines: [], placeholders: [] };
+  }
+
+  const parts: Array<string> = data.shown.split("\n");
+  const lineByPrefix: Map<string, number> = new Map<string, number>();
+
+  data.numberedLines.forEach((line: string, index: number): void => {
+    lineByPrefix.set(line.slice(0, data.prefixLength), index);
+  });
+
+  let line: number = 0;
+  let part: number = 0;
+
+  while (part < parts.length && line < data.numberedLines.length) {
+    if (parts[part] === data.numberedLines[line]) {
+      line++;
+      part++;
+      continue;
     }
 
-    const parts: Array<string> = data.shown.split("\n");
-    const lineByPrefix: Map<string, number> = new Map<string, number>();
+    // The run the serializer changed ends where a later line's number starts a part.
+    let next: number = part + 1;
+    let end: number = data.numberedLines.length;
 
-    data.numberedLines.forEach((line: string, index: number): void => {
-      lineByPrefix.set(line.slice(0, data.prefixLength), index);
-    });
+    while (next < parts.length) {
+      const at: number | undefined = lineByPrefix.get(
+        parts[next]!.slice(0, data.prefixLength),
+      );
 
-    let line: number = 0;
-    let part: number = 0;
-
-    while (part < parts.length && line < data.numberedLines.length) {
-      if (parts[part] === data.numberedLines[line]) {
-        line++;
-        part++;
-        continue;
+      if (at !== undefined && at > line) {
+        end = at;
+        break;
       }
 
-      // The run the serializer changed ends where a later line's number starts a part.
-      let next: number = part + 1;
-      let end: number = data.numberedLines.length;
-
-      while (next < parts.length) {
-        const at: number | undefined = lineByPrefix.get(
-          parts[next]!.slice(0, data.prefixLength),
-        );
-
-        if (at !== undefined && at > line) {
-          end = at;
-          break;
-        }
-
-        next++;
-      }
-
-      const written: Array<CodeFilePlaceholderWritten> =
-        findCodePlaceholdersWritten({
-          content: parts.slice(part, next).join("\n"),
-          branchContent: data.numberedLines.slice(line, end).join("\n"),
-          placeholders: REDACTION_PLACEHOLDERS,
-        });
-
-      if (written.length > 0) {
-        const first: number = data.firstLine + line;
-        const previous: AIChatLineRange | undefined = lines[lines.length - 1];
-
-        // Runs side by side read as one: "lines 1-3".
-        if (previous && previous.last === first - 1) {
-          previous.last = data.firstLine + end - 1;
-        } else {
-          lines.push({ first: first, last: data.firstLine + end - 1 });
-        }
-
-        for (const placeholder of written) {
-          placeholders.add(placeholder.placeholder);
-        }
-      }
-
-      line = end;
-      part = next;
+      next++;
     }
 
-    // The placeholders in the order the model meets them.
-    return { lines: lines, placeholders: Array.from(placeholders) };
-  };
+    const written: Array<CodeFilePlaceholderWritten> =
+      findCodePlaceholdersWritten({
+        content: parts.slice(part, next).join("\n"),
+        branchContent: data.numberedLines.slice(line, end).join("\n"),
+        placeholders: REDACTION_PLACEHOLDERS,
+      });
+
+    if (written.length > 0) {
+      const first: number = data.firstLine + line;
+      const previous: AIChatLineRange | undefined = lines[lines.length - 1];
+
+      // Runs side by side read as one: "lines 1-3".
+      if (previous && previous.last === first - 1) {
+        previous.last = data.firstLine + end - 1;
+      } else {
+        lines.push({ first: first, last: data.firstLine + end - 1 });
+      }
+
+      for (const placeholder of written) {
+        placeholders.add(placeholder.placeholder);
+      }
+    }
+
+    line = end;
+    part = next;
+  }
+
+  // The placeholders in the order the model meets them.
+  return { lines: lines, placeholders: Array.from(placeholders) };
+};
 
 type ProposedOnFunction = (data: {
   branchName: string;
@@ -1113,11 +1113,11 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
     return all.indexOf(filePath) === index;
   });
   // Only values hidden (issue #6364): nothing there is unread but them.
-  const onlyHidden: boolean = hidden.length > 0 && data.findings.every(
-    (finding: CodeFileUnseenFinding): boolean => {
+  const onlyHidden: boolean =
+    hidden.length > 0 &&
+    data.findings.every((finding: CodeFileUnseenFinding): boolean => {
       return finding.unseen === CodeFileUnseen.ValuesHidden;
-    },
-  );
+    });
   const lines: Array<string> = [
     onlyHidden
       ? isCommit

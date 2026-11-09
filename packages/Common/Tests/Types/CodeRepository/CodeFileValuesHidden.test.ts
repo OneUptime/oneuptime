@@ -54,9 +54,12 @@ describe("counting a placeholder", () => {
     ["[redacted-ip", IP, 0],
     ["redacted-ip]", IP, 0],
     [`[${IP}]`, IP, 1],
-  ])("%j holds %s %d times", (text: string, placeholder: string, count: number) => {
-    expect(countCodePlaceholder(text, placeholder)).toBe(count);
-  });
+  ])(
+    "%j holds %s %d times",
+    (text: string, placeholder: string, count: number) => {
+      expect(countCodePlaceholder(text, placeholder)).toBe(count);
+    },
+  );
 
   test("an empty placeholder is in no text", () => {
     expect(countCodePlaceholder("anything", "")).toBe(0);
@@ -234,18 +237,29 @@ describe("what a version writes in place of hidden values", () => {
     ["at the very start", `${IP} = a\nb\n`, [range(1, 1)]],
     ["at the very end, no last newline", `a\nb ${IP}`, [range(2, 2)]],
     ["twice on one line", `a ${IP} ${IP}\n`, [range(1, 1)]],
-    ["lines running on", `${IP}\n${IP}\n${IP}\nx\n${IP}\n`, [range(1, 3), range(5, 5)]],
-    ["CRLF, as read_code_file numbers it", `a\r\nb ${IP}\r\nc\r\n${IP}\r\n`, [range(2, 2), range(4, 4)]],
+    [
+      "lines running on",
+      `${IP}\n${IP}\n${IP}\nx\n${IP}\n`,
+      [range(1, 3), range(5, 5)],
+    ],
+    [
+      "CRLF, as read_code_file numbers it",
+      `a\r\nb ${IP}\r\nc\r\n${IP}\r\n`,
+      [range(2, 2), range(4, 4)],
+    ],
     ["after empty lines", `\n\n\n${IP}\n`, [range(4, 4)]],
-  ])("its lines: %s", (_case: string, content: string, lines: Array<AIChatLineRange>) => {
-    expect(
-      findCodePlaceholdersWritten({
-        content,
-        branchContent: "",
-        placeholders: [IP],
-      })[0]!.lines,
-    ).toEqual(lines);
-  });
+  ])(
+    "its lines: %s",
+    (_case: string, content: string, lines: Array<AIChatLineRange>) => {
+      expect(
+        findCodePlaceholdersWritten({
+          content,
+          branchContent: "",
+          placeholders: [IP],
+        })[0]!.lines,
+      ).toEqual(lines);
+    },
+  );
 });
 
 describe("a stored finding's placeholders, read as untrusted", () => {
@@ -280,7 +294,10 @@ describe("a stored finding's placeholders, read as untrusted", () => {
     ["an entry that is a list", [[IP, 2, 0]]],
     ["a placeholder missing", entry({ placeholder: undefined })],
     ["an empty placeholder", entry({ placeholder: "" })],
-    ["a placeholder longer than any", entry({ placeholder: `[${"x".repeat(80)}]` })],
+    [
+      "a placeholder longer than any",
+      entry({ placeholder: `[${"x".repeat(80)}]` }),
+    ],
     ["a placeholder that is not text", entry({ placeholder: 4 })],
     ["written not a number", entry({ written: "2" })],
     ["written not whole", entry({ written: 1.5 })],
@@ -288,7 +305,10 @@ describe("a stored finding's placeholders, read as untrusted", () => {
     ["written NaN", entry({ written: Number.NaN })],
     ["written Infinity", entry({ written: Number.POSITIVE_INFINITY })],
     ["on the branch as often as written", entry({ written: 2, onBranch: 2 })],
-    ["on the branch more often than written", entry({ written: 2, onBranch: 3 })],
+    [
+      "on the branch more often than written",
+      entry({ written: 2, onBranch: 3 }),
+    ],
     ["on the branch below zero", entry({ onBranch: -1 })],
     ["no lines", entry({ lines: [] })],
     ["lines not a list", entry({ lines: "1-2" })],
@@ -380,7 +400,10 @@ describe("what a change was proposed on keeps of a finding of hidden values", ()
     );
 
     expect(read!.unseen).toEqual([
-      { filePath: "config/servers.ts", unseen: CodeFileUnseen.ChangedSinceRead },
+      {
+        filePath: "config/servers.ts",
+        unseen: CodeFileUnseen.ChangedSinceRead,
+      },
     ]);
   });
 
@@ -396,7 +419,10 @@ describe("what a change was proposed on keeps of a finding of hidden values", ()
             { placeholder: IP, written: 1, onBranch: 0, lines: [range(1, 1)] },
           ],
         },
-        { filePath: "config/servers.ts", unseen: CodeFileUnseen.ChangedSinceRead },
+        {
+          filePath: "config/servers.ts",
+          unseen: CodeFileUnseen.ChangedSinceRead,
+        },
       ],
     });
 

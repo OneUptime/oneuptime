@@ -219,7 +219,9 @@ describe("right to left, list separators, and a language not worded yet", () => 
         "config/servers.ts、config/mail.ts",
       );
       // No "one" form: the general form names the one file, counted as 1.
-      expect(describeAIActionSentence(lineOf(1), translator)).toContain(oneFile);
+      expect(describeAIActionSentence(lineOf(1), translator)).toContain(
+        oneFile,
+      );
     },
   );
 

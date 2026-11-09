@@ -175,7 +175,6 @@ export const findCodePlaceholdersWritten: FindWrittenFunction = (data: {
   );
 };
 
-
 /*
  * The most placeholders a stored finding may name: more than redaction
  * writes kinds of.

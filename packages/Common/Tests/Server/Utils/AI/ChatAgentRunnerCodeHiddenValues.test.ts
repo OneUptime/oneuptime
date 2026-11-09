@@ -103,7 +103,10 @@ const startRepository: (files?: Record<string, string>) => void = (
   repository = makeRepository({
     files: {
       main: { [SERVERS]: ON_BRANCH, "README.md": "# checkout\n" },
-      "fix/login": files || { [SERVERS]: ON_BRANCH, "README.md": "# checkout\n" },
+      "fix/login": files || {
+        [SERVERS]: ON_BRANCH,
+        "README.md": "# checkout\n",
+      },
     },
   });
 };
@@ -360,7 +363,9 @@ describe("Ask to act: the card says the version writes placeholders where values
         { answer: response({ toolCalls: [READ_CALL] }) },
         {
           answer: response({
-            toolCalls: [COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }])],
+            toolCalls: [
+              COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }]),
+            ],
           }),
         },
       ],
@@ -389,7 +394,9 @@ describe("Ask to act: the card says the version writes placeholders where values
         { answer: response({ toolCalls: [READ_CALL] }) },
         {
           answer: response({
-            toolCalls: [COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }])],
+            toolCalls: [
+              COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }]),
+            ],
           }),
         },
       ],
@@ -403,12 +410,15 @@ describe("Ask to act: the card says the version writes placeholders where values
     });
 
     expect(repository.commits).toHaveLength(1);
-    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(RETRIES_FIVE);
+    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
+      RETRIES_FIVE,
+    );
     expect(actionOf(spies).status).toBe(AIChatToolActionStatus.Executed);
   });
 
   test("the file's own placeholder text, kept: the card as it always was", async () => {
-    const tests: string = 'expect(redact("host x")).toBe("host [redacted-ip]");\n';
+    const tests: string =
+      'expect(redact("host x")).toBe("host [redacted-ip]");\n';
     startRepository({ "Tests/Redact.test.ts": tests });
     const spies: Spies = installSpies({
       turns: [
@@ -418,7 +428,10 @@ describe("Ask to act: the card says the version writes placeholders where values
               {
                 id: "call-read",
                 name: "read_code_file",
-                arguments: { filePath: "Tests/Redact.test.ts", branchName: "fix/login" },
+                arguments: {
+                  filePath: "Tests/Redact.test.ts",
+                  branchName: "fix/login",
+                },
               },
             ],
           }),
@@ -453,7 +466,10 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
         {
           answer: response({
             toolCalls: [
-              COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }], "call-hidden"),
+              COMMIT_CALL(
+                [{ filePath: SERVERS, content: RETRIES_FIVE }],
+                "call-hidden",
+              ),
             ],
           }),
         },
@@ -472,7 +488,13 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
           answer: response({
             toolCalls: [
               COMMIT_CALL(
-                [{ filePath: "README.md", content: "# checkout\n\nRetries: set RETRIES = 5 in config/servers.ts.\n" }],
+                [
+                  {
+                    filePath: "README.md",
+                    content:
+                      "# checkout\n\nRetries: set RETRIES = 5 in config/servers.ts.\n",
+                  },
+                ],
                 "call-readme",
               ),
             ],
@@ -480,7 +502,8 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
         },
         {
           answer: response({
-            content: "I could not change config/servers.ts: set RETRIES = 5 there yourself.",
+            content:
+              "I could not change config/servers.ts: set RETRIES = 5 there yourself.",
           }),
         },
       ],
@@ -503,9 +526,11 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
     // config/servers.ts as it was, every value kept; the README committed.
     expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(ON_BRANCH);
     expect(repository.commits).toHaveLength(1);
-    expect(repository.commits[0]!.files.map((file: { filePath: string }) => {
-      return file.filePath;
-    })).toEqual(["README.md"]);
+    expect(
+      repository.commits[0]!.files.map((file: { filePath: string }) => {
+        return file.filePath;
+      }),
+    ).toEqual(["README.md"]);
 
     const actions: Array<AIChatToolAction> = toolActionsOf(spies);
     expect(
@@ -536,7 +561,9 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
         { answer: response({ toolCalls: [READ_CALL] }) },
         {
           answer: response({
-            toolCalls: [COMMIT_CALL([{ filePath: SERVERS, content: withoutValues }])],
+            toolCalls: [
+              COMMIT_CALL([{ filePath: SERVERS, content: withoutValues }]),
+            ],
           }),
         },
       ],
@@ -560,7 +587,10 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
           return {
             answer: response({
               toolCalls: [
-                COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }], `call-${attempt}`),
+                COMMIT_CALL(
+                  [{ filePath: SERVERS, content: RETRIES_FIVE }],
+                  `call-${attempt}`,
+                ),
               ],
             }),
           };
@@ -621,7 +651,9 @@ describe("in a later turn: of what the change writes, wherever the read was", ()
       turns: [
         {
           answer: response({
-            toolCalls: [COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }])],
+            toolCalls: [
+              COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }]),
+            ],
           }),
         },
       ],
