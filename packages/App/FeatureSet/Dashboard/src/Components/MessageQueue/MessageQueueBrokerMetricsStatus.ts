@@ -82,7 +82,7 @@ export type MessageQueueBrokerMetricReason =
    * not ask for it.
    */
   | "notRequested"
-  // notCollected: its receiver leaves it off unless turned on.
+  // notCollected: a level its receiver leaves off unless turned on.
   | "offByDefault"
   // stopped: it arrived in the lookback, and the others still arrive.
   | "stoppedWhileOthersArrive";
@@ -284,15 +284,19 @@ export function getMessageQueueBrokerMetricsStatus(data: {
           state = "nothingToReport";
           reason = "onlyWithActivity";
         }
+      } else if (!everyPeriod) {
+        /*
+         * A count that never arrived had no activity, or is not collected:
+         * nothing tells the two apart, so it is never called missing.
+         */
+        state = "nothingToReport";
+        reason = "onlyWithActivity";
       } else if (!descriptor.enabledByDefault) {
         state = "notCollected";
         reason = "offByDefault";
-      } else if (everyPeriod) {
+      } else {
         state = "notCollected";
         reason = "notRequested";
-      } else {
-        state = "nothingToReport";
-        reason = "onlyWithActivity";
       }
 
       return {
@@ -450,9 +454,11 @@ export function getMessageQueueNamespaceFinding(data: {
         totalsFromCloudConnection || series.fromCloudConnection;
       continue;
     }
-    if (entity !== destination) {
-      otherEntities.add(entity);
+    if (entity === destination) {
+      // It names this very queue: neither "others only" nor "totals only".
+      return null;
     }
+    otherEntities.add(entity);
   }
 
   if (otherEntities.size > 0) {

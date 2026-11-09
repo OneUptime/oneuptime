@@ -26,7 +26,12 @@ import { MESSAGE_QUEUE_LATE_METRIC_MINUTES } from "Common/Server/Utils/Telemetry
  *   - the queue's telemetry is never filtered by an attribute, its counters
  *     are turned into rates in a .ts module (RateChartReloadWiring sweeps
  *     .tsx components for computeCounterRate), and the Create monitor link
- *     is built only through the alert templates' query and view builders.
+ *     is built only through the alert templates' query and view builders;
+ *   - the one read without the queue's key — what an Azure queue's
+ *     namespace sent, for the Broker metrics card — filters by the scope
+ *     attribute alone and is made only while none of the queue's metrics
+ *     arrives (shouldReadMessageQueueNamespace); the card's week of
+ *     arrivals is read under the key, through its cache.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -138,8 +143,14 @@ describe("the queue Overview's data loading", () => {
       "}, [telemetryScope, timeRange, telemetryRefreshCount]);",
     );
     expect(effect).toContain("telemetryInFlightRef.current = true;");
-    // The answer, the name lookup after it, and the failure all check it.
-    expect(countOf(effect, "if (ignore) { return; }")).toBe(3);
+    /*
+     * The answer, the two reads after it (the services' names, the
+     * namespace's series) and the failure all check it.
+     */
+    expect(countOf(effect, "if (ignore) { return; }")).toBe(4);
+    expect(effect).toContain(
+      "await Promise.all([readServiceNames(), readNamespace()]);",
+    );
     expect(effect).toContain("return () => { ignore = true; };");
   });
 
@@ -312,6 +323,47 @@ describe("the queue's telemetry queries", () => {
     );
   });
 
+  test("the one read without the key: an Azure namespace's series, only while nothing of the queue's arrives", () => {
+    const read: string = between(
+      QUERIES,
+      "export async function fetchMessageQueueNamespaceSeries(",
+      "export function findMessageQueueCatalogMetric(",
+    );
+    // Its only filter beyond the project, the time and the names.
+    expect(read).toContain(
+      "attributes: { [scopeKeys[0]]: new Search<string>(namespace) },",
+    );
+    expect(read).not.toContain("entityKeys:");
+    expect(read).toContain("aggregationInterval: AggregationInterval.Total,");
+    // The Overview makes it only when the status says nothing arrives.
+    const namespace: string = between(
+      OVERVIEW,
+      "const readNamespace: () => Promise<void> =",
+      "await Promise.all([readServiceNames(), readNamespace()]);",
+    );
+    expect(namespace).toContain("!shouldReadMessageQueueNamespace({");
+    expect(
+      namespace.indexOf("!shouldReadMessageQueueNamespace({"),
+    ).toBeLessThan(
+      namespace.indexOf("await fetchMessageQueueNamespaceSeries({"),
+    );
+    expect(countOf(OVERVIEW, "fetchMessageQueueNamespaceSeries(")).toBe(1);
+
+    // The week of arrivals: under the key, through the page's cache.
+    const arrivals: string = between(
+      QUERIES,
+      "export async function fetchMessageQueueBrokerMetricArrivals(",
+      "export const MESSAGE_QUEUE_BROKER_METRIC_ARRIVALS_TTL_MS",
+    );
+    expect(arrivals).toContain("entityKeys: entityKeys,");
+    expect(arrivals).not.toContain("attributes:");
+    expect(arrivals).toContain("groupBy: { name: true },");
+    expect(OVERVIEW).toContain(
+      "fetchMessageQueueBrokerMetricArrivalsCached({ projectId, keys, metrics: catalog, cache: brokerArrivalsCacheRef.current, })",
+    );
+    expect(countOf(OVERVIEW, "fetchMessageQueueBrokerMetricArrivals(")).toBe(0);
+  });
+
   test("an empty key set is never an empty Includes", () => {
     expect(SCOPE).toContain(
       "if (!isMessageQueueScoped(keys)) { return null; } return new Includes([...(keys as ReadonlyArray<string>)]);",
@@ -388,9 +440,13 @@ describe("Create monitor", () => {
     expect(OVERVIEW).toContain("identity={identity}");
     // The queue's identity decides whether its broker metrics can reach it.
     expect(SECTION).toContain(
-      "getMessageQueueBrokerMetricsGuidance( props.messagingSystem, props.identity, )",
+      "getMessageQueueBrokerMetricsGuidance(props.messagingSystem, props.identity)",
     );
     expect(SECTION).toContain("{guidance.reachesQueue ? ( <AppLink");
+    // And so whether the Broker metrics card is drawn at all.
+    expect(SECTION).toContain(
+      "metricsStatus && (hasData || guidance.reachesQueue) ? ( <MessageQueueBrokerMetricsCard",
+    );
   });
 
   test("the hint beside Create monitor is built from the criteria Monitor Create builds", () => {

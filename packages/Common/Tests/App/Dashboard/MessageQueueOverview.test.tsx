@@ -1809,6 +1809,28 @@ describe("a queue only its broker reports", () => {
     ).toHaveTextContent("Needs consumer traces");
   });
 
+  test("throttled requests and no error count: they stand under the Errors tile's dash", async () => {
+    const base: Scenario = serviceBusScenario();
+    const metrics: Scenario["metrics"] = { ...base.metrics };
+    delete metrics["azure_servererrors_total"];
+    delete metrics["azure_usererrors_total"];
+    scenario = { ...base, metrics };
+    getItemMock.mockResolvedValue(serviceBusRow());
+
+    await renderLoaded();
+
+    const errors: HTMLElement = tile("Errors");
+    expect(within(errors).getByText("—")).toBeInTheDocument();
+    expect(
+      within(errors).getByText("broker metrics; 48 requests throttled"),
+    ).toBeInTheDocument();
+    expect(within(errors).queryByRole("progressbar")).toBeNull();
+    expect(errors.querySelector("a")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID_STRING}/queues/${MODEL_ID_STRING}/metrics`,
+    );
+  });
+
   test("the Messages chart draws the broker's lines, named by their source", async () => {
     scenario = serviceBusScenario();
     getItemMock.mockResolvedValue(serviceBusRow());

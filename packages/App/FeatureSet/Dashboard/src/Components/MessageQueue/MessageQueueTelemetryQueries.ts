@@ -1954,7 +1954,7 @@ export async function fetchMessageQueueNamespaceSeries(data: {
   const namespace: string = (data.namespace || "").trim();
   const names: Array<string> = uniqueMetricNamesOf(data.metrics);
   const scopeKeys: Array<string> = [];
-  const entityKeys: Array<string> = [];
+  const destinationKeys: Array<string> = [];
   for (const descriptor of data.metrics) {
     for (const key of descriptor.scopeAttributes || []) {
       if (!scopeKeys.includes(key)) {
@@ -1962,8 +1962,8 @@ export async function fetchMessageQueueNamespaceSeries(data: {
       }
     }
     for (const key of descriptor.destinationAttributes) {
-      if (!entityKeys.includes(key)) {
-        entityKeys.push(key);
+      if (!destinationKeys.includes(key)) {
+        destinationKeys.push(key);
       }
     }
   }
@@ -1974,7 +1974,7 @@ export async function fetchMessageQueueNamespaceSeries(data: {
   const groupKeys: Array<string> = [];
   for (const key of [
     ...scopeKeys,
-    ...entityKeys,
+    ...destinationKeys,
     MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY,
   ]) {
     if (!groupKeys.includes(key)) {
@@ -2011,7 +2011,7 @@ export async function fetchMessageQueueNamespaceSeries(data: {
           : {};
       series.push({
         namespace: stringAttributeOf(attributes, scopeKeys),
-        entity: stringAttributeOf(attributes, entityKeys),
+        entity: stringAttributeOf(attributes, destinationKeys),
         fromCloudConnection:
           stringAttributeOf(attributes, [
             MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY,

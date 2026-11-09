@@ -98,6 +98,13 @@ export interface MessageQueueOverviewFigures {
    * null when it reported none.
    */
   throttled: MessageQueueBrokerFigure | null;
+  /*
+   * The broker figure the Errors tile reads: its errors when its figure is
+   * the broker's, or — no span at all and no error count of the broker's —
+   * the requests the broker throttled, which stand under its dash. Null when
+   * the tile reads spans, or nothing.
+   */
+  errorsTileBroker: MessageQueueBrokerFigure | null;
   // Whether any figure (and so a line of the Messages chart) is the broker's.
   usesBrokerMetrics: boolean;
   /*
@@ -349,11 +356,14 @@ export function getMessageQueueOverviewFigures(data: {
     }
   }
 
+  const throttled: MessageQueueBrokerFigure | null = brokerOf("throttled");
+
   return {
     published: published,
     consumed: consumed,
     errors: errors,
-    throttled: brokerOf("throttled"),
+    throttled: throttled,
+    errorsTileBroker: errors.broker || (hasSpans ? null : throttled),
     usesBrokerMetrics:
       published.source === "broker" ||
       consumed.source === "broker" ||
@@ -461,7 +471,9 @@ export function getMessageQueueBrokerErrorsSublabel(
 
 /**
  * What a broker figure's tile means, for its (i): which of the system's
- * metrics it reads, and why it reads them rather than spans.
+ * metrics it reads, and why it reads them rather than spans. A throttled
+ * figure is drawn only under the Errors tile's dash (errorsTileBroker), so
+ * its text says why that tile has no number.
  */
 export function getMessageQueueBrokerFigureDescription(
   figure: MessageQueueBrokerFigure,
@@ -499,7 +511,7 @@ export function getMessageQueueBrokerFigureDescription(
       );
     default:
       return translator.translateTemplate(
-        "Requests {{system}} throttled on this queue in the selected range ({{metrics}}).",
+        "No traced application uses this queue, and {{system}} sent no error count for it in the selected range, so the tile has no number. Under it: the requests {{system}} throttled ({{metrics}}).",
         values,
       );
   }

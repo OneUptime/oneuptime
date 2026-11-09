@@ -677,7 +677,7 @@ const MessageQueueOverview: FunctionComponent<
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: telemetryLoading,
-      sublabel: figures.errors.broker
+      sublabel: figures.errorsTileBroker
         ? getMessageQueueBrokerErrorsSublabel(figures, translator)
         : hasSpans
           ? translator.translatePlural(
@@ -692,15 +692,15 @@ const MessageQueueOverview: FunctionComponent<
               },
             )
           : undefined,
-      percent: figures.errors.broker ? undefined : m.errorRatePercent,
+      percent: figures.errorsTileBroker ? undefined : m.errorRatePercent,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
-      to: figures.errors.broker
+      to: figures.errorsTileBroker
         ? populate(PageMap.MESSAGE_QUEUE_VIEW_METRICS)
         : undefined,
-      description: figures.errors.broker
+      description: figures.errorsTileBroker
         ? getMessageQueueBrokerFigureDescription(
-            figures.errors.broker,
+            figures.errorsTileBroker,
             q.messagingSystem,
             translator,
           )
