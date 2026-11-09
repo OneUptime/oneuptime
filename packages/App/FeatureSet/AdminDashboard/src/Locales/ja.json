@@ -1064,6 +1064,8 @@
   "e.g. Production OpenAI": "例: 本番用 OpenAI",
   "What this provider is for.": "このプロバイダーの用途。",
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "すべてのリクエストでプロバイダーに送る追加の JSON パラメーター ({\"temperature\": 0.2} など)。モデルが必要としない限り空欄のままにします。",
+  "Response Timeout (Seconds)": "応答タイムアウト (秒)",
+  "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "1 回のリクエストに対するプロバイダーの応答を待つ秒数。空欄なら 120 (Ollama は 300)。低速なモデルやセルフホストのモデルでは大きくしてください。",
   "Never put keys here.": "ここにキーは入れないでください。",
   "Your deployment's name, exactly as Foundry shows it.": "デプロイの名前。Foundry の表示どおりに入力します。",
   "{{name}} (default)": "{{name}}（デフォルト）",

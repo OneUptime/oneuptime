@@ -13,6 +13,7 @@ import {
 } from "Common/UI/Components/AI/LlmProviderFormFields";
 import {
   getLlmProviderShownModelName,
+  getLlmProviderShownResponseTimeout,
   getLlmProviderShownValue,
   getLlmProviderTypeCopy,
 } from "Common/UI/Components/AI/LlmProviderFormCopy";
@@ -180,6 +181,29 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
                       value: item.baseUrl,
                       defaultValue: getLlmProviderTypeCopy(item.llmType)
                         ?.defaultBaseUrl,
+                      translator: translator,
+                    })}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
+                requestTimeoutInSeconds: true,
+              },
+              title: "Response Timeout (Seconds)",
+              fieldType: FieldType.Element,
+              /*
+               * Left empty, the provider's default - "120 (default)" -
+               * where a failed run's notice sends its reader to raise it
+               * (issue #6438).
+               */
+              getElement: (item: LlmProvider): ReactElement => {
+                return (
+                  <span>
+                    {getLlmProviderShownResponseTimeout({
+                      requestTimeoutInSeconds: item.requestTimeoutInSeconds,
+                      llmType: item.llmType,
                       translator: translator,
                     })}
                   </span>

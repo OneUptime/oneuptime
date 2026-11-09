@@ -757,16 +757,24 @@ test.describe("what a run read, in its details", () => {
     await line.getByTestId("ai-context-activity-view-button").click();
     await expect(dialog(page)).toContainText("AI context this run read");
 
+    /*
+     * Eight searches: with starting and the line, ten rows, two more than
+     * the eight the feed draws - so the line goes under "Show 2 earlier
+     * steps". A search is one row: the model call that chose it answered,
+     * and is no row of its own (issue #6437).
+     */
     await page.evaluate(() => {
       (
         window as unknown as {
           __aiContextFixture: { addSteps: (count: number) => void };
         }
-      ).__aiContextFixture.addSteps(6);
+      ).__aiContextFixture.addSteps(8);
     });
 
     // The line has left the feed; the notes are still open, whole.
-    await expect(page.getByTestId("live-steps")).toContainText("earlier step");
+    await expect(
+      page.getByTestId("live-steps").getByTestId("activity-show-earlier"),
+    ).toHaveText("Show 2 earlier steps");
     await expect(line).toHaveCount(0);
     await expect(dialog(page)).toBeVisible();
     await expect(
