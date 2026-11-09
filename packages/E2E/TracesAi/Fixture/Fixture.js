@@ -187,6 +187,15 @@ async function handleApi(method, options) {
     );
   }
 
+  /*
+   * The explorers' daily ingestion budget banner: no budget is modelled, so
+   * the read fails the way it does on a server without the figures, and the
+   * banner stays away. An empty answer would be read as a status.
+   */
+  if (url.includes("/telemetry-ingestion-budget")) {
+    return new HTTPErrorResponse(404, { message: "Not modelled" }, {});
+  }
+
   return ok({});
 }
 

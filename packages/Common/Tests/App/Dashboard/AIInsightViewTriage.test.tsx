@@ -261,6 +261,15 @@ describe("AI insight detail — triage activity", () => {
     expect(within(activity).getByText("Searching logs")).toBeVisible();
     expect(screen.getByText("· 3 rows · 1.5s")).toBeVisible();
     expect(screen.queryByText(RCA)).not.toBeInTheDocument();
+    /*
+     * Only the steps, under the card's own heading: no chat message's
+     * avatar, bordered bubble or "Investigating…" title around them.
+     */
+    expect(
+      within(activity).queryByText("Investigating…"),
+    ).not.toBeInTheDocument();
+    expect(activity.querySelector(".rounded-xl")).toBeNull();
+    expect(activity.querySelector(".bg-gray-900")).toBeNull();
   });
 
   test("a queued triage without an RCA keeps its status and activity", async () => {
