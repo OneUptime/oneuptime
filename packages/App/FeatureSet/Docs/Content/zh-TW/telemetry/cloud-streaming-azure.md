@@ -1,6 +1,6 @@
 # 串流 Azure Monitor 指標和日誌
 
-已連線的 Azure 訂用帳戶可以把 Azure Monitor 指標和資源日誌串流到 OneUptime。診斷設定把它們傳送到你訂用帳戶中的事件中樞，OneUptime 每分鐘讀取這些事件中樞：關鍵指標會在 Azure Monitor 取得後幾分鐘內抵達，不必等連線的下一次讀取；資源日誌則以 OneUptime 日誌的形式抵達，每筆都歸檔在它所涉及的資源下。在 Azure Cloud Shell 中執行一個指令即可完成設定，無需執行任何東西。
+已連線的 Azure 訂用帳戶可以把 Azure Monitor 指標和資源日誌串流到 OneUptime。診斷設定把它們傳送到你訂用帳戶中的事件中樞，OneUptime 每分鐘讀取這些事件中樞：大多數關鍵指標會在 Azure Monitor 取得後幾分鐘內抵達，不必等連線的下一次讀取；資源日誌則以 OneUptime 日誌的形式抵達，每筆都歸檔在它所涉及的資源下。在 Azure Cloud Shell 中執行一個指令即可完成設定，無需執行任何東西。
 
 :::cards
 - [運作方式](#運作方式): 診斷設定傳送到每個區域的事件中樞，由 OneUptime 讀取。
@@ -22,7 +22,7 @@ flowchart TB
 
 - **每個區域一個事件中樞。** 診斷設定只能傳送到資源所在區域的事件中樞，因此指令會在你的資源所在的每個區域建立一個 Event Hubs 命名空間，全部放在同一個資源群組中，並把每個資源的診斷設定指向其所在區域的事件中樞。
 - **由 OneUptime 讀取。** Azure Monitor 只會傳送到事件中樞、儲存體帳戶或 Log Analytics 工作區，從不傳送到你的位址：由 OneUptime 讀取的事件中樞，是你無需執行任何東西的方式。OneUptime 以連線自己的應用程式身分登入，該應用程式只能讀取這些事件中樞。
-- **讀取會把串流的指標交給串流。** 當串流在某個區域傳送某種資源類型的關鍵指標時，連線的讀取會停止寫入這些指標，因此不會有資料點被計算兩次。讀取會繼續找出資源、它們的狀態和變更，並在 15 分鐘沒有事件後重新接手這些指標。
+- **讀取會把串流的指標交給串流。** 當串流在某個區域傳送某種資源類型的關鍵指標時，連線的讀取會停止寫入串流所攜帶的那些指標，因此不會有資料點被計算兩次，並繼續寫入[串流無法攜帶的那些](#抵達的內容)。讀取會繼續找出資源、它們的狀態和變更，並在 15 分鐘沒有事件後重新接手這些指標。
 - **OneUptime 無法讀取時也不會遺失任何資料。** 事件會在事件中樞裡等待 OneUptime 讀取，只要事件中樞仍保留著它們；OneUptime 會記住每個分割區讀到哪裡，從停下的地方繼續。
 
 ## 開始之前
@@ -41,7 +41,7 @@ flowchart TB
 
 ### 選擇要串流的內容
 
-**指標** 每分鐘串流每個資源的每個關鍵指標：也就是 OneUptime 為每個資源繪製圖表並據以評估它的指標。**指標和日誌** 再加上每個資源自己的日誌，也就是 Azure 為它保留的每個類別；**日誌** 只串流資源日誌。
+**指標** 每分鐘串流每個資源的關鍵指標，也就是 OneUptime 為每個資源繪製圖表並據以評估它的指標，但[診斷設定無法傳送的那些](#抵達的內容)除外，連線會繼續讀取它們。**指標和日誌** 再加上每個資源自己的日誌，也就是 Azure 為它保留的每個類別；**日誌** 只串流資源日誌。
 
 ### 開啟讀取
 
@@ -75,7 +75,20 @@ flowchart TB
 | 資源日誌 | 抵達日誌瀏覽器中連線的遙測服務下，訂用帳戶、區域和類別作為屬性 |
 | OneUptime 認得的資源的日誌 | 也會抵達該資源：它在雲端中的頁面會多出一個 **日誌** 索引標籤 |
 
-串流傳送的是連線每分鐘讀取的關鍵指標。連線以較粗粒度讀取的指標，例如儲存體帳戶的已用容量，仍由讀取負責。日誌依資源的 ARM ID 歸檔在該資源下，以 `cloud.resource_id` 攜帶，並把類別、作業、結果和屬性保留為屬性，例如 `azure.category`。
+串流傳送的是連線每分鐘讀取的關鍵指標。其餘的仍由讀取依排程繼續寫入：連線以較粗粒度讀取的指標，例如容器登錄的已用儲存體，以及診斷設定無法傳送的每個關鍵指標，也就是 Azure Monitor 支援的指標清單在 DS Export 欄中標示為無法匯出的指標：
+
+- 虛擬機器和擴展集：`Network In Total`、`Network Out Total`。
+- 磁碟：`Composite Disk Read Bytes/sec`、`Composite Disk Write Bytes/sec`、`Composite Disk Read Operations/sec`、`Composite Disk Write Operations/sec`。
+- Azure Cosmos DB 帳戶：`TotalRequests`、`TotalRequestUnits`、`NormalizedRUConsumption`、`ServerSideLatency`。
+- 儲存體帳戶：`UsedCapacity`。
+- AKS 叢集：`kube_pod_status_ready`。
+- 應用程式閘道：`ApplicationGatewayTotalTime`、`Throughput`。
+- 防火牆：`Throughput`。
+- NAT 閘道：`ByteCount`、`SNATConnectionCount`、`DatapathAvailability`。
+
+Service Bus 或 Event Hubs 命名空間不會串流任何指標。讀取依每個佇列、主題和事件中樞讀取它的關鍵指標，命名空間本身的總計是它們的總和；而診斷設定只傳送命名空間的總計，而且完全不傳送 Service Bus 命名空間 6 個關鍵指標中的 4 個，或 Event Hubs 命名空間 4 個中的 2 個。因此無論是否串流，讀取都會寫入全部這些指標，不會有訊息被計算兩次。
+
+日誌依資源的 ARM ID 歸檔在該資源下，以 `cloud.resource_id` 攜帶，並把類別、作業、結果和屬性保留為屬性，例如 `azure.category`。
 
 虛擬機器、擴展集、磁碟、網路介面、虛擬網路、私人端點、NAT 閘道、DNS 區域和 App Service 方案不會傳送自己的資源日誌，因此它們的頁面沒有 **日誌** 索引標籤。儲存體帳戶的日誌是其各項服務的日誌，容器應用程式的日誌是其環境的日誌。
 
