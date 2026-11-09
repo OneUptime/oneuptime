@@ -550,7 +550,31 @@ describe("McpRunToolkit: call_mcp_tool", () => {
     expect(fake.calls).toHaveLength(1);
   });
 
-  test("stops at the run's cap on calls", async () => {
+  /*
+   * A run used to stop at 40 calls to the external MCP servers. Now (issue
+   * #6440) it makes as many as it needs: the run's own limits hold it.
+   */
+  test("has no cap on calls by default: a run makes past the old 40", async () => {
+    const fake: FakeMcpServer = await startServer();
+    const kit: McpRunToolkit = toolkit({ servers: [stored(fake)] });
+
+    for (let index: number = 0; index < 45; index++) {
+      const outcome: ToolCallOutcome = await call(kit, {
+        server: "AWS",
+        tool: "describe_instances",
+        arguments: { region: `region-${index}` },
+      });
+
+      expect(outcome.success).toBe(true);
+      expect(outcome.textForLlm).not.toContain("the most MCP tool calls");
+    }
+
+    await kit.close();
+
+    expect(fake.calls).toHaveLength(45);
+  });
+
+  test("stops at a cap on calls its caller set", async () => {
     const fake: FakeMcpServer = await startServer();
     const kit: McpRunToolkit = toolkit({
       servers: [stored(fake)],

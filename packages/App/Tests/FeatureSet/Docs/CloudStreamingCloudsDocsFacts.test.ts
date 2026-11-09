@@ -16,6 +16,12 @@ import {
   GCP_TYPES_WITHOUT_LOGS,
 } from "Common/Types/Cloud/CloudLogGroups";
 import {
+  AZURE_KEY_METRICS,
+  AzureTypeKeyMetrics,
+  getAzureKeyMetrics,
+  isAzureStreamedKeyMetric,
+} from "Common/Types/Cloud/CloudKeyMetrics";
+import {
   CLOUD_STREAM_ACTIVE_WINDOW_MS,
   CLOUD_STREAM_MAX_PREVIOUS_KEYS,
   CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS,
@@ -135,6 +141,43 @@ function valueOf(table: Array<Array<string>>, name: string): string {
   expect({ name, found: Boolean(row) }).toEqual({ name, found: true });
 
   return row![1] as string;
+}
+
+// The paragraph of a page's prose that opens with these words.
+function paragraphStarting(page: string, opening: string): string {
+  const found: string | undefined = prose(page)
+    .split(/\n\s*\n/)
+    .find((block: string): boolean => {
+      return block.trim().startsWith(opening);
+    });
+
+  expect({ opening, found: Boolean(found) }).toEqual({ opening, found: true });
+
+  return found!.trim();
+}
+
+/*
+ * The lines of the block that follows the paragraph of a page's prose that
+ * opens with these words.
+ */
+function blockAfter(page: string, opening: string): Array<string> {
+  const blocks: Array<string> = prose(page).split(/\n\s*\n/);
+  const at: number = blocks.findIndex((block: string): boolean => {
+    return block.trim().startsWith(opening);
+  });
+
+  expect({ opening, found: at >= 0 }).toEqual({ opening, found: true });
+
+  return (blocks[at + 1] || "").trim().split("\n");
+}
+
+// Each piece of inline code in a text, in order.
+function codeSpans(text: string): Array<string> {
+  return Array.from(text.matchAll(/`([^`]+)`/g)).map(
+    (match: RegExpMatchArray): string => {
+      return match[1] as string;
+    },
+  );
 }
 
 function bashFences(page: string): Array<DocsFence> {
@@ -305,6 +348,156 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
     expect(source("table")).toContain("getAzureStreamStopCommand({");
     expect(source("azureSetup")).toContain(
       "getAzureCloudStreamDeleteCommand({",
+    );
+  });
+
+  /*
+   * What a stream never carries, so the reads keep writing it: each key
+   * metric Microsoft's tables say a diagnostic setting cannot export, as
+   * CloudKeyMetrics marks it, type by type, for every type the read does
+   * not split by a dimension. The step and the bullet point at the list.
+   *
+   * A list, not a table: a table cell cannot break a code name, so at
+   * phone width a table of them scrolled inside its frame and cut names
+   * off (23px in English, 54px in German at 390px); a list item wraps.
+   */
+  it("names each key metric a diagnostic setting cannot send, by type, as CloudKeyMetrics marks it", () => {
+    const text: string = prose(page);
+    const lead: string = paragraphStarting(
+      page,
+      "The stream carries the key metrics the connection reads a minute at a time.",
+    );
+    const items: Array<string> = blockAfter(
+      page,
+      "The stream carries the key metrics the connection reads a minute at a time.",
+    );
+    // Each item's resource types, as the page words them.
+    const typesOfRow: Record<string, Array<string>> = {
+      "Virtual machines and scale sets": [
+        "Microsoft.Compute/virtualMachines",
+        "Microsoft.Compute/virtualMachineScaleSets",
+      ],
+      Disks: ["Microsoft.Compute/disks"],
+      "Azure Cosmos DB accounts": ["Microsoft.DocumentDB/databaseAccounts"],
+      "Storage accounts": ["Microsoft.Storage/storageAccounts"],
+      "AKS clusters": ["Microsoft.ContainerService/managedClusters"],
+      "Application gateways": ["Microsoft.Network/applicationGateways"],
+      Firewalls: ["Microsoft.Network/azureFirewalls"],
+      "NAT gateways": ["Microsoft.Network/natGateways"],
+    };
+    const marked: Array<string> = AZURE_KEY_METRICS.filter(
+      (entry: AzureTypeKeyMetrics): boolean => {
+        return (
+          !entry.splitByDimension &&
+          (entry.notExportedByDiagnosticSettings || []).length > 0
+        );
+      },
+    ).map((entry: AzureTypeKeyMetrics): string => {
+      return entry.type;
+    });
+
+    // Each item: the resource type, a colon, and its metrics' names.
+    const rows: Array<{ worded: string; named: Array<string> }> = items.map(
+      (item: string): { worded: string; named: Array<string> } => {
+        const match: RegExpMatchArray | null = item.match(
+          /^- ([^:`]+): (`[^`]+`(?:, `[^`]+`)*)\.$/,
+        );
+
+        expect({ item, listed: Boolean(match) }).toEqual({
+          item,
+          listed: true,
+        });
+
+        return {
+          worded: match![1] as string,
+          named: codeSpans(match![2] as string),
+        };
+      },
+    );
+
+    expect(lead.endsWith("marks No under DS Export:")).toBe(true);
+    expect(
+      rows.map((row: { worded: string }): string => {
+        return row.worded;
+      }),
+    ).toEqual(Object.keys(typesOfRow));
+    expect(Object.values(typesOfRow).flat().sort()).toEqual([...marked].sort());
+
+    for (const row of rows) {
+      const named: Array<string> = row.named;
+
+      for (const type of typesOfRow[row.worded] || []) {
+        const keyMetrics: AzureTypeKeyMetrics | undefined =
+          getAzureKeyMetrics(type);
+
+        expect({ type, named }).toEqual({
+          type,
+          named: keyMetrics?.notExportedByDiagnosticSettings,
+        });
+
+        // The stream writes every other key metric of the type.
+        for (const metric of keyMetrics?.metrics || []) {
+          expect({
+            type,
+            metric,
+            streamed: isAzureStreamedKeyMetric(type, metric),
+          }).toEqual({ type, metric, streamed: !named.includes(metric) });
+        }
+      }
+    }
+
+    expect(text).toContain(
+      "except [those a diagnostic setting cannot send](#what-arrives), which the connection keeps reading",
+    );
+    expect(text).toContain(
+      "stop writing the ones it carries, so no data point is counted twice, and keep writing [the ones it cannot carry](#what-arrives)",
+    );
+  });
+
+  /*
+   * A Service Bus or Event Hubs namespace's key metrics are read for each
+   * queue, topic and event hub, which its own totals add up, while a
+   * diagnostic setting sends only the namespace's totals, and not all of
+   * them: no stream writes any of them, and the page gives the counts.
+   */
+  it("says a Service Bus or Event Hubs namespace streams none of its metrics, and how many a diagnostic setting cannot send", () => {
+    const paragraph: string = paragraphStarting(
+      page,
+      "A Service Bus or Event Hubs namespace streams no metrics.",
+    );
+    const serviceBus: AzureTypeKeyMetrics = getAzureKeyMetrics(
+      "Microsoft.ServiceBus/namespaces",
+    )!;
+    const eventHubs: AzureTypeKeyMetrics = getAzureKeyMetrics(
+      "Microsoft.EventHub/namespaces",
+    )!;
+
+    // The two types the read splits, by queue, topic and event hub.
+    expect(
+      AZURE_KEY_METRICS.filter((entry: AzureTypeKeyMetrics): boolean => {
+        return Boolean(entry.splitByDimension);
+      })
+        .map((entry: AzureTypeKeyMetrics): string => {
+          return entry.type;
+        })
+        .sort(),
+    ).toEqual([eventHubs.type, serviceBus.type].sort());
+
+    for (const keyMetrics of [serviceBus, eventHubs]) {
+      for (const metric of keyMetrics.metrics) {
+        expect({
+          type: keyMetrics.type,
+          metric,
+          streamed: isAzureStreamedKeyMetric(keyMetrics.type, metric),
+        }).toEqual({ type: keyMetrics.type, metric, streamed: false });
+      }
+    }
+
+    expect(paragraph).toContain(
+      `and not ${serviceBus.notExportedByDiagnosticSettings!.length} of a Service Bus namespace's ${serviceBus.metrics.length} key metrics, or ${eventHubs.notExportedByDiagnosticSettings!.length} of an Event Hubs namespace's ${eventHubs.metrics.length}.`,
+    );
+    expect(paragraph).toContain(
+      "So the reads write all of them, streaming or not, and no message is counted twice.",
     );
   });
 

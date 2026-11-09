@@ -1,10 +1,10 @@
 import {
   AWS_KEY_METRICS,
-  AZURE_DIMENSION_ATTRIBUTE_PREFIX,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
   DAILY_PERIOD_SECONDS,
   getAwsStoredMetricName,
+  isAzureStreamedKeyMetricStoredName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { getStreamedMetricKey } from "../../../Types/CloudConnection/CloudStream";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
@@ -28,25 +28,29 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
  *
  * An Azure connection's read is the same, by subscription, region and
  * resource type (an Azure stream's "namespaces"): for each type its event
- * hubs delivered lately, the read leaves out the key metrics it reads a
- * minute at a time (timegrain PT1M), which the stream writes in its place
- * (AzureDiagnosticRecords). A metric read at a coarser grain - an hourly
- * storage capacity - is never the stream's, and the read keeps writing it.
+ * hubs delivered lately, the read leaves out the key metrics the stream
+ * writes in its place (AzureDiagnosticRecords) - those it reads a minute at
+ * a time (timegrain PT1M) that a diagnostic setting exports
+ * (isAzureStreamedKeyMetricStoredName). It keeps writing the rest, which no
+ * stream delivers:
  *
- * Nor is a queue's or topic's own series of a Service Bus or Event Hubs
- * namespace (split by EntityName, metadata_entityname): diagnostic
- * settings export a metric with dimensions "flattened ... and aggregated
- * across dimension values" (Azure Monitor documentation), so the stream
- * writes the namespace's totals only. The read keeps writing each queue's
- * series, which files it on its queue, without the namespace's resource id:
- * the namespace's own charts, monitors and readings then read its totals
- * once, the stream's.
+ *   - a metric read at a coarser grain: an hourly storage capacity;
+ *   - one a diagnostic setting cannot export, "DS Export: No" in
+ *     Microsoft's tables (notExportedByDiagnosticSettings): a virtual
+ *     machine's network totals, a Cosmos DB account's requests;
+ *   - every metric of a Service Bus or Event Hubs namespace, which the read
+ *     splits by queue, topic and event hub (EntityName): those series are
+ *     the namespace's, its totals add them up, and a diagnostic setting
+ *     sends only the namespace's total of a metric - so the stream writes
+ *     none of them, and no queue's messages are counted twice.
+ *
+ * What the read keeps it writes unchanged, on its resource: a streamed
+ * type's metric a stream cannot deliver still reaches the resource's
+ * charts and monitors, and a queue's series still adds to its namespace.
  */
 
 // Azure: the subscription on the read's resources, and the grain a stream writes.
 const AZURE_SUBSCRIPTION_ATTRIBUTE: string = "azuremonitor.subscription_id";
-// The attribute that files an Azure datapoint on its resource.
-const AZURE_RESOURCE_ID_ATTRIBUTE: string = "azuremonitor.resource_id";
 export const AZURE_STREAMED_TIME_GRAIN: string = "PT1M";
 
 const DAILY_KEY_METRICS: ReadonlySet<string> = new Set<string>(
@@ -89,18 +93,6 @@ function readStringAttribute(attributes: JSONArray, key: string): string {
   return "";
 }
 
-// A datapoint without the attribute that files it on its Azure resource.
-function withoutResourceId(point: JSONObject): JSONObject {
-  return {
-    ...point,
-    attributes: readArray(point["attributes"]).filter(
-      (raw: unknown): boolean => {
-        return readObject(raw)["key"] !== AZURE_RESOURCE_ID_ATTRIBUTE;
-      },
-    ),
-  };
-}
-
 /*
  * One read payload ({ resourceMetrics: [...] }) without the datapoints of
  * the streamed namespaces, and how many it left out. Null when nothing is
@@ -135,7 +127,8 @@ export function withoutStreamedMetrics(data: {
       AZURE_SUBSCRIPTION_ATTRIBUTE,
     );
 
-    const isStreamed: (point: unknown) => boolean = (
+    const isStreamed: (metricName: string, point: unknown) => boolean = (
+      metricName: string,
       point: unknown,
     ): boolean => {
       const pointAttributes: JSONArray = readArray(
@@ -149,6 +142,7 @@ export function withoutStreamedMetrics(data: {
         return (
           Boolean(type) &&
           grain.toUpperCase() === AZURE_STREAMED_TIME_GRAIN &&
+          isAzureStreamedKeyMetricStoredName(type, metricName) &&
           data.streamedKeys.has(
             getStreamedMetricKey({
               accountId: subscriptionId,
@@ -169,25 +163,6 @@ export function withoutStreamedMetrics(data: {
         data.streamedKeys.has(
           getStreamedMetricKey({ accountId, region, namespace }),
         )
-      );
-    };
-
-    // A queue's or topic's own series: split by a dimension, never streamed.
-    const isSplitSeries: (point: unknown) => boolean = (
-      point: unknown,
-    ): boolean => {
-      if (!subscriptionId) {
-        return false;
-      }
-
-      return readArray(readObject(point)["attributes"]).some(
-        (raw: unknown): boolean => {
-          const key: unknown = readObject(raw)["key"];
-          return (
-            typeof key === "string" &&
-            key.startsWith(AZURE_DIMENSION_ATTRIBUTE_PREFIX)
-          );
-        },
       );
     };
 
@@ -214,15 +189,11 @@ export function withoutStreamedMetrics(data: {
 
         const series: JSONObject = readObject(metric[shape]);
         const points: JSONArray = readArray(series["dataPoints"]);
-        const keptPoints: JSONArray = [];
-
-        for (const point of points) {
-          if (!isStreamed(point)) {
-            keptPoints.push(point);
-          } else if (isSplitSeries(point)) {
-            keptPoints.push(withoutResourceId(readObject(point)));
-          }
-        }
+        const keptPoints: JSONArray = points.filter(
+          (point: unknown): boolean => {
+            return !isStreamed(name, point);
+          },
+        );
 
         leftOut += points.length - keptPoints.length;
 

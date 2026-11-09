@@ -15,7 +15,6 @@ import CloudLiveRead, {
 } from "../../CloudConnection/CloudLiveRead";
 import {
   DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS,
-  MAX_RESOURCE_COMMANDS_PER_INVESTIGATION,
   MAX_RESOURCE_COMMAND_TIMEOUT_MS,
   ResourceAiAccessStatus,
   ResourceCommandTier,
@@ -87,8 +86,10 @@ export interface InfrastructureInvestigationToolkitOptions {
   aiRunId: ObjectID;
   resources: Array<ResourceAiAccessStatus>;
   /*
-   * Commands one run may send. Defaults to the runaway guard: an
-   * investigation runs as many commands as it needs.
+   * Commands one run may send, when its caller sets a cap. None by default:
+   * an investigation runs as many commands as it needs, held only to the
+   * run's own limits (the project's tool calls per run, loop detection and
+   * the time limit: Types/AI/AIAgentRunLimits).
    */
   maxCommands?: number | undefined;
   /*
@@ -104,9 +105,11 @@ export interface InfrastructureInvestigationToolkitOptions {
    */
   readinessCheck?: "investigation" | "remediation" | undefined;
   /*
-   * When the run's configured time limit ends (epoch milliseconds). Every
-   * command's wait is planned to end before it; absent (the default — no
-   * time limit), commands are only bounded by their own timeouts.
+   * When the run's time limit ends (epoch milliseconds): an investigation's
+   * or a remediation's runner passes it, since every run has one. Every
+   * command's wait is planned to end before it. Absent (an Ask AI answer,
+   * whose loop holds its own time limit between calls), commands are only
+   * bounded by their own timeouts.
    */
   runDeadlineAtMs?: number | undefined;
 }
@@ -299,14 +302,13 @@ export default class InfrastructureInvestigationToolkit {
   }
 
   private buildRunCommandTool(): ObservabilityAssistantExtraTool {
-    const maxCommands: number =
-      this.options.maxCommands ?? MAX_RESOURCE_COMMANDS_PER_INVESTIGATION;
+    const maxCommands: number | undefined = this.options.maxCommands;
 
     return {
       definition: {
         name: RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
         description: `Run ONE read-only command on a linked infrastructure resource through its AI agent and get its output. The resources you may inspect:\n${this.describeReadyResources()}\n\nWhat each kind of resource accepts:\n\n${this.describeReadCommandGuides()}\n\nOne command per call, written as the program followed by its arguments — never a shell line: pipes, redirects, ;, &&, $( ) and sudo are refused. Anything that changes a resource is refused here — this is an investigation — and so is anything that would read credentials; credential-looking values (passwords, tokens, keys, connection strings) are redacted from every output before you see it, so do not spend commands on them. Output is never cut off: a long output shows its first page and tells you how to read the rest with ${READ_TOOL_OUTPUT_TOOL_NAME}. Run as many commands as the investigation needs.${
-          maxCommands < MAX_RESOURCE_COMMANDS_PER_INVESTIGATION
+          maxCommands !== undefined
             ? ` At most ${maxCommands} commands in this run.`
             : ""
         }`,
@@ -331,7 +333,7 @@ export default class InfrastructureInvestigationToolkit {
               type: "number",
               description: `Timeout in milliseconds (default ${DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS}, max ${MAX_RESOURCE_COMMAND_TIMEOUT_MS}).${
                 this.options.runDeadlineAtMs !== undefined
-                  ? " Shortened automatically when the investigation's configured time limit is close."
+                  ? " Shortened automatically when the investigation's time limit is close."
                   : ""
               }`,
             },
@@ -347,9 +349,9 @@ export default class InfrastructureInvestigationToolkit {
 
   private async runCommand(
     args: JSONObject,
-    maxCommands: number,
+    maxCommands: number | undefined,
   ): Promise<ToolCallOutcome> {
-    if (this.commandsRun >= maxCommands) {
+    if (maxCommands !== undefined && this.commandsRun >= maxCommands) {
       return this.failure(
         `This run has already sent ${maxCommands} infrastructure commands, the most one run may send. Finish your analysis with what you have.`,
       );
@@ -467,7 +469,7 @@ export default class InfrastructureInvestigationToolkit {
 
     if (!budget.ok) {
       return this.failure(
-        `Not enough time is left before this investigation's configured time limit to run another infrastructure command (about ${InfrastructureInvestigationToolkit.describeSeconds(
+        `Not enough time is left before this investigation's time limit to run another infrastructure command (about ${InfrastructureInvestigationToolkit.describeSeconds(
           budget.refusal.remainingBudgetMs,
         )} remain; a command needs at least ${InfrastructureInvestigationToolkit.describeSeconds(
           budget.refusal.minimumBudgetMs,

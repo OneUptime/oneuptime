@@ -1377,6 +1377,281 @@ describe("InvestigationReportView follow-up lead", () => {
   });
 });
 
+/*
+ * An investigation a limit stopped (issue #6440). OneUptime writes one line
+ * under the analysis - which limit, and where it is changed - and the card
+ * used to draw it as the end of the last section: under Suggested next
+ * steps, as if it were a step, or inside the last cause ruled out. It is
+ * now a line of its own that closes the report, before the caveat, with an
+ * amber mark - and the place it names is a link to the setting, which the
+ * card builds itself: in safe mode the note's own link was dotted text.
+ */
+describe("InvestigationReportView stop note", () => {
+  const INCIDENT_SETTINGS_URL: string =
+    "https://oneuptime.example.com/dashboard/p1/incidents/ai/settings#InvestigationLimits";
+  const STOP_NOTE: string = `_This investigation stopped at the incident investigation time limit of 20 minutes. Change it in [Incidents → AI → Settings → More settings → Investigation limits](${INCIDENT_SETTINGS_URL})._`;
+  const STOP_NOTE_WORDS: string =
+    "This investigation stopped at the incident investigation time limit of 20 minutes. Change it in Incidents → AI → Settings → More settings → Investigation limits.";
+
+  function stoppedReport(analysisBefore: string = SERVER_REPORT): string {
+    return analysisBefore.replace(
+      "\n\n**Evidence checked**",
+      `\n\n${STOP_NOTE}\n\n**Evidence checked**`,
+    );
+  }
+
+  test("closes the report, after every section and before the caveat", () => {
+    renderView({ analysisMarkdown: stoppedReport(), analysisTldr: TLDR });
+
+    const note: HTMLElement = screen.getByTestId(
+      "investigation-report-stop-note",
+    );
+    const footer: HTMLElement = screen.getByTestId(
+      "investigation-report-footer",
+    );
+
+    expect(note).toHaveTextContent(STOP_NOTE_WORDS);
+    expect(
+      screen
+        .getByRole("region", { name: "Suggested next steps" })
+        .compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(note.nextElementSibling).toBe(footer);
+    expect(screen.getByLabelText("Investigation report")).toContainElement(
+      note,
+    );
+  });
+
+  test("is not a step: Suggested next steps holds only the steps", () => {
+    renderView({ analysisMarkdown: stoppedReport() });
+
+    const steps: HTMLElement = screen.getByRole("region", {
+      name: "Suggested next steps",
+    });
+
+    expect(steps).toHaveTextContent("Roll back the deploy");
+    expect(steps).not.toHaveTextContent("stopped");
+    // Said once, and never through the report's markdown viewer.
+    expect(
+      viewerTexts().filter((text: string): boolean => {
+        return text.includes("stopped");
+      }),
+    ).toEqual([]);
+  });
+
+  test("is not part of the last cause ruled out", () => {
+    const ruledOutLast: string = SERVER_REPORT.replace(
+      "**Suggested next steps**\n- Roll back the deploy\n- Raise the pool size",
+      "**Ruled out**\n- **A network fault:** packet loss stayed at 0% [C1].",
+    );
+
+    renderView({ analysisMarkdown: stoppedReport(ruledOutLast) });
+
+    const causes: Array<HTMLElement> = screen.getAllByTestId(
+      "investigation-ruled-out-cause",
+    );
+
+    expect(causes).toHaveLength(1);
+    // Its reason as the card draws one: from a capital.
+    expect(causes[0]).toHaveTextContent("Packet loss stayed at 0%");
+    expect(causes[0]).not.toHaveTextContent("stopped");
+    expect(
+      screen.getByTestId("investigation-report-stop-note"),
+    ).toHaveTextContent(STOP_NOTE_WORDS);
+  });
+
+  test("links the place it names to the setting, built by the card, never the note's own address", () => {
+    const hostile: string = STOP_NOTE.replace(
+      INCIDENT_SETTINGS_URL,
+      "https://attacker.example/steal",
+    );
+
+    renderView({
+      analysisMarkdown: stoppedReport().replace(STOP_NOTE, hostile),
+    });
+
+    const link: HTMLElement = screen.getByRole("link", {
+      name: "Incidents → AI → Settings → More settings → Investigation limits",
+    });
+
+    expect(link.getAttribute("href")).toMatch(
+      /\/incidents\/ai\/settings#InvestigationLimits$/,
+    );
+    expect(document.body.innerHTML).not.toContain("attacker.example");
+    expect(
+      screen.getByTestId("investigation-report-stop-note"),
+    ).toHaveTextContent(STOP_NOTE_WORDS);
+  });
+
+  test("each place is linked to its own page and card", () => {
+    const places: Array<[string, RegExp]> = [
+      [
+        "Project Settings → AI → AI Features → More settings → Limits per run",
+        /\/settings\/ai-features#LimitsPerRun$/,
+      ],
+      [
+        "Alerts → AI → Settings → More settings → Investigation limits",
+        /\/alerts\/ai\/settings#InvestigationLimits$/,
+      ],
+    ];
+
+    for (const [place, href] of places) {
+      const note: string = `_This run stopped at this project's limit of 40 model calls per run. Change it in [${place}](https://oneuptime.example.com/x)._`;
+
+      renderView({
+        analysisMarkdown: SERVER_REPORT.replace(
+          "\n\n**Evidence checked**",
+          `\n\n${note}\n\n**Evidence checked**`,
+        ),
+      });
+
+      expect(
+        screen.getByRole("link", { name: place }).getAttribute("href"),
+      ).toMatch(href);
+      cleanup();
+    }
+  });
+
+  test("a note that names no place - loop detection - is words alone", () => {
+    renderView({
+      analysisMarkdown: SERVER_REPORT.replace(
+        "\n\n**Evidence checked**",
+        "\n\n_This run stopped early: it kept repeating calls that showed it nothing new._\n\n**Evidence checked**",
+      ),
+    });
+
+    const note: HTMLElement = screen.getByTestId(
+      "investigation-report-stop-note",
+    );
+
+    expect(note).toHaveTextContent(
+      "This run stopped early: it kept repeating calls that showed it nothing new.",
+    );
+    expect(within(note).queryByRole("link")).toBeNull();
+  });
+
+  test("on a right-to-left page, the English line keeps its mark beside its first word", () => {
+    const root: HTMLElement = document.documentElement;
+    const pageDirection: string = root.dir;
+    const pageLanguage: string = root.lang;
+
+    root.dir = "rtl";
+    root.lang = "fa";
+
+    try {
+      renderView({
+        analysisMarkdown: stoppedReport(
+          SERVER_REPORT.replace(
+            "**Suggested next steps**\n- Roll back the deploy\n- Raise the pool size",
+            "**Ruled out**\n- **A network fault:** packet loss stayed at 0% [C1].",
+          ),
+        ),
+      });
+
+      const note: HTMLElement = screen.getByTestId(
+        "investigation-report-stop-note",
+      );
+      const causes: Array<HTMLElement> = screen.getAllByTestId(
+        "investigation-ruled-out-cause",
+      );
+
+      expect(causes).toHaveLength(1);
+
+      /*
+       * Left to right, so the mark (the row's first child) sits at the
+       * left beside "This", not across the card at the page's right edge -
+       * as each English cause ruled out above it does.
+       */
+      expect(note).toHaveAttribute("dir", "ltr");
+      expect(note.firstElementChild!.querySelector("svg")).not.toBeNull();
+      expect(note.lastElementChild).toHaveTextContent(/^This investigation/);
+
+      for (const cause of causes) {
+        expect(cause.getAttribute("dir")).toBe(note.getAttribute("dir"));
+      }
+    } finally {
+      root.dir = pageDirection;
+      root.lang = pageLanguage;
+    }
+  });
+
+  test("is a line with an amber mark, upright, never a box", () => {
+    renderView({ analysisMarkdown: stoppedReport() });
+
+    const note: HTMLElement = screen.getByTestId(
+      "investigation-report-stop-note",
+    );
+    const [mark, text] = Array.from(note.children) as Array<HTMLElement>;
+
+    expect(note).toHaveClass("flex", "items-start", "gap-3");
+    expect(note.className).not.toMatch(BOX_CLASS_PATTERN);
+    expect(mark).toHaveClass("h-6", "items-center");
+    expect(mark!.querySelector("svg")).not.toBeNull();
+    expect(mark!.innerHTML).toContain("text-amber-500");
+    expect(text!.tagName).toBe("P");
+    expect(text).toHaveClass("text-sm", "leading-6", "text-gray-700");
+    /*
+     * The whole line - mark and words - reads the way it is written, as a
+     * cause ruled out does, so the words take the line's direction.
+     */
+    expect(note).toHaveAttribute("dir", "ltr");
+    expect(text).not.toHaveAttribute("dir");
+    // The note's italics and link markup are not drawn as characters.
+    expect(text!.textContent).not.toMatch(/^_|_$|\]\(/);
+    expect(text!.querySelector("em, i")).toBeNull();
+  });
+
+  test("a run that wrote nothing says why instead of 'no further details'", () => {
+    renderView({
+      analysisMarkdown: [
+        "## \u{1F9E0} AI — Automated Root Cause Analysis",
+        "",
+        STOP_NOTE,
+        "",
+        "---",
+        "*Investigated automatically by OneUptime AI — read-only, 0 queries run across your own telemetry.*",
+      ].join("\n"),
+      evidence: [],
+    });
+
+    const report: HTMLElement = screen.getByLabelText("Investigation report");
+
+    expect(report).not.toHaveTextContent("no further details");
+    expect(
+      screen.getByTestId("investigation-report-stop-note"),
+    ).toHaveTextContent(STOP_NOTE_WORDS);
+  });
+
+  test("an unstructured report keeps its body, the note under it", () => {
+    renderView({
+      analysisMarkdown: [
+        "## \u{1F9E0} AI — Automated Root Cause Analysis",
+        "",
+        "I read the pool's logs until the time ran out.",
+        "",
+        STOP_NOTE,
+        "",
+        "---",
+        "*Investigated automatically by OneUptime AI — read-only, 0 queries run across your own telemetry.*",
+      ].join("\n"),
+      evidence: [],
+    });
+
+    expect(viewerTexts()).toContain(
+      "I read the pool's logs until the time ran out.",
+    );
+    expect(
+      screen.getByTestId("investigation-report-stop-note"),
+    ).toHaveTextContent(STOP_NOTE_WORDS);
+  });
+
+  test("a report no limit stopped has no such line", () => {
+    renderView();
+
+    expect(screen.queryByTestId("investigation-report-stop-note")).toBeNull();
+  });
+});
+
 describe("InvestigationReportData payload parsing", () => {
   test("reads well-formed evidence and sorts it by citation number", () => {
     const parsed: Array<InvestigationEvidenceItem> = parseInvestigationEvidence(

@@ -31,7 +31,7 @@ flowchart TB
     R --> O["The same comment,<br/>rewritten with<br/>the outcome"]
 ```
 
-It is the same agent and the same Runner as in [Code](/docs/ai/ai-agent), with the same budgets; only the trigger differs.
+It is the same agent and the same Runner as in [Code](/docs/ai/ai-agent), with the same limits; only the trigger differs.
 
 ## Before you start
 
@@ -122,7 +122,7 @@ It also ignores every comment written by a bot, its own included, and mentions i
 
 ## What it costs, and how to bound it
 
-Every command that starts work is a full agent run: a clone, up to 40 LLM calls and 100,000 output tokens, and, on a Runner of your own, the build and test checks your repository's `AGENTS.md` describes. A review's production queries, at most 12, count against the same 40 calls.
+Every command that starts work is a full agent run: a clone, as many LLM calls as the work needs within the run's time limit (120 minutes unless the project sets its own), and, on a Runner of your own, the build and test checks your repository's `AGENTS.md` describes. A review's production queries count as tool calls toward the project's limits per run.
 
 GitHub commands are AI work outside incidents and alerts, so no daily fix-task limit applies to them; the project's own daily AI limits do, when the project sets them. The one other limit is the one that already governs the tasks in [Code](/docs/ai/ai-agent):
 
