@@ -604,6 +604,11 @@ export default class MonitorResourceUtil {
              * every retry. dataToProcess itself stays as the probe sent it,
              * for the criteria below. The other steps' entries were read back
              * from this column, so they are storable already.
+             *
+             * Kept as the probe sent it, unlike the monitor's logs:
+             * checkProbeAgreement judges it again against the criteria, and
+             * a filter on the body needs the body. People read it redacted
+             * as the logs are (MonitorProbeService.onFindSuccess).
              */
             const updatedLastMonitoringLog: MonitorStepProbeResponse = {
               ...(monitorProbe.lastMonitoringLog || {}),
@@ -688,8 +693,18 @@ export default class MonitorResourceUtil {
               data: {
                 serverMonitorRequestReceivedAt:
                   serverMonitorResponse.requestReceivedAt!,
-                // A storable copy; the live response is still being evaluated.
-                serverMonitorResponse: toStorableJson(serverMonitorResponse),
+                /*
+                 * A storable copy; the live response is still being
+                 * evaluated. Cut as the monitor's logs are - a process's
+                 * command line can carry a password - since nothing judges
+                 * it again: the CheckOnlineStatus cron reads only when it
+                 * arrived and the host's name.
+                 */
+                serverMonitorResponse: MonitorRecordEvidence.toStoredCheck({
+                  dataToProcess: serverMonitorResponse,
+                  keepResponseContent:
+                    MonitorRecordEvidence.keepsResponseContent(monitor),
+                }) as unknown as ServerMonitorResponse,
               },
             });
 
@@ -721,6 +736,14 @@ export default class MonitorResourceUtil {
             data: {
               incomingRequestMonitorHeartbeatCheckedAt:
                 OneUptimeDate.getCurrentDate(),
+              /*
+               * Kept as it came, unlike the monitor's logs: the heartbeat
+               * job judges this request again (CheckHeartbeat), and a
+               * filter on its body needs the body the sender sent. People
+               * still read it as it came: to be redacted for them, as a
+               * probe's latest check is.
+               * https://github.com/OneUptime/oneuptime/issues/6402
+               */
               incomingMonitorRequest: toStorableJson(incomingMonitorRequest),
             } as any,
           });
@@ -780,6 +803,8 @@ export default class MonitorResourceUtil {
           monitorId: monitor.id!,
           projectId: monitor.projectId!,
           dataToProcess: dataToProcess,
+          keepResponseContent:
+            MonitorRecordEvidence.keepsResponseContent(monitor),
         });
         return response;
       }
@@ -880,6 +905,8 @@ export default class MonitorResourceUtil {
           monitorId: monitor.id!,
           projectId: monitor.projectId!,
           dataToProcess: dataToProcess,
+          keepResponseContent:
+            MonitorRecordEvidence.keepsResponseContent(monitor),
         });
         return response;
       }
@@ -981,6 +1008,9 @@ export default class MonitorResourceUtil {
             monitorId: monitor.id!,
             projectId: monitor.projectId!,
             dataToProcess: dataToProcess,
+            keepResponseContent:
+              MonitorRecordEvidence.keepsResponseContent(monitor),
+            monitorStep: monitorStep,
           });
 
           response.evaluationSummary = evaluationSummary;
@@ -1337,6 +1367,7 @@ export default class MonitorResourceUtil {
                 monitor: monitor,
                 rootCause: response.rootCause,
                 dataToProcess: dataToProcess,
+                monitorStep: monitorStep,
                 criteriaInstance: matchedCriteriaInstance,
                 props: {
                   telemetryQuery: telemetryQuery,
@@ -1440,6 +1471,7 @@ export default class MonitorResourceUtil {
             criteriaInstancesById: criteriaInstanceMap,
             keepResponseContent:
               MonitorRecordEvidence.keepsResponseContent(monitor),
+            monitorStep: monitorStep,
           });
 
         const openAlerts: Array<Alert> =
@@ -1459,6 +1491,7 @@ export default class MonitorResourceUtil {
             criteriaInstancesById: criteriaInstanceAlertMap,
             keepResponseContent:
               MonitorRecordEvidence.keepsResponseContent(monitor),
+            monitorStep: monitorStep,
           });
 
         /*
@@ -1619,6 +1652,7 @@ export default class MonitorResourceUtil {
           evaluationSummary: evaluationSummary,
           keepResponseContent:
             MonitorRecordEvidence.keepsResponseContent(monitor),
+          monitorStep: monitorStep,
           /*
            * Event-driven grouping: for incoming-request monitors, never
            * absence-resolve per-key (seriesFingerprint) incidents on the
@@ -1649,6 +1683,7 @@ export default class MonitorResourceUtil {
           evaluationSummary: evaluationSummary,
           keepResponseContent:
             MonitorRecordEvidence.keepsResponseContent(monitor),
+          monitorStep: monitorStep,
           disableSeriesAbsenceResolution:
             MonitorResourceUtil.isSeriesResolvedExplicitly({
               monitor: monitor,
@@ -1694,9 +1729,14 @@ export default class MonitorResourceUtil {
             monitorSteps.data.defaultMonitorStatusId!;
           monitorStatusTimeline.projectId = monitor.projectId!;
           monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
-          monitorStatusTimeline.statusChangeLog = toStorableJson(
-            dataToProcess,
-          ) as unknown as JSONObject;
+          // Cut as the monitor's logs are: everyone who reads the monitor reads it.
+          monitorStatusTimeline.statusChangeLog =
+            MonitorRecordEvidence.toStoredCheck({
+              dataToProcess: dataToProcess,
+              keepResponseContent:
+                MonitorRecordEvidence.keepsResponseContent(monitor),
+              monitorStep: monitorStep,
+            });
           monitorStatusTimeline.rootCause =
             "No monitoring criteria met. Change to default status. ";
 
@@ -1805,6 +1845,9 @@ export default class MonitorResourceUtil {
         monitorId: monitor.id!,
         projectId: monitor.projectId!,
         dataToProcess: dataToProcess,
+        keepResponseContent:
+          MonitorRecordEvidence.keepsResponseContent(monitor),
+        monitorStep: monitorStep,
       });
 
       return response;

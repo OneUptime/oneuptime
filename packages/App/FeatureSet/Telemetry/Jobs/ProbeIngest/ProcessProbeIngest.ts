@@ -11,6 +11,8 @@ import OneUptimeDate from "Common/Types/Date";
 import MonitorTestService, {
   MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE,
 } from "Common/Server/Services/MonitorTestService";
+import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
+import MonitorRecordEvidence from "Common/Server/Utils/Monitor/MonitorRecordEvidence";
 import ProbeReportIdentity from "Common/Server/Utils/Probe/ProbeReportIdentity";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
@@ -97,14 +99,32 @@ export async function processProbeFromQueue(
     probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
 
     /*
-     * save the probe response to the monitor test. A storable copy: one NUL
-     * in the response body would make Postgres refuse the jsonb merge.
+     * save the probe response to the monitor test, as everyone who can read
+     * the project's monitors may read it: masked as the monitor's logs are,
+     * its destination the one the test was written with rather than the
+     * monitor secrets the probe ran it with (MonitorRecordEvidence). A
+     * storable copy: one NUL in the response body would make Postgres refuse
+     * the jsonb merge.
      */
+    const monitorTest: MonitorTest | null =
+      await MonitorTestService.findOneById({
+        id: testId,
+        select: {
+          monitorSteps: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
     const stepResponse: MonitorStepProbeResponse = {
       [probeResponse.monitorStepId.toString()]: {
-        ...toStorableJson(probeResponse),
+        ...MonitorRecordEvidence.toStoredTestResult({
+          probeResponse: probeResponse,
+          monitorSteps: monitorTest?.monitorSteps,
+        }),
         monitoredAt: OneUptimeDate.getCurrentDate(),
-      } as ProbeMonitorResponse,
+      } as unknown as ProbeMonitorResponse,
     };
 
     const isRecorded: boolean = await MonitorTestService.mergeStepProbeResponse(

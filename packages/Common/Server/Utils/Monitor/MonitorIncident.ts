@@ -36,6 +36,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorEvaluationDetailsCapture, {
   GetEvaluationDetails,
 } from "./MonitorEvaluationDetailsCapture";
@@ -122,9 +123,12 @@ export default class MonitorIncident {
     /*
      * Whether the monitor keeps response content on its records
      * (Monitor.keepResponseContent): the state timeline's copy of a check
-     * that resolves one keeps no body when it does not. Kept when absent.
+     * that resolves one keeps no body and no headers when it does not.
+     * Kept when absent.
      */
     keepResponseContent?: boolean | undefined;
+    // The step the check ran: the state timeline's copy names its destination.
+    monitorStep?: MonitorStep | undefined;
   }): Promise<Array<Incident>> {
     /*
      * check active incidents and if there are open incidents, do not create
@@ -206,6 +210,7 @@ export default class MonitorIncident {
           rootCause: rootCause,
           dataToProcess: input.dataToProcess,
           keepResponseContent: input.keepResponseContent,
+          monitorStep: input.monitorStep,
         });
 
         input.evaluationSummary?.events.push({
@@ -350,6 +355,10 @@ export default class MonitorIncident {
         keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
           input.monitor,
         ),
+        monitorStep: MonitorRecordEvidence.findCheckStep({
+          monitor: input.monitor,
+          check: input.dataToProcess,
+        }),
       });
 
       input.evaluationSummary?.events.push({
@@ -490,6 +499,10 @@ export default class MonitorIncident {
             keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
               input.monitor,
             ),
+            monitorStep: MonitorRecordEvidence.findCheckStep({
+              monitor: input.monitor,
+              check: input.dataToProcess,
+            }),
             breachingSeriesFingerprints,
             breachingSeriesFingerprintsByCriteriaId:
               input.breachingSeriesFingerprintsByCriteriaId,
@@ -893,8 +906,8 @@ export default class MonitorIncident {
            * being read for this and the next incident.
            */
           /*
-           * Redacted as the monitor's own log is, and without its bodies
-           * when the monitor keeps no response content
+           * Redacted as the monitor's own log is, and without its body and
+           * headers when the monitor keeps no response content
            * (MonitorRecordEvidence).
            */
           incident.createdStateLog = MonitorRecordEvidence.toStoredCheck({
@@ -902,6 +915,10 @@ export default class MonitorIncident {
             keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
               input.monitor,
             ),
+            monitorStep: MonitorRecordEvidence.findCheckStep({
+              monitor: input.monitor,
+              check: input.dataToProcess,
+            }),
           });
 
           /*
@@ -1347,6 +1364,7 @@ export default class MonitorIncident {
       | IncomingMonitorRequest
       | DataToProcess;
     keepResponseContent?: boolean | undefined;
+    monitorStep?: MonitorStep | undefined;
   }): Promise<void> {
     const resolvedStateId: ObjectID =
       await IncidentStateTimelineService.getResolvedStateIdForProject(
@@ -1371,6 +1389,7 @@ export default class MonitorIncident {
         MonitorRecordEvidence.toStoredCheck({
           dataToProcess: input.dataToProcess as DataToProcess,
           keepResponseContent: input.keepResponseContent !== false,
+          monitorStep: input.monitorStep,
         });
     }
 
