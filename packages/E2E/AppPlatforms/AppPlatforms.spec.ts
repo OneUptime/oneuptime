@@ -1365,15 +1365,26 @@ test.describe("apps and their deploys", () => {
     await screenshot(page, "app-platforms-app-recommendations-768");
     await page.setViewportSize(LAPTOP);
 
-    // Every section's Select all - errors, throughput, latency - then one Create.
+    /*
+     * Each section of two offers its Select all - errors, latency - and
+     * throughput's one monitor is ticked on its own card: a section of one
+     * offers no "Select all 1", its card's own box being the same choice.
+     * Then one Create.
+     */
     const selectAll: Locator = panel.getByRole("button", {
       name: /^Select all \d+$/,
     });
-    await expect(selectAll).toHaveCount(3);
-    for (let section: number = 0; section < 3; section++) {
+    await expect(selectAll).toHaveCount(2);
+    await expect(
+      panel.getByRole("button", { name: "Select all 1", exact: true }),
+    ).toHaveCount(0);
+    for (let section: number = 0; section < 2; section++) {
       await selectAll.first().click();
     }
     await expect(selectAll).toHaveCount(0);
+    await panel
+      .getByRole("button", { name: "Select Traffic Stopped", exact: true })
+      .click();
     await panel
       .getByRole("button", { name: "Create 5 Selected Monitors" })
       .first()
