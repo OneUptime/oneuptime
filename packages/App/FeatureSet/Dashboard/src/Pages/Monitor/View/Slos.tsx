@@ -62,6 +62,9 @@ const MonitorSlos: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <DisabledWarning monitorId={modelId} />
       <ModelTable<ServiceLevelObjective>
         modelType={ServiceLevelObjective}
+        // Named as the SLOs list names its rows: View SLO, Select SLO.
+        singularName="SLO"
+        pluralName="SLOs"
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
         actionButtons={[...rowActions]}
         id="monitor-slos-table"
