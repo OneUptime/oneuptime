@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "在重新打开监控之前，没有任何东西会检查此监视器，因此它不会创建事件或警报。它设置为自动解决的未解决事件和警报将立即被解决。",
   "The monitors of this group could not be read. Please try again.": "无法读取此组的监视器。请重试。",
   "Turn monitoring off or on for every monitor in this group at once.": "一次性关闭或打开此组中所有监视器的监控。",
-  "Turn off monitoring for this group?": "要关闭此组的监控吗？"
+  "Turn off monitoring for this group?": "要关闭此组的监控吗？",
+  "Word in message": "消息中的单词"
 }

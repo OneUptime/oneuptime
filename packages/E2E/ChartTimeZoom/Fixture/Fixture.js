@@ -226,6 +226,11 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
+import {
+  RE2_CASE_INSENSITIVE_FLAG,
+  getLogMessageWordMatch,
+  readLogMessageWords,
+} from "Common/Utils/Telemetry/LogMessageWord";
 
 /*
  * ---------------------------------------------------------------------------
@@ -2099,6 +2104,46 @@ function contains(text, part) {
 }
 
 /*
+ * Whether a log line's message holds a word whole ("Word in message"), the
+ * way the server reads it (LogMessageWordStatement): one of the word's
+ * needles first, then its pattern. The pattern is RE2's, and the part
+ * after its case flag is JavaScript's too; it is built from the word with
+ * every character escaped (LogMessageWord), and its time grows in line with
+ * the short lines a fixture writes.
+ */
+function holdsWord(text, word) {
+  const match = getLogMessageWordMatch(word);
+  if (!match) {
+    return true;
+  }
+  const message = String(text || "");
+  const lower = message.toLowerCase();
+  if (
+    !match.needles.some((needle) => {
+      return lower.includes(needle);
+    })
+  ) {
+    return false;
+  }
+  return new RegExp(
+    match.pattern.slice(RE2_CASE_INSENSITIVE_FLAG.length),
+    "i",
+  ).test(message);
+}
+
+// Whether a line keeps every word to keep, and holds none to leave out.
+function holdsWords(text, words, excludedWords) {
+  return (
+    readLogMessageWords(words).every((word) => {
+      return holdsWord(text, word);
+    }) &&
+    !readLogMessageWords(excludedWords).some((word) => {
+      return holdsWord(text, word);
+    })
+  );
+}
+
+/*
  * The request filters the fixture models, field by field. Any other field
  * (outside the window, bucket and facet fields) is not modelled and lands
  * on `unhandled`, so a spec that starts filtering finds out.
@@ -2165,6 +2210,13 @@ const LOG_BODY_FILTERS = {
   },
   bodySearchText: (row, text) => {
     return contains(row.body, text);
+  },
+  // Words the message holds whole, and words it must not.
+  bodyWords: (row, words) => {
+    return holdsWords(row.body, words, []);
+  },
+  excludedBodyWords: (row, words) => {
+    return holdsWords(row.body, [], words);
   },
   traceIds: SPAN_BODY_FILTERS.traceIds,
   spanIds: SPAN_BODY_FILTERS.spanIds,
@@ -2985,6 +3037,15 @@ function analyticsRows(modelType, query, kind) {
   const attributeFilter = conditions.attributes;
   delete conditions.attributes;
   /*
+   * The words a log line's message holds whole, and the ones it must not
+   * (the "Word in message" chip): query keys of their own, read as the
+   * server reads them.
+   */
+  const words = conditions.bodyWords;
+  const excludedWords = conditions.excludedBodyWords;
+  delete conditions.bodyWords;
+  delete conditions.excludedBodyWords;
+  /*
    * Generated rows exist for any window, so a read of a generated table
    * must name one on its time column (every explorer and page read does).
    */
@@ -3008,6 +3069,12 @@ function analyticsRows(modelType, query, kind) {
   }
   return candidates.filter((item) => {
     if (!matches(item, conditions)) {
+      return false;
+    }
+    if (
+      (words !== undefined || excludedWords !== undefined) &&
+      !holdsWords(item.body, words, excludedWords)
+    ) {
       return false;
     }
     return Object.entries(attributeFilter || {}).every(([key, value]) => {

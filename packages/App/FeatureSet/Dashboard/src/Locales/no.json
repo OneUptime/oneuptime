@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Ingenting sjekker denne overvåkeren før overvåkingen slås på igjen, så den åpner ingen hendelser eller varsler. Dens åpne hendelser og varsler som er satt til automatisk løsning, blir løst nå.",
   "The monitors of this group could not be read. Please try again.": "Monitorene i denne gruppen kunne ikke leses. Prøv igjen.",
   "Turn monitoring off or on for every monitor in this group at once.": "Slå overvåking av eller på for alle monitorer i denne gruppen på én gang.",
-  "Turn off monitoring for this group?": "Slå av overvåking for denne gruppen?"
+  "Turn off monitoring for this group?": "Slå av overvåking for denne gruppen?",
+  "Word in message": "Ord i meldingen"
 }

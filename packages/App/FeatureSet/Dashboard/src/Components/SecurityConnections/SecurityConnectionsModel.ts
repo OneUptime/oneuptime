@@ -69,7 +69,7 @@ import {
 } from "Common/Utils/Telemetry/CrossSignalScope";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { readSecurityEventScope } from "Common/Types/SecurityEvent/SecurityEventScope";
-import { getTelemetryMessageSearchText } from "Common/Utils/SecurityCase/SecurityTelemetrySearch";
+import { getTelemetryMessageWord } from "Common/Utils/SecurityCase/SecurityTelemetrySearch";
 
 /*
  * What the Connected Signals views and the Security cards draw from the
@@ -1237,9 +1237,11 @@ export function getTelemetryMentionsGroups(
 
 /*
  * Where one place a value was found opens, on the window: the Logs
- * explorer on the lines whose message contains it (an IPv6 address in the
- * short form logs write it in), or on the lines - the Traces explorer on
- * the spans - whose attribute holds it, as that attribute holds it (an
+ * explorer on the lines whose message holds it whole - its "Word in
+ * message" chip, read with the very needles and pattern the count read
+ * with, so the explorer lists exactly the lines it counted (an IPv6
+ * address in any of its spellings) - or on the lines, the Traces explorer
+ * on the spans, whose attribute holds it, as that attribute holds it (an
  * attribute is matched exactly there).
  */
 export function getTelemetryPlaceRoute(data: {
@@ -1264,15 +1266,15 @@ export function getTelemetryPlaceRoute(data: {
       return null;
     }
 
-    const text: string = getTelemetryMessageSearchText(data.entityValue);
+    const word: string = getTelemetryMessageWord(data.entityValue);
 
-    if (!text) {
+    if (!word) {
       return null;
     }
 
     return withRouteQueryParams(
       RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
-      toLogsExplorerQueryParams({ ...scope, bodyContains: text }).params,
+      toLogsExplorerQueryParams({ ...scope, bodyWords: [word] }).params,
     );
   }
 

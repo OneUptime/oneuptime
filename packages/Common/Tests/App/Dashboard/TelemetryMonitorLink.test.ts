@@ -731,6 +731,19 @@ describe("a view that leaves values out", () => {
     ).toEqual(["!serviceIds", "!name", "!kind"]);
   });
 
+  test("a word the message holds whole is named: a monitor's message filter reads a part of it", () => {
+    expect(
+      getTelemetryFilterLinkNotCarried({
+        bodyWords: ["10.0.0.1"],
+        excludedBodyWords: ["healthcheck"],
+      }),
+    ).toEqual(["bodyWord", "!bodyWord"]);
+    expect(getLogsFilterLinkQuery({ bodyWords: ["10.0.0.1"] })).toEqual({});
+    expect(getTelemetryFilterLinkNotCarried({ bodyWords: ["", "  "] })).toEqual(
+      [],
+    );
+  });
+
   test("a view that keeps what it shows, or leaves out only what is carried, names nothing", () => {
     expect(
       getTelemetryFilterLinkNotCarried({

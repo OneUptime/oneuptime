@@ -80,6 +80,12 @@ import AggregateBy, {
 } from "../../Types/AnalyticsDatabase/AggregateBy";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { getLogMessageWordConditions } from "../Telemetry/LogMessageWordStatement";
+import {
+  EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORD_COLUMN,
+} from "../../../Utils/Telemetry/LogMessageWord";
 import { getPercentileLevel } from "../../../Types/BaseDatabase/AggregationType";
 
 /**
@@ -1267,6 +1273,50 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           whereStatement.append(SQL`)`);
+        }
+
+        continue;
+      }
+
+      /*
+       * "bodyWords" / "excludedBodyWords" are synthetic query keys (not
+       * columns): the words a log line's message must hold whole, and the
+       * ones it must not - the Logs explorer's "Word in message" chip, read
+       * as Connected Signals counts a value In the message:
+       *   AND (multiSearchAnyCaseInsensitive(body, [...]) AND match(body, ...))
+       *   AND NOT (...)
+       * one condition for each word (LogMessageWordStatement), the needles
+       * and the pattern bound as parameters. Text that is no word adds
+       * nothing. Ignored for a model with no `body` column; a reader may
+       * filter by them only as far as they may read the message
+       * (ModelPermission checks `body` for them).
+       */
+      if (
+        key === LOG_MESSAGE_WORDS_FIELD ||
+        key === EXCLUDED_LOG_MESSAGE_WORDS_FIELD
+      ) {
+        const messageColumn: AnalyticsTableColumn | null =
+          this.model.getTableColumn(LOG_MESSAGE_WORD_COLUMN);
+
+        if (!messageColumn) {
+          continue;
+        }
+
+        const conditions: Array<Statement> = getLogMessageWordConditions({
+          ...(key === LOG_MESSAGE_WORDS_FIELD
+            ? { words: value }
+            : { excludedWords: value }),
+          column: columnRef(messageColumn.key),
+        });
+
+        for (const condition of conditions) {
+          if (first) {
+            first = false;
+          } else {
+            whereStatement.append(SQL` `);
+          }
+
+          whereStatement.append(condition);
         }
 
         continue;

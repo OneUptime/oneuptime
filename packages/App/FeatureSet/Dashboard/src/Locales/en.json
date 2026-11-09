@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.",
   "The monitors of this group could not be read. Please try again.": "The monitors of this group could not be read. Please try again.",
   "Turn monitoring off or on for every monitor in this group at once.": "Turn monitoring off or on for every monitor in this group at once.",
-  "Turn off monitoring for this group?": "Turn off monitoring for this group?"
+  "Turn off monitoring for this group?": "Turn off monitoring for this group?",
+  "Word in message": "Word in message"
 }

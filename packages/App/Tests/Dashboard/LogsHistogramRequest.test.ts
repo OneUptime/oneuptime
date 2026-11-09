@@ -890,6 +890,9 @@ describe("pickTypedLogFilter / serializeTypedLogFilter", () => {
       "resourceFilters",
       // The resources a chip leaves out ("Host is not web-01").
       "excludedResourceFilters",
+      // The words a message holds whole, and the ones it must not.
+      "bodyWords",
+      "excludedBodyWords",
     ]);
 
     const includes: Includes = new Includes(["s-1"]);

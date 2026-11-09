@@ -8,7 +8,12 @@ import {
   SecurityEntity,
   SecurityEntityType,
 } from "../../Types/SecurityCase/SecurityEntity";
-import escapeRegExp from "../RegExpEscape";
+import {
+  RE2_CASE_INSENSITIVE_FLAG,
+  buildLogMessageWordPattern,
+  getLogMessageWordNeedles,
+  getShortIpv6Address,
+} from "../Telemetry/LogMessageWord";
 import {
   MAX_EMAIL_LENGTH,
   MAX_HOST_NAME_LENGTH,
@@ -54,10 +59,15 @@ import {
  *
  * Every value here was written outside OneUptime, so it is read with loops
  * over its characters, and only printable ASCII without white space is ever
- * searched for. The pattern a message is matched with is built here with
- * every character of the value escaped (escapeRegExp) and runs in
- * ClickHouse's RE2, whose time grows in line with the text.
+ * searched for. The pattern a message is matched with is the Logs
+ * explorer's "Word in message" pattern (Utils/Telemetry/LogMessageWord),
+ * built with every character of the value escaped, and runs in ClickHouse's
+ * RE2, whose time grows in line with the text - so the lines a count names
+ * are the lines its In the message link opens.
  */
+
+// The shared pieces, as this module has always offered them.
+export { RE2_CASE_INSENSITIVE_FLAG, getShortIpv6Address };
 
 // The shapes of value searched for.
 export enum SecurityTelemetryValueShape {
@@ -75,9 +85,6 @@ export const SECURITY_TELEMETRY_MIN_VALUE_LENGTH: number = 4;
 
 // The key every resource attribute starts with: who sent the line, not what it says.
 export const RESOURCE_ATTRIBUTE_PREFIX: string = "resource.";
-
-// The flag that makes an RE2 pattern match whatever the case.
-export const RE2_CASE_INSENSITIVE_FLAG: string = "(?i)";
 
 // What a value is searched for as.
 export interface SecurityTelemetrySearchValue {
@@ -98,14 +105,6 @@ export interface SecurityTelemetrySearch {
   hasMoreValues: boolean;
 }
 
-function isAsciiLetterOrDigit(code: number): boolean {
-  return (
-    (code >= 48 && code <= 57) ||
-    (code >= 65 && code <= 90) ||
-    (code >= 97 && code <= 122)
-  );
-}
-
 function isAsciiLetter(code: number): boolean {
   return (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
 }
@@ -116,11 +115,6 @@ function isHexDigit(code: number): boolean {
     (code >= 65 && code <= 70) ||
     (code >= 97 && code <= 102)
   );
-}
-
-// A character a value runs on through: letters, digits and "_".
-function isWordCharacter(code: number): boolean {
-  return isAsciiLetterOrDigit(code) || code === 95;
 }
 
 /*
@@ -193,52 +187,6 @@ export function isFullHostName(value: string | undefined | null): boolean {
   }
 
   return false;
-}
-
-/*
- * An IPv6 address in its short form (RFC 5952), from its one spelling
- * (canonicalAddress: eight groups, lower case, no leading zeros): the
- * longest run of two or more zero groups, the first of equal ones, as "::".
- * 2001:db8:0:0:0:0:0:7 is 2001:db8::7.
- */
-export function getShortIpv6Address(canonical: string): string {
-  const groups: Array<string> = canonical.split(":");
-
-  if (groups.length !== 8) {
-    return canonical;
-  }
-
-  let bestStart: number = -1;
-  let bestLength: number = 0;
-  let runStart: number = -1;
-
-  for (let index: number = 0; index <= groups.length; index++) {
-    if (index < groups.length && groups[index] === "0") {
-      if (runStart === -1) {
-        runStart = index;
-      }
-      continue;
-    }
-
-    if (runStart !== -1) {
-      const length: number = index - runStart;
-
-      if (length >= 2 && length > bestLength) {
-        bestStart = runStart;
-        bestLength = length;
-      }
-
-      runStart = -1;
-    }
-  }
-
-  if (bestStart === -1) {
-    return groups.join(":");
-  }
-
-  return `${groups.slice(0, bestStart).join(":")}::${groups
-    .slice(bestStart + bestLength)
-    .join(":")}`;
 }
 
 // Whether a value is a URL: typed as one, or written with a scheme and a host.
@@ -392,57 +340,33 @@ export function getTelemetryAttributeSpellings(
 
 /*
  * What a message is read for at all: the value's spellings in lower case,
- * each once (a case-insensitive search for each, before the pattern decides).
+ * each once (a case-insensitive search for each, before the pattern
+ * decides) - the Logs explorer's word needles, which are the lower case of
+ * the attribute spellings above for every value searched for.
  */
 export function getTelemetryMessageNeedles(
   value: string,
-  shape: SecurityTelemetryValueShape,
+  _shape: SecurityTelemetryValueShape,
 ): Array<string> {
-  return unique(
-    getTelemetryAttributeSpellings(value, shape).map(
-      (spelling: string): string => {
-        return spelling.toLowerCase();
-      },
-    ),
-  );
+  return getLogMessageWordNeedles(value);
 }
-
-// What a message must not hold beside a value: what it would run on into.
-const RUN_ON_CHARACTERS: string = "0-9A-Za-z_.-";
-const IPV6_RUN_ON_CHARACTERS: string = "0-9A-Za-z_:.-";
-// After a value, a dot ends it unless a letter, digit, "_" or "-" follows.
-const AFTER_DOT_RUN_ON_CHARACTERS: string = "0-9A-Za-z_-";
 
 /*
  * The RE2 pattern a message names a value whole by: any of its spellings,
  * whatever the case, with nothing it would run on into beside it - on a
  * side the value itself ends with a letter, a digit or "_" (a URL ending in
- * "/" is named by every longer URL under it).
+ * "/" is named by every longer URL under it). The very pattern the Logs
+ * explorer's "Word in message" chip reads with (buildLogMessageWordPattern).
  */
 export function getTelemetryMessagePattern(
   value: string,
   shape: SecurityTelemetryValueShape,
 ): string {
-  const needles: Array<string> = getTelemetryMessageNeedles(value, shape);
-  const runOn: string =
-    shape === SecurityTelemetryValueShape.Ipv6Address
-      ? IPV6_RUN_ON_CHARACTERS
-      : RUN_ON_CHARACTERS;
-  const text: string = value.trim();
-  const startsWithWord: boolean = isWordCharacter(text.charCodeAt(0));
-  const endsWithWord: boolean = isWordCharacter(
-    text.charCodeAt(text.length - 1),
-  );
-  const before: string = startsWithWord ? `(?:^|[^${runOn}])` : "";
-  const after: string = endsWithWord
-    ? `(?:$|[^${runOn}]|\\.(?:$|[^${AFTER_DOT_RUN_ON_CHARACTERS}]))`
-    : "";
-
-  return `${RE2_CASE_INSENSITIVE_FLAG}${before}(?:${needles
-    .map((needle: string): string => {
-      return escapeRegExp(needle);
-    })
-    .join("|")})${after}`;
+  return buildLogMessageWordPattern({
+    word: value,
+    needles: getTelemetryMessageNeedles(value, shape),
+    isIpv6Address: shape === SecurityTelemetryValueShape.Ipv6Address,
+  });
 }
 
 /*
@@ -496,14 +420,13 @@ export function getTelemetrySearchValues(
 }
 
 /*
- * The text the Logs explorer's message search is opened on for a value: as
- * the case names it, an IPv6 address in the short form logs write it in.
+ * The word the Logs explorer is opened on for a value found in messages
+ * ("In the message"): the value as the case names it, which the explorer's
+ * "Word in message" chip reads in every spelling the count read it in - an
+ * IPv6 address in its short form too.
  */
-export function getTelemetryMessageSearchText(value: string): string {
-  const text: string = (value || "").trim();
-  const address: string | null = canonicalAddress(text);
-
-  return address && address.includes(":") ? getShortIpv6Address(address) : text;
+export function getTelemetryMessageWord(value: string): string {
+  return (value || "").trim();
 }
 
 // Whether an attribute's key is a resource attribute's: who sent it, not what it says.

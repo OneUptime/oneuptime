@@ -1311,7 +1311,7 @@ describe("reading where what it names appears in the logs and traces", () => {
 });
 
 describe("where a place it was found in opens", () => {
-  test("the message: the Logs explorer on the lines whose message contains it, pinned to the window", () => {
+  test("the message: the Logs explorer on the lines whose message holds it whole, pinned to the window", () => {
     const link: { path: string; query: Record<string, string> } = open(
       model.getTelemetryPlaceRoute({
         signal: SecurityTelemetrySignal.Logs,
@@ -1323,15 +1323,19 @@ describe("where a place it was found in opens", () => {
     );
 
     expect(link.path).toBe(`${BASE}/logs`);
+    /*
+     * The "Word in message" chip, never a "Message contains" substring:
+     * 203.0.113.70 is not the address the count found.
+     */
     expect(JSON.parse(link.query["filters"]!)).toEqual([
-      ["body", ["203.0.113.7"]],
+      ["bodyWord", ["203.0.113.7"]],
     ]);
     expect(link.query["range"]).toBe("Custom");
     expect(new Date(link.query["start"]!).toISOString()).toBe(WINDOW_START);
     expect(new Date(link.query["end"]!).toISOString()).toBe(WINDOW_END);
   });
 
-  test("an IPv6 address in the short form logs write it in", () => {
+  test("an IPv6 address as the case names it: the chip reads it in its short form too, as the count did", () => {
     const link: { path: string; query: Record<string, string> } = open(
       model.getTelemetryPlaceRoute({
         signal: SecurityTelemetrySignal.Logs,
@@ -1343,7 +1347,7 @@ describe("where a place it was found in opens", () => {
     );
 
     expect(JSON.parse(link.query["filters"]!)).toEqual([
-      ["body", ["2001:db8::7"]],
+      ["bodyWord", ["2001:0DB8:0:0:0:0:0:7"]],
     ]);
   });
 

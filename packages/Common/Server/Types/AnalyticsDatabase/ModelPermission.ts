@@ -13,6 +13,11 @@ import BaseModel, {
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import { EXCEPTION_SPAN_SCOPE_QUERY_KEY } from "../../../Types/Telemetry/ExceptionSpanScope";
 import { SECURITY_EVENT_SCOPE_QUERY_KEY } from "../../../Types/SecurityEvent/SecurityEventScope";
+import {
+  EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORD_COLUMN,
+} from "../../../Utils/Telemetry/LogMessageWord";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
@@ -829,6 +834,21 @@ export default class ModelPermission {
     return returnArr;
   }
 
+  /*
+   * The column a synthetic query key reads, for the ones held to a column's
+   * permission (checkQueryPermission); null for any other key.
+   */
+  public static getQueryKeyColumn(queryKey: string): string | null {
+    if (
+      queryKey === LOG_MESSAGE_WORDS_FIELD ||
+      queryKey === EXCLUDED_LOG_MESSAGE_WORDS_FIELD
+    ) {
+      return LOG_MESSAGE_WORD_COLUMN;
+    }
+
+    return null;
+  }
+
   private static checkQueryPermission<TBaseModel extends BaseModel>(
     modelType: AnalyticsBaseModelType,
     query: Query<TBaseModel>,
@@ -849,10 +869,19 @@ export default class ModelPermission {
 
     // Now we need to check all columns.
 
-    for (const key in query) {
-      if (excludedColumnNames.includes(key)) {
+    for (const queryKey in query) {
+      if (excludedColumnNames.includes(queryKey)) {
         continue;
       }
+
+      /*
+       * A synthetic key that reads a column is held to that column's read
+       * permission: the words a log line's message holds (`bodyWords`,
+       * `excludedBodyWords`) are a filter on the message, so a reader who
+       * may not read `body` may not filter by what it holds either.
+       */
+      const key: string =
+        ModelPermission.getQueryKeyColumn(queryKey) || queryKey;
 
       if (!canReadOnTheseColumns.columns.includes(key)) {
         const column: AnalyticsTableColumn | undefined = tableColumns.find(

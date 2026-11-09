@@ -263,6 +263,11 @@ import { SessionReplayRefusalCount } from "../../Types/Rum/SessionReplayHealth";
 import zlib from "zlib";
 import { promisify } from "util";
 import OldestKeyMap from "../../Utils/OldestKeyMap";
+import {
+  EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORDS_FIELD,
+  readLogMessageWords,
+} from "../../Utils/Telemetry/LogMessageWord";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -899,6 +904,7 @@ router.post(
           "excludedSeverityTexts",
         ),
         bodySearchText,
+        ...readLogMessageWordFields(body),
         traceIds,
         spanIds,
         sessionIds,
@@ -1067,6 +1073,7 @@ router.post(
             severityTexts,
             excludedSeverityTexts,
             bodySearchText,
+            ...readLogMessageWordFields(body),
             traceIds,
             spanIds,
             sessionIds,
@@ -1144,6 +1151,30 @@ async function resolveResourceScopesFromBody(
  * a non-empty string are dropped, and a list left empty is no list, so it
  * can never narrow a read to nothing.
  */
+/*
+ * The words a log line's message must hold whole (`bodyWords`) and the ones
+ * it must not (`excludedBodyWords`): the Logs explorer's "Word in message"
+ * chip, read as the list query reads it (readLogMessageWords) - text that is
+ * no word is dropped, so a malformed field filters nothing. Only the fields
+ * that hold a word are set.
+ */
+function readLogMessageWordFields(body: JSONObject): {
+  bodyWords?: Array<string>;
+  excludedBodyWords?: Array<string>;
+} {
+  const words: Array<string> = readLogMessageWords(
+    body[LOG_MESSAGE_WORDS_FIELD],
+  );
+  const excludedWords: Array<string> = readLogMessageWords(
+    body[EXCLUDED_LOG_MESSAGE_WORDS_FIELD],
+  );
+
+  return {
+    ...(words.length > 0 ? { bodyWords: words } : {}),
+    ...(excludedWords.length > 0 ? { excludedBodyWords: excludedWords } : {}),
+  };
+}
+
 function readStringListField(
   body: JSONObject,
   field: string,
@@ -3204,6 +3235,7 @@ router.post(
           "excludedSeverityTexts",
         ),
         bodySearchText,
+        ...readLogMessageWordFields(body),
         traceIds,
         spanIds,
         sessionIds,
@@ -3587,6 +3619,7 @@ router.post(
             "excludedSeverityTexts",
           ),
           bodySearchText,
+          ...readLogMessageWordFields(body),
           traceIds,
           spanIds,
           sessionIds,

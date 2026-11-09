@@ -5,6 +5,13 @@ import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import NotWildcard from "Common/Types/BaseDatabase/NotWildcard";
 import Search from "Common/Types/BaseDatabase/Search";
 import Dictionary from "Common/Types/Dictionary";
+import { toExcludeFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
+import {
+  EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORD_CHIP_KEY,
+  readLogMessageWords,
+} from "Common/Utils/Telemetry/LogMessageWord";
 import { JSONObject } from "Common/Types/JSON";
 import LogSeverity, {
   normalizeLogSeverity,
@@ -643,6 +650,22 @@ export const getTelemetryFilterLinkNotCarried: (
 
   if (body instanceof NotContains) {
     add("!body");
+  }
+
+  /*
+   * A word the message holds whole ("Word in message"): a log monitor's
+   * message filter reads a part of the message, never a whole word, so
+   * neither the words kept nor the ones left out can be handed over as
+   * they are read in the view.
+   */
+  if (readLogMessageWords(filter[LOG_MESSAGE_WORDS_FIELD]).length > 0) {
+    add(LOG_MESSAGE_WORD_CHIP_KEY);
+  }
+
+  if (
+    readLogMessageWords(filter[EXCLUDED_LOG_MESSAGE_WORDS_FIELD]).length > 0
+  ) {
+    add(toExcludeFacetKey(LOG_MESSAGE_WORD_CHIP_KEY));
   }
 
   const name: unknown = filter["name"];

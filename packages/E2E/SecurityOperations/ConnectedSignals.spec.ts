@@ -1705,8 +1705,9 @@ test.describe("In your logs and traces", () => {
         .getAttribute("href"),
     );
     expect(message.pathname).toBe(`${DASHBOARD}/logs`);
+    // The lines that hold the address whole ("Word in message").
     expect(JSON.parse(message.searchParams.get("filters") || "[]")).toEqual([
-      ["body", ["203.0.113.47"]],
+      ["bodyWord", ["203.0.113.47"]],
     ]);
     expect(message.searchParams.get("range")).toBe("Custom");
     expect(

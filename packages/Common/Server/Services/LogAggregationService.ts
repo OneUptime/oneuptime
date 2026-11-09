@@ -24,6 +24,7 @@ import {
   appendResourceScopeFilters,
   ResourceEntityScope,
 } from "../Utils/Telemetry/ResourceEntityFilter";
+import { appendLogMessageWordFilters } from "../Utils/Telemetry/LogMessageWordStatement";
 import {
   buildLogErrorPatternExpression,
   clampLogErrorPattern,
@@ -75,6 +76,12 @@ export interface HistogramRequest {
   // Severities whose rows are left out (an explorer's "Severity is not").
   excludedSeverityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
+  /*
+   * Words a message must hold whole, and words it must not (the Logs
+   * explorer's "Word in message" chip; LogMessageWordStatement).
+   */
+  bodyWords?: Array<string> | undefined;
+  excludedBodyWords?: Array<string> | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
@@ -111,6 +118,12 @@ export interface FacetRequest {
   // Severities whose rows are left out (an explorer's "Severity is not").
   excludedSeverityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
+  /*
+   * Words a message must hold whole, and words it must not (the Logs
+   * explorer's "Word in message" chip; LogMessageWordStatement).
+   */
+  bodyWords?: Array<string> | undefined;
+  excludedBodyWords?: Array<string> | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
@@ -146,6 +159,12 @@ export interface AnalyticsRequest {
   // Severities whose rows are left out (an explorer's "Severity is not").
   excludedSeverityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
+  /*
+   * Words a message must hold whole, and words it must not (the Logs
+   * explorer's "Word in message" chip; LogMessageWordStatement).
+   */
+  bodyWords?: Array<string> | undefined;
+  excludedBodyWords?: Array<string> | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
@@ -1096,6 +1115,8 @@ export class LogAggregationService {
       | "severityTexts"
       | "excludedSeverityTexts"
       | "bodySearchText"
+      | "bodyWords"
+      | "excludedBodyWords"
       | "traceIds"
       | "spanIds"
       | "sessionIds"
@@ -1184,6 +1205,17 @@ export class LogAggregationService {
     }
 
     /*
+     * Words the message holds whole, and words it must not: the very
+     * conditions the list compiles for the same chip (StatementGenerator),
+     * so the chart and the counts leave out exactly the lines the list
+     * does.
+     */
+    appendLogMessageWordFilters(statement, {
+      words: request.bodyWords,
+      excludedWords: request.excludedBodyWords,
+    });
+
+    /*
      * Attribute filters: a value, a list ("is any of"), a blank ("is empty")
      * or an operator (`contains`, `matches`, `>`, ...) in the `{_type,
      * value}` shape every QueryOperator's toJSON() produces. Keys match
@@ -1225,6 +1257,9 @@ export class LogAggregationService {
     // Severities whose rows are left out (an explorer's "Severity is not").
     excludedSeverityTexts?: Array<string> | undefined;
     bodySearchText?: string | undefined;
+    // Words the message holds whole, and words it must not.
+    bodyWords?: Array<string> | undefined;
+    excludedBodyWords?: Array<string> | undefined;
     traceIds?: Array<string> | undefined;
     spanIds?: Array<string> | undefined;
     sessionIds?: Array<string> | undefined;

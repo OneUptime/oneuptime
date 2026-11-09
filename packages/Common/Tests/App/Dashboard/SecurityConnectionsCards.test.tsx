@@ -1454,8 +1454,9 @@ describe("In your logs and traces, under Connected Signals", () => {
     );
 
     expect(message.pathname).toBe(`${BASE}/logs`);
+    // The lines that hold the address whole: what the count counted.
     expect(JSON.parse(message.searchParams.get("filters") || "[]")).toEqual([
-      ["body", ["203.0.113.7"]],
+      ["bodyWord", ["203.0.113.7"]],
     ]);
     expect(message.searchParams.get("range")).toBe("Custom");
 

@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Этот монитор никто не проверяет, пока мониторинг не включат снова, поэтому он не открывает инцидентов и оповещений. Его открытые инциденты и оповещения, для которых настроено автоустранение, устраняются сразу.",
   "The monitors of this group could not be read. Please try again.": "Не удалось прочитать мониторы этой группы. Попробуйте ещё раз.",
   "Turn monitoring off or on for every monitor in this group at once.": "Выключайте или включайте мониторинг сразу для всех мониторов этой группы.",
-  "Turn off monitoring for this group?": "Выключить мониторинг для этой группы?"
+  "Turn off monitoring for this group?": "Выключить мониторинг для этой группы?",
+  "Word in message": "Слово в сообщении"
 }

@@ -12,6 +12,10 @@ import MetricExplorerUrl, {
 } from "../Metrics/MetricExplorerUrl";
 import { buildSearchTokenValue } from "../../Types/Telemetry/TelemetrySearchQuery";
 import { toExcludeFacetKey } from "../../Types/Telemetry/FacetExcludeKey";
+import {
+  LOG_MESSAGE_WORD_CHIP_KEY,
+  readLogMessageWords,
+} from "./LogMessageWord";
 
 /*
  * Matches any whitespace, double-quote, or colon — the characters that break a
@@ -121,6 +125,14 @@ export interface TelemetryCrossSignalScope {
    * nothing. Traces and metrics report it as dropped.
    */
   bodyContains?: string | undefined;
+  /**
+   * Words the log message must hold WHOLE ("Word in message": no letter,
+   * digit, "_", "-" or "." running on either side, any case; an address in
+   * any of its spellings - Utils/Telemetry/LogMessageWord), the way
+   * Connected Signals counts a value In the message. Only the logs explorer
+   * has a message; traces and metrics report it as dropped.
+   */
+  bodyWords?: Array<string> | undefined;
   /**
    * The values the view leaves out, each beside the field it would keep:
    * service ObjectID strings, resource selections keyed by facet, exact
@@ -530,6 +542,13 @@ export function toLogsExplorerQueryParams(
     tuples.push(["body", [bodyContains]]);
   }
 
+  // Words held whole: the explorer's "Word in message" chip.
+  const bodyWords: Array<string> = readLogMessageWords(scope.bodyWords);
+
+  if (bodyWords.length > 0) {
+    tuples.push([LOG_MESSAGE_WORD_CHIP_KEY, bodyWords]);
+  }
+
   // What the view leaves out, as the chips the explorer's minus writes.
   const exclusions: ResolvedExclusions = resolveExclusions(scope);
 
@@ -753,6 +772,10 @@ export function toTracesExplorerQueryParams(
     dropped.push("bodyContains");
   }
 
+  if (readLogMessageWords(scope.bodyWords).length > 0) {
+    dropped.push("bodyWords");
+  }
+
   dropped.push(...window.dropped);
 
   return { params, dropped };
@@ -844,6 +867,10 @@ export function toMetricsExplorerQueryParams(
 
   if (sanitizeBodyContains(scope.bodyContains).length > 0) {
     dropped.push("bodyContains");
+  }
+
+  if (readLogMessageWords(scope.bodyWords).length > 0) {
+    dropped.push("bodyWords");
   }
 
   const exclusions: ResolvedExclusions = resolveExclusions(scope);

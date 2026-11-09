@@ -33,6 +33,7 @@ import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import { JSONObject } from "../../../../Types/JSON";
 import { applyLogsFacetExclusionsToRequest } from "../LogsFacetExclusions";
+import { getLogMessageWordChipFields } from "../../../../Utils/Telemetry/LogMessageWord";
 import {
   ResourceEntityFacetSelections,
   collectResourceEntityFacetSelections,
@@ -544,6 +545,12 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         applyLogsFacetExclusionsToRequest(
           requestData,
           props.appliedFacetFilters,
+        );
+
+        // The words the message holds whole, or must not ("Word in message").
+        Object.assign(
+          requestData,
+          getLogMessageWordChipFields(props.appliedFacetFilters),
         );
 
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =

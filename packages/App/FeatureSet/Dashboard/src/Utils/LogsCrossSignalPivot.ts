@@ -37,6 +37,12 @@ import {
 } from "Common/Types/Translator";
 import { RESOURCE_FACET_KEYS } from "../Components/Logs/LogsHistogramRequest";
 import {
+  EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORD_CHIP_KEY,
+  getLogMessageWordChipFields,
+} from "Common/Utils/Telemetry/LogMessageWord";
+import {
   EXCLUDED_RESOURCE_FILTERS_FIELD,
   ResourceEntityFacetSelections,
   collectExcludedResourceEntityFacetSelections,
@@ -589,6 +595,8 @@ const DROPPED_CHIP_LABELS: Record<string, string> = {
   traceId: translationKey("traces"),
   spanId: translationKey("spans"),
   body: translationKey("message text"),
+  // A word held whole is message text too, to a reader of the hint.
+  [LOG_MESSAGE_WORD_CHIP_KEY]: translationKey("message text"),
 };
 
 // How an attribute's key and a field a chip leaves out read in the hint.
@@ -770,6 +778,27 @@ export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction 
       delete (query as any)[EXCLUDED_RESOURCE_FILTERS_FIELD];
     }
 
+    /*
+     * Words the message holds whole ("Word in message", a Connected
+     * Signals link's chip) and words it must not: query keys of their own,
+     * read by the server as the count it came from read them
+     * (LogMessageWordStatement). Written the same way: a stale word never
+     * stays behind a chip set that dropped it.
+     */
+    const wordFields: Record<string, unknown> =
+      getLogMessageWordChipFields(facetFilters);
+
+    for (const field of [
+      LOG_MESSAGE_WORDS_FIELD,
+      EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+    ]) {
+      if (wordFields[field] !== undefined) {
+        (query as any)[field] = wordFields[field];
+      } else {
+        delete (query as any)[field];
+      }
+    }
+
     const resourceIds: Set<string> = new Set<string>(
       collectServiceFacetSelections(facetFilters.entries()),
     );
@@ -779,8 +808,8 @@ export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction 
         continue;
       }
 
-      // Both resource groups are compiled above.
-      if (isResourceFacetKey(key)) {
+      // Both resource groups, and the message words, are compiled above.
+      if (isResourceFacetKey(key) || key === LOG_MESSAGE_WORD_CHIP_KEY) {
         continue;
       }
 
@@ -906,12 +935,13 @@ export const applyLogsFacetExclusionsToQuery: ApplyLogsFacetExclusionsToQueryFun
         },
       );
 
-      // Resources and services are compiled above.
+      // Resources, services and message words are compiled above.
       if (
         !key ||
         values.length === 0 ||
         isServiceFacetKey(key) ||
-        isResourceEntityFacetKey(key)
+        isResourceEntityFacetKey(key) ||
+        key === LOG_MESSAGE_WORD_CHIP_KEY
       ) {
         continue;
       }

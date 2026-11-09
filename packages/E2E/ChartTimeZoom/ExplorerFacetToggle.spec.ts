@@ -1567,3 +1567,96 @@ test.describe("A pivot keeps what the view leaves out", () => {
       .toEqual([checkoutId]);
   });
 });
+
+/*
+ * "Word in message": the chip a Connected Signals "In the message" link
+ * opens the logs explorer on. The message holds the word WHOLE, as the count
+ * read it - so the explorer lists exactly the lines that were counted. A
+ * "Message contains" search (a substring) found more: 10.0.0.12 beside the
+ * 10.0.0.1 that was counted. The fixture writes short lines ("Cart loaded",
+ * "Card processor slow to answer") and reads the words as the server does.
+ */
+test.describe("Logs explorer: a word the message holds whole", () => {
+  function linkTo(chips: Array<[string, Array<string>]>): string {
+    return `${LOGS_PATH}?range=Past%201%20Day&filters=${encodeURIComponent(
+      JSON.stringify(chips),
+    )}`;
+  }
+
+  // The text of each line the list shows.
+  async function listedLines(page: Page): Promise<Array<string>> {
+    return page.getByTestId("logs-table").locator("tbody tr").allInnerTexts();
+  }
+
+  test("its chip lists only the lines that hold the word, and the chart and the counts read the same lines", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, linkTo([["bodyWord", ["Cart"]]]));
+
+    await expect(page.getByText("Word in message:")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", LOG_TABLE))?.[
+          "bodyWords"
+        ];
+      })
+      .toEqual(["Cart"]);
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/logs/histogram"))?.[
+          "bodyWords"
+        ];
+      })
+      .toEqual(["Cart"]);
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/logs/facets"))?.[
+          "bodyWords"
+        ];
+      })
+      .toEqual(["Cart"]);
+
+    await expect
+      .poll(async () => {
+        return (await listedLines(page)).length;
+      })
+      .toBeGreaterThan(0);
+
+    for (const line of await listedLines(page)) {
+      expect(
+        line.includes("Cart loaded") || line.includes("Cart cache hit"),
+        line,
+      ).toBe(true);
+    }
+  });
+
+  test("a part of a word is no word: Car finds no Cart and no Card, where Message contains would find both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, linkTo([["bodyWord", ["Car"]]]));
+
+    await expect(page.getByText("Word in message:")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(page.getByText("No logs found")).toBeVisible({
+      timeout: 30000,
+    });
+
+    // The same text as a substring finds the lines the word does not.
+    await open(page, linkTo([["body", ["Car"]]]));
+    await expect(page.getByText("Message contains:")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect
+      .poll(async () => {
+        return (await listedLines(page)).length;
+      })
+      .toBeGreaterThan(0);
+  });
+});

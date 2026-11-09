@@ -5508,7 +5508,7 @@ test.describe("an event's Connected tab", () => {
           `http://127.0.0.1:${PORT}`,
         ).searchParams.get("filters") || "[]",
       ),
-    ).toEqual([["body", ["203.0.113.30"]]]);
+    ).toEqual([["bodyWord", ["203.0.113.30"]]]);
   });
 
   for (const view of [

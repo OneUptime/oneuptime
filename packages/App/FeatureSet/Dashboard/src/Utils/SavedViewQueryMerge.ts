@@ -5,6 +5,10 @@ import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import { toExcludeFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
 import { BODY_FACET_KEY } from "./LogsCrossSignalPivot";
 import { EXCLUDED_RESOURCE_FILTERS_FIELD } from "Common/Types/Telemetry/ResourceEntityFacet";
+import {
+  EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORDS_FIELD,
+} from "Common/Utils/Telemetry/LogMessageWord";
 import { ATTRIBUTE_FACET_PREFIX } from "../Components/Logs/LogsHistogramRequest";
 
 /*
@@ -97,6 +101,16 @@ export function buildSavedViewQueryForOverrides(
   // The resources a view leaves out are chips too (`!hostId`).
   if (baseQuery[EXCLUDED_RESOURCE_FILTERS_FIELD] === undefined) {
     delete merged[EXCLUDED_RESOURCE_FILTERS_FIELD];
+  }
+
+  // And the words its message holds whole, or must not ("Word in message").
+  for (const field of [
+    LOG_MESSAGE_WORDS_FIELD,
+    EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+  ]) {
+    if (baseQuery[field] === undefined) {
+      delete merged[field];
+    }
   }
 
   /*

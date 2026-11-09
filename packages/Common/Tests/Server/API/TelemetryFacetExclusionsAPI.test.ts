@@ -431,6 +431,104 @@ describe("telemetry endpoints read what a reader left out", () => {
     });
   });
 
+  /*
+   * "Word in message": the words a log line's message holds whole, and the
+   * ones it must not - what a Connected Signals "In the message" link opens
+   * the explorer on. Read as the list query reads them (readLogMessageWords):
+   * trimmed, once whatever their case, text that is no word dropped.
+   */
+  describe("logs: words the message holds whole", () => {
+    test("the chart gets the words kept and left out", async () => {
+      const histogram: Spy = spyOn(LogAggregationService, "getHistogram");
+      histogram.mockImplementation(async (): Promise<Array<unknown>> => {
+        return [];
+      });
+
+      await callRoute({
+        uri: "/telemetry/logs/histogram",
+        request: viewerRequest,
+        body: {
+          bodyWords: [" 10.0.0.1 ", "Cart", "cart", "", 7],
+          excludedBodyWords: ["healthcheck"],
+        },
+      });
+
+      const request: JSONObject = onlyRequest(histogram);
+      expect(request["bodyWords"]).toEqual(["10.0.0.1", "Cart"]);
+      expect(request["excludedBodyWords"]).toEqual(["healthcheck"]);
+    });
+
+    test("the facet counts, every part of them, get them too", async () => {
+      const counts: Spy = spyOn(LogAggregationService, "getFacetValues");
+      counts.mockImplementation(async (): Promise<Array<unknown>> => {
+        return [];
+      });
+
+      await callRoute({
+        uri: "/telemetry/logs/facets",
+        request: viewerRequest,
+        body: {
+          facetKeys: ["severityText", "primaryEntityId"],
+          bodyWords: ["10.0.0.1"],
+        },
+      });
+
+      expect(counts.mock.calls).toHaveLength(2);
+
+      for (const call of counts.mock.calls) {
+        expect((call[0] as JSONObject)["bodyWords"]).toEqual(["10.0.0.1"]);
+      }
+    });
+
+    test("and the analytics tab and the export", async () => {
+      const timeseries: Spy = spyOn(
+        LogAggregationService,
+        "getAnalyticsTimeseries",
+      );
+      timeseries.mockImplementation(async (): Promise<Array<unknown>> => {
+        return [];
+      });
+
+      await callRoute({
+        uri: "/telemetry/logs/analytics",
+        request: viewerRequest,
+        body: { chartType: "timeseries", excludedBodyWords: ["Card"] },
+      });
+
+      expect(onlyRequest(timeseries)["excludedBodyWords"]).toEqual(["Card"]);
+
+      const exported: Spy = spyOn(LogAggregationService, "getExportLogs");
+      exported.mockImplementation(async (): Promise<Array<unknown>> => {
+        return [];
+      });
+
+      await callRoute({
+        uri: "/telemetry/logs/export",
+        request: viewerRequest,
+        body: { bodyWords: "lone word" },
+      });
+
+      expect(onlyRequest(exported)["bodyWords"]).toEqual(["lone word"]);
+    });
+
+    test("no word sends no word field at all", async () => {
+      const histogram: Spy = spyOn(LogAggregationService, "getHistogram");
+      histogram.mockImplementation(async (): Promise<Array<unknown>> => {
+        return [];
+      });
+
+      await callRoute({
+        uri: "/telemetry/logs/histogram",
+        request: viewerRequest,
+        body: { bodyWords: ["", "  ", { x: 1 }], excludedBodyWords: 42 },
+      });
+
+      const request: JSONObject = onlyRequest(histogram);
+      expect(Object.keys(request)).not.toContain("bodyWords");
+      expect(Object.keys(request)).not.toContain("excludedBodyWords");
+    });
+  });
+
   describe("traces", () => {
     test("the chart gets the statuses, kinds, names and services left out", async () => {
       const histogram: Spy = spyOn(TraceAggregationService, "getHistogram");

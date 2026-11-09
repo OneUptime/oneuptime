@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "निगरानी फिर से चालू होने तक इस मॉनिटर की कोई जाँच नहीं होगी, इसलिए यह कोई घटना या अलर्ट नहीं खोलेगा। इसकी खुली घटनाएँ और अलर्ट, जो स्वतः समाधान पर सेट हैं, अभी सुलझा दिए जाते हैं।",
   "The monitors of this group could not be read. Please try again.": "इस समूह के मॉनिटर पढ़े नहीं जा सके। कृपया फिर से कोशिश करें।",
   "Turn monitoring off or on for every monitor in this group at once.": "इस समूह के सभी मॉनिटर के लिए निगरानी एक साथ बंद या चालू करें।",
-  "Turn off monitoring for this group?": "इस समूह के लिए निगरानी बंद करें?"
+  "Turn off monitoring for this group?": "इस समूह के लिए निगरानी बंद करें?",
+  "Word in message": "संदेश में शब्द"
 }

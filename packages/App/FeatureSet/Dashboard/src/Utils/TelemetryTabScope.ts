@@ -9,6 +9,7 @@ import {
   isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
 import { isExcludeFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
+import { LOG_MESSAGE_WORD_CHIP_KEY } from "Common/Utils/Telemetry/LogMessageWord";
 import {
   TRACE_SPAN_TYPE_URL_PARAM,
   TraceSpanType,
@@ -355,6 +356,8 @@ export function buildTelemetryScopeFilterTuples(
 const UNAPPLIED_FACET_LABELS: Dictionary<string> = {
   severityText: translationKey("Severity"),
   body: translationKey("message text"),
+  // A word the message holds whole ("Word in message").
+  [LOG_MESSAGE_WORD_CHIP_KEY]: translationKey("message text"),
   traceId: translationKey("trace id"),
   spanId: translationKey("span id"),
   hostId: translationKey("host"),

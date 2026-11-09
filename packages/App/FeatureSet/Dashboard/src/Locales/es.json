@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Nada comprueba este monitor hasta que se vuelva a activar el monitoreo, así que no abre incidentes ni alertas. Sus incidentes y alertas abiertos configurados para resolverse automáticamente se resuelven ahora.",
   "The monitors of this group could not be read. Please try again.": "No se pudieron leer los monitores de este grupo. Inténtalo de nuevo.",
   "Turn monitoring off or on for every monitor in this group at once.": "Desactiva o activa el monitoreo de todos los monitores de este grupo a la vez.",
-  "Turn off monitoring for this group?": "¿Desactivar el monitoreo de este grupo?"
+  "Turn off monitoring for this group?": "¿Desactivar el monitoreo de este grupo?",
+  "Word in message": "Palabra en el mensaje"
 }

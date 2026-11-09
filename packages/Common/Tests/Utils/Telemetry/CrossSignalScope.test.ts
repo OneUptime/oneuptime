@@ -873,6 +873,42 @@ describe("bodyContains", () => {
 });
 
 /*
+ * Words the log message holds WHOLE ("Word in message"): what Connected
+ * Signals' "In the message" opens the logs explorer on, so it lists exactly
+ * the lines it counted. Only the logs explorer has a message.
+ */
+describe("bodyWords", () => {
+  test("logs: the explorer's Word in message chip, each word once, as written", () => {
+    const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+      bodyWords: [" 10.0.0.1 ", "Cart", "cart", ""],
+      bodyContains: "refused",
+    });
+
+    expect(JSON.parse(result.params["filters"] as string)).toEqual([
+      ["body", ["refused"]],
+      ["bodyWord", ["10.0.0.1", "Cart"]],
+    ]);
+    expect(result.dropped).toEqual([]);
+  });
+
+  test("logs: no word, no chip", () => {
+    expect(toLogsExplorerQueryParams({ bodyWords: ["  "] }).params).toEqual({});
+  });
+
+  test("traces and metrics report them dropped rather than ignoring them", () => {
+    expect(
+      toTracesExplorerQueryParams({ bodyWords: ["10.0.0.1"] }).dropped,
+    ).toEqual(["bodyWords"]);
+    expect(
+      toMetricsExplorerQueryParams({ bodyWords: ["10.0.0.1"] }).dropped,
+    ).toEqual(["bodyWords"]);
+    expect(toTracesExplorerQueryParams({ bodyWords: [""] }).dropped).toEqual(
+      [],
+    );
+  });
+});
+
+/*
  * What a view LEAVES OUT ("Service is not checkout", "Host is not web-01")
  * rides the logs and traces `filters` as the chips their facet rows' minus
  * writes - the facet key marked with a leading `!` - which both explorers

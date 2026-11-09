@@ -10,6 +10,11 @@ import AnalyticsDatabaseService, {
 } from "Common/Server/Services/AnalyticsDatabaseService";
 import LogService from "Common/Server/Services/LogService";
 import SpanService from "Common/Server/Services/SpanService";
+import LogAggregationService, {
+  HistogramBucket,
+} from "Common/Server/Services/LogAggregationService";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import { getTelemetryMessageWord } from "Common/Utils/SecurityCase/SecurityTelemetrySearch";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import SecurityConnectedRecords from "Common/Server/Utils/SecurityEvent/Connections/SecurityConnectedRecords";
@@ -787,6 +792,124 @@ integration("In your logs and traces, against ClickHouse", () => {
 
       expect(valueOf(mentions, ATTACKER).logs!.count).toBe(1);
       expect(valueOf(mentions, ATTACKER).traces!.count).toBe(0);
+    });
+
+    /*
+     * "In the message" opens the Logs explorer on its "Word in message"
+     * chip. The explorer's list (StatementGenerator), its chart and its
+     * facet counts (LogAggregationService) read the chip's words with the
+     * count's own needles and pattern - so each lists exactly the lines
+     * the count counted. The substring search it used to open, for the
+     * private address, also found 10.0.0.12.
+     */
+    test("In the message opens the lines it counted: the explorer's list, chart and counts read exactly them", async () => {
+      const mentions: SecurityTelemetryMentionsJson = await search();
+
+      // The lines the list shows for a word, as the explorer reads them.
+      const listed: (word: string) => Promise<number> = async (
+        word: string,
+      ): Promise<number> => {
+        const rows: Array<Log> = await LogService.findBy({
+          query: {
+            projectId,
+            time: new InBetween<Date>(START, END),
+            bodyWords: [word],
+          } as never,
+          select: { _id: true } as never,
+          limit: 1000,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+        return rows.length;
+      };
+
+      const charted: (filter: {
+        bodyWords?: Array<string>;
+        excludedBodyWords?: Array<string>;
+        bodySearchText?: string;
+      }) => Promise<number> = async (filter: {
+        bodyWords?: Array<string>;
+        excludedBodyWords?: Array<string>;
+        bodySearchText?: string;
+      }): Promise<number> => {
+        const buckets: Array<HistogramBucket> =
+          await LogAggregationService.getHistogram({
+            projectId,
+            startTime: START,
+            endTime: END,
+            bucketSizeInMinutes: 240,
+            ...filter,
+          });
+
+        return buckets.reduce(
+          (sum: number, bucket: HistogramBucket): number => {
+            return sum + bucket.count;
+          },
+          0,
+        );
+      };
+
+      for (const entity of [ATTACKER, EMAIL, DOMAIN, PRIVATE]) {
+        const counted: number =
+          valueOf(mentions, entity).logs!.places.find(
+            (place: { key: string }): boolean => {
+              return place.key === SECURITY_TELEMETRY_MESSAGE_PLACE;
+            },
+          )?.count || 0;
+        const word: string = getTelemetryMessageWord(entity.value);
+
+        expect(counted).toBeGreaterThan(0);
+        expect({ word, listed: await listed(word) }).toEqual({
+          word,
+          listed: counted,
+        });
+        expect({ word, charted: await charted({ bodyWords: [word] }) }).toEqual(
+          { word, charted: counted },
+        );
+      }
+
+      // What the substring search found beside it: 10.0.0.12 too.
+      expect(await charted({ bodySearchText: "10.0.0.1" })).toBe(2);
+      expect(await charted({ bodyWords: ["10.0.0.1"] })).toBe(1);
+    });
+
+    test("a word left out leaves exactly the lines that hold it out", async () => {
+      const all: number = (
+        await LogAggregationService.getHistogram({
+          projectId,
+          startTime: START,
+          endTime: END,
+          bucketSizeInMinutes: 240,
+        })
+      ).reduce((sum: number, bucket: HistogramBucket): number => {
+        return sum + bucket.count;
+      }, 0);
+      const holding: number = (
+        await LogAggregationService.getHistogram({
+          projectId,
+          startTime: START,
+          endTime: END,
+          bucketSizeInMinutes: 240,
+          bodyWords: [ATTACKER.value],
+        })
+      ).reduce((sum: number, bucket: HistogramBucket): number => {
+        return sum + bucket.count;
+      }, 0);
+      const without: number = (
+        await LogAggregationService.getHistogram({
+          projectId,
+          startTime: START,
+          endTime: END,
+          bucketSizeInMinutes: 240,
+          excludedBodyWords: [ATTACKER.value],
+        })
+      ).reduce((sum: number, bucket: HistogramBucket): number => {
+        return sum + bucket.count;
+      }, 0);
+
+      expect(holding).toBe(3);
+      expect(without).toBe(all - holding);
     });
 
     test("the read stops at its own time limit, and throws rather than answering short", async () => {

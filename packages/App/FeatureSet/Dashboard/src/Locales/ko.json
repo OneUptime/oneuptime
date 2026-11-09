@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "모니터링을 다시 켤 때까지 이 모니터를 아무것도 확인하지 않으므로 인시던트나 알림을 열지 않습니다. 자동 해결로 설정된 열린 인시던트와 알림은 지금 해결됩니다.",
   "The monitors of this group could not be read. Please try again.": "이 그룹의 모니터를 읽을 수 없습니다. 다시 시도해 주세요.",
   "Turn monitoring off or on for every monitor in this group at once.": "이 그룹의 모든 모니터에 대해 모니터링을 한 번에 끄거나 켭니다.",
-  "Turn off monitoring for this group?": "이 그룹의 모니터링을 끄시겠습니까?"
+  "Turn off monitoring for this group?": "이 그룹의 모니터링을 끄시겠습니까?",
+  "Word in message": "메시지 내 단어"
 }

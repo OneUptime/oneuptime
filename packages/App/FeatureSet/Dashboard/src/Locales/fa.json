@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "تا وقتی پایش دوباره روشن نشود، هیچ چیز این مانیتور را بررسی نمی‌کند؛ پس هیچ حادثه یا هشداری باز نمی‌کند. حادثه‌ها و هشدارهای باز آن که روی حل خودکار تنظیم شده‌اند، همین حالا برطرف می‌شوند.",
   "The monitors of this group could not be read. Please try again.": "مانیتورهای این گروه خوانده نشدند. لطفاً دوباره تلاش کنید.",
   "Turn monitoring off or on for every monitor in this group at once.": "پایش را برای همه مانیتورهای این گروه یک‌جا خاموش یا روشن کنید.",
-  "Turn off monitoring for this group?": "پایش برای این گروه خاموش شود؟"
+  "Turn off monitoring for this group?": "پایش برای این گروه خاموش شود؟",
+  "Word in message": "واژه در پیام"
 }

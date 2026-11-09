@@ -20,7 +20,7 @@ import {
   getTelemetryAttributeSpellings,
   getTelemetryMessageNeedles,
   getTelemetryMessagePattern,
-  getTelemetryMessageSearchText,
+  getTelemetryMessageWord,
   getTelemetryPlaces,
   getTelemetrySearchValues,
   getTelemetryValueShape,
@@ -29,6 +29,11 @@ import {
   isResourceAttributeKey,
   isTelemetrySearchText,
 } from "../../../Utils/SecurityCase/SecurityTelemetrySearch";
+import {
+  getLogMessageWordMatch,
+  getLogMessageWordNeedles,
+  getLogMessageWordPattern,
+} from "../../../Utils/Telemetry/LogMessageWord";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
@@ -717,15 +722,56 @@ describe("where in the lines or spans it was", () => {
   });
 });
 
-describe("what the Logs explorer's message search opens on", () => {
-  test("the value as named, an IPv6 address in the short form logs write it in", () => {
-    expect(getTelemetryMessageSearchText(" 203.0.113.7 ")).toBe("203.0.113.7");
-    expect(getTelemetryMessageSearchText("2001:0DB8:0:0:0:0:0:7")).toBe(
-      "2001:db8::7",
+/*
+ * "In the message" opens the Logs explorer on a "Word in message" chip:
+ * the lines it counted, and never others - so the chip reads a word with
+ * the very needles and pattern the count did (Utils/Telemetry/
+ * LogMessageWord). Before, it opened a substring search, which found
+ * 10.0.0.12 and 110.0.0.1 beside the 10.0.0.1 it had counted.
+ */
+describe("what the Logs explorer's In the message link opens on", () => {
+  test("the value as the case names it, trimmed", () => {
+    expect(getTelemetryMessageWord(" 203.0.113.7 ")).toBe("203.0.113.7");
+    expect(getTelemetryMessageWord("2001:0DB8:0:0:0:0:0:7")).toBe(
+      "2001:0DB8:0:0:0:0:0:7",
     );
-    expect(getTelemetryMessageSearchText("evil.example")).toBe("evil.example");
-    expect(getTelemetryMessageSearchText("")).toBe("");
+    expect(getTelemetryMessageWord("evil.example")).toBe("evil.example");
+    expect(getTelemetryMessageWord("")).toBe("");
   });
+
+  test.each([
+    [SecurityEntityType.IpAddress, "10.0.0.1"],
+    [SecurityEntityType.IpAddress, "2001:0DB8:0:0:0:0:0:7"],
+    [SecurityEntityType.IpAddress, "2001:db8::7"],
+    [SecurityEntityType.Domain, "Evil.Example"],
+    [SecurityEntityType.Host, "web-01.prod.example.com"],
+    [SecurityEntityType.User, "Mallory@Example.com"],
+    [SecurityEntityType.Url, "https://evil.example/login"],
+    [SecurityEntityType.Url, "https://evil.example/"],
+    [SecurityEntityType.FileHash, "D41D8CD98F00B204E9800998ECF8427E"],
+  ])(
+    "a %s value is counted and opened with one pattern: %s",
+    (type: SecurityEntityType, value: string) => {
+      const search: SecurityTelemetrySearch = getTelemetrySearchValues([
+        entity(type, value),
+      ]);
+
+      expect(search.values).toHaveLength(1);
+
+      const counted: {
+        needles: Array<string>;
+        messagePattern: string;
+      } = search.values[0]!;
+      const word: string = getTelemetryMessageWord(value);
+
+      expect(getLogMessageWordNeedles(word)).toEqual(counted.needles);
+      expect(getLogMessageWordPattern(word)).toBe(counted.messagePattern);
+      expect(getLogMessageWordMatch(word)).toEqual({
+        needles: counted.needles,
+        pattern: counted.messagePattern,
+      });
+    },
+  );
 });
 
 describe("the signals", () => {

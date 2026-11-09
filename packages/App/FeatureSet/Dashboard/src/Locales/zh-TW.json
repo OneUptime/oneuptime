@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "在重新開啟監測之前，沒有任何東西會檢查此監測器，因此它不會建立事件或警示。它設定為自動解決的未解決事件和警示將立即被解決。",
   "The monitors of this group could not be read. Please try again.": "無法讀取此群組的監測器。請再試一次。",
   "Turn monitoring off or on for every monitor in this group at once.": "一次關閉或開啟此群組中所有監測器的監測。",
-  "Turn off monitoring for this group?": "要關閉此群組的監測嗎？"
+  "Turn off monitoring for this group?": "要關閉此群組的監測嗎？",
+  "Word in message": "訊息中的單字"
 }

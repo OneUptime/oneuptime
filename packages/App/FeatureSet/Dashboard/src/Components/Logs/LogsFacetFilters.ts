@@ -20,6 +20,14 @@ import {
   toExcludeFacetKey,
 } from "Common/Types/Telemetry/FacetExcludeKey";
 import { ATTRIBUTE_FACET_PREFIX } from "./LogsHistogramRequest";
+import { translationKey } from "Common/Types/Translator";
+import {
+  EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORD_CHIP_KEY,
+  hasLogMessageWords,
+  readLogMessageWords,
+} from "Common/Utils/Telemetry/LogMessageWord";
 import { LOGS_CHIP_FACET_KEYS } from "../../Utils/SavedViewQueryMerge";
 
 /*
@@ -64,6 +72,12 @@ export const LOGS_FACET_CHIP_KEY_LABELS: Readonly<Record<string, string>> = {
    * like an equality the filter is not.
    */
   body: "Message contains",
+  /*
+   * A word the message holds whole: what Connected Signals' "In the
+   * message" opens the explorer on, so "Word in message: 10.0.0.1" never
+   * reads as the substring "Message contains" would find (10.0.0.12 too).
+   */
+  [LOG_MESSAGE_WORD_CHIP_KEY]: translationKey("Word in message"),
 };
 
 /*
@@ -232,6 +246,29 @@ export function buildLogsFacetFiltersFromQuery(
     if (values.length > 0) {
       nextFilters.set(facetKey, new Set(values));
     }
+  }
+
+  /*
+   * The words the view's message holds whole, and the ones it must not, as
+   * their chips - a saved view or a link keeps its "Word in message".
+   */
+  const savedWords: Array<string> = readLogMessageWords(
+    (query as any)[LOG_MESSAGE_WORDS_FIELD],
+  );
+
+  if (savedWords.length > 0 && !hasLogMessageWords(baseQuery as any)) {
+    nextFilters.set(LOG_MESSAGE_WORD_CHIP_KEY, new Set(savedWords));
+  }
+
+  const savedExcludedWords: Array<string> = readLogMessageWords(
+    (query as any)[EXCLUDED_LOG_MESSAGE_WORDS_FIELD],
+  );
+
+  if (savedExcludedWords.length > 0 && !hasLogMessageWords(baseQuery as any)) {
+    nextFilters.set(
+      toExcludeFacetKey(LOG_MESSAGE_WORD_CHIP_KEY),
+      new Set(savedExcludedWords),
+    );
   }
 
   // And the resources the view leaves out, as `!<facet>` chips.

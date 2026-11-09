@@ -25,6 +25,11 @@ import {
   isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
 import { HistogramBucket } from "Common/UI/Components/LogsViewer/types";
+import {
+  EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+  LOG_MESSAGE_WORDS_FIELD,
+  readLogMessageWords,
+} from "Common/Utils/Telemetry/LogMessageWord";
 import { LogsHistogramData } from "Common/UI/Components/LogsViewer/useLogsHistogram";
 
 /*
@@ -483,6 +488,24 @@ export const applyTypedLogFilterToRequest: ApplyTypedLogFilterToRequestFunction 
       requestData["bodySearchText"] = body.toString();
     }
 
+    /*
+     * Words the message holds whole, and words it must not ("Word in
+     * message"): the endpoints compile the very conditions the list does,
+     * so the chart and the counts leave out the lines the list leaves out.
+     */
+    for (const field of [
+      LOG_MESSAGE_WORDS_FIELD,
+      EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
+    ]) {
+      const words: Array<string> = readLogMessageWords(typedFilter[field]);
+
+      if (words.length > 0) {
+        requestData[field] = words;
+      } else {
+        delete requestData[field];
+      }
+    }
+
     return requestData;
   };
 
@@ -537,6 +560,8 @@ export const TYPED_LOG_FILTER_KEYS: ReadonlyArray<string> = [
   "body",
   "resourceFilters",
   EXCLUDED_RESOURCE_FILTERS_FIELD,
+  LOG_MESSAGE_WORDS_FIELD,
+  EXCLUDED_LOG_MESSAGE_WORDS_FIELD,
 ];
 
 type PickTypedLogFilterFunction = (

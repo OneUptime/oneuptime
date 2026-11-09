@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Niets controleert deze monitor totdat de bewaking weer aan staat, dus hij opent geen incidenten of waarschuwingen. Zijn open incidenten en waarschuwingen die zijn ingesteld op automatisch oplossen, worden nu opgelost.",
   "The monitors of this group could not be read. Please try again.": "De monitoren van deze groep konden niet worden gelezen. Probeer het opnieuw.",
   "Turn monitoring off or on for every monitor in this group at once.": "Zet de bewaking in één keer uit of aan voor elke monitor in deze groep.",
-  "Turn off monitoring for this group?": "Bewaking uitzetten voor deze groep?"
+  "Turn off monitoring for this group?": "Bewaking uitzetten voor deze groep?",
+  "Word in message": "Woord in bericht"
 }

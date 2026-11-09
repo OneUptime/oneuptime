@@ -47140,5 +47140,6 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "監視を再びオンにするまで、このモニターは何もチェックされず、インシデントもアラートも作成されません。自動解決が設定されている未解決のインシデントとアラートは、今すぐ解決されます。",
   "The monitors of this group could not be read. Please try again.": "このグループのモニターを読み込めませんでした。もう一度お試しください。",
   "Turn monitoring off or on for every monitor in this group at once.": "このグループのすべてのモニターの監視を一度にオフまたはオンにします。",
-  "Turn off monitoring for this group?": "このグループの監視をオフにしますか？"
+  "Turn off monitoring for this group?": "このグループの監視をオフにしますか？",
+  "Word in message": "メッセージ内の単語"
 }
