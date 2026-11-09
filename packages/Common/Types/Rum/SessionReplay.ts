@@ -1,6 +1,10 @@
 import SessionReplayConsentMode from "./SessionReplayConsentMode";
 import SessionReplayMaskingMode from "./SessionReplayMaskingMode";
 import SessionReplayTriggerReason from "./SessionReplayTriggerReason";
+import {
+  SessionReplayCustomSignalCount,
+  SessionReplayFrustrationSignalsConfig,
+} from "./SessionReplayFrustrationSignals";
 
 /*
  * Wire contract between the browser (and later mobile) recorder and the
@@ -616,7 +620,23 @@ export interface SessionReplaySignalCounts {
    */
   clickCount?: number;
   customEventCount?: number;
+
+  /*
+   * The application's own signals that happened in this chunk, one entry
+   * per name (see SessionReplayFrustrationSignals). Optional like the
+   * engagement counters: a recorder that predates them, or a chunk where
+   * none happened, leaves it out. The finalizer adds them up per name into
+   * the session header, and the frustrationCount of each joins the built-in
+   * four in every frustration total.
+   */
+  customSignals?: Array<SessionReplayCustomSignalCount>;
 }
+
+/* The counters of SessionReplaySignalCounts that are plain numbers. */
+export type SessionReplayNumericSignalKey = Exclude<
+  keyof SessionReplaySignalCounts,
+  "customSignals"
+>;
 
 /*
  * Device and entry metadata. Sent only on chunk 0 and on the final chunk
@@ -928,6 +948,16 @@ export interface SessionReplayConfigResponse {
    * the first event, trigger reason "manual". Consent gates still apply.
    */
   isTargeted?: boolean;
+
+  /*
+   * What counts as frustration in this application: the four built-in
+   * rules with their numbers, and the signals of the application's own
+   * that are switched on (RumApplication.sessionReplayFrustrationSignals).
+   * Optional like the fields above: a recorder that finds it missing uses
+   * the built-in defaults, which are the rules it always had, so an older
+   * server changes nothing. The server always sends it.
+   */
+  frustrationSignals?: SessionReplayFrustrationSignalsConfig;
 
   respectDoNotTrack: boolean;
 

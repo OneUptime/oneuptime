@@ -28,6 +28,12 @@ import {
   RumTelemetrySignal,
   RumTelemetrySignalColumn,
 } from "../../Types/Rum/RumTelemetrySignal";
+import UpdateBy from "../Types/Database/UpdateBy";
+import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  SessionReplayFrustrationSettingsCheck,
+  checkSessionReplayFrustrationSettings,
+} from "../../Utils/Rum/SessionReplayFrustrationSettingsValidation";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "rum-application-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -58,6 +64,57 @@ const RUM_APPLICATION_NAMING: DiscoveredResourceNaming<Model> =
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * What counts as frustration is checked on every write and stored
+   * canonical (SessionReplayFrustrationSettingsValidation): a rule outside
+   * its range, a selector no browser could read or a page pattern that can
+   * never match is refused with words that name it, rather than stored and
+   * quietly ignored by every recorder. Run before the reference checks, by
+   * the base hooks, on API writes as well as the dashboard's.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    this.canonicalizeFrustrationSignals(data);
+  }
+
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = (updateBy.data || {}) as Record<
+      string,
+      unknown
+    >;
+
+    this.canonicalizeFrustrationSignals(data);
+  }
+
+  private canonicalizeFrustrationSignals(data: Record<string, unknown>): void {
+    // A write that leaves the signals alone is not judged on them.
+    if (data["sessionReplayFrustrationSignals"] === undefined) {
+      return;
+    }
+
+    const check: SessionReplayFrustrationSettingsCheck =
+      checkSessionReplayFrustrationSettings(
+        data["sessionReplayFrustrationSignals"],
+        (): string => {
+          return ObjectID.generate().toString();
+        },
+      );
+
+    if (check.problem) {
+      throw new BadDataException(check.problem);
+    }
+
+    data["sessionReplayFrustrationSignals"] = check.settings;
   }
 
   // Named after its app name when nobody gave it a name.
