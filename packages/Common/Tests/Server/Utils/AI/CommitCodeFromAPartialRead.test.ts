@@ -21,8 +21,10 @@ import {
 } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import {
   getActionArgumentParts,
+  getToolActionLeavesOutLists,
   ActionArgumentPart,
 } from "../../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ToolActionWords";
+import { AIChatToolActionStatus } from "../../../../Types/AI/AIChatTypes";
 import {
   AIChatLineRange,
   AIChatLinesShown,
@@ -239,7 +241,20 @@ const drawnCard: (
     arguments: getActionArgumentParts(
       args,
       {
-        leaveOutLists: Boolean(description && description.length > 0),
+        // The card's own rule for which lists its line stands for (issue #6331).
+        leaveOutLists: getToolActionLeavesOutLists({
+          id: "card",
+          toolName: tool.name,
+          title: describeAIActionSentence(tool.buildActionTitle!(args)),
+          arguments: args,
+          isMutation: true,
+          requiresApproval: true,
+          status: AIChatToolActionStatus.Pending,
+          words: {
+            title: tool.buildActionTitle!(args),
+            ...(description ? { description } : {}),
+          },
+        }),
         toolName: tool.name,
       },
       ENGLISH,

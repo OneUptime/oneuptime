@@ -362,7 +362,7 @@ describe("GitLab", () => {
     },
   };
 
-  test("each path's blob_id, null where there is no file, the path one piece of the address and the branch its ref", async () => {
+  test("each path's blob_id - with the last commit that changed it, which a commit of it is held to (#6331) - null where there is no file, the path one piece of the address and the branch its ref", async () => {
     const connected: ConnectedRepository = connectRepository({
       provider: CodeRepositoryType.GitLab,
       routes: [project, files],
@@ -375,7 +375,7 @@ describe("GitLab", () => {
     });
 
     expect(blobs).toEqual([
-      { filePath: "src/a.ts", blobSha: BLOB },
+      { filePath: "src/a.ts", blobSha: BLOB, lastCommitId: "c".repeat(40) },
       { filePath: "src/new.ts", blobSha: null },
     ]);
     const asked: Array<string> = connected.host.requests
@@ -409,7 +409,41 @@ describe("GitLab", () => {
     );
     expect(blobs[1]!.filePath).toBe("src/odd.ts");
     expect((blobs[1] as { failure: string }).failure).toBeTruthy();
-    expect(blobs[2]).toEqual({ filePath: "src/a.ts", blobSha: BLOB });
+    expect(blobs[2]).toEqual({
+      filePath: "src/a.ts",
+      blobSha: BLOB,
+      lastCommitId: "c".repeat(40),
+    });
+  });
+
+  test("a last commit that is no commit SHA is left out: such a file is written as GitLab has it, as it always was", async () => {
+    connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: [
+        project,
+        {
+          method: "GET",
+          path: /^\/projects\/4217\/repository\/files\/.+$/,
+          answer: () => {
+            return {
+              json: {
+                file_path: "src/a.ts",
+                blob_id: BLOB,
+                last_commit_id: "not a commit",
+              },
+            };
+          },
+        },
+      ],
+    });
+    const writer: CodeHostWriter = await openConnected();
+
+    expect(
+      await writer.getFileBlobShas({
+        branchName: "fix/login",
+        filePaths: ["src/a.ts"],
+      }),
+    ).toEqual([{ filePath: "src/a.ts", blobSha: BLOB }]);
   });
 
   test("a file read for the model carries its blob_id", async () => {
