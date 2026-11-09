@@ -490,10 +490,14 @@ describe("a call policy's number bought, attached or released (issue #6301)", ()
     expect(entry.userName).toBe("Ada Lovelace");
     // The number that went, and only it: the provider's id for it stays out.
     expect(fieldsOf(entry)).toEqual(["routingPhoneNumber"]);
-    expect(JSON.stringify(changesOf(entry)[0]!["oldValue"])).toContain(
-      "+14155550100",
-    );
-    expect(changesOf(entry)[0]!["newValue"]).toBeNull();
+    // As the number, not its JSON, and with no "Changed the value" (#6325).
+    expect(changesOf(entry)).toEqual([
+      {
+        field: "routingPhoneNumber",
+        oldValue: "+14155550100",
+        newValue: null,
+      },
+    ]);
     expect(JSON.stringify(entry)).not.toContain("PNlegacy");
   });
 

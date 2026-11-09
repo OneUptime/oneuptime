@@ -4,9 +4,11 @@ import {
   CodeChangeKind,
   CodeFileNow,
   MAX_FILES_NAMED_ON_CARD,
+  MAX_LINE_RANGES_WRITTEN,
   MAX_NAME_LENGTH_ON_CARD,
   UnseenCodeChange,
   describeChangedSinceProposed,
+  describeLineRanges,
   describeCodeFilesUnseenForModel,
   describeCodeFilesUnseenForPerson,
   findUnseenCodeChange,
@@ -42,6 +44,7 @@ import {
   CodeChangeProposedOn,
   CodeFileUnseen,
   CodeFileUnseenFinding,
+  getCodeFileLinesShown,
   seeCodeFile,
 } from "../../../../Types/CodeRepository/CodeFileSeen";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
@@ -719,7 +722,7 @@ describe("what a pull request approved anyway tells its reviewer", () => {
 
     expect(note).toBe(
       [
-        "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace changes it did not read:",
+        "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:",
         "- `src/a.ts`: changed on `main` after AI read it.",
         "- `src/b.ts`: AI read it on `release`, and it is different on `main`.",
         "- `src/c.ts`: AI did not read it before writing it.",
@@ -808,5 +811,398 @@ describe("what the card and the model are told of a change", () => {
     expect(unseen!.notRunWithoutApproval.toldModel).toContain(
       "- src/x.ts could not be checked on fix/login: Slow.",
     );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * ISSUE #6330: a file Ask AI read only part of.
+ * ---------------------------------------------------------------------------
+ */
+
+// A finding of a file read in part: how many lines it has, and the runs never read.
+const inPart: (
+  filePath: string,
+  lineCount: number,
+  linesNotRead: Array<[number, number]>,
+) => CodeFileUnseenFinding = (
+  filePath: string,
+  lineCount: number,
+  linesNotRead: Array<[number, number]>,
+): CodeFileUnseenFinding => {
+  return {
+    filePath,
+    unseen: CodeFileUnseen.ReadInPart,
+    lineCount,
+    linesNotRead: linesNotRead.map(([first, last]: [number, number]) => {
+      return { first, last };
+    }),
+  };
+};
+
+describe("a file Ask AI read only part of (issue #6330)", () => {
+  test("a read keeps the lines it showed beside the version; a read of all of it keeps what it always did", () => {
+    const file: {
+      content: string;
+      filePath: string;
+      sizeInBytes: number;
+      totalLines: number;
+      htmlUrl: string;
+      blobSha: string;
+    } = {
+      content: "a\nb\nc\n",
+      filePath: "src/a.ts",
+      sizeInBytes: 6,
+      totalLines: 3,
+      htmlUrl: "https://example.com",
+      blobSha: HELLO_BLOB_SHA1,
+    };
+
+    const window: AIChatRecordSeen | null = getCodeFileSeenFromRead({
+      repositoryId: REPOSITORY,
+      branchName: "main",
+      filePath: "/src/a.ts",
+      file,
+      linesShown: getCodeFileLinesShown({
+        lineCount: 3,
+        firstLine: 2,
+        lastLine: 3,
+      }),
+    });
+    const whole: AIChatRecordSeen | null = getCodeFileSeenFromRead({
+      repositoryId: REPOSITORY,
+      branchName: "main",
+      filePath: "/src/a.ts",
+      file,
+      linesShown: getCodeFileLinesShown({
+        lineCount: 3,
+        firstLine: 1,
+        lastLine: 3,
+      }),
+    });
+
+    expect(window).toEqual({
+      ...seeCodeFile({
+        repositoryId: REPOSITORY,
+        branchName: "main",
+        filePath: "src/a.ts",
+        fingerprint: fingerprintCodeFileVersion(HELLO_BLOB_SHA1),
+      }),
+      linesShown: { lineCount: 3, ranges: [{ first: 2, last: 3 }] },
+    });
+    expect(whole).toEqual(
+      getCodeFileSeenFromRead({
+        repositoryId: REPOSITORY,
+        branchName: "main",
+        filePath: "/src/a.ts",
+        file,
+      }),
+    );
+    expect(whole!.linesShown).toBeUndefined();
+  });
+
+  test("a commit of Ask AI's own keeps every file whole: it wrote all of each", () => {
+    for (const record of getCodeFilesSeenFromWrite({
+      repositoryId: REPOSITORY,
+      branchName: "fix/login",
+      files: [
+        { filePath: "src/a.ts", content: "a\n".repeat(5000) },
+        { filePath: "src/b.ts", content: "" },
+      ],
+      commitSha: "a".repeat(40),
+    })) {
+      expect(record.linesShown).toBeUndefined();
+    }
+  });
+
+  test.each<[Array<[number, number]>, string]>([
+    [[[7, 7]], "line 7"],
+    [[[1, 339]], "lines 1-339"],
+    [
+      [
+        [1, 339],
+        [461, 2000],
+      ],
+      "lines 1-339 and 461-2000",
+    ],
+    [
+      [
+        [1, 1],
+        [5, 9],
+        [12, 12],
+      ],
+      "lines 1, 5-9 and 12",
+    ],
+  ])(
+    "runs of lines in English: %j is %s",
+    (runs: Array<[number, number]>, english: string) => {
+      expect(
+        describeLineRanges(
+          runs.map(([first, last]: [number, number]) => {
+            return { first, last };
+          }),
+        ),
+      ).toBe(english);
+    },
+  );
+
+  test("more runs than are written out: the first twenty, and the rest counted", () => {
+    const runs: Array<{ first: number; last: number }> = Array.from(
+      { length: MAX_LINE_RANGES_WRITTEN + 3 },
+      (_value: unknown, index: number) => {
+        return { first: index * 10 + 1, last: index * 10 + 5 };
+      },
+    );
+    const written: string = describeLineRanges(runs);
+
+    expect(written.startsWith("lines 1-5, 11-15,")).toBe(true);
+    expect(written).toContain(`${(MAX_LINE_RANGES_WRITTEN - 1) * 10 + 1}-`);
+    expect(written).not.toContain(`${MAX_LINE_RANGES_WRITTEN * 10 + 1}-`);
+    expect(written.endsWith(" and 3 more runs of lines")).toBe(true);
+    expect(
+      describeLineRanges([...runs.slice(0, MAX_LINE_RANGES_WRITTEN + 1)]),
+    ).toMatch(/ and 1 more run of lines$/);
+  });
+
+  test("the card's line, after a file never read and before one not checked", () => {
+    const lines: Array<AIActionSentence> = describeCodeFilesUnseenForPerson({
+      branchName: "fix/login",
+      findings: [
+        finding("src/d.ts", CodeFileUnseen.NotChecked),
+        inPart("src/e.ts", 2000, [[1, 339]]),
+        finding("src/c.ts", CodeFileUnseen.NotRead),
+        finding("src/a.ts", CodeFileUnseen.ChangedSinceRead),
+      ],
+    });
+
+    expect(
+      lines.map((line: AIActionSentence): string => {
+        return describeAIActionSentence(line);
+      }),
+    ).toEqual([
+      "This file changed on fix/login after Ask AI read it, and Ask AI's version undoes that change: src/a.ts.",
+      "Ask AI wrote this file without reading it, and it replaces the one on fix/login: src/c.ts.",
+      "Ask AI read only part of this file, and its version replaces all of it: src/e.ts.",
+      "OneUptime could not check this file on fix/login against what Ask AI read: src/d.ts.",
+    ]);
+    expect(lines[2]!.template).toBe(
+      AI_ACTION_PLURAL_LINES.codeFilesReadInPart.other,
+    );
+    for (const line of lines) {
+      expect(isKnownAIActionSentence(line)).toBe(true);
+    }
+  });
+
+  test("several files read in part: counted, three named, the rest counted, and no line numbers on the card", () => {
+    const line: AIActionSentence = describeCodeFilesUnseenForPerson({
+      branchName: "fix/login",
+      findings: ["a", "b", "c", "d"].map((name: string) => {
+        return inPart(`src/${name}.ts`, 900, [[401, 900]]);
+      }),
+    })[0]!;
+
+    expect(describeAIActionSentence(line)).toBe(
+      "Ask AI read only part of these 4 files, and its versions replace all of them: src/a.ts, src/b.ts, src/c.ts, 1 more file.",
+    );
+    expect(describeAIActionSentence(line)).not.toContain("401");
+    expect(line.count).toBe(4);
+  });
+
+  test("the model is told each file, how many lines it has and which it has not read, and to read them", () => {
+    const told: string = describeCodeFilesUnseenForModel({
+      change: CodeChangeKind.Commit,
+      branchName: "fix/login",
+      findings: [
+        inPart("src/a.ts", 2000, [
+          [1, 339],
+          [461, 2000],
+        ]),
+        inPart("src/one.ts", 1, [[1, 1]]),
+      ],
+    });
+
+    expect(told).toBe(
+      [
+        "Not done: nothing was committed to fix/login, because writing these files whole would undo or replace what you have not read there:",
+        "- src/a.ts has 2000 lines on fix/login, and you have not read lines 1-339 and 461-2000 of it.",
+        "- src/one.ts has 1 line on fix/login, and you have not read line 1 of it.",
+        'Read the lines you have not read of each file you read only part of, on fix/login with read_code_file, branchName "fix/login", startLine and endLine, and only then write the whole file: a commit replaces each file whole, so a line you have not read would be dropped from it.',
+      ].join("\n"),
+    );
+    // Nothing changed since the read, so nothing to tell the user it changed.
+    expect(told).not.toContain("Read each of these files");
+  });
+
+  test("beside a file changed since: both told, each what to do", () => {
+    const told: string = describeCodeFilesUnseenForModel({
+      change: CodeChangeKind.PullRequest,
+      branchName: "main",
+      findings: [
+        finding("src/b.ts", CodeFileUnseen.ChangedSinceRead),
+        inPart("src/a.ts", 50, [[41, 50]]),
+        finding("src/c.ts", CodeFileUnseen.NotChecked),
+      ],
+    });
+
+    expect(told).toContain(
+      "- src/b.ts changed on main after you last read it there.",
+    );
+    expect(told).toContain(
+      "- src/a.ts has 50 lines on main, and you have not read lines 41-50 of it.",
+    );
+    expect(told).toContain(
+      'Read each of these files on main with read_code_file and branchName "main"',
+    );
+    expect(told).toContain(
+      "a pull request replaces each file whole, so a line you have not read would be dropped from it.",
+    );
+    expect(told).toContain("propose the pull request again");
+  });
+
+  test("a finding without its lines still says the file was read in part", () => {
+    expect(
+      describeCodeFilesUnseenForModel({
+        change: CodeChangeKind.Commit,
+        branchName: "fix/login",
+        findings: [finding("src/a.ts", CodeFileUnseen.ReadInPart)],
+      }),
+    ).toContain("- src/a.ts: you have read only part of it on fix/login.");
+  });
+
+  test.each<[Array<CodeFileUnseen>, CodeFileUnseen]>([
+    [
+      [CodeFileUnseen.NotChecked, CodeFileUnseen.ReadInPart],
+      CodeFileUnseen.ReadInPart,
+    ],
+    [
+      [CodeFileUnseen.ReadInPart, CodeFileUnseen.NotRead],
+      CodeFileUnseen.NotRead,
+    ],
+    [
+      [CodeFileUnseen.ReadInPart, CodeFileUnseen.ChangedSinceRead],
+      CodeFileUnseen.ChangedSinceRead,
+    ],
+  ])(
+    "the record of a change not made says what mattered most: %j",
+    (kinds: Array<CodeFileUnseen>, most: CodeFileUnseen) => {
+      for (const change of Object.values(CodeChangeKind)) {
+        expect(
+          summarizeCodeFilesUnseen({
+            change,
+            findings: kinds.map((unseen: CodeFileUnseen, index: number) => {
+              return finding(`f${index}`, unseen, "main");
+            }),
+          }),
+        ).toBe(CODE_UNSEEN_SUMMARIES[change][most]);
+      }
+      expect(
+        CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][CodeFileUnseen.ReadInPart],
+      ).toBe(
+        "Not committed: Ask AI had read only part of a file the commit replaces whole.",
+      );
+      expect(
+        CODE_UNSEEN_SUMMARIES[CodeChangeKind.PullRequest][
+          CodeFileUnseen.ReadInPart
+        ],
+      ).toBe(
+        "Not opened: Ask AI had read only part of a file the pull request replaces whole.",
+      );
+    },
+  );
+
+  test("what the card was shown on keeps the lines never read, as a copy", () => {
+    const linesNotRead: Array<{ first: number; last: number }> = [
+      { first: 1, last: 339 },
+    ];
+    const proposedOn: CodeChangeProposedOn = getCodeChangeProposedOn({
+      branchName: "fix/login",
+      files: [
+        { filePath: "src/a.ts", now: { state: "file", fingerprint: "a1" } },
+      ],
+      unseen: [
+        {
+          filePath: "src/a.ts",
+          unseen: CodeFileUnseen.ReadInPart,
+          lineCount: 400,
+          linesNotRead,
+        },
+      ],
+    });
+
+    linesNotRead[0]!.last = 2;
+
+    expect(proposedOn.unseen).toEqual([inPart("src/a.ts", 400, [[1, 339]])]);
+  });
+
+  test("a pull request approved anyway tells its reviewer which lines AI never read, in Markdown that reads as written", () => {
+    const note: string | null = describeCodeFilesUnseenForReviewer({
+      baseBranchName: "main",
+      findings: [
+        inPart("src/__init__.py", 2000, [
+          [1, 339],
+          [461, 2000],
+        ]),
+        inPart("one.ts", 1, [[1, 1]]),
+        finding("src/b.ts", CodeFileUnseen.ReadInPart),
+      ],
+    });
+
+    expect(note).toBe(
+      [
+        "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:",
+        "- `src/__init__.py`: AI did not read lines 1-339 and 461-2000 of its 2000 lines before writing the whole file.",
+        "- `one.ts`: AI did not read line 1 of its 1 line before writing the whole file.",
+        "- `src/b.ts`: AI read only part of it before writing the whole file.",
+      ].join("\n"),
+    );
+    expect(note).not.toContain("**init**");
+  });
+
+  test("findUnseenCodeChange: the card's line and the Auto-run stop for a file read in part, nothing for one read whole", () => {
+    const read: (first: number, last: number) => AIChatRecordSeen = (
+      first: number,
+      last: number,
+    ): AIChatRecordSeen => {
+      return seeCodeFile({
+        repositoryId: REPOSITORY,
+        branchName: "fix/login",
+        filePath: "src/a.ts",
+        fingerprint: "a1",
+        linesShown: getCodeFileLinesShown({
+          lineCount: 800,
+          firstLine: first,
+          lastLine: last,
+        }),
+      })!;
+    };
+    const now: Array<CodeFileNow> = [
+      { filePath: "src/a.ts", now: { state: "file", fingerprint: "a1" } },
+    ];
+
+    const part: UnseenCodeChange | null = findUnseenCodeChange({
+      change: CodeChangeKind.Commit,
+      recordsSeen: [read(1, 400)],
+      repositoryId: REPOSITORY,
+      branchName: "fix/login",
+      files: now,
+    });
+
+    expect(part!.findings).toEqual([inPart("src/a.ts", 800, [[401, 800]])]);
+    expect(actionLineText(part!.lines)).toBe(
+      "Ask AI read only part of this file, and its version replaces all of it: src/a.ts.",
+    );
+    expect(part!.notRunWithoutApproval.summary).toBe(
+      CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][CodeFileUnseen.ReadInPart],
+    );
+
+    expect(
+      findUnseenCodeChange({
+        change: CodeChangeKind.Commit,
+        recordsSeen: [read(1, 400), read(401, 800)],
+        repositoryId: REPOSITORY,
+        branchName: "fix/login",
+        files: now,
+      }),
+    ).toBeNull();
   });
 });

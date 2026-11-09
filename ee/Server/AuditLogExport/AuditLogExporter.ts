@@ -31,6 +31,7 @@ import {
   AuditLogExportSchemaVersion,
   buildAuditLogExportTestRecord,
   readAuditLogExportSchemaVersion,
+  readAuditLogExportTypedValues,
   serializeAuditLogExportRecord,
   toAuditLogExportRecord,
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
@@ -647,8 +648,11 @@ export default class AuditLogExporter {
   /*
    * The batch from what was read: every valid entry, in order, in the
    * schema version the export sends (the first when none is named), its
-   * secrets redacted again on the way out (AuditLogExportRedaction), up to
-   * the destination's byte limit - always at least one, so an entry larger
+   * secrets redacted again on the way out (AuditLogExportRedaction) and
+   * then its typed values read as what they hold - a phone number an older
+   * entry recorded as { "_type": "Phone", "value": ... } goes out as the
+   * number, as a new entry does (readAuditLogExportTypedValues) - up to the
+   * destination's byte limit - always at least one, so an entry larger
    * than the limit on its own still goes, alone.
    */
   public static toBatch(data: {
@@ -669,7 +673,9 @@ export default class AuditLogExporter {
         continue;
       }
 
-      const record: AuditLogExportRecord = redactAuditLogExportRecord(read);
+      const record: AuditLogExportRecord = readAuditLogExportTypedValues(
+        redactAuditLogExportRecord(read),
+      );
 
       const size: number =
         Buffer.byteLength(serializeAuditLogExportRecord(record), "utf8") + 1;

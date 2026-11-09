@@ -147,6 +147,8 @@ Ogni voce è un oggetto JSON, con le chiavi sempre in quest'ordine:
 
 Un file contiene una voce per riga, compresso con gzip, ed è archiviato sotto l'ora della sua prima voce: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Ogni `oldValue` e `newValue` è il valore del campo: testo, un numero, `true` o `false`, oppure JSON per un'impostazione fatta di più parti. Un numero di telefono, un indirizzo email o un URL è il suo testo, ad esempio `+14155550100`, e una porta è il suo numero.
+
 Chiavi, token e password non escono mai: vengono registrati come `[REDACTED]`, e i campi che nessuno può leggere sono esclusi da ogni voce.
 
 ## Versioni del record
