@@ -46,8 +46,11 @@ import UserUtil from "Common/UI/Utils/User";
  *               failing, and a company AI tool waiting for its first read)
  *               | done (all of that, AI calls and a budget too)
  *               | off (one Bedrock account, turned off)
+ *               | cursor (a Cursor team, its first read still catching up)
+ *   ?otel=      cursor (Cursor's OpenTelemetry Export arrives as well)
  *   ?role=      owner (default) | member | loading
  *   ?verdict=   pass (default) | warn | auth | permission | settings | slow
+ *               | cursor | cursor-busy | cursor-permission
  *   ?source=    providers (the Usage page's provider accounts)
  *   ?theme=dark   ?lang=ja|de
  */
@@ -162,48 +165,80 @@ const TURNED_OFF = connection("20000000-0000-4000-8000-000000000005", {
   },
 });
 
+/*
+ * A Cursor team read with an Admin API key, as LlmConnectionPullRunner keeps
+ * an hourly read: the past 7 days' totals read back from what is stored,
+ * the team's members, and "partial" while the first read of a busy team
+ * still has earlier hours to read.
+ */
+const CURSOR = connection("20000000-0000-4000-8000-000000000006", {
+  name: "Cursor",
+  provider: "cursor",
+  config: {},
+  lastPulledAt: new Date("2026-10-19T11:00:00.000Z"),
+  lastSuccessfulPullAt: new Date("2026-10-19T11:00:00.000Z"),
+  lastPullResult: {
+    status: "partial",
+    kind: "usage",
+    days: 7,
+    bucket: "hour",
+    hoursRead: 24,
+    complete: false,
+    costUsd: 96.25,
+    inputTokens: 5400000,
+    outputTokens: 610000,
+    requests: 2310,
+    daysWithUsage: 6,
+    // A big team: both numbers of its line are written the reader's way.
+    members: 1248,
+    activeMembers: 1031,
+  },
+});
+
 const connections =
   dataState === "empty"
     ? []
     : dataState === "off"
       ? [TURNED_OFF]
-      : [
-          connection("20000000-0000-4000-8000-000000000001", {
-            name: "OpenAI production",
-            provider: "openai",
-            config: {},
-            lastPulledAt: new Date("2026-10-19T11:45:00.000Z"),
-            lastSuccessfulPullAt: new Date("2026-10-19T11:45:00.000Z"),
-            lastPullResult: {
-              status: "success",
-              kind: "usage",
-              days: 3,
-              costUsd: 182.4,
-              inputTokens: 1200000,
-              outputTokens: 240000,
-            },
-          }),
-          connection("20000000-0000-4000-8000-000000000002", {
-            name: "Foundry East",
-            provider: "azure-openai",
-            config: {
-              tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
-              clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
-              subscriptionId: "d0cfe6b2-9ac0-4464-9919-dccaee2e48c0",
-              cloud: "public",
-            },
-            lastPulledAt: new Date("2026-10-19T11:50:00.000Z"),
-            lastError:
-              'Azure OpenAI and Microsoft Foundry accounts request failed with HTTP 403: {"error":{"code":"AuthorizationFailed","message":"The client does not have authorization to perform action \'Microsoft.CognitiveServices/accounts/read\'."}}',
-            lastPullResult: { status: "failed", failureKind: "permission" },
-          }),
-          connection("20000000-0000-4000-8000-000000000003", {
-            name: "Claude at Sysnetix",
-            provider: "claude-enterprise",
-            config: {},
-            serviceId: new ObjectID(SERVICE_ID),
-          }),
-        ];
+      : dataState === "cursor"
+        ? [CURSOR]
+        : [
+            connection("20000000-0000-4000-8000-000000000001", {
+              name: "OpenAI production",
+              provider: "openai",
+              config: {},
+              lastPulledAt: new Date("2026-10-19T11:45:00.000Z"),
+              lastSuccessfulPullAt: new Date("2026-10-19T11:45:00.000Z"),
+              lastPullResult: {
+                status: "success",
+                kind: "usage",
+                days: 3,
+                costUsd: 182.4,
+                inputTokens: 1200000,
+                outputTokens: 240000,
+              },
+            }),
+            connection("20000000-0000-4000-8000-000000000002", {
+              name: "Foundry East",
+              provider: "azure-openai",
+              config: {
+                tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
+                clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
+                subscriptionId: "d0cfe6b2-9ac0-4464-9919-dccaee2e48c0",
+                cloud: "public",
+              },
+              lastPulledAt: new Date("2026-10-19T11:50:00.000Z"),
+              lastError:
+                'Azure OpenAI and Microsoft Foundry accounts request failed with HTTP 403: {"error":{"code":"AuthorizationFailed","message":"The client does not have authorization to perform action \'Microsoft.CognitiveServices/accounts/read\'."}}',
+              lastPullResult: { status: "failed", failureKind: "permission" },
+            }),
+            connection("20000000-0000-4000-8000-000000000003", {
+              name: "Claude at Sysnetix",
+              provider: "claude-enterprise",
+              config: {},
+              serviceId: new ObjectID(SERVICE_ID),
+            }),
+          ];
 
 const state = {
   // Every connection a form created, as the model it sent.
@@ -297,6 +332,56 @@ const VERDICTS = {
         "This is a project API key. Reading usage and costs needs an OpenAI admin key, which starts with sk-admin-.",
       failureKind: "settings",
       durationMs: 0,
+    },
+  },
+  // A Cursor team's last 7 days, and its members (CursorConnector's test).
+  cursor: {
+    status: 200,
+    body: {
+      provider: "cursor",
+      status: "pass",
+      message: "Connected. Found usage in the last 7 days.",
+      counts: {
+        days: 7,
+        models: 4,
+        people: 12,
+        members: 40,
+        inputTokens: 5400000,
+        outputTokens: 610000,
+        requests: 2310,
+        costUsd: 96.25,
+      },
+      durationMs: 2400,
+    },
+  },
+  /*
+   * A busy team: more than CursorConnector's test pages of events in a
+   * week, so its requests are counted, not added up - no cost or tokens.
+   */
+  "cursor-busy": {
+    status: 200,
+    body: {
+      provider: "cursor",
+      status: "pass",
+      message: "Connected. Found 48200 requests in the last 7 days.",
+      counts: {
+        days: 7,
+        requests: 48200,
+        members: 1248,
+      },
+      durationMs: 3100,
+    },
+  },
+  // A key Cursor accepts but that may not read the team: a personal key.
+  "cursor-permission": {
+    status: 200,
+    body: {
+      provider: "cursor",
+      status: "fail",
+      message:
+        "Cursor accepted the key but refused the team members request (HTTP 403: Enterprise access required). Reading a team's usage takes an Admin API key of a team on the Teams or Enterprise plan, which a team admin creates under Settings, Cursor Admin API Keys.",
+      failureKind: "permission",
+      durationMs: 380,
     },
   },
 };
@@ -477,6 +562,40 @@ const PROVIDER_POINTS = [
   },
 ];
 
+/*
+ * A Cursor team's points, as CursorConnector writes them: each member by
+ * email, Cursor's model names, no project or key, and what Cursor charged.
+ * They add up to the Cursor connection's last read above.
+ */
+const CURSOR_POINTS = [
+  {
+    model: "claude-4.5-sonnet-thinking",
+    person: "ana@sysnetix.com",
+    provider: "cursor",
+    project: "",
+    key: "",
+    connection: "Cursor",
+    cost: 61.75,
+    estimated: "false",
+    input: 3600000,
+    output: 410000,
+    requests: 1480,
+  },
+  {
+    model: "gpt-5",
+    person: "bob@sysnetix.com",
+    provider: "cursor",
+    project: "",
+    key: "",
+    connection: "Cursor",
+    cost: 34.5,
+    estimated: "false",
+    input: 1800000,
+    output: 200000,
+    requests: 830,
+  },
+];
+
 const ATTRIBUTE_OF = {
   "gen_ai.request.model": "model",
   "user.email": "person",
@@ -499,7 +618,9 @@ AnalyticsModelAPI.aggregate = async (args) => {
   }
 
   const rows = [];
-  for (const point of PROVIDER_POINTS) {
+  for (const point of dataState === "cursor"
+    ? CURSOR_POINTS
+    : PROVIDER_POINTS) {
     const attributes = {};
     for (const key of keys) {
       if (ATTRIBUTE_OF[key]) {
@@ -560,12 +681,23 @@ function setupCheck() {
       contentInLogs: null,
       uninstrumented: done ? null : [],
     },
-    metrics: [],
+    // Cursor's OpenTelemetry Export, as the check finds its cursor.* metrics.
+    metrics:
+      params.get("otel") === "cursor"
+        ? [
+            {
+              source: "cursor",
+              points: 320,
+              newestAt: "2026-10-19T11:40:00.000Z",
+            },
+          ]
+        : [],
     connections: connections.map((item) => {
       const result = item.lastPullResult || {};
       const isTool = COMPANY_TOOLS.includes(item.provider);
+      // A read that is still catching up has read what it found.
       const used =
-        result.status === "success" &&
+        (result.status === "success" || result.status === "partial") &&
         ((result.costUsd || 0) > 0 || (result.inputTokens || 0) > 0);
 
       return {

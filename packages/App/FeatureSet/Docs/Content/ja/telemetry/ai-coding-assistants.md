@@ -188,7 +188,7 @@ Codex は既定でメトリクスを OpenAI にも送ります。[OpenAI Codex](
 
 ## OneUptime がまだ行わないこと
 
-- **コーディングツールの管理 API とのコネクターはありません。** OneUptime はツールの背後にある OpenAI、Anthropic、Azure、Bedrock、Vertex AI のアカウントを読み取りますが ([AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts))、Cursor の Admin API、GitHub の Copilot の請求、Windsurf や JetBrains の API は読み取りません。
+- **コーディングツールの管理 API とのコネクターは Cursor のものだけです。** OneUptime はツールの背後にある OpenAI、Anthropic、Azure、Bedrock、Vertex AI のアカウントと、Cursor のチームの Admin API を読み取りますが ([AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts))、GitHub の Copilot の請求、Windsurf や JetBrains の API は読み取りません。
 - **ツールが報告しない限り、コストは見積もりです。** 報告されたコストはそのまま使い、それ以外は OneUptime が定価でトークンの料金を算出します。Cursor の `cursor.cost.usage` 自体も見積もりです。
 - **ログレコード上の ID は読み取りません。** Codex がログにだけ送る `user.email` は、支出に結び付けられません。
 - **Cursor の `cursor.user.email` はまだ読み取りません。** そのため Cursor のユーザーは整数の `cursor.user.id` で表示されます。
@@ -201,7 +201,7 @@ Codex は既定でメトリクスを OpenAI にも送ります。[OpenAI Codex](
 
 1. **Gemini CLI** (使っている人がいる場合)。設定なしで `user.email` を送るため、帰属がエンドツーエンドで動くことを確認できます。コストのメトリクスを送らないため、トレースも有効にしてください。
 2. **Claude Code**: フリート全体に 1 つの管理設定ファイル、手間なしの `user.email`、本物のコストのメトリクス、そして開発者ごとの承認率、コミット、プルリクエスト、コード行数。
-3. **Cursor** (Enterprise プラン): Cursor のダッシュボードの 1 画面で済み、開発者のマシンには触れません。ただし人は整数で届きます。
+3. **Cursor** (Enterprise プラン): Cursor のダッシュボードの 1 画面で済み、開発者のマシンには触れません。ただし人は整数で届きます。Teams プランの場合や、Cursor がユーザーごとに請求した額が必要な場合は、エクスポートの有無にかかわらず、管理者 API キーを [プロバイダーアカウント](/docs/telemetry/ai-provider-accounts#cursor) として接続します。
 4. **Copilot と Codex**: どちらも各マシンで ID を設定する必要があります。マシンのプロビジョニング時に設定してください。ID なしで届いた呼び出しは、後から帰属させられません。
 5. **LiteLLM ゲートウェイ** (それ以外のすべて向け)。従業員ごとに 1 つの仮想キーを使います。
 

@@ -1,6 +1,6 @@
 # KI-Anbieterkonten
 
-Sehen Sie, was Ihre KI-Anbieterkonten verbraucht haben und was es gekostet hat, ohne Änderung an Ihren Apps. Verbinden Sie ein Konto bei OpenAI, Anthropic, Azure OpenAI und Microsoft Foundry, Amazon Bedrock oder Google Vertex AI mit Zugangsdaten, die nur lesen können, und OneUptime liest seine Nutzung alle 15 Minuten in **Nutzung**, **Budgets** und Metriken ein, auf die Sie alarmieren können.
+Sehen Sie, was Ihre KI-Anbieterkonten verbraucht haben und was es gekostet hat, ohne Änderung an Ihren Apps. Verbinden Sie ein Konto bei OpenAI, Anthropic, Azure OpenAI und Microsoft Foundry, Amazon Bedrock oder Google Vertex AI mit Zugangsdaten, die nur lesen können, und OneUptime liest seine Nutzung alle 15 Minuten in **Nutzung**, **Budgets** und Metriken ein, auf die Sie alarmieren können. Ein Cursor-Team wird genauso verbunden, mit seinem Admin-API-Schlüssel, und jede Stunde gelesen.
 
 :::cards
 - [Ein Konto verbinden](#ein-konto-verbinden): Anbieter wählen, Zugangsdaten einfügen, testen und verbinden.
@@ -11,7 +11,7 @@ Sehen Sie, was Ihre KI-Anbieterkonten verbraucht haben und was es gekostet hat, 
 
 ## So funktioniert es
 
-Alle 15 Minuten fragt OneUptime jedes verbundene Konto nach seiner Nutzung pro UTC-Tag und speichert sie als drei Metriken des eigenen Dienstes der Verbindung. Jedes Lesen holt die Tage seit dem letzten Lesen und die letzten 3 Tage erneut, den heutigen eingeschlossen, weil Anbieter den heutigen Tag laufend ergänzen und die gerade vergangenen Tage korrigieren.
+Alle 15 Minuten fragt OneUptime jedes verbundene Konto nach seiner Nutzung pro UTC-Tag und speichert sie als drei Metriken des eigenen Dienstes der Verbindung. Jedes Lesen holt die Tage seit dem letzten Lesen und die letzten 3 Tage erneut, den heutigen eingeschlossen, weil Anbieter den heutigen Tag laufend ergänzen und die gerade vergangenen Tage korrigieren. Ein Cursor-Team wird stattdessen jede Stunde gelesen, stundenweise: siehe [Cursor](#cursor).
 
 ```mermaid title="Vom Anbieterkonto zu Nutzung und Budgets"
 flowchart TB
@@ -60,10 +60,11 @@ Verbundene Konten stehen unter den Kacheln, mit **Status** und **Zuletzt gelesen
 | Azure OpenAI und Microsoft Foundry | Aus Tokens geschätzt | Ressource und Modell | Eine App mit Monitoring Reader |
 | Amazon Bedrock | Aus Tokens geschätzt | Region und Modell | Ein Zugriffsschlüssel, der CloudWatch liest |
 | Google Vertex AI | Aus Tokens geschätzt | Region und Modell | Ein Dienstkonto mit Monitoring Viewer |
+| Cursor | Was Cursor meldet | Person, Modell und Dienstkonto, pro Stunde | Der Admin-API-Schlüssel eines Teams |
 
 Jeder Anbieter außer Anthropic zählt auch Anfragen: Der Nutzungsbericht von Anthropic hat keine. Geschätzte Kosten nutzen die Preisliste aus [Was ein Aufruf kostet](/docs/telemetry/ai-llm-observability#was-ein-aufruf-kostet) und Ihre eigenen Preise aus **Preise** und sind als Schätzung markiert. Ein Modell, das die Preisliste nicht kennt, hat keine Kosten, bis Sie es dort bepreisen.
 
-Keine dieser Zugangsdaten kann ein Modell aufrufen: Jede liest Nutzung, Kosten oder Metriken und sonst nichts.
+Keine dieser Zugangsdaten kann ein Modell aufrufen: Jede liest Nutzung, Kosten oder Metriken und sonst nichts. Der Admin-API-Schlüssel von Cursor ist die Ausnahme: Er kann auch einige Team-Einstellungen ändern, etwa Ausgabenlimits, und OneUptime liest mit ihm nur.
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ Erstellen Sie im Projekt ein Dienstkonto mit der Rolle Monitoring Viewer und ein
 Füllen Sie **Projekt-ID** aus und fügen Sie die ganze Schlüsseldatei als **Dienstkontoschlüssel (JSON)** ein.
 :::
 
+## Cursor
+
+OneUptime liest Ihr Cursor-Team mit einem Admin-API-Schlüssel: jede Anfrage seiner Mitglieder, mit Modell, Tokens und dem, was Cursor dafür berechnet hat, zusammengezählt nach Stunde, Person, Modell und Dienstkonto, und wie viele der Mitglieder Cursor in den letzten 7 Tagen genutzt haben. Eine Anfrage über ein Dienstkonto erscheint unter dem Namen des Kontos als sein API-Schlüssel. Prompts, Code oder Antworten sind nicht dabei: Die Admin-API von Cursor hat keine.
+
+:::steps
+### Einen Cursor-Admin-API-Schlüssel erstellen
+
+Öffnen Sie im Dashboard von Cursor Settings, Cursor Admin API Keys und erstellen Sie einen Schlüssel. Das kann nur ein Team-Admin, und den Schlüssel gibt es in den Tarifen Teams und Enterprise. Er beginnt mit `crsr_`.
+
+### Cursor verbinden
+
+Fügen Sie den Schlüssel als **Admin-API-Schlüssel** ein. Der Test zeigt auch die **Mitglieder** des Teams und als **Personen**, wie viele davon Cursor genutzt haben.
+:::
+
+Cursor zählt seine Nutzung stundenweise zusammen und bittet, höchstens einmal pro Stunde gelesen zu werden, deshalb liest OneUptime ein Cursor-Team jede Stunde und speichert seine Nutzung pro Stunde. Jedes Lesen holt die Stunden seit dem letzten und die 3 Stunden davor noch einmal, weil Cursor Anfragen verspätet ergänzt, und liest einen Tag noch einmal vollständig, sobald 6 Stunden des nächsten vergangen sind. Das erste Lesen geht 30 Tage zurück, das Neueste zuerst, einen Tag nach dem anderen: Ein viel genutztes Team braucht einige Lesevorgänge im Abstand von einer Minute, und seine Zeile zeigt **Frühere Nutzung wird noch gelesen**, bis sie fertig sind.
+
+Im Enterprise-Tarif kann Cursor seine Nutzung auch laufend senden, mit seinem OpenTelemetry Export: siehe [Cursor](/docs/telemetry/cursor). Beides wird getrennt gehalten: Dieses Konto erscheint unter **Anbieterkonten**, der Export unter **Deine KI-Aufrufe**, nie zusammengezählt, und ein Budget zählt eines von beiden.
+
 ## Die Nutzung ansehen
 
 Öffnen Sie **Nutzung** und wählen Sie **Anbieterkonten**. Dort stehen die Kosten, Tokens und Anfragen, die Ihre Konten für den Zeitraum gemeldet haben, gereiht nach **Modell**, **Person**, **Anbieter**, **Projekt oder Ressource**, **API-Schlüssel** oder **Verbindung**. Der Zeitraum beginnt um Mitternacht UTC seines ersten Tages, weil Anbieter ganze Tage melden.
@@ -157,7 +176,7 @@ Die Nutzung jedes Kontos wird als drei Metriken gespeichert, die Sie auf einem [
 | `oneuptime.llm.provider.tokens` | Die Tokens eines Tages, nach `gen_ai.token.type`: `input` (Cache-Tokens eingeschlossen), `output`, `cache_read` und `cache_write` |
 | `oneuptime.llm.provider.requests` | Die Anfragen eines Tages |
 
-Jeder Punkt trägt den Zeitstempel des Beginns seines UTC-Tages. Er trägt `oneuptime.llm.connection.id` und `oneuptime.llm.connection.name` sowie, was der Anbieter nennt: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` und `oneuptime.llm.provider.api_key`. Geschätzte Kosten tragen `oneuptime.llm.cost.estimated`.
+Jeder Punkt trägt den Zeitstempel des Beginns seines UTC-Tages. Er trägt `oneuptime.llm.connection.id` und `oneuptime.llm.connection.name` sowie, was der Anbieter nennt: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` und `oneuptime.llm.provider.api_key`. Geschätzte Kosten tragen `oneuptime.llm.cost.estimated`. Die Punkte eines Cursor-Teams enthalten jeweils die Nutzung einer Stunde und tragen den Beginn ihrer UTC-Stunde als Zeitstempel.
 
 ## Wann gelesen wird
 
@@ -168,6 +187,9 @@ Jeder Punkt trägt den Zeitstempel des Beginns seines UTC-Tages. Er trägt `oneu
 | Nachdem ein Schlüssel oder eine Berechtigung abgelehnt wurde | 60 Minuten später |
 | Nach jedem anderen Fehler | 15 Minuten später |
 | Ausgeschaltet | Keins, bis sie wieder eingeschaltet ist |
+| Die nächsten eines Cursor-Teams | Jede Stunde |
+| Ein Cursor-Lesen, das mittendrin aufgehört hat | Eine Minute später |
+| Ein Cursor-Team nach jedem Fehler | 60 Minuten später |
 
 Ein Tarif ohne Telemetrie-Funktionen liest nichts. Das Entfernen einer Verbindung beendet ihr Lesen und behält, was sie gelesen hat, bis die Aufbewahrung des Dienstes es entfernt.
 
@@ -183,6 +205,14 @@ Prüfen Sie, dass Sie alles kopiert haben, dass er nicht widerrufen wurde und da
 
 :::details Die Zugangsdaten funktionieren, dürfen aber nicht lesen, was die Verbindung braucht
 Geben Sie ihnen die Rolle, die diese Seite für den Anbieter nennt: Monitoring Reader auf dem Azure-Abonnement, die beiden CloudWatch-Aktionen in AWS, Monitoring Viewer auf dem Google-Cloud-Projekt.
+:::
+
+:::details Cursor hat den Schlüssel angenommen, darf aber die Nutzung des Teams nicht lesen
+Verwenden Sie einen Admin-API-Schlüssel eines Teams im Tarif Teams oder Enterprise: Ein Team-Admin erstellt ihn im Dashboard von Cursor unter Settings, Cursor Admin API Keys. Testen Sie dann erneut.
+:::
+
+:::details Cursor hat OneUptime gebeten, langsamer zu werden
+Die Admin-API von Cursor nimmt 20 Anfragen pro Minute von einem Team an, 60 für Nutzungsereignisse, geteilt mit jedem Tool, das sie liest. OneUptime wartet einmal eine Minute und macht weiter. Lehnt Cursor weiter ab, behält das Lesen, was es vollständig gelesen hat, und macht eine Minute später weiter; ein Lesen, das nichts bekommen hat, versucht es eine Stunde später erneut.
 :::
 
 :::details Der Test besteht, aber für heute erscheint nichts

@@ -405,7 +405,12 @@ const LlmSetupCheckCard: FunctionComponent<ComponentProps> = (
                 <ConnectionRow
                   key={connection.connectionId}
                   connection={connection}
-                  line={getConnectionLine({ connection, translator, now })}
+                  line={getConnectionLine({
+                    connection,
+                    translator,
+                    now,
+                    metricSources: check.metrics,
+                  })}
                 />
               );
             })}

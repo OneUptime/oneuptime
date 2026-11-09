@@ -1,13 +1,26 @@
 # Cursor
 
-Cursor exporte la télémétrie de son équipe depuis les serveurs de Cursor. Un administrateur de l'équipe ajoute OneUptime comme destination une seule fois, dans le tableau de bord de Cursor, et les jetons, le coût estimé et les appels d'outils de toute l'équipe arrivent : rien à installer ni à régler sur les postes des développeurs.
+Cursor exporte la télémétrie de son équipe depuis les serveurs de Cursor. Un administrateur de l'équipe ajoute OneUptime comme destination une seule fois, dans le tableau de bord de Cursor, et les jetons, le coût estimé et les appels d'outils de toute l'équipe arrivent : rien à installer ni à régler sur les postes des développeurs. Avec l'offre Teams aussi, OneUptime peut lire l'utilisation de l'équipe et ce que Cursor a facturé, par personne, avec une clé d'API d'administration, à la place ou en plus.
 
 :::cards
+- [Deux façons de procéder](#deux-façons-de-procéder): Une clé d'API d'administration dans OneUptime, ou l'OpenTelemetry Export de Cursor.
 - [La mettre en place](#la-mettre-en-place): Créer une clé dans OneUptime et une destination dans Cursor.
 - [Ce que vous obtenez](#ce-que-vous-obtenez-et-ce-que-vous-nobtenez-pas): Des métriques et des logs ; pas de traces.
 - [Qui a dépensé quoi](#attribution-aux-employés): Les personnes arrivent sous forme d'identifiants utilisateur Cursor.
 - [Dépannage](#dépannage): Que vérifier quand rien n'arrive.
 :::
+
+## Deux façons de procéder
+
+| | Clé d'API d'administration | OpenTelemetry Export |
+| --- | --- | --- |
+| Offre Cursor | Teams ou Enterprise | Enterprise |
+| Configuration | Dans OneUptime, sous **Produits → IA / LLM → Connecter** | Dans le tableau de bord de Cursor, sous **Team Settings → OpenTelemetry Export** |
+| Ce qui arrive | Jetons, requêtes et ce que Cursor a facturé, par heure, personne et modèle, et combien de membres utilisent Cursor | Jetons, coût estimé et appels d'outils, et un événement de journal par requête |
+| Depuis quand | Les 30 derniers jours, puis toutes les heures | Au fil de l'eau, à partir du jour où vous l'activez |
+| Visible dans **Utilisation** sous | **Comptes fournisseurs** | **Vos appels d'IA** |
+
+Les deux apportent l'utilisation et le coût, pas des conversations. Utilisez l'un ou les deux : ils restent séparés et ne sont jamais additionnés, et un budget compte l'un des deux, comme l'indique son champ **Compter les dépenses à partir de**. Pour connecter la clé, voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#cursor) ; le reste de cette page configure l'OpenTelemetry Export.
 
 ## Fonctionnement
 
@@ -129,7 +142,7 @@ Cursor envoie des métriques sans spans GenAI, et les métriques ne font que pre
 Une ligne Cursor ne porte que le coût : ses cellules d'appels et de jetons affichent `—`, car `cursor.cost.usage` n'a aucun détail par appel. `cursor.token.usage` alimente toujours les totaux de jetons au-dessus du tableau (ses types `input` et `output` ; les jetons de cache sont laissés de côté), et vous pouvez le représenter sur un tableau de bord par `cursor.token.type`.
 
 :::details Transformer un identifiant utilisateur Cursor en personne
-Les noms et les montants facturés se trouvent dans l'API d'administration de Cursor, que OneUptime n'appelle pas : interrogez-la vous-même si besoin. Elle est réservée à l'offre Enterprise, à `https://api.cursor.com`, et prend une clé d'API d'administration comme nom d'utilisateur avec un mot de passe vide :
+Les noms et les montants facturés se trouvent dans l'API d'administration de Cursor, que OneUptime lit lorsque vous connectez sa clé comme [compte de fournisseur](/docs/telemetry/ai-provider-accounts#cursor) : ce compte désigne les personnes par e-mail. Pour faire correspondre vous-même un `cursor.user.id`, appelez l'API à `https://api.cursor.com`, avec une clé d'API d'administration comme nom d'utilisateur et un mot de passe vide :
 
 ```bash
 curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
@@ -150,7 +163,7 @@ Ces points changent ce que vous voyez dans les graphiques, connaissez-les avant 
 
 ## Le coût est une estimation, pas une facture
 
-Cursor documente `cursor.cost.usage` comme une estimation au mieux. Il ne sépare pas l'usage inclus de l'usage facturé à la demande ; avec vos propres clés de modèle, il ne reflète que le tarif de jetons de Cursor, pas la facture de votre fournisseur ; et un `cursor.api.correction` ultérieur peut retirer un usage déjà compté. Lisez-le comme une tendance. Pour un chiffre qui correspond à la facture, additionnez les `chargedCents` de l'API d'administration de Cursor.
+Cursor documente `cursor.cost.usage` comme une estimation au mieux. Il ne sépare pas l'usage inclus de l'usage facturé à la demande ; avec vos propres clés de modèle, il ne reflète que le tarif de jetons de Cursor, pas la facture de votre fournisseur ; et un `cursor.api.correction` ultérieur peut retirer un usage déjà compté. Lisez-le comme une tendance. Pour un chiffre qui correspond à la facture, additionnez les `chargedCents` de l'API d'administration de Cursor. Une équipe Cursor connectée comme [compte de fournisseur](/docs/telemetry/ai-provider-accounts#cursor) le fait pour vous, heure par heure.
 
 ## Dépannage
 
@@ -174,6 +187,7 @@ C'est `cursor.user.id`, lu quand Cursor n'envoie pas de `cursor.user.email`. Ass
 
 :::cards
 - [Assistants de code IA](/docs/telemetry/ai-coding-assistants): Comment les dépenses sont attribuées pour chaque assistant de code.
+- [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#cursor): Lire l'utilisation d'une équipe Cursor et ce que Cursor a facturé avec une clé d'API d'administration.
 - [Passerelles IA](/docs/telemetry/ai-gateways): Des traces et des prompts complets pour les appels de modèle de vos propres applications.
 - [Surveillance des métriques](/docs/monitor/metrics-monitor): Alerter sur `cursor.cost.usage`, `cursor.token.usage` ou `cursor.tool.calls`.
 :::

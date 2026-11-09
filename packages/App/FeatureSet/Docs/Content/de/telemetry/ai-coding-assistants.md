@@ -188,7 +188,7 @@ Codex sendet seine Metriken außerdem standardmäßig an OpenAI: siehe [OpenAI C
 
 ## Was OneUptime noch nicht tut
 
-- **Keine Admin-Connectoren für Coding-Tools.** OneUptime liest die Konten bei OpenAI, Anthropic, Azure, Bedrock und Vertex AI hinter den Tools ([KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts)), aber nicht die Admin-API von Cursor, die Copilot-Abrechnung von GitHub oder die APIs von Windsurf oder JetBrains.
+- **Kein Admin-Connector für Coding-Tools außer dem von Cursor.** OneUptime liest die Konten bei OpenAI, Anthropic, Azure, Bedrock und Vertex AI hinter den Tools und die Admin-API eines Cursor-Teams ([KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts)), aber nicht die Copilot-Abrechnung von GitHub oder die APIs von Windsurf oder JetBrains.
 - **Kosten sind eine Schätzung, außer ein Tool meldet sie.** Gemeldete Kosten werden unverändert verwendet; sonst bepreist OneUptime Tokens zu Listenpreisen. `cursor.cost.usage` von Cursor ist selbst eine Schätzung.
 - **Identität aus Log-Einträgen wird nicht gelesen.** Die `user.email` von Codex, die es nur in Logs sendet, wird nicht mit den Ausgaben verknüpft.
 - **`cursor.user.email` von Cursor wird noch nicht gelesen**, Cursor-Benutzer erscheinen also als ihre Ganzzahl `cursor.user.id`.
@@ -201,7 +201,7 @@ Führen Sie es in dieser Reihenfolge ein; jeder Schritt nützt für sich. Nutzen
 
 1. **Gemini CLI**, falls es jemand nutzt. Es sendet `user.email` ohne Einrichtung und zeigt so die Zuordnung von Anfang bis Ende. Schalten Sie auch seine Traces ein: Es sendet keine Kostenmetrik.
 2. **Claude Code**: eine verwaltete Einstellungsdatei für die Flotte, `user.email` ohne Zutun, eine echte Kostenmetrik sowie Annahmequote, Commits, Pull Requests und Codezeilen pro Entwickler.
-3. **Cursor**, im Enterprise-Tarif: ein Bildschirm im Dashboard von Cursor, kein Entwicklerrechner berührt, auch wenn Personen als Ganzzahlen ankommen.
+3. **Cursor**, im Enterprise-Tarif: ein Bildschirm im Dashboard von Cursor, kein Entwicklerrechner berührt, auch wenn Personen als Ganzzahlen ankommen. Im Tarif Teams, oder für das, was Cursor pro Person berechnet hat, verbinden Sie seinen Admin-API-Schlüssel als [Anbieterkonto](/docs/telemetry/ai-provider-accounts#cursor), mit oder ohne den Export.
 4. **Copilot und Codex**, die beide auf jedem Rechner eine Identität brauchen. Setzen Sie sie bei der Einrichtung der Rechner: Aufrufe, die ohne eine ankamen, lassen sich später nicht zuordnen.
 5. **Ein LiteLLM-Gateway** für alles andere, mit einem virtuellen Schlüssel pro Mitarbeiter.
 

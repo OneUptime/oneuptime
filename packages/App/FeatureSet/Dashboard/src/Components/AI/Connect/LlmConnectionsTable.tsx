@@ -1,7 +1,6 @@
 import LlmObservabilityConnection from "Common/Models/DatabaseModels/LlmObservabilityConnection";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "Common/Types/Date";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -40,10 +39,9 @@ import {
 } from "./LlmConnectApi";
 import {
   LlmConnectionHealth,
-  LlmConnectionSummary,
   getLlmConnectionHealth,
-  getLlmConnectionLastReadSummary,
 } from "./LlmConnectionHealth";
+import LlmConnectionLastRead from "./LlmConnectionLastRead";
 import LlmConnectionLogo from "./LlmConnectionLogo";
 import LlmConnectionTestPanel from "./LlmConnectionTestPanel";
 import {
@@ -255,7 +253,7 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
           title: isTool ? "Connected AI tools" : "Connected provider accounts",
           description: isTool
             ? "Read every 15 minutes. Each answer arrives as an AI call of the person who asked, in Conversations."
-            : "Read every 15 minutes. Usage and cost arrive in Usage, under Provider accounts, and a budget can count them.",
+            : "Read every 15 minutes, Cursor every hour. Usage and cost arrive in Usage, under Provider accounts, and a budget can count them.",
         }}
         noItemsMessage={
           isTool
@@ -445,46 +443,16 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
             field: { lastSuccessfulPullAt: true },
             title: "Last read",
             type: FieldType.Element,
+            /*
+             * Its lines are sentences, and a big team's runs long in German
+             * ("1.031 von 1.248 Mitgliedern in den letzten 7 Tagen aktiv"):
+             * they wrap rather than being cut off at the column's edge.
+             */
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-sm",
             getElement: (item: LlmObservabilityConnection): ReactElement => {
-              const summary: LlmConnectionSummary | undefined =
-                getLlmConnectionLastReadSummary(item);
-
-              if (!item.lastSuccessfulPullAt) {
-                return (
-                  <span className="text-sm text-gray-500">
-                    {translator.translateText("Not yet")}
-                  </span>
-                );
-              }
-
-              return (
-                <div className="min-w-0">
-                  <div className="text-sm text-gray-900">
-                    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                      item.lastSuccessfulPullAt,
-                    )}
-                  </div>
-                  {summary ? (
-                    <div
-                      className="text-xs text-gray-500"
-                      data-testid="llm-connection-last-read-summary"
-                    >
-                      {summary.plural && summary.count !== undefined
-                        ? translator.translatePlural(
-                            summary.plural,
-                            summary.count,
-                            summary.values,
-                          )
-                        : translator.translateTemplate(
-                            summary.template,
-                            summary.values,
-                          )}
-                    </div>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              );
+              // What it read, a team's members (Cursor), a read catching up.
+              return <LlmConnectionLastRead connection={item} />;
             },
           },
           ...(isTool

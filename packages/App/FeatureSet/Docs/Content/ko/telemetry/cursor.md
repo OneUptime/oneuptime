@@ -1,13 +1,26 @@
 # Cursor
 
-Cursor는 팀의 텔레메트리를 Cursor 자체 서버에서 내보냅니다. 팀 관리자가 Cursor 대시보드에서 OneUptime을 대상으로 한 번 추가하면, 팀 전체의 토큰, 추정 비용, 도구 호출이 들어옵니다. 개발자 머신에 설치하거나 설정할 것은 없습니다.
+Cursor는 팀의 텔레메트리를 Cursor 자체 서버에서 내보냅니다. 팀 관리자가 Cursor 대시보드에서 OneUptime을 대상으로 한 번 추가하면, 팀 전체의 토큰, 추정 비용, 도구 호출이 들어옵니다. 개발자 머신에 설치하거나 설정할 것은 없습니다. Teams 요금제에서도 OneUptime은 관리자 API 키로 팀의 사용량과 Cursor가 청구한 금액을 사람별로 읽을 수 있으며, 내보내기 대신 쓰거나 함께 쓸 수 있습니다.
 
 :::cards
+- [두 가지 방법](#두-가지-방법): OneUptime의 관리자 API 키 또는 Cursor의 OpenTelemetry Export.
 - [설정하기](#설정하기): OneUptime에서 키를, Cursor에서 대상을 만듭니다.
 - [얻는 것](#얻는-것과-얻지-못하는-것): 메트릭과 로그. 트레이스는 없습니다.
 - [누가 무엇에 썼는지](#직원-귀속): 사람은 Cursor 사용자 ID로 들어옵니다.
 - [문제 해결](#문제-해결): 아무것도 도착하지 않을 때 확인할 사항.
 :::
+
+## 두 가지 방법
+
+| | 관리자 API 키 | OpenTelemetry Export |
+| --- | --- | --- |
+| Cursor 요금제 | Teams 또는 Enterprise | Enterprise |
+| 설정 위치 | OneUptime의 **제품 → AI / LLM → 연결** | Cursor 대시보드의 **Team Settings → OpenTelemetry Export** |
+| 들어오는 것 | 토큰, 요청, Cursor가 청구한 금액(시간, 사람, 모델별), Cursor를 쓰는 구성원 수 | 토큰, 추정 비용, 도구 호출, 요청마다 로그 이벤트 하나 |
+| 시작 시점 | 지난 30일, 이후 매시간 | 발생하는 대로, 켠 날부터 |
+| **사용량**에서 보이는 곳 | **공급자 계정** | **내 AI 호출** |
+
+둘 다 대화가 아니라 사용량과 비용을 가져옵니다. 하나만 써도, 둘 다 써도 됩니다. 두 가지는 따로 유지되고 절대 합산되지 않으며, 예산은 **지출 집계 기준**에 따라 둘 중 하나를 셉니다. 키를 연결하려면 [AI 공급자 계정](/docs/telemetry/ai-provider-accounts#cursor)을 참고하세요. 이 페이지의 나머지는 OpenTelemetry Export를 설정합니다.
 
 ## 작동 방식
 
@@ -129,7 +142,7 @@ Cursor는 메트릭을 보내고 GenAI 스팬은 보내지 않으며, 메트릭�
 Cursor 행은 비용만 가집니다. `cursor.cost.usage`에는 호출별 세부 정보가 없으므로 호출과 토큰 셀에는 `—`가 표시됩니다. `cursor.token.usage`는 여전히 표 위의 토큰 합계를 채우며(`input`과 `output` 종류만, 캐시 토큰은 제외), `cursor.token.type`별로 대시보드에 차트를 그릴 수 있습니다.
 
 :::details Cursor 사용자 ID를 사람으로 바꾸기
-이름과 청구 금액은 Cursor의 Admin API에 있으며, OneUptime은 이를 호출하지 않습니다. 필요하면 직접 호출하세요. Enterprise 전용이며 `https://api.cursor.com`에 있고, 관리자 API 키를 사용자 이름으로, 비밀번호는 비워서 사용합니다.
+이름과 청구 금액은 Cursor의 Admin API에 있으며, 키를 [공급자 계정](/docs/telemetry/ai-provider-accounts#cursor)으로 연결하면 OneUptime이 이를 읽습니다. 그 계정은 사람을 이메일로 나타냅니다. `cursor.user.id`를 직접 맞춰 보려면 `https://api.cursor.com`의 API를 관리자 API 키를 사용자 이름으로, 비밀번호는 비워서 호출하세요.
 
 ```bash
 curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
@@ -150,7 +163,7 @@ curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
 
 ## 비용은 청구서가 아니라 추정치입니다
 
-Cursor는 `cursor.cost.usage`를 최선의 추정치라고 설명합니다. 포함된 사용량과 온디맨드로 청구되는 사용량을 구분하지 않으며, 자체 모델 키를 쓰는 경우 공급자의 청구서가 아니라 Cursor의 토큰 요율만 반영하고, 나중에 도착하는 `cursor.api.correction`이 이미 센 사용량을 되돌릴 수 있습니다. 추세로 읽으세요. 청구서와 일치하는 수치가 필요하면 Cursor Admin API의 `chargedCents`를 합산하세요.
+Cursor는 `cursor.cost.usage`를 최선의 추정치라고 설명합니다. 포함된 사용량과 온디맨드로 청구되는 사용량을 구분하지 않으며, 자체 모델 키를 쓰는 경우 공급자의 청구서가 아니라 Cursor의 토큰 요율만 반영하고, 나중에 도착하는 `cursor.api.correction`이 이미 센 사용량을 되돌릴 수 있습니다. 추세로 읽으세요. 청구서와 일치하는 수치가 필요하면 Cursor Admin API의 `chargedCents`를 합산하세요. [공급자 계정](/docs/telemetry/ai-provider-accounts#cursor)으로 연결한 Cursor 팀은 이를 시간 단위로 대신 해 줍니다.
 
 ## 문제 해결
 
@@ -174,6 +187,7 @@ Cursor는 자체 서버에서 연결합니다. OTLP 엔드포인트는 공개 DN
 
 :::cards
 - [AI 코딩 어시스턴트](/docs/telemetry/ai-coding-assistants): 모든 코딩 어시스턴트에서 지출이 귀속되는 방식.
+- [AI 공급자 계정](/docs/telemetry/ai-provider-accounts#cursor): 관리자 API 키로 Cursor 팀의 사용량과 Cursor가 청구한 금액을 읽습니다.
 - [AI 게이트웨이](/docs/telemetry/ai-gateways): 자체 앱이 하는 모델 호출의 전체 트레이스와 프롬프트.
 - [메트릭 모니터](/docs/monitor/metrics-monitor): `cursor.cost.usage`, `cursor.token.usage`, `cursor.tool.calls`에 알림을 설정합니다.
 :::

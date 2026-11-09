@@ -1001,6 +1001,27 @@ describe("the tiles and the lists", () => {
     expect(form).toHaveAttribute("data-editing", "false");
   });
 
+  /*
+   * #5547: Cursor is looked for with the company AI tools, and connected
+   * with the provider accounts: its entry in the fold opens that form.
+   */
+  test("Cursor's entry among the company AI tools opens Cursor's form", async () => {
+    await openPage();
+
+    fireEvent.click(way("tools"));
+
+    const tools: HTMLElement = panel("tools");
+
+    fireEvent.click(
+      within(tools).getByTestId("llm-other-ai-tool-connect-cursor"),
+    );
+
+    const form: HTMLElement = screen.getByTestId("connection-form");
+
+    expect(form).toHaveAttribute("data-provider", LlmConnectionProvider.Cursor);
+    expect(form).toHaveAttribute("data-editing", "false");
+  });
+
   test("saving the form closes it and reads everything again", async () => {
     await openPage();
 
@@ -1066,12 +1087,20 @@ describe("permissions", () => {
         );
       });
 
-    expect(tiles).toHaveLength(7);
+    expect(tiles).toHaveLength(8);
 
     for (const tile of tiles) {
       expect(tile).toBeDisabled();
       fireEvent.click(tile);
     }
+
+    // Nor Cursor's entry among the company AI tools.
+    const cursor: HTMLElement = screen.getByTestId(
+      "llm-other-ai-tool-connect-cursor",
+    );
+
+    expect(cursor).toBeDisabled();
+    fireEvent.click(cursor);
 
     expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
 

@@ -6,6 +6,7 @@ import AnthropicConnector from "./Connectors/Anthropic/AnthropicConnector";
 import AwsBedrockConnector from "./Connectors/AwsBedrock/AwsBedrockConnector";
 import AzureOpenAIConnector from "./Connectors/AzureOpenAI/AzureOpenAIConnector";
 import ClaudeEnterpriseConnector from "./Connectors/ClaudeEnterprise/ClaudeEnterpriseConnector";
+import CursorConnector from "./Connectors/Cursor/CursorConnector";
 import GoogleVertexAIConnector from "./Connectors/GoogleVertexAI/GoogleVertexAIConnector";
 import Microsoft365CopilotConnector from "./Connectors/Microsoft365Copilot/Microsoft365CopilotConnector";
 import OpenAIConnector from "./Connectors/OpenAI/OpenAIConnector";
@@ -22,6 +23,7 @@ const CONNECTORS: Record<LlmConnectionProvider, LlmConnector> = {
   [LlmConnectionProvider.AzureOpenAI]: new AzureOpenAIConnector(),
   [LlmConnectionProvider.AwsBedrock]: new AwsBedrockConnector(),
   [LlmConnectionProvider.GoogleVertexAI]: new GoogleVertexAIConnector(),
+  [LlmConnectionProvider.Cursor]: new CursorConnector(),
   [LlmConnectionProvider.ClaudeEnterprise]: new ClaudeEnterpriseConnector(),
   [LlmConnectionProvider.Microsoft365Copilot]:
     new Microsoft365CopilotConnector(),

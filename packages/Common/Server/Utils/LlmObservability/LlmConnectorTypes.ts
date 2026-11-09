@@ -46,17 +46,37 @@ export interface LlmConnectorCallOptions {
   // Test seam for "now"; Date.now() when absent.
   now?: (() => Date) | undefined;
   requestTimeoutInMs?: number | undefined;
+  /*
+   * Where the last read got to, for a connector that plans its own windows
+   * and resumes a read a bound stopped (planUsageWindow).
+   */
+  state?: LlmConnectionPullState | undefined;
+  /*
+   * Test seams for a connector that paces its requests under the provider's
+   * rate limit (Cursor): how it waits, and the clock its pacing and its
+   * read's time bound go by. A real wait and Date.now() when absent.
+   */
+  sleep?: ((ms: number) => Promise<void>) | undefined;
+  clock?: (() => number) | undefined;
 }
 
 /*
- * The days a usage read covers, as UTC day starts: [startDay, endDay). The
- * read returns one record per day and series that has usage; a day with no
- * record had none.
+ * The days a usage read covers, as UTC day starts: [startDay, endDay) - or
+ * hour starts, for a provider read by the hour (LlmUsageFetchResult.bucket).
+ * The read returns one record per day (or hour) and series that has usage;
+ * a day with no record had none.
  */
 export interface LlmUsageWindow {
   startDay: Date;
   endDay: Date;
 }
+
+/*
+ * How a provider's records are stamped: a UTC day, as most providers total
+ * their usage, or an hour (Cursor), whose usage events are read in pieces
+ * an hour long and kept by the hour, so a read can stop part way.
+ */
+export type LlmUsageBucket = "day" | "hour";
 
 export interface LlmUsageFetchResult {
   records: Array<LlmUsageRecord>;
@@ -71,6 +91,25 @@ export interface LlmUsageFetchResult {
    * find anything to read - not a quiet account - and the connection says so.
    */
   resources?: number | undefined;
+  // "hour" for records stamped by the hour; by the day when absent.
+  bucket?: LlmUsageBucket | undefined;
+  /*
+   * A read a bound stopped (a request or time limit, the provider slowing
+   * it down): the part of the window it read in full - only that part is
+   * written - and complete false, so the next read follows a minute later.
+   * Absent: the read covered the whole window.
+   */
+  coveredWindow?: LlmUsageWindow | undefined;
+  complete?: boolean | undefined;
+  // Where the next read resumes, for a connector that plans its windows.
+  nextState?: LlmConnectionPullState | undefined;
+  /*
+   * The account's people, for a tool that reports them (Cursor): its members
+   * today, and how many of them used it in the past 7 days. Undefined when
+   * this read did not count them.
+   */
+  members?: number | undefined;
+  activeMembers?: number | undefined;
 }
 
 export interface LlmChatFetchOptions extends LlmConnectorCallOptions {
@@ -119,6 +158,16 @@ export interface LlmConnectorBase {
 
 export interface LlmProviderAccountConnector extends LlmConnectorBase {
   kind: LlmConnectionKind.ProviderAccount;
+  /*
+   * The window the next read covers, for a connector that reads by the hour
+   * and resumes a read a bound stopped (Cursor). Without it, a read covers
+   * whole days (LlmUsageDays.nextWindow).
+   */
+  planUsageWindow?(data: {
+    now: Date;
+    state: LlmConnectionPullState;
+    backfillDays: number;
+  }): LlmUsageWindow;
   // The usage of every day in the window. Throws LlmProviderError.
   fetchUsage(
     settings: LlmConnectionSettings,
