@@ -45713,7 +45713,7 @@
   "Event hub": "Centro de eventos",
   "Every entry of severity WARNING or above: what went wrong, not every request.": "Cada entrada de gravedad WARNING o superior: lo que salió mal, no cada solicitud.",
   "Every entry the projects write but the Data Access audit logs, which record every read. A busy project's logs can cost far more.": "Cada entrada que escriben los proyectos salvo los registros de auditoría Data Access, que anotan cada lectura. Los registros de un proyecto con mucha actividad pueden costar mucho más.",
-  "Every key metric of every resource, a minute at a time: what OneUptime charts and judges each resource by.": "Cada métrica clave de cada recurso, minuto a minuto: lo que OneUptime grafica y con lo que juzga cada recurso.",
+  "The key metrics Azure can stream, a minute at a time: the connection keeps reading the rest.": "Las métricas clave que Azure puede transmitir, minuto a minuto: la conexión sigue leyendo el resto.",
   "Every log": "Todos los registros",
   "Every stream key of {{name}} stops working at once, and what Pub/Sub pushes is refused from now on. What was delivered stays.": "Todas las claves de flujo de {{name}} dejan de funcionar al instante, y lo que envía Pub/Sub se rechaza a partir de ahora. Lo entregado se conserva.",
   "Have Cloud Logging push its logs through Pub/Sub as they are written.": "Haz que Cloud Logging envíe sus registros a través de Pub/Sub en cuanto se escriben.",

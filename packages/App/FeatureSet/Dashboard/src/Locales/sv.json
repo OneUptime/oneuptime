@@ -45713,7 +45713,7 @@
   "Event hub": "Händelsehubb",
   "Every entry of severity WARNING or above: what went wrong, not every request.": "Varje post med allvarlighetsgrad WARNING eller högre: det som gick fel, inte varje begäran.",
   "Every entry the projects write but the Data Access audit logs, which record every read. A busy project's logs can cost far more.": "Varje post som projekten skriver utom Data Access-granskningsloggarna, som registrerar varje läsning. Ett upptaget projekts loggar kan kosta mycket mer.",
-  "Every key metric of every resource, a minute at a time: what OneUptime charts and judges each resource by.": "Varje nyckelmätvärde för varje resurs, minut för minut: det som OneUptime visar och bedömer varje resurs efter.",
+  "The key metrics Azure can stream, a minute at a time: the connection keeps reading the rest.": "De nyckelmätvärden som Azure kan strömma, minut för minut: anslutningen fortsätter att läsa resten.",
   "Every log": "Varje logg",
   "Every stream key of {{name}} stops working at once, and what Pub/Sub pushes is refused from now on. What was delivered stays.": "Alla strömnycklar för {{name}} slutar fungera direkt, och det som Pub/Sub pushar avvisas från och med nu. Det som har levererats finns kvar.",
   "Have Cloud Logging push its logs through Pub/Sub as they are written.": "Låt Cloud Logging pusha sina loggar via Pub/Sub så snart de skrivs.",

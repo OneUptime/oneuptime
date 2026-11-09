@@ -1,6 +1,6 @@
 # Strøm Azure Monitor-målinger og -logger
 
-Et tilkoblet Azure-abonnement kan strømme Azure Monitor-målingene og ressursloggene sine til OneUptime. Diagnoseinnstillinger sender dem til hendelseshuber i abonnementet ditt, og OneUptime leser hendelseshubene hvert minutt: nøkkelmålinger kommer noen minutter etter at Azure Monitor har dem, i stedet for ved tilkoblingens neste lesing, og ressurslogger kommer som OneUptime-logger, hver arkivert under ressursen den gjelder. Én kommando i Azure Cloud Shell setter det opp, og det er ingenting å kjøre.
+Et tilkoblet Azure-abonnement kan strømme Azure Monitor-målingene og ressursloggene sine til OneUptime. Diagnoseinnstillinger sender dem til hendelseshuber i abonnementet ditt, og OneUptime leser hendelseshubene hvert minutt: de fleste nøkkelmålinger kommer noen minutter etter at Azure Monitor har dem, i stedet for ved tilkoblingens neste lesing, og ressurslogger kommer som OneUptime-logger, hver arkivert under ressursen den gjelder. Én kommando i Azure Cloud Shell setter det opp, og det er ingenting å kjøre.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Diagnoseinnstillinger sender til en hendelseshub i hver region, og OneUptime leser dem.
@@ -22,7 +22,7 @@ flowchart TB
 
 - **En hendelseshub i hver region.** En diagnoseinnstilling sender bare til en hendelseshub i ressursens egen region, så kommandoen oppretter et Event Hubs-navnerom i hver region ressursene dine er i, alle i én ressursgruppe, og retter hver ressurs sin diagnoseinnstilling mot hendelseshuben i regionen.
 - **OneUptime leser dem.** Azure Monitor sender bare til en hendelseshub, en lagringskonto eller et Log Analytics-arbeidsområde, aldri til en adresse hos deg: en hendelseshub som OneUptime leser, er veien der du ikke trenger å kjøre noe. OneUptime logger på som tilkoblingens egen app, som får lese de hendelseshubene og ingenting annet.
-- **Lesingene overlater strømmede målinger til strømmen.** Mens strømmen leverer nøkkelmålingene til en ressurstype i en region, slutter tilkoblingens lesinger å skrive dem, så ingen datapunkter telles to ganger. Lesingene fortsetter å finne ressurser, tilstanden deres og endringene deres, og tar målingene tilbake etter 15 minutter uten en hendelse.
+- **Lesingene overlater strømmede målinger til strømmen.** Mens strømmen leverer nøkkelmålingene til en ressurstype i en region, slutter tilkoblingens lesinger å skrive dem den bærer, så ingen datapunkter telles to ganger, og fortsetter å skrive [dem den ikke kan bære](#hva-som-kommer). Lesingene fortsetter å finne ressurser, tilstanden deres og endringene deres, og tar målingene tilbake etter 15 minutter uten en hendelse.
 - **Ingenting går tapt mens OneUptime ikke kan lese.** Hendelser venter i hendelseshubene til OneUptime leser dem, så lenge hendelseshubene tar vare på dem, og OneUptime husker hvor langt den har lest hver partisjon, så den fortsetter der den slapp.
 
 ## Før du begynner
@@ -41,7 +41,7 @@ Gå til **Sky → Koble til**, og velg **Strøm målinger og logger** i raden ti
 
 ### Velg hva som skal strømmes
 
-**Målinger** strømmer hver nøkkelmåling for hver ressurs, minutt for minutt: målingene OneUptime viser og vurderer hver ressurs etter. **Målinger og logger** legger til hver ressurs sine egne logger, hver kategori Azure fører for den, og **Logger** strømmer bare ressurslogger.
+**Målinger** strømmer nøkkelmålingene for hver ressurs, minutt for minutt, målingene OneUptime viser og vurderer hver ressurs etter, unntatt [dem en diagnoseinnstilling ikke kan sende](#hva-som-kommer), som tilkoblingen fortsetter å lese. **Målinger og logger** legger til hver ressurs sine egne logger, hver kategori Azure fører for den, og **Logger** strømmer bare ressurslogger.
 
 ### Slå på lesing
 
@@ -75,7 +75,20 @@ Når det første abonnementet ikke er det OneUptime leser hendelseshubene i, sie
 | Ressurslogger | I loggutforskeren, under tilkoblingens telemetritjeneste, med abonnementet, regionen og kategorien som attributter |
 | Logger for en ressurs OneUptime kjenner | Også på den ressursen: siden dens i Sky får en fane **Logger** |
 
-Strømmen bærer nøkkelmålingene tilkoblingen leser minutt for minutt. En måling den leser med grovere oppløsning, for eksempel brukt kapasitet i en lagringskonto, blir hos lesingene. En logg arkiveres under ressursen sin etter ressursens ARM-ID, som bæres som `cloud.resource_id`, og beholder kategori, operasjon, resultat og egenskaper som attributter, for eksempel `azure.category`.
+Strømmen bærer nøkkelmålingene tilkoblingen leser minutt for minutt. Lesingene fortsetter å skrive resten etter tidsplanen sin: en måling de leser med grovere oppløsning, for eksempel brukt lagring i et containerregister, og hver nøkkelmåling en diagnoseinnstilling ikke kan sende, som Azure Monitors liste over støttede målinger markerer som ikke eksporterbar i kolonnen DS Export:
+
+- Virtuelle maskiner og skaleringssett: `Network In Total`, `Network Out Total`.
+- Disker: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
+- Azure Cosmos DB-kontoer: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
+- Lagringskontoer: `UsedCapacity`.
+- AKS-klynger: `kube_pod_status_ready`.
+- Applikasjonsgatewayer: `ApplicationGatewayTotalTime`, `Throughput`.
+- Brannmurer: `Throughput`.
+- NAT-gatewayer: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+
+Et Service Bus- eller Event Hubs-navnerom strømmer ingen målinger. Lesingene leser nøkkelmålingene for hver kø, hvert topic og hver hendelseshub, og navnerommets egne totaler legger dem sammen, mens en diagnoseinnstilling bare sender navnerommets totaler, og ikke i det hele tatt 4 av et Service Bus-navneroms 6 nøkkelmålinger eller 2 av et Event Hubs-navneroms 4. Så lesingene skriver alle sammen, med eller uten strømming, og ingen melding telles to ganger.
+
+En logg arkiveres under ressursen sin etter ressursens ARM-ID, som bæres som `cloud.resource_id`, og beholder kategori, operasjon, resultat og egenskaper som attributter, for eksempel `azure.category`.
 
 Virtuelle maskiner, skaleringssett, disker, nettverksgrensesnitt, virtuelle nettverk, private endepunkter, NAT-gatewayer, DNS-soner og App Service-planer sender ingen egne ressurslogger, så sidene deres har ingen fane **Logger**. Loggene til en lagringskonto er tjenestenes, og loggene til en containerapp er miljøets.
 
