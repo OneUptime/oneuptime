@@ -30,6 +30,7 @@ import {
 } from "../../../Types/AI/CodeTask";
 import { TransientAIFailureKind } from "../../../Types/AI/TransientAIFailure";
 import PullRequestState from "../../../Types/CodeRepository/PullRequestState";
+import { CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 import CodeTaskList from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
@@ -588,6 +589,47 @@ describe("a task list's rows", () => {
       ).toHaveTextContent("۲");
     } finally {
       await translation.changeLanguage("en");
+    }
+  });
+
+  test("on a Persian page, an English title and reason cut short end in ... at their own end, and a short one starts where the page's lines do", async () => {
+    listTasksMock.mockResolvedValue(answer([FAILED]) as never);
+    await translation.changeLanguage("fa");
+
+    try {
+      drawList();
+
+      const row: HTMLElement = await screen.findByTestId("code-task-row");
+      /*
+       * The boxes that cut them read as they do, as wide as their words up
+       * to the row's: never aligned to their end, which loses Chrome's "..."
+       * of a clamped line.
+       */
+      for (const testId of ["code-task-row-title", "code-task-row-error"]) {
+        const box: HTMLElement = within(row).getByTestId(testId);
+        expect(box).toHaveAttribute("dir", "ltr");
+        expect(box).toHaveClass(
+          "line-clamp-2",
+          ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+        );
+        expect(box).not.toHaveClass("text-end");
+      }
+    } finally {
+      await translation.changeLanguage("en");
+    }
+
+    cleanup();
+    listTasksMock.mockResolvedValue(answer([FAILED]) as never);
+    drawList();
+
+    // On an English page they read as the page does: no direction of their own.
+    const row: HTMLElement = await screen.findByTestId("code-task-row");
+    for (const testId of ["code-task-row-title", "code-task-row-error"]) {
+      const box: HTMLElement = within(row).getByTestId(testId);
+      expect(box).not.toHaveAttribute("dir");
+      expect(box).not.toHaveClass(
+        ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+      );
     }
   });
 });

@@ -43,6 +43,7 @@ import {
   CodeTaskSummaryJSON,
 } from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
@@ -50,6 +51,10 @@ import Link from "Common/UI/Components/Link/Link";
 import { TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME } from "Common/UI/Components/Table/TableHeaderControls";
 import { CLEAR_SEARCH } from "Common/UI/Components/Table/TableEmptyStateBuilders";
 import API from "Common/UI/Utils/API/API";
+import {
+  CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  getLineDirection,
+} from "Common/UI/Utils/LineDirection";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -903,6 +908,21 @@ export const CodeTaskRow: FunctionComponent<CodeTaskRowProps> = (
     props.onSelect || props.hasSelectColumn,
   );
 
+  /*
+   * The title and the reason are cut short at their own end: an English
+   * title too long for a Persian page's row ends in "..." after its last
+   * word, not before its first, and a short one still starts where the
+   * page's lines do (LineDirection).
+   */
+  const titleDirection: ReadingDirection | undefined = getLineDirection(
+    title,
+    translator.language,
+  );
+  const failureDirection: ReadingDirection | undefined = getLineDirection(
+    failure,
+    translator.language,
+  );
+
   return (
     <li
       data-testid="code-task-row"
@@ -945,7 +965,12 @@ export const CodeTaskRow: FunctionComponent<CodeTaskRowProps> = (
         <div className="min-w-0 flex-1">
           <p
             data-testid="code-task-row-title"
-            className="line-clamp-2 break-words text-sm font-medium leading-5 text-gray-900 sm:line-clamp-1"
+            dir={titleDirection}
+            className={`line-clamp-2 break-words text-sm font-medium leading-5 text-gray-900 sm:line-clamp-1${
+              titleDirection
+                ? ` ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                : ""
+            }`}
           >
             <IsolatedText text={title} />
           </p>
@@ -957,7 +982,12 @@ export const CodeTaskRow: FunctionComponent<CodeTaskRowProps> = (
           {failure ? (
             <p
               data-testid="code-task-row-error"
-              className="mt-1 line-clamp-2 break-words text-xs text-red-700"
+              dir={failureDirection}
+              className={`mt-1 line-clamp-2 break-words text-xs text-red-700${
+                failureDirection
+                  ? ` ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                  : ""
+              }`}
             >
               <IsolatedText text={failure} />
             </p>

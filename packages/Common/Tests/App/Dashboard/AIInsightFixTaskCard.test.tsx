@@ -30,6 +30,7 @@ import { CodeTaskStage } from "../../../Types/AI/CodeTaskStage";
 import { TransientAIFailureKind } from "../../../Types/AI/TransientAIFailure";
 import PullRequestState from "../../../Types/CodeRepository/PullRequestState";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 import InsightFixTask from "../../../../App/FeatureSet/Dashboard/src/Components/AIInsights/InsightFixTask";
 import { getStatusElement } from "../../../../App/FeatureSet/Dashboard/src/Components/AIInsights/InsightPresentation";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
@@ -562,5 +563,35 @@ describe("in the reader's language", () => {
       expect(element.tagName).toBe("BDI");
       expect(element).toHaveAttribute("dir", "ltr");
     }
+  });
+
+  test("what AI last said, cut short to four lines, ends in ... at its own end on a Persian page, and starts where the page's lines do", async () => {
+    const reply: string =
+      "Nothing to change: the gateway timeout is already 30 seconds.";
+
+    await translation.changeLanguage("fa");
+    drawCard({ task: task({ latestReply: reply }) });
+    /*
+     * The box that cuts it reads as the reply does, as wide as its words up
+     * to the card's: never aligned to its end, which loses Chrome's "..." of
+     * a clamped line.
+     */
+    const persianBox: HTMLElement = screen.getByTestId("ai-insight-fix-reply");
+    expect(persianBox).toHaveAttribute("dir", "ltr");
+    expect(persianBox).toHaveClass(
+      "line-clamp-4",
+      ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+    );
+    expect(persianBox).not.toHaveClass("text-end");
+    cleanup();
+
+    // On an English page it reads as the page does: no direction of its own.
+    await translation.changeLanguage("en");
+    drawCard({ task: task({ latestReply: reply }) });
+    const englishBox: HTMLElement = screen.getByTestId("ai-insight-fix-reply");
+    expect(englishBox).not.toHaveAttribute("dir");
+    expect(englishBox).not.toHaveClass(
+      ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+    );
   });
 });

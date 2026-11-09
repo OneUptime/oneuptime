@@ -23,10 +23,15 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
+import {
+  CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  getLineDirection,
+} from "Common/UI/Utils/LineDirection";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -138,6 +143,16 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
       </>
     ) : undefined;
 
+  /*
+   * What AI last said is cut short at its own end: an English reply too
+   * long for the card on a Persian page ends in "..." after its last word,
+   * not before its first (LineDirection).
+   */
+  const replyDirection: ReadingDirection | undefined = getLineDirection(
+    task?.latestReply,
+    translator.language,
+  );
+
   // Its number, when anything last happened, and how long AI worked on it.
   const facts: Array<ReactElement> = [];
 
@@ -219,7 +234,12 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
           {task.latestReply ? (
             <p
               data-testid="ai-insight-fix-reply"
-              className="line-clamp-4 whitespace-pre-line break-words text-sm text-gray-600"
+              dir={replyDirection}
+              className={`line-clamp-4 whitespace-pre-line break-words text-sm text-gray-600${
+                replyDirection
+                  ? ` ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                  : ""
+              }`}
             >
               <IsolatedText text={task.latestReply} />
             </p>
