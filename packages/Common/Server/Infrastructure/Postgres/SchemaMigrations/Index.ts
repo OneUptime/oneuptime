@@ -936,6 +936,7 @@ import { AddRumSignalArrivals1809063215770 } from "./1809063215770-AddRumSignalA
 import { AddPublicNoteApprovalRequest1809063230000 } from "./1809063230000-AddPublicNoteApprovalRequest";
 import { AddTelemetryIngestionBudgets1809063245917 } from "./1809063245917-AddTelemetryIngestionBudgets";
 import { AllowDiscoveryImportWithoutScan1809063255775 } from "./1809063255775-AllowDiscoveryImportWithoutScan";
+import { AddUserLanguage1809063412000 } from "./1809063412000-AddUserLanguage";
 import { AddTelemetryIngestionKeyRefusals1809071100000 } from "./1809071100000-AddTelemetryIngestionKeyRefusals";
 
 export default [
@@ -1877,5 +1878,6 @@ export default [
   AddPublicNoteApprovalRequest1809063230000,
   AddTelemetryIngestionBudgets1809063245917,
   AllowDiscoveryImportWithoutScan1809063255775,
+  AddUserLanguage1809063412000,
   AddTelemetryIngestionKeyRefusals1809071100000,
 ];

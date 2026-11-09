@@ -99,7 +99,7 @@ interface PageOutCase {
 const CASES: Array<PageOutCase> = [
   {
     name: "alert",
-    titleLabel: "Alert Title:",
+    titleLabel: "Alert Title",
     missingRootCause: "No root cause identified for this alert",
     build: async (fields: Fields): Promise<EmailMessage> => {
       const state: AlertState = new AlertState();
@@ -133,7 +133,7 @@ const CASES: Array<PageOutCase> = [
   },
   {
     name: "incident",
-    titleLabel: "Incident Title:",
+    titleLabel: "Incident Title",
     missingRootCause: "No root cause identified for this incident",
     build: async (fields: Fields): Promise<EmailMessage> => {
       const state: IncidentState = new IncidentState();
@@ -231,14 +231,15 @@ describe.each(CASES)("the $name page-out email", (entry: PageOutCase) => {
       );
       const detailCard: DetailCard = cardOf(html);
 
+      // Labels read as on every other card, with no colon (fu-i18n-larger).
       expect(labelsOf(detailCard)).toEqual([
         entry.titleLabel,
-        "Current State:",
-        "Resources Affected:",
-        "Severity:",
-        "Root Cause:",
+        "Current State",
+        "Resources Affected",
+        "Severity",
+        "Root Cause",
       ]);
-      expect(html).not.toContain("Description:");
+      expect(html).not.toContain(">Description</p>");
       expect(
         detailCard.rows.every((row: DetailCardRow): boolean => {
           return row.showsValue;
@@ -255,7 +256,7 @@ describe.each(CASES)("the $name page-out email", (entry: PageOutCase) => {
     const last: DetailCardRow = detailCard.rows[detailCard.rows.length - 1]!;
 
     expect(String(message.vars["rootCause"])).toContain(entry.missingRootCause);
-    expect(last.label).toBe("Root Cause:");
+    expect(last.label).toBe("Root Cause");
     expect(last.showsValue).toBe(true);
     expect(last.dividerBelow).toBe(false);
     expect(misplacedDividers(tree)).toEqual([]);
@@ -270,7 +271,7 @@ describe.each(CASES)("the $name page-out email", (entry: PageOutCase) => {
     );
     const labels: Array<string> = labelsOf(cardOf(html));
 
-    expect(labels.slice(-2)).toEqual(["Root Cause:", "Description:"]);
+    expect(labels.slice(-2)).toEqual(["Root Cause", "Description"]);
     expect(html).toContain("<p>API: Status Page is currently offline.</p>");
     expect(misplacedDividers(readEmailMarkup(html))).toEqual([]);
   });

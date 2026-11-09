@@ -219,10 +219,11 @@ describe("the Escalation Rules page, on escalating a page", () => {
         `App/FeatureSet/Notification/Templates/${template}.hbs`,
       );
 
+      // In the language of the person it pages (Utils/EmailLanguage), English by default.
       expect({ template, button: source }).toEqual({
         template,
         button: expect.stringContaining(
-          `{{> ButtonBlock buttonUrl=passOnLink buttonText="${ESCALATE}" secondary=true}}`,
+          `{{> ButtonBlock buttonUrl=passOnLink buttonText=(t "${ESCALATE}") secondary=true}}`,
         ),
       });
     }

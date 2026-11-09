@@ -362,10 +362,39 @@ export interface AzureTypeKeyMetrics {
   // The ARM type, as CloudResourceCatalog spells it.
   type: string;
   metrics: Array<string>;
+  /*
+   * The dimension every metric of the type is split by, one series per
+   * value, in the same one call: a Service Bus or Event Hubs namespace's
+   * EntityName, its queues, topics and event hubs - the series a queue's
+   * page charts, exactly as the azure_monitor receiver writes them.
+   */
+  splitByDimension?: string | undefined;
 }
 
 // At most this many metrics are read per resource (one Azure Monitor call).
 export const AZURE_MAX_METRICS_PER_RESOURCE: number = 8;
+
+/*
+ * The Azure Monitor dimension that names a Service Bus or Event Hubs
+ * namespace's queue, topic or event hub.
+ */
+export const AZURE_ENTITY_NAME_DIMENSION: string = "EntityName";
+
+/*
+ * A split series' datapoint attribute per dimension, as the azure_monitor
+ * receiver names it: "metadata_" + the dimension's name as Azure Monitor
+ * answers it, lowercased - a queue's or topic's is metadata_entityname.
+ */
+export const AZURE_DIMENSION_ATTRIBUTE_PREFIX: string = "metadata_";
+export const AZURE_ENTITY_NAME_ATTRIBUTE: string = `${AZURE_DIMENSION_ATTRIBUTE_PREFIX}${AZURE_ENTITY_NAME_DIMENSION.toLowerCase()}`;
+
+/*
+ * Series of one metric a split read asks Azure Monitor for at most (its
+ * `top`, 10 unless asked): the queues, topics and event hubs of one
+ * namespace a read reads, as many as the Queues guide asks the
+ * azure_monitor receiver to read (maximum_number_of_records_per_resource).
+ */
+export const AZURE_MAX_SPLIT_SERIES_PER_METRIC: number = 1000;
 
 export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   {
@@ -495,6 +524,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "ServerErrors",
       "ThrottledRequests",
     ],
+    splitByDimension: AZURE_ENTITY_NAME_DIMENSION,
   },
   {
     type: "Microsoft.EventHub/namespaces",
@@ -504,6 +534,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "ThrottledRequests",
       "ServerErrors",
     ],
+    splitByDimension: AZURE_ENTITY_NAME_DIMENSION,
   },
   {
     type: "Microsoft.ContainerService/managedClusters",
@@ -603,6 +634,39 @@ export function getAzureStoredMetricName(
   aggregation: string,
 ): string {
   return `azure_${metricName.split(" ").join("_")}_${aggregation}`.toLowerCase();
+}
+
+// The aggregations an Azure Monitor metric is read with, as stored.
+const AZURE_STORED_AGGREGATIONS: ReadonlyArray<string> = [
+  "average",
+  "total",
+  "maximum",
+  "minimum",
+  "count",
+];
+
+/*
+ * Whether a cloud connection's read reads this stored metric of the type:
+ * one of its key metrics, whatever aggregation its definition calls
+ * primary (the read learns that from Azure, so the name is matched with
+ * any of them). False for a type with no key metrics.
+ */
+export function isAzureKeyMetricStoredName(
+  type: string,
+  storedMetricName: string,
+): boolean {
+  const keyMetrics: AzureTypeKeyMetrics | undefined = getAzureKeyMetrics(type);
+  const stored: string = (storedMetricName || "").trim().toLowerCase();
+
+  if (!keyMetrics || !stored) {
+    return false;
+  }
+
+  return keyMetrics.metrics.some((metric: string): boolean => {
+    return AZURE_STORED_AGGREGATIONS.some((aggregation: string): boolean => {
+      return getAzureStoredMetricName(metric, aggregation) === stored;
+    });
+  });
 }
 
 /*

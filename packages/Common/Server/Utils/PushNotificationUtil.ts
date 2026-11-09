@@ -1,13 +1,19 @@
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
-import {
-  OnCallPageAgainNotice,
-  getOnCallPageAgainNoticeReason,
-} from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import { OnCallPageAgainNotice } from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import {
   OnCallPersonPageNotice,
   getOnCallPersonPagePushBody,
   getOnCallPersonPagePushTitle,
 } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import {
+  getEnglishPageTranslator,
+  getOnCallPagePersonPagePushBody,
+  getOnCallPagePushWords,
+  getOnCallPageRecordLabel,
+  OnCallPageKind,
+  OnCallPagePushWords,
+} from "../../Types/OnCallDutyPolicy/OnCallPageWords";
+import { Translator } from "../../Types/Translator";
 import {
   OnCallObserverPageRecordKind,
   getOnCallObserverPagePushBody,
@@ -45,17 +51,24 @@ export default class PushNotificationUtil {
     viewLink: string;
     tag: string;
     data: { [key: string]: unknown };
+    // The language of the person it pages (OnCallPageWords).
+    translator: Translator;
   }): PushNotificationMessage {
     return PushNotificationUtil.applyDefaults({
       title: getOnCallPersonPagePushTitle({
         recordLabel: data.recordLabel,
         notice: data.notice,
+        translator: data.translator,
       }),
-      body: `${getOnCallPersonPagePushBody({
-        recordTitle: data.recordTitle,
-        projectName: data.projectName,
-        notice: data.notice,
-      })} Click to view details.`,
+      body: getOnCallPagePersonPagePushBody(
+        data.translator,
+        getOnCallPersonPagePushBody({
+          recordTitle: data.recordTitle,
+          projectName: data.projectName,
+          notice: data.notice,
+          translator: data.translator,
+        }),
+      ),
       clickAction: data.viewLink,
       url: data.viewLink,
       tag: data.tag,
@@ -82,16 +95,20 @@ export default class PushNotificationUtil {
     viewLink: string;
     tag: string;
     data: { [key: string]: unknown };
+    // The language of the person it pages (OnCallPageWords).
+    translator: Translator;
   }): PushNotificationMessage {
     return PushNotificationUtil.applyDefaults({
       title: getOnCallObserverPagePushTitle({
         recordLabel: data.recordLabel,
         recordTitle: data.recordTitle,
+        translator: data.translator,
       }),
       body: getOnCallObserverPagePushBody({
         kind: data.kind,
         projectName: data.projectName,
         personPage: data.personPage,
+        translator: data.translator,
       }),
       clickAction: data.viewLink,
       url: data.viewLink,
@@ -121,6 +138,8 @@ export default class PushNotificationUtil {
      * while the people responding stay on it.
      */
     isObserverPage?: boolean | undefined;
+    // The language of the person it pages (OnCallPageWords); English without one.
+    translator?: Translator | undefined;
   }): PushNotificationMessage {
     const {
       incidentTitle,
@@ -131,21 +150,25 @@ export default class PushNotificationUtil {
       incidentId,
       projectId,
     } = params;
+    const translator: Translator =
+      params.translator || getEnglishPageTranslator();
     const displayNumber: string =
       incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
-    const incidentIdentifier: string = displayNumber
-      ? `${displayNumber} (${incidentTitle})`
-      : incidentTitle;
 
     if (params.isObserverPage) {
       return PushNotificationUtil.getObserverPageNotification({
-        recordLabel: `Incident${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.Incident,
+          displayNumber,
+        ),
         recordTitle: incidentTitle,
         projectName: projectName,
         kind: "incident",
         personPage: params.personPage,
         viewLink: incidentViewLink,
         tag: "incident-created",
+        translator: translator,
         data: {
           type: "incident-created",
           entityType: "incident",
@@ -160,12 +183,17 @@ export default class PushNotificationUtil {
 
     if (params.personPage) {
       return PushNotificationUtil.getPersonPageNotification({
-        recordLabel: `Incident${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.Incident,
+          displayNumber,
+        ),
         recordTitle: incidentTitle,
         projectName: projectName,
         notice: params.personPage,
         viewLink: incidentViewLink,
         tag: "incident-created",
+        translator: translator,
         data: {
           type: "incident-created",
           entityType: "incident",
@@ -178,13 +206,17 @@ export default class PushNotificationUtil {
       });
     }
 
+    const words: OnCallPagePushWords = getOnCallPagePushWords(translator, {
+      kind: OnCallPageKind.Incident,
+      number: displayNumber,
+      title: incidentTitle,
+      projectName: projectName,
+      pageAgain: params.pageAgain,
+    });
+
     return PushNotificationUtil.applyDefaults({
-      title: params.pageAgain
-        ? `Incident${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${incidentTitle}`
-        : `New Incident${displayNumber ? ` ${displayNumber}` : ""}: ${incidentTitle}`,
-      body: params.pageAgain
-        ? `Incident ${incidentIdentifier} in ${projectName} is ${getOnCallPageAgainNoticeReason(params.pageAgain)}. Click to view details.`
-        : `A new incident has been created: ${incidentIdentifier} in ${projectName}. Click to view details.`,
+      title: words.title,
+      body: words.body,
       clickAction: incidentViewLink,
       url: incidentViewLink,
       tag: "incident-created",
@@ -318,6 +350,8 @@ export default class PushNotificationUtil {
      * while the people responding stay on it.
      */
     isObserverPage?: boolean | undefined;
+    // The language of the person it pages (OnCallPageWords); English without one.
+    translator?: Translator | undefined;
   }): PushNotificationMessage {
     const {
       alertTitle,
@@ -328,21 +362,25 @@ export default class PushNotificationUtil {
       alertId,
       projectId,
     } = params;
+    const translator: Translator =
+      params.translator || getEnglishPageTranslator();
     const displayNumber: string =
       alertNumberWithPrefix || (alertNumber ? `#${alertNumber}` : "");
-    const alertIdentifier: string = displayNumber
-      ? `${displayNumber} (${alertTitle})`
-      : alertTitle;
 
     if (params.isObserverPage) {
       return PushNotificationUtil.getObserverPageNotification({
-        recordLabel: `Alert${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.Alert,
+          displayNumber,
+        ),
         recordTitle: alertTitle,
         projectName: projectName,
         kind: "alert",
         personPage: params.personPage,
         viewLink: alertViewLink,
         tag: "alert-created",
+        translator: translator,
         data: {
           type: "alert-created",
           entityType: "alert",
@@ -357,12 +395,17 @@ export default class PushNotificationUtil {
 
     if (params.personPage) {
       return PushNotificationUtil.getPersonPageNotification({
-        recordLabel: `Alert${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.Alert,
+          displayNumber,
+        ),
         recordTitle: alertTitle,
         projectName: projectName,
         notice: params.personPage,
         viewLink: alertViewLink,
         tag: "alert-created",
+        translator: translator,
         data: {
           type: "alert-created",
           entityType: "alert",
@@ -375,13 +418,17 @@ export default class PushNotificationUtil {
       });
     }
 
+    const words: OnCallPagePushWords = getOnCallPagePushWords(translator, {
+      kind: OnCallPageKind.Alert,
+      number: displayNumber,
+      title: alertTitle,
+      projectName: projectName,
+      pageAgain: params.pageAgain,
+    });
+
     return PushNotificationUtil.applyDefaults({
-      title: params.pageAgain
-        ? `Alert${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${alertTitle}`
-        : `New Alert${displayNumber ? ` ${displayNumber}` : ""}: ${alertTitle}`,
-      body: params.pageAgain
-        ? `Alert ${alertIdentifier} in ${projectName} is ${getOnCallPageAgainNoticeReason(params.pageAgain)}. Click to view details.`
-        : `A new alert has been created: ${alertIdentifier} in ${projectName}. Click to view details.`,
+      title: words.title,
+      body: words.body,
       clickAction: alertViewLink,
       url: alertViewLink,
       tag: "alert-created",
@@ -413,6 +460,8 @@ export default class PushNotificationUtil {
      * while the people responding stay on it.
      */
     isObserverPage?: boolean | undefined;
+    // The language of the person it pages (OnCallPageWords); English without one.
+    translator?: Translator | undefined;
   }): PushNotificationMessage {
     const {
       alertEpisodeTitle,
@@ -425,17 +474,22 @@ export default class PushNotificationUtil {
     } = params;
     const displayNumber: string =
       episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
-    const episodeIdentifier: string = displayNumber
-      ? `${displayNumber} (${alertEpisodeTitle})`
-      : alertEpisodeTitle;
+    const translator: Translator =
+      params.translator || getEnglishPageTranslator();
+
     if (params.isObserverPage) {
       return PushNotificationUtil.getObserverPageNotification({
-        recordLabel: `Alert Episode${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.AlertEpisode,
+          displayNumber,
+        ),
         recordTitle: alertEpisodeTitle,
         projectName: projectName,
         kind: "alert episode",
         viewLink: alertEpisodeViewLink,
         tag: "alert-episode-created",
+        translator: translator,
         data: {
           type: "alert-episode-created",
           entityType: "alert-episode",
@@ -448,13 +502,17 @@ export default class PushNotificationUtil {
       });
     }
 
+    const words: OnCallPagePushWords = getOnCallPagePushWords(translator, {
+      kind: OnCallPageKind.AlertEpisode,
+      number: displayNumber,
+      title: alertEpisodeTitle,
+      projectName: projectName,
+      pageAgain: params.pageAgain,
+    });
+
     return PushNotificationUtil.applyDefaults({
-      title: params.pageAgain
-        ? `Alert Episode${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${alertEpisodeTitle}`
-        : `New Alert Episode${displayNumber ? ` ${displayNumber}` : ""}: ${alertEpisodeTitle}`,
-      body: params.pageAgain
-        ? `Alert Episode ${episodeIdentifier} in ${projectName} is ${getOnCallPageAgainNoticeReason(params.pageAgain)}. Click to view details.`
-        : `A new alert episode has been created: ${episodeIdentifier} in ${projectName}. Click to view details.`,
+      title: words.title,
+      body: words.body,
       clickAction: alertEpisodeViewLink,
       url: alertEpisodeViewLink,
       tag: "alert-episode-created",
@@ -486,6 +544,8 @@ export default class PushNotificationUtil {
      * while the people responding stay on it.
      */
     isObserverPage?: boolean | undefined;
+    // The language of the person it pages (OnCallPageWords); English without one.
+    translator?: Translator | undefined;
   }): PushNotificationMessage {
     const {
       incidentEpisodeTitle,
@@ -498,17 +558,22 @@ export default class PushNotificationUtil {
     } = params;
     const displayNumber: string =
       episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
-    const episodeIdentifier: string = displayNumber
-      ? `${displayNumber} (${incidentEpisodeTitle})`
-      : incidentEpisodeTitle;
+    const translator: Translator =
+      params.translator || getEnglishPageTranslator();
+
     if (params.isObserverPage) {
       return PushNotificationUtil.getObserverPageNotification({
-        recordLabel: `Incident Episode${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.IncidentEpisode,
+          displayNumber,
+        ),
         recordTitle: incidentEpisodeTitle,
         projectName: projectName,
         kind: "incident episode",
         viewLink: incidentEpisodeViewLink,
         tag: "incident-episode-created",
+        translator: translator,
         data: {
           type: "incident-episode-created",
           entityType: "incident-episode",
@@ -521,13 +586,17 @@ export default class PushNotificationUtil {
       });
     }
 
+    const words: OnCallPagePushWords = getOnCallPagePushWords(translator, {
+      kind: OnCallPageKind.IncidentEpisode,
+      number: displayNumber,
+      title: incidentEpisodeTitle,
+      projectName: projectName,
+      pageAgain: params.pageAgain,
+    });
+
     return PushNotificationUtil.applyDefaults({
-      title: params.pageAgain
-        ? `Incident Episode${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${incidentEpisodeTitle}`
-        : `New Incident Episode${displayNumber ? ` ${displayNumber}` : ""}: ${incidentEpisodeTitle}`,
-      body: params.pageAgain
-        ? `Incident Episode ${episodeIdentifier} in ${projectName} is ${getOnCallPageAgainNoticeReason(params.pageAgain)}. Click to view details.`
-        : `A new incident episode has been created: ${episodeIdentifier} in ${projectName}. Click to view details.`,
+      title: words.title,
+      body: words.body,
       clickAction: incidentEpisodeViewLink,
       url: incidentEpisodeViewLink,
       tag: "incident-episode-created",

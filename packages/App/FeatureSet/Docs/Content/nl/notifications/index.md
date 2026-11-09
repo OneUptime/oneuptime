@@ -7,6 +7,7 @@ OneUptime bereikt je op twee manieren. Het roept je op wanneer er tijdens je die
 - [Waar je ze vindt](#waar-je-ze-vindt): De pagina's van de gebruikersinstellingen, sectie voor sectie.
 - [Waarmee je begint](#waarmee-je-begint): De methoden, regels en instellingen die een nieuw lid krijgt.
 - [Als geen regel past](#als-geen-regel-past): Hoe een oproep je toch bereikt, en wie het te horen krijgt.
+- [De taal van je oproepen](#de-taal-van-je-oproepen): Oproepen in de taal die je hebt gekozen, en wat in het Engels blijft.
 :::
 
 ## Hoe het werkt
@@ -96,6 +97,18 @@ Een oproep kan je bereiken voor een soort en een ernst waarvoor je geen regel he
 
 Je krijgt daarover een e-mail, en de eigenaren van het bereikbaarheidsbeleid ook, of die van het project als het beleid er geen heeft. Is er helemaal niets geverifieerd, dan kan de oproep niet worden afgeleverd, en zegt de e-mail dat. Deze e-mails worden tegengehouden zolang er oproepen blijven komen, zodat een storm van oproepen geen storm van e-mails wordt. Hoe je de ontbrekende regel toevoegt, staat bij [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules#als-een-ernst-geen-regel-heeft).
 
+## De taal van je oproepen
+
+Je oproepen worden in jouw taal geschreven: de taal die je kiest in het taalmenu onderaan elke pagina, of bij **Taal** in **Gebruikersprofiel**. Tot je er een kiest, zijn ze in het Engels.
+
+| Kanaal | Taal |
+| --- | --- |
+| E-mail, sms, pushmeldingen en Telegram | Jouw taal |
+| Je eigen berichten in Slack, Microsoft Teams en Mattermost | Jouw taal |
+| Telefoongesprekken en WhatsApp | Engels |
+
+Wat verandert, zijn de woorden van OneUptime: onderwerpen, koppen, knoppen en zinnen, en de namen waarmee elk nieuw project begint, zoals Geïdentificeerd en Kritiek incident. Wat je team schreef, blijft zoals het geschreven is: titels, beschrijvingen, hoofdoorzaken en de namen van projecten, teams en statussen die je project zelf heeft benoemd. Een sms in een taal met een eigen schrift, zoals Russisch, Japans of Perzisch, neemt meer delen in beslag dan een in het Engels.
+
 ## Probleemoplossing
 
 :::details Ik had dienst, maar niets bereikte me
@@ -104,6 +117,10 @@ Open **Gebruikersinstellingen → Bereikbaarheidslogboeken**. Geen rij voor het 
 
 :::details Ik krijg e-mails over items waar ik nooit om heb gevraagd
 Je bent eigenaar van het item, direct of via een team, of het item heeft geen eigenaren en jij bent projecteigenaar. Zet de gebeurtenis uit onder **Gebruikersinstellingen → Meldingsinstellingen**, of beperk de hoeveelheid onder **Gebruikersinstellingen → E-mailvoorkeuren**.
+:::
+
+:::details Mijn oproepen zijn in het Engels, maar het dashboard niet
+Het dashboard volgt je browser tot je een taal kiest. Kies die in het taalmenu onderaan elke pagina, of bij **Taal** in **Gebruikersprofiel**. Telefoongesprekken en WhatsApp-berichten blijven in het Engels.
 :::
 
 :::details Ik heb een telefoonnummer toegevoegd, maar het staat niet in mijn regels
