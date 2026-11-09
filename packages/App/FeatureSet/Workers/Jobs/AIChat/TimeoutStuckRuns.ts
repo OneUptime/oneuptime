@@ -149,15 +149,20 @@ RunCron(
 
         /*
          * Code-fix runs execute in an EXTERNAL agent container. A silent
-         * heartbeat means that executor died — and it may already have
-         * pushed a partial fix branch, so auto-retrying is not safe. They
-         * are finalized as Error (CAS-guarded), never requeued.
+         * heartbeat means that executor died. The run is tried again by
+         * itself, in place, only when nothing says it may already have
+         * pushed a branch or opened a pull request and it has attempts
+         * left (CodeFixAutoRetry); otherwise it is finalized as Error
+         * (CAS-guarded).
          */
         if (run.runType === AIRunType.CodeFix) {
-          await CodeFixRunQueue.markStaleRunAsError({ id: run.id! });
+          const isQueuedAgain: boolean =
+            await CodeFixRunQueue.markStaleRunAsError({ id: run.id! });
 
           logger.info(
-            `Stale code-fix run ${run.id?.toString()}: marked as Error (external agent died; not auto-retried).`,
+            isQueuedAgain
+              ? `Stale code-fix run ${run.id?.toString()}: queued again for its next attempt (external agent died; nothing pushed).`
+              : `Stale code-fix run ${run.id?.toString()}: marked as Error (external agent died; not tried again).`,
             { service: "workers" },
           );
           continue;

@@ -4,6 +4,7 @@ import {
   ProductionReviewSummaryJSON,
 } from "../CodeRepository/ProductionReview";
 import AIRunStatus from "./AIRunStatus";
+import { CodeTaskRetryJSON } from "./CodeTaskRetry";
 import BadDataException from "../Exception/BadDataException";
 import ObjectID from "../ObjectID";
 
@@ -432,6 +433,34 @@ export enum CodeTaskListKind {
   ProductionReviews = "productionReviews",
 }
 
+/*
+ * The tasks a list shows (POST /code-task/list `filter`), each task in
+ * exactly one: still moving (queued, working or about to try again),
+ * waiting for someone's answer, its pull request open, failed, or done
+ * (finished, stopped, or its pull request merged or closed). All is every
+ * task. Read from the task's latest turn and its pull requests.
+ */
+export enum CodeTaskListFilter {
+  All = "all",
+  InProgress = "inProgress",
+  WaitingForYou = "waitingForYou",
+  PullRequestOpen = "pullRequestOpen",
+  Failed = "failed",
+  Done = "done",
+}
+
+// How many tasks each filter shows, for the list's tabs.
+export type CodeTaskListCountsJSON = Record<CodeTaskListFilter, number>;
+
+// The longest search a task list reads: a title, a number.
+export const MAX_CODE_TASK_SEARCH_LENGTH: number = 120;
+
+// The most tasks one read of summaries or one Retry of many takes.
+export const MAX_CODE_TASKS_PER_REQUEST: number = 50;
+
+// The longest AI reply a task summary carries: a list's or a card's glance.
+export const MAX_CODE_TASK_SUMMARY_REPLY_LENGTH: number = 600;
+
 // One task in a list.
 export interface CodeTaskSummaryJSON {
   id: string;
@@ -456,6 +485,21 @@ export interface CodeTaskSummaryJSON {
   changes?: CodeTaskChangeStatsJSON | undefined;
   // A production review's latest findings, at a glance.
   productionReview?: ProductionReviewSummaryJSON | undefined;
+  /*
+   * How the latest turn stands with its attempts, when it was tried again
+   * by itself or waits to be (Types/AI/CodeTaskRetry).
+   */
+  retry?: CodeTaskRetryJSON | undefined;
+  // Why the latest turn failed or was stopped.
+  errorMessage?: string | undefined;
+  /*
+   * What AI last said, at a glance (cut to
+   * MAX_CODE_TASK_SUMMARY_REPLY_LENGTH): what a fix card shows.
+   */
+  latestReply?: string | undefined;
+  // When the latest turn started and ended: how long it took, or has.
+  startedAt?: string | undefined;
+  completedAt?: string | undefined;
 }
 
 // How much a task changed: its files, and the lines added and taken out.
@@ -518,6 +562,8 @@ export interface CodeTaskTurnJSON {
   pullRequests: Array<CodeTaskPullRequestJSON>;
   errorMessage?: string | undefined;
   needsInput: boolean;
+  // How the turn stands with its attempts (Types/AI/CodeTaskRetry).
+  retry?: CodeTaskRetryJSON | undefined;
 }
 
 /*
@@ -541,6 +587,8 @@ export interface CodeTaskTurnProgressJSON {
    * whole task instead, which holds the latest of them.
    */
   hasMore: boolean;
+  // How the turn stands with its attempts (Types/AI/CodeTaskRetry).
+  retry?: CodeTaskRetryJSON | undefined;
 }
 
 export interface CodeTaskRepositoryJSON {
