@@ -9,6 +9,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { FOLDED_SECTION_LINE } from "Common/UI/Components/FoldedSection/FoldedSectionVariant";
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import SaveStatus, {
   SaveState,
@@ -331,6 +332,8 @@ const BuiltInSignalRow: FunctionComponent<ComponentProps> = (
                 {RULE_NUMBER_FIELDS[props.signalKey].map(
                   (field: RuleNumberField): ReactElement => {
                     const inputId: string = `${testId}-${field.id}`;
+                    const errorId: string = `${inputId}-error`;
+                    const problem: string = fieldProblems[field.id] || "";
 
                     return (
                       <div key={field.id}>
@@ -340,15 +343,25 @@ const BuiltInSignalRow: FunctionComponent<ComponentProps> = (
                         >
                           {translator.translateText(field.label)}
                         </label>
-                        <div className="flex items-start gap-2">
+                        {/*
+                         * The number and its unit share a line, and what is
+                         * wrong with the number goes under both, as
+                         * NumberSettingField and StatusPageDaysSetting place
+                         * it. Drawn by the Input itself it sat between them,
+                         * squeezing "clicks or more" into a word a line, and
+                         * its icon, with no "relative" box to sit in, went
+                         * to the card's far edge.
+                         */}
+                        <div className="flex items-center gap-2">
                           <Input
                             id={inputId}
                             type={InputType.NUMBER}
                             value={fieldTexts[field.id] ?? ""}
                             disabled={props.isSaving}
-                            outerDivClassName="w-24 shrink-0"
+                            outerDivClassName="relative w-24 shrink-0 rounded-md shadow-sm"
                             dataTestId={inputId}
-                            error={fieldProblems[field.id] || undefined}
+                            ariaInvalid={Boolean(problem)}
+                            ariaDescribedby={problem ? errorId : undefined}
                             onChange={(value: string): void => {
                               setFieldTexts(
                                 (
@@ -360,10 +373,17 @@ const BuiltInSignalRow: FunctionComponent<ComponentProps> = (
                               setRuleState(SaveState.Idle);
                             }}
                           />
-                          <span className="pt-2 text-sm text-gray-500">
+                          <span className="min-w-0 text-sm text-gray-500">
                             {translator.translateText(field.unitLabel)}
                           </span>
                         </div>
+                        {problem && (
+                          <FieldError
+                            id={errorId}
+                            message={problem}
+                            dataTestId={errorId}
+                          />
+                        )}
                       </div>
                     );
                   },
@@ -371,7 +391,11 @@ const BuiltInSignalRow: FunctionComponent<ComponentProps> = (
               </div>
 
               {hasIgnoredSelectors(props.signalKey) && (
-                <div>
+                /*
+                 * A few short selectors a line: the box is as wide as a
+                 * line of them needs, not the card's whole width.
+                 */
+                <div className="max-w-xl">
                   <label
                     htmlFor={`${testId}-ignore`}
                     className="mb-1.5 block text-sm font-medium text-gray-700"
@@ -385,13 +409,17 @@ const BuiltInSignalRow: FunctionComponent<ComponentProps> = (
                     rows={3}
                     dataTestId={`${testId}-ignore`}
                     disableSpellCheck={true}
+                    ariaDescribedby={`${testId}-ignore-hint`}
                     error={selectorProblem || undefined}
                     onChange={(value: string): void => {
                       setSelectorText(value);
                       setRuleState(SaveState.Idle);
                     }}
                   />
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p
+                    id={`${testId}-ignore-hint`}
+                    className="mt-1 text-sm text-gray-500"
+                  >
                     {translator.translateText(IGNORE_SELECTORS_HINT)}
                   </p>
                 </div>
@@ -407,7 +435,12 @@ const BuiltInSignalRow: FunctionComponent<ComponentProps> = (
                 </p>
               )}
 
-              <div className="flex flex-wrap items-center gap-3">
+              {/*
+               * Button's own md:ml-3 is a dialog footer's gap between
+               * buttons; here the row's gap spaces them, and "Save rule"
+               * starts under the fields rather than 12px in.
+               */}
+              <div className="flex flex-wrap items-center gap-3 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
                 <Button
                   title={SAVE_RULE_TEXT}
                   buttonStyle={ButtonStyleType.PRIMARY}

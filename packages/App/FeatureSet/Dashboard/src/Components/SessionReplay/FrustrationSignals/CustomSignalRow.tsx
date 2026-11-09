@@ -1,4 +1,4 @@
-import { Yellow } from "Common/Types/BrandColors";
+import { Gray500, Yellow } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { SessionReplayCustomSignal } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import ActionButtonSchema, {
@@ -154,6 +154,11 @@ const CustomSignalRow: FunctionComponent<ComponentProps> = (
             >
               <bdi>{props.signal.name}</bdi>
             </span>
+            {/*
+             * In the colours the session list and the replay timeline give
+             * the signal: amber when it counts as frustration, grey when it
+             * only marks the moment.
+             */}
             <span data-testid={`${testId}-kind`}>
               {props.signal.isFrustration ? (
                 <Pill
@@ -164,7 +169,7 @@ const CustomSignalRow: FunctionComponent<ComponentProps> = (
               ) : (
                 <Pill
                   text={MARKER_PILL_TEXT}
-                  color={Yellow}
+                  color={Gray500}
                   size={PillSize.Small}
                   isMinimal={true}
                 />

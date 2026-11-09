@@ -579,8 +579,16 @@ export interface SessionReplaySignalBadge {
     | ((row: SessionReplaySummary) => SessionReplayPlayabilitySeverity)
     | undefined;
   /*
-   * What the badge says on hover when the badge's own text is cut short:
-   * every name, where the badge shows the first and "+2".
+   * The text in two parts, each drawn on one line: a name, which ends in
+   * "..." where the room ends, and how many more ("+2"), always whole.
+   * Their words joined are getRowText's.
+   */
+  getRowParts?:
+    | ((row: SessionReplaySummary, count: number) => SessionReplayBadgeParts)
+    | undefined;
+  /*
+   * What the badge says on hover when its own text can be cut short: every
+   * name, where the badge shows the first and "+2", or ends one in "...".
    */
   getRowHoverText?:
     | ((row: SessionReplaySummary) => string | undefined)
@@ -610,32 +618,57 @@ export const SESSION_REPLAY_FRUSTRATION_COUNTERS: ReadonlyArray<
   "customSignalFrustrationCount",
 ];
 
+export interface SessionReplayBadgeParts {
+  text: string;
+  suffix: string | undefined;
+}
+
 /*
  * The badge of the application's own signals: the name when one fired,
  * the first name and how many more when several did, so a row says
  * "Payment failed" rather than "2 signals". Amber when any of them counted
- * as frustration, grey when they were all markers.
+ * as frustration, grey when they were all markers. The name and "+2" are
+ * drawn as two badges, each on one line (getSessionReplayCells).
  */
+export function getCustomSignalBadgeParts(
+  row: SessionReplaySummary,
+  count: number,
+): SessionReplayBadgeParts {
+  const names: Array<string> = getCustomSignalNames(row);
+
+  if (names.length === 0) {
+    return { text: `${count} ${plural(count, "signal")}`, suffix: undefined };
+  }
+
+  return {
+    text: names[0]!,
+    suffix: names.length > 1 ? `+${names.length - 1}` : undefined,
+  };
+}
+
 export function getCustomSignalBadgeText(
   row: SessionReplaySummary,
   count: number,
 ): string {
-  const names: Array<string> = (row.customSignalNames ?? []).filter(
-    (name: string): boolean => {
-      return name.trim().length > 0;
-    },
-  );
+  const parts: SessionReplayBadgeParts = getCustomSignalBadgeParts(row, count);
 
-  if (names.length === 0) {
-    return `${count} ${plural(count, "signal")}`;
-  }
-
-  if (names.length === 1) {
-    return names[0]!;
-  }
-
-  return `${names[0]!} +${names.length - 1}`;
+  return parts.suffix ? `${parts.text} ${parts.suffix}` : parts.text;
 }
+
+// The names of the signals a row hit, without blank ones.
+function getCustomSignalNames(row: SessionReplaySummary): Array<string> {
+  return (row.customSignalNames ?? []).filter((name: string): boolean => {
+    return name.trim().length > 0;
+  });
+}
+
+/*
+ * The widest an own signal's name is drawn, where the list has the room:
+ * "Support chat opened" whole. A longer name ends in "...", so one long
+ * name cannot take the room of the columns beside it.
+ */
+export const SESSION_REPLAY_ONE_LINE_BADGE_MAX_WIDTH_CLASS_NAME: string =
+  "max-w-[10rem]";
 
 function plural(count: number, singular: string, pluralWord?: string): string {
   return count === 1 ? singular : pluralWord ?? `${singular}s`;
@@ -721,15 +754,14 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
       return `${count} ${plural(count, "signal")}`;
     },
     getRowText: getCustomSignalBadgeText,
+    getRowParts: getCustomSignalBadgeParts,
     isRowTextUserContent: (row: SessionReplaySummary): boolean => {
-      return (row.customSignalNames ?? []).some((name: string): boolean => {
-        return name.trim().length > 0;
-      });
+      return getCustomSignalNames(row).length > 0;
     },
     getRowHoverText: (row: SessionReplaySummary): string | undefined => {
-      const names: Array<string> = row.customSignalNames ?? [];
+      const names: Array<string> = getCustomSignalNames(row);
 
-      return names.length > 1 ? names.join(", ") : undefined;
+      return names.length > 0 ? names.join(", ") : undefined;
     },
     getRowSeverity: (
       row: SessionReplaySummary,
@@ -996,13 +1028,61 @@ function getSessionReplayCells(
           sessionId: row.sessionId,
           rail: badge.rail,
         });
-        const element: ReactElement = (
+        const parts: SessionReplayBadgeParts | null = badge.getRowParts
+          ? badge.getRowParts(row, count)
+          : null;
+        const isUserContent: boolean =
+          badge.isRowTextUserContent?.(row) ?? false;
+        /*
+         * A name on one line, and how many more beside it - or under it,
+         * where the column has no room for both: "Payment failed" stays
+         * whole in the Signals column at 1280px, where "Payment failed +1"
+         * in one badge ran onto a second line, "+1" alone on it. The name's
+         * box asks the table for no room of its own - a grid of one
+         * minmax(0, 1fr) column is 0px wide at its narrowest - so a long
+         * name ends in "..." in the column the list fits a laptop with,
+         * rather than push Recording under the sticky Watch column; with
+         * room to spare it is drawn whole, up to its widest.
+         */
+        const element: ReactElement = parts ? (
+          <>
+            <span
+              className={`grid min-w-0 grid-cols-1 justify-items-start ${SESSION_REPLAY_ONE_LINE_BADGE_MAX_WIDTH_CLASS_NAME}`}
+            >
+              <StatusBadge
+                text={parts.text}
+                isOneLine={true}
+                type={SEVERITY_TO_BADGE[severity]}
+                isUserContent={isUserContent}
+              />
+            </span>
+            {parts.suffix ? (
+              <>
+                {/* A space for the words read aloud; the gap draws it. */}{" "}
+                <span
+                  className="inline-flex"
+                  data-testid="session-row-more-own-signals"
+                >
+                  <StatusBadge
+                    text={parts.suffix}
+                    type={SEVERITY_TO_BADGE[severity]}
+                  />
+                </span>
+              </>
+            ) : (
+              <></>
+            )}
+          </>
+        ) : (
           <StatusBadge
             text={text}
             type={SEVERITY_TO_BADGE[severity]}
-            isUserContent={badge.isRowTextUserContent?.(row) ?? false}
+            isUserContent={isUserContent}
           />
         );
+        const boxClassName: string = parts
+          ? "inline-flex min-w-0 max-w-full flex-wrap items-center gap-1.5"
+          : "inline-flex";
 
         return [
           {
@@ -1011,7 +1091,7 @@ function getSessionReplayCells(
               <Link
                 key={badge.key}
                 to={badgeRoute}
-                className="inline-flex"
+                className={boxClassName}
                 title={
                   badge.getRowHoverText?.(row) ??
                   `Open the ${badge.rail} rail of this session`
@@ -1020,7 +1100,7 @@ function getSessionReplayCells(
                 {element}
               </Link>
             ) : (
-              <span key={badge.key} className="inline-flex">
+              <span key={badge.key} className={boxClassName}>
                 {element}
               </span>
             ),

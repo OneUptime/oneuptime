@@ -73,6 +73,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import SessionReplayTable, {
   fetchSessionReplayList,
+  getCustomSignalBadgeParts,
   getCustomSignalBadgeText,
   getSessionReplayFirstErrorRoute,
   getSessionReplayRouteTrail,
@@ -85,6 +86,7 @@ import SessionReplayTable, {
   SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS,
   SESSION_REPLAY_LIST_AUTO_REFRESH_MS,
   SESSION_REPLAY_LIST_URL_STORAGE_KEY,
+  SESSION_REPLAY_ONE_LINE_BADGE_MAX_WIDTH_CLASS_NAME,
   SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME,
   SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
   SESSION_REPLAY_SIGNAL_BADGES,
@@ -586,9 +588,113 @@ describe("the application's own signals on a row (issue #6443)", () => {
     );
 
     expect(link.getAttribute("href")).toContain("interactions");
-    expect(within(link).getByText("Payment failed +1").className).toContain(
-      "amber",
+    // Read as words: the name, a space, how many more.
+    expect(link).toHaveTextContent(/^Payment failed \+1$/);
+
+    const name: HTMLElement = within(link).getByText("Payment failed");
+    const more: HTMLElement = within(link).getByTestId(
+      "session-row-more-own-signals",
     );
+
+    expect(name.parentElement!.className).toContain("amber");
+    expect(more).toHaveTextContent("+1");
+    expect(more.firstElementChild!.className).toContain("amber");
+  });
+
+  it("splits the badge into the name and how many more, whose words are the badge's text", () => {
+    const several: SessionReplaySummary = ownSignalsRow({
+      customSignalCount: 4,
+      customSignalNames: ["Payment failed", "Plan cancelled", "Help"],
+    });
+
+    expect(getCustomSignalBadgeParts(several, 4)).toEqual({
+      text: "Payment failed",
+      suffix: "+2",
+    });
+    expect(getCustomSignalBadgeText(several, 4)).toBe("Payment failed +2");
+    expect(
+      getCustomSignalBadgeParts(
+        ownSignalsRow({
+          customSignalCount: 1,
+          customSignalNames: ["Payment failed"],
+        }),
+        1,
+      ),
+    ).toEqual({ text: "Payment failed", suffix: undefined });
+    expect(
+      getCustomSignalBadgeParts(
+        ownSignalsRow({ customSignalCount: 2, customSignalNames: [] }),
+        2,
+      ),
+    ).toEqual({ text: "2 signals", suffix: undefined });
+  });
+
+  /*
+   * One badge of "Payment failed +1" ran onto a second line in the Signals
+   * column at 1280px, "+1" alone on it. The name is drawn on one line,
+   * ending in "..." where it is too long for the column, in a box that asks
+   * the table for no room of its own (a grid of one minmax(0, 1fr) column),
+   * so a long name cannot push Recording under the sticky Watch column;
+   * how many more is a badge of its own, never cut. The whole of a name cut
+   * short is on hover.
+   */
+  it("draws a name on one line in a box that asks the table for no room, and names it whole on hover", async () => {
+    const longName: string = "Support chat opened from the pricing page";
+
+    mockApi(() => {
+      return listResponse([
+        ownSignalsWireRow({
+          customSignalCount: 1,
+          customSignalFrustrationCount: 0,
+          customSignalNames: [longName],
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const link: HTMLElement = within(row!).getByTitle(longName);
+    const text: HTMLElement = within(link).getByTestId("status-badge-text");
+    const badge: HTMLElement = text.parentElement as HTMLElement;
+    const box: HTMLElement = badge.parentElement as HTMLElement;
+
+    expect(text).toHaveTextContent(longName);
+    expect(text).toHaveClass("min-w-0", "truncate");
+    // An English name on a Persian page ends in "..." at its own end.
+    expect(text).toHaveAttribute("dir", "auto");
+    expect(badge).toHaveClass("whitespace-nowrap", "min-w-0", "max-w-full");
+    expect(box).toHaveClass(
+      "grid",
+      "grid-cols-1",
+      "min-w-0",
+      SESSION_REPLAY_ONE_LINE_BADGE_MAX_WIDTH_CLASS_NAME,
+    );
+    expect(link).toHaveClass("min-w-0", "max-w-full", "flex-wrap");
+    expect(
+      within(row!).queryByTestId("session-row-more-own-signals"),
+    ).toBeNull();
+  });
+
+  it("leaves the built-in signals' badges as they were: a few words that may wrap", async () => {
+    mockApi(() => {
+      return listResponse([
+        ownSignalsWireRow({
+          rageClickCount: 2,
+          customSignalCount: 1,
+          customSignalNames: ["Payment failed"],
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const rage: HTMLElement = within(row!).getByText("2 rage");
+
+    expect(rage).not.toHaveClass("whitespace-nowrap");
+    expect(rage.parentElement).toHaveClass("inline-flex");
+    expect(rage.parentElement).not.toHaveClass("grid");
   });
 
   it("a session where only markers fired shows a grey badge", async () => {
@@ -605,7 +711,8 @@ describe("the application's own signals on a row (issue #6443)", () => {
     renderTable();
 
     const [row] = await waitForRows(1);
-    const badge: HTMLElement = within(row!).getByText("Plan cancelled");
+    const badge: HTMLElement = within(row!).getByText("Plan cancelled")
+      .parentElement as HTMLElement;
 
     expect(badge.className).toContain("gray");
     expect(badge.className).not.toContain("amber");

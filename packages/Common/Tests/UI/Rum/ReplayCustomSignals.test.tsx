@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "@jest/globals";
@@ -85,6 +85,53 @@ function makeEvent(
     offsetMs: 4_000,
     ...overrides,
   };
+}
+
+// The links a rail detail is given: none of them lead anywhere here.
+const NO_LINKS: Parameters<typeof ReplayRailDetail>[0]["links"] = {
+  traceView: (): null => {
+    return null;
+  },
+  spanView: (): null => {
+    return null;
+  },
+  exceptionGroup: (): null => {
+    return null;
+  },
+  logsAtMoment: (): null => {
+    return null;
+  },
+};
+
+function renderDetail(
+  signal: ReplaySignal,
+  onShowOnStage?: ((x: number, y: number) => void) | undefined,
+): void {
+  render(
+    <MemoryRouter>
+      <ReplayRailDetail
+        signal={signal}
+        signals={[signal]}
+        links={NO_LINKS}
+        onSeek={(): void => {
+          return;
+        }}
+        onSelectSignal={(): void => {
+          return;
+        }}
+        onClose={(): void => {
+          return;
+        }}
+        onShowOnStage={onShowOnStage}
+        startTimeUnixMs={BASE_TS}
+      />
+    </MemoryRouter>,
+  );
+}
+
+// What a fact of the open detail says, by its label.
+function factOf(label: string): string {
+  return screen.getByText(label, { selector: "dt" }).nextSibling!.textContent!;
 }
 
 afterEach(() => {
@@ -294,41 +341,85 @@ describe("the rail names the application's own signals", () => {
       { startTimeUnixMs: null },
     );
 
-    render(
-      <MemoryRouter>
-        <ReplayRailDetail
-          signal={signal}
-          signals={[signal]}
-          links={{
-            traceView: (): null => {
-              return null;
-            },
-            spanView: (): null => {
-              return null;
-            },
-            exceptionGroup: (): null => {
-              return null;
-            },
-            logsAtMoment: (): null => {
-              return null;
-            },
-          }}
-          onSeek={(): void => {
-            return;
-          }}
-          onSelectSignal={(): void => {
-            return;
-          }}
-          onClose={(): void => {
-            return;
-          }}
-          startTimeUnixMs={BASE_TS}
-        />
-      </MemoryRouter>,
+    renderDetail(signal);
+
+    expect(factOf("Signal")).toBe("Card declined (your signal: an error)");
+    expect(factOf("Counts as")).toBe("frustration");
+  });
+
+  /*
+   * A marker read as a track() event of the same name: "Event: Support
+   * chat opened", "Properties: none" - when a signal never has properties
+   * (the recorder sends its name, never what it matched). It says which
+   * signal it was, as a frustrating one does, that it did not count as
+   * frustration, and where a click signal's click was.
+   */
+  it("the detail of a marker says which signal it was, that it is not frustration, and where its click was", () => {
+    const showOnStage: Array<[number, number]> = [];
+    const signal: ReplaySignal = fromTimelineEvent(
+      makeEvent("custom", {
+        name: "Support chat opened",
+        customSignalName: "Support chat opened",
+        customSignalTrigger: "click",
+        x: 1080,
+        y: 690,
+      }),
+      { startTimeUnixMs: null },
     );
 
-    expect(screen.getByText("Signal").nextSibling).toHaveTextContent(
-      "Card declined (your signal: an error)",
+    expect(signal.detail).toMatchObject({ x: 1080, y: 690 });
+
+    renderDetail(signal, (x: number, y: number): void => {
+      showOnStage.push([x, y]);
+    });
+
+    expect(factOf("Signal")).toBe("Support chat opened (your signal: a click)");
+    expect(factOf("Counts as")).toBe("a marker, not frustration");
+    expect(factOf("Position")).toBe("1080, 690");
+    expect(screen.queryByText("Event", { selector: "dt" })).toBeNull();
+    expect(screen.queryByText("Properties", { selector: "dt" })).toBeNull();
+
+    fireEvent.click(screen.getByTestId("rail-show-on-stage"));
+    expect(showOnStage).toEqual([[1080, 690]]);
+  });
+
+  it("a marker set off by a page has no position to show", () => {
+    renderDetail(
+      fromTimelineEvent(
+        makeEvent("custom", {
+          name: "Plan cancelled",
+          customSignalName: "Plan cancelled",
+          customSignalTrigger: "page",
+        }),
+        { startTimeUnixMs: null },
+      ),
+      (): void => {
+        return;
+      },
     );
+
+    expect(factOf("Signal")).toBe("Plan cancelled (your signal: a page)");
+    expect(screen.queryByText("Position", { selector: "dt" })).toBeNull();
+    expect(screen.queryByTestId("rail-show-on-stage")).toBeNull();
+  });
+
+  it("a track() event keeps its event name and properties, and no position", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      makeEvent("custom", {
+        name: "checkout.step",
+        properties: { step: "2" },
+        x: 10,
+        y: 20,
+      }),
+      { startTimeUnixMs: null },
+    );
+
+    expect(signal.detail).toMatchObject({ x: null, y: null });
+
+    renderDetail(signal);
+
+    expect(factOf("Event")).toBe("checkout.step");
+    expect(factOf("step")).toBe("2");
+    expect(screen.queryByText("Counts as", { selector: "dt" })).toBeNull();
   });
 });

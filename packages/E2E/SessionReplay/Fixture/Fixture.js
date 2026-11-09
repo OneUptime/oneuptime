@@ -215,9 +215,16 @@ const project = Object.assign(new Project(), {
   name: "Commerce",
   sessionReplayEnabled: true,
 });
-User.isMasterAdmin = () => true;
+/*
+ * ?access=view: a project Viewer, who may read the application but not
+ * change it - the Frustration Signals page's locked state, with the reason
+ * the permission gate gives. Otherwise the project's owner.
+ */
+const isViewOnly = params.get("access") === "view";
+User.isMasterAdmin = () => !isViewOnly;
 User.getUserId = () => new ObjectID("30000000-0000-4000-8000-000000000001");
-PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
+PermissionUtil.getAllPermissions = () =>
+  isViewOnly ? [Permission.Viewer] : [Permission.ProjectOwner];
 ProjectUtil.getCurrentProjectId = () => new ObjectID(projectId);
 ProjectUtil.getCurrentProject = () => project;
 ModelAPI.getCommonHeaders = () => ({ tenantid: projectId });
@@ -678,6 +685,13 @@ function makeChunk(ownerTabId, chunkIndex, url, signals = {}) {
     refreshRageCount: 0,
     routeCount: 1,
     clickCount: 4,
+    ...(signals.customSignalCount !== undefined
+      ? {
+          customSignalCount: signals.customSignalCount,
+          customSignalFrustrationCount:
+            signals.customSignalFrustrationCount || 0,
+        }
+      : {}),
     url,
   };
 }
@@ -686,7 +700,21 @@ const manifestChunks = [0, 1, 2].map((index) => {
     tabId,
     index,
     mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
-    { errorCount: index === 0 ? 1 : 0, rageClickCount: index === 1 ? 1 : 0 },
+    {
+      errorCount: index === 0 ? 1 : 0,
+      rageClickCount: index === 1 ? 1 : 0,
+      /*
+       * ?signals=custom: the application's own signals in the player too -
+       * one that counted as frustration in chunk 0 and a marker in chunk 1,
+       * as chunkEvents() records them.
+       */
+      ...(customSignalRows && index === 0
+        ? { customSignalCount: 1, customSignalFrustrationCount: 1 }
+        : {}),
+      ...(customSignalRows && index === 1
+        ? { customSignalCount: 1, customSignalFrustrationCount: 0 }
+        : {}),
+    },
   );
 });
 /*
@@ -1600,6 +1628,25 @@ function chunkEvents(index, startTime) {
       clickCount: 5,
       x: 520,
       y: 640,
+    });
+  /*
+   * ?signals=custom: what the recorders send for the application's own
+   * signals - the name, what set it off and whether it counted as
+   * frustration, never the text or the address it matched.
+   */
+  if (customSignalRows && !mobileRecording && index === 0)
+    custom(13000, "signal", {
+      name: "Payment failed",
+      trigger: "page",
+      isFrustration: true,
+    });
+  if (customSignalRows && !mobileRecording && index === 1)
+    custom(18000, "signal", {
+      name: "Support chat opened",
+      trigger: "click",
+      isFrustration: false,
+      x: 1080,
+      y: 690,
     });
   custom(21000, "route", {
     from: mobileRecording ? "/on-call" : "https://shop.example.com/cart",

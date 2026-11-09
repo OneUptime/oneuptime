@@ -207,14 +207,17 @@ export type ReplayCustomSignalDetail = {
   atUnixMs: number | null;
   /*
    * Set when the row is one of the application's own signals shown as a
-   * marker (issue #6443) rather than a track() event.
+   * marker (issue #6443) rather than a track() event, with where a click
+   * signal's click was, in the viewport's coordinates, as a click's are.
    */
   customSignalTrigger?: SessionReplayCustomSignalTrigger | null;
+  x?: number | null;
+  y?: number | null;
 };
 
 /*
  * What set one of the application's own signals off, as the rail says it
- * under the signal's name. English; the rail translates it.
+ * under the signal's name. In English, as every row of the rail is.
  */
 export const CUSTOM_SIGNAL_TRIGGER_SUBTITLES: Record<
   SessionReplayCustomSignalTrigger,
@@ -1117,6 +1120,8 @@ function customSignal(
     propertyCount: propertyCount,
     atUnixMs: wallClockFor(event, ctx),
     customSignalTrigger: event.customSignalTrigger || null,
+    x: event.customSignalTrigger ? numberOrNull(event.x) : null,
+    y: event.customSignalTrigger ? numberOrNull(event.y) : null,
   };
 
   signal.detail = detail;

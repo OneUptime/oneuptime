@@ -47,6 +47,11 @@ export const BUILT_IN_SIGNAL_KEYS: ReadonlyArray<BuiltInSignalKey> = [
   "refreshRage",
 ];
 
+/*
+ * Said once, at the top of the first card's body: a card's description is
+ * not shown on a phone, and this is the line that says why a session
+ * recorded yesterday still shows yesterday's signals.
+ */
 export const CHANGES_APPLY_COPY: string = translationKey(
   "Changes apply to sessions recorded from now on. Sessions already recorded keep the signals they were recorded with.",
 );
@@ -60,7 +65,7 @@ export const BUILT_IN_CARD_TITLE: string = translationKey("Built-in signals");
 
 /*
  * The page's first words: what a frustration signal does, and what these
- * four are. The card's second line is CHANGES_APPLY_COPY.
+ * four are. CHANGES_APPLY_COPY follows, in the card's body.
  */
 export const BUILT_IN_CARD_DESCRIPTION: string = translationKey(
   "Frustration signals flag sessions in the list, mark the replay timeline, and count toward the Frustration filter, sort and totals. The browser recorder detects these four. Switch one off, or change its rule, if it flags things that are not frustration in your product.",
@@ -82,8 +87,16 @@ export const USE_DEFAULTS_TEXT: string = translationKey("Use the defaults");
 
 export const SAVE_RULE_TEXT: string = translationKey("Save rule");
 
+/*
+ * The empty list of the application's own signals: its title, and - to
+ * someone who may add one - what one is for.
+ */
+export const NO_CUSTOM_SIGNALS_TITLE: string = translationKey(
+  "No signals of your own yet",
+);
+
 export const NO_CUSTOM_SIGNALS_COPY: string = translationKey(
-  "No signals of your own yet. Add one to mark a moment that matters to you.",
+  "Add one to mark a moment that matters to you.",
 );
 
 export const ADD_SIGNAL_TEXT: string = translationKey("Add signal");

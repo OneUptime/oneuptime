@@ -69,6 +69,15 @@ export const TRIGGER_ICONS: Record<SessionReplayCustomSignalTrigger, IconProp> =
     error: IconProp.Bug,
   };
 
+/*
+ * The box around each field: Input's own, 8px under the field's hint
+ * rather than its 8px over and 4px under. "relative" is what holds the
+ * error's icon inside the box: without it the icon sat at the dialog's
+ * far edge, half way down the dialog.
+ */
+const FIELD_BOX_CLASS_NAME: string =
+  "relative mt-2 w-full rounded-md shadow-sm";
+
 type MatchTexts = Record<SessionReplayCustomSignalTrigger, string>;
 
 function getStartingMatches(
@@ -89,8 +98,10 @@ const CustomSignalModal: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const fieldId: string = useId();
   const nameId: string = `${fieldId}-name`;
+  const nameHintId: string = `${fieldId}-name-hint`;
   const triggerLabelId: string = `${fieldId}-trigger`;
   const matchId: string = `${fieldId}-match`;
+  const matchHintId: string = `${fieldId}-match-hint`;
 
   const [name, setName] = useState<string>(props.signal?.name ?? "");
   const [trigger, setTrigger] = useState<SessionReplayCustomSignalTrigger>(
@@ -197,7 +208,7 @@ const CustomSignalModal: FunctionComponent<ComponentProps> = (
           >
             {translator.translateText(SIGNAL_NAME_LABEL)}
           </label>
-          <p className="mt-1 text-sm text-gray-500">
+          <p id={nameHintId} className="mt-1 text-sm text-gray-500">
             {translator.translateText(SIGNAL_NAME_HINT)}
           </p>
           <Input
@@ -205,7 +216,8 @@ const CustomSignalModal: FunctionComponent<ComponentProps> = (
             value={name}
             placeholder={SIGNAL_NAME_PLACEHOLDER}
             maxLength={SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH}
-            outerDivClassName="mt-2"
+            outerDivClassName={FIELD_BOX_CLASS_NAME}
+            ariaDescribedby={nameHintId}
             dataTestId="custom-signal-name"
             error={problems.name || undefined}
             onChange={(value: string): void => {
@@ -245,7 +257,7 @@ const CustomSignalModal: FunctionComponent<ComponentProps> = (
               CUSTOM_SIGNAL_TRIGGER_COPY[trigger].matchLabel,
             )}
           </label>
-          <p className="mt-1 text-sm text-gray-500">
+          <p id={matchHintId} className="mt-1 text-sm text-gray-500">
             {translator.translateText(
               CUSTOM_SIGNAL_TRIGGER_COPY[trigger].matchHint,
             )}
@@ -255,7 +267,8 @@ const CustomSignalModal: FunctionComponent<ComponentProps> = (
             value={matches[trigger]}
             placeholder={CUSTOM_SIGNAL_TRIGGER_COPY[trigger].matchPlaceholder}
             maxLength={getSessionReplayCustomSignalMatchMaxLength(trigger)}
-            outerDivClassName="mt-2"
+            outerDivClassName={FIELD_BOX_CLASS_NAME}
+            ariaDescribedby={matchHintId}
             dataTestId="custom-signal-match"
             disableSpellCheck={true}
             error={problems.match || undefined}

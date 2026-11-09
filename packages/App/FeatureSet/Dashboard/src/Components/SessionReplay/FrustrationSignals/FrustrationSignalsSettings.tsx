@@ -9,6 +9,9 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import TableEmptyState, {
+  TableEmptyStateKind,
+} from "Common/UI/Components/Table/TableEmptyState";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -34,6 +37,7 @@ import {
   LOAD_FAILED_COPY,
   MOBILE_NOTE_COPY,
   NO_CUSTOM_SIGNALS_COPY,
+  NO_CUSTOM_SIGNALS_TITLE,
   READ_ONLY_COPY,
   SelectorCheck,
   TOO_MANY_SIGNALS_COPY,
@@ -103,7 +107,7 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
   const lockedLine: ReactElement | null =
     state.canEdit || !settings ? null : (
       <div
-        className="mb-5 flex items-start gap-2 text-sm text-gray-500"
+        className="flex items-start gap-2 text-sm text-gray-500"
         data-testid="frustration-signals-read-only"
       >
         <Icon icon={IconProp.Lock} className="mt-0.5 h-4 w-4 flex-shrink-0" />
@@ -113,22 +117,28 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
       </div>
     );
 
+  /*
+   * That a change applies to sessions recorded from then on, said once, at
+   * the top of the page's first card - in its body, not its description,
+   * which a card does not show on a phone.
+   */
+  const notes: ReactElement | null = settings ? (
+    <div className="mb-5 space-y-2" data-testid="frustration-signals-notes">
+      {lockedLine}
+      <div
+        className="flex items-start gap-2 text-sm text-gray-500"
+        data-testid="frustration-signals-applies"
+      >
+        <Icon icon={IconProp.Clock} className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <span>{translator.translateText(CHANGES_APPLY_COPY)}</span>
+      </div>
+    </div>
+  ) : null;
+
   const builtInCard: ReactElement = (
-    <Card
-      title={BUILT_IN_CARD_TITLE}
-      description={
-        <span className="block space-y-1">
-          <span className="block">
-            {translator.translateText(BUILT_IN_CARD_DESCRIPTION)}
-          </span>
-          <span className="block" data-testid="frustration-signals-applies">
-            {translator.translateText(CHANGES_APPLY_COPY)}
-          </span>
-        </span>
-      }
-    >
+    <Card title={BUILT_IN_CARD_TITLE} description={BUILT_IN_CARD_DESCRIPTION}>
       <div data-testid="frustration-signals-built-in">
-        {lockedLine}
+        {notes}
         {settings ? (
           <div className="divide-y divide-gray-200">
             {BUILT_IN_SIGNAL_KEYS.map((key: BuiltInSignalKey): ReactElement => {
@@ -182,12 +192,19 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
         {!settings ? (
           <ComponentLoader />
         ) : customSignals.length === 0 ? (
-          <p
-            className="py-6 text-center text-sm text-gray-500"
-            data-testid="frustration-signals-custom-empty"
-          >
-            {translator.translateText(NO_CUSTOM_SIGNALS_COPY)}
-          </p>
+          /*
+           * The product's empty list: what is true, and - to someone who
+           * may add one - what one is for. The way in is the card's own
+           * Add signal, just above.
+           */
+          <TableEmptyState
+            kind={TableEmptyStateKind.Empty}
+            icon={IconProp.Flag}
+            title={NO_CUSTOM_SIGNALS_TITLE}
+            description={state.canEdit ? NO_CUSTOM_SIGNALS_COPY : undefined}
+            isCompact={true}
+            dataTestId="frustration-signals-custom-empty"
+          />
         ) : (
           <ul className="divide-y divide-gray-200">
             {customSignals.map(

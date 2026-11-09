@@ -26,6 +26,8 @@ import {
   SessionReplayFrustrationSettings,
 } from "../../../Types/Rum/SessionReplayFrustrationSignals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { Gray500, Yellow } from "../../../Types/BrandColors";
+import { getPillColors } from "../../../UI/Components/Pill/PillColors";
 
 /*
  * The Frustration Signals page (issue #6443), driven the way a person uses
@@ -218,12 +220,46 @@ describe("a new application", () => {
     );
   });
 
+  /*
+   * A card does not show its description on a phone (Card's max-md:hidden),
+   * so the line that says why yesterday's sessions keep yesterday's signals
+   * is in the first card's body, where a phone shows it too.
+   */
+  test("says that changes apply from now on in the card's body, which a phone shows", async () => {
+    await renderPage(null);
+
+    const applies: HTMLElement = screen.getByTestId(
+      "frustration-signals-applies",
+    );
+
+    expect(screen.getByTestId("frustration-signals-built-in")).toContainElement(
+      applies,
+    );
+    expect(applies.closest(".max-md\\:hidden")).toBeNull();
+    expect(
+      screen.getAllByText(/Changes apply to sessions recorded/),
+    ).toHaveLength(1);
+  });
+
   test("has no signals of its own yet, and offers to add one", async () => {
     await renderPage(null);
 
+    const empty: HTMLElement = screen.getByTestId(
+      "frustration-signals-custom-empty",
+    );
+
+    // The product's empty list: a title, and what one is for.
+    expect(empty).toHaveAttribute("data-empty-state-kind", "empty");
     expect(
-      screen.getByTestId("frustration-signals-custom-empty"),
-    ).toHaveTextContent("No signals of your own yet.");
+      within(empty).getByTestId("frustration-signals-custom-empty-title"),
+    ).toHaveTextContent("No signals of your own yet");
+    expect(
+      within(empty).getByTestId("frustration-signals-custom-empty-description"),
+    ).toHaveTextContent("Add one to mark a moment that matters to you.");
+    // The way in is the card's own button: the list does not draw another.
+    expect(screen.getAllByRole("button", { name: "Add signal" })).toHaveLength(
+      1,
+    );
     expect(
       screen.getByRole("button", { name: "Add signal" }),
     ).not.toHaveAttribute("aria-disabled", "true");
@@ -429,6 +465,89 @@ describe("changing a rule", () => {
       await screen.findByText("Enter a whole number from 3 to 10."),
     ).toBeInTheDocument();
     expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Drawn by the Input itself, the reason sat between the number and its
+   * unit - "clicks or more" squeezed into a word a line - and its icon,
+   * with no box of its own to sit in, at the card's far edge.
+   */
+  test("says what is wrong under the number and its unit, and names the reason to a screen reader", async () => {
+    await renderPage(null);
+    openRule("rageClick");
+
+    const input: HTMLElement = screen.getByTestId(
+      "frustration-signal-rageClick-clickCount",
+    );
+
+    fireEvent.change(input, { target: { value: "99" } });
+    fireEvent.click(
+      screen.getByTestId("frustration-signal-rageClick-save-rule"),
+    );
+
+    const reason: HTMLElement = await screen.findByTestId(
+      "frustration-signal-rageClick-clickCount-error",
+    );
+
+    expect(reason).toHaveTextContent("Enter a whole number from 3 to 10.");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input.getAttribute("aria-describedby")).toContain(reason.id);
+
+    const field: HTMLElement = reason.parentElement as HTMLElement;
+    const unit: HTMLElement = within(field).getByText("clicks or more");
+
+    // The number and its unit share a line; the reason is under both.
+    expect(unit.parentElement).toContainElement(input);
+    expect(unit.parentElement).not.toContainElement(reason);
+    expect(field.querySelector("svg")).toBeNull();
+
+    // A field put right says nothing more.
+    fireEvent.change(input, { target: { value: "4" } });
+    fireEvent.click(
+      screen.getByTestId("frustration-signal-rageClick-save-rule"),
+    );
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      screen.queryByTestId("frustration-signal-rageClick-clickCount-error"),
+    ).toBeNull();
+    expect(input).not.toHaveAttribute("aria-invalid");
+  });
+
+  test("the rule's buttons start under its fields, and the selectors' box is a few selectors wide and described by its hint", async () => {
+    await renderPage(null);
+    openRule("rageClick");
+
+    /*
+     * Button's md:ml-3 is a dialog footer's gap; the row takes it back, so
+     * Save rule is not 12px in from the fields over it.
+     */
+    const buttons: HTMLElement = screen.getByTestId(
+      "frustration-signal-rageClick-save-rule",
+    ).parentElement as HTMLElement;
+
+    expect(buttons).toHaveClass(
+      "[&>button]:ml-0",
+      "[&>button]:md:ml-0",
+      "[&>*>button]:ml-0",
+      "[&>*>button]:md:ml-0",
+    );
+
+    const box: HTMLElement = screen.getByTestId(
+      "frustration-signal-rageClick-ignore",
+    );
+    const hint: HTMLElement = within(
+      screen.getByTestId("frustration-signal-rageClick"),
+    ).getByText(
+      "One CSS selector a line, such as .quantity-stepper. A click on a matching element, or inside one, never counts.",
+    );
+
+    expect(box.getAttribute("aria-describedby")).toContain(hint.id);
+    expect(hint.id).not.toBe("");
+    // As wide as a line of a few short selectors needs, not the card's width.
+    expect(hint.parentElement).toHaveClass("max-w-xl");
   });
 
   test("seconds outside the range are refused in seconds", async () => {
@@ -682,6 +801,45 @@ describe("signals of the application's own", () => {
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
 
+  /*
+   * Each field's box is "relative", as Input's own is, so its error icon
+   * is drawn in the box: with "mt-2" alone the icon sat at the dialog's far
+   * edge, half way down it. And each field is described by its hint.
+   */
+  test("draws each field's error icon in its own box, and describes each field by its hint", async () => {
+    await renderPage(null);
+    await openAdd();
+
+    pressSave();
+    await within(dialog()).findByText("Give the signal a name.");
+
+    for (const testId of ["custom-signal-name", "custom-signal-match"]) {
+      const input: HTMLElement = within(dialog()).getByTestId(testId);
+      const box: HTMLElement = input.parentElement as HTMLElement;
+
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(box).toHaveClass("relative");
+      expect(box.querySelector("svg")).not.toBeNull();
+    }
+
+    const name: HTMLElement =
+      within(dialog()).getByTestId("custom-signal-name");
+    const nameHint: HTMLElement = within(dialog()).getByText(
+      "Shown on the session list and the replay timeline, and what the list's filter finds it by.",
+    );
+
+    expect(name.getAttribute("aria-describedby")).toContain(nameHint.id);
+
+    const match: HTMLElement = within(dialog()).getByTestId(
+      "custom-signal-match",
+    );
+    const matchHint: HTMLElement = within(dialog()).getByText(
+      "A click on a matching element, or anything inside it, sets the signal off.",
+    );
+
+    expect(match.getAttribute("aria-describedby")).toContain(matchHint.id);
+  });
+
   test("refuses a built-in name, a name already taken and a path without its slash", async () => {
     await renderPage(settingsWith([signal({})]));
     await openAdd();
@@ -794,6 +952,32 @@ describe("signals of the application's own", () => {
     );
     expect(screen.getByTestId("custom-signal-signal-2")).toHaveTextContent(
       "Support chat openedMarkerA click on #open-chat",
+    );
+
+    /*
+     * In the colours the session list and the timeline give the signal: an
+     * amber dot when it counts as frustration, a grey one for a marker.
+     */
+    const dotColorOf: (testId: string) => string = (testId: string): string => {
+      return (
+        within(screen.getByTestId(testId)).getByTestId(
+          "pill-dot",
+        ) as HTMLElement
+      ).style.backgroundColor;
+    };
+    const cssColorOf: (hex: string) => string = (hex: string): string => {
+      const probe: HTMLSpanElement = document.createElement("span");
+
+      probe.style.backgroundColor = hex;
+
+      return probe.style.backgroundColor;
+    };
+
+    expect(dotColorOf("custom-signal-signal-1-kind")).toBe(
+      cssColorOf(getPillColors(Yellow).light.dotColor),
+    );
+    expect(dotColorOf("custom-signal-signal-2-kind")).toBe(
+      cssColorOf(getPillColors(Gray500).light.dotColor),
     );
     expect(screen.getByTestId("custom-signal-signal-3")).toHaveTextContent(
       "The event checkout_failed",
@@ -986,5 +1170,26 @@ describe("a reader who may not edit the application", () => {
 
     fireEvent.click(switchOf("frustration-signal-rageClick"));
     expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("an empty list of the application's own signals says only that there are none", async () => {
+    isMasterAdminMock.mockReturnValue(false);
+
+    await renderPage(null);
+
+    const empty: HTMLElement = screen.getByTestId(
+      "frustration-signals-custom-empty",
+    );
+
+    expect(empty).toHaveTextContent("No signals of your own yet");
+    // Not "Add one": there is nothing they may add one with.
+    expect(
+      screen.queryByTestId("frustration-signals-custom-empty-description"),
+    ).toBeNull();
+    expect(screen.queryByText(/Add one to mark a moment/)).toBeNull();
+    // Why the page is locked, and when a change would apply, both said.
+    expect(screen.getByTestId("frustration-signals-notes")).toHaveTextContent(
+      "You can see these settings, but changing them needs permission to edit this RUM application.Changes apply to sessions recorded from now on.",
+    );
   });
 });
