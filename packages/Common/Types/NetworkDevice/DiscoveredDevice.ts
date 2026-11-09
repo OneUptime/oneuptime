@@ -147,17 +147,36 @@ export interface DiscoveredDeviceListResponse {
 }
 
 /*
- * What a Hide from map or Show on map did, counted: the reader is told how
- * many changed and why the rest did not.
+ * What a Hide from map or Show on map did to each selected row, by id: the
+ * reader is told which changed and why the rest did not.
  */
 export interface DiscoveredDeviceMapChange {
-  changed: number;
+  changedIds: Array<string>;
   // Already the way they were asked to be.
-  unchanged: number;
+  unchangedIds: Array<string>;
   // Monitored: the map draws the device itself, so there is nothing to hide.
-  skippedMonitored: number;
+  monitoredIds: Array<string>;
   // Gone since the list was read, or never this project's.
-  notFound: number;
+  notFoundIds: Array<string>;
+}
+
+/*
+ * A row "select every matching row" selected: enough to name it, and to
+ * tell which of a selection can be added to monitoring.
+ */
+export interface DiscoveredDeviceSelected {
+  id: string;
+  name: string;
+  ipAddress?: string | undefined;
+  // Set only when true: OneUptime already monitors it.
+  isMonitored?: boolean | undefined;
+}
+
+export interface DiscoveredDeviceIdsResponse {
+  // In the list's order, up to MAX_DISCOVERED_DEVICES_PER_ACTION.
+  devices: Array<DiscoveredDeviceSelected>;
+  // How many rows match, which may be more than were selected.
+  count: number;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -474,17 +493,66 @@ export function readDiscoveredDeviceListResponse(
   };
 }
 
+function idList(value: unknown): Array<string> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item: unknown): item is string => {
+    return typeof item === "string" && item.length > 0;
+  });
+}
+
 export function readDiscoveredDeviceMapChange(
   value: unknown,
 ): DiscoveredDeviceMapChange {
   const body: Record<string, unknown> = record(value);
 
   return {
-    changed: count(body["changed"]),
-    unchanged: count(body["unchanged"]),
-    skippedMonitored: count(body["skippedMonitored"]),
-    notFound: count(body["notFound"]),
+    changedIds: idList(body["changedIds"]),
+    unchangedIds: idList(body["unchangedIds"]),
+    monitoredIds: idList(body["monitoredIds"]),
+    notFoundIds: idList(body["notFoundIds"]),
   };
+}
+
+export function readDiscoveredDeviceIdsResponse(
+  value: unknown,
+): DiscoveredDeviceIdsResponse {
+  const body: Record<string, unknown> = record(value);
+  const devices: Array<DiscoveredDeviceSelected> = [];
+  const seen: Set<string> = new Set<string>();
+
+  if (Array.isArray(body["devices"])) {
+    for (const item of body["devices"]) {
+      const device: Record<string, unknown> = record(item);
+      const id: string | undefined = optionalText(device["id"]);
+
+      if (!id || seen.has(id)) {
+        continue;
+      }
+
+      seen.add(id);
+
+      const selected: DiscoveredDeviceSelected = {
+        id: id,
+        name: optionalText(device["name"]) || id,
+      };
+      const ipAddress: string | undefined = optionalText(device["ipAddress"]);
+
+      if (ipAddress) {
+        selected.ipAddress = ipAddress;
+      }
+
+      if (device["isMonitored"] === true) {
+        selected.isMonitored = true;
+      }
+
+      devices.push(selected);
+    }
+  }
+
+  return { devices: devices, count: count(body["count"]) };
 }
 
 // The rows of a list a `show` choice keeps: one rule for the server and the page.
@@ -555,4 +623,23 @@ export function readDiscoveredDeviceImportFacts(
 // The topology map's key for an endpoint node (NetworkTopologySuppression.nodeKey).
 export function getEndpointNodeKey(endpointId: string): string {
   return `endpoint:${endpointId}`;
+}
+
+const ENDPOINT_NODE_KEY_PREFIX: string = "endpoint:";
+
+/*
+ * The discovered device an endpoint node of the map is: its id, read back
+ * from the node's key. Undefined for any other node, or a key whose id is
+ * not one.
+ */
+export function getEndpointIdFromNodeKey(
+  nodeKey: string | null | undefined,
+): string | undefined {
+  if (!nodeKey || !nodeKey.startsWith(ENDPOINT_NODE_KEY_PREFIX)) {
+    return undefined;
+  }
+
+  const id: string = nodeKey.slice(ENDPOINT_NODE_KEY_PREFIX.length).trim();
+
+  return ObjectID.isValidUUID(id) ? id.toLowerCase() : undefined;
 }

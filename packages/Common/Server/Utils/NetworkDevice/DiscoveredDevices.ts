@@ -7,11 +7,13 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import {
   DiscoveredDeviceCounts,
+  DiscoveredDeviceIdsResponse,
   DiscoveredDeviceListRequest,
   DiscoveredDeviceListResponse,
   DiscoveredDeviceMapChange,
   DiscoveredDeviceMatch,
   DiscoveredDeviceRow,
+  DiscoveredDeviceSelected,
   DiscoveredDeviceShow,
   MAX_DISCOVERED_DEVICES_PER_ACTION,
   getEndpointNodeKey,
@@ -263,14 +265,14 @@ export default class DiscoveredDevices {
   }
 
   /*
-   * The ids of every row the request matches, in its order, up to what one
-   * bulk action takes: "select every matching row".
+   * Every row the request matches, named, in its order, up to what one bulk
+   * action takes: "select every matching row".
    */
   public static async listIds(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
     request: DiscoveredDeviceListRequest;
-  }): Promise<{ ids: Array<string>; count: number }> {
+  }): Promise<DiscoveredDeviceIdsResponse> {
     this.assertCanRead(data.props);
 
     const scope: DiscoveredDeviceScope = this.getScope({
@@ -299,12 +301,27 @@ export default class DiscoveredDevices {
       this.runQuery(idsStatement.sql, idsStatement.params),
     ]);
 
+    const devices: Array<DiscoveredDeviceSelected> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const raw of idRows) {
+      const row: ClassifiedDiscoveredDevice = this.toRow(raw);
+
+      if (!row.id || seen.has(row.id)) {
+        continue;
+      }
+
+      seen.add(row.id);
+      devices.push({
+        id: row.id,
+        name: row.name,
+        ...(row.ipAddress ? { ipAddress: row.ipAddress } : {}),
+        ...(row.monitoredDevice ? { isMonitored: true } : {}),
+      });
+    }
+
     return {
-      ids: unique(
-        idRows.map((row: Record<string, unknown>): string | undefined => {
-          return text(row["id"]);
-        }),
-      ),
+      devices: devices,
       count: this.countFor(
         readDiscoveredDeviceCounts(countRows[0]),
         data.request.show,
@@ -361,7 +378,7 @@ export default class DiscoveredDevices {
       },
     );
 
-    let changed: number = 0;
+    const changedKeys: Set<string> = new Set<string>();
 
     for (const part of chunk(toHide, WRITE_CHUNK_SIZE)) {
       const statement: DiscoveredDeviceStatement = buildHideStatement({
@@ -381,15 +398,19 @@ export default class DiscoveredDevices {
         ),
       });
 
-      changed += (await this.runQuery(statement.sql, statement.params)).length;
+      for (const written of await this.runQuery(
+        statement.sql,
+        statement.params,
+      )) {
+        changedKeys.add(String(written["nodeKey"]));
+      }
     }
 
-    return {
-      changed: changed,
-      unchanged: notMonitored.length - changed,
-      skippedMonitored: rows.length - notMonitored.length,
-      notFound: data.endpointIds.length - rows.length,
-    };
+    return this.toMapChange({
+      endpointIds: data.endpointIds,
+      rows: rows,
+      changedKeys: changedKeys,
+    });
   }
 
   public static async showOnMap(data: {
@@ -405,7 +426,7 @@ export default class DiscoveredDevices {
       endpointIds: data.endpointIds,
     });
 
-    let changed: number = 0;
+    const changedKeys: Set<string> = new Set<string>();
 
     for (const part of chunk(rows, WRITE_CHUNK_SIZE)) {
       const statement: DiscoveredDeviceStatement = buildShowStatement({
@@ -415,15 +436,68 @@ export default class DiscoveredDevices {
         }),
       });
 
-      changed += (await this.runQuery(statement.sql, statement.params)).length;
+      for (const removed of await this.runQuery(
+        statement.sql,
+        statement.params,
+      )) {
+        changedKeys.add(String(removed["nodeKey"]));
+      }
     }
 
-    return {
-      changed: changed,
-      unchanged: rows.length - changed,
-      skippedMonitored: 0,
-      notFound: data.endpointIds.length - rows.length,
+    /*
+     * A monitored row is not on the map as an endpoint, so it has nothing
+     * to show: it is told apart only when hiding.
+     */
+    return this.toMapChange({
+      endpointIds: data.endpointIds,
+      rows: rows,
+      changedKeys: changedKeys,
+      isShowing: true,
+    });
+  }
+
+  /*
+   * Each selected id, by what happened to it: changed (its node key was
+   * written or removed), monitored, left as it was, or not found.
+   */
+  private static toMapChange(data: {
+    endpointIds: Array<string>;
+    rows: Array<ClassifiedDiscoveredDevice>;
+    changedKeys: Set<string>;
+    isShowing?: boolean | undefined;
+  }): DiscoveredDeviceMapChange {
+    const change: DiscoveredDeviceMapChange = {
+      changedIds: [],
+      unchangedIds: [],
+      monitoredIds: [],
+      notFoundIds: [],
     };
+    const found: Map<string, ClassifiedDiscoveredDevice> = new Map<
+      string,
+      ClassifiedDiscoveredDevice
+    >();
+
+    for (const row of data.rows) {
+      found.set(row.id.toLowerCase(), row);
+    }
+
+    for (const id of data.endpointIds) {
+      const row: ClassifiedDiscoveredDevice | undefined = found.get(
+        id.toLowerCase(),
+      );
+
+      if (!row) {
+        change.notFoundIds.push(id);
+      } else if (data.changedKeys.has(getEndpointNodeKey(row.id))) {
+        change.changedIds.push(id);
+      } else if (row.monitoredDevice && !data.isShowing) {
+        change.monitoredIds.push(id);
+      } else {
+        change.unchangedIds.push(id);
+      }
+    }
+
+    return change;
   }
 
   /*

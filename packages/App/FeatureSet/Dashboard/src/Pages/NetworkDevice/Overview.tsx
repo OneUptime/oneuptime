@@ -420,7 +420,7 @@ const NetworkOverview: FunctionComponent<
           }
         />
         <InfoCard
-          title="Endpoints"
+          title="Discovered Devices"
           tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetEndpoints}
           onClick={() => {
             Navigation.navigate(

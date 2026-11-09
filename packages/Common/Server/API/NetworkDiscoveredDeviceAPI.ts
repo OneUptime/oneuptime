@@ -1,6 +1,7 @@
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../Types/JSON";
 import {
+  DiscoveredDeviceIdsResponse,
   DiscoveredDeviceListRequest,
   DiscoveredDeviceListResponse,
   DiscoveredDeviceMapChange,
@@ -30,8 +31,8 @@ import CommonAPI from "./CommonAPI";
  *                                   choice of `show` holds
  *   POST /network-discovered-device/ids
  *        { search, show, siteId, sort, sortOrder }
- *                                   every matching row's id, up to what one
- *                                   bulk action takes: "select all"
+ *                                   every matching row, named, up to what
+ *                                   one bulk action takes: "select all"
  *   POST /network-discovered-device/hide-from-map   { endpointIds }
  *   POST /network-discovered-device/show-on-map     { endpointIds }
  *   POST /network-discovered-device/show-everything-on-map
@@ -110,17 +111,18 @@ router.post(
       const request: DiscoveredDeviceListRequest =
         readDiscoveredDeviceListRequest(readBody(req));
 
-      const matching: { ids: Array<string>; count: number } =
+      const matching: DiscoveredDeviceIdsResponse =
         await DiscoveredDevices.listIds({
           projectId: projectId,
           props: props,
           request: request,
         });
 
-      return Response.sendJsonObjectResponse(req, res, {
-        ids: matching.ids,
-        count: matching.count,
-      });
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        matching as unknown as JSONObject,
+      );
     } catch (err) {
       next(err);
     }

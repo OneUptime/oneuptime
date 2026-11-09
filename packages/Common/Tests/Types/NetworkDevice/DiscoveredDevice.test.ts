@@ -10,6 +10,7 @@ import {
   getEndpointNodeKey,
   isShownBy,
   readDiscoveredDeviceIds,
+  readDiscoveredDeviceIdsResponse,
   readDiscoveredDeviceImportFacts,
   readDiscoveredDeviceListRequest,
   readDiscoveredDeviceListResponse,
@@ -248,14 +249,46 @@ describe("reading an answer", () => {
     });
   });
 
-  test("what a map change did is read as counts", () => {
+  test("what a map change did is read by id, keeping only ids", () => {
     expect(
       readDiscoveredDeviceMapChange({
-        changed: 4,
-        unchanged: 1,
-        skippedMonitored: 2,
+        changedIds: ["a", "b"],
+        unchangedIds: ["c", 4, null, ""],
+        monitoredIds: "d",
       }),
-    ).toEqual({ changed: 4, unchanged: 1, skippedMonitored: 2, notFound: 0 });
+    ).toEqual({
+      changedIds: ["a", "b"],
+      unchangedIds: ["c"],
+      monitoredIds: [],
+      notFoundIds: [],
+    });
+  });
+
+  test("select all is read as named rows, once each, and the count of every match", () => {
+    expect(
+      readDiscoveredDeviceIdsResponse({
+        devices: [
+          { id: "a", name: "Back office printer", ipAddress: "10.0.0.5" },
+          { id: "a", name: "again" },
+          { id: "b", isMonitored: true },
+          { id: "e", isMonitored: "yes" },
+          { name: "no id" },
+          "c",
+        ],
+        count: 7,
+      }),
+    ).toEqual({
+      devices: [
+        { id: "a", name: "Back office printer", ipAddress: "10.0.0.5" },
+        { id: "b", name: "b", isMonitored: true },
+        { id: "e", name: "e" },
+      ],
+      count: 7,
+    });
+    expect(readDiscoveredDeviceIdsResponse(undefined)).toEqual({
+      devices: [],
+      count: 0,
+    });
   });
 });
 

@@ -283,7 +283,10 @@ describe("the statements", () => {
     });
 
     expectParametersLineUp(statement);
-    expect(statement.sql).toContain(`SELECT c."id"`);
+    // What a selected row is named by, and nothing else.
+    expect(statement.sql).toContain(
+      `SELECT c."id", c."classification", c."hostname", c."ipAddress", c."macAddress", c."monitoredDeviceId"\nFROM classified c`,
+    );
     expect(statement.params[statement.params.length - 1]).toBe(5000);
   });
 

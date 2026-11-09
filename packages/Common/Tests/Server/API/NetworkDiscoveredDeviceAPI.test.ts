@@ -344,7 +344,10 @@ describe("reading the list", () => {
 
   test("select all answers the matching ids and how many match", async () => {
     (DiscoveredDevices.listIds as jest.Mock).mockResolvedValue({
-      ids: [ROW_A, ROW_B],
+      devices: [
+        { id: ROW_A, name: "Back office printer" },
+        { id: ROW_B, name: "10.0.0.6", ipAddress: "10.0.0.6" },
+      ],
       count: 2,
     });
 
@@ -356,16 +359,22 @@ describe("reading the list", () => {
         request: expect.objectContaining({ search: "printer" }),
       }),
     );
-    expect(payload).toEqual({ ids: [ROW_A, ROW_B], count: 2 });
+    expect(payload).toEqual({
+      devices: [
+        { id: ROW_A, name: "Back office printer" },
+        { id: ROW_B, name: "10.0.0.6", ipAddress: "10.0.0.6" },
+      ],
+      count: 2,
+    });
   });
 });
 
 describe("hiding and showing devices on the map", () => {
   const CHANGE: JSONObject = {
-    changed: 1,
-    unchanged: 0,
-    skippedMonitored: 1,
-    notFound: 0,
+    changedIds: [ROW_A],
+    unchangedIds: [],
+    monitoredIds: [ROW_B],
+    notFoundIds: [],
   };
 
   test("hide passes the selected ids, cleaned, and answers what changed", async () => {

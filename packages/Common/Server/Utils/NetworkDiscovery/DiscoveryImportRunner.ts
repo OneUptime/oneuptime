@@ -2048,7 +2048,7 @@ export default class DiscoveryImportRunner {
         autoApplyVendorHealthTemplate: state.settings.applyVendorTemplates,
         pollingIntervalInMinutes: state.settings.pollingIntervalInMinutes,
         host: host,
-        scan: scan!,
+        scan: state.scan!,
       });
     };
 
@@ -2088,7 +2088,7 @@ export default class DiscoveryImportRunner {
               facts.name || host.ipAddress,
               host.ipAddress,
             )
-          : buildFallbackDeviceName(host, scan!),
+          : buildFallbackDeviceName(host, state.scan!),
       );
 
       try {

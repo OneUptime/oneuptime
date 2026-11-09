@@ -138,8 +138,9 @@ function rawRow(fields: Record<string, unknown>): Record<string, unknown> {
 function answerWith(data: {
   counts?: Record<string, unknown>;
   rows?: Array<Record<string, unknown>>;
-  inserted?: number;
-  deleted?: number;
+  // What a write's RETURNING answers.
+  inserted?: Array<Record<string, unknown>>;
+  deleted?: Array<Record<string, unknown>>;
 }): void {
   answers = [
     (sql: string) => {
@@ -148,18 +149,10 @@ function answerWith(data: {
         : null;
     },
     (sql: string) => {
-      return sql.includes("INSERT INTO")
-        ? Array.from({ length: data.inserted ?? 0 }, () => {
-            return { nodeKey: "k" };
-          })
-        : null;
+      return sql.includes("INSERT INTO") ? data.inserted || [] : null;
     },
     (sql: string) => {
-      return sql.includes("DELETE FROM")
-        ? Array.from({ length: data.deleted ?? 0 }, () => {
-            return { nodeKey: "k" };
-          })
-        : null;
+      return sql.includes("DELETE FROM") ? data.deleted || [] : null;
     },
     () => {
       return data.rows || [];
@@ -372,7 +365,15 @@ describe("reading the list", () => {
   test("select-all answers every matching id, capped, with the count", async () => {
     answerWith({
       counts: { all: 3, notMonitored: 3 },
-      rows: [{ id: ROW_A }, { id: ROW_B }, { id: ROW_A }],
+      rows: [
+        rawRow({ id: ROW_A, ipAddress: "10.0.0.5" }),
+        rawRow({
+          id: ROW_B,
+          classification: "Shelf scanner",
+          monitoredDeviceId: DEVICE_ID,
+        }),
+        rawRow({ id: ROW_A }),
+      ],
     });
 
     expect(
@@ -381,7 +382,13 @@ describe("reading the list", () => {
         props: READER,
         request: DEFAULT_DISCOVERED_DEVICE_LIST_REQUEST,
       }),
-    ).toEqual({ ids: [ROW_A, ROW_B], count: 3 });
+    ).toEqual({
+      devices: [
+        { id: ROW_A, name: "10.0.0.5", ipAddress: "10.0.0.5" },
+        { id: ROW_B, name: "Shelf scanner", isMonitored: true },
+      ],
+      count: 3,
+    });
     expect(ran[1]!.params[ran[1]!.params.length - 1]).toBe(5000);
   });
 });
@@ -409,7 +416,7 @@ describe("hiding devices from the map", () => {
         rawRow({ id: ROW_B, isHidden: true }),
         rawRow({ id: ROW_C, monitoredDeviceId: DEVICE_ID }),
       ],
-      inserted: 1,
+      inserted: [{ nodeKey: `endpoint:${ROW_A}` }],
     });
 
     const change: DiscoveredDeviceMapChange =
@@ -425,10 +432,10 @@ describe("hiding devices from the map", () => {
       });
 
     expect(change).toEqual({
-      changed: 1,
-      unchanged: 1,
-      skippedMonitored: 1,
-      notFound: 1,
+      changedIds: [ROW_A],
+      unchangedIds: [ROW_B],
+      monitoredIds: [ROW_C],
+      notFoundIds: ["10000000-0000-4000-8000-0000000000ff"],
     });
 
     const insert: Ran = ran.find((statement: Ran): boolean => {
@@ -453,7 +460,7 @@ describe("hiding devices from the map", () => {
         endpointIds: [ROW_A],
       });
 
-    expect(change.skippedMonitored).toBe(1);
+    expect(change.monitoredIds).toEqual([ROW_A]);
     expect(
       ran.some((statement: Ran): boolean => {
         return statement.sql.includes("INSERT INTO");
@@ -464,7 +471,7 @@ describe("hiding devices from the map", () => {
   test("a node name longer than the column holds is cut to fit", async () => {
     answerWith({
       rows: [rawRow({ id: ROW_A, classification: "x".repeat(140) })],
-      inserted: 1,
+      inserted: [{ nodeKey: `endpoint:${ROW_A}` }],
     });
 
     await DiscoveredDevices.hideFromMap({
@@ -499,7 +506,7 @@ describe("showing devices on the map again", () => {
   test("removes the selected rows' suppressions and says how many there were", async () => {
     answerWith({
       rows: [rawRow({ id: ROW_A }), rawRow({ id: ROW_B })],
-      deleted: 1,
+      deleted: [{ nodeKey: `endpoint:${ROW_B}` }],
     });
 
     expect(
@@ -508,7 +515,12 @@ describe("showing devices on the map again", () => {
         props: MAP_EDITOR,
         endpointIds: [ROW_A, ROW_B],
       }),
-    ).toEqual({ changed: 1, unchanged: 1, skippedMonitored: 0, notFound: 0 });
+    ).toEqual({
+      changedIds: [ROW_B],
+      unchangedIds: [ROW_A],
+      monitoredIds: [],
+      notFoundIds: [],
+    });
 
     const deletion: Ran = ran.find((statement: Ran): boolean => {
       return statement.sql.includes("DELETE FROM");
@@ -521,7 +533,11 @@ describe("showing devices on the map again", () => {
   });
 
   test("the map's Show them shows every hidden node in one statement", async () => {
-    answerWith({ deleted: 7 });
+    answerWith({
+      deleted: Array.from({ length: 7 }, (_value: unknown, index: number) => {
+        return { nodeKey: `device:${index}` };
+      }),
+    });
 
     expect(
       await DiscoveredDevices.showEverythingOnMap({

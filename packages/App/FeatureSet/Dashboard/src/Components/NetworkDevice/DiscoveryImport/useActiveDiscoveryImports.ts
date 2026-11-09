@@ -7,7 +7,8 @@ import { listActiveDiscoveryImports } from "./DiscoveryImportApi";
 
 /*
  * The project's imports that have not finished, by scan, for the scans
- * table: read when the page opens, again every few seconds while one runs,
+ * table - and the Discovered Devices list's, which have no scan (issue
+ * #5775), for its page: read when the page opens, again every few seconds while one runs,
  * and on demand when the dialog starts or finishes one. A failed read keeps
  * the last answer and looks again more slowly while that answer had an
  * import running - and not at all when it had none, so a server that cannot
@@ -20,6 +21,8 @@ export const ACTIVE_DISCOVERY_IMPORTS_RETRY_MS: number = 15000;
 
 export interface ActiveDiscoveryImports {
   byScanId: Map<string, DiscoveryImportView>;
+  // Imports of rows of the Discovered Devices list, oldest first.
+  fromDiscoveredDevices: Array<DiscoveryImportView>;
   refresh: () => void;
 }
 
@@ -33,6 +36,11 @@ export function indexActiveImportsByScan(
 
   // The oldest active import of a scan is the one running; later ones wait.
   for (const view of imports) {
+    // An import from the Discovered Devices list belongs to no scan's row.
+    if (!view.scanId) {
+      continue;
+    }
+
     if (isDiscoveryImportActive(view.status) && !byScanId.has(view.scanId)) {
       byScanId.set(view.scanId, view);
     }
@@ -41,10 +49,22 @@ export function indexActiveImportsByScan(
   return byScanId;
 }
 
+// The active imports of rows of the Discovered Devices list, oldest first.
+export function getActiveDiscoveredDeviceImports(
+  imports: ReadonlyArray<DiscoveryImportView>,
+): Array<DiscoveryImportView> {
+  return imports.filter((view: DiscoveryImportView): boolean => {
+    return !view.scanId && isDiscoveryImportActive(view.status);
+  });
+}
+
 export default function useActiveDiscoveryImports(): ActiveDiscoveryImports {
   const [byScanId, setByScanId] = useState<Map<string, DiscoveryImportView>>(
     new Map<string, DiscoveryImportView>(),
   );
+  const [fromDiscoveredDevices, setFromDiscoveredDevices] = useState<
+    Array<DiscoveryImportView>
+  >([]);
   const timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null> =
     useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
@@ -73,10 +93,14 @@ export default function useActiveDiscoveryImports(): ActiveDiscoveryImports {
       const next: Map<string, DiscoveryImportView> =
         indexActiveImportsByScan(imports);
 
-      setByScanId(next);
-      lastActiveCountRef.current = next.size;
+      const fromList: Array<DiscoveryImportView> =
+        getActiveDiscoveredDeviceImports(imports);
 
-      if (next.size > 0) {
+      setByScanId(next);
+      setFromDiscoveredDevices(fromList);
+      lastActiveCountRef.current = next.size + fromList.length;
+
+      if (lastActiveCountRef.current > 0) {
         nextDelay = ACTIVE_DISCOVERY_IMPORTS_POLL_INTERVAL_MS;
       }
     } catch {
@@ -116,5 +140,9 @@ export default function useActiveDiscoveryImports(): ActiveDiscoveryImports {
     void read();
   }, [read]);
 
-  return { byScanId: byScanId, refresh: refresh };
+  return {
+    byScanId: byScanId,
+    fromDiscoveredDevices: fromDiscoveredDevices,
+    refresh: refresh,
+  };
 }

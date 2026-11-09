@@ -9,6 +9,7 @@ import DiscoveredDevices, {
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   DEFAULT_DISCOVERED_DEVICE_LIST_REQUEST,
+  DiscoveredDeviceIdsResponse,
   DiscoveredDeviceListRequest,
   DiscoveredDeviceListResponse,
   DiscoveredDeviceMatch,
@@ -671,7 +672,14 @@ describePostgres("the Discovered Devices list on Postgres", () => {
             sortOrder: "asc",
           },
         }),
-      ).toEqual({ ids: [register, printer, wildcard], count: 3 });
+      ).toEqual({
+        devices: [
+          { id: register, name: "Front register", ipAddress: "10.0.0.9" },
+          { id: printer, name: "prn-back-office", ipAddress: "10.0.0.10" },
+          { id: wildcard, name: "lab_10" },
+        ],
+        count: 3,
+      });
     });
   });
 
@@ -694,7 +702,12 @@ describePostgres("the Discovered Devices list on Postgres", () => {
           props: props,
           endpointIds: [loose, monitored],
         }),
-      ).toEqual({ changed: 1, unchanged: 0, skippedMonitored: 1, notFound: 0 });
+      ).toEqual({
+        changedIds: [loose],
+        unchangedIds: [],
+        monitoredIds: [monitored],
+        notFoundIds: [],
+      });
 
       expect(await suppressions()).toEqual([
         {
@@ -713,7 +726,12 @@ describePostgres("the Discovered Devices list on Postgres", () => {
           props: props,
           endpointIds: [loose],
         }),
-      ).toEqual({ changed: 0, unchanged: 1, skippedMonitored: 0, notFound: 0 });
+      ).toEqual({
+        changedIds: [],
+        unchangedIds: [loose],
+        monitoredIds: [],
+        notFoundIds: [],
+      });
       expect(await suppressions()).toHaveLength(1);
       expect((await rowOf(loose)).isHidden).toBe(true);
     });
@@ -741,8 +759,8 @@ describePostgres("the Discovered Devices list on Postgres", () => {
             props: props,
             endpointIds: [endpoint],
           })
-        ).changed,
-      ).toBe(0);
+        ).unchangedIds,
+      ).toEqual([endpoint]);
     });
 
     test("showing removes the selected rows' suppressions and nothing else", async () => {
@@ -765,7 +783,12 @@ describePostgres("the Discovered Devices list on Postgres", () => {
           props: props,
           endpointIds: [first],
         }),
-      ).toEqual({ changed: 1, unchanged: 0, skippedMonitored: 0, notFound: 0 });
+      ).toEqual({
+        changedIds: [first],
+        unchangedIds: [],
+        monitoredIds: [],
+        notFoundIds: [],
+      });
       expect(
         (await suppressions()).map((row: { nodeKey: string }): string => {
           return row.nodeKey;
@@ -847,7 +870,7 @@ describePostgres("the Discovered Devices list on Postgres", () => {
       sortOrder: "asc",
       skip: 100,
     });
-    const selected: { ids: Array<string>; count: number } =
+    const selected: DiscoveredDeviceIdsResponse =
       await DiscoveredDevices.listIds({
         projectId: projectId,
         props: props,
@@ -864,7 +887,7 @@ describePostgres("the Discovered Devices list on Postgres", () => {
     });
     expect(page.rows).toHaveLength(25);
     expect(page.rows[0]!.ipAddress).toBe("10.1.12.102");
-    expect(selected.ids).toHaveLength(endpoints - devices);
+    expect(selected.devices).toHaveLength(endpoints - devices);
     expect(took).toBeLessThan(10000);
   });
 });

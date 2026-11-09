@@ -3474,9 +3474,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.NETWORK_DEVICE_ENDPOINTS,
-            title: "Endpoints",
+            title: "Discovered Devices",
             icon: IconProp.Squares,
-            keywords: ["arp", "mac addresses", "connected devices"],
+            keywords: [
+              "endpoints",
+              "arp",
+              "mac addresses",
+              "ip addresses",
+              "hostnames",
+              "connected devices",
+              "add to monitoring",
+              "hide from map",
+            ],
           },
           {
             page: PageMap.NETWORK_DEVICE_LATENCY_MATRIX,

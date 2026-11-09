@@ -104,7 +104,7 @@ const NetworkSiteViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Endpoints",
+            title: "Discovered Devices",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_SITE_VIEW_ENDPOINTS] as Route,
               { modelId: props.modelId },

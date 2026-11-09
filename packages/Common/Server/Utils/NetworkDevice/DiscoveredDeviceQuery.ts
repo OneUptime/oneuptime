@@ -341,7 +341,7 @@ LIMIT ${limit} OFFSET ${skip}`,
   };
 }
 
-// The ids of every matching row, up to `limit`, in the list's order.
+// Every matching row, up to `limit`, in the list's order: enough to name it.
 export function buildIdsStatement(data: {
   scope: DiscoveredDeviceScope;
   search: string;
@@ -357,7 +357,7 @@ export function buildIdsStatement(data: {
 
   return {
     sql: `${classified}
-SELECT c."id"
+SELECT c."id", c."classification", c."hostname", c."ipAddress", c."macAddress", c."monitoredDeviceId"
 FROM classified c
 WHERE ${search}
   AND ${buildShowCondition(data.show)}
