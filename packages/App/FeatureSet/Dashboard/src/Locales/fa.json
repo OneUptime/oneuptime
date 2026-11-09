@@ -47177,5 +47177,15 @@
   "From AI calls and usage metrics": "از فراخوانی‌های هوش مصنوعی و متریک‌های مصرف",
   "From usage metrics": "از متریک‌های مصرف",
   "Services counted from usage metrics: {{services}}": "سرویس‌هایی که از متریک‌های مصرف شمرده شدند: {{services}}",
-  "Usage metrics are left out: your role cannot read metrics.": "متریک‌های مصرف کنار گذاشته شده‌اند: نقش شما نمی‌تواند متریک‌ها را بخواند."
+  "Usage metrics are left out: your role cannot read metrics.": "متریک‌های مصرف کنار گذاشته شده‌اند: نقش شما نمی‌تواند متریک‌ها را بخواند.",
+  "AI calls": "فراخوانی‌های هوش مصنوعی",
+  "No cost reported": "هزینه‌ای گزارش نشده",
+  "No tokens reported": "توکنی گزارش نشده",
+  "Ranked by cost over the selected range.": "بر اساس هزینه در بازه انتخاب‌شده مرتب شده‌اند.",
+  "Share of cost": "سهم از هزینه",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} مصرفی است که مدلی را مشخص نمی‌کند.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} مصرفی است که ارائه‌دهنده‌ای را مشخص نمی‌کند، مانند متریک‌های مصرف یک دستیار برنامه‌نویسی.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} مصرفی است که تیمی را مشخص نمی‌کند، مثلاً بدون {{teamId}} فرستاده شده.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} مصرفی است که مشخص نمی‌کند چه کسی آن را انجام داده، مثلاً بدون {{userEmail}} فرستاده شده.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "متریک‌های مصرف کنار گذاشته شده‌اند: نقش شما نمی‌تواند متریک‌ها را بخواند. از یک مدیر پروژه دسترسی بخواهید."
 }

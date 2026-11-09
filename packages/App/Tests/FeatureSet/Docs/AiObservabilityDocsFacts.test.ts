@@ -985,9 +985,11 @@ describe("the AI / LLM Observability page", () => {
       "A service's cost, when its AI calls report none, with Codex's micro-USD cost scaled to USD",
     ]);
     // A metric counts no calls: the calls are the AI calls' alone.
-    expect(rowNamed(rows, "LLM calls")[2]).toBe(
+    expect(rowNamed(rows, "AI calls")[2]).toBe(
       "Never: a metric counts no calls",
     );
+    // The row is named as the Usage tab's tile is.
+    expect(source("usageTotals")).toContain('label="AI calls"');
     expect(rowNamed(rows, "Conversations")[2]).toBe("Never");
     expect(
       rowNamed(
@@ -1017,17 +1019,24 @@ describe("the AI / LLM Observability page", () => {
 
     // A row with no AI call counted none: "—", never a 0.
     expect(breakdown).toContain(
-      'return unknown ? "—" : formatLlmCount(value);',
+      "return unknown ? notCounted : formatLlmCount(value);",
+    );
+    expect(breakdown).toMatch(
+      /const notCounted: ReactElement = \(\s*<span[^>]*>\s*—\s*<\/span>/,
     );
     expect(breakdown).toContain(
       '"Services counted from usage metrics: {{services}}"',
     );
+    // Not over the services' own table, whose rows say it themselves.
     expect(breakdown).toContain(
-      '"Usage metrics are left out: your role cannot read metrics."',
+      "dimension.key !== LlmUsageDimension.Service ? (",
+    );
+    expect(breakdown).toContain(
+      '"Usage metrics are left out: your role cannot read metrics. Ask a project admin for access."',
     );
     expect(breakdown).toContain("TelemetryServiceUtil.isUnknownServiceId(");
     expect(page).toContain(
-      "its calls cell shows `—` when it has no AI call, because a metric has no per-call detail; the table's header names the services counted from usage metrics.",
+      "its calls cell shows `—` when it has no AI call, because a metric has no per-call detail; the table's header names the services counted from usage metrics, except in **Application / Service**, whose rows are the services.",
     );
     expect(page).toContain(
       "A usage metric that names no service is counted under **Unknown Service**, one service like any other. If your role can read traces but not metrics, the usage metrics are left out, and the table says so.",

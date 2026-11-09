@@ -262,11 +262,11 @@ flowchart TB
 | --- | --- | --- |
 | Input- og outputtokens | Hvert modelkalds tokens, én gang | En tjenestes tokens, når dens AI-kald ikke rapporterer nogen |
 | Omkostninger (USD) | Hvert modelkalds omkostninger, én gang | En tjenestes omkostninger, når dens AI-kald ikke rapporterer nogen, med Codex' omkostninger i mikro-USD omregnet til USD |
-| LLM-kald | Hvert AI-kald, som **Kald** viser dem | Aldrig: en metrik tæller ingen kald |
+| AI-kald | Hvert AI-kald, som **Kald** viser dem | Aldrig: en metrik tæller ingen kald |
 | Tabellerne **Medarbejder**, **Team**, **Model**, **Udbyder**, **Applikation / Tjeneste** | Hver rækkes kald, tokens og omkostninger | Tokens og omkostninger for de tjenester, der tælles fra metrikker, under den person, det team, den model eller den udbyder, som deres punkter nævner |
 | Samtaler | Bygget ud fra AI-kald | Aldrig |
 
-Under hvert tal siger fanen Forbrug, hvor det kommer fra: **Fra AI-kald**, **Fra forbrugsmetrikker** eller **Fra AI-kald og forbrugsmetrikker**, når nogle tjenester sendte kald og andre metrikker. En tabelrække, der er talt fra forbrugsmetrikker, siger det under sit navn, og dens celle for kald viser `—`, når den ikke har noget AI-kald, fordi en metrik ikke har detaljer pr. kald; tabellens overskrift nævner de tjenester, der er talt fra forbrugsmetrikker. En forbrugsmetrik, der ikke nævner nogen tjeneste, tælles under **Ukendt tjeneste**, én tjeneste som enhver anden. Hvis din rolle må læse traces, men ikke metrikker, udelades forbrugsmetrikkerne, og tabellen siger det.
+Under hvert tal siger fanen Forbrug, hvor det kommer fra: **Fra AI-kald**, **Fra forbrugsmetrikker** eller **Fra AI-kald og forbrugsmetrikker**, når nogle tjenester sendte kald og andre metrikker. En tabelrække, der er talt fra forbrugsmetrikker, siger det under sit navn, og dens celle for kald viser `—`, når den ikke har noget AI-kald, fordi en metrik ikke har detaljer pr. kald; tabellens overskrift nævner de tjenester, der er talt fra forbrugsmetrikker, undtagen i **Applikation / Tjeneste**, hvis rækker er tjenesterne. En forbrugsmetrik, der ikke nævner nogen tjeneste, tælles under **Ukendt tjeneste**, én tjeneste som enhver anden. Hvis din rolle må læse traces, men ikke metrikker, udelades forbrugsmetrikkerne, og tabellen siger det.
 
 Hvert modelkald tælles én gang. En agentkørsel, eller et frameworks span omkring SDK'ets eget span, gentager ofte tokens og omkostninger for kaldene i den: et spans tokens, eller dets omkostninger, udelades, hvor som helst et kald i det rapporterer dem, og en agentkørsel beholder sine egne tal, når intet kald i den gør det. Budgetter og listen **Samtaler** tæller på samme måde, mens **Kald** viser hvert span med dets egne tal.
 

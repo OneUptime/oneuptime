@@ -55,6 +55,9 @@ import UserUtil from "Common/UI/Utils/User";
  *   ?otel=      cursor (Cursor's OpenTelemetry Export arrives as well)
  *   ?usage=     left-out (the Usage tab's metrics left out for the role)
  *               | fail (the Usage tab's read fails)
+ *               | slow (the Usage tab's reads wait for releaseUsage())
+ *               | metrics-only (no app sends AI calls: a coding fleet)
+ *               | no-cost (calls whose model has no price, no cost metric)
  *   ?role=      owner (default) | member | loading
  *   ?verdict=   pass (default) | warn | auth | permission | settings | slow
  *               | cursor | cursor-busy | cursor-permission
@@ -271,6 +274,8 @@ const state = {
   metricUsages: [],
   // Every usage read of the Usage tab (/telemetry/llm/usage), with its body.
   usages: [],
+  // ?usage=slow: the usage reads waiting for releaseUsage().
+  heldUsages: [],
   verdict: params.get("verdict") || "pass",
   held: [],
 };
@@ -415,6 +420,13 @@ window.__llmConnectFixture = {
     const held = state.held.splice(0);
     for (const resolve of held) {
       resolve(answer(name));
+    }
+  },
+  // ?usage=slow: answer the usage reads that are waiting.
+  releaseUsage: () => {
+    const held = state.heldUsages.splice(0);
+    for (const release of held) {
+      release();
     }
   },
 };
@@ -679,8 +691,11 @@ const COMPANY_TOOLS = ["claude-enterprise", "microsoft-365-copilot"];
  * OpenLLMetry - usage metrics for the same calls, which are not counted
  * again, and Claude Code sends only usage metrics, which count beside the
  * calls. ?otel=cursor adds Cursor's OpenTelemetry Export; ?usage=
- * left-out answers as for a member who may not read metrics, and
- * ?usage=fail fails the read.
+ * left-out answers as for a member who may not read metrics, ?usage=fail
+ * fails the read, ?usage=slow holds it until releaseUsage(), ?usage=
+ * metrics-only drops the app's calls (a coding-assistant fleet), and
+ * ?usage=no-cost prices nothing (a self-hosted model, Claude Code's cost
+ * metric off).
  */
 const CLAUDE_CODE_SERVICE_ID = "30000000-0000-4000-8000-00000000000a";
 const CURSOR_EXPORT_SERVICE_ID = "30000000-0000-4000-8000-00000000000b";
@@ -825,7 +840,15 @@ function usageAnswer(dimension) {
   const spanRows = [];
   const services = new Map();
 
-  for (const call of USAGE_CALLS) {
+  const usageVariant = params.get("usage") || "";
+  const calls =
+    usageVariant === "metrics-only"
+      ? []
+      : USAGE_CALLS.map((call) => {
+          return usageVariant === "no-cost" ? { ...call, costUsd: 0 } : call;
+        });
+
+  for (const call of calls) {
     const total = services.get(call.service) || {
       service: call.service,
       isTotal: true,
@@ -862,13 +885,18 @@ function usageAnswer(dimension) {
 
   spanRows.push(...services.values());
 
-  const points =
-    params.get("usage") === "left-out"
+  const points = (
+    usageVariant === "left-out"
       ? []
       : [
           ...USAGE_POINTS,
           ...(params.get("otel") === "cursor" ? CURSOR_EXPORT_POINTS : []),
-        ];
+        ]
+  ).filter((point) => {
+    return !(
+      usageVariant === "no-cost" && point.metric.endsWith(".cost.usage")
+    );
+  });
   const metricRows = [];
 
   for (const point of points) {
@@ -991,7 +1019,21 @@ API.post = async (options) => {
       return new HTTPErrorResponse(504, { message: "Timed out" }, {});
     }
 
-    return new HTTPResponse(200, usageAnswer(body.dimension || "none"), {});
+    const answer = new HTTPResponse(
+      200,
+      usageAnswer(body.dimension || "none"),
+      {},
+    );
+
+    if (params.get("usage") === "slow") {
+      return await new Promise((resolve) => {
+        state.heldUsages.push(() => {
+          resolve(answer);
+        });
+      });
+    }
+
+    return answer;
   }
 
   // The GenAI metrics: none in any state; the provider accounts' own are above.

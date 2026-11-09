@@ -62,7 +62,11 @@ export const LlmTile: FunctionComponent<LlmTileProps> = (
         <Icon icon={props.icon} className={`h-5 w-5 ${props.iconClassName}`} />
       </div>
       <div className="min-w-0">
-        <div className="truncate text-xs font-medium text-gray-500">
+        {/*
+         * A label wraps rather than being cut short: some languages' words
+         * for a tile ("AI calls" in Persian) outgrow a phone's half width.
+         */}
+        <div className="break-words text-xs font-medium text-gray-500">
           {translator.translateText(props.label)}
         </div>
         {props.isLoading ? (

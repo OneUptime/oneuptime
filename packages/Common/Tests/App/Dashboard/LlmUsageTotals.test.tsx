@@ -23,6 +23,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *    metrics, or from both (a coding tool's metrics beside an app's calls);
  *  - no call beside figures from usage metrics says calls come from apps,
  *    rather than reading as a contradiction;
+ *  - a figure nothing reported beside usage that is there - calls whose
+ *    model has no price, a tool's metrics with a cost and no tokens - is a
+ *    dash that says none was reported, never a 0 that claims it was free;
  *  - a FAILED read is a dash that says it could not be loaded, never a 0
  *    nobody measured (#5776: the tiles read 0 tokens beside $852,328).
  */
@@ -124,6 +127,13 @@ describe("an instrumented app's AI calls", () => {
 
     await renderTiles();
 
+    // "AI calls", the word the rest of the AI pages use, never "LLM calls".
+    expect(screen.getByTestId("llm-usage-totals-calls")).toHaveTextContent(
+      "AI calls",
+    );
+    expect(screen.getByTestId("llm-usage-totals-calls")).not.toHaveTextContent(
+      "LLM",
+    );
     expect(text("llm-usage-totals-calls-value")).toBe("200");
     expect(text("llm-usage-totals-calls-hint")).toBe("1.5% error rate");
     expect(text("llm-usage-totals-input-value")).toBe("12.3k");
@@ -135,7 +145,11 @@ describe("an instrumented app's AI calls", () => {
     }
   });
 
-  test("calls that report no cost: the cost tile says when it is reported", async () => {
+  /*
+   * Calls whose model has no price report no cost: "$0" would claim the
+   * calls were free. The tile is a dash that says nothing was reported.
+   */
+  test("calls that report no cost: the cost tile is a dash that says no cost was reported", async () => {
     serve({
       calls: 20,
       inputTokens: 500,
@@ -145,8 +159,28 @@ describe("an instrumented app's AI calls", () => {
 
     await renderTiles();
 
-    expect(text("llm-usage-totals-cost-value")).toBe("$0");
-    expect(text("llm-usage-totals-cost-hint")).toBe("when reported by SDK");
+    expect(text("llm-usage-totals-cost-value")).toBe("—");
+    expect(text("llm-usage-totals-cost-hint")).toBe("No cost reported");
+    expect(text("llm-usage-totals-input-value")).toBe("500");
+    expect(text("llm-usage-totals-input-hint")).toBe("From AI calls");
+  });
+
+  test("calls that report no tokens: the token tiles are dashes that say no tokens were reported", async () => {
+    serve({
+      calls: 4,
+      costUsd: 1.25,
+      costSource: LlmUsageSource.Calls,
+    });
+
+    await renderTiles();
+
+    for (const tile of ["input", "output"]) {
+      expect(text(`llm-usage-totals-${tile}-value`)).toBe("—");
+      expect(text(`llm-usage-totals-${tile}-hint`)).toBe("No tokens reported");
+    }
+
+    expect(text("llm-usage-totals-cost-value")).toBe("$1.25");
+    expect(text("llm-usage-totals-cost-hint")).toBe("From AI calls");
   });
 });
 
@@ -221,18 +255,41 @@ describe("a coding-assistant fleet (usage metrics only)", () => {
     expect(text("llm-usage-totals-cost-hint")).toBe("From usage metrics");
   });
 
-  test("no call and nothing from metrics either: the calls tile adds nothing", async () => {
+  test("a tool whose metrics count cost and no tokens: the token tiles say none were reported", async () => {
+    serve({
+      costUsd: 12.5,
+      costSource: LlmUsageSource.Metrics,
+    });
+
+    await renderTiles();
+
+    expect(text("llm-usage-totals-calls-hint")).toBe(
+      "AI calls come from your apps",
+    );
+    expect(text("llm-usage-totals-input-value")).toBe("—");
+    expect(text("llm-usage-totals-input-hint")).toBe("No tokens reported");
+    expect(text("llm-usage-totals-cost-value")).toBe("$12.50");
+    expect(text("llm-usage-totals-cost-hint")).toBe("From usage metrics");
+  });
+
+  /*
+   * No usage at all: the 0s are simply true, and no tile adds a word - not
+   * "No cost reported" over usage that is not there.
+   */
+  test("no call and nothing from metrics either: the tiles read 0 and add nothing", async () => {
     serve({});
 
     await renderTiles();
 
     expect(text("llm-usage-totals-calls-value")).toBe("0");
-    expect(
-      screen.queryByTestId("llm-usage-totals-calls-hint"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("llm-usage-totals-input-hint"),
-    ).not.toBeInTheDocument();
+    expect(text("llm-usage-totals-input-value")).toBe("0");
+    expect(text("llm-usage-totals-cost-value")).toBe("$0");
+
+    for (const tile of ["calls", "input", "output", "cost"]) {
+      expect(
+        screen.queryByTestId(`llm-usage-totals-${tile}-hint`),
+      ).not.toBeInTheDocument();
+    }
   });
 });
 

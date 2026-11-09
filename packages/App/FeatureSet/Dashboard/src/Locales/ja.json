@@ -47177,5 +47177,15 @@
   "From AI calls and usage metrics": "AI 呼び出しと使用量メトリクスから",
   "From usage metrics": "使用量メトリクスから",
   "Services counted from usage metrics: {{services}}": "使用量メトリクスから集計したサービス: {{services}}",
-  "Usage metrics are left out: your role cannot read metrics.": "使用量メトリクスは含まれていません。あなたのロールではメトリクスを読めません。"
+  "Usage metrics are left out: your role cannot read metrics.": "使用量メトリクスは含まれていません。あなたのロールではメトリクスを読めません。",
+  "AI calls": "AI 呼び出し",
+  "No cost reported": "コストの報告なし",
+  "No tokens reported": "トークンの報告なし",
+  "Ranked by cost over the selected range.": "選択した範囲のコスト順。",
+  "Share of cost": "コストの割合",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} は、モデルが示されていない使用量です。",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} は、プロバイダーが示されていない使用量です（例：コーディングアシスタントの使用量メトリクス）。",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} は、チームが示されていない使用量です（例：{{teamId}} なしで送信されたもの）。",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} は、誰のものかが示されていない使用量です（例：{{userEmail}} なしで送信されたもの）。",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "使用量メトリクスは含まれていません。あなたのロールではメトリクスを読めません。プロジェクト管理者にアクセス権を依頼してください。"
 }

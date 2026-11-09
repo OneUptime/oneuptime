@@ -47177,5 +47177,15 @@
   "From AI calls and usage metrics": "來自 AI 呼叫和使用量指標",
   "From usage metrics": "來自使用量指標",
   "Services counted from usage metrics: {{services}}": "依使用量指標統計的服務：{{services}}",
-  "Usage metrics are left out: your role cannot read metrics.": "未計入使用量指標：你的角色無法讀取指標。"
+  "Usage metrics are left out: your role cannot read metrics.": "未計入使用量指標：你的角色無法讀取指標。",
+  "AI calls": "AI 呼叫",
+  "No cost reported": "未回報成本",
+  "No tokens reported": "未回報 token",
+  "Ranked by cost over the selected range.": "依所選範圍內的成本排序。",
+  "Share of cost": "成本占比",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} 是未註明模型的使用量。",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} 是未註明提供者的使用量，例如程式設計助理的使用量指標。",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} 是未註明團隊的使用量，例如傳送時沒有 {{teamId}}。",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} 是未註明使用者的使用量，例如傳送時沒有 {{userEmail}}。",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "未計入使用量指標：你的角色無法讀取指標。請向專案管理員申請存取權限。"
 }

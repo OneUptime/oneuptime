@@ -262,11 +262,11 @@ flowchart TB
 | --- | --- | --- |
 | Input and output tokens | Each model call's tokens, once | A service's tokens, when its AI calls report none |
 | Cost (USD) | Each model call's cost, once | A service's cost, when its AI calls report none, with Codex's micro-USD cost scaled to USD |
-| LLM calls | Every AI call, as **Calls** lists them | Never: a metric counts no calls |
+| AI calls | Every AI call, as **Calls** lists them | Never: a metric counts no calls |
 | **Employee**, **Team**, **Model**, **Provider**, **Application / Service** tables | Each row's calls, tokens and cost | The tokens and cost of the services counted from metrics, under the person, team, model or provider their points name |
 | Conversations | Built from AI calls | Never |
 
-Under each figure, the Usage tab says where it came from: **From AI calls**, **From usage metrics**, or **From AI calls and usage metrics** when some services sent calls and others metrics. A table row counted from usage metrics says so under its name, and its calls cell shows `—` when it has no AI call, because a metric has no per-call detail; the table's header names the services counted from usage metrics. A usage metric that names no service is counted under **Unknown Service**, one service like any other. If your role can read traces but not metrics, the usage metrics are left out, and the table says so.
+Under each figure, the Usage tab says where it came from: **From AI calls**, **From usage metrics**, or **From AI calls and usage metrics** when some services sent calls and others metrics. A table row counted from usage metrics says so under its name, and its calls cell shows `—` when it has no AI call, because a metric has no per-call detail; the table's header names the services counted from usage metrics, except in **Application / Service**, whose rows are the services. A usage metric that names no service is counted under **Unknown Service**, one service like any other. If your role can read traces but not metrics, the usage metrics are left out, and the table says so.
 
 Each model call is counted once. An agent run, or a framework's span around the SDK's own span, often repeats the tokens and cost of the calls inside it: a span's tokens, or its cost, are left out wherever a call inside it reports them, and an agent run keeps its own figures when no call inside it does. Budgets and the **Conversations** list count the same way, while **Calls** lists every span with its own figures.
 

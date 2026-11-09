@@ -61,6 +61,21 @@ async function pick(page: Page, dimension: string): Promise<void> {
     .click();
 }
 
+/*
+ * Every word of the element is on screen: wrapped, never cut with "...".
+ * A single pixel over is enough for the ellipsis (Persian's "AI calls" on a
+ * phone was 142 pixels in 141), so none is allowed.
+ */
+async function expectNotCutShort(element: Locator): Promise<void> {
+  await expect(element).toBeVisible();
+
+  const overflow: number = await element.evaluate((node: Element): number => {
+    return node.scrollWidth - node.clientWidth;
+  });
+
+  expect(overflow).toBe(0);
+}
+
 test.describe("Usage, from the AI calls and the usage metrics", () => {
   test("a coding tool's usage metrics count beside an app's AI calls", async ({
     page,
@@ -117,6 +132,20 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
     await expect(page.getByTestId("llm-usage-metric-services")).toHaveText(
       "Services counted from usage metrics: claude-code",
     );
+    // Three people, none left out: how the table is ranked, no top of it.
+    await expect(page.getByTestId("llm-usage-breakdown-top")).toHaveText(
+      "Ranked by cost over the selected range.",
+    );
+    await expect(
+      page.getByRole("columnheader", { name: "Share of cost" }),
+    ).toBeVisible();
+    // Everyone is named: no note about the Unattributed row.
+    await expect(page.getByTestId("llm-usage-unattributed-note")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("llm-usage-totals-calls")).toContainText(
+      "AI calls",
+    );
 
     const state: FixtureState = await fixture(page);
     expect(
@@ -154,6 +183,8 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
     await expect(page.getByTestId("llm-usage-totals-cost-value")).toHaveText(
       "$72.75",
     );
+    // Each service's row says where it came from: no line over them.
+    await expect(page.getByTestId("llm-usage-metric-services")).toHaveCount(0);
 
     const state: FixtureState = await fixture(page);
     expect(state.usages[state.usages.length - 1]!.dimension).toBe("service");
@@ -173,6 +204,13 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
     await expect(rows(page).nth(0)).toContainText("Unattributed");
     await expect(rows(page).nth(0)).toContainText("$52.25");
     await expect(row(page, "OpenAI")).toContainText("$20.50");
+    // ... and the note says what that row is, with no guide to follow.
+    await expect(page.getByTestId("llm-usage-unattributed-note")).toHaveText(
+      "Unattributed is usage that doesn't say which provider, such as a coding assistant's usage metrics.",
+    );
+    await expect(
+      page.getByTestId("llm-usage-unattributed-note").getByRole("link"),
+    ).toHaveCount(0);
 
     await pick(page, "Model");
     await expect(row(page, "claude-sonnet-4-5")).toContainText("$52.25");
@@ -203,9 +241,13 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
   }) => {
     await open(page, "state=done&usage=left-out");
 
+    // What is left out and the one next step, beside a lock.
     await expect(page.getByTestId("llm-usage-metrics-left-out")).toHaveText(
-      "Usage metrics are left out: your role cannot read metrics.",
+      "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.",
     );
+    await expect(
+      page.getByTestId("llm-usage-metrics-left-out").locator("svg"),
+    ).toBeVisible();
     await expect(page.getByTestId("llm-usage-totals-cost-value")).toHaveText(
       "$20.50",
     );
@@ -236,6 +278,98 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
       page.getByText("Usage could not be loaded for this time range."),
     ).toBeVisible();
     await expect(rows(page)).toHaveCount(0);
+    await expect(page.getByTestId("llm-usage-unattributed-note")).toHaveCount(
+      0,
+    );
+  });
+
+  test("while the reads wait, no line speaks for a table that is not there", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=done&usage=slow");
+
+    await expect(page.getByText("Usage by employee")).toBeVisible();
+    await expect(page.getByTestId("llm-usage-breakdown-top")).toHaveCount(0);
+    await expect(page.getByTestId("llm-usage-metric-services")).toHaveCount(0);
+    await expect(page.getByTestId("llm-usage-totals-cost-value")).toHaveCount(
+      0,
+    );
+
+    await page.evaluate(() => {
+      (
+        window as unknown as {
+          __llmConnectFixture: { releaseUsage: () => void };
+        }
+      ).__llmConnectFixture.releaseUsage();
+    });
+
+    await expect(rows(page)).toHaveCount(3);
+    await expect(page.getByTestId("llm-usage-breakdown-top")).toHaveText(
+      "Ranked by cost over the selected range.",
+    );
+    await expect(page.getByTestId("llm-usage-totals-cost-value")).toHaveText(
+      "$72.75",
+    );
+  });
+
+  test("a coding-assistant fleet: what no metric reported is a dash, and Unattributed says what it is", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=done&usage=metrics-only");
+
+    // No app sends calls: the 0 says where calls come from, in full.
+    await expect(page.getByTestId("llm-usage-totals-calls-value")).toHaveText(
+      "0",
+    );
+    await expect(page.getByTestId("llm-usage-totals-calls-hint")).toHaveText(
+      "AI calls come from your apps",
+    );
+    await expectNotCutShort(page.getByTestId("llm-usage-totals-calls-hint"));
+    await expect(page.getByTestId("llm-usage-totals-cost-value")).toHaveText(
+      "$52.25",
+    );
+
+    // The tokens nobody priced: a dash for the cost and for its share.
+    const unattributed: Locator = row(page, "Unattributed");
+
+    await expect(unattributed.locator("td").nth(6)).toHaveText("—");
+    await expect(unattributed.locator("td").nth(7)).toHaveText("—");
+    await expect(page.getByTestId("llm-usage-unattributed-note")).toContainText(
+      "Unattributed is usage that doesn't say who made it, for example sent without user.email.",
+    );
+    await expect(
+      page
+        .getByTestId("llm-usage-unattributed-note")
+        .getByRole("link", {
+          name: "How to attribute AI coding assistant usage",
+        }),
+    ).toHaveAttribute("href", "/docs/telemetry/ai-coding-assistants");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "usage-metrics-only");
+  });
+
+  test("calls whose model has no price: a dash that says no cost was reported, never $0", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=done&usage=no-cost");
+
+    await expect(page.getByTestId("llm-usage-totals-cost-value")).toHaveText(
+      "—",
+    );
+    await expect(page.getByTestId("llm-usage-totals-cost-hint")).toHaveText(
+      "No cost reported",
+    );
+    await expect(row(page, "bob@sysnetix.com").locator("td").nth(6)).toHaveText(
+      "—",
+    );
+    await expect(page.getByText("$0.00")).toHaveCount(0);
+    await shoot(page, "usage-no-cost");
   });
 
   test("in German and in the dark theme", async ({ page }: { page: Page }) => {
@@ -249,6 +383,16 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
     ).toHaveText("Aus Nutzungsmetriken");
     await expect(page.getByTestId("llm-usage-metric-services")).toHaveText(
       "Aus Nutzungsmetriken gezählte Dienste: claude-code",
+    );
+    await expect(page.getByTestId("llm-usage-totals-calls")).toContainText(
+      "KI-Aufrufe",
+    );
+    // The share of the cost, never German's verb "Teilen" (to share).
+    await expect(
+      page.getByRole("columnheader", { name: "Kostenanteil" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("llm-usage-breakdown-top")).toHaveText(
+      "Nach Kosten im gewählten Zeitraum sortiert.",
     );
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "usage-calls-and-metrics-de-dark");
@@ -264,6 +408,12 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
     await expect(
       rows(page).nth(1).getByTestId("llm-usage-row-source"),
     ).toHaveText("از متریک‌های مصرف");
+    // Persian's words for "AI calls" outgrow a phone's half width: wrapped.
+    await expectNotCutShort(
+      page
+        .getByTestId("llm-usage-totals-calls")
+        .getByText("فراخوانی‌های هوش مصنوعی", { exact: true }),
+    );
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "usage-calls-and-metrics-fa");
   });

@@ -47177,5 +47177,15 @@
   "From AI calls and usage metrics": "Из вызовов ИИ и метрик использования",
   "From usage metrics": "Из метрик использования",
   "Services counted from usage metrics: {{services}}": "Сервисы, учтённые по метрикам использования: {{services}}",
-  "Usage metrics are left out: your role cannot read metrics.": "Метрики использования не учтены: ваша роль не может читать метрики."
+  "Usage metrics are left out: your role cannot read metrics.": "Метрики использования не учтены: ваша роль не может читать метрики.",
+  "AI calls": "Вызовы ИИ",
+  "No cost reported": "Стоимость не указана",
+  "No tokens reported": "Токены не указаны",
+  "Ranked by cost over the selected range.": "Отсортировано по стоимости за выбранный период.",
+  "Share of cost": "Доля стоимости",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} — это использование, в котором не указана модель.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} — это использование, в котором не указан провайдер, например метрики использования ИИ-ассистента для программирования.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} — это использование, в котором не указана команда, например отправленное без {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} — это использование, в котором не указано, кто его сделал, например отправленное без {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Метрики использования не учтены: ваша роль не может читать метрики. Попросите доступ у администратора проекта."
 }

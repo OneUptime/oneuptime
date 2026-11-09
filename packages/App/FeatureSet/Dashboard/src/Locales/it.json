@@ -47177,5 +47177,15 @@
   "From AI calls and usage metrics": "Dalle chiamate IA e dalle metriche di utilizzo",
   "From usage metrics": "Dalle metriche di utilizzo",
   "Services counted from usage metrics: {{services}}": "Servizi conteggiati dalle metriche di utilizzo: {{services}}",
-  "Usage metrics are left out: your role cannot read metrics.": "Le metriche di utilizzo sono escluse: il tuo ruolo non può leggere le metriche."
+  "Usage metrics are left out: your role cannot read metrics.": "Le metriche di utilizzo sono escluse: il tuo ruolo non può leggere le metriche.",
+  "AI calls": "Chiamate IA",
+  "No cost reported": "Nessun costo riportato",
+  "No tokens reported": "Nessun token riportato",
+  "Ranked by cost over the selected range.": "Ordinati per costo nel periodo selezionato.",
+  "Share of cost": "Quota del costo",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} è l'utilizzo che non indica alcun modello.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} è l'utilizzo che non indica alcun provider, come le metriche di utilizzo di un assistente di programmazione.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} è l'utilizzo che non indica alcun team, ad esempio inviato senza {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} è l'utilizzo che non indica chi lo ha generato, ad esempio inviato senza {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Le metriche di utilizzo sono escluse: il tuo ruolo non può leggere le metriche. Chiedi l'accesso a un amministratore del progetto."
 }

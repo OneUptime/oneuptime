@@ -157,13 +157,34 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
         isFromUsageMetrics(figures.costSource)),
   );
 
+  /*
+   * A figure nothing reported, beside usage that is there: calls whose
+   * model has no price report no cost, a tool's metrics may count cost and
+   * no tokens. It is "—" and says so, never a 0 that claims the usage was
+   * free. With no usage at all, the 0s are simply true, and say nothing.
+   */
+  const tokensNotReported: boolean = Boolean(
+    figures &&
+      figures.tokenSource === LlmUsageSource.None &&
+      (figures.calls > 0 || figures.costSource !== LlmUsageSource.None),
+  );
+  const costNotReported: boolean = Boolean(
+    figures &&
+      figures.costSource === LlmUsageSource.None &&
+      (figures.calls > 0 || figures.tokenSource !== LlmUsageSource.None),
+  );
+
+  const tokenHint: string | undefined = tokensNotReported
+    ? translator.translateText("No tokens reported") || undefined
+    : sourceHint(figures?.tokenSource) || failedHint;
+
   return (
     <div
       className="grid grid-cols-2 gap-3 lg:grid-cols-4"
       data-testid="llm-usage-totals"
     >
       <LlmTile
-        label="LLM calls"
+        label="AI calls"
         value={number(figures?.calls, formatLlmCount)}
         hint={
           figures && figures.calls > 0
@@ -175,6 +196,8 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
                 undefined
               : failedHint
         }
+        // "...from your apps" is what the hint says: never cut short.
+        wrapHint={true}
         icon={IconProp.Sparkles}
         iconClassName="text-violet-600"
         iconTileClassName="bg-violet-50"
@@ -183,8 +206,12 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
       />
       <LlmTile
         label="Input tokens"
-        value={number(figures?.inputTokens, formatLlmTokens)}
-        hint={sourceHint(figures?.tokenSource) || failedHint}
+        value={
+          tokensNotReported
+            ? "—"
+            : number(figures?.inputTokens, formatLlmTokens)
+        }
+        hint={tokenHint}
         wrapHint={true}
         icon={IconProp.ArrowDown}
         iconClassName="text-indigo-600"
@@ -194,8 +221,12 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
       />
       <LlmTile
         label="Output tokens"
-        value={number(figures?.outputTokens, formatLlmTokens)}
-        hint={sourceHint(figures?.tokenSource) || failedHint}
+        value={
+          tokensNotReported
+            ? "—"
+            : number(figures?.outputTokens, formatLlmTokens)
+        }
+        hint={tokenHint}
         wrapHint={true}
         icon={IconProp.ArrowUp}
         iconClassName="text-sky-600"
@@ -205,12 +236,11 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
       />
       <LlmTile
         label="Cost (USD)"
-        value={number(figures?.costUsd, formatLlmCost)}
+        value={costNotReported ? "—" : number(figures?.costUsd, formatLlmCost)}
         hint={
-          sourceHint(figures?.costSource) ||
-          (figures
-            ? translator.translateText("when reported by SDK") || undefined
-            : failedHint)
+          costNotReported
+            ? translator.translateText("No cost reported") || undefined
+            : sourceHint(figures?.costSource) || failedHint
         }
         wrapHint={true}
         icon={IconProp.CurrencyDollar}

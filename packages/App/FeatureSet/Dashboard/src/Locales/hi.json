@@ -47177,5 +47177,15 @@
   "From AI calls and usage metrics": "AI कॉल और उपयोग मेट्रिक्स से",
   "From usage metrics": "उपयोग मेट्रिक्स से",
   "Services counted from usage metrics: {{services}}": "उपयोग मेट्रिक्स से गिनी गई सेवाएं: {{services}}",
-  "Usage metrics are left out: your role cannot read metrics.": "उपयोग मेट्रिक्स शामिल नहीं हैं: आपकी भूमिका मेट्रिक्स नहीं पढ़ सकती।"
+  "Usage metrics are left out: your role cannot read metrics.": "उपयोग मेट्रिक्स शामिल नहीं हैं: आपकी भूमिका मेट्रिक्स नहीं पढ़ सकती।",
+  "AI calls": "AI कॉल",
+  "No cost reported": "कोई लागत नहीं बताई गई",
+  "No tokens reported": "कोई टोकन नहीं बताया गया",
+  "Ranked by cost over the selected range.": "चुनी गई अवधि में लागत के हिसाब से क्रमबद्ध।",
+  "Share of cost": "लागत में हिस्सा",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} वह उपयोग है जो किसी मॉडल का नाम नहीं बताता।",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} वह उपयोग है जो किसी प्रदाता का नाम नहीं बताता, जैसे किसी कोडिंग असिस्टेंट के उपयोग मेट्रिक्स।",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} वह उपयोग है जो किसी टीम का नाम नहीं बताता, जैसे {{teamId}} के बिना भेजा गया।",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} वह उपयोग है जो यह नहीं बताता कि इसे किसने किया, जैसे {{userEmail}} के बिना भेजा गया।",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "उपयोग मेट्रिक्स शामिल नहीं हैं: आपकी भूमिका मेट्रिक्स नहीं पढ़ सकती। पहुंच के लिए किसी प्रोजेक्ट एडमिन से कहें।"
 }

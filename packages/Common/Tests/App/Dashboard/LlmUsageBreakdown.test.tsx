@@ -31,15 +31,19 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * properties of the page are invisible in a snapshot and each is a real
  * reporting bug if it regresses:
  *
- *  - the ranking, and the share of the totals over EVERY group;
+ *  - the ranking, and the share of the cost over EVERY group, with a top
+ *    named only when the table leaves groups out;
  *  - the Unattributed row: spend whose emitter named nobody is a real
- *    bucket of money, never dropped;
+ *    bucket of money, never dropped, and said what it is in the words of
+ *    the table on screen - only when the table has one;
  *  - service ids read as names, and the project's id as the Unknown
  *    Service;
  *  - where a row's figures came from, when not from AI calls alone, and a
- *    dash rather than a 0 for the calls a coding tool's metrics never
- *    count;
- *  - the services counted from their usage metrics, named;
+ *    quiet dash rather than a 0 for what nothing reported: the calls a
+ *    coding tool's metrics never count, tokens or a cost nobody sent, and
+ *    a share of no cost;
+ *  - the services counted from their usage metrics, named, except over the
+ *    services' own table;
  *  - a FAILED read is the error state, never a table of unmeasured zeros.
  */
 
@@ -222,10 +226,50 @@ describe("LlmUsageBreakdown - the ranked leaderboard", () => {
 
     expect(renderedRows()).toEqual([
       ["1", "senior@example.com", "40", "100", "25", "125", "$9.00", "90.0%"],
-      ["2", "junior@example.com", "4", "0", "0", "0", "$1.00", "10.0%"],
+      // Junior's calls reported no token: dashes, never 0s nobody measured.
+      ["2", "junior@example.com", "4", "—", "—", "—", "$1.00", "10.0%"],
     ]);
     // Calls alone: nothing to say about where the figures came from.
     expect(screen.queryAllByTestId("llm-usage-row-source")).toHaveLength(0);
+
+    // The dash is the quiet one, lighter than the figures beside it.
+    const junior: HTMLElement = screen.getAllByTestId("llm-usage-row")[1]!;
+
+    expect(within(junior).getAllByTestId("llm-usage-not-counted")).toHaveLength(
+      3,
+    );
+    expect(
+      within(junior).getAllByTestId("llm-usage-not-counted")[0],
+    ).toHaveClass("text-gray-400");
+  });
+
+  test("the share column is named for what it shares out: the cost", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    /*
+     * "Share of cost", not "Share": the bare word is the product's Share
+     * buttons, and every language words it as the verb (German "Teilen").
+     */
+    const headers: Array<string> = screen
+      .getAllByRole("columnheader")
+      .map((header: HTMLElement): string => {
+        return (header.textContent || "").trim();
+      });
+
+    expect(headers).toContain("Share of cost");
+    expect(headers).not.toContain("Share");
   });
 
   test("one read for the dimension and the range on screen, again on a switch", async () => {
@@ -282,7 +326,37 @@ describe("LlmUsageBreakdown - the ranked leaderboard", () => {
     );
   });
 
-  test("nothing to share out: the share is a dash", async () => {
+  /*
+   * "Top 25 of 3" says nothing true: a table that leaves no group out says
+   * how it is ranked, and names no top.
+   */
+  test("25 groups or fewer: the line says how the table is ranked, and names no top", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 3 },
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 2,
+          costUsd: 2,
+          costSource: LlmUsageSource.Calls,
+        }),
+        group({
+          key: "bob@example.com",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.getByTestId("llm-usage-breakdown-top")).toHaveTextContent(
+      /^Ranked by cost over the selected range\.$/,
+    );
+  });
+
+  test("nothing to share out: the cost and the share are dashes", async () => {
     serve({
       groups: [
         group({
@@ -296,7 +370,35 @@ describe("LlmUsageBreakdown - the ranked leaderboard", () => {
 
     await renderBreakdown();
 
+    // No cost reported: never a "$0" that claims the calls were free.
+    expect(renderedRows()[0]![6]).toBe("—");
     expect(renderedRows()[0]![7]).toBe("—");
+  });
+
+  test("a row with no cost of its own beside rows with one: a dash for its cost and its share, never 0.0%", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 4 },
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 2,
+          costUsd: 4,
+          costSource: LlmUsageSource.Calls,
+        }),
+        // A tool's token metrics, and no cost metric beside them.
+        group({
+          key: "",
+          inputTokens: 900,
+          totalTokens: 900,
+          tokenSource: LlmUsageSource.Metrics,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    expect(renderedRows()[0]!.slice(6)).toEqual(["$4.00", "100.0%"]);
+    expect(renderedRows()[1]!.slice(6)).toEqual(["—", "—"]);
   });
 });
 
@@ -328,12 +430,114 @@ describe("LlmUsageBreakdown - unattributed spend", () => {
     expect(renderedRows()[0]![7]).toBe("80.0%");
   });
 
-  test("says why attribution can be missing and links to the setup docs", async () => {
+  test("an Unattributed row says what it is, and links to the setup docs", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
     await renderBreakdown();
 
+    const note: HTMLElement = screen.getByTestId("llm-usage-unattributed-note");
+
+    expect(note).toHaveTextContent(
+      "Unattributed is usage that doesn't say who made it, for example sent without user.email. How to attribute AI coding assistant usage",
+    );
+    expect(within(note).getByText("user.email").tagName).toBe("CODE");
     expect(
-      screen.getByText("How to attribute AI coding assistant usage"),
+      within(note).getByRole("link", {
+        name: "How to attribute AI coding assistant usage",
+      }),
     ).toHaveAttribute("href", "/docs/telemetry/ai-coding-assistants");
+  });
+
+  test("the Team table's Unattributed row names the team attribute", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+    await pick("Team");
+
+    const note: HTMLElement = screen.getByTestId("llm-usage-unattributed-note");
+
+    expect(note).toHaveTextContent(
+      "Unattributed is usage that doesn't say which team, for example sent without team.id.",
+    );
+    expect(within(note).getByRole("link")).toHaveAttribute(
+      "href",
+      "/docs/telemetry/ai-coding-assistants",
+    );
+  });
+
+  test("the Model table's Unattributed row: no attribution guide, which sets people and teams", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+    await pick("Model");
+
+    const note: HTMLElement = screen.getByTestId("llm-usage-unattributed-note");
+
+    expect(note).toHaveTextContent(
+      /^Unattributed is usage that doesn't say which model\.$/,
+    );
+    expect(within(note).queryByRole("link")).toBeNull();
+  });
+
+  /*
+   * Usage that is all named needs no footnote: the strip over every table
+   * said how attribution goes missing to projects where none was.
+   */
+  test("no Unattributed row: no note and no link", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.queryByTestId("llm-usage-unattributed-note")).toBeNull();
+    expect(
+      screen.queryByText("How to attribute AI coding assistant usage"),
+    ).toBeNull();
+  });
+
+  test("an empty, loading or failed table has no note", async () => {
+    await renderBreakdown();
+
+    expect(screen.queryByTestId("llm-usage-unattributed-note")).toBeNull();
   });
 });
 
@@ -399,6 +603,14 @@ describe("LlmUsageBreakdown - services and providers", () => {
 
     expect(renderedRows()[0]![1]).toBe("Azure OpenAI");
     expect(renderedRows()[1]![1]).toContain("Unattributed");
+
+    // A coding assistant's metrics name no provider: the note says so.
+    const note: HTMLElement = screen.getByTestId("llm-usage-unattributed-note");
+
+    expect(note).toHaveTextContent(
+      /^Unattributed is usage that doesn't say which provider, such as a coding assistant's usage metrics\.$/,
+    );
+    expect(within(note).queryByRole("link")).toBeNull();
   });
 });
 
@@ -494,6 +706,42 @@ describe("LlmUsageBreakdown - where a row's figures came from", () => {
     );
   });
 
+  test("over the services' own table, no line: each row says it under its name", async () => {
+    getListMock.mockResolvedValue({
+      data: [namedService(CLAUDE_CODE_SERVICE_ID, "claude-code")],
+    } as never);
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 52.25 },
+      services: [
+        service({
+          serviceId: CLAUDE_CODE_SERVICE_ID,
+          costUsd: 52.25,
+          costSource: LlmUsageSource.Metrics,
+        }),
+      ],
+      groups: [
+        group({
+          key: CLAUDE_CODE_SERVICE_ID,
+          costUsd: 52.25,
+          costSource: LlmUsageSource.Metrics,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.getByTestId("llm-usage-metric-services")).toBeInTheDocument();
+
+    await pick("Application / Service");
+
+    expect(screen.queryByTestId("llm-usage-metric-services")).toBeNull();
+    expect(screen.getByTestId("llm-usage-row-source")).toHaveTextContent(
+      "From usage metrics",
+    );
+    // A service is always named: no Unattributed row, no note.
+    expect(screen.queryByTestId("llm-usage-unattributed-note")).toBeNull();
+  });
+
   test("past three services, how many more", async () => {
     const services: Array<LlmUsageService> = [];
 
@@ -550,9 +798,17 @@ describe("LlmUsageBreakdown - where a row's figures came from", () => {
 
     await renderBreakdown();
 
-    expect(screen.getByTestId("llm-usage-metrics-left-out")).toHaveTextContent(
-      "Usage metrics are left out: your role cannot read metrics.",
+    // What is left out, and the one next step, quietly beside a lock.
+    const leftOut: HTMLElement = screen.getByTestId(
+      "llm-usage-metrics-left-out",
     );
+
+    expect(leftOut).toHaveTextContent(
+      /^Usage metrics are left out: your role cannot read metrics\. Ask a project admin for access\.$/,
+    );
+    expect(leftOut).toHaveClass("text-gray-500");
+    expect(leftOut).not.toHaveClass("text-amber-700");
+    expect(leftOut.querySelector("svg")).not.toBeNull();
   });
 });
 

@@ -262,11 +262,11 @@ flowchart TB
 | --- | --- | --- |
 | Input- og outputtokens | Tokenene til hvert modellkall, én gang | Tokenene til en tjeneste, når AI-kallene dens ikke rapporterer noen |
 | Kostnad (USD) | Kostnaden til hvert modellkall, én gang | Kostnaden til en tjeneste, når AI-kallene dens ikke rapporterer noen, med Codex' kostnad i mikro-USD regnet om til USD |
-| LLM-kall | Hvert AI-kall, slik **Kall** viser dem | Aldri: en måling teller ingen kall |
+| AI-kall | Hvert AI-kall, slik **Kall** viser dem | Aldri: en måling teller ingen kall |
 | Tabellene **Ansatt**, **Team**, **Modell**, **Leverandør**, **Applikasjon / Tjeneste** | Kallene, tokenene og kostnaden til hver rad | Tokenene og kostnaden til tjenestene som telles fra målinger, under personen, teamet, modellen eller leverandøren punktene deres nevner |
 | Samtaler | Bygget fra AI-kall | Aldri |
 
-Under hvert tall sier fanen Forbruk hvor det kommer fra: **Fra AI-kall**, **Fra bruksmålinger** eller **Fra AI-kall og bruksmålinger** når noen tjenester sendte kall og andre målinger. En tabellrad som er telt fra bruksmålinger, sier det under navnet sitt, og cellen for kall viser `—` når den ikke har noe AI-kall, fordi en måling ikke har detaljer per kall; tabellens overskrift nevner tjenestene som er telt fra bruksmålinger. En bruksmåling som ikke nevner noen tjeneste, telles under **Ukjent tjeneste**, én tjeneste som alle andre. Hvis rollen din kan lese traces, men ikke målinger, utelates bruksmålingene, og tabellen sier det.
+Under hvert tall sier fanen Forbruk hvor det kommer fra: **Fra AI-kall**, **Fra bruksmålinger** eller **Fra AI-kall og bruksmålinger** når noen tjenester sendte kall og andre målinger. En tabellrad som er telt fra bruksmålinger, sier det under navnet sitt, og cellen for kall viser `—` når den ikke har noe AI-kall, fordi en måling ikke har detaljer per kall; tabellens overskrift nevner tjenestene som er telt fra bruksmålinger, unntatt i **Applikasjon / Tjeneste**, der radene er tjenestene selv. En bruksmåling som ikke nevner noen tjeneste, telles under **Ukjent tjeneste**, én tjeneste som alle andre. Hvis rollen din kan lese traces, men ikke målinger, utelates bruksmålingene, og tabellen sier det.
 
 Hvert modellkall telles én gang. En agentkjøring, eller et rammeverks span rundt SDK-ets eget span, gjentar ofte tokenene og kostnaden til kallene inni den: tokenene til et span, eller kostnaden, utelates der et kall inni det rapporterer dem, og en agentkjøring beholder sine egne tall når ingen kall inni den gjør det. Budsjetter og listen **Samtaler** teller på samme måte, mens **Kall** viser hvert span med sine egne tall.
 

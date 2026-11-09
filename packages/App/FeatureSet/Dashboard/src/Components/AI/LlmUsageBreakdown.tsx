@@ -6,6 +6,7 @@ import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnW
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useMemo,
   useState,
@@ -73,6 +74,36 @@ const NAMED_METRIC_SERVICES: number = 3;
 const UNATTRIBUTED_LABEL: string = translationKey("Unattributed");
 
 const ATTRIBUTION_DOCS_URL: string = "/docs/telemetry/ai-coding-assistants";
+
+/*
+ * What the Unattributed row is, in the words of the dimension on screen:
+ * usage that doesn't say who made it, which team, which model or which
+ * provider - a coding assistant's usage metrics name no provider, so they
+ * are the Provider table's Unattributed row. Said only when the table has
+ * that row: a project whose usage is all named needs no footnote. A
+ * service is always named (telemetry that names none is the Unknown
+ * Service), so that table has none.
+ */
+const UNATTRIBUTED_NOTES: Partial<Record<LlmUsageDimension, string>> = {
+  [LlmUsageDimension.Employee]: translationKey(
+    "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.",
+  ),
+  [LlmUsageDimension.Team]: translationKey(
+    "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.",
+  ),
+  [LlmUsageDimension.Model]: translationKey(
+    "{{unattributed}} is usage that doesn't say which model.",
+  ),
+  [LlmUsageDimension.Provider]: translationKey(
+    "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.",
+  ),
+};
+
+// Who and which team: what the attribution guide helps set.
+const DIMENSIONS_WITH_ATTRIBUTION_GUIDE: Array<LlmUsageDimension> = [
+  LlmUsageDimension.Employee,
+  LlmUsageDimension.Team,
+];
 
 export type LlmUsageDimensionKey =
   | LlmUsageDimension.Employee
@@ -445,11 +476,34 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
     );
   };
 
-  const renderCount: (value: number, unknown: boolean) => string = (
+  /*
+   * A figure nothing counted, in one quiet way everywhere in the table:
+   * a dash, lighter than the figures around it.
+   */
+  const notCounted: ReactElement = (
+    <span className="text-gray-400" data-testid="llm-usage-not-counted">
+      —
+    </span>
+  );
+
+  /*
+   * A cost nothing reported - calls whose model has no price, or a tool
+   * whose metrics count tokens only - is "—", never a $0 that claims the
+   * usage was free.
+   */
+  const renderCost: (row: LlmUsageGroup) => ReactNode = (
+    row: LlmUsageGroup,
+  ): ReactNode => {
+    return row.costSource === LlmUsageSource.None
+      ? notCounted
+      : formatLlmCost(row.costUsd);
+  };
+
+  const renderCount: (value: number, unknown: boolean) => ReactNode = (
     value: number,
     unknown: boolean,
-  ): string => {
-    return unknown ? "—" : formatLlmCount(value);
+  ): ReactNode => {
+    return unknown ? notCounted : formatLlmCount(value);
   };
 
   type RenderShareFunction = (row: LlmUsageGroup) => ReactElement;
@@ -457,8 +511,9 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
   const renderShare: RenderShareFunction = (
     row: LlmUsageGroup,
   ): ReactElement => {
-    if (usage.totalCost <= 0) {
-      return <span className="text-gray-400">—</span>;
+    // Nothing to share out, or no cost of the row's own: no share to draw.
+    if (usage.totalCost <= 0 || row.costSource === LlmUsageSource.None) {
+      return notCounted;
     }
 
     const share: number = (row.costUsd / usage.totalCost) * 100;
@@ -482,10 +537,14 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
 
   /*
    * The services counted from their usage metrics, named: the first few,
-   * then how many more ("+2"), in the sentence's language.
+   * then how many more ("+2"), in the sentence's language. Not over the
+   * services' own table, where each row already says it under its name.
    */
   const metricServices: ReactElement | null =
-    !usage.isLoading && !usage.hasError && usage.metricServiceIds.length > 0 ? (
+    !usage.isLoading &&
+    !usage.hasError &&
+    usage.metricServiceIds.length > 0 &&
+    dimension.key !== LlmUsageDimension.Service ? (
       <div
         className="text-sm text-gray-500"
         data-testid="llm-usage-metric-services"
@@ -512,6 +571,45 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
         )}
       </div>
     ) : null;
+
+  // The footnote on the Unattributed row, when the table on screen has one.
+  const unattributedNote: string | undefined =
+    !usage.isLoading &&
+    !usage.hasError &&
+    usage.rows.some((row: LlmUsageGroup): boolean => {
+      return !row.key;
+    })
+      ? UNATTRIBUTED_NOTES[dimension.key]
+      : undefined;
+
+  /*
+   * The footnote's slots: the row's name, set in its weight, and the
+   * attribute it names - only the slots its sentence has, since a sentence
+   * drawn without one of its slots falls back to English.
+   */
+  const getUnattributedNoteSlots: (
+    template: string,
+  ) => Record<string, ReactElement> = (
+    template: string,
+  ): Record<string, ReactElement> => {
+    const slots: Record<string, ReactElement> = {
+      unattributed: (
+        <span className="font-medium text-gray-700">
+          {translator.translateText(UNATTRIBUTED_LABEL)}
+        </span>
+      ),
+    };
+
+    if (template.includes("{{userEmail}}")) {
+      slots["userEmail"] = <code>user.email</code>;
+    }
+
+    if (template.includes("{{teamId}}")) {
+      slots["teamId"] = <code>team.id</code>;
+    }
+
+    return slots;
+  };
 
   return (
     <div className="space-y-5">
@@ -591,67 +689,86 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
           </div>
           {/*
            * Only over rows it counts: while the table loads, when it could
-           * not be read, or when it is empty, "Top 25 of 0" says nothing
-           * true.
+           * not be read, or when it is empty, a line about the ranking says
+           * nothing true. "Top 25 of 3" says nothing true either: the top
+           * is named only when the table leaves groups out.
            */}
           {!usage.isLoading && !usage.hasError && usage.totalGroups > 0 ? (
             <div
               className="text-sm text-gray-500"
               data-testid="llm-usage-breakdown-top"
             >
-              {translator.translateTemplate(
-                "Top {{top}} of {{total}} by cost over the selected range.",
-                {
-                  top: translator.formatNumber(TOP_K_GROUPS),
-                  total: translator.formatNumber(usage.totalGroups),
-                },
-              )}
+              {usage.totalGroups > TOP_K_GROUPS
+                ? translator.translateTemplate(
+                    "Top {{top}} of {{total}} by cost over the selected range.",
+                    {
+                      top: translator.formatNumber(TOP_K_GROUPS),
+                      total: translator.formatNumber(usage.totalGroups),
+                    },
+                  )
+                : translator.translateText(
+                    "Ranked by cost over the selected range.",
+                  )}
             </div>
           ) : (
             <></>
           )}
           {metricServices}
+          {/*
+           * What the reader's role leaves out, quietly, as the product says
+           * what a role may not see, with the one next step - in one
+           * sentence pair, so each language says both in one voice.
+           */}
           {!usage.isLoading && !usage.hasError && usage.metricsLeftOut ? (
             <div
-              className="text-sm text-amber-700"
+              className="flex items-start gap-1.5 text-sm text-gray-500"
               data-testid="llm-usage-metrics-left-out"
             >
-              {translator.translateText(
-                "Usage metrics are left out: your role cannot read metrics.",
-              )}
+              <Icon
+                icon={IconProp.Lock}
+                className="mt-0.5 h-4 w-4 flex-none text-gray-400"
+              />
+              <div>
+                {translator.translateText(
+                  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.",
+                )}
+              </div>
             </div>
           ) : null}
         </div>
 
         {/*
-         * Attribution is only as good as what the emitter sent. Saying so
-         * plainly here is the difference between a manager trusting the
-         * Unattributed row and filing a bug about it.
+         * What the Unattributed row is, when the table has one: attribution
+         * is only as good as what the telemetry named, and saying so plainly
+         * is the difference between a manager trusting that row and filing
+         * a bug about it.
          */}
-        <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-600">
-          <TranslatedSentence
-            template="Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call."
-            values={{
-              unattributed: translator.translateText(
-                UNATTRIBUTED_LABEL,
-              ) as string,
-            }}
-            slots={{
-              userEmail: <code>user.email</code>,
-              teamId: <code>team.id</code>,
-            }}
-          />{" "}
-          <a
-            className="font-medium text-violet-700 hover:underline"
-            href={ATTRIBUTION_DOCS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+        {unattributedNote ? (
+          <div
+            className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-600"
+            data-testid="llm-usage-unattributed-note"
           >
-            {translator.translateText(
-              "How to attribute AI coding assistant usage",
-            )}
-          </a>
-        </div>
+            <TranslatedSentence
+              template={unattributedNote}
+              slots={getUnattributedNoteSlots(unattributedNote)}
+            />
+            {DIMENSIONS_WITH_ATTRIBUTION_GUIDE.includes(dimension.key) ? (
+              <>
+                {" "}
+                <a
+                  className="font-medium text-violet-700 hover:underline"
+                  href={ATTRIBUTION_DOCS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {translator.translateText(
+                    "How to attribute AI coding assistant usage",
+                  )}
+                </a>
+              </>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="overflow-x-auto">
           {resizableColumns.styles}
@@ -729,15 +846,21 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                 >
                   <span>{translator.translateText("Cost (USD)")}</span>
                 </ResizableHeaderCell>
+                {/*
+                 * "Share of cost", not "Share": every language words the
+                 * bare English as the verb (German "Teilen"), as the
+                 * product's Share buttons and pages mean it.
+                 */}
                 <ResizableHeaderCell
                   className="px-4 py-2 text-left font-medium text-gray-500"
                   resize={resizableColumns.getResize(
                     "share",
-                    translator.translateText("Share") || "Share",
+                    translator.translateText("Share of cost") ||
+                      "Share of cost",
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{translator.translateText("Share")}</span>
+                  <span>{translator.translateText("Share of cost")}</span>
                 </ResizableHeaderCell>
               </tr>
             </thead>
@@ -776,9 +899,9 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                 ? usage.rows.map(
                     (row: LlmUsageGroup, index: number): ReactElement => {
                       const metricsOnly: boolean = isMetricsOnly(row);
+                      // Nothing reported a token: "—", never a 0 nobody measured.
                       const noTokens: boolean =
-                        row.tokenSource === LlmUsageSource.None &&
-                        row.calls === 0;
+                        row.tokenSource === LlmUsageSource.None;
 
                       return (
                         <tr
@@ -805,7 +928,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                             {renderCount(row.totalTokens, noTokens)}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-xs text-gray-900">
-                            {formatLlmCost(row.costUsd)}
+                            {renderCost(row)}
                           </td>
                           <td className="px-4 py-2">{renderShare(row)}</td>
                         </tr>

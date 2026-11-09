@@ -47177,5 +47177,15 @@
   "From AI calls and usage metrics": "AI 호출 및 사용량 메트릭 기준",
   "From usage metrics": "사용량 메트릭 기준",
   "Services counted from usage metrics: {{services}}": "사용량 메트릭으로 집계한 서비스: {{services}}",
-  "Usage metrics are left out: your role cannot read metrics.": "사용량 메트릭은 제외되었습니다. 내 역할로는 메트릭을 읽을 수 없습니다."
+  "Usage metrics are left out: your role cannot read metrics.": "사용량 메트릭은 제외되었습니다. 내 역할로는 메트릭을 읽을 수 없습니다.",
+  "AI calls": "AI 호출",
+  "No cost reported": "보고된 비용 없음",
+  "No tokens reported": "보고된 토큰 없음",
+  "Ranked by cost over the selected range.": "선택한 기간의 비용 기준 순위.",
+  "Share of cost": "비용 비율",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}}은 모델이 지정되지 않은 사용량입니다.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}}은 공급자가 지정되지 않은 사용량입니다(예: 코딩 어시스턴트의 사용량 메트릭).",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}}은 팀이 지정되지 않은 사용량입니다(예: {{teamId}} 없이 전송된 경우).",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}}은 누가 사용했는지 지정되지 않은 사용량입니다(예: {{userEmail}} 없이 전송된 경우).",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "사용량 메트릭은 제외되었습니다. 내 역할로는 메트릭을 읽을 수 없습니다. 프로젝트 관리자에게 액세스 권한을 요청하세요."
 }

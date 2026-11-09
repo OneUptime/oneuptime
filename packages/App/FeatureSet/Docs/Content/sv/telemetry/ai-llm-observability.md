@@ -262,11 +262,11 @@ flowchart TB
 | --- | --- | --- |
 | Indata- och utdatatokens | Varje modellanrops tokens, en gång | En tjänsts tokens, när dess AI-anrop inte rapporterar några |
 | Kostnad (USD) | Varje modellanrops kostnad, en gång | En tjänsts kostnad, när dess AI-anrop inte rapporterar någon, med Codex kostnad i mikro-USD omräknad till USD |
-| LLM-anrop | Varje AI-anrop, så som **Anrop** listar dem | Aldrig: ett mätvärde räknar inga anrop |
+| AI-anrop | Varje AI-anrop, så som **Anrop** listar dem | Aldrig: ett mätvärde räknar inga anrop |
 | Tabellerna **Anställd**, **Team**, **Modell**, **Leverantör**, **Applikation / Tjänst** | Varje rads anrop, tokens och kostnad | Tokens och kostnad för tjänsterna som räknas från mätvärden, under den person, det team, den modell eller den leverantör som deras punkter nämner |
 | Konversationer | Byggda från AI-anrop | Aldrig |
 
-Under varje tal säger fliken Användning var det kommer ifrån: **Från AI-anrop**, **Från användningsmätvärden** eller **Från AI-anrop och användningsmätvärden** när vissa tjänster skickade anrop och andra mätvärden. En tabellrad som räknats från användningsmätvärden säger det under sitt namn, och dess cell för anrop visar `—` när den inte har något AI-anrop, eftersom ett mätvärde saknar detaljer per anrop; tabellens rubrik nämner tjänsterna som räknats från användningsmätvärden. Ett användningsmätvärde som inte nämner någon tjänst räknas under **Okänd tjänst**, en tjänst som alla andra. Om din roll får läsa traces men inte mätvärden utelämnas användningsmätvärdena, och tabellen säger det.
+Under varje tal säger fliken Användning var det kommer ifrån: **Från AI-anrop**, **Från användningsmätvärden** eller **Från AI-anrop och användningsmätvärden** när vissa tjänster skickade anrop och andra mätvärden. En tabellrad som räknats från användningsmätvärden säger det under sitt namn, och dess cell för anrop visar `—` när den inte har något AI-anrop, eftersom ett mätvärde saknar detaljer per anrop; tabellens rubrik nämner tjänsterna som räknats från användningsmätvärden, utom i **Applikation / Tjänst**, där raderna är tjänsterna själva. Ett användningsmätvärde som inte nämner någon tjänst räknas under **Okänd tjänst**, en tjänst som alla andra. Om din roll får läsa traces men inte mätvärden utelämnas användningsmätvärdena, och tabellen säger det.
 
 Varje modellanrop räknas en gång. En agentkörning, eller ett ramverks span runt SDK:ns eget span, upprepar ofta tokens och kostnad för anropen i den: ett spans tokens, eller dess kostnad, utelämnas varhelst ett anrop i det rapporterar dem, och en agentkörning behåller sina egna tal när inget anrop i den gör det. Budgetar och listan **Konversationer** räknar på samma sätt, medan **Anrop** listar varje span med dess egna tal.
 
