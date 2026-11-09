@@ -122,6 +122,8 @@ Um ein Geheimnis ohne Datenverlust zu wechseln, legen Sie einen zweiten Schlüss
 
 Eine abgelehnte Anfrage wird mit einem Status und einem Satz beantwortet, der den Grund nennt.
 
+Die Seite des Schlüssels zählt mit: **Abgelehnte Telemetrie** listet, was in den letzten 30 Tagen von dem Schlüssel abgelehnt wurde, warum, an welchem Endpunkt, wie viele Anfragen und wann. Ein fehlender oder vertippter Schlüssel gehört zu keinem Projekt, daher zählt ihn nichts.
+
 | Antwort | Was sie bedeutet |
 | --- | --- |
 | `401` mit `Missing ingestion token` | Die Anfrage hat keinen Schlüssel. Senden Sie ihn in `x-oneuptime-token`. |

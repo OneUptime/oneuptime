@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 A web app needs a **Browser** key, and a mobile app a **Server** key: see [Browser Setup](/docs/rum/browser-setup) and [Mobile Setup](/docs/rum/mobile-setup). The export endpoints refuse a bad key with `401` too, as the OTLP specification asks, so a well-behaved SDK logs the refusal instead of retrying. That line is easy to miss in a browser console, and this check answers directly.
 
+OneUptime also counts what it refuses from a key it knows. The key's page under **Project Settings → Telemetry & APM → Ingestion Keys** lists its **Refused Telemetry** of the past 30 days, and the **Setup check** on the application's **Documentation** page says which kind of telemetry is refused, why, and how to fix it. A missing or unknown key names no project, so nothing counts it: this check and the `401` are all there is.
+
 ## Check what leaves the browser
 
 Open your browser's developer tools on the app's page, select the Network tab and filter for `otlp`. You are looking for `POST /otlp/v1/traces` answered with a `2xx` status.
@@ -121,6 +123,7 @@ The empty chart on the application's **Overview** says which case it is, and the
 | **No exceptions in this time range** or **No logs in this time range** | Some arrived before, and the chart says when the last one did. Pick the longer range it offers. |
 | **Nothing has arrived from this app yet** | No telemetry of any kind arrives: start with [Check the key](#check-the-key). |
 | **The OpenTelemetry SDK isn't reporting** | Only Session Replay reports from this app: set up the SDK as in [Browser Setup](/docs/rum/browser-setup). |
+| **Exceptions are being refused** or **Logs are being refused** | OneUptime refused them after the last one arrived, and the chart says why and when: the key is switched off or expired, it doesn't allow your site's origin, a limit or a budget is used up, or the project has no payment method. Its button puts it right: **Pick another key**, **Open the key**, **See budgets** or **Add a payment method**. |
 
 Exceptions need an error handler, because the SDK does not capture uncaught errors: [Report uncaught errors](/docs/rum/browser-setup#report-uncaught-errors) has the code. An error that an error boundary or a `try`/`catch` handles never reaches the window, so record it where you handle it, with `span.recordException`.
 

@@ -124,10 +124,10 @@ OneUptime lee las personas de los spans y de los puntos de datos de las métrica
 
 Con la configuración de arriba, en la pestaña **Uso** el resultado es este:
 
-- Los tokens vienen de los spans, por persona, y `codex.turn.token_usage` no se suma encima: los dos nunca se suman ([por qué](/docs/telemetry/ai-llm-observability#primero-los-spans-las-métricas-los-suplen)).
+- Los tokens vienen de los spans, por persona, y `codex.turn.token_usage` no se suma encima: los dos nunca se suman ([por qué](/docs/telemetry/ai-llm-observability#cada-servicio-se-cuenta-a-partir-de-lo-que-envía)).
 - Los spans de Codex no nombran ningún modelo, así que OneUptime no puede ponerles precio, y su coste es 0. Los totales de coste toman entonces el coste de Codex de `codex.turn.cost_microusd`, convertido a USD por ti.
-- Las tablas **Empleado**, **Equipo** y **Modelo** muestran las filas de los spans: tokens por persona, pero ningún coste por persona.
-- Sin trazas, son las métricas las que rellenan esas tablas, solo con el coste, todo bajo **Sin atribuir**, ya que las métricas de Codex no nombran a nadie.
+- Las tablas **Empleado** y **Equipo** muestran los tokens de los spans por persona, y el coste de Codex en una fila **Sin atribuir**, ya que sus métricas no nombran a nadie. La tabla **Modelo** es al revés: el coste por modelo, los tokens en **Sin atribuir**.
+- Sin trazas, las métricas cuentan los tokens y el coste de Codex: en **Sin atribuir** en las tablas **Empleado** y **Equipo**, y por modelo en la tabla **Modelo**.
 
 El coste por turno más preciso, con la persona incluida, es el registro de log `codex.turn_cost`. OneUptime todavía no une los registros de log al gasto, pero mantén activado el exportador de registros: el historial estará ahí cuando lo haga.
 

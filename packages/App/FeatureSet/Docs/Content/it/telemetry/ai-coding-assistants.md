@@ -105,7 +105,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 
 Impostala dove già prepari le macchine degli sviluppatori: un profilo MDM, un file di impostazioni gestite o un profilo della shell dai tuoi dotfile. I valori non possono contenere spazi: usa i trattini bassi, o la codifica percentuale come `%20`. Codex non ha attributi di risorsa, quindi imposta le stesse chiavi nel suo `[otel.span_attributes]`.
 
-Per separare la spesa per applicazione, usa il nome del servizio (`OTEL_SERVICE_NAME`, o l'impostazione propria dello strumento). La suddivisione **Applicazione / Servizio** copre solo gli strumenti che inviano span GenAI.
+Per separare la spesa per applicazione, usa il nome del servizio (`OTEL_SERVICE_NAME`, o l'impostazione propria dello strumento). La suddivisione **Applicazione / Servizio** classifica ogni servizio, che invii span GenAI o solo metriche.
 
 ### Cosa deliberatamente non viene trattato come il dipendente
 
@@ -144,21 +144,21 @@ Due cose da sapere prima di leggere i numeri:
 
 Apri **Prodotti → IA / LLM** e vai su **Utilizzo**. Ordina **Dipendente**, **Team**, **Modello**, **Provider** e **Applicazione / Servizio** per spesa, negli ultimi 7 giorni se non scegli un altro intervallo. Le chiamate che non nominano nessuno vengono contate in **Non attribuito**: una grande riga **Non attribuito** ti dice quale strumento ha ancora bisogno della sua identità.
 
-### Le metriche degli assistenti di programmazione sono un ripiego, non un'aggiunta
+### Le metriche degli assistenti di programmazione sono conteggiate accanto alle chiamate delle tue app
 
-Gli span GenAI vengono prima: le metriche vengono lette solo per un valore per cui gli span non hanno riportato nulla, e le due cose non vengono mai sommate ([perché](/docs/telemetry/ai-llm-observability#prima-gli-span-le-metriche-colmano-i-vuoti)). Per gli assistenti di programmazione questo ha una conseguenza netta: **se lo stesso progetto riceve span GenAI con un costo, la spesa degli assistenti di programmazione non compare.** Dai agli assistenti di programmazione un progetto tutto loro, con la sua chiave di acquisizione.
+Ogni servizio è conteggiato da ciò che invia ([come](/docs/telemetry/ai-llm-observability#ogni-servizio-è-conteggiato-da-ciò-che-invia)). Le metriche di un assistente di programmazione arrivano sotto il suo servizio, quindi la sua spesa si somma alle chiamate IA che le tue app inviano allo stesso progetto, senza mai prenderne il posto, e un'app che invia span GenAI e metriche per le stesse chiamate viene conteggiata una volta, dai suoi span.
 
-Quando il ripiego si applica, ecco cosa può mostrare ogni suddivisione per uno strumento che invia solo metriche:
+Ecco cosa mostra ogni suddivisione per uno strumento che invia solo metriche:
 
 | Suddivisione | Dalle metriche |
 | --- | --- |
 | **Dipendente** | Sì, da ogni chiave di identità qui sopra, senza prefisso e con il prefisso `resource.` |
 | **Team** | Sì, dalle chiavi del team |
 | **Modello** | Sì: Claude Code e Codex inviano un `model` senza prefisso, Cursor `cursor.model.name` |
-| **Provider** | No: le metriche degli assistenti di programmazione non nominano alcun provider |
-| **Applicazione / Servizio** | No: le loro metriche non appartengono ad alcun servizio OneUptime |
+| **Provider** | In **Non attribuito**: le metriche degli assistenti di programmazione non nominano alcun provider |
+| **Applicazione / Servizio** | Sì: ogni strumento sotto il servizio che nominano le sue metriche, come `cursor` |
 
-Una riga letta dalle metriche porta solo il costo: le sue celle di chiamate e token mostrano `—`, perché un contatore di spesa non ha dettagli per chiamata, e uno 0 lì direbbe che la persona non ha fatto chiamate. La tabella porta la dicitura **dalle metriche GenAI**.
+Una riga letta dalle metriche dice **Dalle metriche di utilizzo** sotto il suo nome. La sua cella delle chiamate mostra `—`, perché un contatore non ha dettagli per chiamata, e uno 0 lì direbbe che la persona non ha fatto chiamate; le sue celle dei token mostrano i token che le sue metriche hanno contato.
 
 ## Niente OpenTelemetry? Metti davanti un gateway
 
@@ -197,7 +197,7 @@ Codex invia anche le sue metriche a OpenAI per impostazione predefinita: vedi [O
 
 ## Da dove iniziare
 
-Procedi in quest'ordine; ogni passaggio è utile da solo. Usa un progetto che non riceve già span GenAI dalle tue app, altrimenti [la regola del ripiego](#le-metriche-degli-assistenti-di-programmazione-sono-un-ripiego-non-unaggiunta) tiene la spesa degli assistenti di programmazione fuori dalla pagina.
+Procedi in quest'ordine; ogni passaggio è utile da solo. Gli assistenti di programmazione possono condividere un progetto con le tue app: [ognuno viene conteggiato accanto a esse](#le-metriche-degli-assistenti-di-programmazione-sono-conteggiate-accanto-alle-chiamate-delle-tue-app).
 
 1. **Gemini CLI**, se qualcuno lo usa. Invia `user.email` senza configurazione, quindi mostra l'attribuzione funzionante da capo a fondo. Attiva anche le sue tracce: non invia alcuna metrica di costo.
 2. **Claude Code**: un file di impostazioni gestite per la flotta, `user.email` gratis, una vera metrica di costo, e tasso di accettazione, commit, pull request e righe di codice per sviluppatore.

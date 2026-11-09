@@ -129,17 +129,17 @@ Every record carries these resource attributes:
 
 ### Where Cursor shows up in the Usage tab
 
-Cursor sends metrics and no GenAI spans, and the metrics only fill in for spans: **if the same project receives GenAI spans with cost, Cursor's spend does not show.** Send Cursor to a project of its own. See [Spans come first, metrics fill in](/docs/telemetry/ai-llm-observability#spans-come-first-metrics-fill-in).
+Cursor sends metrics and no GenAI spans, under its own service, `cursor`, so its spend is counted beside the AI calls your apps send to the same project, never in their place. See [Each service is counted from what it sends](/docs/telemetry/ai-llm-observability#each-service-is-counted-from-what-it-sends).
 
 | Breakdown | For Cursor |
 | --- | --- |
 | **Employee** | Yes, by `cursor.user.email`, else `cursor.user.id` |
 | **Team** | Yes, by `cursor.team.id` |
 | **Model** | Yes, by `cursor.model.name` |
-| **Provider** | No: Cursor never says which provider served a call |
-| **Application / Service** | No: Cursor's metrics belong to no OneUptime service |
+| **Provider** | Under **Unattributed**: Cursor never says which provider served a call |
+| **Application / Service** | Yes, under the `cursor` service |
 
-A Cursor row carries cost only: its calls and token cells show `—`, because `cursor.cost.usage` has no per-call detail. `cursor.token.usage` still feeds the token totals above the table (its `input` and `output` types; cache tokens are left out), and you can chart it on a dashboard by `cursor.token.type`.
+A Cursor row says **From usage metrics** under its name, and its calls cell shows `—`, because a counter has no per-call detail. Its cost comes from `cursor.cost.usage`, and its tokens from `cursor.token.usage` (its `input` and `output` types; cache tokens are left out), which you can also chart on a dashboard by `cursor.token.type`.
 
 :::details Turning a Cursor user id into a person
 Names and billed amounts are in Cursor's Admin API, which OneUptime reads when you connect its key as a [provider account](/docs/telemetry/ai-provider-accounts#cursor): that account names people by email. To match a `cursor.user.id` yourself, call the API at `https://api.cursor.com`, with an Admin API key as the user name and an empty password:
@@ -176,7 +176,7 @@ Cursor connects from its own servers: your OTLP endpoint must be reachable from 
 :::
 
 :::details Logs arrive, but the Usage tab shows no Cursor spend
-The project also receives GenAI spans with cost, so the Cursor metrics are not read. Send Cursor to a project of its own, with its own ingestion key.
+Cursor's spend comes from its metrics, not its logs: check that Cursor's metrics signal is on, and look for `cursor.cost.usage` in **Metrics**. If your role cannot read metrics, the Usage tab leaves them out and says so.
 :::
 
 :::details People show as numbers
