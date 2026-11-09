@@ -780,13 +780,60 @@ describe("RestoreNamespaceMetricMonitorTotals", () => {
       expect(feed[0]!.displayColor).toBe(Gray500);
       expect(feed[0]!.feedInfoInMarkdown).toBe(
         [
-          "📊 **This monitor reads its namespace's total.**",
+          "📊 **This monitor now reads the namespace's total.**",
           "",
-          "Azure reports the metrics of the Service Bus Namespace **shop** once per queue, topic and event hub, so an average of them is the average queue. This monitor now reads `azure_incomingmessages_total` with **Sum**: the namespace's total, the number its **Metrics** tab shows.",
+          "Azure reports the metrics of the Service Bus Namespace **shop** once per queue and topic, so their **Avg** is the average queue. This monitor now reads `azure_incomingmessages_total` with **Sum**, which adds them up, as the namespace's **Metrics** tab does.",
           "",
           "Its criteria are unchanged.",
         ].join("\n"),
       );
+      // Not posted to Slack or Microsoft Teams: a channel would get one per monitor moved.
+      expect(feed[0]).not.toHaveProperty("workspaceNotification");
+    });
+
+    test("an Event Hubs namespace's entry names its event hubs, not queues", () => {
+      const markdown: string =
+        RestoreNamespaceMetricMonitorTotals.getFeedMarkdown([
+          {
+            metricVariable: "a",
+            metricName: EVENTS_IN,
+            resource: {
+              provider: CloudProvider.Azure,
+              type: "Microsoft.EventHub/namespaces",
+              name: "telemetry",
+            },
+            from: AggregationType.Avg,
+            to: AggregationType.Sum,
+          },
+        ]).toString();
+
+      expect(markdown.split("\n\n")).toEqual([
+        "📊 **This monitor now reads the namespace's total.**",
+        "Azure reports the metrics of the Event Hubs Namespace **telemetry** once per event hub, so their **Avg** is the average event hub. This monitor now reads `azure_incomingmessages_total` with **Sum**, which adds them up, as the namespace's **Metrics** tab does.",
+        "Its criteria are unchanged.",
+      ]);
+      expect(markdown).not.toContain("queue");
+    });
+
+    test("a Service Bus namespace's entry names its queues and topics, not event hubs", () => {
+      const markdown: string =
+        RestoreNamespaceMetricMonitorTotals.getFeedMarkdown([
+          {
+            metricVariable: "a",
+            metricName: MESSAGES_WAITING,
+            resource: {
+              provider: CloudProvider.Azure,
+              type: "Microsoft.ServiceBus/namespaces",
+              name: "shop",
+            },
+            from: undefined,
+            to: AggregationType.Sum,
+          },
+        ]).toString();
+
+      expect(markdown).toContain("once per queue and topic");
+      expect(markdown).toContain("the average queue.");
+      expect(markdown).not.toContain("event hub");
     });
 
     test("names each namespace once, with each of its metrics once", () => {
@@ -839,9 +886,9 @@ describe("RestoreNamespaceMetricMonitorTotals", () => {
         ]).toString();
 
       expect(markdown.split("\n\n")).toEqual([
-        "📊 **This monitor reads its namespace's total.**",
-        "Azure reports the metrics of the Service Bus Namespace **shop** once per queue, topic and event hub, so an average of them is the average queue. This monitor now reads `azure_incomingmessages_total` and `azure_activemessages_average` with **Sum**: the namespace's total, the number its **Metrics** tab shows.",
-        "Azure reports the metrics of the Event Hubs Namespace **telemetry** once per queue, topic and event hub, so an average of them is the average queue. This monitor now reads `azure_incomingmessages_total` with **Sum**: the namespace's total, the number its **Metrics** tab shows.",
+        "📊 **This monitor now reads each namespace's total.**",
+        "Azure reports the metrics of the Service Bus Namespace **shop** once per queue and topic, so their **Avg** is the average queue. This monitor now reads `azure_incomingmessages_total` and `azure_activemessages_average` with **Sum**, which adds them up, as the namespace's **Metrics** tab does.",
+        "Azure reports the metrics of the Event Hubs Namespace **telemetry** once per event hub, so their **Avg** is the average event hub. This monitor now reads `azure_incomingmessages_total` with **Sum**, which adds them up, as the namespace's **Metrics** tab does.",
         "Its criteria are unchanged.",
       ]);
     });

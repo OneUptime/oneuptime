@@ -635,7 +635,7 @@ A una risorsa di un [account connesso](/docs/telemetry/cloud-accounts) vengono p
 3. Fai clic su **Crea monitor da questa vista**: il monitor osserva quella metrica per quella risorsa.
 :::
 
-Su un namespace di Service Bus o Event Hubs, le cui metriche arrivano una volta per coda, topic ed event hub, una riga che mostra **totale delle serie** è il loro totale, che legge anche un monitor creato da essa; una latenza, e i messaggi in attesa e le altre quantità trattenute del namespace su un intervallo di oltre 3 ore, mostrano **media delle serie**: la coda media.
+Un namespace di Service Bus riporta le sue metriche una volta per coda e topic, e un namespace di Event Hubs una volta per event hub. Dove si sommano, una riga della scheda **Metriche** del namespace ne mostra il totale e sotto riporta **totale delle serie**. Anche un monitor creato da quella riga legge il totale, come uno creato tramite l'API o Terraform senza un'aggregazione. Le altre righe riportano **media delle serie** e mostrano la coda o l'event hub medio: una latenza e, su un intervallo di oltre 3 ore, una quantità che il namespace trattiene, come i messaggi in attesa.
 
 > [!IMPORTANT]
 > Il monitoraggio cloud pubblica ogni valore alcuni minuti dopo il momento che misura: da 10 a 20 minuti per CloudWatch interrogato come sopra, pochi minuti per Azure Monitor e Cloud Monitoring. Viene salvato al momento che misura. Dai a un monitor su queste metriche una finestra più lunga di quel ritardo (30 minuti per CloudWatch, 15 per gli altri), altrimenti non vede dati e non scatta mai.

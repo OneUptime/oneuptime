@@ -63,6 +63,11 @@ const WEB_01: string =
   "/subscriptions/3f2b8c1e-5a6d-4e7f-9a0b-1c2d3e4f5a6b/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/web-01";
 
 const ON_SHOP: Record<string, string> = { "azuremonitor.resource_id": SHOP };
+const TELEMETRY: string =
+  "/subscriptions/3f2b8c1e-5a6d-4e7f-9a0b-1c2d3e4f5a6b/resourceGroups/rg-prod/providers/Microsoft.EventHub/namespaces/telemetry";
+const ON_TELEMETRY: Record<string, string> = {
+  "azuremonitor.resource_id": TELEMETRY,
+};
 
 const MESSAGES_IN: string = getAzureStoredMetricName(
   "IncomingMessages",
@@ -85,7 +90,7 @@ function minutesBefore(minutes: number): string {
   return new Date(new Date(END).getTime() - minutes * 60000).toISOString();
 }
 
-const SUM_NOTE: string = `Read with Sum: the Service Bus Namespace "shop" reports ${MESSAGES_IN} once per queue, topic and event hub, and their Sum is its own total, the number its Metrics tab shows (their Avg would be the average queue).`;
+const SUM_NOTE: string = `Read with Sum: the Service Bus Namespace "shop" reports ${MESSAGES_IN} once per queue and topic, and their Sum is its own total, the number its Metrics tab shows (their Avg would be the average queue).`;
 
 let aggregate: SpyInstance<typeof MetricService.aggregateBy>;
 let requests: Array<AggregateBy<Metric>>;
@@ -125,6 +130,30 @@ describe("chooseCloudResourceMetricAggregation", () => {
     ).toEqual({ aggregationType: AggregationType.Sum, explanation: SUM_NOTE });
   });
 
+  test("an Event Hubs namespace's count is told by its event hubs, not queues", () => {
+    expect(
+      chooseCloudResourceMetricAggregation({
+        requested: undefined,
+        metricName: MESSAGES_IN,
+        attributes: ON_TELEMETRY,
+        aggregationInterval: AggregationInterval.Hour,
+      }),
+    ).toEqual({
+      aggregationType: AggregationType.Sum,
+      explanation: `Read with Sum: the Event Hubs Namespace "telemetry" reports ${MESSAGES_IN} once per event hub, and their Sum is its own total, the number its Metrics tab shows (their Avg would be the average event hub).`,
+    });
+    expect(
+      chooseCloudResourceMetricAggregation({
+        requested: AggregationType.Avg,
+        metricName: MESSAGES_IN,
+        attributes: ON_TELEMETRY,
+        aggregationInterval: AggregationInterval.Minute,
+      }).explanation,
+    ).toBe(
+      `Avg is the average of the Event Hubs Namespace "telemetry"'s event hubs, each a series of its own, not the Event Hubs Namespace "telemetry"'s own number: its total, the number its Metrics tab shows, is their Sum - read it with aggregationType Sum.`,
+    );
+  });
+
   test("messages waiting, read by the minute: Sum", () => {
     expect(
       chooseCloudResourceMetricAggregation({
@@ -157,7 +186,7 @@ describe("chooseCloudResourceMetricAggregation", () => {
       }),
     ).toEqual({
       aggregationType: AggregationType.Avg,
-      explanation: `Avg is the average of the Service Bus Namespace "shop"'s queues, topics and event hubs, each a series of its own, not the Service Bus Namespace "shop"'s own number: its total, the number its Metrics tab shows, is their Sum - read it with aggregationType Sum.`,
+      explanation: `Avg is the average of the Service Bus Namespace "shop"'s queues and topics, each a series of its own, not the Service Bus Namespace "shop"'s own number: its total, the number its Metrics tab shows, is their Sum - read it with aggregationType Sum.`,
     });
   });
 
@@ -171,7 +200,7 @@ describe("chooseCloudResourceMetricAggregation", () => {
       }),
     ).toEqual({
       aggregationType: AggregationType.Max,
-      explanation: `Max is taken over the Service Bus Namespace "shop"'s queues, topics and event hubs, each a series of its own; the Service Bus Namespace "shop"'s own total, the number its Metrics tab shows, is their Sum.`,
+      explanation: `Max is taken over the Service Bus Namespace "shop"'s queues and topics, each a series of its own; the Service Bus Namespace "shop"'s own total, the number its Metrics tab shows, is their Sum.`,
     });
   });
 
@@ -185,7 +214,7 @@ describe("chooseCloudResourceMetricAggregation", () => {
       }),
     ).toEqual({
       aggregationType: AggregationType.Avg,
-      explanation: `Avg of the Service Bus Namespace "shop"'s queues, topics and event hubs: ${MESSAGES_WAITING} adds up across them only a minute at a time, and this read's FifteenMinutes intervals hold several minutes of each. For the Service Bus Namespace "shop"'s total, read a window short enough to be read by the minute, with aggregationType Sum.`,
+      explanation: `Avg of the Service Bus Namespace "shop"'s queues and topics: ${MESSAGES_WAITING} adds up across them only a minute at a time, and this read's FifteenMinutes intervals hold several minutes of each. For the Service Bus Namespace "shop"'s total, read a window short enough to be read by the minute, with aggregationType Sum.`,
     });
   });
 
@@ -199,7 +228,7 @@ describe("chooseCloudResourceMetricAggregation", () => {
       }),
     ).toEqual({
       aggregationType: AggregationType.Sum,
-      explanation: `A Sum over the whole window adds up several minutes of every one of the Service Bus Namespace "shop"'s queues, topics and event hubs: no amount the Service Bus Namespace "shop" ever held. Its total is the Sum of a read made by the minute: a shorter window, read as a trend.`,
+      explanation: `A Sum over the whole window adds up several minutes of every one of the Service Bus Namespace "shop"'s queues and topics: no amount the Service Bus Namespace "shop" ever held. Its total is the Sum of a read made by the minute: a shorter window, read as a trend.`,
     });
   });
 
@@ -338,7 +367,8 @@ describe("query_metrics", () => {
     );
 
     expect(requests[0]!.aggregationType).toBe(AggregationType.Avg);
-    expect(result.dataForLlm).not.toContain("queues, topics and event hubs");
+    // No namespace's word: each says what its Metrics tab shows.
+    expect(result.dataForLlm).not.toContain("Metrics tab shows");
   });
 
   test("an aggregation it does not know is still refused", async () => {
@@ -466,7 +496,7 @@ describe("query_resource_telemetry on a namespace's own page", () => {
       );
 
     expect(requests[0]!.aggregationType).toBe(AggregationType.Avg);
-    expect(latency.dataForLlm).not.toContain("queues, topics and event hubs");
+    expect(latency.dataForLlm).not.toContain("Metrics tab shows");
 
     requests = [];
     await QueryResourceTelemetryTool.execute(args({}), ROOT_RUN);

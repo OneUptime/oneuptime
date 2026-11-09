@@ -1,6 +1,10 @@
 import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
 import { getCloudResourceTypeLabel } from "../../../../Types/Cloud/CloudResourceCatalog";
+import {
+  CloudResourceSummedParts,
+  getCloudResourceSummedParts,
+} from "../../../../Types/Cloud/CloudResourceMetricAggregation";
 import MetricQueryCloudAggregation, {
   MetricQueryCloudResource,
 } from "../../../../Utils/Metrics/MetricQueryCloudAggregation";
@@ -63,7 +67,10 @@ export function chooseCloudResourceMetricAggregation(data: {
   }
 
   const subject: string = describeResource(resource);
-  const parts: string = `${subject}'s queues, topics and event hubs`;
+  // Its queues and topics, or event hubs: named for every type that adds up.
+  const partNames: CloudResourceSummedParts =
+    getCloudResourceSummedParts(resource)!;
+  const parts: string = `${subject}'s ${partNames.all}`;
 
   if (catalog === AggregationType.Sum) {
     if (aggregationType === AggregationType.Sum) {
@@ -71,7 +78,7 @@ export function chooseCloudResourceMetricAggregation(data: {
         aggregationType,
         explanation: data.requested
           ? ""
-          : `Read with Sum: ${subject} reports ${data.metricName} once per queue, topic and event hub, and their Sum is its own total, the number its Metrics tab shows (their Avg would be the average queue).`,
+          : `Read with Sum: ${subject} reports ${data.metricName} once per ${partNames.each}, and their Sum is its own total, the number its Metrics tab shows (their Avg would be the average ${partNames.one}).`,
       };
     }
 

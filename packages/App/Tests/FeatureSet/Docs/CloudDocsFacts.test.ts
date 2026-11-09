@@ -19,7 +19,9 @@ import {
   CloudResourceTypeDescriptor,
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import {
+  CloudResourceSummedParts,
   getCloudResourceMetricAggregation,
+  getCloudResourceSummedParts,
   hasCloudResourceSummedMetrics,
 } from "Common/Types/Cloud/CloudResourceMetricAggregation";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -994,14 +996,16 @@ describe("cloud resources", () => {
  * namespace's metric rows, and the monitors created from them, read: its
  * queues' total where a row says "total of series", the average queue where
  * it says "average of series". The rows read so by the catalog
- * (CloudResourceMetricAggregation, through CloudMonitoredResourceScope), and
- * a monitor created from the explorer by MetricQueryCloudAggregation.
+ * (CloudResourceMetricAggregation, through CloudMonitoredResourceScope), a
+ * monitor created from the explorer by MetricQueryCloudAggregation, and one
+ * created through the API or Terraform by the same, when it is written.
  */
 describe("a namespace's totals", () => {
   const SENTENCE_START: string =
-    "On a Service Bus or Event Hubs namespace, whose metrics arrive once per queue, topic and event hub,";
+    "A Service Bus namespace reports its metrics once per queue and topic, and an Event Hubs namespace once per event hub.";
   const HOUR_MS: number = 60 * 60 * 1000;
   const SERVICE_BUS: string = "Microsoft.ServiceBus/namespaces";
+  const EVENT_HUBS: string = "Microsoft.EventHub/namespaces";
   const RESOURCE_ID: string =
     "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.ServiceBus/namespaces/shop";
 
@@ -1054,11 +1058,83 @@ describe("a namespace's totals", () => {
     expect(lines[at - 2]).toBe(":::");
   });
 
-  it("names the rows' captions as the namespace's Metrics tab draws them", () => {
+  it("names the tab and the rows' captions as the namespace's Metrics tab draws them", () => {
     expect(boldLabels(sentence())).toEqual([
+      "Metrics",
       CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
       CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
     ]);
+  });
+
+  it("names what each type reports its metrics once per, as the catalog does", () => {
+    const serviceBus: CloudResourceSummedParts | undefined =
+      getCloudResourceSummedParts({
+        provider: CloudProvider.Azure,
+        type: SERVICE_BUS,
+      });
+    const eventHubs: CloudResourceSummedParts | undefined =
+      getCloudResourceSummedParts({
+        provider: CloudProvider.Azure,
+        type: EVENT_HUBS,
+      });
+
+    expect(sentence()).toContain(
+      `A Service Bus namespace reports its metrics once per ${serviceBus?.each}, and an Event Hubs namespace once per ${eventHubs?.each}.`,
+    );
+    expect(sentence()).toContain(
+      `show the average ${serviceBus?.one} or ${eventHubs?.one}:`,
+    );
+  });
+
+  it("says a monitor created through the API or Terraform without an aggregation reads the total too", () => {
+    expect(sentence()).toContain(
+      "A monitor created from that row reads the total too, as does one created through the API or Terraform without an aggregation.",
+    );
+
+    // Both writes of a monitor fill a query sent without one.
+    const monitorService: string = readSource(
+      "Common/Server/Services/MonitorService.ts",
+    );
+
+    expect(
+      monitorService.split(
+        "MetricQueryCloudAggregation.fillMissingAggregationsOfSteps(",
+      ).length - 1,
+    ).toBe(2);
+
+    // A namespace's messages in, read over an hour: Sum, the total.
+    const metricMonitor: Record<string, unknown> = {
+      rollingTime: RollingTime.Past1Hour,
+      metricViewConfig: {
+        queryConfigs: [
+          {
+            metricAliasData: { metricVariable: "a" },
+            metricQueryData: {
+              filterData: {
+                metricName: getAzureStoredMetricName(
+                  "IncomingMessages",
+                  "total",
+                ),
+                attributes: { "azuremonitor.resource_id": RESOURCE_ID },
+              },
+            },
+          },
+        ],
+      },
+    };
+
+    expect(
+      MetricQueryCloudAggregation.fillMissingAggregations(metricMonitor),
+    ).toBe(1);
+    expect(
+      (
+        (
+          (metricMonitor["metricViewConfig"] as Record<string, unknown>)[
+            "queryConfigs"
+          ] as Array<MetricQueryConfigData>
+        )[0] as MetricQueryConfigData
+      ).metricQueryData.filterData.aggegationType,
+    ).toBe(AggregationType.Sum);
   });
 
   it("names the only resource types whose rows add up", () => {
@@ -1075,7 +1151,7 @@ describe("a namespace's totals", () => {
 
   it("totals a count over any range, an amount held up to 3 hours, and never a latency", () => {
     expect(sentence()).toContain(
-      "a latency, and messages waiting and the namespace's other amounts held over a range longer than 3 hours, read",
+      "a latency, and, over a range longer than 3 hours, an amount the namespace holds, such as messages waiting.",
     );
 
     // A count: the total over any range.
@@ -1105,11 +1181,12 @@ describe("a namespace's totals", () => {
    * (CloudDocsTranslations holds the rest of each page to the English one,
    * but finds a number anywhere on the page).
    */
-  it("says the same in every language, in its Dashboard's captions and with its 3 hours", () => {
+  it("says the same in every language, in its Dashboard's tab and captions and with its 3 hours", () => {
     for (const language of TRANSLATED_LANGUAGES) {
       const locale: Record<string, string> = JSON.parse(
         readSource(`${DASHBOARD}/Locales/${language}.json`),
       ) as Record<string, string>;
+      const metricsTab: string = locale["Metrics"] || "";
       const summed: string = locale[CLOUD_RESOURCE_SUMMED_ROW_CAPTION] || "";
       const averaged: string =
         locale[CLOUD_RESOURCE_AVERAGED_ROW_CAPTION] || "";
@@ -1124,7 +1201,7 @@ describe("a namespace's totals", () => {
       const line: string = lines[0] || "";
 
       expect(`${language}: ${boldLabels(line).join(" | ")}`).toBe(
-        `${language}: ${summed} | ${averaged}`,
+        `${language}: ${metricsTab} | ${summed} | ${averaged}`,
       );
       // Japanese says "once" with a 1 too: "1 回ずつ".
       expect(
@@ -1139,6 +1216,11 @@ describe("a namespace's totals", () => {
 
       expect(`${language}: ${serviceBus.test(line)}`).toBe(`${language}: true`);
       expect(`${language}: ${eventHubs.test(line)}`).toBe(`${language}: true`);
+      // The API and Terraform, by the names they go by everywhere.
+      expect(`${language}: ${line.includes("API")}`).toBe(`${language}: true`);
+      expect(`${language}: ${line.includes("Terraform")}`).toBe(
+        `${language}: true`,
+      );
     }
   });
 

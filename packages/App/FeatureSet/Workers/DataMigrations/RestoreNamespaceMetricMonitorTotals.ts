@@ -7,6 +7,10 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import logger from "Common/Server/Utils/Logger";
 import { Gray500 } from "Common/Types/BrandColors";
 import { getCloudResourceTypeLabel } from "Common/Types/Cloud/CloudResourceCatalog";
+import {
+  CloudResourceSummedParts,
+  getCloudResourceSummedParts,
+} from "Common/Types/Cloud/CloudResourceMetricAggregation";
 import { AZURE_MONITOR_RESOURCE_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudMonitoredResource";
 import { JSONObject } from "Common/Types/JSON";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -196,9 +200,12 @@ export default class RestoreNamespaceMetricMonitorTotals extends DataMigrationBa
   }
 
   /*
-   * What a moved monitor's feed says: which resource and which of its
-   * metrics, what they read now and why, and that the criteria are as they
-   * were. One line per resource, in the order its queries are.
+   * What a moved monitor's feed says, first what changed for the person
+   * who reads it: the monitor now reads the namespace's total. Then, for
+   * each namespace in the order its queries are, why - Azure reports its
+   * metrics once per queue and topic (an Event Hubs namespace's, once per
+   * event hub), whose Avg is the average queue - and which metrics now read
+   * with Sum. Last, that its criteria are as they were.
    */
   public static getFeedMarkdown(
     restored: Array<MetricQueryAggregationRestore>,
@@ -237,14 +244,21 @@ export default class RestoreNamespaceMetricMonitorTotals extends DataMigrationBa
             }),
           );
 
+        // Named for every type a query is moved on (restoreResourceTotals).
+        const parts: CloudResourceSummedParts = getCloudResourceSummedParts(
+          entry.resource,
+        )!;
+
         return mdText`Azure reports the metrics of the ${getCloudResourceTypeLabel(
           entry.resource.provider,
           entry.resource.type,
-        )} **${entry.resource.name}** once per queue, topic and event hub, so an average of them is the average queue. This monitor now reads ${metrics} with **Sum**: the namespace's total, the number its **Metrics** tab shows.`;
+        )} **${entry.resource.name}** once per ${parts.each}, so their **Avg** is the average ${parts.one}. This monitor now reads ${metrics} with **Sum**, which adds them up, as the namespace's **Metrics** tab does.`;
       },
     );
 
-    return mdText`📊 **This monitor reads its namespace's total.**
+    return mdText`📊 **This monitor now reads ${
+      byResource.size > 1 ? "each namespace's total" : "the namespace's total"
+    }.**
 
 ${FeedMarkdown.join(lines, "\n\n")}
 

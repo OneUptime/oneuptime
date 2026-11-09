@@ -635,7 +635,7 @@ Einer Ressource eines [verbundenen Kontos](/docs/telemetry/cloud-accounts) werde
 3. Klicken Sie auf **Monitor aus dieser Ansicht erstellen**: Der Monitor überwacht diese Metrik für diese Ressource.
 :::
 
-Bei einem Service-Bus- oder Event-Hubs-Namespace, dessen Metriken einmal pro Warteschlange, Topic und Event Hub eintreffen, ist eine Zeile mit **Summe der Reihen** ihre Summe, die auch ein daraus erstellter Monitor liest; eine Latenz sowie wartende Nachrichten und die anderen vorgehaltenen Mengen des Namespace über einen Zeitraum von mehr als 3 Stunden zeigen **Durchschnitt der Reihen**: die durchschnittliche Warteschlange.
+Ein Service-Bus-Namespace meldet seine Metriken einmal pro Warteschlange und Topic, ein Event-Hubs-Namespace einmal pro Event Hub. Wo sie sich addieren lassen, zeigt eine Zeile im Tab **Metriken** des Namespace ihre Summe und darunter **Summe der Reihen**. Ein aus dieser Zeile erstellter Monitor liest ebenfalls die Summe, ebenso einer, der über die API oder Terraform ohne Aggregation erstellt wird. Die übrigen Zeilen zeigen **Durchschnitt der Reihen** und damit die durchschnittliche Warteschlange oder den durchschnittlichen Event Hub: eine Latenz und, über einen Zeitraum von mehr als 3 Stunden, eine Menge, die der Namespace vorhält, etwa wartende Nachrichten.
 
 > [!IMPORTANT]
 > Die Cloud-Überwachung veröffentlicht jede Zahl Minuten nach dem Zeitpunkt, den sie misst: 10 bis 20 Minuten bei CloudWatch, wie oben abgefragt, wenige Minuten bei Azure Monitor und Cloud Monitoring. Sie wird unter dem Zeitpunkt gespeichert, den sie misst. Geben Sie einem Monitor über diese Metriken ein längeres Zeitfenster (30 Minuten für CloudWatch, 15 für die anderen), sonst sieht er keine Daten und löst nie aus.

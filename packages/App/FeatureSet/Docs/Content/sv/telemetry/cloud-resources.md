@@ -635,7 +635,7 @@ En resurs i ett [anslutet konto](/docs/telemetry/cloud-accounts) erbjuds på sin
 3. Klicka på **Skapa monitor från den här vyn**: monitorn bevakar det mätvärdet för den resursen.
 :::
 
-På ett Service Bus- eller Event Hubs-namnområde, vars mätvärden kommer en gång per kö, ämne och event hub, är en rad som visar **summa av serier** deras summa, som en monitor som skapats från den också läser; en latens, och väntande meddelanden och namnområdets andra lagrade mängder över ett intervall på mer än 3 timmar, visar **genomsnitt av serier**: den genomsnittliga kön.
+Ett Service Bus-namnområde rapporterar sina mätvärden en gång per kö och ämne, och ett Event Hubs-namnområde en gång per event hub. Där de går att summera visar en rad på namnområdets flik **Mätvärden** deras summa, med **summa av serier** under. En monitor som skapats från den raden läser också summan, liksom en monitor som skapats via API:et eller Terraform utan aggregering. De andra raderna visar **genomsnitt av serier**, alltså den genomsnittliga kön eller event hubben: en latens och, över ett intervall på mer än 3 timmar, en mängd som namnområdet håller, till exempel väntande meddelanden.
 
 > [!IMPORTANT]
 > Molnövervakning publicerar varje tal några minuter efter den tid det mäter: 10 till 20 minuter för CloudWatch som avfrågas som ovan, några minuter för Azure Monitor och Cloud Monitoring. Det lagras under den tid det mäter. Ge en monitor över de här mätvärdena ett fönster som är längre än så (30 minuter för CloudWatch, 15 för de andra), annars ser den inga data och utlöses aldrig.
