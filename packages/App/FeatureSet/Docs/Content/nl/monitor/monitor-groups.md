@@ -28,6 +28,7 @@ flowchart TB
 
 - **Gearchiveerde monitoren tellen niet mee.** Een gearchiveerde monitor wordt niet gecontroleerd, dus zijn status is bevroren; de groep laat hem weg.
 - **Een lege groep is operationeel.** Een groep zonder monitoren, of met alleen gearchiveerde, toont uw operationele status. Tot u een monitor toevoegt, toont het dashboard **Nog geen monitoren** in plaats van de status.
+- **Bewaking uit toont Uitgeschakeld.** Staat de bewaking uit voor elke monitor in een groep, dan controleert niets ze, dus toont het dashboard **Uitgeschakeld** in plaats van de status van de groep.
 - **De volgorde bepaalt u.** Welke status de slechtste is, volgt de volgorde onder **Monitoren → Instellingen → Monitorstatus**. Zie [Monitorstatussen](/docs/monitor/criteria-and-statuses#monitorstatussen).
 
 Een monitorgroep is geen statuspaginagroep. Een statuspaginagroep is een kop op één statuspagina die rijen bevat. Een monitorgroep is één rij die voor meerdere monitoren staat, en elke statuspagina kan haar tonen.
@@ -80,7 +81,7 @@ Open een groep om haar pagina's in het zijmenu te zien:
 
 | Pagina | Wat ze toont |
 | --- | --- |
-| **Overzicht** | **Details van monitorgroep**, **Huidige status** en **Uptime grafiek** met het beschikbaarheidspercentage van de groep over de laatste 90 dagen. Een groep zonder monitoren biedt **Monitoren toevoegen** aan in plaats van de grafiek. |
+| **Overzicht** | **Details van monitorgroep**, **Huidige status**, **Bewaking** en **Uptime grafiek** met het beschikbaarheidspercentage van de groep over de laatste 90 dagen. Een groep zonder monitoren biedt **Monitoren toevoegen** aan in plaats van de grafiek. |
 | **Monitoren** | **Monitoren in groep**, met **Monitoren toevoegen** en **Verwijderen**. |
 | **Incidenten** | De incidenten op elke monitor in de groep. |
 | **Waarschuwingen** | De waarschuwingen op elke monitor in de groep. |
@@ -91,6 +92,17 @@ Open een groep om haar pagina's in het zijmenu te zien:
 De beschikbaarheid in het **Overzicht** telt elke status behalve de operationele als downtime. Een statuspagina telt alleen de statussen in haar eigen lijst **Telt als downtime**: zie [Kiezen wat de pagina toont](/docs/status-pages/index#kiezen-wat-er-op-de-pagina-komt).
 
 De lijst **Monitorgroepen** kan groepen filteren op eigenaar en label, labels en eigenaren voor veel groepen tegelijk instellen, en groepen als JSON exporteren of importeren.
+
+## Bewaking uitzetten voor een hele groep
+
+De kaart **Bewaking** op het **Overzicht** van een groep zet de bewaking in één keer uit, of weer aan, voor elke monitor in de groep.
+
+- **Bewaking uitzetten** vraagt eerst om bevestiging. Daarna controleert niets de monitoren van de groep totdat de bewaking weer aan staat, dus openen ze geen incidenten of waarschuwingen, en toont de groep **Uitgeschakeld** in plaats van zijn status.
+- **Bewaking aanzetten** slaat meteen op. De volgende controle van elke monitor zet zijn status weer.
+
+Bewaking uitzetten lost ook de open incidenten en waarschuwingen van de monitoren op die zijn ingesteld op automatisch oplossen, zoals elke monitor bij herstel zou hebben gedaan. Incidenten en waarschuwingen die met de hand zijn gemeld, of waarvan de criteria niet automatisch oplossen, blijven open. De bewaking van één monitor uitzetten, op zijn pagina **Instellingen**, doet hetzelfde.
+
+De kaart verandert de monitoren, niet de groep: de eigen kaart **Bewaking** van elke monitor toont de wijziging, en een monitor die later aan de groep wordt toegevoegd, houdt zijn eigen instelling. Gearchiveerde monitoren blijven zoals ze zijn. Zolang de bewaking maar voor een deel van de monitoren uit staat, zegt de kaart voor hoeveel en biedt ze beide knoppen.
 
 ## Een groep op een statuspagina tonen
 
