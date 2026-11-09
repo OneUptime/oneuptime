@@ -5,9 +5,7 @@ import PublicDashboardResourceListPolicy from "../../../Server/Utils/Dashboard/P
 import PublicDashboardSloHistoryPolicy from "../../../Server/Utils/Dashboard/PublicDashboardSloHistoryPolicy";
 import PublicDashboardSloWidget from "../../../Server/Utils/Dashboard/PublicDashboardSloWidget";
 import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
-import DashboardComponentType, {
-  isDashboardComponentType,
-} from "../../../Types/Dashboard/DashboardComponentType";
+import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardVariable, {
   DashboardVariableType,
@@ -18,11 +16,11 @@ import {
   PublicDashboardServedWidgetType,
   PublicDashboardWidgetSettings,
 } from "../../../Types/Dashboard/PublicDashboardServedSettings";
-import { JSONObject, ObjectType } from "../../../Types/JSON";
+import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import { getDashboardWidgetSortColumns } from "../../../Utils/Dashboard/DashboardWidgetSorts";
-import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
+import { drawnFromWhole } from "../../Helpers/PublicDashboardServedWhole";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
@@ -75,52 +73,8 @@ interface PublicRouteAllowlists {
 const ROUTES: PublicRouteAllowlists =
   DashboardAPI as unknown as PublicRouteAllowlists;
 
-/*
- * What /view-config served before issue #6338: the same widgets, ids and
- * places, each widget of a type a board draws with its settings whole, and
- * every variable whole.
- */
-function servedBefore(stored: unknown): DashboardViewConfig {
-  const storedConfig: JSONObject = StoredDashboardViewConfig.unwrap(stored);
-  const components: Array<JSONObject> = [];
-
-  for (const entry of StoredDashboardViewConfig.getComponentEntries(
-    storedConfig,
-  )) {
-    if (
-      !StoredDashboardViewConfig.isWidgetEntry(entry) ||
-      PublicDashboardViewConfig.isDataSourceComponent(
-        entry as unknown as DashboardBaseComponent,
-      )
-    ) {
-      continue;
-    }
-
-    const served: JSONObject = PublicDashboardViewConfig.getServedComponent(entry);
-    const settings: unknown =
-      StoredDashboardViewConfig.withArgumentsRead(entry)["arguments"];
-
-    if (
-      isDashboardComponentType(served["componentType"]) &&
-      PublicDashboardViewConfig.isSettingsObject(settings)
-    ) {
-      served["arguments"] = settings as JSONObject;
-    }
-
-    components.push(served);
-  }
-
-  return {
-    ...StoredDashboardViewConfig.readBoardSettings(storedConfig),
-    _type: ObjectType.DashboardViewConfig,
-    components: components as unknown as Array<DashboardBaseComponent>,
-  };
-}
-
-// The config every public route reads: what was served, read as the page reads it.
-function drawnBefore(stored: unknown): DashboardViewConfig {
-  return StoredDashboardViewConfig.read(servedBefore(stored));
-}
+// The config every public route read before issue #6338, and reads now.
+const drawnBefore: (stored: unknown) => DashboardViewConfig = drawnFromWhole;
 
 function drawnNow(stored: unknown): DashboardViewConfig {
   return PublicDashboardViewConfig.getDrawnConfig(stored);
