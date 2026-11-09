@@ -88,6 +88,35 @@ SLO's die zijn aangemaakt voordat Slow leak bestond, hebben alleen Fast burn en 
 
 Een regel telt als al aanwezig wanneer de SLO een regel met dezelfde naam heeft, of een met hetzelfde lange venster, of die nu aan of uit staat. Een standaardregel die u hebt hernoemd of bijgesteld, wordt dus nooit twee keer toegevoegd. Wilt u een standaardregel niet, houd de regel dan en schakel hem uit in plaats van hem te verwijderen; dan biedt de melding hem niet meer aan. U hebt toestemming nodig om SLO-regels voor verbruikssnelheid aan te maken. Elke regel die de knop toevoegt, wordt in de feed van de SLO gepubliceerd en vastgelegd in zijn auditlogboeken, net als een regel die u zelf aanmaakt.
 
+### Ze aan veel SLO's tegelijk toevoegen
+
+Wilt u veel SLO's de aanbevolen regels geven, begin dan bij de SLO-lijst in plaats van bij de eigen pagina van elke SLO.
+
+:::steps
+#### De SLO's selecteren
+
+Open **SLOs** en selecteer de SLO's die u wilt bijwerken. Wilt u alle SLO's meenemen die een filter toont, selecteer dan de hele pagina en daarna alle overeenkomende SLO's die de lijst aanbiedt.
+
+#### De actie Aanbevolen regels toevoegen kiezen
+
+Open **Bulkacties** en kies **Aanbevolen regels toevoegen**.
+
+#### Controleren wat er wordt toegevoegd en bevestigen
+
+Voordat er iets wordt toegevoegd, telt de bevestiging hoeveel van de geselecteerde SLO's elke regel krijgen, afgestemd op hun eigen venster. Krijgen SLO's met verschillende vensters een regel in verschillende varianten, zoals Slow leak bij een SLO met een venster van 7 dagen en bij een met 30 dagen, dan toont ze elke variant met zijn drempel, zijn vensters en de SLO's die hem krijgen. Ze vermeldt ook hoeveel SLO's alle aanbevolen regels al hebben en hoeveel er niet konden worden gelezen. Klik op **Aanbevolen regels toevoegen** om ze toe te voegen.
+:::
+
+Elke SLO krijgt alleen de regels die hij mist, precies zoals zijn eigen pagina **Verbruikssnelheidsregels** ze zou toevoegen: met dezelfde controle van wat als al aanwezig telt, en voor elke regel een feeditem en een vermelding in de auditlogboeken. Het resultaat zegt per SLO of er regels zijn toegevoegd, of hij alle aanbevolen regels al had, of dat hij niet is gewijzigd en waarom, bijvoorbeeld bij een SLO die u niet mag wijzigen. Een SLO die niet wordt gewijzigd, houdt de andere nooit tegen, en de actie nog eens uitvoeren op dezelfde SLO's voegt niets toe. Gearchiveerde SLO's staan niet in de lijst en krijgen de regels nooit aangeboden, omdat ze niet worden geëvalueerd: haal een SLO eerst uit het archief.
+
+Scripts kunnen hetzelfde doen via de API, met een [API-sleutel](/docs/api-reference/api-reference) van het project. De verzoeken voor één SLO verwachten `{ "serviceLevelObjectiveId": "..." }` en antwoorden met de regels in `rules`. De bulkverzoeken verwachten `{ "serviceLevelObjectiveIds": ["..."] }`, maximaal 100 SLO's per verzoek, en antwoorden met één item per SLO in `results`, in de gevraagde volgorde:
+
+| Verzoek | Wat het doet |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | Toont de aanbevolen regels die de SLO mist. Het schrijft niets weg. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | Voegt ze toe en toont wat het heeft toegevoegd. Opnieuw vragen voegt niets toe. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | Zegt wat elke SLO mist: `Missing` met de regels, `NothingMissing` of `Refused` voor een SLO die u niet mag lezen. Het schrijft niets weg. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | Voegt toe wat elke SLO mist, de ene SLO na de andere: `Added` met de regels, `NothingMissing`, `Refused` of `Failed` met de regels die waren toegevoegd voordat het misging. Opnieuw vragen voegt alleen toe wat nog ontbreekt. |
+
 ## Een regel maken of bewerken
 
 U hebt toestemming nodig om SLO-regels voor verbruikssnelheid aan te maken.

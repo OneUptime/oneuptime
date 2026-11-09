@@ -54,6 +54,10 @@ import {
   isSloRecommendedBurnRateRulePresent,
 } from "Common/Utils/Slo/SloRecommendedBurnRateRules";
 import {
+  SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS,
+  SloBulkRecommendedRulesStatus,
+} from "Common/Utils/Slo/SloBulkRecommendedBurnRateRules";
+import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
   SloNotice,
@@ -143,6 +147,11 @@ const SOURCES: Record<string, string> = {
   burnRulesPage: `${DASHBOARD}/Pages/Slo/View/BurnRateRules.tsx`,
   recommendedRulesModal: `${DASHBOARD}/Components/Slo/SloRecommendedBurnRateRulesModal.tsx`,
   recommendedRulesBanner: `${DASHBOARD}/Components/Slo/SloRecommendedBurnRateRulesBanner.tsx`,
+  recommendedRulesBulkAction: `${DASHBOARD}/Components/Slo/useSloRecommendedRulesBulkAction.tsx`,
+  recommendedRulesBulkCopy: `${DASHBOARD}/Components/Slo/SloBulkRecommendedRulesCopy.ts`,
+  sloBulkActions: `${DASHBOARD}/Components/Slo/useSloBulkActions.tsx`,
+  archivedSlosPage: `${DASHBOARD}/Pages/Slo/Archived.tsx`,
+  burnRuleApi: "Common/Server/API/ServiceLevelObjectiveBurnRateRuleAPI.ts",
   notificationSettings: `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
   metricsQueryConfig: `${DASHBOARD}/Components/Slo/SloMetricsQueryConfig.ts`,
   labelRulesPage: `${DASHBOARD}/Pages/Slo/Settings/LabelRules.tsx`,
@@ -1672,6 +1681,138 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     );
     expect(addSection).toContain(
       "Each rule it adds is posted to the SLO's feed and recorded in its audit logs, like a rule you create yourself.",
+    );
+  });
+
+  it("offers Add recommended rules for many SLOs at once in the SLO list's Bulk Actions, and says what it adds and what it answers", () => {
+    const slosPage: string = readSource("slosPage");
+    const bulkAction: string = readSource("recommendedRulesBulkAction");
+    const bulkCopy: string = readSource("recommendedRulesBulkCopy");
+    const routes: string = readSource("burnRuleApi");
+
+    // In the live SLO list's Bulk Actions, by the Burn Rate Rules page's own name.
+    expect(slosPage).toContain("...recommendedRulesBulkActions,");
+    expect(readSource("sloBulkActions")).toContain(
+      "useSloRecommendedRulesBulkAction()",
+    );
+    expect(readSource("archivedSlosPage")).not.toContain(
+      "recommendedRulesBulkActions",
+    );
+    expect(bulkCopy).toMatch(
+      /SLO_ADD_RECOMMENDED_RULES_ACTION_TITLE: string = translationKey\(\s*"Add recommended rules",?\s*\)/,
+    );
+    expect(bulkAction).toContain(
+      "title: SLO_ADD_RECOMMENDED_RULES_ACTION_TITLE,",
+    );
+    expect(slosPage).toContain(
+      "select them in this list and choose **Add recommended rules** in **Bulk Actions**",
+    );
+
+    const bulk: string = section(page, "Add them to many SLOs at once");
+
+    expect(bulk).toContain("Open **SLOs** and select the SLOs to update.");
+    expect(bulk).toContain(
+      "Open **Bulk Actions** and choose **Add recommended rules**.",
+    );
+    expect(bulk).toContain("Click **Add recommended rules** to add them.");
+
+    // What the confirmation says, in its own words.
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs get the recommended rules they are missing:",
+    );
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs already have every recommended rule and are left as they are.",
+    );
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs could not be read, so nothing is added to them.",
+    );
+    expect(bulk).toContain(
+      "the confirmation counts how many of the selected SLOs get each rule, scaled to their own windows",
+    );
+    expect(bulk).toContain(
+      "It also says how many already have every recommended rule, and how many could not be read.",
+    );
+
+    // Slow leak takes another shape on a 7-day SLO than on a 30-day one.
+    expect(
+      seeded(SLO_SLOW_LEAK_RULE_NAME, { windowDays: 7 }).longWindowInMinutes,
+    ).not.toBe(
+      seeded(SLO_SLOW_LEAK_RULE_NAME, { windowDays: 30 }).longWindowInMinutes,
+    );
+    expect(bulk).toContain("such as Slow leak on a 7-day and on a 30-day SLO");
+
+    // The result, in the action's own words.
+    expect(bulkCopy).toContain("Rules added to {{count}} SLOs");
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs already had every recommended rule",
+    );
+    expect(bulkCopy).toContain("Rules not added to {{count}} SLOs");
+    expect(bulk).toContain(
+      "whether rules were added, it already had every recommended rule, or it was not changed and why",
+    );
+
+    // The same add as the SLO's own page: the bulk add goes through it.
+    expect(readSource("burnRuleService")).toContain(
+      "await this.addMissingRecommendedRules({",
+    );
+    expect(bulk).toContain(
+      "exactly as its own **Burn Rate Rules** page would add them",
+    );
+    expect(bulk).toContain("running it again on the same SLOs adds nothing");
+    expect(bulk).toContain("Archived SLOs are not on the list");
+
+    // The four requests, as the API serves them.
+    const route: (name: string) => string = (name: string): string => {
+      const match: RegExpExecArray | null = new RegExp(
+        `${name}: string =\\s*"([^"]+)"`,
+      ).exec(routes);
+
+      expect({ name, found: Boolean(match) }).toEqual({ name, found: true });
+
+      return (match as RegExpExecArray)[1] as string;
+    };
+
+    const crudPath: string =
+      new ServiceLevelObjectiveBurnRateRule().getCrudApiPath()?.toString() ||
+      "";
+
+    expect(crudPath).toBe("/service-level-objective-burn-rate-rule");
+    expect(
+      tableRows(bulk.slice(bulk.indexOf("| Request | What it does |"))).map(
+        (row: Array<string>): string => {
+          return row[0] as string;
+        },
+      ),
+    ).toEqual([
+      `\`POST /api${crudPath}${route("SLO_RECOMMENDED_BURN_RATE_RULES_ROUTE")}\``,
+      `\`POST /api${crudPath}${route("SLO_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE")}\``,
+      `\`POST /api${crudPath}${route("SLO_BULK_RECOMMENDED_BURN_RATE_RULES_ROUTE")}\``,
+      `\`POST /api${crudPath}${route("SLO_BULK_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE")}\``,
+    ]);
+
+    // What they take and answer, and how many SLOs one names.
+    expect(routes).toContain('["serviceLevelObjectiveId"]');
+    expect(routes).toContain('["serviceLevelObjectiveIds"]');
+    expect(bulk).toContain('`{ "serviceLevelObjectiveId": "..." }`');
+    expect(bulk).toContain('`{ "serviceLevelObjectiveIds": ["..."] }`');
+    expect(bulk).toContain(
+      `at most ${SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS} SLOs per request`,
+    );
+    expect(routes.split("results: results.map(").length - 1).toBe(2);
+    expect(bulk).toContain(
+      "answer with one entry for each SLO in `results`, in the order asked",
+    );
+
+    for (const status of Object.values(SloBulkRecommendedRulesStatus)) {
+      expect({ status, named: bulk.includes(`\`${status}\``) }).toEqual({
+        status,
+        named: true,
+      });
+    }
+
+    // The SLO list's own page sends readers here.
+    expect(section(englishPage(INTRODUCTION), "The SLO list")).toContain(
+      "give them the [recommended burn rate rules](/docs/slo/burn-rate-alerts#add-them-to-many-slos-at-once) they are missing",
     );
   });
 

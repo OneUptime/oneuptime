@@ -2,8 +2,9 @@
 
 An offline harness for the real
 `packages/App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules.tsx` page, the
-Error Budget Policy page (`Pages/Slo/View/ErrorBudgetPolicy.tsx`) and the SLO
-overview with its production layout and side menu. It bundles the
+Error Budget Policy page (`Pages/Slo/View/ErrorBudgetPolicy.tsx`), the SLO
+overview with its production layout and side menu, and the SLO list with its Bulk
+Actions (`Pages/Slo/Slos.tsx`). It bundles the
 production component with esbuild, replaces only the `ModelAPI` / `API` data boundary
 with synthetic records, and serves it on `127.0.0.1:4213`. No Docker, no database, no
 sign-in — so it runs against a branch without touching a shared dev stack.
@@ -31,6 +32,17 @@ desktop and mobile overview screenshots. The hero adds owners right there: Add o
 it) open the Add owners list, and each pick is a row the hero's next read names. The
 overview route is the same URL without `/burn-rate-rules`; add `?details=empty` for blank
 description and labels.
+
+`BulkRecommendedRules.spec.ts` opens the SLO list itself
+(`/dashboard/10000000-0000-4000-8000-000000000001/slos`, the real `Pages/Slo/Slos.tsx`),
+which lists four SLOs with rules of their own: Checkout availability (30 days, missing
+Slow leak), Search latency (7 days, missing Slow leak in its 16.8-hour shape), Payments
+API (all three rules) and Login (a calendar month with only a renamed fast-burn rule, so
+missing Slow burn and Slow leak). Bulk Actions > Add recommended rules on all four says
+how many SLOs get which rules, in which shape, before anything is added; confirming adds
+exactly that, in one request for the three that need it (recorded on
+`window.__bulkRecommendedAdds`), and the result says what happened to each SLO. Asked
+again, there is nothing to add. The confirmation is also checked at a phone's width.
 
 `ErrorBudgetPolicy.spec.ts` opens the same URL ending in `/error-budget-policy`. An SLO
 with no tiers is offered Use the recommended policy: its confirmation lists exactly the
