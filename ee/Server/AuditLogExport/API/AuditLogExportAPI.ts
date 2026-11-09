@@ -85,6 +85,11 @@ export function describeTestSuccess(data: {
     return `A test file was written to ${data.receipt.location}. Real entries are written next to it, in folders by date.`;
   }
 
+  // Over UDP nothing answers that it arrived, so only the receiver can say.
+  if (data.receipt.isUnconfirmed) {
+    return `A test entry was sent to ${data.receipt.location}. Its action is Test. UDP does not confirm delivery, so check that it arrived.`;
+  }
+
   return `A test entry was sent to ${data.receipt.location}. Its action is Test.`;
 }
 

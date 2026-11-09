@@ -15,6 +15,7 @@ import {
   AuditLogExportDestinationField,
   AuditLogExportDestinationKind,
   getAuditLogExportDestinationDefinition,
+  getAuditLogExportFieldDefault,
   isAuditLogExportFieldShown,
   readAuditLogExportConfigValue,
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
@@ -170,6 +171,76 @@ function readSchemaVersion(
   const version: number = Number(readText(value) || NaN);
 
   return isAuditLogExportSchemaVersion(version) ? version : null;
+}
+
+/*
+ * The fields whose default follows a choice of this config field (syslog's
+ * port follows its protocol): what a form moves along when it changes.
+ */
+export function getAuditLogExportFollowingFields(
+  definition: AuditLogExportDestinationDefinition,
+  key: string,
+): Array<AuditLogExportDestinationField> {
+  return definition.configFields.filter(
+    (field: AuditLogExportDestinationField): boolean => {
+      return field.defaultFollows?.key === key;
+    },
+  );
+}
+
+/*
+ * The form's values once a config field takes a new choice: each field
+ * whose default follows that choice, and that holds nobody's value -
+ * nothing, or the default of a choice - takes the new choice's default, so
+ * picking UDP moves a port of 6514 to 514 and picking TLS moves it back. A
+ * port someone typed stays. Null when nothing moves.
+ */
+export function followAuditLogExportDefaults(data: {
+  definition: AuditLogExportDestinationDefinition;
+  key: string;
+  choice: JSONValue | undefined;
+  values: JSONObject;
+}): JSONObject | null {
+  let moved: JSONObject | null = null;
+
+  for (const field of getAuditLogExportFollowingFields(
+    data.definition,
+    data.key,
+  )) {
+    const fieldName: string = exportConfigFieldName(
+      data.definition.type,
+      field.key,
+    );
+    const held: string = readText(
+      data.values[fieldName] as JSONValue | undefined,
+    );
+    const untouched: Array<string> = [
+      "",
+      ...(field.defaultValue === undefined ? [] : [String(field.defaultValue)]),
+      ...Object.values(field.defaultFollows?.values || {}).map(
+        (value: string | number): string => {
+          return String(value);
+        },
+      ),
+    ];
+
+    if (!untouched.includes(held)) {
+      continue;
+    }
+
+    const followed: JSONValue | undefined = getAuditLogExportFieldDefault(
+      { [data.key]: readText(data.choice) },
+      field,
+    );
+    const next: string =
+      followed === undefined || followed === null ? "" : String(followed);
+
+    if (next !== held) {
+      moved = { ...(moved || data.values), [fieldName]: next };
+    }
+  }
+
+  return moved;
 }
 
 // The destination the form is for: the one an edit keeps, or the one picked.
@@ -473,6 +544,21 @@ export function getAuditLogExportInitialValues(
       if (value !== undefined && value !== null && value !== "") {
         values[exportConfigFieldName(definition.type, field.key)] =
           typeof value === "number" ? String(value) : value;
+        continue;
+      }
+
+      /*
+       * A default that follows a choice is the one the export sends with -
+       * 514 for a UDP export saved without a port - not the field's own,
+       * which a save would then write over it.
+       */
+      const followed: JSONValue | undefined = field.defaultFollows
+        ? getAuditLogExportFieldDefault(config, field)
+        : undefined;
+
+      if (followed !== undefined && followed !== null) {
+        values[exportConfigFieldName(definition.type, field.key)] =
+          String(followed);
       }
     }
   }

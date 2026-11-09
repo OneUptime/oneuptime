@@ -20,7 +20,10 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import LlmIssueBadge from "./LlmIssueBadge";
-import { LLM_ACTIVITY_LABELS } from "./LlmConversationCopy";
+import {
+  LLM_ACTIVITY_LABELS,
+  LLM_SILENT_ANSWER_NOT_SHOWN,
+} from "./LlmConversationCopy";
 import {
   collapseLlmWhitespace,
   compactLlmArguments,
@@ -68,6 +71,12 @@ export interface ComponentProps {
   traceRoute: Route;
   // Where "How to record prompts and answers" goes.
   setupRoute: Route;
+  /*
+   * The conversation's GenAI log events were not read (the reader may not
+   * read the app's logs, or the read failed): an answer without content
+   * says it is not shown, rather than that it was not recorded.
+   */
+  isContentHidden?: boolean | undefined;
   // Replay the conversation from this message (the time's button).
   onReplayFromHere?: (() => void) | undefined;
 }
@@ -778,22 +787,29 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
           >
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm text-gray-600">
-                {translator.translateText(
-                  "The AI answered. What it said was not recorded.",
-                )}
+                {props.isContentHidden
+                  ? translator.translateText(LLM_SILENT_ANSWER_NOT_SHOWN)
+                  : translator.translateText(
+                      "The AI answered. What it said was not recorded.",
+                    )}
               </div>
               <LlmStepTime
                 atMs={step.atMs}
                 onReplayFromHere={props.onReplayFromHere}
               />
             </div>
-            <AppLink
-              to={props.setupRoute}
-              className="mt-1 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-700"
-            >
-              {translator.translateText("How to record prompts and answers") ||
-                ""}
-            </AppLink>
+            {props.isContentHidden ? (
+              <></>
+            ) : (
+              <AppLink
+                to={props.setupRoute}
+                className="mt-1 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-700"
+              >
+                {translator.translateText(
+                  "How to record prompts and answers",
+                ) || ""}
+              </AppLink>
+            )}
             <AnswerMeta step={step} traceRoute={props.traceRoute} />
           </div>
         </div>

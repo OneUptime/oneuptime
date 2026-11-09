@@ -2167,10 +2167,40 @@ function clampInteger(
 }
 
 /*
+ * What the caller may read of logs, for the prompts and answers an app sends
+ * as GenAI log events (LlmConversationService reads them for the answers
+ * whose spans lack them): the same rows the Logs page shows them. null when
+ * they may read none - refused logs outright (a block with no labels), or
+ * granted no app's logs.
+ */
+async function getConversationLogScope(
+  databaseProps: DatabaseCommonInteractionProps,
+): Promise<TelemetryReadScope | null> {
+  let logScope: TelemetryReadScope;
+
+  try {
+    logScope = await TelemetryReadAccess.getScope(Log, databaseProps);
+  } catch (err: unknown) {
+    if (err instanceof NotAuthorizedException) {
+      return null;
+    }
+
+    throw err;
+  }
+
+  const readableIds: Array<string> | null =
+    TelemetryReadScopeUtil.getReadableIds(logScope);
+
+  return readableIds !== null && readableIds.length === 0 ? null : logScope;
+}
+
+/*
  * The AI conversations of a time range: calls grouped by conversation id
  * (or by trace when none was sent), one row each, with the summary and the
  * per-issue counts the page shows above them. Same read access as the
- * traces the calls are; the caller's service scope narrows the read.
+ * traces the calls are; the caller's service scope narrows the read. A row
+ * whose spans recorded no question takes its title from its first call's
+ * GenAI log events, when the caller may read that app's logs.
  */
 router.post(
   LLM_CONVERSATIONS_ROUTE,
@@ -2211,12 +2241,14 @@ router.post(
         );
       }
 
-      const serviceFilter: TelemetryServiceFilter =
-        await TelemetryReadAccess.getServiceFilter({
+      const [serviceFilter, logScope] = await Promise.all([
+        TelemetryReadAccess.getServiceFilter({
           modelType: Span,
           props: databaseProps,
           requested: readBodyServiceIds(body["serviceIds"]),
-        });
+        }),
+        getConversationLogScope(databaseProps),
+      ]);
 
       const result: LlmConversationListResponse =
         await LlmConversationService.listConversations({
@@ -2225,6 +2257,7 @@ router.post(
           endTime: endTime,
           serviceIds: serviceFilter.serviceIds,
           excludedServiceIds: serviceFilter.excludedServiceIds,
+          logScope: logScope,
           model: readFilterText(body["model"]),
           person: readFilterText(body["person"]),
           search: readFilterText(body["search"]),
@@ -2254,7 +2287,9 @@ router.post(
 /*
  * One conversation as a transcript. The time hint (the list row's first and
  * last call) keeps the read on the partitions that hold it; without one the
- * last 30 days are read.
+ * last 30 days are read. Prompts and answers an app sent as GenAI log
+ * events are read from the logs the caller may read; the answer says
+ * whether they were (logEvents).
  */
 router.post(
   LLM_CONVERSATION_ROUTE,
@@ -2319,11 +2354,13 @@ router.post(
         );
       }
 
-      const serviceFilter: TelemetryServiceFilter =
-        await TelemetryReadAccess.getServiceFilter({
+      const [serviceFilter, logScope] = await Promise.all([
+        TelemetryReadAccess.getServiceFilter({
           modelType: Span,
           props: databaseProps,
-        });
+        }),
+        getConversationLogScope(databaseProps),
+      ]);
 
       const detail: LlmConversationDetail =
         await LlmConversationService.getConversation({
@@ -2333,6 +2370,7 @@ router.post(
           endTime: endTime,
           serviceIds: serviceFilter.serviceIds,
           excludedServiceIds: serviceFilter.excludedServiceIds,
+          logScope: logScope,
         });
 
       return Response.sendJsonObjectResponse(

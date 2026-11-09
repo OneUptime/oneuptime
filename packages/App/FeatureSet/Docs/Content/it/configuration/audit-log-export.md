@@ -118,13 +118,17 @@ La **Credenziale**, come `Bearer <token>`, viene inviata nell'intestazione che s
 
 ### Syslog
 
-Ogni voce è un messaggio RFC 5424 inviato all'**Host** e alla **Porta**, via TLS sulla porta `6514` a meno che **Protocollo** non indichi TCP, con facility 13 (log audit) e severity 6 (informational):
+Ogni voce è un messaggio RFC 5424 inviato all'**Host** e alla **Porta**, via TLS sulla porta `6514` a meno che **Protocollo** non indichi TCP o UDP, con facility 13 (log audit) e severity 6 (informational):
 
 ```text
 <110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-I messaggi sono delimitati dal conteggio degli ottetti (RFC 5425), a meno che **Delimitazione** non indichi un messaggio per riga. Un ricevitore il cui certificato è firmato da una CA privata ha bisogno del certificato di quella CA in **Certificato della CA**. Entrambi aspettano in **Altri campi**.
+Su TLS e TCP, i messaggi sono delimitati dal conteggio degli ottetti (RFC 5425), a meno che **Delimitazione** non indichi un messaggio per riga. Un ricevitore il cui certificato è firmato da una CA privata ha bisogno del certificato di quella CA in **Certificato della CA**. Entrambi aspettano in **Altri campi**.
+
+Su UDP, **Porta** parte da `514`, e ogni messaggio è un datagramma a sé (RFC 5426), quindi nessuno viene delimitato. UDP invia il registro di audit in chiaro, e niente conferma che un messaggio sia arrivato: quando l'host del ricevitore risponde che la sua porta è chiusa, il lotto fallisce e viene ritentato, ma un messaggio perso per strada non viene inviato di nuovo. Dopo un test su UDP, controlla che la voce di test sia arrivata. Quando ogni voce deve arrivare, scegli TLS o TCP.
+
+Su UDP, un messaggio è lungo al massimo quanto **Dimensione massima dei messaggi**, in byte: `8192`, a meno che tu non la cambi in **Altri campi**, da `1024` a `65507`. Una voce più lunga viene accorciata per rientrarci e resta un unico oggetto JSON: prima vengono tagliati i suoi valori, come li taglia il registro di audit, ad esempio `[… 1,234 more characters]` o `[12.3 KB of JSON]`, poi le modifiche che ancora non rientrano vengono contate in una sola, ad esempio `[… 12 more changes]`.
 
 ## Cosa viene inviato
 
@@ -188,7 +192,7 @@ L'esportazione di un progetto su OneUptime Cloud non può raggiungere un indiriz
 :::
 
 :::details Non arriva nulla
-Controlla che la registrazione di audit sia attiva nel progetto, e che qualcuno abbia cambiato qualcosa dopo il salvataggio dell'esportazione. Uno storage riceve un file solo quando un lotto è pieno o ha cinque minuti.
+Controlla che la registrazione di audit sia attiva nel progetto, e che qualcuno abbia cambiato qualcosa dopo il salvataggio dell'esportazione. Uno storage riceve un file solo quando un lotto è pieno o ha cinque minuti. Su UDP, un firewall scarta i messaggi senza dirlo: controlla che UDP possa raggiungere la porta del ricevitore.
 :::
 
 ## Passi successivi

@@ -558,7 +558,7 @@ describe("the Setup check card: your apps", () => {
     });
   });
 
-  test("prompts and answers sent as log records: record them on the spans instead", () => {
+  test("prompts and answers sent as log events: fine, conversations read them, and who else can", () => {
     const lines: Array<LlmSetupCheckLine> = appsLines(
       apps({
         callsRecently: 50,
@@ -569,9 +569,58 @@ describe("the Setup check card: your apps", () => {
       }),
     );
 
-    expect(lines[1]!.detail).toBe(
-      "Your app sends them as log records, which conversations don't read: record them on the spans instead.",
+    expect(lines[1]).toEqual({
+      key: "apps-content",
+      tone: "ok",
+      text: "Prompts and answers arrive as log events, and conversations show them.",
+      detail:
+        "Anyone who can read your apps' logs can read them too. Log scrub rules mask personal data in them before it is stored.",
+    });
+    /*
+     * The logs' scrub rules mask them, not the traces' - the warning's
+     * "scrub rules" (CONTENT_HOW) are the spans' - and the apps are plural,
+     * as the line above names several.
+     */
+    expect(lines[1]!.detail).toContain("Log scrub rules");
+    expect(lines[1]!.detail).toContain("your apps' logs");
+    // No longer the warning, nor advice to move them onto the spans.
+    expect(JSON.stringify(lines)).not.toContain("aren't recorded");
+    expect(JSON.stringify(lines)).not.toContain("on the spans instead");
+  });
+
+  test("the check could not read the logs: a warning, as before it knew of log events", () => {
+    const lines: Array<LlmSetupCheckLine> = appsLines(
+      apps({
+        callsRecently: 50,
+        services: [{ serviceId: "svc-checkout", calls: 50, newestAt: null }],
+        answersRecently: 40,
+        answersWithContent: 0,
+        contentInLogs: null,
+      }),
     );
+
+    expect(lines[1]!.tone).toBe("warning");
+    expect(lines[1]!.detail).toBe(
+      "Turn on your instrumentation's content capture. Prompts can hold personal data: scrub rules mask it before it is stored.",
+    );
+  });
+
+  test("some answers recorded on the spans: the share, whatever the logs hold", () => {
+    const lines: Array<LlmSetupCheckLine> = appsLines(
+      apps({
+        callsRecently: 50,
+        services: [{ serviceId: "svc-checkout", calls: 50, newestAt: null }],
+        answersRecently: 4,
+        answersWithContent: 1,
+        contentInLogs: true,
+      }),
+    );
+
+    expect(lines[1]).toEqual({
+      key: "apps-content",
+      tone: "ok",
+      text: "Prompts and answers recorded on 25% of answers.",
+    });
   });
 
   test("some answers recorded: the share", () => {
