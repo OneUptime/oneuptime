@@ -13,6 +13,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
+import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import React, {
   FunctionComponent,
@@ -224,17 +225,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.AltGlobe,
           /*
-           * Archived monitors are not checked, so a frozen "Offline" is not
-           * a problem - and the list this opens leaves them out. The badge
-           * counts what the list shows, like the Monitors menu's and Home's
-           * own strip.
+           * Archived monitors and monitors with monitoring turned off are
+           * not checked, so a frozen "Offline" is not a problem - and the
+           * list this opens leaves them out. The badge counts what the list
+           * shows, like the Monitors menu's and Home's own strip
+           * (NotOperationalMonitorQuery).
            */
           countQuery: {
             projectId: props.project?._id,
-            isArchived: false,
-            currentMonitorStatus: {
-              isOperationalState: false,
-            },
+            ...NotOperationalMonitorQuery.getQuery(),
           },
           modelType: Monitor,
           badgeType: BadgeType.DANGER,

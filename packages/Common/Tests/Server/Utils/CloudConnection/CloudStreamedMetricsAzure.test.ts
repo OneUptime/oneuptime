@@ -256,3 +256,122 @@ describe("an Azure connection's read, while its event hubs deliver", () => {
     expect(JSON.stringify(PAYLOAD)).toBe(before);
   });
 });
+
+describe("a streamed Service Bus namespace's queues", () => {
+  const SERVICE_BUS_TYPE: string = "Microsoft.ServiceBus/namespaces";
+
+  function namespaceSet(
+    subscriptionId: string,
+    entity: string | null,
+  ): CloudMetricGroup["metrics"][number]["datapointSets"][number] {
+    const attributes: CloudMetricGroup["metrics"][number]["datapointSets"][number]["attributes"] =
+      [
+        stringAttribute(
+          "azuremonitor.resource_id",
+          `/subscriptions/${subscriptionId}/resourceGroups/rg/providers/${SERVICE_BUS_TYPE}/sb-orders`,
+        ),
+        stringAttribute("name", "sb-orders"),
+        stringAttribute("type", SERVICE_BUS_TYPE),
+        stringAttribute("resource_group", "rg"),
+        stringAttribute("location", "eastus"),
+        stringAttribute("timegrain", "PT1M"),
+      ];
+
+    if (entity !== null) {
+      attributes.push(stringAttribute("metadata_entityname", entity));
+    }
+
+    return {
+      attributes,
+      points: [{ timeMs: Date.UTC(2026, 10, 6, 10, 0), value: 3 }],
+    };
+  }
+
+  const QUEUES: JSONObject = buildMetricsPayloads([
+    group(SUBSCRIPTION, [
+      {
+        name: "azure_incomingmessages_total",
+        unit: "Count",
+        datapointSets: [
+          namespaceSet(SUBSCRIPTION, "orders"),
+          namespaceSet(SUBSCRIPTION, "invoices"),
+          // A total split by nothing: the stream's.
+          namespaceSet(SUBSCRIPTION, null),
+        ],
+      },
+    ]),
+    group(OTHER_SUBSCRIPTION, [
+      {
+        name: "azure_incomingmessages_total",
+        unit: "Count",
+        datapointSets: [namespaceSet(OTHER_SUBSCRIPTION, "orders")],
+      },
+    ]),
+  ])[0]!;
+
+  const STREAMED: Set<string> = new Set<string>([
+    getStreamedMetricKey({
+      accountId: SUBSCRIPTION,
+      region: "eastus",
+      namespace: SERVICE_BUS_TYPE,
+    }),
+  ]);
+
+  function attributeKeysOf(payload: JSONObject): Array<Array<string>> {
+    const keys: Array<Array<string>> = [];
+
+    for (const resource of payload["resourceMetrics"] as Array<JSONObject>) {
+      for (const metric of (resource["scopeMetrics"] as Array<JSONObject>)[0]![
+        "metrics"
+      ] as Array<JSONObject>) {
+        for (const point of (metric["gauge"] as JSONObject)[
+          "dataPoints"
+        ] as Array<JSONObject>) {
+          keys.push(
+            (point["attributes"] as Array<JSONObject>).map(
+              (attribute: JSONObject): string => {
+                return attribute["key"] as string;
+              },
+            ),
+          );
+        }
+      }
+    }
+
+    return keys;
+  }
+
+  test("are still the read's - a stream exports the namespace's totals only - without the namespace's resource id", () => {
+    const result: { payload: JSONObject | null; leftOut: number } =
+      withoutStreamedMetrics({ payload: QUEUES, streamedKeys: STREAMED });
+
+    // Only the unsplit total is left to the stream.
+    expect(result.leftOut).toBe(1);
+    expect(written(result.payload)).toEqual([
+      "11111111 azure_incomingmessages_total sb-orders",
+      "11111111 azure_incomingmessages_total sb-orders",
+      "22222222 azure_incomingmessages_total sb-orders",
+    ]);
+
+    const keys: Array<Array<string>> = attributeKeysOf(result.payload!);
+
+    // The streamed subscription's queues: filed on their queue, not on the namespace.
+    for (const pointKeys of keys.slice(0, 2)) {
+      expect(pointKeys).not.toContain("azuremonitor.resource_id");
+      expect(pointKeys).toEqual(
+        expect.arrayContaining(["name", "type", "metadata_entityname"]),
+      );
+    }
+
+    // Another subscription's queue is not streamed: written as read.
+    expect(keys[2]).toContain("azuremonitor.resource_id");
+  });
+
+  test("what the read is handed is never changed", () => {
+    const before: string = JSON.stringify(QUEUES);
+
+    withoutStreamedMetrics({ payload: QUEUES, streamedKeys: STREAMED });
+
+    expect(JSON.stringify(QUEUES)).toBe(before);
+  });
+});

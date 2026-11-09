@@ -148,7 +148,7 @@ Die Liste ist eine Reihenfolge. Wo Monitore gemeinsam angezeigt werden, gewinnt 
 
 | Wo | Was der Status entscheidet |
 | --- | --- |
-| Die Liste **Monitore** | Den aktuellen Status jedes Monitors. **Nicht betriebsbereit** listet die Monitore in jedem Status außer dem betriebsbereiten, mit einer roten Zahl daneben. |
+| Die Liste **Monitore** | Den aktuellen Status jedes Monitors. **Nicht betriebsbereit** listet die Monitore in jedem Status außer dem betriebsbereiten, mit einer roten Zahl daneben. Monitore mit ausgeschalteter Überwachung fehlen dort: Nichts prüft sie, und **Deaktiviert** listet sie. |
 | Statusseiten | Die Farbe jeder Zeile und ihre Verfügbarkeit: Nur die Status in **Zählt als Ausfallzeit** der Seite zählen dagegen. Eine neue Statusseite beginnt mit jedem Status außer dem betriebsbereiten. Siehe [Auswählen, was auf der Seite angezeigt wird](/docs/status-pages/index#auswählen-was-auf-der-seite-erscheint). |
 | Monitor-Gruppen | Den Status der Gruppe: den schlimmsten ihrer Monitore. Siehe [Monitor-Gruppen](/docs/monitor/monitor-groups). |
 | SLOs | Die Ausfallzeit, die ein SLO zählt, aus seiner eigenen Liste von Status. Siehe [Welche Status als Ausfallzeit zählen](/docs/slo/introduction#welche-status-als-ausfallzeit-zählen). |

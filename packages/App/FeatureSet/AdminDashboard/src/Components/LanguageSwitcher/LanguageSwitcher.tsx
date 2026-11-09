@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import UserLanguageUtil from "Common/UI/Utils/UserLanguage";
 import { SupportedLanguage, SUPPORTED_LANGUAGES } from "../../Utils/i18n";
 
 export interface ComponentProps {
@@ -39,6 +40,12 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
   ): void => {
     const nextLanguage: string = event.target.value;
     i18n.changeLanguage(nextLanguage);
+    /*
+     * A signed-in person's pick is theirs from then on, saved to their
+     * account (Types/UserLanguage), as the Dashboard's language menu saves
+     * it. Best effort: it never holds the switch up.
+     */
+    void UserLanguageUtil.saveSignedInUserLanguage(nextLanguage);
   };
 
   return (

@@ -48,7 +48,7 @@ Cada número conta algo, diz se isso precisa de você e abre a lista por trás d
 | --- | --- | --- |
 | **Incidentes ativos** | Incidentes não resolvidos | **Tudo certo** |
 | **Alertas ativos** | Alertas não resolvidos | **Tudo certo** |
-| **Monitores não operacionais** | Monitores cujo status não é operacional. Monitores arquivados não entram. | **Todos operacionais** |
+| **Monitores não operacionais** | Monitores cujo status não é operacional. Monitores arquivados, e monitores com o monitoramento desligado, não entram. | **Todos operacionais** |
 | **Manutenção em andamento** | Eventos de manutenção programada em andamento | **Nenhuma em andamento** |
 | **SLOs em risco** | SLOs ativados que estão em risco ou esgotaram o orçamento de erro | **Orçamentos saudáveis** |
 

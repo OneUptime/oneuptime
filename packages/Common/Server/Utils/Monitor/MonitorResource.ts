@@ -56,6 +56,9 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MetricTelemetrySnapshot from "../../../Utils/Monitor/MetricTelemetrySnapshot";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
+import MonitorAutoResolveTemplates, {
+  MonitorAutoResolveTemplateIds,
+} from "../../../Utils/Monitor/MonitorAutoResolveTemplates";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
 import MonitorEvaluationDetailsCapture, {
@@ -823,73 +826,34 @@ export default class MonitorResourceUtil {
           })
           .flat();
 
+      /*
+       * For each criteria, its incident and alert templates that resolve on
+       * their own (MonitorAutoResolveTemplates): what a result that no longer
+       * meets that criteria resolves. Turning monitoring off reads the same
+       * (MonitorTurnedOff), so the two never disagree about which incidents
+       * and alerts are this monitor's to resolve.
+       */
+      const autoResolveTemplateIds: MonitorAutoResolveTemplateIds =
+        MonitorAutoResolveTemplates.fromCriteriaInstances(criteriaInstances);
+
       const autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
         Array<string>
-      > = {};
-
-      const criteriaInstanceMap: Dictionary<MonitorCriteriaInstance> = {};
-
-      for (const criteriaInstance of criteriaInstances) {
-        criteriaInstanceMap[criteriaInstance.data?.id || ""] = criteriaInstance;
-
-        if (
-          criteriaInstance.data?.incidents &&
-          criteriaInstance.data?.incidents.length > 0
-        ) {
-          for (const incidentTemplate of criteriaInstance.data!.incidents) {
-            if (incidentTemplate.autoResolveIncident) {
-              if (
-                !autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                  criteriaInstance.data.id.toString()
-                ]
-              ) {
-                autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                  criteriaInstance.data.id.toString()
-                ] = [];
-              }
-
-              autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                criteriaInstance.data.id.toString()
-              ]?.push(incidentTemplate.id);
-            }
-          }
-        }
-      }
+      > = autoResolveTemplateIds.incidents;
 
       // alerts.
 
       const autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<
         Array<string>
-      > = {};
+      > = autoResolveTemplateIds.alerts;
+
+      const criteriaInstanceMap: Dictionary<MonitorCriteriaInstance> = {};
 
       const criteriaInstanceAlertMap: Dictionary<MonitorCriteriaInstance> = {};
 
       for (const criteriaInstance of criteriaInstances) {
+        criteriaInstanceMap[criteriaInstance.data?.id || ""] = criteriaInstance;
         criteriaInstanceAlertMap[criteriaInstance.data?.id || ""] =
           criteriaInstance;
-
-        if (
-          criteriaInstance.data?.alerts &&
-          criteriaInstance.data?.alerts.length > 0
-        ) {
-          for (const alertTemplate of criteriaInstance.data!.alerts) {
-            if (alertTemplate.autoResolveAlert) {
-              if (
-                !autoResolveCriteriaInstanceIdAlertIdsDictionary[
-                  criteriaInstance.data.id.toString()
-                ]
-              ) {
-                autoResolveCriteriaInstanceIdAlertIdsDictionary[
-                  criteriaInstance.data.id.toString()
-                ] = [];
-              }
-
-              autoResolveCriteriaInstanceIdAlertIdsDictionary[
-                criteriaInstance.data.id.toString()
-              ]?.push(alertTemplate.id);
-            }
-          }
-        }
       }
 
       /*

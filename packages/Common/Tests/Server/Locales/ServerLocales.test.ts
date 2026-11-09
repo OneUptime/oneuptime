@@ -80,6 +80,21 @@ const TRANSLATED_VALUE_PLACEHOLDERS: ReadonlyArray<string> = [
 
 const LETTER: RegExp = /\p{L}/u;
 
+// A {{placeholder}}: a value, which belongs to no language.
+const PLACEHOLDER: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
+
+/*
+ * Whether a sentence has words of its own besides its placeholders, as the
+ * translator reads it (Types/Translator's hasWords): "{{lead}}: {{record}}"
+ * has none, and belongs to no language - a language may punctuate it its
+ * own way ("{{lead}}：{{record}}" in Japanese), or leave it as it is.
+ */
+const hasWordsOfItsOwn: (sentence: string) => boolean = (
+  sentence: string,
+): boolean => {
+  return LETTER.test(sentence.replace(PLACEHOLDER, ""));
+};
+
 const english: LocaleDictionary = readLocale(ENGLISH);
 
 const sameAsEnglish: Record<string, Array<string>> = JSON.parse(
@@ -179,8 +194,8 @@ describe("every language's file", () => {
             return false;
           }
 
-          // A sentence of no letters reads the same in every language.
-          if (!LETTER.test(english[key]!)) {
+          // A sentence of no words of its own reads the same in every language.
+          if (!hasWordsOfItsOwn(english[key]!)) {
             return false;
           }
 

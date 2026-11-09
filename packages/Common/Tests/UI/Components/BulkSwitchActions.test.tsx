@@ -756,7 +756,7 @@ describe("a switch the other way round: a monitor's Disable Monitoring", () => {
     expect(
       within(dialog()).getByTestId("bulk-switch-consequence"),
     ).toHaveTextContent(
-      "A disabled monitor is not checked, and opens no incidents or alerts, until it is enabled again.",
+      "A disabled monitor is not checked, and opens no incidents or alerts, until it is enabled again. Its open incidents and alerts that are set to auto-resolve are resolved.",
     );
 
     fireEvent.click(within(dialog()).getByRole("button", { name: "Disable" }));

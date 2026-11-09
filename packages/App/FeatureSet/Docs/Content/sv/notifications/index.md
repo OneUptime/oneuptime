@@ -7,6 +7,7 @@ OneUptime når dig på två sätt. Det larmar dig när en incident eller ett lar
 - [Var du hittar dem](#var-du-hittar-dem): Sidorna i användarinställningarna, avsnitt för avsnitt.
 - [Det här börjar du med](#det-här-börjar-du-med): Metoderna, reglerna och inställningarna som en ny medlem får.
 - [När ingen regel matchar](#när-ingen-regel-matchar): Hur ett larm ändå når dig, och vem som får veta det.
+- [Språket i dina larm](#språket-i-dina-larm): Larm på det språk du har valt, och vad som förblir på engelska.
 :::
 
 ## Så fungerar det
@@ -96,6 +97,18 @@ Ett larm kan nå dig för en typ och en allvarlighetsgrad som du inte har någon
 
 Du får ett e-postmeddelande om det, och det får även jourpolicyns ägare, eller projektets ägare om policyn inte har några. Är ingenting verifierat kan larmet inte levereras, och e-postmeddelandet säger det i stället. De här e-postmeddelandena hålls tillbaka medan larmen fortsätter komma, så att en storm av larm inte blir en storm av e-post. Hur du lägger till den saknade regeln står under [Personliga jourregler](/docs/notifications/on-call-rules#när-en-allvarlighetsgrad-saknar-regel).
 
+## Språket i dina larm
+
+Dina larm skrivs på ditt språk: det du väljer i språkmenyn längst ned på varje sida, eller under **Språk** i **Användarprofil**. Tills du väljer ett är de på engelska.
+
+| Kanal | Språk |
+| --- | --- |
+| E-post, sms, pushnotiser och Telegram | Ditt språk |
+| Dina egna meddelanden i Slack, Microsoft Teams och Mattermost | Ditt språk |
+| Telefonsamtal och WhatsApp | Engelska |
+
+Det som ändras är OneUptimes egna ord: ämnesrader, rubriker, knappar och meningar, och namnen som varje nytt projekt startar med, som Identifierad och Kritisk incident. Det ditt team skrev står kvar som det skrevs: titlar, beskrivningar, rotorsaker och namnen på projekt, team och statusar som ditt projekt själv har namngett. Ett sms på ett språk med egen skrift, som ryska, japanska eller persiska, tar fler delar än ett på engelska.
+
 ## Felsökning
 
 :::details Jag hade jour, men inget nådde mig
@@ -104,6 +117,10 @@ Du får ett e-postmeddelande om det, och det får även jourpolicyns ägare, ell
 
 :::details Jag får e-post om saker som jag aldrig har bett om
 Du äger saken, direkt eller via ett team, eller så har saken inga ägare och du är projektägare. Stäng av händelsen under **Användarinställningar → Aviseringsinställningar**, eller minska mängden under **Användarinställningar → E-postinställningar**.
+:::
+
+:::details Mina larm är på engelska, fast instrumentpanelen inte är det
+Instrumentpanelen följer din webbläsare tills du väljer ett språk. Välj det i språkmenyn längst ned på varje sida, eller under **Språk** i **Användarprofil**. Telefonsamtal och WhatsApp-meddelanden förblir på engelska.
 :::
 
 :::details Jag lade till ett telefonnummer, men det finns inte i mina regler

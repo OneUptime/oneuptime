@@ -39,6 +39,8 @@ import {
 import { POSTMORTEM_RULE_TEMPLATES_TITLE } from "../../../FeatureSet/Dashboard/src/Components/AISettings/PostmortemRulesCopy";
 import { StatusPageDisplaySettingsCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
 import MonitorGroupMonitorsCopy from "../../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMonitorsCopy";
+import MonitorGroupMonitoringCopy from "../../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMonitoringCopy";
+import MonitoringSwitchCopy from "../../../FeatureSet/Dashboard/src/Components/Monitor/MonitoringSwitchCopy";
 import {
   EVALUATION_DETAILS_HEADING,
   EVALUATION_FACT_LABELS,
@@ -133,6 +135,8 @@ import PostmortemStatusUtil, {
   PostmortemProgress,
 } from "Common/Utils/Incident/PostmortemStatus";
 import ArchivedMonitorResources from "Common/Utils/StatusPage/ArchivedMonitorResources";
+import MonitorGroupMonitoring from "Common/Utils/Monitor/MonitorGroupMonitoring";
+import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
 import {
   STATE_LISTS,
@@ -597,6 +601,13 @@ const GROUP_CURRENT_STATUS: string = readDashboardSource(
 const NO_MONITORS_STATUS: string = readDashboardSource(
   "Components/MonitorGroup/NoMonitorsStatus.tsx",
 );
+// The Overview's Monitoring card, and the Disabled it and the list draw (#6401).
+const GROUP_MONITORING_CARD: string = readDashboardSource(
+  "Components/MonitorGroup/MonitorGroupMonitoringCard.tsx",
+);
+const GROUP_DISABLED_STATUS: string = readDashboardSource(
+  "Components/MonitorGroup/MonitorGroupDisabledStatus.tsx",
+);
 const GROUP_MENU: string = readDashboardSource(
   "Pages/MonitorGroup/View/SideMenu.tsx",
 );
@@ -711,6 +722,10 @@ const MONITOR_GROUP_SERVICE: string = readCommonSource(
 );
 const MONITOR_GROUP_RESOURCE_SERVICE: string = readCommonSource(
   "Server/Services/MonitorGroupResourceService.ts",
+);
+// What turning a monitor's monitoring off resolves (#6400).
+const MONITOR_TURNED_OFF: string = readCommonSource(
+  "Server/Utils/Monitor/MonitorTurnedOff.ts",
 );
 const STATUS_PAGE_SERVICE: string = readCommonSource(
   "Server/Services/StatusPageService.ts",
@@ -2169,9 +2184,37 @@ describe("where a monitor's status counts", () => {
       "Not Operational",
     );
     expect(attention).toContain("badgeType: BadgeType.DANGER,");
-    expect(attention).toContain("isOperationalState: false,");
+    expect(attention).toContain("...NotOperationalMonitorQuery.getQuery(),");
+    expect(NotOperationalMonitorQuery.getQuery().currentMonitorStatus).toEqual({
+      isOperationalState: false,
+    });
     expect(rows[0]).toContain(
       "**Not Operational** lists the monitors in any status but the operational one, with a red count beside it.",
+    );
+  });
+
+  it("leaves monitors with monitoring turned off out of Not Operational, for Disabled to list (#6400)", () => {
+    const monitors: Array<MenuSection> = menuSections(MONITORS_MENU_SOURCE, {
+      "...(workspaceSection ? [workspaceSection] : [])": workspaceSection(),
+      "addDeveloperSideMenuSection(sections": developerSection(),
+    });
+    const disabled: string = between(
+      MONITORS_MENU_SOURCE,
+      'title: "Disabled",',
+      'title: "Probe Disconnected",',
+    );
+
+    expect(NotOperationalMonitorQuery.getQuery()).toEqual({
+      isArchived: false,
+      disableActiveMonitoring: false,
+      currentMonitorStatus: { isOperationalState: false },
+    });
+    expect(sectionByTitle(monitors, "Attention Required").items).toContain(
+      "Disabled",
+    );
+    expect(disabled).toContain("disableActiveMonitoring: true,");
+    expect(rows[0]).toContain(
+      "Monitors with monitoring turned off are left out: nothing checks them, and **Disabled** lists them.",
     );
   });
 
@@ -2468,6 +2511,44 @@ describe("a monitor group's status", () => {
     );
   });
 
+  it("says Disabled in the Dashboard for a group whose monitors all have monitoring off, on its Overview and in the list (#6401)", () => {
+    expect(MonitorGroupMonitoringCopy.disabledStatus).toBe("Disabled");
+    // The status bubble translates its own text, as the Monitors list's does.
+    expect(GROUP_DISABLED_STATUS).toContain(
+      "text={MonitorGroupMonitoringCopy.disabledStatus}",
+    );
+
+    for (const source of [GROUP_OVERVIEW_PAGE, GROUP_CURRENT_STATUS]) {
+      expect(source).toContain(
+        "MonitorGroupMonitoring.isMonitoringOffForEveryMonitor(",
+      );
+      expect(source).toContain("return <MonitorGroupDisabledStatus />;");
+    }
+
+    // Every monitor that counts - none archived - has monitoring off.
+    expect(
+      MonitorGroupMonitoring.isMonitoringOffForEveryMonitor({
+        monitorCount: 2,
+        monitoringOffCount: 2,
+      }),
+    ).toBe(true);
+    expect(
+      MonitorGroupMonitoring.isMonitoringOffForEveryMonitor({
+        monitorCount: 2,
+        monitoringOffCount: 1,
+      }),
+    ).toBe(false);
+    expect(
+      MonitorGroupMonitoring.isMonitoringOffForEveryMonitor({
+        monitorCount: 0,
+        monitoringOffCount: 0,
+      }),
+    ).toBe(false);
+    expect(groupsPage).toContain(
+      "- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status.",
+    );
+  });
+
   it("is not a status page group", () => {
     expect(groupsPage).toContain(
       "A monitor group is not a status page group. A status page group is a heading on one status page that holds rows. A monitor group is one row that stands for several monitors, and any status page can show it.",
@@ -2712,13 +2793,15 @@ describe("a monitor group's pages", () => {
     );
   });
 
-  it("show the group's details and its uptime over the last 90 days on Overview", () => {
+  it("show the group's details, its Monitoring and its uptime over the last 90 days on Overview", () => {
     expect(GROUP_OVERVIEW_PAGE).toContain('title: "Monitor Group Details",');
     expect(GROUP_OVERVIEW_PAGE).toContain(
       "startDate: OneUptimeDate.getSomeDaysAgo(90),",
     );
+    expect(GROUP_OVERVIEW_PAGE).toContain("<MonitorGroupMonitoringCard");
+    expect(MonitorGroupMonitoringCopy.cardTitle).toBe("Monitoring");
     expect(pages).toContain(
-      "| **Overview** | **Monitor Group Details**, **Current Status**, and **Uptime Graph** with the group's uptime percentage over the last 90 days. A group with no monitors offers **Add Monitors** in place of the graph. |",
+      "| **Overview** | **Monitor Group Details**, **Current Status**, **Monitoring**, and **Uptime Graph** with the group's uptime percentage over the last 90 days. A group with no monitors offers **Add Monitors** in place of the graph. |",
     );
     expect(GROUP_OVERVIEW_PAGE).toContain(
       "title={MonitorGroupMonitorsCopy.emptyGroupCardTitle}",
@@ -2742,6 +2825,85 @@ describe("a monitor group's pages", () => {
     expect(GROUPS_PAGE).toContain("enableJsonImportExport={true}");
     expect(groupsPage).toContain(
       "The **Monitor Groups** list can filter groups by owner and label, set labels and owners on many groups at once, and export or import groups as JSON.",
+    );
+  });
+});
+
+describe("turning monitoring off for a whole group (#6401)", () => {
+  const groupsPage: string = english(MONITOR_GROUPS);
+  const turning: string = section(
+    groupsPage,
+    "## Turn monitoring off for a whole group",
+  );
+  const setMonitoring: string = between(
+    MONITOR_GROUP_SERVICE,
+    "public async setMonitoringForMonitorsInGroup(",
+    "\n  }\n",
+  );
+
+  it("is the Monitoring card on the group's Overview, for every monitor in it", () => {
+    expect(GROUP_OVERVIEW_PAGE).toContain("<MonitorGroupMonitoringCard");
+    expect(MonitorGroupMonitoringCopy.cardTitle).toBe("Monitoring");
+    expect(MonitorGroupMonitoringCopy.cardDescription).toBe(
+      "Turn monitoring off or on for every monitor in this group at once.",
+    );
+    expect(turning).toContain(
+      "The **Monitoring** card on a group's **Overview** turns monitoring off, or back on, for every monitor in the group at once.",
+    );
+  });
+
+  it("asks before turning it off, and turns it back on at once", () => {
+    expect(MonitorGroupMonitoringCopy.turnOffButton).toBe(
+      "Turn off monitoring",
+    );
+    expect(MonitorGroupMonitoringCopy.turnOnButton).toBe("Turn monitoring on");
+    // Off opens the dialog; on saves.
+    expect(GROUP_MONITORING_CARD).toContain("setIsConfirmingOff(true);");
+    expect(GROUP_MONITORING_CARD).toContain("void turn(true);");
+    expect(GROUP_MONITORING_CARD).toContain("<ConfirmModal");
+    expect(turning).toContain(
+      "- **Turn off monitoring** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.",
+    );
+    expect(turning).toContain(
+      "- **Turn monitoring on** saves at once. Each monitor's next check sets its status again.",
+    );
+  });
+
+  it("resolves only what each monitor's auto-resolve would have, in the save hook every way of turning it off goes through", () => {
+    expect(MONITOR_SERVICE).toContain(
+      "await MonitorTurnedOff.resolveWhatItWouldHaveResolved({",
+    );
+    expect(MONITOR_TURNED_OFF).toContain(
+      "return MonitorIncident.isAutoResolveConfiguredForIncident({",
+    );
+    expect(MONITOR_TURNED_OFF).toContain(
+      "return MonitorAlert.isAutoResolveConfiguredForAlert({",
+    );
+    // A monitor's own switch is the same column, saved the same way.
+    expect(MonitoringSwitchCopy.cardTitle).toBe("Monitoring");
+    expect(MONITOR_SETTINGS_PAGE).toContain(
+      "<MonitoringCard monitorId={modelId} />",
+    );
+    expect(setMonitoring).toContain("await MonitorService.updateBy({");
+    expect(turning).toContain(
+      "Turning monitoring off also resolves the monitors' open incidents and alerts that are set to auto-resolve, as each monitor would have on recovery. Incidents and alerts declared by hand, or whose criteria do not auto-resolve, stay open. Turning off one monitor's monitoring, on its **Settings** page, does the same.",
+    );
+  });
+
+  it("changes the monitors, not the group: archived ones are left alone, and the card counts a mix", () => {
+    // The group keeps no switch of its own.
+    expect(new MonitorGroup().getTableColumns().columns).not.toContain(
+      "disableActiveMonitoring",
+    );
+    expect(setMonitoring).toContain("isArchived: false,");
+    expect(setMonitoring).toContain(
+      "disableActiveMonitoring: !disableActiveMonitoring,",
+    );
+    expect(MonitorGroupMonitoringCopy.mixedLine).toBe(
+      "Monitoring is off for {{off}} of {{total}} monitors in this group.",
+    );
+    expect(turning).toContain(
+      "The card changes the monitors, not the group: each monitor's own **Monitoring** card shows the change, and a monitor added to the group later keeps its own setting. Archived monitors are left as they are. While only some of the monitors have monitoring off, the card says how many and offers both buttons.",
     );
   });
 });
