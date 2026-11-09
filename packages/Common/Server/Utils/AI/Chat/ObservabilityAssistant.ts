@@ -262,14 +262,17 @@ export default class ObservabilityAssistant {
     // Tells a run going in circles from one that is working.
     const loopDetector: AgentLoopDetector = new AgentLoopDetector();
 
-    // The owner's reason to stop the loop, thrown as an Error.
+    /*
+     * The owner's reason to stop the loop, thrown as an Error. Not a limit:
+     * a limit (stopReason below) lets the run answer with what it found.
+     */
     const throwIfAskedToStop: () => void = (): void => {
-      const stopReason: string | null = request.getStopReason
+      const ownerStopReason: string | null = request.getStopReason
         ? request.getStopReason()
         : null;
 
-      if (stopReason) {
-        throw new Error(stopReason);
+      if (ownerStopReason) {
+        throw new Error(ownerStopReason);
       }
     };
 
