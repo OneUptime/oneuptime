@@ -5,8 +5,15 @@ import DashboardComponentType, {
   isDataSourceComponentType,
   isMetricComponentType,
 } from "../../../Types/Dashboard/DashboardComponentType";
+import DashboardVariable from "../../../Types/Dashboard/DashboardVariable";
+import {
+  getPublicDashboardVariable,
+  getPublicDashboardWidgetSettings,
+} from "../../../Types/Dashboard/PublicDashboardServedSettings";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
-import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
+import StoredDashboardViewConfig, {
+  StoredBoardSettings,
+} from "../../../Utils/Dashboard/StoredDashboardViewConfig";
 
 /*
  * The dashboard config served to ANONYMOUS public-dashboard visitors: what
@@ -29,8 +36,16 @@ import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardV
  *
  *   a Data Source widget         left out, whole
  *   a widget of a type the page  served with its place on the board, its
- *   draws                        type and its settings (`arguments`), as
- *                                the board reads each of them
+ *   draws                        type and the settings (`arguments`) the
+ *                                page draws it with, as the board reads
+ *                                each of them - nothing of a key its type
+ *                                does not have (issue #6338)
+ *   a widget of a type the page  served with its place, its type and its
+ *   cannot draw (a log chart, a  title, which the page draws above the
+ *   trace chart or table, a      note saying it is not available on
+ *   security events widget)      public dashboards - not the search text,
+ *                                filters and grouping it reads its data
+ *                                with (issue #6338)
  *   any other widget             served with its place and its type only:
  *                                the page draws "This widget could not be
  *                                shown" there and needs nothing more. A
@@ -42,10 +57,15 @@ import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardV
  *                                never leaves the server
  *
  * with the board's own settings as the board reads them: its height, its
- * default time range and auto-refresh, and its variables. Nothing else in
- * the stored value is served - not an entry no widget is read from (text,
- * a number, a list), not a key of the config or of a widget that no board
- * reads, and not anything a reader could not read.
+ * default time range and auto-refresh, and its variables, each with the
+ * fields its toolbar draws it with - never a legacy Query variable's
+ * query. Which settings each widget type is served, and which fields each
+ * type of variable, is decided in one place, shared with the page
+ * (Types/Dashboard/PublicDashboardServedSettings). Nothing else in the
+ * stored value is served - not an entry no widget is read from (text, a
+ * number, a list), not a key of the config, of a widget, of its settings
+ * or of a variable that no board reads, and not anything a reader could
+ * not read.
  *
  * Each widget is served with a type, so no board takes it for an envelope
  * and reads it further: the page draws exactly the widgets judged here, at
@@ -80,19 +100,54 @@ export default class PublicDashboardViewConfig {
       }
     }
 
+    const board: StoredBoardSettings =
+      StoredDashboardViewConfig.readBoardSettings(storedConfig);
+
     return {
-      ...StoredDashboardViewConfig.readBoardSettings(storedConfig),
+      ...board,
+      ...(board.variables
+        ? {
+            variables: board.variables.map(
+              (variable: DashboardVariable): DashboardVariable => {
+                return PublicDashboardViewConfig.getServedVariable(variable);
+              },
+            ),
+          }
+        : {}),
       _type: ObjectType.DashboardViewConfig,
       components: components as unknown as Array<DashboardBaseComponent>,
     };
   }
 
   /*
+   * One variable as it is served: the fields its toolbar draws its picker
+   * with, and the widgets and the public routes filter by - its id, name,
+   * label, type and pick, plus what its type lists: a custom list's
+   * values, a Telemetry Attribute variable's key, a project label
+   * variable's labels (PublicDashboardServedSettings). A legacy Query
+   * variable's query is never among them: the toolbar never runs it.
+   *
+   * Read again by any board, it is the same variable: a variable as the
+   * toolbar reads it (StoredDashboardViewConfig.readBoardSettings) keeps
+   * its id and the types of its fields when it is read again, so the
+   * public routes read exactly the variables the page draws.
+   */
+  public static getServedVariable(
+    variable: DashboardVariable,
+  ): DashboardVariable {
+    return getPublicDashboardVariable(variable);
+  }
+
+  /*
    * One widget as it is served: what the public page draws of it, each
    * field as every board reads it - the id it is stored under (text), the
-   * type it is drawn as, its place on the board, and, for a type the page
-   * draws, its settings as stored (the object its JSON text says, when the
-   * arguments were written as text). A type the page cannot draw keeps no
+   * type it is drawn as, its place on the board, and, for a type this
+   * version draws, the settings its type is served, each as stored (from
+   * the object its JSON text says, when the arguments were written as
+   * text): what the page draws it with, and nothing else - not a key its
+   * type does not have, and not a log chart's search text or a trace
+   * table's filters, which a public dashboard never draws (issue #6338,
+   * PublicDashboardServedSettings). A type no board draws keeps no
    * settings: it is drawn as "This widget could not be shown", from its
    * place alone.
    *
@@ -122,7 +177,10 @@ export default class PublicDashboardViewConfig {
       StoredDashboardViewConfig.withArgumentsRead(entry)["arguments"];
 
     if (PublicDashboardViewConfig.isSettingsObject(settings)) {
-      served["arguments"] = settings as JSONObject;
+      served["arguments"] = getPublicDashboardWidgetSettings(
+        componentType,
+        settings,
+      ) as JSONObject;
     }
 
     return served;

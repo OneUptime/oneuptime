@@ -16,6 +16,12 @@ import { JSONObject, ObjectType } from "../../../../Types/JSON";
 import JSONFunctions from "../../../../Types/JSONFunctions";
 import ObjectID from "../../../../Types/ObjectID";
 import TimeRange from "../../../../Types/Time/TimeRange";
+import {
+  PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES,
+  PUBLIC_DASHBOARD_WIDGET_SETTINGS,
+  PublicDashboardServedWidgetType,
+  PublicDashboardWidgetSettings,
+} from "../../../../Types/Dashboard/PublicDashboardServedSettings";
 import StoredDashboardViewConfig from "../../../../Utils/Dashboard/StoredDashboardViewConfig";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
@@ -162,11 +168,17 @@ describe("PublicDashboardViewConfig", () => {
       ]);
     });
 
-    it("serves each surviving widget as the page reads it: its id, type, place and settings", () => {
+    it("serves each surviving widget as the page reads it: its id, type, place and the settings its type has", () => {
+      const metricQueryConfigs: Array<JSONObject> = [{ metricAliasData: {} }];
       const metricChart: DashboardBaseComponent = {
         ...widget(DashboardComponentType.Chart, {
           chartTitle: "CPU",
-          queryConfigs: [{ metricAliasData: {} }],
+          metricQueryConfigs: metricQueryConfigs,
+          /*
+           * A setting a chart does not have: no board reads it, so it is
+           * not served (issue #6338). Before, every setting was.
+           */
+          queryConfigs: [{ metricAliasData: { title: "for the owner only" } }],
         }),
         // A key no board reads: kept for a save signed in, never served.
         notes: "for the owner only",
@@ -183,11 +195,22 @@ describe("PublicDashboardViewConfig", () => {
         ]),
       );
 
-      expect(result!.components).toEqual([served(metricChart), served(clock)]);
+      expect(result!.components).toEqual([
+        served({
+          ...metricChart,
+          arguments: {
+            chartTitle: "CPU",
+            metricQueryConfigs: metricQueryConfigs,
+          },
+        }),
+        served(clock),
+      ]);
       expect(JSON.stringify(result)).not.toContain("for the owner only");
 
-      // The settings are the stored ones: nothing in them is rewritten.
-      expect(result!.components[0]!.arguments).toBe(metricChart.arguments);
+      // Each setting served is the stored one: nothing in it is rewritten.
+      expect(
+        (result!.components[0]!.arguments as JSONObject)["metricQueryConfigs"],
+      ).toBe(metricQueryConfigs);
     });
 
     it.each([...DataSourceComponentTypes])(
@@ -2183,32 +2206,65 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
       }
     });
 
-    it("serves the settings of every type the page draws, and is read back as the widget every board reads", () => {
+    it("serves every type the page draws the settings its type is served, and is read back as the widget every board reads with them", () => {
       // The Data Source types never get here: sanitize leaves them out first.
       for (const componentType of Object.values(DashboardComponentType).filter(
         (componentType: DashboardComponentType): boolean => {
           return !DataSourceComponentTypes.includes(componentType);
         },
       )) {
+        const decision: PublicDashboardWidgetSettings =
+          PUBLIC_DASHBOARD_WIDGET_SETTINGS[
+            componentType as PublicDashboardServedWidgetType
+          ];
+        const servedKeys: Array<string> = [
+          ...decision.served,
+          ...Object.keys(decision.servedWhileOn || {}),
+        ];
+
+        // Every setting it has, each holding a typed value, and two it has not.
+        const settings: JSONObject = {};
+
+        for (const key of [...servedKeys, ...decision.withheld]) {
+          settings[key] = (EDITOR_WIDGET()["arguments"] as JSONObject)[
+            "metricQueryConfig"
+          ]!;
+        }
+
+        // Scripts on, so the HTML widget is served its script too.
+        settings["allowScripts"] = true;
+        settings["extra"] = "not served";
+        settings["queryConfigs"] = [{ query: "SELECT secret" }];
+
         const stored: JSONObject = {
           ...EDITOR_WIDGET(),
           componentType: componentType,
           extra: "not served",
+          arguments: settings,
         };
         const served: JSONObject =
           PublicDashboardViewConfig.getServedComponent(stored);
 
+        const expectedSettings: JSONObject = {};
+
+        for (const key of servedKeys) {
+          expectedSettings[key] = settings[key]!;
+        }
+
         expect([componentType, served["arguments"]]).toEqual([
           componentType,
-          stored["arguments"],
+          expectedSettings,
         ]);
 
-        // Sent as JSON and read, it is the widget a board reads off the store.
+        /*
+         * Sent as JSON and read, it is the widget a board reads off the
+         * store with the settings its type is served.
+         */
         const [readBack] = StoredDashboardViewConfig.read({
           components: [JSON.parse(JSON.stringify(served))],
         }).components;
         const [readStored] = StoredDashboardViewConfig.read({
-          components: [stored],
+          components: [{ ...stored, arguments: expectedSettings }],
         }).components;
 
         expect([componentType, { ...readBack }]).toEqual([
@@ -2224,15 +2280,17 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
    * SOURCE WIDGET.
    *
    * Seeded configs of several entries: Data Source widgets, widgets of the
-   * types the page draws, widgets of types it cannot draw, and junk - each
-   * stored in random layers of envelope and JSON text, now and then deeper
-   * than any board reads, with an id of its own, none, one an earlier
-   * widget has, or one with spaces around it, and its place written as text
-   * now and then. The widget list is a list, JSON text or keyed by index;
-   * the config an object, JSON text or in its envelope, with keys no board
-   * reads that hold Data Source widgets, and variables. Every secret a
-   * Data Source widget, a widget the page cannot draw, a junk entry or a
-   * key no board reads holds carries a token of its own.
+   * types the page draws, widgets the public page says it cannot draw (a
+   * log chart, a trace chart or table, a security events widget), widgets
+   * of types no board draws, and junk - each stored in random layers of
+   * envelope and JSON text, now and then deeper than any board reads, with
+   * an id of its own, none, one an earlier widget has, or one with spaces
+   * around it, and its place written as text now and then. The widget list
+   * is a list, JSON text or keyed by index; the config an object, JSON text
+   * or in its envelope, with keys no board reads that hold Data Source
+   * widgets, and variables. Every secret a Data Source widget, a widget the
+   * page cannot draw, a setting its type does not have (issue #6338), a
+   * junk entry or a key no board reads holds carries a token of its own.
    *
    * What the page draws is worked out from what was generated alone, and
    * checked against what it draws of what is served - which the public
@@ -2252,6 +2310,25 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
       DashboardComponentType.LogStream,
     ];
 
+    /*
+     * For each type the page draws: a setting of its own to carry a marker
+     * that must be served, and one to carry a typed value that is served
+     * as stored and revived by the page (issue #6338: a key a type does not
+     * have is served no more, so the marker sits in one it has).
+     */
+    const DRAWN_SETTINGS: Record<string, [string, string]> = {
+      [DashboardComponentType.Text]: ["text", "isMarkdown"],
+      [DashboardComponentType.Chart]: ["chartTitle", "metricQueryConfigs"],
+      [DashboardComponentType.Value]: ["title", "metricQueryConfig"],
+      [DashboardComponentType.Gauge]: ["gaugeTitle", "metricQueryConfig"],
+      [DashboardComponentType.Table]: ["tableTitle", "columns"],
+      [DashboardComponentType.Clock]: ["label", "timezone"],
+      [DashboardComponentType.IncidentList]: ["title", "stateFilter"],
+      [DashboardComponentType.MonitorList]: ["title", "statusFilter"],
+      [DashboardComponentType.Slo]: ["widgetTitle", "sloMetric"],
+      [DashboardComponentType.LogStream]: ["title", "bodyContains"],
+    };
+
     const UNDRAWN_TYPES: Array<string> = [
       "HostMetricChart",
       " Chart ",
@@ -2259,6 +2336,27 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
       "datasourcetable",
       "SomeWidgetTypeFromTheFuture",
     ];
+
+    /*
+     * The settings a widget the public page cannot draw reads its data
+     * with, by type: none of them is served, only its title (issue #6338).
+     */
+    const PLACEHOLDER_SECRETS: Record<string, Array<string>> = {
+      [DashboardComponentType.LogChart]: [
+        "bodyContains",
+        "attributeFilterQuery",
+      ],
+      [DashboardComponentType.TraceChart]: [
+        "spanNameContains",
+        "groupByAttribute",
+      ],
+      [DashboardComponentType.TraceTable]: [
+        "spanNameContains",
+        "groupByAttribute",
+      ],
+      [DashboardComponentType.SecurityEventsList]: ["messageContains"],
+      [DashboardComponentType.SecurityEventsFlow]: ["severityFilters"],
+    };
 
     interface ExpectedWidget {
       ownId: string | null;
@@ -2395,15 +2493,16 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
           widget = dataSourceWidget(componentType, token);
           isDataSource = true;
           tokens.push(token);
-        } else if (roll < 9) {
+        } else if (roll < 8) {
           componentType = DRAWN_TYPES[random(DRAWN_TYPES.length)]!;
           const marker: string = `public${name}x${index}`;
+          const [markerKey, typedKey] = DRAWN_SETTINGS[componentType]!;
 
           settings = {
-            title: marker,
+            [markerKey]: marker,
             ...(random(2) === 0
               ? {
-                  serviceIds: [
+                  [typedKey]: [
                     {
                       _type: "ObjectID",
                       value: ObjectID.generate().toString(),
@@ -2412,10 +2511,23 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
                 }
               : {}),
           };
+
+          /*
+           * Now and then a setting its type does not have - one a script
+           * left there - holding a secret: never served (issue #6338).
+           */
+          const stored: JSONObject = { ...settings };
+
+          if (random(3) === 0) {
+            const settingToken: string = `${token}setting`;
+
+            stored["serviceIds"] = [{ query: `SELECT ${settingToken}` }];
+            tokens.push(settingToken);
+          }
+
           widget = {
             componentType: componentType,
-            arguments:
-              random(4) === 0 ? JSON.stringify(settings) : { ...settings },
+            arguments: random(4) === 0 ? JSON.stringify(stored) : stored,
           };
           isDrawnType = true;
           markers.push(marker);
@@ -2428,6 +2540,32 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
             );
             tokens.push(token);
           }
+        } else if (roll === 8) {
+          /*
+           * A widget the public page says it cannot draw: served its title,
+           * which the page draws above its note, and none of the search
+           * text and filters it reads its data with (issue #6338).
+           */
+          componentType =
+            PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES[
+              random(PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES.length)
+            ]!;
+          const marker: string = `public${name}x${index}`;
+          const stored: JSONObject = { title: marker };
+
+          for (const key of PLACEHOLDER_SECRETS[componentType]!) {
+            stored[key] = `internal ${token} ${key}`;
+          }
+
+          stored["attributeFilters"] = { "url.host": `${token}.internal` };
+          settings = { title: marker };
+          widget = {
+            componentType: componentType,
+            arguments: random(4) === 0 ? JSON.stringify(stored) : stored,
+          };
+          isDrawnType = true;
+          markers.push(marker);
+          tokens.push(token);
         } else {
           componentType = UNDRAWN_TYPES[random(UNDRAWN_TYPES.length)]!;
           widget = {
@@ -2585,6 +2723,7 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
         "a widget of no type": 0,
         "a Data Source widget the board draws": 0,
         "a widget of a type the page cannot draw": 0,
+        "a widget the public page says it cannot draw": 0,
         "a widget drawn with its settings": 0,
         "an id derived": 0,
         "an id an earlier widget holds": 0,
@@ -2601,6 +2740,12 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
           for (const widget of generated.expected) {
             if (widget.componentType === "") {
               seen["a widget of no type"]!++;
+            } else if (
+              (PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES as Array<string>).includes(
+                widget.componentType,
+              )
+            ) {
+              seen["a widget the public page says it cannot draw"]!++;
             } else if (
               !(DRAWN_TYPES as Array<string>).includes(widget.componentType)
             ) {

@@ -53,7 +53,7 @@ Una dashboard pubblica:
 
 Tratta la condivisione di una dashboard come la pubblicazione di una pagina web. Ogni widget che contiene diventa leggibile da chiunque abbia il link. Guarda che cosa c'è sul canvas prima di condividerla.
 
-Ogni widget pubblica solo ciò che disegna, e solo per le risorse a cui è stato puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione: vedi [SLO](/docs/dashboards/widgets#slo). I widget con una **Data Source** esterna sono l'eccezione: vengono esclusi del tutto da una dashboard pubblica invece di essere resi, perché la loro configurazione è la query stessa. Alcuni altri widget non possono essere mostrati senza una sessione con accesso, e lo indicano al loro posto: [Su una dashboard pubblica](/docs/dashboards/widgets#su-una-dashboard-pubblica) li elenca.
+Ogni widget pubblica solo ciò che disegna, e solo per le risorse a cui è stato puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione: vedi [SLO](/docs/dashboards/widgets#slo). I widget con una **Data Source** esterna sono l'eccezione: vengono esclusi del tutto da una dashboard pubblica invece di essere resi, perché la loro configurazione è la query stessa. Alcuni altri widget non possono essere mostrati senza una sessione con accesso, e lo indicano al loro posto: [Su una dashboard pubblica](/docs/dashboards/widgets#su-una-dashboard-pubblica) li elenca. Pubblicano solo il loro titolo, mai le ricerche e i filtri con cui leggono i loro dati. Anche le variabili pubblicano solo ciò che mostrano i loro selettori: la query di una vecchia variabile di tipo query non viene mai pubblicata.
 
 ## Condividere con una password
 

@@ -57,6 +57,10 @@ import {
   limitText,
   redactSecretsInJson,
 } from "Common/Utils/AuditLog/AuditLogValues";
+import {
+  getAuditLogHeldValue,
+  readAuditLogValue,
+} from "Common/Utils/AuditLog/AuditLogTypedValues";
 
 /*
  * The recording half of the audit log (OneUptime Enterprise).
@@ -92,6 +96,10 @@ import {
  *     entry an audit log must never lose.
  *
  * WHAT AN ENTRY SAYS OF A VALUE (shapeSnapshotValue / shapeUpdateChange):
+ *   - a typed value - a phone number, an email address, a URL, a port - is
+ *     what people read, "+14155550100", as an id and a time are, never the
+ *     { _type, value } JSON it is written as; a hash is "[REDACTED]"
+ *     (Common/Utils/AuditLog/AuditLogTypedValues);
  *   - a column described rather than copied - a workflow's graph - is the
  *     lines of what changed, with the values before and after in a few words
  *     (Common/Server/Utils/AuditLog/AuditLogColumnSummaries); a save that
@@ -1186,6 +1194,12 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
    * order, and a relation naming the same rows (whatever else the
    * before-row's join or the payload carried with them) are all the same
    * value. A field the write sends as undefined writes nothing.
+   *
+   * A typed value is compared as what it holds (getAuditLogHeldValue): a
+   * Phone written back as its { _type, value } JSON or its text is the same
+   * number, as an entry would read it, and two different numbers in the
+   * same shape are two numbers. A hash is compared by its hash, so a
+   * changed secret is still a change. A relation is compared as it is.
    */
   private areValuesEqual<TModel extends BaseModel>(data: {
     model: TModel;
@@ -1196,11 +1210,18 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     // A field that is not a column has none: compared as of no known type.
     const metadata: TableColumnMetadata | undefined =
       data.model.getTableColumnMetadata(data.field);
+    const isRelation: boolean =
+      metadata?.type === TableColumnType.Entity ||
+      metadata?.type === TableColumnType.EntityArray;
 
     return !ColumnValueChange.isChanged({
       columnType: metadata?.type,
-      storedValue: data.oldValue,
-      writtenValue: data.newValue,
+      storedValue: isRelation
+        ? data.oldValue
+        : getAuditLogHeldValue(data.oldValue),
+      writtenValue: isRelation
+        ? data.newValue
+        : getAuditLogHeldValue(data.newValue),
     });
   }
 
@@ -1295,11 +1316,21 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     ) {
       return value;
     }
+
+    let json: unknown;
+
     try {
-      return JSON.parse(JSON.stringify(value));
+      json = JSON.parse(JSON.stringify(value));
     } catch {
       return String(value);
     }
+
+    /*
+     * A typed value - a Phone, an Email, a URL - is written as
+     * { _type, value }: it is recorded as what it holds, "+14155550100", as
+     * an id and a time are above (AuditLogTypedValues).
+     */
+    return readAuditLogValue(json);
   }
 
   /*

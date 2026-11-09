@@ -4,6 +4,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
+import { readAuditLogChange } from "Common/Utils/AuditLog/AuditLogTypedValues";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export type AuditLogModalAction = "Create" | "Update" | "Delete" | string;
@@ -17,7 +18,7 @@ export interface ComponentProps {
   changes: JSONArray | undefined;
 }
 
-interface ChangeRow {
+export interface ChangeRow {
   field: string;
   oldValue: JSONValue | undefined;
   newValue: JSONValue | undefined;
@@ -39,6 +40,50 @@ export const readChangeSummary: (value: unknown) => Array<string> = (
   return value.filter((line: unknown): line is string => {
     return typeof line === "string" && line.trim().length > 0;
   });
+};
+
+/*
+ * The fields of an entry as the dialog lists them, by name. Each change is
+ * read as the recorder writes one now (readAuditLogChange): a phone number,
+ * an email address or a URL an older entry recorded as its JSON
+ * ({ "_type": "Phone", "value": "+14155550100" }) - and which the API client
+ * hands over as a Phone again - reads as the number, without the "Changed
+ * the value" its JSON was described by; a hash as "[REDACTED]".
+ */
+export const readChangeRows: (changes: unknown) => Array<ChangeRow> = (
+  changes: unknown,
+): Array<ChangeRow> => {
+  if (!Array.isArray(changes)) {
+    return [];
+  }
+
+  const rows: Array<ChangeRow> = [];
+
+  for (const raw of changes) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      continue;
+    }
+
+    const entry: JSONObject = readAuditLogChange(raw as JSONObject);
+    const field: unknown = entry["field"];
+
+    if (typeof field !== "string" || field.length === 0) {
+      continue;
+    }
+
+    rows.push({
+      field,
+      oldValue: entry["oldValue"] as JSONValue | undefined,
+      newValue: entry["newValue"] as JSONValue | undefined,
+      summary: readChangeSummary(entry["summary"]),
+    });
+  }
+
+  rows.sort((a: ChangeRow, b: ChangeRow) => {
+    return a.field.localeCompare(b.field);
+  });
+
+  return rows;
 };
 
 const humanizeFieldName: (field: string) => string = (
@@ -114,31 +159,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const rows: Array<ChangeRow> = useMemo(() => {
-    if (!props.changes || !Array.isArray(props.changes)) {
-      return [];
-    }
-
-    const mapped: Array<ChangeRow> = [];
-    for (const raw of props.changes) {
-      if (!raw || typeof raw !== "object") {
-        continue;
-      }
-      const entry: JSONObject = raw as JSONObject;
-      const field: unknown = entry["field"];
-      if (typeof field !== "string" || field.length === 0) {
-        continue;
-      }
-      mapped.push({
-        field,
-        oldValue: entry["oldValue"] as JSONValue | undefined,
-        newValue: entry["newValue"] as JSONValue | undefined,
-        summary: readChangeSummary(entry["summary"]),
-      });
-    }
-    mapped.sort((a: ChangeRow, b: ChangeRow) => {
-      return a.field.localeCompare(b.field);
-    });
-    return mapped;
+    return readChangeRows(props.changes);
   }, [props.changes]);
 
   if (!props.isOpen) {

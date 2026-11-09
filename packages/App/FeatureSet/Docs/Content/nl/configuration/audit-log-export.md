@@ -147,6 +147,8 @@ Elke vermelding is één JSON-object, met de sleutels altijd in deze volgorde:
 
 Een bestand bevat één vermelding per regel, gecomprimeerd met gzip, en wordt opgeborgen onder het uur van zijn eerste vermelding: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Elke `oldValue` en `newValue` is de waarde van het veld: tekst, een getal, `true` of `false`, of JSON voor een instelling die uit meerdere delen bestaat. Een telefoonnummer, een e-mailadres of een URL is zijn tekst, zoals `+14155550100`, en een poort is zijn nummer.
+
 Sleutels, tokens en wachtwoorden gaan nooit naar buiten: ze worden vastgelegd als `[REDACTED]`, en velden die niemand mag lezen, ontbreken in elke vermelding.
 
 ## Recordversies

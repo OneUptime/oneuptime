@@ -147,6 +147,8 @@ Hver post er ét JSON-objekt, med nøglerne altid i denne rækkefølge:
 
 En fil rummer én post pr. linje, komprimeret med gzip, og arkiveres under timen for dens første post: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Hver `oldValue` og `newValue` er feltets værdi: tekst, et tal, `true` eller `false` eller JSON for en indstilling, der består af flere dele. Et telefonnummer, en e-mailadresse eller en URL er sin tekst, såsom `+14155550100`, og en port er sit nummer.
+
 Nøgler, tokens og adgangskoder forlader aldrig OneUptime: De registreres som `[REDACTED]`, og felter, som ingen må læse, udelades af alle poster.
 
 ## Postversioner
