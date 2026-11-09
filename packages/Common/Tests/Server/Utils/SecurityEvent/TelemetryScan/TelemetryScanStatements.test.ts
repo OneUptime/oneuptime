@@ -26,6 +26,11 @@ import {
   PROMPT_INJECTION_PHRASES,
   getTraceScanUrlMarkers,
 } from "../../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
+import {
+  echoStatement,
+  readStatementValues,
+  statementUrlQuery,
+} from "../../../../Helpers/StatementEcho";
 
 /*
  * The reads of "Your OneUptime data": each one project's, bounded twice in
@@ -45,8 +50,9 @@ const WINDOW: TelemetryScanWindow = {
   happenedAfter: new Date("2026-10-27T09:00:00.000Z"),
 };
 
+// What each parameter asks for, hex encoded text decoded (Statement).
 function bound(statement: Statement): Array<unknown> {
-  return Object.values(statement.query_params);
+  return readStatementValues(statement);
 }
 
 function boundIncludes(statement: Statement): Array<Array<unknown>> {
@@ -132,6 +138,29 @@ describe("the trace read", () => {
     for (const marker of getTraceScanUrlMarkers()) {
       expect(statement.query.toLowerCase()).not.toContain(marker);
     }
+  });
+
+  /*
+   * ClickHouse writes a failed read down with its parameters filled in, and
+   * the scan reads the logs it is written in (issue #6419): the markers and
+   * phrases go hex encoded, so neither the query it logs nor the URL the
+   * client sends holds one.
+   */
+  test("no marker or phrase is sent as written, in the query it logs or the URL", () => {
+    const echo: string = echoStatement(statement).toLowerCase();
+    const url: string = statementUrlQuery(statement).toLowerCase();
+
+    for (const word of [
+      ...getTraceScanUrlMarkers(),
+      ...PROMPT_INJECTION_PHRASES,
+    ]) {
+      expect(echo).not.toContain(word);
+      expect(url).not.toContain(word);
+    }
+
+    expect(statement.query).toContain(
+      "multiSearchAnyCaseInsensitive(llmUserMessagePreview, [unhex({p",
+    );
   });
 });
 
