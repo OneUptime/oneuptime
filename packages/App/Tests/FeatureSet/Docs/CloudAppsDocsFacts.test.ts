@@ -373,6 +373,9 @@ describe("an environment's recommended monitors and its maintenance, on Cloud En
     );
 
     expect(page).toContain(
+      "one: \"This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its telemetry is in this environment's tabs.\",",
+    );
+    expect(page).toContain(
       '"Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment\'s tabs.",',
     );
     expect(page).toContain(

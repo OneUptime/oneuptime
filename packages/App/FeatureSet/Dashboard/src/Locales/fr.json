@@ -47336,5 +47336,6 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Un propriétaire du projet ou une personne disposant de Manage Billing peut ajouter des crédits IA dans Paramètres du projet → IA → Crédits IA.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Nombre de secondes d'attente de la réponse du fournisseur à une requête. Laissez vide pour 120 (300 pour Ollama). Augmentez-le pour un modèle lent ou auto-hébergé.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "Le fournisseur d'IA a refusé la requête : sa clé API ou son modèle est peut-être incorrect, ou son compte manque d'accès ou de crédit.",
-  "OneUptime AI will try again": "L'IA de OneUptime va réessayer"
+  "OneUptime AI will try again": "L'IA de OneUptime va réessayer",
+  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "Le nom de cette application est trop long pour filtrer sa télémétrie, aucun moniteur ne peut donc la surveiller seule. Sa télémétrie se trouve dans les onglets de cet environnement."
 }

@@ -19,7 +19,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
  * incident or alert (MonitorMaintenanceSuppression). Create Scheduled
  * Maintenance Event keeps the resource picked. Every event here holds the
  * resource, so the list leaves out the Affected Resources column, which
- * would only say it again - cut short beside the side menu.
+ * would only say it again - cut short beside the side menu - and its
+ * filter chip, and folds its quieter columns to fit (isResourceOwnTab).
  */
 const CloudResourceScheduledMaintenance: FunctionComponent<
   PageComponentProps
@@ -41,7 +42,7 @@ const CloudResourceScheduledMaintenance: FunctionComponent<
         createFrom={{ kind: CreateFromRecordKind.CloudResource, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
         noItemsMessage="No scheduled maintenance events for this resource."
-        leaveOutAffectedResources={true}
+        isResourceOwnTab={true}
       />
     </Fragment>
   );

@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { FrameBox, boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 
@@ -2781,7 +2782,7 @@ test.describe("an environment's recommended monitors and scheduled maintenance",
       "cloud-environment-recommendations-not-listed-NotScoped",
     );
     await expect(leftOut).toContainText(
-      "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs.",
+      "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its telemetry is in this environment's tabs.",
     );
     const name: Locator = leftOut.getByRole("link", {
       name: /checkout-nightly-ledger-reconciliation/,
@@ -2867,11 +2868,51 @@ test.describe("an environment's recommended monitors and scheduled maintenance",
       "Affected Resources",
     ]);
     await expect(page.locator("table thead")).toContainText("Title");
+    // Nor a filter chip that would only offer the environment.
+    await expect(page.getByText("Affected Resources")).toHaveCount(0);
     await expect(
       page.getByText(
         "Planned work on this environment. While an event is in progress, the monitors of its apps open no incidents or alerts.",
       ),
     ).toBeVisible();
+
+    /*
+     * Beside the side menu the row fits its card (#6239's review: it ran
+     * 1,420px in a 938px card, when an event ends out of sight): how long
+     * an event lasts goes under when it starts, and its status pages,
+     * labels and owners under its title.
+     */
+    const scrollBox: Locator = page.getByTestId("table-scroll");
+    await expect(scrollBox).toHaveAttribute("data-overflowing", "false");
+    const [endsAtHeader, box]: Array<FrameBox> = await boxesInOneFrame([
+      page.locator("table thead th").filter({ hasText: "Ends At" }),
+      scrollBox,
+    ]);
+    expect(endsAtHeader!.x + endsAtHeader!.width).toBeLessThanOrEqual(
+      box!.x + box!.width + 1,
+    );
+    for (const folded of [
+      "Duration",
+      "Shown on Status Page",
+      "Labels",
+      "Owners",
+    ]) {
+      await expect(
+        page.locator("table thead th").filter({ hasText: folded }),
+      ).toHaveCount(0);
+    }
+    await expect(rows.nth(0)).toContainText("1 hour");
+    // The event on no status page draws no line saying so over a dash.
+    await expect(rows.nth(0).getByText("Shown on Status Page")).toBeHidden();
+    await expect(rows.nth(1).getByText("Shown on Status Page")).toBeVisible();
+    await expect(
+      rows.nth(1).getByText("Checkout status", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      rows.nth(1).getByText("Production", { exact: true }),
+    ).toBeVisible();
+    await expect(rows.nth(1).getByText("DR", { exact: true })).toBeVisible();
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-environment-maintenance-1280");
 
     // Create keeps the environment picked.
@@ -2897,6 +2938,10 @@ test.describe("an environment's recommended monitors and scheduled maintenance",
 
     await page.setViewportSize(PHONE);
     await expectNoSidewaysScroll(page);
+    // A phone's card says when each event starts, not only how long it lasts.
+    await expect(
+      page.getByRole("term").filter({ hasText: "Starts At" }),
+    ).toHaveCount(2);
     await screenshot(page, "app-platforms-environment-maintenance-390");
 
     // In German and Persian, the column is left out in their words too.
@@ -2914,6 +2959,11 @@ test.describe("an environment's recommended monitors and scheduled maintenance",
         words["Affected Resources"]!,
       );
       await expect(page.locator("table thead")).toContainText(words["Title"]!);
+      // Longer words, and the row still fits its card.
+      await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+        "data-overflowing",
+        "false",
+      );
       await screenshot(
         page,
         `app-platforms-environment-maintenance-1280-${language}`,

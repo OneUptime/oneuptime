@@ -850,6 +850,13 @@ test.describe("a cloud resource's Scheduled Maintenance", () => {
       await expect(page.locator("table tbody tr")).toHaveCount(2);
       await expect(head).toContainText(title);
       await expect(head).not.toContainText(affected);
+      // Nor a filter chip that would only offer it.
+      await expect(page.getByText(affected)).toHaveCount(0);
+      // Beside the side menu the row fits its card, when each event ends in sight.
+      await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+        "data-overflowing",
+        "false",
+      );
       await screenshot(
         page,
         `cloud-resource-scheduled-maintenance-columns-1280${suffix}`,

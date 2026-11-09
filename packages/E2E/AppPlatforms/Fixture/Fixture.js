@@ -14,7 +14,8 @@
  *             quiet) | empty (no environment yet)
  *   ?maintenance= held: an event in progress holds checkout's environment
  *             (so its apps' monitors), and another is scheduled for next
- *             week; none by default
+ *             week, on a status page, with a label and an owner; none by
+ *             default
  *   ?app=     too-long: checkout runs a third app, whose name was too long
  *             for ingest to filter its telemetry by
  *   ?lang=    de | fa (Persian, laid out right to left, as production does)
@@ -737,7 +738,32 @@ const MAINTENANCE_EVENTS =
           endsAt: new Date(LOADED_AT + 7 * 24 * HOUR + HOUR),
           currentScheduledMaintenanceStateId: MAINTENANCE_STATES[0]._id,
           currentScheduledMaintenanceState: MAINTENANCE_STATES[0],
+          // A row with something to fold, under the one with nothing.
+          statusPages: [{ _id: uuid("79600000", 1), name: "Checkout status" }],
+          labels: [
+            {
+              _id: uuid("79700000", 1),
+              name: "Production",
+              color: new Color("#6366f1"),
+            },
+          ],
         }),
+      ]
+    : [];
+
+const MAINTENANCE_OWNER_USERS =
+  MAINTENANCE_HELD && !EMPTY
+    ? [
+        {
+          _id: uuid("79800000", 1),
+          projectId: PROJECT_ID,
+          scheduledMaintenanceId: uuid("79500000", 32),
+          user: {
+            _id: uuid("79900000", 1),
+            name: "Dana Reyes",
+            email: "dana@example.com",
+          },
+        },
       ]
     : [];
 
@@ -763,7 +789,7 @@ const TABLES = {
    */
   ScheduledMaintenance: MAINTENANCE_EVENTS,
   ScheduledMaintenanceState: MAINTENANCE_STATES,
-  ScheduledMaintenanceOwnerUser: [],
+  ScheduledMaintenanceOwnerUser: MAINTENANCE_OWNER_USERS,
   ScheduledMaintenanceOwnerTeam: [],
   ScheduledMaintenanceCustomField: [],
   ScheduledMaintenanceNoteTemplate: [],

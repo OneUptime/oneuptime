@@ -47336,5 +47336,6 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "プロジェクトのオーナー、または Manage Billing を持つ人が「プロジェクト設定 → AI → AI クレジット」で AI クレジットを追加できます。",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "1 回のリクエストに対するプロバイダーの応答を待つ秒数。空欄なら 120 (Ollama は 300)。低速なモデルやセルフホストのモデルでは大きくしてください。",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI プロバイダーがリクエストを拒否しました: API キーかモデルが正しくないか、アカウントにアクセス権かクレジットがない可能性があります。",
-  "OneUptime AI will try again": "OneUptime AI が再試行します"
+  "OneUptime AI will try again": "OneUptime AI が再試行します",
+  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "このアプリの名前は長すぎてテレメトリの絞り込みに使えないため、どのモニターもこのアプリだけを監視することはできません。テレメトリはこの環境のタブにあります。"
 }

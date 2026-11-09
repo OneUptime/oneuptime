@@ -275,7 +275,7 @@ describe("an environment's Recommendations in German", () => {
       ),
     ).toHaveTextContent(
       DE[
-        "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs."
+        "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one"
       ]!,
     );
   });

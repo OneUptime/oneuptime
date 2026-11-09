@@ -170,7 +170,7 @@ describe("an environment's scheduled maintenance", () => {
 });
 
 describe("a resource's own Scheduled Maintenance tab", () => {
-  const LEAVE_OUT: string = "leaveOutAffectedResources={true}";
+  const LEAVE_OUT: string = "isResourceOwnTab={true}";
 
   test("a cloud resource's and an environment's leave out the column that says them again", () => {
     expect(readCode("Pages/Cloud/View/ScheduledMaintenance.tsx")).toContain(
@@ -205,9 +205,7 @@ describe("a resource's own Scheduled Maintenance tab", () => {
     expect(table).toContain(
       'export const AFFECTED_RESOURCES_COLUMN_TITLE: string = "Affected Resources";',
     );
-    expect(table).toContain(
-      "if (!leaveOutAffectedResources) {return columns;}",
-    );
+    expect(table).toContain("if (!isResourceOwnTab) {return columns;}");
     expect(table).toContain('title: "Affected Resources",');
     expect(table).toContain("columns={columnsOfThisList([");
   });

@@ -2,7 +2,11 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -31,13 +35,18 @@ export interface ComponentProps {
 export const CLOUD_ENVIRONMENT_APPS_GROUP_LABEL: string =
   translationKey("Apps");
 
-// What each reason says, above the apps it names.
+/*
+ * What each reason says, above the apps it names: a name too long to filter
+ * by is said of the one app it names, or of them all.
+ */
 export const CLOUD_ENVIRONMENT_NOT_LISTED_REASON_TEXT: Readonly<
-  Record<CloudEnvironmentAppRecommendationGapReason, string>
+  Record<CloudEnvironmentAppRecommendationGapReason, string | PluralTemplate>
 > = {
-  [CloudEnvironmentAppRecommendationGapReason.NotScoped]: translationKey(
-    "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs.",
-  ),
+  [CloudEnvironmentAppRecommendationGapReason.NotScoped]: {
+    one: "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its telemetry is in this environment's tabs.",
+    other:
+      "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs.",
+  },
   [CloudEnvironmentAppRecommendationGapReason.PlatformUnknown]: translationKey(
     "Offered once this environment's telemetry names its platform",
   ),

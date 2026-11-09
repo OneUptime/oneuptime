@@ -160,8 +160,12 @@ export interface GroupedRecommendationGaps {
 // One reason a resource is left out, as the list at the end says it.
 export interface GroupedRecommendationsNotListedReason {
   reason: string;
-  // What it says above the resources it names (a key, looked up).
-  text: string;
+  /*
+   * What it says above the resources it names (a key, looked up) - or, for
+   * a sentence that names them, its one and other forms, picked by how
+   * many it names.
+   */
+  text: string | PluralTemplate;
   // Where the name of a resource left out for it leads.
   getRoute: (resource: CloudAccountRecommendationResource) => Route;
 }
@@ -967,7 +971,9 @@ const GroupedMonitorRecommendations: FunctionComponent<ComponentProps> = (
                 data-testid={`${prefix}s-not-listed-${reason.reason}`}
               >
                 <p className="text-xs text-gray-600">
-                  {translator.translateText(reason.text)}
+                  {typeof reason.text === "string"
+                    ? translator.translateText(reason.text)
+                    : translator.translatePlural(reason.text, listed.length)}
                 </p>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {shown.map((gap: GroupedRecommendationGap) => {

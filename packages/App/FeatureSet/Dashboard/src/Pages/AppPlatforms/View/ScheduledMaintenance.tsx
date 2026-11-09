@@ -20,7 +20,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
  * (MonitorMaintenanceSuppression), and the app's page and the environment's
  * Overview say so. Create Scheduled Maintenance Event keeps the environment
  * picked. Every event here holds the environment, so the list leaves out
- * the column that would only say it again.
+ * the column and the filter chip that would only say it again, and folds
+ * its quieter columns to fit beside the side menu (isResourceOwnTab).
  */
 const AppPlatformEnvironmentScheduledMaintenance: FunctionComponent<
   PageComponentProps
@@ -46,7 +47,7 @@ const AppPlatformEnvironmentScheduledMaintenance: FunctionComponent<
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
         description="Planned work on this environment. While an event is in progress, the monitors of its apps open no incidents or alerts."
         noItemsMessage="No scheduled maintenance events for this environment."
-        leaveOutAffectedResources={true}
+        isResourceOwnTab={true}
       />
     </Fragment>
   );

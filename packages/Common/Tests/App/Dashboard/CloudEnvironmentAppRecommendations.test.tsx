@@ -536,8 +536,9 @@ describe("what the environment is offered", () => {
       "cloud-environment-recommendations-not-listed-NotScoped",
     );
 
+    // Said of the one app it names.
     expect(tooLong).toHaveTextContent(
-      "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs.",
+      "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its telemetry is in this environment's tabs.",
     );
     expect(
       within(tooLong)
@@ -547,6 +548,34 @@ describe("what the environment is offered", () => {
     ).toBe(`${ENVIRONMENT_PAGE}/apps/${IDS["longName"]}?tab=Recommendations`);
     // Nobody is offered the same app twice.
     expect(within(section).queryByText("checkout-api")).toBeNull();
+  });
+
+  test("two apps left out for a name too long are said of together", async () => {
+    apps = [
+      ...environmentApps(),
+      appRow({
+        id: "75000000-0000-4000-8000-000000000004",
+        name: "another-very-long-generated-task-family-name",
+        attributes: {},
+      }),
+    ];
+
+    await renderPage();
+
+    const tooLong: HTMLElement = screen.getByTestId(
+      "cloud-environment-recommendations-not-listed-NotScoped",
+    );
+
+    expect(tooLong).toHaveTextContent(
+      "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs.",
+    );
+    expect(tooLong).not.toHaveTextContent("This app's name");
+    expect(
+      within(tooLong).getByText("a-very-long-generated-task-family-name"),
+    ).toBeInTheDocument();
+    expect(
+      within(tooLong).getByText("another-very-long-generated-task-family-name"),
+    ).toBeInTheDocument();
   });
 
   test("an environment that has more apps than one read lists says so", async () => {

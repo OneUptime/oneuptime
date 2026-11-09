@@ -70,11 +70,13 @@ modelled" stub (`data-testid="stub-page"`).
 
 Query parameters on any page:
 
-| Parameter | Values                                                                                                                                          |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `state`   | `empty`: no environment yet (the Overview's first-run guide); `connected`: every environment connected (the strip breaks them down by provider) |
-| `lang`    | `de` or `fa` (Persian, laid out right to left)                                                                                                  |
-| `theme`   | `dark` adds `html.dark` (server.js)                                                                                                             |
+| Parameter     | Values                                                                                                                                                      |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `state`       | `empty`: no environment yet (the Overview's first-run guide); `connected`: every environment connected (the strip breaks them down by provider)             |
+| `maintenance` | `held`: an event in progress holds `checkout`'s environment (so its apps' monitors), and another, next week, is on a status page, with a label and an owner |
+| `app`         | `too-long`: `checkout` runs a third app, whose name was too long for ingest to filter its telemetry by                                                      |
+| `lang`        | `de` or `fa` (Persian, laid out right to left)                                                                                                              |
+| `theme`       | `dark` adds `html.dark` (server.js)                                                                                                                         |
 
 ## What the fixture records
 

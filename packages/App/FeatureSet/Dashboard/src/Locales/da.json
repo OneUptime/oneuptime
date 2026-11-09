@@ -47336,5 +47336,6 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "En projektejer eller en person med Manage Billing kan tilføje AI-kreditter under Projektindstillinger → AI → AI-kreditter.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Sekunder, der ventes på udbyderens svar på én forespørgsel. Lad feltet stå tomt for 120 (300 for Ollama). Hæv værdien for en langsom eller selvhostet model.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI-udbyderen afviste forespørgslen: API-nøglen eller modellen kan være forkert, eller kontoen mangler adgang eller kredit.",
-  "OneUptime AI will try again": "OneUptime AI prøver igen"
+  "OneUptime AI will try again": "OneUptime AI prøver igen",
+  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "Denne apps navn er for langt til at filtrere dens telemetri efter, så ingen monitor kan overvåge den alene. Dens telemetri findes på dette miljøs faner."
 }
