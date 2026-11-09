@@ -35,10 +35,14 @@ import {
   SLO_POLICY_TIER_MIN_THRESHOLD_PERCENTAGE,
   SLO_POLICY_TIER_WHAT_WE_DO_MAX_LENGTH,
   SLO_RECOMMENDED_POLICY_TIERS,
+  SloDeploymentGateChange,
+  SloDeploymentGateTransition,
   SloExistingPolicyTier,
   SloRecommendedPolicyTier,
+  SloStoredDeploymentGate,
   computeSloPolicyTier,
   getMissingSloRecommendedPolicyTiers,
+  getSloDeploymentGateChange,
   getSloPolicyTierExitPercentage,
   readSloPolicyTierThreshold,
 } from "Common/Utils/Slo/SloErrorBudgetPolicy";
@@ -113,6 +117,11 @@ const SOURCES: Record<string, string> = {
     "Common/Server/API/ServiceLevelObjectiveErrorBudgetPolicyTierAPI.ts",
   policyTierModel:
     "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier.ts",
+  policyTierForm: `${DASHBOARD}/Pages/Slo/Utils/ErrorBudgetPolicyTierForm.ts`,
+  policyPage: `${DASHBOARD}/Pages/Slo/View/ErrorBudgetPolicy.tsx`,
+  policyTierCopy: `${DASHBOARD}/Components/Slo/SloPolicyTier.ts`,
+  policyTierCard: `${DASHBOARD}/Components/Slo/SloErrorBudgetPolicyTierCard.tsx`,
+  recommendedPolicyModal: `${DASHBOARD}/Components/Slo/SloRecommendedPolicyTiersModal.tsx`,
   feedService: "Common/Server/Services/ServiceLevelObjectiveFeedService.ts",
   notificationSettingService:
     "Common/Server/Services/UserNotificationSettingService.ts",
@@ -2305,6 +2314,8 @@ describe("Error Budget Policy, against the policy, the worker and the API", () =
             `**${recommendedTier.name}**`,
             `${recommendedTier.thresholdPercentage}% left or less`,
             recommendedTier.whatWeDo,
+            // As the tiers table's Deployments column says it.
+            recommendedTier.freezesDeployments ? "Frozen" : "Allowed",
           ];
         },
       ),
@@ -2589,7 +2600,7 @@ describe("Error Budget Policy, against the policy, the worker and the API", () =
     );
 
     expect(page).toContain(
-      "The SLO's **Audit Logs** record each tier change as a change OneUptime made itself, so they show it only with **Store System Events** on",
+      "The SLO's **Audit Logs** record each tier change, and each time deployments are frozen or allowed again, as a change OneUptime made itself, so they show it only with **Store System Events** on",
     );
     expect(page).toContain(
       "Adding, editing and removing a tier is recorded as the person who did it.",
@@ -2737,6 +2748,335 @@ describe("Error Budget Policy, against the policy, the worker and the API", () =
     expect(section(page, "Permissions")).toContain(
       "The Project Owner and Project Admin roles have them all, and the Project Member and Viewer roles can read tiers.",
     );
+  });
+});
+
+describe("Deployment gate, against the policy, the worker and the API", () => {
+  const page: string = englishPage(ERROR_BUDGET_POLICY);
+  const gate: string = section(page, "Deployment gate");
+  const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+    new ServiceLevelObjectiveErrorBudgetPolicyTier();
+  const slo: ServiceLevelObjective = new ServiceLevelObjective();
+  const COLUMNS: Array<string> = ["deploymentsAllowed", "deploymentsFrozenAt"];
+
+  // The deploy gate along a run of budgets, as the worker chains evaluations.
+  function allowedAlong(data: {
+    budgets: Array<number>;
+    tiers: Array<{
+      id: string;
+      thresholdPercentage: number;
+      freezesDeployments: boolean;
+    }>;
+  }): Array<boolean> {
+    let tierId: string | null = null;
+    let stored: SloStoredDeploymentGate = { deploymentsAllowed: true };
+
+    return data.budgets.map((budget: number): boolean => {
+      const current: { id: string; freezesDeployments: boolean } | null =
+        computeSloPolicyTier({
+          budgetRemainingPercentage: budget,
+          tiers: data.tiers,
+          currentTierId: tierId,
+        });
+      const change: SloDeploymentGateChange = getSloDeploymentGateChange({
+        tier: current,
+        stored: stored,
+        now: new Date("2026-11-09T12:00:00.000Z"),
+      });
+
+      tierId = current?.id || null;
+      stored = change.gate;
+
+      return change.gate.deploymentsAllowed;
+    });
+  }
+
+  it("names the tier's switch as the model titles it, off by default, on the tier's form", () => {
+    const column: { title?: string; defaultValue?: unknown } =
+      tier.getTableColumnMetadata("freezesDeployments");
+
+    expect(column.title).toBe("Freeze Deployments");
+    expect(column.defaultValue).toBe(false);
+    expect(fieldTypeOf(readSource("policyTierForm"), "Freeze Deployments")).toBe(
+      "Toggle",
+    );
+    expect(gate).toContain(
+      "Open the SLO's **Error Budget Policy**, edit the tier, switch on **Freeze Deployments** and save.",
+    );
+    expect(section(page, "Set up a policy")).toContain(
+      "Switch on **Freeze Deployments** if pipelines should hold back releases while the SLO is in the tier.",
+    );
+  });
+
+  it("names the tiers table's column and what it says, as the page draws them", () => {
+    expect(readSource("policyPage")).toContain('title: "Deployments",');
+    expect(readSource("policyTierCopy")).toContain('translationKey("Frozen")');
+    expect(readSource("policyTierCopy")).toContain(
+      'translationKey("Allowed")',
+    );
+    expect(gate).toContain(
+      "The tier's **Deployments** column in the table says **Frozen**.",
+    );
+  });
+
+  it("names the two fields the SLO answers with, read with the SLO's own permission and written by the worker alone", () => {
+    expect(firstCells(gate)).toEqual(
+      COLUMNS.map((column: string): string => {
+        return `\`${column}\``;
+      }),
+    );
+
+    for (const column of COLUMNS) {
+      const access: {
+        create?: Array<Permission>;
+        read?: Array<Permission>;
+        update?: Array<Permission>;
+      } | null = slo.getColumnAccessControlFor(column);
+
+      expect({
+        column,
+        create: access?.create,
+        update: access?.update,
+        readable: Boolean(
+          access?.read?.includes(Permission.ReadServiceLevelObjective) &&
+            access?.read?.includes(Permission.Viewer),
+        ),
+      }).toEqual({ column, create: [], update: [], readable: true });
+    }
+
+    // Allowed until a tier says otherwise: every SLO that has none.
+    expect(slo.getTableColumnMetadata("deploymentsAllowed").defaultValue).toBe(
+      true,
+    );
+    expect(gate).toContain(
+      "The SLO answers with two fields, read with the SLO's own read permission:",
+    );
+  });
+
+  it("checks with the request the SLO's API answers: its own get-item, selecting real columns", () => {
+    const crudPath: string = slo.getCrudApiPath()?.toString() || "";
+    const requests: Array<string> = allMatches(
+      gate,
+      /https:\/\/oneuptime\.com\/api(\/[\w-]+)\/(?:<slo-id>|\$SLO_ID)\/get-item/g,
+    );
+
+    // The shell check, the GitHub Actions step and the GitLab CI job.
+    expect(requests).toEqual([crudPath, crudPath, crudPath]);
+
+    const selects: Array<string> = allMatches(gate, /"select": (\{[^}]+\})/g);
+
+    expect(selects).toHaveLength(3);
+
+    for (const select of selects) {
+      for (const field of Object.keys(JSON.parse(select))) {
+        const access: { read?: Array<Permission> } | null =
+          slo.getColumnAccessControlFor(field);
+
+        expect({
+          field,
+          column: slo.hasColumn(field),
+          readable: Boolean(
+            access?.read?.includes(Permission.ReadServiceLevelObjective),
+          ),
+        }).toEqual({ field, column: true, readable: true });
+      }
+
+      expect(JSON.parse(select)["deploymentsAllowed"]).toBe(true);
+    }
+
+    // Each one exits non-zero unless the answer is true.
+    expect(
+      gate.split("jq -e '.deploymentsAllowed == true'").length - 1,
+    ).toBe(3);
+    expect(gate).toContain(
+      "`jq -e` exits with 0 only when the answer is `true`.",
+    );
+  });
+
+  it("is frozen and allowed again with the tier the worker puts the SLO in, in its one state write", () => {
+    const worker: string = readSource("worker");
+
+    expect(worker).toContain(
+      "getSloDeploymentGateChange({\n      tier: policyTier,",
+    );
+    expect(worker).toContain("...deploymentGateChange.columns,");
+
+    // The recommended policy: frozen at 0%, still frozen below the 2% exit, allowed again at it.
+    const policy: Array<{
+      id: string;
+      thresholdPercentage: number;
+      freezesDeployments: boolean;
+    }> = SLO_RECOMMENDED_POLICY_TIERS.map(
+      (
+        recommended: SloRecommendedPolicyTier,
+      ): {
+        id: string;
+        thresholdPercentage: number;
+        freezesDeployments: boolean;
+      } => {
+        return {
+          id: recommended.name,
+          thresholdPercentage: recommended.thresholdPercentage,
+          freezesDeployments: recommended.freezesDeployments,
+        };
+      },
+    );
+
+    expect(
+      allowedAlong({
+        budgets: [30, 0, 1.9, SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE],
+        tiers: policy,
+      }),
+    ).toEqual([true, false, false, true]);
+
+    // From one tier that freezes to another, they stay frozen.
+    expect(
+      allowedAlong({
+        budgets: [20, -2, 3],
+        tiers: policy.map(
+          (entry: {
+            id: string;
+            thresholdPercentage: number;
+            freezesDeployments: boolean;
+          }) => {
+            return { ...entry, freezesDeployments: entry.thresholdPercentage < 50 };
+          },
+        ),
+      }),
+    ).toEqual([false, false, false]);
+
+    // No policy: allowed, whatever the budget.
+    expect(allowedAlong({ budgets: [100, 0, -50], tiers: [] })).toEqual([
+      true,
+      true,
+      true,
+    ]);
+
+    expect(gate).toContain(
+      "Deployments are frozen by the evaluation that puts the SLO in a tier that freezes them, and allowed again by the one that takes it out, with the tier's own recovery margins",
+    );
+    expect(gate).toContain(
+      "From one tier that freezes to another, they stay frozen, and `deploymentsFrozenAt` keeps its time.",
+    );
+    expect(gate).toContain(
+      "Otherwise it is `true`: when the SLO has no policy, while its budget is above every tier, and in a tier that does not freeze deployments.",
+    );
+  });
+
+  it("keeps the answer of an SLO that measures nothing, as it keeps its tier", () => {
+    const guard: string = blockFrom(
+      readSource("worker"),
+      "async function setGuardStatusAndResolveOpenAlerts",
+      "\n}\n",
+    );
+
+    expect(guard).not.toContain("deploymentsAllowed");
+    expect(guard).not.toContain("DeploymentGate");
+    expect(gate).toContain(
+      "A **Paused** or **Misconfigured** SLO keeps the answer it had, as it keeps its tier",
+    );
+    expect(section(page, "When the budget is not measured")).toContain(
+      "In each of these cases the SLO keeps the answer it gave about deployments, because it keeps its tier",
+    );
+  });
+
+  it("applies a switched freeze within about a minute: the switch asks for the SLO's next evaluation", () => {
+    expect(
+      blockFrom(readSource("policyTierService"), "const EVALUATION_COLUMNS", "];"),
+    ).toContain('"freezesDeployments"');
+    expect(gate).toContain(
+      "Switching **Freeze Deployments** on or off for the tier the SLO is in applies within about a minute.",
+    );
+  });
+
+  it("says the recommended policy's Budget exhausted tier freezes deployments, and only it", () => {
+    expect(
+      SLO_RECOMMENDED_POLICY_TIERS.filter(
+        (recommended: SloRecommendedPolicyTier): boolean => {
+          return recommended.freezesDeployments;
+        },
+      ).map((recommended: SloRecommendedPolicyTier): string => {
+        return recommended.name;
+      }),
+    ).toEqual(["Budget exhausted"]);
+    expect(gate).toContain(
+      "The recommended policy's **Budget exhausted** tier freezes deployments.",
+    );
+    expect(section(page, "The recommended policy")).toContain(
+      "**Budget exhausted** freezes deployments, as its agreement says, and the confirmation marks it so",
+    );
+    // The confirmation marks it, from the definition.
+    expect(readSource("recommendedPolicyModal")).toContain(
+      "tier.freezesDeployments ? (",
+    );
+    // The starter writes the freeze its definition says.
+    expect(
+      blockFrom(
+        readSource("policyTierService"),
+        "public buildRecommendedTier(",
+        "return tier;",
+      ),
+    ).toContain(
+      "tier.freezesDeployments = data.recommended.freezesDeployments === true;",
+    );
+  });
+
+  it("records the answer in the audit log as OneUptime's own, but not its time", () => {
+    const ignored: string = blockFrom(
+      fs.readFileSync(
+        path.join(
+          PACKAGES_DIR,
+          "Common/Models/DatabaseModels/ServiceLevelObjective.ts",
+        ),
+        "utf8",
+      ),
+      "ignoreColumns: [",
+      "]",
+    );
+
+    expect(ignored).toContain('"deploymentsFrozenAt",');
+    expect(ignored).not.toContain('"deploymentsAllowed",');
+    expect(section(page, "Where the tier shows")).toContain(
+      "The SLO's **Audit Logs** record each tier change, and each time deployments are frozen or allowed again, as a change OneUptime made itself",
+    );
+    expect(englishPage(FEED)).toContain(
+      "The error budget policy tier the SLO is in, and whether its deployments are allowed, are the exception",
+    );
+  });
+
+  it("says when deployments are frozen and allowed again in the feed, and since when on the Overview", () => {
+    const worker: string = readSource("worker");
+
+    expect(worker).toContain(
+      "ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed",
+    );
+    expect(worker).toContain(
+      "ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen",
+    );
+    expect(readSource("policyTierCard")).toContain(
+      "DEPLOYMENTS_FROZEN_SINCE_TEMPLATE",
+    );
+    expect(readSource("policyTierCopy")).toContain(
+      '"Deployments frozen since {{time}}"',
+    );
+    expect(gate).toContain(
+      "While deployments are frozen, the SLO's **Overview** shows since when, and its **Feed** says when they are frozen and allowed again.",
+    );
+    expect(section(englishPage(FEED), "The SLO feed")).toContain(
+      "| Deployments frozen or allowed again | Someone switched **Freeze Deployments** on or off for the tier the SLO is in",
+    );
+  });
+
+  it("no longer lists a deployment gate as not available", () => {
+    const later: string = section(page, "Not available yet");
+
+    expect(later).not.toContain("a deployment gate");
+    expect(later).toContain(
+      "OneUptime does not stop a release by itself: a pipeline that checks `deploymentsAllowed` does",
+    );
+    expect(
+      SloDeploymentGateTransition.Frozen !== SloDeploymentGateTransition.Allowed,
+    ).toBe(true);
   });
 });
 
@@ -2903,6 +3243,10 @@ describe("SLO Feed and Audit Logs, against the feed and the audit log settings",
       "Error budget policy alert or incident resolved",
     [ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentResolved]:
       "Error budget policy alert or incident resolved",
+    [ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen]:
+      "Deployments frozen or allowed again",
+    [ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed]:
+      "Deployments frozen or allowed again",
   };
 
   it("describes every event the feed can post, one row each kind", () => {
