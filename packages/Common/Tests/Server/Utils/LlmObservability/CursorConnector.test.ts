@@ -384,7 +384,11 @@ describe("CursorAdminClient", () => {
     const cursor: CursorAdminClient = client(at);
 
     for (let index: number = 0; index < 3; index++) {
-      await cursor.getUsageEventsPage({ startMs: END - HOUR, endMs: END, page: 1 });
+      await cursor.getUsageEventsPage({
+        startMs: END - HOUR,
+        endMs: END,
+        page: 1,
+      });
     }
     await cursor.listMembers();
     await cursor.listMembers();
@@ -404,8 +408,16 @@ describe("CursorAdminClient", () => {
     const at: World = world({ latencyMs: 500 });
     const cursor: CursorAdminClient = client(at);
 
-    await cursor.getUsageEventsPage({ startMs: END - HOUR, endMs: END, page: 1 });
-    await cursor.getUsageEventsPage({ startMs: END - HOUR, endMs: END, page: 1 });
+    await cursor.getUsageEventsPage({
+      startMs: END - HOUR,
+      endMs: END,
+      page: 1,
+    });
+    await cursor.getUsageEventsPage({
+      startMs: END - HOUR,
+      endMs: END,
+      page: 1,
+    });
 
     expect(at.clock.sleeps).toEqual([700]);
   });
@@ -460,7 +472,9 @@ describe("CursorAdminClient", () => {
         return CURSOR_RATE_LIMITED;
       }),
     });
-    const refused: LlmProviderError = await failureOf(client(quick).listMembers());
+    const refused: LlmProviderError = await failureOf(
+      client(quick).listMembers(),
+    );
     expect(refused.kind).toBe(LlmConnectionFailureKind.RateLimited);
     expect(quick.clock.sleeps).toEqual([]);
 
@@ -563,7 +577,9 @@ describe("CursorAdminClient", () => {
 
     // A key-shaped value of another connection is removed too.
     expect(
-      LlmProviderError.redact(`Cursor said crsr_${"Q".repeat(64)} is not a key; keys start with crsr_.`),
+      LlmProviderError.redact(
+        `Cursor said crsr_${"Q".repeat(64)} is not a key; keys start with crsr_.`,
+      ),
     ).toBe("Cursor said [REDACTED] is not a key; keys start with crsr_.");
   });
 
@@ -1024,9 +1040,9 @@ describe("CursorConnector.plan", () => {
     expect(
       CursorConnector.subtractWindow(ranges, window(6 * HOUR, 10 * HOUR)),
     ).toEqual([window(0, 6 * HOUR)]);
-    expect(CursorConnector.subtractWindow(ranges, window(0, 10 * HOUR))).toEqual(
-      [],
-    );
+    expect(
+      CursorConnector.subtractWindow(ranges, window(0, 10 * HOUR)),
+    ).toEqual([]);
     // An empty cut takes nothing.
     expect(
       CursorConnector.subtractWindow(ranges, window(10 * HOUR, 10 * HOUR)),
@@ -1111,7 +1127,11 @@ describe("CursorConnector.fetchUsage - a read", () => {
     const at: World = world({
       usage: usageOf(events),
       activeOn: (dayMs: number): Array<string> => {
-        return dayMs === TODAY - DAY ? [ANA, DEE] : dayMs === TODAY - 2 * DAY ? [BOB] : [];
+        return dayMs === TODAY - DAY
+          ? [ANA, DEE]
+          : dayMs === TODAY - 2 * DAY
+            ? [BOB]
+            : [];
       },
     });
 
@@ -1249,8 +1269,10 @@ describe("CursorConnector.fetchUsage - a read", () => {
         ];
       });
 
-    // [hours, hours before the end]: 72 pages for a day is too many for a
-    // piece, so 8 hours at a time; then quiet hours, doubling.
+    /*
+     * [hours, hours before the end]: 72 pages for a day is too many for a
+     * piece, so 8 hours at a time; then quiet hours, doubling.
+     */
     expect(firstPages).toEqual([
       [24, 0],
       [8, 0],
@@ -1260,9 +1282,11 @@ describe("CursorConnector.fetchUsage - a read", () => {
       [16, 32],
       [24, 48],
     ]);
-    expect(sumOf(result.records, (r: LlmUsageRecord) => r.requests || 0)).toBe(
-      72000,
-    );
+    expect(
+      sumOf(result.records, (r: LlmUsageRecord) => {
+        return r.requests || 0;
+      }),
+    ).toBe(72000);
     expect(result.records).toHaveLength(48);
     expect(result.complete).toBe(true);
     expect(result.requestCount).toBe(105);
@@ -1385,9 +1409,7 @@ describe("CursorConnector.fetchUsage - a read that stops part way and goes on", 
       two.nextState,
       new Date("2026-10-19T16:40:00Z"),
     );
-    expect(three.coveredWindow).toEqual(
-      window(END - 3 * HOUR, END + HOUR),
-    );
+    expect(three.coveredWindow).toEqual(window(END - 3 * HOUR, END + HOUR));
     expect(three.records).toHaveLength(8);
     expect(three.nextState?.windowEnd).toBe(iso(END + HOUR));
     expect(three.complete).toBe(true);

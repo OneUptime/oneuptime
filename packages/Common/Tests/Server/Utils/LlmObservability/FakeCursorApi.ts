@@ -225,7 +225,8 @@ export function steadyUsage(data: {
       count,
       event: (index: number): JSONObject => {
         return cursorEvent({
-          at: hourMs + HOUR_MS - 1 - Math.floor((index * (HOUR_MS - 1)) / count),
+          at:
+            hourMs + HOUR_MS - 1 - Math.floor((index * (HOUR_MS - 1)) / count),
           email: data.people[index % data.people.length]!,
           model: models[index % models.length]!,
         });
@@ -393,7 +394,10 @@ function usageEventsAnswer(
   });
 }
 
-function dailyUsageAnswer(team: FakeCursorTeam, body: JSONObject): FakeResponse {
+function dailyUsageAnswer(
+  team: FakeCursorTeam,
+  body: JSONObject,
+): FakeResponse {
   const startMs: number = Number(body["startDate"]);
   const endMs: number = Number(body["endDate"]);
 

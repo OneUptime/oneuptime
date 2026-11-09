@@ -53,6 +53,8 @@ export const CURSOR_RATE_LIMIT_WAIT_MS: number = 60 * 1000;
 const SERVER_ERROR_WAIT_MS: number = 2000;
 
 const PROVIDER_TITLE: string = "Cursor";
+// A pasted key with a space or a line break in it.
+const WHITESPACE_REGEX: RegExp = /\s/;
 
 export interface CursorMember {
   id: string;
@@ -127,7 +129,7 @@ export default class CursorAdminClient {
       throw new BadDataException("Admin API key is required.");
     }
 
-    if (/\s/.test(key)) {
+    if (WHITESPACE_REGEX.test(key)) {
       throw new BadDataException(
         "The Admin API key has a space or a line break in it. Paste the key alone.",
       );

@@ -643,7 +643,9 @@ export default class LlmConnectionPullRunner {
             outputTokens: (totals || written).outputTokens,
             requests: (totals || written).requests,
             costUsd: (totals || written).costUsd,
-            ...(people.members !== undefined ? { members: people.members } : {}),
+            ...(people.members !== undefined
+              ? { members: people.members }
+              : {}),
             ...(people.activeMembers !== undefined
               ? { activeMembers: people.activeMembers }
               : {}),

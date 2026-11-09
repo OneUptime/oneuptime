@@ -241,8 +241,7 @@ export const LlmConnectionCredentialsHint: FunctionComponent<{
   const isTool: boolean =
     props.definition.kind === LlmConnectionKind.CompanyTool;
   // Another way the same product comes in (Cursor's OpenTelemetry Export).
-  const otherWay: LlmConnectionOtherWay | undefined =
-    props.definition.otherWay;
+  const otherWay: LlmConnectionOtherWay | undefined = props.definition.otherWay;
 
   return (
     <div

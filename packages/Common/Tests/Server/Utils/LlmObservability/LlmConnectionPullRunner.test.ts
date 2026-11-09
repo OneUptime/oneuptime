@@ -1174,9 +1174,7 @@ describe("LlmConnectionPullRunner.run - a provider read by the hour", () => {
     window: LlmUsageWindow;
     options: LlmConnectorCallOptions;
   }>;
-  let totals: jest.SpiedFunction<
-    typeof LlmProviderUsageWriter.readUsageTotals
-  >;
+  let totals: jest.SpiedFunction<typeof LlmProviderUsageWriter.readUsageTotals>;
 
   function hourlyConnector(result: Partial<LlmUsageFetchResult>): LlmConnector {
     return {
