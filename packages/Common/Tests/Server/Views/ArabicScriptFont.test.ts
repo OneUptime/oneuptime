@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import zlib from "zlib";
 
 /*
  * ARABIC SCRIPT IN ONEUPTIME'S OWN FONT.
@@ -151,6 +152,118 @@ const leaves: (tree: unknown) => Array<string> = (
 const ARABIC_SCRIPT: RegExp =
   /[\u0600-\u06FF\u0750-\u077F\u0870-\u089F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/u;
 
+/*
+ * The strings of a WOFF2 font's name table, by name ID: 0 is its copyright
+ * notice, 1 its family, 14 the address of its licence. WOFF2 keeps every
+ * table in one Brotli stream, in the order of its table directory.
+ */
+const WOFF2_HEADER_LENGTH: number = 48;
+const WOFF2_NAME_TABLE: number = 5;
+const WOFF2_GLYF_TABLE: number = 10;
+const WOFF2_LOCA_TABLE: number = 11;
+const WOFF2_OWN_TAG: number = 0x3f;
+
+type FontTable = {
+  isName: boolean;
+  length: number;
+};
+
+const fontNames: (font: Buffer) => Map<number, Array<string>> = (
+  font: Buffer,
+): Map<number, Array<string>> => {
+  const tableCount: number = font.readUInt16BE(12);
+  const compressedLength: number = font.readUInt32BE(20);
+  let offset: number = WOFF2_HEADER_LENGTH;
+
+  const readBase128: () => number = (): number => {
+    let value: number = 0;
+
+    for (let index: number = 0; index < 5; index++) {
+      const byte: number = font[offset++]!;
+
+      value = value * 128 + (byte & 0x7f);
+
+      if ((byte & 0x80) === 0) {
+        return value;
+      }
+    }
+
+    throw new Error("Not a WOFF2 UIntBase128 number");
+  };
+
+  const tables: Array<FontTable> = [];
+
+  for (let table: number = 0; table < tableCount; table++) {
+    const flags: number = font[offset++]!;
+    const known: number = flags & WOFF2_OWN_TAG;
+
+    if (known === WOFF2_OWN_TAG) {
+      offset += 4;
+    }
+
+    const transformVersion: number = flags >> 6;
+    const originalLength: number = readBase128();
+    // glyf and loca are transformed at version 0, every other table above it.
+    const isTransformed: boolean =
+      known === WOFF2_GLYF_TABLE || known === WOFF2_LOCA_TABLE
+        ? transformVersion === 0
+        : transformVersion !== 0;
+
+    tables.push({
+      isName: known === WOFF2_NAME_TABLE,
+      length: isTransformed ? readBase128() : originalLength,
+    });
+  }
+
+  const stream: Buffer = zlib.brotliDecompressSync(
+    font.subarray(offset, offset + compressedLength),
+  );
+  let start: number = 0;
+  let nameTable: Buffer | undefined = undefined;
+
+  for (const table of tables) {
+    if (table.isName) {
+      nameTable = stream.subarray(start, start + table.length);
+    }
+
+    start += table.length;
+  }
+
+  const names: Map<number, Array<string>> = new Map<number, Array<string>>();
+
+  if (!nameTable) {
+    return names;
+  }
+
+  const recordCount: number = nameTable.readUInt16BE(2);
+  const stringsStart: number = nameTable.readUInt16BE(4);
+
+  for (let record: number = 0; record < recordCount; record++) {
+    const at: number = 6 + record * 12;
+    const platform: number = nameTable.readUInt16BE(at);
+    const nameId: number = nameTable.readUInt16BE(at + 6);
+    const length: number = nameTable.readUInt16BE(at + 8);
+    const textStart: number = stringsStart + nameTable.readUInt16BE(at + 10);
+    const bytes: Buffer = Buffer.from(
+      nameTable.subarray(textStart, textStart + length),
+    );
+    // Windows and Unicode names are UTF-16 big-endian, Mac names one byte each.
+    const text: string =
+      platform === 0 || platform === 3
+        ? bytes.swap16().toString("utf16le")
+        : bytes.toString("latin1");
+    const known: Array<string> = names.get(nameId) || [];
+
+    if (!known.includes(text)) {
+      known.push(text);
+    }
+
+    names.set(nameId, known);
+  }
+
+  return names;
+};
+
 describe("Arabic script in OneUptime's own font", () => {
   const ranges: Array<CodePointRange> = parseUnicodeRange(
     arabicFace(read(PAGES[0]!.file)) || "",
@@ -287,11 +400,38 @@ describe("Arabic script in OneUptime's own font", () => {
     }
   });
 
-  test("the vendored assets README lists the font and its licence", () => {
+  test("the vendored assets README lists the font, its authors and its licence", () => {
     const readme: string = read("Common/Server/Static/Vendor/README.md");
 
     expect(readme).toContain(`fonts/${FONT_NAME}`);
     expect(readme).toContain("SIL Open Font License 1.1");
+    expect(readme).toContain("Copyright 2015 The Vazirmatn Project Authors");
+  });
+
+  test("the font file carries its own copyright notice and its licence's address", () => {
+    const names: Map<number, Array<string>> = fontNames(
+      fs.readFileSync(path.join(PACKAGES, PAGES[0]!.fontDirectory, FONT_NAME)),
+    );
+
+    expect(names.get(0)).toContain(
+      "Copyright 2015 The Vazirmatn Project Authors (https://github.com/rastikerdar/vazirmatn)",
+    );
+    expect(names.get(1)).toContain("Vazirmatn");
+    expect(names.get(14)).toContain("https://scripts.sil.org/OFL");
+  });
+
+  test("the name reader reads Inter's own notice too, so a font without one would fail", () => {
+    const names: Map<number, Array<string>> = fontNames(
+      fs.readFileSync(
+        path.join(PACKAGES, PAGES[0]!.fontDirectory, "InterVariable.woff2"),
+      ),
+    );
+
+    expect(names.get(0)).toContain("Copyright 2016 The Inter Project Authors");
+    expect(names.get(0)).not.toContain(
+      "Copyright 2015 The Vazirmatn Project Authors (https://github.com/rastikerdar/vazirmatn)",
+    );
+    expect(names.get(14)).toContain("http://scripts.sil.org/OFL");
   });
 
   test("no page loads it from a font CDN", () => {
