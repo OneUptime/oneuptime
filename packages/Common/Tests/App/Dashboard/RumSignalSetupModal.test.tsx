@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -15,7 +16,12 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { createInstance, i18n } from "i18next";
 import * as React from "react";
+import { I18nextProvider } from "react-i18next";
+import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import RumSignalSetupModal from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumSignalSetupModal";
 import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
 import { SETUP_GUIDE_API_KEY_PLACEHOLDER } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
@@ -261,5 +267,187 @@ describe("Set up exceptions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("in the reader's language", () => {
+  const instances: Record<string, i18n> = {};
+
+  // The Persian of the step that names the packages: more English letters.
+  const INSTALL_STEP: string =
+    "The OpenTelemetry logs API, its SDK and the OTLP log exporter.";
+
+  beforeAll(async () => {
+    for (const [language, locale] of [
+      ["en", englishLocale],
+      ["de", germanLocale],
+      ["fa", persianLocale],
+    ] as Array<[string, Record<string, unknown>]>) {
+      const instance: i18n = createInstance();
+
+      await instance.init({
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          en: { translation: englishLocale },
+          [language]: { translation: locale },
+        },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      });
+
+      instances[language] = instance;
+    }
+  });
+
+  async function openIn(
+    language: string,
+    signal: "exceptions" | "logs",
+  ): Promise<HTMLElement> {
+    render(
+      <I18nextProvider i18n={instances[language]!}>
+        <RumSignalSetupModal
+          signal={signal}
+          appName="storefront-web"
+          onClose={onClose}
+        />
+      </I18nextProvider>,
+    );
+    const dialog: HTMLElement = screen.getByTestId(`rum-${signal}-setup`);
+
+    if (signal === "logs") {
+      await waitFor(() => {
+        expect(dialog.textContent).toContain("secret-browser");
+      });
+    }
+
+    return dialog;
+  }
+
+  // Each step's description, as the guide card draws it.
+  function stepDescriptions(dialog: HTMLElement): Array<HTMLElement> {
+    return within(dialog)
+      .getAllByTestId(/^setup-guide-step-\d+$/)
+      .map((step: HTMLElement): HTMLElement | null => {
+        return step.querySelector("h3 + p");
+      })
+      .filter((description: HTMLElement | null): boolean => {
+        return description !== null;
+      }) as Array<HTMLElement>;
+  }
+
+  test("in Persian, every step reads right to left - the one naming the packages too", async () => {
+    mockKeys([BROWSER_KEY]);
+    const persianInstall: string = persianLocale[
+      INSTALL_STEP as keyof typeof persianLocale
+    ] as string;
+
+    // The trap: by its letters alone, this sentence reads left to right.
+    expect(persianInstall).toBeTruthy();
+    expect(persianInstall.match(/[A-Za-z]/g)!.length).toBeGreaterThan(
+      persianInstall.match(/[\u0600-\u06FF]/g)!.length,
+    );
+
+    for (const signal of ["logs", "exceptions"] as const) {
+      const dialog: HTMLElement = await openIn("fa", signal);
+      const descriptions: Array<HTMLElement> = stepDescriptions(dialog);
+
+      expect(descriptions.length).toBeGreaterThan(2);
+      for (const description of descriptions) {
+        expect({
+          text: description.textContent,
+          dir: description.getAttribute("dir"),
+        }).toEqual({ text: description.textContent, dir: "rtl" });
+      }
+
+      if (signal === "logs") {
+        expect(
+          descriptions.map((description: HTMLElement): string => {
+            return description.textContent || "";
+          }),
+        ).toContain(persianInstall);
+      }
+
+      cleanup();
+    }
+  });
+
+  test("in English, left to right", async () => {
+    mockKeys([BROWSER_KEY]);
+    const dialog: HTMLElement = await openIn("en", "logs");
+    const descriptions: Array<HTMLElement> = stepDescriptions(dialog);
+
+    expect(descriptions.length).toBeGreaterThan(2);
+    for (const description of descriptions) {
+      expect(description).toHaveAttribute("dir", "ltr");
+    }
+    expect(dialog.textContent).toContain(INSTALL_STEP);
+  });
+
+  /*
+   * The picked key's caution, under its token, is the guide's too: it was
+   * English on every language's page, and in Persian the full stop after
+   * the origins jumped to the start of the line.
+   */
+  describe("the picked Browser key's caution", () => {
+    const ORIGIN: string = "https://shop.example.com";
+    const FIRST_STRONG_ISOLATE: string = "⁨";
+    const POP_DIRECTIONAL_ISOLATE: string = "⁩";
+
+    test("in English, names the origins as they are", async () => {
+      mockKeys([BROWSER_KEY]);
+      const dialog: HTMLElement = await openIn("en", "logs");
+
+      expect(dialog.textContent).toContain(
+        `Browser key — intended for client distribution.`,
+      );
+      expect(dialog.textContent).toContain(
+        `Accepted identities: ${ORIGIN}. Native app identities are self-asserted, not platform attestation.`,
+      );
+      expect(dialog.textContent).not.toContain(FIRST_STRONG_ISOLATE);
+    });
+
+    test("in German and in Persian, in their words - the origins set apart where the sentence reads right to left", async () => {
+      mockKeys([BROWSER_KEY]);
+      let dialog: HTMLElement = await openIn("de", "logs");
+
+      expect(dialog.textContent).toContain(
+        `Browser-Schlüssel — zur Weitergabe an Clients gedacht.`,
+      );
+      expect(dialog.textContent).toContain(
+        `Akzeptierte Identitäten: ${ORIGIN}.`,
+      );
+      expect(dialog.textContent).not.toContain("client distribution");
+      cleanup();
+
+      dialog = await openIn("fa", "logs");
+      expect(dialog.textContent).toContain(
+        `شناسه‌های پذیرفته: ${FIRST_STRONG_ISOLATE}${ORIGIN}${POP_DIRECTIONAL_ISOLATE}.`,
+      );
+      // A left-to-right mark keeps "://" with "app", or it is drawn "//:app".
+      expect(dialog.textContent).toContain("شناسه‌های app://‎ فقط");
+      expect(dialog.textContent).not.toContain("client distribution");
+    });
+
+    test("a key with no origins says every request is refused, naming the menu as the German Dashboard draws it", async () => {
+      const keyWithoutOrigins: TelemetryIngestionKey = makeKey({
+        id: "key-no-origins",
+        name: "Storefront Browser Key",
+        secret: "secret-browser",
+        keyType: TelemetryIngestionKeyType.Browser,
+      });
+      keyWithoutOrigins.allowedOrigins = [];
+      mockKeys([keyWithoutOrigins]);
+      const dialog: HTMLElement = await openIn("de", "logs");
+
+      expect(dialog.textContent).toContain(
+        "Dieser Browser-Schlüssel hat keine zulässigen Ursprünge, daher wird jede damit gestellte Anfrage abgelehnt.",
+      );
+      expect(dialog.textContent).toContain(
+        "Projekteinstellungen > Telemetrie & APM > Ingestion-Schlüssel",
+      );
+      expect(dialog.textContent).not.toContain("has no allowed origins");
+    });
   });
 });

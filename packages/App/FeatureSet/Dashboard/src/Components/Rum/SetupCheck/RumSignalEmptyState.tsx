@@ -185,7 +185,7 @@ const RumSignalEmptyState: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="flex min-h-44 flex-col items-center justify-center px-4 py-5 text-center"
+      className="flex min-h-44 flex-1 flex-col items-center justify-center px-4 py-5 text-center"
       data-testid={testId}
       data-state={props.state}
     >

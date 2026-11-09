@@ -46685,5 +46685,8 @@
   "Write log records": "Écrire des enregistrements de journaux",
   "not set up": "non configuré",
   "Couldn't load exceptions": "Impossible de charger les exceptions",
-  "Couldn't load logs": "Impossible de charger les journaux"
+  "Couldn't load logs": "Impossible de charger les journaux",
+  "Show the past day": "Afficher le dernier jour",
+  "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.": "Cette clé navigateur n'a aucune origine autorisée : toute requête faite avec elle est donc refusée. Ajoutez vos origines web ou les identités app:// exactes de vos applications mobiles dans Paramètres du projet > Télémétrie & APM > Clés d'ingestion avant d'utiliser cet extrait.",
+  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Clé navigateur — destinée à être distribuée aux clients. Les origines web peuvent envoyer des traces, des journaux, des métriques et des relectures de session ; les identités app:// n'autorisent que la relecture de session React Native. Identités acceptées : {{identities}}. Les identités des applications natives sont déclarées par l'application elle-même, sans attestation de la plateforme."
 }

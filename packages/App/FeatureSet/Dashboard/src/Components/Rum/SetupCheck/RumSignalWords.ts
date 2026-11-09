@@ -174,9 +174,10 @@ export const WHY_NOTHING_ARRIVES: string = translationKey(
   "Why nothing arrives",
 );
 
-// A longer range, as the empty explorers offer it (TelemetryFirstSteps).
+// A longer range (RUM_WIDER_RANGES), worded as the empty explorers word it.
 export const SHOW_RANGE_ACTIONS: Readonly<Partial<Record<TimeRange, string>>> =
   {
+    [TimeRange.PAST_ONE_DAY]: translationKey("Show the past day"),
     [TimeRange.PAST_ONE_WEEK]: translationKey("Show the past week"),
     [TimeRange.PAST_ONE_MONTH]: translationKey("Show the past month"),
     [TimeRange.PAST_THREE_MONTHS]: translationKey("Show the past 3 months"),

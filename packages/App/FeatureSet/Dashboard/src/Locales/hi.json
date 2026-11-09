@@ -46685,5 +46685,8 @@
   "Write log records": "लॉग रिकॉर्ड लिखें",
   "not set up": "सेट अप नहीं है",
   "Couldn't load exceptions": "अपवाद लोड नहीं हो सके",
-  "Couldn't load logs": "लॉग लोड नहीं हो सके"
+  "Couldn't load logs": "लॉग लोड नहीं हो सके",
+  "Show the past day": "पिछला दिन दिखाएँ",
+  "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.": "इस ब्राउज़र कुंजी में कोई अनुमत ओरिजिन नहीं है, इसलिए इससे किया गया हर अनुरोध अस्वीकार कर दिया जाता है। इस स्निपेट का उपयोग करने से पहले प्रोजेक्ट सेटिंग्स > टेलीमेट्री और APM > इंजेशन कुंजियाँ में अपने वेब ओरिजिन या मोबाइल ऐप की सटीक app:// पहचान जोड़ें।",
+  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "ब्राउज़र कुंजी — क्लाइंट में बाँटने के लिए बनी है। वेब ओरिजिन ट्रेस, लॉग, मेट्रिक्स और सेशन रीप्ले भेज सकते हैं; app:// पहचान केवल React Native सेशन रीप्ले की अनुमति देती हैं। स्वीकृत पहचान: {{identities}}। नेटिव ऐप की पहचान ऐप स्वयं बताता है, यह प्लेटफ़ॉर्म का प्रमाणन नहीं है।"
 }

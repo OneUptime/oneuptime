@@ -46685,5 +46685,8 @@
   "Write log records": "Skriv loggposter",
   "not set up": "ikke satt opp",
   "Couldn't load exceptions": "Kunne ikke laste inn unntak",
-  "Couldn't load logs": "Kunne ikke laste inn logger"
+  "Couldn't load logs": "Kunne ikke laste inn logger",
+  "Show the past day": "Vis det siste døgnet",
+  "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.": "Denne nettlesernøkkelen har ingen tillatte opprinnelser, så alle forespørsler med den blir avvist. Legg til nettopprinnelsene dine eller nøyaktige app://-identiteter for mobilapper under Prosjektinnstillinger > Telemetri og APM > Inntaksnøkler før du bruker dette utdraget.",
+  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Nettlesernøkkel – ment for distribusjon til klienter. Nettopprinnelser kan sende spor, logger, målinger og øktavspillinger; app://-identiteter tillater bare øktavspilling fra React Native. Godtatte identiteter: {{identities}}. Identiteter for native apper oppgis av appen selv og er ikke en attestering fra plattformen."
 }

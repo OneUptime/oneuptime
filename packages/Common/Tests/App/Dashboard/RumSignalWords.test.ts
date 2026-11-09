@@ -151,6 +151,7 @@ describe("set up but quiet", () => {
   });
 
   test.each([
+    [TimeRange.PAST_ONE_DAY, "Show the past day"],
     [TimeRange.PAST_ONE_WEEK, "Show the past week"],
     [TimeRange.PAST_ONE_MONTH, "Show the past month"],
     [TimeRange.PAST_THREE_MONTHS, "Show the past 3 months"],

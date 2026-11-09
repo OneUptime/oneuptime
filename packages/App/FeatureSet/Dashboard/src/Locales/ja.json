@@ -46685,5 +46685,8 @@
   "Write log records": "ログレコードを書き込む",
   "not set up": "未セットアップ",
   "Couldn't load exceptions": "例外を読み込めませんでした",
-  "Couldn't load logs": "ログを読み込めませんでした"
+  "Couldn't load logs": "ログを読み込めませんでした",
+  "Show the past day": "過去 1 日を表示",
+  "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.": "このブラウザーキーには許可されたオリジンがないため、このキーを使ったリクエストはすべて拒否されます。このスニペットを使う前に、「プロジェクト設定 > テレメトリと APM > 取り込みキー」で Web オリジンまたはモバイルアプリの正確な app:// ID を追加してください。",
+  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "ブラウザーキーはクライアントへの配布を想定しています。Web オリジンはトレース、ログ、メトリクス、セッションリプレイを送信できます。app:// ID が許可するのは React Native のセッションリプレイのみです。受け付ける ID: {{identities}}。ネイティブアプリの ID はアプリ自身による申告であり、プラットフォームによる証明ではありません。"
 }

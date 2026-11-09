@@ -3,6 +3,7 @@ import {
   RUM_SETUP_CHECK_RECENT_WINDOW_MS,
   RUM_SIGNAL_STAMP_TOLERANCE_MS,
   RUM_WEB_VITALS_LOOKBACK_DAYS,
+  RUM_WIDER_RANGES,
   RumApplicationArrivalFacts,
   RumSignalDiagnosis,
   RumSignalDiagnosisInput,
@@ -36,6 +37,7 @@ function ago(ms: number): Date {
 }
 
 const PAST_HOUR: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_HOUR };
+const PAST_DAY: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_DAY };
 const PAST_WEEK: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_WEEK };
 
 function window(
@@ -155,7 +157,7 @@ describe("diagnoseRumSignal: set up but quiet", () => {
       state: "quiet",
       lastArrivalAt: at,
       since: null,
-      widerRange: { range: TimeRange.PAST_ONE_WEEK },
+      widerRange: { range: TimeRange.PAST_ONE_DAY },
     });
   });
 
@@ -371,7 +373,9 @@ describe("getRangeShowingArrival", () => {
   }
 
   test.each([
-    ["3 hours", 3 * HOUR, TimeRange.PAST_ONE_WEEK],
+    ["3 hours", 3 * HOUR, TimeRange.PAST_ONE_DAY],
+    ["23 hours", 23 * HOUR, TimeRange.PAST_ONE_DAY],
+    ["a day and an hour", DAY + HOUR, TimeRange.PAST_ONE_WEEK],
     ["6 days", 6 * DAY, TimeRange.PAST_ONE_WEEK],
     ["10 days", 10 * DAY, TimeRange.PAST_ONE_MONTH],
     ["45 days", 45 * DAY, TimeRange.PAST_THREE_MONTHS],
@@ -392,24 +396,41 @@ describe("getRangeShowingArrival", () => {
     expect(rangeFor(10 * DAY, window(PAST_WEEK, 7 * DAY))).toEqual({
       range: TimeRange.PAST_ONE_MONTH,
     });
+    // From the past day, the day is never offered again.
+    expect(rangeFor(30 * HOUR, window(PAST_DAY, DAY))).toEqual({
+      range: TimeRange.PAST_ONE_WEEK,
+    });
+  });
+
+  test("the ranges offered start at a day and widen as the time picker does", () => {
+    expect(RUM_WIDER_RANGES).toEqual([
+      TimeRange.PAST_ONE_DAY,
+      TimeRange.PAST_ONE_WEEK,
+      TimeRange.PAST_ONE_MONTH,
+      TimeRange.PAST_THREE_MONTHS,
+    ]);
   });
 
   test("inside the range on screen: none", () => {
     expect(rangeFor(3 * DAY, window(PAST_WEEK, 7 * DAY))).toBeNull();
   });
 
-  test("a zoomed custom range shorter than a week offers the past week", () => {
+  test("a zoomed custom range is offered the narrowest named range that reaches back", () => {
     const custom: RangeStartAndEndDateTime = {
       range: TimeRange.CUSTOM,
       startAndEndDate: new InBetween<Date>(ago(2 * HOUR), ago(HOUR)),
     };
+    const zoomed: {
+      timeRange: RangeStartAndEndDateTime;
+      start: Date;
+      end: Date;
+    } = { timeRange: custom, start: ago(2 * HOUR), end: ago(HOUR) };
 
     expect(
-      getRangeShowingArrival({
-        at: ago(5 * HOUR),
-        range: { timeRange: custom, start: ago(2 * HOUR), end: ago(HOUR) },
-        now: NOW,
-      }),
+      getRangeShowingArrival({ at: ago(5 * HOUR), range: zoomed, now: NOW }),
+    ).toEqual({ range: TimeRange.PAST_ONE_DAY });
+    expect(
+      getRangeShowingArrival({ at: ago(2 * DAY), range: zoomed, now: NOW }),
     ).toEqual({ range: TimeRange.PAST_ONE_WEEK });
   });
 

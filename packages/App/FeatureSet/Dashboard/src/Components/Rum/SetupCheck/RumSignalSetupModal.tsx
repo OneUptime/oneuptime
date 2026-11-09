@@ -71,11 +71,20 @@ const RumSignalSetupModal: FunctionComponent<ComponentProps> = (
             return TelemetryIngestionKeyType.Browser;
           }}
           getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
-            return getRumSignalSetupGuide({
-              signal: props.signal,
-              oneuptimeUrl: context.oneuptimeUrl,
-              apiKey: context.apiKey,
-            });
+            /*
+             * Every word of the guide is a key each locale words, so the
+             * card lays it out the reader's way: in Persian, the step that
+             * names the OpenTelemetry packages holds more English letters
+             * than Persian ones, and read by them it ran left to right.
+             */
+            return {
+              ...getRumSignalSetupGuide({
+                signal: props.signal,
+                oneuptimeUrl: context.oneuptimeUrl,
+                apiKey: context.apiKey,
+              }),
+              language: translator.language,
+            };
           }}
         />
       </div>

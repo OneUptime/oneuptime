@@ -193,12 +193,16 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
      * a reset starts (and for good if the page's own range is quiet too),
      * so the word stayed highlighted.
      */
+    /*
+     * The box fills the card: beside a card whose message is longer, in
+     * the same row, both grey boxes end on one line.
+     */
     if (props.emptyContent) {
       return (
-        <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="group/zoomhint flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           {header}
           <div
-            className={`min-h-44 rounded-md bg-gray-50${
+            className={`flex min-h-44 flex-1 flex-col rounded-md bg-gray-50${
               emptyStateReset ? " select-none" : ""
             }`}
             onDoubleClick={emptyStateReset}

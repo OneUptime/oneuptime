@@ -103,7 +103,8 @@ const SetupCheckRow: FunctionComponent<RowProps> = (
   const actionContent: ReactElement | null = action ? (
     <>
       <span>{action.label}</span>
-      <Icon icon={IconProp.ChevronRight} className="h-4 w-4 rtl:rotate-180" />
+      {/* Icon turns a chevron round on a right-to-left page by itself. */}
+      <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
     </>
   ) : null;
 

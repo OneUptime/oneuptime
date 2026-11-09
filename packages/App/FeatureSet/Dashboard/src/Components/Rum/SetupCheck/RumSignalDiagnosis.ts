@@ -1,5 +1,6 @@
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
-import { pickWiderRange } from "../../SessionReplay/SessionReplayEmptyReason";
+import TimeRange from "Common/Types/Time/TimeRange";
+import { getTimeRangeWindowMs } from "../../SessionReplay/SessionReplayEmptyReason";
 
 /*
  * WHY A RUM APPLICATION'S EXCEPTIONS, LOGS OR WEB VITALS ARE EMPTY
@@ -214,11 +215,24 @@ export function getWebVitalsCheckWindow(data: {
 }
 
 /*
+ * The named ranges an empty chart or list offers, narrowest first. A day
+ * comes first, unlike the week Session Replay starts at: logs and
+ * exceptions often come hours apart, and on a week's chart this morning's
+ * log is a sliver at its edge.
+ */
+export const RUM_WIDER_RANGES: ReadonlyArray<TimeRange> = [
+  TimeRange.PAST_ONE_DAY,
+  TimeRange.PAST_ONE_WEEK,
+  TimeRange.PAST_ONE_MONTH,
+  TimeRange.PAST_THREE_MONTHS,
+];
+
+/*
  * The longer range that shows an arrival `at`, or null: none when the
  * arrival is inside the range on screen already (the range is empty for
  * another reason, and a longer one would show the same nothing), when it
  * is older than the application keeps telemetry for, or when no named
- * range reaches back far enough (pickWiderRange).
+ * range reaches back far enough (RUM_WIDER_RANGES).
  */
 export function getRangeShowingArrival(data: {
   at: Date;
@@ -250,11 +264,28 @@ export function getRangeShowingArrival(data: {
   }
 
   /*
-   * A custom window shorter than a week still gets "the past week": what
-   * pickWiderRange compares is the window's length, and a zoomed custom
-   * range is short. One that is already a week or longer keeps going up.
+   * Only a range longer than the one on screen: what is compared is the
+   * window's length, so a short zoomed custom range is offered the day,
+   * and one that is already a week long or longer keeps going up.
    */
-  return pickWiderRange(ageMs, data.range.timeRange);
+  const currentWindowMs: number =
+    getTimeRangeWindowMs(data.range.timeRange) ?? 0;
+
+  for (const candidate of RUM_WIDER_RANGES) {
+    const windowMs: number | null = getTimeRangeWindowMs({
+      range: candidate,
+    });
+
+    if (windowMs === null || windowMs <= currentWindowMs) {
+      continue;
+    }
+
+    if (ageMs <= windowMs) {
+      return { range: candidate };
+    }
+  }
+
+  return null;
 }
 
 export function diagnoseRumSignal(
