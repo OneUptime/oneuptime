@@ -17,6 +17,8 @@ import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import { CLOUD_ALERT_WINDOWS } from "../../../Types/Monitor/CloudAlertTemplates";
+import RollingTimeUtil from "../../../Types/RollingTime/RollingTimeUtil";
 import { MetricRowAggregation } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricRowScope";
 import { getCloudResourceTypeDescriptor } from "../../../Types/Cloud/CloudResourceCatalog";
 import fs from "fs";
@@ -374,6 +376,10 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
 
   const HOUR_MS: number = 60 * 60 * 1000;
   const END: Date = new Date("2026-11-09T12:00:00.000Z");
+  // How long Azure's monitors read: its points arrive within it.
+  const AZURE_WINDOW_MS: number = RollingTimeUtil.getWindowInMs(
+    CLOUD_ALERT_WINDOWS[CloudProvider.Azure],
+  );
 
   // A range the list reads: the past hours up to END.
   function pastHours(hours: number): InBetween<Date> {
@@ -466,12 +472,63 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
         readOf(rows, "azure_activemessages_average", pastHours(hours)),
         readOf(rows, "azure_deadletteredmessages_average", pastHours(hours)),
       ]).toEqual([hours, undefined, undefined]);
-      // A count adds up over any range.
+      // A count adds up over any range (and waits for Azure, below).
       expect([
         hours,
         readOf(rows, "azure_incomingmessages_total", pastHours(hours)),
-      ]).toEqual([hours, SUMMED]);
+      ]).toEqual([hours, { ...SUMMED, settleMs: AZURE_WINDOW_MS }]);
     }
+  });
+
+  /*
+   * A total counts what had arrived in an interval, and Azure's points
+   * arrive minutes late: a connection reads them every five minutes, four
+   * minutes behind. So over intervals of several minutes a summed row
+   * counts an interval whole only once Azure's monitors' window
+   * (CLOUD_ALERT_WINDOWS) has passed since it ended; a minute holds one
+   * point of each queue, read together, and does not wait.
+   */
+  test("a total read in intervals of several minutes waits for Azure's late points; read by the minute it does not", () => {
+    expect(AZURE_WINDOW_MS).toBe(15 * 60 * 1000);
+    const rows: CloudMonitoredResourceRowAggregation | undefined = rowsOf(
+      CloudProvider.Azure,
+      SERVICE_BUS,
+    );
+
+    for (const hours of [0.25, 1, 2, 3]) {
+      for (const name of [
+        "azure_incomingmessages_total",
+        "azure_activemessages_average",
+      ]) {
+        const read: MetricRowAggregation | undefined = readOf(
+          rows,
+          name,
+          pastHours(hours),
+        );
+        expect([hours, name, read?.aggregationType, read?.settleMs]).toEqual([
+          hours,
+          name,
+          AggregationType.Sum,
+          undefined,
+        ]);
+      }
+    }
+
+    for (const hours of [3.5, 24, 24 * 7, 24 * 90]) {
+      expect([
+        hours,
+        readOf(rows, "azure_servererrors_total", pastHours(hours))?.settleMs,
+      ]).toEqual([hours, AZURE_WINDOW_MS]);
+    }
+
+    // An Event Hubs namespace's totals wait as long.
+    expect(
+      readOf(
+        rowsOf(CloudProvider.Azure, EVENT_HUBS),
+        "azure_incomingmessages_total",
+        pastHours(24),
+      )?.settleMs,
+    ).toBe(AZURE_WINDOW_MS);
   });
 
   test("the row reads the type as the catalog stores it on the row", () => {

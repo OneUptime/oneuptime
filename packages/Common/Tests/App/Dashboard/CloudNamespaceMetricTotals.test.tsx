@@ -39,6 +39,10 @@ const mockRowProps: Array<Record<string, unknown>> = [];
 let mockResource: Record<string, unknown> | null = null;
 let mockMetricNames: Array<string> = [];
 const mockAggregateRequests: Array<Record<string, unknown>> = [];
+// The aggregate's rows for an aggregation, when a test sets them.
+let mockSeries:
+  | ((aggregationType: unknown) => Array<{ timestamp: Date; value: number }>)
+  | null = null;
 
 // What the server answers for the namespace's three queues: 10, 20 and 30.
 const QUEUE_TOTAL: number = 60;
@@ -139,6 +143,11 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
       },
       aggregate: (request: { aggregateBy: Record<string, unknown> }) => {
         mockAggregateRequests.push(request.aggregateBy);
+        if (mockSeries) {
+          return Promise.resolve({
+            data: mockSeries(request.aggregateBy["aggregationType"]),
+          });
+        }
         const value: number =
           request.aggregateBy["aggregationType"] === "Sum"
             ? QUEUE_TOTAL
@@ -366,6 +375,7 @@ beforeEach(() => {
   mockAggregateRequests.length = 0;
   mockResource = null;
   mockMetricNames = [];
+  mockSeries = null;
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(RESOURCE_ID);
   navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(() => {
@@ -539,6 +549,115 @@ describe("a split namespace's Metrics tab over a day", () => {
       clickRow("azure_incomingmessages_total").query.metricQueryData.filterData
         .aggegationType,
     ).toBe(MetricsAggregationType.Sum);
+  });
+
+  /*
+   * A total counts what had arrived in an interval. Over a day the newest
+   * quarter hour is still filling, the oldest began before the day did, and
+   * Azure delivers the newest ended ones minutes late (read every five
+   * minutes, four behind): drawn as they were, the counts fell at both ends
+   * of the line, and a namespace of 60 messages a quarter hour read the
+   * still-filling one's 4.
+   */
+  test("its counts read the newest quarter hour Azure has delivered, and the line holds whole ones only", async () => {
+    const QUARTER_MS: number = 15 * 60 * 1000;
+    // Past 1 Day up to NOW: 2026-11-08 12:07 to 2026-11-09 12:07.
+    const NOW: Date = new Date("2026-11-09T12:07:00.000Z");
+    // Began before the day did.
+    const CUT: number = new Date("2026-11-08T12:00:00.000Z").getTime();
+    // Still filling.
+    const FILLING: number = new Date("2026-11-09T12:00:00.000Z").getTime();
+    // Ended seven minutes ago: Azure is still delivering it.
+    const ARRIVING: number = FILLING - QUARTER_MS;
+
+    // Only Date is faked: the clock is pinned, timers and waitFor stay real.
+    jest.useFakeTimers({
+      now: NOW,
+      doNotFake: [
+        "hrtime",
+        "nextTick",
+        "performance",
+        "queueMicrotask",
+        "requestAnimationFrame",
+        "cancelAnimationFrame",
+        "requestIdleCallback",
+        "cancelIdleCallback",
+        "setImmediate",
+        "clearImmediate",
+        "setInterval",
+        "clearInterval",
+        "setTimeout",
+        "clearTimeout",
+      ],
+    });
+
+    try {
+      // The total of a whole quarter hour is 60; the average queue's 20.
+      mockSeries = (
+        aggregationType: unknown,
+      ): Array<{ timestamp: Date; value: number }> => {
+        const summed: boolean = aggregationType === MetricsAggregationType.Sum;
+        const rows: Array<{ timestamp: Date; value: number }> = [];
+        for (let start: number = CUT; start <= FILLING; start += QUARTER_MS) {
+          let value: number = summed ? QUEUE_TOTAL : QUEUE_AVERAGE;
+          if (start === CUT) {
+            value = summed ? 2 : QUEUE_AVERAGE;
+          } else if (start === ARRIVING) {
+            value = summed ? 25 : QUEUE_AVERAGE;
+          } else if (start === FILLING) {
+            value = summed ? 4 : QUEUE_AVERAGE + 1;
+          }
+          rows.push({ timestamp: new Date(start), value });
+        }
+        return rows;
+      };
+      window.history.replaceState(
+        {},
+        "",
+        `/?range=${encodeURIComponent(TimeRange.PAST_ONE_DAY)}`,
+      );
+      await openTab(SERVICE_BUS, SERVICE_BUS_CONNECTION_METRICS);
+
+      for (const name of [
+        "azure_incomingmessages_total",
+        "azure_outgoingmessages_total",
+        "azure_servererrors_total",
+        "azure_throttledrequests_total",
+      ]) {
+        const row: Record<string, unknown> = lastRowOf(name);
+        const times: Array<string> = (
+          row["sparklinePoints"] as Array<{ time: string }>
+        ).map((point: { time: string }): string => {
+          return point.time;
+        });
+        expect([
+          name,
+          row["lastValue"],
+          times[0],
+          times[times.length - 1],
+        ]).toEqual([
+          name,
+          QUEUE_TOTAL,
+          "2026-11-08T12:15:00.000Z",
+          "2026-11-09T11:30:00.000Z",
+        ]);
+      }
+
+      // Messages waiting, averaged over a day, read every interval as before.
+      for (const name of [
+        "azure_activemessages_average",
+        "azure_deadletteredmessages_average",
+      ]) {
+        const row: Record<string, unknown> = lastRowOf(name);
+        expect([
+          name,
+          row["lastValue"],
+          (row["sparklinePoints"] as Array<unknown>).length,
+        ]).toEqual([name, QUEUE_AVERAGE + 1, 97]);
+      }
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 

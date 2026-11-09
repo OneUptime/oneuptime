@@ -28,7 +28,9 @@ import { SparklinePoint } from "./SparklinePoint";
  *    once per queue, and the namespace's number is their sum - names it per
  *    metric: the list reads the row's sparkline and value with it, captions
  *    it, and opens the explorer with it, so a monitor created from there
- *    reads the same number.
+ *    reads the same number. A row read as a total (Sum, Count) keeps its
+ *    whole intervals only, as the Queue and Database pages' counts do: its
+ *    newest interval is still filling, so it would read as a drop.
  */
 
 export interface MetricRowValueOverride {
@@ -52,6 +54,13 @@ export interface MetricRowAggregation {
   aggregationType: MetricsAggregationType;
   // One short line under the value saying what it is ("total of series").
   caption?: string | undefined;
+  /*
+   * For a row read as a total: how long after an interval ends its points
+   * may still be arriving from their source (a cloud's metrics come minutes
+   * late), so the row shows only the intervals that ended at least that
+   * long ago. Unset: the ones that have ended.
+   */
+  settleMs?: number | undefined;
 }
 
 /*
