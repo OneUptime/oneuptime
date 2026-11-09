@@ -38,7 +38,8 @@ import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
  *
  * A tier's outputs are a burn rate rule's, so they are validated, resolved
  * and forgotten by the same code (SloRecordSourceSettings). What is a tier's
- * own: its threshold (0 to 100, unique per SLO), its "what we do", outputs
+ * own: its threshold (0 to 100, unique per SLO), its "what we do", whether
+ * it freezes deployments (the deploy gate CI/CD reads on the SLO), outputs
  * that are both off by default - a tier may raise nothing at all, because
  * most of a policy is the team's agreement - and the recommended policy.
  *
@@ -90,6 +91,9 @@ const RECOMMENDED_POLICY_LOCK_TIMEOUT_MS: number = 30000;
 const DEFAULT_SHOULD_CREATE_ALERT: boolean = false;
 const DEFAULT_SHOULD_CREATE_INCIDENT: boolean = false;
 
+// Mirrors its column: a tier freezes nothing until someone switches it on.
+const DEFAULT_FREEZES_DEPLOYMENTS: boolean = false;
+
 /*
  * The alert and incident options, defaulted exactly like their columns -
  * and exactly like a burn rate rule's, so the two forms that share their
@@ -136,12 +140,16 @@ export const SLO_POLICY_TIER_INCIDENTS_OFF_ROOT_CAUSE: string =
 export const SLO_POLICY_TIER_SLO_DISABLED_OR_DELETED_ROOT_CAUSE: string =
   "Auto-resolved because the Service Level Objective was disabled or deleted.";
 
-// The columns whose change moves the tier an SLO is in, or what it raises.
+/*
+ * The columns whose change moves the tier an SLO is in, what it raises, or
+ * whether its deployments are frozen.
+ */
 const EVALUATION_COLUMNS: Array<string> = [
   "thresholdPercentage",
   "isEnabled",
   "name",
   "whatWeDo",
+  "freezesDeployments",
   "shouldCreateAlert",
   "shouldCreateIncident",
 ];
@@ -255,7 +263,8 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * A recommended tier as the row OneUptime creates for it: its name,
-   * threshold and agreement, with every output left at its default - off.
+   * threshold, agreement and whether it freezes deployments, with every
+   * output left at its default - off.
    */
   public buildRecommendedTier(data: {
     projectId: ObjectID;
@@ -268,6 +277,7 @@ export class Service extends ProjectReferencesService<Model> {
     tier.name = data.recommended.name;
     tier.thresholdPercentage = data.recommended.thresholdPercentage;
     tier.whatWeDo = data.recommended.whatWeDo;
+    tier.freezesDeployments = data.recommended.freezesDeployments === true;
     tier.isEnabled = true;
     return tier;
   }
@@ -382,6 +392,16 @@ export class Service extends ProjectReferencesService<Model> {
       this.getRecordSettings().normalizeBooleanInput(
         createBy.data.shouldCreateIncident,
         DEFAULT_SHOULD_CREATE_INCIDENT,
+      );
+
+    /*
+     * The deploy gate's switch, the same way: the worker reads it with
+     * `=== true`, and a tier read back says whether it freezes deployments.
+     */
+    createBy.data.freezesDeployments =
+      this.getRecordSettings().normalizeBooleanInput(
+        createBy.data.freezesDeployments,
+        DEFAULT_FREEZES_DEPLOYMENTS,
       );
 
     this.getRecordSettings().normalizeOptionFlags(
@@ -520,6 +540,17 @@ export class Service extends ProjectReferencesService<Model> {
         );
     }
 
+    if (
+      updateBy.data.freezesDeployments !== undefined &&
+      updateBy.data.freezesDeployments !== null
+    ) {
+      updateBy.data.freezesDeployments =
+        this.getRecordSettings().normalizeBooleanInput(
+          updateBy.data.freezesDeployments,
+          DEFAULT_FREEZES_DEPLOYMENTS,
+        );
+    }
+
     await this.getRecordSettings().validateServiceLevelObjectiveOnUpdate(
       updateBy,
     );
@@ -555,8 +586,11 @@ export class Service extends ProjectReferencesService<Model> {
    * switches are not consulted: the tier can no longer justify the record at
    * all - the stance the burn rate rule service takes.
    *
-   * And a change that can move the SLO into or out of a tier, or change what
-   * it raises, asks for the SLO to be evaluated on the next tick.
+   * And a change that can move the SLO into or out of a tier, change what it
+   * raises, or freeze or allow its deployments, asks for the SLO to be
+   * evaluated on the next tick: the worker alone writes the SLO's
+   * deploymentsAllowed, so switching Freeze Deployments on or off for the
+   * tier the SLO is in takes effect within about a minute.
    */
   @CaptureSpan()
   protected override async onUpdateSuccess(

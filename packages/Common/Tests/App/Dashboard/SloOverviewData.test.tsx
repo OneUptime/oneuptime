@@ -521,12 +521,14 @@ describe("useSloOverviewData", () => {
     expect(result.current.policyTiers).toEqual([policyTier]);
     expect(result.current.policyTiersError).toBe("");
 
-    // The SLO row carries the tier it is in.
+    // The SLO row carries the tier it is in, and the deploy gate's answer.
     expect(Object.keys(SLO_OVERVIEW_SELECT)).toEqual(
       expect.arrayContaining([
         "currentErrorBudgetPolicyTierId",
         "currentErrorBudgetPolicyTierName",
         "currentErrorBudgetPolicyTierEnteredAt",
+        "deploymentsAllowed",
+        "deploymentsFrozenAt",
       ]),
     );
 

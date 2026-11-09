@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AllowDiscoveryImportWithoutScan1809063175775 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809063175775-AllowDiscoveryImportWithoutScan";
+import { AllowDiscoveryImportWithoutScan1809063215775 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809063215775-AllowDiscoveryImportWithoutScan";
 import NetworkDeviceDiscoveryImport from "../../../../Models/DatabaseModels/NetworkDeviceDiscoveryImport";
 
 /*
@@ -19,7 +19,7 @@ import NetworkDeviceDiscoveryImport from "../../../../Models/DatabaseModels/Netw
  * check holds the result to the models.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809063175775";
+const MIGRATION_TIMESTAMP: string = "1809063215775";
 const MIGRATION_BASE_NAME: string = "AllowDiscoveryImportWithoutScan";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -36,7 +36,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AllowDiscoveryImportWithoutScan1809063175775();
+    new AllowDiscoveryImportWithoutScan1809063215775();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -47,7 +47,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AllowDiscoveryImportWithoutScan1809063175775", () => {
+describe("AllowDiscoveryImportWithoutScan1809063215775", () => {
   test("lets an import have no scan, and does nothing else", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "NetworkDeviceDiscoveryImport" ALTER COLUMN "networkDeviceDiscoveryScanId" DROP NOT NULL`,
@@ -90,11 +90,11 @@ describe("AllowDiscoveryImportWithoutScan1809063175775", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AllowDiscoveryImportWithoutScan1809063175775().name).toBe(
+    expect(new AllowDiscoveryImportWithoutScan1809063215775().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(names.indexOf(MIGRATION_CLASS_NAME)).toBeGreaterThan(
-      names.indexOf("AddWorkspacePublicNoteApprovalMessage1809063170000"),
+      names.indexOf("AddSloDeploymentGate1809063206333"),
     );
 
     const timestamps: Array<number> = fs
@@ -109,7 +109,7 @@ describe("AllowDiscoveryImportWithoutScan1809063175775", () => {
     expect(Number(MIGRATION_TIMESTAMP)).toBeGreaterThan(
       Math.max(
         ...timestamps.filter((value: number): boolean => {
-          return value <= 1809063170000;
+          return value <= 1809063206333;
         }),
       ),
     );

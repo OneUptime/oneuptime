@@ -19,7 +19,10 @@ import {
  * what sets them apart from burn rate rules, which fire side by side: an SLO
  * is in one tier at a time (or in none), entering a more severe tier
  * supersedes the one it was in, and the tier it is in is something people
- * read - on the SLO's Overview, in its feed and through the API.
+ * read - on the SLO's Overview, in its feed and through the API. A tier can
+ * also freeze deployments: the SLO's deploymentsAllowed - the yes/no a CI/CD
+ * pipeline reads - is false while it is in such a tier (the deploy gate,
+ * below).
  *
  * Leaving a tier takes the same hysteresis as leaving a status
  * (SloUtil.computeSloStatus), with the same two margins: a tier at 0% is left
@@ -283,6 +286,177 @@ export const formatSloPolicyTierThreshold: FormatSloPolicyTierThresholdFunction 
 
 /*
  * ---------------------------------------------------------------------------
+ * The deploy gate
+ * ---------------------------------------------------------------------------
+ *
+ * CI/CD's yes/no, as the SLO's deploymentsAllowed answers it: false while the
+ * SLO is in a tier that freezes deployments, true otherwise - with no policy,
+ * above every tier, or in a tier that does not freeze them. It is read off
+ * the tier computeSloPolicyTier put the SLO in, so it is frozen and allowed
+ * again with that tier's hysteresis, and a tier that is disabled or deleted,
+ * which holds the SLO no longer, freezes nothing. The evaluation worker
+ * writes it in the same state write as the tier columns, and only while it
+ * measures the SLO: a Paused or Misconfigured SLO keeps its tier, and so
+ * keeps its answer.
+ *
+ * deploymentsFrozenAt says since when: the evaluation that froze them. It is
+ * kept while the SLO moves from one tier that freezes to another, so "frozen
+ * since" does not reset while deployments stay frozen.
+ */
+
+// What the gate reads a tier by: whether it freezes deployments.
+export interface SloDeploymentFreezingTier {
+  freezesDeployments?: boolean | null | undefined;
+}
+
+export type AreSloDeploymentsAllowedInTierFunction = (
+  tier: SloDeploymentFreezingTier | null | undefined,
+) => boolean;
+
+/*
+ * Whether deployments are allowed while the SLO is in this tier, or in none
+ * (null). `=== true`: the column defaults to false, so a tier read without it
+ * freezes nothing.
+ */
+export const areSloDeploymentsAllowedInTier: AreSloDeploymentsAllowedInTierFunction =
+  (tier: SloDeploymentFreezingTier | null | undefined): boolean => {
+    return !(tier && tier.freezesDeployments === true);
+  };
+
+// The gate, as the SLO's two columns hold it.
+export interface SloDeploymentGate {
+  deploymentsAllowed: boolean;
+  // When deployments were frozen; null while they are allowed.
+  deploymentsFrozenAt: Date | null;
+}
+
+// The gate an SLO had, as a row or an API answer carries it.
+export interface SloStoredDeploymentGate {
+  deploymentsAllowed?: boolean | null | undefined;
+  deploymentsFrozenAt?: Date | string | null | undefined;
+}
+
+export type IsSloStoredDeploymentGateAllowedFunction = (
+  stored: SloStoredDeploymentGate,
+) => boolean;
+
+/*
+ * Whether a stored gate allows deployments. Only an explicit false is a
+ * freeze: the column defaults to true, and an SLO never evaluated - or read
+ * without the column - was frozen by nothing.
+ */
+export const isSloStoredDeploymentGateAllowed: IsSloStoredDeploymentGateAllowedFunction =
+  (stored: SloStoredDeploymentGate): boolean => {
+    return stored.deploymentsAllowed !== false;
+  };
+
+export type ReadSloDeploymentsFrozenAtFunction = (
+  value: Date | string | null | undefined,
+) => Date | null;
+
+// A stored freeze time as a Date, or null when there is none to read.
+export const readSloDeploymentsFrozenAt: ReadSloDeploymentsFrozenAtFunction = (
+  value: Date | string | null | undefined,
+): Date | null => {
+  if (!value) {
+    return null;
+  }
+
+  const date: Date = value instanceof Date ? value : new Date(value);
+
+  return Number.isFinite(date.getTime()) ? date : null;
+};
+
+/*
+ * The gate after an evaluation put the SLO in `tier` (null for none), against
+ * the gate it had: allowed, with no freeze time; or frozen - since the time
+ * stored when it was frozen already, and since `now` when it freezes on this
+ * evaluation (or its stored time was lost).
+ */
+export function computeSloDeploymentGate(data: {
+  tier: SloDeploymentFreezingTier | null | undefined;
+  stored: SloStoredDeploymentGate;
+  now: Date;
+}): SloDeploymentGate {
+  if (areSloDeploymentsAllowedInTier(data.tier)) {
+    return { deploymentsAllowed: true, deploymentsFrozenAt: null };
+  }
+
+  const frozenAt: Date | null = isSloStoredDeploymentGateAllowed(data.stored)
+    ? null
+    : readSloDeploymentsFrozenAt(data.stored.deploymentsFrozenAt);
+
+  return {
+    deploymentsAllowed: false,
+    deploymentsFrozenAt: frozenAt || data.now,
+  };
+}
+
+// How an evaluation moved the gate, when it did.
+export enum SloDeploymentGateTransition {
+  // Deployments were allowed, and are frozen now.
+  Frozen = "Frozen",
+  // Deployments were frozen, and are allowed again.
+  Allowed = "Allowed",
+}
+
+export interface SloDeploymentGateColumns {
+  deploymentsAllowed?: boolean;
+  deploymentsFrozenAt?: Date | null;
+}
+
+export interface SloDeploymentGateChange {
+  // The gate after the evaluation.
+  gate: SloDeploymentGate;
+  // Set when deploymentsAllowed flips - the feed says so; null otherwise.
+  transition: SloDeploymentGateTransition | null;
+  // The columns that change, and only those: none when the gate holds.
+  columns: SloDeploymentGateColumns;
+}
+
+/*
+ * What an evaluation writes for the gate: computeSloDeploymentGate's answer
+ * against the stored one. A column is written only when its value changes,
+ * so an evaluation that leaves the gate as it was writes nothing for it, and
+ * a freeze time left over from a gate that is not frozen is cleared quietly.
+ */
+export function getSloDeploymentGateChange(data: {
+  tier: SloDeploymentFreezingTier | null | undefined;
+  stored: SloStoredDeploymentGate;
+  now: Date;
+}): SloDeploymentGateChange {
+  const gate: SloDeploymentGate = computeSloDeploymentGate(data);
+  const wasAllowed: boolean = isSloStoredDeploymentGateAllowed(data.stored);
+  const storedFrozenAt: Date | null = readSloDeploymentsFrozenAt(
+    data.stored.deploymentsFrozenAt,
+  );
+
+  const columns: SloDeploymentGateColumns = {};
+
+  if (gate.deploymentsAllowed !== wasAllowed) {
+    columns.deploymentsAllowed = gate.deploymentsAllowed;
+  }
+
+  if (
+    (gate.deploymentsFrozenAt ? gate.deploymentsFrozenAt.getTime() : null) !==
+    (storedFrozenAt ? storedFrozenAt.getTime() : null)
+  ) {
+    columns.deploymentsFrozenAt = gate.deploymentsFrozenAt;
+  }
+
+  let transition: SloDeploymentGateTransition | null = null;
+
+  if (wasAllowed && !gate.deploymentsAllowed) {
+    transition = SloDeploymentGateTransition.Frozen;
+  } else if (!wasAllowed && gate.deploymentsAllowed) {
+    transition = SloDeploymentGateTransition.Allowed;
+  }
+
+  return { gate, transition, columns };
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * The recommended policy
  * ---------------------------------------------------------------------------
  *
@@ -290,7 +464,12 @@ export const formatSloPolicyTierThreshold: FormatSloPolicyTierThresholdFunction 
  * three tiers after the SRE Workbook's example, at half the budget, a quarter
  * and none. The wording is a starting point the team edits into its own
  * agreement. Every tier only records and shows the agreement: none raises an
- * alert or declares an incident until someone switches that on.
+ * alert or declares an incident until someone switches that on. The last one
+ * freezes deployments, as its agreement says - "Freeze non-critical
+ * releases" is what the deploy gate tells a pipeline.
+ *
+ * The one definition every surface reads: the per-SLO starter and its
+ * confirmation, the API's answer, the AI tool and the docs tests.
  */
 
 export const SLO_POLICY_CAUTION_TIER_NAME: string = "Caution";
@@ -302,6 +481,8 @@ export interface SloRecommendedPolicyTier {
   name: string;
   thresholdPercentage: number;
   whatWeDo: string;
+  // Whether the tier freezes deployments while the SLO is in it.
+  freezesDeployments: boolean;
 }
 
 export const SLO_RECOMMENDED_POLICY_TIERS: ReadonlyArray<SloRecommendedPolicyTier> =
@@ -311,18 +492,21 @@ export const SLO_RECOMMENDED_POLICY_TIERS: ReadonlyArray<SloRecommendedPolicyTie
       thresholdPercentage: 50,
       whatWeDo:
         "Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget.",
+      freezesDeployments: false,
     },
     {
       name: SLO_POLICY_RELIABILITY_FIRST_TIER_NAME,
       thresholdPercentage: 25,
       whatWeDo:
         "Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers.",
+      freezesDeployments: false,
     },
     {
       name: SLO_POLICY_BUDGET_EXHAUSTED_TIER_NAME,
       thresholdPercentage: 0,
       whatWeDo:
         "The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back.",
+      freezesDeployments: true,
     },
   ];
 
@@ -395,6 +579,7 @@ export const sloRecommendedPolicyTierToJSON: SloRecommendedPolicyTierToJSONFunct
       name: tier.name,
       thresholdPercentage: tier.thresholdPercentage,
       whatWeDo: tier.whatWeDo,
+      freezesDeployments: tier.freezesDeployments === true,
     };
 
     if (tier.id) {
@@ -411,7 +596,8 @@ export type ParseSloRecommendedPolicyTiersFunction = (
 /*
  * The tiers of a response, read defensively: an entry without a name or a
  * valid threshold is left out rather than drawn as a tier that says nothing,
- * and anything that is not a list reads as none.
+ * and anything that is not a list reads as none. A tier freezes deployments
+ * only when the answer says exactly true, as the column is read.
  */
 export const parseSloRecommendedPolicyTiers: ParseSloRecommendedPolicyTiersFunction =
   (value: JSONValue | undefined): Array<SloRecommendedPolicyTierToAdd> => {
@@ -448,6 +634,7 @@ export const parseSloRecommendedPolicyTiers: ParseSloRecommendedPolicyTiersFunct
         name: name,
         thresholdPercentage: thresholdPercentage,
         whatWeDo: typeof whatWeDo === "string" ? whatWeDo : "",
+        freezesDeployments: json["freezesDeployments"] === true,
       };
 
       if (typeof id === "string" && id) {

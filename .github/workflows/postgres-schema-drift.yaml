@@ -200,6 +200,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AICreditsRunOutPostgres.test.ts --forceExit
 
+      # The SLO deploy gate (#6333): the migration run on tables that already
+      # hold an SLO and a tier leaves the SLO allowing deployments and the
+      # tier freezing nothing; a key that may only read SLOs reads
+      # deploymentsAllowed through the real get-item route, by POST and by
+      # GET; a key that may edit SLOs may not write it; a key that may edit
+      # tiers switches Freeze Deployments on - on structure-only copies of
+      # the migrated tables in schemas of their own.
+      - name: Test the SLO deploy gate through the API on Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SLO_DEPLOYMENT_GATE_TESTS: "true"
+          SLO_DEPLOYMENT_GATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SLO_DEPLOYMENT_GATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SLO_DEPLOYMENT_GATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/ServiceLevelObjectiveDeploymentGatePostgres.test.ts
+          --forceExit
+
       # The balance SMS, calls, WhatsApp and Telegram are paid from: costs
       # and recharge credits are one statement each, so messages sent
       # together all pay and a cost taken while a charge was out is kept;

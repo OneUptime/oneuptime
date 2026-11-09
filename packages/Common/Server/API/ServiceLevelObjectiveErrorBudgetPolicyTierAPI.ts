@@ -130,6 +130,7 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTierAPI extends BaseA
                   name: tier.name,
                   thresholdPercentage: tier.thresholdPercentage,
                   whatWeDo: tier.whatWeDo,
+                  freezesDeployments: tier.freezesDeployments,
                   id: tier.tierId?.toString() || undefined,
                 });
               },

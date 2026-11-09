@@ -451,7 +451,10 @@ const rulesOfListedSlo = {
  * page offers the recommended one. ?policy=recommended starts it with the
  * recommended tiers, and puts the SLO - 20% of its budget left - in
  * Reliability first (25%), three hours ago by the browser's own clock, so
- * the Overview shows the tier it is in.
+ * the Overview shows the tier it is in. ?policy=frozen starts it the same
+ * way with the budget overspent, so the SLO is in Budget exhausted (0%) -
+ * the recommended tier that freezes deployments - and its deploy gate has
+ * been shut since 09:00 on the fixture's day.
  */
 function policyTier(data) {
   const record = new ServiceLevelObjectiveErrorBudgetPolicyTier();
@@ -461,6 +464,7 @@ function policyTier(data) {
   record.name = data.name;
   record.thresholdPercentage = data.thresholdPercentage;
   record.whatWeDo = data.whatWeDo;
+  record.freezesDeployments = data.freezesDeployments === true;
   record.isEnabled = true;
   record.shouldCreateAlert = false;
   record.shouldCreateIncident = false;
@@ -485,15 +489,17 @@ function sortedPolicyTiers() {
   });
 }
 
-if (
-  new URLSearchParams(window.location.search).get("policy") === "recommended"
-) {
+const policyMode = new URLSearchParams(window.location.search).get("policy");
+
+if (policyMode === "recommended" || policyMode === "frozen") {
   for (const recommended of SLO_RECOMMENDED_POLICY_TIERS) {
     policyTiers.push(policyTier({ id: nextPolicyTierId(), ...recommended }));
   }
 
+  const isFrozen = policyMode === "frozen";
+
   const current = policyTiers.find((item) => {
-    return item.thresholdPercentage === 25;
+    return item.thresholdPercentage === (isFrozen ? 0 : 25);
   });
 
   slo.currentErrorBudgetPolicyTierId = new ObjectID(current._id);
@@ -501,6 +507,16 @@ if (
   slo.currentErrorBudgetPolicyTierEnteredAt = new Date(
     Date.now() - 3 * 60 * 60 * 1000,
   );
+  slo.deploymentsAllowed = !isFrozen;
+
+  if (isFrozen) {
+    // 4% over budget: Budget Exhausted, and in the tier at 0%.
+    slo.sloStatus = SloStatus.BudgetExhausted;
+    slo.errorBudgetRemainingPercentage = -4;
+    slo.errorBudgetRemainingSeconds = -103.68;
+    slo.currentBurnRate = 2.4;
+    slo.deploymentsFrozenAt = new Date("2026-09-11T09:00:00.000Z");
+  }
 }
 
 User.isMasterAdmin = () => true;

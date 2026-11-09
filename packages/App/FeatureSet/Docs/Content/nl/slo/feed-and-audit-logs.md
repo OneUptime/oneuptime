@@ -32,7 +32,8 @@ De feed staat op de pagina **Feed** van de SLO, en de nieuwste items onder **Rec
 | SLO ingeschakeld of uitgeschakeld | De evaluatie wordt aan- of uitgezet. |
 | SLO gearchiveerd of hersteld | De SLO wordt gearchiveerd of uit het archief gehaald. |
 | Status gewijzigd | Een evaluatie brengt de SLO naar een nieuwe status. Toont de SLI, het foutbudget, de verbruikssnelheid en de risicodrempel die haar verklaren, en de reden bij **Gepauzeerd** of **Verkeerd geconfigureerd**. |
-| Niveau van het foutbudgetbeleid gewijzigd | Een evaluatie brengt de SLO in een niveau van zijn foutbudgetbeleid, naar een ander niveau of uit elk niveau. Toont het niveau dat hij verliet en het niveau waarin hij kwam, het resterende budget en wat het team in het nieuwe niveau heeft afgesproken. Zie [Foutbudgetbeleid](/docs/slo/error-budget-policy). |
+| Niveau van het foutbudgetbeleid gewijzigd | Een evaluatie brengt de SLO in een niveau van zijn foutbudgetbeleid, naar een ander niveau of uit elk niveau. Toont het niveau dat hij verliet en het niveau waarin hij kwam, het resterende budget en wat het team in het nieuwe niveau heeft afgesproken, en zegt wanneer de wijziging implementaties bevroor of weer toestond. Zie [Foutbudgetbeleid](/docs/slo/error-budget-policy). |
+| Implementaties bevroren of weer toegestaan | Iemand heeft **Implementaties bevriezen** aan- of uitgezet voor het niveau waarin de SLO zit, en de volgende evaluatie heeft implementaties bevroren of weer toegestaan. Doet een niveauwijziging dat, dan staat het in plaats daarvan in het eigen item van die wijziging. Zie [Implementatiepoort](/docs/slo/error-budget-policy#implementatiepoort). |
 | Waarschuwing voor verbruikssnelheid gegeven | Een regel voor verbruikssnelheid maakt een waarschuwing aan. Linkt ernaar en toont de verbruikssnelheden die haar deden afgaan. |
 | Incident voor verbruikssnelheid gemeld | Een regel voor verbruikssnelheid meldt een incident. Linkt ernaar en toont de verbruikssnelheden die het deden afgaan. |
 | Waarschuwing of incident voor verbruikssnelheid opgelost | De waarschuwing of het incident van een regel wordt gesloten: automatisch opgelost, of met de hand terwijl automatisch oplossen uit stond. |
@@ -67,7 +68,7 @@ Wijzigingen aan regels en eigenaren worden vastgelegd bij de regel of de eigenaa
 
 Twee dingen blijven erbuiten:
 
-- **Evaluatieresultaten.** De SLI, het foutbudget, de verbruikssnelheid, de status en de evaluatietijden veranderen om de paar minuten. Hun geschiedenis staat op het **Overzicht**, de pagina **Metrieken** en de **Feed**. Het niveau van het foutbudgetbeleid waarin de SLO zit, is de uitzondering: een niveauwijziging wordt vastgelegd als een wijziging die OneUptime zelf heeft gedaan.
+- **Evaluatieresultaten.** De SLI, het foutbudget, de verbruikssnelheid, de status en de evaluatietijden veranderen om de paar minuten. Hun geschiedenis staat op het **Overzicht**, de pagina **Metrieken** en de **Feed**. Het niveau van het foutbudgetbeleid waarin de SLO zit, en of zijn implementaties zijn toegestaan, vormen de uitzondering: een wijziging van een van beide wordt vastgelegd als een wijziging die OneUptime zelf heeft gedaan.
 - **Wijzigingen die OneUptime zelf doet**, zoals een monitorregel die een monitor koppelt of ontkoppelt, tenzij **Systeemgebeurtenissen opslaan** voor het project aan staat. De **Feed** legt het koppelen en ontkoppelen van monitoren hoe dan ook vast.
 
 ### Auditlogboeken aanzetten

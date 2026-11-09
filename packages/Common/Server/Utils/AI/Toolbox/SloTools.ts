@@ -200,7 +200,16 @@ const POLICY_TIERS_NOT_VISIBLE_NOTE: string =
  * tier the way the product does.
  */
 const POLICY_TIERS_NOTE: string =
-  "Note: errorBudgetPolicyTier rows are the SLO's error budget policy - what the team agreed to do as the budget runs down. A tier applies while the error budget left is at or below its threshold; the SLO is in the applying tier with the lowest threshold (currentErrorBudgetPolicyTier on the SLO row). It leaves a tier only once the budget is 5 points above its threshold (2% for a tier at 0%). whatWeDo is the team's agreement for that tier.\n";
+  "Note: errorBudgetPolicyTier rows are the SLO's error budget policy - what the team agreed to do as the budget runs down. A tier applies while the error budget left is at or below its threshold; the SLO is in the applying tier with the lowest threshold (currentErrorBudgetPolicyTier on the SLO row). It leaves a tier only once the budget is 5 points above its threshold (2% for a tier at 0%). whatWeDo is the team's agreement for that tier. freezesDeployments says whether being in the tier freezes deployments.\n";
+
+/*
+ * How the deploy gate is read. Travels with every result that has an SLO
+ * row, because every SLO row carries the answer: without it a model reads
+ * "deploymentsAllowed: true" on an SLO with no policy as a decision someone
+ * made.
+ */
+const DEPLOYMENT_GATE_NOTE: string =
+  "Note: deploymentsAllowed on an SLO row is the deploy gate CI/CD pipelines read before they release: it is false while the SLO is in an error budget policy tier that freezes deployments (deploymentsFrozenAt says since when), and true otherwise - also for an SLO with no policy. A Paused or Misconfigured SLO keeps the answer it had.\n";
 
 const NOT_VISIBLE_WIDGET_VALUE: string = "not visible to you";
 
@@ -325,7 +334,7 @@ async function resolveMonitorRuleLabelNames(data: {
 export const QuerySlosTool: ObservabilityTool = {
   name: "query_slos",
   description:
-    "List Service Level Objectives (SLOs) in this project: what each one measures (monitor uptime or a metric SLI), its target percentage, compliance window, attached monitors, and the latest persisted compliance status — current SLI %, error budget remaining and burn rate as computed by the platform at its last evaluation (this tool never recomputes compliance live). Pass sloId (an SLO ID from this tool's own list results) to get one SLO's full definition plus its burn-rate rules, their thresholds, whether each raises an alert, declares an incident, or both, and what each output is created with (custom title/description templates, label and owner counts, private and auto-resolve settings, and whether the SLO's owners are added), and which of OneUptime's recommended burn-rate rules (Fast burn, Slow burn, Slow leak) the SLO is missing, plus its error budget policy: the tiers (name, budget-left threshold, what the team agreed to do, whether each raises an alert or declares an incident) and the tier the SLO is in now. Every SLO row says which error budget policy tier it is in. Use query_alerts to see alerts those burn-rate rules raised, query_incidents for the incidents they declared, and query_monitors for the current status of an SLO's monitors. Archived SLOs (retired: hidden from the SLO list and no longer evaluated) are left out of lists unless includeArchived is true; looking one up by sloId still works and says it is archived.",
+    "List Service Level Objectives (SLOs) in this project: what each one measures (monitor uptime or a metric SLI), its target percentage, compliance window, attached monitors, and the latest persisted compliance status — current SLI %, error budget remaining and burn rate as computed by the platform at its last evaluation (this tool never recomputes compliance live). Pass sloId (an SLO ID from this tool's own list results) to get one SLO's full definition plus its burn-rate rules, their thresholds, whether each raises an alert, declares an incident, or both, and what each output is created with (custom title/description templates, label and owner counts, private and auto-resolve settings, and whether the SLO's owners are added), and which of OneUptime's recommended burn-rate rules (Fast burn, Slow burn, Slow leak) the SLO is missing, plus its error budget policy: the tiers (name, budget-left threshold, what the team agreed to do, whether each freezes deployments, whether each raises an alert or declares an incident) and the tier the SLO is in now. Every SLO row says which error budget policy tier it is in, and whether deployments are allowed (deploymentsAllowed: false while the SLO is in a tier that freezes deployments - the deploy gate CI/CD pipelines check). Use query_alerts to see alerts those burn-rate rules raised, query_incidents for the incidents they declared, and query_monitors for the current status of an SLO's monitors. Archived SLOs (retired: hidden from the SLO list and no longer evaluated) are left out of lists unless includeArchived is true; looking one up by sloId still works and says it is archived.",
   inputSchema: {
     type: "object",
     properties: {
@@ -397,6 +406,8 @@ export const QuerySlosTool: ObservabilityTool = {
             currentErrorBudgetPolicyTierId: true,
             currentErrorBudgetPolicyTierName: true,
             currentErrorBudgetPolicyTierEnteredAt: true,
+            deploymentsAllowed: true,
+            deploymentsFrozenAt: true,
             lastEvaluatedAt: true,
             monitors: {
               _id: true,
@@ -440,6 +451,12 @@ export const QuerySlosTool: ObservabilityTool = {
             slo.currentErrorBudgetPolicyTierName || undefined,
           currentErrorBudgetPolicyTierEnteredAt:
             slo.currentErrorBudgetPolicyTierEnteredAt || undefined,
+          // A NOT NULL column that defaults to true: only false is a freeze.
+          deploymentsAllowed: slo.deploymentsAllowed !== false,
+          deploymentsFrozenAt:
+            slo.deploymentsAllowed === false
+              ? slo.deploymentsFrozenAt || undefined
+              : undefined,
           lastEvaluatedAt: slo.lastEvaluatedAt,
           monitors: joinNames(slo.monitors) || undefined,
           downtimeMonitorStatuses:
@@ -702,6 +719,7 @@ export const QuerySlosTool: ObservabilityTool = {
                   isEnabled: true,
                   thresholdPercentage: true,
                   whatWeDo: true,
+                  freezesDeployments: true,
                   shouldCreateAlert: true,
                   shouldCreateIncident: true,
                   lastAlertCreatedAt: true,
@@ -734,6 +752,8 @@ export const QuerySlosTool: ObservabilityTool = {
             slo?.currentErrorBudgetPolicyTierId,
           ),
           whatWeDo: truncateWhatWeDo(tier.whatWeDo),
+          // Defaults to false, like the two outputs.
+          freezesDeployments: tier.freezesDeployments === true,
           // Both default to false on a tier.
           createsAlert: tier.shouldCreateAlert === true,
           createsIncident: tier.shouldCreateIncident === true,
@@ -770,7 +790,7 @@ export const QuerySlosTool: ObservabilityTool = {
       return {
         dataForLlm:
           rows.length > 0
-            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${arePolicyTiersVisible ? "" : POLICY_TIERS_NOT_VISIBLE_NOTE}${policyTiers.length > 0 ? POLICY_TIERS_NOTE : ""}${getMissingRecommendedRulesNote(missingRecommendedRules, slo?.isArchived === true)}${COMPLIANCE_NOTE}${serialized.text}`
+            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${arePolicyTiersVisible ? "" : POLICY_TIERS_NOT_VISIBLE_NOTE}${policyTiers.length > 0 ? POLICY_TIERS_NOTE : ""}${slo ? DEPLOYMENT_GATE_NOTE : ""}${getMissingRecommendedRulesNote(missingRecommendedRules, slo?.isArchived === true)}${COMPLIANCE_NOTE}${serialized.text}`
             : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `SLO ${slo?.name || sloId.toString()}`,
@@ -849,6 +869,14 @@ export const QuerySlosTool: ObservabilityTool = {
                       : policyTiers.length === 0
                         ? "no error budget policy"
                         : "none - the budget is above every tier"),
+                },
+                {
+                  label: "Deployments",
+                  // SLO data too: shown whether or not the tiers can be read.
+                  value:
+                    slo.deploymentsAllowed === false
+                      ? "frozen by the error budget policy"
+                      : "allowed",
                 },
               ],
               link: {
@@ -940,6 +968,7 @@ export const QuerySlosTool: ObservabilityTool = {
           errorBudgetRemainingPercentage: true,
           currentBurnRate: true,
           currentErrorBudgetPolicyTierName: true,
+          deploymentsAllowed: true,
           lastEvaluatedAt: true,
           monitors: {
             name: true,
@@ -978,6 +1007,8 @@ export const QuerySlosTool: ObservabilityTool = {
         // Only an SLO in a tier carries it; the serializer drops undefined.
         currentErrorBudgetPolicyTier:
           slo.currentErrorBudgetPolicyTierName || undefined,
+        // Every row answers: only false is a freeze.
+        deploymentsAllowed: slo.deploymentsAllowed !== false,
         lastEvaluatedAt: slo.lastEvaluatedAt,
       };
     });
@@ -990,6 +1021,7 @@ export const QuerySlosTool: ObservabilityTool = {
       if (total > rows.length) {
         prefix += `Showing rows ${skip + 1}–${skip + rows.length} of ${total} total. Pass skip to page further.\n`;
       }
+      prefix += DEPLOYMENT_GATE_NOTE;
       prefix += COMPLIANCE_NOTE;
     }
 
