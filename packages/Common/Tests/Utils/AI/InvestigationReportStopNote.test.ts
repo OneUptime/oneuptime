@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { ObservabilityAssistantResult } from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import AIInvestigationEngine from "../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import InvestigationReportSummary from "../../../Server/Utils/AI/SRE/InvestigationReportSummary";
@@ -405,13 +406,14 @@ describe("only the server's note, where the server writes it, is lifted", () => 
 });
 
 describe("isRunStopNoteLine", () => {
-  test.each(AI_RUN_STOP_NOTE_OPENINGS.map((opening: string) => [opening]))(
-    "a note opening %p, in italics",
-    (opening: string) => {
-      expect(isRunStopNoteLine(`_${opening}at a limit._`)).toBe(true);
-      expect(isRunStopNoteLine(`  _${opening}at a limit._  `)).toBe(true);
-    },
-  );
+  test.each(
+    AI_RUN_STOP_NOTE_OPENINGS.map((opening: string) => {
+      return [opening];
+    }),
+  )("a note opening %p, in italics", (opening: string) => {
+    expect(isRunStopNoteLine(`_${opening}at a limit._`)).toBe(true);
+    expect(isRunStopNoteLine(`  _${opening}at a limit._  `)).toBe(true);
+  });
 
   test.each([
     ["not in italics", "This run stopped at a limit."],
@@ -427,11 +429,15 @@ describe("isRunStopNoteLine", () => {
 
   test("a line of 400,000 characters is read at once", () => {
     const line: string = `_This run stopped ${"x".repeat(400_000)}`;
-    const started: number = Date.now();
+    const read: FastestRun<[boolean, boolean]> = fastestRun({
+      run: (): [boolean, boolean] => {
+        return [isRunStopNoteLine(line), isRunStopNoteLine(`${line}_`)];
+      },
+      limitInMs: 1000,
+    });
 
-    expect(isRunStopNoteLine(line)).toBe(false);
-    expect(isRunStopNoteLine(`${line}_`)).toBe(true);
-    expect(Date.now() - started).toBeLessThan(1000);
+    expect(read.result).toEqual([false, true]);
+    expect(read.inMs).toBeLessThan(1000);
   });
 });
 
@@ -607,13 +613,17 @@ describe("splitAnswerStopNote", () => {
         return index % 2 === 0 ? `- item ${index}` : "```";
       },
     ).join("\n");
-    const started: number = Date.now();
-    const split: AnswerStopNoteSplit = splitAnswerStopNote(
-      `${answer}\n\n${stopNote()}`,
-    );
+    const text: string = `${answer}\n\n${stopNote()}`;
+    const split: FastestRun<AnswerStopNoteSplit> = fastestRun({
+      run: (): AnswerStopNoteSplit => {
+        return splitAnswerStopNote(text);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(split.inMs).toBeLessThan(2000);
     // The fences pair up, so the note is outside them: it comes apart.
-    expect(split.stopNote).toBe(stopNote());
+    expect(split.result.stopNote).toBe(stopNote());
+    expect(split.result.answerMarkdown).toBe(answer);
   });
 });

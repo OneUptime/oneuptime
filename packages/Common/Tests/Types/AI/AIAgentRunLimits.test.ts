@@ -1235,7 +1235,7 @@ describe("AIAgentRunLimitsHelper.getStopNoteText", () => {
       AIAgentRunLimitsHelper.getStopNoteText({
         reason: AIRunStopReason.TimeLimit,
         limits: limitsWith({
-          maxWallClockMs: 1 * MINUTE_MS,
+          maxWallClockMs: MINUTE_MS,
           timeLimitSource: AIRunTimeLimitSource.AlertInvestigation,
         }),
       }),
