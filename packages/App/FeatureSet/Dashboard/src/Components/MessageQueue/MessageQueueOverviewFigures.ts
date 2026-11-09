@@ -382,9 +382,12 @@ export const MESSAGE_QUEUE_BROKER_FIGURE_SUBLABEL: string = translationKey(
   "broker metrics, selected range",
 );
 
-// The same, for a count worked out from a running total's rate.
+/*
+ * The same, for a count worked out from a running total's rate: short
+ * enough for a tile beside the side menu, as the line above is.
+ */
 export const MESSAGE_QUEUE_BROKER_ESTIMATE_SUBLABEL: string = translationKey(
-  "broker metrics, estimated from a rate",
+  "estimated from broker metrics",
 );
 
 /*
@@ -395,9 +398,15 @@ export const MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES: string = translationKey(
   "Needs consumer traces",
 );
 
+// Where the processing-time chart sends the reader to get it.
+export const MESSAGE_QUEUE_TRACE_CONSUMERS_LINK_LABEL: string = translationKey(
+  "Trace your consumers →",
+);
+
 /*
- * The Messages chart's lines, named by their source: a line the broker's
- * counts draw says so in the legend and the tooltip.
+ * The Messages chart's lines, named by their source: where the chart mixes
+ * sources, a line the broker's counts draw says so in the legend and the
+ * tooltip (getMessageQueueMessagesChart).
  */
 export const MESSAGE_QUEUE_FIGURE_SERIES_NAMES: Record<
   "published" | "consumed" | "errors",
@@ -416,6 +425,98 @@ export const MESSAGE_QUEUE_FIGURE_SERIES_NAMES: Record<
     broker: translationKey("Errors (broker metrics)"),
   },
 };
+
+/*
+ * Where the Messages chart's lines come from: all spans (the chart as it
+ * always was), all the broker's counts, or some of each.
+ */
+export type MessageQueueMessagesChartSources = "spans" | "broker" | "mixed";
+
+export interface MessageQueueMessagesChartLine {
+  seriesName: string;
+  data: Array<MessageQueueTimePoint>;
+}
+
+/**
+ * The Messages chart's lines and where they come from. A chart of spans
+ * keeps its three lines, as it always has. Once a line is the broker's, a
+ * line with no point, or whose tile reads a dash, is left out — its legend
+ * entry would name a line that is not there (or a flat 0 the tile does not
+ * claim), and a spans' "Errors" beside the broker's counts reads as a
+ * second source — and a line the broker draws is marked as such only where
+ * another line counts spans: every tile under a broker figure says so
+ * already, and so does the chart's (i).
+ */
+export function getMessageQueueMessagesChart(
+  figures: Pick<
+    MessageQueueOverviewFigures,
+    "published" | "consumed" | "errors" | "usesBrokerMetrics"
+  >,
+): {
+  lines: Array<MessageQueueMessagesChartLine>;
+  sources: MessageQueueMessagesChartSources;
+} {
+  const all: Array<{
+    names: Record<MessageQueueFigureSource, string>;
+    figure: MessageQueueOverviewFigure;
+  }> = [
+    {
+      names: MESSAGE_QUEUE_FIGURE_SERIES_NAMES.published,
+      figure: figures.published,
+    },
+    {
+      names: MESSAGE_QUEUE_FIGURE_SERIES_NAMES.consumed,
+      figure: figures.consumed,
+    },
+    {
+      names: MESSAGE_QUEUE_FIGURE_SERIES_NAMES.errors,
+      figure: figures.errors,
+    },
+  ];
+
+  if (!figures.usesBrokerMetrics) {
+    return {
+      lines: all.map(
+        (line: {
+          names: Record<MessageQueueFigureSource, string>;
+          figure: MessageQueueOverviewFigure;
+        }): MessageQueueMessagesChartLine => {
+          return { seriesName: line.names.spans, data: line.figure.series };
+        },
+      ),
+      sources: "spans",
+    };
+  }
+
+  const drawn: Array<{
+    names: Record<MessageQueueFigureSource, string>;
+    figure: MessageQueueOverviewFigure;
+  }> = all.filter((line: { figure: MessageQueueOverviewFigure }): boolean => {
+    return line.figure.value !== null && line.figure.series.length > 0;
+  });
+  const isMixed: boolean = drawn.some(
+    (line: { figure: MessageQueueOverviewFigure }): boolean => {
+      return line.figure.source === "spans";
+    },
+  );
+
+  return {
+    lines: drawn.map(
+      (line: {
+        names: Record<MessageQueueFigureSource, string>;
+        figure: MessageQueueOverviewFigure;
+      }): MessageQueueMessagesChartLine => {
+        return {
+          seriesName: isMixed
+            ? line.names[line.figure.source]
+            : line.names.spans,
+          data: line.figure.series,
+        };
+      },
+    ),
+    sources: isMixed ? "mixed" : "broker",
+  };
+}
 
 /**
  * A figure's value for its tile: a count, a rate's estimate rounded to whole
@@ -445,7 +546,10 @@ export function getMessageQueueBrokerFigureSublabel(
 
 /**
  * The line under the Errors tile when its figure is the broker's: the source,
- * and the requests it throttled beside them when it reported any.
+ * and the requests it throttled beside them when there were any. Under the
+ * tile's dash (no error count, only throttled requests) the throttled count
+ * is all the tile has, so it shows even when it is 0. Short, as every
+ * tile's line is: a tile gives it two lines at most.
  */
 export function getMessageQueueBrokerErrorsSublabel(
   figures: Pick<MessageQueueOverviewFigures, "errors" | "throttled">,
@@ -455,14 +559,16 @@ export function getMessageQueueBrokerErrorsSublabel(
   const source: string = errors
     ? getMessageQueueBrokerFigureSublabel(errors)
     : MESSAGE_QUEUE_BROKER_FIGURE_SUBLABEL;
-  if (!figures.throttled) {
+  const throttled: number | null = figures.throttled
+    ? Math.round(figures.throttled.total)
+    : null;
+  if (throttled === null || (errors && throttled <= 0)) {
     return translator.translateText(source) || source;
   }
-  const throttled: number = Math.round(figures.throttled.total);
   return translator.translatePlural(
     {
-      one: "broker metrics; {{count}} request throttled",
-      other: "broker metrics; {{count}} requests throttled",
+      one: "broker metrics; {{count}} throttled",
+      other: "broker metrics; {{count}} throttled",
     },
     throttled,
     { count: formatMessageQueueCount(throttled) },

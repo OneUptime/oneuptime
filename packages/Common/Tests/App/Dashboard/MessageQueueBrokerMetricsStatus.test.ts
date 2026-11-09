@@ -17,6 +17,7 @@ import {
   getMessageQueueNamespaceFindingWords,
   getMessageQueueStoppedMetricsFinding,
   isMessageQueueMetricReportedEveryPeriod,
+  isMessageQueueMetricReportedWithEverySend,
   shouldReadMessageQueueNamespace,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueBrokerMetricsStatus";
 import {
@@ -42,7 +43,9 @@ import { Translator, createTranslator } from "../../../Types/Translator";
  *   - a count (messages in, errors, throttled requests, a send's latency) is
  *     reported only for periods with activity: one that did not arrive has
  *     NOTHING TO REPORT, never "missing" — no throttling is good news, and
- *     an idle count looks the same as an uncollected one;
+ *     an idle count looks the same as an uncollected one — except a send's
+ *     latency while the queue's published count shows sends in the range:
+ *     it comes with every send, so it is NOT COLLECTED;
  *   - a level (a backlog, a size) is reported every period: one that never
  *     arrived while the queue's other metrics do is NOT COLLECTED, with the
  *     configuration line that collects it, and one that arrived before and
@@ -112,6 +115,11 @@ function inRange(
     value: 1,
     observedSeries: [],
   };
+}
+
+// A metric reported in the range as 0 at every point: no activity.
+function quietInRange(name: string): MessageQueueBrokerMetricResult {
+  return { ...inRange(name), series: [{ x: ago(5 * MINUTE_MS), y: 0 }] };
 }
 
 function arrivalsOf(
@@ -264,8 +272,9 @@ describe("each metric's verdict", () => {
   });
 
   test("a level that never arrived while others do is not collected; a quiet count has nothing to report", () => {
+    // Incoming messages reported as 0: nothing was sent.
     const status: MessageQueueBrokerMetricsStatus = statusOf({
-      results: [inRange(ACTIVE), inRange(INCOMING)],
+      results: [inRange(ACTIVE), quietInRange(INCOMING)],
     });
     expect(status.health).toBe("incomplete");
     expect(status.arrivingCount).toBe(2);
@@ -292,6 +301,79 @@ describe("each metric's verdict", () => {
     expect(namesOf(status.missing)).toEqual([DEAD_LETTERED, SCHEDULED, SIZE]);
   });
 
+  test("a send's latency that never arrived while sends did is not collected", () => {
+    // Messages came in: Service Bus reported a latency with each send.
+    const sent: MessageQueueBrokerMetricsStatus = statusOf({
+      results: [inRange(ACTIVE), inRange(INCOMING)],
+    });
+    expect(
+      isMessageQueueMetricReportedWithEverySend(
+        descriptorOf(SERVICE_BUS, SEND_LATENCY),
+      ),
+    ).toBe(true);
+    expect(verdictOf(sent, SEND_LATENCY)).toEqual([
+      "notCollected",
+      "reportedWithSends",
+    ]);
+    expect(namesOf(sent.missing)).toEqual([
+      DEAD_LETTERED,
+      SCHEDULED,
+      SIZE,
+      SEND_LATENCY,
+    ]);
+    // Throttled requests come with no send: still nothing to report.
+    expect(verdictOf(sent, THROTTLED)).toEqual([
+      "nothingToReport",
+      "onlyWithActivity",
+    ]);
+    expect(
+      getMessageQueueBrokerMetricStatusLine(metricOf(sent, SEND_LATENCY), {
+        messagingSystem: "servicebus",
+        now: NOW,
+      }),
+    ).toBe(
+      "Azure Service Bus reports it with every send, and sends to this queue arrived in the selected range, so your collector most likely does not ask for it: add `ServerSendLatency: [Average]` to its metrics list.",
+    );
+    expect(
+      getMessageQueueBrokerMetricStatusLine(
+        { ...metricOf(sent, SEND_LATENCY), configLine: null },
+        { messagingSystem: "servicebus", now: NOW },
+      ),
+    ).toBe(
+      "Azure Service Bus reports it with every send, and sends to this queue arrived in the selected range, so it is most likely not collected.",
+    );
+
+    // No send in the range (none, or a count of 0): nothing to report.
+    for (const results of [
+      [inRange(ACTIVE)],
+      [inRange(ACTIVE), quietInRange(INCOMING)],
+    ]) {
+      expect(verdictOf(statusOf({ results }), SEND_LATENCY)).toEqual([
+        "nothingToReport",
+        "onlyWithActivity",
+      ]);
+    }
+    // It arrived in the week: when, as for any count.
+    expect(
+      verdictOf(
+        statusOf({
+          results: [inRange(ACTIVE), inRange(INCOMING)],
+          arrivals: arrivalsOf({ [SEND_LATENCY]: ago(DAY_MS) }),
+        }),
+        SEND_LATENCY,
+      ),
+    ).toEqual(["nothingToReport", "onlyWithActivity"]);
+    // Only a latency comes with every send.
+    for (const name of [ACTIVE, SIZE, INCOMING, THROTTLED]) {
+      expect({
+        name,
+        withEverySend: isMessageQueueMetricReportedWithEverySend(
+          descriptorOf(SERVICE_BUS, name),
+        ),
+      }).toEqual({ name, withEverySend: false });
+    }
+  });
+
   test("a level that arrived before and not since stopped; a count that did has nothing to report", () => {
     const status: MessageQueueBrokerMetricsStatus = statusOf({
       results: [inRange(ACTIVE), inRange(INCOMING)],
@@ -301,6 +383,7 @@ describe("each metric's verdict", () => {
         [SCHEDULED]: ago(2 * DAY_MS),
         [SIZE]: ago(2 * DAY_MS),
         [THROTTLED]: ago(DAY_MS),
+        [SEND_LATENCY]: ago(DAY_MS),
       }),
     });
     expect(verdictOf(status, DEAD_LETTERED)).toEqual([
@@ -769,10 +852,36 @@ describe("the card's words", () => {
       getMessageQueueBrokerMetricsLastReceived({ lastReceivedAt: null }, NOW),
     ).toBeNull();
   });
+
+  test("every number in a line is written the reader's way", () => {
+    // A Persian reader: the count, how many arrived and the days alike.
+    const persian: Translator = createTranslator((key: string): string => {
+      return `«${key}»`;
+    }, "fa");
+    const some: MessageQueueBrokerMetricsStatus = statusOf({
+      results: [inRange(ACTIVE), inRange(INCOMING)],
+    });
+    expect(getMessageQueueBrokerMetricsSummary(some, persian)).toBe(
+      "«۲ of ۱۲ metrics arrived in the selected range.»",
+    );
+    expect(
+      getMessageQueueBrokerMetricStatusLine(
+        metricOf(some, THROTTLED),
+        { messagingSystem: "servicebus", now: NOW },
+        persian,
+      ),
+    ).toBe(
+      "«Reported only for periods with activity, and there was none in the last ۷ days.»",
+    );
+  });
 });
 
 describe("the card's findings", () => {
-  test("missing Service Bus levels: which, and the lines that collect them", () => {
+  test("missing Service Bus metrics: which, and the lines that collect them", () => {
+    /*
+     * A collector whose list predates Scheduled messages, Size and Server
+     * send latency, with Dead-lettered messages stopped too.
+     */
     const status: MessageQueueBrokerMetricsStatus = statusOf({
       results: [inRange(ACTIVE), inRange(INCOMING)],
       arrivals: arrivalsOf({ [DEAD_LETTERED]: ago(2 * DAY_MS) }),
@@ -781,9 +890,9 @@ describe("the card's findings", () => {
       getMessageQueueMissingMetricsFinding(status, "servicebus");
     expect(finding).toEqual({
       kind: "missing",
-      title: "3 metrics do not arrive",
+      title: "4 metrics do not arrive",
       description:
-        "Azure Service Bus reports these all the time, and this queue's other metrics arrive, so they are most likely not collected: Dead-lettered messages, Scheduled messages, Size.",
+        "Azure Service Bus would have reported these in the selected range, and this queue's other metrics arrive, so they are most likely not collected: Dead-lettered messages, Scheduled messages, Size, Server send latency.",
       steps: [
         "Add the lines below to the `azure_monitor` receiver's `metrics` list, under the namespace type, and restart the collector.",
       ],
@@ -791,6 +900,7 @@ describe("the card's findings", () => {
         "DeadletteredMessages: [Average]",
         "ScheduledMessages: [Average]",
         "Size: [Average]",
+        "ServerSendLatency: [Average]",
       ],
     });
     expect(

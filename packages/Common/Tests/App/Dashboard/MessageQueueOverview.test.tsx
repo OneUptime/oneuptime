@@ -51,12 +51,14 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     (Service Bus's incoming and outgoing messages, its errors added up,
  *     its throttled requests beside them), says so under its number and
  *     opens the Metrics tab; processing time, which no broker measures,
- *     says it needs consumer traces;
+ *     says it needs consumer traces; the Messages chart draws the lines
+ *     with points, marking the broker's only beside a line of spans;
  *   - the Broker metrics card says which metrics arrived and why the others
  *     did not, from the week's arrivals (two counts by name, under the key,
  *     reused across ticks) and — for an Azure queue none of whose metrics
  *     arrives — one read of what its namespace sent instead, the only
- *     request made without the key.
+ *     request made without the key; while nothing has data it is Broker
+ *     health's one card, which a refresh never swaps for a loader.
  */
 
 const MODEL_ID_STRING: string = "5c1e0d2a-7b3c-4d5e-8f60-000000000123";
@@ -1216,7 +1218,7 @@ describe("the message tiles and charts", () => {
     const consumed: HTMLElement = tile("Consumed");
     expect(within(consumed).queryByText("0")).toBeNull();
     expect(
-      within(consumed).getByText("broker metrics, estimated from a rate"),
+      within(consumed).getByText("estimated from broker metrics"),
     ).toBeInTheDocument();
     expect(consumed.querySelector("a")).toHaveAttribute(
       "href",
@@ -1711,6 +1713,25 @@ describe("Broker health", () => {
       "href",
       `/dashboard/${PROJECT_ID_STRING}/queues/${MODEL_ID_STRING}/documentation`,
     );
+
+    /*
+     * One card, under the section's header: the Broker metrics card, the
+     * guidance in place of its summary — never a card of its own above it.
+     */
+    const section: HTMLElement = screen.getByTestId(
+      "message-queue-broker-health-no-data",
+    );
+    const card: HTMLElement = within(section).getByTestId(
+      "message-queue-broker-metrics-status",
+    );
+    expect(card).toHaveAttribute("data-health", "never");
+    expect(card).toContainElement(guidance);
+    expect(
+      within(card).queryByTestId("message-queue-broker-metrics-summary"),
+    ).toBeNull();
+    expect(
+      screen.getAllByTestId("message-queue-broker-health-guidance"),
+    ).toHaveLength(1);
   });
 
   test("a Service Bus queue without a namespace: told where its broker metrics go, never offered their setup", async () => {
@@ -1751,13 +1772,84 @@ describe("Broker health", () => {
 
     await renderLoaded();
 
+    /*
+     * The Broker metrics card says it, under the section's header, with
+     * when they last arrived and what to check: no second card beside it
+     * saying the same.
+     */
+    const section: HTMLElement = await screen.findByTestId(
+      "message-queue-broker-health-no-data",
+    );
+    const card: HTMLElement = within(section).getByTestId(
+      "message-queue-broker-metrics-status",
+    );
+    expect(card).toHaveAttribute("data-health", "stopped");
     expect(
-      await screen.findByTestId("message-queue-broker-health-no-data"),
-    ).toBeInTheDocument();
-    expect(screen.getByText(BROKER_HEALTH_NO_DATA_TITLE)).toBeInTheDocument();
+      within(card).getByTestId("message-queue-broker-metrics-summary"),
+    ).toHaveTextContent(
+      "No metric arrived in the selected range, and none has since.",
+    );
+    expect(
+      within(card).getByTestId("message-queue-broker-metrics-last-received"),
+    ).toHaveTextContent("Last received 10 hours ago");
+    expect(
+      within(card).getByTestId("message-queue-broker-metrics-finding"),
+    ).toHaveTextContent("Broker metrics stopped arriving 10 hours ago");
+    expect(screen.queryByText(BROKER_HEALTH_NO_DATA_TITLE)).toBeNull();
     expect(
       screen.queryByTestId("message-queue-broker-health-guidance"),
     ).toBeNull();
+    // The header keeps the way to every metric of the queue.
+    expect(
+      within(section).getByText("All metrics →").closest("a"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID_STRING}/queues/${MODEL_ID_STRING}/metrics`,
+    );
+  });
+
+  test("a refresh keeps the card of a queue with nothing to chart: the loader is for the first answer only", async () => {
+    scenario = { ...kafkaScenario(), metrics: {}, observed: {} };
+    getItemMock.mockResolvedValue(queueRow());
+
+    await renderLoaded();
+    expect(
+      await screen.findByTestId("message-queue-broker-metrics-status"),
+    ).toHaveAttribute("data-health", "never");
+
+    // The next auto-refresh's reads wait: the card stays while they do.
+    parkWhen = (): boolean => {
+      return true;
+    };
+    await act(async () => {
+      mockAutoRefreshTick!();
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(parked.length).toBeGreaterThan(0);
+    });
+    expect(
+      screen.queryByTestId("message-queue-broker-health-loading"),
+    ).toBeNull();
+    expect(
+      within(
+        screen.getByTestId("message-queue-broker-metrics-status"),
+      ).getByTestId("message-queue-broker-health-guidance"),
+    ).toBeInTheDocument();
+
+    parkWhen = null;
+    await releaseParked((): boolean => {
+      return true;
+    });
+    await waitFor(() => {
+      expect(screen.queryAllByText(/^Loading /)).toHaveLength(0);
+    });
+    expect(
+      screen.queryByTestId("message-queue-broker-health-loading"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("message-queue-broker-metrics-status"),
+    ).toHaveAttribute("data-health", "never");
   });
 });
 
@@ -1788,7 +1880,7 @@ describe("a queue only its broker reports", () => {
     expect(within(errors).getByText("36")).toBeInTheDocument();
     // Throttled requests are not errors: counted apart, under the number.
     expect(
-      within(errors).getByText("broker metrics; 48 requests throttled"),
+      within(errors).getByText("broker metrics; 48 throttled"),
     ).toBeInTheDocument();
     // No error rate: the broker counts no spans to divide by.
     expect(within(errors).queryByRole("progressbar")).toBeNull();
@@ -1801,12 +1893,14 @@ describe("a queue only its broker reports", () => {
       );
     }
 
-    // Processing time has no broker stand-in.
+    // Processing time has no broker stand-in: the note, and nothing under it.
+    const p95: HTMLElement = tile("p95 processing time");
     expect(
-      within(tile("p95 processing time")).getByTestId(
-        "resource-overview-tile-value-note",
-      ),
+      within(p95).getByTestId("resource-overview-tile-value-note"),
     ).toHaveTextContent("Needs consumer traces");
+    expect(
+      within(p95).queryByText("consumer spans, as the consumers measure them"),
+    ).toBeNull();
   });
 
   test("throttled requests and no error count: they stand under the Errors tile's dash", async () => {
@@ -1822,7 +1916,7 @@ describe("a queue only its broker reports", () => {
     const errors: HTMLElement = tile("Errors");
     expect(within(errors).getByText("—")).toBeInTheDocument();
     expect(
-      within(errors).getByText("broker metrics; 48 requests throttled"),
+      within(errors).getByText("broker metrics; 48 throttled"),
     ).toBeInTheDocument();
     expect(within(errors).queryByRole("progressbar")).toBeNull();
     expect(errors.querySelector("a")).toHaveAttribute(
@@ -1831,7 +1925,7 @@ describe("a queue only its broker reports", () => {
     );
   });
 
-  test("the Messages chart draws the broker's lines, named by their source", async () => {
+  test("the Messages chart draws the broker's lines, its (i) saying whose they are", async () => {
     scenario = serviceBusScenario();
     getItemMock.mockResolvedValue(serviceBusRow());
 
@@ -1847,23 +1941,57 @@ describe("a queue only its broker reports", () => {
       series.map((entry: { seriesName: string }): string => {
         return entry.seriesName;
       }),
-    ).toEqual([
-      "Published (broker metrics)",
-      "Consumed (broker metrics)",
-      "Errors (broker metrics)",
-    ]);
+    ).toEqual(
+      // Every line is the broker's: the (i) says so once, not each name.
+      ["Published", "Consumed", "Errors"],
+    );
     expect(series[0]!.data).toHaveLength(12);
     expect(series[0]!.data[0]!.y).toBe(20);
     expect(series[1]!.data[0]!.y).toBe(18);
     expect(series[2]!.data[0]!.y).toBe(3);
     expect(String(messages["description"])).toContain(
-      "A line marked broker metrics is the broker's own count",
+      "all from the broker's own counts",
+    );
+    expect(String(messages["description"])).not.toContain(
+      "A line marked broker metrics",
     );
 
     // The processing-time chart says what fills it, and where to read how.
     const p95: Record<string, unknown> = chartProps("p95 processing time");
     expect(p95["emptyMessage"]).toBe("Needs consumer traces");
-    expect(p95["emptyAction"]).toBeTruthy();
+    const action: React.ReactElement<{
+      to: { toString: () => string };
+      children: string;
+      openInNewTab: boolean;
+    }> = p95["emptyAction"] as React.ReactElement<{
+      to: { toString: () => string };
+      children: string;
+      openInNewTab: boolean;
+    }>;
+    expect(action.props.children).toBe("Trace your consumers →");
+    expect(action.props.to.toString()).toBe(
+      "/docs/telemetry/queues#instrumenting-applications",
+    );
+    expect(action.props.openInNewTab).toBe(true);
+  });
+
+  test("no error metric: the Messages chart draws no empty Errors line", async () => {
+    const base: Scenario = serviceBusScenario();
+    const metrics: Scenario["metrics"] = { ...base.metrics };
+    delete metrics["azure_servererrors_total"];
+    delete metrics["azure_usererrors_total"];
+    scenario = { ...base, metrics };
+    getItemMock.mockResolvedValue(serviceBusRow());
+
+    await renderLoaded();
+
+    expect(
+      (chartProps("Messages")["series"] as Array<{ seriesName: string }>).map(
+        (entry: { seriesName: string }): string => {
+          return entry.seriesName;
+        },
+      ),
+    ).toEqual(["Published", "Consumed"]);
   });
 
   test("traced applications win: a side with spans keeps them, the other reads the broker", async () => {
@@ -1896,9 +2024,12 @@ describe("a queue only its broker reports", () => {
       return entry.seriesName;
     });
     expect(names).toEqual(["Published", "Consumed (broker metrics)", "Errors"]);
+    expect(String(chartProps("Messages")["description"])).toContain(
+      "A line marked broker metrics is the broker's own count",
+    );
   });
 
-  test("the Broker metrics card: what arrived, and the levels the collector does not ask for", async () => {
+  test("the Broker metrics card: what arrived, and the metrics the collector does not ask for", async () => {
     scenario = {
       ...serviceBusScenario(),
       // Abandoned messages arrived three hours ago: activity-only.
@@ -1921,20 +2052,27 @@ describe("a queue only its broker reports", () => {
       within(card).getByTestId("message-queue-broker-metrics-last-received"),
     ).toHaveTextContent(/^Last received /);
 
-    // The two levels Service Bus reports every minute and nobody asked for.
+    /*
+     * The two levels Service Bus reports every minute, and the latency it
+     * reports with every send while sends arrived: none asked for.
+     */
+    // The card's badge, in its header.
+    expect(screen.getByText("3 missing")).toBeInTheDocument();
     const finding: HTMLElement = within(card).getByTestId(
       "message-queue-broker-metrics-finding",
     );
     expect(finding).toHaveAttribute("data-kind", "missing");
-    expect(finding).toHaveTextContent("2 metrics do not arrive");
+    expect(finding).toHaveTextContent("3 metrics do not arrive");
     expect(finding).toHaveTextContent(
-      "so they are most likely not collected: Scheduled messages, Size.",
+      "so they are most likely not collected: Scheduled messages, Size, Server send latency.",
     );
     expect(
       within(finding).getByTestId(
         "message-queue-broker-metrics-finding-config",
       ),
-    ).toHaveTextContent("ScheduledMessages: [Average] Size: [Average]");
+    ).toHaveTextContent(
+      "ScheduledMessages: [Average] Size: [Average] ServerSendLatency: [Average]",
+    );
     expect(
       within(finding)
         .getByText("Collector configuration for this queue →")
@@ -1972,24 +2110,21 @@ describe("a queue only its broker reports", () => {
       "notCollected",
     );
     expect(stateOf("servicebus:azure_size_average")).toBe("notCollected");
-    // No abandoned message and no send in the range: nothing to report.
+    // No abandoned message in the range: nothing to report.
     expect(stateOf("servicebus:azure_abandonmessage_total")).toBe(
       "nothingToReport",
     );
+    // Messages came in, each send with a latency: not collected.
     expect(stateOf("servicebus:azure_serversendlatency_average")).toBe(
-      "nothingToReport",
+      "notCollected",
     );
 
-    // Processing time needs the consumers' traces, with where to read how.
-    const note: HTMLElement = within(card).getByTestId(
-      "message-queue-broker-metrics-tracing-note",
-    );
-    expect(
-      within(note).getByText("Trace your consumers →").closest("a"),
-    ).toHaveAttribute(
-      "href",
-      "/docs/telemetry/queues#instrumenting-applications",
-    );
+    /*
+     * Processing time is the p95 tile's and chart's to explain: the card
+     * lists broker metrics only.
+     */
+    expect(card).not.toHaveTextContent(/processing time/i);
+    expect(within(card).queryByText("Trace your consumers →")).toBeNull();
 
     // An arriving queue's namespace is never read: its metrics reach it.
     expect(requests.some(isNamespaceRead)).toBe(false);
@@ -2162,10 +2297,30 @@ describe("the Broker metrics card's namespace read", () => {
     );
     expect(finding).toHaveTextContent("Monitoring Reader");
     expect(finding).toHaveTextContent("AuthorizationFailed");
-    // Under the guidance card, which still says where the metrics come from.
+    /*
+     * The finding says why none arrive, so the card leaves out the setup
+     * guidance it would show otherwise; the finding's links go where it
+     * did: the queue's collector configuration and the guide.
+     */
     expect(
-      screen.getByTestId("message-queue-broker-health-guidance"),
-    ).toBeInTheDocument();
+      screen.queryByTestId("message-queue-broker-health-guidance"),
+    ).toBeNull();
+    expect(
+      within(finding)
+        .getByText("Collector configuration for this queue →")
+        .closest("a"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID_STRING}/queues/${MODEL_ID_STRING}/documentation`,
+    );
+    expect(
+      within(finding)
+        .getByText("Troubleshooting in the Queues guide →")
+        .closest("a"),
+    ).toHaveAttribute(
+      "href",
+      "/docs/telemetry/queues#broker-health-stays-empty",
+    );
   });
 
   test("metrics that arrived after the range: never a namespace read, only the range", async () => {

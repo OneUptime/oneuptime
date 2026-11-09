@@ -8,7 +8,8 @@ import path from "path";
  * (Components/MessageQueue/MessageQueueBrokerMetricsCard.tsx,
  * MessageQueueInlineCode.tsx and MessageQueueBrokerHealthSection.tsx,
  * #5771): the findings' amber and indigo callouts, the configuration lines,
- * the tracing note, the metric rows and their links.
+ * the setup guidance the card holds while none arrived, the metric rows and
+ * their links.
  *
  * The dark theme does not use Tailwind's dark: variants. Theme.css
  * re-colours the light utility classes under html.dark, one rule per class
@@ -199,9 +200,10 @@ describe("a queue's Broker metrics card and Broker health section in the dark th
         "bg-amber-50",
         "text-amber-800",
         "text-amber-900",
-        // The tracing note's grey box.
-        "border-gray-200",
+        // The setup guidance's dashed grey box, and the section's tiles.
+        "border-gray-300",
         "bg-gray-50",
+        "border-gray-200",
         // The links to the configuration and the Queues guide.
         "text-indigo-600",
         "text-indigo-700",

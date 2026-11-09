@@ -337,6 +337,20 @@ const tileColorClasses: Record<
 export const RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME: string =
   "mt-1 min-w-0 text-sm text-gray-900 [overflow-wrap:anywhere] sm:col-span-2 sm:mt-0";
 
+/*
+ * The golden metric tiles: four to a row only where the overview itself is
+ * wide enough for four, by a container query rather than the screen's
+ * width. Beside a record page's side menu a 1024px window leaves the
+ * overview some 680px, four tiles of 158px: a German "Verbraucht" broke
+ * mid-word and every line under a value was cut. Two to a row until the
+ * overview is 52rem wide (four tiles of some 200px), as a 1280px window's
+ * is beside the menu.
+ */
+export const RESOURCE_OVERVIEW_TILES_FRAME_CLASS_NAME: string =
+  "mb-6 [container-type:inline-size]";
+export const RESOURCE_OVERVIEW_TILES_GRID_CLASS_NAME: string =
+  "grid grid-cols-2 gap-4 [@container(min-width:52rem)]:grid-cols-4";
+
 const STATUS_TONE_CLASSES: Record<
   ResourceOverviewStatusTone,
   { badge: string; dot: string }
@@ -548,8 +562,13 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
             </div>
           )}
           {sublabel ? (
+            /*
+             * Up to two lines, never cut on one: a phone's two columns cut
+             * "broker metrics; 18 throttled" before its number, and a tap
+             * has no hover to read the rest.
+             */
             <div
-              className="mt-1 text-xs text-gray-500 truncate"
+              className="mt-1 line-clamp-2 break-words text-xs text-gray-500"
               lang={sublabelLanguage}
             >
               {sublabel}
@@ -812,37 +831,41 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
 
       {/* Golden metric tiles */}
       {props.tilesLoading && props.tiles.length === 0 ? (
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {Array.from({ length: 4 }, (_: unknown, idx: number) => {
-            return (
-              <div
-                key={`tile-skeleton-${idx}`}
-                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-              >
-                <div className="h-3 w-16 rounded bg-gray-100 animate-pulse" />
-                <div className="mt-3 h-8 w-20 rounded bg-gray-100 animate-pulse" />
-                <div className="mt-2 h-3 w-24 rounded bg-gray-100 animate-pulse" />
-              </div>
-            );
-          })}
+        <div className={RESOURCE_OVERVIEW_TILES_FRAME_CLASS_NAME}>
+          <div className={RESOURCE_OVERVIEW_TILES_GRID_CLASS_NAME}>
+            {Array.from({ length: 4 }, (_: unknown, idx: number) => {
+              return (
+                <div
+                  key={`tile-skeleton-${idx}`}
+                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="h-3 w-16 rounded bg-gray-100 animate-pulse" />
+                  <div className="mt-3 h-8 w-20 rounded bg-gray-100 animate-pulse" />
+                  <div className="mt-2 h-3 w-24 rounded bg-gray-100 animate-pulse" />
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
         props.tiles.length > 0 && (
-          <div
-            data-testid="resource-overview-tiles"
-            className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4"
-          >
-            {props.tiles.map(
-              (tile: ResourceOverviewTile, idx: number): ReactElement => {
-                return (
-                  <GoldenMetricTile
-                    key={`tile-${idx}`}
-                    {...tile}
-                    loading={props.tilesLoading || tile.loading}
-                  />
-                );
-              },
-            )}
+          <div className={RESOURCE_OVERVIEW_TILES_FRAME_CLASS_NAME}>
+            <div
+              data-testid="resource-overview-tiles"
+              className={RESOURCE_OVERVIEW_TILES_GRID_CLASS_NAME}
+            >
+              {props.tiles.map(
+                (tile: ResourceOverviewTile, idx: number): ReactElement => {
+                  return (
+                    <GoldenMetricTile
+                      key={`tile-${idx}`}
+                      {...tile}
+                      loading={props.tilesLoading || tile.loading}
+                    />
+                  );
+                },
+              )}
+            </div>
           </div>
         )
       )}

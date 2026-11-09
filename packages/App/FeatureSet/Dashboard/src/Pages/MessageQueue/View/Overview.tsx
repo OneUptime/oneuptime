@@ -79,13 +79,16 @@ import {
   shouldReadMessageQueueNamespace,
 } from "../../../Components/MessageQueue/MessageQueueBrokerMetricsStatus";
 import {
-  MESSAGE_QUEUE_FIGURE_SERIES_NAMES,
   MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES,
+  MESSAGE_QUEUE_TRACE_CONSUMERS_LINK_LABEL,
+  MessageQueueMessagesChartLine,
+  MessageQueueMessagesChartSources,
   MessageQueueOverviewFigures,
   formatMessageQueueFigureValue,
   getMessageQueueBrokerErrorsSublabel,
   getMessageQueueBrokerFigureDescription,
   getMessageQueueBrokerFigureSublabel,
+  getMessageQueueMessagesChart,
   getMessageQueueOverviewFigures,
 } from "../../../Components/MessageQueue/MessageQueueOverviewFigures";
 import {
@@ -130,9 +133,9 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
  *      stand-in, so without consumer spans it says what would give one.
  *   2. Producers and Consumers — the services on each side of it.
  *   3. Broker health — its messaging system's curated broker metrics, each
- *      gauge with a "Create monitor" link, or a card saying where they come
- *      from while none has arrived; and the Broker metrics card, which says
- *      which of them arrived, when, and why the others did not. Its
+ *      gauge with a "Create monitor" link, and the Broker metrics card,
+ *      which says which of them arrived, when, and why the others did not
+ *      — and, while none has, where they come from. Its
  *      arrivals over the last week are reused across refreshes for a few
  *      minutes (MessageQueueBrokerMetricArrivalsCache); an Azure queue none
  *      of whose metrics arrives also gets one read of what its namespace
@@ -173,6 +176,16 @@ const MessageQueueOverview: FunctionComponent<
   const [namespaceFinding, setNamespaceFinding] =
     useState<MessageQueueNamespaceFinding | null>(null);
   const [telemetryLoading, setTelemetryLoading] = useState<boolean>(true);
+  /*
+   * Whether Broker health has had its first answer: the telemetry's, and
+   * the namespace's when it is asked. Its loader shows until then and never
+   * again — a refresh, a zoom or a new range keeps what it shows until the
+   * new answer lands — so the card of a queue with nothing to chart does
+   * not give way to a loader on every auto-refresh, and does not swap its
+   * setup guidance for the namespace's finding a moment after it drew.
+   */
+  const [brokerHealthAnswered, setBrokerHealthAnswered] =
+    useState<boolean>(false);
   const [chartWindow, setChartWindow] = useState<{
     start: Date;
     end: Date;
@@ -310,6 +323,7 @@ const MessageQueueOverview: FunctionComponent<
       setBrokerArrivals(null);
       setNamespaceFinding(null);
       setTelemetryLoading(false);
+      setBrokerHealthAnswered(true);
       return;
     }
 
@@ -455,6 +469,7 @@ const MessageQueueOverview: FunctionComponent<
                 })
               ) {
                 setNamespaceFinding(null);
+                setBrokerHealthAnswered(true);
                 return;
               }
               const sent: {
@@ -480,6 +495,7 @@ const MessageQueueOverview: FunctionComponent<
                     })
                   : null,
               );
+              setBrokerHealthAnswered(true);
             };
 
           await Promise.all([readServiceNames(), readNamespace()]);
@@ -491,6 +507,7 @@ const MessageQueueOverview: FunctionComponent<
         }
         telemetryInFlightRef.current = false;
         setTelemetryLoading(false);
+        setBrokerHealthAnswered(true);
       });
 
     return () => {
@@ -716,45 +733,38 @@ const MessageQueueOverview: FunctionComponent<
       icon: IconProp.Clock,
       iconColor: "emerald",
       loading: telemetryLoading,
-      sublabel: "consumer spans, as the consumers measure them",
+      // The note says it all: the line under it would only repeat it.
+      sublabel: needsConsumerTraces
+        ? undefined
+        : "consumer spans, as the consumers measure them",
       description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.p95Processing,
     },
   ];
+
+  /*
+   * The Messages chart's lines: spans' as they always were, or — once a line
+   * is the broker's — the lines with points, the broker's marked only
+   * beside a line of spans (getMessageQueueMessagesChart).
+   */
+  const messagesChart: {
+    lines: Array<MessageQueueMessagesChartLine>;
+    sources: MessageQueueMessagesChartSources;
+  } = getMessageQueueMessagesChart(figures);
 
   const charts: ReactElement = (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <ChartCard
         title="Messages"
         description={
-          figures.usesBrokerMetrics
-            ? MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChartBroker
-            : MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChart
+          messagesChart.sources === "broker"
+            ? MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChartBrokerOnly
+            : messagesChart.sources === "mixed"
+              ? MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChartBroker
+              : MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChart
         }
         icon={IconProp.QueueList}
         iconColor="sky"
-        series={
-          [
-            {
-              seriesName:
-                MESSAGE_QUEUE_FIGURE_SERIES_NAMES.published[
-                  figures.published.source
-                ],
-              data: figures.published.series,
-            },
-            {
-              seriesName:
-                MESSAGE_QUEUE_FIGURE_SERIES_NAMES.consumed[
-                  figures.consumed.source
-                ],
-              data: figures.consumed.series,
-            },
-            {
-              seriesName:
-                MESSAGE_QUEUE_FIGURE_SERIES_NAMES.errors[figures.errors.source],
-              data: figures.errors.series,
-            },
-          ] as Array<SeriesPoint>
-        }
+        series={messagesChart.lines as Array<SeriesPoint>}
         windowStart={chartWindow?.start ?? null}
         windowEnd={chartWindow?.end ?? null}
         syncId={`message-queue-${modelId.toString()}`}
@@ -796,7 +806,9 @@ const MessageQueueOverview: FunctionComponent<
               openInNewTab={true}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              {translator.translateText("Instrumenting applications →")}
+              {translator.translateText(
+                MESSAGE_QUEUE_TRACE_CONSUMERS_LINK_LABEL,
+              )}
             </Link>
           ) : undefined
         }
@@ -945,12 +957,11 @@ const MessageQueueOverview: FunctionComponent<
               : null
           }
           results={brokerMetrics}
-          isLoading={telemetryLoading && isScoped}
+          isLoading={isScoped && !brokerHealthAnswered}
           windowStart={chartWindow?.start ?? null}
           windowEnd={chartWindow?.end ?? null}
           arrivals={brokerArrivals}
           namespaceFinding={namespaceFinding}
-          hasProcessingTime={figures.hasProcessingTime}
         />
       </div>
     </TimeRangeZoomScope>

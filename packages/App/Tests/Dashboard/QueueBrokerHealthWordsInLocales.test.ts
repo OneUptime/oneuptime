@@ -42,14 +42,15 @@ const FILES: ReadonlyArray<string> = [
 
 /*
  * The broker-metric strings that live in files shared with older, still
- * partly English text: the Messages chart's description, the P95 tile's
- * note and link, and the names of the metrics the Service Bus catalog
- * gained.
+ * partly English text: the Messages chart's two descriptions (beside a line
+ * of spans, and with every line the broker's), the P95 tile's note, and the
+ * names of the metrics the Service Bus catalog gained. The P95 chart's link
+ * is the figures module's, so the section's own rule holds it.
  */
 const SHARED_FILE_STRINGS: ReadonlyArray<string> = [
   "Messages published and consumed on this queue in each interval of the selected range, with its failures. A line marked broker metrics is the broker's own count, drawn where no traced application publishes, consumes or fails; the others count spans, as the tiles do. Only whole intervals are drawn.",
+  "Messages published and consumed on this queue in each interval of the selected range, and its failures where the broker reports them, all from the broker's own counts: no traced application publishes to it or consumes from it. Only whole intervals are drawn.",
   "Needs consumer traces",
-  "Instrumenting applications →",
   "Scheduled messages",
   "Server send latency",
 ];
@@ -116,6 +117,8 @@ describe("a queue's Broker health section", () => {
       "Nothing from namespace {{namespace}} reaches OneUptime",
       "Published (broker metrics)",
       "broker metrics, selected range",
+      "estimated from broker metrics",
+      "Trace your consumers →",
     ]) {
       expect({ text, drawn: SECTION_STRINGS.includes(text) }).toEqual({
         text,

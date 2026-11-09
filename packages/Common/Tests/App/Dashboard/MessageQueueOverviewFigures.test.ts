@@ -4,6 +4,7 @@ import {
   MESSAGE_QUEUE_BROKER_FIGURE_SUBLABEL,
   MESSAGE_QUEUE_FIGURE_SERIES_NAMES,
   MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES,
+  MESSAGE_QUEUE_TRACE_CONSUMERS_LINK_LABEL,
   MessageQueueBrokerFigure,
   MessageQueueOverviewFigures,
   formatMessageQueueFigureValue,
@@ -12,6 +13,7 @@ import {
   getMessageQueueBrokerFigure,
   getMessageQueueBrokerFigureDescription,
   getMessageQueueBrokerFigureSublabel,
+  getMessageQueueMessagesChart,
   getMessageQueueOverviewFigures,
   getMessageQueueSeriesIntervalMs,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewFigures";
@@ -37,7 +39,8 @@ import { Translator, createTranslator } from "../../../Types/Translator";
  * they exist — they say which service did what — and a level (a backlog, a
  * size) never stands in for a count. A running total's rate becomes a count
  * per interval and says it is an estimate; p95 processing time needs
- * consumer traces, and says so.
+ * consumer traces, and says so. The Messages chart draws the lines it has,
+ * marking the broker's only beside a line of spans.
  */
 
 const NOW: Date = new Date("2026-03-04T12:30:00.000Z");
@@ -442,6 +445,122 @@ describe("the Overview's figures", () => {
   });
 });
 
+describe("the Messages chart's lines", () => {
+  const namesOf: (
+    chart: ReturnType<typeof getMessageQueueMessagesChart>,
+  ) => Array<string> = (
+    chart: ReturnType<typeof getMessageQueueMessagesChart>,
+  ): Array<string> => {
+    return chart.lines.map((line: { seriesName: string }): string => {
+      return line.seriesName;
+    });
+  };
+
+  test("spans only: its three lines, as the chart always drew them", () => {
+    const chart: ReturnType<typeof getMessageQueueMessagesChart> =
+      getMessageQueueMessagesChart(
+        getMessageQueueOverviewFigures({
+          spans: spans({
+            total: 5,
+            published: 5,
+            publishedSeries: perMinute([5]),
+          }),
+          broker: [],
+          window: WINDOW,
+        }),
+      );
+    expect(chart.sources).toBe("spans");
+    // An empty line keeps its place: the chart is the spans' as it was.
+    expect(namesOf(chart)).toEqual(["Published", "Consumed", "Errors"]);
+    expect(chart.lines[1]!.data).toEqual([]);
+  });
+
+  test("the broker's only: plain names, and no line without a point", () => {
+    // Messages in and out, no error metric: two lines, no empty Errors.
+    const chart: ReturnType<typeof getMessageQueueMessagesChart> =
+      getMessageQueueMessagesChart(
+        getMessageQueueOverviewFigures({
+          spans: spans({}),
+          broker: [
+            sb("incomingmessages_total", [3, 4]),
+            sb("outgoingmessages_total", [2, 2]),
+          ],
+          window: WINDOW,
+        }),
+      );
+    expect(chart.sources).toBe("broker");
+    expect(namesOf(chart)).toEqual(["Published", "Consumed"]);
+    expect(chart.lines[0]!.data).toEqual(perMinute([3, 4]));
+
+    /*
+     * A line whose tile reads a dash is not drawn either, whatever buckets
+     * a read of no span returned: a flat 0 the tile does not claim, which
+     * would make the chart read as mixed.
+     */
+    const dashed: ReturnType<typeof getMessageQueueMessagesChart> =
+      getMessageQueueMessagesChart(
+        getMessageQueueOverviewFigures({
+          spans: spans({ errorSeries: perMinute([0, 0]) }),
+          broker: [
+            sb("incomingmessages_total", [3, 4]),
+            sb("outgoingmessages_total", [2, 2]),
+          ],
+          window: WINDOW,
+        }),
+      );
+    expect(dashed.sources).toBe("broker");
+    expect(namesOf(dashed)).toEqual(["Published", "Consumed"]);
+    expect(MESSAGE_QUEUE_FIGURE_SERIES_NAMES.published.spans).toBe("Published");
+  });
+
+  test("spans beside the broker's counts: only the broker's lines say so", () => {
+    const chart: ReturnType<typeof getMessageQueueMessagesChart> =
+      getMessageQueueMessagesChart(
+        getMessageQueueOverviewFigures({
+          spans: spans({
+            total: 10,
+            published: 10,
+            publishedSeries: perMinute([10]),
+            errors: 1,
+            errorSeries: perMinute([1]),
+          }),
+          broker: [sb("outgoingmessages_total", [2, 2])],
+          window: WINDOW,
+        }),
+      );
+    expect(chart.sources).toBe("mixed");
+    expect(namesOf(chart)).toEqual([
+      "Published",
+      "Consumed (broker metrics)",
+      "Errors",
+    ]);
+
+    // A spans' line with no point is left out, not named beside them.
+    expect(
+      namesOf(
+        getMessageQueueMessagesChart(
+          getMessageQueueOverviewFigures({
+            spans: spans({
+              total: 10,
+              published: 10,
+              publishedSeries: perMinute([10]),
+            }),
+            broker: [sb("outgoingmessages_total", [2, 2])],
+            window: WINDOW,
+          }),
+        ),
+      ),
+    ).toEqual(["Published", "Consumed (broker metrics)"]);
+  });
+
+  test("processing time without consumer traces: what gives it, and where to read how", () => {
+    expect(MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES).toBe("Needs consumer traces");
+    expect(MESSAGE_QUEUE_TRACE_CONSUMERS_LINK_LABEL).toBe(
+      "Trace your consumers →",
+    );
+  });
+});
+
 describe("the figures' words", () => {
   const ERRORS: MessageQueueBrokerFigure = getMessageQueueBrokerFigure(
     [
@@ -486,8 +605,12 @@ describe("the figures' words", () => {
         isEstimatedFromRate: true,
       }),
     ).toBe(MESSAGE_QUEUE_BROKER_ESTIMATE_SUBLABEL);
+    // Short enough for a tile beside the side menu, as its sibling is.
     expect(MESSAGE_QUEUE_BROKER_ESTIMATE_SUBLABEL).toBe(
-      "broker metrics, estimated from a rate",
+      "estimated from broker metrics",
+    );
+    expect(MESSAGE_QUEUE_BROKER_ESTIMATE_SUBLABEL.length).toBeLessThanOrEqual(
+      MESSAGE_QUEUE_BROKER_FIGURE_SUBLABEL.length,
     );
 
     const errorsFigure: MessageQueueOverviewFigures["errors"] = {
@@ -512,19 +635,49 @@ describe("the figures' words", () => {
         errors: errorsFigure,
         throttled: throttled(1),
       }),
-    ).toBe("broker metrics; 1 request throttled");
+    ).toBe("broker metrics; 1 throttled");
     expect(
       getMessageQueueBrokerErrorsSublabel({
         errors: errorsFigure,
         throttled: throttled(2.6),
       }),
-    ).toBe("broker metrics; 3 requests throttled");
+    ).toBe("broker metrics; 3 throttled");
     expect(
       getMessageQueueBrokerErrorsSublabel(
         { errors: errorsFigure, throttled: throttled(4) },
         MARKED,
       ),
-    ).toBe("«broker metrics; 4 requests throttled»");
+    ).toBe("«broker metrics; 4 throttled»");
+    // None throttled beside the errors: nothing to add to the source.
+    for (const total of [0, 0.4]) {
+      expect(
+        getMessageQueueBrokerErrorsSublabel({
+          errors: errorsFigure,
+          throttled: throttled(total),
+        }),
+      ).toBe("broker metrics, selected range");
+    }
+    /*
+     * Under the tile's dash (no error count, only throttled requests) the
+     * throttled count is all the tile has: shown, 0 too.
+     */
+    const noErrors: MessageQueueOverviewFigures["errors"] = {
+      source: "spans",
+      value: null,
+      series: [],
+      broker: null,
+    };
+    for (const [total, line] of [
+      [0, "broker metrics; 0 throttled"],
+      [5, "broker metrics; 5 throttled"],
+    ] as Array<[number, string]>) {
+      expect(
+        getMessageQueueBrokerErrorsSublabel({
+          errors: noErrors,
+          throttled: throttled(total),
+        }),
+      ).toBe(line);
+    }
   });
 
   test("a broker tile's (i) names the metrics it reads, and why it reads them", () => {

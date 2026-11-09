@@ -46,7 +46,9 @@ import {
  *   - not collected: a level the broker reports every period (a backlog, a
  *     size, a lag) that never arrived while the queue's other metrics do —
  *     the collector does not ask for it (an Azure Monitor receiver lists
- *     every metric it reads), or its receiver leaves it off by default;
+ *     every metric it reads), or its receiver leaves it off by default; or
+ *     a send's latency that never arrived while the queue's published count
+ *     shows sends in the range, each of which it is reported with;
  *   - stopped: such a level that arrived in the lookback and no longer
  *     does, while the others still arrive;
  *   - not received / not in this range: nothing of the queue's arrived in
@@ -84,6 +86,11 @@ export type MessageQueueBrokerMetricReason =
   | "notRequested"
   // notCollected: a level its receiver leaves off unless turned on.
   | "offByDefault"
+  /*
+   * notCollected: reported with every send (a send's latency), and the
+   * queue's published count shows sends in the range without it.
+   */
+  | "reportedWithSends"
   // stopped: it arrived in the lookback, and the others still arrive.
   | "stoppedWhileOthersArrive";
 
@@ -171,6 +178,17 @@ export function isMessageQueueMetricReportedEveryPeriod(
   );
 }
 
+/**
+ * Whether the broker reports the metric with every send to the queue, so
+ * that sends in the range without it mean it is not collected: a send's
+ * latency (Service Bus's ServerSendLatency).
+ */
+export function isMessageQueueMetricReportedWithEverySend(
+  descriptor: Pick<MessageQueueMetricDescriptor, "signal">,
+): boolean {
+  return descriptor.signal === "latency";
+}
+
 function newestPointTime(
   series: ReadonlyArray<MessageQueueTimePoint>,
 ): number | null {
@@ -254,6 +272,21 @@ export function getMessageQueueBrokerMetricsStatus(data: {
     },
   );
 
+  /*
+   * Whether the queue's published count shows sends in the range: a count
+   * above zero, since a source may report a quiet period as 0.
+   */
+  const sentInRange: boolean = data.results.some(
+    (result: MessageQueueBrokerMetricResult): boolean => {
+      return (
+        result.descriptor.signal === "published" &&
+        result.series.some((point: MessageQueueTimePoint): boolean => {
+          return Number.isFinite(point.y) && point.y > 0;
+        })
+      );
+    },
+  );
+
   const metrics: Array<MessageQueueBrokerMetricStatus> = reads.map(
     (read: {
       descriptor: MessageQueueMetricDescriptor;
@@ -284,6 +317,18 @@ export function getMessageQueueBrokerMetricsStatus(data: {
           state = "nothingToReport";
           reason = "onlyWithActivity";
         }
+      } else if (
+        isMessageQueueMetricReportedWithEverySend(descriptor) &&
+        sentInRange
+      ) {
+        /*
+         * Sends arrived in the range, and it comes with every one: the
+         * collector does not ask for it.
+         */
+        state = "notCollected";
+        reason = descriptor.enabledByDefault
+          ? "reportedWithSends"
+          : "offByDefault";
       } else if (!everyPeriod) {
         /*
          * A count that never arrived had no activity, or is not collected:
@@ -557,7 +602,11 @@ export function getMessageQueueBrokerMetricStatusLine(
           )
         : translator.translateTemplate(
             "Reported only for periods with activity, and there was none in the last {{days}} days.",
-            { days: MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS },
+            {
+              days: translator.formatNumber(
+                MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS,
+              ),
+            },
           );
     case "notRequested":
       return metric.configLine
@@ -567,6 +616,16 @@ export function getMessageQueueBrokerMetricStatusLine(
           )
         : translator.translateTemplate(
             "{{system}} reports it all the time, so it is most likely not collected.",
+            { system: system },
+          );
+    case "reportedWithSends":
+      return metric.configLine
+        ? translator.translateTemplate(
+            "{{system}} reports it with every send, and sends to this queue arrived in the selected range, so your collector most likely does not ask for it: add `{{line}}` to its metrics list.",
+            { system: system, line: metric.configLine },
+          )
+        : translator.translateTemplate(
+            "{{system}} reports it with every send, and sends to this queue arrived in the selected range, so it is most likely not collected.",
             { system: system },
           );
     case "offByDefault":
@@ -608,7 +667,7 @@ export function getMessageQueueBrokerMetricsSummary(
             "{{arrived}} of {{count}} metrics arrived in the selected range.",
         },
         status.metrics.length,
-        { arrived: status.arrivingCount },
+        { arrived: translator.formatNumber(status.arrivingCount) },
       );
     case "stopped":
       return translator.translateTemplate(
@@ -746,7 +805,7 @@ export function getMessageQueueMissingMetricsFinding(
       status.missing.length,
     ),
     description: translator.translateTemplate(
-      "{{system}} reports these all the time, and this queue's other metrics arrive, so they are most likely not collected: {{metrics}}.",
+      "{{system}} would have reported these in the selected range, and this queue's other metrics arrive, so they are most likely not collected: {{metrics}}.",
       {
         system: system,
         metrics: composedValue((words: Translator): string => {

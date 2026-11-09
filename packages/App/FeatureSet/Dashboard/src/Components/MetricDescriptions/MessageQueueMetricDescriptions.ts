@@ -37,7 +37,9 @@
  *   - A Published, Consumed or Errors tile with no span to count reads the
  *     broker's own count instead (MessageQueueOverviewFigures), and its (i)
  *     names the metrics it reads (getMessageQueueBrokerFigureDescription);
- *     the Messages chart then says so too (messagesChartBroker).
+ *     the Messages chart then says so too: messagesChartBrokerOnly when
+ *     every line it draws is the broker's, messagesChartBroker when some
+ *     count spans (getMessageQueueMessagesChart).
  *
  * Change the fetch, change the words.
  */
@@ -51,6 +53,7 @@ export type MessageQueueMetric =
   | "p95Processing"
   | "messagesChart"
   | "messagesChartBroker"
+  | "messagesChartBrokerOnly"
   | "p95ProcessingChart"
   | "producers"
   | "consumers"
@@ -77,6 +80,9 @@ export const MESSAGE_QUEUE_METRIC_DESCRIPTIONS: Record<
   ),
   messagesChartBroker: translationKey(
     "Messages published and consumed on this queue in each interval of the selected range, with its failures. A line marked broker metrics is the broker's own count, drawn where no traced application publishes, consumes or fails; the others count spans, as the tiles do. Only whole intervals are drawn.",
+  ),
+  messagesChartBrokerOnly: translationKey(
+    "Messages published and consumed on this queue in each interval of the selected range, and its failures where the broker reports them, all from the broker's own counts: no traced application publishes to it or consumes from it. Only whole intervals are drawn.",
   ),
   p95ProcessingChart: translationKey(
     "p95 means the 95th percentile: in each interval, 95% of this queue's consumer spans finished faster than the line, leaving out receives that returned nothing and SQS receive calls. A spike in one interval can come from a handful of slow messages.",

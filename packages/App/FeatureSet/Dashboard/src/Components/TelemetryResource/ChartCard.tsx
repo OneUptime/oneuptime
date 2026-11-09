@@ -209,10 +209,12 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
         >
           {/*
            * Every page's empty chart, in the reader's language - or what the
-           * page says fills it, with where to read how.
+           * page says fills it, with where to read how. Balanced, so a label
+           * that needs two lines splits evenly and never leaves its arrow on
+           * a line of its own.
            */}
           {props.emptyAction ? (
-            <div className="flex flex-col items-center gap-2 px-4 text-center">
+            <div className="flex flex-col items-center gap-2 px-4 text-center text-balance">
               <span>{emptyMessage}</span>
               {props.emptyAction}
             </div>

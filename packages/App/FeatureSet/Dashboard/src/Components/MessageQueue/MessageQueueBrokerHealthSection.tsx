@@ -86,8 +86,14 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
  * Every queue its broker metrics can reach also gets the Broker metrics card
  * (MessageQueueBrokerMetricsCard): which of the catalog's metrics arrived,
  * when each last did, and why each other one did not — at the top of the
- * section once metrics arrive, under the card above while none has. Never
- * while the first load runs: it would call every metric missing.
+ * section, under its header. While none has data in the range it is the
+ * section's only card and takes the cards above' place: the setup guidance
+ * goes inside it while none ever arrived, and its summary says what the
+ * "no broker metrics in this range" card said, so the section says each
+ * thing once. Never while the first load runs: it would call every metric
+ * missing. The Overview passes isLoading for that first load only (and
+ * until the namespace's read lands), so a refresh never swaps the card for
+ * a loader.
  */
 
 export interface ComponentProps {
@@ -113,12 +119,6 @@ export interface ComponentProps {
    * metrics arrives (getMessageQueueNamespaceFinding); null otherwise.
    */
   namespaceFinding?: MessageQueueNamespaceFinding | null | undefined;
-  /*
-   * Whether the queue has consumer spans that handled messages: without
-   * them the card says what would give a processing time. Unset, it says
-   * nothing about it.
-   */
-  hasProcessingTime?: boolean | undefined;
   // The moment the card's relative times count from; the present by default.
   now?: Date | undefined;
 }
@@ -272,9 +272,57 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
     getMessageQueueBrokerMetricsGuidance(props.messagingSystem, props.identity);
 
   /*
+   * Where the system's broker metrics come from, with the guide's section
+   * and the queue's setup (or, for metrics that never name a queue, the
+   * Metrics explorer): in the Broker metrics card while none has arrived,
+   * or in a card of its own for a queue the card is not drawn for.
+   */
+  const guidanceBox: ReactElement = (
+    <div
+      data-testid="message-queue-broker-health-guidance"
+      data-source-kind={guidance.sourceKind}
+      className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-sm text-gray-700"
+    >
+      <p data-testid="message-queue-broker-health-guidance-text">
+        {renderMessageQueueInlineCode(guidance.description)}
+      </p>
+      <p className="mt-2 text-xs text-gray-500">{guidance.sourceLabel}</p>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+        <Link
+          to={guidance.docsRoute}
+          openInNewTab={true}
+          className="text-sm font-medium text-indigo-600 hover:underline"
+        >
+          {guidance.docsLabel}
+        </Link>
+        {guidance.reachesQueue ? (
+          <AppLink
+            to={documentationRoute}
+            className="text-sm font-medium text-indigo-600 hover:underline"
+          >
+            {translator.translateText(BROKER_HEALTH_SETUP_LINK_LABEL) || ""}
+          </AppLink>
+        ) : guidance.sourceKind !== "none" ? (
+          <AppLink
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.METRICS] as Route,
+            )}
+            className="text-sm font-medium text-indigo-600 hover:underline"
+          >
+            {translator.translateText(
+              BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL,
+            ) || ""}
+          </AppLink>
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
+  );
+
+  /*
    * The card, for a queue the system's metrics can reach (one that has
-   * some reached it). The first load shows the loader below instead; a
-   * refresh keeps the card on screen until its answer lands.
+   * some reached it). The first load shows the loader below instead.
    */
   const metricsCard: ReactElement | null =
     metricsStatus && (hasData || guidance.reachesQueue) ? (
@@ -283,7 +331,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
         messagingSystem={props.messagingSystem}
         status={metricsStatus}
         namespaceFinding={props.namespaceFinding ?? null}
-        hasProcessingTime={props.hasProcessingTime ?? true}
+        setupGuidance={guidanceBox}
         now={props.now || OneUptimeDate.getCurrentDate()}
       />
     ) : null;
@@ -303,6 +351,20 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
           <ComponentLoader />
         </div>
       </Card>
+    );
+  }
+
+  /*
+   * Nothing in the range: the Broker metrics card says what there is to
+   * say — none yet and how to set them up, none in this range but newer
+   * ones, or none since they stopped and why — under the section's header.
+   */
+  if (!hasData && metricsCard) {
+    return (
+      <div data-testid="message-queue-broker-health-no-data">
+        <SectionHeader metricsRoute={metricsRoute} />
+        {metricsCard}
+      </div>
     );
   }
 
@@ -337,62 +399,18 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
             </Link>
           </div>
         </Card>
-        {metricsCard}
       </div>
     );
   }
 
   if (!hasData) {
     return (
-      <div>
-        <Card
-          title={BROKER_HEALTH_TITLE}
-          description={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.brokerHealth}
-        >
-          <div
-            data-testid="message-queue-broker-health-guidance"
-            data-source-kind={guidance.sourceKind}
-            className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-sm text-gray-700"
-          >
-            <p data-testid="message-queue-broker-health-guidance-text">
-              {renderMessageQueueInlineCode(guidance.description)}
-            </p>
-            <p className="mt-2 text-xs text-gray-500">{guidance.sourceLabel}</p>
-            <div className="mt-3 flex flex-wrap gap-4">
-              <Link
-                to={guidance.docsRoute}
-                openInNewTab={true}
-                className="text-sm font-medium text-indigo-600 hover:underline"
-              >
-                {guidance.docsLabel}
-              </Link>
-              {guidance.reachesQueue ? (
-                <AppLink
-                  to={documentationRoute}
-                  className="text-sm font-medium text-indigo-600 hover:underline"
-                >
-                  {translator.translateText(BROKER_HEALTH_SETUP_LINK_LABEL) ||
-                    ""}
-                </AppLink>
-              ) : guidance.sourceKind !== "none" ? (
-                <AppLink
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.METRICS] as Route,
-                  )}
-                  className="text-sm font-medium text-indigo-600 hover:underline"
-                >
-                  {translator.translateText(
-                    BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL,
-                  ) || ""}
-                </AppLink>
-              ) : (
-                <></>
-              )}
-            </div>
-          </div>
-        </Card>
-        {metricsCard}
-      </div>
+      <Card
+        title={BROKER_HEALTH_TITLE}
+        description={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.brokerHealth}
+      >
+        {guidanceBox}
+      </Card>
     );
   }
 

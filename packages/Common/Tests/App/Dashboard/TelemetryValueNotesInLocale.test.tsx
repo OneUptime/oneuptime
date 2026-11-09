@@ -51,7 +51,10 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ChartCard";
-import { MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewFigures";
+import {
+  MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES,
+  MESSAGE_QUEUE_TRACE_CONSUMERS_LINK_LABEL,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewFigures";
 import IconProp from "../../../Types/Icon/IconProp";
 import SeriesPoint from "../../../UI/Components/Charts/Types/SeriesPoints";
 
@@ -80,7 +83,7 @@ const LANGUAGES: ReadonlyArray<string> = [
 ];
 
 const NOTE: string = "Needs consumer traces";
-const ACTION: string = "Instrumenting applications →";
+const ACTION: string = "Trace your consumers →";
 const NO_DATA: string = "No data in this time range";
 const SUBLABEL: string = "consumer spans, selected range";
 // A note a page worded itself: no locale has words for it.
@@ -220,8 +223,9 @@ function renderChartCard(
 }
 
 describe("the notes the queue page hands over", () => {
-  test("are keys of the English locale, the page's own constant among them", () => {
+  test("are keys of the English locale, the page's own constants among them", () => {
     expect(MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES).toBe(NOTE);
+    expect(MESSAGE_QUEUE_TRACE_CONSUMERS_LINK_LABEL).toBe(ACTION);
     for (const english of [NOTE, ACTION, NO_DATA]) {
       expect({ english, key: locales["en"]![english] }).toEqual({
         english,
@@ -294,7 +298,7 @@ describe("a golden-metric tile's value note", () => {
     renderTiles("de", [tile({ valueNote: NOTE, sublabel: SUBLABEL })]);
 
     const line: HTMLElement =
-      tileRoot().querySelector<HTMLElement>("div.truncate")!;
+      tileRoot().querySelector<HTMLElement>("div.line-clamp-2")!;
     expect(line).toHaveTextContent(drawn("de", SUBLABEL));
     // The note comes first, the line under it.
     expect(noteOf()!.nextElementSibling).toBe(line);

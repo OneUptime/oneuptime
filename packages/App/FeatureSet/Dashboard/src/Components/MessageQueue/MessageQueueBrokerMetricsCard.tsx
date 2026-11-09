@@ -20,7 +20,6 @@ import {
 import { renderMessageQueueInlineCode } from "./MessageQueueInlineCode";
 import {
   MESSAGE_QUEUE_BROKER_HEALTH_EMPTY_DOCS_ANCHOR,
-  MESSAGE_QUEUE_INSTRUMENTING_DOCS_ANCHOR,
   getMessageQueueBrokerMetricTitle,
   getMessageQueueDocsRoute,
 } from "./MessageQueueOverviewPresentation";
@@ -43,18 +42,23 @@ import React, { FunctionComponent, ReactElement } from "react";
  * system's curated broker metrics arrive for the queue, when each last did,
  * and for each that does not, why — with the steps that fix it
  * (MessageQueueBrokerMetricsStatus words every line; this only draws them).
+ * While none of them has data in the range it is the section's only card,
+ * so it says everything the section has to say:
  *
- *   - a line saying how many arrived in the range, and when the newest did;
+ *   - a line saying how many arrived in the range, and when the newest did
+ *     — or, while none ever has, where the system's metrics come from (the
+ *     section's setup guidance), unless a finding says more;
  *   - a finding for what needs doing: the metrics that should arrive and do
  *     not (with the lines the collector's configuration needs), metrics
  *     that stopped, or — for an Azure queue none of whose metrics arrive —
  *     what its namespace sends instead (nothing, totals only, other queues
  *     only), each with links to the queue's collector configuration and the
  *     guide's troubleshooting;
- *   - a note that processing time needs consumer traces, when there are
- *     none: no broker measures it;
- *   - every metric the system supports, folded: its name, its state, why,
- *     and when it last arrived.
+ *   - every metric the system supports, folded: its name, its state, and
+ *     why — or, for one that arrives, when it last did.
+ *
+ * Processing time is not here: no broker measures it, and the Overview's
+ * p95 tile and chart say what gives it.
  */
 
 export interface ComponentProps {
@@ -66,8 +70,12 @@ export interface ComponentProps {
    * none of whose metrics arrived; null otherwise.
    */
   namespaceFinding: MessageQueueNamespaceFinding | null;
-  // Whether the queue has consumer spans that handled messages.
-  hasProcessingTime: boolean;
+  /*
+   * Where the system's metrics come from and how to set them up (the
+   * section's guidance), drawn while none has ever arrived and no finding
+   * says why.
+   */
+  setupGuidance?: ReactElement | undefined;
   // The moment relative times are counted from.
   now: Date;
 }
@@ -85,10 +93,6 @@ export const BROKER_METRICS_CONFIGURATION_LINK_LABEL: string = translationKey(
 
 export const BROKER_METRICS_TROUBLESHOOTING_LINK_LABEL: string = translationKey(
   "Troubleshooting in the Queues guide →",
-);
-
-export const BROKER_METRICS_TRACING_LINK_LABEL: string = translationKey(
-  "Trace your consumers →",
 );
 
 const LINK_CLASS_NAME: string =
@@ -193,7 +197,18 @@ const FindingCallout: FunctionComponent<{
       <p className="mt-1 text-sm text-amber-800">
         {renderMessageQueueInlineCode(finding.description)}
       </p>
-      {finding.steps.length > 0 ? (
+      {/*
+       * One step is a sentence, not a list of one: a number says there is
+       * an order to follow.
+       */}
+      {finding.steps.length === 1 ? (
+        <p
+          data-testid="message-queue-broker-metrics-finding-step"
+          className="mt-2 text-sm text-amber-800"
+        >
+          {renderMessageQueueInlineCode(finding.steps[0]!)}
+        </p>
+      ) : finding.steps.length > 1 ? (
         <ol className="mt-2 list-decimal space-y-1 ps-5 text-sm text-amber-800">
           {finding.steps.map((step: string, index: number): ReactElement => {
             return (
@@ -268,33 +283,27 @@ const MetricRow: FunctionComponent<{
       data-metric-id={metric.id}
       data-state={metric.state}
       data-reason={metric.reason || ""}
-      className="[container-type:inline-size] px-3 py-3 sm:px-4"
+      className="px-3 py-3 sm:px-4"
     >
       {/*
-       * The badge goes beside the name where the row has the room and under
-       * it where it has not, by the row's own width: a record page's card
-       * is narrow from md to about 1100px.
+       * The name and its badge share the first line at every width; the
+       * line saying why (or when it last arrived) runs under both, the
+       * row's whole width, so a phone never squeezes it beside the badge.
        */}
-      <div className="flex flex-col gap-2 [@container(min-width:32rem)]:flex-row [@container(min-width:32rem)]:items-start [@container(min-width:32rem)]:gap-4">
-        <div className="min-w-0 [@container(min-width:32rem)]:flex-1">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <div className="text-sm font-medium text-gray-900">
             {getMessageQueueBrokerMetricTitle(metric.descriptor, translator)}
           </div>
-          <div dir="ltr" className="break-all font-mono text-xs text-gray-500">
-            {metric.descriptor.metricName}
+          {/*
+           * The stored name reads left to right on a page laid out right to
+           * left too, and starts where the row's words start.
+           */}
+          <div className="break-all font-mono text-xs text-gray-500">
+            <span dir="ltr">{metric.descriptor.metricName}</span>
           </div>
-          {line ? (
-            <p
-              data-testid="message-queue-broker-metric-status-line"
-              className="mt-1 text-xs text-gray-600"
-            >
-              {renderMessageQueueInlineCode(line)}
-            </p>
-          ) : (
-            <></>
-          )}
         </div>
-        <div className="flex flex-col items-start gap-1 [@container(min-width:32rem)]:flex-none [@container(min-width:32rem)]:items-end">
+        <div className="flex-none">
           <StatusBadge
             text={getMessageQueueBrokerMetricStateLabel(
               metric.state,
@@ -302,20 +311,28 @@ const MetricRow: FunctionComponent<{
             )}
             type={getStateBadgeType(metric.state)}
           />
-          {arrivedAt ? (
-            <span
-              className="text-xs text-gray-500"
-              title={OneUptimeDate.getDateAsLocalFormattedString(arrivedAt)}
-            >
-              {translator.translateTemplate("Last arrived {{time}}", {
-                time: OneUptimeDate.fromNow(arrivedAt, props.now),
-              })}
-            </span>
-          ) : (
-            <></>
-          )}
         </div>
       </div>
+      {arrivedAt ? (
+        <p
+          data-testid="message-queue-broker-metric-last-arrived"
+          className="mt-1 text-xs text-gray-500"
+          title={OneUptimeDate.getDateAsLocalFormattedString(arrivedAt)}
+        >
+          {translator.translateTemplate("Last arrived {{time}}", {
+            time: OneUptimeDate.fromNow(arrivedAt, props.now),
+          })}
+        </p>
+      ) : line ? (
+        <p
+          data-testid="message-queue-broker-metric-status-line"
+          className="mt-1 text-xs text-gray-600"
+        >
+          {renderMessageQueueInlineCode(line)}
+        </p>
+      ) : (
+        <></>
+      )}
     </li>
   );
 };
@@ -344,12 +361,21 @@ const MessageQueueBrokerMetricsCard: FunctionComponent<ComponentProps> = (
     props.now,
     translator,
   );
+  /*
+   * While none ever arrived, what to set up says so (the guidance), or a
+   * finding says why not: either says more than "none has arrived yet".
+   */
+  const showsSetupGuidance: boolean = Boolean(
+    status.health === "never" && findings.length === 0 && props.setupGuidance,
+  );
+  const showsSummary: boolean =
+    status.health !== "never" || (findings.length === 0 && !showsSetupGuidance);
 
   return (
     <Card
       title={BROKER_METRICS_CARD_TITLE}
       description={translator.translateTemplate(
-        "The {{system}} metrics this page charts: which arrive for this queue, when each last did, and why the others do not.",
+        "Which {{system}} metrics arrive for this queue, and why any others do not.",
         { system: system },
       )}
       rightElement={
@@ -364,27 +390,33 @@ const MessageQueueBrokerMetricsCard: FunctionComponent<ComponentProps> = (
         data-health={status.health}
         className="space-y-4"
       >
-        <div>
-          <p
-            data-testid="message-queue-broker-metrics-summary"
-            className="text-sm text-gray-700"
-          >
-            {getMessageQueueBrokerMetricsSummary(status, translator)}
-          </p>
-          {lastReceived && status.lastReceivedAt ? (
+        {showsSummary ? (
+          <div>
             <p
-              data-testid="message-queue-broker-metrics-last-received"
-              className="mt-1 text-xs text-gray-500"
-              title={OneUptimeDate.getDateAsLocalFormattedString(
-                status.lastReceivedAt,
-              )}
+              data-testid="message-queue-broker-metrics-summary"
+              className="text-sm text-gray-700"
             >
-              {lastReceived}
+              {getMessageQueueBrokerMetricsSummary(status, translator)}
             </p>
-          ) : (
-            <></>
-          )}
-        </div>
+            {lastReceived && status.lastReceivedAt ? (
+              <p
+                data-testid="message-queue-broker-metrics-last-received"
+                className="mt-1 text-xs text-gray-500"
+                title={OneUptimeDate.getDateAsLocalFormattedString(
+                  status.lastReceivedAt,
+                )}
+              >
+                {lastReceived}
+              </p>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {showsSetupGuidance ? props.setupGuidance : <></>}
 
         {findings.map(
           (finding: MessageQueueBrokerMetricsFinding): ReactElement => {
@@ -396,32 +428,6 @@ const MessageQueueBrokerMetricsCard: FunctionComponent<ComponentProps> = (
               />
             );
           },
-        )}
-
-        {!props.hasProcessingTime ? (
-          <div
-            data-testid="message-queue-broker-metrics-tracing-note"
-            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700"
-          >
-            <p>
-              {translator.translateText(
-                "Processing time comes from consumer traces only: no broker measures how long a consumer takes with a message. Trace the services that consume from this queue to see it.",
-              )}
-            </p>
-            <div className="mt-2">
-              <Link
-                to={getMessageQueueDocsRoute(
-                  MESSAGE_QUEUE_INSTRUMENTING_DOCS_ANCHOR,
-                )}
-                openInNewTab={true}
-                className={LINK_CLASS_NAME}
-              >
-                {translator.translateText(BROKER_METRICS_TRACING_LINK_LABEL)}
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <></>
         )}
 
         <CollapsibleSection

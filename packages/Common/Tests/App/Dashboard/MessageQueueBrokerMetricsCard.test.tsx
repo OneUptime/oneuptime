@@ -12,12 +12,18 @@ import { MemoryRouter } from "react-router-dom";
  *     did (relative, with the moment itself on hover);
  *   - one callout per thing to do, most specific first: what an Azure
  *     namespace sends instead (only while nothing of the queue's arrives),
- *     else the metrics that stopped; then the levels that should arrive and
+ *     else the metrics that stopped; then the metrics that should arrive and
  *     do not, with the configuration lines, set left to right, and links to
  *     the queue's collector configuration and the guide's troubleshooting;
- *   - the note that processing time needs consumer traces, only without them;
- *   - every supported metric, folded: its state, why, and when it arrived,
- *     inline code set off as code.
+ *     a callout's one step reads as a sentence, several as numbered steps;
+ *   - while none ever arrived, the section's setup guidance in place of the
+ *     summary, unless a finding says why;
+ *   - nothing on processing time, which no broker measures: the Overview's
+ *     p95 tile and chart say what gives it;
+ *   - every supported metric, folded: its state, and why or when it last
+ *     arrived on a line of its own under the name and badge, the stored
+ *     name left to right where the row's words start, inline code set off
+ *     as code.
  */
 
 jest.mock("react-i18next", () => {
@@ -102,7 +108,10 @@ function statusOf(data: {
   });
 }
 
-// Some arrive, three levels do not.
+/*
+ * Some arrive, three levels do not, and sends arrived without their
+ * latency: four missing.
+ */
 const INCOMPLETE: MessageQueueBrokerMetricsStatus = statusOf({
   results: [
     inRange("azure_activemessages_average"),
@@ -121,7 +130,7 @@ const NEVER: MessageQueueBrokerMetricsStatus = statusOf({});
 function renderCard(props: {
   status: MessageQueueBrokerMetricsStatus;
   namespaceFinding?: MessageQueueNamespaceFinding | null;
-  hasProcessingTime?: boolean;
+  setupGuidance?: React.ReactElement | undefined;
 }): HTMLElement {
   render(
     <MemoryRouter>
@@ -130,7 +139,7 @@ function renderCard(props: {
         messagingSystem="servicebus"
         status={props.status}
         namespaceFinding={props.namespaceFinding ?? null}
-        hasProcessingTime={props.hasProcessingTime ?? true}
+        setupGuidance={props.setupGuidance}
         now={NOW}
       />
     </MemoryRouter>,
@@ -149,10 +158,10 @@ describe("the card's head", () => {
     expect(BROKER_METRICS_CARD_TITLE).toBe("Broker metrics");
     expect(
       screen.getByText(
-        "The Azure Service Bus metrics this page charts: which arrive for this queue, when each last did, and why the others do not.",
+        "Which Azure Service Bus metrics arrive for this queue, and why any others do not.",
       ),
     ).toBeInTheDocument();
-    const badge: HTMLElement = screen.getByText("3 missing");
+    const badge: HTMLElement = screen.getByText("4 missing");
     expect(badge.className).toContain("text-amber-800");
   });
 
@@ -210,21 +219,27 @@ describe("the card's head", () => {
 });
 
 describe("what the card asks the reader to do", () => {
-  test("the levels that should arrive and do not, with the lines that collect them", () => {
+  test("the metrics that should arrive and do not, with the lines that collect them", () => {
     const card: HTMLElement = renderCard({ status: INCOMPLETE });
     const findings: Array<HTMLElement> = findingsIn(card);
     expect(findings).toHaveLength(1);
     const finding: HTMLElement = findings[0]!;
     expect(finding).toHaveAttribute("data-kind", "missing");
-    expect(finding).toHaveTextContent("3 metrics do not arrive");
+    expect(finding).toHaveTextContent("4 metrics do not arrive");
+    // Levels reported every minute and a latency reported with every send.
     expect(finding).toHaveTextContent(
-      "so they are most likely not collected: Dead-lettered messages, Scheduled messages, Size.",
+      "Azure Service Bus would have reported these in the selected range, and this queue's other metrics arrive, so they are most likely not collected: Dead-lettered messages, Scheduled messages, Size, Server send latency.",
     );
 
-    // The step names the receiver and its list as code.
+    /*
+     * The step names the receiver and its list as code; one step is a
+     * sentence, not a numbered list of one.
+     */
     const step: HTMLElement = within(finding).getByTestId(
       "message-queue-broker-metrics-finding-step",
     );
+    expect(step.tagName).toBe("P");
+    expect(finding.querySelector("ol")).toBeNull();
     const codes: Array<string> = Array.from(step.querySelectorAll("code")).map(
       (code: HTMLElement): string => {
         return code.textContent || "";
@@ -242,7 +257,7 @@ describe("what the card asks the reader to do", () => {
     expect(config.tagName).toBe("PRE");
     expect(config).toHaveAttribute("dir", "ltr");
     expect(config.textContent).toBe(
-      "DeadletteredMessages: [Average]\nScheduledMessages: [Average]\nSize: [Average]",
+      "DeadletteredMessages: [Average]\nScheduledMessages: [Average]\nSize: [Average]\nServerSendLatency: [Average]",
     );
   });
 
@@ -311,6 +326,13 @@ describe("what the card asks the reader to do", () => {
     expect(steps).toHaveLength(3);
     expect(steps[1]).toContain("Monitoring Reader role");
     expect(steps[2]).toContain("AuthorizationFailed");
+    // Several steps are numbered, in order.
+    for (const step of within(findings[0]!).getAllByTestId(
+      "message-queue-broker-metrics-finding-step",
+    )) {
+      expect(step.tagName).toBe("LI");
+      expect(step.parentElement!.tagName).toBe("OL");
+    }
   });
 
   test("never: other queues of the namespace arrive, or its totals only", () => {
@@ -360,6 +382,56 @@ describe("what the card asks the reader to do", () => {
     expect(
       within(plain).getByTestId("message-queue-broker-metrics-summary"),
     ).toHaveTextContent("No metric has arrived for this queue yet.");
+  });
+
+  test("never: the setup guidance in place of the summary, unless a finding says why", () => {
+    const guidance: React.ReactElement = (
+      <div data-testid="setup-guidance">
+        No Azure Service Bus broker metric has arrived for this queue yet.
+      </div>
+    );
+
+    // Nothing ever arrived, and nothing says why: how to set them up.
+    const fresh: HTMLElement = renderCard({
+      status: NEVER,
+      setupGuidance: guidance,
+    });
+    expect(within(fresh).getByTestId("setup-guidance")).toBeInTheDocument();
+    expect(
+      within(fresh).queryByTestId("message-queue-broker-metrics-summary"),
+    ).toBeNull();
+    expect(findingsIn(fresh)).toHaveLength(0);
+    cleanup();
+
+    // What the namespace sends instead says more than the guidance.
+    const totals: HTMLElement = renderCard({
+      status: NEVER,
+      namespaceFinding: {
+        kind: "namespaceTotalsOnly",
+        namespace: "orders-ns",
+        fromCloudConnection: false,
+      },
+      setupGuidance: guidance,
+    });
+    expect(within(totals).queryByTestId("setup-guidance")).toBeNull();
+    expect(
+      within(totals).queryByTestId("message-queue-broker-metrics-summary"),
+    ).toBeNull();
+    expect(findingsIn(totals)[0]).toHaveAttribute(
+      "data-kind",
+      "namespaceTotalsOnly",
+    );
+    cleanup();
+
+    // Once something arrived, the summary says what, and no guidance.
+    for (const status of [INCOMPLETE, STOPPED]) {
+      const card: HTMLElement = renderCard({ status, setupGuidance: guidance });
+      expect(within(card).queryByTestId("setup-guidance")).toBeNull();
+      expect(
+        within(card).getByTestId("message-queue-broker-metrics-summary"),
+      ).toBeInTheDocument();
+      cleanup();
+    }
   });
 
   test("a namespace finding is never drawn while the queue's own metrics arrive", () => {
@@ -412,33 +484,14 @@ describe("what the card asks the reader to do", () => {
   });
 });
 
-describe("the note on processing time", () => {
-  test("drawn only without consumer traces, linking how to add them", () => {
-    const card: HTMLElement = renderCard({
-      status: INCOMPLETE,
-      hasProcessingTime: false,
-    });
-    const note: HTMLElement = within(card).getByTestId(
-      "message-queue-broker-metrics-tracing-note",
-    );
-    expect(note).toHaveTextContent(
-      "Processing time comes from consumer traces only: no broker measures how long a consumer takes with a message.",
-    );
-    const link: HTMLAnchorElement = within(note)
-      .getByText("Trace your consumers →")
-      .closest("a") as HTMLAnchorElement;
-    expect(link).toHaveAttribute(
-      "href",
-      "/docs/telemetry/queues#instrumenting-applications",
-    );
-    expect(link).toHaveAttribute("target", "_blank");
-    cleanup();
-
-    expect(
-      within(renderCard({ status: INCOMPLETE })).queryByTestId(
-        "message-queue-broker-metrics-tracing-note",
-      ),
-    ).toBeNull();
+describe("processing time", () => {
+  test("is not the card's to say: no broker measures it", () => {
+    for (const status of [INCOMPLETE, STOPPED, NEVER]) {
+      const card: HTMLElement = renderCard({ status });
+      expect(card).not.toHaveTextContent(/processing time/i);
+      expect(within(card).queryByText("Trace your consumers →")).toBeNull();
+      cleanup();
+    }
   });
 });
 
@@ -480,13 +533,21 @@ describe("the supported metrics", () => {
     expect(within(active).getByText("Arriving").className).toContain(
       "text-emerald-800",
     );
-    const arrived: HTMLElement = within(active).getByText(
+    const arrived: HTMLElement = within(active).getByTestId(
+      "message-queue-broker-metric-last-arrived",
+    );
+    expect(arrived).toHaveTextContent(
       `Last arrived ${OneUptimeDate.fromNow(ago(5 * MINUTE_MS), NOW)}`,
     );
     expect(arrived).toHaveAttribute(
       "title",
       OneUptimeDate.getDateAsLocalFormattedString(ago(5 * MINUTE_MS)),
     );
+    /*
+     * Under the name and the badge, the row's whole width: never squeezed
+     * beside the badge on a phone.
+     */
+    expect(arrived.parentElement).toBe(active);
     expect(
       within(active).queryByTestId("message-queue-broker-metric-status-line"),
     ).toBeNull();
@@ -508,6 +569,19 @@ describe("the supported metrics", () => {
     expect(line.querySelector("code")).toHaveTextContent(
       "ScheduledMessages: [Average]",
     );
+    expect(line.parentElement).toBe(scheduled);
+
+    // A latency reported with every send, while sends arrived without it.
+    const latency: HTMLElement = rowOf(
+      "servicebus:azure_serversendlatency_average",
+    );
+    expect(latency).toHaveAttribute("data-state", "notCollected");
+    expect(latency).toHaveAttribute("data-reason", "reportedWithSends");
+    expect(
+      within(latency).getByTestId("message-queue-broker-metric-status-line"),
+    ).toHaveTextContent(
+      "Azure Service Bus reports it with every send, and sends to this queue arrived in the selected range, so your collector most likely does not ask for it: add ServerSendLatency: [Average] to its metrics list.",
+    );
 
     const throttled: HTMLElement = rowOf(
       "servicebus:azure_throttledrequests_total",
@@ -516,9 +590,16 @@ describe("the supported metrics", () => {
     expect(
       within(throttled).getByText("Nothing to report").className,
     ).toContain("text-gray-700");
-    // The stored name reads left to right on a right-to-left page too.
-    expect(
-      within(throttled).getByText("azure_throttledrequests_total"),
-    ).toHaveAttribute("dir", "ltr");
+    /*
+     * The stored name reads left to right on a right-to-left page too, in
+     * a block that keeps the page's direction, so it starts where the
+     * row's words start.
+     */
+    const stored: HTMLElement = within(throttled).getByText(
+      "azure_throttledrequests_total",
+    );
+    expect(stored.tagName).toBe("SPAN");
+    expect(stored).toHaveAttribute("dir", "ltr");
+    expect(stored.parentElement).not.toHaveAttribute("dir");
   });
 });
