@@ -34,6 +34,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS } from "../../Types/NetworkDevice/DiscoveredDeviceRetention";
 import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -2746,6 +2747,47 @@ export default class Project extends TenantModel {
     length: ColumnLength.ShortText,
   })
   public defaultNetworkTopologyLayout?: string = undefined;
+
+  /*
+   * How long a device the project's switches, routers and network
+   * controllers saw stays on the Discovered Devices list once nothing sees
+   * it any more (issue #6389, Types/NetworkDevice/DiscoveredDeviceRetention):
+   * in days, one of the choices that module lists, or 0 to keep every
+   * device. A monitored device, a classified one and one a person added or
+   * changed always stay. A Project Owner or Admin sets it on Network ->
+   * Topology -> Discovered Devices, under More settings; refused by
+   * ProjectService unless it is one of the choices or 0. A project made
+   * before it existed starts at the default, as a new one does.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    title: "Discovered Device Retention (Days)",
+    description:
+      "Days a discovered device stays once no longer seen: 7, 14, 30, 60, 90, 180 or 365, or 0 to keep all. Monitored and classified devices always stay.",
+    defaultValue: DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS,
+    example: 30,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS,
+  })
+  public discoveredDeviceRetentionInDays?: number = undefined;
 
   /*
    * The columns each of the project's lists shows, and their order, for

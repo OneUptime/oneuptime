@@ -3495,7 +3495,15 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "connected devices",
               "add to monitoring",
               "hide from map",
+              "stale devices",
+              "remove old devices",
             ],
+            /*
+             * How long a device nothing sees stays (issue #6389), folded
+             * under the page's More settings: the result opens the fold at
+             * its card (DiscoveredDeviceRetentionCopy's place for it).
+             */
+            settings: [{ name: "Unseen Devices", anchor: "unseen-devices" }],
           },
           {
             page: PageMap.NETWORK_DEVICE_LATENCY_MATRIX,

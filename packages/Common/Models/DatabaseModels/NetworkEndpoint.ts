@@ -68,6 +68,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   unique: true,
   where: '"deletedAt" IS NULL',
 })
+/*
+ * A project's live endpoints by when they were last seen: what the job that
+ * removes devices no longer seen (DiscoveredDeviceAgeOut, issue #6389) reads
+ * - whether a project has any due, the oldest first, and the devices that
+ * saw anything lately - without reading every row of the project.
+ */
+@Index(["projectId", "lastSeenAt"], {
+  where: '"deletedAt" IS NULL',
+})
 @TableMetadata({
   tableName: "NetworkEndpoint",
   singularName: "Network Endpoint",
@@ -669,6 +678,43 @@ export default class NetworkEndpoint extends BaseModel {
     type: ColumnType.Date,
   })
   public lastSeenAt?: Date = undefined;
+
+  /*
+   * When a person last added this device or changed its vendor, address or
+   * site - through the Dashboard, the API, Terraform or a workflow, never the
+   * server's own walks (NetworkEndpointService stamps it). A device a person
+   * changed stays on the Discovered Devices list however long it is not
+   * seen (issue #6389, Types/NetworkDevice/DiscoveredDeviceRetention); a
+   * classification keeps a device for as long as it has one, so it does not
+   * stamp this.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkEndpoint,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Edited At",
+    description:
+      "When a person last added this endpoint or changed its vendor, IP address or site. Managed by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public editedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [

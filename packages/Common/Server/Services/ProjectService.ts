@@ -109,6 +109,10 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitReachedAtColumn,
 } from "../../Types/AI/ProjectAiDailyLimits";
 import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
+import {
+  getDiscoveredDeviceRetentionProblem,
+  toDiscoveredDeviceRetentionInDays,
+} from "../../Types/NetworkDevice/DiscoveredDeviceRetention";
 import { NetworkTopologyLayoutUtil } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { DefaultTableColumnsUtil } from "../../Types/Table/DefaultTableColumns";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
@@ -715,6 +719,34 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * How long a device the project's network saw stays on the Discovered
+   * Devices list once nothing sees it (issue #6389): one of the choices in
+   * Types/NetworkDevice/DiscoveredDeviceRetention, or 0 to keep every
+   * device, stored as a number. Anything else is refused with the choices -
+   * null too, since the column always holds a value. A write that leaves it
+   * out is not judged on it.
+   */
+  public applyDiscoveredDeviceRetentionRules(data: {
+    discoveredDeviceRetentionInDays?: unknown;
+  }): void {
+    if (data.discoveredDeviceRetentionInDays === undefined) {
+      return;
+    }
+
+    const problem: string | null = getDiscoveredDeviceRetentionProblem(
+      data.discoveredDeviceRetentionInDays,
+    );
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    data.discoveredDeviceRetentionInDays = toDiscoveredDeviceRetentionInDays(
+      data.discoveredDeviceRetentionInDays,
+    );
+  }
+
+  /*
    * The columns the project's lists show everyone who has not chosen their
    * own (Project.defaultTableColumns): lists' keys to layouts of column ids,
    * within DefaultTableColumnsUtil's limits, stored tidied (each id once, no
@@ -763,6 +795,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       data.data as { defaultNetworkTopologyLayout?: unknown },
+    );
+    this.applyDiscoveredDeviceRetentionRules(
+      data.data as { discoveredDeviceRetentionInDays?: unknown },
     );
     this.applyDefaultTableColumnsRules(
       data.data as { defaultTableColumns?: unknown },
@@ -1457,6 +1492,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       updateBy.data as { defaultNetworkTopologyLayout?: unknown },
+    );
+    this.applyDiscoveredDeviceRetentionRules(
+      updateBy.data as { discoveredDeviceRetentionInDays?: unknown },
     );
     this.applyDefaultTableColumnsRules(
       updateBy.data as { defaultTableColumns?: unknown },

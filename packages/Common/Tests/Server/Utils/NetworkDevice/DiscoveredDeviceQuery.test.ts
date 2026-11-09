@@ -8,6 +8,7 @@ import {
   buildHideStatement,
   buildIdsStatement,
   buildOrder,
+  buildRetentionStatement,
   buildRowsStatement,
   buildSearchCondition,
   buildShowCondition,
@@ -371,5 +372,27 @@ WHERE "projectId" = $1::uuid
 RETURNING "nodeKey"
 )
 SELECT "nodeKey" FROM removed`);
+  });
+});
+
+describe("how long a device nothing sees stays (issue #6389)", () => {
+  test("is read from the project, its id a parameter", () => {
+    const statement: DiscoveredDeviceStatement = buildRetentionStatement(
+      SCOPE.projectId,
+    );
+
+    expectParametersLineUp(statement);
+    expect(statement.params).toEqual([SCOPE.projectId]);
+    expect(statement.sql).toBe(`SELECT p."discoveredDeviceRetentionInDays" AS "retentionInDays"
+FROM "Project" p
+WHERE p."_id" = $1::uuid`);
+  });
+
+  test("text from outside never becomes SQL", () => {
+    const statement: DiscoveredDeviceStatement = buildRetentionStatement(
+      `x'; DROP TABLE "Project"; --`,
+    );
+
+    expect(statement.sql).not.toContain("DROP TABLE");
   });
 });

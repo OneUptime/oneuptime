@@ -978,7 +978,7 @@ Click an unmanaged peer and **Add to Monitoring** registers it as a probe-polled
 
 ### Discovered devices
 
-**Network → Topology → Discovered Devices** lists every device your switches, routers and network controllers have seen, monitored or not. It opens on **Not monitored**, the devices still to decide on; **Monitored**, **Hidden from map** and **All** show the others. The map's **Discovered Devices** button opens it and says how many devices are not monitored; on a site's map, it opens that site's list. A device's **Name** is the classification you gave it with **Edit classification**, else its hostname, IP address or MAC address, never its maker. Beside it are its **IP Address**, **MAC Address**, **Vendor**, **Seen On** (the switch, its port and the VLAN), **Last Seen** and **State**: **Monitored**, with a link to the device, **Discovered only**, **Hidden from map** or **Not seen recently**. The search finds a device by its name, IP address, vendor or MAC address, with or without separators. Nothing leaves the list on its own: **Last Seen** says when a device was last there.
+**Network → Topology → Discovered Devices** lists every device your switches, routers and network controllers have seen, monitored or not. It opens on **Not monitored**, the devices still to decide on; **Monitored**, **Hidden from map** and **All** show the others. The map's **Discovered Devices** button opens it and says how many devices are not monitored; on a site's map, it opens that site's list. A device's **Name** is the classification you gave it with **Edit classification**, else its hostname, IP address or MAC address, never its maker. Beside it are its **IP Address**, **MAC Address**, **Vendor**, **Seen On** (the switch, its port and the VLAN), **Last Seen** and **State**: **Monitored**, with a link to the device, **Discovered only**, **Hidden from map** or **Not seen recently**. The search finds a device by its name, IP address, vendor or MAC address, with or without separators. **Last Seen** says when a device was last there.
 
 Select devices, or every device that matches the search, then:
 
@@ -986,6 +986,8 @@ Select devices, or every device that matches the search, then:
 - **Hide from map** takes them off the topology map for everyone in the project, once you confirm. Nothing is deleted, and a monitored device is never hidden: the map draws it as the device it is, and its monitoring does not change. **Show on map** puts them back, and **Show them**, beside the map's count of hidden nodes, shows every node hidden in the project again at once.
 
 A row's own buttons do the same for one device. On the map, a node's IP address is drawn under its name, and the search finds a node by its IP address or MAC address too, however a switch printed it. Click a discovered device on the map and its panel offers **Add to Monitoring**, which adds it the same way, as well as **Hide from map**.
+
+A device not seen for 30 days is removed from the list and the map, unless it is monitored, classified, or one someone added or changed. The line under the list says how long devices stay; Project Owners and Project Admins change it under **More settings → Unseen Devices → Remove after**: 7, 14, 30, 60, 90, 180 or 365 days, or **Never**. The list is checked every hour, and nothing a switch or controller saw is removed while it reports nothing. A removed device that is seen again comes back as a new one, shown on the map even if it was hidden before.
 
 ### Choose the layout the map opens on
 

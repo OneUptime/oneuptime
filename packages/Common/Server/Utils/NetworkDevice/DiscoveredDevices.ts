@@ -35,9 +35,11 @@ import {
   buildCountsStatement,
   buildHideStatement,
   buildIdsStatement,
+  buildRetentionStatement,
   buildRowsStatement,
   buildShowStatement,
 } from "./DiscoveredDeviceQuery";
+import { readDiscoveredDeviceRetentionInDays } from "../../../Types/NetworkDevice/DiscoveredDeviceRetention";
 
 /*
  * THE DISCOVERED DEVICES LIST, AND WHAT IT DOES IN BULK (OneUptime issue
@@ -231,12 +233,18 @@ export default class DiscoveredDevices {
       skip: data.request.skip,
     });
 
-    const [countRows, rawRows]: [
+    // How long a device nothing sees stays: the list says so (issue #6389).
+    const retentionStatement: DiscoveredDeviceStatement =
+      buildRetentionStatement(data.projectId.toString());
+
+    const [countRows, rawRows, retentionRows]: [
+      Array<Record<string, unknown>>,
       Array<Record<string, unknown>>,
       Array<Record<string, unknown>>,
     ] = await Promise.all([
       this.runQuery(countsStatement.sql, countsStatement.params),
       this.runQuery(rowsStatement.sql, rowsStatement.params),
+      this.runQuery(retentionStatement.sql, retentionStatement.params),
     ]);
 
     const counts: DiscoveredDeviceCounts = readDiscoveredDeviceCounts(
@@ -255,12 +263,18 @@ export default class DiscoveredDevices {
       rows: rows,
     });
 
+    const retentionInDays: number | undefined =
+      readDiscoveredDeviceRetentionInDays(retentionRows[0]?.["retentionInDays"]);
+
     return {
       rows: rows.map((row: ClassifiedDiscoveredDevice): DiscoveredDeviceRow => {
         return this.toPublicRow(row);
       }),
       count: this.countFor(counts, data.request.show),
       counts: counts,
+      ...(retentionInDays !== undefined
+        ? { retentionInDays: retentionInDays }
+        : {}),
     };
   }
 

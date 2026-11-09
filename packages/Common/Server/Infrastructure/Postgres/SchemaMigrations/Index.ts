@@ -938,6 +938,9 @@ import { AddTelemetryIngestionBudgets1809063245917 } from "./1809063245917-AddTe
 import { AllowDiscoveryImportWithoutScan1809063255775 } from "./1809063255775-AllowDiscoveryImportWithoutScan";
 import { AddUserLanguage1809063412000 } from "./1809063412000-AddUserLanguage";
 import { AddTelemetryIngestionKeyRefusals1809071100000 } from "./1809071100000-AddTelemetryIngestionKeyRefusals";
+import { AddDiscoveredDeviceRetention1809071300000 } from "./1809071300000-AddDiscoveredDeviceRetention";
+import { AddNetworkEndpointLastSeenIndex1809071310000 } from "./1809071310000-AddNetworkEndpointLastSeenIndex";
+import { KeepEditedDiscoveredDevices1809071320000 } from "./1809071320000-KeepEditedDiscoveredDevices";
 
 export default [
   InitialMigration,
@@ -1880,4 +1883,7 @@ export default [
   AllowDiscoveryImportWithoutScan1809063255775,
   AddUserLanguage1809063412000,
   AddTelemetryIngestionKeyRefusals1809071100000,
+  AddDiscoveredDeviceRetention1809071300000,
+  AddNetworkEndpointLastSeenIndex1809071310000,
+  KeepEditedDiscoveredDevices1809071320000,
 ];

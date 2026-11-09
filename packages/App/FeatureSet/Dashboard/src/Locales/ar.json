@@ -47262,5 +47262,19 @@
   "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.",
   "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.",
   "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.",
-  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access."
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.",
+  "Checked every hour. Nothing is removed while the switch or controller that saw a device reports nothing, and a device seen again comes back as new.": "يُتحقَّق كل ساعة. لا يُزال شيء ما دام المحوّل أو وحدة التحكم التي رأت الجهاز لا تُبلغ عن شيء، والجهاز الذي يُرى مجددًا يعود كجهاز جديد.",
+  "Devices not seen for {{count}} days are removed, unless they are monitored or classified.": "تُزال الأجهزة التي لم تُرَ خلال الأيام الـ{{count}} الماضية، ما لم تكن تحت المراقبة أو مصنَّفة.",
+  "Devices not seen for {{count}} days are removed, unless they are monitored or classified._one": "تُزال الأجهزة التي لم تُرَ منذ {{count}} يوم، ما لم تكن تحت المراقبة أو مصنَّفة.",
+  "Devices stay on this list however long ago they were last seen.": "تبقى الأجهزة في هذه القائمة مهما مضى على آخر ظهور لها.",
+  "Discovered Device Retention (Days)": "مدة الاحتفاظ بالأجهزة المكتشفة (بالأيام)",
+  "Edited At": "تاريخ التعديل",
+  "Every device stays until someone deletes it, however long ago it was last seen.": "يبقى كل جهاز حتى يحذفه أحد، مهما مضى على آخر ظهور له.",
+  "Every device this site's switches, routers and network controllers have seen, and when each was last there.": "كل جهاز رأته المحوّلات والموجّهات ووحدات التحكم في الشبكة في هذا الموقع، ومتى كان كل منها هناك آخر مرة.",
+  "Every device your switches, routers and network controllers have seen, and when each was last there.": "كل جهاز رأته المحوّلات والموجّهات ووحدات التحكم في الشبكة لديك، ومتى كان كل منها هناك آخر مرة.",
+  "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host still on the Discovered Devices list is counted, including ones not seen recently.": "مضيفات مثل الحواسيب والهواتف والطابعات وُجدت في جداول العناوين في المحوّلات والموجّهات لديك (جداول ARP وجداول تمرير MAC) أثناء عمليات مسح SNMP. يُحتسب كل مضيف ما زال في قائمة «الأجهزة المكتشفة»، بما في ذلك التي لم تُرَ مؤخرًا.",
+  "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host still on the Discovered Devices list is counted, including ones not seen recently.": "مضيفات مثل الحواسيب والهواتف والطابعات وجدتها الأجهزة المعيَّنة لهذا الموقع في جداول عناوينها (جداول ARP وجداول تمرير MAC). يُحتسب كل مضيف ما زال في قائمة «الأجهزة المكتشفة»، بما في ذلك التي لم تُرَ مؤخرًا.",
+  "Remove after": "الإزالة بعد",
+  "Remove discovered devices nothing has seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "أزِل الأجهزة المكتشفة التي لم تُرَ منذ مدة. تبقى دائمًا الأجهزة التي تحت المراقبة والمصنَّفة، وتلك التي أضافها أحد أو غيّرها.",
+  "Unseen Devices": "الأجهزة الغائبة"
 }

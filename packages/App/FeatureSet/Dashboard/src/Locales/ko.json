@@ -47262,5 +47262,19 @@
   "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}}은 공급자가 지정되지 않은 사용량입니다(예: 코딩 어시스턴트의 사용량 메트릭).",
   "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}}은 팀이 지정되지 않은 사용량입니다(예: {{teamId}} 없이 전송된 경우).",
   "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}}은 누가 사용했는지 지정되지 않은 사용량입니다(예: {{userEmail}} 없이 전송된 경우).",
-  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "사용량 메트릭은 제외되었습니다. 내 역할로는 메트릭을 읽을 수 없습니다. 프로젝트 관리자에게 액세스 권한을 요청하세요."
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "사용량 메트릭은 제외되었습니다. 내 역할로는 메트릭을 읽을 수 없습니다. 프로젝트 관리자에게 액세스 권한을 요청하세요.",
+  "Checked every hour. Nothing is removed while the switch or controller that saw a device reports nothing, and a device seen again comes back as new.": "매시간 확인합니다. 장치를 본 스위치나 컨트롤러가 아무것도 보고하지 않는 동안에는 아무것도 삭제되지 않으며, 다시 확인된 장치는 새 장치로 돌아옵니다.",
+  "Devices not seen for {{count}} days are removed, unless they are monitored or classified.": "{{count}}일 동안 확인되지 않은 장치는 모니터링되거나 분류되지 않은 한 삭제됩니다.",
+  "Devices not seen for {{count}} days are removed, unless they are monitored or classified._one": "{{count}}일 동안 확인되지 않은 장치는 모니터링되거나 분류되지 않은 한 삭제됩니다.",
+  "Devices stay on this list however long ago they were last seen.": "마지막으로 확인된 지 얼마나 지났든 장치는 이 목록에 남아 있습니다.",
+  "Discovered Device Retention (Days)": "발견된 장치 보존(일)",
+  "Edited At": "편집일",
+  "Every device stays until someone deletes it, however long ago it was last seen.": "마지막으로 확인된 지 얼마나 지났든 누군가 삭제할 때까지 모든 장치가 남아 있습니다.",
+  "Every device this site's switches, routers and network controllers have seen, and when each was last there.": "이 사이트의 스위치, 라우터, 네트워크 컨트롤러가 본 모든 장치와 각 장치가 마지막으로 있었던 시점입니다.",
+  "Every device your switches, routers and network controllers have seen, and when each was last there.": "스위치, 라우터, 네트워크 컨트롤러가 본 모든 장치와 각 장치가 마지막으로 있었던 시점입니다.",
+  "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host still on the Discovered Devices list is counted, including ones not seen recently.": "SNMP 워크 중에 스위치와 라우터의 주소 테이블(ARP 및 MAC 포워딩 테이블)에서 찾은 PC, 전화기, 프린터 같은 호스트입니다. 최근에 확인되지 않은 호스트를 포함해 발견된 장치 목록에 아직 있는 모든 호스트를 셉니다.",
+  "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host still on the Discovered Devices list is counted, including ones not seen recently.": "이 사이트에 할당된 장치가 주소 테이블(ARP 및 MAC 포워딩 테이블)에서 찾은 PC, 전화기, 프린터 같은 호스트입니다. 최근에 확인되지 않은 호스트를 포함해 발견된 장치 목록에 아직 있는 모든 호스트를 셉니다.",
+  "Remove after": "삭제 시점",
+  "Remove discovered devices nothing has seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "한동안 확인되지 않은 발견된 장치를 삭제합니다. 모니터링되거나 분류된 장치, 그리고 누군가 추가하거나 변경한 장치는 항상 남아 있습니다.",
+  "Unseen Devices": "확인되지 않는 장치"
 }
