@@ -245,7 +245,9 @@ function everythingSent(fake: Fake): string {
 describe("Ask AI with nothing set: no cap on calls", () => {
   test("a model that needs 200 tool calls, one a round, makes them all and answers", async () => {
     const fake: Fake = installFake((index: number) => {
-      return index < 200 ? toolUse([queryCall(index)]) : answer("All 200 read.");
+      return index < 200
+        ? toolUse([queryCall(index)])
+        : answer("All 200 read.");
     });
 
     await ChatAgentRunner.runTurn(buildRequest());
@@ -346,7 +348,9 @@ describe("Ask AI and the project's caps", () => {
   test("the model-call cap: the last call it allows is the answer", async () => {
     const fake: Fake = installFake(
       (index: number) => {
-        return index < 2 ? toolUse([queryCall(index)]) : answer("Three calls in.");
+        return index < 2
+          ? toolUse([queryCall(index)])
+          : answer("Three calls in.");
       },
       { aiRunMaxModelCalls: 3 },
     );

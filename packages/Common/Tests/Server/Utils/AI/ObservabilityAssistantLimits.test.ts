@@ -296,15 +296,17 @@ function fakeModel(
 
 // The project's limits per run, as ProjectService hands them to the run.
 function serveProject(
-  limits: Partial<
-    Pick<
-      Project,
-      | "aiRunMaxModelCalls"
-      | "aiRunMaxToolCalls"
-      | "aiRunMaxTokens"
-      | "aiRunTimeLimitInMinutes"
-    >
-  > | Error,
+  limits:
+    | Partial<
+        Pick<
+          Project,
+          | "aiRunMaxModelCalls"
+          | "aiRunMaxToolCalls"
+          | "aiRunMaxTokens"
+          | "aiRunTimeLimitInMinutes"
+        >
+      >
+    | Error,
 ): jest.SpyInstance {
   return jest
     .spyOn(ProjectService, "findOneById")

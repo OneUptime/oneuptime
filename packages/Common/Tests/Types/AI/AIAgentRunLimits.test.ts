@@ -932,7 +932,9 @@ describe("AIAgentRunLimitsHelper.getSettingLocation", () => {
     expect(
       AIAgentRunLimitsHelper.getSettingLocation(
         AIRunStopReason.TimeLimit,
-        limitsWith({ timeLimitSource: AIRunTimeLimitSource.AlertInvestigation }),
+        limitsWith({
+          timeLimitSource: AIRunTimeLimitSource.AlertInvestigation,
+        }),
       ),
     ).toBe(ALERT_AI_INVESTIGATION_LIMITS_LOCATION);
   });

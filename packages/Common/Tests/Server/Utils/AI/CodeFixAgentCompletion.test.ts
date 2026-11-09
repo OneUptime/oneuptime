@@ -489,9 +489,11 @@ describe("CodeFixAgentCompletion.execute guards", () => {
       outputTokens: 0,
       totalTokens: 0,
     });
-    jest.spyOn(AIRunLimitsReader, "read").mockResolvedValue(
-      AIAgentRunLimitsHelper.fromSettings({ timeLimitInMinutes: 30 }),
-    );
+    jest
+      .spyOn(AIRunLimitsReader, "read")
+      .mockResolvedValue(
+        AIAgentRunLimitsHelper.fromSettings({ timeLimitInMinutes: 30 }),
+      );
 
     await expect(
       CodeFixAgentCompletion.execute({

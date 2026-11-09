@@ -343,23 +343,24 @@ describe("Limits per run in More settings", () => {
     expect(setChips(moreSettingsHeader())).toEqual([]);
   });
 
-  test.each(PROJECT_AI_RUN_LIMIT_COLUMNS.map((column: string) => [column]))(
-    "%s set is a chip",
-    async (column: string) => {
-      stored = { ...stored, [column]: column === "aiRunMaxTokens" ? 5000 : 30 };
+  test.each(
+    PROJECT_AI_RUN_LIMIT_COLUMNS.map((column: string): Array<string> => {
+      return [column];
+    }),
+  )("%s set is a chip", async (column: string) => {
+    stored = { ...stored, [column]: column === "aiRunMaxTokens" ? 5000 : 30 };
 
-      openAiFeaturesPage();
-      await openRunLimitsCard();
-      fireEvent.click(moreSettingsHeader());
+    openAiFeaturesPage();
+    await openRunLimitsCard();
+    fireEvent.click(moreSettingsHeader());
 
-      await waitFor(
-        () => {
-          expect(setChips(moreSettingsHeader())).toEqual(["Limits per run"]);
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
-    },
-  );
+    await waitFor(
+      () => {
+        expect(setChips(moreSettingsHeader())).toEqual(["Limits per run"]);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+  });
 });
 
 describe("the Limits per run card", () => {
@@ -578,31 +579,28 @@ describe("who may change the limits per run", () => {
     [Permission.ProjectAdmin],
     [Permission.EditProject],
     [Permission.Viewer],
-  ])(
-    "%s sees the limits, with Edit locked",
-    async (permission: Permission) => {
-      grant([...BASE_PERMISSIONS, permission]);
-      stored = { ...stored, aiRunMaxToolCalls: 250 };
+  ])("%s sees the limits, with Edit locked", async (permission: Permission) => {
+    grant([...BASE_PERMISSIONS, permission]);
+    stored = { ...stored, aiRunMaxToolCalls: 250 };
 
-      openAiFeaturesPage();
-      const card: HTMLElement = await openRunLimitsCard();
+    openAiFeaturesPage();
+    const card: HTMLElement = await openRunLimitsCard();
 
-      await waitFor(
-        () => {
-          expect(detailValue(card, TOOL_CALLS_TITLE)).toBe("250");
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
+    await waitFor(
+      () => {
+        expect(detailValue(card, TOOL_CALLS_TITLE)).toBe("250");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
 
-      const edit: HTMLElement = within(card)
-        .getByText("Edit")
-        .closest("button") as HTMLElement;
+    const edit: HTMLElement = within(card)
+      .getByText("Edit")
+      .closest("button") as HTMLElement;
 
-      expect(edit).toBeDisabled();
-      fireEvent.click(edit);
-      expect(screen.queryByRole("dialog")).toBeNull();
-    },
-  );
+    expect(edit).toBeDisabled();
+    fireEvent.click(edit);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
 });
 
 describe("the card's copy", () => {

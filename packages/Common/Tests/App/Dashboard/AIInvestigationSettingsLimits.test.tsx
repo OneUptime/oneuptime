@@ -451,7 +451,10 @@ describe.each(
 
     // How many at once, and for how long.
     dialog = await openEditForm(INVESTIGATION_LIMITS);
-    expect(placeholdersIn(dialog)).toEqual(["No limit", "The project's time limit"]);
+    expect(placeholdersIn(dialog)).toEqual([
+      "No limit",
+      "The project's time limit",
+    ]);
     expect(dialog.textContent || "").toMatch(
       /Leave empty for no limit\. Queued ones wait for a free slot for up to 30 minutes\./,
     );

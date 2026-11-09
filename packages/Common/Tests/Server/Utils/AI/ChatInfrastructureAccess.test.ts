@@ -1237,7 +1237,9 @@ describe("ChatInfrastructureAccess.buildForPage", () => {
       });
 
       expect(outcome.success).toBe(true);
-      expect(outcome.textForLlm).not.toContain("infrastructure commands, the most");
+      expect(outcome.textForLlm).not.toContain(
+        "infrastructure commands, the most",
+      );
     }
 
     expect(run).toHaveBeenCalledTimes(45);

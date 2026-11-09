@@ -152,7 +152,9 @@ describe("CodeAgentTelemetry.evaluateToolCall (pure)", () => {
         nowMs: NOW,
         deadlineAtMs: null,
       }).reason,
-    ).toContain("This run has made 8 model calls, this project's limit per run");
+    ).toContain(
+      "This run has made 8 model calls, this project's limit per run",
+    );
 
     expect(
       CodeAgentTelemetry.evaluateToolCall({
@@ -235,7 +237,9 @@ function mockRun(data: {
     totalTokens: data.totalTokens ?? 0,
   });
   // The project's limits per run: none, unless a test sets them.
-  jest.spyOn(AIRunLimitsReader, "read").mockResolvedValue(data.limits ?? caps());
+  jest
+    .spyOn(AIRunLimitsReader, "read")
+    .mockResolvedValue(data.limits ?? caps());
 
   if (data.tool) {
     jest.spyOn(CodeAgentTelemetryTools, "getTool").mockReturnValue(data.tool);
@@ -638,9 +642,11 @@ describe("CodeAgentTelemetry.listTools", () => {
       scope: null,
       reason: "No service of this project maps to acme/cart",
     });
-    jest
-      .spyOn(LlmLogService, "getRunCompletionUsage")
-      .mockResolvedValue({ completionCalls: 0, outputTokens: 0, totalTokens: 0 });
+    jest.spyOn(LlmLogService, "getRunCompletionUsage").mockResolvedValue({
+      completionCalls: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+    });
     jest.spyOn(AIRunLimitsReader, "read").mockResolvedValue(caps());
 
     const list: CodeAgentTelemetryToolList = await CodeAgentTelemetry.listTools(

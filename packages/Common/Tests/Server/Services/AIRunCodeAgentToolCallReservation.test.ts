@@ -96,9 +96,9 @@ describe("AIRunService.reserveCodeAgentToolCall", () => {
       aiAgentId: AGENT_ID.toString(),
     });
     // The count goes up by one, from 0 for a run that has none yet.
-    expect(
-      (recorded.set!["toolCallCount"] as () => string)(),
-    ).toBe('COALESCE("toolCallCount", 0) + 1');
+    expect((recorded.set!["toolCallCount"] as () => string)()).toBe(
+      'COALESCE("toolCallCount", 0) + 1',
+    );
   });
 
   test("a project's limit of tool calls per run is held in the same statement", async () => {
@@ -114,11 +114,9 @@ describe("AIRunService.reserveCodeAgentToolCall", () => {
       'COALESCE("toolCallCount", 0) < :maxToolCalls',
     );
     expect(
-      recorded.wheres.find(
-        (where: { clause: string }): boolean => {
-          return where.clause.includes(":maxToolCalls");
-        },
-      )!.parameters,
+      recorded.wheres.find((where: { clause: string }): boolean => {
+        return where.clause.includes(":maxToolCalls");
+      })!.parameters,
     ).toEqual({ maxToolCalls: 30 });
     expect(clauses(recorded).slice(-1)[0]).toBe('"deletedAt" IS NULL');
   });

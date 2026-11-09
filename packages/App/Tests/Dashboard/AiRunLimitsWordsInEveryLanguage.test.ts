@@ -75,6 +75,7 @@ const RETIRED: ReadonlyArray<string> = [
 ];
 
 const PLACEHOLDER: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
+const BUDGET_WORD: RegExp = /budget/i;
 
 function placeholdersOf(text: string): Array<string> {
   return Array.from(new Set(text.match(PLACEHOLDER) || [])).sort();
@@ -182,9 +183,9 @@ describe("the limits per run in every language", () => {
           placeholdersOf(text),
         ]);
       }
-      expect(placeholdersOf(ProjectAiRunLimitsCopy.timeLimitFieldError)).toEqual(
-        ["{{field}}", "{{max}}", "{{min}}"],
-      );
+      expect(
+        placeholdersOf(ProjectAiRunLimitsCopy.timeLimitFieldError),
+      ).toEqual(["{{field}}", "{{max}}", "{{min}}"]);
     },
   );
 
@@ -216,12 +217,12 @@ describe("the limits per run in every language", () => {
   );
 
   test("Persian writes the minutes in its own digits", () => {
-    expect(readLocale("fa")[ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder]).toBe(
-      "۱۲۰ دقیقه (پیش‌فرض)",
-    );
-    expect(readLocale("de")[ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder]).toBe(
-      "120 Minuten (Standard)",
-    );
+    expect(
+      readLocale("fa")[ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder],
+    ).toBe("۱۲۰ دقیقه (پیش‌فرض)");
+    expect(
+      readLocale("de")[ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder],
+    ).toBe("120 Minuten (Standard)");
   });
 
   test("no language speaks of a budget where English does not", () => {
@@ -232,11 +233,11 @@ describe("the limits per run in every language", () => {
       const locale: Record<string, unknown> = readLocale(language);
 
       for (const text of WORDS) {
-        expect([language, text, /budget|Budget/.test(String(locale[text]))]).toEqual([
+        expect([
           language,
           text,
-          false,
-        ]);
+          BUDGET_WORD.test(String(locale[text])),
+        ]).toEqual([language, text, false]);
       }
     }
   });

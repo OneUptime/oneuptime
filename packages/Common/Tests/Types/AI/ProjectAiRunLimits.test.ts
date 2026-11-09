@@ -213,9 +213,11 @@ describe("ProjectAiRunLimits.getWriteError", () => {
     aiRunTimeLimitInMinutes: "The time limit per run",
   };
 
-  test.each(PROJECT_AI_RUN_LIMIT_COLUMNS.map((column: string) => {
-    return [column];
-  }))("%s may be cleared", (column: string) => {
+  test.each(
+    PROJECT_AI_RUN_LIMIT_COLUMNS.map((column: string) => {
+      return [column];
+    }),
+  )("%s may be cleared", (column: string) => {
     expect(
       ProjectAiRunLimits.getWriteError(column as ProjectAiRunLimitColumn, null),
     ).toBeNull();
@@ -227,9 +229,11 @@ describe("ProjectAiRunLimits.getWriteError", () => {
     ).toBeNull();
   });
 
-  test.each(PROJECT_AI_RUN_LIMIT_COLUMNS.map((column: string) => {
-    return [column];
-  }))("%s takes a whole number at its bounds", (column: string) => {
+  test.each(
+    PROJECT_AI_RUN_LIMIT_COLUMNS.map((column: string) => {
+      return [column];
+    }),
+  )("%s takes a whole number at its bounds", (column: string) => {
     const bounds: { min: number; max: number } =
       PROJECT_AI_RUN_LIMIT_BOUNDS[column as ProjectAiRunLimitColumn];
 
@@ -247,9 +251,11 @@ describe("ProjectAiRunLimits.getWriteError", () => {
     ).toBeNull();
   });
 
-  test.each(PROJECT_AI_RUN_LIMIT_COLUMNS.map((column: string) => {
-    return [column];
-  }))(
+  test.each(
+    PROJECT_AI_RUN_LIMIT_COLUMNS.map((column: string) => {
+      return [column];
+    }),
+  )(
     "%s refuses a value outside its bounds, a fraction and a text",
     (column: string) => {
       const typed: ProjectAiRunLimitColumn = column as ProjectAiRunLimitColumn;

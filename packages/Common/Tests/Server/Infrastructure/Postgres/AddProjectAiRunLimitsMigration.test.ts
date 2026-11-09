@@ -18,6 +18,7 @@ import { describe, expect, test } from "@jest/globals";
 
 const NAME: string = "AddProjectAiRunLimits1809080210000";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
+const ADDED_COLUMN: RegExp = /ADD "([^"]+)"/;
 
 async function record(direction: "up" | "down"): Promise<Array<string>> {
   const steps: Array<string> = [];
@@ -53,7 +54,7 @@ describe("AddProjectAiRunLimits1809080210000", () => {
   test("they are the model's columns, the same four the settings card writes", async () => {
     const added: Array<string> = (await record("up")).map(
       (statement: string): string => {
-        return /ADD "([^"]+)"/.exec(statement)![1]!;
+        return ADDED_COLUMN.exec(statement)![1]!;
       },
     );
 

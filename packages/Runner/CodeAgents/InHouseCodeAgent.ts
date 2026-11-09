@@ -316,7 +316,8 @@ export default class InHouseCodeAgent implements CodeAgent {
     this.legacyBudget = null;
     const taskId: string = this.config.taskId;
     const startedAtMs: number = Date.now();
-    this.runDeadlineAtMs = startedAtMs + InHouseCodeAgent.DEFAULT_RUN_TIME_LIMIT_MS;
+    this.runDeadlineAtMs =
+      startedAtMs + InHouseCodeAgent.DEFAULT_RUN_TIME_LIMIT_MS;
     this.stepTimeLimitMs =
       task.timeoutMs && task.timeoutMs > 0 ? task.timeoutMs : null;
     this.stepDeadlineAtMs =
@@ -380,7 +381,10 @@ export default class InHouseCodeAgent implements CodeAgent {
          * The deadline is met by winding down to a summary, below; this is
          * only for a task whose last call did not come back in time.
          */
-        if (Date.now() >= this.deadlineAtMs + InHouseCodeAgent.ANSWER_GRACE_MS) {
+        if (
+          Date.now() >=
+          this.deadlineAtMs + InHouseCodeAgent.ANSWER_GRACE_MS
+        ) {
           return this.createErrorResult(
             `Code agent timed out after ${Math.round(
               (Date.now() - startedAtMs) / 1000,
@@ -851,7 +855,7 @@ export default class InHouseCodeAgent implements CodeAgent {
 
     const maxToolCalls: number | null = offered.limits
       ? null
-      : (offered.budget?.maxToolCalls ?? 0);
+      : offered.budget?.maxToolCalls ?? 0;
     const toolCallsUsed: number =
       offered.limits?.toolCallsUsed ?? offered.budget?.toolCallsUsed ?? 0;
 

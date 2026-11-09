@@ -243,9 +243,15 @@ export class Service extends DatabaseService<Model> {
     );
 
     const sum: (
-      read: (row: { calls: SummedTokens; outputTokens: SummedTokens }) => SummedTokens,
+      read: (row: {
+        calls: SummedTokens;
+        outputTokens: SummedTokens;
+      }) => SummedTokens,
     ) => number = (
-      read: (row: { calls: SummedTokens; outputTokens: SummedTokens }) => SummedTokens,
+      read: (row: {
+        calls: SummedTokens;
+        outputTokens: SummedTokens;
+      }) => SummedTokens,
     ): number => {
       return (rows || []).reduce(
         (
@@ -262,12 +268,18 @@ export class Service extends DatabaseService<Model> {
 
     return {
       completionCalls: sum(
-        (row: { calls: SummedTokens; outputTokens: SummedTokens }): SummedTokens => {
+        (row: {
+          calls: SummedTokens;
+          outputTokens: SummedTokens;
+        }): SummedTokens => {
           return row.calls;
         },
       ),
       outputTokens: sum(
-        (row: { calls: SummedTokens; outputTokens: SummedTokens }): SummedTokens => {
+        (row: {
+          calls: SummedTokens;
+          outputTokens: SummedTokens;
+        }): SummedTokens => {
           return row.outputTokens;
         },
       ),

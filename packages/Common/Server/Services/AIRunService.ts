@@ -177,12 +177,9 @@ export class Service extends DatabaseService<Model> {
       });
 
     if (data.maxToolCalls !== null) {
-      update = update.andWhere(
-        'COALESCE("toolCallCount", 0) < :maxToolCalls',
-        {
-          maxToolCalls: data.maxToolCalls,
-        },
-      );
+      update = update.andWhere('COALESCE("toolCallCount", 0) < :maxToolCalls', {
+        maxToolCalls: data.maxToolCalls,
+      });
     }
 
     const result: UpdateResult = await update

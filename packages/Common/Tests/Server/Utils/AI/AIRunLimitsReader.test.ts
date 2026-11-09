@@ -93,9 +93,9 @@ afterEach(() => {
 
 describe("AIRunLimitsReader.fromProject", () => {
   test("a project with nothing set: no caps, the default time limit", () => {
-    expect(
-      AIRunLimitsReader.fromProject({ project: new Project() }),
-    ).toEqual(AIAgentRunLimitsHelper.getDefault());
+    expect(AIRunLimitsReader.fromProject({ project: new Project() })).toEqual(
+      AIAgentRunLimitsHelper.getDefault(),
+    );
     expect(AIRunLimitsReader.fromProject({ project: null })).toEqual(
       AIAgentRunLimitsHelper.getDefault(),
     );

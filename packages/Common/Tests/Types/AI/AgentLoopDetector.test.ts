@@ -43,7 +43,11 @@ describe("a run that keeps learning is never stopped", () => {
     for (let round: number = 0; round < 1_000; round++) {
       expect(
         detector.recordRound([
-          call("read_file", { path: `src/file-${round}.ts` }, `content ${round}`),
+          call(
+            "read_file",
+            { path: `src/file-${round}.ts` },
+            `content ${round}`,
+          ),
         ]),
       ).toBe(AgentLoopVerdict.Continue);
     }

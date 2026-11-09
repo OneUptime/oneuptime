@@ -151,9 +151,12 @@ describe("CodeAgentRunLimitsUtil.fromJSON", () => {
     [{ timeLimitInMinutes: "120" }],
     [{ timeLimitInMinutes: Number.NaN }],
     [{ maxModelCalls: 40 }],
-  ])("%p, as a server from before this release sends, is no limits", (raw: unknown) => {
-    expect(CodeAgentRunLimitsUtil.fromJSON(raw)).toBeNull();
-  });
+  ])(
+    "%p, as a server from before this release sends, is no limits",
+    (raw: unknown) => {
+      expect(CodeAgentRunLimitsUtil.fromJSON(raw)).toBeNull();
+    },
+  );
 
   test("unset caps, wrong types and nonsense counts read as none", () => {
     expect(
@@ -265,9 +268,9 @@ describe("CodeAgentRunLimitsUtil.getLocalDeadlineAtMs", () => {
     // The Runner's clock is a day off: the deadline still comes in 30 minutes.
     const receivedAtMs: number = Date.parse("2026-11-10T11:30:00.000Z");
 
-    expect(CodeAgentRunLimitsUtil.getLocalDeadlineAtMs(base, receivedAtMs)).toBe(
-      receivedAtMs + 30 * MINUTE_MS,
-    );
+    expect(
+      CodeAgentRunLimitsUtil.getLocalDeadlineAtMs(base, receivedAtMs),
+    ).toBe(receivedAtMs + 30 * MINUTE_MS);
   });
 
   test("without a time left, it is the deadline as written", () => {
