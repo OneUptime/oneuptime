@@ -398,8 +398,12 @@ describe("in the reader's language", () => {
     }
   });
 
-  function within18n(language: string) {
-    return (element: React.ReactElement): React.ReactElement => {
+  function within18n(
+    language: string,
+  ): (element: React.ReactElement) => React.ReactElement {
+    return function inLanguage(
+      element: React.ReactElement,
+    ): React.ReactElement {
       return (
         <I18nextProvider i18n={instances[language]!}>{element}</I18nextProvider>
       );

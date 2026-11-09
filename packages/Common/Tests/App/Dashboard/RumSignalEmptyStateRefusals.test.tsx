@@ -156,11 +156,13 @@ afterEach(() => {
   cleanup();
 });
 
-const LINKS: Array<{
+interface LinkCase {
   action: RumSignalAction;
   href: string;
   icon: IconProp;
-}> = [
+}
+
+const LINKS: Array<LinkCase> = [
   {
     action: { kind: "open-key", label: "Open the key", keyId: KEY_ID },
     href: `/dashboard/${PROJECT}/settings/telemetry-ingestion-keys/${KEY_ID}`,
@@ -214,7 +216,7 @@ describe("an empty chart whose telemetry is refused", () => {
 
   test.each(LINKS)(
     "$action.kind links to where it is put right",
-    ({ action, href, icon }) => {
+    ({ action, href, icon }: LinkCase) => {
       draw({ copy: refused(action) });
 
       const link: HTMLElement = screen.getByRole("link", {
@@ -252,7 +254,7 @@ describe("the empty Logs page whose logs are refused", () => {
 
   test.each(LINKS)(
     "$action.kind navigates to where it is put right",
-    ({ action, href }) => {
+    ({ action, href }: LinkCase) => {
       draw({ copy: refused(action), variant: "page" });
 
       fireEvent.click(screen.getByTestId("rum-logs-empty-action"));

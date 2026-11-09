@@ -361,13 +361,13 @@ export class TelemetryIngestRefusalCounter {
  * resolves a key, so the caller that catches one never holds the policy;
  * the service notes it on the exception for the caller to count.
  */
-const refusedKeys: WeakMap<object, TelemetryIngestRefusalKey> = new WeakMap();
+const refusedKeys: WeakMap<Error, TelemetryIngestRefusalKey> = new WeakMap();
 
 export function noteTelemetryIngestRefusalKey(
   err: unknown,
   key: TelemetryIngestRefusalKey,
 ): void {
-  if (err && typeof err === "object") {
+  if (err instanceof Error) {
     refusedKeys.set(err, key);
   }
 }
@@ -375,7 +375,7 @@ export function noteTelemetryIngestRefusalKey(
 export function getTelemetryIngestRefusalKey(
   err: unknown,
 ): TelemetryIngestRefusalKey | null {
-  if (!err || typeof err !== "object") {
+  if (!(err instanceof Error)) {
     return null;
   }
 
