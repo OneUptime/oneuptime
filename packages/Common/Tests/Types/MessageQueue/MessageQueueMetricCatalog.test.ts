@@ -1250,9 +1250,7 @@ describe("MESSAGE_QUEUE_METRICS catalog", () => {
       "azure_serversendlatency_average",
     ]);
     for (const descriptor of levels) {
-      expect(descriptor.destinationAttributes).toContain(
-        "metadata_entityname",
-      );
+      expect(descriptor.destinationAttributes).toContain("metadata_entityname");
       expect(descriptor.scopeAttributes).toEqual(["name"]);
       expect(descriptor.kind).toBe("gauge");
       // A level is never summed within a bucket.
