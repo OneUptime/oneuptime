@@ -1,0 +1,457 @@
+{
+  "Something went wrong": "Something went wrong",
+  "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue",
+  "Error details": "Error details",
+  "a11y": {
+    "skipToMainContent": "Skip to main content",
+    "loading": "Loading...",
+    "moreLinks": "More links",
+    "navigation": "Navigation"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "loading": "Loading...",
+    "search": "Search",
+    "edit": "Edit",
+    "delete": "Delete",
+    "yes": "Yes",
+    "no": "No",
+    "statusPage": "Status Page"
+  },
+  "language": {
+    "label": "Language",
+    "switchLanguage": "Switch language"
+  },
+  "theme": {
+    "switchToDark": "Switch to dark theme",
+    "switchToLight": "Switch to light theme"
+  },
+  "nav": {
+    "overview": "Overview",
+    "incidents": "Incidents",
+    "announcements": "Announcements",
+    "scheduledEvents": "Scheduled Events",
+    "subscribe": "Subscribe",
+    "login": "Log In",
+    "logout": "Log Out"
+  },
+  "overview": {
+    "uptimeSuffix": "% uptime",
+    "operational": "Operational",
+    "noResourcesInGroup": "No resources added to this group.",
+    "activeIncidents": "Active Incidents",
+    "scheduledMaintenanceEvents": "Scheduled Maintenance Events",
+    "allClearTitle": "Everything looks great",
+    "allClearDescription": "No resources added to this status page yet. Please add some resources from the dashboard.",
+    "allResourcesAre": "All Resources are {{status}}",
+    "someResourcesAre": "Some Resources are {{status}}",
+    "someResourcesAreUnder": "Some Resources are under {{status}}",
+    "oneSubGroup": "1 group",
+    "subGroupCount": "{{total}} groups"
+  },
+  "eventItem": {
+    "affectedResources": "Affected resources",
+    "stateChangedTo": "state changed to",
+    "view": "View {{eventType}}",
+    "updateTo": "Update to this {{eventType}}",
+    "postedOn": "posted on"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} days ago",
+    "today": "Today",
+    "notAvailable": "Not available",
+    "underMaintenance": "Under maintenance"
+  },
+  "uptimeHistory": {
+    "graphLabel": "Uptime history for the last {{total}} days",
+    "dayLabel": "{{date}}: {{uptime}}% uptime",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}}% uptime, {{total}} incidents",
+    "dayLabelNoData": "{{date}}: no data",
+    "dayLabelNoDataWithIncidents": "{{date}}: no data, {{total}} incidents",
+    "uptime": "Uptime",
+    "noMonitoringData": "No monitoring data for this day",
+    "incidents": "Incidents",
+    "noIncidents": "No incidents",
+    "noIncidentsDescription": "No incidents were reported on this day.",
+    "declared": "Declared",
+    "oneIncidentOnThisDay": "1 incident reported on this day",
+    "incidentsOnThisDay": "{{total}} incidents reported on this day",
+    "scheduledMaintenance": "Scheduled maintenance",
+    "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
+    "oneMaintenanceEvent": "1 scheduled maintenance event",
+    "maintenanceEvents": "{{total}} scheduled maintenance events",
+    "moreMaintenance": "+{{total}} more"
+  },
+  "liveStatus": {
+    "updated": "Updated {{time}}",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing",
+    "refreshFailed": "Could not refresh. Showing the last known status."
+  },
+  "search": {
+    "label": "Search resources",
+    "placeholder": "Search resources",
+    "clear": "Clear search",
+    "resultCount": "{{matched}} of {{total}} resources",
+    "noMatchesInGroup": "No resources here match your search.",
+    "noResultsTitle": "No matching resources",
+    "noResultsDescription": "Nothing on this page matches \"{{query}}\". Try a shorter search."
+  },
+  "incidents": {
+    "title": "Incidents",
+    "singular": "Incident",
+    "active": "Active Incidents",
+    "resolved": "Resolved Incidents",
+    "none": "No Incident",
+    "noneDescription": "No incidents posted on this status page.",
+    "postmortem": "Incident Postmortem",
+    "declaredAt": "Declared at ",
+    "report": "Incident Report",
+    "notFound": "Incident not found on this status page."
+  },
+  "episodes": {
+    "report": "Episode Report",
+    "none": "No Episode",
+    "notFound": "Episode not found on this status page."
+  },
+  "announcements": {
+    "title": "Announcements",
+    "singular": "Announcement",
+    "active": "Active Announcements",
+    "past": "Past Announcements",
+    "none": "No Announcement",
+    "noneDescription": "No announcements posted so far on this page.",
+    "announcedAt": "Announced at ",
+    "notFound": "Announcement not found on this status page."
+  },
+  "scheduledEvents": {
+    "title": "Scheduled Events",
+    "singular": "Scheduled Event",
+    "scheduledMaintenance": "Scheduled Maintenance",
+    "ongoing": "Ongoing Events",
+    "upcoming": "Scheduled Events",
+    "completed": "Completed Events",
+    "none": "No Scheduled Events",
+    "noneDescription": "No scheduled events posted for this status page.",
+    "scheduledAt": "Scheduled at ",
+    "report": "Scheduled Event Report",
+    "notFound": "No scheduled event found for this status page.",
+    "calendar": {
+      "subscribe": "Subscribe to calendar",
+      "subscribeTitle": "Subscribe to scheduled maintenance",
+      "subscribeDescription": "Get this page's scheduled maintenance in your calendar app. It keeps itself up to date.",
+      "eventTitle": "Add to calendar",
+      "eventDescription": "Add this maintenance event to your calendar app.",
+      "addToCalendar": "Add to calendar",
+      "addHeading": "Add to your calendar",
+      "google": "Google Calendar",
+      "googleHint": "Opens Google Calendar in a new tab",
+      "device": "Apple Calendar / Outlook",
+      "deviceHint": "Opens the calendar app on this device",
+      "deviceFileHint": "Downloads the event for the calendar app on this device",
+      "copyHeading": "Or copy the link",
+      "copyHint": "Paste it into any calendar app that can subscribe to a calendar by URL.",
+      "copy": "Copy link",
+      "copied": "Copied!",
+      "copyFailed": "Your browser didn't let this page copy the link. It's selected above, so you can copy it yourself.",
+      "done": "Done",
+      "refreshNote": "Calendar apps check for changes on their own schedule, so an update can take a few hours to appear."
+    }
+  },
+  "subscribe": {
+    "title": "Subscribe",
+    "submit": "Subscribe",
+    "newSubscription": "New Subscription",
+    "manageExisting": "Manage Existing Subscription",
+    "sendManagementLink": "Send Management Link",
+    "subscribedSuccessfully": "You have been subscribed successfully.",
+    "emailSentCheckSpam": "An email with the link has been sent to your email. If you don't see the email, please check your spam folder.",
+    "manageLinkSent": "If a subscription matches the details you entered, we have sent a link to manage it.",
+    "manageLinkSentEmail": "If this email address has a subscription, we have sent it a link to manage it. If you don't see the email, please check your spam folder.",
+    "menu": {
+      "email": "Email",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Subscribe by Email",
+      "description": "All of our updates will be sent to this email address.",
+      "yourEmail": "Your Email",
+      "placeholder": "subscriber@company.com",
+      "managePrompt": "Please enter your email you have subscribed with",
+      "manageDescription": "We will send you a manage subscription link to this email.",
+      "managePlaceholder": "email@yourcompany.com",
+      "signedInEmailDescription": "You subscribe with the email address you sign in with.",
+      "signInToSubscribe": "Sign in to this status page to subscribe to it."
+    },
+    "sms": {
+      "title": "Subscribe by SMS",
+      "description": "All of our updates will be sent to this phone number.",
+      "yourPhoneNumber": "Your Phone Number",
+      "placeholder": "+11234567890",
+      "managePrompt": "Please enter your phone number you have subscribed with",
+      "manageDescription": "We will send you a manage subscription link to this phone number.",
+      "confirmationSent": "We have sent a text message to this phone number. Open the link in it to confirm your subscription."
+    },
+    "slack": {
+      "title": "Subscribe by Slack",
+      "description": "All of our updates will be sent to this Slack webhook.",
+      "workspaceName": "Slack Workspace Name",
+      "workspaceNameDescription": "Enter your Slack workspace name for validation.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrlDescription": "Status page updates will be sent to this Slack webhook.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Please enter your Slack workspace name you have subscribed with",
+      "manageDescription": "We will send you a manage subscription link to this workspace."
+    },
+    "microsoftTeams": {
+      "title": "Subscribe by Microsoft Teams",
+      "description": "All of our updates will be sent to this Teams webhook.",
+      "workspaceName": "Microsoft Teams Workspace Name",
+      "workspaceNameDescription": "Enter your Microsoft Teams workspace name for validation.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrlDescription": "Status page updates will be sent to this Teams webhook.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Please enter your Microsoft Teams workspace name you have subscribed with",
+      "manageDescription": "We will send you a manage subscription link to this workspace."
+    },
+    "webhook": {
+      "title": "Subscribe by Webhook",
+      "description": "All of our updates will be sent as JSON POST requests to this webhook URL.",
+      "webhookUrl": "Webhook URL",
+      "webhookUrlDescription": "A JSON POST request will be sent to this URL on each status page event.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
+    "resources": {
+      "all": "Subscribe to All Resources",
+      "allDescription": "Select this option if you want to subscribe to all resources.",
+      "select": "Select Resources to Subscribe",
+      "selectDescription": "Please select the resources you want to subscribe to."
+    },
+    "eventTypes": {
+      "all": "Subscribe to All Event Types",
+      "allDescription": "Select this option if you want to subscribe to all event types.",
+      "select": "Select Event Types to Subscribe",
+      "selectDescription": "Please select the event types you want to subscribe to."
+    },
+    "update": {
+      "title": "Update Subscription",
+      "description": "You can update your subscription preferences or unsubscribe here.",
+      "saved": "Your changes have been saved.",
+      "submit": "Update Subscription",
+      "unsubscribe": "Unsubscribe",
+      "unsubscribeDescription": "Please select this if you would like to unsubscribe from all resources.",
+      "linkNotValid": "This link to manage your subscription has expired or is not valid. To get a new one, use Manage Existing Subscription on the Subscribe page.",
+      "getNewLink": "Get a new link",
+      "loadFailed": "We could not load this link. Please try again later."
+    },
+    "confirm": {
+      "title": "Confirm Subscription",
+      "success": "Subscription confirmed successfully",
+      "linkNotValid": "This link to confirm your subscription has expired or is not valid. A link works for 24 hours after it is sent. To get a new one, subscribe again.",
+      "subscribeAgain": "Subscribe again"
+    },
+    "unsubscribe": {
+      "title": "Unsubscribe",
+      "titleWithName": "Unsubscribe from {{statusPageName}}",
+      "confirmPrompt": "Do you want to stop receiving notifications from this status page?",
+      "channelEmail": "Email address",
+      "channelSms": "Phone number",
+      "channelSlack": "Slack workspace",
+      "channelMicrosoftTeams": "Microsoft Teams workspace",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "This subscription was added by the team that runs this status page. If it is a shared address, such as a mailing list, unsubscribing stops these notifications for everyone who receives them, and the team will be told.",
+      "confirmButton": "Unsubscribe",
+      "manageInstead": "Choose which notifications you receive instead",
+      "manageSubscription": "Manage your subscription",
+      "success": "You have been unsubscribed. You will not receive any more notifications from this status page.",
+      "alreadyUnsubscribed": "This subscription has already been cancelled. You do not receive notifications from this status page.",
+      "outOfDateLink": "This unsubscribe link is out of date. To unsubscribe, use the unsubscribe link in a recent message from this status page.",
+      "invalidLink": "This unsubscribe link is not valid. It may be incomplete, or the subscription may have been removed. To unsubscribe, use the unsubscribe link in a recent message from this status page.",
+      "failed": "We could not unsubscribe you. Please try again.",
+      "loadFailed": "We could not load this unsubscribe link. Please try again later."
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "Choose what you hear about.",
+      "summary": {
+        "everything": "You will get every update from this status page.",
+        "pickedResources": "You will get updates only about the resources you picked.",
+        "pickedEventTypes": "You will get updates only for the event types you picked.",
+        "pickedResourcesAndEventTypes": "You will get updates only for the resources and event types you picked.",
+        "noResources": "You have not picked any resources yet.",
+        "noEventTypes": "You have not picked any event types yet."
+      }
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "Email",
+      "password": "Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "login": "Log in"
+    },
+    "login": {
+      "welcomeBack": "Welcome back!",
+      "loginPrompt": "Please login to view {{statusPageName}}",
+      "forgotPassword": "Forgot password?",
+      "submit": "Login",
+      "or": "or",
+      "logInWithSso": "Log in with SSO",
+      "emailSignInLink": "Email me a sign-in link"
+    },
+    "sso": {
+      "title": "Log in with SSO",
+      "loginPrompt": "Please login to view {{statusPageName}}",
+      "noProviders": "No SSO Providers Configured or Enabled",
+      "notAvailable": "Single sign-on is not available for this status page. Sign in with your email and password instead.",
+      "backToLogin": "Back to sign in",
+      "logInWithPassword": "Log in with password"
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "description": "If you have forgotten your password for {{statusPageName}}, please enter your email and the password reset link will be sent to you.",
+      "success": "We have emailed you the password reset link. Please do not forget to check spam.",
+      "sendLink": "Send Password Reset Link",
+      "rememberPassword": "Remember your password?"
+    },
+    "resetPassword": {
+      "description": "Create a new password for your {{statusPageName}} account.",
+      "instructions": "Please enter your new password and we will have it updated.",
+      "success": "Your password has been updated. Please log in.",
+      "submit": "Reset Password",
+      "knowPassword": "Know your password?"
+    },
+    "magicLink": {
+      "title": "Log in with a link",
+      "description": "Enter your email address and we'll send you a link that logs you in to {{statusPageName}}. No password needed.",
+      "submit": "Email me a sign-in link",
+      "sentTitle": "Check your email",
+      "sent": "If {{email}} can log in to {{statusPageName}}, a sign-in link is on its way. It works once and expires in {{minutes}} minutes.",
+      "notReceived": "Not in your inbox? Check your spam folder, or ask the status page's team to add you.",
+      "sendAnother": "Send another link"
+    },
+    "magicLinkLogin": {
+      "title": "Log in to {{statusPageName}}",
+      "description": "Use the button below to finish logging in.",
+      "submit": "Log in",
+      "noLink": "This page needs the sign-in link from your email. Open the link again, or ask for a new one.",
+      "turnedOff": "Sign-in links are turned off for this status page. Please log in with your email and password.",
+      "requestNewLink": "Email me a new link"
+    },
+    "masterPassword": {
+      "prompt": "Enter the password to view this status page.",
+      "passwordRequired": "password is required.",
+      "passwordLabel": "Password",
+      "submit": "Unlock Status Page"
+    },
+    "signingOut": "Signing you out..."
+  },
+  "errors": {
+    "notFound": {
+      "title": "Page not found.",
+      "description": "Page you are looking for does not exist."
+    },
+    "forbidden": {
+      "title": "Forbidden",
+      "description": "You do not have permission to access this page."
+    },
+    "generic": "Something went wrong. Please try again.",
+    "addressNotSetUp": {
+      "title": "OneUptime is not set up for this address",
+      "description": "You opened {{visited}}, but this OneUptime is set up to open at {{configured}}.",
+      "openConfigured": "Open OneUptime at {{configured}}",
+      "hostHeading": "Use this address for OneUptime",
+      "hostStep": "In config.env, set HOST to this address:",
+      "restartStep": "Then start OneUptime again:",
+      "helm": "On Kubernetes, set host in your Helm values to this address instead, then upgrade the release.",
+      "domainHeading": "Is this a status page's domain?",
+      "domainSteps": "Add it to the status page under Custom Domains, then verify it. The status page shows here once it is verified.",
+      "proxyTitle": "Your proxy did not pass this address on",
+      "proxyDescription": "You opened {{visited}}, the address this OneUptime is set up for, but the request reached OneUptime under another host name.",
+      "proxyHeading": "Pass the host name on",
+      "proxySteps": "The proxy in front of OneUptime has to pass on the host name the browser asked for. Caddy does by default. For Nginx or Apache, add this line:",
+      "noPageTitle": "No status page at this address",
+      "noPageDescription": "{{visited}} is not the address of a status page.",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "copyFailed": "Your browser didn't let this page copy the line. It's selected above, so you can copy it yourself."
+    }
+  },
+  "footer": {
+    "poweredBy": "Powered by OneUptime"
+  },
+  "statusNames": {
+    "identified": "Identified",
+    "acknowledged": "Acknowledged",
+    "resolved": "Resolved",
+    "criticalIncident": "Critical Incident",
+    "majorIncident": "Major Incident",
+    "minorIncident": "Minor Incident",
+    "operational": "Operational",
+    "degraded": "Degraded",
+    "offline": "Offline",
+    "scheduled": "Scheduled",
+    "ongoing": "Ongoing",
+    "ended": "Ended",
+    "completed": "Completed"
+  },
+  "Subscriber ID is required": "Subscriber ID is required",
+  "Token is required": "Token is required",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} cannot be less than {{minLength}} characters.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} cannot be more than {{maxLength}} characters.",
+  "{{field}} should not have spaces.": "{{field}} should not have spaces.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).",
+  "{{field}} should not have numbers.": "{{field}} should not have numbers.",
+  "{{field}} should be a future date.": "{{field}} should be a future date.",
+  "{{field}} should be a number.": "{{field}} should be a number.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} should not be more than {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} should not be less than {{minValue}}.",
+  "{{field}} is required.": "{{field}} is required.",
+  "{{field}} should match {{matchField}}": "{{field}} should match {{matchField}}",
+  "Email is not valid.": "Email is not valid.",
+  "Next": "Next",
+  "Opens in a new tab": "Opens in a new tab",
+  "Loading the latest version": "Loading the latest version",
+  "A newer version of this page is available. It's loading now.": "A newer version of this page is available. It's loading now.",
+  "You're offline": "You're offline",
+  "This page will come back as soon as you're online again, just as you left it.": "This page will come back as soon as you're online again, just as you left it.",
+  "This page needs an internet connection to load. It will load as soon as you're back online.": "This page needs an internet connection to load. It will load as soon as you're back online.",
+  "Can't reach the server": "Can't reach the server",
+  "It may be restarting after an update. This page will load as soon as the server is back.": "It may be restarting after an update. This page will load as soon as the server is back.",
+  "A newer version of this page is ready": "A newer version of this page is ready",
+  "This page needs the new version to open. Reloading discards changes you haven't saved.": "This page needs the new version to open. Reloading discards changes you haven't saved.",
+  "This page couldn't be loaded": "This page couldn't be loaded",
+  "A file it needs couldn't be downloaded from the server. Try reloading in a moment.": "A file it needs couldn't be downloaded from the server. Try reloading in a moment.",
+  "Try now": "Try now",
+  "Reload page": "Reload page",
+  "Loading the latest version...": "Loading the latest version...",
+  "You're offline. This will load when you're back online.": "You're offline. This will load when you're back online.",
+  "Can't reach the server. Trying again automatically.": "Can't reach the server. Trying again automatically.",
+  "This needs the latest version. Save your changes, then reload the page.": "This needs the latest version. Save your changes, then reload the page.",
+  "This couldn't be loaded.": "This couldn't be loaded.",
+  "Try again": "Try again",
+  "Loading...": "Loading...",
+  "Loading": "Loading",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} is not valid JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} is not valid YAML. {{parserMessage}}",
+  "markdownCallouts": {
+    "caution": "Caution",
+    "danger": "Danger",
+    "important": "Important",
+    "info": "Info",
+    "note": "Note",
+    "tip": "Tip",
+    "warning": "Warning"
+  }
+}
