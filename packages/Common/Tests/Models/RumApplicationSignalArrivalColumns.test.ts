@@ -6,7 +6,7 @@ import {
   RUM_TELEMETRY_SIGNAL_COLUMNS,
   RumTelemetrySignal,
 } from "../../Types/Rum/RumTelemetrySignal";
-import { AddRumSignalArrivals1808997510000 } from "../../Server/Infrastructure/Postgres/SchemaMigrations/1808997510000-AddRumSignalArrivals";
+import { AddRumSignalArrivals1809063175100 } from "../../Server/Infrastructure/Postgres/SchemaMigrations/1809063175100-AddRumSignalArrivals";
 import SchemaMigrations from "../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { describe, expect, test } from "@jest/globals";
 import {
@@ -60,11 +60,12 @@ const MIGRATIONS_DIR: string = path.join(
 // A statement that writes rows rather than the table's shape.
 const ROW_STATEMENT: RegExp = /\b(UPDATE|INSERT|DELETE)\b/i;
 
-// This task's block of migration timestamps.
-const MIGRATION_BLOCK: { first: number; last: number } = {
-  first: 1808997500000,
-  last: 1808997599999,
-};
+// The 13-digit timestamp a migration class is named after.
+function timestampOf(migrationClass: unknown): number | null {
+  const name: string = (migrationClass as { name?: string }).name || "";
+  const match: RegExpMatchArray | null = name.match(/(\d{13})$/);
+  return match ? Number(match[1]) : null;
+}
 
 function typeOrmColumn(column: string): ColumnMetadataArgs | undefined {
   return getMetadataArgsStorage().columns.find(
@@ -163,8 +164,8 @@ describe("RumApplication's signal arrival columns", () => {
   });
 });
 
-describe("AddRumSignalArrivals1808997510000", () => {
-  const migration: MigrationInterface = new AddRumSignalArrivals1808997510000();
+describe("AddRumSignalArrivals1809063175100", () => {
+  const migration: MigrationInterface = new AddRumSignalArrivals1809063175100();
 
   test("up() adds the three stamps empty, and the tracked-since date as of now()", async () => {
     const statements: Array<string> = await statementsOf(
@@ -209,13 +210,16 @@ describe("AddRumSignalArrivals1808997510000", () => {
     );
   });
 
-  test("is registered once, under its own name, in its file, in this task's block", () => {
-    const className: string = AddRumSignalArrivals1808997510000.name;
-    const timestamp: number = Number(className.match(/(\d{13})$/)?.[1]);
+  test("is registered once, under its own name, in its file", () => {
+    const className: string = AddRumSignalArrivals1809063175100.name;
+    const timestamp: number | null = timestampOf(
+      AddRumSignalArrivals1809063175100,
+    );
 
+    expect(timestamp).not.toBeNull();
     expect(
       SchemaMigrations.filter((entry: unknown): boolean => {
-        return entry === AddRumSignalArrivals1808997510000;
+        return entry === AddRumSignalArrivals1809063175100;
       }),
     ).toHaveLength(1);
     expect((migration as { name?: string }).name).toBe(className);
@@ -224,7 +228,31 @@ describe("AddRumSignalArrivals1808997510000", () => {
         path.join(MIGRATIONS_DIR, `${timestamp}-AddRumSignalArrivals.ts`),
       ),
     ).toBe(true);
-    expect(timestamp).toBeGreaterThanOrEqual(MIGRATION_BLOCK.first);
-    expect(timestamp).toBeLessThanOrEqual(MIGRATION_BLOCK.last);
+  });
+
+  /*
+   * A fresh install runs the registry in its order, while one that already
+   * ran every migration before this one runs it last: the two agree only if
+   * it sorts above each of them. Migrations registered after it are theirs
+   * to number (SchemaMigrationsOrdering holds the newest to that).
+   */
+  test("sorts above every migration registered before it", () => {
+    const position: number = SchemaMigrations.indexOf(
+      AddRumSignalArrivals1809063175100,
+    );
+    const timestamp: number = timestampOf(AddRumSignalArrivals1809063175100)!;
+
+    expect(position).toBeGreaterThan(100);
+
+    const higherBefore: Array<string> = SchemaMigrations.slice(0, position)
+      .filter((entry: unknown): boolean => {
+        const earlier: number | null = timestampOf(entry);
+        return earlier !== null && earlier >= timestamp;
+      })
+      .map((entry: unknown): string => {
+        return (entry as { name: string }).name;
+      });
+
+    expect(higherBefore).toEqual([]);
   });
 });

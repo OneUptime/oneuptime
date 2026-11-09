@@ -19,8 +19,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * have arrived since <that moment>" then stays true for an application
  * that sent logs only before the upgrade.
  */
-export class AddRumSignalArrivals1808997510000 implements MigrationInterface {
-  public name: string = "AddRumSignalArrivals1808997510000";
+export class AddRumSignalArrivals1809063175100 implements MigrationInterface {
+  public name: string = "AddRumSignalArrivals1809063175100";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
