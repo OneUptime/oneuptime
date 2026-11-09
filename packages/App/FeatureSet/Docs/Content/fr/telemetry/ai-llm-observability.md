@@ -57,7 +57,8 @@ La **Vérification de la configuration** en haut de **Connecter** indique ce que
 | --- | --- |
 | Aucune application n'a envoyé d'appel d'IA | [Envoyer vos appels d'IA](#envoyer-vos-appels-dia) : les comptes de fournisseurs connectés apportent l'utilisation et le coût par jour, jamais un appel |
 | Une application appelle l'API d'un fournisseur d'IA, et aucune instrumentation GenAI ne l'enregistre | Ajoutez-en une pour le langage de l'application : la vérification a trouvé ses spans client HTTP vers `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` ou l'API d'un autre fournisseur d'IA |
-| Les appels arrivent sans prompts ni réponses | [Enregistrer ce qui a été dit](#enregistrer-ce-qui-a-été-dit) sur les spans : les prompts et les réponses envoyés comme événements de journal n'apparaissent pas |
+| Les appels arrivent sans prompts ni réponses | [Enregistrer ce qui a été dit](#enregistrer-ce-qui-a-été-dit), sur les spans ou comme événements de journal |
+| Les prompts et les réponses arrivent comme événements de journal | Rien : les conversations les lisent, et quiconque peut lire les journaux de l'application peut aussi les lire sur la page **Journaux** |
 | Les appels sont juste en dehors de la période | La liste propose la période qui contient le plus récent |
 | Un compte de fournisseur ne lit aucune utilisation | Sa ligne indique le dernier jour avec utilisation, ou le premier jour lu ; une connexion Azure qui ne trouve aucune ressource a besoin de Monitoring Reader là où se trouvent les ressources |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Les instrumentations OpenTelemetry plus récentes attendent `span_only`, `event_only` ou `span_and_event` au lieu de `true`. Sans contenu enregistré, une conversation montre quand même ses durées, son coût et ses problèmes. Les prompts peuvent contenir des données sensibles : [Confidentialité et masquage](#confidentialité-et-masquage) montre comment les masquer avant leur stockage.
 
-Les conversations lisent ce qui est enregistré sur le span de l'appel. L'instrumentation OpenTelemetry pour Python l'y enregistre avec `span_only` ; les instrumentations pour JavaScript et Java, et celle pour Python avec `true`, l'envoient comme événements de journal, que les conversations ne lisent pas, et la **Vérification de la configuration** le signale. Le SDK AI Inference d'Azure l'enregistre sur le span avec `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI avec `EnableSensitiveData` ; la bibliothèque OpenAI pour .NET n'en enregistre aucun.
+Les conversations lisent ce qui est enregistré sur le span de l'appel, et les événements de journal que l'application envoie avec les identifiants de trace et de span de l'appel. L'instrumentation OpenTelemetry pour Python l'enregistre sur le span avec `span_only` ; les instrumentations pour JavaScript et Java, et celle pour Python avec `true` ou `event_only`, l'envoient comme événements de journal, qui arrivent dans OneUptime avec les journaux de l'application. Le SDK AI Inference d'Azure l'enregistre sur le span avec `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI avec `EnableSensitiveData` ; la bibliothèque OpenAI pour .NET n'en enregistre aucun.
 
 ### Regrouper les appels en conversations
 
@@ -315,6 +316,8 @@ Les métriques GenAI comme `gen_ai.client.token.usage` et `gen_ai.client.operati
 
 Les appels d'IA sont stockés comme spans de trace, donc les **Règles de masquage** et les **Filtres de suppression** des traces s'appliquent à eux : masquez un attribut, ou écartez un span, avant son stockage. Vous les trouvez tous deux sous **Traces → Paramètres**. La colonne de l'e-mail de l'employé est nettoyée avec l'attribut d'où elle a été lue, si bien qu'une règle qui masque les e-mails la couvre aussi.
 
+Les prompts et les réponses envoyés comme événements de journal sont stockés comme journaux, donc ce sont les **Règles de masquage** et les **Filtres de suppression** des journaux qui s'appliquent à eux, sous **Journaux → Paramètres** : une règle qui masque les e-mails dans les traces ne les masque pas dans les événements de journal. Une conversation ne les montre qu'à qui peut aussi lire les journaux de cette application, et ces lecteurs les trouvent aussi sur la page **Journaux**.
+
 Les conversations sont lues avec la même permission que les traces : quiconque peut lire les traces du projet peut lire ses conversations, et personne d'autre. Les conversations d'un outil d'IA de l'entreprise sont l'exception : seuls les propriétaires et administrateurs du projet peuvent les lire, sauf si leur connexion en décide autrement ([Outils d'IA de l'entreprise](/docs/telemetry/ai-company-tools#confidentialité)).
 
 ## Attributs lus par OneUptime
@@ -357,6 +360,8 @@ La vue de conversation lit les messages d'un appel, dans cet ordre, depuis :
 - les attributs indexés : `gen_ai.prompt.N.content` et `gen_ai.completion.N.content` d'OpenLLMetry, `llm.input_messages.N.message.content` et `llm.output_messages.N.message.content` d'OpenInference ;
 - les tableaux de messages dans `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` et `output.value`.
 
+Quand le span d'un appel ne contient pas de prompt ou pas de réponse, ils sont lus dans les enregistrements de journal qui portent les identifiants de trace et de span de l'appel : les mêmes événements, envoyés par le signal des journaux, nommés dans l'attribut `event.name` de l'enregistrement ou dans son champ de nom d'événement. Un enregistrement qui porte l'identifiant de la trace mais aucun identifiant de span va au seul appel de modèle de la trace, ou à l'appel pendant lequel il a été envoyé, et il est écarté quand ce n'est pas un seul appel. Ce que le span enregistre l'emporte, si bien qu'un appel enregistré des deux façons montre chaque message une seule fois.
+
 ## Dépannage
 
 :::details Des comptes de fournisseurs sont connectés, mais Conversations et Appels sont vides
@@ -364,7 +369,7 @@ Un compte de fournisseur apporte ce qu'il a utilisé et coûté, par jour, jamai
 :::
 
 :::details Des appels arrivent, mais aucune conversation n'affiche de texte
-Votre instrumentation n'enregistre pas le contenu. Activez-le comme le montre [Enregistrer ce qui a été dit](#enregistrer-ce-qui-a-été-dit) ; les appels antérieurs restent sans texte.
+Votre instrumentation n'enregistre pas le contenu, ou elle l'envoie comme événements de journal et les journaux de l'application n'arrivent pas dans OneUptime. Activez-le comme le montre [Enregistrer ce qui a été dit](#enregistrer-ce-qui-a-été-dit), et envoyez les journaux avec les traces ; les appels antérieurs restent sans texte.
 :::
 
 :::details Chaque appel d'un chat apparaît comme sa propre conversation

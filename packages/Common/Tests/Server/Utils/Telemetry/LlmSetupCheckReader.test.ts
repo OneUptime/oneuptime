@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import LlmSetupCheckReader, {
-  GENAI_LOG_EVENT_ATTRIBUTE_KEYS,
+  LLM_SETUP_CHECK_CONTENT_LOG_SAMPLE,
   LLM_SETUP_CHECK_PROVIDER_USAGE_DAYS,
   LlmAppCallRow,
   LlmSetupCheckQuery,
@@ -24,6 +24,18 @@ import {
 } from "../../../../Types/Telemetry/LlmSetupCheckApi";
 import { LLM_PROVIDER_EXACT_HOSTS } from "../../../../Types/Telemetry/LlmProviders";
 import LlmMetricUsageUtil from "../../../../Utils/Telemetry/LlmMetricUsage";
+import {
+  LlmContentEventNames,
+  LlmInferenceDetailsContentAttributeKeys,
+  LlmLogEventNameAttributeKey,
+} from "../../../../Types/Telemetry/LlmConventions";
+import { LLM_MESSAGE_MAX_JSON_LENGTH } from "../../../../Utils/Telemetry/LlmMessageParser";
+import { LlmLogEventRecord } from "../../../../Utils/Telemetry/LlmLogEvents";
+import {
+  GenAiLogEventFixture,
+  loadGenAiLogEventFixture,
+  toStoredLogRecords,
+} from "../../../Helpers/GenAiLogEventFixtures";
 
 /*
  * THE AI / LLM SETUP CHECK'S READS, WITHOUT A SERVER.
@@ -221,24 +233,123 @@ describe("the uninstrumented calls read", () => {
   });
 });
 
+// A GenAI log record as the content-in-logs read returns it.
+function logRow(record: LlmLogEventRecord): JSONObject {
+  return {
+    attributes: record.attributes as JSONObject,
+    body: record.body as string,
+  };
+}
+
+function fixtureRows(fixture: GenAiLogEventFixture): Array<JSONObject> {
+  return toStoredLogRecords(loadGenAiLogEventFixture(fixture)).map(logRow);
+}
+
 describe("the GenAI log events read", () => {
   const statement: Statement = LlmSetupCheckReader.buildContentInLogsStatement(
     query(),
     { serviceIds: [SERVICE_A] },
   );
 
-  test("finds the first log record that is a GenAI event, by its keys' index", () => {
+  test("reads the newest GenAI events that can carry what was said, still retained", () => {
     expect(statement.query).toContain("FROM LogItemV3");
-    expect(statement.query).toContain("has(attributeKeys, ");
-    expect(statement.query).toContain(" LIMIT 1");
+    expect(statement.query).toContain("AND retentionDate >= now()");
+    expect(statement.query).toContain(" ORDER BY time DESC");
+    expect(statement.query).toContain(" LIMIT ");
+    expect(paramValues(statement)).toContain(
+      LLM_SETUP_CHECK_CONTENT_LOG_SAMPLE,
+    );
+  });
 
-    for (const key of GENAI_LOG_EVENT_ATTRIBUTE_KEYS) {
-      expect(paramValues(statement)).toContain(key);
-    }
+  test("by their event name, or the details event's keys when it has none", () => {
+    expect(paramValues(statement)).toContain(LlmLogEventNameAttributeKey);
+    expect(paramValues(statement)).toContainEqual(LlmContentEventNames);
+    expect(statement.query).toContain("hasAny(attributeKeys, ");
+    expect(paramValues(statement)).toContainEqual(
+      LlmInferenceDetailsContentAttributeKeys,
+    );
+  });
+
+  test("their attributes and body, a body too long to read left out", () => {
+    expect(statement.query).toContain(
+      `SELECT attributes, if(length(body) > ${LLM_MESSAGE_MAX_JSON_LENGTH}, '', body) AS body FROM LogItemV3`,
+    );
   });
 
   test("in the log scope", () => {
     expect(statement.query).toContain("AND primaryEntityId IN (");
+  });
+});
+
+describe("which GenAI log records say what was said", () => {
+  test.each([
+    GenAiLogEventFixture.JavaScriptContent,
+    GenAiLogEventFixture.JavaScriptContentOtlpJson,
+    GenAiLogEventFixture.PythonOpenAiV2True,
+    GenAiLogEventFixture.PythonOpenAiV2EventOnly,
+    GenAiLogEventFixture.PythonOpenAiV2SpanAndEvent,
+    GenAiLogEventFixture.PythonOpenAiV2EventsApi,
+    GenAiLogEventFixture.PythonGenAiOpenAiEventOnly,
+    GenAiLogEventFixture.JavaContent,
+  ])(
+    "%s, with content capture on: they do",
+    (fixture: GenAiLogEventFixture) => {
+      const rows: Array<JSONObject> = fixtureRows(fixture);
+
+      expect(rows.length).toBeGreaterThan(0);
+      expect(LlmSetupCheckReader.hasContentInLogRows(rows)).toBe(true);
+    },
+  );
+
+  test.each([
+    GenAiLogEventFixture.JavaScriptNoContent,
+    GenAiLogEventFixture.PythonOpenAiV2NoContent,
+    GenAiLogEventFixture.JavaNoContent,
+  ])(
+    "%s, with content capture off: they do not",
+    (fixture: GenAiLogEventFixture) => {
+      const rows: Array<JSONObject> = fixtureRows(fixture);
+
+      // The events still arrive - each naming a role, a tool or a choice.
+      expect(rows.length).toBeGreaterThan(0);
+      expect(LlmSetupCheckReader.hasContentInLogRows(rows)).toBe(false);
+    },
+  );
+
+  test("one record that says something is enough", () => {
+    expect(
+      LlmSetupCheckReader.hasContentInLogRows([
+        ...fixtureRows(GenAiLogEventFixture.JavaNoContent),
+        {
+          attributes: { [LlmLogEventNameAttributeKey]: "gen_ai.user.message" },
+          body: JSON.stringify({ content: "What is the weather in Paris?" }),
+        },
+      ]),
+    ).toBe(true);
+  });
+
+  test("rows of no shape it knows, or none at all, say nothing", () => {
+    expect(LlmSetupCheckReader.hasContentInLogRows([])).toBe(false);
+    expect(
+      LlmSetupCheckReader.hasContentInLogRows([
+        { attributes: "not a map", body: 42 } as unknown as JSONObject,
+        { attributes: {}, body: "" },
+        // Text in the body of an event that is not GenAI.
+        {
+          attributes: { [LlmLogEventNameAttributeKey]: "checkout.started" },
+          body: "What is the weather in Paris?",
+        },
+      ]),
+    ).toBe(false);
+    // A message event's body that is plain text is the message.
+    expect(
+      LlmSetupCheckReader.hasContentInLogRows([
+        {
+          attributes: { [LlmLogEventNameAttributeKey]: "gen_ai.user.message" },
+          body: "{not json",
+        },
+      ]),
+    ).toBe(true);
   });
 });
 
@@ -766,7 +877,7 @@ describe("read", () => {
           },
         ];
       },
-      logs: [{ found: 1 }],
+      logs: fixtureRows(GenAiLogEventFixture.JavaContent),
     });
 
     const check: LlmSetupCheckResponse =
@@ -774,6 +885,31 @@ describe("read", () => {
 
     expect(spies.log).toHaveBeenCalledTimes(1);
     expect(check.apps!.contentInLogs).toBe(true);
+  });
+
+  test("answers with no recorded prompt, and GenAI events with capture off: none in the logs either", async () => {
+    const spies: { log: ReturnType<typeof jest.spyOn> } = serve({
+      spans: (): Array<JSONObject> => {
+        return [
+          {
+            serviceId: SERVICE_A.toString(),
+            provider: "openai",
+            callsRecently: 12,
+            callsInWindow: 0,
+            answersRecently: 10,
+            answersWithContent: 0,
+            newestAtMs: NOW.getTime(),
+          },
+        ];
+      },
+      logs: fixtureRows(GenAiLogEventFixture.JavaScriptNoContent),
+    });
+
+    const check: LlmSetupCheckResponse =
+      await LlmSetupCheckReader.read(query());
+
+    expect(spies.log).toHaveBeenCalledTimes(1);
+    expect(check.apps!.contentInLogs).toBe(false);
   });
 
   test("a caller who may not read logs gets no log read", async () => {
