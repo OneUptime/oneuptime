@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
-  "OneUptime AI will try again": "OneUptime AI will try again"
+  "OneUptime AI will try again": "OneUptime AI will try again",
+  "Display Options": "Display Options",
+  "Every profile of a service in the time range, merged into one flame graph.": "Every profile of a service in the time range, merged into one flame graph.",
+  "Flame Graph": "Flame Graph",
+  "How many functions to list, up to 50.": "How many functions to list, up to 50.",
+  "How the functions are ranked.": "How the functions are ranked.",
+  "Leave it empty for a title that says what the widget shows.": "Leave it empty for a title that says what the widget shows.",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.",
+  "Open {{function}} in the Profiler": "Open {{function}} in the Profiler",
+  "Profile widgets are not available on public dashboards.": "Profile widgets are not available on public dashboards.",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.",
+  "The kind of profile this widget reads.": "The kind of profile this widget reads.",
+  "The services that send profiles could not be loaded.": "The services that send profiles could not be loaded.",
+  "The title shown above the widget": "The title shown above the widget",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.",
+  "Top Functions": "Top Functions",
+  "Where your services spend their CPU time and memory, from their profiles.": "Where your services spend their CPU time and memory, from their profiles.",
+  "Whose profiles to read, and what to analyze in them": "Whose profiles to read, and what to analyze in them"
 }

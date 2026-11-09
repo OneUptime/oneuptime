@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "プロジェクトのオーナー、または Manage Billing を持つ人が「プロジェクト設定 → AI → AI クレジット」で AI クレジットを追加できます。",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "1 回のリクエストに対するプロバイダーの応答を待つ秒数。空欄なら 120 (Ollama は 300)。低速なモデルやセルフホストのモデルでは大きくしてください。",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI プロバイダーがリクエストを拒否しました: API キーかモデルが正しくないか、アカウントにアクセス権かクレジットがない可能性があります。",
-  "OneUptime AI will try again": "OneUptime AI が再試行します"
+  "OneUptime AI will try again": "OneUptime AI が再試行します",
+  "Display Options": "表示オプション",
+  "Every profile of a service in the time range, merged into one flame graph.": "時間範囲内のサービスのすべてのプロファイルを、1 つのフレームグラフにまとめて表示します。",
+  "Flame Graph": "フレームグラフ",
+  "How many functions to list, up to 50.": "一覧に表示する関数の数（最大 50）。",
+  "How the functions are ranked.": "関数の並べ替え方法。",
+  "Leave it empty for a title that says what the widget shows.": "空欄にすると、ウィジェットの表示内容を示すタイトルになります。",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "1 つのサービス、または「すべてのサービス」。「すべてのサービス」の場合、ダッシュボードのサービス変数でサービスが選ばれると、ウィジェットはそのサービスに従います。",
+  "Open {{function}} in the Profiler": "{{function}} をプロファイラーで開く",
+  "Profile widgets are not available on public dashboards.": "公開ダッシュボードではプロファイルのウィジェットを利用できません。",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "CPU 時間やメモリを最も多く消費している関数をランキング表示し、それぞれワンクリックでプロファイラーを開けます。",
+  "The kind of profile this widget reads.": "このウィジェットが読み取るプロファイルの種類。",
+  "The services that send profiles could not be loaded.": "プロファイルを送信しているサービスを読み込めませんでした。",
+  "The title shown above the widget": "ウィジェットの上に表示されるタイトル",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "ウィジェットはダッシュボードの時間範囲のうち直近 7 日間を読み取ります。これはプロファイラーが読み取る最長の期間です。",
+  "Top Functions": "上位の関数",
+  "Where your services spend their CPU time and memory, from their profiles.": "サービスが CPU 時間とメモリをどこで使っているかを、プロファイルから示します。",
+  "Whose profiles to read, and what to analyze in them": "読み取るプロファイルの対象と、その分析内容"
 }

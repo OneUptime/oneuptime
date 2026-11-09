@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Een projecteigenaar of iemand met Manage Billing kan AI-tegoeden toevoegen in Projectinstellingen → AI → AI-tegoeden.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Aantal seconden dat op het antwoord van de provider op één verzoek wordt gewacht. Laat leeg voor 120 (300 voor Ollama). Verhoog dit voor een traag of zelf gehost model.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "De AI-provider weigerde het verzoek: de API-sleutel of het model is mogelijk onjuist, of het account heeft geen toegang of tegoed.",
-  "OneUptime AI will try again": "OneUptime AI probeert het opnieuw"
+  "OneUptime AI will try again": "OneUptime AI probeert het opnieuw",
+  "Display Options": "Weergaveopties",
+  "Every profile of a service in the time range, merged into one flame graph.": "Alle profielen van een service in de periode, samengevoegd tot één flame graph.",
+  "Flame Graph": "Flame graph",
+  "How many functions to list, up to 50.": "Hoeveel functies er worden getoond, maximaal 50.",
+  "How the functions are ranked.": "Hoe de functies worden gerangschikt.",
+  "Leave it empty for a title that says what the widget shows.": "Laat leeg voor een titel die zegt wat de widget toont.",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "Eén service, of ‘Alle services’. Met ‘Alle services’ volgt de widget de servicevariabele van het dashboard zodra daarin een service is gekozen.",
+  "Open {{function}} in the Profiler": "{{function}} openen in Profiler",
+  "Profile widgets are not available on public dashboards.": "Profielwidgets zijn niet beschikbaar op openbare dashboards.",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "De functies die de meeste CPU-tijd of het meeste geheugen gebruiken, gerangschikt, elk één klik van de Profiler.",
+  "The kind of profile this widget reads.": "Het soort profiel dat deze widget leest.",
+  "The services that send profiles could not be loaded.": "De services die profielen sturen, konden niet worden geladen.",
+  "The title shown above the widget": "De titel boven de widget",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "De widget leest de nieuwste 7 dagen van de periode van het dashboard: het langste venster dat de Profiler leest.",
+  "Top Functions": "Topfuncties",
+  "Where your services spend their CPU time and memory, from their profiles.": "Waar uw services hun CPU-tijd en geheugen aan besteden, uit hun profielen.",
+  "Whose profiles to read, and what to analyze in them": "Wiens profielen worden gelezen en wat daarin wordt geanalyseerd"
 }

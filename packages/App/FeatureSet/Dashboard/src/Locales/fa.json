@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "مالک پروژه یا کسی که Manage Billing دارد می‌تواند در «تنظیمات پروژه ← هوش مصنوعی ← اعتبار هوش مصنوعی» اعتبار هوش مصنوعی اضافه کند.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "چند ثانیه برای پاسخ ارائه‌دهنده به یک درخواست صبر شود. برای 120 خالی بگذارید (برای Ollama، 300). برای مدلی کند یا خودمیزبان آن را افزایش دهید.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "ارائه‌دهندهٔ هوش مصنوعی درخواست را رد کرد: ممکن است کلید API یا مدل آن نادرست باشد، یا حساب آن دسترسی یا اعتبار نداشته باشد.",
-  "OneUptime AI will try again": "OneUptime AI دوباره تلاش می‌کند"
+  "OneUptime AI will try again": "OneUptime AI دوباره تلاش می‌کند",
+  "Display Options": "گزینه‌های نمایش",
+  "Every profile of a service in the time range, merged into one flame graph.": "همه پروفایل‌های یک سرویس در بازه زمانی، ادغام‌شده در یک نمودار شعله.",
+  "Flame Graph": "نمودار شعله",
+  "How many functions to list, up to 50.": "چند تابع فهرست شود، حداکثر ۵۰.",
+  "How the functions are ranked.": "نحوه مرتب‌سازی توابع.",
+  "Leave it empty for a title that says what the widget shows.": "خالی بگذارید تا عنوانی نشان داده شود که می‌گوید ویجت چه چیزی را نمایش می‌دهد.",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "یک سرویس، یا «همه سرویس‌ها». با «همه سرویس‌ها»، وقتی سرویسی در متغیر سرویس داشبورد انتخاب شود، ویجت از آن پیروی می‌کند.",
+  "Open {{function}} in the Profiler": "باز کردن {{function}} در پروفایلر",
+  "Profile widgets are not available on public dashboards.": "ویجت‌های پروفایل در داشبوردهای عمومی در دسترس نیستند.",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "توابعی که بیشترین زمان پردازنده یا حافظه را می‌گیرند، به ترتیب، هر کدام با یک کلیک در پروفایلر.",
+  "The kind of profile this widget reads.": "نوع پروفایلی که این ویجت می‌خواند.",
+  "The services that send profiles could not be loaded.": "سرویس‌هایی که پروفایل می‌فرستند بارگیری نشدند.",
+  "The title shown above the widget": "عنوانی که بالای ویجت نمایش داده می‌شود",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "ویجت ۷ روز آخر از بازه زمانی داشبورد را می‌خواند: طولانی‌ترین بازه‌ای که پروفایلر می‌خواند.",
+  "Top Functions": "توابع برتر",
+  "Where your services spend their CPU time and memory, from their profiles.": "سرویس‌های شما زمان پردازنده و حافظه خود را کجا صرف می‌کنند، بر اساس پروفایل‌هایشان.",
+  "Whose profiles to read, and what to analyze in them": "پروفایل‌های کدام سرویس خوانده شود و چه چیزی در آن‌ها تحلیل شود"
 }

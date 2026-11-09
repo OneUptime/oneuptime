@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "專案擁有者或具有 Manage Billing 權限的人可以在「專案設定 → 人工智慧 → AI 點數」中新增 AI 點數。",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "等待提供者回應單一請求的秒數。留空則為 120（Ollama 為 300）。若是較慢或自行託管的模型，請調高此值。",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI 提供者拒絕了請求：其 API 金鑰或模型可能有誤，或其帳戶可能沒有存取權限或餘額。",
-  "OneUptime AI will try again": "OneUptime AI 將重試"
+  "OneUptime AI will try again": "OneUptime AI 將重試",
+  "Display Options": "顯示選項",
+  "Every profile of a service in the time range, merged into one flame graph.": "時間範圍內某個服務的所有效能剖析資料，合併為一張火焰圖。",
+  "Flame Graph": "火焰圖",
+  "How many functions to list, up to 50.": "列出的函式數量，最多 50 個。",
+  "How the functions are ranked.": "函式的排序方式。",
+  "Leave it empty for a title that says what the widget shows.": "留空則使用說明小工具顯示內容的標題。",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "一個服務，或「所有服務」。選擇「所有服務」時，若儀表板的服務變數選取了某個服務，小工具會隨之切換。",
+  "Open {{function}} in the Profiler": "在分析器中開啟 {{function}}",
+  "Profile widgets are not available on public dashboards.": "效能剖析小工具在公開儀表板上無法使用。",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "占用 CPU 時間或記憶體最多的函式排行，每個函式一鍵即可在分析器中開啟。",
+  "The kind of profile this widget reads.": "此小工具讀取的效能剖析類型。",
+  "The services that send profiles could not be loaded.": "無法載入傳送效能剖析資料的服務。",
+  "The title shown above the widget": "顯示在小工具上方的標題",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "小工具讀取儀表板時間範圍內最近 7 天的資料：這是分析器讀取的最長時間區間。",
+  "Top Functions": "函式排行",
+  "Where your services spend their CPU time and memory, from their profiles.": "根據效能剖析資料，查看服務把 CPU 時間和記憶體花在哪裡。",
+  "Whose profiles to read, and what to analyze in them": "讀取哪些服務的效能剖析資料，以及分析其中的什麼"
 }

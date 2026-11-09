@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "En prosjekteier eller noen med Manage Billing kan legge til AI-kreditter under Prosjektinnstillinger → KI → AI-kreditter.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Sekunder det ventes på leverandørens svar på én forespørsel. La feltet stå tomt for 120 (300 for Ollama). Øk verdien for en treg eller selvhostet modell.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "KI-leverandøren avviste forespørselen: API-nøkkelen eller modellen kan være feil, eller kontoen mangler tilgang eller kreditt.",
-  "OneUptime AI will try again": "OneUptime AI prøver igjen"
+  "OneUptime AI will try again": "OneUptime AI prøver igjen",
+  "Display Options": "Visningsalternativer",
+  "Every profile of a service in the time range, merged into one flame graph.": "Alle profiler for en tjeneste i tidsrommet, slått sammen til én flammegraf.",
+  "Flame Graph": "Flammegraf",
+  "How many functions to list, up to 50.": "Hvor mange funksjoner som skal vises, opptil 50.",
+  "How the functions are ranked.": "Hvordan funksjonene rangeres.",
+  "Leave it empty for a title that says what the widget shows.": "La feltet stå tomt for en tittel som sier hva widgeten viser.",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "Én tjeneste, eller «Alle tjenester». Med «Alle tjenester» følger widgeten dashbordets tjenestevariabel når en tjeneste er valgt i den.",
+  "Open {{function}} in the Profiler": "Åpne {{function}} i Profilering",
+  "Profile widgets are not available on public dashboards.": "Profilwidgeter er ikke tilgjengelige på offentlige dashbord.",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "Funksjonene som bruker mest CPU-tid eller minne, rangert, hver ett klikk fra Profilering.",
+  "The kind of profile this widget reads.": "Typen profil som denne widgeten leser.",
+  "The services that send profiles could not be loaded.": "Tjenestene som sender profiler, kunne ikke lastes inn.",
+  "The title shown above the widget": "Tittelen som vises over widgeten",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "Widgeten leser de nyeste 7 dagene av dashbordets tidsrom: det lengste vinduet Profilering leser.",
+  "Top Functions": "Toppfunksjoner",
+  "Where your services spend their CPU time and memory, from their profiles.": "Hvor tjenestene dine bruker CPU-tid og minne, ut fra profilene deres.",
+  "Whose profiles to read, and what to analyze in them": "Hvem sine profiler som leses, og hva som analyseres i dem"
 }

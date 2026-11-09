@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "يمكن لمالك المشروع أو لمن لديه صلاحية «إدارة الفوترة» إضافة أرصدة الذكاء الاصطناعي في إعدادات المشروع ← الذكاء الاصطناعي ← أرصدة الذكاء الاصطناعي.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "عدد الثواني التي يُنتظر فيها رد الموفّر على طلب واحد. اتركه فارغًا ليكون 120 (300 في Ollama). ارفعه لنموذج بطيء أو مستضاف ذاتيًا.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "رفض موفّر الذكاء الاصطناعي الطلب: ربما يكون مفتاح API أو النموذج خاطئًا، أو ربما يفتقر حسابه إلى صلاحية الوصول أو الرصيد.",
-  "OneUptime AI will try again": "سيحاول OneUptime AI مرة أخرى"
+  "OneUptime AI will try again": "سيحاول OneUptime AI مرة أخرى",
+  "Display Options": "خيارات العرض",
+  "Every profile of a service in the time range, merged into one flame graph.": "كل ملفات التعريف لخدمة ضمن النطاق الزمني، مدمجة في مخطط لهب واحد.",
+  "Flame Graph": "مخطط اللهب",
+  "How many functions to list, up to 50.": "عدد الدوال المعروضة، حتى 50.",
+  "How the functions are ranked.": "كيفية ترتيب الدوال.",
+  "Leave it empty for a title that says what the widget shows.": "اتركه فارغًا ليظهر عنوان يصف ما يعرضه عنصر الواجهة.",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "خدمة واحدة، أو «كل الخدمات». مع «كل الخدمات»، يتبع عنصر الواجهة متغير الخدمة في لوحة المعلومات عند اختيار خدمة فيه.",
+  "Open {{function}} in the Profiler": "فتح {{function}} في محلّل الأداء",
+  "Profile widgets are not available on public dashboards.": "عناصر واجهة ملفات التعريف غير متاحة في لوحات المعلومات العامة.",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "الدوال الأكثر استهلاكًا لوقت المعالج أو الذاكرة، مرتبة، وكل منها على بُعد نقرة من محلّل الأداء.",
+  "The kind of profile this widget reads.": "نوع ملف التعريف الذي يقرؤه عنصر الواجهة هذا.",
+  "The services that send profiles could not be loaded.": "تعذّر تحميل الخدمات التي ترسل ملفات التعريف.",
+  "The title shown above the widget": "العنوان المعروض أعلى عنصر الواجهة",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "يقرأ عنصر الواجهة أحدث 7 أيام من النطاق الزمني للوحة المعلومات: وهي أطول فترة يقرؤها محلّل الأداء.",
+  "Top Functions": "أهم الدوال",
+  "Where your services spend their CPU time and memory, from their profiles.": "أين تستهلك خدماتك وقت المعالج والذاكرة، وفقًا لملفات تعريفها.",
+  "Whose profiles to read, and what to analyze in them": "ملفات تعريف من تُقرأ، وما الذي يُحلَّل فيها"
 }

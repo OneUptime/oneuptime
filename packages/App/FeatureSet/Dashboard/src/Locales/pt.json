@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Um proprietário do projeto ou alguém com Manage Billing pode adicionar créditos de IA em Configurações do projeto → IA → Créditos de IA.",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Segundos de espera pela resposta do provedor a uma solicitação. Deixe em branco para 120 (300 no Ollama). Aumente para um modelo lento ou auto-hospedado.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "O provedor de IA recusou a solicitação: a chave de API ou o modelo podem estar incorretos, ou a conta pode não ter acesso ou crédito.",
-  "OneUptime AI will try again": "O OneUptime AI vai tentar novamente"
+  "OneUptime AI will try again": "O OneUptime AI vai tentar novamente",
+  "Display Options": "Opções de exibição",
+  "Every profile of a service in the time range, merged into one flame graph.": "Todos os perfis de um serviço no período, combinados em um único gráfico de chama.",
+  "Flame Graph": "Gráfico de chama",
+  "How many functions to list, up to 50.": "Quantas funções listar, até 50.",
+  "How the functions are ranked.": "Como as funções são ordenadas.",
+  "Leave it empty for a title that says what the widget shows.": "Deixe em branco para um título que diga o que o widget mostra.",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "Um serviço, ou “Todos os serviços”. Com “Todos os serviços”, o widget segue a variável de serviço do painel quando um é escolhido.",
+  "Open {{function}} in the Profiler": "Abrir {{function}} no Profiler",
+  "Profile widgets are not available on public dashboards.": "Os widgets de perfis não estão disponíveis em painéis públicos.",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "As funções que mais consomem tempo de CPU ou memória, ordenadas, cada uma a um clique do Profiler.",
+  "The kind of profile this widget reads.": "O tipo de perfil que este widget lê.",
+  "The services that send profiles could not be loaded.": "Não foi possível carregar os serviços que enviam perfis.",
+  "The title shown above the widget": "O título exibido acima do widget",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "O widget lê os 7 dias mais recentes do período do painel: a janela mais longa que o Profiler lê.",
+  "Top Functions": "Funções principais",
+  "Where your services spend their CPU time and memory, from their profiles.": "Onde seus serviços gastam tempo de CPU e memória, a partir dos perfis deles.",
+  "Whose profiles to read, and what to analyze in them": "De quem ler os perfis e o que analisar neles"
 }

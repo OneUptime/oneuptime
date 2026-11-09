@@ -583,7 +583,7 @@ describe("Top Functions", () => {
 
     expect(
       screen.getByTestId(`${PROFILE_TOP_FUNCTIONS_TEST_ID}-title`),
-    ).toHaveTextContent("Top functions");
+    ).toHaveTextContent("Top Functions");
     expect(
       screen.getByTestId(`${PROFILE_TOP_FUNCTIONS_TEST_ID}-services`),
     ).toHaveTextContent("All services");
@@ -1135,8 +1135,8 @@ describe("in the reader's language", () => {
 
     expect(
       screen.getByTestId(`${PROFILE_TOP_FUNCTIONS_TEST_ID}-title`),
-    ).toHaveTextContent(word("de", "Top functions"));
-    expect(word("de", "Top functions")).not.toBe("Top functions");
+    ).toHaveTextContent(word("de", "Top Functions"));
+    expect(word("de", "Top Functions")).not.toBe("Top Functions");
     expect(
       screen.getByTestId(`${PROFILE_TOP_FUNCTIONS_TEST_ID}-services`),
     ).toHaveTextContent(word("de", "All services"));
@@ -1173,7 +1173,7 @@ describe("in the reader's language", () => {
 
     expect(
       screen.getByTestId(`${PROFILE_TOP_FUNCTIONS_TEST_ID}-title`),
-    ).toHaveTextContent(word("fa", "Top functions"));
+    ).toHaveTextContent(word("fa", "Top Functions"));
     expect(
       screen.getByTestId(`${PROFILE_TOP_FUNCTIONS_TEST_ID}-rank`),
     ).toHaveTextContent(word("fa", SORT_BY_SELF));

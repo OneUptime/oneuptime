@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "Владелец проекта или пользователь с правом Manage Billing может добавить кредиты ИИ в разделе «Настройки проекта → ИИ → Кредиты ИИ».",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Сколько секунд ждать ответа провайдера на один запрос. Оставьте пустым для 120 (300 для Ollama). Увеличьте значение для медленной или самостоятельно размещённой модели.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "Провайдер ИИ отклонил запрос: возможно, неверны ключ API или модель, либо у учётной записи нет доступа или средств.",
-  "OneUptime AI will try again": "OneUptime AI попробует снова"
+  "OneUptime AI will try again": "OneUptime AI попробует снова",
+  "Display Options": "Параметры отображения",
+  "Every profile of a service in the time range, merged into one flame graph.": "Все профили сервиса за период, объединённые в один flame-граф.",
+  "Flame Graph": "Flame-граф",
+  "How many functions to list, up to 50.": "Сколько функций показать, не больше 50.",
+  "How the functions are ranked.": "Как сортируются функции.",
+  "Leave it empty for a title that says what the widget shows.": "Оставьте пустым, чтобы заголовок говорил, что показывает виджет.",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "Один сервис или «Все службы». С вариантом «Все службы» виджет следует переменной сервиса на панели, когда в ней выбран сервис.",
+  "Open {{function}} in the Profiler": "Открыть {{function}} в Профайлере",
+  "Profile widgets are not available on public dashboards.": "Виджеты профилей недоступны на публичных панелях.",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "Функции, которые тратят больше всего времени CPU или памяти, по порядку; каждая в одном клике от Профайлера.",
+  "The kind of profile this widget reads.": "Тип профиля, который читает этот виджет.",
+  "The services that send profiles could not be loaded.": "Не удалось загрузить сервисы, которые отправляют профили.",
+  "The title shown above the widget": "Заголовок над виджетом",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "Виджет читает последние 7 дней периода панели: это самое длинное окно, которое читает Профайлер.",
+  "Top Functions": "Топ функций",
+  "Where your services spend their CPU time and memory, from their profiles.": "На что ваши сервисы тратят время CPU и память — по их профилям.",
+  "Whose profiles to read, and what to analyze in them": "Чьи профили читать и что в них анализировать"
 }

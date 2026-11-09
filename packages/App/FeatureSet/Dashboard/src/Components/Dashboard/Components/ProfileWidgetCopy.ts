@@ -9,9 +9,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * alike.
  */
 
-// Top Functions' title until its settings give it one.
+// Top Functions' title until its settings give it one: its name in Add Widget.
 export const PROFILE_WIDGET_TOP_FUNCTIONS_TITLE: string =
-  translationKey("Top functions");
+  translationKey("Top Functions");
 
 // Who the widget reads, on the line under its title.
 export const PROFILE_WIDGET_ALL_SERVICES: string =

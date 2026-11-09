@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "项目所有者或拥有 Manage Billing 权限的人可以在“项目设置 → 人工智能 → AI 积分”中添加 AI 积分。",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "等待提供商响应单个请求的秒数。留空则为 120（Ollama 为 300）。对于较慢或自托管的模型，请调高此值。",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI 提供商拒绝了请求：其 API 密钥或模型可能有误，或其账户可能没有访问权限或余额。",
-  "OneUptime AI will try again": "OneUptime AI 将重试"
+  "OneUptime AI will try again": "OneUptime AI 将重试",
+  "Display Options": "显示选项",
+  "Every profile of a service in the time range, merged into one flame graph.": "时间范围内某个服务的所有性能分析数据，合并为一张火焰图。",
+  "Flame Graph": "火焰图",
+  "How many functions to list, up to 50.": "列出的函数数量，最多 50 个。",
+  "How the functions are ranked.": "函数的排序方式。",
+  "Leave it empty for a title that says what the widget shows.": "留空则使用说明小部件显示内容的标题。",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "一个服务，或“所有服务”。选择“所有服务”时，若仪表板的服务变量选中了某个服务，小部件会随之切换。",
+  "Open {{function}} in the Profiler": "在分析器中打开 {{function}}",
+  "Profile widgets are not available on public dashboards.": "性能分析小部件在公开仪表板上不可用。",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "占用 CPU 时间或内存最多的函数排行，每个函数一键即可在分析器中打开。",
+  "The kind of profile this widget reads.": "此小部件读取的性能分析类型。",
+  "The services that send profiles could not be loaded.": "无法加载发送性能分析数据的服务。",
+  "The title shown above the widget": "显示在小部件上方的标题",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "小部件读取仪表板时间范围内最近 7 天的数据：这是分析器读取的最长时间窗口。",
+  "Top Functions": "函数排行",
+  "Where your services spend their CPU time and memory, from their profiles.": "根据性能分析数据，查看服务把 CPU 时间和内存花在了哪里。",
+  "Whose profiles to read, and what to analyze in them": "读取哪些服务的性能分析数据，以及分析其中的什么"
 }

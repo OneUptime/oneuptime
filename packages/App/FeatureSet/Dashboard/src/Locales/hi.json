@@ -47318,5 +47318,22 @@
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.": "प्रोजेक्ट का मालिक या Manage Billing वाला कोई व्यक्ति प्रोजेक्ट सेटिंग्स → एआई → AI क्रेडिट में AI क्रेडिट जोड़ सकता है।",
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "प्रदाता के एक अनुरोध का उत्तर देने की प्रतीक्षा के सेकंड। 120 के लिए खाली छोड़ें (Ollama के लिए 300)। धीमे या स्व-होस्टेड मॉडल के लिए इसे बढ़ाएँ।",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI प्रदाता ने अनुरोध अस्वीकार कर दिया: उसकी API कुंजी या मॉडल गलत हो सकता है, या उसके खाते में पहुँच या क्रेडिट की कमी हो सकती है।",
-  "OneUptime AI will try again": "OneUptime AI फिर से प्रयास करेगा"
+  "OneUptime AI will try again": "OneUptime AI फिर से प्रयास करेगा",
+  "Display Options": "प्रदर्शन विकल्प",
+  "Every profile of a service in the time range, merged into one flame graph.": "समय सीमा में किसी सेवा की सभी प्रोफ़ाइल, एक फ़्लेम ग्राफ़ में मिलाकर।",
+  "Flame Graph": "फ़्लेम ग्राफ़",
+  "How many functions to list, up to 50.": "कितने फ़ंक्शन दिखाने हैं, अधिकतम 50।",
+  "How the functions are ranked.": "फ़ंक्शन किस क्रम में दिखें।",
+  "Leave it empty for a title that says what the widget shows.": "खाली छोड़ें तो शीर्षक बताएगा कि विजेट क्या दिखाता है।",
+  "One service, or All services. With All services, the widget follows the dashboard's service variable when one is picked.": "एक सेवा, या “सभी सेवाएं”। “सभी सेवाएं” चुनने पर, डैशबोर्ड के सेवा वेरिएबल में कोई सेवा चुनी जाए तो विजेट उसी का अनुसरण करता है।",
+  "Open {{function}} in the Profiler": "{{function}} को प्रोफ़ाइलर में खोलें",
+  "Profile widgets are not available on public dashboards.": "प्रोफ़ाइल विजेट सार्वजनिक डैशबोर्ड पर उपलब्ध नहीं हैं।",
+  "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.": "सबसे ज़्यादा CPU समय या मेमोरी लेने वाले फ़ंक्शन, क्रम से, हर एक प्रोफ़ाइलर से एक क्लिक दूर।",
+  "The kind of profile this widget reads.": "यह विजेट किस प्रकार की प्रोफ़ाइल पढ़ता है।",
+  "The services that send profiles could not be loaded.": "प्रोफ़ाइल भेजने वाली सेवाएं लोड नहीं हो सकीं।",
+  "The title shown above the widget": "विजेट के ऊपर दिखने वाला शीर्षक",
+  "The widget reads the newest 7 days of the dashboard's time range: the longest window the Profiler reads.": "विजेट डैशबोर्ड की समय सीमा के सबसे नए 7 दिन पढ़ता है: प्रोफ़ाइलर इससे लंबी अवधि नहीं पढ़ता।",
+  "Top Functions": "शीर्ष फ़ंक्शन",
+  "Where your services spend their CPU time and memory, from their profiles.": "आपकी सेवाएं अपना CPU समय और मेमोरी कहां खर्च करती हैं, उनकी प्रोफ़ाइल से।",
+  "Whose profiles to read, and what to analyze in them": "किसकी प्रोफ़ाइल पढ़नी है, और उनमें क्या विश्लेषण करना है"
 }
