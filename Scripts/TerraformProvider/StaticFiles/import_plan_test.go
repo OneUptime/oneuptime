@@ -24,6 +24,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -83,12 +84,18 @@ func newSettleAPI(t *testing.T) *settleAPI {
 
 	// A monitor made in the dashboard: OneUptime keeps its criteria's
 	// defaults, the request type it defaults to, and a bare origin with its
-	// trailing slash.
+	// trailing slash. It keeps every column a monitor is written with that
+	// has a default, too, as that default: isArchived, disableActiveMonitoring
+	// and keepResponseContent (NOT NULL DEFAULT true since #6339). The
+	// provider gives each the same Default, so a configuration that leaves
+	// one out plans the value OneUptime keeps; an answer without it would
+	// read null, and the Default would plan a change against it.
 	api.rows["/monitor"][settleMonitorID] = map[string]interface{}{
 		"name":                    "Storefront",
 		"monitorType":             "Website",
 		"isArchived":              false,
 		"disableActiveMonitoring": false,
+		"keepResponseContent":     true,
 		"monitorSteps": monitorStepWire("https://example.com/", onlineCriteria(serverCriteriaDefaults), map[string]interface{}{
 			"requestType": "GET",
 		}),
@@ -361,11 +368,41 @@ func (tf *settleTerraform) changes(typeName string, prior settled, config tftype
 	return changed
 }
 
+// requireNoChanges fails a plan that changes anything. Once an attribute a
+// configuration may set plans a change, the framework makes every attribute
+// only OneUptime sets "(known after apply)", and keepStateWhenNothingChanges
+// leaves them so: the failure names the first kind apart from the second,
+// which only follows it.
 func (tf *settleTerraform) requireNoChanges(typeName string, prior settled, config tftypes.Value) {
 	tf.t.Helper()
-	if changed := tf.changes(typeName, prior, config); len(changed) > 0 {
-		tf.t.Fatalf("the plan after the import of %s changes %v", typeName, changed)
+	changed := tf.changes(typeName, prior, config)
+	if len(changed) == 0 {
+		return
 	}
+	configurable := []string{}
+	setByOneUptime := []string{}
+	for _, name := range changed {
+		if tf.isSetOnlyByOneUptime(typeName, name) {
+			setByOneUptime = append(setByOneUptime, name)
+		} else {
+			configurable = append(configurable, name)
+		}
+	}
+	sort.Strings(configurable)
+	sort.Strings(setByOneUptime)
+	tf.t.Fatalf("the plan after the import of %s changes %v (a configuration may set them) and %v (only OneUptime sets them)", typeName, configurable, setByOneUptime)
+}
+
+// isSetOnlyByOneUptime is whether no configuration sets the attribute:
+// Computed, and neither Optional nor Required. A replacement ("replace
+// <path>") is not an attribute, so it counts as configurable.
+func (tf *settleTerraform) isSetOnlyByOneUptime(typeName string, name string) bool {
+	for _, attribute := range tf.schemas[typeName].Block.Attributes {
+		if attribute.Name == name {
+			return attribute.Computed && !attribute.Optional && !attribute.Required
+		}
+	}
+	return false
 }
 
 // apply plans and applies, and checks the result as Terraform does: every
