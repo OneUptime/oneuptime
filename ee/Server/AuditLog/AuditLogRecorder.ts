@@ -58,7 +58,7 @@ import {
   redactSecretsInJson,
 } from "Common/Utils/AuditLog/AuditLogValues";
 import {
-  isSameAuditLogTypedValue,
+  getAuditLogHeldValue,
   readAuditLogValue,
 } from "Common/Utils/AuditLog/AuditLogTypedValues";
 
@@ -1195,11 +1195,11 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
    * before-row's join or the payload carried with them) are all the same
    * value. A field the write sends as undefined writes nothing.
    *
-   * So is a typed value written in another of its shapes - a Phone, its
-   * { _type, value } JSON or its text - when it holds the same text: an
-   * entry would read the same number before and after. A hash is compared
-   * by what it holds, so a changed secret is still a change
-   * (isSameAuditLogTypedValue).
+   * A typed value is compared as what it holds (getAuditLogHeldValue): a
+   * Phone written back as its { _type, value } JSON or its text is the same
+   * number, as an entry would read it, and two different numbers in the
+   * same shape are two numbers. A hash is compared by its hash, so a
+   * changed secret is still a change. A relation is compared as it is.
    */
   private areValuesEqual<TModel extends BaseModel>(data: {
     model: TModel;
@@ -1210,18 +1210,19 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     // A field that is not a column has none: compared as of no known type.
     const metadata: TableColumnMetadata | undefined =
       data.model.getTableColumnMetadata(data.field);
+    const isRelation: boolean =
+      metadata?.type === TableColumnType.Entity ||
+      metadata?.type === TableColumnType.EntityArray;
 
-    if (
-      !ColumnValueChange.isChanged({
-        columnType: metadata?.type,
-        storedValue: data.oldValue,
-        writtenValue: data.newValue,
-      })
-    ) {
-      return true;
-    }
-
-    return isSameAuditLogTypedValue(data.oldValue, data.newValue);
+    return !ColumnValueChange.isChanged({
+      columnType: metadata?.type,
+      storedValue: isRelation
+        ? data.oldValue
+        : getAuditLogHeldValue(data.oldValue),
+      writtenValue: isRelation
+        ? data.newValue
+        : getAuditLogHeldValue(data.newValue),
+    });
   }
 
   // The column's metadata when it is a relation (Entity / EntityArray), else null.

@@ -150,8 +150,8 @@ const isPlainValue: (value: unknown) => value is AuditLogPlainValue = (
   );
 };
 
-const hasOwn: (value: object, key: string) => boolean = (
-  value: object,
+const hasOwn: (value: unknown, key: string) => boolean = (
+  value: unknown,
   key: string,
 ): boolean => {
   return Object.prototype.hasOwnProperty.call(value, key);
@@ -189,7 +189,9 @@ const toWrittenJson: (value: PlainObject) => unknown = (
  */
 export const readAuditLogTypedValue: (
   value: unknown,
-) => AuditLogTypedValue | null = (value: unknown): AuditLogTypedValue | null => {
+) => AuditLogTypedValue | null = (
+  value: unknown,
+): AuditLogTypedValue | null => {
   if (value instanceof Date) {
     return Number.isNaN(value.getTime())
       ? null
@@ -257,39 +259,20 @@ export const readAuditLogValue: (value: unknown) => unknown = (
 };
 
 /*
- * Whether two values hold the same typed value, written in different
- * shapes: a Phone, its JSON or its text. At least one of them must be a
- * typed value; they are the same when they hold the same text. A hash is
- * compared by the hash it holds, never by "[REDACTED]", so a changed
- * secret is still a change.
+ * A value as it is compared, to tell whether a write changed it: a typed
+ * value as what it holds - a Phone, its { _type, value } JSON and its text
+ * all hold "+14155550100" - and anything else as it is. So a number written
+ * back in another of its shapes is the same number, and two different ones
+ * in the same shape are never read alike (as "[object Object]"). A hash is
+ * compared by the hash it holds, never by "[REDACTED]": a changed secret is
+ * still a change.
  */
-export const isSameAuditLogTypedValue: (
-  before: unknown,
-  after: unknown,
-) => boolean = (before: unknown, after: unknown): boolean => {
-  const typedBefore: AuditLogTypedValue | null =
-    readAuditLogTypedValue(before);
-  const typedAfter: AuditLogTypedValue | null = readAuditLogTypedValue(after);
+export const getAuditLogHeldValue: (value: unknown) => unknown = (
+  value: unknown,
+): unknown => {
+  const typed: AuditLogTypedValue | null = readAuditLogTypedValue(value);
 
-  if (!typedBefore && !typedAfter) {
-    return false;
-  }
-
-  const held: (typed: AuditLogTypedValue | null, value: unknown) => unknown = (
-    typed: AuditLogTypedValue | null,
-    value: unknown,
-  ): unknown => {
-    return typed ? typed.value : value;
-  };
-
-  const textBefore: unknown = held(typedBefore, before);
-  const textAfter: unknown = held(typedAfter, after);
-
-  return (
-    isPlainValue(textBefore) &&
-    isPlainValue(textAfter) &&
-    String(textBefore) === String(textAfter)
-  );
+  return typed ? typed.value : value;
 };
 
 // What a recorded change carries, as far as its values go.
