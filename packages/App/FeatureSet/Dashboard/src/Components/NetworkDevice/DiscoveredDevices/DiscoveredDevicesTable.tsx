@@ -41,6 +41,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import Table from "Common/UI/Components/Table/Table";
+import { useAreTableColumnsFolded } from "Common/UI/Components/Table/TableCellContext";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import {
   TableEmptyStateKind,
@@ -157,9 +158,11 @@ export const DISCOVERED_DEVICES_COPY: {
   noneHidden: string;
   noAddressYet: string;
   addToMonitoring: string;
+  add: string;
   hideFromMap: string;
   showOnMap: string;
   viewDevice: string;
+  view: string;
   editClassification: string;
   delete: string;
 } = {
@@ -197,9 +200,12 @@ export const DISCOVERED_DEVICES_COPY: {
     "No IP address yet: a device gets one once a router's ARP table or a network controller reports it.",
   ),
   addToMonitoring: translationKey("Add to monitoring"),
+  // The row's own button: the words its name starts with, or holds.
+  add: translationKey("Add"),
   hideFromMap: translationKey("Hide from map"),
   showOnMap: translationKey("Show on map"),
   viewDevice: translationKey("View device"),
+  view: translationKey("View"),
   editClassification: translationKey("Edit classification"),
   delete: translationKey("Delete"),
 };
@@ -231,6 +237,24 @@ function lockFor(gate: PermissionGateResult): {
 
   return { disabled: true, tooltip: gate.disabledReason };
 }
+
+/*
+ * A vendor's name: as dark as the row's other values in a column of its
+ * own, and as quiet as any value folded under the device's name.
+ */
+const VendorName: FunctionComponent<{ vendor: string }> = (props: {
+  vendor: string;
+}): ReactElement => {
+  const isFolded: boolean = useAreTableColumnsFolded();
+
+  return (
+    <span
+      className={`break-words text-sm ${isFolded ? "text-gray-500" : "text-gray-900"}`}
+    >
+      {props.vendor}
+    </span>
+  );
+};
 
 function deviceRoute(deviceId: string): Route {
   return RouteUtil.populateRouteParams(
@@ -572,6 +596,12 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
   const actionButtons: Array<ActionButtonSchema<DiscoveredDeviceItem>> = [
     {
       title: DISCOVERED_DEVICES_COPY.addToMonitoring,
+      /*
+       * "Add" on the row's button, its name still "Add to monitoring": the
+       * whole words in German ("Zur Überwachung hinzufügen") pushed the
+       * State column under the row's buttons at 1280px beside the menu.
+       */
+      rowButtonTitle: DISCOVERED_DEVICES_COPY.add,
       icon: IconProp.Add,
       buttonStyleType: ButtonStyleType.NORMAL,
       placement: ActionButtonPlacement.Primary,
@@ -596,6 +626,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
     },
     {
       title: DISCOVERED_DEVICES_COPY.viewDevice,
+      rowButtonTitle: DISCOVERED_DEVICES_COPY.view,
       icon: IconProp.ArrowRight,
       buttonStyleType: ButtonStyleType.NORMAL,
       isVisible: (item: DiscoveredDeviceItem): boolean => {
@@ -739,12 +770,20 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
         );
       },
     },
+    /*
+     * Where the rows do not fit their card - a 1280px window beside the
+     * Network menu - the MAC address goes under the IP address, the vendor
+     * under the name and Last Seen under where it was seen, so the State
+     * column is never pushed under the row's buttons (TableFit).
+     */
     {
       title: "MAC Address",
       key: "macAddress",
       type: FieldType.Element,
       disableSort: true,
       hideOnMobile: true,
+      hideBelowLargeScreen: true,
+      foldInto: "ipAddress",
       getElement: (item: DiscoveredDeviceItem): ReactElement => {
         if (!item.macAddress) {
           return <TableEmptyValue />;
@@ -762,6 +801,8 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
       key: "vendor",
       type: FieldType.Element,
       hideOnMobile: true,
+      hideBelowLargeScreen: true,
+      foldInto: "name",
       wrapContent: true,
       wrapMaxWidthClassName: "max-w-48",
       getElement: (item: DiscoveredDeviceItem): ReactElement => {
@@ -769,11 +810,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
           return <TableEmptyValue />;
         }
 
-        return (
-          <span className="break-words text-sm text-gray-900">
-            {item.vendor}
-          </span>
-        );
+        return <VendorName vendor={item.vendor} />;
       },
     },
     {
@@ -833,6 +870,9 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
       title: "Last Seen",
       key: "lastSeenAt",
       type: FieldType.Element,
+      hideBelowLargeScreen: true,
+      foldInto: "seenOn",
+      showTitleWhenFolded: true,
       getElement: (item: DiscoveredDeviceItem): ReactElement => {
         if (!item.lastSeenAt) {
           return <TableEmptyValue />;

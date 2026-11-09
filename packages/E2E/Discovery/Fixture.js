@@ -7,14 +7,23 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
+  Route,
+  Routes,
   useLocation,
   useNavigate,
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import Discovery from "../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery";
 import Devices from "../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Devices";
+import DiscoveredDevicesPage from "../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Endpoints";
+import NetworkLayout from "../../App/FeatureSet/Dashboard/src/Pages/Network/Layout";
+import PageMap from "../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap from "../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import ProbeUtil from "../../App/FeatureSet/Dashboard/src/Utils/Probe";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
@@ -48,6 +57,11 @@ import {
   buildTemplates,
   createImportApi,
 } from "./ImportFixture";
+import {
+  buildDiscoveredDevices,
+  buildManyDiscoveredDevices,
+  createDiscoveredDevicesApi,
+} from "./DiscoveredDevicesFixture";
 
 // Exercise the actual page, table, review dialog and polling hook with synthetic
 // data. Only the API boundary/session is replaced; no network is scanned.
@@ -243,6 +257,34 @@ const scans = [
  */
 const isDevicesRoute = () =>
   window.location.pathname.endsWith("/network-devices");
+/*
+ * Network > Topology > Discovered Devices (issue #5775): every device the
+ * offices' switches, a router and a network controller have seen, added to
+ * monitoring through the same import as a scan's. `?devices=many` lists 320
+ * point-of-sale terminals instead.
+ */
+const isDiscoveredDevicesRoute = () =>
+  window.location.pathname.endsWith("/network-devices/endpoints");
+const discovered = createDiscoveredDevicesApi(
+  new URLSearchParams(window.location.search).get("devices") === "many"
+    ? buildManyDiscoveredDevices()
+    : buildDiscoveredDevices(),
+);
+function snmpProfile(index, name) {
+  const item = new NetworkSnmpCredentialProfile();
+  item._id = `54000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+  item.name = name;
+  return item;
+}
+const snmpProfiles = [
+  snmpProfile(1, "Office SNMP v3"),
+  snmpProfile(2, "Legacy v2c"),
+];
+const discoveredRoles = [
+  deviceRole(3, "Camera"),
+  deviceRole(4, "Printer"),
+  deviceRole(5, "Phone"),
+];
 function networkSite(index, name) {
   const item = new NetworkSite();
   item._id = `50000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
@@ -391,6 +433,24 @@ window.__discoveryFixture = {
   scanById(id) {
     return scans.find((item) => item._id === id);
   },
+  /*
+   * The Discovered Devices list's API and what its import was sent: each
+   * start-from-discovered-devices body, in order. A device an import creates
+   * becomes its row's monitored device, as the server reads it back.
+   */
+  discovered,
+  discoveredImportStarts: [],
+  discoveredDeviceById(id) {
+    return discovered.devices.get(String(id).toLowerCase());
+  },
+  onDiscoveredDeviceAdded({ endpointId, deviceId, name }) {
+    const device = discovered.devices.get(String(endpointId).toLowerCase());
+    if (device) {
+      device.monitoredDevice = { id: deviceId, name };
+      device.monitoredBy = "macAddress";
+      device.isHidden = false;
+    }
+  },
   complete() {
     for (const item of scans) {
       if (item.status === "In Progress" || item.status === "Pending") {
@@ -436,6 +496,25 @@ ModelAPI.getList = async ({ modelType, query, requestOptions }) => {
   }
   if (isDevicesRoute() && modelType === NetworkDeviceRole) {
     return { data: roles, count: roles.length, skip: 0, limit: 10 };
+  }
+  if (isDiscoveredDevicesRoute() && modelType === NetworkDeviceRole) {
+    return {
+      data: discoveredRoles,
+      count: discoveredRoles.length,
+      skip: 0,
+      limit: 10,
+    };
+  }
+  if (
+    isDiscoveredDevicesRoute() &&
+    modelType === NetworkSnmpCredentialProfile
+  ) {
+    return {
+      data: snmpProfiles,
+      count: snmpProfiles.length,
+      skip: 0,
+      limit: 10,
+    };
   }
   if (modelType === MonitorTemplate) {
     /*
@@ -554,6 +633,12 @@ const API_PREFIX = /^\/api/;
 async function answer(method, { url, data }) {
   const parsed = new window.URL(url.toString());
   const path = parsed.pathname.replace(API_PREFIX, "");
+  // The Discovered Devices list's own routes, answered as the server does.
+  const listed =
+    method === "POST" ? discovered.answer(path, data || {}) : undefined;
+  if (listed) {
+    return listed;
+  }
   const body = await importApi.handle({
     method,
     path,
@@ -565,12 +650,35 @@ async function answer(method, { url, data }) {
 API.post = async (args) => answer("POST", args);
 API.get = async (args) => answer("GET", args);
 
+/*
+ * `?lang=de` or `?lang=fa`: the page in German, or in Persian read from right
+ * to left, with the Dashboard's own words for that language (issue #5775's
+ * UI review). The words are read from the server only when a language is
+ * asked for, so every other page loads none; in English a word is its key.
+ */
+const PAGE_LANGUAGES = ["de", "fa"];
+const askedLanguage = new URLSearchParams(window.location.search).get("lang");
+const pageLanguage = PAGE_LANGUAGES.includes(askedLanguage)
+  ? askedLanguage
+  : "en";
+const pageWords =
+  pageLanguage === "en"
+    ? {}
+    : await (await window.fetch(`/locales/${pageLanguage}.json`)).json();
 await i18next.use(initReactI18next).init({
-  lng: "en",
+  lng: pageLanguage,
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources: {
+    en: { translation: {} },
+    ...(pageLanguage === "en"
+      ? {}
+      : { [pageLanguage]: { translation: pageWords } }),
+  },
   interpolation: { escapeValue: false },
 });
+// <html lang> and dir, and dates in the reader's language, as Utils/i18n.ts.
+followLanguageForPage(i18next);
+followLanguageForDates(i18next);
 function Fixture() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
@@ -588,9 +696,24 @@ function Fixture() {
           Review workspace · Synthetic data
         </span>
       </div>
-      <main className="mx-auto max-w-screen-2xl p-6">
-        {isDevicesRoute() ? <Devices /> : <Discovery />}
-      </main>
+      {isDiscoveredDevicesRoute() ? (
+        /*
+         * In the Network pages' own layout - its heading, trail and side
+         * menu - so the list is as wide as it is in the Dashboard.
+         */
+        <Routes>
+          <Route element={<NetworkLayout />}>
+            <Route
+              path={RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS].toString()}
+              element={<DiscoveredDevicesPage />}
+            />
+          </Route>
+        </Routes>
+      ) : (
+        <main className="mx-auto max-w-screen-2xl p-6">
+          {isDevicesRoute() ? <Devices /> : <Discovery />}
+        </main>
+      )}
     </>
   );
 }

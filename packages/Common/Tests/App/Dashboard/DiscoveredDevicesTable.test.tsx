@@ -25,6 +25,11 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import DiscoveredDevicesTable from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredDevices/DiscoveredDevicesTable";
 import { DiscoveredDeviceItem } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredDevices/DiscoveredDeviceItems";
+import {
+  TABLE_FOLDED_VALUE_TEST_ID,
+  TABLE_FOLDED_VALUE_TITLE_TEST_ID,
+} from "../../../UI/Components/Table/TableFoldedValues";
+import { forgetRememberedTableFits } from "../../../UI/Components/Table/useTableFit";
 import DiscoveryImportFakeServer from "./DiscoveryImportFakeServer";
 import DiscoveredDevicesFakeServer, {
   FAKE_DISCOVERED_DEVICE_ROUTES,
@@ -965,5 +970,148 @@ describe("what a reader may not do", () => {
     expect(
       devicesServer.bodiesOf(FAKE_DISCOVERED_DEVICE_ROUTES.hide),
     ).toHaveLength(0);
+  });
+});
+
+/*
+ * The UI review (#5775): beside the Network menu at 1280px the rows ran past
+ * their card, and the State column sat under the row's buttons - in German
+ * the whole of it. Where the rows do not fit, the MAC address goes under the
+ * IP address, the vendor under the name and Last Seen under where the device
+ * was seen; the row's button says "Add" (its name still the whole action).
+ */
+describe("a card narrower than the rows", () => {
+  function setWindowWidth(width: number): void {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: width,
+    });
+  }
+
+  function headerTitles(): Array<string> {
+    return Array.from(document.querySelectorAll("thead th")).map(
+      (cell: Element): string => {
+        return (cell.textContent || "").trim();
+      },
+    );
+  }
+
+  // The cell of `row` that shows `text`.
+  function cellOf(row: HTMLElement, text: string): HTMLElement {
+    const cell: HTMLElement | null = within(row).getByText(text).closest("td");
+
+    expect(cell).not.toBeNull();
+
+    return cell!;
+  }
+
+  // What a cell shows under its own value: each column's name, then its value.
+  function foldedIn(cell: HTMLElement): Array<string> {
+    return within(cell)
+      .queryAllByTestId(TABLE_FOLDED_VALUE_TEST_ID)
+      .map((line: HTMLElement): string => {
+        return (line.textContent || "").trim();
+      });
+  }
+
+  afterEach(() => {
+    forgetRememberedTableFits();
+    setWindowWidth(1024);
+  });
+
+  test("the MAC address goes under the IP address, the vendor under the name and Last Seen under where it was seen, and State keeps its column", async () => {
+    // Below lg the window stands in for the card: one too narrow for the rows.
+    setWindowWidth(900);
+    await renderList();
+
+    const titles: Array<string> = headerTitles();
+    expect(titles).toEqual(
+      expect.arrayContaining(["Name", "IP Address", "Seen On", "State"]),
+    );
+    for (const folded of ["MAC Address", "Vendor", "Last Seen"]) {
+      expect(titles).not.toContain(folded);
+    }
+
+    const camera: HTMLElement = rowOf("Lobby camera");
+    expect(foldedIn(cellOf(camera, "Lobby camera"))).toEqual([
+      "VendorCamera Vendor Inc",
+    ]);
+    expect(foldedIn(cellOf(camera, "10.20.0.11"))).toEqual([
+      "MAC Address00:1a:2b:3c:4d:01",
+    ]);
+    expect(foldedIn(cellOf(camera, "Gi1/0/5 · VLAN 20"))).toEqual([
+      "Last Seen2 minutes ago",
+    ]);
+    expect(stateOf(CAMERA_ID)).toBe("Discovered only");
+
+    /*
+     * A time among where-it-was-seen says what it is ("Last Seen 2 minutes
+     * ago"); a vendor and a MAC address say it by themselves.
+     */
+    expect(
+      within(cellOf(camera, "Gi1/0/5 · VLAN 20")).getByTestId(
+        TABLE_FOLDED_VALUE_TITLE_TEST_ID,
+      ),
+    ).toHaveTextContent("Last Seen");
+    for (const text of ["Lobby camera", "10.20.0.11"]) {
+      expect(
+        within(cellOf(camera, text)).queryByTestId(
+          TABLE_FOLDED_VALUE_TITLE_TEST_ID,
+        ),
+      ).not.toBeInTheDocument();
+    }
+
+    // Under the name, the vendor is as quiet as the rest of what is folded.
+    expect(within(camera).getByText("Camera Vendor Inc")).toHaveClass(
+      "text-gray-500",
+    );
+
+    // A device with no vendor draws no empty line under its name.
+    expect(foldedIn(cellOf(rowOf("Spare laptop"), "Spare laptop"))).toEqual([]);
+  });
+
+  test("where the rows fit, each is a column of its own", async () => {
+    setWindowWidth(1280);
+    await renderList();
+
+    expect(headerTitles()).toEqual(
+      expect.arrayContaining([
+        "Name",
+        "IP Address",
+        "MAC Address",
+        "Vendor",
+        "Seen On",
+        "Last Seen",
+        "State",
+      ]),
+    );
+
+    const camera: HTMLElement = rowOf("Lobby camera");
+    expect(within(camera).queryAllByTestId(TABLE_FOLDED_VALUE_TEST_ID)).toEqual(
+      [],
+    );
+    expect(within(camera).getByText("Camera Vendor Inc")).toHaveClass(
+      "text-gray-900",
+    );
+  });
+
+  test("a row's button says Add, and View for a monitored device, each named for the whole action", async () => {
+    await renderList();
+
+    expect(
+      within(rowOf("Lobby camera")).getByRole("button", {
+        name: "Add to monitoring",
+      }),
+    ).toHaveTextContent(/^Add$/);
+
+    await showChoice(/^Monitored/);
+    await screen.findByText("Branch router", { selector: "p" });
+
+    expect(
+      within(rowOf("Branch router")).getByRole("button", {
+        name: "View device",
+      }),
+    ).toHaveTextContent(/^View$/);
   });
 });
