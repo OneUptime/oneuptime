@@ -21,8 +21,9 @@ type ReviewerNoteFunction = (data: {
  *
  * The card of an Ask AI pull request said it writes over what Ask AI never
  * read - a file changed on the base branch after Ask AI read it, read on
- * another branch only, never read, read only in part (issue #6330), or not
- * checked - and the person approved it anyway. Whoever reviews it on
+ * another branch only, never read, read only in an earlier answer (issue
+ * #6365), read only in part (issue #6330), or not checked - and the person
+ * approved it anyway. Whoever reviews it on
  * GitHub, GitLab, Forgejo or Gitea may never have seen the card, so the
  * pull request's description says it too, as Markdown: each file in a
  * code span, so its name reads as written (src/__init__.py,
@@ -55,6 +56,8 @@ export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
             : mdText`${file}: AI read it on another branch, and it is different on ${base}.`;
         case CodeFileUnseen.NotRead:
           return mdText`${file}: AI did not read it before writing it.`;
+        case CodeFileUnseen.ReadInEarlierAnswer:
+          return mdText`${file}: AI read it in an earlier answer and no longer had its text when it wrote the whole file.`;
         case CodeFileUnseen.ReadInPart:
           return finding.lineCount !== undefined && finding.linesNotRead
             ? mdText`${file}: AI did not read ${describeLineRanges(finding.linesNotRead)} of its ${String(finding.lineCount)} ${finding.lineCount === 1 ? "line" : "lines"} before writing the whole file.`

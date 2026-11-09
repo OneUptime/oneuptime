@@ -306,8 +306,8 @@ export const AI_ACTION_LINES: {
  * read_code_file showed it, so a commit - on a branch, or a pull request's
  * - would undo what was pushed to a file since, or replace a file Ask AI
  * read on another branch, or never read, or read only part of (issue
- * #6330) - or write placeholders where values were hidden from Ask AI
- * (issue #6364). Each names the files, as {{files}}: a list of
+ * #6330), or read only in an earlier answer (issue #6365) - or write
+ * placeholders where values were hidden from Ask AI (issue #6364). Each names the files, as {{files}}: a list of
  * AI_ACTION_CODE_FILE, the first few written out and the rest counted
  * (moreFiles). {{count}} is how many files it names.
  */
@@ -316,6 +316,7 @@ export const AI_ACTION_PLURAL_LINES: {
   codeFilesReadOnAnotherBranch: PluralTemplate;
   codeFilesNotRead: PluralTemplate;
   codeFilesReadInPart: PluralTemplate;
+  codeFilesReadInEarlierAnswer: PluralTemplate;
   codeFilesNotChecked: PluralTemplate;
   codeFilesValuesHidden: PluralTemplate;
   moreFiles: PluralTemplate;
@@ -364,6 +365,19 @@ export const AI_ACTION_PLURAL_LINES: {
       "Ask AI read only part of these {{count}} files, and its versions replace all of them: {{files}}.",
     ),
   },
+  /*
+   * Ask AI saw the version on the branch only in an earlier answer (issue
+   * #6365): a new turn replays the answers, never the files they read, so
+   * it writes the file whole from memory.
+   */
+  codeFilesReadInEarlierAnswer: {
+    one: translationKey(
+      "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: {{files}}.",
+    ),
+    other: translationKey(
+      "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}.",
+    ),
+  },
   // The branch could not be read: never said to be unchanged.
   codeFilesNotChecked: {
     one: translationKey(
@@ -406,6 +420,7 @@ export const AI_ACTION_CODE_CHANGE_LINES: ReadonlyArray<string> = [
   AI_ACTION_PLURAL_LINES.codeFilesReadOnAnotherBranch.other,
   AI_ACTION_PLURAL_LINES.codeFilesNotRead.other,
   AI_ACTION_PLURAL_LINES.codeFilesReadInPart.other,
+  AI_ACTION_PLURAL_LINES.codeFilesReadInEarlierAnswer.other,
   AI_ACTION_PLURAL_LINES.codeFilesNotChecked.other,
   AI_ACTION_PLURAL_LINES.codeFilesValuesHidden.other,
 ];

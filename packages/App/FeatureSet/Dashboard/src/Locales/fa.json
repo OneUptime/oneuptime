@@ -47026,5 +47026,8 @@
   "Is Asked Again": "Is Asked Again",
   "Note ID": "Note ID",
   "Public Note Approval Request": "Public Note Approval Request",
-  "Public Note Approval Requests": "Public Note Approval Requests"
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}.": "هوش مصنوعی این {{count}} فایل را در یکی از پاسخ‌های قبلی خوانده است و دیگر متن آن‌ها را ندارد و نسخه‌های هوش مصنوعی جایگزین کل این فایل‌ها می‌شوند: {{files}}.",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}._one": "هوش مصنوعی این فایل را در یکی از پاسخ‌های قبلی خوانده است و دیگر متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
+  "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: {{files}}.": "هوش مصنوعی این فایل را در یکی از پاسخ‌های قبلی خوانده است و دیگر متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}."
 }

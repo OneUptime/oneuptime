@@ -47026,5 +47026,8 @@
   "Is Asked Again": "Is Asked Again",
   "Note ID": "Note ID",
   "Public Note Approval Request": "Public Note Approval Request",
-  "Public Note Approval Requests": "Public Note Approval Requests"
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI가 이전 답변에서 파일 {{count}}개를 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI가 이전 답변에서 이 파일을 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI가 이전 답변에서 이 파일을 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}."
 }

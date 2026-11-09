@@ -47026,5 +47026,8 @@
   "Is Asked Again": "Is Asked Again",
   "Note ID": "Note ID",
   "Public Note Approval Request": "Public Note Approval Request",
-  "Public Note Approval Requests": "Public Note Approval Requests"
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI は {{count}} 個のファイルを以前の回答で読みましたが、もうその内容を持っておらず、AI のバージョンはファイル全体を置き換えます: {{files}}。",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI はこのファイルを以前の回答で読みましたが、もうその内容を持っておらず、AI のバージョンはファイル全体を置き換えます: {{files}}。",
+  "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI はこのファイルを以前の回答で読みましたが、もうその内容を持っておらず、AI のバージョンはファイル全体を置き換えます: {{files}}。"
 }

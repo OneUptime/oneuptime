@@ -47026,5 +47026,8 @@
   "Is Asked Again": "Is Asked Again",
   "Note ID": "Note ID",
   "Public Note Approval Request": "Public Note Approval Request",
-  "Public Note Approval Requests": "Public Note Approval Requests"
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI 在之前的回答中读取了这 {{count}} 个文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI 在之前的回答中读取了此文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI 在之前的回答中读取了此文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。"
 }
