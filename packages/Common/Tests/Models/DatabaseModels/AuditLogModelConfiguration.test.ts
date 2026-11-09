@@ -50,6 +50,8 @@ const SLO_WORKER_COLUMNS: Array<string> = [
   // The tier the SLO is in is recorded by its name; its id and entry time are not.
   "currentErrorBudgetPolicyTierId",
   "currentErrorBudgetPolicyTierEnteredAt",
+  // The deploy gate is recorded by its answer; the time it froze is not.
+  "deploymentsFrozenAt",
   "lastEvaluatedAt",
   "nextEvaluationAt",
   "lastAccumulatedBucketEndAt",
@@ -197,6 +199,32 @@ describe("ServiceLevelObjective audit logging", () => {
     expect(slo.isTableColumn("currentErrorBudgetPolicyTierName")).toBe(true);
     expect(slo.enableAuditLogOn?.ignoreColumns).not.toContain(
       "currentErrorBudgetPolicyTierName",
+    );
+  });
+
+  test("records deployments frozen and allowed again, by the deploy gate's answer", () => {
+    /*
+     * By the same reasoning as the tier's name: deploymentsAllowed flipping is
+     * the policy's decision as CI/CD acts on it, so it lands on the SLO's
+     * audit log as a system event. Its freeze time is bookkeeping beside it.
+     */
+    expect(slo.isTableColumn("deploymentsAllowed")).toBe(true);
+    expect(slo.isTableColumn("deploymentsFrozenAt")).toBe(true);
+    expect(slo.enableAuditLogOn?.ignoreColumns).not.toContain(
+      "deploymentsAllowed",
+    );
+    expect(slo.enableAuditLogOn?.ignoreColumns).toContain(
+      "deploymentsFrozenAt",
+    );
+  });
+
+  test("records a tier's Freeze Deployments switch as the edit of the person who flips it", () => {
+    const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+      new ServiceLevelObjectiveErrorBudgetPolicyTier();
+
+    expect(tier.isTableColumn("freezesDeployments")).toBe(true);
+    expect(tier.enableAuditLogOn?.ignoreColumns || []).not.toContain(
+      "freezesDeployments",
     );
   });
 

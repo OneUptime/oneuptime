@@ -28,6 +28,7 @@ import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/Se
 import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import Route from "../../../Types/API/Route";
 import { Red, Yellow } from "../../../Types/BrandColors";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
@@ -843,6 +844,121 @@ describe("the tier of the error budget policy the SLO is in", () => {
     ).toHaveTextContent("Reliability first");
     expect(tierCard()).not.toHaveTextContent("Budget left");
     expect(within(tierCard()).queryByTestId("markdown")).toBeNull();
+  });
+
+  test("while the tier freezes deployments, a red badge under its name says since when", async () => {
+    const frozenAt: Date = new Date("2026-11-08T09:30:00.000Z");
+
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(EXHAUSTED, 2);
+    storedSlo.deploymentsAllowed = false;
+    storedSlo.deploymentsFrozenAt = frozenAt;
+
+    renderPage();
+    await waitForDetails();
+
+    const badge: HTMLElement = within(tierCard()).getByTestId(
+      "slo-overview-policy-tier-deployments-frozen",
+    );
+
+    expect(badge).toHaveTextContent(
+      `Deployments frozen since ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(frozenAt)}`,
+    );
+    expect(badge.querySelector("time")).toHaveAttribute(
+      "datetime",
+      frozenAt.toISOString(),
+    );
+    expect(badge.className).toContain("bg-red-50");
+    expect(badge.className).toContain("text-red-700");
+
+    // Under the tier's name, before what the team does there.
+    const heading: HTMLElement = within(tierCard()).getByRole("heading", {
+      level: 2,
+    });
+
+    expect(
+      heading.compareDocumentPosition(badge) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      badge.compareDocumentPosition(within(tierCard()).getByTestId("markdown")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("an answer read back as text is the same instant", async () => {
+    const frozenAt: Date = new Date("2026-11-08T09:30:00.000Z");
+
+    overviewData.policyTiers = [EXHAUSTED];
+    putSloIn(EXHAUSTED);
+    storedSlo.deploymentsAllowed = false;
+    storedSlo.deploymentsFrozenAt = frozenAt.toISOString() as unknown as Date;
+
+    renderPage();
+    await waitForDetails();
+
+    expect(
+      within(tierCard())
+        .getByTestId("slo-overview-policy-tier-deployments-frozen")
+        .querySelector("time"),
+    ).toHaveAttribute("datetime", frozenAt.toISOString());
+  });
+
+  test("frozen with no time recorded, the badge still says deployments are frozen", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(EXHAUSTED);
+    storedSlo.deploymentsAllowed = false;
+
+    renderPage();
+    await waitForDetails();
+
+    const badge: HTMLElement = within(tierCard()).getByTestId(
+      "slo-overview-policy-tier-deployments-frozen",
+    );
+
+    expect(badge).toHaveTextContent("Deployments frozen");
+    expect(badge).not.toHaveTextContent("since");
+    expect(badge.querySelector("time")).toBeNull();
+  });
+
+  test("no badge while deployments are allowed - in a tier that does not freeze them, or before the worker has answered", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(RELIABILITY_FIRST);
+    storedSlo.deploymentsAllowed = true;
+
+    renderPage();
+    await waitForDetails();
+
+    expect(
+      within(tierCard()).queryByTestId(
+        "slo-overview-policy-tier-deployments-frozen",
+      ),
+    ).toBeNull();
+
+    /*
+     * The badge says what pipelines are told now, not what the tier's switch
+     * says: a switch flipped a moment ago moves the answer on the next
+     * evaluation.
+     */
+    cleanup();
+    const freezing: ServiceLevelObjectiveErrorBudgetPolicyTier = policyTier({
+      name: "Budget exhausted",
+      thresholdPercentage: 0,
+      whatWeDo: "Freeze non-critical releases.",
+    });
+    freezing.freezesDeployments = true;
+    overviewData.policyTiers = [freezing];
+    putSloIn(freezing);
+    storedSlo.deploymentsAllowed = undefined;
+
+    renderPage();
+    await waitForDetails();
+
+    expect(
+      within(tierCard()).queryByTestId(
+        "slo-overview-policy-tier-deployments-frozen",
+      ),
+    ).toBeNull();
   });
 
   test("hands the burn-down the enabled tiers, for its lines", async () => {

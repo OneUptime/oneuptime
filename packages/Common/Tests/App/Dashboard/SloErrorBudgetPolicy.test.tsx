@@ -209,9 +209,15 @@ jest.mock("../../../UI/Components/Modal/ConfirmModal", () => {
 import SloErrorBudgetPolicy, {
   CURRENT_POLICY_TIER_TEST_ID,
   ERROR_BUDGET_POLICY_TABLE_ID,
+  POLICY_TIER_DEPLOYMENTS_TEST_ID,
   USE_RECOMMENDED_POLICY_BUTTON_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/ErrorBudgetPolicy";
-import SloRecommendedPolicyTiersModal from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloRecommendedPolicyTiersModal";
+import SloRecommendedPolicyTiersModal, {
+  RECOMMENDED_POLICY_FREEZE_NOTE,
+  RECOMMENDED_POLICY_FREEZE_NOTE_TEST_ID,
+  RECOMMENDED_TIER_FREEZES_DEPLOYMENTS_TEXT,
+  RECOMMENDED_TIER_FREEZES_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloRecommendedPolicyTiersModal";
 import { getRecommendedPolicySignature } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/useSloRecommendedPolicyTiers";
 import RecommendedPolicyTiersApi, {
   SLO_ADD_RECOMMENDED_POLICY_PATH,
@@ -258,6 +264,7 @@ function tier(data: {
   name: string;
   thresholdPercentage: number;
   whatWeDo?: string;
+  freezesDeployments?: boolean;
   shouldCreateAlert?: boolean;
   shouldCreateIncident?: boolean;
   autoResolveAlert?: boolean;
@@ -270,6 +277,7 @@ function tier(data: {
   row.name = data.name;
   row.thresholdPercentage = data.thresholdPercentage;
   row.whatWeDo = data.whatWeDo || `What we do in ${data.name}.`;
+  row.freezesDeployments = data.freezesDeployments ?? false;
   row.shouldCreateAlert = data.shouldCreateAlert ?? false;
   row.shouldCreateIncident = data.shouldCreateIncident ?? false;
   row.autoResolveAlert = data.autoResolveAlert ?? true;
@@ -508,7 +516,7 @@ describe("Use the recommended policy on the Error Budget Policy page", () => {
     ).toEqual(
       SLO_RECOMMENDED_POLICY_TIERS.map(
         (recommended: SloRecommendedPolicyTier): string => {
-          return `${recommended.name}Budget left ≤ ${recommended.thresholdPercentage}%${recommended.whatWeDo}`;
+          return `${recommended.name}Budget left ≤ ${recommended.thresholdPercentage}%${recommended.whatWeDo}${recommended.freezesDeployments ? "Freezes deployments" : ""}`;
         },
       ),
     );
@@ -518,6 +526,63 @@ describe("Use the recommended policy on the Error Budget Policy page", () => {
     expect(
       within(dialog).getByRole("button", { name: "Add tiers" }),
     ).toBeEnabled();
+  });
+
+  test("its confirmation marks the tier that freezes deployments - Budget exhausted - and says what that does", async () => {
+    await renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: BUTTON }));
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: BUTTON,
+    });
+    const listed: Array<HTMLElement> = within(dialog).getAllByTestId(
+      "slo-recommended-policy-tier",
+    );
+
+    expect(
+      listed.map((item: HTMLElement): boolean => {
+        return Boolean(
+          within(item).queryByTestId(RECOMMENDED_TIER_FREEZES_TEST_ID),
+        );
+      }),
+    ).toEqual([false, false, true]);
+    expect(
+      within(listed[2]!).getByTestId(RECOMMENDED_TIER_FREEZES_TEST_ID),
+    ).toHaveTextContent(RECOMMENDED_TIER_FREEZES_DEPLOYMENTS_TEXT);
+    expect(listed[2]).toHaveTextContent("Budget exhausted");
+    expect(
+      within(dialog).getByTestId(RECOMMENDED_POLICY_FREEZE_NOTE_TEST_ID),
+    ).toHaveTextContent(
+      "A tier marked Freezes deployments tells CI/CD pipelines that check this SLO to hold back releases while the SLO is in it.",
+    );
+    expect(RECOMMENDED_POLICY_FREEZE_NOTE).toContain(
+      RECOMMENDED_TIER_FREEZES_DEPLOYMENTS_TEXT,
+    );
+  });
+
+  test("what the server says it adds decides the mark: the definition, as the API answers it", async () => {
+    // A tier the server does not say freezes is not marked, whatever its name.
+    missing = recommendedTiers().map(
+      (recommended: SloRecommendedPolicyTierToAdd) => {
+        return { ...recommended, freezesDeployments: false };
+      },
+    );
+
+    await renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: BUTTON }));
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: BUTTON,
+    });
+
+    expect(
+      within(dialog).queryByTestId(RECOMMENDED_TIER_FREEZES_TEST_ID),
+    ).toBeNull();
+    expect(
+      within(dialog).queryByTestId(RECOMMENDED_POLICY_FREEZE_NOTE_TEST_ID),
+    ).toBeNull();
   });
 
   test("adding them posts to the add route for this SLO, closes the dialog and reads the table again, which then lists them", async () => {
@@ -742,6 +807,59 @@ describe("the tiers table", () => {
     expect(rows[2]).toHaveTextContent("Incident: private");
   });
 
+  test("says in each row whether deployments are frozen or allowed while the SLO is in the tier", async () => {
+    mockRows = [
+      tier({ name: "Caution", thresholdPercentage: 50 }),
+      tier({
+        name: "Reliability first",
+        thresholdPercentage: 25,
+        freezesDeployments: true,
+      }),
+      tier({
+        name: "Budget exhausted",
+        thresholdPercentage: 0,
+        freezesDeployments: true,
+      }),
+    ];
+
+    await renderPage();
+
+    const cells: Array<HTMLElement> = screen.getAllByTestId(
+      POLICY_TIER_DEPLOYMENTS_TEST_ID,
+    );
+
+    expect(
+      cells.map((cell: HTMLElement): string => {
+        return cell.textContent || "";
+      }),
+    ).toEqual(["Allowed", "Frozen", "Frozen"]);
+
+    // The column is read from the tier's own switch.
+    const column: { title: string; field?: unknown } | undefined =
+      mockTableProps?.columns.find(
+        (candidate: { title: string }): boolean => {
+          return candidate.title === "Deployments";
+        },
+      );
+
+    expect(column?.field).toEqual({ freezesDeployments: true });
+  });
+
+  test("a tier read without its switch reads as allowed", async () => {
+    const row: ServiceLevelObjectiveErrorBudgetPolicyTier = tier({
+      name: "Caution",
+      thresholdPercentage: 50,
+    });
+    row.freezesDeployments = undefined;
+    mockRows = [row];
+
+    await renderPage();
+
+    expect(screen.getByTestId(POLICY_TIER_DEPLOYMENTS_TEST_ID)).toHaveTextContent(
+      "Allowed",
+    );
+  });
+
   test("marks the tier the SLO is in, and when it entered it", async () => {
     const caution: ServiceLevelObjectiveErrorBudgetPolicyTier = tier({
       name: "Caution",
@@ -840,6 +958,19 @@ describe("the confirmation, on its own", () => {
     expect(listed).toHaveLength(1);
     expect(listed[0]).toHaveTextContent("Budget exhausted");
     expect(listed[0]).toHaveTextContent("Budget left ≤ 0%");
+    expect(listed[0]).toHaveTextContent("Freezes deployments");
+    expect(
+      screen.getByTestId(RECOMMENDED_POLICY_FREEZE_NOTE_TEST_ID),
+    ).toBeInTheDocument();
+  });
+
+  test("with no tier that freezes deployments left to add, says nothing about deployments", () => {
+    renderModal(recommendedTiers().slice(0, 2));
+
+    expect(screen.queryByTestId(RECOMMENDED_TIER_FREEZES_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(RECOMMENDED_POLICY_FREEZE_NOTE_TEST_ID),
+    ).toBeNull();
   });
 
   test("confirms with Add tiers, and offers nothing to confirm when there is nothing to add", () => {
