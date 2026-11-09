@@ -1793,7 +1793,7 @@ describe("RUM overview: why Exceptions and Logs are empty", () => {
         german["Exceptions aren't set up"],
       );
       expect(
-        screen.getByRole("button", { name: german["Set up exceptions"] }),
+        screen.getByRole("button", { name: german["Set up exceptions"]! }),
       ).toBeInTheDocument();
       expect(textOf("exceptions", "help")).toBe(german["Why nothing arrives"]);
       expectTile("Exceptions", "—", german["not set up"]!);

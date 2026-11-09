@@ -46811,5 +46811,6 @@
   "Couldn't load logs": "无法加载日志",
   "Show the past day": "显示过去一天",
   "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.": "此浏览器密钥没有允许的来源，因此用它发出的每个请求都会被拒绝。使用此代码片段之前，请在“项目设置 > 遥测与 APM > 摄取密钥”中添加你的 Web 来源或确切的移动应用 app:// 标识。",
-  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "浏览器密钥——用于分发到客户端。Web 来源可以发送追踪、日志、指标和会话回放；app:// 标识仅授权 React Native 的会话回放。接受的标识：{{identities}}。原生应用标识由应用自行声明，并非平台证明。"
+  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "浏览器密钥——用于分发到客户端。Web 来源可以发送追踪、日志、指标和会话回放；app:// 标识仅授权 React Native 的会话回放。接受的标识：{{identities}}。原生应用标识由应用自行声明，并非平台证明。",
+  "RUM logs key": "RUM 日志密钥"
 }

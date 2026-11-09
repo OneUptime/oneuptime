@@ -775,7 +775,7 @@ describe("the setup check in German", () => {
       );
       expect(
         within(row("exceptions")).getByRole("button", {
-          name: german["Set up exceptions"],
+          name: german["Set up exceptions"]!,
         }),
       ).toBeInTheDocument();
     } finally {

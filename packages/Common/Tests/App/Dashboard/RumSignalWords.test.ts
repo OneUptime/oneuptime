@@ -257,7 +257,8 @@ describe("not set up", () => {
         copyFor({
           signal: "exceptions",
           diagnosis: diagnosis("not-set-up", { cause: "signal" }),
-          sessionsWithErrors,
+          // Not counted: no count is given at all.
+          ...(sessionsWithErrors === undefined ? {} : { sessionsWithErrors }),
         })?.evidence,
       ).toBeUndefined();
     }

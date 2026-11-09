@@ -30,6 +30,7 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import ObjectID from "../../../Types/ObjectID";
+import type { Mock } from "jest-mock";
 
 /*
  * "Set up exceptions" and "Set up logs" (issue #5770), as the dialog draws
@@ -88,7 +89,7 @@ interface ListArguments {
 }
 
 // Answers with the keys of the requested type, as the API does.
-function mockKeys(keys: Array<TelemetryIngestionKey>): jest.Mock<GetList> {
+function mockKeys(keys: Array<TelemetryIngestionKey>): Mock<GetList> {
   return jest.spyOn(ModelAPI, "getList").mockImplementation(((
     args: ListArguments,
   ): Promise<unknown> => {
@@ -103,10 +104,10 @@ function mockKeys(keys: Array<TelemetryIngestionKey>): jest.Mock<GetList> {
       skip: 0,
       limit: 50,
     });
-  }) as never) as unknown as jest.Mock<GetList>;
+  }) as never) as unknown as Mock<GetList>;
 }
 
-function requestedKeyTypes(getList: jest.Mock<GetList>): Array<unknown> {
+function requestedKeyTypes(getList: Mock<GetList>): Array<unknown> {
   return getList.mock.calls.map((call: Array<unknown>): unknown => {
     return (call[0] as ListArguments).query["keyType"];
   });
@@ -123,7 +124,7 @@ function stepTitles(dialog: HTMLElement): Array<string> {
     });
 }
 
-const onClose: jest.Mock<() => void> = jest.fn<() => void>();
+const onClose: Mock<() => void> = jest.fn<() => void>();
 
 function open(signal: "exceptions" | "logs"): HTMLElement {
   render(
@@ -148,7 +149,7 @@ afterEach(() => {
 
 describe("Set up logs", () => {
   test("asks for Browser keys only, and its log exporter carries the one picked", async () => {
-    const getList: jest.Mock<GetList> = mockKeys([BROWSER_KEY, SERVER_KEY]);
+    const getList: Mock<GetList> = mockKeys([BROWSER_KEY, SERVER_KEY]);
     const dialog: HTMLElement = open("logs");
 
     await waitFor(() => {
@@ -223,7 +224,7 @@ describe("Set up logs", () => {
 
 describe("Set up exceptions", () => {
   test("asks for no key: the trace exporter the app has sends them", async () => {
-    const getList: jest.Mock<GetList> = mockKeys([BROWSER_KEY]);
+    const getList: Mock<GetList> = mockKeys([BROWSER_KEY]);
     const dialog: HTMLElement = open("exceptions");
 
     expect(stepTitles(dialog)).toEqual([

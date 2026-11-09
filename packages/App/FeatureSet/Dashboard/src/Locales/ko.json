@@ -46811,5 +46811,6 @@
   "Couldn't load logs": "로그를 불러오지 못했습니다",
   "Show the past day": "지난 1일 표시",
   "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.": "이 브라우저 키에는 허용된 출처가 없어 이 키로 보낸 모든 요청이 거부됩니다. 이 스니펫을 사용하기 전에 프로젝트 설정 > 텔레메트리 및 APM > 수집 키에서 웹 출처 또는 정확한 모바일 앱 app:// ID를 추가하세요.",
-  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "브라우저 키입니다. 클라이언트에 배포하도록 만들어졌습니다. 웹 출처는 트레이스, 로그, 메트릭, 세션 리플레이를 보낼 수 있고, app:// ID는 React Native 세션 리플레이만 허용합니다. 허용되는 ID: {{identities}}. 네이티브 앱 ID는 앱이 스스로 밝히는 것이며 플랫폼의 증명이 아닙니다."
+  "Browser key — intended for client distribution. Web origins may send trace, log, metric and session replay ingest; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "브라우저 키입니다. 클라이언트에 배포하도록 만들어졌습니다. 웹 출처는 트레이스, 로그, 메트릭, 세션 리플레이를 보낼 수 있고, app:// ID는 React Native 세션 리플레이만 허용합니다. 허용되는 ID: {{identities}}. 네이티브 앱 ID는 앱이 스스로 밝히는 것이며 플랫폼의 증명이 아닙니다.",
+  "RUM logs key": "RUM 로그 키"
 }

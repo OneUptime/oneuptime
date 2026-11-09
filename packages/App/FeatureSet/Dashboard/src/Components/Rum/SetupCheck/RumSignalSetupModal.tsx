@@ -65,7 +65,8 @@ const RumSignalSetupModal: FunctionComponent<ComponentProps> = (
           title={title}
           description={description}
           icon={isExceptions ? IconProp.Bug : IconProp.Logs}
-          newKeyName={translationKey("RUM key")}
+          // A key made here is for this app's logs: the guide's own is "RUM key".
+          newKeyName={translationKey("RUM logs key")}
           // The log exporter ships in the page: Browser keys only.
           getKeyTypeFilter={(): TelemetryIngestionKeyType => {
             return TelemetryIngestionKeyType.Browser;
