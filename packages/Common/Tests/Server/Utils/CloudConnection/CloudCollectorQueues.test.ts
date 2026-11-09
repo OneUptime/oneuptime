@@ -37,8 +37,11 @@ import ObjectID from "../../../../Types/ObjectID";
  * split Service Bus and Event Hubs read, the series of each queue and
  * metric a collector's azure_monitor receiver delivered in the last half
  * hour are left out of what the read writes - every other queue, and every
- * metric the collector does not read, the read writes. What it is handed
- * is never changed.
+ * metric the collector does not read, the read writes. Where a collector
+ * sent a namespace's own total of a metric, split by no queue, the read
+ * still writes each queue's series of it, but off the namespace: without
+ * the resource id the namespace's totals add up. What it is handed is
+ * never changed.
  */
 
 const SUBSCRIPTION: string = "11111111-aaaa-4aaa-8aaa-111111111111";
@@ -172,13 +175,54 @@ function seriesWritten(payload: JSONObject | null): Array<string> {
   return found;
 }
 
+// Each written series as metric|namespace|entity|its resource id, or none.
+function seriesFiled(payload: JSONObject | null): Array<string> {
+  const found: Array<string> = [];
+
+  for (const rm of ((payload || {})["resourceMetrics"] as JSONArray) || []) {
+    for (const sm of (rm as JSONObject)["scopeMetrics"] as JSONArray) {
+      for (const metric of (sm as JSONObject)["metrics"] as JSONArray) {
+        for (const point of ((metric as JSONObject)["gauge"] as JSONObject)[
+          "dataPoints"
+        ] as JSONArray) {
+          const attributes: Array<OtlpAttribute> = (point as JSONObject)[
+            "attributes"
+          ] as unknown as Array<OtlpAttribute>;
+          const valueOf: (key: string) => string = (key: string): string => {
+            const attribute: OtlpAttribute | undefined = attributes.find(
+              (candidate: OtlpAttribute): boolean => {
+                return candidate.key === key;
+              },
+            );
+            return (
+              (attribute?.value as { stringValue?: string } | undefined)
+                ?.stringValue || ""
+            );
+          };
+          const resourceId: string = valueOf("azuremonitor.resource_id");
+
+          found.push(
+            `${(metric as JSONObject)["name"] as string}|${valueOf("name")}|${valueOf(
+              "metadata_entityname",
+            )}|${resourceId ? resourceId.split("/").slice(-1)[0] : "none"}`,
+          );
+        }
+      }
+    }
+  }
+
+  return found;
+}
+
 function collector(data: {
   series?: Array<string>;
   wholeNamespaces?: Array<string>;
+  namespaceTotals?: Array<string>;
 }): CollectorMessagingQueues {
   return {
     series: new Set<string>(data.series || []),
     wholeNamespaces: new Set<string>(data.wholeNamespaces || []),
+    namespaceTotals: new Set<string>(data.namespaceTotals || []),
   };
 }
 
@@ -453,7 +497,7 @@ describe("a read's payload without the collector's queues", () => {
     ]);
     expect(
       withoutCollectorQueues({ payload: onlyQueues, collector: everyQueue }),
-    ).toEqual({ payload: null, leftOut: 2 });
+    ).toEqual({ payload: null, leftOut: 2, offNamespace: 0 });
   });
 
   test("with no collector, the payload is written as it is, and never changed", () => {
@@ -464,7 +508,8 @@ describe("a read's payload without the collector's queues", () => {
         payload: PAYLOAD,
         collector: NO_COLLECTOR_QUEUES,
       }),
-    ).toEqual({ payload: PAYLOAD, leftOut: 0 });
+    ).toEqual({ payload: PAYLOAD, leftOut: 0, offNamespace: 0 });
+    expect(NO_COLLECTOR_QUEUES.namespaceTotals.size).toBe(0);
 
     withoutCollectorQueues({
       payload: PAYLOAD,
@@ -472,6 +517,13 @@ describe("a read's payload without the collector's queues", () => {
         wholeNamespaces: [
           getMessagingNamespaceSeriesKey({
             metricName: "azure_incomingmessages_total",
+            type: SERVICE_BUS_TYPE,
+            namespace: "sb-orders",
+          }),
+        ],
+        namespaceTotals: [
+          getMessagingNamespaceSeriesKey({
+            metricName: "azure_activemessages_average",
             type: SERVICE_BUS_TYPE,
             namespace: "sb-orders",
           }),
@@ -509,6 +561,9 @@ describe("a read's payload without the collector's queues", () => {
         }),
       });
 
+    // A stream writes none of a namespace's metrics: the read keeps them all.
+    expect(streamed.leftOut).toBe(0);
+    expect(streamed.payload).toEqual(PAYLOAD);
     expect(toWrite.leftOut).toBe(2);
     expect(seriesWritten(toWrite.payload)).not.toContain(
       "azure_activemessages_average|sb-orders|invoices",
@@ -516,6 +571,180 @@ describe("a read's payload without the collector's queues", () => {
     expect(seriesWritten(toWrite.payload)).toContain(
       "azure_activemessages_average|sb-orders|orders",
     );
+  });
+});
+
+describe("a namespace's own total a collector sent", () => {
+  const INCOMING_TOTAL: string = getMessagingNamespaceSeriesKey({
+    metricName: "azure_incomingmessages_total",
+    type: SERVICE_BUS_TYPE,
+    namespace: "sb-orders",
+  });
+
+  test("keeps the read's queues of that metric off the namespace, still filed on each queue", () => {
+    const toWrite: {
+      payload: JSONObject | null;
+      leftOut: number;
+      offNamespace: number;
+    } = withoutCollectorQueues({
+      payload: PAYLOAD,
+      collector: collector({ namespaceTotals: [INCOMING_TOTAL] }),
+    });
+
+    expect(toWrite.leftOut).toBe(0);
+    expect(toWrite.offNamespace).toBe(4);
+    expect(seriesFiled(toWrite.payload)).toEqual([
+      // The collector's total is the namespace's: these count on their queues alone.
+      "azure_incomingmessages_total|sb-orders|orders|none",
+      "azure_incomingmessages_total|sb-orders|orders|none",
+      "azure_incomingmessages_total|sb-orders|invoices|none",
+      "azure_incomingmessages_total|sb-orders|invoices|none",
+      // Another namespace, another metric, another type: on their resource.
+      "azure_incomingmessages_total|eh-clicks|clicks|eh-clicks",
+      "azure_incomingmessages_total|eh-clicks|clicks|eh-clicks",
+      "azure_activemessages_average|sb-orders|orders|sb-orders",
+      "azure_activemessages_average|sb-orders|orders|sb-orders",
+      "azure_activemessages_average|sb-orders|invoices|sb-orders",
+      "azure_activemessages_average|sb-orders|invoices|sb-orders",
+      "azure_percentage_cpu_average|vm-web-1||vm-web-1",
+      "azure_percentage_cpu_average|vm-web-1||vm-web-1",
+    ]);
+  });
+
+  test("only the resource id goes: every other attribute and every value stays", () => {
+    const toWrite: { payload: JSONObject | null } = withoutCollectorQueues({
+      payload: PAYLOAD,
+      collector: collector({ namespaceTotals: [INCOMING_TOTAL] }),
+    });
+    const pointsOf: (payload: JSONObject) => Array<JSONObject> = (
+      payload: JSONObject,
+    ): Array<JSONObject> => {
+      const resource: JSONObject = (
+        payload["resourceMetrics"] as Array<JSONObject>
+      )[0]!;
+      const metric: JSONObject = (
+        (resource["scopeMetrics"] as Array<JSONObject>)[0]![
+          "metrics"
+        ] as Array<JSONObject>
+      )[0]!;
+
+      return (metric["gauge"] as JSONObject)["dataPoints"] as Array<JSONObject>;
+    };
+    const before: JSONObject = pointsOf(PAYLOAD)[0]!;
+    const after: JSONObject = pointsOf(toWrite.payload!)[0]!;
+
+    expect(after).toEqual({
+      ...before,
+      attributes: (before["attributes"] as Array<JSONObject>).filter(
+        (attribute: JSONObject): boolean => {
+          return attribute["key"] !== "azuremonitor.resource_id";
+        },
+      ),
+    });
+    expect((after["attributes"] as Array<JSONObject>).length).toBe(
+      (before["attributes"] as Array<JSONObject>).length - 1,
+    );
+  });
+
+  test("a queue a collector delivered is still left out, and the namespace's other queues kept off it", () => {
+    const toWrite: {
+      payload: JSONObject | null;
+      leftOut: number;
+      offNamespace: number;
+    } = withoutCollectorQueues({
+      payload: PAYLOAD,
+      collector: collector({
+        series: [
+          getMessagingQueueSeriesKey({
+            metricName: "azure_incomingmessages_total",
+            type: SERVICE_BUS_TYPE,
+            namespace: "sb-orders",
+            entity: "orders",
+          }),
+        ],
+        namespaceTotals: [INCOMING_TOTAL],
+      }),
+    });
+
+    expect(toWrite.leftOut).toBe(2);
+    expect(toWrite.offNamespace).toBe(2);
+    expect(
+      seriesFiled(toWrite.payload).filter((entry: string): boolean => {
+        return entry.startsWith("azure_incomingmessages_total|sb-orders");
+      }),
+    ).toEqual([
+      "azure_incomingmessages_total|sb-orders|invoices|none",
+      "azure_incomingmessages_total|sb-orders|invoices|none",
+    ]);
+  });
+
+  test("a whole namespace the collector's is left out, not kept off it", () => {
+    const toWrite: {
+      payload: JSONObject | null;
+      leftOut: number;
+      offNamespace: number;
+    } = withoutCollectorQueues({
+      payload: PAYLOAD,
+      collector: collector({
+        wholeNamespaces: [INCOMING_TOTAL],
+        namespaceTotals: [INCOMING_TOTAL],
+      }),
+    });
+
+    expect(toWrite.leftOut).toBe(4);
+    expect(toWrite.offNamespace).toBe(0);
+  });
+
+  test("another namespace's, metric's or type's total changes nothing", () => {
+    for (const key of [
+      getMessagingNamespaceSeriesKey({
+        metricName: "azure_incomingmessages_total",
+        type: SERVICE_BUS_TYPE,
+        namespace: "sb-billing",
+      }),
+      getMessagingNamespaceSeriesKey({
+        metricName: "azure_outgoingmessages_total",
+        type: SERVICE_BUS_TYPE,
+        namespace: "sb-orders",
+      }),
+      getMessagingNamespaceSeriesKey({
+        metricName: "azure_incomingmessages_total",
+        type: EVENT_HUBS_TYPE,
+        namespace: "sb-orders",
+      }),
+    ]) {
+      const toWrite: {
+        payload: JSONObject | null;
+        leftOut: number;
+        offNamespace: number;
+      } = withoutCollectorQueues({
+        payload: PAYLOAD,
+        collector: collector({ namespaceTotals: [key] }),
+      });
+
+      expect(toWrite).toEqual({
+        payload: PAYLOAD,
+        leftOut: 0,
+        offNamespace: 0,
+      });
+    }
+  });
+
+  test("the namespace is matched whatever the case of its name and type", () => {
+    const toWrite: { offNamespace: number } = withoutCollectorQueues({
+      payload: PAYLOAD,
+      collector: collector({
+        namespaceTotals: [
+          getMessagingNamespaceSeriesKey({
+            metricName: "AZURE_INCOMINGMESSAGES_TOTAL",
+            type: "microsoft.servicebus/NAMESPACES",
+            namespace: "SB-Orders",
+          }),
+        ],
+      }),
+    });
+
+    expect(toWrite.offNamespace).toBe(4);
   });
 });
 
@@ -549,7 +778,7 @@ describe("what a collector delivered, from the stored metrics' grouped rows", ()
       },
       "azure_incomingmessages_total",
     ),
-    // Unsplit totals: no queue.
+    // Unsplit totals: the namespace's own, split by no queue.
     row(
       {
         type: SERVICE_BUS_TYPE,
@@ -559,7 +788,16 @@ describe("what a collector delivered, from the stored metrics' grouped rows", ()
       },
       "azure_incomingmessages_total",
     ),
-    // Another type, or no namespace: no queue.
+    // As ClickHouse answers a key the series does not carry.
+    row(
+      {
+        type: "Microsoft.EventHub/Namespaces",
+        name: "eh-clicks",
+        metadata_entityname: null,
+      },
+      "azure_outgoingmessages_total",
+    ),
+    // Another type, or no namespace: no queue, and no namespace's total.
     row(
       {
         type: "Microsoft.Storage/storageAccounts",
@@ -569,11 +807,49 @@ describe("what a collector delivered, from the stored metrics' grouped rows", ()
       "azure_incomingmessages_total",
     ),
     row(
+      {
+        type: "Microsoft.Compute/virtualMachines",
+        name: "vm-web-1",
+        metadata_entityname: "",
+      },
+      "azure_incomingmessages_total",
+    ),
+    row(
       { type: SERVICE_BUS_TYPE, name: "", metadata_entityname: "orders" },
       "azure_incomingmessages_total",
     ),
+    row(
+      { type: SERVICE_BUS_TYPE, name: "", metadata_entityname: "" },
+      "azure_incomingmessages_total",
+    ),
+    row({ type: SERVICE_BUS_TYPE, name: "sb-orders" }, ""),
     row({}, "azure_incomingmessages_total"),
   ];
+
+  test("a namespace's total a collector sent, split by no queue, is the namespace's key", () => {
+    const found: CollectorMessagingQueues = readCollectorQueuesFromRows({
+      rows: ROWS,
+      isComplete: true,
+    });
+
+    expect(Array.from(found.namespaceTotals).sort()).toEqual(
+      [
+        getMessagingNamespaceSeriesKey({
+          metricName: "azure_incomingmessages_total",
+          type: SERVICE_BUS_TYPE,
+          namespace: "sb-orders",
+        }),
+        getMessagingNamespaceSeriesKey({
+          metricName: "azure_outgoingmessages_total",
+          type: EVENT_HUBS_TYPE,
+          namespace: "eh-clicks",
+        }),
+      ].sort(),
+    );
+    // A total is no queue's: never a queue's key, nor its whole namespace's.
+    expect(found.series.size).toBe(2);
+    expect(found.wholeNamespaces.size).toBe(0);
+  });
 
   test("each queue's metric a collector sent is its own key", () => {
     const found: CollectorMessagingQueues = readCollectorQueuesFromRows({
@@ -624,6 +900,7 @@ describe("what a collector delivered, from the stored metrics' grouped rows", ()
 
     expect(found.series.size).toBe(0);
     expect(found.wholeNamespaces.size).toBe(0);
+    expect(found.namespaceTotals.size).toBe(0);
   });
 });
 

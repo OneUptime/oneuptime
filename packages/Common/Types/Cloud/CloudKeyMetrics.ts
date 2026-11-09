@@ -369,6 +369,14 @@ export interface AzureTypeKeyMetrics {
    * page charts, exactly as the azure_monitor receiver writes them.
    */
   splitByDimension?: string | undefined;
+  /*
+   * The metrics of `metrics` a diagnostic setting cannot export: those
+   * Microsoft's supported metrics of the type mark "DS Export: No" (Azure
+   * Monitor documentation, "Supported metrics with Azure Monitor"). A
+   * stream never delivers them, so the read keeps writing them while a
+   * stream delivers the type's others (isAzureStreamedKeyMetric).
+   */
+  notExportedByDiagnosticSettings?: Array<string> | undefined;
 }
 
 // At most this many metrics are read per resource (one Azure Monitor call).
@@ -408,6 +416,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "Disk Write Bytes",
       "VmAvailabilityMetric",
     ],
+    notExportedByDiagnosticSettings: ["Network In Total", "Network Out Total"],
   },
   {
     type: "Microsoft.Compute/virtualMachineScaleSets",
@@ -417,10 +426,17 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "Network In Total",
       "Network Out Total",
     ],
+    notExportedByDiagnosticSettings: ["Network In Total", "Network Out Total"],
   },
   {
     type: "Microsoft.Compute/disks",
     metrics: [
+      "Composite Disk Read Bytes/sec",
+      "Composite Disk Write Bytes/sec",
+      "Composite Disk Read Operations/sec",
+      "Composite Disk Write Operations/sec",
+    ],
+    notExportedByDiagnosticSettings: [
       "Composite Disk Read Bytes/sec",
       "Composite Disk Write Bytes/sec",
       "Composite Disk Read Operations/sec",
@@ -490,6 +506,12 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "NormalizedRUConsumption",
       "ServerSideLatency",
     ],
+    notExportedByDiagnosticSettings: [
+      "TotalRequests",
+      "TotalRequestUnits",
+      "NormalizedRUConsumption",
+      "ServerSideLatency",
+    ],
   },
   {
     type: "Microsoft.Cache/redis",
@@ -509,6 +531,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "SuccessE2ELatency",
       "UsedCapacity",
     ],
+    notExportedByDiagnosticSettings: ["UsedCapacity"],
   },
   {
     type: "Microsoft.KeyVault/vaults",
@@ -525,6 +548,12 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "ThrottledRequests",
     ],
     splitByDimension: AZURE_ENTITY_NAME_DIMENSION,
+    notExportedByDiagnosticSettings: [
+      "ActiveMessages",
+      "DeadletteredMessages",
+      "ServerErrors",
+      "ThrottledRequests",
+    ],
   },
   {
     type: "Microsoft.EventHub/namespaces",
@@ -535,6 +564,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "ServerErrors",
     ],
     splitByDimension: AZURE_ENTITY_NAME_DIMENSION,
+    notExportedByDiagnosticSettings: ["ThrottledRequests", "ServerErrors"],
   },
   {
     type: "Microsoft.ContainerService/managedClusters",
@@ -543,6 +573,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "node_memory_working_set_percentage",
       "kube_pod_status_ready",
     ],
+    notExportedByDiagnosticSettings: ["kube_pod_status_ready"],
   },
   {
     type: "Microsoft.App/containerApps",
@@ -561,6 +592,10 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "ApplicationGatewayTotalTime",
       "Throughput",
     ],
+    notExportedByDiagnosticSettings: [
+      "ApplicationGatewayTotalTime",
+      "Throughput",
+    ],
   },
   {
     type: "Microsoft.Network/publicIPAddresses",
@@ -569,10 +604,16 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   {
     type: "Microsoft.Network/azureFirewalls",
     metrics: ["FirewallHealth", "Throughput", "SNATPortUtilization"],
+    notExportedByDiagnosticSettings: ["Throughput"],
   },
   {
     type: "Microsoft.Network/natGateways",
     metrics: ["ByteCount", "SNATConnectionCount", "DatapathAvailability"],
+    notExportedByDiagnosticSettings: [
+      "ByteCount",
+      "SNATConnectionCount",
+      "DatapathAvailability",
+    ],
   },
   {
     type: "Microsoft.Cdn/profiles",
@@ -655,18 +696,107 @@ export function isAzureKeyMetricStoredName(
   type: string,
   storedMetricName: string,
 ): boolean {
-  const keyMetrics: AzureTypeKeyMetrics | undefined = getAzureKeyMetrics(type);
+  return getAzureKeyMetricOfStoredName(type, storedMetricName) !== null;
+}
+
+/*
+ * The key metric of the type a stored metric name is, by Azure Monitor's
+ * own name (Network In Total), whatever aggregation it was read with; null
+ * for any other name, and for a type with no key metrics.
+ */
+export function getAzureKeyMetricOfStoredName(
+  type: string,
+  storedMetricName: string,
+): string | null {
+  const keyMetrics: AzureTypeKeyMetrics | undefined = getAzureKeyMetrics(
+    type || "",
+  );
   const stored: string = (storedMetricName || "").trim().toLowerCase();
 
   if (!keyMetrics || !stored) {
-    return false;
+    return null;
   }
 
-  return keyMetrics.metrics.some((metric: string): boolean => {
-    return AZURE_STORED_AGGREGATIONS.some((aggregation: string): boolean => {
-      return getAzureStoredMetricName(metric, aggregation) === stored;
+  return (
+    keyMetrics.metrics.find((metric: string): boolean => {
+      return AZURE_STORED_AGGREGATIONS.some((aggregation: string): boolean => {
+        return getAzureStoredMetricName(metric, aggregation) === stored;
+      });
+    }) || null
+  );
+}
+
+/*
+ * Whether a diagnostic setting exports this key metric of the type (the
+ * type's notExportedByDiagnosticSettings does not name it). False for a
+ * metric that is no key metric of the type.
+ */
+export function isAzureKeyMetricExportedByDiagnosticSettings(
+  type: string,
+  metricName: string,
+): boolean {
+  const keyMetrics: AzureTypeKeyMetrics | undefined = getAzureKeyMetrics(
+    type || "",
+  );
+  const name: string = (metricName || "").trim().toLowerCase();
+  const isNamed: (metrics: Array<string> | undefined) => boolean = (
+    metrics: Array<string> | undefined,
+  ): boolean => {
+    return (metrics || []).some((metric: string): boolean => {
+      return metric.toLowerCase() === name;
     });
-  });
+  };
+
+  return (
+    Boolean(keyMetrics && name) &&
+    isNamed(keyMetrics!.metrics) &&
+    !isNamed(keyMetrics!.notExportedByDiagnosticSettings)
+  );
+}
+
+/*
+ * WHETHER A STREAM WRITES THIS KEY METRIC OF THE TYPE IN PLACE OF THE READ.
+ *
+ * An Azure stream (diagnostic settings sending to event hubs,
+ * CloudStreamAzure) delivers the key metrics a diagnostic setting exports,
+ * and while it does, the connection's read leaves them to it
+ * (CloudStreamedMetrics) and the stream writes them
+ * (AzureDiagnosticRecords). One a diagnostic setting cannot export, the
+ * read keeps writing.
+ *
+ * Never a metric of a type the read splits by a dimension - a Service Bus
+ * or Event Hubs namespace: the read writes its queues', topics' and event
+ * hubs' own series, which its totals add up (CloudResourceMetricAggregation),
+ * while a diagnostic setting exports a metric "flattened ... aggregated
+ * across dimension values" (Azure Monitor documentation) - one total for
+ * the namespace, which would count each queue's messages a second time
+ * beside its own series. So the read writes every metric of such a type,
+ * streamed or not, and a stream none.
+ *
+ * Whether the metric is read a minute at a time - the only grain a stream
+ * delivers - is the caller's to check.
+ */
+export function isAzureStreamedKeyMetric(
+  type: string,
+  metricName: string,
+): boolean {
+  return (
+    !getAzureKeyMetrics(type || "")?.splitByDimension &&
+    isAzureKeyMetricExportedByDiagnosticSettings(type, metricName)
+  );
+}
+
+// isAzureStreamedKeyMetric of a stored name, as a read's datapoints carry it.
+export function isAzureStreamedKeyMetricStoredName(
+  type: string,
+  storedMetricName: string,
+): boolean {
+  const metric: string | null = getAzureKeyMetricOfStoredName(
+    type,
+    storedMetricName,
+  );
+
+  return metric !== null && isAzureStreamedKeyMetric(type, metric);
 }
 
 /*
