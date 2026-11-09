@@ -1,17 +1,15 @@
-import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import AiRunTryAgainButton from "../AI/AiRunTryAgainButton";
+import InvestigationNotice, {
+  noticeFailedIcon,
+} from "../AI/InvestigationNotice";
 import CodeApi from "../Code/CodeApi";
+import { CODE_TURN_FAILED } from "../Code/CodeTaskCopy";
 import CodeDiffStat from "../Code/CodeDiffStat";
 import { GitPullRequestMark } from "../Code/CodeMarks";
 import CodeMetaList from "../Code/CodeMetaList";
-import CodeTaskRetryNote, {
-  RETRY_NOTE_CONTAINER_CLASS_NAME,
-  WIDE_NOTE_ROW_CLASS_NAME,
-} from "../Code/CodeTaskRetryNote";
+import CodeTaskRetryNote from "../Code/CodeTaskRetryNote";
 import CodeTaskStageBadge from "../Code/CodeTaskStageBadge";
-import {
-  getFailedTurnTitle,
-  INSIGHT_FIX_TASK_VIEW,
-} from "../Code/CodeTaskStatusCopy";
+import { INSIGHT_FIX_TASK_VIEW } from "../Code/CodeTaskStatusCopy";
 import { CodeTaskTurnDuration } from "../Code/CodeTaskWorkTime";
 import CodeTimeAgo from "../Code/CodeTimeAgo";
 import PageMap from "../../Utils/PageMap";
@@ -47,10 +45,14 @@ export interface ComponentProps {
  * words from its real state ("Task in progress" until there is a pull
  * request, "Task failed" when there will be none) with how long AI has
  * worked on it, its title, what AI last said, its pull request and how
- * much it changed - and, when it failed, why and after how many attempts,
+ * much it changed - and, when it failed, why and how many times AI tried,
  * with Try again; when AI tries it again by itself, which attempt it is
  * on and when the next starts, with Retry now. A task the reader may not
  * read still links to it.
+ *
+ * A failure is said the way every AI card on the insight's page says a run
+ * that did not finish (its triage's among them): a red mark, one sentence,
+ * a quieter line and the product's Try again under it - never a box.
  */
 const InsightFixTask: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -63,7 +65,8 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
     ? CodeTaskStageUtil.fromSummary(task)
     : null;
 
-  const retry: () => Promise<void> = async (): Promise<void> => {
+  // Retry now: start the attempt AI is waiting to try again, at once.
+  const retryNow: () => Promise<void> = async (): Promise<void> => {
     setIsRetrying(true);
     setActionError(null);
 
@@ -77,6 +80,15 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
     setIsRetrying(false);
   };
 
+  /*
+   * Try again: ask the request again, then read the task again. A refusal
+   * is thrown, for the button to say under itself.
+   */
+  const tryAgain: () => Promise<void> = async (): Promise<void> => {
+    await CodeApi.retry(props.taskId);
+    props.onChanged?.();
+  };
+
   // The server asks again only what someone asked in Code.
   const isRequest: boolean = task?.recipe === CodeFixTaskType.CodeRequest;
   const isFailed: boolean = task?.state === CodeTaskState.Failed;
@@ -84,24 +96,47 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
     task && isRequest && (isFailed || task.state === CodeTaskState.Stopped),
   );
 
+  // The product's Try again, as every AI card offers it.
   const tryAgainButton: ReactElement = (
-    <button
-      type="button"
-      data-testid="ai-insight-fix-try-again"
-      disabled={isRetrying}
-      onClick={() => {
-        void retry();
-      }}
-      className={`flex-shrink-0 rounded-md bg-white px-2.5 py-1 text-xs font-medium shadow-sm ring-1 ring-inset ${
-        isFailed ? "text-red-700 ring-red-200" : "text-gray-700 ring-gray-300"
-      } ${getHandDrawnButtonStateClassName({
-        isBusy: isRetrying,
-        hoverClassName: isFailed ? "hover:bg-red-50" : "hover:bg-gray-50",
-      })}`}
-    >
-      {translator.translateText("Try again")}
-    </button>
+    <AiRunTryAgainButton
+      onTryAgain={tryAgain}
+      testId="ai-insight-fix-try-again"
+    />
   );
+
+  /*
+   * Why it failed, and how many times AI tried when it tried more than
+   * once: the failure notice's quieter line.
+   */
+  const attempts: number = task?.retry?.attempt || 0;
+  const triedTimes: string | null =
+    attempts > 1
+      ? translator.translatePlural(
+          {
+            one: "OneUptime tried {{count}} time.",
+            other: "OneUptime tried {{count}} times.",
+          },
+          attempts,
+        )
+      : null;
+  const failureLine: ReactElement | undefined =
+    task?.errorMessage || triedTimes ? (
+      <>
+        {task?.errorMessage ? (
+          <span data-testid="ai-insight-fix-failed-reason">
+            <IsolatedText text={task.errorMessage} />
+          </span>
+        ) : (
+          <></>
+        )}
+        {task?.errorMessage && triedTimes ? " " : ""}
+        {triedTimes ? (
+          <span data-testid="ai-insight-fix-failed-tries">{triedTimes}</span>
+        ) : (
+          <></>
+        )}
+      </>
+    ) : undefined;
 
   // Its number, when anything last happened, and how long AI worked on it.
   const facts: Array<ReactElement> = [];
@@ -158,7 +193,7 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
             <CodeTaskRetryNote
               retry={task.retry}
               onRetryNow={() => {
-                void retry();
+                void retryNow();
               }}
               isRetryingNow={isRetrying}
               dataTestId="ai-insight-fix-retry"
@@ -168,32 +203,15 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
           )}
 
           {isFailed ? (
-            <div
-              data-testid="ai-insight-fix-failed"
-              className={RETRY_NOTE_CONTAINER_CLASS_NAME}
+            <InvestigationNotice
+              testId="ai-insight-fix-failed"
+              indicator={noticeFailedIcon}
+              title={CODE_TURN_FAILED}
+              actionsTestId="ai-insight-fix-failed-actions"
+              actions={canTryAgain ? tryAgainButton : undefined}
             >
-              <div
-                className={`flex flex-col items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ${WIDE_NOTE_ROW_CLASS_NAME}`}
-              >
-                <div className="min-w-0 max-w-full flex-1">
-                  {/* After how many attempts, when AI tried it again by itself. */}
-                  <p
-                    data-testid="ai-insight-fix-failed-title"
-                    className="font-medium"
-                  >
-                    {getFailedTurnTitle({ retry: task.retry, translator })}
-                  </p>
-                  {task.errorMessage ? (
-                    <p className="mt-0.5 break-words text-red-700">
-                      <IsolatedText text={task.errorMessage} />
-                    </p>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-                {canTryAgain ? tryAgainButton : <></>}
-              </div>
-            </div>
+              {failureLine}
+            </InvestigationNotice>
           ) : (
             <></>
           )}
@@ -272,7 +290,7 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        {/* A failed task's Try again is beside why it failed, above. */}
+        {/* A failed task's Try again is under why it failed, above. */}
         {canTryAgain && !isFailed ? tryAgainButton : <></>}
         {/*
          * A real anchor (not a Button) so cmd/ctrl-click, middle-click and

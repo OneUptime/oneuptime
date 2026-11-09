@@ -142,8 +142,9 @@ export const CODE_TASK_RETRY_NOW: string = translationKey("Retry now");
 /*
  * A turn that failed after AI tried it again by itself. A list row says
  * it as its state, "Failed after 3 attempts", with the reason on the line
- * under it; the turn and an insight's Fix task card say it as the title
- * over the reason.
+ * under it; the turn says it as the title over the reason. An insight's
+ * Fix task card says it as the insight's other AI notices do: "AI could
+ * not finish.", with the reason and "OneUptime tried 3 times." under it.
  */
 export const CODE_TASK_ROW_FAILED_AFTER_ATTEMPTS: string = translationKey(
   "Failed after {{count}} attempts",

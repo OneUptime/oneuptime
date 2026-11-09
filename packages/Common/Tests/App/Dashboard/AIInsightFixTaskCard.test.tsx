@@ -339,15 +339,22 @@ describe("a fix task that fails, or that AI tries again", () => {
     });
 
     const failed: HTMLElement = screen.getByTestId("ai-insight-fix-failed");
-    // One title over the reason, as the task's own page says it.
+    /*
+     * As the page's other AI cards say a run that did not finish: one
+     * sentence, then why and how many times AI tried, in a quieter line.
+     */
+    expect(failed).toHaveTextContent("AI could not finish.");
     expect(
-      within(failed).getByTestId("ai-insight-fix-failed-title"),
-    ).toHaveTextContent(/^AI could not finish after 3 attempts\.$/);
-    expect(failed).toHaveTextContent("LLM completion request failed");
-    // Its Try again is in the box, beside why it failed.
-    const tryAgain: HTMLElement = within(failed).getByTestId(
-      "ai-insight-fix-try-again",
-    );
+      within(failed).getByTestId("ai-insight-fix-failed-reason"),
+    ).toHaveTextContent(/^LLM completion request failed$/);
+    expect(
+      within(failed).getByTestId("ai-insight-fix-failed-tries"),
+    ).toHaveTextContent(/^OneUptime tried 3 times\.$/);
+    // Its Try again is under them, the notice's one action.
+    const tryAgain: HTMLElement = within(
+      screen.getByTestId("ai-insight-fix-failed-actions"),
+    ).getByTestId("ai-insight-fix-try-again");
+    expect(tryAgain).toHaveTextContent(/^Try again$/);
 
     fireEvent.click(tryAgain);
 
@@ -357,7 +364,7 @@ describe("a fix task that fails, or that AI tries again", () => {
     expect(retryMock).toHaveBeenCalledWith(TASK_ID);
   });
 
-  test("a failure on its one attempt says only that AI could not finish", () => {
+  test("a failure on its one attempt says only that AI could not finish, and why", () => {
     drawCard({
       task: task({
         state: CodeTaskState.Failed,
@@ -365,12 +372,16 @@ describe("a fix task that fails, or that AI tries again", () => {
       }),
     });
 
-    expect(screen.getByTestId("ai-insight-fix-failed-title")).toHaveTextContent(
-      /^AI could not finish\.$/,
+    const failed: HTMLElement = screen.getByTestId("ai-insight-fix-failed");
+    expect(failed).toHaveTextContent(
+      /^AI could not finish\.The repository could not be cloned\./,
     );
+    expect(
+      within(failed).queryByTestId("ai-insight-fix-failed-tries"),
+    ).toBeNull();
   });
 
-  test("a note with a button stacks in the card's narrow column: its button under its words, beside them only from 28rem", () => {
+  test("a failure is a notice, as on the page's other AI cards - never a box; a retry note stacks in the card's narrow column", () => {
     drawCard({
       task: task({
         state: CodeTaskState.Failed,
@@ -379,11 +390,15 @@ describe("a fix task that fails, or that AI tries again", () => {
       }),
     });
 
+    // A red mark, a sentence and a quieter line: no tinted panel around them.
     const failed: HTMLElement = screen.getByTestId("ai-insight-fix-failed");
-    expect(failed).toHaveClass("[container-type:inline-size]");
-    expect(
-      within(failed).getByTestId("ai-insight-fix-try-again").parentElement,
-    ).toHaveClass("flex-col", "[@container(min-width:28rem)]:flex-row");
+    expect(failed).not.toHaveClass("rounded-lg");
+    expect(failed.querySelector("[class*='bg-red-']")).toBeNull();
+    expect(failed.querySelector("svg")).not.toBeNull();
+    // Its actions are a row of their own under the words, which wraps.
+    expect(screen.getByTestId("ai-insight-fix-failed-actions")).toHaveClass(
+      "flex-wrap",
+    );
     cleanup();
 
     drawCard({
@@ -461,9 +476,14 @@ describe("a fix task that fails, or that AI tries again", () => {
 
     fireEvent.click(screen.getByTestId("ai-insight-fix-try-again"));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "This project's AI credits are used up.",
-    );
+    const refusal: HTMLElement = await screen.findByRole("alert");
+    expect(refusal).toHaveTextContent("This project's AI credits are used up.");
+    // Said under the button, among the failure's actions.
+    expect(
+      within(screen.getByTestId("ai-insight-fix-failed-actions")).getByRole(
+        "alert",
+      ),
+    ).toBe(refusal);
     expect(onChanged).not.toHaveBeenCalled();
   });
 
@@ -528,6 +548,10 @@ describe("in the reader's language", () => {
         retry: { attempt: 3, maxAttempts: 3 },
       }),
     });
+    // How many times AI tried, in Persian.
+    expect(screen.getByTestId("ai-insight-fix-failed-tries")).toHaveTextContent(
+      "بار تلاش کرد",
+    );
     // What was written reads as it was written: its stops at its ends.
     for (const written of [
       "Fix the null check in the checkout total",
