@@ -175,15 +175,18 @@ describe("the range a request reads", () => {
     [42, "startTime"],
     [{}, "startTime"],
     [[START.toISOString()], "startTime"],
-  ])("a start of %j is refused, naming the field", (value: unknown) => {
-    expect(() => {
-      return resolveMessageQueueTopologyWindow({
-        startTime: value,
-        endTime: END.toISOString(),
-        now: NOW,
-      });
-    }).toThrow(new BadDataException("startTime must be a date"));
-  });
+  ])(
+    "a start of %j is refused, naming the field",
+    (value: unknown, field: string) => {
+      expect(() => {
+        return resolveMessageQueueTopologyWindow({
+          startTime: value,
+          endTime: END.toISOString(),
+          now: NOW,
+        });
+      }).toThrow(new BadDataException(`${field} must be a date`));
+    },
+  );
 
   test("an end that is not a date is refused, naming the field", () => {
     expect(() => {

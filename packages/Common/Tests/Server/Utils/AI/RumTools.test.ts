@@ -20,7 +20,10 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
-import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIChatCitationTargetType,
+  AIChatWidgetColumn,
+} from "../../../../Types/AI/AIChatTypes";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
@@ -227,8 +230,20 @@ describe("query_rum_applications", () => {
       expected: string,
     ) => {
       const app: RumApplication = application();
-      app.otelCollectorStatus = otelCollectorStatus;
-      app.lastSeenAt = lastSeenAt;
+
+      // A value the row does not hold is left out of it, as a stored row leaves it.
+      if (otelCollectorStatus === undefined) {
+        delete app.otelCollectorStatus;
+      } else {
+        app.otelCollectorStatus = otelCollectorStatus;
+      }
+
+      if (lastSeenAt === undefined) {
+        delete app.lastSeenAt;
+      } else {
+        app.lastSeenAt = lastSeenAt;
+      }
+
       jest.spyOn(RumApplicationService, "findBy").mockResolvedValue([app]);
 
       const result: ToolExecutionResult =
@@ -249,13 +264,12 @@ describe("query_rum_applications", () => {
       {},
       context(),
     );
-    const columns: Array<JSONObject> = result.widget?.data[
-      "columns"
-    ] as Array<JSONObject>;
+    const columns: Array<AIChatWidgetColumn> =
+      result.widget?.data.columns || [];
 
     expect(
-      columns.map((column: JSONObject): unknown => {
-        return [column["key"], column["title"]];
+      columns.map((column: AIChatWidgetColumn): unknown => {
+        return [column.key, column.title];
       }),
     ).toEqual([
       ["name", "Application"],

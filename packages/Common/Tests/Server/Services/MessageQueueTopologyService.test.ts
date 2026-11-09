@@ -70,11 +70,13 @@ function queueRow(
   identifier: string,
   system: string,
 ): MessageQueue {
+  // "<system>|<namespace>|<destination>": the queue's name is its destination.
+  const destination: string = identifier.split("|")[2] || identifier;
   const row: MessageQueue = new MessageQueue();
   row._id = id;
-  row.name = identifier.split("|")[2];
+  row.name = destination;
   row.messagingSystem = system;
-  row.destinationName = identifier.split("|")[2];
+  row.destinationName = destination;
   row.queueIdentifier = identifier;
   row.discoverySource = "traces";
   return row;

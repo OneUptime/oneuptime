@@ -359,7 +359,7 @@ beforeEach((): void => {
   jest.spyOn(Response, "sendErrorResponse").mockImplementation(() => {});
   directMessageSpy = jest
     .spyOn(SlackUtil, "sendDirectMessageToUser")
-    .mockResolvedValue();
+    .mockResolvedValue(null);
   ephemeralSpy = jest
     .spyOn(SlackUtil, "sendEphemeralMessageToChannel")
     .mockResolvedValue();

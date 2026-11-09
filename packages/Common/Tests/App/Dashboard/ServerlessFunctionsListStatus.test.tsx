@@ -275,10 +275,13 @@ describe("the Serverless Functions list's Status column", () => {
   test("one added through the API, before its first data, reads Waiting for data, in grey, and says how to start", async () => {
     const column: Column = await statusColumn();
 
-    for (const fields of [
-      { otelCollectorStatus: undefined, lastSeenAt: undefined },
-      { otelCollectorStatus: "disconnected", lastSeenAt: undefined },
-    ] as Array<Partial<ServerlessFunction>>) {
+    // Neither field written yet, or only the status: no lastSeenAt.
+    const cases: Array<Partial<ServerlessFunction>> = [
+      {},
+      { otelCollectorStatus: "disconnected" },
+    ];
+
+    for (const fields of cases) {
       const pill: PillProps = pillOf(column, serverlessFunction(fields));
 
       expect(pill.text).toBe("Waiting for data");

@@ -16,6 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * The usage overview both dashboards draw (issue #5916): Project Settings >
@@ -153,7 +154,8 @@ function summary(
   };
 }
 
-let fetchUsage: jest.Mock<
+// jest-mock's Mock: @jest/globals' jest (28) has no Mock type of its own.
+let fetchUsage: Mock<
   (range: TelemetryUsageRange) => Promise<TelemetryUsageSummary>
 >;
 

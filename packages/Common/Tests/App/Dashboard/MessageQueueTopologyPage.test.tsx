@@ -273,6 +273,8 @@ describe("the pages", () => {
     show(
       <MessageQueueTopology
         pageRoute={new Route("/dashboard/p/queues/topology")}
+        currentProject={null}
+        hasPaymentMethod={false}
       />,
     );
     await waitFor(() => {
@@ -285,6 +287,8 @@ describe("the pages", () => {
     show(
       <MessageQueueViewTopology
         pageRoute={new Route("/dashboard/p/queues/x/topology")}
+        currentProject={null}
+        hasPaymentMethod={false}
       />,
     );
     await waitFor(() => {
