@@ -193,8 +193,8 @@ const findProblems: ProblemsFunction = (
 };
 
 describe("the one-step incoming call escalation rule's strings", () => {
-  test("seventeen locales are checked", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("eighteen locales are checked", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
     expect(LOCALE_FILES).toContain("en.json");
   });
 

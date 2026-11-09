@@ -56,4 +56,20 @@ export class AIRunStatusHelper {
   public static isTerminalStatus(status: AIRunStatus): boolean {
     return AIRunStatusHelper.terminalStatuses().includes(status);
   }
+
+  /*
+   * The runs that ended without their answer: they failed, stopped
+   * reporting progress, or were cancelled or expired in the queue. The
+   * dashboard says they did not finish, and offers Try again for them
+   * (issues #6437, #6438).
+   */
+  public static didNotFinishStatuses(): Array<AIRunStatus> {
+    return [AIRunStatus.Error, AIRunStatus.Stale, AIRunStatus.Cancelled];
+  }
+
+  public static didNotFinish(status: AIRunStatus | null | undefined): boolean {
+    return Boolean(
+      status && AIRunStatusHelper.didNotFinishStatuses().includes(status),
+    );
+  }
 }

@@ -255,8 +255,8 @@ describe("every language says the new words", () => {
       return name.replace(".json", "");
     });
 
-  test("there are sixteen languages, and every key is English's", () => {
-    expect(locales).toHaveLength(16);
+  test("there are seventeen languages, and every key is English's", () => {
+    expect(locales).toHaveLength(17);
     for (const key of KEYS) {
       expect({ key, english: english[key] }).toEqual({ key, english: key });
     }

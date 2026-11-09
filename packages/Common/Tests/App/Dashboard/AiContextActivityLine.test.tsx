@@ -439,7 +439,7 @@ describe("a run's line about the AI context it read", () => {
 
     // The line is gone from the feed; the notes are still open.
     expect(container.querySelector('[data-ai-context="true"]')).toBeNull();
-    expect(container).toHaveTextContent("+ 3 earlier steps");
+    expect(container).toHaveTextContent("Show 3 earlier steps");
     const dialog: HTMLElement = screen.getByRole("dialog");
     expect(
       within(dialog).getByTestId(AI_CONTEXT_TEST_IDS.activityModalPart),

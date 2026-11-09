@@ -174,6 +174,9 @@ import StatusPageSCIMLogService, {
 import TelemetryIngestionKeyService, {
   Service as TelemetryIngestionKeyServiceType,
 } from "Common/Server/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionKeyRefusalService, {
+  Service as TelemetryIngestionKeyRefusalServiceType,
+} from "Common/Server/Services/TelemetryIngestionKeyRefusalService";
 import TelemetrySourceMapService, {
   Service as TelemetrySourceMapServiceType,
 } from "Common/Server/Services/TelemetrySourceMapService";
@@ -1815,6 +1818,7 @@ import StatusPageFooterLink from "Common/Models/DatabaseModels/StatusPageFooterL
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageHeaderLink from "Common/Models/DatabaseModels/StatusPageHeaderLink";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionKeyRefusal from "Common/Models/DatabaseModels/TelemetryIngestionKeyRefusal";
 import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap";
 import IoTDeviceCredential from "Common/Models/DatabaseModels/IoTDeviceCredential";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
@@ -4102,6 +4106,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TelemetryIngestionKey, TelemetryIngestionKeyServiceType>(
         TelemetryIngestionKey,
         TelemetryIngestionKeyService,
+      ).getRouter(),
+    );
+
+    // What each key was refused, read-only: the ingest endpoints write it.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryIngestionKeyRefusal,
+        TelemetryIngestionKeyRefusalServiceType
+      >(
+        TelemetryIngestionKeyRefusal,
+        TelemetryIngestionKeyRefusalService,
       ).getRouter(),
     );
 

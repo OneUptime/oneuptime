@@ -122,6 +122,8 @@ Om een geheim te wisselen zonder gegevens te verliezen, maakt u een tweede sleut
 
 Een geweigerd verzoek krijgt een status en een zin die zegt waarom.
 
+De pagina van de sleutel houdt ook de telling bij: **Geweigerde telemetrie** toont wat de afgelopen 30 dagen van de sleutel is geweigerd, waarom, op welk endpoint, hoeveel verzoeken en wanneer. Een ontbrekende of verkeerd getypte sleutel hoort bij geen enkel project, dus niets telt hem.
+
 | Antwoord | Wat het betekent |
 | --- | --- |
 | `401` met `Missing ingestion token` | Het verzoek heeft geen sleutel. Stuur hem mee in `x-oneuptime-token`. |

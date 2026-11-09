@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 Une application web a besoin d'une clé **Navigateur**, et une application mobile d'une clé **Serveur** : voir [Configuration navigateur](/docs/rum/browser-setup) et [Configuration mobile](/docs/rum/mobile-setup). Les points de terminaison d'export refusent aussi une mauvaise clé avec `401`, comme le demande la spécification OTLP, si bien qu'un SDK bien conçu journalise le refus au lieu de réessayer. Cette ligne passe facilement inaperçue dans une console de navigateur, et cette vérification répond directement.
 
+OneUptime compte aussi ce qu'il refuse d'une clé qu'il connaît. La page de la clé, sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**, montre dans **Télémétrie refusée** ce qui a été refusé ces 30 derniers jours, et la **Vérification de la configuration** de la page **Documentation** de l'application indique quel type de télémétrie est refusé, pourquoi et comment y remédier. Une clé absente ou inconnue ne désigne aucun projet, donc rien ne la compte : seuls cette vérification et le `401` vous renseignent.
+
 ## Vérifier ce qui quitte le navigateur
 
 Ouvrez les outils de développement de votre navigateur sur la page de l'application, sélectionnez l'onglet Réseau et filtrez sur `otlp`. Vous cherchez `POST /otlp/v1/traces` avec un statut `2xx`.
@@ -121,6 +123,7 @@ Le graphique vide de la **Vue d'ensemble** de l'application indique de quel cas 
 | **Aucune exception sur cette période** ou **Aucun journal sur cette période** | Il en est déjà arrivé, et le graphique indique la date de la dernière arrivée. Choisissez la période plus longue qu'il propose. |
 | **Rien n'est encore arrivé de cette application** | Aucune télémétrie n'arrive : commencez par [Vérifier la clé](#vérifier-la-clé). |
 | **Le SDK OpenTelemetry ne remonte rien** | Seule la relecture de session remonte des données de cette application : configurez le SDK comme dans [Configuration navigateur](/docs/rum/browser-setup). |
+| **Les exceptions sont refusées** ou **Les journaux sont refusés** | OneUptime les a refusés après l'arrivée du dernier, et le graphique dit pourquoi et quand : la clé est désactivée ou expirée, elle n'autorise pas l'origine de votre site, une limite ou un budget est épuisé, ou le projet n'a aucun moyen de paiement. Son bouton y remédie : **Choisir une autre clé**, **Ouvrir la clé**, **Voir les budgets** ou **Ajouter un moyen de paiement**. |
 
 Les exceptions ont besoin d'un gestionnaire d'erreurs, car le SDK ne capture pas les erreurs non interceptées : [Signaler les erreurs non interceptées](/docs/rum/browser-setup#signaler-les-erreurs-non-interceptées) donne le code. Une erreur qu'une error boundary ou un `try`/`catch` intercepte n'atteint jamais la fenêtre : enregistrez-la là où vous la traitez, avec `span.recordException`.
 

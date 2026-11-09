@@ -122,6 +122,8 @@ Para trocar um segredo sem perder dados, crie uma segunda chave, passe os seus r
 
 Uma requisição recusada recebe um status e uma frase que diz o motivo.
 
+A página da chave também faz a conta: **Telemetria recusada** lista o que foi recusado da chave nos últimos 30 dias, por quê, em qual endpoint, quantas requisições e quando. Uma chave ausente ou digitada errado não pertence a nenhum projeto, então nada a conta.
+
 | Resposta | O que significa |
 | --- | --- |
 | `401` com `Missing ingestion token` | A requisição não tem chave. Envie-a em `x-oneuptime-token`. |

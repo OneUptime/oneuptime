@@ -198,7 +198,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Log records are not read for identity.",
     "`gemini_cli.token.usage` is left out on purpose.",
     "Only input and output tokens are counted.",
-    "if the same project receives GenAI spans with cost, the coding assistants' spend does not show.",
     "Use LiteLLM with one virtual key per employee.",
     "A gateway sees only traffic sent through it.",
     "A gateway sees the model call, not the agent.",
@@ -218,14 +217,13 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Other sign-ins send no email.",
     "`user.id` is not a person.",
     "Teams and cost centres",
-    "The metrics fill in for spans; they are never added to them.",
-    "A row from metrics carries cost only.",
+    "Claude Code is counted beside your apps.",
+    "A row from metrics names no call.",
   ],
   [CURSOR]: [
     "Cursor's Enterprise plan.",
     "An endpoint Cursor can reach from the internet.",
     "Cursor names a person by `cursor.user.id`, an integer only Cursor can turn into a name, and often leaves it out for cloud agents.",
-    "if the same project receives GenAI spans with cost, Cursor's spend does not show.",
     "Metrics are sent at most once.",
     "Logs are sent at least once",
     "There is no ordering.",
@@ -259,17 +257,17 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
   {
     from: ASSISTANTS,
     to: LLM,
-    anchor: "spans-come-first-metrics-fill-in",
+    anchor: "each-service-is-counted-from-what-it-sends",
   },
   {
     from: CLAUDE_CODE,
     to: LLM,
-    anchor: "spans-come-first-metrics-fill-in",
+    anchor: "each-service-is-counted-from-what-it-sends",
   },
   {
     from: CURSOR,
     to: LLM,
-    anchor: "spans-come-first-metrics-fill-in",
+    anchor: "each-service-is-counted-from-what-it-sends",
   },
   {
     from: CURSOR,
@@ -279,7 +277,7 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
   {
     from: CODEX,
     to: LLM,
-    anchor: "spans-come-first-metrics-fill-in",
+    anchor: "each-service-is-counted-from-what-it-sends",
   },
   {
     from: LLM,

@@ -647,8 +647,8 @@ describe("the side menu labels are translated in every locale", () => {
     })
     .sort();
 
-  test("there are 17 locales", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("there are 18 locales", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
   });
 
   test.each(LOCALE_FILES)(

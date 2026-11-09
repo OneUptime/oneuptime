@@ -105,7 +105,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 
 Sett den der du allerede klargjør utviklermaskiner: en MDM-profil, en fil med administrerte innstillinger eller en shellprofil fra dotfilene dine. Verdier kan ikke inneholde mellomrom: bruk understreker, eller prosentkoding som `%20`. Codex har ingen ressursattributter, så sett de samme nøklene i `[otel.span_attributes]` i stedet.
 
-For å dele opp forbruket etter applikasjon bruker du tjenestenavnet (`OTEL_SERVICE_NAME`, eller verktøyets egen innstilling). Inndelingen **Applikasjon / Tjeneste** dekker bare verktøy som sender GenAI-spans.
+For å dele opp forbruket etter applikasjon bruker du tjenestenavnet (`OTEL_SERVICE_NAME`, eller verktøyets egen innstilling). Inndelingen **Applikasjon / Tjeneste** rangerer hver tjeneste, enten den sender GenAI-spans eller bare målinger.
 
 ### Hva som bevisst ikke behandles som den ansatte
 
@@ -144,21 +144,21 @@ To ting å vite før du leser tallene:
 
 Åpne **Produkter → AI / LLM**, og gå til **Forbruk**. Den rangerer **Ansatt**, **Team**, **Modell**, **Leverandør** og **Applikasjon / Tjeneste** etter forbruk, over de siste 7 dagene, med mindre du velger et annet tidsrom. Kall som ikke nevner noen, telles under **Ikke tilordnet**: en stor rad **Ikke tilordnet** forteller deg hvilket verktøy som fortsatt mangler identiteten sin.
 
-### Kodeassistentmålinger er en reserve, ikke et tillegg
+### Kodeassistentmålinger telles ved siden av kallene fra appene dine
 
-GenAI-spans kommer først: målingene leses bare for et tall spans ikke rapporterte noe for, og de to legges aldri sammen ([hvorfor](/docs/telemetry/ai-llm-observability#spans-kommer-først-målinger-fyller-hullene)). For kodeassistenter har det én tydelig konsekvens: **hvis det samme prosjektet mottar GenAI-spans med kostnad, vises ikke kodeassistentenes forbruk.** Gi kodeassistentene et eget prosjekt, med sin egen inntaksnøkkel.
+Hver tjeneste telles ut fra det den sender ([hvordan](/docs/telemetry/ai-llm-observability#hver-tjeneste-telles-ut-fra-det-den-sender)). Målingene til en kodeassistent kommer inn under dens egen tjeneste, så forbruket legges til AI-kallene appene dine sender til samme prosjekt, aldri i stedet for dem, og en app som sender GenAI-spans og målinger for de samme kallene, telles én gang, fra spansene sine.
 
-Når reserven gjelder, er dette hva hver inndeling kan vise for et verktøy som bare sender målinger:
+Dette viser hver inndeling for et verktøy som bare sender målinger:
 
 | Inndeling | Fra målinger |
 | --- | --- |
 | **Ansatt** | Ja, fra hver identitetsnøkkel ovenfor, med og uten prefikset `resource.` |
 | **Team** | Ja, fra teamnøklene |
 | **Modell** | Ja: Claude Code og Codex sender en `model` uten prefiks, Cursor `cursor.model.name` |
-| **Leverandør** | Nei: kodeassistentenes målinger nevner ingen leverandør |
-| **Applikasjon / Tjeneste** | Nei: målingene deres hører ikke til noen OneUptime-tjeneste |
+| **Leverandør** | Under **Ikke tilordnet**: kodeassistentenes målinger nevner ingen leverandør |
+| **Applikasjon / Tjeneste** | Ja: hvert verktøy under tjenesten målingene dets nevner, for eksempel `cursor` |
 
-En rad lest fra målinger bærer bare kostnad: cellene for kall og tokens viser `—`, fordi en forbruksteller ikke har detaljer per kall, og en 0 der ville påstå at personen ikke gjorde noen kall. Tabellen er merket med **fra GenAI-målinger**.
+En rad lest fra målinger sier **Fra bruksmålinger** under navnet sitt. Cellen for kall viser `—`, fordi en teller ikke har detaljer per kall, og en 0 der ville påstå at personen ikke gjorde noen kall; cellene for tokens viser tokenene målingene telte.
 
 ## Ingen OpenTelemetry? Sett en gateway foran
 
@@ -197,7 +197,7 @@ Codex sender også målingene sine til OpenAI som standard: se [OpenAI Codex](/d
 
 ## Hvor du begynner
 
-Rull ut i denne rekkefølgen; hvert steg er nyttig i seg selv. Bruk et prosjekt som ikke allerede mottar GenAI-spans fra dine egne apper, ellers holder [reserveregelen](#kodeassistentmålinger-er-en-reserve-ikke-et-tillegg) kodeassistentenes forbruk borte fra siden.
+Rull ut i denne rekkefølgen; hvert steg er nyttig i seg selv. Kodeassistentene kan dele prosjekt med dine egne apper: [hver telles ved siden av dem](#kodeassistentmålinger-telles-ved-siden-av-kallene-fra-appene-dine).
 
 1. **Gemini CLI**, hvis noen bruker det. Det sender `user.email` uten oppsett, så det viser tilordningen fungere hele veien. Slå på traces også: det sender ingen kostnadsmåling.
 2. **Claude Code**: én fil med administrerte innstillinger for flåten, `user.email` gratis, en ekte kostnadsmåling og godkjenningsrate, commits, pull requests og kodelinjer per utvikler.

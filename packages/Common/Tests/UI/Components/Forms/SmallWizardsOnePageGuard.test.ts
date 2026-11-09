@@ -140,7 +140,7 @@ describe("Admin Dashboard > Settings > Global LLM Providers", () => {
     ]);
   });
 
-  test("folds the description, Additional Parameters and the cost per million tokens at the end of Connection", () => {
+  test("folds the description, Additional Parameters, the response timeout and the cost per million tokens at the end of Connection", () => {
     expect(
       keysOf(
         form.fields.filter((field: FormFieldFacts): boolean => {
@@ -161,11 +161,13 @@ describe("Admin Dashboard > Settings > Global LLM Providers", () => {
       "name",
       "description",
       "additionalParams",
+      "requestTimeoutInSeconds",
       "costPerMillionTokensInUSDCents",
     ]);
     expect(keysOf(foldedFields(form))).toEqual([
       "description",
       "additionalParams",
+      "requestTimeoutInSeconds",
       "costPerMillionTokensInUSDCents",
     ]);
     expectOneAdvancedSection(form);

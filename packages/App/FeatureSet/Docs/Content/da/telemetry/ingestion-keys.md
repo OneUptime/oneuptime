@@ -122,6 +122,8 @@ For at skifte en hemmelighed uden at miste data skal du oprette en ny nøgle, fl
 
 En afvist anmodning får en status og en sætning, der siger hvorfor.
 
+Nøglens side tæller også med: **Afvist telemetri** viser, hvad der er afvist fra nøglen de seneste 30 dage, hvorfor, på hvilket endpoint, hvor mange anmodninger og hvornår. En manglende eller forkert indtastet nøgle hører ikke til noget projekt, så intet tæller den.
+
 | Svar | Hvad det betyder |
 | --- | --- |
 | `401` med `Missing ingestion token` | Anmodningen har ingen nøgle. Send den i `x-oneuptime-token`. |

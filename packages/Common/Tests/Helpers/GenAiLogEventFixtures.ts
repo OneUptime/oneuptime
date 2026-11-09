@@ -149,14 +149,18 @@ function forEachLogRecord(
 /*
  * The fixture's log records as the Log table stores them. `stampEventName:
  * false` stores them as ingest did before it read the event name field.
- * A record that sends no time of its own is stored at `arrivedAtNano`, as
- * ingest stores it at the time it arrived.
+ * A record that sends no time of its own is stored at its observed time, as
+ * ingest stores it since #6395, and at `arrivedAtNano` - the time it
+ * arrived - when it observed none either. `storedAtArrival` stores every
+ * record that sends no time of its own at `arrivedAtNano`, as ingest did
+ * before #6395: the rows a Log table still holds from then.
  */
 export function toStoredLogRecords(
   fixture: GenAiLogEventFixtureFile,
   options?: {
     stampEventName?: boolean | undefined;
     arrivedAtNano?: string | undefined;
+    storedAtArrival?: boolean | undefined;
   },
 ): Array<LlmLogEventRecord> {
   const records: Array<LlmLogEventRecord> = [];
@@ -192,6 +196,10 @@ export function toStoredLogRecords(
       }
 
       const time: unknown = data.record["timeUnixNano"];
+      const observed: string = String(
+        data.record["observedTimeUnixNano"] || "0",
+      );
+      const arrivedAt: string = options?.arrivedAtNano || "0";
 
       records.push({
         traceId: Text.convertOtlpIdToHex(
@@ -203,10 +211,10 @@ export function toStoredLogRecords(
         timeUnixNano:
           typeof time === "string" || typeof time === "number"
             ? String(time)
-            : options?.arrivedAtNano || "0",
-        observedTimeUnixNano: String(
-          data.record["observedTimeUnixNano"] || "0",
-        ),
+            : options?.storedAtArrival || observed === "0"
+              ? arrivedAt
+              : observed,
+        observedTimeUnixNano: observed,
         attributes: toStoredMap(attributes),
         body: toStoredBody(data.record["body"]),
       });

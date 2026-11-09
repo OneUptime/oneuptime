@@ -15,14 +15,21 @@ import {
 import {
   EXCEPTIONS_NOT_SET_UP_TITLE,
   EXCEPTIONS_QUIET_TITLE,
+  EXCEPTIONS_REFUSED_TITLE,
   LOGS_NOT_SET_UP_TITLE,
   LOGS_QUIET_TITLE,
+  LOGS_REFUSED_TITLE,
   NOTHING_ARRIVED_TITLE,
   SDK_MISSING_TITLE,
   SETUP_CHECK_TITLE,
   SET_UP_EXCEPTIONS,
   SET_UP_LOGS,
 } from "../../../FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumSignalWords";
+import { RUM_CHECK_THE_KEY_DOCS_URL } from "../../../FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumKeySwapGuide";
+import {
+  INGEST_REFUSAL_FIX_LABELS,
+  REFUSALS_TITLE,
+} from "../../../FeatureSet/Dashboard/src/Components/Telemetry/IngestRefusalWords";
 import {
   DocsAnchorAlias,
   getEnglishAnchorAliases,
@@ -269,13 +276,64 @@ describe("RUM docs: why Exceptions or Logs are empty (issue #5770)", () => {
       [EXCEPTIONS_QUIET_TITLE, LOGS_QUIET_TITLE],
       [NOTHING_ARRIVED_TITLE],
       [SDK_MISSING_TITLE],
+      [EXCEPTIONS_REFUSED_TITLE, LOGS_REFUSED_TITLE],
     ]);
 
     // Not set up: the chart's button opens the code that sends them.
     expect(boldSpansOf(rows[0]![1]!)).toEqual([SET_UP_EXCEPTIONS, SET_UP_LOGS]);
 
+    // Refused (issue #6378): its buttons are the refusal fixes, every one.
+    expect(boldSpansOf(rows[4]![1]!)).toEqual(
+      Object.values(INGEST_REFUSAL_FIX_LABELS),
+    );
+
     // The setup check is named as its card is titled.
     expect(boldSpansOf(section.lines.join("\n"))).toContain(SETUP_CHECK_TITLE);
+  });
+
+  test("the key check names where refusals are counted, as the Dashboard titles them (issue #6378)", () => {
+    const spans: Array<string> = boldSpansOf(
+      sectionOf("en", TROUBLESHOOTING, "check-the-key").lines.join("\n"),
+    );
+
+    // The key's page card, and the setup check that says which kind is refused.
+    expect(spans).toEqual(
+      expect.arrayContaining([REFUSALS_TITLE, SETUP_CHECK_TITLE]),
+    );
+
+    /*
+     * The refused row names what a refusal can be: a key off or expired,
+     * an origin, a limit or a budget, or billing.
+     */
+    const refusedRow: string = tableRows(
+      sectionOf("en", TROUBLESHOOTING, EMPTY_SIGNALS.anchor),
+    )[4]![1]!;
+
+    for (const phrase of [
+      "switched off or expired",
+      "origin",
+      "a limit or a budget",
+      "payment method",
+    ]) {
+      expect({ phrase, listed: refusedRow.includes(phrase) }).toEqual({
+        phrase,
+        listed: true,
+      });
+    }
+  });
+
+  test("the Pick another key dialog's help link opens the key check, in every language (issue #6378)", () => {
+    expect(headingLink(RUM_CHECK_THE_KEY_DOCS_URL)).toEqual({
+      page: TROUBLESHOOTING,
+      anchor: "check-the-key",
+    });
+
+    const unanswered: Array<string> = ["en", ...TRANSLATED_LANGUAGES].filter(
+      (language: string): boolean => {
+        return !headingFor(language, TROUBLESHOOTING, "check-the-key");
+      },
+    );
+    expect(unanswered).toEqual([]);
   });
 
   test("its answers send nothing-arrived to the key check and a missing SDK to Browser Setup", () => {

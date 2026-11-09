@@ -79,9 +79,6 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
   const config: EpisodeMemberKindConfig = props.config;
   const count: number = props.recordIds.length;
 
-  const itemName: TranslatableTerm = translatableTerm(config.singularTitle, {
-    inSentence: true,
-  });
   const itemsName: TranslatableTerm = translatableTerm(config.pluralTitle, {
     inSentence: true,
   });
@@ -231,14 +228,7 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
       date: episode.date,
       meta:
         typeof episode.memberCount === "number"
-          ? translator.translatePlural(
-              {
-                one: "{{count}} {{itemName}}",
-                other: "{{count}} {{itemsName}}",
-              },
-              episode.memberCount,
-              { itemName, itemsName },
-            )
+          ? translator.translatePlural(config.memberCount, episode.memberCount)
           : undefined,
     };
   };

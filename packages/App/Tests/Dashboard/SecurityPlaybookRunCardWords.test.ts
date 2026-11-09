@@ -52,6 +52,13 @@ const LANGUAGES: Array<string> = fs
   })
   .sort();
 
+// The languages the docs are written in: every one but Arabic, for now.
+const DOCS_LANGUAGES: Array<string> = LANGUAGES.filter(
+  (language: string): boolean => {
+    return fs.existsSync(path.join(DOCS, language));
+  },
+);
+
 function locale(language: string): Record<string, string> {
   return JSON.parse(
     fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
@@ -159,7 +166,15 @@ describe("the docs name a held step's buttons as they are drawn", () => {
     );
   });
 
-  test.each(LANGUAGES)("in %s", (language: string) => {
+  test("every docs language but English is checked, and only Arabic has none", () => {
+    expect(
+      LANGUAGES.filter((language: string): boolean => {
+        return !DOCS_LANGUAGES.includes(language);
+      }),
+    ).toEqual(["ar"]);
+  });
+
+  test.each(DOCS_LANGUAGES)("in %s", (language: string) => {
     const values: Record<string, string> = locale(language);
     const text: string = page(language);
 

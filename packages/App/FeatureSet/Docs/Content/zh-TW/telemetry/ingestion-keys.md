@@ -122,6 +122,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 遭拒的請求會收到一個狀態和一句說明原因的話。
 
+金鑰頁面也會計數： **被拒絕的遙測** 列出過去 30 天此金鑰被拒絕的內容、原因、端點、請求數和時間。缺失或輸錯的金鑰不屬於任何專案，因此不會被統計。
+
 | 回應 | 含義 |
 | --- | --- |
 | `401` 加 `Missing ingestion token` | 請求中沒有金鑰。請在 `x-oneuptime-token` 中傳送它。 |
