@@ -2,6 +2,7 @@ import {
   CodeFileUnseen,
   CodeFileUnseenFinding,
 } from "../../../../Types/CodeRepository/CodeFileSeen";
+import { CodeFilePlaceholderWritten } from "../../../../Types/CodeRepository/CodeFileValuesHidden";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -26,7 +27,10 @@ type ReviewerNoteFunction = (data: {
  * pull request's description says it too, as Markdown: each file in a
  * code span, so its name reads as written (src/__init__.py,
  * pages/[slug].tsx), and for a file read in part, the lines AI never saw,
- * where its diff may drop code. Null when the card said nothing.
+ * where its diff may drop code - and for a file whose version writes
+ * placeholders in place of values hidden from AI (issue #6364), each
+ * placeholder and its lines, where the real values belong. Null when the
+ * card said nothing.
  */
 export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
   baseBranchName: string;
@@ -55,6 +59,18 @@ export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
           return finding.lineCount !== undefined && finding.linesNotRead
             ? mdText`${file}: AI did not read ${describeLineRanges(finding.linesNotRead)} of its ${String(finding.lineCount)} ${finding.lineCount === 1 ? "line" : "lines"} before writing the whole file.`
             : mdText`${file}: AI read only part of it before writing the whole file.`;
+        case CodeFileUnseen.ValuesHidden:
+          return finding.placeholdersWritten &&
+            finding.placeholdersWritten.length > 0
+            ? mdText`${file}: AI's version writes ${FeedMarkdown.join(
+                finding.placeholdersWritten.map(
+                  (written: CodeFilePlaceholderWritten): MarkdownText => {
+                    return mdText`${FeedMarkdown.code(written.placeholder)} on ${describeLineRanges(written.lines)}`;
+                  },
+                ),
+                "; ",
+              )}, placeholders for values hidden from AI, where the real values belong.`
+            : mdText`${file}: AI's version writes placeholders for values hidden from AI, where the real values belong.`;
         case CodeFileUnseen.NotChecked:
         default:
           return mdText`${file}: OneUptime could not check it against what AI read.`;

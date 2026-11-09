@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import TokenSigningKey from "../../TokenSigningKey";
 import logger from "../../Logger";
+import ArrayUtil from "../../../../Utils/Array";
+import { REDACTION_PLACEHOLDERS } from "./Serializer";
 import {
   AIChatLineRange,
   AIChatLinesShown,
@@ -29,6 +31,12 @@ import {
   seeCodeFile,
 } from "../../../../Types/CodeRepository/CodeFileSeen";
 import {
+  CodeFilePlaceholderWritten,
+  MAX_PLACEHOLDERS_WRITTEN,
+  findCodePlaceholdersWritten,
+  holdsCodePlaceholder,
+} from "../../../../Types/CodeRepository/CodeFileValuesHidden";
+import {
   CodeHostFileBlob,
   CodeHostFileContent,
   CodeHostFileExpected,
@@ -56,6 +64,14 @@ import { CodeHostWriter } from "../../CodeRepository/CodeHost/CodeHostWriter";
  *   their executes    hold the approved change to the files the card was
  *                     shown on (CodeChangeProposedOn), and the commit to
  *                     the files as that read them again (issue #6331).
+ *
+ * And a change is held to what it writes, too (issue #6364): a placeholder
+ * OneUptime showed the model in place of a hidden value - "[redacted-ip]" -
+ * that a file's new version holds more often than the file on the branch
+ * does was written where the value was. The prepare reads the branch's text
+ * of only such a file, says so on the card, and in Auto-run does not make
+ * the change: the model cannot write those values back, however often it
+ * reads the file again.
  *
  * A fingerprint is never the content, nor the host's blob SHA itself: a
  * conversation is kept, and a short secret file's SHA could be worked back
@@ -346,6 +362,274 @@ export const readCodeFileVersionsNow: ReadFileVersionsNowFunction =
     return { files, versions };
   };
 
+/*
+ * ---------------------------------------------------------------------------
+ * What a change writes in place of values hidden from Ask AI (issue #6364,
+ * Types/CodeRepository/CodeFileValuesHidden).
+ * ---------------------------------------------------------------------------
+ */
+
+// How many files' texts are read at once.
+const FILE_TEXT_READS_AT_ONCE: number = 4;
+
+// A file's text on a branch as a read just now found it.
+export type CodeFileTextNow =
+  | { state: "text"; text: string }
+  | { state: "absent" }
+  // It could not be read: why, in English.
+  | { state: "unreadable"; reason: string };
+
+type HoldingPlaceholdersFunction = (
+  changes: ReadonlyArray<CodeHostFileWrite>,
+) => Array<string>;
+
+/*
+ * The paths of the files a change writes with a placeholder of redaction's
+ * in them, in its order: the only files whose text on the branch is read.
+ * A change that holds none - nearly every one - reads no text at all.
+ */
+export const getCodeChangesHoldingPlaceholders: HoldingPlaceholdersFunction =
+  (changes: ReadonlyArray<CodeHostFileWrite>): Array<string> => {
+    return changes
+      .filter((change: CodeHostFileWrite): boolean => {
+        return holdsCodePlaceholder(change.content, REDACTION_PLACEHOLDERS);
+      })
+      .map((change: CodeHostFileWrite): string => {
+        return change.filePath;
+      });
+  };
+
+type ReadTextsNowFunction = (data: {
+  filePaths: Array<string>;
+  // A file's text on the branch, null where there is none; throws when it cannot be read.
+  read: (filePath: string) => Promise<string | null>;
+  deadlineInMs?: number | undefined;
+}) => Promise<Map<string, CodeFileTextNow>>;
+
+/*
+ * Each file's text on the branch now, by path: its text, nothing there,
+ * or - a read that failed or ran out of time - unreadable, with why. A few
+ * at a time, under the deadline the versions are read under. Never throws.
+ * The text is only counted in (findCodeFilesValuesHidden): never kept,
+ * never shown, never logged.
+ */
+export const readCodeFileTextsNow: ReadTextsNowFunction = async (data: {
+  filePaths: Array<string>;
+  read: (filePath: string) => Promise<string | null>;
+  deadlineInMs?: number | undefined;
+}): Promise<Map<string, CodeFileTextNow>> => {
+  const texts: Map<string, CodeFileTextNow> = new Map<
+    string,
+    CodeFileTextNow
+  >();
+
+  if (data.filePaths.length === 0) {
+    return texts;
+  }
+
+  const clock: { timer?: ReturnType<typeof setTimeout> | undefined } = {};
+  let read: Array<CodeFileTextNow> | null = null;
+
+  try {
+    read = await Promise.race([
+      ArrayUtil.mapWithConcurrency(
+        data.filePaths,
+        FILE_TEXT_READS_AT_ONCE,
+        async (filePath: string): Promise<CodeFileTextNow> => {
+          try {
+            const text: string | null = await data.read(filePath);
+
+            return text === null
+              ? { state: "absent" }
+              : { state: "text", text: text };
+          } catch (error) {
+            logger.debug(error);
+
+            return {
+              state: "unreadable",
+              reason: "The code host could not be read.",
+            };
+          }
+        },
+      ),
+      new Promise<null>((resolve: (value: null) => void): void => {
+        clock.timer = setTimeout((): void => {
+          resolve(null);
+        }, data.deadlineInMs ?? CODE_FILE_READ_DEADLINE_MS);
+      }),
+    ]);
+  } finally {
+    if (clock.timer) {
+      clearTimeout(clock.timer);
+    }
+  }
+
+  data.filePaths.forEach((filePath: string, index: number): void => {
+    texts.set(
+      filePath,
+      read ? read[index]! : { state: "unreadable", reason: DEADLINE_PASSED },
+    );
+  });
+
+  return texts;
+};
+
+type FindValuesHiddenFunction = (data: {
+  changes: ReadonlyArray<CodeHostFileWrite>;
+  // Each file's text on the branch, by path (readCodeFileTextsNow); a path left out could not be read.
+  texts: ReadonlyMap<string, CodeFileTextNow>;
+}) => Array<CodeFileUnseenFinding>;
+
+/*
+ * The files a change writes placeholders into in place of values hidden
+ * from Ask AI, in its order: each placeholder its version holds more often
+ * than the file on the branch - nothing there, none - does. A file whose
+ * text could not be read is held to none: what it writes is said, never
+ * taken for the file's own.
+ */
+export const findCodeFilesValuesHidden: FindValuesHiddenFunction = (data: {
+  changes: ReadonlyArray<CodeHostFileWrite>;
+  texts: ReadonlyMap<string, CodeFileTextNow>;
+}): Array<CodeFileUnseenFinding> => {
+  const findings: Array<CodeFileUnseenFinding> = [];
+
+  for (const change of data.changes) {
+    if (!holdsCodePlaceholder(change.content, REDACTION_PLACEHOLDERS)) {
+      continue;
+    }
+
+    const text: CodeFileTextNow | undefined = data.texts.get(change.filePath);
+    const written: Array<CodeFilePlaceholderWritten> =
+      findCodePlaceholdersWritten({
+        content: change.content,
+        branchContent: text && text.state === "text" ? text.text : "",
+        placeholders: REDACTION_PLACEHOLDERS,
+      });
+
+    if (written.length > 0) {
+      findings.push({
+        filePath: change.filePath,
+        unseen: CodeFileUnseen.ValuesHidden,
+        placeholdersWritten: written,
+        ...(!text || text.state === "unreadable"
+          ? { branchTextNotRead: true }
+          : {}),
+      });
+    }
+  }
+
+  return findings;
+};
+
+// The lines of a read whose values were hidden from the model, and the placeholders it read there.
+export interface CodeFileLinesWithValuesHidden {
+  lines: Array<AIChatLineRange>;
+  placeholders: Array<string>;
+}
+
+type LinesWithValuesHiddenFunction = (data: {
+  // The lines read_code_file numbered, each "NNN| " and the file's line, as the serializer was given them.
+  numberedLines: ReadonlyArray<string>;
+  // The first of them: its number in the file.
+  firstLine: number;
+  // How long each line's number is, with its "| ".
+  prefixLength: number;
+  // What the serializer made of them, as the model read it: whole lines only.
+  shown: string;
+}) => CodeFileLinesWithValuesHidden;
+
+/*
+ * Which lines of a read the model was shown with a value hidden in them
+ * (issue #6364), for read_code_file to say so: each run of lines the
+ * serializer did not leave as the file has them, under their numbers -
+ * a value hidden in a line, or lines hidden whole in a value that spans
+ * them (a private key block) - and whose text holds a placeholder more
+ * often than the file's does. A run left out for embedded data, or one
+ * whose placeholders are the file's own, is not one. One pass over what
+ * was shown: each line's number is where the line starts, and nothing is
+ * ever added between two lines, so what follows a changed run starts with
+ * a later line's number.
+ */
+export const findLinesWithValuesHidden: LinesWithValuesHiddenFunction =
+  (data: {
+    numberedLines: ReadonlyArray<string>;
+    firstLine: number;
+    prefixLength: number;
+    shown: string;
+  }): CodeFileLinesWithValuesHidden => {
+    const lines: Array<AIChatLineRange> = [];
+    const placeholders: Set<string> = new Set<string>();
+
+    if (data.shown === "" || data.numberedLines.length === 0) {
+      return { lines: [], placeholders: [] };
+    }
+
+    const parts: Array<string> = data.shown.split("\n");
+    const lineByPrefix: Map<string, number> = new Map<string, number>();
+
+    data.numberedLines.forEach((line: string, index: number): void => {
+      lineByPrefix.set(line.slice(0, data.prefixLength), index);
+    });
+
+    let line: number = 0;
+    let part: number = 0;
+
+    while (part < parts.length && line < data.numberedLines.length) {
+      if (parts[part] === data.numberedLines[line]) {
+        line++;
+        part++;
+        continue;
+      }
+
+      // The run the serializer changed ends where a later line's number starts a part.
+      let next: number = part + 1;
+      let end: number = data.numberedLines.length;
+
+      while (next < parts.length) {
+        const at: number | undefined = lineByPrefix.get(
+          parts[next]!.slice(0, data.prefixLength),
+        );
+
+        if (at !== undefined && at > line) {
+          end = at;
+          break;
+        }
+
+        next++;
+      }
+
+      const written: Array<CodeFilePlaceholderWritten> =
+        findCodePlaceholdersWritten({
+          content: parts.slice(part, next).join("\n"),
+          branchContent: data.numberedLines.slice(line, end).join("\n"),
+          placeholders: REDACTION_PLACEHOLDERS,
+        });
+
+      if (written.length > 0) {
+        lines.push({
+          first: data.firstLine + line,
+          last: data.firstLine + end - 1,
+        });
+
+        for (const placeholder of written) {
+          placeholders.add(placeholder.placeholder);
+        }
+      }
+
+      line = end;
+      part = next;
+    }
+
+    return {
+      lines: lines,
+      placeholders: REDACTION_PLACEHOLDERS.filter(
+        (placeholder: string): boolean => {
+          return placeholders.has(placeholder);
+        },
+      ),
+    };
+  };
+
 type ProposedOnFunction = (data: {
   branchName: string;
   files: ReadonlyArray<CodeFileNow>;
@@ -396,6 +680,35 @@ export const getCodeChangeProposedOn: ProposedOnFunction = (data: {
                     return { first: range.first, last: range.last };
                   }),
               }
+            : {}),
+          // Placeholders written in place of hidden values (issue #6364): where, for the reviewer.
+          ...(finding.unseen === CodeFileUnseen.ValuesHidden &&
+          finding.placeholdersWritten &&
+          finding.placeholdersWritten.length > 0
+            ? {
+                placeholdersWritten: finding.placeholdersWritten
+                  .slice(0, MAX_PLACEHOLDERS_WRITTEN)
+                  .map(
+                    (
+                      written: CodeFilePlaceholderWritten,
+                    ): CodeFilePlaceholderWritten => {
+                      return {
+                        placeholder: written.placeholder,
+                        written: written.written,
+                        onBranch: written.onBranch,
+                        lines: written.lines
+                          .slice(0, MAX_LINE_RANGES)
+                          .map((range: AIChatLineRange): AIChatLineRange => {
+                            return { first: range.first, last: range.last };
+                          }),
+                      };
+                    },
+                  ),
+              }
+            : {}),
+          ...(finding.unseen === CodeFileUnseen.ValuesHidden &&
+          finding.branchTextNotRead
+            ? { branchTextNotRead: true }
             : {}),
         };
       },
@@ -487,9 +800,10 @@ type LinesForPersonFunction = (data: {
 
 /*
  * The card's lines, one for each kind of file the change would write over
- * unseen, in the order a person reads what matters most first: undone
- * since the read, read on another branch, never read, read only in part,
- * not checked.
+ * unseen, in the order a person reads what matters most first: placeholders
+ * written in place of hidden values (issue #6364) - which reading the file
+ * again never mends - undone since the read, read on another branch, never
+ * read, read only in part, not checked.
  */
 export const describeCodeFilesUnseenForPerson: LinesForPersonFunction = (data: {
   branchName: string;
@@ -497,6 +811,21 @@ export const describeCodeFilesUnseenForPerson: LinesForPersonFunction = (data: {
 }): Array<AIActionSentence> => {
   const branch: string = writeNameOnCard(data.branchName);
   const lines: Array<AIActionSentence> = [];
+
+  const hidden: Array<CodeFileUnseenFinding> = ofKind(
+    data.findings,
+    CodeFileUnseen.ValuesHidden,
+  );
+
+  if (hidden.length > 0) {
+    lines.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.codeFilesValuesHidden,
+        hidden.length,
+        { files: listFilesOnCard(pathsOf(hidden)) },
+      ),
+    );
+  }
 
   const changed: Array<CodeFileUnseenFinding> = ofKind(
     data.findings,
@@ -614,6 +943,8 @@ export const CODE_UNSEEN_SUMMARIES: Record<
       "Not committed: Ask AI had read only part of a file the commit replaces whole.",
     [CodeFileUnseen.NotChecked]:
       "Not committed: OneUptime could not check a file against what Ask AI read.",
+    [CodeFileUnseen.ValuesHidden]:
+      "Not committed: Ask AI's version of a file writes placeholders in place of values hidden from it.",
   },
   [CodeChangeKind.PullRequest]: {
     [CodeFileUnseen.ChangedSinceRead]:
@@ -626,10 +957,13 @@ export const CODE_UNSEEN_SUMMARIES: Record<
       "Not opened: Ask AI had read only part of a file the pull request replaces whole.",
     [CodeFileUnseen.NotChecked]:
       "Not opened: OneUptime could not check a file against what Ask AI read.",
+    [CodeFileUnseen.ValuesHidden]:
+      "Not opened: Ask AI's version of a file writes placeholders in place of values hidden from it.",
   },
 };
 
 const ORDER_OF_IMPORTANCE: ReadonlyArray<CodeFileUnseen> = [
+  CodeFileUnseen.ValuesHidden,
   CodeFileUnseen.ChangedSinceRead,
   CodeFileUnseen.ReadOnAnotherBranch,
   CodeFileUnseen.NotRead,
@@ -682,11 +1016,74 @@ export const describeLineRanges: LineRangesFunction = (
   return `${one ? "line" : "lines"} ${englishList(written)}`;
 };
 
+type ValuesHiddenOnReadFunction = (
+  hidden: CodeFileLinesWithValuesHidden,
+) => string | null;
+
+/*
+ * What read_code_file tells the model of the values it hid in what it
+ * showed (issue #6364), before the model writes anything from it: where,
+ * as what, and that it cannot write them back. Null when it hid none.
+ */
+export const describeValuesHiddenOnRead: ValuesHiddenOnReadFunction = (
+  hidden: CodeFileLinesWithValuesHidden,
+): string | null => {
+  if (hidden.lines.length === 0) {
+    return null;
+  }
+
+  return `… [values that look like secrets or personal data are hidden from you on ${describeLineRanges(hidden.lines)}, as ${englishList(hidden.placeholders)}. You cannot write them back: a commit or pull request writes this file whole, so a version that keeps a placeholder puts it where the real value is. Leave a change to this file to a person, or change only files without hidden values.]`;
+};
+
 type LineCountFunction = (lineCount: number) => string;
 
 // "1 line", "2000 lines".
 const describeLineCount: LineCountFunction = (lineCount: number): string => {
   return `${lineCount} ${lineCount === 1 ? "line" : "lines"}`;
+};
+
+type TimesFunction = (count: number) => string;
+
+// "once", "twice", "3 times".
+const describeTimes: TimesFunction = (count: number): string => {
+  return count === 1 ? "once" : count === 2 ? "twice" : `${count} times`;
+};
+
+type PlaceholdersForModelFunction = (data: {
+  branchName: string;
+  finding: CodeFileUnseenFinding;
+}) => string;
+
+/*
+ * What a file's new version writes in place of values hidden from the
+ * model, for it (issue #6364): each placeholder, where, and how often the
+ * file on the branch has it.
+ */
+const describeValuesHiddenForModel: PlaceholdersForModelFunction = (data: {
+  branchName: string;
+  finding: CodeFileUnseenFinding;
+}): string => {
+  const written: ReadonlyArray<CodeFilePlaceholderWritten> =
+    data.finding.placeholdersWritten || [];
+  const branch: string = data.branchName;
+  const where: string = written
+    .map((placeholder: CodeFilePlaceholderWritten): string => {
+      return placeholder.onBranch === 0
+        ? `${placeholder.placeholder} on ${describeLineRanges(placeholder.lines)}`
+        : `${placeholder.placeholder} ${describeTimes(placeholder.written)}, on ${describeLineRanges(placeholder.lines)}, where the file on ${branch} has it ${describeTimes(placeholder.onBranch)}`;
+    })
+    .join("; ");
+  const onBranch: string = data.finding.branchTextNotRead
+    ? `OneUptime could not read the file on ${branch} to see whether it holds them itself`
+    : written.some((placeholder: CodeFilePlaceholderWritten): boolean => {
+          return placeholder.onBranch > 0;
+        })
+      ? `the file on ${branch} holds fewer of them`
+      : `the file on ${branch} does not hold them`;
+
+  return where
+    ? `- ${data.finding.filePath}: your version writes ${where}. These are placeholders for values hidden from you, and ${onBranch}.`
+    : `- ${data.finding.filePath}: your version writes placeholders for values hidden from you, and ${onBranch}.`;
 };
 
 type ForModelFunction = (data: {
@@ -711,14 +1108,34 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
 }): string => {
   const isCommit: boolean = data.change === CodeChangeKind.Commit;
   const branch: string = data.branchName;
+  const hidden: Array<string> = pathsOf(
+    ofKind(data.findings, CodeFileUnseen.ValuesHidden),
+  ).filter((filePath: string, index: number, all: Array<string>): boolean => {
+    return all.indexOf(filePath) === index;
+  });
+  // Only values hidden (issue #6364): nothing there is unread but them.
+  const onlyHidden: boolean = hidden.length > 0 && data.findings.every(
+    (finding: CodeFileUnseenFinding): boolean => {
+      return finding.unseen === CodeFileUnseen.ValuesHidden;
+    },
+  );
   const lines: Array<string> = [
-    isCommit
-      ? `Not done: nothing was committed to ${branch}, because writing these files whole would undo or replace what you have not read there:`
-      : `Not done: no pull request was opened, because writing these files whole on top of ${branch}, the branch it starts from, would undo or replace what you have not read there:`,
+    onlyHidden
+      ? isCommit
+        ? `Not done: nothing was committed to ${branch}, because your version of these files writes placeholders where values were hidden from you:`
+        : `Not done: no pull request was opened, because your version of these files writes placeholders where values were hidden from you:`
+      : isCommit
+        ? `Not done: nothing was committed to ${branch}, because writing these files whole would undo or replace what you have not read there:`
+        : `Not done: no pull request was opened, because writing these files whole on top of ${branch}, the branch it starts from, would undo or replace what you have not read there:`,
   ];
 
   for (const finding of data.findings) {
     switch (finding.unseen) {
+      case CodeFileUnseen.ValuesHidden:
+        lines.push(
+          describeValuesHiddenForModel({ branchName: branch, finding }),
+        );
+        break;
       case CodeFileUnseen.ChangedSinceRead:
         lines.push(
           `- ${finding.filePath} changed on ${branch} after you last read it there.`,
@@ -753,7 +1170,8 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
     (finding: CodeFileUnseenFinding): boolean => {
       return (
         finding.unseen !== CodeFileUnseen.NotChecked &&
-        finding.unseen !== CodeFileUnseen.ReadInPart
+        finding.unseen !== CodeFileUnseen.ReadInPart &&
+        finding.unseen !== CodeFileUnseen.ValuesHidden
       );
     },
   );
@@ -782,6 +1200,15 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
   ) {
     lines.push(
       `A file that could not be checked may simply be unreachable for a moment: ${isCommit ? "propose the commit" : "propose the pull request"} again; if it still cannot be checked, tell the user.`,
+    );
+  }
+
+  // Values hidden (issue #6364): reading again never shows them, so the file is a person's to change.
+  if (hidden.length > 0) {
+    const files: string = englishList(hidden);
+
+    lines.push(
+      `You cannot write a value hidden from you back: it reads as a placeholder however often you read the file again, so writing ${files} whole puts the placeholders where the real values are. Leave the change to ${files} to a person - tell the user what to change, and where - or change only files without hidden values. Never write a placeholder, or a value you guess, in place of a hidden one. If the user asked you to write that placeholder text itself, tell them they can approve it with Ask to act.`,
     );
   }
 
@@ -822,12 +1249,17 @@ type FindUnseenCodeChangeFunction = (data: {
   repositoryId: string;
   branchName: string;
   files: ReadonlyArray<CodeFileNow>;
+  // The files the change writes placeholders into in place of hidden values (findCodeFilesValuesHidden).
+  valuesHidden?: ReadonlyArray<CodeFileUnseenFinding> | undefined;
 }) => UnseenCodeChange | null;
 
 /*
  * What the change would write over that Ask AI never saw, from what the
  * conversation showed the model - never from anything the model says - or
- * null for nothing, when the card is as it always was.
+ * null for nothing, when the card is as it always was. A file whose new
+ * version writes placeholders in place of hidden values (issue #6364) is
+ * said so beside anything else of it, first: it is of what the change
+ * writes, not of what Ask AI saw.
  */
 export const findUnseenCodeChange: FindUnseenCodeChangeFunction = (data: {
   change: CodeChangeKind;
@@ -835,13 +1267,32 @@ export const findUnseenCodeChange: FindUnseenCodeChangeFunction = (data: {
   repositoryId: string;
   branchName: string;
   files: ReadonlyArray<CodeFileNow>;
+  valuesHidden?: ReadonlyArray<CodeFileUnseenFinding> | undefined;
 }): UnseenCodeChange | null => {
-  const findings: Array<CodeFileUnseenFinding> = findCodeFilesUnseen({
+  const seen: Array<CodeFileUnseenFinding> = findCodeFilesUnseen({
     records: data.recordsSeen,
     repositoryId: data.repositoryId,
     branchName: data.branchName,
     files: data.files,
   });
+  const hidden: ReadonlyArray<CodeFileUnseenFinding> = data.valuesHidden || [];
+  const findings: Array<CodeFileUnseenFinding> = [];
+
+  // In the change's order, each file's hidden values before what Ask AI never saw of it.
+  for (const file of data.files) {
+    for (const found of [...hidden, ...seen]) {
+      if (found.filePath === file.filePath) {
+        findings.push(found);
+      }
+    }
+  }
+
+  // Anything of a file the change does not list stays, after.
+  for (const found of [...hidden, ...seen]) {
+    if (!findings.includes(found)) {
+      findings.push(found);
+    }
+  }
 
   if (findings.length === 0) {
     return null;

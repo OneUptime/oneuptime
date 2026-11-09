@@ -46863,5 +46863,8 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別のクラウドに送信されます。",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別のクラスターに送信されます。",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別のストレージアレイに送信されます。",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別の vCenter に送信されます。"
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別の vCenter に送信されます。",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: {{files}}.": "秘密情報や個人データのように見える値は AI から隠されており、このファイルの AI のバージョンはその代わりにプレースホルダーを書き込みます: {{files}}。",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}.": "秘密情報や個人データのように見える値は AI から隠されており、{{count}} 個のファイルの AI のバージョンはその代わりにプレースホルダーを書き込みます: {{files}}。",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}._one": "秘密情報や個人データのように見える値は AI から隠されており、このファイルの AI のバージョンはその代わりにプレースホルダーを書き込みます: {{files}}。"
 }
