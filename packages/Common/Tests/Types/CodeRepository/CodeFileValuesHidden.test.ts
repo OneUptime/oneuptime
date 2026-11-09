@@ -344,7 +344,7 @@ describe("what a change was proposed on keeps of a finding of hidden values", ()
       branchName: "fix/login",
       files: [{ filePath: "config/servers.ts", fingerprint: "f1" }],
       unseen: [finding],
-    } as CodeChangeProposedOn);
+    });
   });
 
   test("the branch's file not read is kept too, and only as true", () => {
