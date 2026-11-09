@@ -51,28 +51,42 @@ export interface SloFeedMarkdown {
 }
 
 /*
- * An item's two parts, as Markdown: its line, and the details its More
- * Information lists, a paragraph each. The feed stores them as text
- * (toSloFeedMarkdown); a Slack, Microsoft Teams or Mattermost message posts
- * the same parts as one message (getSloFeedChatMarkdown), so the feed and a
- * channel say a change in the same words.
+ * An item's parts, as Markdown: its line, the details its More Information
+ * lists, a paragraph each, and last the team's agreement for the tier the
+ * SLO entered ("what we do"), as the Markdown the team wrote. The feed
+ * stores them as text (toSloFeedMarkdown); a Slack, Microsoft Teams or
+ * Mattermost message posts the same parts as one message
+ * (getSloFeedChatMarkdown), so the feed and a channel say a change in the
+ * same words.
  */
 export interface SloFeedMarkdownParts {
   feedInfo: MarkdownText;
   details: Array<MarkdownText>;
+  // The agreement, unset when the item has none.
+  whatWeDo?: string | undefined;
 }
+
+// The line over the agreement.
+const WHAT_WE_DO_HEADING: MarkdownText = mdText`**What we do**:`;
 
 export type ToSloFeedMarkdownFunction = (
   parts: SloFeedMarkdownParts,
 ) => SloFeedMarkdown;
 
+// An item as the feed stores it: the agreement placed as it was written.
 export const toSloFeedMarkdown: ToSloFeedMarkdownFunction = (
   parts: SloFeedMarkdownParts,
 ): SloFeedMarkdown => {
   return {
     feedInfoInMarkdown: parts.feedInfo.toString(),
     moreInformationInMarkdown: FeedMarkdown.join(
-      parts.details,
+      parts.whatWeDo
+        ? [
+            ...parts.details,
+            WHAT_WE_DO_HEADING,
+            FeedMarkdown.asMarkdown(parts.whatWeDo),
+          ]
+        : parts.details,
       "\n\n",
     ).toString(),
   };
@@ -83,15 +97,32 @@ export type GetSloFeedChatMarkdownFunction = (
 ) => MarkdownText;
 
 /*
- * An item as one chat message: its line, then each of its details, as the
- * feed draws the item with its More Information open. What is in it is the
- * item's own Markdown - every value placed as text, a team's agreement as the
- * Markdown it was written in - so nothing is escaped twice.
+ * An item as one chat message: its line, then each of its details, then the
+ * agreement, as the feed draws the item with its More Information open.
+ * Every value in it is placed as text already, so nothing is escaped twice.
+ * The agreement stays the team's Markdown - its emphasis, lists and links
+ * read as in the feed - with every chat mention in it broken
+ * (FeedMarkdown.withoutChatSequences): Slack reads "<!channel>" or "<@U123>"
+ * in Markdown it is handed, so an agreement that quotes one notifies nobody
+ * when the tier changes. An image a data: URL carries is its alt text
+ * (FeedMarkdown.asChatMarkdown): a chat shows none.
  */
 export const getSloFeedChatMarkdown: GetSloFeedChatMarkdownFunction = (
   parts: SloFeedMarkdownParts,
 ): MarkdownText => {
-  return FeedMarkdown.join([parts.feedInfo, ...parts.details], "\n\n");
+  return FeedMarkdown.join(
+    parts.whatWeDo
+      ? [
+          parts.feedInfo,
+          ...parts.details,
+          WHAT_WE_DO_HEADING,
+          FeedMarkdown.asChatMarkdown(
+            FeedMarkdown.withoutChatSequences(parts.whatWeDo),
+          ),
+        ]
+      : [parts.feedInfo, ...parts.details],
+    "\n\n",
+  );
 };
 
 /*
@@ -1665,13 +1696,13 @@ export type GetSloPolicyTierChangedFeedPartsFunction = (
 
 /*
  * ErrorBudgetPolicyTierChanged: the SLO entered a tier, moved between tiers
- * or left the last one. The new tier's "what we do" goes in as the Markdown
- * the team wrote (FeedMarkdown.asMarkdown), so the agreement is right there
- * in the feed when the tier changes. When the change froze deployments, or
- * allowed them again, the item's first line says so, and its details say
- * how the gate moved - or that it stayed frozen, between two tiers that
- * both freeze. As its parts here, for the feed and a chat message of the
- * change alike.
+ * or left the last one. The new tier's "what we do" goes in last, as the
+ * Markdown the team wrote (SloFeedMarkdownParts.whatWeDo), so the agreement
+ * is right there in the feed - and in a channel - when the tier changes.
+ * When the change froze deployments, or allowed them again, the item's
+ * first line says so, and its details say how the gate moved - or that it
+ * stayed frozen, between two tiers that both freeze. As its parts here, for
+ * the feed and a chat message of the change alike.
  */
 export const getSloPolicyTierChangedFeedParts: GetSloPolicyTierChangedFeedPartsFunction =
   (data: SloFeedPolicyTierChange): SloFeedMarkdownParts => {
@@ -1722,6 +1753,8 @@ export const getSloPolicyTierChangedFeedParts: GetSloPolicyTierChangedFeedPartsF
         : mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (${budgetDuration})`,
     );
 
+    let whatWeDo: string | undefined;
+
     if (data.newTier) {
       const threshold: string = formatSloPolicyTierThreshold(
         data.newTier.thresholdPercentage,
@@ -1734,14 +1767,14 @@ export const getSloPolicyTierChangedFeedParts: GetSloPolicyTierChangedFeedPartsF
       }
 
       if (data.newTier.whatWeDo?.trim()) {
-        details.push(mdText`**What we do**:`);
-        details.push(FeedMarkdown.asMarkdown(data.newTier.whatWeDo));
+        whatWeDo = data.newTier.whatWeDo;
       }
     }
 
     return {
       feedInfo: feedInfo,
       details: details,
+      ...(whatWeDo ? { whatWeDo: whatWeDo } : {}),
     };
   };
 
