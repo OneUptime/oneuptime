@@ -35,6 +35,13 @@ import {
   normalizeLlmProvider,
 } from "../../../Types/Telemetry/LlmProviders";
 import LlmMetricUsageUtil from "../../../Utils/Telemetry/LlmMetricUsage";
+import LlmLogEventsUtil from "../../../Utils/Telemetry/LlmLogEvents";
+import { LLM_MESSAGE_MAX_JSON_LENGTH } from "../../../Utils/Telemetry/LlmMessageParser";
+import {
+  LlmContentEventNames,
+  LlmInferenceDetailsContentAttributeKeys,
+  LlmLogEventNameAttributeKey,
+} from "../../../Types/Telemetry/LlmConventions";
 import {
   DbJSONResponse,
   Results,
@@ -48,6 +55,7 @@ import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import logger from "../Logger";
 import CaptureSpan from "./CaptureSpan";
+import LlmLogEventReader from "./LlmLogEventReader";
 import TelemetryReadScopeUtil, {
   TelemetryServiceFilter,
 } from "./TelemetryReadScope";
@@ -75,8 +83,12 @@ import TelemetryReadScopeUtil, {
  *     are not AI / LLM spans. This one reads the attribute map, so it reads
  *     one day, and gives up after 15 seconds;
  *   - content in logs, only when the past week's answers recorded no
- *     question: whether GenAI events arrived on the logs signal instead
- *     (attributeKeys has a bloom filter index, so this stops at the first);
+ *     question: whether GenAI events that carry what was said arrived on
+ *     the logs signal instead, which conversations read - the newest
+ *     LLM_SETUP_CHECK_CONTENT_LOG_SAMPLE of them (the table is sorted by
+ *     project and time), each read as the conversations read it, since an
+ *     instrumentation with content capture off still sends the events,
+ *     with nothing in them;
  *   - coding tools: which GenAI metrics arrived in the past week, by name
  *     (names and times only);
  *   - provider accounts: each connection's newest day with usage, from the
@@ -111,13 +123,11 @@ const ATTRIBUTE_READ_SETTINGS: string = getQuerySettings({
   boundScanMemory: true,
 });
 
-// Attribute keys that mark a log record as a GenAI event.
-export const GENAI_LOG_EVENT_ATTRIBUTE_KEYS: Array<string> = [
-  "gen_ai.system",
-  "gen_ai.provider.name",
-  "gen_ai.input.messages",
-  "gen_ai.output.messages",
-];
+/*
+ * How many of the newest GenAI content events the setup check reads to see
+ * whether they carry what was said.
+ */
+export const LLM_SETUP_CHECK_CONTENT_LOG_SAMPLE: number = 50;
 
 export interface LlmSetupCheckQuery extends TelemetryServiceFilter {
   projectId: ObjectID;
@@ -367,14 +377,20 @@ export default class LlmSetupCheckReader {
     return statement;
   }
 
-  // Whether a GenAI event arrived on the logs signal in the past week.
+  /*
+   * The past week's newest GenAI content events on the logs signal - the
+   * message, choice and details events conversations read - with what they
+   * carry (a body longer than the parser reads comes back empty).
+   */
   public static buildContentInLogsStatement(
     query: LlmSetupCheckQuery,
     logFilter: TelemetryServiceFilter,
   ): Statement {
     const statement: Statement = new Statement();
 
-    statement.append(`SELECT 1 AS found FROM ${LOG_TABLE}`);
+    statement.append(
+      `SELECT attributes, if(length(body) > ${LLM_MESSAGE_MAX_JSON_LENGTH}, '', body) AS body FROM ${LOG_TABLE}`,
+    );
     statement.append(
       SQL` WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -385,25 +401,49 @@ export default class LlmSetupCheckReader {
       }} AND time <= ${{
         type: TableColumnType.DateTime64,
         value: query.now,
-      }} AND retentionDate >= now() AND (`,
+      }} AND retentionDate >= now() AND (attributes[${{
+        type: TableColumnType.Text,
+        value: LlmLogEventNameAttributeKey,
+      }}] IN (${{
+        type: TableColumnType.Text,
+        value: new Includes(LlmContentEventNames),
+      }}) OR (attributes[${{
+        type: TableColumnType.Text,
+        value: LlmLogEventNameAttributeKey,
+      }}] = '' AND hasAny(attributeKeys, ${{
+        type: TableColumnType.ArrayText,
+        value: LlmInferenceDetailsContentAttributeKeys,
+      }})))`,
     );
 
-    GENAI_LOG_EVENT_ATTRIBUTE_KEYS.forEach((key: string, index: number) => {
-      if (index > 0) {
-        statement.append(" OR ");
-      }
-
-      statement.append(
-        SQL`has(attributeKeys, ${{ type: TableColumnType.Text, value: key }})`,
-      );
-    });
-
-    statement.append(")");
     TelemetryReadScopeUtil.appendServiceFilter(statement, logFilter);
-    statement.append(" LIMIT 1");
+    statement.append(" ORDER BY time DESC");
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: LLM_SETUP_CHECK_CONTENT_LOG_SAMPLE,
+      }}`,
+    );
     statement.append(READ_SETTINGS);
 
     return statement;
+  }
+
+  /*
+   * Whether any of these GenAI log records carries what was said, read as
+   * the conversations read it: a record of an instrumentation with content
+   * capture off says nothing. Pure.
+   */
+  public static hasContentInLogRows(rows: Array<JSONObject>): boolean {
+    return rows.some((row: JSONObject): boolean => {
+      try {
+        return LlmLogEventsUtil.hasContent(
+          LlmLogEventsUtil.readContent([LlmLogEventReader.toRecord(row)]),
+        );
+      } catch {
+        return false;
+      }
+    });
   }
 
   /*
@@ -920,7 +960,7 @@ export default class LlmSetupCheckReader {
                     ),
                   );
 
-                return rows.length > 0;
+                return LlmSetupCheckReader.hasContentInLogRows(rows);
               },
             )
           : Promise.resolve(null),

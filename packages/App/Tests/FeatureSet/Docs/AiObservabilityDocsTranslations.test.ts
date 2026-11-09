@@ -125,6 +125,8 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
 
 // Bold words that name a product opened from the Products menu.
 const MENU_ITEMS: Record<string, Array<string>> = {
+  // Where prompts and answers sent as log events can be read too.
+  [LLM]: ["Logs"],
   [CLAUDE_CODE]: ["Metrics"],
   [CURSOR]: ["Logs", "Metrics"],
   [CODEX]: ["Logs"],

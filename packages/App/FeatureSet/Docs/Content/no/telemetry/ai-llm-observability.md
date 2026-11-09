@@ -57,7 +57,8 @@ Leverandørkontoer og kodeassistenter henter forbruk og kostnad, aldri et kall: 
 | --- | --- |
 | Ingen app har sendt et AI-kall | [Send AI-kallene dine](#send-ai-kallene-dine): tilkoblede leverandørkontoer henter forbruk og kostnad per dag, aldri et kall |
 | En app kaller API-et til en AI-leverandør, og ingen GenAI-instrumentering registrerer det | Legg til en for appens språk: sjekken fant appens HTTP-klientspenn til `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` eller API-et til en annen AI-leverandør |
-| Kall kommer uten prompter eller svar | [Registrer hva som ble sagt](#registrer-hva-som-ble-sagt) på spennene: prompter og svar sendt som logghendelser vises ikke |
+| Kall kommer uten prompter eller svar | [Registrer hva som ble sagt](#registrer-hva-som-ble-sagt), på spennene eller som logghendelser |
+| Prompter og svar kommer som logghendelser | Ingenting: samtaler leser dem, og den som kan lese appens logger, kan også lese dem på siden **Logger** |
 | Kallene ligger rett utenfor tidsrommet | Listen tilbyr tidsrommet som inneholder det nyeste |
 | En leverandørkonto leser ingen bruk | Linjen dens nevner den siste dagen med bruk, eller den første leste dagen; en Azure-tilkobling som ikke finner noen ressurs, trenger Monitoring Reader der ressursene ligger |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Nyere OpenTelemetry-instrumenteringer tar `span_only`, `event_only` eller `span_and_event` i stedet for `true`. Uten registrert innhold viser en samtale fortsatt tidene, kostnaden og problemene sine. Prompter kan inneholde sensitive data: [Personvern og maskering](#personvern-og-maskering) viser hvordan du maskerer dem før de lagres.
 
-Samtaler leser det som er registrert på kallets spenn. OpenTelemetry-instrumenteringen for Python registrerer det der med `span_only`; instrumenteringene for JavaScript og Java, og den for Python med `true`, sender det som logghendelser, som samtaler ikke leser, og **Oppsettsjekk** sier fra. Azures AI Inference SDK registrerer det på spennet med `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI med `EnableSensitiveData`; OpenAI-biblioteket for .NET registrerer ingenting.
+Samtaler leser det som er registrert på kallets spenn, og logghendelsene appen sender med kallets trace- og span-id. OpenTelemetry-instrumenteringen for Python registrerer det på spennet med `span_only`; instrumenteringene for JavaScript og Java, og den for Python med `true` eller `event_only`, sender det som logghendelser, som når OneUptime sammen med appens logger. Azures AI Inference SDK registrerer det på spennet med `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI med `EnableSensitiveData`; OpenAI-biblioteket for .NET registrerer ingenting.
 
 ### Samle kall i samtaler
 
@@ -315,6 +316,8 @@ GenAI-målinger som `gen_ai.client.token.usage` og `gen_ai.client.operation.dura
 
 AI-kall lagres som trace-spans, så traces' **Scrub-regler** og **Drop-filtre** gjelder for dem: masker et attributt, eller dropp et span, før det lagres. Du finner begge under **Spor → Innstillinger**. Den ansattes e-postkolonne maskeres sammen med attributtet den ble lest fra, så en regel som maskerer e-poster, dekker den også.
 
+Prompter og svar sendt som logghendelser lagres som logger, så det er loggenes **Scrub-regler** og **Drop-filtre** som gjelder for dem, under **Logger → Innstillinger**: en regel som maskerer e-poster i traces, maskerer dem ikke i logghendelser. En samtale viser dem bare til den som også kan lese appens logger, og den kan også finne dem på siden **Logger**.
+
 Samtaler leses med samme tillatelse som traces: den som kan lese prosjektets traces, kan lese samtalene, og ingen andre. Samtalene fra et av virksomhetens AI-verktøy er unntaket: bare prosjektets eiere og administratorer kan lese dem, med mindre tilkoblingen sier noe annet ([Virksomhetens AI-verktøy](/docs/telemetry/ai-company-tools#personvern)).
 
 ## Attributter OneUptime leser
@@ -357,6 +360,8 @@ Samtalevisningen leser meldingene til et kall fra, i denne rekkefølgen:
 - de indekserte attributtene: OpenLLMetrys `gen_ai.prompt.N.content` og `gen_ai.completion.N.content`, OpenInferences `llm.input_messages.N.message.content` og `llm.output_messages.N.message.content`;
 - meldingsmatrisene i `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` og `output.value`.
 
+Når et kalls spenn ikke har noen prompt eller noe svar, leses det fra loggpostene som bærer kallets trace- og span-id: de samme hendelsene, sendt via loggsignalet, navngitt i postens attributt `event.name` eller i feltet for hendelsesnavnet. En post med tracens id, men uten span-id hører til tracens eneste modellkall, eller til kallet den ble sendt under, og utelates når det ikke er ett kall. Det spennet registrerer, vinner, så et kall som er registrert på begge måter, viser hver melding én gang.
+
 ## Feilsøking
 
 :::details Leverandørkontoer er koblet til, men Samtaler og Kall er tomme
@@ -364,7 +369,7 @@ En leverandørkonto henter det den brukte og kostet, per dag, aldri et kall elle
 :::
 
 :::details Kall kommer inn, men ingen samtaler viser tekst
-Instrumenteringen din registrerer ikke innhold. Slå det på slik [Registrer hva som ble sagt](#registrer-hva-som-ble-sagt) viser; kall som ble gjort før det, forblir uten tekst.
+Instrumenteringen din registrerer ikke innhold, eller den sender det som logghendelser og appens logger når ikke fram til OneUptime. Slå det på slik [Registrer hva som ble sagt](#registrer-hva-som-ble-sagt) viser, og send loggene sammen med traces; kall som ble gjort før det, forblir uten tekst.
 :::
 
 :::details Hvert kall i en chat vises som en egen samtale

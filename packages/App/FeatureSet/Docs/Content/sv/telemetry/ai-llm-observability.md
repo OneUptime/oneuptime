@@ -57,7 +57,8 @@ Leverantörskonton och kodassistenter ger användning och kostnad, aldrig ett an
 | --- | --- |
 | Ingen app har skickat något AI-anrop | [Skicka dina AI-anrop](#skicka-dina-ai-anrop): anslutna leverantörskonton ger användning och kostnad per dag, aldrig ett anrop |
 | En app anropar en AI-leverantörs API, och ingen GenAI-instrumentering registrerar det | Lägg till en för appens språk: kontrollen hittade appens HTTP-klientspans till `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` eller en annan AI-leverantörs API |
-| Anrop kommer in utan promptar eller svar | [Registrera vad som sades](#registrera-vad-som-sades) på spannen: promptar och svar som skickas som logghändelser visas inte |
+| Anrop kommer in utan promptar eller svar | [Registrera vad som sades](#registrera-vad-som-sades), på spannen eller som logghändelser |
+| Promptar och svar kommer in som logghändelser | Inget: konversationer läser dem, och den som kan läsa appens loggar kan också läsa dem på sidan **Loggar** |
 | Anropen ligger strax utanför perioden | Listan erbjuder perioden som innehåller det senaste |
 | Ett leverantörskonto läser ingen användning | Dess rad anger den senaste dagen med användning, eller den första lästa dagen; en Azure-anslutning som inte hittar någon resurs behöver Monitoring Reader där resurserna finns |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Nyare OpenTelemetry-instrumenteringar tar `span_only`, `event_only` eller `span_and_event` i stället för `true`. Utan registrerat innehåll visar en konversation ändå sina tider, sin kostnad och sina problem. Prompter kan innehålla känsliga data: [Integritet och maskering](#integritet-och-maskering) visar hur du maskerar dem innan de lagras.
 
-Konversationer läser det som registreras på anropets span. OpenTelemetry-instrumenteringen för Python registrerar det där med `span_only`; instrumenteringarna för JavaScript och Java, och den för Python med `true`, skickar det som logghändelser, som konversationer inte läser, och **Konfigurationskontroll** säger det. Azures AI Inference SDK registrerar det på spannet med `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI med `EnableSensitiveData`; OpenAI-biblioteket för .NET registrerar ingenting.
+Konversationer läser det som registreras på anropets span, och de logghändelser som appen skickar med anropets trace- och span-id. OpenTelemetry-instrumenteringen för Python registrerar det på spannet med `span_only`; instrumenteringarna för JavaScript och Java, och den för Python med `true` eller `event_only`, skickar det som logghändelser, som når OneUptime med appens loggar. Azures AI Inference SDK registrerar det på spannet med `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI med `EnableSensitiveData`; OpenAI-biblioteket för .NET registrerar ingenting.
 
 ### Gruppera anrop i konversationer
 
@@ -315,6 +316,8 @@ GenAI-mätvärden som `gen_ai.client.token.usage` och `gen_ai.client.operation.d
 
 AI-anrop lagras som trace-spans, så tracens **Scrub-regler** och **Drop-filter** gäller för dem: maskera ett attribut, eller släpp ett span, innan det lagras. Du hittar båda under **Spår → Inställningar**. Den anställdes e-postkolumn maskeras tillsammans med attributet som den lästes från, så en regel som maskerar e-postadresser täcker den också.
 
+Promptar och svar som skickas som logghändelser lagras som loggar, så det är loggarnas **Scrub-regler** och **Drop-filter** som gäller för dem, under **Loggar → Inställningar**: en regel som maskerar e-postadresser i traces maskerar dem inte i logghändelser. En konversation visar dem bara för den som också kan läsa appens loggar, och den kan också hitta dem på sidan **Loggar**.
+
 Konversationer läses med samma behörighet som traces: den som kan läsa projektets traces kan läsa dess konversationer, och ingen annan. Konversationerna från ett av företagets AI-verktyg är undantaget: bara projektets ägare och administratörer kan läsa dem, om inte anslutningen säger något annat ([Företagets AI-verktyg](/docs/telemetry/ai-company-tools#integritet)).
 
 ## Attribut som OneUptime läser
@@ -357,6 +360,8 @@ Konversationsvyn läser ett anrops meddelanden från, i denna ordning:
 - de indexerade attributen: OpenLLMetrys `gen_ai.prompt.N.content` och `gen_ai.completion.N.content`, OpenInferences `llm.input_messages.N.message.content` och `llm.output_messages.N.message.content`;
 - meddelandearrayerna i `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` och `output.value`.
 
+När ett anrops span inte har någon prompt eller inget svar läses det från de loggposter som bär anropets trace- och span-id: samma händelser, skickade via loggsignalen, namngivna i postens attribut `event.name` eller i dess fält för händelsenamnet. En post med tracens id men utan span-id hör till tracens enda modellanrop, eller till anropet den skickades under, och lämnas utanför när det inte är ett anrop. Det spannet registrerar vinner, så ett anrop som registrerats på båda sätten visar varje meddelande en gång.
+
 ## Felsökning
 
 :::details Leverantörskonton är anslutna, men Konversationer och Anrop är tomma
@@ -364,7 +369,7 @@ Ett leverantörskonto ger det som det använde och kostade, per dag, aldrig ett 
 :::
 
 :::details Anrop kommer in, men inga konversationer visar text
-Din instrumentering registrerar inte innehåll. Slå på det som [Registrera vad som sades](#registrera-vad-som-sades) visar; anrop som gjordes innan dess förblir utan text.
+Din instrumentering registrerar inte innehåll, eller så skickar den det som logghändelser och appens loggar når inte OneUptime. Slå på det som [Registrera vad som sades](#registrera-vad-som-sades) visar, och skicka loggarna med traces; anrop som gjordes innan dess förblir utan text.
 :::
 
 :::details Varje anrop i en chatt visas som en egen konversation

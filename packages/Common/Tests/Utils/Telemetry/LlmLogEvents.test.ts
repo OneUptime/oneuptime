@@ -386,24 +386,23 @@ describe("what the OpenAI instrumentations send as log events", () => {
 
       for (const reading of readings) {
         expect(reading.records.length).toBeGreaterThan(0);
-
-        for (const message of [
-          ...reading.merged.input,
-          ...reading.merged.output,
-        ]) {
-          // Only a tool call's name survives: no text, no arguments.
-          expect(partsOf(message, LlmMessagePartType.Text)).toEqual([]);
-
-          for (const part of message.parts) {
-            expect(part.type).toBe(LlmMessagePartType.ToolCall);
-            expect(part.toolName).toBe("get_weather");
-            expect(part.arguments || "").toBe("");
-          }
-        }
+        /*
+         * Every call reads as not recorded - never as an empty answer, nor
+         * as a bare "get_weather()" with no arguments.
+         */
+        expect(reading.logContent.input).toEqual([]);
+        expect(reading.logContent.output).toEqual([]);
+        expect(reading.merged.input).toEqual([]);
+        expect(reading.merged.output).toEqual([]);
+        expect(LlmLogEventsUtil.lacksContent(reading.merged)).toBe(true);
       }
 
-      // The plain chat reads as not recorded - never as an empty answer.
-      expect(LlmLogEventsUtil.hasContent(readings[0]!.merged)).toBe(false);
+      // The tool round trip's events name the tool, and only the tool.
+      const asked: string = JSON.stringify(
+        LlmLogEventsUtil.toEvents(readings[1]!.records),
+      );
+      expect(asked).toContain("get_weather");
+      expect(asked).not.toContain("Paris");
     }
 
     // The Responses API's details parts name only their type.
@@ -412,6 +411,59 @@ describe("what the OpenAI instrumentations send as log events", () => {
     )[5]!;
     expect(responses.logContent.input).toEqual([]);
     expect(responses.logContent.output).toEqual([]);
+  });
+
+  test("a part says something when it has text, arguments, a result or an address", () => {
+    const part: (fields: Partial<LlmMessagePart>) => LlmMessagePart = (
+      fields: Partial<LlmMessagePart>,
+    ): LlmMessagePart => {
+      return { type: LlmMessagePartType.Text, text: "", ...fields };
+    };
+
+    expect(LlmLogEventsUtil.partSaysSomething(part({ text: "hi" }))).toBe(
+      true,
+    );
+    expect(LlmLogEventsUtil.partSaysSomething(part({ text: "  " }))).toBe(
+      false,
+    );
+    expect(
+      LlmLogEventsUtil.partSaysSomething(
+        part({ type: LlmMessagePartType.ToolCall, toolName: "get_weather" }),
+      ),
+    ).toBe(false);
+    expect(
+      LlmLogEventsUtil.partSaysSomething(
+        part({
+          type: LlmMessagePartType.ToolCall,
+          toolName: "get_time",
+          arguments: "{}",
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      LlmLogEventsUtil.partSaysSomething(
+        part({ type: LlmMessagePartType.ToolResult, toolCallId: "c1" }),
+      ),
+    ).toBe(false);
+    expect(
+      LlmLogEventsUtil.partSaysSomething(
+        part({ type: LlmMessagePartType.ToolResult, text: "18" }),
+      ),
+    ).toBe(true);
+    expect(
+      LlmLogEventsUtil.partSaysSomething(
+        part({
+          type: LlmMessagePartType.Media,
+          modality: "image",
+          uri: "https://example.com/cat.png",
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      LlmLogEventsUtil.partSaysSomething(
+        part({ type: LlmMessagePartType.Media, modality: "image" }),
+      ),
+    ).toBe(false);
   });
 
   test("before ingest read the event name field, Python's per-message events had no name to read", () => {

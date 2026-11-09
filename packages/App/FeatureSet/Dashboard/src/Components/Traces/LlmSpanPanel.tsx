@@ -1,4 +1,10 @@
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { JSONObject } from "Common/Types/JSON";
 import { SpanEvent } from "Common/Models/AnalyticsModels/Span";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -10,12 +16,36 @@ import LlmSpanDisplayUtil, {
   LlmMessage,
   LlmSpanDisplay,
 } from "../../Utils/LlmSpanDisplay";
+import { LlmCallContent } from "Common/Utils/Telemetry/LlmMessageParser";
+import {
+  LLM_LOG_EVENTS_FAILED,
+  LLM_LOG_EVENTS_LOADING,
+  LLM_LOG_EVENTS_NOT_ALLOWED,
+  LLM_LOG_EVENTS_SOURCE,
+} from "../LlmConversations/LlmConversationCopy";
+import {
+  LlmSpanLogEventsState,
+  LlmSpanMessages,
+  fetchSpanLogEventContent,
+  isNotAllowedError,
+  mergeSpanMessages,
+  nanosToMs,
+} from "./LlmSpanLogEvents";
 
 export interface ComponentProps {
   attributes: JSONObject | undefined;
   events?: Array<SpanEvent> | undefined;
   // Optional latency label, rendered alongside token/cost metrics.
   durationLabel?: string | undefined;
+  /*
+   * The span, for the prompt and answer it sent as GenAI log events when
+   * its own attributes and events hold none (LlmSpanLogEvents). Without a
+   * trace id, span id and start time no log is read.
+   */
+  traceId?: string | undefined;
+  spanId?: string | undefined;
+  startTimeUnixNano?: number | string | undefined;
+  endTimeUnixNano?: number | string | undefined;
 }
 
 function getRoleColor(role: string): { bg: string; text: string } {
@@ -141,9 +171,73 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
     });
   }, [props.attributes, props.events]);
 
+  const traceId: string = props.traceId || "";
+  const spanId: string = props.spanId || "";
+  const startMs: number | null = nanosToMs(props.startTimeUnixNano);
+  const endMs: number | null = nanosToMs(props.endTimeUnixNano);
+
+  /*
+   * The span holds no prompt, or no answer: the OpenTelemetry
+   * instrumentations for JavaScript and Java (and Python's with `true` or
+   * `event_only`) send them as GenAI log events instead.
+   */
+  const readsLogEvents: boolean =
+    display.isLlmSpan &&
+    Boolean(traceId && spanId) &&
+    startMs !== null &&
+    (display.promptMessages.length === 0 ||
+      display.completionMessages.length === 0);
+
+  const [logEvents, setLogEvents] = useState<LlmSpanLogEventsState>({
+    kind: "idle",
+  });
+  const [retryToken, setRetryToken] = useState<number>(0);
+
+  useEffect(() => {
+    if (!readsLogEvents || startMs === null) {
+      setLogEvents({ kind: "idle" });
+      return;
+    }
+
+    let cancelled: boolean = false;
+    setLogEvents({ kind: "loading" });
+
+    fetchSpanLogEventContent({
+      traceId: traceId,
+      spanId: spanId,
+      startMs: startMs,
+      endMs: endMs ?? startMs,
+    })
+      .then((content: LlmCallContent) => {
+        if (!cancelled) {
+          setLogEvents({ kind: "loaded", content: content });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setLogEvents(
+            isNotAllowedError(error)
+              ? { kind: "notAllowed" }
+              : { kind: "failed" },
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [readsLogEvents, traceId, spanId, startMs, endMs, retryToken]);
+
   if (!display.isLlmSpan) {
     return null;
   }
+
+  // The span's own prompt and answer win; the log events fill in the rest.
+  const messages: LlmSpanMessages = mergeSpanMessages({
+    spanPrompt: display.promptMessages,
+    spanCompletion: display.completionMessages,
+    logContent: logEvents.kind === "loaded" ? logEvents.content : null,
+  });
 
   const chips: Array<{ label: string; value: string }> = [];
   if (display.system) {
@@ -297,8 +391,70 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        <Messages title="Prompt" messages={display.promptMessages} />
-        <Messages title="Completion" messages={display.completionMessages} />
+        {logEvents.kind === "loading" ? (
+          <div
+            className="text-xs text-gray-500"
+            data-testid="llm-span-log-events-loading"
+          >
+            {translator.translateText(LLM_LOG_EVENTS_LOADING)}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {logEvents.kind === "notAllowed" || logEvents.kind === "failed" ? (
+          <div
+            className="flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800"
+            data-testid="llm-span-log-events-note"
+            data-state={logEvents.kind}
+          >
+            <Icon
+              icon={
+                logEvents.kind === "notAllowed" ? IconProp.Lock : IconProp.Info
+              }
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
+            />
+            <div>
+              {logEvents.kind === "notAllowed"
+                ? translator.translateText(LLM_LOG_EVENTS_NOT_ALLOWED)
+                : translator.translateText(LLM_LOG_EVENTS_FAILED)}
+              {logEvents.kind === "failed" ? (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    className="font-medium text-indigo-600 hover:text-indigo-700"
+                    data-testid="llm-span-log-events-retry"
+                    onClick={() => {
+                      setRetryToken(retryToken + 1);
+                    }}
+                  >
+                    {translator.translateText("Try again")}
+                  </button>
+                </>
+              ) : (
+                <></>
+              )}
+            </div>
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {messages.fromLogEvents ? (
+          <div
+            className="flex items-center gap-1.5 text-xs text-gray-500"
+            data-testid="llm-span-log-events-source"
+          >
+            <Icon icon={IconProp.Logs} className="h-3.5 w-3.5 text-gray-400" />
+            <span>{translator.translateText(LLM_LOG_EVENTS_SOURCE)}</span>
+          </div>
+        ) : (
+          <></>
+        )}
+
+        <Messages title="Prompt" messages={messages.promptMessages} />
+        <Messages title="Completion" messages={messages.completionMessages} />
       </div>
     </section>
   );

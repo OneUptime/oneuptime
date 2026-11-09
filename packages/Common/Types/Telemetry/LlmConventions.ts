@@ -1,3 +1,5 @@
+import { LogEventNameAttributeKey } from "../Log/LogEventName";
+
 /*
  * Single source of truth for the OpenTelemetry GenAI (gen_ai.*) semantic
  * convention attribute keys OneUptime recognizes when it detects and
@@ -654,7 +656,7 @@ export const LlmCompletionEventNames: Array<string> = ["gen_ai.choice"];
  * `event.name` attribute or in its own event name field (OTLP's
  * LogRecord.event_name, which ingest stamps onto `event.name`).
  */
-export const LlmLogEventNameAttributeKey: string = "event.name";
+export const LlmLogEventNameAttributeKey: string = LogEventNameAttributeKey;
 
 export const LlmContentEventNames: Array<string> = [
   ...LlmPromptEventNames,

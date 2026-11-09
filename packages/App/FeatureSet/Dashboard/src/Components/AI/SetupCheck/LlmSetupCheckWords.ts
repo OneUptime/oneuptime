@@ -444,8 +444,12 @@ export const CONTENT_NOT_RECORDED: string = translationKey(
   "Prompts and answers aren't recorded, so conversations show each call's time, tokens and cost but not what was said.",
 );
 
-export const CONTENT_IN_LOGS: string = translationKey(
-  "Your app sends them as log records, which conversations don't read: record them on the spans instead.",
+export const CONTENT_FROM_LOGS: string = translationKey(
+  "Prompts and answers arrive as log events, and conversations read them from there.",
+);
+
+export const CONTENT_FROM_LOGS_DETAIL: string = translationKey(
+  "Anyone who can read your app's logs can read them on the Logs page too, and the logs' scrub rules and drop filters apply to them.",
 );
 
 export const CONTENT_HOW: string = translationKey(
@@ -604,16 +608,32 @@ export function getAppsLines(data: {
           : undefined,
     });
 
-    if (apps.answersRecently > 0 && apps.answersWithContent === 0) {
+    if (
+      apps.answersRecently > 0 &&
+      apps.answersWithContent === 0 &&
+      apps.contentInLogs
+    ) {
+      /*
+       * The spans carry no prompt, but GenAI events that do arrived on the
+       * logs signal (the OpenTelemetry instrumentations for JavaScript and
+       * Java, Python's with true or event_only): conversations read them.
+       */
+      lines.push({
+        key: "apps-content",
+        tone: "ok",
+        text: translator.translateText(CONTENT_FROM_LOGS) || CONTENT_FROM_LOGS,
+        detail:
+          translator.translateText(CONTENT_FROM_LOGS_DETAIL) ||
+          CONTENT_FROM_LOGS_DETAIL,
+      });
+    } else if (apps.answersRecently > 0 && apps.answersWithContent === 0) {
       lines.push({
         key: "apps-content",
         tone: "warning",
         text:
           translator.translateText(CONTENT_NOT_RECORDED) ||
           CONTENT_NOT_RECORDED,
-        detail: apps.contentInLogs
-          ? translator.translateText(CONTENT_IN_LOGS) || CONTENT_IN_LOGS
-          : translator.translateText(CONTENT_HOW) || CONTENT_HOW,
+        detail: translator.translateText(CONTENT_HOW) || CONTENT_HOW,
       });
     } else if (apps.answersRecently > 0) {
       lines.push({

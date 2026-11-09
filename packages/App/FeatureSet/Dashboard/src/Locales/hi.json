@@ -46952,5 +46952,17 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे क्लाउड पर चला जाता है।",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे क्लस्टर पर चला जाता है।",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे स्टोरेज ऐरे पर चला जाता है।",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे vCenter पर चला जाता है।"
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे vCenter पर चला जाता है।",
+  "Anyone who can read your app's logs can read them on the Logs page too, and the logs' scrub rules and drop filters apply to them.": "जो आपके ऐप के लॉग पढ़ सकता है, वह उन्हें लॉग्स पेज पर भी पढ़ सकता है, और लॉग के स्क्रब नियम और ड्रॉप फ़िल्टर उन पर लागू होते हैं।",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Prompts and answers arrive as log events, and conversations read them from there.": "प्रॉम्प्ट और जवाब लॉग इवेंट के रूप में आते हैं, और बातचीत उन्हें वहीं से पढ़ती है।",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Read from this call's log events": "इस कॉल के लॉग इवेंट से पढ़ा गया",
+  "Reading this call's log events…": "इस कॉल के लॉग इवेंट पढ़े जा रहे हैं…",
+  "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, and conversations read them from there.": "OpenTelemetry Java एजेंट OpenAI या Azure OpenAI को कॉल करने वाले OpenAI Java SDK को ट्रेस करता है: हर कॉल अपने मॉडल, टोकन और लागत के साथ आती है। कंटेंट कैप्चर चालू होने पर यह प्रॉम्प्ट और जवाब लॉग इवेंट के रूप में भेजता है, और बातचीत उन्हें वहीं से पढ़ती है।",
+  "The prompts and answers sent as log events couldn't be read.": "लॉग इवेंट के रूप में भेजे गए प्रॉम्प्ट और जवाब पढ़े नहीं जा सके।",
+  "You can't read this app's logs, so the prompts and answers it sends as log events aren't shown.": "आप इस ऐप के लॉग नहीं पढ़ सकते, इसलिए यह जो प्रॉम्प्ट और जवाब लॉग इवेंट के रूप में भेजता है, वे नहीं दिखाए जाते।"
 }

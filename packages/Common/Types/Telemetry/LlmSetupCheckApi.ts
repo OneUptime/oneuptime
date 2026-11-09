@@ -81,9 +81,12 @@ export interface LlmSetupCheckApps {
   answersRecently: number;
   answersWithContent: number;
   /*
-   * GenAI events arrived on the logs signal in the past week - where the
-   * OpenTelemetry instrumentations for JavaScript and Java, and the Python
-   * one's "true" setting, send prompts and answers. null: not checked.
+   * GenAI events that carry what was said arrived on the logs signal in the
+   * past week - where the OpenTelemetry instrumentations for JavaScript and
+   * Java, and Python's with `true` or `event_only`, send prompts and
+   * answers, and where conversations read them. Events of an instrumentation
+   * with content capture off carry nothing, and do not count. Checked only
+   * when no answer recorded its question on its span; null: not checked.
    */
   contentInLogs: boolean | null;
   /*

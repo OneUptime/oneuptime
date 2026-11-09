@@ -10,6 +10,8 @@ import LlmMessageParser, {
   LLM_MESSAGE_MAX_JSON_LENGTH,
   LlmCallContent,
   LlmMessage,
+  LlmMessagePart,
+  LlmMessagePartType,
   LlmMessageParserOptions,
 } from "./LlmMessageParser";
 
@@ -84,6 +86,16 @@ export interface LlmLogEventCall {
    */
   isModelCall: boolean;
 }
+
+/*
+ * How long before a call's start, and after its end, its records are looked
+ * for. A record carries the time it was emitted, within its call; but one
+ * that sends no time of its own (Python on a newer SDK, the Java agent) is
+ * stored at the time it arrived - after its export's batch delay and the
+ * ingest queue.
+ */
+export const LLM_LOG_EVENT_BEFORE_CALL_MS: number = 60 * 1000;
+export const LLM_LOG_EVENT_AFTER_CALL_MS: number = 10 * 60 * 1000;
 
 // How deep a body's nested values are read; deeper ones are left out.
 const MAX_VALUE_DEPTH: number = 32;
@@ -263,6 +275,37 @@ export default class LlmLogEventsUtil {
 
   public static isContentEvent(record: LlmLogEventRecord): boolean {
     return LlmLogEventsUtil.getContentEventName(record) !== "";
+  }
+
+  /*
+   * A log record's attribute map, at ingest, with the messages of an
+   * inference details event held as their JSON text - in place. They
+   * arrive as structured values (an OTLP list), which scrub rules pass
+   * over since they mask text; a span holds the same messages as JSON
+   * text, and the Log table stores a structured value as its JSON text
+   * anyway, so nothing stored changes but that the logs' scrub rules now
+   * mask what was said as the traces' rules do on a span. Returns how many
+   * values it held as text.
+   */
+  public static holdContentAsText(attributes: Dictionary): number {
+    let held: number = 0;
+
+    for (const key of LlmInferenceDetailsContentAttributeKeys) {
+      const value: unknown = attributes[key];
+
+      if (value === null || typeof value !== "object") {
+        continue;
+      }
+
+      try {
+        attributes[key] = JSON.stringify(value);
+        held++;
+      } catch {
+        // A value JSON cannot write stays as it came.
+      }
+    }
+
+    return held;
   }
 
   /*
@@ -625,11 +668,12 @@ export default class LlmLogEventsUtil {
   }
 
   /*
-   * What a call's records say: the messages with something in them. An
-   * instrumentation with content capture off still sends its events, with
-   * empty bodies (or parts that name only their type); those say nothing,
-   * so a call they belong to reads as not recorded rather than as an empty
-   * answer.
+   * What a call's records say: the parts with something in them, and the
+   * messages left with a part. An instrumentation with content capture off
+   * still sends its events - with empty bodies, parts that name only their
+   * type, and tool calls that name only the tool - and those say nothing:
+   * a call they belong to reads as not recorded rather than as an empty
+   * answer or a bare tool name.
    */
   public static readContent(
     records: ReadonlyArray<LlmLogEventRecord>,
@@ -641,17 +685,46 @@ export default class LlmLogEventsUtil {
       options: options,
     });
 
-    const said: (message: LlmMessage) => boolean = (
-      message: LlmMessage,
-    ): boolean => {
-      return message.parts.length > 0;
+    const said: (messages: Array<LlmMessage>) => Array<LlmMessage> = (
+      messages: Array<LlmMessage>,
+    ): Array<LlmMessage> => {
+      return messages
+        .map((message: LlmMessage): LlmMessage => {
+          return {
+            ...message,
+            parts: message.parts.filter(LlmLogEventsUtil.partSaysSomething),
+          };
+        })
+        .filter((message: LlmMessage): boolean => {
+          return message.parts.length > 0;
+        });
     };
 
     return {
       ...content,
-      input: content.input.filter(said),
-      output: content.output.filter(said),
+      input: said(content.input),
+      output: said(content.output),
     };
+  }
+
+  /*
+   * Whether a message part says something: text, a tool call's arguments,
+   * a tool's result, or a media part's address. A tool call that names
+   * only the tool, or a part that names only its type, says nothing.
+   */
+  public static partSaysSomething(part: LlmMessagePart): boolean {
+    switch (part.type) {
+      case LlmMessagePartType.ToolCall:
+        return (part.arguments || "").trim().length > 0;
+      case LlmMessagePartType.Media:
+        return Boolean(
+          (part.uri || "").trim() ||
+            (part.mimeType || "").trim() ||
+            (part.text || "").trim(),
+        );
+      default:
+        return (part.text || "").trim().length > 0;
+    }
   }
 
   /*

@@ -46952,5 +46952,17 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "代理程式 .env 中的 {{variable}} 必須仍為「{{name}}」。名稱不同時，資料會傳送到另一個雲端。",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "代理程式 .env 中的 {{variable}} 必須仍為「{{name}}」。名稱不同時，資料會傳送到另一個叢集。",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "代理程式 .env 中的 {{variable}} 必須仍為「{{name}}」。名稱不同時，資料會傳送到另一個儲存陣列。",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "代理程式 .env 中的 {{variable}} 必須仍為「{{name}}」。名稱不同時，資料會傳送到另一個 vCenter。"
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "代理程式 .env 中的 {{variable}} 必須仍為「{{name}}」。名稱不同時，資料會傳送到另一個 vCenter。",
+  "Anyone who can read your app's logs can read them on the Logs page too, and the logs' scrub rules and drop filters apply to them.": "能讀取你的應用程式日誌的人，也能在日誌頁面上讀到它們，日誌的清理規則和捨棄過濾器也適用於它們。",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Prompts and answers arrive as log events, and conversations read them from there.": "提示和回答以記錄事件抵達，對話會從那裡讀取它們。",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Read from this call's log events": "讀取自此呼叫的記錄事件",
+  "Reading this call's log events…": "正在讀取此呼叫的記錄事件…",
+  "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, and conversations read them from there.": "OpenTelemetry Java 代理程式會追蹤呼叫 OpenAI 或 Azure OpenAI 的 OpenAI Java SDK：每次呼叫都會帶著模型、權杖和成本到達。開啟內容擷取後，它以記錄事件傳送提示和回答，對話會從那裡讀取它們。",
+  "The prompts and answers sent as log events couldn't be read.": "無法讀取以記錄事件傳送的提示和回答。",
+  "You can't read this app's logs, so the prompts and answers it sends as log events aren't shown.": "你無法讀取此應用程式的日誌，因此不會顯示它以記錄事件傳送的提示和回答。"
 }

@@ -142,10 +142,13 @@ builder.Services.AddOpenTelemetry()
     /*
      * The agent records no prompt or answer until content capture is on
      * (otel.instrumentation.genai.capture-message-content, off by
-     * default), and then on the logs signal.
+     * default; OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT is the
+     * same switch), and then on the logs signal, which the agent exports
+     * by default: conversations read them from there (LlmLogEventReader),
+     * so the snippet turns it on.
      */
     note: translationKey(
-      "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, which conversations do not show.",
+      "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, and conversations read them from there.",
     ),
     blocks: [
       {
@@ -153,6 +156,8 @@ builder.Services.AddOpenTelemetry()
         code: `curl -L -O https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
 
 ${OTEL_EXPORTER_VARIABLES}
+# Record prompts and answers (sent as log events), so conversations show what was said:
+export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 java -javaagent:opentelemetry-javaagent.jar -jar my-ai-app.jar`,
       },
@@ -169,7 +174,7 @@ java -javaagent:opentelemetry-javaagent.jar -jar my-ai-app.jar`,
         language: "bash",
         code: `${OTEL_EXPORTER_VARIABLES}
 # Record prompts and answers, so conversations show what was said
-# (Python's OpenTelemetry instrumentations take span_only instead of true):
+# (newer OpenTelemetry instrumentations take span_only instead of true):
 export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true`,
       },
     ],

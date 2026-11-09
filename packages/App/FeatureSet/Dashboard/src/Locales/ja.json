@@ -46952,5 +46952,17 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別のクラウドに送信されます。",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別のクラスターに送信されます。",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別のストレージアレイに送信されます。",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別の vCenter に送信されます。"
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "エージェントの .env の {{variable}} は引き続き「{{name}}」である必要があります。名前が異なると、データは別の vCenter に送信されます。",
+  "Anyone who can read your app's logs can read them on the Logs page too, and the logs' scrub rules and drop filters apply to them.": "アプリのログを読める人は、ログ ページでもこれらを読めます。また、ログのスクラブルールと破棄フィルターがこれらに適用されます。",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Prompts and answers arrive as log events, and conversations read them from there.": "プロンプトと回答はログ イベントとして届き、会話はそこから読み取ります。",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Read from this call's log events": "この呼び出しのログ イベントから読み取りました",
+  "Reading this call's log events…": "この呼び出しのログ イベントを読み取っています…",
+  "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, and conversations read them from there.": "OpenTelemetry Java エージェントは、OpenAI または Azure OpenAI を呼び出す OpenAI Java SDK をトレースします。各呼び出しはモデル、トークン、コスト付きで届きます。コンテンツ キャプチャをオンにすると、プロンプトと回答はログ イベントとして送信され、会話はそこから読み取ります。",
+  "The prompts and answers sent as log events couldn't be read.": "ログ イベントとして送られたプロンプトと回答を読み取れませんでした。",
+  "You can't read this app's logs, so the prompts and answers it sends as log events aren't shown.": "このアプリのログを読む権限がないため、ログ イベントとして送られたプロンプトと回答は表示されません。"
 }

@@ -850,17 +850,32 @@ describe("the snippets for your apps", () => {
       "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar",
     );
     expect(java).toContain("java -javaagent:opentelemetry-javaagent.jar");
+    // Its prompts and answers arrive as log events, which conversations read.
     expect(noteOf("java")).toContain(
-      "as log events, which conversations do not show",
+      "as log events, and conversations read them from there.",
     );
+    expect(noteOf("java")).not.toContain("do not show");
     // The agent records no content until it is told to: never said as if it did.
     expect(noteOf("java")).toContain(
       "With content capture on, it sends prompts and answers",
     );
+    // The snippet tells it to, before the agent starts.
+    expect(java).toContain(
+      "export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true",
+    );
+    expect(
+      java.indexOf(
+        "export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true",
+      ),
+    ).toBeLessThan(java.indexOf("java -javaagent:"));
   });
 
-  test("the any-language snippet says Python's instrumentations take span_only", () => {
-    expect(codeOf("otel")).toContain("span_only instead of true");
+  test("the any-language snippet says newer instrumentations take span_only", () => {
+    expect(codeOf("otel")).toContain(
+      "(newer OpenTelemetry instrumentations take span_only instead of true)",
+    );
+    // Log events are read now: Python's are not singled out to avoid them.
+    expect(codeOf("otel")).not.toContain("Python's");
   });
 
   test.each(

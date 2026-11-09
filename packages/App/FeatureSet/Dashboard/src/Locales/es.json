@@ -46952,5 +46952,17 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "{{variable}} en el .env del agente debe seguir siendo \"{{name}}\". Con otro nombre, los datos van a otra nube.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "{{variable}} en el .env del agente debe seguir siendo \"{{name}}\". Con otro nombre, los datos van a otro clúster.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "{{variable}} en el .env del agente debe seguir siendo \"{{name}}\". Con otro nombre, los datos van a otra cabina de almacenamiento.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} en el .env del agente debe seguir siendo \"{{name}}\". Con otro nombre, los datos van a otro vCenter."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} en el .env del agente debe seguir siendo \"{{name}}\". Con otro nombre, los datos van a otro vCenter.",
+  "Anyone who can read your app's logs can read them on the Logs page too, and the logs' scrub rules and drop filters apply to them.": "Quien pueda leer los registros de tu aplicación también puede leerlos en la página Registros, y se les aplican las reglas de depuración y los filtros de descarte de los registros.",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Prompts and answers arrive as log events, and conversations read them from there.": "Los prompts y las respuestas llegan como eventos de registro, y las conversaciones los leen desde ahí.",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests",
+  "Read from this call's log events": "Leído de los eventos de registro de esta llamada",
+  "Reading this call's log events…": "Leyendo los eventos de registro de esta llamada…",
+  "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, and conversations read them from there.": "El agente Java de OpenTelemetry traza el SDK de Java de OpenAI, tanto si llama a OpenAI como a Azure OpenAI: cada llamada llega con su modelo, sus tokens y su coste. Con la captura de contenido activada, envía los prompts y las respuestas como eventos de registro, y las conversaciones los leen desde ahí.",
+  "The prompts and answers sent as log events couldn't be read.": "No se pudieron leer los prompts y las respuestas enviados como eventos de registro.",
+  "You can't read this app's logs, so the prompts and answers it sends as log events aren't shown.": "No puedes leer los registros de esta aplicación, así que no se muestran los prompts y las respuestas que envía como eventos de registro."
 }

@@ -57,7 +57,8 @@ flowchart TB
 | --- | --- |
 | 没有应用发送过 AI 调用 | [发送你的 AI 调用](#发送你的-ai-调用)：已连接的提供商账户按天带来用量和成本，从不带来调用 |
 | 应用调用了 AI 提供商的 API，但没有 GenAI 插桩记录 | 为该应用的语言添加一个：检查发现了该应用发往 `api.openai.com`、`*.openai.azure.com`、`*.services.ai.azure.com` 或其他 AI 提供商 API 的 HTTP 客户端 span |
-| 调用到达了，但没有提示词或回答 | 在 span 上 [记录说了什么](#记录说了什么)：作为日志事件发送的提示词和回答不会显示 |
+| 调用到达了，但没有提示词或回答 | 在 span 上或以日志事件 [记录说了什么](#记录说了什么) |
+| 提示词和回答以日志事件到达 | 无需操作：对话会读取它们，能读取该应用日志的人也能在 **日志** 页面上读到它们 |
 | 调用刚好在时间范围之外 | 列表会提供包含最新一次调用的时间范围 |
 | 提供商账户读不到用量 | 它的那一行会写出最后一次有用量的日期，或首次读取的日期；找不到资源的 Azure 连接需要在资源所在位置拥有 Monitoring Reader |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 较新的 OpenTelemetry 插桩接受 `span_only`、`event_only` 或 `span_and_event`，而不是 `true`。即使没有记录内容，对话仍会显示其耗时、成本和问题。提示词可能包含敏感数据： [隐私与脱敏](#隐私与脱敏) 说明了如何在存储前将其屏蔽。
 
-对话读取的是记录在调用的 span 上的内容。Python 的 OpenTelemetry 插桩用 `span_only` 把它记录在那里；JavaScript 和 Java 的插桩，以及设置为 `true` 的 Python 插桩，会把它作为日志事件发送，而对话不读取这些事件， **设置检查** 会指出这一点。Azure 的 AI Inference SDK 用 `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` 把它记录在 span 上，Microsoft.Extensions.AI 用 `EnableSensitiveData`；.NET 的 OpenAI 库什么也不记录。
+对话读取的是记录在调用的 span 上的内容，以及应用带着调用的跟踪 ID 和 span ID 发送的日志事件。Python 的 OpenTelemetry 插桩用 `span_only` 把它记录在 span 上；JavaScript 和 Java 的插桩，以及设置为 `true` 或 `event_only` 的 Python 插桩，会把它作为日志事件发送，这些事件随应用的日志一起到达 OneUptime。Azure 的 AI Inference SDK 用 `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` 把它记录在 span 上，Microsoft.Extensions.AI 用 `EnableSensitiveData`；.NET 的 OpenAI 库什么也不记录。
 
 ### 把调用归入对话
 
@@ -315,6 +316,8 @@ span 报告为从提供商的提示缓存读取或写入其中的 token，按提
 
 AI 调用以跟踪 span 的形式存储，因此跟踪的 **清理规则** 和 **丢弃过滤器** 也适用于它们：在存储之前屏蔽某个属性或丢弃某个 span。两者都在 **跟踪 → 设置** 下。员工邮箱列会与其来源属性一起被清理，因此屏蔽邮箱的规则也会覆盖这一列。
 
+以日志事件发送的提示词和回答以日志的形式存储，因此适用于它们的是日志的 **清理规则** 和 **丢弃过滤器**，两者都在 **日志 → 设置** 下：在跟踪中屏蔽邮箱的规则不会屏蔽日志事件中的邮箱。对话只向也能读取该应用日志的人显示它们，这些人也能在 **日志** 页面上找到它们。
+
 读取对话所需的权限与跟踪相同：能读取项目跟踪的人才能读取其对话，其他人都不能。公司 AI 工具的对话是例外：除非其连接另有设置，否则只有项目所有者和管理员可以阅读（ [公司的 AI 工具](/docs/telemetry/ai-company-tools#隐私) ）。
 
 ## OneUptime 读取的属性
@@ -357,6 +360,8 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 - 带索引的属性：OpenLLMetry 的 `gen_ai.prompt.N.content` 和 `gen_ai.completion.N.content`，OpenInference 的 `llm.input_messages.N.message.content` 和 `llm.output_messages.N.message.content`；
 - `gen_ai.prompt`、`gen_ai.completion`、`ai.prompt.messages`、`ai.response.text`、`input.value` 和 `output.value` 中的消息数组。
 
+当调用的 span 中没有提示词或没有回答时，会从带有该调用的跟踪 ID 和 span ID 的日志记录中读取：同样的事件，通过日志信号发送，名称位于记录的 `event.name` 属性或其事件名称字段中。带有跟踪 ID 但没有 span ID 的记录归入该跟踪唯一的模型调用，或归入发送它时正在进行的调用；如果这不是唯一一次调用，则不予采用。span 记录的内容优先，因此两种方式都记录了的调用，每条消息只显示一次。
+
 ## 故障排除
 
 :::details 已连接提供商账户，但对话和调用为空
@@ -364,7 +369,7 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 :::
 
 :::details 调用已到达，但没有任何对话显示文本
-你的插桩没有记录内容。请按 [记录说了什么](#记录说了什么) 中的说明开启；在那之前的调用仍然没有文本。
+你的插桩没有记录内容，或者它以日志事件发送内容，而应用的日志没有到达 OneUptime。请按 [记录说了什么](#记录说了什么) 中的说明开启，并把日志和跟踪一起发送；在那之前的调用仍然没有文本。
 :::
 
 :::details 一个聊天的每次调用都显示为单独的对话

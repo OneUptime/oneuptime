@@ -155,3 +155,26 @@ export function getLlmSortLabel(sort: LlmConversationSort): string {
     })?.label || LLM_CONVERSATION_SORT_OPTIONS[0]!.label
   );
 }
+
+/*
+ * What a conversation and a call's details say when the prompts and answers
+ * an app sends as GenAI log events (rather than on its spans) are not shown:
+ * the reader may not read that app's logs, or the logs could not be read
+ * (LlmLogEventsRead). Shared by the conversation view and the span panel.
+ */
+export const LLM_LOG_EVENTS_NOT_ALLOWED: string = translationKey(
+  "You can't read this app's logs, so the prompts and answers it sends as log events aren't shown.",
+);
+
+export const LLM_LOG_EVENTS_FAILED: string = translationKey(
+  "The prompts and answers sent as log events couldn't be read.",
+);
+
+// Where a call's prompt and answer were read from, when not its span.
+export const LLM_LOG_EVENTS_SOURCE: string = translationKey(
+  "Read from this call's log events",
+);
+
+export const LLM_LOG_EVENTS_LOADING: string = translationKey(
+  "Reading this call's log events…",
+);

@@ -57,7 +57,8 @@ Die **Einrichtungsprüfung** oben auf **Verbinden** sagt, was jeder Weg hinein g
 | --- | --- |
 | Keine App hat einen KI-Aufruf gesendet | [Ihre KI-Aufrufe senden](#ihre-ki-aufrufe-senden): Verbundene Anbieterkonten bringen Nutzung und Kosten pro Tag, nie einen Aufruf |
 | Eine App ruft die API eines KI-Anbieters auf, und keine GenAI-Instrumentierung zeichnet das auf | Fügen Sie eine für die Sprache der App hinzu: Die Prüfung fand die HTTP-Client-Spans der App zu `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` oder zur API eines anderen KI-Anbieters |
-| Aufrufe kommen ohne Prompts oder Antworten an | [Festhalten, was gesagt wurde](#festhalten-was-gesagt-wurde), auf den Spans: Als Log-Ereignisse gesendete Prompts und Antworten erscheinen nicht |
+| Aufrufe kommen ohne Prompts oder Antworten an | [Festhalten, was gesagt wurde](#festhalten-was-gesagt-wurde), auf den Spans oder als Log-Ereignisse |
+| Prompts und Antworten kommen als Log-Ereignisse an | Nichts: Unterhaltungen lesen sie, und wer die Logs der App lesen darf, kann sie auch auf der Seite **Protokolle** lesen |
 | Die Aufrufe liegen knapp außerhalb des Zeitraums | Die Liste bietet den Zeitraum an, der den neuesten enthält |
 | Ein Anbieterkonto liest keine Nutzung | Seine Zeile nennt den letzten Tag mit Nutzung oder den ersten gelesenen Tag; eine Azure-Verbindung, die keine Ressource findet, braucht Monitoring Reader dort, wo die Ressourcen liegen |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Neuere OpenTelemetry-Instrumentierungen erwarten `span_only`, `event_only` oder `span_and_event` statt `true`. Ohne aufgezeichneten Inhalt zeigt eine Unterhaltung trotzdem ihre Zeiten, Kosten und Probleme. Prompts können sensible Daten enthalten: [Datenschutz und Schwärzung](#datenschutz-und-schwärzung) zeigt, wie Sie sie vor dem Speichern maskieren.
 
-Unterhaltungen lesen, was auf dem Span des Aufrufs aufgezeichnet ist. Die OpenTelemetry-Instrumentierung für Python zeichnet es dort mit `span_only` auf; die Instrumentierungen für JavaScript und Java und die für Python mit `true` senden es als Log-Ereignisse, die Unterhaltungen nicht lesen, und die **Einrichtungsprüfung** sagt das. Das AI Inference SDK von Azure zeichnet es mit `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` auf dem Span auf, Microsoft.Extensions.AI mit `EnableSensitiveData`; die OpenAI-Bibliothek für .NET zeichnet nichts auf.
+Unterhaltungen lesen, was auf dem Span des Aufrufs aufgezeichnet ist, und die Log-Ereignisse, die die App mit der Trace- und Span-ID des Aufrufs sendet. Die OpenTelemetry-Instrumentierung für Python zeichnet es mit `span_only` auf dem Span auf; die Instrumentierungen für JavaScript und Java und die für Python mit `true` oder `event_only` senden es als Log-Ereignisse, die mit den Logs der App bei OneUptime ankommen. Das AI Inference SDK von Azure zeichnet es mit `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` auf dem Span auf, Microsoft.Extensions.AI mit `EnableSensitiveData`; die OpenAI-Bibliothek für .NET zeichnet nichts auf.
 
 ### Aufrufe zu Unterhaltungen gruppieren
 
@@ -315,6 +316,8 @@ GenAI-Metriken wie `gen_ai.client.token.usage` und `gen_ai.client.operation.dura
 
 KI-Aufrufe werden als Trace-Spans gespeichert, daher gelten die **Scrub-Regeln** und **Drop-Filter** der Traces für sie: Maskieren Sie ein Attribut oder verwerfen Sie einen Span, bevor er gespeichert wird. Beides finden Sie unter **Traces → Einstellungen**. Die Spalte mit der E-Mail des Mitarbeiters wird mit dem Attribut bereinigt, aus dem sie gelesen wurde, sodass eine Regel, die E-Mails maskiert, sie ebenfalls erfasst.
 
+Als Log-Ereignisse gesendete Prompts und Antworten werden als Logs gespeichert, daher gelten für sie die **Scrub-Regeln** und **Drop-Filter** der Logs, unter **Protokolle → Einstellungen**: Eine Regel, die E-Mails in den Traces maskiert, maskiert sie nicht in Log-Ereignissen. Eine Unterhaltung zeigt sie nur denen, die auch die Logs dieser App lesen dürfen, und diese finden sie auch auf der Seite **Protokolle**.
+
 Unterhaltungen werden mit derselben Berechtigung gelesen wie Traces: Wer die Traces des Projekts lesen darf, darf seine Unterhaltungen lesen, und niemand sonst. Die Unterhaltungen eines KI-Tools des Unternehmens sind die Ausnahme: Nur Projektinhaber und Admins können sie lesen, es sei denn, seine Verbindung sagt etwas anderes ([KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools#datenschutz)).
 
 ## Attribute, die OneUptime liest
@@ -357,6 +360,8 @@ Die Unterhaltungsansicht liest die Nachrichten eines Aufrufs aus, in dieser Reih
 - den indizierten Attributen: `gen_ai.prompt.N.content` und `gen_ai.completion.N.content` von OpenLLMetry, `llm.input_messages.N.message.content` und `llm.output_messages.N.message.content` von OpenInference;
 - den Nachrichten-Arrays in `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` und `output.value`.
 
+Hält der Span eines Aufrufs keinen Prompt oder keine Antwort, wird das aus den Log-Einträgen gelesen, die die Trace- und Span-ID des Aufrufs tragen: dieselben Ereignisse, über das Log-Signal gesendet, benannt im Attribut `event.name` des Eintrags oder in seinem Feld für den Ereignisnamen. Ein Eintrag mit der ID des Traces, aber ohne Span-ID gehört zum einzigen Modellaufruf des Traces oder zu dem Aufruf, während dessen er gesendet wurde, und bleibt außen vor, wenn das nicht genau ein Aufruf ist. Was der Span aufzeichnet, hat Vorrang, sodass ein auf beide Arten aufgezeichneter Aufruf jede Nachricht einmal zeigt.
+
 ## Fehlerbehebung
 
 :::details Anbieterkonten sind verbunden, aber Unterhaltungen und Aufrufe sind leer
@@ -364,7 +369,7 @@ Ein Anbieterkonto bringt, was es pro Tag verbraucht und gekostet hat, nie einen 
 :::
 
 :::details Aufrufe kommen an, aber keine Unterhaltung zeigt Text
-Ihre Instrumentierung zeichnet keinen Inhalt auf. Schalten Sie es ein, wie [Festhalten, was gesagt wurde](#festhalten-was-gesagt-wurde) zeigt; Aufrufe von davor bleiben ohne Text.
+Ihre Instrumentierung zeichnet keinen Inhalt auf, oder sie sendet ihn als Log-Ereignisse und die Logs der App kommen nicht bei OneUptime an. Schalten Sie es ein, wie [Festhalten, was gesagt wurde](#festhalten-was-gesagt-wurde) zeigt, und senden Sie die Logs mit den Traces; Aufrufe von davor bleiben ohne Text.
 :::
 
 :::details Jeder Aufruf eines Chats erscheint als eigene Unterhaltung

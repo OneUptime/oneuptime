@@ -57,7 +57,8 @@ A **Verificação da configuração**, no topo de **Conectar**, diz o que cada c
 | --- | --- |
 | Nenhum aplicativo enviou uma chamada de IA | [Envie suas chamadas de IA](#envie-suas-chamadas-de-ia): as contas de provedor conectadas trazem uso e custo por dia, nunca uma chamada |
 | Um aplicativo chama a API de um provedor de IA, e nenhuma instrumentação GenAI a registra | Adicione uma para a linguagem do aplicativo: a verificação encontrou os spans de cliente HTTP do aplicativo para `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` ou a API de outro provedor de IA |
-| As chamadas chegam sem prompts ou respostas | [Registre o que foi dito](#registre-o-que-foi-dito) nos spans: prompts e respostas enviados como eventos de log não aparecem |
+| As chamadas chegam sem prompts ou respostas | [Registre o que foi dito](#registre-o-que-foi-dito), nos spans ou como eventos de log |
+| Prompts e respostas chegam como eventos de log | Nada: as conversas os leem, e quem pode ler os logs do aplicativo também pode lê-los na página **Registros** |
 | As chamadas estão logo fora do intervalo | A lista oferece o intervalo que contém a mais recente |
 | Uma conta de provedor não lê nenhum uso | Sua linha diz o último dia com uso, ou o primeiro dia lido; uma conexão do Azure que não encontra nenhum recurso precisa de Monitoring Reader onde os recursos estão |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Instrumentações mais novas do OpenTelemetry aceitam `span_only`, `event_only` ou `span_and_event` em vez de `true`. Sem conteúdo registrado, uma conversa ainda mostra seus tempos, seu custo e seus problemas. Os prompts podem conter dados sensíveis: [Privacidade e ocultação](#privacidade-e-ocultação) mostra como mascará-los antes de serem armazenados.
 
-As conversas leem o que é registrado no span da chamada. A instrumentação do OpenTelemetry para Python o registra ali com `span_only`; as instrumentações para JavaScript e Java, e a de Python com `true`, o enviam como eventos de log, que as conversas não leem, e a **Verificação da configuração** avisa. O SDK AI Inference do Azure o registra no span com `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, o Microsoft.Extensions.AI com `EnableSensitiveData`; a biblioteca OpenAI para .NET não registra nada.
+As conversas leem o que é registrado no span da chamada, e os eventos de log que o aplicativo envia com os ids de trace e de span da chamada. A instrumentação do OpenTelemetry para Python o registra no span com `span_only`; as instrumentações para JavaScript e Java, e a de Python com `true` ou `event_only`, o enviam como eventos de log, que chegam ao OneUptime com os logs do aplicativo. O SDK AI Inference do Azure o registra no span com `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, o Microsoft.Extensions.AI com `EnableSensitiveData`; a biblioteca OpenAI para .NET não registra nada.
 
 ### Agrupe as chamadas em conversas
 
@@ -315,6 +316,8 @@ Métricas GenAI como `gen_ai.client.token.usage` e `gen_ai.client.operation.dura
 
 As chamadas de IA são armazenadas como spans de trace, então as **Regras de mascaramento** e os **Filtros de descarte** dos traces se aplicam a elas: mascare um atributo, ou descarte um span, antes que ele seja armazenado. Você encontra os dois em **Traços → Configurações**. A coluna de e-mail do funcionário é mascarada junto com o atributo de onde foi lida, então uma regra que mascara e-mails também a cobre.
 
+Prompts e respostas enviados como eventos de log são armazenados como logs, então se aplicam a eles as **Regras de mascaramento** e os **Filtros de descarte** dos logs, em **Registros → Configurações**: uma regra que mascara e-mails nos traces não os mascara nos eventos de log. Uma conversa só os mostra a quem também pode ler os logs desse aplicativo, e quem pode lê-los também os encontra na página **Registros**.
+
 As conversas são lidas com a mesma permissão dos traces: quem pode ler os traces do projeto pode ler suas conversas, e mais ninguém. As conversas de uma ferramenta de IA da empresa são a exceção: só os proprietários e administradores do projeto podem lê-las, a menos que a conexão dela diga outra coisa ([Ferramentas de IA da empresa](/docs/telemetry/ai-company-tools#privacidade)).
 
 ## Atributos que o OneUptime lê
@@ -357,6 +360,8 @@ A visualização da conversa lê as mensagens de uma chamada, nesta ordem, de:
 - os atributos indexados: `gen_ai.prompt.N.content` e `gen_ai.completion.N.content` do OpenLLMetry, `llm.input_messages.N.message.content` e `llm.output_messages.N.message.content` do OpenInference;
 - os arrays de mensagens em `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` e `output.value`.
 
+Quando o span de uma chamada não tem prompt ou não tem resposta, eles são lidos dos registros de log que carregam os ids de trace e de span da chamada: os mesmos eventos, enviados pelo sinal de logs, com o nome no atributo `event.name` do registro ou no seu campo de nome do evento. Um registro com o id do trace e sem id de span vai para a única chamada ao modelo do trace, ou para a chamada durante a qual foi enviado, e fica de fora quando isso não é uma só chamada. O que o span registra prevalece, então uma chamada registrada das duas formas mostra cada mensagem uma vez.
+
 ## Solução de problemas
 
 :::details Há contas de provedor conectadas, mas Conversas e Chamadas estão vazias
@@ -364,7 +369,7 @@ Uma conta de provedor traz o que usou e custou, por dia, nunca uma chamada ou um
 :::
 
 :::details As chamadas chegam, mas nenhuma conversa mostra texto
-Sua instrumentação não está registrando o conteúdo. Ative-o como mostra [Registre o que foi dito](#registre-o-que-foi-dito); as chamadas feitas antes disso ficam sem texto.
+Sua instrumentação não está registrando o conteúdo, ou o envia como eventos de log e os logs do aplicativo não chegam ao OneUptime. Ative-o como mostra [Registre o que foi dito](#registre-o-que-foi-dito), e envie os logs com os traces; as chamadas feitas antes disso ficam sem texto.
 :::
 
 :::details Cada chamada de um chat aparece como uma conversa separada

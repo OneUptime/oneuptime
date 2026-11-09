@@ -57,7 +57,8 @@ De **Configuratiecontrole** bovenaan **Koppelen** zegt wat elke route nu binnenb
 | --- | --- |
 | Geen app heeft een AI-aanroep gestuurd | [Stuur je AI-aanroepen](#stuur-je-ai-aanroepen): gekoppelde provideraccounts brengen gebruik en kosten per dag, nooit een aanroep |
 | Een app roept de API van een AI-provider aan, en geen GenAI-instrumentatie legt het vast | Voeg er een toe voor de taal van de app: de controle vond de HTTP-clientspans van de app naar `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` of de API van een andere AI-provider |
-| Aanroepen komen binnen zonder prompts of antwoorden | [Leg vast wat er gezegd is](#leg-vast-wat-er-gezegd-is) op de spans: prompts en antwoorden die als log-events worden gestuurd, verschijnen niet |
+| Aanroepen komen binnen zonder prompts of antwoorden | [Leg vast wat er gezegd is](#leg-vast-wat-er-gezegd-is), op de spans of als log-events |
+| Prompts en antwoorden komen binnen als log-events | Niets: gesprekken lezen ze, en wie de logs van de app kan lezen, kan ze ook lezen op de pagina **Logboeken** |
 | De aanroepen vallen net buiten de periode | De lijst biedt de periode aan die de nieuwste bevat |
 | Een provideraccount leest geen gebruik | Zijn regel noemt de laatste dag met gebruik, of de eerste gelezen dag; een Azure-koppeling die geen resource vindt, heeft Monitoring Reader nodig waar de resources staan |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Nieuwere OpenTelemetry-instrumentaties accepteren `span_only`, `event_only` of `span_and_event` in plaats van `true`. Zonder vastgelegde inhoud toont een gesprek nog steeds de tijden, de kosten en de problemen. Prompts kunnen gevoelige gegevens bevatten: [Privacy en redactie](#privacy-en-redactie) laat zien hoe je ze maskeert voordat ze worden opgeslagen.
 
-Gesprekken lezen wat er op de span van de aanroep is vastgelegd. De OpenTelemetry-instrumentatie voor Python legt het daar vast met `span_only`; de instrumentaties voor JavaScript en Java, en die voor Python met `true`, sturen het als log-events, die gesprekken niet lezen, en de **Configuratiecontrole** zegt dat. De AI Inference SDK van Azure legt het op de span vast met `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI met `EnableSensitiveData`; de OpenAI-bibliotheek voor .NET legt niets vast.
+Gesprekken lezen wat er op de span van de aanroep is vastgelegd, en de log-events die de app stuurt met het trace- en span-id van de aanroep. De OpenTelemetry-instrumentatie voor Python legt het op de span vast met `span_only`; de instrumentaties voor JavaScript en Java, en die voor Python met `true` of `event_only`, sturen het als log-events, die met de logs van de app bij OneUptime binnenkomen. De AI Inference SDK van Azure legt het op de span vast met `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI met `EnableSensitiveData`; de OpenAI-bibliotheek voor .NET legt niets vast.
 
 ### Groepeer aanroepen in gesprekken
 
@@ -315,6 +316,8 @@ GenAI-metrieken zoals `gen_ai.client.token.usage` en `gen_ai.client.operation.du
 
 AI-aanroepen worden opgeslagen als tracespans, dus de **Scrub-regels** en **Drop-filters** van de traces gelden ook voor hen: maskeer een attribuut, of laat een span vallen, voordat het wordt opgeslagen. Je vindt beide onder **Traces → Instellingen**. De e-mailkolom van de medewerker wordt gemaskeerd samen met het attribuut waaruit hij is gelezen, dus een regel die e-mailadressen maskeert, dekt hem ook.
 
+Prompts en antwoorden die als log-events worden gestuurd, worden opgeslagen als logs, dus voor hen gelden de **Scrub-regels** en **Drop-filters** van de logs, onder **Logboeken → Instellingen**: een regel die e-mailadressen in de traces maskeert, maskeert ze niet in log-events. Een gesprek toont ze alleen aan wie ook de logs van die app kan lezen, en wie dat kan, vindt ze ook op de pagina **Logboeken**.
+
 Gesprekken worden gelezen met dezelfde machtiging als traces: wie de traces van het project kan lezen, kan de gesprekken lezen, en verder niemand. De gesprekken van een AI-tool van je bedrijf zijn de uitzondering: alleen eigenaren en beheerders van het project kunnen ze lezen, tenzij de verbinding iets anders zegt ([AI-tools van je bedrijf](/docs/telemetry/ai-company-tools#privacy)).
 
 ## Attributen die OneUptime leest
@@ -357,6 +360,8 @@ De gespreksweergave leest de berichten van een aanroep, in deze volgorde, uit:
 - de geïndexeerde attributen: `gen_ai.prompt.N.content` en `gen_ai.completion.N.content` van OpenLLMetry, `llm.input_messages.N.message.content` en `llm.output_messages.N.message.content` van OpenInference;
 - de berichtarrays in `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` en `output.value`.
 
+Als de span van een aanroep geen prompt of geen antwoord bevat, wordt het gelezen uit de logrecords die het trace- en span-id van de aanroep dragen: dezelfde events, gestuurd via het logsignaal, met hun naam in het attribuut `event.name` van het record of in het veld voor de eventnaam. Een record met het id van de trace maar zonder span-id hoort bij de enige modelaanroep van de trace, of bij de aanroep waarin het werd gestuurd, en blijft buiten beschouwing als dat niet één aanroep is. Wat de span vastlegt gaat voor, dus een aanroep die op beide manieren is vastgelegd, toont elk bericht één keer.
+
 ## Problemen oplossen
 
 :::details Provideraccounts zijn gekoppeld, maar Gesprekken en Aanroepen zijn leeg
@@ -364,7 +369,7 @@ Een provideraccount brengt wat het per dag gebruikte en kostte, nooit een aanroe
 :::
 
 :::details Aanroepen komen binnen, maar geen enkel gesprek toont tekst
-Je instrumentatie legt de inhoud niet vast. Zet het aan zoals [Leg vast wat er gezegd is](#leg-vast-wat-er-gezegd-is) laat zien; aanroepen van daarvoor blijven zonder tekst.
+Je instrumentatie legt de inhoud niet vast, of stuurt die als log-events en de logs van de app komen niet bij OneUptime aan. Zet het aan zoals [Leg vast wat er gezegd is](#leg-vast-wat-er-gezegd-is) laat zien, en stuur de logs mee met de traces; aanroepen van daarvoor blijven zonder tekst.
 :::
 
 :::details Elke aanroep van een chat verschijnt als een eigen gesprek
