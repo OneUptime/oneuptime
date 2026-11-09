@@ -1034,6 +1034,67 @@ router.post(
 );
 
 /*
+ * The incident or alert a person asks to investigate (Investigate now, Try
+ * again), checked the same way for both: an authenticated member of the
+ * tenant, who may read it inside the tenant and change it - the
+ * investigation posts its report to it. Throws what stopped it: 401 with
+ * no user session, 400 for a bad body, 403 without the permission.
+ */
+interface SubjectToInvestigate {
+  tenantId: ObjectID;
+  subjectType: "incident" | "alert";
+  subjectId: ObjectID;
+}
+
+async function readSubjectViewerMayInvestigate(
+  req: ExpressRequest,
+  action: string,
+): Promise<SubjectToInvestigate> {
+  const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+  const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+  CommonAPI.assertAuthenticatedProjectMember(props);
+  const viewerProps: DatabaseCommonInteractionProps = pinPropsToTenant(props);
+
+  const subjectType: unknown = req.body["subjectType"];
+
+  if (subjectType !== "incident" && subjectType !== "alert") {
+    throw new BadDataException('subjectType must be "incident" or "alert".');
+  }
+
+  const subjectIdRaw: unknown = req.body["subjectId"];
+
+  if (typeof subjectIdRaw !== "string" || !subjectIdRaw.trim()) {
+    throw new BadDataException("subjectId is required.");
+  }
+
+  ObjectID.validateUUID(subjectIdRaw.trim());
+
+  const subjectId: ObjectID = new ObjectID(subjectIdRaw.trim());
+
+  // Access check under the USER's permissions, inside the tenant.
+  await assertSubjectReadableInTenant({
+    subjectType,
+    subjectId,
+    tenantId,
+    viewerProps,
+  });
+
+  if (
+    !(await canViewerStartInvestigation({
+      subjectType,
+      subjectId,
+      viewerProps,
+    }))
+  ) {
+    throw new NotAuthorizedException(
+      `You do not have permission to change this ${subjectType}, so you cannot ${action}.`,
+    );
+  }
+
+  return { tenantId, subjectType, subjectId };
+}
+
+/*
  * "Investigate now" on the AI Investigation card, while an investigation
  * rule makes OneUptime AI wait before it investigates the incident or alert
  * (issue #5074): start it now. A manual start ignores the wait - and the
@@ -1055,55 +1116,15 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
-      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
-      CommonAPI.assertAuthenticatedProjectMember(props);
-      const viewerProps: DatabaseCommonInteractionProps =
-        pinPropsToTenant(props);
+      const subject: SubjectToInvestigate =
+        await readSubjectViewerMayInvestigate(req, "start its investigation");
 
-      const subjectType: unknown = req.body["subjectType"];
-
-      if (subjectType !== "incident" && subjectType !== "alert") {
-        throw new BadDataException(
-          'subjectType must be "incident" or "alert".',
-        );
-      }
-
-      const subjectIdRaw: unknown = req.body["subjectId"];
-
-      if (typeof subjectIdRaw !== "string" || !subjectIdRaw.trim()) {
-        throw new BadDataException("subjectId is required.");
-      }
-
-      ObjectID.validateUUID(subjectIdRaw.trim());
-
-      const subjectId: ObjectID = new ObjectID(subjectIdRaw.trim());
-
-      // Access check under the USER's permissions, inside the tenant.
-      await assertSubjectReadableInTenant({
-        subjectType,
-        subjectId,
-        tenantId,
-        viewerProps,
-      });
-
-      if (
-        !(await canViewerStartInvestigation({
-          subjectType,
-          subjectId,
-          viewerProps,
-        }))
-      ) {
-        throw new NotAuthorizedException(
-          `You do not have permission to change this ${subjectType}, so you cannot start its investigation.`,
-        );
-      }
-
-      const lane: RuleWaitLane = subjectType === "alert" ? "Alert" : "Incident";
+      const lane: RuleWaitLane =
+        subject.subjectType === "alert" ? "Alert" : "Incident";
       const result: StartNowResult = await InvestigationRuleWait.startNow({
         lane,
-        projectId: tenantId,
-        subjectId,
+        projectId: subject.tenantId,
+        subjectId: subject.subjectId,
       });
 
       if (!result.isStarted) {
@@ -1140,54 +1161,16 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
-      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
-      CommonAPI.assertAuthenticatedProjectMember(props);
-      const viewerProps: DatabaseCommonInteractionProps =
-        pinPropsToTenant(props);
-
-      const subjectType: unknown = req.body["subjectType"];
-
-      if (subjectType !== "incident" && subjectType !== "alert") {
-        throw new BadDataException(
-          'subjectType must be "incident" or "alert".',
+      const subject: SubjectToInvestigate =
+        await readSubjectViewerMayInvestigate(
+          req,
+          "start its investigation again",
         );
-      }
-
-      const subjectIdRaw: unknown = req.body["subjectId"];
-
-      if (typeof subjectIdRaw !== "string" || !subjectIdRaw.trim()) {
-        throw new BadDataException("subjectId is required.");
-      }
-
-      ObjectID.validateUUID(subjectIdRaw.trim());
-
-      const subjectId: ObjectID = new ObjectID(subjectIdRaw.trim());
-
-      // Access check under the USER's permissions, inside the tenant.
-      await assertSubjectReadableInTenant({
-        subjectType,
-        subjectId,
-        tenantId,
-        viewerProps,
-      });
-
-      if (
-        !(await canViewerStartInvestigation({
-          subjectType,
-          subjectId,
-          viewerProps,
-        }))
-      ) {
-        throw new NotAuthorizedException(
-          `You do not have permission to change this ${subjectType}, so you cannot start its investigation again.`,
-        );
-      }
 
       const runId: ObjectID = await InvestigationTryAgain.tryAgain({
-        projectId: tenantId,
-        subjectType,
-        subjectId,
+        projectId: subject.tenantId,
+        subjectType: subject.subjectType,
+        subjectId: subject.subjectId,
       });
 
       Response.sendJsonObjectResponse(req, res, {

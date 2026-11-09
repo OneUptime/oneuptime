@@ -28,6 +28,12 @@ export interface ComponentProps {
    */
   actions?: ReactNode | undefined;
   actionsTestId?: string | undefined;
+  /*
+   * More about the message, under the way forward: the error a run that
+   * did not finish stopped with, for whoever wants it. A block of its own
+   * (it brings its own margin), never inside the line's paragraph.
+   */
+  details?: ReactNode | undefined;
 }
 
 // The marks a notice usually carries, in the card's own colours.
@@ -92,6 +98,7 @@ const InvestigationNotice: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+        {props.details || <></>}
       </div>
       {props.onDismiss ? (
         <button

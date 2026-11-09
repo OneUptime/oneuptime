@@ -1,3 +1,4 @@
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import IconProp from "Common/Types/Icon/IconProp";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -64,11 +65,16 @@ const AiRunTryAgainButton: FunctionComponent<ComponentProps> = (
       await props.onTryAgain();
     } catch (err) {
       if (isMountedRef.current) {
+        /*
+         * The server's refusal says why ("... is queued or running
+         * already"); anything else gets the button's own words.
+         */
         setError(
-          API.getFriendlyMessage(err) ||
-            (translator.translateText(
-              "The run could not start again. Try again in a moment.",
-            ) as string),
+          err instanceof HTTPErrorResponse || err instanceof Error
+            ? API.getFriendlyMessage(err)
+            : (translator.translateText(
+                "The run could not start again. Try again in a moment.",
+              ) as string),
         );
       }
     } finally {

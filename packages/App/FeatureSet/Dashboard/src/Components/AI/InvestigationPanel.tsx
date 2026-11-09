@@ -1,12 +1,15 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import ChatActivityFeed, {
-  ActivityFeedRun,
   hasRenderableActivity,
   KubectlActivitySummary,
-  readActivityFeedRun,
   summarizeKubectlActivity,
 } from "../AIChat/ChatActivityFeed";
+import {
+  ActivityFeedRun,
+  readActivityFeedRun,
+} from "../AIChat/ActivityFeedRun";
 import AiRunFailureNotice from "./AiRunFailureNotice";
+import { formatAiRunTime } from "./AiRunFailureWords";
 import OneUptimeDate from "Common/Types/Date";
 import RemediationStep from "../AutoRemediation/RemediationStep";
 import AiCardStep from "./AiCardStep";
@@ -956,6 +959,16 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
   const isRunning: boolean = runStatus === AIRunStatus.Running;
   const isQueued: boolean = runStatus === AIRunStatus.Queued;
+  /*
+   * An attempt failed and the run waits to try again (issue #6438): when,
+   * or null for a run that waits for a worker.
+   */
+  const retryAt: Date | null =
+    isQueued &&
+    runTimes?.retryAt &&
+    OneUptimeDate.isInTheFuture(runTimes.retryAt)
+      ? OneUptimeDate.fromString(runTimes.retryAt)
+      : null;
   // Poll while the run can still make progress (queued runs get claimed).
   const isActive: boolean = isRunning || isQueued;
   const isDiscoveringRun: boolean =
@@ -1428,11 +1441,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   } else if (runStatus === AIRunStatus.Running) {
     statusMeta = { text: "Investigating…", indicator: "live" };
     isFailed = false;
-  } else if (
-    runStatus === AIRunStatus.Queued &&
-    runTimes?.retryAt &&
-    OneUptimeDate.isInTheFuture(runTimes.retryAt)
-  ) {
+  } else if (retryAt) {
     // An attempt failed, and the next one waits (issue #6438).
     statusMeta = { text: "Trying again soon", indicator: "live" };
     isFailed = false;
@@ -1930,17 +1939,22 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             )}
           </h3>
           <p className="mt-1 text-sm leading-6 text-gray-500">
-            {translator.translateText(
-              isFailed
-                ? "The steps this run completed before it stopped."
-                : isQueued
-                  ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
-                  : clusterAccess.some((status: ClusterAccessNoticeRow) => {
-                        return status.isInvestigationReady;
-                      })
-                    ? "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed."
-                    : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed.",
-            )}
+            {retryAt
+              ? translator.translateTemplate(
+                  "The last attempt did not finish. OneUptime tries again at {{time}}; its steps so far are below.",
+                  { time: formatAiRunTime(retryAt) },
+                )
+              : translator.translateText(
+                  isFailed
+                    ? "The steps this run completed before it stopped."
+                    : isQueued
+                      ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
+                      : clusterAccess.some((status: ClusterAccessNoticeRow) => {
+                            return status.isInvestigationReady;
+                          })
+                        ? "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed."
+                        : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed.",
+                )}
           </p>
         </div>
         <ClusterAccessNotice
@@ -1954,7 +1968,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             hideChrome={true}
             showLiveIndicator={false}
             maxVisibleSteps={10}
-            run={runTimes ? { ...runTimes, status: runStatus || undefined } : undefined}
+            run={
+              runTimes
+                ? { ...runTimes, status: runStatus || undefined }
+                : undefined
+            }
             showStepTimes={true}
           />
         ) : (

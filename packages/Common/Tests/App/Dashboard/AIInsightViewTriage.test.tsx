@@ -7,7 +7,13 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import React, { act } from "react";
 import AIInsightViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AIInsights/View/Index";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
@@ -16,7 +22,9 @@ import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../Types/AI/AIInsightType";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -213,7 +221,11 @@ describe("AI insight detail — triage activity", () => {
     // The status strip and the activity header both describe the live run.
     expect(screen.getAllByText("Triaging…")).toHaveLength(2);
     expect(screen.getByText("Starting investigation")).toBeVisible();
-    expect(screen.getByText("Thinking")).toBeVisible();
+    /*
+     * The model call that answered is no step of its own (issue #6437):
+     * the search it chose follows it.
+     */
+    expect(screen.queryByText("Thinking")).not.toBeInTheDocument();
     expect(screen.getByText("Searching logs")).toBeVisible();
     expect(screen.getByText("· 3 rows · 1.5s")).toBeVisible();
     expect(screen.queryByText(RCA)).not.toBeInTheDocument();
@@ -344,5 +356,296 @@ describe("AI insight detail — triage activity", () => {
     expect(getItemMock).toHaveBeenCalledTimes(2);
     expect(screen.getByText(RCA)).toBeVisible();
     expectNoActivity();
+  });
+});
+
+/*
+ * TRY AGAIN FOR A TRIAGE THAT DID NOT FINISH, AND ITS ACTIVITY AS A STORY
+ * (issues #6437, #6438).
+ *
+ * The customer's triage failed - its self-hosted model took longer than
+ * the provider's 120 seconds - kept spinning, and offered nothing to press.
+ * Now the page says what happened in words to act on, offers Try again to
+ * who may change the insight (the server says: mayTryAgain), and a triage
+ * waiting to try again by itself says when. Its activity spins nothing
+ * once the run stopped, says when each step happened, and folds the
+ * earlier steps of a long triage.
+ */
+describe("AI insight detail — triage Try again", () => {
+  const TRY_AGAIN_PATH: string = "/ai-insight/triage-try-again";
+  const NEXT_RUN_ID: string = "33333333-3333-4333-8333-333333333333";
+  const PROVIDER_ERROR: string =
+    "OpenAICompatible API request failed: The LLM provider did not respond within 120 seconds.";
+
+  interface TryAgainServer {
+    mayTryAgain: boolean;
+    tryAgain: () => Promise<unknown>;
+  }
+
+  let tryAgainServer: TryAgainServer;
+
+  function triageRunPosts(): number {
+    return postMock.mock.calls.filter((call: Array<unknown>): boolean => {
+      return (call[0] as { url: { toString: () => string } }).url
+        .toString()
+        .endsWith("/ai-insight/triage-run");
+    }).length;
+  }
+
+  function tryAgainRequests(): Array<{ data: JSONObject }> {
+    return postMock.mock.calls
+      .map(
+        (
+          call: Array<unknown>,
+        ): { url: { toString: () => string }; data: JSONObject } => {
+          return call[0] as {
+            url: { toString: () => string };
+            data: JSONObject;
+          };
+        },
+      )
+      .filter((request: { url: { toString: () => string } }): boolean => {
+        return request.url.toString().endsWith(TRY_AGAIN_PATH);
+      });
+  }
+
+  beforeEach(() => {
+    server = {
+      summary: undefined,
+      run: {
+        _id: RUN_ID,
+        status: AIRunStatus.Error,
+        errorMessage: PROVIDER_ERROR,
+      },
+      events: buildEvents(),
+    };
+    tryAgainServer = {
+      mayTryAgain: true,
+      tryAgain: (): Promise<unknown> => {
+        server.run = { _id: NEXT_RUN_ID, status: AIRunStatus.Queued };
+        server.events = [];
+        return Promise.resolve(
+          new HTTPResponse<JSONObject>(200, { triageAiRunId: NEXT_RUN_ID }, {}),
+        );
+      },
+    };
+    getItemMock.mockReset();
+    getItemMock.mockImplementation(() => {
+      return Promise.resolve(buildInsight());
+    });
+    postMock.mockReset();
+    postMock.mockImplementation(
+      (request: { url: { toString: () => string } }) => {
+        if (request.url.toString().endsWith(TRY_AGAIN_PATH)) {
+          return tryAgainServer.tryAgain();
+        }
+
+        if (!request.url.toString().endsWith("/ai-insight/triage-run")) {
+          throw new Error(`Unexpected request: ${request.url.toString()}`);
+        }
+
+        return Promise.resolve(
+          new HTTPResponse<JSONObject>(
+            200,
+            {
+              run: server.run,
+              events: server.events,
+              mayTryAgain: tryAgainServer.mayTryAgain,
+            },
+            {},
+          ),
+        );
+      },
+    );
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  test("a triage that did not finish says why in words to act on, its error under Details", async () => {
+    await renderPage();
+
+    const failure: HTMLElement = screen.getByTestId("ai-triage-failure");
+    expect(failure).toHaveTextContent("Triage did not finish");
+    expect(screen.getByTestId("ai-triage-failure-cause")).toHaveTextContent(
+      "The AI provider did not answer within 120 seconds.",
+    );
+    expect(screen.getByTestId("ai-triage-failure-fix")).toHaveTextContent(
+      "Response Timeout",
+    );
+    expect(screen.getByText(PROVIDER_ERROR)).not.toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+
+    expect(screen.getByText(PROVIDER_ERROR)).toBeVisible();
+  });
+
+  test.each([AIRunStatus.Error, AIRunStatus.Stale, AIRunStatus.Cancelled])(
+    "a %s triage offers Try again; pressing it triages again and the page follows the new run",
+    async (status: AIRunStatus) => {
+      server.run = { _id: RUN_ID, status, errorMessage: PROVIDER_ERROR };
+
+      await renderPage();
+
+      const button: HTMLElement = screen.getByRole("button", {
+        name: "Try again",
+      });
+      expect(button).toHaveAttribute(
+        "data-testid",
+        "ai-triage-failure-try-again",
+      );
+      const readsBefore: number = triageRunPosts();
+
+      await act(async () => {
+        fireEvent.click(button);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("Queued — waiting for a worker…"),
+        ).toBeVisible();
+      });
+      expect(tryAgainRequests()).toHaveLength(1);
+      expect(tryAgainRequests()[0]!.data).toEqual({ insightId: INSIGHT_ID });
+      // It read the triage again at once, not at the next poll.
+      expect(triageRunPosts()).toBe(readsBefore + 1);
+      expect(screen.queryByTestId("ai-triage-failure")).toBeNull();
+    },
+  );
+
+  test("who may not change the insight gets the notice, and no Try again", async () => {
+    tryAgainServer.mayTryAgain = false;
+
+    await renderPage();
+
+    expect(screen.getByTestId("ai-triage-failure")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  });
+
+  test("a refusal is said under the button", async () => {
+    tryAgainServer.tryAgain = (): Promise<unknown> => {
+      return Promise.resolve(
+        new HTTPErrorResponse(
+          400,
+          { message: "This insight's triage is queued or running already." },
+          {},
+        ),
+      );
+    };
+
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    });
+
+    // The suite's API words every error alike; the button shows them.
+    expect(
+      await screen.findByTestId("ai-triage-failure-try-again-error"),
+    ).toHaveTextContent("Request failed");
+    expect(screen.getByTestId("ai-triage-failure")).toBeVisible();
+  });
+
+  test("a triage waiting to try again by itself says when, and is no failure", async () => {
+    const retryAt: Date = new Date(Date.now() + 10 * 60 * 1000);
+    server.run = {
+      _id: RUN_ID,
+      status: AIRunStatus.Queued,
+      retryAt: retryAt.toISOString(),
+    };
+
+    await renderPage();
+
+    expect(screen.getByTestId("ai-triage-status")).toHaveTextContent(
+      `Trying again at ${OneUptimeDate.getLocalTimeString(retryAt, {
+        use12HourFormat: false,
+      })}`,
+    );
+    expect(screen.queryByTestId("ai-triage-failure")).toBeNull();
+  });
+
+  test("a triage whose retry time has passed waits for a worker", async () => {
+    server.run = {
+      _id: RUN_ID,
+      status: AIRunStatus.Queued,
+      retryAt: new Date(Date.now() - 60 * 1000).toISOString(),
+    };
+
+    await renderPage();
+
+    expect(screen.getByTestId("ai-triage-status")).toHaveTextContent(
+      "Queued — waiting for a worker…",
+    );
+  });
+
+  test("a stopped triage's activity spins nothing: what was open did not finish", async () => {
+    server.events = [
+      { eventType: AIRunEventType.RunStarted },
+      { eventType: AIRunEventType.ToolCallStarted, toolName: "search_logs" },
+      { eventType: AIRunEventType.LlmCallStarted },
+    ].map((event: JSONObject, index: number): JSONObject => {
+      return {
+        ...event,
+        _id: ObjectID.generate().toString(),
+        sequence: index + 1,
+      };
+    });
+
+    await renderPage();
+
+    expect(screen.getByText("Activity")).toBeVisible();
+    expect(document.querySelectorAll(".animate-spin")).toHaveLength(0);
+    expect(screen.getAllByText("· did not finish")).toHaveLength(2);
+  });
+
+  test("each step says when it happened, and a long triage folds its earlier steps", async () => {
+    const STEP_TOOLS: Array<string> = [
+      "search_logs",
+      "query_traces",
+      "query_metrics",
+    ];
+    server.events = [
+      { eventType: AIRunEventType.RunStarted },
+      ...Array.from({ length: 12 }, (_value: unknown, index: number) => {
+        const toolName: string = STEP_TOOLS[index % STEP_TOOLS.length]!;
+        return [
+          { eventType: AIRunEventType.ToolCallStarted, toolName },
+          {
+            eventType: AIRunEventType.ToolCallCompleted,
+            toolName,
+            resultSummary: { rowCount: 1 },
+          },
+        ];
+      }).flat(),
+    ].map((event: JSONObject, index: number): JSONObject => {
+      return {
+        ...event,
+        _id: ObjectID.generate().toString(),
+        sequence: index + 1,
+        createdAt: {
+          _type: "DateTime",
+          value: new Date(Date.UTC(2026, 10, 9, 14, 0, index)).toISOString(),
+        },
+      };
+    });
+
+    await renderPage();
+
+    // Thirteen steps: the latest eight show, the rest fold.
+    expect(
+      screen.getByRole("button", { name: "Show 5 earlier steps" }),
+    ).toBeVisible();
+    expect(screen.getAllByTestId("activity-step-time")).toHaveLength(8);
+    // A step's time is when it started: the last search started at :23.
+    expect(screen.getAllByTestId("activity-step-time")[7]).toHaveAttribute(
+      "dateTime",
+      new Date(Date.UTC(2026, 10, 9, 14, 0, 23)).toISOString(),
+    );
   });
 });

@@ -85,6 +85,7 @@ export default class AIRunRetryPolicy {
       AIRunFailureKind.ContextWindow,
       AIRunFailureKind.NotConfigured,
       AIRunFailureKind.LimitReached,
+      AIRunFailureKind.CreditsUsedUp,
     ];
 
   // The kinds of failure that are the provider's: down, overloaded, slow.
@@ -214,9 +215,7 @@ export default class AIRunRetryPolicy {
       maxAttempts: shouldRetry
         ? this.getMaxAttempts(classified.failureKind)
         : attempt,
-      delayInMs: shouldRetry
-        ? this.getRetryDelayInMs(attempt, data.random)
-        : 0,
+      delayInMs: shouldRetry ? this.getRetryDelayInMs(attempt, data.random) : 0,
       ...(classified.timeoutInSeconds !== undefined
         ? { timeoutInSeconds: classified.timeoutInSeconds }
         : {}),

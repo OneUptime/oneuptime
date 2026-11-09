@@ -61,9 +61,11 @@ const SEARCH_LOGS_RUN: Array<AIRunEvent> = events([
 ]);
 
 /*
- * Twelve events that draw six steps: the completion halves close steps an
- * earlier event opened, a progress log without a message and an approval
- * request draw nothing, and RunCompleted only ends the run.
+ * Twelve events that draw five steps: the completion halves close steps an
+ * earlier event opened, a model call that answered is no step of its own
+ * (the steps it chose follow it, issue #6437), a progress log without a
+ * message and an approval request draw nothing, and RunCompleted only ends
+ * the run.
  */
 const MIXED_RUN: Array<AIRunEvent> = events([
   { eventType: AIRunEventType.RunStarted },
@@ -92,7 +94,6 @@ const MIXED_RUN: Array<AIRunEvent> = events([
 
 const MIXED_RUN_STEP_TEXTS: Array<string> = [
   "Starting investigation",
-  "Thinking",
   "Analyzing traces",
   "Searching logs",
   "Cloning repository",
@@ -160,7 +161,7 @@ describe("hasRenderableActivity", () => {
  * sizes the feed with it so every step shows. It has to count what the feed
  * draws: the raw event list also holds the halves that only close a step, so
  * counting events would inflate the tab count and, if it ever undercounted,
- * the sized feed would hide steps behind a "+ N earlier steps" line.
+ * the sized feed would hide steps behind a "Show N earlier steps" button.
  */
 describe("countActivitySteps", () => {
   test("no events count zero steps", () => {
@@ -263,7 +264,9 @@ describe("countActivitySteps", () => {
       />,
     );
 
-    expect(screen.getByText("+ 1 earlier step")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Show 1 earlier step" }),
+    ).toBeVisible();
     expect(screen.queryByText("Starting investigation")).toBeNull();
     expect(screen.getByText("Opened pull request")).toBeVisible();
   });
@@ -285,7 +288,8 @@ describe("describeLiveActivity", () => {
       ]),
     );
 
-    expect(live).toEqual({ text: "Searching logs", stepCount: 3 });
+    // The model call that answered is no step: its search follows it.
+    expect(live).toEqual({ text: "Searching logs", stepCount: 2 });
   });
 
   test("the latest step running is the one named", () => {
@@ -412,7 +416,9 @@ describe("ChatActivityFeed hideChrome (Ask AI's steps and the investigation pane
       />,
     );
 
-    expect(screen.getByText("+ 8 earlier steps")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Show 8 earlier steps" }),
+    ).toBeVisible();
     expect(screen.getAllByText("Searching logs…")).toHaveLength(4);
   });
 });

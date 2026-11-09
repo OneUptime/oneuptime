@@ -37,7 +37,9 @@ import AIService, {
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
-import AIInvestigationQueue, { FailedAttemptResult } from "./InvestigationQueue";
+import AIInvestigationQueue, {
+  FailedAttemptResult,
+} from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import InvestigationLogStallCheck from "./InvestigationLogStallCheck";
 import {
@@ -887,7 +889,6 @@ export default class AIInvestigationEngine {
        */
       await keepAlive();
     };
-
 
     /*
      * Whether THIS attempt won the Running -> Completed transition. Once it

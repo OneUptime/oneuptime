@@ -8,7 +8,11 @@ import {
   parseAIRunAttemptEnd,
 } from "Common/Types/AI/AIRunAttempt";
 import OneUptimeDate from "Common/Types/Date";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  TemplateValue,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Why an AI run did not finish, in words a person can act on (issues #6437,
@@ -117,7 +121,7 @@ export function describeAiRunFailureCause(
       ) as string;
     case AIRunFailureKind.ProviderRejected:
       return translator.translateText(
-        "The AI provider refused the request: its API key, its model or its access may be wrong.",
+        "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
       ) as string;
     case AIRunFailureKind.ContextWindow:
       return translator.translateText(
@@ -129,7 +133,11 @@ export function describeAiRunFailureCause(
       ) as string;
     case AIRunFailureKind.LimitReached:
       return translator.translateText(
-        "A daily AI limit or the AI balance was reached.",
+        "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
+      ) as string;
+    case AIRunFailureKind.CreditsUsedUp:
+      return translator.translateText(
+        "This project's AI credits are used up.",
       ) as string;
     case AIRunFailureKind.ServerStopped:
       return translator.translateText(
@@ -168,9 +176,17 @@ export function describeAiRunFailureFix(
       return translator.translateText(
         "Add an AI provider in Project Settings > AI > LLM Providers, then try again.",
       ) as string;
+    /*
+     * The limits and the credits are changed by fewer people than read this:
+     * it names who can, in the words the rest of the product uses.
+     */
     case AIRunFailureKind.LimitReached:
       return translator.translateText(
-        "Try again tomorrow, or raise the limit in Project Settings > AI.",
+        "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.",
+      ) as string;
+    case AIRunFailureKind.CreditsUsedUp:
+      return translator.translateText(
+        "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
       ) as string;
     case AIRunFailureKind.ServerStopped:
       return translator.translateText(
@@ -213,20 +229,25 @@ export function formatAiRunTime(date: Date): string {
 
 /*
  * How an attempt ended, as one line of the run's activity: "Did not finish:
- * the AI provider did not answer within 120 seconds. Trying again at
- * 14:05." The cause is said without its full stop and lower-cased only in
- * English, where the line reads as one sentence.
+ * The AI provider did not answer within 120 seconds. Trying again at
+ * 14:05." The cause is the sentence the failure notice says, whole, so a
+ * language words it once; it is put together in the line's language, so a
+ * line still English reads English throughout.
  */
 export function describeAttemptEnd(
   attemptEnd: AIRunAttemptEnd,
   translator: Translator,
 ): string {
-  const cause: string = describeAiRunFailureCause(
-    {
-      failureKind: attemptEnd.failureKind || AIRunFailureKind.Other,
-      timeoutInSeconds: attemptEnd.timeoutInSeconds,
+  const cause: TemplateValue = composedValue(
+    (sentenceTranslator: Translator): string => {
+      return describeAiRunFailureCause(
+        {
+          failureKind: attemptEnd.failureKind || AIRunFailureKind.Other,
+          timeoutInSeconds: attemptEnd.timeoutInSeconds,
+        },
+        sentenceTranslator,
+      );
     },
-    translator,
   );
 
   switch (attemptEnd.outcome) {

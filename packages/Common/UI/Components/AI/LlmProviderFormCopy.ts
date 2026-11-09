@@ -423,6 +423,6 @@ export const LlmProviderFormCopy: {
    * requests, and every request then runs out of time.
    */
   responseTimeoutDescription: translationKey(
-    "How long to wait for the provider to answer one request, in seconds. Leave empty for the default: 120 seconds, or 300 for Ollama. Raise it for a slow or self-hosted model.",
+    "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.",
   ),
 };

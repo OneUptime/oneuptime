@@ -18,14 +18,19 @@ export enum AIRunFailureKind {
   ProviderTimeout = "ProviderTimeout",
   // The AI provider could not be reached, was overloaded or rate limited.
   ProviderUnavailable = "ProviderUnavailable",
-  // The AI provider refused the request: its key, its model or its access.
+  /*
+   * The AI provider refused the request: its key, its model or its access,
+   * the provider account's quota or credit among it.
+   */
   ProviderRejected = "ProviderRejected",
   // The request no longer fitted in the model's context window.
   ContextWindow = "ContextWindow",
   // There is no AI provider to use, or the provider is not set up.
   NotConfigured = "NotConfigured",
-  // A daily AI limit or the AI budget was reached.
+  // One of the project's own daily AI limits was reached.
   LimitReached = "LimitReached",
+  // The project's OneUptime AI credits are used up.
+  CreditsUsedUp = "CreditsUsedUp",
   // The server running it shut down, or the attempt stopped reporting.
   ServerStopped = "ServerStopped",
   // Anything else.
@@ -140,19 +145,31 @@ export const parseAIRunAttemptEnd: (
  * plain alternation of fixed phrases (no nested repetition), so matching an
  * error a provider wrote takes time in step with its length.
  */
-const TIMEOUT_SECONDS_PATTERN: RegExp = /did not respond within (\d{1,6}) second/i;
+const TIMEOUT_SECONDS_PATTERN: RegExp =
+  /did not respond within (\d{1,6}) second/i;
 const TIMEOUT_PATTERN: RegExp =
   /did not respond in time|did not respond within|timed out|timeout of \d+ ?ms exceeded|gateway timeout|ETIMEDOUT/i;
 const CONTEXT_WINDOW_PATTERN: RegExp =
   /larger than the model's context window|context length|context window/i;
 const NOT_CONFIGURED_PATTERN: RegExp =
   /no llm provider configured|llm provider type is not configured|no ai provider/i;
+// The project's own daily AI limits (AIService), and the autonomous budget.
 const LIMIT_PATTERN: RegExp =
-  /token budget exhausted|reached its daily AI (?:token|spend) limit|insufficient balance|not enough balance|out of AI credits/i;
+  /token budget exhausted|reached its daily AI (?:token|spend) limit/i;
+/*
+ * The project's OneUptime AI credits (Utils/Project/ProjectBalance,
+ * AIService), and the words an older run failed with.
+ */
+const CREDITS_PATTERN: RegExp =
+  /AI credits are used up|AI credit balance is used up|out of AI credits|insufficient AI balance/i;
 const SERVER_STOPPED_PATTERN: RegExp =
   /stopped reporting progress|handed back to the queue|server running it shut down/i;
+/*
+ * The provider's refusal: its key, its model, its access - and its own
+ * account's quota or credit, which no retry gets past either.
+ */
 const REJECTED_PATTERN: RegExp =
-  /invalid[ _]api[ _]key|incorrect api key|invalid x-api-key|unauthori[sz]ed|authentication_error|permission_denied|model_not_found|model not found|does not exist or you do not have access/i;
+  /invalid[ _]api[ _]key|incorrect api key|invalid x-api-key|unauthori[sz]ed|authentication_error|permission_denied|model_not_found|model not found|does not exist or you do not have access|insufficient_quota|exceeded your current quota|insufficient balance|not enough balance/i;
 const UNAVAILABLE_PATTERN: RegExp =
   /rate[ _]limit|too many requests|overloaded|service unavailable|bad gateway|internal server error|server_error|could not be reached|refused the connection|closed the connection|could not be resolved|secure connection to the LLM provider|ECONNREFUSED|ECONNRESET|socket hang up/i;
 
@@ -180,6 +197,10 @@ export const classifyAIRunFailureMessage: (message: string) => {
 
   if (LIMIT_PATTERN.test(text)) {
     return { failureKind: AIRunFailureKind.LimitReached };
+  }
+
+  if (CREDITS_PATTERN.test(text)) {
+    return { failureKind: AIRunFailureKind.CreditsUsedUp };
   }
 
   if (CONTEXT_WINDOW_PATTERN.test(text)) {

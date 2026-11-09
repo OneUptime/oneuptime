@@ -5,8 +5,11 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Query from "../../../../Types/BaseDatabase/Query";
 import { InvestigationNotStartedCode } from "../../../../Types/AI/InvestigationNotStartedReason";
+import ProjectAiDailyLimits from "../../../../Types/AI/ProjectAiDailyLimits";
+import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../../../Utils/Project/ProjectBalance";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunService from "../../../Services/AIRunService";
+import QueryHelper from "../../../Types/Database/QueryHelper";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIInvestigationQueue from "./InvestigationQueue";
 import InvestigationRules from "./InvestigationRules";
@@ -32,18 +35,22 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export type InvestigationTryAgainSubjectType = "incident" | "alert";
 
-// What the person reads when it cannot start, by what stopped it.
-const NOT_STARTED_MESSAGES: Partial<Record<InvestigationNotStartedCode, string>> =
-  {
-    ai_disabled:
-      "OneUptime AI is switched off for this project. Turn it on in Project Settings > AI, then try again.",
-    provider_missing:
-      "This project has no AI provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
-    insufficient_ai_balance:
-      "The project's AI balance is used up. Add AI credits in Project Settings > Billing, then try again.",
-    project_daily_limit_reached:
-      "The project reached its own daily AI limit. Try again tomorrow, or raise the limit in Project Settings > AI.",
-  };
+/*
+ * What the person reads when it cannot start, by what stopped it. It is said
+ * to whoever pressed Try again, who may not be able to change what stopped
+ * it, so it names who can (the shared wordings for the AI credits and the
+ * daily AI limits).
+ */
+export const INVESTIGATION_NOT_STARTED_MESSAGES: Partial<
+  Record<InvestigationNotStartedCode, string>
+> = {
+  ai_disabled:
+    "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+  provider_missing:
+    "This project has no AI provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
+  insufficient_ai_balance: PROJECT_AI_CREDITS_USED_UP_MESSAGE,
+  project_daily_limit_reached: `The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. ${ProjectAiDailyLimits.getWhoCanChangeSentence()}`,
+};
 
 export default class InvestigationTryAgain {
   // The latest investigation run of the subject, as the AI card reads it.
@@ -126,12 +133,18 @@ export default class InvestigationTryAgain {
       });
 
     const refusal: string | undefined = disabledReason
-      ? NOT_STARTED_MESSAGES[disabledReason]
+      ? INVESTIGATION_NOT_STARTED_MESSAGES[disabledReason]
       : undefined;
 
     if (refusal) {
       throw new BadDataException(refusal);
     }
+
+    /*
+     * Asked again inside the subject's lock, right before the run is
+     * created: two people pressing Try again at once start it once.
+     */
+    let isStartedAlready: boolean = false;
 
     const runId: ObjectID | null = await AIInvestigationQueue.enqueue({
       projectId: data.projectId,
@@ -139,11 +152,32 @@ export default class InvestigationTryAgain {
         ? { subjectIncidentId: data.subjectId }
         : { subjectAlertId: data.subjectId }),
       llmProviderId,
+      admitInsideSubjectLock: async (): Promise<boolean> => {
+        const liveRunCount: number = (
+          await AIRunService.countBy({
+            query: {
+              ...this.buildLatestRunQuery(data),
+              status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
+            },
+            props: { isRoot: true },
+          })
+        ).toNumber();
+
+        isStartedAlready = liveRunCount > 0;
+
+        return !isStartedAlready;
+      },
     });
+
+    if (!runId && isStartedAlready) {
+      throw new BadDataException(
+        `This ${noun}'s investigation is queued or running already.`,
+      );
+    }
 
     if (!runId) {
       throw new BadDataException(
-        "The investigation could not start: the project's AI budget for today may be used up. Try again later.",
+        "The investigation could not start: the project may have reached its daily AI limit, which resets at midnight UTC. Try again later.",
       );
     }
 

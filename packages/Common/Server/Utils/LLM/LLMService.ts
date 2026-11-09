@@ -1172,7 +1172,10 @@ export default class LLMService {
 
     return (
       Math.min(
-        Math.max(Math.round(timeoutInSeconds), this.MIN_PROVIDER_TIMEOUT_IN_SECONDS),
+        Math.max(
+          Math.round(timeoutInSeconds),
+          this.MIN_PROVIDER_TIMEOUT_IN_SECONDS,
+        ),
         this.MAX_PROVIDER_TIMEOUT_IN_SECONDS,
       ) * 1000
     );

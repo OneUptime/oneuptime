@@ -58,6 +58,8 @@ export enum InsightTriageNotEnqueuedReason {
   AlreadyRunning = "AlreadyRunning",
   // The AI budget had no headroom, or the run could not be created.
   NotQueued = "NotQueued",
+  // Something failed on the way: logged, and the scan goes on.
+  Failed = "Failed",
 }
 
 /*
@@ -72,15 +74,21 @@ export const INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES: Record<
   [InsightTriageNotEnqueuedReason.NotFound]:
     "This AI insight no longer exists.",
   [InsightTriageNotEnqueuedReason.AiOff]:
-    "OneUptime AI is switched off for this project. Turn it on in Project Settings > AI, then try again.",
+    "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+  /*
+   * Only AI Insights' own switch is left to be off: a telemetry product's
+   * AI that works on the insight's kind is on (getLaneWorkingOn).
+   */
   [InsightTriageNotEnqueuedReason.SwitchOff]:
-    "AI triage is switched off for this kind of insight. Turn it on in Project Settings > AI, then try again.",
+    "AI Insights is switched off for this project, so no insight is triaged. A project owner or admin can turn on Watch telemetry for problems in AI → Insights → Settings.",
   [InsightTriageNotEnqueuedReason.NoProvider]:
     "This project has no AI provider to triage with. Add one in Project Settings > AI > LLM Providers, then try again.",
   [InsightTriageNotEnqueuedReason.AlreadyRunning]:
     "This insight is being triaged already.",
   [InsightTriageNotEnqueuedReason.NotQueued]:
-    "The triage could not start: the project's AI budget for today may be used up. Try again later.",
+    "The triage could not start: the project may have reached its daily AI limit, which resets at midnight UTC. Try again later.",
+  [InsightTriageNotEnqueuedReason.Failed]:
+    "The triage could not start. Try again in a moment.",
 };
 
 export interface InsightTriageResult {
@@ -94,7 +102,8 @@ export default class InsightTriage {
   /*
    * NEVER throws — this runs inside the scanner's per-insight routing and a
    * failed triage enqueue must not fail the scan itself. Every failure is
-   * logged and swallowed; an empty result means "no triage enqueued".
+   * logged and swallowed; a result without triageAiRunId means "no triage
+   * enqueued", and its notEnqueuedReason says why (for Try again's refusal).
    */
   @CaptureSpan()
   public static async enqueueInsightTriage(data: {
@@ -237,7 +246,7 @@ export default class InsightTriage {
       logger.error(
         `AI insights: failed to enqueue triage for insight ${insight.id?.toString()}: ${error}`,
       );
-      return { notEnqueuedReason: InsightTriageNotEnqueuedReason.NotQueued };
+      return { notEnqueuedReason: InsightTriageNotEnqueuedReason.Failed };
     }
   }
 

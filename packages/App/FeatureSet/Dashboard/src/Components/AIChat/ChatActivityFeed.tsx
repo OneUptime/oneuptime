@@ -57,17 +57,13 @@ import {
 } from "../AI/AiContextActivityView";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
-import AIRun from "Common/Models/DatabaseModels/AIRun";
-import { JSONObject } from "Common/Types/JSON";
+import { ActivityFeedRun, canRunHaveRunningSteps } from "./ActivityFeedRun";
 import {
   AIRunAttemptEnd,
   AIRunAttemptOutcome,
   parseAIRunAttemptEnd,
 } from "Common/Types/AI/AIRunAttempt";
-import {
-  describeAttemptEnd,
-  formatAiRunTime,
-} from "../AI/AiRunFailureWords";
+import { describeAttemptEnd, formatAiRunTime } from "../AI/AiRunFailureWords";
 import OneUptimeDate from "Common/Types/Date";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
@@ -279,45 +275,6 @@ export interface ComponentProps {
    * reader's language and time zone. Defaults to false.
    */
   showStepTimes?: boolean | undefined;
-}
-
-// What the feed reads of the run its events belong to.
-export interface ActivityFeedRun {
-  status?: AIRunStatus | undefined;
-  createdAt?: Date | undefined;
-  startedAt?: Date | undefined;
-  completedAt?: Date | undefined;
-  // When a run waiting between attempts tries again.
-  retryAt?: Date | undefined;
-}
-
-// A run's status and times, as the API sends a run (JSON), for the feed.
-export function readActivityFeedRun(runJson: JSONObject): ActivityFeedRun {
-  const run: AIRun = AIRun.fromJSONObject(runJson, AIRun);
-
-  return {
-    status: run.status,
-    createdAt: run.createdAt,
-    startedAt: run.startedAt,
-    completedAt: run.completedAt,
-    retryAt: run.retryAt,
-  };
-}
-
-/*
- * A step can be running only while its run is: Running (or waiting for an
- * approval). A queued run - waiting for a worker, or between attempts -
- * and a run that is over have no step running.
- */
-export function canRunHaveRunningSteps(run: ActivityFeedRun | undefined): boolean {
-  if (!run || !run.status) {
-    return true;
-  }
-
-  return (
-    run.status === AIRunStatus.Running ||
-    run.status === AIRunStatus.WaitingForApproval
-  );
 }
 
 type ActivityStepStatus = "running" | "done" | "failed" | "stopped";
@@ -1348,6 +1305,16 @@ function groupRepeatedSteps(steps: Array<ActivityStep>): Array<ActivityRow> {
   return rows;
 }
 
+/*
+ * The steps that did something, for "12 steps": the line saying how an
+ * attempt ended is not one of them.
+ */
+function countWorkSteps(steps: Array<ActivityStep>): number {
+  return steps.filter((step: ActivityStep): boolean => {
+    return step.kind !== "attemptEnd";
+  }).length;
+}
+
 // The steps of one attempt of the run, and how it ended when it did.
 interface ActivityAttempt {
   number: number;
@@ -1449,9 +1416,9 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
    */
   const [openAttempts, setOpenAttempts] = useState<Array<number>>([]);
   const [openRepeats, setOpenRepeats] = useState<Array<string>>([]);
-  const [attemptsShowingAll, setAttemptsShowingAll] = useState<
-    Array<number>
-  >([]);
+  const [attemptsShowingAll, setAttemptsShowingAll] = useState<Array<number>>(
+    [],
+  );
 
   const canStepsRun: boolean = canRunHaveRunningSteps(props.run);
   const steps: Array<ActivityStep> = buildSteps(props.events, translator).map(
@@ -1465,8 +1432,13 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
   const maxVisibleSteps: number = Math.max(props.maxVisibleSteps ?? 7, 1);
   const showLiveIndicator: boolean = props.showLiveIndicator ?? true;
   const attempts: Array<ActivityAttempt> = groupAttempts(steps);
+  /*
+   * How many attempts the run gets, as its attempts' ends say ("Attempt 2
+   * of 3"). An older run's events do not say, and its attempts have no
+   * "of".
+   */
   const maxAttempts: number = Math.max(
-    attempts.length,
+    0,
     ...attempts.map((attempt: ActivityAttempt): number => {
       return attempt.end?.maxAttempts || 0;
     }),
@@ -1778,9 +1750,10 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
    * The same step done several times in a row: its first time, how many
    * times, and a toggle that opens each of them under it.
    */
-  const renderRepeatRow: (
-    row: { key: string; steps: Array<ActivityStep> },
-  ) => ReactElement = (row: {
+  const renderRepeatRow: (row: {
+    key: string;
+    steps: Array<ActivityStep>;
+  }) => ReactElement = (row: {
     key: string;
     steps: Array<ActivityStep>;
   }): ReactElement => {
@@ -1801,9 +1774,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
               aria-controls={listId}
               className="inline-flex items-center gap-0.5 rounded text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               onClick={() => {
-                setOpenRepeats(
-                  toggle(openRepeats, row.key) as Array<string>,
-                );
+                setOpenRepeats(toggle(openRepeats, row.key) as Array<string>);
               }}
             >
               {translator.translatePlural(
@@ -1884,17 +1855,20 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // "Attempt 2 of 3", or "Attempt 2" when how many it gets is not known.
+  /*
+   * "Attempt 2 of 3", or "Attempt 2" when how many it gets is not known; its
+   * numbers written as the row's step count is ("۲" in Persian).
+   */
   const describeAttemptNumber: (number: number) => string = (
     number: number,
   ): string => {
     return maxAttempts >= number && maxAttempts > 1
       ? translator.translateTemplate("Attempt {{number}} of {{count}}", {
-          number: String(number),
-          count: String(maxAttempts),
+          number: translator.formatNumber(number),
+          count: translator.formatNumber(maxAttempts),
         })
       : translator.translateTemplate("Attempt {{number}}", {
-          number: String(number),
+          number: translator.formatNumber(number),
         });
   };
 
@@ -1903,7 +1877,9 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     attempt: ActivityAttempt,
   ): string => {
     if (attempt.end?.outcome === AIRunAttemptOutcome.HandedBack) {
-      return translator.translateText("paused when its server stopped") as string;
+      return translator.translateText(
+        "paused when its server stopped",
+      ) as string;
     }
 
     if (attempt.end?.outcome === AIRunAttemptOutcome.Stalled) {
@@ -1953,7 +1929,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
               · {describeAttemptOutcome(attempt)} ·{" "}
               {translator.translatePlural(
                 { one: "{{count}} step", other: "{{count}} steps" },
-                attempt.steps.length,
+                countWorkSteps(attempt.steps),
               )}
             </span>
           </span>
@@ -2006,21 +1982,29 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
       translator.translateTemplate("Started {{time}}", { time: started }),
     ];
 
+    /*
+     * How long, put together in its sentence's language: a sentence still
+     * English says "6 minutes", never "6 Minuten".
+     */
+    const elapsed: (milliseconds: number) => TemplateValue = (
+      milliseconds: number,
+    ): TemplateValue => {
+      return composedValue((sentenceTranslator: Translator): string => {
+        return describeElapsedTime(milliseconds, sentenceTranslator);
+      });
+    };
+
     if (completedAt) {
       parts.push(
         translator.translateTemplate("took {{duration}}", {
-          duration: describeElapsedTime(
-            completedAt.getTime() - startedAt.getTime(),
-            translator,
-          ),
+          duration: elapsed(completedAt.getTime() - startedAt.getTime()),
         }),
       );
     } else if (props.run.status === AIRunStatus.Running) {
       parts.push(
         translator.translateTemplate("running for {{duration}}", {
-          duration: describeElapsedTime(
+          duration: elapsed(
             OneUptimeDate.getCurrentDate().getTime() - startedAt.getTime(),
-            translator,
           ),
         }),
       );
@@ -2029,7 +2013,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     parts.push(
       translator.translatePlural(
         { one: "{{count}} step", other: "{{count}} steps" },
-        steps.length,
+        countWorkSteps(steps),
       ),
     );
 
@@ -2055,11 +2039,11 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
         {renderRunSummary()}
         {attempts.length > 1 ? (
           <>
-            {attempts.slice(0, -1).map(
-              (attempt: ActivityAttempt): ReactElement => {
+            {attempts
+              .slice(0, -1)
+              .map((attempt: ActivityAttempt): ReactElement => {
                 return renderEarlierAttempt(attempt);
-              },
-            )}
+              })}
             <div
               data-testid="activity-attempt"
               data-attempt={latestAttempt.number}

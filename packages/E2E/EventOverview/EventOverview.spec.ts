@@ -1482,7 +1482,9 @@ test.describe("AI investigation report", () => {
 
     /*
      * What the run did and the read-only guarantee stay on the card while the
-     * details are collapsed; tokens and the model wait inside them.
+     * details are collapsed; tokens and the model wait inside them. Eleven
+     * steps: starting and its ten queries. Its three model calls answered,
+     * and a call that answered is no step of its own (issue #6437).
      */
     const usage: Locator = namedList(
       investigationDetails(page),
@@ -1491,7 +1493,7 @@ test.describe("AI investigation report", () => {
     await expect(usage).toBeVisible();
     await expect(usage.getByRole("listitem")).toHaveText([
       "10 telemetry queries",
-      "14 steps",
+      "11 steps",
       READ_ONLY,
     ]);
     await expect(namedList(investigation, "Investigation usage")).toHaveCount(
@@ -2480,7 +2482,7 @@ test.describe("investigation details", () => {
     ).toHaveCount(2);
     // Each tab names its panel and carries its count.
     await expect(evidenceTab).toHaveAccessibleName("Evidence checked 10");
-    await expect(activityTab).toHaveAccessibleName("Activity 14");
+    await expect(activityTab).toHaveAccessibleName("Activity 11");
     await expect(evidencePanel).toHaveAttribute(
       "id",
       (await evidenceTab.getAttribute("aria-controls")) || "missing",
@@ -2608,7 +2610,7 @@ test.describe("investigation details", () => {
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await expect(
       namedList(details, "Investigation usage").getByRole("listitem"),
-    ).toHaveText(["10 telemetry queries", "14 steps", READ_ONLY]);
+    ).toHaveText(["10 telemetry queries", "11 steps", READ_ONLY]);
     await expectAbove(
       investigation.getByText("Preparing the final report"),
       details,
@@ -3339,7 +3341,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
       "Preparing the final report",
       "The investigation is complete. OneUptime AI is organizing the findings and evidence.",
     ],
-    usage: ["10 telemetry queries", "14 steps", READ_ONLY],
+    usage: ["10 telemetry queries", "11 steps", READ_ONLY],
     hasDetails: true,
   },
 ];
