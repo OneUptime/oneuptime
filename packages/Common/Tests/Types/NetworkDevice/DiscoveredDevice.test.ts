@@ -7,6 +7,7 @@ import {
   DiscoveredDeviceSort,
   MAX_DISCOVERED_DEVICES_PER_ACTION,
   MAX_DISCOVERED_DEVICE_PAGE_SIZE,
+  getEndpointIdFromNodeKey,
   getEndpointNodeKey,
   isShownBy,
   readDiscoveredDeviceIds,
@@ -324,6 +325,30 @@ describe("which rows each choice shows", () => {
 
   test("an endpoint's node on the map is keyed by its row", () => {
     expect(getEndpointNodeKey(ID_A)).toBe(`endpoint:${ID_A}`);
+  });
+
+  test("an endpoint node's key reads back to its row, lower-cased", () => {
+    expect(getEndpointIdFromNodeKey(getEndpointNodeKey(ID_A))).toBe(ID_A);
+    expect(getEndpointIdFromNodeKey(`endpoint:${ID_A.toUpperCase()}`)).toBe(
+      ID_A,
+    );
+    expect(getEndpointIdFromNodeKey(`endpoint: ${ID_B} `)).toBe(ID_B);
+  });
+
+  test.each([
+    ["a monitored device's node", `device:${ID_A}`],
+    ["a node with no key", ""],
+    ["a key with no id", "endpoint:"],
+    ["a key whose id is not one", "endpoint:not-an-id"],
+    ["an id with no endpoint prefix", ID_A],
+    ["the prefix in another case", `Endpoint:${ID_A}`],
+  ])("%s is no discovered device", (_label: string, nodeKey: string) => {
+    expect(getEndpointIdFromNodeKey(nodeKey)).toBeUndefined();
+  });
+
+  test("no key at all is no discovered device", () => {
+    expect(getEndpointIdFromNodeKey(null)).toBeUndefined();
+    expect(getEndpointIdFromNodeKey(undefined)).toBeUndefined();
   });
 });
 

@@ -889,6 +889,18 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
         );
       },
     },
+    /*
+     * A Table draws a row's own actions (Add to monitoring, View device and
+     * the ⋯) only in a column of their own: ModelTable adds it, this list
+     * says it.
+     */
+    {
+      title: "Actions",
+      type: FieldType.Actions,
+      key: null,
+      disableSort: true,
+      disableCsvExport: true,
+    },
   ];
 
   // ---- Select every matching row.
