@@ -1,5 +1,6 @@
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../Types/JSON";
+import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import {
   AnomalyDetectionSensitivity,
   CheckOn,
@@ -2107,5 +2108,154 @@ describe("A metric's forecast reads and writes as a rule", () => {
       rule: null,
       problem: TelemetryAlertRuleShapeProblem.UnsupportedCondition,
     });
+  });
+});
+
+/*
+ * Issue #6460: a Service Bus namespace's metrics arrive once per queue, and
+ * its own number is their Sum - a count's in any interval, messages
+ * waiting's only by the minute, which a Metrics monitor reads a window of
+ * up to 3 hours in (MetricQueryCloudAggregation). A rule's new window that
+ * moves the monitor to other intervals takes each query's default
+ * aggregation for them; one picked is kept.
+ */
+describe("A Metrics rule's window, on a namespace's metrics", () => {
+  const SHOP: string =
+    "/subscriptions/3f2b8c1e-5a6d-4e7f-9a0b-1c2d3e4f5a6b/resourceGroups/rg-prod/providers/Microsoft.ServiceBus/namespaces/shop";
+
+  type NamespaceQuery = { metricName: string; aggregationType: string };
+
+  type NamespaceStepFunction = (
+    queries: Array<NamespaceQuery>,
+    rollingTime: RollingTime,
+  ) => MonitorStep;
+
+  // A Metrics step reading the namespace's metrics, with the default criteria.
+  const namespaceStep: NamespaceStepFunction = (
+    queries: Array<NamespaceQuery>,
+    rollingTime: RollingTime,
+  ): MonitorStep => {
+    const step: MonitorStep = defaultStep(MonitorType.Metrics);
+
+    step.setMetricMonitor({
+      metricViewConfig: {
+        queryConfigs: queries.map((query: NamespaceQuery, index: number) => {
+          return {
+            metricAliasData: {
+              metricVariable: String.fromCharCode(97 + index),
+              title: "",
+              description: "",
+              legend: "",
+              legendUnit: "",
+            },
+            metricQueryData: {
+              filterData: {
+                metricName: query.metricName,
+                attributes: { "azuremonitor.resource_id": SHOP },
+                aggegationType: query.aggregationType,
+              },
+            },
+          } as any;
+        }),
+        formulaConfigs: [],
+      },
+      rollingTime,
+    });
+
+    return step;
+  };
+
+  type WindowFunction = (
+    step: MonitorStep,
+    rollingTime: RollingTime,
+  ) => MonitorStep;
+
+  const withWindow: WindowFunction = (
+    step: MonitorStep,
+    rollingTime: RollingTime,
+  ): MonitorStep => {
+    return TelemetryAlertRuleUtil.write({
+      monitorType: MonitorType.Metrics,
+      monitorStep: step,
+      rule: { ...ruleOf(MonitorType.Metrics, step), rollingTime },
+    });
+  };
+
+  type AggregationsFunction = (step: MonitorStep) => Array<unknown>;
+
+  const aggregationsOf: AggregationsFunction = (
+    step: MonitorStep,
+  ): Array<unknown> => {
+    return step.data!.metricMonitor!.metricViewConfig.queryConfigs.map(
+      (config: MetricQueryConfigData): unknown => {
+        return config.metricQueryData.filterData.aggegationType;
+      },
+    );
+  };
+
+  test("past 3 hours messages waiting go back to the average and messages in stay summed; within 3 hours they are summed again", () => {
+    const step: MonitorStep = namespaceStep(
+      [
+        { metricName: "azure_activemessages_average", aggregationType: "Sum" },
+        { metricName: "azure_incomingmessages_total", aggregationType: "Sum" },
+      ],
+      RollingTime.Past15Minutes,
+    );
+
+    const longer: MonitorStep = withWindow(step, RollingTime.Past6Hours);
+
+    expect(longer.data!.metricMonitor!.rollingTime).toBe(
+      RollingTime.Past6Hours,
+    );
+    expect(aggregationsOf(longer)).toEqual(["Avg", "Sum"]);
+    // The step handed in is not changed.
+    expect(aggregationsOf(step)).toEqual(["Sum", "Sum"]);
+
+    const shorter: MonitorStep = withWindow(longer, RollingTime.Past3Hours);
+
+    expect(shorter.data!.metricMonitor!.rollingTime).toBe(
+      RollingTime.Past3Hours,
+    );
+    expect(aggregationsOf(shorter)).toEqual(["Sum", "Sum"]);
+  });
+
+  test("a window read in the same intervals leaves the queries as they are", () => {
+    const step: MonitorStep = namespaceStep(
+      [{ metricName: "azure_activemessages_average", aggregationType: "Avg" }],
+      RollingTime.Past15Minutes,
+    );
+
+    expect(aggregationsOf(withWindow(step, RollingTime.Past3Hours))).toEqual([
+      "Avg",
+    ]);
+  });
+
+  test("an aggregation picked on a query is kept, whatever the window", () => {
+    const step: MonitorStep = namespaceStep(
+      [
+        { metricName: "azure_activemessages_average", aggregationType: "Max" },
+        {
+          metricName: "azure_serversendlatency_average",
+          aggregationType: "Avg",
+        },
+      ],
+      RollingTime.Past15Minutes,
+    );
+
+    expect(aggregationsOf(withWindow(step, RollingTime.Past1Hours))).toEqual([
+      "Max",
+      "Avg",
+    ]);
+  });
+
+  test("a CPU's average reads as it did", () => {
+    const step: MonitorStep = metricStep();
+    step.setMonitorCriteria(
+      defaultStep(MonitorType.Metrics).data!.monitorCriteria,
+    );
+
+    expect(aggregationsOf(withWindow(step, RollingTime.Past6Hours))).toEqual([
+      "Avg",
+    ]);
   });
 });

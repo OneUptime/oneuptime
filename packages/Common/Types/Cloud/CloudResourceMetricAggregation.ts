@@ -39,9 +39,24 @@ import { getAzureStoredMetricName } from "./CloudKeyMetrics";
 
 type SummedMetricKind = "count" | "amount";
 
+/*
+ * What a type reports its summed metrics once per, as a sentence names it
+ * (getCloudResourceSummedParts).
+ */
+export interface CloudResourceSummedParts {
+  // After "once per": "queue and topic".
+  each: string;
+  // After "the average": "queue".
+  one: string;
+  // After "its": "queues and topics".
+  all: string;
+}
+
 interface SummedAzureMetrics {
   // ARM type, as CloudResourceCatalog spells it.
   type: string;
+  // What Azure Monitor's EntityName names on this type.
+  parts: CloudResourceSummedParts;
   // Counts per period, as Azure Monitor names them.
   counts: ReadonlyArray<string>;
   // Amounts held at a point in time.
@@ -62,6 +77,7 @@ const AMOUNT_AGGREGATIONS: ReadonlyArray<string> = [
 const SUMMED_AZURE_METRICS: ReadonlyArray<SummedAzureMetrics> = [
   {
     type: "Microsoft.ServiceBus/namespaces",
+    parts: { each: "queue and topic", one: "queue", all: "queues and topics" },
     counts: [
       "IncomingMessages",
       "OutgoingMessages",
@@ -87,6 +103,7 @@ const SUMMED_AZURE_METRICS: ReadonlyArray<SummedAzureMetrics> = [
   },
   {
     type: "Microsoft.EventHub/namespaces",
+    parts: { each: "event hub", one: "event hub", all: "event hubs" },
     counts: [
       "IncomingMessages",
       "OutgoingMessages",
@@ -143,17 +160,44 @@ const SUMMED_STORED_NAMES_BY_AZURE_TYPE: ReadonlyMap<
   ),
 );
 
-function getSummedStoredNames(data: {
+function getSummedAzureMetrics(data: {
   provider: string | null | undefined;
   type: string | null | undefined;
-}): ReadonlyMap<string, SummedMetricKind> | undefined {
+}): SummedAzureMetrics | undefined {
   if ((data.provider || "").trim().toLowerCase() !== CloudProvider.Azure) {
     return undefined;
   }
 
-  return SUMMED_STORED_NAMES_BY_AZURE_TYPE.get(
-    (data.type || "").trim().toLowerCase(),
-  );
+  const type: string = (data.type || "").trim().toLowerCase();
+
+  return SUMMED_AZURE_METRICS.find((entry: SummedAzureMetrics): boolean => {
+    return entry.type.toLowerCase() === type;
+  });
+}
+
+function getSummedStoredNames(data: {
+  provider: string | null | undefined;
+  type: string | null | undefined;
+}): ReadonlyMap<string, SummedMetricKind> | undefined {
+  const entry: SummedAzureMetrics | undefined = getSummedAzureMetrics(data);
+
+  return entry
+    ? SUMMED_STORED_NAMES_BY_AZURE_TYPE.get(entry.type.toLowerCase())
+    : undefined;
+}
+
+/*
+ * What a resource whose metrics add up reports them once per, in the words
+ * that say so - a moved monitor's feed entry, OneUptime AI's metric reads:
+ * a Service Bus namespace "once per queue and topic", whose average is "the
+ * average queue", the total of "its queues and topics"; an Event Hubs
+ * namespace's event hubs. Undefined for every other resource.
+ */
+export function getCloudResourceSummedParts(data: {
+  provider: string | null | undefined;
+  type: string | null | undefined;
+}): CloudResourceSummedParts | undefined {
+  return getSummedAzureMetrics(data)?.parts;
 }
 
 /*

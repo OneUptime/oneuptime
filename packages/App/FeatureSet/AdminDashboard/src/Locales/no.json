@@ -1064,6 +1064,8 @@
   "e.g. Production OpenAI": "f.eks. Produksjons-OpenAI",
   "What this provider is for.": "Hva leverandøren brukes til.",
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Ekstra JSON-parametere som sendes til leverandøren med hver forespørsel, for eksempel {\"temperature\": 0.2}. La stå tom med mindre modellen din trenger dem.",
+  "Response Timeout (Seconds)": "Svartidsavbrudd (sekunder)",
+  "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Sekunder det ventes på leverandørens svar på én forespørsel. La feltet stå tomt for 120 (300 for Ollama). Øk verdien for en treg eller selvhostet modell.",
   "Never put keys here.": "Legg aldri inn nøkler her.",
   "Your deployment's name, exactly as Foundry shows it.": "Navnet på distribusjonen din, nøyaktig slik Foundry viser det.",
   "{{name}} (default)": "{{name}} (standard)",

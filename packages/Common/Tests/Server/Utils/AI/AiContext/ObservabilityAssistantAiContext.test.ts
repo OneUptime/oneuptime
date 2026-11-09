@@ -20,6 +20,7 @@ import {
   AiContextActivity,
   composeAiContext,
 } from "../../../../../Types/AI/AiContext";
+import AIAgentRunLimitsHelper from "../../../../../Types/AI/AIAgentRunLimits";
 import ObjectID from "../../../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
@@ -111,7 +112,8 @@ async function ask(
     props: { isRoot: true, tenantId: PROJECT_ID },
     question: QUESTION,
     feature: "AI Incident Investigation",
-    maxWallClockMs: null,
+    // An investigation's runner reads its limits and passes them in.
+    runLimits: AIAgentRunLimitsHelper.getDefault(),
     systemInstructions: PERSONA,
     ...overrides,
   });
@@ -205,12 +207,22 @@ describe("ObservabilityAssistant: where the AI context goes", () => {
       feature: "Slack ChatOps",
     });
 
-    expect(read).toHaveBeenCalledTimes(1);
+    /*
+     * Two reads of the project: its notes, and - since a Slack or Teams
+     * answer is handed no limits either - its limits per run (#6440).
+     */
+    expect(read).toHaveBeenCalledTimes(2);
     expect(read).toHaveBeenCalledWith({
       id: PROJECT_ID,
       select: { aiContext: true },
       props: { isRoot: true },
     });
+    expect(read).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: PROJECT_ID,
+        select: expect.objectContaining({ aiRunMaxToolCalls: true }),
+      }),
+    );
     expect(messagesOf(execute, 0)[0]!.content).toContain(NOTES);
     expect(
       messagesOf(execute, 0)[0]!.content.startsWith(AI_CONTEXT_PROMPT_HEADING),

@@ -20,6 +20,11 @@ import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
+import AIRunRetryPolicy from "../../../../Server/Utils/AI/AIRunRetryPolicy";
+import {
+  AIRunAttemptOutcome,
+  AIRunFailureKind,
+} from "../../../../Types/AI/AIRunAttempt";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -132,11 +137,26 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
   test("exhausted attempts finalize too, even for a transient failure", async () => {
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
 
+    // A provider that timed out gets its three attempts (AIRunRetryPolicy).
+    const outcome: "requeued" | "finalized" | "noop" =
+      await AIInvestigationQueue.failOrRequeue({
+        aiRunId: ObjectID.generate(),
+        attemptCount: AIRunRetryPolicy.PROVIDER_FAILURE_MAX_ATTEMPTS,
+        errorMessage: "LLM provider timed out",
+        isPermanent: false,
+      });
+
+    expect(outcome).toBe("finalized");
+  });
+
+  test("any other failure finalizes once its attempts are used up", async () => {
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+
     const outcome: "requeued" | "finalized" | "noop" =
       await AIInvestigationQueue.failOrRequeue({
         aiRunId: ObjectID.generate(),
         attemptCount: MAX_INVESTIGATION_ATTEMPTS,
-        errorMessage: "LLM provider timed out",
+        errorMessage: "The tool loop crashed",
         isPermanent: false,
       });
 
@@ -385,6 +405,44 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     return create.mock.calls.map((call: Array<unknown>): AIRunEventType => {
       return (call[0] as { data: AIRunEvent }).data.eventType!;
     });
+  }
+
+  function emittedEvent(eventType: AIRunEventType): AIRunEvent | undefined {
+    const create: jest.Mock = AIRunEventService.create as unknown as jest.Mock;
+    const call: Array<unknown> | undefined = create.mock.calls.find(
+      (candidate: Array<unknown>): boolean => {
+        return (
+          (candidate[0] as { data: AIRunEvent }).data.eventType === eventType
+        );
+      },
+    );
+    return call ? (call[0] as { data: AIRunEvent }).data : undefined;
+  }
+
+  /*
+   * How the queue settled the failed attempt (failOrRequeueWithDetails),
+   * and how it ended - which the engine writes on the run's activity.
+   */
+  function failedAttempt(
+    outcome: "requeued" | "finalized" | "noop",
+  ): jest.SpyInstance {
+    return jest
+      .spyOn(AIInvestigationQueue, "failOrRequeueWithDetails")
+      .mockResolvedValue({
+        outcome,
+        attemptEnd: {
+          outcome:
+            outcome === "requeued"
+              ? AIRunAttemptOutcome.WillRetry
+              : AIRunAttemptOutcome.GaveUp,
+          failureKind: AIRunFailureKind.ProviderUnavailable,
+          attempt: 1,
+          maxAttempts: outcome === "requeued" ? 3 : 1,
+          ...(outcome === "requeued"
+            ? { nextAttemptAt: "2026-11-09T14:05:00.000Z" }
+            : {}),
+        },
+      });
   }
 
   beforeEach(() => {
@@ -670,44 +728,79 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
   });
 
   test("an agent failure that failOrRequeue FINALIZED settles", async () => {
+    const providerError: Error = new Error("provider 500");
     jest
       .spyOn(ObservabilityAssistant, "answerQuestion")
-      .mockRejectedValue(new Error("provider 500"));
-    jest
-      .spyOn(AIInvestigationQueue, "failOrRequeue")
-      .mockResolvedValue("finalized");
+      .mockRejectedValue(providerError);
+    const failOrRequeue: jest.SpyInstance = failedAttempt("finalized");
 
     await executeRun();
 
     expect(postAnalysis).not.toHaveBeenCalled();
     expect(onSettled).toHaveBeenCalledTimes(1);
     expect(emittedEventTypes()).toContain(AIRunEventType.RunFailed);
+    // The error itself goes to the retry policy: its status code tells more.
+    expect(failOrRequeue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aiRunId,
+        attemptCount: 1,
+        errorMessage: "provider 500",
+        error: providerError,
+      }),
+    );
+    // How it ended, for the dashboard to word (issue #6438).
+    expect(emittedEvent(AIRunEventType.RunFailed)!.resultSummary).toEqual({
+      attemptEnd: expect.objectContaining({
+        outcome: AIRunAttemptOutcome.GaveUp,
+        failureKind: AIRunFailureKind.ProviderUnavailable,
+      }),
+      errorMessage: "provider 500",
+    });
+    expect(emittedEventTypes()).not.toContain(AIRunEventType.AttemptEnded);
   });
 
   test("an agent failure that was REQUEUED does not settle — the retry will", async () => {
     jest
       .spyOn(ObservabilityAssistant, "answerQuestion")
       .mockRejectedValue(new Error("provider timed out"));
-    jest
-      .spyOn(AIInvestigationQueue, "failOrRequeue")
-      .mockResolvedValue("requeued");
+    failedAttempt("requeued");
 
     await executeRun();
 
     expect(onSettled).not.toHaveBeenCalled();
     expect(emittedEventTypes()).not.toContain(AIRunEventType.RunFailed);
+    // The attempt ends on the run's activity, saying when the next starts.
+    const attemptEnded: AIRunEvent | undefined = emittedEvent(
+      AIRunEventType.AttemptEnded,
+    );
+    expect(attemptEnded?.resultSummary).toEqual({
+      attemptEnd: expect.objectContaining({
+        outcome: AIRunAttemptOutcome.WillRetry,
+        nextAttemptAt: "2026-11-09T14:05:00.000Z",
+      }),
+      errorMessage: "provider timed out",
+    });
+    // After every step the attempt wrote.
+    const sequences: Array<number> = (
+      AIRunEventService.create as unknown as jest.Mock
+    ).mock.calls.map((call: Array<unknown>): number => {
+      return (call[0] as { data: AIRunEvent }).data.sequence!;
+    });
+    expect(attemptEnded!.sequence).toBe(Math.max(...sequences));
   });
 
   test("a stale failing attempt that lost ownership emits no terminal event", async () => {
     jest
       .spyOn(ObservabilityAssistant, "answerQuestion")
       .mockRejectedValue(new Error("stale attempt finished late"));
-    jest.spyOn(AIInvestigationQueue, "failOrRequeue").mockResolvedValue("noop");
+    failedAttempt("noop");
 
     await executeRun();
 
     expect(onSettled).not.toHaveBeenCalled();
     expect(emittedEventTypes()).not.toContain(AIRunEventType.RunFailed);
+    // Nor says how the attempt ended: whoever moved the run on says that.
+    expect(emittedEventTypes()).not.toContain(AIRunEventType.AttemptEnded);
   });
 
   test("a postAnalysis failure after the WON Completed transition still settles", async () => {
@@ -716,7 +809,7 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
       .mockResolvedValue(makeResult());
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
     // failOrRequeue no-ops on a Completed run — the run stays settled by us.
-    jest.spyOn(AIInvestigationQueue, "failOrRequeue").mockResolvedValue("noop");
+    failedAttempt("noop");
     postAnalysis.mockImplementation(async (): Promise<void> => {
       throw new Error("feed service down");
     });
@@ -742,7 +835,7 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
     const failOrRequeue: jest.SpyInstance = jest.spyOn(
       AIInvestigationQueue,
-      "failOrRequeue",
+      "failOrRequeueWithDetails",
     );
     onSettled.mockImplementation(async (): Promise<void> => {
       throw new Error("rule engine down");

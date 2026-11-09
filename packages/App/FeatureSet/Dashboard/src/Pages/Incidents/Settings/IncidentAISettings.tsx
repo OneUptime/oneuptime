@@ -216,7 +216,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
           cardProps={{
             title: "Investigation limits",
             description:
-              "Investigations start right away and run until they are done unless you set a limit here.",
+              "Investigations start right away and run until they are done, within the project's time limit per run, unless you set a limit here.",
             buttons: limitsGate.lockedButtons,
             /*
              * Its place in More settings: the name the folded header lists
@@ -245,10 +245,10 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Incident Investigation Time Limit (Minutes)",
               description:
-                "Stop an incident investigation after this many minutes and report what it found. Leave empty for no limit.",
+                "Stop an incident investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
-              placeholder: "No time limit",
+              placeholder: "The project's time limit",
             },
           ]}
           modelDetailProps={{
@@ -271,7 +271,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
                   incidentAiInvestigationTimeLimitInMinutes: true,
                 },
                 title: "Incident Investigation Time Limit (Minutes)",
-                placeholder: "No time limit",
+                placeholder: "The project's time limit",
                 fieldType: FieldType.Number,
               },
             ],

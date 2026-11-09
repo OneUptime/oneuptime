@@ -57,6 +57,7 @@ import MetricViewTimeRange from "./Utils/MetricViewTimeRange";
 import { MetricChartThreshold } from "./Utils/MetricChartThresholds";
 import MetricViewChartQueries from "./Utils/MetricViewChartQueries";
 import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
+import MetricQueryCloudAggregation from "Common/Utils/Metrics/MetricQueryCloudAggregation";
 import {
   getMetricResultsState,
   MetricResultsState,
@@ -184,6 +185,16 @@ interface MetricViewBodyProps {
    * data.queryConfigs is not used.
    */
   chartQueryConfigs?: Array<MetricQueryConfigData> | undefined;
+  /*
+   * The intervals each query is read in, where that is not the charts': a
+   * Metrics monitor's form passes the ones the monitor reads its window in
+   * (MetricQueryCloudAggregation.getMetricMonitorReadInterval). A query whose
+   * metric or filter is changed takes the default aggregation for what it
+   * reads in them (MetricQueryCloudAggregation.withFollowedAggregation): a
+   * Service Bus namespace's messages, the total of its queues. Absent: the
+   * charts' own intervals.
+   */
+  queryReadInterval?: AggregationInterval | undefined;
   hideQueryElements?: boolean;
   hideStartAndEndDate?: boolean;
   onChange: (data: MetricViewData) => void;
@@ -1126,7 +1137,18 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                         const newGraphConfigs: Array<MetricQueryConfigData> = [
                           ...props.data.queryConfigs,
                         ];
-                        newGraphConfigs[index] = data;
+                        /*
+                         * A new metric or filter takes its default
+                         * aggregation, unless one was picked: a namespace's
+                         * messages read as its queues' total.
+                         */
+                        newGraphConfigs[index] =
+                          MetricQueryCloudAggregation.withFollowedAggregation({
+                            previous: queryConfig,
+                            next: data,
+                            aggregationInterval:
+                              props.queryReadInterval || aggregationInterval,
+                          });
                         if (props.onChange) {
                           props.onChange({
                             ...props.data,

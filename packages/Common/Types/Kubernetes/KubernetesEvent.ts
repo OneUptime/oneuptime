@@ -571,10 +571,11 @@ export function getKubernetesEventSeverityNumber(data: {
 /*
  * When an Event's record happened, for its log's time: the last time the
  * Event happened, when the record carries no time of its own (the
- * k8sobjects receiver sets none, so the record would otherwise be stamped
- * with the moment it was ingested - and a watch's DELETED, an hour after
- * the Event, read as a new occurrence). A time ahead of `now` - a node's
- * clock running fast - is taken as `now`. Null when the Event says no time.
+ * k8sobjects receiver sets none, so the record would otherwise be stored at
+ * the moment the receiver saw it, its observed time - and a watch's
+ * DELETED, an hour after the Event, read as a new occurrence). A time ahead
+ * of `now` - a node's clock running fast - is taken as `now`. Null when the
+ * Event says no time.
  */
 export function getKubernetesEventLogTime(data: {
   event: ParsedKubernetesEvent;

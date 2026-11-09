@@ -481,7 +481,12 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
     expect(persist).toHaveBeenCalledTimes(2);
   });
 
-  it("refuses the command after the per-run budget is spent", async () => {
+  /*
+   * What a remediation may CHANGE stays counted (issue #6440 lifts the caps
+   * on how much a run thinks, not on what it does to a system), and the
+   * refusal names the limit plainly - never a "budget".
+   */
+  it("refuses a change past the most one remediation may send", async () => {
     const enqueue: jest.SpyInstance = jest.spyOn(
       RunnerJobService,
       "enqueueAiCommand",
@@ -500,9 +505,10 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
     const refused: ToolCallOutcome = await tool.execute(bashArgs());
 
     expect(refused.success).toBe(false);
-    expect(refused.textForLlm).toContain(
-      `budget (${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN})`,
+    expect(refused.textForLlm).toBe(
+      `This remediation has sent ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands that change things, the most one remediation may send. Summarize what you did and what remains for a human.`,
     );
+    expect(refused.textForLlm).not.toMatch(/budget/i);
     expect(enqueue).toHaveBeenCalledTimes(MAX_AUTO_EXECUTED_COMMANDS_PER_RUN);
   });
 

@@ -31,7 +31,7 @@ flowchart TB
     R --> O["Den samme kommentaren,<br/>skrevet om med<br/>resultatet"]
 ```
 
-Det er den samme agenten og den samme Runneren som i [Kode](/docs/ai/ai-agent), med de samme budsjettene; bare utløseren er en annen.
+Det er den samme agenten og den samme Runneren som i [Kode](/docs/ai/ai-agent), med de samme grensene; bare utløseren er en annen.
 
 ## Før du starter
 
@@ -122,7 +122,7 @@ Den ignorerer også alle kommentarer skrevet av en bot, sine egne inkludert, og 
 
 ## Hva det koster, og hvordan du begrenser det
 
-Hver kommando som starter arbeid, er en full agentkjøring: en klon, opptil 40 LLM-kall og 100 000 utdata-tokens, og, på din egen Runner, bygge- og testsjekkene repositoriets `AGENTS.md` beskriver. Produksjonsspørringene til en gjennomgang, høyst 12, teller mot de samme 40 kallene.
+Hver kommando som starter arbeid, er en full agentkjøring: en klon, så mange LLM-kall som arbeidet trenger innenfor kjøringens tidsgrense (120 minutter, med mindre prosjektet setter sin egen), og, på din egen Runner, bygge- og testsjekkene repositoriets `AGENTS.md` beskriver. Produksjonsspørringene til en gjennomgang teller som verktøykall mot prosjektets grenser per kjøring.
 
 GitHub-kommandoer er AI-arbeid utenfor hendelser og varsler, så ingen daglig grense for rettingsoppgaver gjelder for dem; prosjektets egne daglige AI-grenser gjør det, når prosjektet setter dem. Den eneste andre grensen er den som allerede gjelder for oppgavene i [Kode](/docs/ai/ai-agent):
 
