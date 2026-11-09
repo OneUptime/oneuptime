@@ -73,6 +73,12 @@ export interface ObservabilityAssistantPriorTurn {
 export type ObservabilityAssistantStepType =
   | "llm_started"
   | "llm_completed"
+  /*
+   * The model call failed after LLMService's own retries. It closes the
+   * llm_started before it, so a trail never shows a call still thinking
+   * after the call gave up (issue #6437). errorMessage says why.
+   */
+  | "llm_failed"
   | "tool_started"
   | "tool_completed"
   | "tool_failed";
@@ -155,6 +161,14 @@ export interface ObservabilityAssistantRequest {
    * failing handler should not break the run.
    */
   onStep?: ((step: ObservabilityAssistantStep) => Promise<void>) | undefined;
+  /*
+   * Asked before every model call and every tool call: a reason to stop
+   * stops the loop there, by throwing an Error with that reason. A durable
+   * run's attempt asks whether it still owns its run - the stale sweep or a
+   * shutdown may have given the run to another attempt, and this one must
+   * not go on working on it (AIInvestigationEngine). Null: go on.
+   */
+  getStopReason?: (() => string | null) | undefined;
   /*
    * Run-scoped tools offered to the model IN ADDITION to the read-only
    * toolbox. The registered toolbox stays authoritative for its own names —
@@ -247,6 +261,17 @@ export default class ObservabilityAssistant {
 
     // Tells a run going in circles from one that is working.
     const loopDetector: AgentLoopDetector = new AgentLoopDetector();
+
+    // The owner's reason to stop the loop, thrown as an Error.
+    const throwIfAskedToStop: () => void = (): void => {
+      const stopReason: string | null = request.getStopReason
+        ? request.getStopReason()
+        : null;
+
+      if (stopReason) {
+        throw new Error(stopReason);
+      }
+    };
 
     // Best-effort live-narration emitter — never throws into the loop.
     const emitStep: (
@@ -407,6 +432,8 @@ export default class ObservabilityAssistant {
        */
       compactAgentContext(messages);
 
+      throwIfAskedToStop();
+
       await emitStep({ type: "llm_started" });
 
       const response: AILogResponse = await AIService.executeWithLogging({
@@ -436,6 +463,19 @@ export default class ObservabilityAssistant {
         temperature: TEMPERATURE,
         // Chat-ops content is per-user — do not persist previews to LlmLog.
         storeContentPreviews: false,
+      }).catch(async (error: unknown): Promise<never> => {
+        /*
+         * The call failed for good (LLMService already retried it): close
+         * the llm_started above, then let the run's owner decide.
+         */
+        await emitStep({
+          type: "llm_failed",
+          errorMessage: (error instanceof Error
+            ? error.message
+            : String(error)
+          ).substring(0, 400),
+        });
+        throw error;
       });
 
       llmCallCount++;
@@ -518,6 +558,8 @@ export default class ObservabilityAssistant {
             });
             continue;
           }
+
+          throwIfAskedToStop();
 
           const toolStartedAtMs: number = Date.now();
 

@@ -1460,6 +1460,11 @@ export class Service extends BaseService {
         llmConfig.modelName = llmProvider.modelName;
       }
 
+      // How long a slow or self-hosted model is given to answer.
+      if (llmProvider.requestTimeoutInSeconds) {
+        llmConfig.requestTimeoutInSeconds = llmProvider.requestTimeoutInSeconds;
+      }
+
       /*
        * Lets an operator-configured provider reach a private address, such as
        * the Helm chart's in-cluster vLLM, where project-owned providers are

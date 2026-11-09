@@ -48,6 +48,7 @@ import AIAgentRunLimitsHelper, {
   DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
 } from "../../../../Types/AI/AIAgentRunLimits";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
+import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
 import KubectlWaitBudget from "../../../../Utils/AiRemediation/KubectlWaitBudget";
 import {
@@ -592,8 +593,23 @@ describe("AIInvestigationEngine appends additionalInstructions to the persona", 
     answerQuestion = jest
       .spyOn(ObservabilityAssistant, "answerQuestion")
       .mockResolvedValue(makeResult());
-    // A lost Completed transition ends the run before any posting.
-    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(0);
+    /*
+     * A lost Completed transition ends the run before any posting. The
+     * heartbeat still finds the run Running at this attempt: a heartbeat
+     * that moves nothing means the run moved on, and the attempt then
+     * writes no more steps (issue #6437).
+     */
+    jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockImplementation(async (data: unknown): Promise<number> => {
+        const set: Record<string, unknown> = (
+          data as { set: Record<string, unknown> }
+        ).set;
+
+        return set["status"] === AIRunStatus.Running && set["lastHeartbeatAt"]
+          ? 1
+          : 0;
+      });
   });
 
   afterEach(() => {
