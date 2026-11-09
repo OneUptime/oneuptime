@@ -574,7 +574,7 @@ describe("an import from the Discovered Devices list", () => {
 
   function listImport(): NetworkDeviceDiscoveryImport {
     const row: NetworkDeviceDiscoveryImport = importRow();
-    row.networkDeviceDiscoveryScanId = undefined;
+    delete row.networkDeviceDiscoveryScanId;
     return row;
   }
 

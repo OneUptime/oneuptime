@@ -21,7 +21,7 @@ import { MemoryRouter } from "react-router-dom";
 import NetworkTopologyLiveView from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/NetworkTopologyLiveView";
 import { ComponentProps as GraphProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/NetworkDeviceGraph";
 import { DiscoveredDeviceItem } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredDevices/DiscoveredDeviceItems";
-import { NetworkTopologyNode } from "../../../Types/NetworkDevice/NetworkTopology";
+import { NetworkTopologyNode } from "../../../Types/Monitor/SnmpMonitor/NetworkTopology";
 import Navigation from "../../../UI/Utils/Navigation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -168,7 +168,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Topology/NetworkDeviceDetailPanel",
   () => {
-    const ReactModule: typeof React = jest.requireActual("react");
+    const ReactModule: typeof React = jest.requireActual(
+      "react",
+    ) as typeof React;
 
     return {
       __esModule: true,
@@ -211,7 +213,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Topology/AddNeighborToMonitoringModal",
   () => {
-    const ReactModule: typeof React = jest.requireActual("react");
+    const ReactModule: typeof React = jest.requireActual(
+      "react",
+    ) as typeof React;
 
     return {
       __esModule: true,
@@ -231,7 +235,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredDevices/AddDiscoveredDevicesDialog",
   () => {
-    const ReactModule: typeof React = jest.requireActual("react");
+    const ReactModule: typeof React = jest.requireActual(
+      "react",
+    ) as typeof React;
 
     return {
       __esModule: true,
@@ -255,7 +261,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Topology/NetworkDeviceGraph",
   () => {
-    const ReactModule: typeof React = jest.requireActual("react");
+    const ReactModule: typeof React = jest.requireActual(
+      "react",
+    ) as typeof React;
 
     return {
       __esModule: true,
