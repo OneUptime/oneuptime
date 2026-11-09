@@ -420,9 +420,7 @@ describe("what the OpenAI instrumentations send as log events", () => {
       return { type: LlmMessagePartType.Text, text: "", ...fields };
     };
 
-    expect(LlmLogEventsUtil.partSaysSomething(part({ text: "hi" }))).toBe(
-      true,
-    );
+    expect(LlmLogEventsUtil.partSaysSomething(part({ text: "hi" }))).toBe(true);
     expect(LlmLogEventsUtil.partSaysSomething(part({ text: "  " }))).toBe(
       false,
     );
@@ -1185,5 +1183,125 @@ describe("which call a record belongs to", () => {
         ],
       ),
     ).toEqual({});
+  });
+});
+
+/*
+ * At ingest, a details record's messages arrive as an OTLP list, which the
+ * attribute flattening leaves a structured value and the scrub rules (they
+ * mask text) pass over. They are held as their JSON text, as the Log table
+ * stores them anyway and as a span holds them.
+ */
+describe("a details record's messages held as text at ingest", () => {
+  test("each structured content value becomes its JSON text, nothing else changes", () => {
+    const messages: Array<unknown> = [
+      {
+        role: "user",
+        parts: [{ type: "text", content: "Mail me at ada@example.com" }],
+      },
+    ];
+    const attributes: Record<string, unknown> = {
+      "event.name": LlmInferenceDetailsEventName,
+      "gen_ai.input.messages": messages,
+      "gen_ai.output.messages": [
+        { role: "assistant", parts: [{ type: "text", content: "Sent." }] },
+      ],
+      "gen_ai.system_instructions": [
+        { type: "text", content: "You are a mail bot." },
+      ],
+      "gen_ai.response.finish_reasons": ["stop"],
+      "gen_ai.usage.input_tokens": 31,
+    };
+
+    expect(LlmLogEventsUtil.holdContentAsText(attributes)).toBe(3);
+    expect(attributes["gen_ai.input.messages"]).toBe(JSON.stringify(messages));
+    expect(typeof attributes["gen_ai.output.messages"]).toBe("string");
+    expect(typeof attributes["gen_ai.system_instructions"]).toBe("string");
+    // Only what was said: other structured values stay as they came.
+    expect(attributes["gen_ai.response.finish_reasons"]).toEqual(["stop"]);
+    expect(attributes["gen_ai.usage.input_tokens"]).toBe(31);
+  });
+
+  test("text stays as it came, and a record without them is untouched", () => {
+    const text: string = JSON.stringify([{ role: "user", content: "Hi" }]);
+    const attributes: Record<string, unknown> = {
+      "gen_ai.input.messages": text,
+      "gen_ai.output.messages": null,
+    };
+
+    expect(LlmLogEventsUtil.holdContentAsText(attributes)).toBe(0);
+    expect(attributes).toEqual({
+      "gen_ai.input.messages": text,
+      "gen_ai.output.messages": null,
+    });
+
+    const plain: Record<string, unknown> = { "http.route": "/orders" };
+
+    expect(LlmLogEventsUtil.holdContentAsText(plain)).toBe(0);
+    expect(plain).toEqual({ "http.route": "/orders" });
+  });
+
+  test("a value JSON cannot write stays as it came", () => {
+    const circular: Record<string, unknown> = { role: "user" };
+    circular["self"] = circular;
+    const attributes: Record<string, unknown> = {
+      "gen_ai.input.messages": [circular],
+    };
+
+    expect(LlmLogEventsUtil.holdContentAsText(attributes)).toBe(0);
+    expect(Array.isArray(attributes["gen_ai.input.messages"])).toBe(true);
+  });
+
+  test("held as text, it reads as the same messages", () => {
+    const structured: Record<string, unknown> = {
+      "event.name": LlmInferenceDetailsEventName,
+      "gen_ai.input.messages": [
+        {
+          role: "user",
+          parts: [{ type: "text", content: "What is the weather in Paris?" }],
+        },
+      ],
+      "gen_ai.output.messages": [
+        {
+          role: "assistant",
+          parts: [
+            {
+              type: "tool_call",
+              id: "call_1",
+              name: "get_weather",
+              arguments: { city: "Paris" },
+            },
+          ],
+          finish_reason: "tool_calls",
+        },
+      ],
+    };
+    const held: Record<string, unknown> = JSON.parse(
+      JSON.stringify(structured),
+    ) as Record<string, unknown>;
+
+    LlmLogEventsUtil.holdContentAsText(held);
+
+    const read: (attributes: Record<string, unknown>) => LlmCallContent = (
+      attributes: Record<string, unknown>,
+    ): LlmCallContent => {
+      return LlmLogEventsUtil.readContent([
+        {
+          traceId: "0af7651916cd43dd8448eb211c80319c",
+          spanId: "b7ad6b7169203331",
+          timeUnixNano: "1794198736616355140",
+          attributes: attributes,
+          body: "",
+        },
+      ]);
+    };
+
+    const content: LlmCallContent = read(held);
+
+    expect(content).toEqual(read(structured));
+    expect(content.input[0]!.parts[0]!.text).toBe(
+      "What is the weather in Paris?",
+    );
+    expect(content.output[0]!.parts[0]!.type).toBe(LlmMessagePartType.ToolCall);
   });
 });

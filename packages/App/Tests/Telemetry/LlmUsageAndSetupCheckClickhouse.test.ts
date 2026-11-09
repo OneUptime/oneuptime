@@ -26,6 +26,12 @@ import {
   LLM_CONNECTION_ID_ATTRIBUTE,
   LLM_PROVIDER_COST_METRIC_NAME,
 } from "Common/Types/LlmObservability/LlmProviderUsageMetrics";
+import { LlmLogEventRecord } from "Common/Utils/Telemetry/LlmLogEvents";
+import {
+  GenAiLogEventFixture,
+  loadGenAiLogEventFixture,
+  toStoredLogRecords,
+} from "Common/Tests/Helpers/GenAiLogEventFixtures";
 import {
   afterAll,
   beforeAll,
@@ -578,6 +584,7 @@ function logRow(data: {
   serviceId: ObjectID;
   at: number;
   attributes: Record<string, string>;
+  body?: string;
 }): JSONObject {
   const at: Date = new Date(data.at);
 
@@ -593,7 +600,7 @@ function logRow(data: {
     severityNumber: 9,
     attributes: data.attributes,
     attributeKeys: Object.keys(data.attributes),
-    body: "",
+    body: data.body || "",
     traceId: "",
     spanId: "",
     retentionDate: retentionDate,
@@ -766,6 +773,23 @@ integration("GenAI metric usage and the setup check against ClickHouse", () => {
             "gen_ai.system": "openai",
             "event.name": "gen_ai.user.message",
           },
+          body: JSON.stringify({ content: "Where is my order?" }),
+        }),
+        /*
+         * search's events, sent by the JavaScript instrumentation with
+         * content capture off (Tests/Fixtures/GenAiLogEvents): the same
+         * events, with nothing said in them.
+         */
+        ...toStoredLogRecords(
+          loadGenAiLogEventFixture(GenAiLogEventFixture.JavaScriptNoContent),
+        ).map((record: LlmLogEventRecord, index: number): JSONObject => {
+          return logRow({
+            projectId: checkProject,
+            serviceId: searchService,
+            at: now - DAY + index * 1000,
+            attributes: record.attributes as Record<string, string>,
+            body: String(record.body || ""),
+          });
         }),
         // An ordinary log line of another project.
         logRow({
@@ -1020,6 +1044,49 @@ integration("GenAI metric usage and the setup check against ClickHouse", () => {
       expect(check.apps!.answersRecently).toBeGreaterThan(0);
       expect(check.apps!.answersWithContent).toBe(0);
       expect(check.apps!.contentInLogs).toBe(true);
+    });
+
+    test("GenAI events sent with content capture off carry nothing: not content in the logs", async () => {
+      wireConnections([]);
+
+      // search's unrecorded answer a day ago; before checkout's content log.
+      const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read(
+        checkQuery({
+          serviceIds: [searchService],
+          now: new Date(now - 5 * HOUR),
+        }),
+      );
+
+      expect(check.apps!.answersRecently).toBe(1);
+      expect(check.apps!.answersWithContent).toBe(0);
+      expect(check.apps!.contentInLogs).toBe(false);
+    });
+
+    test("only the logs the reader may read are looked at", async () => {
+      wireConnections([]);
+
+      // checkout's answers; the reader may read only search's logs.
+      const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read(
+        checkQuery({
+          serviceIds: [checkoutService],
+          now: new Date(now - 2.5 * HOUR),
+          logFilter: { serviceIds: [searchService] },
+        }),
+      );
+
+      expect(check.apps!.answersWithContent).toBe(0);
+      expect(check.apps!.contentInLogs).toBe(false);
+
+      // And checkout's: its content log is found.
+      const readable: LlmSetupCheckResponse = await LlmSetupCheckReader.read(
+        checkQuery({
+          serviceIds: [checkoutService],
+          now: new Date(now - 2.5 * HOUR),
+          logFilter: { serviceIds: [checkoutService] },
+        }),
+      );
+
+      expect(readable.apps!.contentInLogs).toBe(true);
     });
 
     test("the logs are not read for a reader who may not read them", async () => {

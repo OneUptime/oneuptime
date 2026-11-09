@@ -289,7 +289,7 @@ describe("the Setup check card: the customer's case", () => {
 });
 
 describe("the Setup check card: your apps", () => {
-  test("apps sending AI calls: no way to open, and what was said is not recorded", async () => {
+  test("apps sending AI calls: no way to open, and what was said arrives as log events", async () => {
     fetchCheckMock.mockResolvedValue(
       check({
         apps: apps({
@@ -316,16 +316,69 @@ describe("the Setup check card: your apps", () => {
     );
     // A provider by its title, whatever spelling its rows were stored under.
     expect(appsGroup).toHaveTextContent("Through Azure AI Inference.");
-    expect(appsGroup).toHaveTextContent(
-      "Your app sends them as log records, which conversations don't read: record them on the spans instead.",
+    /*
+     * The spans carry no prompt, the GenAI log events do: conversations
+     * read them, and the line says who else can.
+     */
+    const content: HTMLElement = within(appsGroup).getByTestId(
+      "llm-setup-check-line-apps-content",
     );
-    expect(
-      within(appsGroup).getByTestId("llm-setup-check-line-apps-content"),
-    ).toHaveAttribute("data-tone", "warning");
+
+    expect(content).toHaveTextContent(
+      "Prompts and answers arrive as log events, and conversations read them from there.",
+    );
+    expect(content).toHaveTextContent(
+      "Anyone who can read your app's logs can read them on the Logs page too, and the logs' scrub rules and drop filters apply to them.",
+    );
+    expect(content).toHaveAttribute("data-tone", "ok");
+    expect(appsGroup).not.toHaveTextContent(
+      "Prompts and answers aren't recorded",
+    );
     expect(
       screen.queryByTestId("llm-setup-check-apps-action"),
     ).not.toBeInTheDocument();
   });
+
+  test.each([
+    // GenAI events arrived, with nothing said in them: content capture off.
+    [false],
+    // The logs were not looked at: the reader may not read them.
+    [null],
+  ])(
+    "apps sending AI calls, what was said not recorded anywhere (content in logs: %s)",
+    async (contentInLogs: boolean | null) => {
+      fetchCheckMock.mockResolvedValue(
+        check({
+          apps: apps({
+            callsRecently: 12,
+            newestCallAt: recent(3),
+            services: [
+              { serviceId: "svc-checkout", calls: 12, newestAt: recent(3) },
+            ],
+            providers: [{ name: "openai", calls: 12 }],
+            answersRecently: 12,
+            answersWithContent: 0,
+            contentInLogs: contentInLogs,
+          }),
+        }) as never,
+      );
+
+      await renderCard();
+
+      const content: HTMLElement = within(
+        group("llm-setup-check-apps"),
+      ).getByTestId("llm-setup-check-line-apps-content");
+
+      expect(content).toHaveTextContent(
+        "Prompts and answers aren't recorded, so conversations show each call's time, tokens and cost but not what was said.",
+      );
+      expect(content).toHaveTextContent(
+        "Turn on your instrumentation's content capture.",
+      );
+      expect(content).toHaveAttribute("data-tone", "warning");
+      expect(content).not.toHaveTextContent("arrive as log events");
+    },
+  );
 
   test("an app calling an AI API that nothing records", async () => {
     fetchCheckMock.mockResolvedValue(

@@ -46,6 +46,7 @@ import LlmConversationTranscriptUtil, {
 } from "../../../Utils/Telemetry/LlmConversationTranscript";
 import {
   LlmConversationKeyKind,
+  LlmLogEventsRead,
   LLM_CONVERSATION_ROUTE,
 } from "../../../Types/Telemetry/LlmConversationApi";
 import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
@@ -301,6 +302,141 @@ describe("reading a conversation", () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("llm-conversation-truncated-note"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversation-log-events-note"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Prompts and answers an app sends as GenAI log events are read with the
+ * conversation, for a reader of that app's logs. When they were not shown,
+ * the page says why - never "not recorded", which they may well be.
+ */
+describe("prompts and answers sent as log events", () => {
+  function silentTranscript(): LlmTranscript {
+    return LlmConversationTranscriptUtil.build([call({ spanId: "c1" })]);
+  }
+
+  test("read from the logs: shown like any other, with no note", async () => {
+    respondWith(
+      conversationResponse(travelTranscript(), {
+        logEvents: LlmLogEventsRead.Read,
+      }),
+    );
+
+    await openConversation();
+
+    expect(
+      screen.queryByTestId("llm-conversation-log-events-note"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversation-no-content-note"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a reader who may not read the app's logs is told so, and not that nothing was recorded", async () => {
+    respondWith(
+      conversationResponse(silentTranscript(), {
+        logEvents: LlmLogEventsRead.NotAllowed,
+      }),
+    );
+
+    await openConversation();
+
+    const note: HTMLElement = screen.getByTestId(
+      "llm-conversation-log-events-note",
+    );
+
+    expect(note).toHaveAttribute("data-state", LlmLogEventsRead.NotAllowed);
+    expect(note).toHaveTextContent(
+      "You can't read this app's logs, so the prompts and answers it sends as log events aren't shown.",
+    );
+    // Nothing to try again: asking again reads the same.
+    expect(
+      screen.queryByTestId("llm-conversation-log-events-retry"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversation-no-content-note"),
+    ).not.toBeInTheDocument();
+    expect(stepTypes()).toEqual(["silent_answer"]);
+  });
+
+  test("some calls' logs readable, others not: still told some are not shown", async () => {
+    respondWith(
+      conversationResponse(travelTranscript(), {
+        logEvents: LlmLogEventsRead.NotAllowed,
+      }),
+    );
+
+    await openConversation();
+
+    expect(
+      screen.getByTestId("llm-conversation-log-events-note"),
+    ).toHaveAttribute("data-state", LlmLogEventsRead.NotAllowed);
+    expect(screen.getAllByTestId("llm-step").length).toBeGreaterThan(1);
+  });
+
+  test("logs that could not be read: says so, and Try again reads the conversation again", async () => {
+    respondWith(
+      conversationResponse(silentTranscript(), {
+        logEvents: LlmLogEventsRead.Failed,
+      }),
+    );
+
+    await openConversation();
+
+    const note: HTMLElement = screen.getByTestId(
+      "llm-conversation-log-events-note",
+    );
+
+    expect(note).toHaveAttribute("data-state", LlmLogEventsRead.Failed);
+    expect(note).toHaveTextContent(
+      "The prompts and answers sent as log events couldn't be read.",
+    );
+    expect(
+      screen.queryByTestId("llm-conversation-no-content-note"),
+    ).not.toBeInTheDocument();
+
+    respondWith(
+      conversationResponse(travelTranscript(), {
+        logEvents: LlmLogEventsRead.Read,
+      }),
+    );
+    fireEvent.click(screen.getByTestId("llm-conversation-log-events-retry"));
+
+    expect(
+      await screen.findByTestId("llm-conversation-view"),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("llm-conversation-loading"),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("llm-conversation-log-events-note"),
+    ).not.toBeInTheDocument();
+    expect(postSpy).toHaveBeenCalledTimes(2);
+    expect(stepTypes().length).toBeGreaterThan(1);
+  });
+
+  test("read, with nothing in them (content capture off): not recorded, as before", async () => {
+    respondWith(
+      conversationResponse(silentTranscript(), {
+        logEvents: LlmLogEventsRead.Read,
+      }),
+    );
+
+    await openConversation();
+
+    expect(
+      screen.getByTestId("llm-conversation-no-content-note"),
+    ).toHaveTextContent(
+      "Prompts and answers were not recorded for this conversation",
+    );
+    expect(
+      screen.queryByTestId("llm-conversation-log-events-note"),
     ).not.toBeInTheDocument();
   });
 });
