@@ -47351,5 +47351,9 @@
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Segundos de espera pela resposta do provedor a uma solicitação. Deixe em branco para 120 (300 no Ollama). Aumente para um modelo lento ou auto-hospedado.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "O provedor de IA recusou a solicitação: a chave de API ou o modelo podem estar incorretos, ou a conta pode não ter acesso ou crédito.",
   "OneUptime AI will try again": "O OneUptime AI vai tentar novamente",
-  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "O nome deste app é longo demais para filtrar a telemetria, então nenhum monitor pode observá-lo sozinho. A telemetria dele está nas abas deste ambiente."
+  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "O nome deste app é longo demais para filtrar a telemetria, então nenhum monitor pode observá-lo sozinho. A telemetria dele está nas abas deste ambiente.",
+  "AI Run Time Limit (Minutes)": "AI Run Time Limit (Minutes)",
+  "Model Calls per AI Run": "Model Calls per AI Run",
+  "Tokens per AI Run": "Tokens per AI Run",
+  "Tool Calls per AI Run": "Tool Calls per AI Run"
 }

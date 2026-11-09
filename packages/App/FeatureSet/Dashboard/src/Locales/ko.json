@@ -47351,5 +47351,9 @@
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "요청 하나에 대한 공급자의 응답을 기다리는 시간(초)입니다. 비워 두면 120(Ollama는 300)입니다. 느리거나 자체 호스팅하는 모델이라면 늘리세요.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI 공급자가 요청을 거부했습니다: API 키나 모델이 잘못되었거나, 계정에 액세스 권한이나 크레딧이 없을 수 있습니다.",
   "OneUptime AI will try again": "OneUptime AI가 다시 시도합니다",
-  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "이 앱의 이름이 너무 길어 텔레메트리를 필터링할 수 없으므로, 이 앱만 감시하는 모니터는 만들 수 없습니다. 텔레메트리는 이 환경의 탭에 있습니다."
+  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "이 앱의 이름이 너무 길어 텔레메트리를 필터링할 수 없으므로, 이 앱만 감시하는 모니터는 만들 수 없습니다. 텔레메트리는 이 환경의 탭에 있습니다.",
+  "AI Run Time Limit (Minutes)": "AI Run Time Limit (Minutes)",
+  "Model Calls per AI Run": "Model Calls per AI Run",
+  "Tokens per AI Run": "Tokens per AI Run",
+  "Tool Calls per AI Run": "Tool Calls per AI Run"
 }

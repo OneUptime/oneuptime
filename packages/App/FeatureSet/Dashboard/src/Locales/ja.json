@@ -47351,5 +47351,9 @@
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "1 回のリクエストに対するプロバイダーの応答を待つ秒数。空欄なら 120 (Ollama は 300)。低速なモデルやセルフホストのモデルでは大きくしてください。",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "AI プロバイダーがリクエストを拒否しました: API キーかモデルが正しくないか、アカウントにアクセス権かクレジットがない可能性があります。",
   "OneUptime AI will try again": "OneUptime AI が再試行します",
-  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "このアプリの名前は長すぎてテレメトリの絞り込みに使えないため、どのモニターもこのアプリだけを監視することはできません。テレメトリはこの環境のタブにあります。"
+  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "このアプリの名前は長すぎてテレメトリの絞り込みに使えないため、どのモニターもこのアプリだけを監視することはできません。テレメトリはこの環境のタブにあります。",
+  "AI Run Time Limit (Minutes)": "AI Run Time Limit (Minutes)",
+  "Model Calls per AI Run": "Model Calls per AI Run",
+  "Tokens per AI Run": "Tokens per AI Run",
+  "Tool Calls per AI Run": "Tool Calls per AI Run"
 }

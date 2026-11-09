@@ -47351,5 +47351,9 @@
   "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "Aantal seconden dat op het antwoord van de provider op één verzoek wordt gewacht. Laat leeg voor 120 (300 voor Ollama). Verhoog dit voor een traag of zelf gehost model.",
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "De AI-provider weigerde het verzoek: de API-sleutel of het model is mogelijk onjuist, of het account heeft geen toegang of tegoed.",
   "OneUptime AI will try again": "OneUptime AI probeert het opnieuw",
-  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "De naam van deze app is te lang om de telemetrie op te filteren, dus geen enkele monitor kan alleen deze app bewaken. De telemetrie staat in de tabbladen van deze omgeving."
+  "Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment's tabs._one": "De naam van deze app is te lang om de telemetrie op te filteren, dus geen enkele monitor kan alleen deze app bewaken. De telemetrie staat in de tabbladen van deze omgeving.",
+  "AI Run Time Limit (Minutes)": "AI Run Time Limit (Minutes)",
+  "Model Calls per AI Run": "Model Calls per AI Run",
+  "Tokens per AI Run": "Tokens per AI Run",
+  "Tool Calls per AI Run": "Tool Calls per AI Run"
 }
