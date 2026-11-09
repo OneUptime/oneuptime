@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 같은 `resource` 객체로 만드세요. 리소스에 `browser.*`가 없는 로그나 메트릭 파이프라인은 별도의 백엔드 서비스로 분류됩니다.
 
+로그 파이프라인은 코드가 기록한 레코드만 보냅니다. 알아 둘 만한 일이 일어나는 곳마다 레코드를 기록하세요.
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## 엔드포인트 참고
 
 | 신호 | 엔드포인트 | 헤더 |

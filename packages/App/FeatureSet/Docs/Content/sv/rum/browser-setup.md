@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 Bygg dem med samma `resource`-objekt. En pipeline för loggar eller mätvärden vars resurs saknar `browser.*` arkiveras som en separat backend-tjänst.
 
+En pipeline för loggar skickar bara de poster som din kod skriver, så skriv en där något som är värt att veta händer:
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## Endpoint-referens
 
 | Signaltyp | Endpoint | Header |

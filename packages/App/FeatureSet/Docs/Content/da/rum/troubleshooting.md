@@ -109,6 +109,33 @@ Applikationen findes, men dens sider viser intet.
 - **Vent et par minutter.** Indtagelse går gennem en kø, og **Sidst set** opdateres med få minutters mellemrum i stedet for ved hver batch.
 - **Tjek projektet.** En nøgle skriver til sit eget projekt, så telemetri, der sendes med et andet projekts nøgle, ligger der og ikke her.
 
+## Undtagelser eller logs er tomme
+
+Sideindlæsninger og forespørgsler ankommer, men **Undtagelser** eller **Protokoller** forbliver tomme. OpenTelemetry-browser-SDK'et sender af sig selv spor af sideindlæsninger og forespørgsler, men ingen undtagelser og ingen logs, så en applikation kan se forbundet ud, mens de to forbliver tomme for altid.
+
+Det tomme diagram på applikationens **Oversigt** siger, hvilket tilfælde det er, og **Opsætningstjek** på dens side **Dokumentation** viser hver slags telemetri med, hvornår den seneste ankom:
+
+| Diagrammet siger | Hvad det betyder |
+| --- | --- |
+| **Undtagelser er ikke sat op** eller **Logs er ikke sat op** | Der er aldrig ankommet nogen fra denne app. **Opsæt undtagelser** eller **Opsæt logs** viser koden, der sender dem, med din URL og nøgle allerede udfyldt. |
+| **Ingen undtagelser i dette tidsinterval** eller **Ingen logs i dette tidsinterval** | Der er ankommet nogle før, og diagrammet siger, hvornår den seneste ankom. Vælg det længere tidsrum, det tilbyder. |
+| **Intet er ankommet fra denne app endnu** | Der ankommer ingen telemetri overhovedet: start med [Tjek nøglen](#tjek-nøglen). |
+| **OpenTelemetry SDK'et rapporterer ikke** | Kun sessionsafspilning rapporterer fra denne app: opsæt SDK'et som i [Browseropsætning](/docs/rum/browser-setup). |
+
+Undtagelser kræver en fejlhåndtering, fordi SDK'et ikke fanger ufangede fejl: [Rapporter ufangede fejl](/docs/rum/browser-setup#rapporter-ufangede-fejl) har koden. En fejl, som en error boundary eller en `try`/`catch` håndterer, når aldrig vinduet, så registrer den, hvor du håndterer den, med `span.recordException`.
+
+Logs kræver en logpipeline og kode, der skriver logposter, fordi en `LoggerProvider` alene ikke sender noget: [Tilføj logs og metrikker](/docs/rum/browser-setup#tilføj-logs-og-metrikker) har begge dele. Byg pipelinen med samme `resource` som dine spor, ellers arkiveres logsene under en backend-tjeneste.
+
+Når sideindlæsninger ankommer, lukker nøglen, dens tilladte origins og din Content Security Policy også undtagelser og logs igennem, så længe logeksportøren bruger samme nøgle og vært. En fejlhåndtering, der endnu ikke har fanget noget, sender intet, præcis som en, der aldrig blev tilføjet, så kast en testfejl fra browserens konsol for at skelne de to:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Inden for et minut står den på applikationens **Oversigt** under **Undtagelser**.
+
 ## Siden Klienter er tom
 
 Siden **Klienter** viser `browser.platform` på web og `device.model.identifier` på mobil. To grunde til, at den forbliver tom, selv når alt andet virker:

@@ -109,6 +109,33 @@ Die Anwendung existiert, aber ihre Seiten zeigen nichts.
 - **Warten Sie ein paar Minuten.** Ingest läuft über eine Warteschlange, und **Zuletzt gesehen** wird alle paar Minuten aktualisiert statt bei jedem Batch.
 - **Prüfen Sie das Projekt.** Ein Schlüssel schreibt in sein eigenes Projekt, mit dem Schlüssel eines anderen Projekts gesendete Telemetrie liegt also dort, nicht hier.
 
+## Ausnahmen oder Logs sind leer
+
+Seitenaufrufe und Anfragen kommen an, aber **Ausnahmen** oder **Protokolle** bleiben leer. Das OpenTelemetry-Browser-SDK sendet von sich aus Traces von Seitenaufrufen und Anfragen, aber keine Ausnahmen und keine Logs. Eine Anwendung kann also verbunden aussehen, während diese beiden dauerhaft leer bleiben.
+
+Das leere Diagramm in der **Übersicht** der Anwendung sagt, welcher Fall vorliegt, und die **Einrichtungsprüfung** auf ihrer Seite **Dokumentation** listet jede Art von Telemetrie mit dem Zeitpunkt, zu dem die neueste ankam:
+
+| Das Diagramm zeigt | Was es bedeutet |
+| --- | --- |
+| **Ausnahmen sind nicht eingerichtet** oder **Protokolle sind nicht eingerichtet** | Von dieser App sind noch nie welche angekommen. **Ausnahmen einrichten** oder **Protokolle einrichten** zeigt den Code, der sie sendet, mit Ihrer URL und Ihrem Schlüssel schon eingesetzt. |
+| **Keine Ausnahmen in diesem Zeitraum** oder **Keine Protokolle in diesem Zeitraum** | Früher kamen welche an, und das Diagramm nennt den Zeitpunkt der letzten Ankunft. Wählen Sie den längeren Zeitraum, den es anbietet. |
+| **Von dieser App ist noch nichts angekommen** | Es kommt keinerlei Telemetrie an: Beginnen Sie mit [Den Schlüssel prüfen](#den-schlüssel-prüfen). |
+| **Das OpenTelemetry SDK meldet nichts** | Von dieser App meldet nur die Sitzungswiedergabe: Richten Sie das SDK wie in [Einrichtung für Browser](/docs/rum/browser-setup) ein. |
+
+Ausnahmen brauchen einen Fehler-Handler, weil das SDK unbehandelte Fehler nicht erfasst: [Unbehandelte Fehler melden](/docs/rum/browser-setup#unbehandelte-fehler-melden) enthält den Code. Ein Fehler, den eine Error Boundary oder ein `try`/`catch` abfängt, erreicht das Fenster nie. Erfassen Sie ihn also dort, wo Sie ihn behandeln, mit `span.recordException`.
+
+Logs brauchen eine Log-Pipeline und Code, der Log-Einträge schreibt, weil ein `LoggerProvider` allein nichts sendet: [Logs und Metriken hinzufügen](/docs/rum/browser-setup#logs-und-metriken-hinzufügen) enthält beides. Bauen Sie die Pipeline mit derselben `resource` wie Ihre Traces, sonst werden die Logs unter einem Backend-Dienst eingeordnet.
+
+Wenn Seitenaufrufe ankommen, lassen der Schlüssel, seine erlaubten Origins und Ihre Content Security Policy auch Ausnahmen und Logs durch, solange der Log-Exporter denselben Schlüssel und Host verwendet. Ein Fehler-Handler, der noch nichts abgefangen hat, sendet nichts, genau wie einer, der nie hinzugefügt wurde. Werfen Sie also in der Konsole des Browsers einen Testfehler, um die beiden zu unterscheiden:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Innerhalb einer Minute erscheint er in der **Übersicht** der Anwendung unter **Ausnahmen**.
+
 ## Die Seite Clients ist leer
 
 Die Seite **Clients** listet `browser.platform` im Web und `device.model.identifier` auf Mobilgeräten. Zwei Gründe, warum sie leer bleibt, während alles andere funktioniert:

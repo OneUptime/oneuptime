@@ -15,6 +15,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import RumDocumentationCard from "../../../Components/Rum/RumDocumentationCard";
+import RumSetupCheckCard from "../../../Components/Rum/SetupCheck/RumSetupCheckCard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   TranslatableTerm,
@@ -78,6 +79,19 @@ const RumApplicationDocumentation: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * What arrives from the app, kind by kind, above the steps that set
+       * each up: the browser SDK sends page loads and requests on its own,
+       * and exceptions and logs only once they are added (issue #5770).
+       */}
+      <RumSetupCheckCard
+        rumApplicationId={modelId}
+        appName={
+          (rumApplication.appIdentifier as string) ||
+          (rumApplication.name as string) ||
+          ""
+        }
+      />
       <RumDocumentationCard
         title="Instrument your app for RUM"
         description={translator.translateTemplate(
