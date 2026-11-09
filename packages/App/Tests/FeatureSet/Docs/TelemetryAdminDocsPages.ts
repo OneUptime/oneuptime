@@ -66,7 +66,7 @@ export const TELEMETRY_ADMIN_PAGES: ReadonlyArray<TelemetryAdminDocsPageEntry> =
       navTitle: "Data Retention",
       navGroup: "Telemetry",
       after: "Drop Filters & Scrub Rules",
-      before: "Continuous Profiling",
+      before: "Telemetry Usage",
     },
   ];
 
@@ -108,6 +108,7 @@ export const ADMIN_DASHBOARD_LABELS: Readonly<
   [DATA_RETENTION]: [
     "Monitor Log Retention (Days)",
     "Monitor Metric Retention (Days)",
+    "Telemetry Usage Retention (Days)",
   ],
 };
 

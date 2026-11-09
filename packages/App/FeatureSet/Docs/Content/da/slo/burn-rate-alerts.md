@@ -88,6 +88,35 @@ SLO'er, der blev oprettet, før Slow leak fandtes, har kun Fast burn og Slow bur
 
 En regel tæller som allerede på plads, når SLO'et har en regel med samme navn eller en med samme lange vindue, uanset om den er slået til eller fra. Så en standardregel, du har omdøbt eller justeret, tilføjes aldrig to gange. Vil du ikke have en af standardreglerne, så behold reglen og deaktiver den i stedet for at slette den, så tilbyder noten den ikke længere. Du skal have tilladelse til at oprette SLO-forbrugsrateregler. Hver regel, knappen tilføjer, offentliggøres i SLO'ets feed og registreres i dets auditlogs, ligesom en regel, du selv opretter.
 
+### Tilføj dem til mange SLO'er på én gang
+
+Skal mange SLO'er have de anbefalede regler, så start fra SLO-listen i stedet for hvert SLO's egen side.
+
+:::steps
+#### Vælg SLO'erne
+
+Åbn **SLOs**, og vælg de SLO'er, der skal opdateres. Vil du have alle de SLO'er med, som et filter viser, så vælg hele siden og derefter alle de matchende SLO'er, som listen tilbyder.
+
+#### Vælg Tilføj anbefalede regler
+
+Åbn **Massehandlinger**, og vælg **Tilføj anbefalede regler**.
+
+#### Tjek, hvad der tilføjes, og bekræft
+
+Før noget tilføjes, tæller bekræftelsen, hvor mange af de valgte SLO'er der får hver regel, tilpasset deres egne vinduer. Hvor SLO'er med forskellige vinduer får en regel i forskellige udgaver, som Slow leak på et 7-dages og et 30-dages SLO, viser den hver udgave med dens tærskel, dens vinduer og de SLO'er, der får den. Den fortæller også, hvor mange der allerede har alle de anbefalede regler, og hvor mange der ikke kunne læses. Klik på **Tilføj anbefalede regler** for at tilføje dem.
+:::
+
+Hvert SLO får kun de regler, det mangler, præcis som dets egen side **Forbrugsrateregler** ville tilføje dem: det samme tjek af, hvad der tæller som allerede på plads, og et feedelement og en post i dets auditlogs for hver regel. Resultatet fortæller for hvert SLO, om der blev tilføjet regler, om det allerede havde alle de anbefalede regler, eller om det ikke blev ændret og hvorfor, for eksempel et SLO, du ikke må ændre. Et SLO, der ikke bliver ændret, stopper aldrig de andre, og kører du handlingen igen på de samme SLO'er, tilføjer den ingenting. Arkiverede SLO'er er ikke på listen og får aldrig tilbudt reglerne, fordi de ikke evalueres: fjern først et SLO fra arkivet.
+
+Scripts kan gøre det samme via API'et med en [API-nøgle](/docs/api-reference/api-reference) fra projektet. Forespørgslerne for ét SLO tager `{ "serviceLevelObjectiveId": "..." }` og svarer med reglerne i `rules`. Masseforespørgslerne tager `{ "serviceLevelObjectiveIds": ["..."] }`, højst 100 SLO'er pr. forespørgsel, og svarer med ét element for hvert SLO i `results`, i den rækkefølge, de blev angivet:
+
+| Forespørgsel | Hvad den gør |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | Viser de anbefalede regler, som SLO'et mangler. Den skriver ingenting. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | Tilføjer dem og viser, hvad den tilføjede. Spørger du igen, tilføjes ingenting. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | Fortæller, hvad hvert SLO mangler: `Missing` med reglerne, `NothingMissing` eller `Refused` for et SLO, du ikke må læse. Den skriver ingenting. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | Tilføjer det, hvert SLO mangler, ét SLO ad gangen: `Added` med reglerne, `NothingMissing`, `Refused` eller `Failed` med de regler, der blev tilføjet, før den fejlede. Spørger du igen, tilføjes kun det, der stadig mangler. |
+
 ## Opret eller redigér en regel
 
 Du skal have tilladelse til at oprette SLO-forbrugsrateregler.

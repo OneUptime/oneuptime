@@ -27,6 +27,7 @@ import Dictionary from "../../../../Types/Dictionary";
 import WorkspaceBase, {
   WorkspaceChannel,
   WorkspaceChannelToCreate,
+  WorkspaceDirectMessageLocation,
   WorkspaceMessageLocation,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
@@ -1293,6 +1294,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * provided the OneUptime app is installed for that user. When the personal
    * chat was already captured from a bot activity, it is reused instead, which
    * also preserves the regional serviceUrl captured with it.
+   *
+   * Says where the card landed - the personal chat, the activity's id and
+   * the service the chat is at - so it can be edited later (updateMessage),
+   * or null when Teams did not say.
    */
   @CaptureSpan()
   public static async sendDirectMessageToUserAsBot(data: {
@@ -1304,7 +1309,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
      * page notifies, so it says something readable, not "sent a card".
      */
     text?: string | undefined;
-  }): Promise<void> {
+  }): Promise<WorkspaceDirectMessageLocation | null> {
     /*
      * Sent for one project, so its buttons carry it (MicrosoftTeamsCardProject):
      * in an organization connected to several projects, a press of one - a
@@ -1360,13 +1365,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     });
 
     if (capturedPersonalChat) {
-      await this.sendAdaptiveCardToChat({
+      const thread: WorkspaceThread = await this.sendAdaptiveCardToChat({
         chatId: capturedPersonalChat.id,
         projectId: data.projectId,
         adaptiveCard: adaptiveCard,
         ...(data.text ? { summary: data.text } : {}),
       });
-      return;
+
+      // The service it was sent to: the chat's, else the cloud's default.
+      return thread?.threadId && thread.channel?.id
+        ? {
+            channelId: thread.channel.id,
+            messageId: thread.threadId,
+            serviceUrl:
+              capturedPersonalChat.serviceUrl ||
+              MicrosoftTeamsServiceUrl.getDefault(),
+          }
+        : null;
     }
 
     /*
@@ -1412,6 +1427,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       },
     };
 
+    // Where the card landed, as the conversation it was sent in names it.
+    let sent: WorkspaceDirectMessageLocation | null = null;
+
     try {
       await adapter.createConversationAsync(
         MicrosoftTeamsAppClientId,
@@ -1429,7 +1447,26 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             message.summary = data.text;
           }
 
-          await context.sendActivity(message);
+          const response: ResourceResponse | undefined =
+            await context.sendActivity(message);
+
+          const conversationId: unknown = context.activity?.conversation?.id;
+          const activityServiceUrl: unknown = context.activity?.serviceUrl;
+
+          if (
+            typeof conversationId === "string" &&
+            conversationId &&
+            response?.id
+          ) {
+            sent = {
+              channelId: conversationId,
+              messageId: response.id,
+              serviceUrl:
+                typeof activityServiceUrl === "string" && activityServiceUrl
+                  ? activityServiceUrl
+                  : serviceUrl,
+            };
+          }
         },
       );
     } catch (error) {
@@ -1454,6 +1491,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       throw error;
     }
+
+    return sent;
   }
 
   @CaptureSpan()
@@ -2643,7 +2682,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * way OneUptime's replies into a thread are (sendTextReplyToChannelThread).
    * A chat has no threads: the chat itself is the conversation. The
    * serviceUrl is the one captured when the app was installed in the team or
-   * added to the chat, as for a new post.
+   * added to the chat, as for a new post - or, for a personal chat the bot
+   * opened itself and never captured (sendDirectMessageToUserAsBot), the
+   * one the chat was opened at, as the location names it. Either is held to
+   * Microsoft's hosts (MicrosoftTeamsServiceUrl).
    */
   @CaptureSpan()
   public static override async updateMessage(data: {
@@ -2696,20 +2738,29 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const chat: MicrosoftTeamsChat | undefined =
         miscData.availableChats?.[data.location.channelId];
 
-      if (!chat) {
+      if (chat) {
+        conversation = {
+          id: chat.id,
+          name: chat.name,
+          isGroup: chat.chatType === "groupChat",
+          conversationType: chat.chatType,
+          tenantId: tenantId,
+        } as ConversationReference["conversation"];
+        serviceUrl = MicrosoftTeamsServiceUrl.resolve(chat.serviceUrl);
+      } else if (data.location.serviceUrl) {
+        // A personal chat the bot opened, at the service it was opened at.
+        conversation = {
+          id: data.location.channelId,
+          isGroup: false,
+          conversationType: "personal",
+          tenantId: tenantId,
+        } as ConversationReference["conversation"];
+        serviceUrl = MicrosoftTeamsServiceUrl.resolve(data.location.serviceUrl);
+      } else {
         throw new BadDataException(
           "This chat is not connected to OneUptime. Please add the OneUptime app to the chat in Microsoft Teams and try again.",
         );
       }
-
-      conversation = {
-        id: chat.id,
-        name: chat.name,
-        isGroup: chat.chatType === "groupChat",
-        conversationType: chat.chatType,
-        tenantId: tenantId,
-      } as ConversationReference["conversation"];
-      serviceUrl = MicrosoftTeamsServiceUrl.resolve(chat.serviceUrl);
     } else {
       const installedTeam: MicrosoftTeamsInstalledTeam | undefined = data
         .location.teamId

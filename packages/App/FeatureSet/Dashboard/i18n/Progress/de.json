@@ -796,6 +796,8 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} SLO",
+    "{{count}} SLOs",
     "{{count}} VM",
     "{{count}} VMs",
     "{{count}} s",

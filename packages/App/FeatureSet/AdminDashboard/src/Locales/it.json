@@ -63,7 +63,8 @@
     "apiKey": "Chiave API",
     "more": "Altro",
     "sendEmail": "Invia e-mail",
-    "logout": "Disconnetti"
+    "logout": "Disconnetti",
+    "telemetryUsage": "Utilizzo della telemetria"
   },
   "topAlert": {
     "title": "Pannello amministratore OneUptime",
@@ -131,7 +132,8 @@
     "settingsApiIntegrations": "API e integrazioni",
     "settingsApiKey": "Chiave API",
     "moreCommunication": "Comunicazione",
-    "moreSendEmail": "Invia e-mail"
+    "moreSendEmail": "Invia e-mail",
+    "telemetryUsage": "Utilizzo della telemetria"
   },
   "pages": {
     "users": {
@@ -581,7 +583,10 @@
         "logEditButton": "Modifica impostazioni",
         "metricCardTitle": "Conservazione delle metriche di monitoraggio",
         "metricCardDescription": "Configura per quanto tempo le metriche di monitoraggio vengono conservate prima di essere eliminate automaticamente.",
-        "metricEditButton": "Modifica impostazioni"
+        "metricEditButton": "Modifica impostazioni",
+        "usageCardTitle": "Conservazione dell'utilizzo della telemetria",
+        "usageCardDescription": "Per quanto tempo viene conservato l'utilizzo giornaliero della telemetria di ogni progetto, con la fatturazione attiva o no.",
+        "usageEditButton": "Modifica conservazione dell'utilizzo della telemetria"
       },
       "apiKey": {
         "cardTitle": "Impostazioni della chiave API master",
@@ -596,6 +601,13 @@
         "cardDescription": "I fornitori LLM globali sono disponibili per tutti i progetti per le funzionalità IA. Configura OpenAI, Anthropic, Ollama o altri fornitori LLM.",
         "noItems": "Nessun fornitore LLM configurato. Aggiungi un fornitore LLM per abilitare le funzionalità IA."
       }
+    },
+    "telemetryUsage": {
+      "title": "Utilizzo della telemetria",
+      "cardTitle": "Utilizzo della telemetria per progetto",
+      "cardDescription": "Quanta telemetria ha inviato ogni progetto, prima i più pesanti. Un giorno viene conteggiato quando è finito in UTC.",
+      "emptyTitle": "Ancora nessun utilizzo della telemetria",
+      "emptyDescription": "Nessun progetto ha ancora utilizzo conteggiato in questo intervallo. La telemetria di un giorno viene conteggiata quando il giorno è finito in UTC, entro le 08:00 UTC circa del giorno dopo."
     }
   },
   "Basic": "Base",
@@ -1859,6 +1871,60 @@
   "This list has default columns for everyone in this project.": "Questo elenco ha colonne predefinite per tutti in questo progetto.",
   "Remove default": "Rimuovi le colonne predefinite",
   "Reset to project default": "Reimposta i valori predefiniti del progetto",
+  "Telemetry Usage": "Utilizzo della telemetria",
+  "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.": "Quanta telemetria ha inviato questo progetto ogni giorno, per segnale. Un giorno viene conteggiato quando è finito in UTC.",
+  "Usage by Resource": "Utilizzo per risorsa",
+  "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.": "Quali servizi e risorse hanno inviato la telemetria, prima i più pesanti, e per quanto tempo ciascuno la conserva.",
+  "Resource": "Risorsa",
+  "Resources": "Risorse",
+  "Total": "Totale",
+  "Cost": "Costo",
+  "Retention": "Conservazione",
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.": "Per quanto tempo viene conservata la telemetria della risorsa, come conteggiato nel giorno più recente dell'intervallo.",
+  "Range": "Intervallo",
+  "Last {{count}} days": "Ultimi {{count}} giorni",
+  "Last {{count}} days_one": "Ultimo {{count}} giorno",
+  "No telemetry usage yet": "Ancora nessun utilizzo della telemetria",
+  "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.": "La telemetria di un giorno viene conteggiata quando il giorno è finito in UTC, entro le 08:00 UTC circa del giorno dopo. Quella di oggi compare domani.",
+  "No telemetry usage in this range": "Nessun utilizzo della telemetria in questo intervallo",
+  "The newest day with usage is {{day}}. Choose a longer range to see it.": "L'utilizzo più recente è del {{day}}. Scegli un intervallo più lungo per vederlo.",
+  "Logs": "Registri",
+  "Metrics": "Metriche",
+  "Traces": "Tracce",
+  "Profiles": "Profili",
+  "Session Replays": "Riproduzioni delle sessioni",
+  "Security Events": "Eventi di sicurezza",
+  "Spans, and the exceptions recorded with them.": "Span, e le eccezioni registrate con essi.",
+  "Profiles, and the samples recorded with them.": "Profili, e i campioni registrati con essi.",
+  "{{size}} GB": "{{size}} GB",
+  "{{size}} MB": "{{size}} MB",
+  "{{size}} KB": "{{size}} KB",
+  "{{amount}} USD": "{{amount}} USD",
+  "Session replays: {{days}}": "Riproduzioni delle sessioni: {{days}}",
+  "Service": "Servizio",
+  "RUM Application": "Applicazione RUM",
+  "Docker Host": "Host Docker",
+  "Podman Host": "Host Podman",
+  "Kubernetes Cluster": "Cluster Kubernetes",
+  "Proxmox Cluster": "Cluster Proxmox",
+  "OpenStack Cloud": "Cloud OpenStack",
+  "Ceph Cluster": "Cluster Ceph",
+  "Storage Array": "Array di storage",
+  "Docker Swarm Cluster": "Cluster Docker Swarm",
+  "vCenter": "vCenter",
+  "IoT Fleet": "Flotta IoT",
+  "Serverless Function": "Funzione serverless",
+  "Cloud Resource": "Risorsa cloud",
+  "Database": "Database",
+  "Network Device": "Dispositivo di rete",
+  "Unknown Service": "Servizio sconosciuto",
+  "Day": "Giorno",
+  "Data Ingested (in GB)": "Dati acquisiti (in GB)",
+  "How much telemetry each project sends, heaviest first.": "Quanta telemetria invia ogni progetto, prima i più pesanti.",
+  "Telemetry Usage Retention (Days)": "Conservazione dell'utilizzo della telemetria (giorni)",
+  "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Per quanti giorni viene conservato l'utilizzo giornaliero della telemetria di ogni progetto, da 30 a 1095. Lascia vuoto per 120 giorni.",
+  "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Numero di giorni di conservazione dell'utilizzo giornaliero della telemetria di ogni progetto. L'utilizzo più vecchio di questo valore viene eliminato.",
+  "Scheduled Maintenance": "Manutenzione programmata",
   "markdownCallouts": {
     "caution": "Attenzione",
     "danger": "Pericolo",

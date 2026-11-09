@@ -214,6 +214,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   WorkflowVersion: AuditLogExemptionKind.WorkingState,
   WorkspaceHomeChoice: AuditLogExemptionKind.WorkingState,
   WorkspaceLiveMessage: AuditLogExemptionKind.WorkingState,
+  WorkspacePublicNoteApprovalMessage: AuditLogExemptionKind.WorkingState,
   WorkspaceSetting: AuditLogExemptionKind.WorkingState,
 
   // A person's own notification setup.
