@@ -401,8 +401,8 @@ export enum SloDeploymentGateTransition {
 }
 
 export interface SloDeploymentGateColumns {
-  deploymentsAllowed?: boolean | undefined;
-  deploymentsFrozenAt?: Date | null | undefined;
+  deploymentsAllowed?: boolean;
+  deploymentsFrozenAt?: Date | null;
 }
 
 export interface SloDeploymentGateChange {

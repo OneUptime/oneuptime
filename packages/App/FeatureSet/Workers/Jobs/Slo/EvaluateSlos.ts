@@ -841,8 +841,8 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     currentErrorBudgetPolicyTierId?: ObjectID | null;
     currentErrorBudgetPolicyTierName?: string | null;
     currentErrorBudgetPolicyTierEnteredAt?: Date | null;
-    deploymentsAllowed?: boolean | undefined;
-    deploymentsFrozenAt?: Date | null | undefined;
+    deploymentsAllowed?: boolean;
+    deploymentsFrozenAt?: Date | null;
   } = {
     // Decimal columns — persisted unrounded.
     currentSliPercentage: sli.sliPercentage,

@@ -70,6 +70,8 @@ const SloRecommendedPolicyTiersModal: FunctionComponent<ComponentProps> = (
       error={props.error || undefined}
       disableSubmitButton={props.tiers.length === 0}
     >
+      {/* ConfirmModal takes one child: the note and the list, together. */}
+      <>
       {isAnyTierFreezing ? (
         <p
           data-testid={RECOMMENDED_POLICY_FREEZE_NOTE_TEST_ID}
@@ -128,6 +130,7 @@ const SloRecommendedPolicyTiersModal: FunctionComponent<ComponentProps> = (
           );
         })}
       </ul>
+      </>
     </ConfirmModal>
   );
 };
