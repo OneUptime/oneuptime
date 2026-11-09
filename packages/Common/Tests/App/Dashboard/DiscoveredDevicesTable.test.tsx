@@ -30,6 +30,7 @@ import {
   TABLE_FOLDED_VALUE_TITLE_TEST_ID,
 } from "../../../UI/Components/Table/TableFoldedValues";
 import { forgetRememberedTableFits } from "../../../UI/Components/Table/useTableFit";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import DiscoveryImportFakeServer from "./DiscoveryImportFakeServer";
 import DiscoveredDevicesFakeServer, {
   FAKE_DISCOVERED_DEVICE_ROUTES,
@@ -305,11 +306,9 @@ async function openRowMenu(name: string): Promise<HTMLElement> {
 }
 
 // A row's box is named by the device and its address.
-const REGEXP_SPECIAL: RegExp = /[.*+?^$(){}|[\]\\]/g;
-
 function selectBox(name: string): HTMLElement {
   return screen.getByRole("checkbox", {
-    name: new RegExp("^Select " + name.replace(REGEXP_SPECIAL, "\\$&")),
+    name: new RegExp("^Select " + escapeRegExp(name)),
   });
 }
 

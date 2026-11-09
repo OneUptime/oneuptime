@@ -1,4 +1,5 @@
 import { expect, Locator, Page, Route, test } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
 
@@ -84,11 +85,9 @@ function rowOf(page: Page, name: string): Locator {
     .filter({ has: page.getByText(name, { exact: true }) });
 }
 
-const REGEXP_SPECIAL: RegExp = /[.*+?^$(){}|[\]\\]/g;
-
 function selectBox(page: Page, label: string): Locator {
   return page.getByRole("checkbox", {
-    name: new RegExp("^Select " + label.replace(REGEXP_SPECIAL, "\\$&")),
+    name: new RegExp("^Select " + escapeRegExp(label)),
   });
 }
 
