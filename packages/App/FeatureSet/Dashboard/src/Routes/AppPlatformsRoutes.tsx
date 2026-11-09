@@ -29,6 +29,7 @@ import AppPlatformEnvironmentDocumentation from "../Pages/AppPlatforms/View/Docu
 import AppPlatformEnvironmentSettings from "../Pages/AppPlatforms/View/Settings";
 import AppPlatformEnvironmentOwners from "../Pages/AppPlatforms/View/Owners";
 import AppPlatformEnvironmentDelete from "../Pages/AppPlatforms/View/Delete";
+import AppPlatformEnvironmentAuditLogs from "../Pages/AppPlatforms/View/AuditLogs";
 import PageNotFound from "../Pages/PageNotFound/PageNotFound";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
@@ -378,6 +379,22 @@ const AppPlatformsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <AppPlatformEnvironmentAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS
+                ] as Route
+              }
+            />
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE,

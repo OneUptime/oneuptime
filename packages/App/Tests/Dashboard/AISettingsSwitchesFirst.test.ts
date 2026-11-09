@@ -722,6 +722,61 @@ describe("the pages draw switches first, and fold the limits", () => {
     expect(confirmation).toContain("submitButtonType: ButtonStyleType.DANGER");
   });
 
+  /*
+   * Two people approve a riskier fix (#6148's follow-up): a switch of its
+   * own, folded under More settings after the daily limits - a rule on who
+   * approves, not an AI feature, so it is none of the switches a new
+   * project starts with on, and Enable AI stays the page's first switch.
+   */
+  test("More settings on AI Features holds Fix approvals: one switch that saves its own column, after the daily limits", () => {
+    const page: string = readDashboard(AI_FEATURES_PAGE);
+    const copy: string = readDashboard(
+      "Components/AISettings/FixApprovalsCopy.ts",
+    );
+
+    expect(page.split("<ModelSwitchCard<Project>").length - 1).toBe(2);
+    expect(page).toContain("column={TWO_APPROVALS_COLUMN}");
+    expect(page).toContain("dataTestId={FIX_APPROVALS_SWITCH_TEST_ID}");
+    expect(page).toContain("cardId={FIX_APPROVALS_CARD_KEY}");
+    expect(page).toContain("getFixApprovalsFoldedItem(isTwoApprovalsOn)");
+    // Inside the fold, after the daily limits; never before Enable AI.
+    expect(page.indexOf("column={TWO_APPROVALS_COLUMN}")).toBeGreaterThan(
+      page.indexOf("<CardModelDetail"),
+    );
+    expect(page.indexOf("column={TWO_APPROVALS_COLUMN}")).toBeLessThan(
+      page.indexOf("</AdvancedPageSection>"),
+    );
+    expect(page.indexOf("column={ENABLE_AI_COLUMN}")).toBeLessThan(
+      page.indexOf("column={TWO_APPROVALS_COLUMN}"),
+    );
+    // Nothing runs when it is flipped: it asks nothing first.
+    expect(
+      page.slice(page.indexOf("column={TWO_APPROVALS_COLUMN}")),
+    ).not.toContain("getConfirmation");
+
+    expect(copy).toContain(
+      'TWO_APPROVALS_COLUMN: TwoApprovalsColumn = "requireTwoApprovalsForRiskierFixes"',
+    );
+    expect(newProjectAiDefaultColumns()).not.toContain(
+      "requireTwoApprovalsForRiskierFixes",
+    );
+    expect(columnsOf(ALL_SWITCHES)).not.toContain(
+      "requireTwoApprovalsForRiskierFixes",
+    );
+
+    // Off for every project, set by owners and admins only.
+    const metadata: TableColumnMetadata = new Project().getTableColumnMetadata(
+      "requireTwoApprovalsForRiskierFixes",
+    );
+    expect(metadata.type).toBe(TableColumnType.Boolean);
+    expect(metadata.defaultValue).toBe(false);
+    expect(
+      new Project().getColumnAccessControlFor(
+        "requireTwoApprovalsForRiskierFixes",
+      )?.update,
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
+  });
+
   test("the notice holds Enable AI's own switch, with the same confirmation, for those who may change it", () => {
     const notice: string = readDashboard(NOTICE);
 

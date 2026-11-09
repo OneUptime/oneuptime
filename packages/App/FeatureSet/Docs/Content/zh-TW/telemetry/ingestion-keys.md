@@ -26,6 +26,7 @@ flowchart TB
 
 - **金鑰決定專案。** 你從不傳送專案 ID：用某個金鑰傳送的資料會進入該金鑰所屬的專案。
 - **變更會在一分鐘內傳到每台伺服器。** 停用金鑰、重設其密鑰值，或變更其來源、到期時間或上限，大約一分鐘內生效。
+- **金鑰可以有自己的預算。** 每個訊號的每日預算和每秒速率，都在其專案的預算之內：請參閱 [擷取預算](/docs/telemetry/ingestion-budgets)。
 - **伺服器金鑰就是密碼。** 任何拿到它的人都能向你的專案傳送遙測。請把它存放在伺服器的機密設定中，切勿放進原始碼控制或網頁。
 
 ## 伺服器還是瀏覽器
@@ -155,4 +156,5 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 - [服務目錄](/docs/telemetry/services): 查看你的遙測所歸入的服務。
 - [資料保留](/docs/telemetry/data-retention): 決定資料保留多長時間。
 - [捨棄過濾器與清理規則](/docs/telemetry/drop-filters-and-scrub-rules): 在儲存之前捨棄或遮罩資料。
+- [擷取預算](/docs/telemetry/ingestion-budgets): 限制每個金鑰一天內最多可傳送多少。
 :::

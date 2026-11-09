@@ -102,6 +102,7 @@ function createContainer(initial: Array<string> | null): FakeContainer {
 
 const ACKNOWLEDGE_PAGE: string = "ACKNOWLEDGE_PAGE";
 const ESCALATE_PAGE: string = "ESCALATE_PAGE";
+const MARK_PAGE_SEEN: string = "MARK_PAGE_SEEN";
 const DEFAULT_ACTION: string = "expo.modules.notifications.actions.DEFAULT";
 
 function tap(
@@ -291,6 +292,114 @@ describe("Acknowledge and Escalate under a page's push", () => {
         routeName: "Monitors",
         screen: "MonitorDetail",
         params: { monitorId: "mon-1", projectId: "proj-1" },
+      },
+    ]);
+  });
+});
+
+/*
+ * "I've seen it" under an observer's page (notifications/categories.ts): the
+ * record opens with the action for its screen, which marks the reader's page
+ * seen - and never acknowledges the record (oncall/pushPageAction.ts).
+ */
+describe("I've seen it under an observer's page", () => {
+  let handlers: HandlersModule;
+  let container: FakeContainer;
+
+  beforeEach(() => {
+    handlers = loadHandlers();
+    container = createContainer(MAIN_TAB_ROUTES);
+    handlers.setNavigationRef(container.ref);
+  });
+
+  test.each([
+    ["incident", "IncidentDetail", { incidentId: "inc-1" }],
+    ["alert", "AlertDetail", { alertId: "inc-1" }],
+    ["incident-episode", "IncidentEpisodeDetail", { episodeId: "inc-1" }],
+    ["alert-episode", "AlertEpisodeDetail", { episodeId: "inc-1" }],
+  ] as Array<[string, string, Record<string, string>]>)(
+    "on a %s's push, opens it with I've seen it for its screen - not Acknowledge",
+    (entityType: string, screen: string, ids: Record<string, string>) => {
+      handlers.handleNotificationResponse(
+        tap(
+          { entityType, entityId: "inc-1", projectId: "proj-1" },
+          MARK_PAGE_SEEN,
+          "n-70",
+        ),
+      );
+
+      expect(container.navigations).toEqual([
+        {
+          routeName: "Inbox",
+          screen,
+          params: {
+            ...ids,
+            projectId: "proj-1",
+            pushAction: { kind: "seen", id: "n-70:MARK_PAGE_SEEN" },
+          },
+        },
+      ]);
+    },
+  );
+
+  test("takes the answered page's notification away, as Acknowledge does", async () => {
+    dismissMock().mockClear();
+
+    handlers.handleNotificationResponse(
+      tap(
+        { entityType: "incident", entityId: "inc-1", projectId: "proj-1" },
+        MARK_PAGE_SEEN,
+        "n-71",
+      ),
+    );
+    await settle();
+
+    expect(dismissMock()).toHaveBeenCalledTimes(1);
+    expect(dismissMock()).toHaveBeenCalledWith("n-71");
+  });
+
+  test("a push's data can never turn a plain tap into I've seen it", () => {
+    handlers.handleNotificationResponse(
+      tap({
+        entityType: "incident",
+        entityId: "inc-1",
+        projectId: "proj-1",
+        pushAction: { kind: "seen", id: "from-the-payload" },
+      }),
+    );
+
+    expect(container.navigations[0]?.params).toEqual({
+      incidentId: "inc-1",
+      projectId: "proj-1",
+    });
+  });
+
+  test("tapped while signed out, it is held through the sign-in with its action, and delivered once", () => {
+    container.mount(AUTH_STACK_ROUTES);
+
+    handlers.handleNotificationResponse(
+      tap(
+        { entityType: "alert", entityId: "alert-1", projectId: "proj-1" },
+        MARK_PAGE_SEEN,
+        "n-72",
+      ),
+    );
+    handlers.processPendingNotification();
+    expect(container.navigations).toEqual([]);
+
+    container.mount(MAIN_TAB_ROUTES);
+    handlers.processPendingNotification();
+    handlers.processPendingNotification();
+
+    expect(container.navigations).toEqual([
+      {
+        routeName: "Inbox",
+        screen: "AlertDetail",
+        params: {
+          alertId: "alert-1",
+          projectId: "proj-1",
+          pushAction: { kind: "seen", id: "n-72:MARK_PAGE_SEEN" },
+        },
       },
     ]);
   });

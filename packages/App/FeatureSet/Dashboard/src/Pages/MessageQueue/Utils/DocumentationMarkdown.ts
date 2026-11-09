@@ -393,6 +393,8 @@ const AZURE_MONITOR_METRICS: ReadonlyMap<
     [
       ["ActiveMessages", "Average"],
       ["DeadletteredMessages", "Average"],
+      ["ScheduledMessages", "Average"],
+      ["Size", "Average"],
       ["IncomingMessages", "Total"],
       ["OutgoingMessages", "Total"],
       ["CompleteMessage", "Total"],
@@ -400,6 +402,7 @@ const AZURE_MONITOR_METRICS: ReadonlyMap<
       ["ServerErrors", "Total"],
       ["UserErrors", "Total"],
       ["ThrottledRequests", "Total"],
+      ["ServerSendLatency", "Average"],
     ],
   ],
   [
@@ -411,9 +414,30 @@ const AZURE_MONITOR_METRICS: ReadonlyMap<
       ["UserErrors", "Total"],
       ["QuotaExceededErrors", "Total"],
       ["ThrottledRequests", "Total"],
+      ["Size", "Average"],
     ],
   ],
 ]);
+
+/**
+ * The line of the guide's azure_monitor receiver config that collects a
+ * stored metric name ("ScheduledMessages: [Average]" for
+ * azure_scheduledmessages_average), or null when the guide's config for the
+ * system does not list it. What a collector whose config predates a metric
+ * has to add.
+ */
+export function getAzureMonitorMetricConfigLine(
+  system: string,
+  metricName: string,
+): string | null {
+  const wanted: string = (metricName || "").trim().toLowerCase();
+  for (const [name, aggregation] of AZURE_MONITOR_METRICS.get(system) || []) {
+    if (`azure_${name}_${aggregation}`.toLowerCase() === wanted) {
+      return `${name}: [${aggregation}]`;
+    }
+  }
+  return null;
+}
 
 /**
  * The Azure Monitor metric names (`azure_<name>_<aggregation>`, lowercased,

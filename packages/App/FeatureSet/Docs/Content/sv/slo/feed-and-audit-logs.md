@@ -7,7 +7,7 @@ Ett SLO för två register över sin historik, och de svarar på olika frågor. 
 | | **Feed** | **Granskningsloggar** |
 | --- | --- | --- |
 | Svarar på | Vad som har hänt med SLO:et | Vem som ändrade vad, och när |
-| Registrerar | Statusändringar, larm och incidenter för förbrukningstakt, och ändringar av SLO:et, dess regler, monitorer och ägare | Varje ändring som personer gjort i SLO:et, dess regler för förbrukningstakt, monitorregler och ägare, med gammalt och nytt värde |
+| Registrerar | Statusändringar, byten av nivå i felbudgetpolicyn, larm och incidenter från regler för förbrukningstakt och policynivåer, och ändringar av SLO:et, dess regler, monitorer och ägare | Varje ändring som personer gjort i SLO:et, dess regler för förbrukningstakt, monitorregler, nivåer i felbudgetpolicyn och ägare, med gammalt och nytt värde |
 | Tar med OneUptimes eget arbete | Ja: utvärderingar och monitorregler som kopplar monitorer | Bara med **Lagra systemhändelser** påslaget |
 | Abonnemang | Alla abonnemang | Enterprise-abonnemanget på OneUptime Cloud, eller Enterprise Edition på en egenhostad installation |
 | Sparas | Tre år på OneUptime Cloud | 7 dagar som standard, upp till 180 |
@@ -32,9 +32,14 @@ Flödet finns på SLO:ets sida **Feed**, och dess senaste poster under **Senaste
 | SLO aktiverat eller inaktiverat | Utvärderingen slås på eller av. |
 | SLO arkiverat eller återställt | SLO:et arkiveras eller avarkiveras. |
 | Status ändrad | En utvärdering flyttar SLO:et till en ny status. Visar den SLI, den felbudget, den förbrukningstakt och den tröskel för riskzon som förklarar den, och orsaken vid **Pausad** eller **Felkonfigurerad**. |
+| Nivå i felbudgetpolicyn bytt | En utvärdering flyttar SLO:et till en nivå i dess felbudgetpolicy, till en annan nivå eller ut ur alla nivåer. Visar nivån det lämnade och nivån det gick in i, återstående budget och vad teamet har kommit överens om att göra i den nya nivån, och anger när bytet frös distributioner eller tillät dem igen. Se [Felbudgetpolicy](/docs/slo/error-budget-policy). |
+| Distributioner frysta eller tillåtna igen | Någon slog på eller av **Frys distributioner** för den nivå SLO:et är i, och nästa utvärdering frös distributioner eller tillät dem igen. Ett byte av nivå som gör det säger det i stället i sin egen post. Se [Distributionsspärr](/docs/slo/error-budget-policy#distributionsspärr). |
 | Larm för förbrukningstakt utlöst | En regel för förbrukningstakt skapar ett larm. Länkar till det och visar de förbrukningstakter som utlöste det. |
 | Incident för förbrukningstakt deklarerad | En regel för förbrukningstakt deklarerar en incident. Länkar till den och visar de förbrukningstakter som utlöste den. |
 | Larm eller incident för förbrukningstakt löst | En regels larm eller incident stängs: löst automatiskt, eller för hand medan automatisk lösning var avstängd. |
+| Larm från felbudgetpolicyn utlöst | En nivå i felbudgetpolicyn skapar ett larm. Länkar till det. |
+| Incident från felbudgetpolicyn deklarerad | En nivå i felbudgetpolicyn deklarerar en incident. Länkar till den. |
+| Larm eller incident från felbudgetpolicyn löst | En nivås larm eller incident stängs: ersatt av en allvarligare nivå, löst automatiskt eller manuellt medan automatisk lösning var avstängd. |
 | Regel för förbrukningstakt tillagd, ändrad eller borttagen | Någon skapar, redigerar eller raderar en regel för förbrukningstakt. Standardreglerna för ett nytt SLO finns i stället i dess post ”SLO skapat”. |
 | Monitorregel tillagd, ändrad eller borttagen | Någon skapar, redigerar eller raderar en monitorregel. En sparning som inte ändrar något av betydelse publiceras inte. |
 | Monitorer kopplade eller bortkopplade | Monitorer läggs till i SLO:et eller tas bort från det, för hand eller av en monitorregel. Långa listor nämner de första monitorerna ”och N till”. |
@@ -55,6 +60,7 @@ SLO:ets sida **Granskningsloggar** listar ändringar i:
 
 - själva SLO:et: dess uppgifter, inställningar, etiketter, monitorer och arkivering;
 - dess regler för förbrukningstakt;
+- dess nivåer i felbudgetpolicyn;
 - dess monitorregler;
 - dess ägaranvändare och ägarteam.
 
@@ -62,7 +68,7 @@ SLO:ets sida **Granskningsloggar** listar ändringar i:
 
 Två saker utelämnas:
 
-- **Utvärderingsresultat.** SLI:n, felbudgeten, förbrukningstakten, statusen och utvärderingstiderna ändras med några minuters mellanrum. Deras historik finns i **Översikt**, på sidan **Mätvärden** och i **Feed**.
+- **Utvärderingsresultat.** SLI:n, felbudgeten, förbrukningstakten, statusen och utvärderingstiderna ändras med några minuters mellanrum. Deras historik finns i **Översikt**, på sidan **Mätvärden** och i **Feed**. Den nivå i felbudgetpolicyn som SLO:et är i, och om dess distributioner är tillåtna, är undantaget: en ändring av någon av dem registreras som en ändring som OneUptime själv har gjort.
 - **Ändringar som OneUptime gör själv**, som en monitorregel som kopplar eller kopplar bort en monitor, om inte **Lagra systemhändelser** är påslaget för projektet. **Feed** registrerar kopplingar och bortkopplingar av monitorer i vilket fall som helst.
 
 ### Slå på granskningsloggar

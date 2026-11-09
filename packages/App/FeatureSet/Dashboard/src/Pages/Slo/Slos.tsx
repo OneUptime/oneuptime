@@ -90,7 +90,7 @@ Open an SLO's **Settings** page to change how it is measured:
 
 ### Alerts, Incidents and History
 
-Every new SLO starts with a **fast burn** and a **slow burn** rule, scaled to its compliance window. On the SLO's **Burn Rate Rules** page, choose whether each rule raises an alert, declares an incident, or both, and who is paged. Alerts and incidents a rule creates list the SLO as an affected resource.
+Every new SLO starts with a **fast burn**, a **slow burn** and a **slow leak** rule, scaled to its compliance window. An older SLO missing one of them offers **Add recommended rules** on its **Burn Rate Rules** page. To add them to many SLOs at once, select them in this list and choose **Add recommended rules** in **Bulk Actions**: the confirmation says how many of them get which rules before anything is added. On the SLO's **Burn Rate Rules** page, choose whether each rule raises an alert, declares an incident, or both, and who is paged. Alerts and incidents a rule creates list the SLO as an affected resource.
 
 The SLO's **Metrics** page charts its SLI, error budget and burn rate over time, and its **Feed** records what changed and when.
 
@@ -417,6 +417,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const {
     bulkActions,
     archiveBulkActions,
+    recommendedRulesBulkActions,
     rowActions,
     archiveRowActions,
     modals,
@@ -531,8 +532,16 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         documentationLink={new Route("/docs/slo/introduction")}
         showViewIdButton={true}
+        /*
+         * Add recommended rules is offered here alone: an archived SLO's
+         * rules never fire, and the Archived page offers Unarchive alone.
+         */
         bulkActions={{
-          buttons: [...bulkActions, ...archiveBulkActions],
+          buttons: [
+            ...bulkActions,
+            ...recommendedRulesBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         /*
          * Status and Enabled are chips on the facet bar, not popup filters:

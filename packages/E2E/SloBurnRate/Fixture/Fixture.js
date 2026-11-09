@@ -1,5 +1,7 @@
 /*
- * Offline fixture for the real SLO Burn Rate Rules and Overview pages.
+ * Offline fixture for the real SLO Burn Rate Rules, Error Budget Policy and
+ * Overview pages, and the SLO list (/dashboard/<project>/slos) with its Bulk
+ * Actions.
  *
  * Only the ModelAPI/API data boundary and the synthetic user's permission
  * snapshot are replaced. The page component, its ModelTable, its form and
@@ -24,8 +26,11 @@ import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import SloBurnRateRules from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules";
+import SloErrorBudgetPolicy from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/ErrorBudgetPolicy";
+import Slos from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/Slos";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -49,6 +54,20 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import {
+  SloRecommendedAlertSeverity,
+  getMissingSloRecommendedBurnRateRules,
+  sloRecommendedBurnRateRuleToJSON,
+} from "Common/Utils/Slo/SloRecommendedBurnRateRules";
+import {
+  SLO_RECOMMENDED_POLICY_TIERS,
+  getMissingSloRecommendedPolicyTiers,
+  sloRecommendedPolicyTierToJSON,
+} from "Common/Utils/Slo/SloErrorBudgetPolicy";
+import {
+  SloBulkRecommendedRulesStatus,
+  sloBulkRecommendedRulesResultToJSON,
+} from "Common/Utils/Slo/SloBulkRecommendedBurnRateRules";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const SLO_ID = "20000000-0000-4000-8000-000000000001";
@@ -323,6 +342,183 @@ const monitor = new Monitor();
 monitor._id = "70000000-0000-4000-8000-000000000001";
 slo.monitors = [monitor];
 
+/*
+ * The SLO list (/slos): the SLO above and three more, each with burn rate
+ * rules of its own, for Bulk Actions > Add recommended rules:
+ *
+ *   - Checkout availability (30 days): Fast burn, Slow burn and Budget
+ *     emergency - missing Slow leak, as an SLO from before it existed is;
+ *   - Search latency (7 days): Fast burn and Slow burn - missing Slow leak
+ *     in the shape a 7-day window gives it (16.8 hours, at 1x);
+ *   - Payments API (30 days): all three - nothing to add;
+ *   - Login (calendar month): a renamed fast-burn rule only ("Paging", over
+ *     60 minutes) - missing Slow burn and Slow leak.
+ */
+const SEARCH_SLO_ID = "20000000-0000-4000-8000-000000000002";
+const PAYMENTS_SLO_ID = "20000000-0000-4000-8000-000000000003";
+const LOGIN_SLO_ID = "20000000-0000-4000-8000-000000000004";
+
+function listSlo(data) {
+  const record = new ServiceLevelObjective();
+  record._id = data.id;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.name = data.name;
+  record.isEnabled = true;
+  record.isArchived = false;
+  record.sloStatus = data.status;
+  record.sliType = SliType.MonitorUptime;
+  record.targetPercentage = data.target;
+  record.windowType = data.windowType;
+  record.windowDays = data.windowDays;
+  record.atRiskThresholdPercentage = 20;
+  record.currentSliPercentage = data.sli;
+  record.errorBudgetRemainingPercentage = data.budget;
+  record.currentBurnRate = data.burnRate;
+  record.lastEvaluatedAt = minutesBefore(2);
+  record.labels = [];
+  record.monitors = [monitor];
+  return record;
+}
+
+const listSlos = [
+  slo,
+  listSlo({
+    id: SEARCH_SLO_ID,
+    name: "Search latency",
+    status: SloStatus.Healthy,
+    target: 99.5,
+    windowType: SloWindowType.Rolling,
+    windowDays: 7,
+    sli: 99.81,
+    budget: 62,
+    burnRate: 0.4,
+  }),
+  listSlo({
+    id: PAYMENTS_SLO_ID,
+    name: "Payments API",
+    status: SloStatus.Healthy,
+    target: 99.95,
+    windowType: SloWindowType.Rolling,
+    windowDays: 30,
+    sli: 99.97,
+    budget: 71,
+    burnRate: 0.3,
+  }),
+  listSlo({
+    id: LOGIN_SLO_ID,
+    name: "Login",
+    status: SloStatus.AtRisk,
+    target: 99.9,
+    windowType: SloWindowType.CalendarMonth,
+    windowDays: 30,
+    sli: 99.91,
+    budget: 14,
+    burnRate: 1.6,
+  }),
+];
+
+let listRuleCount = 0;
+
+function listRule(sloId, name, longWindowInMinutes) {
+  listRuleCount += 1;
+  const record = new ServiceLevelObjectiveBurnRateRule();
+  record._id = `61000000-0000-4000-8000-${String(listRuleCount).padStart(12, "0")}`;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.serviceLevelObjectiveId = new ObjectID(sloId);
+  record.name = name;
+  record.isEnabled = true;
+  record.longWindowInMinutes = longWindowInMinutes;
+  return record;
+}
+
+// Each listed SLO's rules, by its id: the SLO above keeps `rules`.
+const rulesOfListedSlo = {
+  [SLO_ID]: rules,
+  [SEARCH_SLO_ID]: [
+    listRule(SEARCH_SLO_ID, "Fast burn", 60),
+    listRule(SEARCH_SLO_ID, "Slow burn", 360),
+  ],
+  [PAYMENTS_SLO_ID]: [
+    listRule(PAYMENTS_SLO_ID, "Fast burn", 60),
+    listRule(PAYMENTS_SLO_ID, "Slow burn", 360),
+    listRule(PAYMENTS_SLO_ID, "Slow leak", 4320),
+  ],
+  [LOGIN_SLO_ID]: [listRule(LOGIN_SLO_ID, "Paging", 60)],
+};
+
+/*
+ * The SLO's error budget policy: none at first, so the Error Budget Policy
+ * page offers the recommended one. ?policy=recommended starts it with the
+ * recommended tiers, and puts the SLO - 20% of its budget left - in
+ * Reliability first (25%), three hours ago by the browser's own clock, so
+ * the Overview shows the tier it is in. ?policy=frozen starts it the same
+ * way with the budget overspent, so the SLO is in Budget exhausted (0%) -
+ * the recommended tier that freezes deployments - and its deploy gate has
+ * been shut since 09:00 on the fixture's day.
+ */
+function policyTier(data) {
+  const record = new ServiceLevelObjectiveErrorBudgetPolicyTier();
+  record._id = data.id;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.serviceLevelObjectiveId = new ObjectID(SLO_ID);
+  record.name = data.name;
+  record.thresholdPercentage = data.thresholdPercentage;
+  record.whatWeDo = data.whatWeDo;
+  record.freezesDeployments = data.freezesDeployments === true;
+  record.isEnabled = true;
+  record.shouldCreateAlert = false;
+  record.shouldCreateIncident = false;
+  record.isAlertPrivate = false;
+  record.autoResolveAlert = true;
+  record.isIncidentPrivate = false;
+  record.autoResolveIncident = true;
+  record.addSloOwnersAsOwners = false;
+  return record;
+}
+
+const policyTiers = [];
+
+function nextPolicyTierId() {
+  return `e0000000-0000-4000-8000-${String(policyTiers.length + 1).padStart(12, "0")}`;
+}
+
+// As the API lists them for the page: from the highest threshold down.
+function sortedPolicyTiers() {
+  return [...policyTiers].sort((a, b) => {
+    return b.thresholdPercentage - a.thresholdPercentage;
+  });
+}
+
+const policyMode = new URLSearchParams(window.location.search).get("policy");
+
+if (policyMode === "recommended" || policyMode === "frozen") {
+  for (const recommended of SLO_RECOMMENDED_POLICY_TIERS) {
+    policyTiers.push(policyTier({ id: nextPolicyTierId(), ...recommended }));
+  }
+
+  const isFrozen = policyMode === "frozen";
+
+  const current = policyTiers.find((item) => {
+    return item.thresholdPercentage === (isFrozen ? 0 : 25);
+  });
+
+  slo.currentErrorBudgetPolicyTierId = new ObjectID(current._id);
+  slo.currentErrorBudgetPolicyTierName = current.name;
+  slo.currentErrorBudgetPolicyTierEnteredAt = new Date(
+    Date.now() - 3 * 60 * 60 * 1000,
+  );
+  slo.deploymentsAllowed = !isFrozen;
+
+  if (isFrozen) {
+    // 4% over budget: Budget Exhausted, and in the tier at 0%.
+    slo.sloStatus = SloStatus.BudgetExhausted;
+    slo.errorBudgetRemainingPercentage = -4;
+    slo.errorBudgetRemainingSeconds = -103.68;
+    slo.currentBurnRate = 2.4;
+    slo.deploymentsFrozenAt = new Date("2026-09-11T09:00:00.000Z");
+  }
+}
+
 User.isMasterAdmin = () => true;
 User.getUserId = () => new ObjectID("80000000-0000-4000-8000-000000000001");
 PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
@@ -337,6 +533,17 @@ ModelAPI.getItem = async (options) => {
     return Object.assign(new ServiceLevelObjective(), slo, {
       labels: [...slo.labels],
     });
+  }
+  if (tableName === "ServiceLevelObjectiveErrorBudgetPolicyTier") {
+    const existing = policyTiers.find(
+      (item) => item._id === options.id.toString(),
+    );
+    return existing
+      ? Object.assign(
+          new ServiceLevelObjectiveErrorBudgetPolicyTier(),
+          existing,
+        )
+      : null;
   }
   if (tableName === "ServiceLevelObjectiveBurnRateRule") {
     const existing = rules.find((item) => item._id === options.id.toString());
@@ -354,7 +561,9 @@ ModelAPI.getList = async (options) => {
   const skip = Number(options.skip || 0);
   const limit = Number(options.limit || 50);
   const itemsByTable = {
+    ServiceLevelObjective: listSlos,
     ServiceLevelObjectiveBurnRateRule: rules,
+    ServiceLevelObjectiveErrorBudgetPolicyTier: sortedPolicyTiers(),
     AlertSeverity: alertSeverities,
     IncidentSeverity: incidentSeverities,
     OnCallDutyPolicy: onCallPolicies,
@@ -375,6 +584,28 @@ ModelAPI.getList = async (options) => {
 
 ModelAPI.getCount = async (options) => {
   const tableName = new options.modelType().tableName;
+  // The list's status tiles: the listed SLOs of the status and switch asked.
+  if (tableName === "ServiceLevelObjective") {
+    const query = options.query || {};
+    return listSlos.filter((item) => {
+      if (
+        typeof query.sloStatus === "string" &&
+        item.sloStatus !== query.sloStatus
+      ) {
+        return false;
+      }
+      if (
+        typeof query.isEnabled === "boolean" &&
+        item.isEnabled !== query.isEnabled
+      ) {
+        return false;
+      }
+      return true;
+    }).length;
+  }
+  if (tableName === "ServiceLevelObjectiveErrorBudgetPolicyTier") {
+    return policyTiers.length;
+  }
   return tableName === "ServiceLevelObjectiveBurnRateRule" ? rules.length : 0;
 };
 
@@ -402,6 +633,18 @@ ModelAPI.createOrUpdate = async (options) => {
       },
     ];
     return { data: row };
+  }
+  if (record.tableName === "ServiceLevelObjectiveErrorBudgetPolicyTier") {
+    const tierIndex = policyTiers.findIndex((item) => item._id === record._id);
+    if (!record._id) {
+      record._id = nextPolicyTierId();
+    }
+    if (tierIndex < 0) {
+      policyTiers.push(record);
+    } else {
+      policyTiers[tierIndex] = record;
+    }
+    return { data: record };
   }
   if (record.tableName === "ServiceLevelObjective") {
     Object.assign(slo, record, {
@@ -462,8 +705,248 @@ ModelAPI.createOrUpdate = async (options) => {
   return { data: record };
 };
 
+/*
+ * "Add recommended rules", as the API answers it: the recommended rules this
+ * SLO is missing (the fixture has Fast burn and Slow burn, so Slow leak), at
+ * the severity each raises at, and - on add - each added as a rule the table
+ * then lists. Every add is recorded on window.__recommendedAdds.
+ */
+function missingRecommendedRules() {
+  return getMissingSloRecommendedBurnRateRules({
+    window: slo,
+    existingRules: rules,
+  }).map((recommended) => {
+    const severity =
+      recommended.alertSeverity === SloRecommendedAlertSeverity.LeastSevere
+        ? alertSeverities[alertSeverities.length - 1]
+        : alertSeverities[0];
+
+    return { ...recommended, severity, alertSeverityName: severity.name };
+  });
+}
+
+/*
+ * "Use the recommended policy", as the API answers it: the recommended
+ * tiers the SLO is missing and - on add - each added as a tier the table
+ * then lists, raising nothing. Every add is recorded on
+ * window.__recommendedPolicyAdds.
+ */
+function missingRecommendedPolicyTiers() {
+  return getMissingSloRecommendedPolicyTiers({ existingTiers: policyTiers });
+}
+
+/*
+ * "Add recommended rules" for many SLOs, as the bulk routes answer it: what
+ * each listed SLO is missing, scaled to its window, at the severity each
+ * raises at - and, on add, each added as a rule of that SLO, so asking again
+ * finds nothing. Every bulk add is recorded on window.__bulkRecommendedAdds.
+ */
+function bulkPreviewOf(id) {
+  const listed = listSlos.find((item) => item._id === id);
+
+  if (!listed) {
+    return {
+      serviceLevelObjectiveId: id,
+      status: SloBulkRecommendedRulesStatus.Refused,
+      rules: [],
+      message: "Service Level Objective not found.",
+    };
+  }
+
+  const missing = getMissingSloRecommendedBurnRateRules({
+    window: listed,
+    existingRules: rulesOfListedSlo[id],
+  }).map((recommended) => {
+    const severity =
+      recommended.alertSeverity === SloRecommendedAlertSeverity.LeastSevere
+        ? alertSeverities[alertSeverities.length - 1]
+        : alertSeverities[0];
+
+    return { ...recommended, severity, alertSeverityName: severity.name };
+  });
+
+  return {
+    serviceLevelObjectiveId: id,
+    status:
+      missing.length > 0
+        ? SloBulkRecommendedRulesStatus.Missing
+        : SloBulkRecommendedRulesStatus.NothingMissing,
+    rules: missing,
+    message: null,
+  };
+}
+
+let bulkAddedRuleCount = 0;
+
+function bulkAddTo(id) {
+  const preview = bulkPreviewOf(id);
+
+  if (preview.status !== SloBulkRecommendedRulesStatus.Missing) {
+    return preview;
+  }
+
+  const added = preview.rules.map((recommended) => {
+    bulkAddedRuleCount += 1;
+    const record = rule({
+      id: `62000000-0000-4000-8000-${String(bulkAddedRuleCount).padStart(12, "0")}`,
+      name: recommended.name,
+      burnRateThreshold: recommended.burnRateThreshold,
+      longWindowInMinutes: recommended.longWindowInMinutes,
+      shortWindowInMinutes: recommended.shortWindowInMinutes,
+      refireSuppressionMinutes:
+        recommended.refireSuppressionMinutes === null
+          ? undefined
+          : recommended.refireSuppressionMinutes,
+      shouldCreateAlert: true,
+      shouldCreateIncident: false,
+      alertSeverity: recommended.severity,
+    });
+    record.serviceLevelObjectiveId = new ObjectID(id);
+    rulesOfListedSlo[id].push(record);
+    return { ...recommended, id: record._id };
+  });
+
+  return {
+    ...preview,
+    status: SloBulkRecommendedRulesStatus.Added,
+    rules: added,
+  };
+}
+
 API.get = async () => ({ data: { data: [], count: 0 } });
-API.post = async () => ({ data: { data: [], count: 0 } });
+API.post = async (options) => {
+  const url = options && options.url ? options.url.toString() : "";
+
+  if (
+    url.endsWith(
+      "/service-level-objective-burn-rate-rule/recommended-rules/bulk",
+    )
+  ) {
+    const ids = (options.data && options.data.serviceLevelObjectiveIds) || [];
+
+    return {
+      data: {
+        results: ids
+          .map(bulkPreviewOf)
+          .map(sloBulkRecommendedRulesResultToJSON),
+      },
+    };
+  }
+
+  if (
+    url.endsWith(
+      "/service-level-objective-burn-rate-rule/recommended-rules/bulk/add",
+    )
+  ) {
+    const ids = (options.data && options.data.serviceLevelObjectiveIds) || [];
+    const results = ids.map(bulkAddTo);
+
+    window.__bulkRecommendedAdds = [
+      ...(window.__bulkRecommendedAdds || []),
+      {
+        serviceLevelObjectiveIds: ids,
+        added: results.map((result) => {
+          return result.rules.map((item) => item.name);
+        }),
+      },
+    ];
+
+    return {
+      data: { results: results.map(sloBulkRecommendedRulesResultToJSON) },
+    };
+  }
+
+  if (
+    url.endsWith(
+      "/service-level-objective-error-budget-policy-tier/recommended-policy",
+    )
+  ) {
+    return {
+      data: {
+        tiers: missingRecommendedPolicyTiers().map(
+          sloRecommendedPolicyTierToJSON,
+        ),
+      },
+    };
+  }
+
+  if (
+    url.endsWith(
+      "/service-level-objective-error-budget-policy-tier/recommended-policy/add",
+    )
+  ) {
+    const added = missingRecommendedPolicyTiers().map((recommended) => {
+      const record = policyTier({ id: nextPolicyTierId(), ...recommended });
+      policyTiers.push(record);
+      return { ...recommended, id: record._id };
+    });
+
+    window.__recommendedPolicyAdds = [
+      ...(window.__recommendedPolicyAdds || []),
+      {
+        serviceLevelObjectiveId: String(
+          options.data && options.data.serviceLevelObjectiveId,
+        ),
+        names: added.map((item) => item.name),
+      },
+    ];
+
+    return {
+      data: { tiers: added.map(sloRecommendedPolicyTierToJSON) },
+    };
+  }
+
+  if (
+    url.endsWith("/service-level-objective-burn-rate-rule/recommended-rules")
+  ) {
+    return {
+      data: {
+        rules: missingRecommendedRules().map(sloRecommendedBurnRateRuleToJSON),
+      },
+    };
+  }
+
+  if (
+    url.endsWith(
+      "/service-level-objective-burn-rate-rule/recommended-rules/add",
+    )
+  ) {
+    const added = missingRecommendedRules().map((recommended) => {
+      const record = rule({
+        id: `60000000-0000-4000-8000-${String(rules.length + 1).padStart(12, "0")}`,
+        name: recommended.name,
+        burnRateThreshold: recommended.burnRateThreshold,
+        longWindowInMinutes: recommended.longWindowInMinutes,
+        shortWindowInMinutes: recommended.shortWindowInMinutes,
+        refireSuppressionMinutes:
+          recommended.refireSuppressionMinutes === null
+            ? undefined
+            : recommended.refireSuppressionMinutes,
+        shouldCreateAlert: true,
+        shouldCreateIncident: false,
+        alertSeverity: recommended.severity,
+      });
+      rules.push(record);
+      return { ...recommended, id: record._id };
+    });
+
+    window.__recommendedAdds = [
+      ...(window.__recommendedAdds || []),
+      {
+        serviceLevelObjectiveId: String(
+          options.data && options.data.serviceLevelObjectiveId,
+        ),
+        names: added.map((item) => item.name),
+      },
+    ];
+
+    return {
+      data: { rules: added.map(sloRecommendedBurnRateRuleToJSON) },
+    };
+  }
+
+  return { data: { data: [], count: 0 } };
+};
 
 await i18next.use(initReactI18next).init({
   lng: "en",
@@ -483,7 +966,29 @@ function Fixture() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
   Navigation.setParams(useParams());
-  const isOverview = !useLocation().pathname.endsWith("/burn-rate-rules");
+  const pathname = useLocation().pathname;
+  const isList = pathname.endsWith("/slos");
+  const isPolicy = pathname.endsWith("/error-budget-policy");
+  const isOverview =
+    !pathname.endsWith("/burn-rate-rules") && !isPolicy && !isList;
+
+  if (isList) {
+    return (
+      <>
+        <header className="flex flex-wrap gap-3 items-center justify-between border-b border-gray-200 bg-white px-8 py-5">
+          <span className="text-lg font-semibold text-gray-900">OneUptime</span>
+          <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
+            Demo workspace · Synthetic data
+          </span>
+        </header>
+        <main className="mx-auto max-w-[1820px] px-8 py-8">
+          <div className="mb-7 text-sm text-gray-500">SLOs</div>
+          <Slos />
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <header className="flex flex-wrap gap-3 items-center justify-between border-b border-gray-200 bg-white px-8 py-5">
@@ -510,9 +1015,10 @@ function Fixture() {
         <main className="mx-auto max-w-[1820px] px-8 py-8">
           <div className="mb-7 text-sm text-gray-500">
             SLOs <span className="mx-2">/</span> Checkout availability{" "}
-            <span className="mx-2">/</span> Burn Rate Rules
+            <span className="mx-2">/</span>{" "}
+            {isPolicy ? "Error Budget Policy" : "Burn Rate Rules"}
           </div>
-          <SloBurnRateRules />
+          {isPolicy ? <SloErrorBudgetPolicy /> : <SloBurnRateRules />}
         </main>
       )}
     </>

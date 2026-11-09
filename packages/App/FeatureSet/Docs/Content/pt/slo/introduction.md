@@ -84,7 +84,7 @@ Tudo o que define como o SLO mede começa com um valor padrão que você muda de
 | Status de indisponibilidade | Todos os status não operacionais do projeto | **Configurações** → **Cálculo de inatividade** |
 | Modo de vários monitores | **Qualquer monitor fora do ar** | **Configurações** → **Cálculo de inatividade** |
 | Avaliação | Ligada | **Configurações** → **Avaliação** |
-| Regras de taxa de consumo | Uma regra **Fast burn** e uma regra **Slow burn**, ajustadas à janela | **Regras de taxa de consumo** |
+| Regras de taxa de consumo | Uma regra **Fast burn**, uma regra **Slow burn** e uma regra **Slow leak**, ajustadas à janela | **Regras de taxa de consumo** |
 
 ## Do que um SLO é feito
 
@@ -141,7 +141,7 @@ Um SLO desligado ou arquivado não é avaliado, então seu status fica como esta
 A página **SLOs** lista cada SLO não arquivado, com status, SLI, orçamento restante, taxa de consumo, meta, janela, monitores, rótulos e proprietários.
 
 - Os blocos acima da lista contam os SLOs por status: **Íntegro**, **Em risco**, **Orçamento esgotado**, **Mal configurado**, **Pausado** e **Desabilitado**. Eles aparecem assim que existe um SLO que não está arquivado. Clique em um bloco para ver só esses SLOs, e de novo para ver todos.
-- Selecione SLOs para adicionar ou remover rótulos e proprietários, ativá-los ou desativá-los, arquivá-los ou excluí-los, todos de uma vez.
+- Selecione SLOs para adicionar ou remover rótulos e proprietários, ativá-los ou desativá-los, dar a eles as [regras de taxa de consumo recomendadas](/docs/slo/burn-rate-alerts#adicioná-las-a-vários-slos-de-uma-vez) que estiverem faltando, arquivá-los ou excluí-los, todos de uma vez.
 - A seção **Configurações** do menu lateral contém **Regras de Rótulos** e **Regras de proprietário**, que rotulam os SLOs novos e definem seus proprietários: veja [Regras de rótulos e proprietários](/docs/slo/label-and-owner-rules).
 - A seção **Avançado** do menu lateral contém **Arquivado**, a lista de SLOs arquivados.
 
@@ -153,18 +153,19 @@ Abra um SLO para ver suas páginas no menu lateral:
 | --- | --- |
 | **Visão geral** | O status, os números principais, o consumo do orçamento de erros, a atividade recente, os alertas e incidentes abertos e as regras de taxa de consumo. |
 | **Métricas** | As métricas `oneuptime.slo.*` do SLO, seu histórico de longo prazo do orçamento de erros e as métricas dos incidentes e alertas que o afetam. Veja [Métricas e painéis de SLO](/docs/slo/metrics). |
-| **Incidentes** | Os incidentes que suas regras de taxa de consumo declararam. O selo conta os abertos. |
-| **Alertas** | Os alertas que suas regras de taxa de consumo geraram. O selo conta os abertos. |
+| **Incidentes** | Os incidentes que suas regras de taxa de consumo e sua política de orçamento de erros declararam. O selo conta os abertos. |
+| **Alertas** | Os alertas que suas regras de taxa de consumo e sua política de orçamento de erros geraram. O selo conta os abertos. |
 | **Feed** | O que aconteceu com o SLO, como linha do tempo. Veja [Feed e registros de auditoria de SLO](/docs/slo/feed-and-audit-logs). |
 | **Monitores** | Os monitores que ele mede, e se cada um foi associado por uma pessoa ou por uma regra. |
 | **Regras de monitor** | As regras que associam os monitores que correspondem. |
 | **Regras de taxa de consumo** | As regras que geram alertas e declaram incidentes quando o orçamento é consumido rápido demais. |
+| **Política de orçamento de erros** | O que a equipe combinou fazer à medida que o orçamento de erros acaba, e os alertas e incidentes que cada nível da política gera. Veja [Política de orçamento de erros](/docs/slo/error-budget-policy). |
 | **Proprietários** | Os usuários e equipes que ficam sabendo das mudanças de status. |
 | **Configurações** | A meta, o período de conformidade, o cálculo da indisponibilidade, o interruptor de avaliação e o cartão de arquivamento. |
 | **Registros de auditoria** | Quem mudou o SLO, suas regras e seus proprietários, e quando. |
 | **Excluir SLO** | Exclui o SLO para sempre e resolve os alertas e incidentes de taxa de consumo que ele tinha abertos. |
 
-**Monitores** fica em uma seção **Configuração**, **Regras de monitor** e **Regras de taxa de consumo** em uma seção **Regras**, e **Proprietários**, **Configurações**, **Registros de auditoria** e **Excluir SLO** em uma seção **Gerenciamento**. As três começam recolhidas, assim como uma seção **Desenvolvedores** para gerenciar o SLO a partir de código: clique no título de uma seção para abri-la.
+**Monitores** fica em uma seção **Configuração**, **Regras de monitor**, **Regras de taxa de consumo** e **Política de orçamento de erros** em uma seção **Regras**, e **Proprietários**, **Configurações**, **Registros de auditoria** e **Excluir SLO** em uma seção **Gerenciamento**. As três começam recolhidas, assim como uma seção **Desenvolvedores** para gerenciar o SLO a partir de código: clique no título de uma seção para abri-la.
 
 Quando algo impede um SLO de medir, um banner no topo de cada uma das suas páginas diz o que está errado e leva à página que resolve: veja [Solução de problemas](#solução-de-problemas).
 
@@ -176,13 +177,15 @@ A **Visão geral** responde a "estamos dentro do orçamento?", de cima para baix
 - **Os números principais**:
   - **SLI**: a parcela de tempo bom na janela, e quanto ela está acima ou abaixo da meta.
   - **Orçamento de erros restante**: uma porcentagem, uma duração como "12m 30s left of 43m 12s" e uma barra com uma marca no limite de risco. Quando o orçamento é ultrapassado, mostra **Budget exceeded** e por quanto.
-  - **Taxa de consumo**: a velocidade com que o orçamento é gasto nos últimos 60 minutos, o período que a regra de consumo rápido padrão usa. Fica âmbar acima de 1× e vermelho, com **Limite da regra atingido**, no limite mais baixo das regras de taxa de consumo habilitadas do SLO.
+  - **Taxa de consumo**: a velocidade com que o orçamento é gasto nos últimos 60 minutos, o período que a regra de consumo rápido padrão usa. Fica âmbar acima de 1× e vermelho, com **Limite da regra atingido**, no limite mais baixo das regras de taxa de consumo habilitadas do SLO cujo período é de 6 horas ou menos. Uma hora diz pouco sobre uma regra cujo período é de dias, como **Slow leak**, por isso a taxa não é comparada com regras assim.
   - **Autonomia do orçamento**: quanto o orçamento dura nesse ritmo. Veja [Orçamentos de erros](/docs/slo/error-budget#autonomia-do-orçamento).
 - **Burn-down do orçamento de erros**: o orçamento restante ao longo da janela atual. Veja [Orçamentos de erros](/docs/slo/error-budget#consumo-do-orçamento-de-erros).
 - **Atividade recente**: os itens mais recentes do feed do SLO.
 - **Detalhes do SLO**: o nome, a descrição e os rótulos, as únicas configurações editadas na visão geral.
 - **Alertas e incidentes abertos**: o que as regras de taxa de consumo têm aberto agora.
-- **Burn rate rules**: o limite de cada regra habilitada ao lado da taxa de consumo atual, e o que a regra declara.
+- **Burn rate rules**: o limite de cada regra habilitada ao lado da taxa de consumo atual, para as regras cujo período é de 6 horas ou menos, e o que a regra declara.
+
+Quando o SLO está em um nível da sua política de orçamento de erros, a **Visão geral** também mostra esse nível e o que a equipe combinou fazer nele: veja [Política de orçamento de erros](/docs/slo/error-budget-policy).
 
 ### Configurações
 

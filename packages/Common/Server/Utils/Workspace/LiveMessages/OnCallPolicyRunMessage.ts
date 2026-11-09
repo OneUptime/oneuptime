@@ -65,6 +65,7 @@ import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMe
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallPersonPage } from "../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import { isOnCallObserverPage } from "../../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import { isOnCallPageAgainRun } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallEmptyLevelMovedOnAtOnce } from "../../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
@@ -770,6 +771,8 @@ export default class OnCallPolicyRunMessage {
           },
           // What the person who paged wrote (OnCallPersonPage).
           pageMessage: true,
+          // An observer's page (OnCallObserverPage).
+          isObserverPage: true,
         },
         props: {
           isRoot: true,
@@ -1744,6 +1747,7 @@ export default class OnCallPolicyRunMessage {
       ...waiting,
       ...(startedEarlyReason ? { startedEarlyReason: startedEarlyReason } : {}),
       ...(pageMessage ? { pageMessage: pageMessage } : {}),
+      ...(isOnCallObserverPage(executionLog) ? { isObserverPage: true } : {}),
       ...(isOnCallPageAgainRun(executionLog)
         ? { pageAgainNumber: Number(executionLog.pageAgainNumber) }
         : {}),
@@ -1842,6 +1846,14 @@ export default class OnCallPolicyRunMessage {
             isOnCallPersonPage(executionLog) &&
             (await data.record.isAcknowledged())
           ) {
+            return { outcome: OnCallPolicyRunOutcome.NobodyAnswered };
+          }
+
+          /*
+           * An observer's page (OnCallObserverPage) is not the record's
+           * response: nobody answering it leaves nobody needing to take it.
+           */
+          if (isOnCallObserverPage(executionLog)) {
             return { outcome: OnCallPolicyRunOutcome.NobodyAnswered };
           }
 

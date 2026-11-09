@@ -177,6 +177,8 @@ En episode du oppretter, har ingen grupperingsregel, så listen viser **Grupperi
 
 **Utvikler** og **Avansert** starter sammenfoldet. På **Oversikt** nevner toppen episodens **Eiere**, team først, og den første ruten, **Opprettet**, sier når episoden ble opprettet — **Automatisk**, når en grupperingsregel åpnet den. Kortet **Hva som skjedde** står øverst på siden — episodens beskrivelse og **Rotårsak** — deretter **Varsler i denne episoden** og **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Flytt episode til** i menyen **⋯**.
 
+Siden **Rotårsak** viser målingene bak episoden ved siden av rotårsaken: målingene til det første varselet, det som ble opprettet tidligst, slik telemetrikortet på **Oversikt** viser dem, rundt da episoden startet og med øyeblikkene markert, så du kan lese dem over et hvilket som helst tidsrom rundt episoden mens du skriver ned hvorfor den skjedde. Når det varselet ikke har tatt vare på et øyeblikksbilde av en målingskontroll (et som er opprettet for hånd på en målingsmonitor, for eksempel), viser siden målingene til den monitoren slik monitoren leser dem nå, og sier fra om det.
+
 **Varsler → Aktive episoder** viser episodene som ikke er løst ennå, og merket ved siden av teller dem.
 
 ## Feilsøking

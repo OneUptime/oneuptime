@@ -118,13 +118,17 @@ La **Credencial**, como `Bearer <token>`, se envía en el encabezado que elija e
 
 ### Syslog
 
-Cada entrada es un mensaje RFC 5424 al **Host** y al **Puerto**, por TLS en el puerto `6514` salvo que **Protocolo** indique TCP, con facility 13 (log audit) y severity 6 (informational):
+Cada entrada es un mensaje RFC 5424 al **Host** y al **Puerto**, por TLS en el puerto `6514` salvo que **Protocolo** indique TCP o UDP, con facility 13 (log audit) y severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-Los mensajes se delimitan por conteo de octetos (RFC 5425), salvo que **Delimitación** indique un mensaje por línea. Un receptor cuyo certificado firmó una CA privada necesita el certificado de esa CA en **Certificado de la CA**. Ambos esperan en **Más campos**.
+Por TLS y TCP, los mensajes se delimitan por conteo de octetos (RFC 5425), salvo que **Delimitación** indique un mensaje por línea. Un receptor cuyo certificado firmó una CA privada necesita el certificado de esa CA en **Certificado de la CA**. Ambos esperan en **Más campos**.
+
+Por UDP, **Puerto** empieza en `514`, y cada mensaje es un datagrama propio (RFC 5426), así que ninguno se delimita. UDP envía el registro de auditoría como texto sin cifrar, y nada confirma que un mensaje haya llegado: cuando el host del receptor responde que su puerto está cerrado, el lote falla y se vuelve a intentar, pero un mensaje perdido por el camino no se vuelve a enviar. Después de una prueba por UDP, compruebe que la entrada de prueba llegó. Cuando cada entrada deba llegar, elija TLS o TCP.
+
+Por UDP, un mensaje ocupa como máximo el **Tamaño máximo de mensaje**, en bytes: `8192`, salvo que lo cambie en **Más campos**, de `1024` a `65507`. Una entrada más larga se acorta para que quepa y sigue siendo un solo objeto JSON: primero se recortan sus valores, como los recorta el registro de auditoría, por ejemplo `[… 1,234 more characters]` o `[12.3 KB of JSON]`, y luego los cambios que aún no caben se cuentan en uno, por ejemplo `[… 12 more changes]`.
 
 ## Qué se envía
 
@@ -132,7 +136,7 @@ Cada entrada es un objeto JSON, con sus claves siempre en este orden:
 
 | Clave | Qué contiene |
 | --- | --- |
-| `schemaVersion` | `1`. Un cambio en el esquema llega con una versión nueva. |
+| `schemaVersion` | `2` para una exportación nueva, `1` para una guardada antes de la versión 2. Una versión solo añade claves. |
 | `id` | El id de la entrada. La misma entrada enviada dos veces tiene el mismo id. |
 | `createdAt` | Cuándo se registró el cambio, en UTC. |
 | `projectId` | El proyecto en el que se hizo el cambio. |
@@ -143,11 +147,22 @@ Cada entrada es un objeto JSON, con sus claves siempre en este orden:
 | `apiKeyId`, `apiKeyName` | La clave de API con la que se hizo, si la hubo. |
 | `mcpOAuthGrantId`, `mcpClientName` | El cliente MCP a través del cual se hizo, si lo hubo. |
 | `workflowId`, `workflowName` | El flujo de trabajo que lo hizo, si lo hubo. |
-| `changes` | Cada campo cambiado: `field`, con `oldValue` y `newValue`. |
+| `changes` | Cada campo cambiado: `field`, con `oldValue` y `newValue`, y en la versión 2 `summary`. |
 
 Un archivo contiene una entrada por línea, comprimido con gzip, y se archiva por la hora de su primera entrada: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Cada `oldValue` y `newValue` es el valor del campo: texto, un número, `true` o `false`, o JSON para un ajuste formado por varias partes. Un número de teléfono, una dirección de correo electrónico o una URL es su texto, como `+14155550100`, y un puerto es su número.
+
 Las claves, los tokens y las contraseñas nunca salen: se registran como `[REDACTED]`, y los campos que nadie puede leer quedan fuera de todas las entradas.
+
+## Versiones del registro
+
+| Versión | Lo que envía |
+| --- | --- |
+| `2` | Cada cambio lleva además `summary`: lo que cambió, en las líneas que muestra el registro de auditoría, como `Added "Send Email" (send-email-1)` para un paso de un flujo de trabajo o la ruta que cambió en JSON, o `null`. Las líneas nombran ajustes y rutas, nunca valores. |
+| `1` | La entrada tal como se envió al principio, sin `summary`. Los pasos de un flujo de trabajo salen como su tamaño antes y después, como `3 steps and 2 connections`. |
+
+Una exportación nueva envía la versión 2. Una exportación guardada antes de la versión 2 sigue enviando la versión 1, así que lo que la lee no necesita ningún cambio: cuando esté listo para `summary`, haga clic en **Editar** en la exportación y elija la versión 2 en **Versión del registro**, dentro de **Más campos**. La versión se aplica a las entradas enviadas desde entonces, y cada entrada indica la suya en `schemaVersion`.
 
 ## Cuándo se envían las entradas
 
@@ -177,7 +192,7 @@ La exportación de un proyecto en OneUptime Cloud no puede llegar a una direcci�
 :::
 
 :::details No llega nada
-Compruebe que el registro de auditoría está activado en el proyecto y que alguien cambió algo después de guardar la exportación. Un almacenamiento recibe un archivo solo cuando un lote está lleno o tiene cinco minutos.
+Compruebe que el registro de auditoría está activado en el proyecto y que alguien cambió algo después de guardar la exportación. Un almacenamiento recibe un archivo solo cuando un lote está lleno o tiene cinco minutos. Por UDP, un cortafuegos descarta los mensajes sin avisar: compruebe que UDP puede llegar al puerto del receptor.
 :::
 
 ## Próximos pasos

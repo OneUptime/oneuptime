@@ -97,6 +97,7 @@ En **Compartir**, copia el enlace y envíalo a las personas que deben usar el fo
 | **Dominios personalizados** | Los dominios propios del formulario, como `report.acme.com`, con sus registros DNS y sus certificados. Consulta [Dominios personalizados](/docs/forms/sharing-and-security#dominios-personalizados). |
 | **Envíos** | Cada envío hecho con el formulario, el más reciente primero, con sus respuestas y lo que creó. |
 | **Duplicar formulario** | En **Avanzado**: una copia del formulario, con nombre puesto por ti, con sus preguntas, plantillas, ajustes de Al enviar, marca, mensaje de agradecimiento y lista de IP permitidas, y un enlace propio. La copia empieza desactivada y se abre en su editor. |
+| **Registros de auditoría** | En **Avanzado**: cada cambio hecho en el formulario, sus dominios personalizados y sus envíos, quién lo hizo y cuándo. |
 | **Eliminar formulario** | La eliminación del formulario, en **Avanzado**. Sus envíos se eliminan con él; los incidentes y eventos que creó, no. |
 
 La sección **Desarrolladores** del menú del formulario contiene sus páginas de Terraform, API y asistente de IA, como cualquier otro recurso.

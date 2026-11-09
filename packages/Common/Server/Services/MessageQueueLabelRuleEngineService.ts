@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import MessageQueue from "../../Models/DatabaseModels/MessageQueue";
@@ -99,6 +101,7 @@ class MessageQueueLabelRuleEngineServiceClass
       return await this.applyRules({
         messageQueue: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running queue label rules: ${error}`, {
@@ -114,6 +117,8 @@ class MessageQueueLabelRuleEngineServiceClass
   private async applyRules(data: {
     messageQueue: MessageQueue;
     rules: Array<MessageQueueLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { messageQueue, rules } = data;
 
@@ -195,11 +200,12 @@ class MessageQueueLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await MessageQueueService.getRepository()
-      .createQueryBuilder()
-      .relation(MessageQueue, "labels")
-      .of(messageQueue.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: MessageQueueService,
+      resourceId: messageQueue.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * A rule attached these, not a person: they must not count as somebody

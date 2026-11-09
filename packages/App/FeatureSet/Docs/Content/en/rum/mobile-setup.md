@@ -215,8 +215,8 @@ The service that was already created does not turn into a RUM application, so de
 Client rows come from `device.model.identifier` only. An SDK that sets only `device.id` or `device.manufacturer` files the app as mobile RUM, but lists no clients: set `device.model.identifier` as well.
 :::
 
-:::details The status says Disconnected while people use the app
-The status turns **Disconnected** after 15 minutes without telemetry. If people are using the app:
+:::details The status says No recent traffic while people use the app
+The status turns to **No recent traffic** after 15 minutes without telemetry. If people are using the app:
 
 - A sampler may drop everything: look for an always-off sampler, or a very low ratio.
 - The app may send telemetry only for actions nobody took in that time.

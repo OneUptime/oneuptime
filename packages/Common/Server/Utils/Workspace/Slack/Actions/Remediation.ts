@@ -147,6 +147,24 @@ export default class SlackRemediationActions {
       return;
     }
 
+    /*
+     * The person who gave a riskier fix its first approval is told why
+     * approving again does nothing, before a dialog opens on a press that
+     * would be refused.
+     */
+    if (actionType !== SlackActionType.DismissRemediation) {
+      const alreadyApproved: WorkspaceAnswer | null =
+        await WorkspaceRemediationActions.getAlreadyApprovedAnswer({
+          suggestion,
+          userId: slackRequest.userId,
+        });
+
+      if (alreadyApproved) {
+        await SlackRemediationActions.answer(slackRequest, alreadyApproved);
+        return;
+      }
+    }
+
     if (actionType === SlackActionType.ViewApproveRemediation) {
       await SlackRemediationActions.showApprovalDialog({
         slackRequest,

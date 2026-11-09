@@ -27,6 +27,7 @@ import {
   LlmConversationKeyKind,
   LlmConversationListResponse,
   LlmConversationSort,
+  LlmLogEventsRead,
 } from "../../../Types/Telemetry/LlmConversationApi";
 import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
 import { MonitorStepLlmMonitorUtil } from "../../../Types/Monitor/MonitorStepLlmMonitor";
@@ -238,6 +239,35 @@ describe("readLlmConversationView", () => {
     expect(view?.key).toBe("");
     expect(view?.conversationId).toBe("");
   });
+
+  test.each([
+    [LlmLogEventsRead.Read],
+    [LlmLogEventsRead.NotAllowed],
+    [LlmLogEventsRead.Failed],
+    [LlmLogEventsRead.NotNeeded],
+  ])(
+    "whether the log events were read: %s is read as it is",
+    (logEvents: LlmLogEventsRead) => {
+      expect(
+        readLlmConversationView({
+          logEvents: logEvents,
+          transcript: transcript,
+        })?.logEvents,
+      ).toBe(logEvents);
+    },
+  );
+
+  test.each([[undefined], [null], ["denied"], [true], [{ state: "read" }]])(
+    "a server from before log events were read (%p): nothing was needed",
+    (logEvents: unknown) => {
+      expect(
+        readLlmConversationView({
+          logEvents: logEvents,
+          transcript: transcript,
+        } as unknown as JSONObject)?.logEvents,
+      ).toBe(LlmLogEventsRead.NotNeeded);
+    },
+  );
 });
 
 describe("fetchLlmConversations", () => {

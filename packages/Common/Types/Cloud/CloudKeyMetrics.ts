@@ -30,7 +30,10 @@ import {
  * charged per metric and statistic) and the period. A metric is read for
  * every resource of the namespace that reported it in the last three
  * hours (ListMetrics, RecentlyActive), on exactly the dimensions
- * CloudWatch lists it with - the resource's own aggregate.
+ * CloudWatch lists it with - the resource's own aggregate. A namespace
+ * whose metrics are published a few times a day is listed whatever its
+ * last point's age instead (isListedWhenQuiet): three hours after one,
+ * the listing would not know it most of the day.
  */
 
 export type AwsStatistic = "Average" | "Sum" | "Maximum" | "Minimum";
@@ -41,8 +44,11 @@ export interface AwsKeyMetric {
   // CloudWatch's unit, as written on the stored metric.
   unit: string;
   /*
-   * Seconds per datapoint. 300 for most (CloudWatch's basic monitoring),
-   * 86400 for the storage metrics CloudWatch publishes once a day.
+   * Seconds per datapoint, and how often the read asks for it
+   * (CloudMetricWindows: each period has a cursor of its own). 300 for most
+   * (CloudWatch's basic monitoring); 3600 for a metric published a few
+   * times a day, read once an hour (ACM's DaysToExpiry, twice a day); 86400
+   * for the storage metrics CloudWatch publishes once a day.
    */
   periodSeconds: number;
 }
@@ -55,9 +61,21 @@ export interface AwsNamespaceKeyMetrics {
    * to us-east-1 whatever the resource's own Region).
    */
   onlyRegion?: string | undefined;
+  /*
+   * Listed without RecentlyActive: every series that reported in the last
+   * two weeks, as ListMetrics lists by default, not only the last three
+   * hours'. For a namespace whose metrics a service publishes a few times a
+   * day (ACM's DaysToExpiry, twice), which the last three hours' listing
+   * would hold for a few hours after each point and lose for the rest of
+   * the day - and with them the resource's readings, on the read's own
+   * hourly cadence. A series that stops (a certificate that expired) stays
+   * listed for those two weeks, and reads as no data.
+   */
+  isListedWhenQuiet?: boolean | undefined;
 }
 
 export const AWS_DEFAULT_PERIOD_SECONDS: number = 300;
+export const HOURLY_PERIOD_SECONDS: number = 3600;
 export const DAILY_PERIOD_SECONDS: number = 86400;
 
 function aws(
@@ -290,6 +308,19 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     namespace: "AWS/Kafka",
     metrics: [aws("ActiveControllerCount", "Maximum", "Count")],
   },
+  {
+    /*
+     * The days a certificate has left. ACM publishes it twice a day for
+     * every certificate until it expires, then stops: read once an hour,
+     * and listed whatever its last point's age (isListedWhenQuiet). Its
+     * Minimum is the period's one point. The key metrics' stream leaves it
+     * to this read (CloudStreamTemplate): an hour sooner is nothing to a
+     * count of days.
+     */
+    namespace: "AWS/CertificateManager",
+    isListedWhenQuiet: true,
+    metrics: [aws("DaysToExpiry", "Minimum", "None", HOURLY_PERIOD_SECONDS)],
+  },
 ];
 
 const AWS_KEY_METRICS_BY_NAMESPACE: ReadonlyMap<
@@ -331,10 +362,39 @@ export interface AzureTypeKeyMetrics {
   // The ARM type, as CloudResourceCatalog spells it.
   type: string;
   metrics: Array<string>;
+  /*
+   * The dimension every metric of the type is split by, one series per
+   * value, in the same one call: a Service Bus or Event Hubs namespace's
+   * EntityName, its queues, topics and event hubs - the series a queue's
+   * page charts, exactly as the azure_monitor receiver writes them.
+   */
+  splitByDimension?: string | undefined;
 }
 
 // At most this many metrics are read per resource (one Azure Monitor call).
 export const AZURE_MAX_METRICS_PER_RESOURCE: number = 8;
+
+/*
+ * The Azure Monitor dimension that names a Service Bus or Event Hubs
+ * namespace's queue, topic or event hub.
+ */
+export const AZURE_ENTITY_NAME_DIMENSION: string = "EntityName";
+
+/*
+ * A split series' datapoint attribute per dimension, as the azure_monitor
+ * receiver names it: "metadata_" + the dimension's name as Azure Monitor
+ * answers it, lowercased - a queue's or topic's is metadata_entityname.
+ */
+export const AZURE_DIMENSION_ATTRIBUTE_PREFIX: string = "metadata_";
+export const AZURE_ENTITY_NAME_ATTRIBUTE: string = `${AZURE_DIMENSION_ATTRIBUTE_PREFIX}${AZURE_ENTITY_NAME_DIMENSION.toLowerCase()}`;
+
+/*
+ * Series of one metric a split read asks Azure Monitor for at most (its
+ * `top`, 10 unless asked): the queues, topics and event hubs of one
+ * namespace a read reads, as many as the Queues guide asks the
+ * azure_monitor receiver to read (maximum_number_of_records_per_resource).
+ */
+export const AZURE_MAX_SPLIT_SERIES_PER_METRIC: number = 1000;
 
 export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   {
@@ -464,6 +524,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "ServerErrors",
       "ThrottledRequests",
     ],
+    splitByDimension: AZURE_ENTITY_NAME_DIMENSION,
   },
   {
     type: "Microsoft.EventHub/namespaces",
@@ -473,6 +534,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       "ThrottledRequests",
       "ServerErrors",
     ],
+    splitByDimension: AZURE_ENTITY_NAME_DIMENSION,
   },
   {
     type: "Microsoft.ContainerService/managedClusters",
@@ -572,6 +634,39 @@ export function getAzureStoredMetricName(
   aggregation: string,
 ): string {
   return `azure_${metricName.split(" ").join("_")}_${aggregation}`.toLowerCase();
+}
+
+// The aggregations an Azure Monitor metric is read with, as stored.
+const AZURE_STORED_AGGREGATIONS: ReadonlyArray<string> = [
+  "average",
+  "total",
+  "maximum",
+  "minimum",
+  "count",
+];
+
+/*
+ * Whether a cloud connection's read reads this stored metric of the type:
+ * one of its key metrics, whatever aggregation its definition calls
+ * primary (the read learns that from Azure, so the name is matched with
+ * any of them). False for a type with no key metrics.
+ */
+export function isAzureKeyMetricStoredName(
+  type: string,
+  storedMetricName: string,
+): boolean {
+  const keyMetrics: AzureTypeKeyMetrics | undefined = getAzureKeyMetrics(type);
+  const stored: string = (storedMetricName || "").trim().toLowerCase();
+
+  if (!keyMetrics || !stored) {
+    return false;
+  }
+
+  return keyMetrics.metrics.some((metric: string): boolean => {
+    return AZURE_STORED_AGGREGATIONS.some((aggregation: string): boolean => {
+      return getAzureStoredMetricName(metric, aggregation) === stored;
+    });
+  });
 }
 
 /*

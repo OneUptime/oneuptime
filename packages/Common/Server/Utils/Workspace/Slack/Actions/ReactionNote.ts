@@ -36,6 +36,7 @@ import {
   WorkspacePressDescription,
 } from "../../WorkspaceConnectRequest";
 import { WorkspaceEventType } from "../../WorkspaceMemberActions";
+import { PublicNoteApprovalWaitingFor } from "../../../Notes/PublicNoteApprovalFeed";
 import SlackConnectPrompt from "./ConnectPrompt";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
@@ -500,6 +501,11 @@ export default class SlackReactionNoteActions {
 
     let saveResult: WorkspaceNoteSaveResult;
 
+    const sourceMessageKey: string = WorkspaceReactionNote.getSourceMessageKey({
+      channelId: channelId,
+      messageId: messageTs,
+    });
+
     try {
       /*
        * Saved with the member's props, so the note's own create can still
@@ -511,10 +517,7 @@ export default class SlackReactionNoteActions {
         noteType: noteType,
         props: props,
         note: note.toString(),
-        sourceMessageKey: WorkspaceReactionNote.getSourceMessageKey({
-          channelId: channelId,
-          messageId: messageTs,
-        }),
+        sourceMessageKey: sourceMessageKey,
         savedFromChatMessage: message.savedFromChatMessage,
       });
     } catch (err) {
@@ -554,6 +557,17 @@ export default class SlackReactionNoteActions {
       const display: { label: string; link: { toString(): string } } =
         await WorkspaceReactionNote.getResourceDisplay(resource);
 
+      // A public note that waits for approval says so, and who it waits for.
+      const isHeldForApproval: boolean =
+        saveResult === WorkspaceNoteSaveResult.SavedForApproval;
+
+      const waitingFor: PublicNoteApprovalWaitingFor | null = isHeldForApproval
+        ? await WorkspaceReactionNote.getApprovalWaitingFor({
+            resource: resource,
+            sourceMessageKey: sourceMessageKey,
+          })
+        : null;
+
       await SlackUtil.sendMessageToThread({
         authToken: authToken,
         channelId: channelId,
@@ -567,6 +581,8 @@ export default class SlackReactionNoteActions {
             resourceLink: display.link.toString(),
             askedNoteType: askedNoteType,
             resourceType: resource.resourceType,
+            isHeldForApproval: isHeldForApproval,
+            waitingFor: waitingFor,
           }).toString(),
         ).trim(),
         withoutLinkPreviews: true,

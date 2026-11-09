@@ -73,6 +73,15 @@ export interface NetworkControllerPullState {
    * so a network that cannot answer is not asked again on every read.
    */
   topologyCursors?: Record<string, string> | undefined;
+  /*
+   * Which device each appliance's stored traffic was filed under (by its
+   * serial), and each network's applications and clients (by its ID): an
+   * appliance matched to a device since - linked, added, found by Inventory
+   * - has the traffic stored before it was matched filed under the device by
+   * the next read (issue #5762), once, not on every read.
+   */
+  filedAppliances?: Record<string, string> | undefined;
+  filedNetworks?: Record<string, string> | undefined;
 }
 
 /*
@@ -332,6 +341,8 @@ export function readPullState(value: unknown): NetworkControllerPullState {
     "analyticsCursors",
     "trafficAnalysisOff",
     "topologyCursors",
+    "filedAppliances",
+    "filedNetworks",
   ] as const) {
     const map: unknown = state[key];
 

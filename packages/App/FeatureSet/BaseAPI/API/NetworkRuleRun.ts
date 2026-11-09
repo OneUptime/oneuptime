@@ -227,6 +227,8 @@ export default class NetworkRuleRunAPI {
                   body,
                   "reassignDevicesAlreadyInASite",
                 ),
+                // The devices it moves are theirs in the audit log.
+                props: props,
               },
             );
 
@@ -322,6 +324,12 @@ export default class NetworkRuleRunAPI {
                 projectId: projectId,
                 isDryRun: readBooleanFlag(body, "dryRun"),
                 expectedMonitorTemplateId: rule.monitorTemplateId || null,
+                /*
+                 * The devices and monitors it creates are theirs in the
+                 * audit log. Their identity only: who may run it is what
+                 * the checks above decided.
+                 */
+                props: props,
               },
             );
 
@@ -361,6 +369,8 @@ export default class NetworkRuleRunAPI {
               {
                 ruleId: readRuleId(req),
                 projectId: projectId,
+                // The devices it labels are theirs in the audit log.
+                props: props,
               },
             );
 

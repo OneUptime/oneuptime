@@ -215,8 +215,8 @@ Den tjeneste, der allerede blev oprettet, bliver ikke til en RUM-applikation, s�
 Klientrækker kommer kun fra `device.model.identifier`. Et SDK, der kun sætter `device.id` eller `device.manufacturer`, arkiverer appen som mobil-RUM, men viser ingen klienter: Sæt også `device.model.identifier`.
 :::
 
-:::details Status siger Afbrudt, mens folk bruger appen
-Status skifter til **Afbrudt** efter 15 minutter uden telemetri. Hvis folk bruger appen:
+:::details Status siger Ingen nylig trafik, mens folk bruger appen
+Status skifter til **Ingen nylig trafik** efter 15 minutter uden telemetri. Hvis folk bruger appen:
 
 - En sampler smider måske alt væk: Kig efter en always-off-sampler eller en meget lav rate.
 - Appen sender måske kun telemetri for handlinger, som ingen udførte i den tid.

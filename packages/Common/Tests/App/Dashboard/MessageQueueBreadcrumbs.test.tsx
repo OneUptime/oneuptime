@@ -55,6 +55,7 @@ const EXPECTED_TITLES: Record<string, Array<string>> = {
     "Queues",
     "Documentation",
   ],
+  [PageMap.MESSAGE_QUEUES_TOPOLOGY]: ["Project", "Queues", "Topology"],
   [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES]: [
     "Project",
     "Queues",
@@ -78,6 +79,12 @@ const EXPECTED_TITLES: Record<string, Array<string>> = {
     "View Rule",
   ],
   [PageMap.MESSAGE_QUEUE_VIEW]: ["Project", "Queues", "View Queue"],
+  [PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY]: [
+    "Project",
+    "Queues",
+    "View Queue",
+    "Topology",
+  ],
   [PageMap.MESSAGE_QUEUE_VIEW_TRACES]: [
     "Project",
     "Queues",
@@ -107,6 +114,12 @@ const EXPECTED_TITLES: Record<string, Array<string>> = {
     "Queues",
     "View Queue",
     "Documentation",
+  ],
+  [PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS]: [
+    "Project",
+    "Queues",
+    "View Queue",
+    "Audit Logs",
   ],
   [PageMap.MESSAGE_QUEUE_VIEW_DELETE]: [
     "Project",

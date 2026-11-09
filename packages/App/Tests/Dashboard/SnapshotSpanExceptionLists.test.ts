@@ -94,21 +94,34 @@ const EXCEPTIONS_VIEWER_RAW: string = readRaw(
 );
 
 /*
- * The four surfaces that must move together. TelemetrySnapshotPanel is the
- * extracted twin of the two Index pages and is what the alert / incident
- * EPISODE pages mount, so leaving it behind would silently give episodes the
- * old tables. The companion tabs render the trace / exception panels on ALL
- * of them (and in the AI investigation drawer), so a Log-primary incident's
- * Traces tab would otherwise be a table while a Trace-primary one is a list.
+ * The two surfaces that must move together. TelemetrySnapshotPanel is the
+ * logs, traces or exceptions card every event page mounts - the incident
+ * and alert pages, and the alert / incident EPISODE pages (issue #6251: the
+ * incident and alert pages drew a copy of it of their own before) - so
+ * leaving it behind would give every event the old tables. The companion
+ * tabs render the trace / exception panels on all of them (and in the AI
+ * investigation drawer), so a Log-primary incident's Traces tab would
+ * otherwise be a table while a Trace-primary one is a list.
  */
 const SNAPSHOT_HOSTS: Array<[string, string]> = [
-  ["alert page", ALERT_VIEW],
-  ["incident page", INCIDENT_VIEW],
   ["shared snapshot panel", SNAPSHOT_PANEL],
   ["companion signal tabs", COMPANION_TABS],
 ];
 
 describe("the snapshot hosts embed the explorers, not the tables", () => {
+  test.each([
+    ["alert page", ALERT_VIEW],
+    ["incident page", INCIDENT_VIEW],
+  ])(
+    "%s mounts the shared card, not explorers of its own",
+    (_name: string, source: string) => {
+      expect(source).toContain("<TelemetrySnapshotPanel");
+      expect(source).not.toContain("<TracesViewer");
+      expect(source).not.toContain("<ExceptionsViewer");
+      expect(source).not.toContain("<DashboardLogsViewer");
+    },
+  );
+
   test.each(SNAPSHOT_HOSTS)(
     "%s mounts TracesViewer and ExceptionsViewer",
     (_name: string, source: string) => {
@@ -180,26 +193,25 @@ describe("the snapshot hosts embed the explorers, not the tables", () => {
 });
 
 describe("the snapshot window stays visible on every card", () => {
-  test.each([
-    ["alert page", ALERT_VIEW],
-    ["incident page", INCIDENT_VIEW],
-    ["shared snapshot panel", SNAPSHOT_PANEL],
-  ])(
-    "%s badges all four preview cards with the window",
-    (_name: string, source: string) => {
-      /*
-       * Card ownership moved from the components to the hosts when the tables
-       * were swapped out — the tables drew their own card, the explorers do
-       * not. The badge had to move with it: a snapshot with nothing on screen
-       * claiming a window reads as live data.
-       */
-      expect(
-        countOccurrences(source, "rightElement={snapshotWindowAlert}"),
-      ).toBe(4);
-    },
-  );
+  test("the shared card names the range it shows on every preview card", () => {
+    /*
+     * Card ownership moved from the components to the hosts when the tables
+     * were swapped out — the tables drew their own card, the explorers do
+     * not. The window had to move with it: a snapshot with nothing on screen
+     * claiming a window reads as live data. It was a badge of the window; it
+     * is the card's time picker now (issue #6251), which names what the
+     * monitor saw, with its window as the tooltip, until the reader picks
+     * another range. Logs, spans and exceptions: a metric snapshot is the
+     * metric investigation (issue #5954), whose cards carry its time picker
+     * too.
+     */
+    expect(
+      countOccurrences(SNAPSHOT_PANEL, "rightElement={timeRangeControls}"),
+    ).toBe(3);
+    expect(SNAPSHOT_PANEL).toContain("<EventMetricInvestigationPanel");
+  });
 
-  test("the companion tabs badge their cards from the host's element", () => {
+  test("the companion tabs carry the host's element on their cards", () => {
     /*
      * Five, not four: the logs, spans, exceptions and metrics tabs, plus the
      * metrics tab's "no metrics in this scope" card, which has to carry the
@@ -214,16 +226,9 @@ describe("the snapshot window stays visible on every card", () => {
     ).toBe(5);
   });
 
-  test.each([
-    ["alert page", ALERT_VIEW],
-    ["incident page", INCIDENT_VIEW],
-    ["shared snapshot panel", SNAPSHOT_PANEL],
-  ])(
-    "%s wraps the span list in its own card",
-    (_name: string, source: string) => {
-      expect(source).toContain('title={"Spans"}');
-    },
-  );
+  test("the shared card wraps the span list in its own card", () => {
+    expect(SNAPSHOT_PANEL).toContain('title={"Spans"}');
+  });
 });
 
 describe("TracesViewer hosts a stored span query", () => {

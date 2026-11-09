@@ -239,7 +239,13 @@ describe("what it starts with is a whole answer", () => {
           shown.map((setting: Argument): string => {
             return setting.name;
           }),
-        ).toEqual([metadata.arguments[0]!.name, "Page About", recordSetting]);
+        ).toEqual([
+          metadata.arguments[0]!.name,
+          "Page About",
+          recordSetting,
+          // Responders until changed, folded with the advanced settings.
+          "Page As",
+        ]);
 
         const stillEmpty: Array<string> = shown
           .filter((setting: Argument): boolean => {

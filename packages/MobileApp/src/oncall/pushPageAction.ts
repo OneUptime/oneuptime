@@ -1,5 +1,9 @@
 import type { OnCallPageRecordType } from "../api/onCallPassOn";
 import { PASS_ON_TEXT } from "./passOn";
+import {
+  OBSERVER_PAGE_TEXT,
+  getObserverPageResolvedMessage,
+} from "./observerPage";
 
 /*
  * ACKNOWLEDGE AND ESCALATE FROM A PAGE'S PUSH.
@@ -16,6 +20,10 @@ import { PASS_ON_TEXT } from "./passOn";
  *                along; and otherwise it says why there was nothing to do.
  *   Escalate     asks first, as the screen's Escalate does, saying what
  *                escalating will do; or says there is nothing to escalate.
+ *   I've seen it under an observer's page (oncall/observerPage.ts): says the
+ *                reader has seen their page, as the screen's own button
+ *                does, or why there was nothing to mark. It never
+ *                acknowledges the record, whatever state it is in.
  *
  * Opening the app first is deliberate: the answer is then said on the screen
  * that shows the record, with the app's own session and lock, instead of
@@ -24,7 +32,7 @@ import { PASS_ON_TEXT } from "./passOn";
  * that escalates while its reader thinks it is taken.
  */
 
-export type PushPageActionKind = "acknowledge" | "escalate";
+export type PushPageActionKind = "acknowledge" | "escalate" | "seen";
 
 /**
  * What a push's action asks the record's screen to do, as a navigation
@@ -45,7 +53,9 @@ export function isPushPageActionRequest(
 
   return (
     Boolean(request) &&
-    (request!.kind === "acknowledge" || request!.kind === "escalate") &&
+    (request!.kind === "acknowledge" ||
+      request!.kind === "escalate" ||
+      request!.kind === "seen") &&
     typeof request!.id === "string" &&
     request!.id.length > 0
   );
@@ -62,12 +72,19 @@ export interface PushPageRecordState {
   isPageAgain: boolean;
   // Whether the server could say what the reader's open pages are.
   pagesKnown: boolean;
+  /*
+   * The reader's pages about the record as an observer that they can still
+   * say they have seen: any at all, and whether the server could say. Left
+   * out, it is not known.
+   */
+  observerPages?: { hasOpenPages: boolean; known: boolean } | undefined;
 }
 
 export type PushPageAnswer =
   | { kind: "acknowledge" }
   | { kind: "acknowledgeAgain" }
   | { kind: "askToEscalate" }
+  | { kind: "markSeen" }
   | { kind: "explain"; title: string; message: string };
 
 // What the record is called in a sentence: both kinds of episode are an "episode".
@@ -101,11 +118,47 @@ export const PUSH_PAGE_TEXT: Readonly<{
   notPaged: "You are not being paged about this right now.",
 };
 
+/*
+ * "I've seen it" under an observer's page: their page is marked seen, and
+ * nothing else - never the record's Acknowledge, whatever state it is in.
+ */
+function getObserverPageAnswer(state: PushPageRecordState): PushPageAnswer {
+  if (state.isResolved) {
+    return {
+      kind: "explain",
+      title: OBSERVER_PAGE_TEXT.alreadyResolvedTitle,
+      message: getObserverPageResolvedMessage(state.recordType),
+    };
+  }
+
+  if (!state.observerPages?.known) {
+    return {
+      kind: "explain",
+      title: OBSERVER_PAGE_TEXT.couldNotCheckTitle,
+      message: OBSERVER_PAGE_TEXT.couldNotCheck,
+    };
+  }
+
+  if (!state.observerPages.hasOpenPages) {
+    return {
+      kind: "explain",
+      title: OBSERVER_PAGE_TEXT.alreadySeenTitle,
+      message: OBSERVER_PAGE_TEXT.alreadySeen,
+    };
+  }
+
+  return { kind: "markSeen" };
+}
+
 /** What the record's screen does for a push's action, from what it now knows. */
 export function getPushPageAnswer(
   kind: PushPageActionKind,
   state: PushPageRecordState,
 ): PushPageAnswer {
+  if (kind === "seen") {
+    return getObserverPageAnswer(state);
+  }
+
   const word: string = getPushPageRecordWord(state.recordType);
 
   if (kind === "acknowledge") {

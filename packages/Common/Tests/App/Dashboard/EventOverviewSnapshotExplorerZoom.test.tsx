@@ -24,18 +24,23 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * Issue #4105 on the incident and alert overview pages, for an event whose
- * monitor watched logs, traces or exceptions. The page holds the telemetry
- * snapshot's zoom above the snapshot card's tabs; the primary explorer is
- * pinned to the window that zoom shows and offered the zoom itself, so a
- * drag on its volume histogram zooms the WHOLE snapshot:
+ * monitor watched logs, traces or exceptions. The snapshot card holds its
+ * time range above its tabs (issue #6251: what the monitor saw, until the
+ * reader picks another range around the event on the card's time picker);
+ * the primary explorer is pinned to the window the card shows and offered
+ * the card's zoom, so a drag on its volume histogram zooms the WHOLE card:
  *
  * - every companion tab (Metrics, and whichever of Logs, Traces and
  *   Exceptions the primary is not) queries exactly the dragged window;
- * - the badge offers the card's one "Reset zoom", and it and a double-click
- *   on the histogram return everything to the snapshot window;
+ * - Reset zoom beside the card's time picker is the card's one way back,
+ *   and it and a double-click on the histogram return everything to the
+ *   snapshot window (the picker took over from the snapshot badge the page
+ *   used to put there, Reset zoom and all);
  * - the page's background refresh re-reads an equal snapshot and keeps the
- *   zoom, a refresh that brings back another window ends it, and another
- *   event (the page stays mounted) starts unzoomed.
+ *   zoom, and so does a refresh that brings back another window, as on a
+ *   metric snapshot's card (the zoom is the reader's, not the record's);
+ *   another event (the page stays mounted) starts on its own defaults;
+ * - a range picked on the card moves every tab, and a reload keeps it.
  *
  * The pages are rendered for real with every heavy card stubbed (the stubs
  * of EventOverviewSnapshotZoomAcrossTabs.test), and so are the snapshot
@@ -439,6 +444,7 @@ import IncidentView from "../../../../App/FeatureSet/Dashboard/src/Pages/Inciden
 import AlertView from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/View/Index";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
+import { EVENT_TIME_RANGE_RESET_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/EventTimeRangeControls";
 import { getTimeRangeButtonLabel } from "../../../UI/Components/Date/TimeRangePickerDropdown";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import Log from "../../../Models/AnalyticsModels/Log";
@@ -623,21 +629,39 @@ function resetButtons(): Array<HTMLElement> {
   return screen.queryAllByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID);
 }
 
-function badgeTitle(): string {
-  return OneUptimeDate.getInBetweenDatesAsFormattedString(
-    new InBetween<Date>(SNAPSHOT_START, SNAPSHOT_END),
-  );
+// The card's time picker, on the header of the open tab's card.
+function cardPicker(): HTMLElement {
+  return screen.getByTestId("metric-investigation-time-button");
 }
 
-// The snapshot badge's Reset zoom: the one right before the badge's window.
-function badgeResetButtons(): Array<HTMLElement> {
+// The card's Reset zoom: the one right after the card's time picker.
+function cardResetButtons(): Array<HTMLElement> {
   return resetButtons().filter((button: HTMLElement): boolean => {
-    const next: Element | null = button.nextElementSibling;
+    const previous: Element | null = button.previousElementSibling;
     return (
-      next !== null &&
-      within(next as HTMLElement).queryByText(badgeTitle()) !== null
+      previous !== null &&
+      within(previous as HTMLElement).queryByTestId(
+        "metric-investigation-time-button",
+      ) !== null
     );
   });
+}
+
+// What the card says it shows: the button's words, and its window's.
+function cardPickerSays(): { label: string; window: string | null } {
+  return {
+    label: (cardPicker().textContent || "").trim(),
+    window: cardPicker().getAttribute("title"),
+  };
+}
+
+/*
+ * The reader follows a link to another event: the same route and page, and
+ * an address of its own, with none of the range the last event's card kept.
+ */
+function followLinkTo(eventId: string): void {
+  mockEventId = eventId;
+  window.history.replaceState({}, "", `/dashboard/events/${eventId}`);
 }
 
 interface CompanionCase {
@@ -851,7 +875,7 @@ async function zoomFromThePrimary(): Promise<void> {
   fireEvent.mouseUp(screen.getByTestId(`bucket-${BAR_1754}`));
 
   await waitFor(() => {
-    expect(badgeResetButtons()).toHaveLength(1);
+    expect(cardResetButtons()).toHaveLength(1);
   });
   await expectLatest(mockPrimary.self.sources, SLICE_TEXT);
 }
@@ -1006,20 +1030,25 @@ describe.each(CASES)(
       expect(getItemMock.mock.calls.length).toBe(pageReads);
     });
 
-    test("the badge offers the card's one Reset zoom, which returns everything to the snapshot window", async () => {
+    test("Reset zoom beside the card's time picker is the card's one way back, and returns everything to the snapshot window", async () => {
       await renderSettled(pageCase);
       await zoomFromThePrimary();
 
       const tabPanel: HTMLElement = screen.getByRole("tabpanel");
       expect(
         within(tabPanel).queryAllByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
-      ).toEqual(badgeResetButtons());
-      expect(badgeResetButtons()).toHaveLength(1);
+      ).toEqual(cardResetButtons());
+      expect(cardResetButtons()).toHaveLength(1);
+      expect(cardPickerSays().label).toBe(labelOf(SLICE_TEXT));
 
-      fireEvent.click(badgeResetButtons()[0]!);
+      fireEvent.click(cardResetButtons()[0]!);
 
       await expectLatest(mockPrimary.self.sources, SNAPSHOT_TEXT);
       expect(pickerLabel()).toBe(labelOf(SNAPSHOT_TEXT));
+      expect(cardPickerSays()).toEqual({
+        label: "What the monitor saw",
+        window: labelOf(SNAPSHOT_TEXT),
+      });
       expect(resetButtons()).toHaveLength(0);
       await expectCompanionsOn(SNAPSHOT_TEXT);
     });
@@ -1046,7 +1075,7 @@ describe.each(CASES)(
       await refreshThePage(pageCase);
 
       expect(pickerLabel()).toBe(labelOf(SLICE_TEXT));
-      expect(badgeResetButtons()).toHaveLength(1);
+      expect(cardResetButtons()).toHaveLength(1);
       expect(resetButtons()).toHaveLength(1);
       for (const window of askedSince(mockPrimary.self.sources, counts)) {
         expect(window).toBe(SLICE_TEXT);
@@ -1070,9 +1099,34 @@ describe.each(CASES)(
       await expectCompanionsOn(SLICE_TEXT);
     });
 
-    test("a refresh that brings back a different window ends the zoom on every tab", async () => {
+    test("a refresh that brings back another window keeps the reader's zoom, and its way back is the new window", async () => {
       await renderSettled(pageCase);
       await zoomFromThePrimary();
+      const counts: Array<number> = countsOf(mockPrimary.self.sources);
+
+      mockStoredWindow = { start: NEXT_START, end: NEXT_END };
+      await refreshThePage(pageCase);
+
+      // The reader's pick, not the record's, as on a metric snapshot's card.
+      for (const window of askedSince(mockPrimary.self.sources, counts)) {
+        expect(window).toBe(SLICE_TEXT);
+      }
+      expect(cardResetButtons()).toHaveLength(1);
+
+      fireEvent.click(cardResetButtons()[0]!);
+
+      await expectLatest(mockPrimary.self.sources, NEXT_TEXT);
+      expect(pickerLabel()).toBe(labelOf(NEXT_TEXT));
+      expect(cardPickerSays()).toEqual({
+        label: "What the monitor saw",
+        window: labelOf(NEXT_TEXT),
+      });
+      expect(resetButtons()).toHaveLength(0);
+      await expectCompanionsOn(NEXT_TEXT);
+    });
+
+    test("an untouched card follows a refresh that brings back another window, every tab with it", async () => {
+      await renderSettled(pageCase);
 
       mockStoredWindow = { start: NEXT_START, end: NEXT_END };
       await refreshThePage(pageCase);
@@ -1088,7 +1142,7 @@ describe.each(CASES)(
       await zoomFromThePrimary();
 
       // The reader follows a link to the sibling event: same route, same page.
-      mockEventId = SIBLING_EVENT_ID;
+      followLinkTo(SIBLING_EVENT_ID);
       await act(async () => {
         rendered.rerender(pageCase.page());
       });
@@ -1098,8 +1152,8 @@ describe.each(CASES)(
       expect(pickerLabel()).toBe(labelOf(SNAPSHOT_TEXT));
       expect(resetButtons()).toHaveLength(0);
 
-      // And back to the first one: its zoom stayed behind with it.
-      mockEventId = EVENT_ID;
+      // And back to the first one by a link: its zoom stayed behind with it.
+      followLinkTo(EVENT_ID);
       await act(async () => {
         rendered.rerender(pageCase.page());
       });
@@ -1127,7 +1181,116 @@ describe.each(CASES)(
         expect(window).toBe(SLICE_TEXT);
       }
       expect(pickerLabel()).toBe(labelOf(SLICE_TEXT));
-      expect(badgeResetButtons()).toHaveLength(1);
+      expect(cardResetButtons()).toHaveLength(1);
+    });
+  },
+);
+
+/*
+ * Issue #6251 on the pages: the card's time picker offers the ranges around
+ * the incident or alert (anchored on when it was declared or created), and a
+ * range picked there moves every tab, is kept in the page's address, and is
+ * there again after a reload. Reset goes back to what the monitor saw.
+ */
+describe.each(CASES)(
+  "the %s overview's %s snapshot: a range picked on the card",
+  (
+    pageName: string,
+    pageCase: PageCase,
+    _primaryName: string,
+    primary: PrimaryCase,
+  ) => {
+    // The hour up to when the event started (declared, or created).
+    const HOUR_BEFORE_TEXT: string =
+      "2026-09-14T17:00:00.000Z..2026-09-14T18:00:00.000Z";
+
+    beforeEach(() => {
+      mockPrimary = primary;
+    });
+
+    async function pickOnTheCard(label: string): Promise<void> {
+      fireEvent.click(cardPicker());
+      await act(async () => {
+        fireEvent.click(
+          within(
+            screen.getByTestId("metric-investigation-time-dropdown"),
+          ).getByText(label),
+        );
+      });
+    }
+
+    function urlTime(): string | null {
+      return new URLSearchParams(window.location.search).get("telemetryTime");
+    }
+
+    test("untouched, the card names what the monitor saw and offers the ranges around the event", async () => {
+      await renderSettled(pageCase);
+
+      expect(cardPickerSays()).toEqual({
+        label: "What the monitor saw",
+        window: labelOf(SNAPSHOT_TEXT),
+      });
+      expect(urlTime()).toBeNull();
+
+      fireEvent.click(cardPicker());
+      const dropdown: HTMLElement = screen.getByTestId(
+        "metric-investigation-time-dropdown",
+      );
+      expect(
+        within(dropdown).getByText(`Around this ${pageName}`),
+      ).toBeVisible();
+      expect(
+        within(dropdown).getByText("The hour before it started"),
+      ).toBeVisible();
+    });
+
+    test("a range picked on the card moves every tab, and is not a reload of the page", async () => {
+      await renderSettled(pageCase);
+      const pageReads: number = getItemMock.mock.calls.length;
+
+      await pickOnTheCard("The hour before it started");
+
+      await expectLatest(mockPrimary.self.sources, HOUR_BEFORE_TEXT);
+      expect(pickerLabel()).toBe(labelOf(HOUR_BEFORE_TEXT));
+      expect(urlTime()).toBe("hour-before");
+      await expectCompanionsOn(HOUR_BEFORE_TEXT);
+      expect(cardPickerSays().label).toBe("The hour before it started");
+      expect(getItemMock.mock.calls.length).toBe(pageReads);
+    });
+
+    test("a reload opens the card on the range picked", async () => {
+      const rendered: RenderResult = await renderSettled(pageCase);
+      await pickOnTheCard("The hour before it started");
+      await expectLatest(mockPrimary.self.sources, HOUR_BEFORE_TEXT);
+
+      rendered.unmount();
+      postMock.mockClear();
+      analyticsGetListMock.mockClear();
+      await act(async () => {
+        render(pageCase.page());
+      });
+      await volumeChartDrawn();
+
+      await expectLatest(mockPrimary.self.sources, HOUR_BEFORE_TEXT);
+      expect(askedSince(mockPrimary.self.sources, [0, 0])).not.toContain(
+        SNAPSHOT_TEXT,
+      );
+      expect(cardPickerSays().label).toBe("The hour before it started");
+    });
+
+    test("Reset goes back to what the monitor saw on every tab, and leaves a clean address", async () => {
+      await renderSettled(pageCase);
+      await pickOnTheCard("Start to now");
+      expect(urlTime()).toBe("start-to-end");
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(EVENT_TIME_RANGE_RESET_TEST_ID));
+      });
+
+      await expectLatest(mockPrimary.self.sources, SNAPSHOT_TEXT);
+      expect(urlTime()).toBeNull();
+      expect(cardPickerSays().label).toBe("What the monitor saw");
+      await expectCompanionsOn(SNAPSHOT_TEXT);
     });
   },
 );

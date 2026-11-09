@@ -319,6 +319,16 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
+        <SideMenuItem
+          link={{
             title: "Delete Resource",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DELETE] as Route,

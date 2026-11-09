@@ -79,6 +79,7 @@ flowchart TB
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ flowchart TB
 | `recordType`, `record` | Чего касается вызов: `incident`, `alert`, `incidentEpisode` или `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | Политика и уровень, которые вызвали человека |
 | `isPageAgain` | `true`, если запись была подтверждена некоторое время назад и всё ещё не устранена |
+| `isObserverPage` | `true`, если человека вызвали как наблюдателя: его держат в курсе, пока реагируют другие. Подтверждение вызова означает только, что он его видел |
 | `actions` | Ссылки, которые ваш сервис вызывает, чтобы [выполнить действие с вызовом](#действия-с-вызовом) |
 
 Вызов нескольких человек — это отдельный запрос на каждого, у каждого свои ссылки, чтобы OneUptime знал, кто ответил. Заголовок, сообщение и описание вместе ограничены 16 384 символами; более длинное описание обрезается и заканчивается на «… (truncated — see OneUptime for the full text)».
@@ -170,6 +172,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

@@ -13,7 +13,7 @@ Cliquez sur un modèle pour voir ce qu'il fait : son déclencheur, les blocs qui
 
 Les workflows sont créés désactivés, si bien que leur déclencheur ne les lance pas avant que vous les activiez. Un nouveau workflow s'ouvre dans le **Constructeur**, le canevas sur lequel vous le concevez.
 
-Vous pouvez aussi décrire un workflow à Ask AI et le laisser le créer pour vous. Il trouve le déclencheur et les étapes, les configure et les relie, puis vous demande d'approuver le workflow avant de l'enregistrer. Un nouveau workflow démarre désactivé : lisez-le dans le Builder, renseignez les mots de passe, jetons ou URL de webhook qu'il vous a laissés, car Ask AI ne les demande jamais dans la conversation, puis activez-le vous-même. Ask AI peut modifier un workflow de la même façon. Depuis la page d'un workflow, « ce workflow » désigne celui-là. Il enregistre en votre nom : il ne peut donc faire que ce que vous pouvez faire dans le Builder, et le Builder affiche ses modifications dès qu'elles sont enregistrées.
+Vous pouvez aussi décrire un workflow à Ask AI et le laisser le créer pour vous. Il trouve le déclencheur et les étapes, les configure et les relie, puis vous demande d'approuver le workflow avant de l'enregistrer. Un nouveau workflow démarre désactivé : lisez-le dans le Builder, renseignez les mots de passe, jetons ou URL de webhook qu'il vous a laissés, car Ask AI ne les demande jamais dans la conversation, puis activez-le vous-même. Ask AI peut modifier un workflow de la même façon. Depuis la page d'un workflow, « ce workflow » désigne celui-là. Il enregistre en votre nom : il ne peut donc faire que ce que vous pouvez faire dans le Builder, et le Builder affiche ses modifications dès qu'elles sont enregistrées. Si le workflow est enregistré pendant qu'une modification d'Ask AI attend votre approbation, par vous dans le Builder ou par quelqu'un d'autre, l'approuver conserve ce qui a été enregistré. Quand les deux modifications portent sur des étapes différentes, Ask AI fait sa modification par-dessus ce qui a été enregistré, et le dit. Quand elles touchent la même étape, rien n'est modifié : Ask AI indique que le workflow a changé et propose de nouveau sa modification sur le workflow tel qu'il est maintenant. Ask AI rédige une modification à partir du workflow tel qu'il l'a lu la dernière fois. Si le workflow a été enregistré depuis, et que la modification annulerait une partie de ce qui a été enregistré, la carte le dit avant que vous ne l'approuviez et nomme les étapes, par exemple « Cette modification annule ce qui a été enregistré après que l'IA a lu le workflow : Send Message to Slack. » Pour conserver ce qui a été enregistré, ignorez la modification et demandez à Ask AI de relire le workflow. Déplacer des cartes ne compte jamais, pas plus qu'un paramètre modifié sur une étape que la modification d'Ask AI laisse telle quelle. Si Ask AI n'a jamais lu les étapes du workflow, la carte le dit aussi. En Exécution automatique, où personne n'approuve les actions, Ask AI n'effectue pas une telle modification : il relit le workflow et apporte sa modification au workflow tel qu'il est maintenant.
 
 ## Le canevas
 
@@ -21,7 +21,9 @@ Un workflow parti de zéro s'ouvre avec un unique bloc en pointillés qui affich
 
 Chaque workflow a exactement un **déclencheur**, en haut. Tout le reste est un **composant** qui fait quelque chose. Pour changer de déclencheur, supprimez-le : l'espace réservé en pointillés revient à sa place, et un clic dessus vous laisse en choisir un autre. Supprimer un bloc supprime aussi ses lignes ; reliez donc de nouveau le nouveau déclencheur au premier bloc.
 
-Les modifications s'enregistrent automatiquement. Une pastille dans la barre d'outils le signale : **Enregistrement…** pendant que la modification part, puis **Enregistré**, ou **Impossible d'enregistrer** si cela n'a pas fonctionné. Le canevas n'a pas de bouton d'enregistrement ni d'étape de publication séparée.
+Les modifications s'enregistrent automatiquement, un instant après que vous les avez faites. Une pastille dans la barre d'outils le signale : **Enregistrement…** pendant que la modification est en route, puis **Enregistré**. Si une modification n'a pas pu être enregistrée, la pastille affiche **Impossible d'enregistrer**, avec la raison quand vous la survolez, et **Réessayer** à côté. Vos modifications restent sur le canevas en attendant, et la prochaine modification que vous faites relance l'enregistrement. Si vous quittez la page avant qu'une modification soit enregistrée, une confirmation vous est d'abord demandée. Le canevas n'a pas de bouton d'enregistrement ni d'étape de publication séparée. Une erreur est enregistrée elle aussi : le Constructeur garde donc chaque modification, que vous pouvez reprendre. Voir [Annuler, rétablir et historique des versions](#annuler-rétablir-et-historique-des-versions).
+
+Deux personnes peuvent avoir le même flux de travail ouvert. Si quelqu'un d'autre l'enregistre après que vous l'avez ouvert, dans un autre Constructeur ou par l'API, le Constructeur n'enregistre pas votre modification par-dessus la sienne : la pastille affiche **Non enregistré**, et une boîte de dialogue liste ce qui a changé. **Afficher leurs modifications** place leur version sur le canevas, et **Annuler** rétablit la vôtre. **Garder la mienne** enregistre votre version, et la leur reste dans l'historique des versions. Rien n'est perdu, quel que soit votre choix.
 
 ## Ajouter des blocs
 
@@ -169,6 +171,26 @@ Pour mettre un workflow en pause sans le supprimer, désactivez **Activé**. Son
 - Pour supprimer un bloc, cliquez dessus et utilisez **Supprimer** au bas de sa boîte de dialogue de paramètres. Sélectionner un bloc ou une ligne et appuyer sur Retour arrière le supprime aussi.
 - Impossible de dupliquer un seul bloc. **Dupliquer : Flux de travail** sur la page **Paramètres** du workflow copie l'ensemble. Le nom de la copie est prérempli, numéroté au-delà des workflows du projet ("Nightly Sync" est copié en "Nightly Sync 2"), et la copie s'ouvre, désactivée.
 - Empilez les blocs de haut en bas pour qu'ils se lisent dans le sens où ils s'exécutent — les entrées sont sur le bord supérieur, les sorties sur le bord inférieur, si bien que le flux descend naturellement.
+
+## Annuler, rétablir et historique des versions
+
+Chaque modification que vous faites sur le canevas peut être reprise, même si elle a été enregistrée aussitôt.
+
+- **Annuler** et **Rétablir** se trouvent au début de la barre d'outils. Survolez l'un ou l'autre pour voir ce qu'il reprendrait ou referait, et de quel bloc il s'agit. Chaque modification s'annule en une fois : ajouter, supprimer ou déplacer un bloc, relier deux blocs ou les délier, et enregistrer les paramètres d'un bloc. Faire glisser un bloc est une seule modification, quelle que soit la distance parcourue.
+- Le clavier fonctionne aussi : ⌘Z sur un Mac, ou Ctrl+Z, annule, et ⇧⌘Z, Ctrl+Shift+Z ou Ctrl+Y rétablit. Pendant que vous tapez dans un champ ou un éditeur de code, les mêmes touches annulent plutôt votre saisie.
+- Une annulation est enregistrée comme n'importe quelle autre modification. L'annulation porte sur ce que vous avez fait depuis l'ouverture du Constructeur ; l'historique des versions remonte plus loin.
+
+**Historique des versions**, dans la barre d'outils, liste chaque version enregistrée du workflow, de la plus récente à la plus ancienne : qui l'a enregistrée, quand, et ce qu'elle a modifié, par exemple `Added "Send Email" (send-email-1)`. Les modifications que vous enregistrez à moins de 10 minutes d'intervalle forment une seule version : une version est donc un morceau de travail plutôt que chaque clic. Les modifications faites via l'API sont aussi des versions, et chaque modification faite par Ask AI est une version à part, qui indique qu'Ask AI l'a faite pour vous. Restaurer la version précédente annule exactement ce qu'a fait Ask AI. Quand la modification d'Ask AI a été faite par-dessus une modification que vous n'aviez pas encore vue, le Builder les affiche comme deux étapes : Annuler reprend la seule modification d'Ask AI, et la modification enregistrée avant elle est l'étape précédente.
+
+Pour revenir à une version antérieure :
+
+:::steps
+1. Cliquez sur **Historique des versions** dans la barre d'outils.
+2. Cliquez sur **Aperçu** sur la version. L'aperçu liste ce que sa restauration changerait et montre la version sur un canevas à part. Cliquez sur un bloc de ce canevas pour lire ses paramètres.
+3. Cliquez sur **Restaurer cette version**. La version revient sur le canevas et est enregistrée aussitôt.
+:::
+
+La restauration est une modification comme une autre. Elle est enregistrée comme une nouvelle version qui indique quelle version elle a restaurée : vous pouvez donc l'annuler, ou restaurer la version que vous aviez avant. Toute personne qui peut ouvrir le workflow peut voir son historique ; restaurer une version demande l'autorisation de modifier le workflow. Les 100 versions les plus récentes de chaque workflow sont conservées.
 
 ## Étapes suivantes
 

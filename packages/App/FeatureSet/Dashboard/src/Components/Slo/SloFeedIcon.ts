@@ -54,6 +54,21 @@ export const getSloFeedEventKind: GetSloFeedEventKindFunction = (
     case ServiceLevelObjectiveFeedEventType.MonitorRuleRemoved:
       // The monitor rules page's own side menu icon.
       return { icon: IconProp.Filter, tone: FeedTone.Neutral };
+    case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyTierChanged:
+      // The Error Budget Policy page's own side menu icon.
+      return { icon: IconProp.Scale, tone: FeedTone.Warning };
+    case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised:
+      return { icon: IconProp.ExclaimationCircle, tone: FeedTone.Warning };
+    case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentDeclared:
+      return { icon: IconProp.Alert, tone: FeedTone.Danger };
+    case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertResolved:
+    case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentResolved:
+      return { icon: IconProp.CheckCircle, tone: FeedTone.Success };
+    // The deploy gate: a lock while deployments are frozen, open once they are not.
+    case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen:
+      return { icon: IconProp.Lock, tone: FeedTone.Danger };
+    case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed:
+      return { icon: IconProp.LockOpen, tone: FeedTone.Success };
     case ServiceLevelObjectiveFeedEventType.MonitorsAttached:
       return SHARED_FEED_ENTRY_KINDS.Linked;
     case ServiceLevelObjectiveFeedEventType.MonitorsDetached:

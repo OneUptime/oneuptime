@@ -50,7 +50,7 @@ const HINTS: Array<Hint> = [
     key: "record",
     title: translationKey("Record what was said"),
     body: translationKey(
-      "OpenLLMetry records prompts and answers by default. The OpenTelemetry instrumentations record them with OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true.",
+      "OpenLLMetry records prompts and answers by default. The OpenTelemetry instrumentations record them with OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT (span_only for Python's, true for the others), and Azure's AI Inference SDK with AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true.",
     ),
   },
   {
@@ -95,8 +95,17 @@ const LlmAppsPath: FunctionComponent = (): ReactElement => {
       return item.key === snippetKey;
     }) || LLM_APPS_SNIPPETS[0]!;
 
-  const scrubRulesRoute: Route = RouteUtil.populateRouteParams(
+  /*
+   * Where personal data in prompts is masked: the traces' scrub rules for
+   * what is recorded on the spans, the logs' for what an instrumentation
+   * sends as log events (the JavaScript and Java ones, Python's with true or
+   * event_only) - a trace scrub rule never reads a log record.
+   */
+  const traceScrubRulesRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.TRACES_SETTINGS_SCRUB_RULES] as Route,
+  );
+  const logScrubRulesRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.LOGS_SETTINGS_SCRUB_RULES] as Route,
   );
 
   return (
@@ -211,14 +220,24 @@ const LlmAppsPath: FunctionComponent = (): ReactElement => {
         </ol>
         <div className="border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
           <TranslatedSentence
-            template="Prompts can carry personal data. Mask it before it is stored with {{scrubRules}}, and read the {{guide}} for everything else."
+            template="Prompts can carry personal data. Mask it before it is stored with {{traceScrubRules}}, or {{logScrubRules}} for prompts sent as log events, and read the {{guide}} for everything else."
             slots={{
-              scrubRules: (
+              traceScrubRules: (
                 <Link
-                  to={scrubRulesRoute}
+                  to={traceScrubRulesRoute}
                   className="font-medium text-indigo-600 hover:text-indigo-700"
+                  dataTestId="llm-apps-trace-scrub-rules"
                 >
-                  {translator.translateText("scrub rules")}
+                  {translator.translateText("trace scrub rules")}
+                </Link>
+              ),
+              logScrubRules: (
+                <Link
+                  to={logScrubRulesRoute}
+                  className="font-medium text-indigo-600 hover:text-indigo-700"
+                  dataTestId="llm-apps-log-scrub-rules"
+                >
+                  {translator.translateText("log scrub rules")}
                 </Link>
               ),
               guide: (

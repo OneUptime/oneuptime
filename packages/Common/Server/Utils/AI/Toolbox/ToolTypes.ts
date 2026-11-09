@@ -16,6 +16,7 @@ import {
 import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import { AIChatPageContext } from "../../../../Types/AI/AIChatPageContext";
 import { AIActionSentence } from "../../../../Types/AI/AIActionWords";
+import { AIChatRecordSeen } from "../../../../Types/AI/AIChatRecordSeen";
 
 /*
  * The execution context for a tool call. projectId is ALWAYS the tenant from
@@ -43,6 +44,17 @@ export interface ToolContext {
    * Slack, Microsoft Teams, an autonomous investigation.
    */
   pageContext?: AIChatPageContext | undefined;
+  /*
+   * What the model had been shown of records it may change when it asked
+   * for the call being prepared, oldest first (Types/AI/AIChatRecordSeen):
+   * the citations of this turn's earlier results and of the history it
+   * replays - never one of a result the call was asked for alongside,
+   * which the model had not seen yet. Handed to a prepare only
+   * (ChatAgentRunner), so the card can say what the change would undo that
+   * was saved since (issue #6291). Never a permission, and never what a
+   * change is saved by.
+   */
+  recordsSeen?: ReadonlyArray<AIChatRecordSeen> | undefined;
 }
 
 /*
@@ -86,6 +98,23 @@ export interface PreparedMutation {
    * then leaves out: it would only say them again.
    */
   describedArguments?: Array<string> | undefined;
+  /*
+   * Set when the action would undo what was saved after the model last saw
+   * the record - a workflow saved after Ask AI read it (issue #6291), a
+   * file pushed to after Ask AI read it (issue #6313) - so it is made only
+   * once a person approves it. Asked for approval, the card
+   * says so (description). In a conversation that runs actions without
+   * asking (Auto-run) nobody would, so it is not run: the model is told
+   * this instead, and reads the record again before it changes it.
+   */
+  notRunWithoutApproval?:
+    | {
+        // What the model is told instead of the action's result.
+        toldModel: string;
+        // What the action's record says of it (resultSummary), in English.
+        summary: string;
+      }
+    | undefined;
 }
 
 export interface ToolExecutionResult {
@@ -103,6 +132,15 @@ export interface ToolExecutionResult {
    * already has RBAC access to this data.
    */
   widget?: AIChatWidget | undefined;
+  /*
+   * What the result showed the model of a record it may change from it
+   * later (Types/AI/AIChatRecordSeen): a workflow's steps, read or as Ask AI
+   * saved them, or a repository's file on a branch, read or as a commit of
+   * Ask AI's own wrote it - a list for a commit's files. Built by the tool
+   * from its own read, never from the model's arguments, and kept with the
+   * citation (issues #6291 and #6313).
+   */
+  recordSeen?: AIChatRecordSeen | Array<AIChatRecordSeen> | undefined;
 }
 
 export interface ObservabilityTool {

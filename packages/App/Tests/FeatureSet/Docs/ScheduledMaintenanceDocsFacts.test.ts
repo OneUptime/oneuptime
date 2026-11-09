@@ -3265,6 +3265,7 @@ describe("where maintenance settings live", () => {
       "Event State",
       "Event Templates",
       "Note Templates",
+      "Public Note Approval",
       "Custom Fields",
       "Measurements",
       "Calendar Settings",
@@ -3287,16 +3288,17 @@ describe("where maintenance settings live", () => {
       "ScheduledMaintenanceEventsRoutePath",
     );
     const keys: Array<string> = Array.from(
+      // A long key is broken across lines by the formatter: PageMap\n.KEY.
       MAINTENANCE_MENU_SOURCE.matchAll(
-        /PageMap\.(SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_\w+)/g,
+        /PageMap\s*\.\s*(SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_\w+)/g,
       ),
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });
     const routeMap: string = readDashboardSource("Utils/RouteMap.ts");
 
-    // Four Rules pages and seven Settings pages, Calendar Settings among them.
-    expect(keys.length).toBe(11);
+    // Four Rules pages and eight Settings pages, Calendar Settings among them.
+    expect(keys.length).toBe(12);
     expect(keys).toContain("SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR");
 
     for (const key of keys) {

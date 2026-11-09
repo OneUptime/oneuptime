@@ -86,7 +86,7 @@ OneUptime finds the application by `service.name`, ignoring case, and creates it
 
 The counts come from the spans your instrumentation sends. **Page loads** counts the `documentLoad` span that the page-load instrumentation records for each full load, so a route change inside a single-page app is not a page load.
 
-An application shows **Connected** while telemetry arrives and **Disconnected** after 15 minutes without any. Time when OneUptime itself was down or catching up on its ingest queue does not count towards those 15 minutes.
+An application shows **Receiving data** while telemetry arrives and **No recent traffic** after 15 minutes without any, which is normal while nobody uses the app. One added by hand shows **Waiting for data** until its first data arrives. Time when OneUptime itself was down or catching up on its ingest queue does not count towards those 15 minutes.
 
 ## Get started
 

@@ -48,7 +48,11 @@ import CallRequest from "../../../Types/Call/CallRequest";
 import Email from "../../../Types/Email";
 import EmailMessage from "../../../Types/Email/EmailMessage";
 import ObjectID from "../../../Types/ObjectID";
-import { OnCallPersonPageNotice } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import {
+  getOnCallPersonPageLead,
+  OnCallPersonPageNotice,
+} from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import { getServerTranslator } from "../../../Server/Utils/ServerTranslation";
 import Phone from "../../../Types/Phone";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
@@ -643,7 +647,7 @@ describe("reading whether a delivery is a person's page", () => {
     ).resolves.toEqual({ pagedByName: "Alice Kim", scheduleName: "Primary" });
   });
 
-  test("somebody with no name is named by their email address, else as somebody", async () => {
+  test("somebody with no name is named by their email address, else as somebody in each message's language", async () => {
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
       .mockResolvedValueOnce(
@@ -654,9 +658,16 @@ describe("reading whether a delivery is a person's page", () => {
     expect(
       (await readable.readPersonPageNotice(executeOptions()))!.pagedByName,
     ).toBe("alice@example.com");
-    expect(
-      (await readable.readPersonPageNotice(executeOptions()))!.pagedByName,
-    ).toBe("Someone");
+
+    const nameless: OnCallPersonPageNotice =
+      (await readable.readPersonPageNotice(executeOptions()))!;
+
+    // No name of their own: each message says "Someone" in its language.
+    expect(nameless.pagedByName).toBe("");
+    expect(getOnCallPersonPageLead(nameless)).toBe("Someone paged you");
+    expect(getOnCallPersonPageLead(nameless, getServerTranslator("de"))).toBe(
+      "Jemand hat Sie alarmiert",
+    );
   });
 
   test.each([

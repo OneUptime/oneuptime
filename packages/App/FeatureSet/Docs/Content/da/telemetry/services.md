@@ -67,6 +67,8 @@ En tjenestes sidemenu har fem sektioner:
 | **Udvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: tjenesten styret fra kode. Sektionen er foldet sammen fra start. |
 | **Avanceret** | **Indstillinger**, **Auditlogs** og **Slet tjeneste**. **Avanceret** er foldet sammen fra start: fold den ud først. |
 
+Ved siden af navnet viser en tjenestes **Oversigt**, om dens telemetri kommer: **Modtager data**, mens der er kommet noget inden for de sidste 30 minutter, **Ingen nylige data**, så snart der ikke kommer mere, og **Venter på data** før dens første telemetri. En tjeneste, der kun sender spans, mens den behandler forespørgsler, viser **Ingen nylige data**, når ingen kalder den, så det alene er ikke en fejl.
+
 Ejere betyder noget ud over siden: en rolle med omfanget Owned læser telemetrien for de tjenester, som du eller dine teams ejer. Se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Skift en tjeneste
@@ -110,6 +112,10 @@ Kontrollér, at dens telemetri har et `service.name`. Telemetri fra en browser e
 
 :::details Sidst set halter bagefter
 **Sidst set** opdateres omtrent én gang i minuttet, ikke ved hver batch, så den kan halte omkring et minut efter den levende telemetri.
+:::
+
+:::details En tjeneste viser "Ingen nylige data"
+Der er ikke kommet noget fra den inden for de sidste 30 minutter. Det er forventeligt for en tjeneste, der kun sender telemetri, mens den behandler forespørgsler, når ingen kalder den. Hvis den burde behandle forespørgsler, så tjek, at den kører, at dens OpenTelemetry-exporter kan nå OneUptime, og at den stadig rapporterer det samme `service.name`: et nyt navn starter en ny tjeneste.
 :::
 
 ## Næste skridt

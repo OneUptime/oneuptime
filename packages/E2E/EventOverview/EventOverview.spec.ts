@@ -22050,6 +22050,271 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
 });
 
 /*
+ * TWO PEOPLE APPROVE A RISKIER FIX (?approvals=, #6148's follow-ups): where
+ * the project asks for it, the kubectl fix - its scale is a riskier change -
+ * says two people must approve it. The first approval's press says Approve
+ * and runs nothing; the fix then names who approved it first and waits for
+ * someone else, offering its first approver no Approve at all; the second
+ * approval, by someone else, runs it.
+ */
+const TWO_APPROVALS_WORDS: {
+  yoursIsTheFirst: string;
+  yoursRunsIt: string;
+  youApprovedFirst: string;
+  firstApprovalNote: string;
+  alreadyApprovedTitle: string;
+  alreadyApprovedMessage: string;
+} = {
+  yoursIsTheFirst:
+    "Two people must approve this riskier fix. Yours is the first.",
+  yoursRunsIt:
+    "Two people must approve this riskier fix. Your approval runs it.",
+  youApprovedFirst:
+    "You approved it first. It runs once someone else approves it too.",
+  // What the press will do, read before it.
+  firstApprovalNote:
+    "Your approval alone runs nothing: the fix runs once someone else approves it too.",
+  // A first approver's press refused: their approval stands, one calm line.
+  alreadyApprovedTitle: "You already approved this fix",
+  alreadyApprovedMessage:
+    "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.",
+};
+
+// A step's title and the line under it, as the reader reads them.
+async function stepWords(
+  fix: Locator,
+  kind: string,
+): Promise<{ title: string; summary: string }> {
+  const step: Locator = fixStep(fix, kind);
+
+  return {
+    title: await readWords(step.getByTestId("remediation-fix-step-title")),
+    summary:
+      (await step.getByTestId("remediation-fix-step-summary").count()) > 0
+        ? await readWords(step.getByTestId("remediation-fix-step-summary"))
+        : "",
+  };
+}
+
+test.describe("two people approve a riskier fix (?approvals=)", () => {
+  test("on: the riskier fix says two must approve it, its press says Approve, and the first approval runs nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManyFixes(page, "approvals=on");
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const approve: Locator = kubectl.getByTestId("remediation-approve-button");
+
+    expect(await stepTitles(kubectl)).toEqual([
+      KUBECTL_FIX_PLAN,
+      "Needs your approval",
+    ]);
+    expect(await stepWords(kubectl, "approval")).toEqual({
+      title: "Needs your approval",
+      summary: TWO_APPROVALS_WORDS.yoursIsTheFirst,
+    });
+    // The first of two runs nothing: its press says so, and so does its note.
+    await expect(approve).toHaveText("Approve");
+    await expect(kubectl.getByTestId("remediation-approval-note")).toHaveText(
+      TWO_APPROVALS_WORDS.firstApprovalNote,
+    );
+    await page.mouse.move(0, 0);
+    await screenshotElement(kubectl, "ai-card-two-approvals-on-1280");
+
+    await approve.click();
+
+    // Recorded, and nothing ran: the fix waits for someone else's approval.
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Waiting for a second approval",
+    );
+    await expect
+      .poll(() => {
+        return stepWords(kubectl, "firstApproval");
+      })
+      .toEqual({ title: "Approved by Maya Chen", summary: "" });
+    expect(await stepWords(kubectl, "approval")).toEqual({
+      title: "Needs a second approval",
+      summary: TWO_APPROVALS_WORDS.youApprovedFirst,
+    });
+    await expect(fixStep(kubectl, "run")).toHaveCount(0);
+    // No Approve for the first approver; Dismiss is still theirs.
+    await expect(approve).toHaveCount(0);
+    await expect(
+      kubectl.getByTestId("remediation-fix-details-toggle"),
+    ).toHaveCount(0);
+    await expect(
+      kubectl.getByRole("button", { name: "Dismiss fix" }),
+    ).toBeVisible();
+    // Nothing else waits for the reader: the step says a second is needed.
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).toHaveText("Needs a second approval");
+
+    const approvals: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/auto-remediation/approve",
+    );
+    expect(approvals).toHaveLength(1);
+    expect(approvals[0]?.body).toEqual({
+      suggestionId: uuid("93000000", 2),
+    });
+    await expect(
+      remediationStep(page).getByTestId("remediation-action-error"),
+    ).toHaveCount(0);
+    await expect(
+      remediationStep(page).getByTestId("remediation-already-approved"),
+    ).toHaveCount(0);
+    /*
+     * The button pressed is gone and nothing ran: a screen reader is told
+     * so, politely, while the steps show it on screen.
+     */
+    const announcement: Locator = kubectl.getByTestId(
+      "remediation-fix-announcement",
+    );
+    await expect(announcement).toHaveAttribute("role", "status");
+    await expect(announcement).toHaveText(TWO_APPROVALS_WORDS.youApprovedFirst);
+    await expectNoErrorStates(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(kubectl, "ai-card-two-approvals-mine-1280");
+  });
+
+  test("first: Jordan Patel approved it first in Slack, and the reader's Approve & Run runs it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManyFixes(page, "approvals=first");
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const approve: Locator = kubectl.getByTestId("remediation-approve-button");
+
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Waiting for a second approval",
+    );
+    expect(await stepWords(kubectl, "firstApproval")).toEqual({
+      title: "Approved by Jordan Patel in Slack",
+      summary: "",
+    });
+    expect(await stepWords(kubectl, "approval")).toEqual({
+      title: "Needs a second approval",
+      summary: TWO_APPROVALS_WORDS.yoursRunsIt,
+    });
+    // The second approval runs the fix: its press and its note say so.
+    await expect(approve).toHaveText("Approve & Run");
+    await expect(kubectl.getByTestId("remediation-approval-note")).toHaveText(
+      APPROVAL_NOTE,
+    );
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).toHaveText("Needs your approval");
+    await page.mouse.move(0, 0);
+    await screenshotElement(kubectl, "ai-card-two-approvals-first-1280");
+
+    await approve.click();
+
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Approved & started",
+    );
+    await expect(
+      kubectl.getByTestId("remediation-command-execution"),
+    ).toHaveText(["Succeeded", "Succeeded"]);
+    // Both approvals stay in its story: Jordan's first, then the reader's.
+    expect(await stepWords(kubectl, "firstApproval")).toEqual({
+      title: "Approved by Jordan Patel in Slack",
+      summary: "",
+    });
+    await expect(
+      remediationStep(page).getByTestId("remediation-approval-note"),
+    ).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  test("mine, at 390px dark: the first approver is offered no Approve, is told why, and nothing scrolls sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await openManyFixes(page, "approvals=mine&theme=dark");
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Waiting for a second approval",
+    );
+    expect(await stepWords(kubectl, "firstApproval")).toEqual({
+      title: "Approved by Maya Chen",
+      summary: "",
+    });
+    expect(await stepWords(kubectl, "approval")).toEqual({
+      title: "Needs a second approval",
+      summary: TWO_APPROVALS_WORDS.youApprovedFirst,
+    });
+    await expect(kubectl.getByTestId("remediation-approve-button")).toHaveCount(
+      0,
+    );
+    await expect(
+      kubectl.getByRole("button", { name: "Dismiss fix" }),
+    ).toBeVisible();
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).toHaveText("Needs a second approval");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(kubectl, "ai-card-two-approvals-mine-390-dark");
+  });
+
+  test("on, approved meanwhile from another tab: the card's press says in one calm line that it was already approved, and the fix then waits for someone else", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManyFixes(page, "approvals=on");
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const approve: Locator = kubectl.getByTestId("remediation-approve-button");
+    await expect(approve).toHaveText("Approve");
+
+    // The reader's first approval, given elsewhere while this tab was open.
+    const elsewhere: FixtureApiResult = await callFixtureApi(
+      page,
+      "POST",
+      "/auto-remediation/approve",
+      { suggestionId: uuid("93000000", 2) },
+    );
+    expect(elsewhere.status).toBe(200);
+    expect(elsewhere.data?.["isWaitingForSecondApproval"]).toBe(true);
+
+    await approve.click();
+
+    /*
+     * The server refused the press (RemediationApproval: the same person
+     * cannot approve twice), but the reader's approval stands: one calm
+     * line, a status rather than an alert, and the steps above say the
+     * rest - never the server's sentence a third time.
+     */
+    const notice: Locator = kubectl.getByTestId("remediation-already-approved");
+    await expect(notice).toHaveText(TWO_APPROVALS_WORDS.alreadyApprovedTitle);
+    await expect(notice).toHaveAttribute("role", "status");
+    await expect(kubectl).not.toContainText(
+      TWO_APPROVALS_WORDS.alreadyApprovedMessage,
+    );
+    await expect(kubectl.getByTestId("remediation-action-error")).toHaveCount(
+      0,
+    );
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Waiting for a second approval",
+    );
+    expect(await stepWords(kubectl, "approval")).toEqual({
+      title: "Needs a second approval",
+      summary: TWO_APPROVALS_WORDS.youApprovedFirst,
+    });
+    await expect(approve).toHaveCount(0);
+    await expect(fixStep(kubectl, "run")).toHaveCount(0);
+    await page.mouse.move(0, 0);
+    await screenshotElement(kubectl, "ai-card-two-approvals-refused-1280");
+  });
+});
+
+/*
  * A FIX THAT DID NOT WORK, STEP BY STEP (?fixes=rolled-back, issue #5598):
  * the Remediation step the issue showed - a kubectl fix OneUptime AI ran on
  * its own, after which the incident did not recover, so the change was

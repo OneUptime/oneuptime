@@ -340,6 +340,14 @@ Zo'n record wordt alleen gewijzigd met de machtigingen van de teams die eigenaar
 
 Een team dat eigenaar is van privérecords maar geen machtigingen heeft, een team dat alleen mensen groepeert, laat zijn leden ze zien en geen ervan wijzigen. Op de pagina van een privérecord is een wijziging die de teams van de persoon die eigenaar zijn niet mogen maken vergrendeld, met de reden erbij. Om die toe te staan, geeft u een team dat eigenaar is de machtiging, maakt u een team met de machtiging eigenaar of maakt u de persoon eigenaar.
 
+### Regels die bij teams horen
+
+Een bereikbaarheidsregel voor incidenten of waarschuwingen, een bereikbaarheidsregel voor episodes, een eigenaarsregel voor incidenten en een meldingsregel voor Slack of Microsoft Teams kunnen bij teams horen. Een regel die bij geen enkel team hoort, is van het project: iedereen wiens rechten het wijzigen van regels van die soort toestaan, wijzigt hem. Een regel die bij teams hoort, wordt alleen gewijzigd en verwijderd met de rechten van de teams waar hij bij hoort, en door de eigenaren en beheerders van het project. Iedereen die regels mag lezen, leest hem nog steeds en ziet bij welke teams hij hoort.
+
+Kies de teams in het formulier van de regel, in **Verantwoordelijke teams** onder **Meer velden**. Daarvoor is het teamrecht van die soort regel nodig, zoals `CreateIncidentOnCallRuleOwningTeam`, dat projecteigenaren en -beheerders hebben. Teams aan een regel toevoegen of eruit verwijderen wijzigt de regel: zodra een regel bij teams hoort, wijzigen alleen die teams en projecteigenaren en -beheerders bij wie hij hoort. In een lijst met regels is een regel die alleen bij andere teams hoort voor u alleen-lezen: de acties om hem te bewerken en te verwijderen zijn vergrendeld en noemen de teams waar hij bij hoort.
+
+Het recht van elk team reikt tot de regels die bij dat team horen. Iemand in twee teams, waarvan het ene bereikbaarheidsregels mag bewerken en het andere ze alleen mag lezen, bewerkt elke regel die bij geen enkel team hoort en de regels van het eerste team, en leest de regels die alleen bij het tweede team horen alleen. Een API-sleutel wijzigt een regel die bij teams hoort alleen met `ProjectOwner` of `ProjectAdmin`; een workflowstap handelt als projectbeheerder. Via de API en Terraform zijn de verantwoordelijke teams van een regel eigen records, zoals `oneuptime_incident_on_call_rule_owning_team`.
+
 ## Recepten
 
 **Een team dat alleen meekijkt.** Maak het team aan met **Kijker** onder **Toegang**. Voor alleen enkele gebieden kiest u **Machtigingen later kiezen** en voegt u de `*Viewer`-rollen per gebied toe die het moet zien.

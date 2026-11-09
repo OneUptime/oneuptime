@@ -31,6 +31,11 @@ import {
   AIActionWords,
   describeAIActionWords,
 } from "../../../../Types/AI/AIActionWords";
+import {
+  AIChatRecordSeen,
+  getLatestAIChatRecordsSeen,
+  listAIChatRecordsSeen,
+} from "../../../../Types/AI/AIChatRecordSeen";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import AIConversationMessageService from "../../../Services/AIConversationMessageService";
 import AIConversationService from "../../../Services/AIConversationService";
@@ -175,7 +180,11 @@ export interface ResumeToolDecision {
  */
 type PreparedActionWords = Pick<
   PreparedMutation,
-  "title" | "description" | "namedArguments" | "describedArguments"
+  | "title"
+  | "description"
+  | "namedArguments"
+  | "describedArguments"
+  | "notRunWithoutApproval"
 >;
 
 /*
@@ -569,6 +578,12 @@ interface TurnState {
   startedAtMs: number;
   // The turn's extra tools, so an action card can title an extra mutation.
   extraTools?: Array<ChatExtraTool> | undefined;
+  /*
+   * What the model had been shown of records in the turns before this one:
+   * the citations of the history it replays (issue #6291). This turn's own
+   * are its citations.
+   */
+  recordsSeenBeforeTurn: Array<AIChatRecordSeen>;
 }
 
 // Whether the agent loop finished the turn or paused it to wait for approval.
@@ -633,6 +648,7 @@ export default class ChatAgentRunner {
         turn,
         pageContext,
         aiContext,
+        state,
       );
 
       await this.runAgentLoop(turn, state, messages, toolContext);
@@ -686,6 +702,7 @@ export default class ChatAgentRunner {
       toolActions: [],
       egressToolEntries: [],
       startedAtMs: Date.now(),
+      recordsSeenBeforeTurn: [],
     };
   }
 
@@ -732,6 +749,10 @@ export default class ChatAgentRunner {
        * are never persisted.
        */
       extraTools: request.extraTools,
+      // A turn paused before OneUptime kept them knows only its own.
+      recordsSeenBeforeTurn: getLatestAIChatRecordsSeen(
+        paused.recordsSeenBeforeTurn,
+      ),
     };
 
     const messages: Array<LLMMessage> =
@@ -1039,6 +1060,13 @@ export default class ChatAgentRunner {
 
         const pendingApproval: Array<LLMToolCall> = [];
 
+        /*
+         * What the model had been shown when it asked for these calls - and
+         * so not what one of them shows it, which it asked for alongside the
+         * others before seeing it (issue #6291).
+         */
+        const recordsSeen: Array<AIChatRecordSeen> = this.getRecordsSeen(state);
+
         for (const toolCall of response.toolCalls) {
           // Re-check between tools: a batch can run long and cancel must cut in.
           if (await this.isRunCancelled(request)) {
@@ -1096,7 +1124,10 @@ export default class ChatAgentRunner {
            * naming what they name.
            */
           const actionWords: PreparedActionWords | undefined = isMutation
-            ? await this.prepareMutation(toolCall, toolContext)
+            ? await this.prepareMutation(toolCall, {
+                ...toolContext,
+                recordsSeen: recordsSeen,
+              })
             : undefined;
 
           if (
@@ -1113,6 +1144,44 @@ export default class ChatAgentRunner {
               actionWords,
             );
             pendingApproval.push(toolCall);
+            continue;
+          }
+
+          /*
+           * A mutation left here runs without anyone approving it (Auto-run).
+           * One that would undo what was saved after the model last saw the
+           * record - a workflow someone saved after Ask AI read it (issue
+           * #6291) - is made only once a person approves it, so it is not
+           * made at all: the model is told why, and reads the record again
+           * before it changes it.
+           */
+          if (isMutation && actionWords?.notRunWithoutApproval) {
+            state.toolCallCount++;
+
+            this.upsertToolAction(
+              state,
+              toolCall,
+              false,
+              AIChatToolActionStatus.Skipped,
+              actionWords.notRunWithoutApproval.summary,
+              actionWords,
+            );
+
+            await this.emitEvent(request, state, {
+              eventType: AIRunEventType.ToolCallFailed,
+              toolName: toolCall.name,
+              toolArguments: toolCall.arguments,
+              resultSummary: {
+                errorMessage: actionWords.notRunWithoutApproval.summary,
+                isAction: true,
+              },
+            });
+
+            messages.push({
+              role: "tool",
+              toolCallId: toolCall.id,
+              content: actionWords.notRunWithoutApproval.toldModel,
+            });
             continue;
           }
 
@@ -1367,6 +1436,7 @@ export default class ChatAgentRunner {
       toolActions: state.toolActions,
       egressToolEntries: state.egressToolEntries,
       startedAtMs: state.startedAtMs,
+      recordsSeenBeforeTurn: state.recordsSeenBeforeTurn,
     };
 
     await AIRunService.updateOneBy({
@@ -1441,6 +1511,21 @@ export default class ChatAgentRunner {
   }
 
   /*
+   * What the model has been shown of records it may change, oldest first:
+   * by the turns before this one, then by this turn's results so far, each
+   * kept with its citation - one record, or the several a commit wrote
+   * (Types/AI/AIChatRecordSeen, issues #6291 and #6313).
+   */
+  private static getRecordsSeen(state: TurnState): Array<AIChatRecordSeen> {
+    return getLatestAIChatRecordsSeen([
+      ...state.recordsSeenBeforeTurn,
+      ...state.citations.flatMap((citation: AIChatCitation): Array<unknown> => {
+        return listAIChatRecordsSeen(citation.recordSeen);
+      }),
+    ]);
+  }
+
+  /*
    * A mutation's arguments as they will run, and the approval card's title
    * and line about them (ObservabilityTool.prepareMutation): the arguments
    * written onto the call itself, so the pending call that is persisted
@@ -1484,6 +1569,9 @@ export default class ChatAgentRunner {
         prepared.describedArguments &&
         prepared.describedArguments.length > 0
           ? { describedArguments: prepared.describedArguments }
+          : {}),
+        ...(prepared.notRunWithoutApproval
+          ? { notRunWithoutApproval: prepared.notRunWithoutApproval }
           : {}),
       };
     } catch (error) {
@@ -1716,6 +1804,10 @@ export default class ChatAgentRunner {
       queryArguments: toolCall.arguments,
       rowCount: outcome.result.rowCount,
       target: outcome.result.citationTarget,
+      // What it showed the model of a record it may change (issue #6291).
+      ...(outcome.result.recordSeen
+        ? { recordSeen: outcome.result.recordSeen }
+        : {}),
     });
 
     // Attach the tool's widget (if any) to the message, tied to this citation.
@@ -1811,6 +1903,8 @@ export default class ChatAgentRunner {
     pageContext: AIChatPageContext | undefined,
     // What the turn read of the project's AI context; null: none.
     aiContext: AiContextActivity | null,
+    // Given what the history it replays showed the model of records.
+    state: TurnState,
   ): Promise<Array<LLMMessage>> {
     /*
      * History is read with the requesting user's props: the privacy pin
@@ -1867,10 +1961,19 @@ export default class ChatAgentRunner {
 
     // Oldest first, skipping unfinished/errored assistant rows.
     const replayable: Array<ReplayedHistoryMessage> = [];
+    // What each of those showed the model of records it may change (issue #6291).
+    const recordsSeenByEntry: Array<Array<unknown>> = [];
     for (const message of history.reverse()) {
       const replayed: ReplayedHistoryMessage | undefined =
         buildReplayedHistoryMessage(message);
       if (replayed) {
+        recordsSeenByEntry.push(
+          (message.citations || []).flatMap(
+            (citation: AIChatCitation): Array<unknown> => {
+              return listAIChatRecordsSeen(citation.recordSeen);
+            },
+          ),
+        );
         replayable.push(
           isSharedThread && replayed.role === "user"
             ? {
@@ -1888,6 +1991,15 @@ export default class ChatAgentRunner {
     const budgeted: HistoryBudgetResult = applyHistoryTokenBudget(
       replayable,
       MAX_HISTORY_TOKENS,
+    );
+
+    /*
+     * The model knows of the earlier turns only what it is shown of them:
+     * what the budget left (the newest entries), and nothing of a row it
+     * skips.
+     */
+    state.recordsSeenBeforeTurn = getLatestAIChatRecordsSeen(
+      recordsSeenByEntry.slice(budgeted.droppedCount).flat(),
     );
 
     /*

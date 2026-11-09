@@ -8,6 +8,7 @@ import SideMenu, {
 } from "Common/UI/Components/SideMenu/SideMenu";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
+import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
 import React, { FunctionComponent, ReactElement } from "react";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
@@ -73,12 +74,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.Alert,
           badgeType: BadgeType.DANGER,
           modelType: Monitor,
+          // What the list shows: monitors with monitoring off are Disabled.
           countQuery: {
             projectId: props.project?._id,
-            isArchived: false,
-            currentMonitorStatus: {
-              isOperationalState: false,
-            },
+            ...NotOperationalMonitorQuery.getQuery(),
           },
         },
         {

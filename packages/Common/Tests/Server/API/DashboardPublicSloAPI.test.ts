@@ -7,6 +7,19 @@ import SloHistoryService from "../../../Server/Services/SloHistoryService";
 import PasswordHash from "../../../Server/Utils/PasswordHash";
 import PublicDashboardSloHistoryPolicy from "../../../Server/Utils/Dashboard/PublicDashboardSloHistoryPolicy";
 import {
+  PUBLIC_SLO_WIDGET_NO_SELECTION_MESSAGE,
+  PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE,
+  PUBLIC_SLO_WIDGET_VARIABLE_MISSING_MESSAGE,
+} from "../../../Server/Utils/Dashboard/PublicDashboardSloWidget";
+import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
+import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
+import { SLO_LIST_DEFAULT_MAX_ROWS } from "../../../Utils/Slo/SloListWidgetFormat";
+import DashboardResourceList from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/DashboardResourceList";
+import DashboardVariable, {
+  DashboardVariableType,
+} from "../../../Types/Dashboard/DashboardVariable";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
@@ -28,7 +41,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
@@ -1178,6 +1191,686 @@ describe("DashboardAPI public SLO", () => {
     });
   });
 
+  /*
+   * Issue #6297: an SLO widget stored with its arguments as JSON text is
+   * drawn by the public page, and was refused here as "Dashboard widget
+   * arguments must be an object." Its numbers and its series are now read
+   * as those of the same widget stored with its arguments as an object.
+   */
+  describe("an SLO widget with its arguments as JSON text (issue #6297)", () => {
+    type WithTextArgumentsFunction = (widget: JSONObject) => JSONObject;
+
+    const withTextArguments: WithTextArgumentsFunction = (
+      widget: JSONObject,
+    ): JSONObject => {
+      return { ...widget, arguments: JSON.stringify(widget["arguments"]) };
+    };
+
+    it("lists its SLO as the same widget stored as an object does", async () => {
+      const slo: BuiltWidget = buildSloWidget();
+
+      setWidgets([slo.widget]);
+      await callResourceList({ componentId: slo.componentId.toString() });
+      expect(nextFunction).not.toHaveBeenCalled();
+      const asObject: JSONObject = getFindByArgs();
+
+      jest.clearAllMocks();
+
+      setWidgets([withTextArguments(slo.widget)]);
+      await callResourceList({ componentId: slo.componentId.toString() });
+      expect(nextFunction).not.toHaveBeenCalled();
+      const asText: JSONObject = getFindByArgs();
+
+      expect(asText).toEqual(asObject);
+      expect(JSON.stringify(asText["query"])).toContain(
+        serviceLevelObjectiveId.toString(),
+      );
+    });
+
+    it("aggregates its SLO's series as the same widget stored as an object does", async () => {
+      const slo: BuiltWidget = buildSloChartWidget({
+        sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      });
+
+      setWidgets([slo.widget]);
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+      });
+      expect(nextFunction).not.toHaveBeenCalled();
+      const asObject: JSONObject = getAggregateArgs();
+
+      jest.clearAllMocks();
+
+      setWidgets([withTextArguments(slo.widget)]);
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+      });
+      expect(nextFunction).not.toHaveBeenCalled();
+      const asText: JSONObject = getAggregateArgs();
+
+      expect(asText).toEqual(asObject);
+      expect((asText["query"] as JSONObject)["metricName"]).toBe(
+        "error.budget.remaining.percent",
+      );
+    });
+
+    it("reads one whose arguments are text that says no object as the page draws it: with no SLO selected (issue #6315)", async () => {
+      const slo: BuiltWidget = buildSloChartWidget();
+
+      setWidgets([
+        {
+          ...slo.widget,
+          arguments: JSON.stringify(JSON.stringify(slo.widget["arguments"])),
+        },
+      ]);
+
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expect((getThrownError() as Error).message).toBe(
+        PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE,
+      );
+      expectNothingRead();
+    });
+  });
+
+  /*
+   * Issue #6315. Both routes read the dashboard as the public page draws it
+   * (PublicDashboardViewConfig.getDrawnConfig): the widget, its settings and
+   * the variables. Read as stored, a variable list written as JSON text, a
+   * variable without an id or sharing one, `isMultiSelect` written as
+   * "true" or a default written as a number refused every SLO widget on the
+   * dashboard - a pinned one too, which reads no variable at all - and an
+   * SLO widget saved without settings was refused as "Dashboard widget
+   * arguments must be an object.". The page's own request is sent: every
+   * variable's pick under the id the page draws it under.
+   */
+  describe("a dashboard stored in another shape (issue #6315)", () => {
+    const SLO_VARIABLE: JSONObject = {
+      id: "slo-variable",
+      name: "slo",
+      label: "SLO",
+      type: "Telemetry Attribute",
+      attributeKey: "sloName",
+      isMultiSelect: false,
+    };
+
+    const setConfig: (widgets: Array<unknown>, variables: unknown) => void = (
+      widgets: Array<unknown>,
+      variables: unknown,
+    ): void => {
+      dashboard.dashboardViewConfig = {
+        _type: "DashboardViewConfig",
+        heightInDashboardUnits: 24,
+        components: widgets,
+        variables,
+      } as unknown as DashboardViewConfig;
+    };
+
+    // What the public page draws: what /view-config serves, sent as JSON, read as the page reads it.
+    const pageDraws: () => DashboardViewConfig = (): DashboardViewConfig => {
+      return StoredDashboardViewConfig.read(
+        JSON.parse(
+          JSON.stringify(
+            JSONFunctions.serialize(
+              PublicDashboardViewConfig.sanitize(
+                dashboard.dashboardViewConfig,
+              ) as unknown as JSONObject,
+            ),
+          ),
+        ),
+      );
+    };
+
+    // The page's picks, by variable: sent as DashboardResourceList sends them, under the ids it draws them under.
+    const pageVariables: (picks: Array<JSONObject | null>) => JSONArray = (
+      picks: Array<JSONObject | null>,
+    ): JSONArray => {
+      return DashboardResourceList.getVariableSelections(
+        (pageDraws().variables || []).map(
+          (variable: DashboardVariable, index: number): DashboardVariable => {
+            const pick: JSONObject | null = picks[index] || null;
+            return pick
+              ? ({ ...variable, ...pick } as unknown as DashboardVariable)
+              : variable;
+          },
+        ),
+      );
+    };
+
+    const withoutId: (variable: JSONObject) => JSONObject = (
+      variable: JSONObject,
+    ): JSONObject => {
+      const copy: JSONObject = { ...variable };
+      delete copy["id"];
+      return copy;
+    };
+
+    // Variables in shapes that once refused every SLO widget on the dashboard.
+    const OTHER_SHAPES: Array<[string, unknown]> = [
+      ["written as JSON text", JSON.stringify([SLO_VARIABLE])],
+      ["without an id", [withoutId(SLO_VARIABLE)]],
+      ["two sharing one id", [SLO_VARIABLE, SLO_VARIABLE]],
+      [
+        'isMultiSelect written as "true"',
+        [{ ...SLO_VARIABLE, isMultiSelect: "true" }],
+      ],
+      [
+        "a default written as a number",
+        [{ ...SLO_VARIABLE, defaultValue: 42 }],
+      ],
+      ["an id written as a number", [{ ...SLO_VARIABLE, id: 7 }]],
+      ["an entry that is no variable", [null, "slo-variable", SLO_VARIABLE]],
+      [
+        "a project label variable with no choices",
+        [
+          {
+            id: "unit",
+            name: "UNIT",
+            type: DashboardVariableType.ProjectLabel,
+            labelOptions: "x",
+          },
+        ],
+      ],
+    ];
+
+    const matching: (id: ObjectID) => ServiceLevelObjective = (
+      id: ObjectID,
+    ): ServiceLevelObjective => {
+      const slo: ServiceLevelObjective = new ServiceLevelObjective();
+      slo._id = id.toString();
+      return slo;
+    };
+
+    it.each(OTHER_SHAPES)(
+      "serves a pinned SLO on both routes when the dashboard's variables are %s",
+      async (_shape: string, variables: unknown) => {
+        const slo: BuiltWidget = buildSloChartWidget();
+        setConfig([slo.widget], variables);
+
+        await callResourceList({
+          componentId: slo.componentId.toString(),
+          variables: pageVariables([]),
+        });
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(
+          (
+            (getFindByArgs()["query"] as JSONObject)["_id"] as ObjectID
+          ).toString(),
+        ).toBe(serviceLevelObjectiveId.toString());
+
+        jest.clearAllMocks();
+
+        await callSloHistory({
+          componentId: slo.componentId.toString(),
+          aggregateBy: buildAggregateBy(),
+          variables: pageVariables([]),
+        });
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(
+          (
+            (getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID
+          ).toString(),
+        ).toBe(serviceLevelObjectiveId.toString());
+      },
+    );
+
+    /*
+     * A widget that follows a variable names it by id, so these are the
+     * shapes its binding can still name it in. On both routes, the viewer's
+     * pick names the SLO - or, with no pick, the variable's default does.
+     */
+    const FOLLOWED_SHAPES: Array<
+      [string, unknown, string, Array<JSONObject | null>, string]
+    > = [
+      [
+        "written as JSON text",
+        JSON.stringify([SLO_VARIABLE]),
+        "slo-variable",
+        [{ selectedValue: "Checkout API" }],
+        "Checkout API",
+      ],
+      [
+        "its id written as a number",
+        [{ ...SLO_VARIABLE, id: 7 }],
+        "7",
+        [{ selectedValue: "Checkout API" }],
+        "Checkout API",
+      ],
+      [
+        "its id with spaces around it",
+        [{ ...SLO_VARIABLE, id: "  slo-variable  " }],
+        "slo-variable",
+        [{ selectedValue: "Checkout API" }],
+        "Checkout API",
+      ],
+      [
+        'isMultiSelect written as "true", one SLO picked',
+        [{ ...SLO_VARIABLE, isMultiSelect: "true" }],
+        "slo-variable",
+        [{ selectedValues: ["Checkout API"] }],
+        "Checkout API",
+      ],
+      [
+        "a default written as a number, nothing picked",
+        [{ ...SLO_VARIABLE, defaultValue: 42 }],
+        "slo-variable",
+        [null],
+        "42",
+      ],
+      [
+        "first of two sharing its id",
+        [SLO_VARIABLE, { ...SLO_VARIABLE, attributeKey: "other" }],
+        "slo-variable",
+        [{ selectedValue: "Checkout API" }, { selectedValue: "Payments" }],
+        "Checkout API",
+      ],
+      [
+        "after an entry that is no variable",
+        [null, SLO_VARIABLE],
+        "slo-variable",
+        [{ selectedValue: "Checkout API" }],
+        "Checkout API",
+      ],
+      // A key filters lists; the widget follows the pick by name, with or without one - as on the page.
+      [
+        "a Telemetry Attribute variable stored without a key",
+        [{ ...SLO_VARIABLE, attributeKey: undefined }],
+        "slo-variable",
+        [{ selectedValue: "Checkout API" }],
+        "Checkout API",
+      ],
+    ];
+
+    it.each(FOLLOWED_SHAPES)(
+      "follows the picked SLO on both routes when its variable is %s",
+      async (
+        _shape: string,
+        variables: unknown,
+        variableId: string,
+        picks: Array<JSONObject | null>,
+        sloName: string,
+      ) => {
+        const matchedId: ObjectID = ObjectID.generate();
+        const slo: BuiltWidget = buildSloChartWidget({
+          serviceLevelObjectiveId: undefined as unknown as string,
+          serviceLevelObjectiveVariableId: variableId,
+        });
+        setConfig([slo.widget], variables);
+
+        await callResourceList({
+          componentId: slo.componentId.toString(),
+          variables: pageVariables(picks),
+        });
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(getFindByArgs()["query"]).toEqual({
+          name: sloName,
+          isArchived: false,
+          projectId,
+        });
+
+        jest.clearAllMocks();
+        jest
+          .spyOn(ServiceLevelObjectiveService, "findBy")
+          .mockResolvedValue([matching(matchedId)] as never);
+
+        await callSloHistory({
+          componentId: slo.componentId.toString(),
+          aggregateBy: buildAggregateBy(),
+          variables: pageVariables(picks),
+        });
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect((getFindByArgs()["query"] as JSONObject)["name"]).toBe(sloName);
+        expect(
+          (
+            (getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID
+          ).toString(),
+        ).toBe(matchedId.toString());
+      },
+    );
+
+    it("never follows a pick sent under the id the page draws a later variable sharing the binding's id under", async () => {
+      const slo: BuiltWidget = buildSloChartWidget({
+        serviceLevelObjectiveId: undefined as unknown as string,
+        serviceLevelObjectiveVariableId: "slo-variable",
+      });
+      setConfig([slo.widget], [SLO_VARIABLE, SLO_VARIABLE]);
+
+      const secondId: string = pageDraws().variables![1]!.id;
+      expect(secondId).not.toBe("slo-variable");
+
+      for (const call of [callResourceList, callSloHistory]) {
+        jest.clearAllMocks();
+        await call({
+          componentId: slo.componentId.toString(),
+          aggregateBy: buildAggregateBy(),
+          variables: [
+            { id: secondId, selectedValue: "Payments", selectedValues: [] },
+          ],
+        });
+
+        // The variable it follows has no pick: there is no one SLO to show.
+        expect((getThrownError() as Error).message).toBe(
+          PUBLIC_SLO_WIDGET_NO_SELECTION_MESSAGE,
+        );
+        expectNothingRead();
+      }
+    });
+
+    it("refuses to follow a variable of another type that holds the id first, as the page does", async () => {
+      const slo: BuiltWidget = buildSloChartWidget({
+        serviceLevelObjectiveId: undefined as unknown as string,
+        serviceLevelObjectiveVariableId: "slo-variable",
+      });
+      setConfig(
+        [slo.widget],
+        [
+          {
+            ...SLO_VARIABLE,
+            type: DashboardVariableType.ProjectLabel,
+            labelOptions: [],
+          },
+          SLO_VARIABLE,
+        ],
+      );
+
+      for (const call of [callResourceList, callSloHistory]) {
+        jest.clearAllMocks();
+        await call({
+          componentId: slo.componentId.toString(),
+          aggregateBy: buildAggregateBy(),
+          variables: pageVariables([null, { selectedValue: "Checkout API" }]),
+        });
+
+        expect((getThrownError() as Error).message).toBe(
+          PUBLIC_SLO_WIDGET_VARIABLE_MISSING_MESSAGE,
+        );
+        expectNothingRead();
+      }
+    });
+
+    it("refuses an over-long or over-many pick under a derived id before anything is read", async () => {
+      const slo: BuiltWidget = buildSloChartWidget();
+      setConfig([slo.widget], [withoutId(SLO_VARIABLE)]);
+      const pageId: string = pageDraws().variables![0]!.id;
+
+      for (const variables of [
+        [{ id: pageId, selectedValue: "x".repeat(1025) }],
+        [{ id: pageId, selectedValues: Array(101).fill("SLO") }],
+        [
+          { id: pageId, selectedValue: "a" },
+          { id: pageId, selectedValue: "b" },
+        ],
+        Array.from({ length: 51 }, (_: unknown, index: number) => {
+          return {
+            id: index === 0 ? pageId : `v-${index}`,
+            selectedValue: "v",
+          };
+        }),
+      ]) {
+        for (const call of [callResourceList, callSloHistory]) {
+          jest.clearAllMocks();
+          await call({
+            componentId: slo.componentId.toString(),
+            aggregateBy: buildAggregateBy(),
+            variables,
+          });
+
+          expect(getThrownError()).toBeInstanceOf(BadDataException);
+          expectNothingRead();
+        }
+      }
+    });
+
+    const NO_SETTINGS: Array<[string, (widget: JSONObject) => JSONObject]> = [
+      [
+        "saved without arguments",
+        (widget: JSONObject): JSONObject => {
+          const copy: JSONObject = { ...widget };
+          delete copy["arguments"];
+          return copy;
+        },
+      ],
+      [
+        "with arguments null",
+        (widget: JSONObject): JSONObject => {
+          return { ...widget, arguments: null };
+        },
+      ],
+      [
+        "with arguments encoded twice",
+        (widget: JSONObject): JSONObject => {
+          return {
+            ...widget,
+            arguments: JSON.stringify(JSON.stringify(widget["arguments"])),
+          };
+        },
+      ],
+      [
+        "with arguments cut short",
+        (widget: JSONObject): JSONObject => {
+          return {
+            ...widget,
+            arguments: JSON.stringify(widget["arguments"]).slice(0, 10),
+          };
+        },
+      ],
+    ];
+
+    it.each(NO_SETTINGS)(
+      "reads an SLO widget %s as one with no SLO selected, as it is drawn, on both routes",
+      async (_shape: string, storeAs: (widget: JSONObject) => JSONObject) => {
+        const slo: BuiltWidget = buildSloChartWidget();
+        setConfig([storeAs(slo.widget)], []);
+
+        expect(pageDraws().components[0]?.arguments).toEqual({});
+
+        for (const call of [callResourceList, callSloHistory]) {
+          jest.clearAllMocks();
+          await call({
+            componentId: slo.componentId.toString(),
+            aggregateBy: buildAggregateBy(),
+          });
+
+          expect((getThrownError() as Error).message).toBe(
+            PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE,
+          );
+          expectNothingRead();
+        }
+      },
+    );
+
+    it.each(NO_SETTINGS)(
+      "lists an SLO List widget %s with the list's defaults",
+      async (_shape: string, storeAs: (widget: JSONObject) => JSONObject) => {
+        const componentId: ObjectID = ObjectID.generate();
+        const list: JSONObject = {
+          _type: "DashboardComponent",
+          componentId: componentId.toString(),
+          componentType: DashboardComponentType.SloList,
+          arguments: { maxRows: 9 },
+        };
+        setConfig([storeAs(list)], []);
+
+        await mockRouter.match("post", RESOURCE_LIST_ROUTE).handlerFunction(
+          {
+            params: {
+              dashboardId: dashboardId.toString(),
+              resourceType: "slo-list",
+            },
+            body: { componentId: componentId.toString() },
+            query: {},
+            cookies: {},
+            headers: {},
+            socket: {},
+            ips: [],
+          } as unknown as ExpressRequest,
+          mockResponse,
+          nextFunction,
+        );
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        const findByArgs: JSONObject = getFindByArgs();
+        expect(findByArgs["query"]).toEqual({ isArchived: false, projectId });
+        expect(findByArgs["limit"]).toBe(SLO_LIST_DEFAULT_MAX_ROWS);
+      },
+    );
+
+    /*
+     * Issue #6328: an SLO widget whose SLO is stored as an ObjectID - in
+     * object arguments, in arguments written as JSON text, and in a widget
+     * the page draws from its stored JSON because something else in it
+     * cannot be revived - draws that SLO, signed in and on the public page
+     * alike: every board reads the id as the id it names. Both routes now
+     * serve its numbers and its history exactly as for the id stored as
+     * text. Before, the page fell into the widget's error boundary, and
+     * both routes refused it.
+     */
+    it("serves an SLO widget whose SLO is stored as an ObjectID, in every encoding, exactly as the id stored as text", async () => {
+      const servedFor: (
+        settings: JSONObject,
+        encode: (settings: JSONObject) => unknown,
+      ) => Promise<Array<unknown>> = async (
+        settings: JSONObject,
+        encode: (settings: JSONObject) => unknown,
+      ): Promise<Array<unknown>> => {
+        const slo: BuiltWidget = buildSloChartWidget();
+        setConfig(
+          [
+            {
+              ...slo.widget,
+              arguments: encode({
+                ...settings,
+                displayType: SloWidgetDisplayType.Chart,
+              }) as JSONObject,
+            },
+          ],
+          [],
+        );
+
+        // The page holds the id as text, in every encoding.
+        expect(
+          (pageDraws().components[0]?.arguments as JSONObject | undefined)?.[
+            "serviceLevelObjectiveId"
+          ],
+        ).toBe(serviceLevelObjectiveId.toString());
+
+        const answers: Array<unknown> = [];
+
+        for (const call of [callResourceList, callSloHistory]) {
+          jest.clearAllMocks();
+          await call({
+            componentId: slo.componentId.toString(),
+            aggregateBy: buildAggregateBy(),
+          });
+
+          expect((nextFunction as jest.Mock).mock.calls).toEqual([]);
+          answers.push(
+            call === callResourceList
+              ? getFindByArgs()["query"]
+              : (getAggregateArgs()["query"] as JSONObject)["sloId"],
+          );
+        }
+
+        return answers;
+      };
+
+      const asText: Array<unknown> = await servedFor(
+        { serviceLevelObjectiveId: serviceLevelObjectiveId.toString() },
+        (settings: JSONObject): unknown => {
+          return settings;
+        },
+      );
+
+      // Not vacuous: both routes read the widget's own SLO.
+      expect(asText).toEqual([
+        { _id: serviceLevelObjectiveId, projectId: projectId },
+        serviceLevelObjectiveId,
+      ]);
+
+      for (const [name, encode] of [
+        [
+          "object arguments",
+          (settings: JSONObject): unknown => {
+            return settings;
+          },
+        ],
+        [
+          "JSON-text arguments",
+          (settings: JSONObject): unknown => {
+            return JSON.stringify(settings);
+          },
+        ],
+        [
+          "a widget the page draws from its stored JSON",
+          (settings: JSONObject): unknown => {
+            // Includes.fromJSON cannot iterate a number.
+            return { ...settings, unrelated: { _type: "Includes", value: 5 } };
+          },
+        ],
+      ] as Array<[string, (settings: JSONObject) => unknown]>) {
+        expect([
+          name,
+          await servedFor(
+            { serviceLevelObjectiveId: serviceLevelObjectiveId.toJSON() },
+            encode,
+          ),
+        ]).toEqual([name, asText]);
+      }
+    });
+
+    it("lists an SLO List widget whose labels are stored as ObjectIDs as with the label ids stored as text", async () => {
+      const labelId: ObjectID = ObjectID.generate();
+      const listedFor: (
+        labelIds: Array<JSONValue>,
+      ) => Promise<JSONObject> = async (
+        labelIds: Array<JSONValue>,
+      ): Promise<JSONObject> => {
+        const componentId: ObjectID = ObjectID.generate();
+        setConfig(
+          [
+            {
+              componentId: componentId.toString(),
+              componentType: DashboardComponentType.SloList,
+              arguments: JSON.stringify({ labelIds }),
+            },
+          ],
+          [],
+        );
+        jest.clearAllMocks();
+
+        await mockRouter.match("post", RESOURCE_LIST_ROUTE).handlerFunction(
+          {
+            params: {
+              dashboardId: dashboardId.toString(),
+              resourceType: "slo-list",
+            },
+            body: { componentId: componentId.toString() },
+            query: {},
+            cookies: {},
+            headers: {},
+            socket: {},
+            ips: [],
+          } as unknown as ExpressRequest,
+          mockResponse,
+          nextFunction,
+        );
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        return getFindByArgs()["query"] as JSONObject;
+      };
+
+      const asText: JSONObject = await listedFor([labelId.toString()]);
+      expect(asText["labels"]).toEqual(new Includes([labelId.toString()]));
+      expect(await listedFor([labelId.toJSON()])).toEqual(asText);
+    });
+  });
+
   describe("dashboard authorization", () => {
     it("rejects both routes for a dashboard that is not public", async () => {
       const slo: BuiltWidget = buildSloChartWidget();
@@ -1280,6 +1973,94 @@ describe("DashboardAPI public SLO", () => {
       });
 
       expect(buildSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Issue #6327: an SLO widget stored inside more layers of envelope or
+   * JSON text than any board reads through is drawn as "This widget could
+   * not be shown", signed in and on the public page alike. Both routes
+   * answer it while every board reads it as an SLO widget, and refuse it
+   * past that - before, they answered one in six to ten layers that the
+   * owner's own board could not show.
+   */
+  describe("an SLO widget stored deeper than any board reads (issue #6327)", () => {
+    const envelopes: (widget: JSONObject, layers: number) => unknown = (
+      widget: JSONObject,
+      layers: number,
+    ): unknown => {
+      let entry: unknown = widget;
+
+      for (let layer: number = 0; layer < layers; layer++) {
+        entry =
+          layer % 2 === 1
+            ? JSON.stringify({ _type: "DashboardComponent", value: entry })
+            : { _type: "DashboardComponent", value: entry };
+      }
+
+      return entry;
+    };
+
+    it("serves its numbers and its history while every board reads it, and refuses both past that", async () => {
+      for (let layers: number = 0; layers <= 12; layers++) {
+        const slo: BuiltWidget = buildSloChartWidget();
+
+        setWidgets([envelopes(slo.widget, layers) as JSONObject]);
+
+        /*
+         * Each layer is an envelope, and every second one is also written
+         * as JSON text. A board reads text in the step that opens the
+         * envelope holding it; only the outermost text - the stored entry
+         * itself - takes a step of its own.
+         */
+        const isTextOutermost: boolean = layers >= 2 && layers % 2 === 0;
+        const isRead: boolean = layers + (isTextOutermost ? 1 : 0) <= 5;
+
+        jest.clearAllMocks();
+
+        await callResourceList({ componentId: slo.componentId.toString() });
+
+        if (isRead) {
+          expect([layers, (nextFunction as jest.Mock).mock.calls]).toEqual([
+            layers,
+            [],
+          ]);
+          expect(getFindByArgs()["limit"]).toBe(1);
+        } else {
+          expect([layers, getThrownError()]).toEqual([
+            layers,
+            new BadDataException(
+              "This resource is not part of this dashboard.",
+            ),
+          ]);
+          expectNothingRead();
+        }
+
+        jest.clearAllMocks();
+
+        await callSloHistory({
+          componentId: slo.componentId.toString(),
+          aggregateBy: buildAggregateBy(),
+        });
+
+        if (isRead) {
+          expect([layers, (nextFunction as jest.Mock).mock.calls]).toEqual([
+            layers,
+            [],
+          ]);
+          expect(
+            (
+              (getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID
+            ).toString(),
+          ).toBe(serviceLevelObjectiveId.toString());
+        } else {
+          expect([
+            layers,
+            getThrownError() instanceof BadDataException,
+          ]).toEqual([layers, true]);
+          expectNothingRead();
+        }
+      }
     });
   });
 });

@@ -28,7 +28,10 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * Provider figures are daily totals stamped at the start of their UTC day,
  * so a range is widened to start at its first day's midnight: a range
- * "from 14:00 three days ago" still counts that whole day.
+ * "from 14:00 three days ago" still counts that whole day. Cursor's are
+ * hourly totals stamped at the start of their UTC hour; the same widening
+ * counts its first day's earlier hours too, so every provider covers the
+ * same days.
  *
  * Pure: the component asks with these queries and folds the answers with
  * foldProviderUsage.

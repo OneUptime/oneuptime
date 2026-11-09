@@ -3,12 +3,16 @@ import { escapeRegExp } from "./DocsTranslationChecks";
 import Label from "Common/Models/DatabaseModels/Label";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import { ServiceLevelObjectiveFeedEventType } from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import ServiceLevelObjectiveLabelRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import ServiceLevelObjectiveOwnerRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerRule";
 import ColumnLength from "Common/Types/Database/ColumnLength";
-import { PermissionHelper, PermissionProps } from "Common/Types/Permission";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
@@ -20,9 +24,42 @@ import {
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import { formatErrorBudgetRemainingOfTotal } from "Common/Utils/Slo/SloDuration";
 import {
+  SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE,
+  SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE,
+  SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES,
   SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
   SLO_EVALUATION_CADENCE_MINUTES,
 } from "Common/Utils/Slo/SloEvaluation";
+import {
+  SLO_POLICY_TIER_MAX_THRESHOLD_PERCENTAGE,
+  SLO_POLICY_TIER_MIN_THRESHOLD_PERCENTAGE,
+  SLO_POLICY_TIER_WHAT_WE_DO_MAX_LENGTH,
+  SLO_RECOMMENDED_POLICY_TIERS,
+  SloDeploymentGateChange,
+  SloExistingPolicyTier,
+  SloRecommendedPolicyTier,
+  SloStoredDeploymentGate,
+  computeSloPolicyTier,
+  getMissingSloRecommendedPolicyTiers,
+  getSloDeploymentGateChange,
+  getSloPolicyTierExitPercentage,
+  readSloPolicyTierThreshold,
+} from "Common/Utils/Slo/SloErrorBudgetPolicy";
+import {
+  SLO_FAST_BURN_RULE_NAME,
+  SLO_SLOW_BURN_RULE_NAME,
+  SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES,
+  SLO_SLOW_LEAK_RULE_NAME,
+  SloExistingBurnRateRule,
+  SloRecommendedAlertSeverity,
+  SloRecommendedBurnRateRule,
+  getSloRecommendedBurnRateRules,
+  isSloRecommendedBurnRateRulePresent,
+} from "Common/Utils/Slo/SloRecommendedBurnRateRules";
+import {
+  SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS,
+  SloBulkRecommendedRulesStatus,
+} from "Common/Utils/Slo/SloBulkRecommendedBurnRateRules";
 import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
@@ -73,6 +110,17 @@ const SOURCES: Record<string, string> = {
   sloService: "Common/Server/Services/ServiceLevelObjectiveService.ts",
   burnRuleService:
     "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService.ts",
+  policyTierService:
+    "Common/Server/Services/ServiceLevelObjectiveErrorBudgetPolicyTierService.ts",
+  policyTierApi:
+    "Common/Server/API/ServiceLevelObjectiveErrorBudgetPolicyTierAPI.ts",
+  policyTierModel:
+    "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier.ts",
+  policyTierForm: `${DASHBOARD}/Pages/Slo/Utils/ErrorBudgetPolicyTierForm.ts`,
+  policyPage: `${DASHBOARD}/Pages/Slo/View/ErrorBudgetPolicy.tsx`,
+  policyTierCopy: `${DASHBOARD}/Components/Slo/SloPolicyTier.ts`,
+  policyTierCard: `${DASHBOARD}/Components/Slo/SloErrorBudgetPolicyTierCard.tsx`,
+  recommendedPolicyModal: `${DASHBOARD}/Components/Slo/SloRecommendedPolicyTiersModal.tsx`,
   feedService: "Common/Server/Services/ServiceLevelObjectiveFeedService.ts",
   notificationSettingService:
     "Common/Server/Services/UserNotificationSettingService.ts",
@@ -103,6 +151,15 @@ const SOURCES: Record<string, string> = {
   monitorRuleFields: `${DASHBOARD}/Pages/Slo/View/SloMonitorRuleFormFields.ts`,
   monitorSideMenu: `${DASHBOARD}/Pages/Monitor/View/SideMenu.tsx`,
   burnRuleForm: `${DASHBOARD}/Pages/Slo/Utils/BurnRateRuleForm.ts`,
+  sloRecordOutputForm: `${DASHBOARD}/Pages/Slo/Utils/SloRecordOutputForm.ts`,
+  burnRulesPage: `${DASHBOARD}/Pages/Slo/View/BurnRateRules.tsx`,
+  recommendedRulesModal: `${DASHBOARD}/Components/Slo/SloRecommendedBurnRateRulesModal.tsx`,
+  recommendedRulesBanner: `${DASHBOARD}/Components/Slo/SloRecommendedBurnRateRulesBanner.tsx`,
+  recommendedRulesBulkAction: `${DASHBOARD}/Components/Slo/useSloRecommendedRulesBulkAction.tsx`,
+  recommendedRulesBulkCopy: `${DASHBOARD}/Components/Slo/SloBulkRecommendedRulesCopy.ts`,
+  sloBulkActions: `${DASHBOARD}/Components/Slo/useSloBulkActions.tsx`,
+  archivedSlosPage: `${DASHBOARD}/Pages/Slo/Archived.tsx`,
+  burnRuleApi: "Common/Server/API/ServiceLevelObjectiveBurnRateRuleAPI.ts",
   notificationSettings: `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
   metricsQueryConfig: `${DASHBOARD}/Components/Slo/SloMetricsQueryConfig.ts`,
   labelRulesPage: `${DASHBOARD}/Pages/Slo/Settings/LabelRules.tsx`,
@@ -118,6 +175,7 @@ const INTRODUCTION: string = "slo/introduction";
 const MONITOR_RULES: string = "slo/monitor-rules";
 const ERROR_BUDGET: string = "slo/error-budget";
 const BURN_RATE: string = "slo/burn-rate-alerts";
+const ERROR_BUDGET_POLICY: string = "slo/error-budget-policy";
 const METRICS: string = "slo/metrics";
 const FEED: string = "slo/feed-and-audit-logs";
 const LABEL_RULES: string = "slo/label-and-owner-rules";
@@ -488,8 +546,20 @@ describe("SLOs Overview, against the product", () => {
     expect(readSource("sloService")).toContain(
       "return !monitorStatus.isOperationalState;",
     );
-    expect(readSource("sloService")).toContain('name: "Fast burn",');
-    expect(readSource("sloService")).toContain('name: "Slow burn",');
+    expect(readSource("sloService")).toContain(
+      "getSloRecommendedBurnRateRules({",
+    );
+    expect(
+      getSloRecommendedBurnRateRules({ windowDays: 30 }).map(
+        (rule: SloRecommendedBurnRateRule): string => {
+          return rule.name;
+        },
+      ),
+    ).toEqual([
+      SLO_FAST_BURN_RULE_NAME,
+      SLO_SLOW_BURN_RULE_NAME,
+      SLO_SLOW_LEAK_RULE_NAME,
+    ]);
 
     const table: string = page.slice(
       page.indexOf("| Setting | A new SLO starts with | Change it on |"),
@@ -505,7 +575,7 @@ describe("SLOs Overview, against the product", () => {
       "Downtime statuses = Every non-operational status in the project",
       `Multi-monitor mode = **${SloMultiMonitorMode.AnyDown}**`,
       "Evaluation = On",
-      "Burn rate rules = A **Fast burn** and a **Slow burn** rule, scaled to the window",
+      `Burn rate rules = A **${SLO_FAST_BURN_RULE_NAME}**, a **${SLO_SLOW_BURN_RULE_NAME}** and a **${SLO_SLOW_LEAK_RULE_NAME}** rule, scaled to the window`,
     ]);
   });
 
@@ -596,7 +666,11 @@ describe("SLOs Overview, against the product", () => {
     }
 
     expect(sections["Configuration"]).toEqual(["Monitors"]);
-    expect(sections["Rules"]).toEqual(["Monitor Rules", "Burn Rate Rules"]);
+    expect(sections["Rules"]).toEqual([
+      "Monitor Rules",
+      "Burn Rate Rules",
+      "Error Budget Policy",
+    ]);
     expect(sections["Management"]).toEqual([
       "Owners",
       "Settings",
@@ -620,11 +694,11 @@ describe("SLOs Overview, against the product", () => {
     }
 
     expect(page).toContain(
-      "**Monitors** sits in a **Configuration** section, **Monitor Rules** and **Burn Rate Rules** in a **Rules** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. All three start folded, as does a **Developer** section",
+      "**Monitors** sits in a **Configuration** section, **Monitor Rules**, **Burn Rate Rules** and **Error Budget Policy** in a **Rules** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. All three start folded, as does a **Developer** section",
     );
   });
 
-  it("says where the Monitors, Monitor Rules and Burn Rate Rules pages sit in the side menu", () => {
+  it("says where the Monitors, Monitor Rules, Burn Rate Rules and Error Budget Policy pages sit in the side menu", () => {
     const menu: string = readSource("sloViewSideMenu");
     const sections: Record<string, Array<string>> = {};
 
@@ -649,6 +723,14 @@ describe("SLOs Overview, against the product", () => {
     expect(sections["Rules"]).toContain("Burn Rate Rules");
     expect(section(englishPage(BURN_RATE), "Open Burn Rate Rules")).toContain(
       "go to **Burn Rate Rules** in the **Rules** section of its side menu",
+    );
+
+    // The same for the policy, whose page is folded under Rules too.
+    expect(sections["Rules"]).toContain("Error Budget Policy");
+    expect(
+      section(englishPage(ERROR_BUDGET_POLICY), "Open Error Budget Policy"),
+    ).toContain(
+      "go to **Error Budget Policy** in the **Rules** section of its side menu",
     );
   });
 
@@ -741,6 +823,21 @@ describe("SLOs Overview, against the product", () => {
     );
     expect(page).toContain(
       "It turns amber above 1× and red, with **Rule threshold reached**",
+    );
+
+    // Compared only with the rules an hour can speak for: up to Slow burn's 6 hours.
+    expect(SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES).toBe(6 * 60);
+    expect(readSource("overview")).toContain(
+      "return isComparedWithCurrentBurnRate(rule.longWindowInMinutes);",
+    );
+    expect(readSource("rulesSummary")).toContain(
+      "isComparedWithCurrentBurnRate(",
+    );
+    expect(page).toContain(
+      `at the lowest threshold of the SLO's enabled burn rate rules that look back ${SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES / 60} hours or less.`,
+    );
+    expect(page).toContain(
+      `each enabled rule's threshold beside the current burn rate, for rules that look back ${SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES / 60} hours or less`,
     );
   });
 
@@ -1326,51 +1423,405 @@ describe("Error Budgets, against the math the worker does", () => {
 describe("Burn Rate Alerts and Incidents, against the worker and the form", () => {
   const page: string = englishPage(BURN_RATE);
 
+  // A default rule as a new SLO with this window is seeded with.
+  function seeded(
+    name: string,
+    window: { windowType?: SloWindowType; windowDays?: number },
+  ): SloRecommendedBurnRateRule {
+    const rule: SloRecommendedBurnRateRule | undefined =
+      getSloRecommendedBurnRateRules(window).find(
+        (candidate: SloRecommendedBurnRateRule): boolean => {
+          return candidate.name === name;
+        },
+      );
+
+    expect({ name, seeded: Boolean(rule) }).toEqual({ name, seeded: true });
+
+    return rule as SloRecommendedBurnRateRule;
+  }
+
+  const threshold: (value: number) => string = (value: number): string => {
+    return `${value}×`;
+  };
+
+  /*
+   * A window the way the page's tables write it: whole days and hours as
+   * such, a tenth of a window shorter than 30 days in tenths ("2.8 days",
+   * "16.8 hours", "5.6 hours"), and anything shorter in minutes.
+   */
+  const windowText: (minutes: number) => string = (minutes: number): string => {
+    if (minutes % 1440 === 0) {
+      return `${minutes / 1440} day${minutes === 1440 ? "" : "s"}`;
+    }
+
+    if (minutes >= 2 * 1440 && (minutes * 10) % 1440 === 0) {
+      return `${minutes / 1440} days`;
+    }
+
+    if (minutes % 60 === 0) {
+      return `${minutes / 60} hour${minutes === 60 ? "" : "s"}`;
+    }
+
+    if (minutes >= 5 * 60 && (minutes * 10) % 60 === 0) {
+      return `${minutes / 60} hours`;
+    }
+
+    return `${minutes} minutes`;
+  };
+
   it("scales the default thresholds the way new SLOs are seeded", () => {
     const service: string = readSource("sloService");
     const seed: string = blockFrom(
       service,
-      "const defaultRules: Array<{",
+      "private async seedDefaultBurnRateRules(",
       "for (const defaultRule of defaultRules)",
     );
 
-    expect(seed).toContain('name: "Fast burn",');
-    expect(seed).toContain("this.roundToTwoDecimals((0.02 * windowHours) / 1)");
+    // The service seeds exactly the shared recommendation, for the SLO's window.
     expect(seed).toContain(
-      "longWindowInMinutes: 60,\n        shortWindowInMinutes: 5,",
-    );
-    expect(seed).toContain('name: "Slow burn",');
-    expect(seed).toContain("this.roundToTwoDecimals((0.05 * windowHours) / 6)");
-    expect(seed).toContain(
-      "longWindowInMinutes: 360,\n        shortWindowInMinutes: 30,",
-    );
-    // A calendar month seeds as 30 days.
-    expect(service).toContain(
-      "? 720\n        : (createdItem.windowDays || 30) * 24;",
+      "getSloRecommendedBurnRateRules({\n        windowType: createdItem.windowType,\n        windowDays: createdItem.windowDays,\n      });",
     );
 
-    const threshold: (value: number) => string = (value: number): string => {
-      return `${Math.round(value * 100) / 100}×`;
-    };
-    const rows: Array<Array<string>> = tableRows(
-      page.slice(page.indexOf("| SLO window | Fast burn threshold |")),
+    const defaults: Array<Array<string>> = tableRows(
+      section(page, "Default rules"),
     );
 
     expect(
-      rows.map((row: Array<string>): Array<string> => {
-        return row;
+      defaults.map((row: Array<string>): Array<string> => {
+        return row.slice(0, 4);
       }),
     ).toEqual(
-      [7, 28, 30, 90].map((days: number): Array<string> => {
+      [
+        SLO_FAST_BURN_RULE_NAME,
+        SLO_SLOW_BURN_RULE_NAME,
+        SLO_SLOW_LEAK_RULE_NAME,
+      ].map((name: string): Array<string> => {
+        const rule: SloRecommendedBurnRateRule = seeded(name, {
+          windowType: SloWindowType.Rolling,
+          windowDays: 30,
+        });
+
         return [
-          `${days} days`,
-          threshold(0.02 * days * 24),
-          threshold((0.05 * days * 24) / 6),
+          `**${name}**`,
+          threshold(rule.burnRateThreshold),
+          windowText(rule.longWindowInMinutes),
+          windowText(rule.shortWindowInMinutes),
         ];
       }),
     );
 
+    const rows: Array<Array<string>> = tableRows(
+      page.slice(page.indexOf("| SLO window | Fast burn threshold |")),
+    );
+
+    expect(rows).toEqual(
+      [7, 28, 30, 90].map((days: number): Array<string> => {
+        const window: { windowType: SloWindowType; windowDays: number } = {
+          windowType: SloWindowType.Rolling,
+          windowDays: days,
+        };
+
+        return [
+          `${days} days`,
+          threshold(seeded(SLO_FAST_BURN_RULE_NAME, window).burnRateThreshold),
+          threshold(seeded(SLO_SLOW_BURN_RULE_NAME, window).burnRateThreshold),
+        ];
+      }),
+    );
+
+    const leaks: Array<Array<string>> = tableRows(
+      page.slice(page.indexOf("| SLO window | Slow leak threshold |")),
+    );
+
+    expect(leaks).toEqual(
+      [7, 28, 30, 90].map((days: number): Array<string> => {
+        const leak: SloRecommendedBurnRateRule = seeded(
+          SLO_SLOW_LEAK_RULE_NAME,
+          { windowType: SloWindowType.Rolling, windowDays: days },
+        );
+
+        return [
+          `${days} days`,
+          threshold(leak.burnRateThreshold),
+          windowText(leak.longWindowInMinutes),
+          windowText(leak.shortWindowInMinutes),
+        ];
+      }),
+    );
+
+    // A calendar month is seeded as 30 days.
+    for (const name of [
+      SLO_FAST_BURN_RULE_NAME,
+      SLO_SLOW_BURN_RULE_NAME,
+      SLO_SLOW_LEAK_RULE_NAME,
+    ]) {
+      expect(seeded(name, { windowType: SloWindowType.CalendarMonth })).toEqual(
+        seeded(name, { windowType: SloWindowType.Rolling, windowDays: 30 }),
+      );
+    }
+
     expect(page).toContain("Calendar-month SLOs get the 30-day values.");
+  });
+
+  it("says Slow leak is a ticket: the least severe severity, no incident and a day of quiet", () => {
+    const leak: SloRecommendedBurnRateRule = seeded(SLO_SLOW_LEAK_RULE_NAME, {
+      windowDays: 30,
+    });
+
+    expect(leak.alertSeverity).toBe(SloRecommendedAlertSeverity.LeastSevere);
+    expect(
+      seeded(SLO_FAST_BURN_RULE_NAME, { windowDays: 30 }).alertSeverity,
+    ).toBe(SloRecommendedAlertSeverity.MostSevere);
+    expect(
+      seeded(SLO_SLOW_BURN_RULE_NAME, { windowDays: 30 }).alertSeverity,
+    ).toBe(SloRecommendedAlertSeverity.MostSevere);
+    expect(SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES).toBe(24 * 60);
+    expect(leak.refireSuppressionMinutes).toBe(
+      SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES,
+    );
+
+    const defaults: string = section(page, "Default rules");
+
+    expect(defaults).toContain(
+      "Fast burn and Slow burn are pages: they raise an alert at the project's most severe alert severity.",
+    );
+    expect(defaults).toContain(
+      "Slow leak is a ticket: it raises its alert at the project's least severe alert severity.",
+    );
+    expect(defaults).toContain(
+      "After its alert resolves, it waits 24 hours, not its 3-day long window, before it raises another.",
+    );
+    expect(defaults).toContain("None of them declares an incident");
+    expect(section(page, "Resolution and re-fire suppression")).toContain(
+      "Slow leak is created with 24 hours instead of its 3-day long window",
+    );
+
+    // A steady 3x on a 99.9% / 30-day SLO: under Slow burn's 6x, over Slow leak's 1x.
+    expect(3).toBeLessThan(
+      seeded(SLO_SLOW_BURN_RULE_NAME, { windowDays: 30 }).burnRateThreshold,
+    );
+    expect(3).toBeGreaterThanOrEqual(leak.burnRateThreshold);
+    expect(defaults).toContain(
+      "at 3×, a 99.9% budget is gone in 10 days, yet only Slow leak fires.",
+    );
+  });
+
+  it("offers Add recommended rules as the Burn Rate Rules page draws it, and says what counts as there", () => {
+    const rulesPage: string = readSource("burnRulesPage");
+    const modal: string = readSource("recommendedRulesModal");
+    const banner: string = readSource("recommendedRulesBanner");
+
+    // A note above the table's rows, not a card button folded into its ⋯.
+    expect(rulesPage).toContain("topContent={");
+    expect(rulesPage).toContain("<SloRecommendedBurnRateRulesBanner");
+    expect(rulesPage).toContain("ModelAction.Create");
+    expect(rulesPage).not.toContain('title: "Add recommended rules",');
+    expect(banner).toContain('title="Add recommended rules"');
+    expect(banner).toContain("Not on this SLO yet: {{rules}}.");
+    expect(banner).toContain(
+      "A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.",
+    );
+    expect(modal).toContain('title="Add recommended rules"');
+    expect(modal).toContain('submitButtonText="Add rules"');
+
+    const addSection: string = section(
+      page,
+      "Add the recommended rules to an existing SLO",
+    );
+
+    expect(addSection).toContain(
+      "its **Burn Rate Rules** page names them in a note above the table. Click **Add recommended rules** in the note",
+    );
+    expect(addSection).toContain(
+      "To stop the note offering a default rule you do not want, keep the rule and disable it instead of deleting it.",
+    );
+    expect(addSection).toContain(
+      "It adds only the missing rules, and clicking it again adds nothing.",
+    );
+    expect(addSection).toContain(
+      "You need permission to create SLO burn rate rules.",
+    );
+    expect(addSection).toContain(
+      "A rule counts as there when the SLO has a rule with the same name, or one with the same long window, whether it is on or off.",
+    );
+
+    // What the page says counts as there is what the server checks.
+    const leak: SloRecommendedBurnRateRule = seeded(SLO_SLOW_LEAK_RULE_NAME, {
+      windowDays: 30,
+    });
+
+    expect(
+      isSloRecommendedBurnRateRulePresent({
+        recommended: leak,
+        existingRules: [{ name: "Slow leak", longWindowInMinutes: 10 }],
+      }),
+    ).toBe(true);
+    expect(
+      isSloRecommendedBurnRateRulePresent({
+        recommended: leak,
+        existingRules: [{ name: "Renamed", longWindowInMinutes: 4320 }],
+      }),
+    ).toBe(true);
+    expect(
+      isSloRecommendedBurnRateRulePresent({
+        recommended: leak,
+        existingRules: [{ name: "Renamed", longWindowInMinutes: 10 }],
+      }),
+    ).toBe(false);
+
+    // A disabled rule is there too: the check never reads whether it is on.
+    expect(
+      isSloRecommendedBurnRateRulePresent({
+        recommended: leak,
+        existingRules: [
+          {
+            name: "Slow leak",
+            longWindowInMinutes: 4320,
+            isEnabled: false,
+          } as SloExistingBurnRateRule,
+        ],
+      }),
+    ).toBe(true);
+
+    // The rules the API adds are posted to the feed and audited like any other.
+    expect(readSource("burnRuleService")).toContain(
+      "const created: Model = await this.create({",
+    );
+    expect(addSection).toContain(
+      "Each rule it adds is posted to the SLO's feed and recorded in its audit logs, like a rule you create yourself.",
+    );
+  });
+
+  it("offers Add recommended rules for many SLOs at once in the SLO list's Bulk Actions, and says what it adds and what it answers", () => {
+    const slosPage: string = readSource("slosPage");
+    const bulkAction: string = readSource("recommendedRulesBulkAction");
+    const bulkCopy: string = readSource("recommendedRulesBulkCopy");
+    const routes: string = readSource("burnRuleApi");
+
+    // In the live SLO list's Bulk Actions, by the Burn Rate Rules page's own name.
+    expect(slosPage).toContain("...recommendedRulesBulkActions,");
+    expect(readSource("sloBulkActions")).toContain(
+      "useSloRecommendedRulesBulkAction()",
+    );
+    expect(readSource("archivedSlosPage")).not.toContain(
+      "recommendedRulesBulkActions",
+    );
+    expect(bulkCopy).toMatch(
+      /SLO_ADD_RECOMMENDED_RULES_ACTION_TITLE: string = translationKey\(\s*"Add recommended rules",?\s*\)/,
+    );
+    expect(bulkAction).toContain(
+      "title: SLO_ADD_RECOMMENDED_RULES_ACTION_TITLE,",
+    );
+    expect(slosPage).toContain(
+      "select them in this list and choose **Add recommended rules** in **Bulk Actions**",
+    );
+
+    const bulk: string = section(page, "Add them to many SLOs at once");
+
+    expect(bulk).toContain("Open **SLOs** and select the SLOs to update.");
+    expect(bulk).toContain(
+      "Open **Bulk Actions** and choose **Add recommended rules**.",
+    );
+    expect(bulk).toContain("Click **Add recommended rules** to add them.");
+
+    // What the confirmation says, in its own words.
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs get the recommended rules they are missing:",
+    );
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs already have every recommended rule and are left as they are.",
+    );
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs could not be read, so nothing is added to them.",
+    );
+    expect(bulk).toContain(
+      "the confirmation counts how many of the selected SLOs get each rule, scaled to their own windows",
+    );
+    expect(bulk).toContain(
+      "It also says how many already have every recommended rule, and how many could not be read.",
+    );
+
+    // Slow leak takes another shape on a 7-day SLO than on a 30-day one.
+    expect(
+      seeded(SLO_SLOW_LEAK_RULE_NAME, { windowDays: 7 }).longWindowInMinutes,
+    ).not.toBe(
+      seeded(SLO_SLOW_LEAK_RULE_NAME, { windowDays: 30 }).longWindowInMinutes,
+    );
+    expect(bulk).toContain("such as Slow leak on a 7-day and on a 30-day SLO");
+
+    // The result, in the action's own words.
+    expect(bulkCopy).toContain("Rules added to {{count}} SLOs");
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs already had every recommended rule",
+    );
+    expect(bulkCopy).toContain("Rules not added to {{count}} SLOs");
+    expect(bulk).toContain(
+      "whether rules were added, it already had every recommended rule, or it was not changed and why",
+    );
+
+    // The same add as the SLO's own page: the bulk add goes through it.
+    expect(readSource("burnRuleService")).toContain(
+      "await this.addMissingRecommendedRules({",
+    );
+    expect(bulk).toContain(
+      "exactly as its own **Burn Rate Rules** page would add them",
+    );
+    expect(bulk).toContain("running it again on the same SLOs adds nothing");
+    expect(bulk).toContain("Archived SLOs are not on the list");
+
+    // The four requests, as the API serves them.
+    const route: (name: string) => string = (name: string): string => {
+      const match: RegExpExecArray | null = new RegExp(
+        `${name}: string =\\s*"([^"]+)"`,
+      ).exec(routes);
+
+      expect({ name, found: Boolean(match) }).toEqual({ name, found: true });
+
+      return (match as RegExpExecArray)[1] as string;
+    };
+
+    const crudPath: string =
+      new ServiceLevelObjectiveBurnRateRule().getCrudApiPath()?.toString() ||
+      "";
+
+    expect(crudPath).toBe("/service-level-objective-burn-rate-rule");
+    expect(
+      tableRows(bulk.slice(bulk.indexOf("| Request | What it does |"))).map(
+        (row: Array<string>): string => {
+          return row[0] as string;
+        },
+      ),
+    ).toEqual([
+      `\`POST /api${crudPath}${route("SLO_RECOMMENDED_BURN_RATE_RULES_ROUTE")}\``,
+      `\`POST /api${crudPath}${route("SLO_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE")}\``,
+      `\`POST /api${crudPath}${route("SLO_BULK_RECOMMENDED_BURN_RATE_RULES_ROUTE")}\``,
+      `\`POST /api${crudPath}${route("SLO_BULK_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE")}\``,
+    ]);
+
+    // What they take and answer, and how many SLOs one names.
+    expect(routes).toContain('["serviceLevelObjectiveId"]');
+    expect(routes).toContain('["serviceLevelObjectiveIds"]');
+    expect(bulk).toContain('`{ "serviceLevelObjectiveId": "..." }`');
+    expect(bulk).toContain('`{ "serviceLevelObjectiveIds": ["..."] }`');
+    expect(bulk).toContain(
+      `at most ${SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS} SLOs per request`,
+    );
+    expect(routes.split("results: results.map(").length - 1).toBe(2);
+    expect(bulk).toContain(
+      "answer with one entry for each SLO in `results`, in the order asked",
+    );
+
+    for (const status of Object.values(SloBulkRecommendedRulesStatus)) {
+      expect({ status, named: bulk.includes(`\`${status}\``) }).toEqual({
+        status,
+        named: true,
+      });
+    }
+
+    // The SLO list's own page sends readers here.
+    expect(section(englishPage(INTRODUCTION), "The SLO list")).toContain(
+      "give them the [recommended burn rate rules](/docs/slo/burn-rate-alerts#add-them-to-many-slos-at-once) they are missing",
+    );
   });
 
   it("states how long a 99.9% budget lasts at each burn rate", () => {
@@ -1402,7 +1853,7 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     ).toContain("resolveOpenBurnRateAlertsAndIncidentsForSlo");
     expect(worker).toContain("status: SloStatus.Paused,");
     expect(page).toContain(
-      "a new SLO cannot fire its **Fast burn** rule for its first hour, or its **Slow burn** rule for its first six",
+      "a new SLO cannot fire its **Fast burn** rule for its first hour, its **Slow burn** rule for its first six, or its **Slow leak** rule for its first three days",
     );
     expect(page).toContain(
       "the SLO turning **Paused** or **Misconfigured**, because it then measures nothing;",
@@ -1418,7 +1869,7 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     expect(
       blockFrom(
         worker,
-        "async function fireBurnRateRule",
+        "async function fireSloRecordSource",
         "const refireSuppressionMinutes",
       ),
     ).toContain("isAnyMonitorUnderOngoingMaintenance()");
@@ -1442,13 +1893,23 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
       "Incident",
     ]);
 
-    for (const title of ["Description", "Ownership & Labels", "On-Call"]) {
-      expect(form).toContain(`title: "${title}",`);
+    /*
+     * The Alert and Incident steps fold their fields into the sections every
+     * SLO record output shares (an error budget policy tier's too).
+     */
+    const outputForm: string = readSource("sloRecordOutputForm");
+
+    for (const output of ["Alert", "Incident"]) {
+      expect(form).toContain(
+        `getSlo${output}OutputSections<ServiceLevelObjectiveBurnRateRule>()`,
+      );
     }
 
-    expect(form).toContain(
-      "getAdvancedFormSection<ServiceLevelObjectiveBurnRateRule>({",
-    );
+    for (const title of ["Description", "Ownership & Labels", "On-Call"]) {
+      expect(outputForm).toContain(`title: "${title}",`);
+    }
+
+    expect(outputForm).toContain("getAdvancedFormSection<TModel>({");
 
     const create: string = section(page, "Create or edit a rule");
     const button: string = createButton(
@@ -1542,7 +2003,7 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
       "The API refuses a rule that would create no alert and declare no incident",
     );
     expect(readSource("worker")).toContain(
-      "rule.refireSuppressionMinutes ?? rule.longWindowInMinutes!",
+      "rule.refireSuppressionMinutes ?? rule.longWindowInMinutes ?? 0,",
     );
 
     expect(
@@ -1634,6 +2095,991 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     ).toContain("Burn rate incidents never reach status pages.");
     expect(page).toContain(
       "A burn rate incident is never shown on status pages and never notifies status page subscribers.",
+    );
+  });
+});
+
+describe("Error Budget Policy, against the policy, the worker and the API", () => {
+  const page: string = englishPage(ERROR_BUDGET_POLICY);
+  const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+    new ServiceLevelObjectiveErrorBudgetPolicyTier();
+
+  // Tiers as the policy reads them: an id and a threshold each.
+  function tiersAt(
+    ...thresholds: Array<number>
+  ): Array<{ id: string; thresholdPercentage: number }> {
+    return thresholds.map(
+      (threshold: number): { id: string; thresholdPercentage: number } => {
+        return { id: `tier-${threshold}`, thresholdPercentage: threshold };
+      },
+    );
+  }
+
+  // The threshold of the tier a budget puts the SLO in, or null for none.
+  function tierAfter(data: {
+    budget: number;
+    thresholds: Array<number>;
+    current: number | null;
+  }): number | null {
+    const found: { thresholdPercentage: number } | null = computeSloPolicyTier({
+      budgetRemainingPercentage: data.budget,
+      tiers: tiersAt(...data.thresholds),
+      currentTierId: data.current === null ? null : `tier-${data.current}`,
+    });
+
+    return found ? found.thresholdPercentage : null;
+  }
+
+  it("names a tier's fields as the model titles them, and the button that adds one", () => {
+    const fields: Array<string> = firstCells(section(page, "How tiers work"));
+
+    expect(fields).toEqual(
+      ["name", "thresholdPercentage", "whatWeDo"].map(
+        (column: string): string => {
+          return `**${tier.getTableColumnMetadata(column).title as string}**`;
+        },
+      ),
+    );
+    expect(tier.getTableColumnMetadata("whatWeDo").required).toBe(true);
+
+    const button: string = createButton(tier);
+
+    expect(button).toBe("Create SLO Error Budget Policy Tier");
+    expect(section(page, "Set up a policy")).toContain(`Click **${button}**.`);
+    expect(section(page, "Set up a policy")).toContain(
+      "You need permission to create SLO error budget policy tiers.",
+    );
+  });
+
+  it("states the threshold range, the unique threshold and the longest What We Do the server takes", () => {
+    const service: string = readSource("policyTierService");
+
+    expect(SLO_POLICY_TIER_MIN_THRESHOLD_PERCENTAGE).toBe(0);
+    expect(SLO_POLICY_TIER_MAX_THRESHOLD_PERCENTAGE).toBe(100);
+    // Decimals are a threshold, a value past either end is none.
+    expect(readSloPolicyTierThreshold("2.5")).toBe(2.5);
+    expect(readSloPolicyTierThreshold(100.5)).toBeNull();
+    expect(readSloPolicyTierThreshold(-1)).toBeNull();
+    expect(service).toContain(
+      "const thresholdPercentage: number | null =\n      readSloPolicyTierThreshold(value);",
+    );
+    expect(page).toContain(
+      `From ${SLO_POLICY_TIER_MIN_THRESHOLD_PERCENTAGE} to ${SLO_POLICY_TIER_MAX_THRESHOLD_PERCENTAGE}, decimals allowed. Each tier of an SLO has a threshold of its own.`,
+    );
+    expect(readSource("policyTierModel")).toContain(
+      '@Index(["serviceLevelObjectiveId", "thresholdPercentage"], { unique: true })',
+    );
+    expect(service).toContain("private async assertThresholdIsFree(");
+
+    expect(SLO_POLICY_TIER_WHAT_WE_DO_MAX_LENGTH).toBe(10000);
+    expect(service).toContain(
+      "value.length > SLO_POLICY_TIER_WHAT_WE_DO_MAX_LENGTH",
+    );
+    expect(page).toContain(
+      `Required, up to ${SLO_POLICY_TIER_WHAT_WE_DO_MAX_LENGTH.toLocaleString("en-US")} characters.`,
+    );
+  });
+
+  it("puts the SLO in the most severe tier that applies, as the worker decides it", () => {
+    const policy: Array<number> = [50, 25, 0];
+
+    expect(tierAfter({ budget: 30, thresholds: policy, current: null })).toBe(
+      50,
+    );
+    expect(tierAfter({ budget: 10, thresholds: policy, current: null })).toBe(
+      25,
+    );
+    // At the threshold itself the tier applies, above every one none does.
+    expect(tierAfter({ budget: 25, thresholds: policy, current: null })).toBe(
+      25,
+    );
+    expect(tierAfter({ budget: 60, thresholds: policy, current: null })).toBe(
+      null,
+    );
+    // A budget that falls past several thresholds goes straight to the last.
+    expect(tierAfter({ budget: -1, thresholds: policy, current: 50 })).toBe(0);
+    expect(readSource("worker")).toContain("computeSloPolicyTier({");
+
+    expect(page).toContain(
+      "With tiers at 50%, 25% and 0%, an SLO with 30% of its budget left is in the 50% tier, and one with 10% left is in the 25% tier.",
+    );
+    expect(page).toContain(
+      "A budget that falls past several thresholds at once goes straight to the most severe tier.",
+    );
+  });
+
+  it("leaves a tier with the status's own margins, and draws them as they are", () => {
+    expect(getSloPolicyTierExitPercentage(0)).toBe(
+      SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE,
+    );
+    expect(getSloPolicyTierExitPercentage(25)).toBe(
+      25 + SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE,
+    );
+    // The tier stays until the exit level, and moves on at it.
+    expect(tierAfter({ budget: 1.9, thresholds: [0, 25], current: 0 })).toBe(0);
+    expect(tierAfter({ budget: 2, thresholds: [0, 25], current: 0 })).toBe(25);
+    expect(tierAfter({ budget: 29.9, thresholds: [25, 50], current: 25 })).toBe(
+      25,
+    );
+    expect(tierAfter({ budget: 30, thresholds: [25, 50], current: 25 })).toBe(
+      50,
+    );
+
+    /*
+     * Tiers at 0% and at the at-risk threshold move exactly with Budget
+     * Exhausted and At Risk, along a budget that falls, overspends and
+     * recovers.
+     */
+    const threshold: number = DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE;
+    let status: SloStatus = SloStatus.Healthy;
+    let current: number | null = null;
+
+    for (const budget of [
+      100, 30, 20, 19, 5, 0, -3, 1, 1.9, 2, 10, 20, 24.9, 25, 26, 0.5, -1, 2,
+      30, 60,
+    ]) {
+      status = SloUtil.computeSloStatus({
+        budgetRemainingPercentage: budget,
+        currentStatus: status,
+        atRiskThresholdPercentage: threshold,
+      });
+      current = tierAfter({ budget, thresholds: [threshold, 0], current });
+
+      expect({ budget, status, current }).toEqual({
+        budget,
+        status,
+        current:
+          status === SloStatus.BudgetExhausted
+            ? 0
+            : status === SloStatus.AtRisk
+              ? threshold
+              : null,
+      });
+    }
+
+    const tiers: string = section(page, "Entering and leaving a tier");
+
+    expect(tiers).toContain(
+      `A tier at 0% is left once ${SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE}% of the budget is left again. Any other tier is left once the budget is ${SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE} points above its threshold.`,
+    );
+    expect(tiers).toContain(
+      "So a tier at 0% moves with the **Budget Exhausted** status, and a tier at the SLO's at-risk threshold moves with **At Risk**",
+    );
+
+    // The diagram walks the recommended tiers, entering and leaving each.
+    const [caution, first, exhausted] =
+      SLO_RECOMMENDED_POLICY_TIERS as Array<SloRecommendedPolicyTier>;
+    const exitOf: (recommended: SloRecommendedPolicyTier) => number = (
+      recommended: SloRecommendedPolicyTier,
+    ): number => {
+      return getSloPolicyTierExitPercentage(recommended.thresholdPercentage);
+    };
+
+    for (const line of [
+      `    state "${caution!.name}" as Caution`,
+      `    state "${first!.name}" as First`,
+      `    state "${exhausted!.name}" as Exhausted`,
+      `    None --> Caution: ${caution!.thresholdPercentage}% or less left`,
+      `    Caution --> First: ${first!.thresholdPercentage}% or less left`,
+      `    First --> Exhausted: ${exhausted!.thresholdPercentage}% or less left`,
+      `    Exhausted --> First: ${exitOf(exhausted!)}% left again`,
+      `    First --> Caution: ${exitOf(first!)}% left again`,
+      `    Caution --> None: ${exitOf(caution!)}% left again`,
+    ]) {
+      expect({ line, drawn: tiers.includes(line) }).toEqual({
+        line,
+        drawn: true,
+      });
+    }
+  });
+
+  it("lists the recommended policy exactly as Use the recommended policy adds it", () => {
+    const recommended: string = section(page, "The recommended policy");
+
+    expect(
+      SLO_RECOMMENDED_POLICY_TIERS.map(
+        (recommendedTier: SloRecommendedPolicyTier): number => {
+          return recommendedTier.thresholdPercentage;
+        },
+      ),
+    ).toEqual([50, 25, 0]);
+    expect(recommended).toContain(
+      "adds three tiers, at half the budget, a quarter and none:",
+    );
+    expect(tableRows(recommended)).toEqual(
+      SLO_RECOMMENDED_POLICY_TIERS.map(
+        (recommendedTier: SloRecommendedPolicyTier): Array<string> => {
+          return [
+            `**${recommendedTier.name}**`,
+            `${recommendedTier.thresholdPercentage}% left or less`,
+            recommendedTier.whatWeDo,
+            // As the tiers table's Deployments column says it.
+            recommendedTier.freezesDeployments ? "Frozen" : "Allowed",
+          ];
+        },
+      ),
+    );
+
+    // None of them raises anything: the starter sets no output.
+    expect(
+      blockFrom(
+        readSource("policyTierService"),
+        "public buildRecommendedTier(",
+        "return tier;",
+      ),
+    ).not.toContain("shouldCreate");
+    expect(recommended).toContain(
+      "None of them raises an alert or declares an incident until you switch that on.",
+    );
+  });
+
+  it("adds only the recommended tiers that are missing, by name or threshold, on or off", () => {
+    const names: (
+      existingTiers: Array<SloExistingPolicyTier>,
+    ) => Array<string> = (
+      existingTiers: Array<SloExistingPolicyTier>,
+    ): Array<string> => {
+      return getMissingSloRecommendedPolicyTiers({ existingTiers }).map(
+        (missing: SloRecommendedPolicyTier): string => {
+          return missing.name;
+        },
+      );
+    };
+
+    const all: Array<string> = SLO_RECOMMENDED_POLICY_TIERS.map(
+      (recommendedTier: SloRecommendedPolicyTier): string => {
+        return recommendedTier.name;
+      },
+    );
+
+    expect(names([])).toEqual(all);
+    // The same name at another threshold is the team's own Caution.
+    expect(names([{ name: "Caution", thresholdPercentage: 60 }])).toEqual(
+      all.slice(1),
+    );
+    // Another name at the same threshold holds the threshold.
+    expect(names([{ name: "Freeze", thresholdPercentage: 0 }])).toEqual(
+      all.slice(0, 2),
+    );
+    // A tier switched off counts: the check never reads isEnabled.
+    expect(
+      names([
+        {
+          name: "Reliability first",
+          thresholdPercentage: 25,
+          isEnabled: false,
+        } as SloExistingPolicyTier,
+      ]),
+    ).toEqual([all[0], all[2]]);
+    // Asking again, once they are there, adds nothing.
+    expect(names(SLO_RECOMMENDED_POLICY_TIERS.slice())).toEqual([]);
+
+    const service: string = readSource("policyTierService");
+    const adding: string = blockFrom(
+      service,
+      "public async addMissingRecommendedTiers(",
+      "@CaptureSpan()",
+    );
+
+    // Worked out again under a lock, and created as the caller.
+    expect(adding).toContain("await Semaphore.lock({");
+    expect(adding).toContain("await this.getMissingRecommendedTiers(data);");
+    expect(adding).toContain("props: data.props,");
+
+    const recommended: string = section(page, "The recommended policy");
+
+    expect(recommended).toContain(
+      "It adds only the tiers the SLO does not have: a tier with the same name, or with the same threshold, counts as there, whether it is on or off.",
+    );
+    expect(recommended).toContain(
+      "Each tier it adds is recorded in the SLO's audit logs as added by you.",
+    );
+  });
+
+  it("applies a change to a tier within about a minute, and resolves what a tier that stops raising raised", () => {
+    const service: string = readSource("policyTierService");
+
+    // Create, update and delete each ask for the SLO's next evaluation now.
+    expect(service.split("this.requestEvaluation(").length - 1).toBe(3);
+    expect(service).toContain(
+      "nextEvaluationAt: OneUptimeDate.getCurrentDate(),",
+    );
+    expect(readSource("worker")).toContain("schedule: EVERY_MINUTE,");
+
+    const update: string = blockFrom(
+      service,
+      "protected override async onUpdateSuccess(",
+      "protected override async onBeforeDelete(",
+    );
+
+    expect(update).toContain("if (isTierDisabled || areAlertsTurnedOff) {");
+    expect(update).toContain("if (isTierDisabled || areIncidentsTurnedOff) {");
+    expect(
+      blockFrom(
+        service,
+        "protected override async onDeleteSuccess(",
+        "public async resolveOpenAlertsForTier(",
+      ),
+    ).toContain("await this.resolveOpenAlertsAndIncidentsForTier({");
+
+    expect(page).toContain(
+      "Adding, editing or deleting a tier applies right away: OneUptime evaluates the SLO again within about a minute.",
+    );
+    expect(page).toContain(
+      "Turning a tier off or deleting it resolves what it raised, and the SLO moves to the tier its budget is in. Switching off a tier's alert or incident resolves that alert or incident.",
+    );
+
+    // A tier that is gone holds nothing: the budget alone decides.
+    expect(tierAfter({ budget: 10, thresholds: [50], current: 25 })).toBe(50);
+  });
+
+  it("raises nothing until an output is switched on, and resolves on recovery by default", () => {
+    const defaultOf: (column: string) => unknown = (
+      column: string,
+    ): unknown => {
+      return tier.getTableColumnMetadata(column).defaultValue;
+    };
+
+    expect({
+      shouldCreateAlert: defaultOf("shouldCreateAlert"),
+      shouldCreateIncident: defaultOf("shouldCreateIncident"),
+      autoResolveAlert: defaultOf("autoResolveAlert"),
+      autoResolveIncident: defaultOf("autoResolveIncident"),
+      isAlertPrivate: defaultOf("isAlertPrivate"),
+      isIncidentPrivate: defaultOf("isIncidentPrivate"),
+      addSloOwnersAsOwners: defaultOf("addSloOwnersAsOwners"),
+      isEnabled: defaultOf("isEnabled"),
+    }).toEqual({
+      shouldCreateAlert: false,
+      shouldCreateIncident: false,
+      autoResolveAlert: true,
+      autoResolveIncident: true,
+      isAlertPrivate: false,
+      isIncidentPrivate: false,
+      addSloOwnersAsOwners: false,
+      isEnabled: true,
+    });
+
+    // The tier's outputs are the rule's, column for column.
+    for (const column of [
+      "alertSeverity",
+      "onCallDutyPolicies",
+      "alertTitleTemplate",
+      "alertDescriptionTemplate",
+      "alertRemediationNotes",
+      "alertLabels",
+      "alertOwnerTeams",
+      "alertOwnerUsers",
+      "incidentSeverity",
+      "incidentOnCallDutyPolicies",
+      "incidentTitleTemplate",
+      "incidentDescriptionTemplate",
+      "incidentRemediationNotes",
+      "incidentLabels",
+      "incidentOwnerTeams",
+      "incidentOwnerUsers",
+    ]) {
+      expect({
+        column,
+        onRule: new ServiceLevelObjectiveBurnRateRule().hasColumn(column),
+        onTier: tier.hasColumn(column),
+      }).toEqual({ column, onRule: true, onTier: true });
+    }
+
+    const alerts: string = section(page, "Alerts and incidents");
+
+    expect(alerts).toContain(
+      "Both are off by default, so a tier pages no one until you switch one on.",
+    );
+    expect(alerts).toContain(
+      "resolves them when the tier's auto-resolve is on, as it is by default.",
+    );
+  });
+
+  it("supersedes, resolves and holds back what tiers raise, as the worker does", () => {
+    const worker: string = readSource("worker");
+    const outputs: string = blockFrom(
+      worker,
+      "async function evaluatePolicyTierOutputs(",
+      "\n}\n",
+    );
+
+    // Superseded: whatever the auto-resolve switches say.
+    expect(outputs).toContain(
+      "currentTier && isMoreSevereSloPolicyTier(currentTier, tier),",
+    );
+    expect(outputs).toContain("honourAutoResolve: !isSuperseded,");
+    // The tier the SLO is in raises through the rule's own path.
+    expect(outputs).toContain("await fireSloRecordSource({");
+    // No re-fire suppression for a tier.
+    expect(
+      blockFrom(worker, "function getPolicyTierSource(", "\n}\n"),
+    ).toContain("refireSuppressionMinutes: 0,");
+    // Scheduled maintenance holds back creation only.
+    expect(
+      blockFrom(
+        worker,
+        "async function fireSloRecordSource",
+        "const refireSuppressionMinutes",
+      ),
+    ).toContain("isAnyMonitorUnderOngoingMaintenance()");
+
+    const alerts: string = section(page, "Alerts and incidents");
+
+    expect(alerts).toContain(
+      "Entering a more severe tier resolves what the previous tier raised, whatever its auto-resolve setting says, because the new tier supersedes it.",
+    );
+    expect(alerts).toContain("There is no re-fire suppression.");
+    expect(alerts).toContain(
+      "While any monitor of the SLO is in scheduled maintenance, tiers raise nothing. The tier itself still changes, and what is open still resolves.",
+    );
+  });
+
+  it("keeps the tier of an SLO that measures nothing, and resolves what the tiers raised when it is turned off, archived or deleted", () => {
+    const worker: string = readSource("worker");
+    const guard: string = blockFrom(
+      worker,
+      "async function setGuardStatusAndResolveOpenAlerts",
+      "\n}\n",
+    );
+
+    // Paused and Misconfigured resolve the rules' records, not the tiers'.
+    expect(guard).toContain("resolveOpenBurnRateAlertsAndIncidentsForSlo");
+    expect(guard).not.toContain("PolicyTier");
+
+    const sloService: string = readSource("sloService");
+
+    expect(sloService).toContain(
+      "ServiceLevelObjectiveErrorBudgetPolicyTierService.resolveOpenPolicyTierAlertsAndIncidentsForSlo(",
+    );
+    expect(sloService).toContain(
+      "ServiceLevelObjectiveErrorBudgetPolicyTierService.resolveOpenAlertsAndIncidentsForTier(",
+    );
+    // A tier is deleted with its SLO.
+    expect(
+      blockFrom(
+        readSource("policyTierModel"),
+        "return ServiceLevelObjective;",
+        "public serviceLevelObjective?",
+      ),
+    ).toContain('onDelete: "CASCADE",');
+
+    const notMeasured: string = section(
+      page,
+      "When the budget is not measured",
+    );
+
+    expect(notMeasured).toContain(
+      "A **Paused** or **Misconfigured** SLO measures no budget, so its tier stays where it was, and what the tier raised stays open until measuring resumes.",
+    );
+    expect(notMeasured).toContain(
+      "Turning the SLO's evaluation off, or archiving the SLO, resolves what its tiers raised.",
+    );
+    expect(notMeasured).toContain(
+      "Deleting the SLO deletes its tiers and resolves what they raised.",
+    );
+  });
+
+  it("records tier changes as OneUptime's own, and tier edits as the person's, in the SLO's audit logs", () => {
+    const sloModel: string = fs.readFileSync(
+      path.join(
+        PACKAGES_DIR,
+        "Common/Models/DatabaseModels/ServiceLevelObjective.ts",
+      ),
+      "utf8",
+    );
+    const ignored: string = blockFrom(sloModel, "ignoreColumns: [", "]");
+
+    // The tier's name is recorded; its id and entry time are bookkeeping.
+    expect(ignored).toContain('"currentErrorBudgetPolicyTierId",');
+    expect(ignored).toContain('"currentErrorBudgetPolicyTierEnteredAt",');
+    expect(ignored).not.toContain('"currentErrorBudgetPolicyTierName",');
+    expect(readSource("policyTierModel")).toContain(
+      'rootResource: {\n    resourceType: "Service Level Objective",\n    column: "serviceLevelObjectiveId",',
+    );
+
+    expect(page).toContain(
+      "The SLO's **Audit Logs** record each tier change, and each time deployments are frozen or allowed again, as a change OneUptime made itself, so they show it only with **Store System Events** on",
+    );
+    expect(page).toContain(
+      "Adding, editing and removing a tier is recorded as the person who did it.",
+    );
+    expect(englishPage(FEED)).toContain("- its error budget policy tiers;");
+  });
+
+  it("names the SLO's tier fields the read API returns, readable with the SLO itself", () => {
+    const slo: ServiceLevelObjective = new ServiceLevelObjective();
+    const columns: Array<string> = [
+      "currentErrorBudgetPolicyTierId",
+      "currentErrorBudgetPolicyTierName",
+      "currentErrorBudgetPolicyTierEnteredAt",
+    ];
+
+    for (const column of columns) {
+      const access: { read?: Array<Permission> } | null =
+        slo.getColumnAccessControlFor(column);
+
+      expect({
+        column,
+        readable: Boolean(
+          access?.read?.includes(Permission.ReadServiceLevelObjective) &&
+            access?.read?.includes(Permission.Viewer),
+        ),
+      }).toEqual({ column, readable: true });
+    }
+
+    const api: string = section(page, "Read the tier from the API");
+
+    expect(firstCells(api)).toEqual(
+      columns.map((column: string): string => {
+        return `\`${column}\``;
+      }),
+    );
+    expect(slo.getCrudApiPath()?.toString()).toBe("/service-level-objective");
+    expect(api).toContain(
+      "curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item'",
+    );
+
+    // Every field the example selects is a column of the SLO.
+    const selected: RegExpMatchArray | null = api.match(
+      /"select": (\{[^}]+\})/,
+    );
+
+    expect(selected).not.toBeNull();
+
+    for (const field of Object.keys(
+      JSON.parse((selected as RegExpMatchArray)[1] as string),
+    )) {
+      expect({ field, column: slo.hasColumn(field) }).toEqual({
+        field,
+        column: true,
+      });
+    }
+
+    expect(api).toContain(
+      "They are read with the SLO's own read permission, the one its budget needs too.",
+    );
+  });
+
+  it("names the tiers' own API paths and the recommended policy's requests", () => {
+    const crudPath: string = tier.getCrudApiPath()?.toString() || "";
+    const routes: string = readSource("policyTierApi");
+    const route: (name: string) => string = (name: string): string => {
+      const match: RegExpExecArray | null = new RegExp(
+        `${name}: string =\\s*"([^"]+)"`,
+      ).exec(routes);
+
+      expect({ name, found: Boolean(match) }).toEqual({ name, found: true });
+
+      return (match as RegExpExecArray)[1] as string;
+    };
+
+    expect(crudPath).toBe("/service-level-objective-error-budget-policy-tier");
+
+    const api: string = section(page, "Read the tier from the API");
+
+    expect(api).toContain(`\`/api${crudPath}\``);
+    expect(
+      tableRows(api.slice(api.indexOf("| Request | What it does |"))).map(
+        (row: Array<string>): string => {
+          return row[0] as string;
+        },
+      ),
+    ).toEqual([
+      `\`POST /api${crudPath}${route("SLO_RECOMMENDED_POLICY_ROUTE")}\``,
+      `\`POST /api${crudPath}${route("SLO_ADD_RECOMMENDED_POLICY_ROUTE")}\``,
+    ]);
+
+    // Both read the SLO from the body, and answer with the tiers.
+    expect(
+      routes.split("readServiceLevelObjectiveId(req.body)").length - 1,
+    ).toBe(2);
+    expect(routes.split("tiers: ").length - 1).toBe(2);
+    expect(api).toContain(
+      'Both take `{ "serviceLevelObjectiveId": "..." }` and answer with the tiers in `tiers`',
+    );
+  });
+
+  it("names real permissions, and who has them", () => {
+    const titles: Record<string, string> = {};
+
+    for (const props of PermissionHelper.getAllPermissionProps()) {
+      titles[props.permission] = props.title;
+    }
+
+    const permissions: Array<Permission> = [
+      Permission.ReadServiceLevelObjectiveErrorBudgetPolicyTier,
+      Permission.CreateServiceLevelObjectiveErrorBudgetPolicyTier,
+      Permission.EditServiceLevelObjectiveErrorBudgetPolicyTier,
+      Permission.DeleteServiceLevelObjectiveErrorBudgetPolicyTier,
+    ];
+
+    expect(firstCells(section(page, "Permissions"))).toEqual(
+      permissions.map((permission: Permission): string => {
+        return `**${titles[permission] as string}**`;
+      }),
+    );
+
+    expect(tier.getReadPermissions()).toEqual(
+      expect.arrayContaining([
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.Viewer,
+      ]),
+    );
+
+    for (const permissionsOf of [
+      tier.getCreatePermissions(),
+      tier.getUpdatePermissions(),
+      tier.getDeletePermissions(),
+    ]) {
+      expect(permissionsOf).toEqual(
+        expect.arrayContaining([
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+        ]),
+      );
+      expect(permissionsOf).not.toContain(Permission.ProjectMember);
+      expect(permissionsOf).not.toContain(Permission.Viewer);
+    }
+
+    expect(section(page, "Permissions")).toContain(
+      "The Project Owner and Project Admin roles have them all, and the Project Member and Viewer roles can read tiers.",
+    );
+  });
+});
+
+describe("Deployment gate, against the policy, the worker and the API", () => {
+  const page: string = englishPage(ERROR_BUDGET_POLICY);
+  const gate: string = section(page, "Deployment gate");
+  const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+    new ServiceLevelObjectiveErrorBudgetPolicyTier();
+  const slo: ServiceLevelObjective = new ServiceLevelObjective();
+  const COLUMNS: Array<string> = ["deploymentsAllowed", "deploymentsFrozenAt"];
+
+  // The deploy gate along a run of budgets, as the worker chains evaluations.
+  function allowedAlong(data: {
+    budgets: Array<number>;
+    tiers: Array<{
+      id: string;
+      thresholdPercentage: number;
+      freezesDeployments: boolean;
+    }>;
+  }): Array<boolean> {
+    let tierId: string | null = null;
+    let stored: SloStoredDeploymentGate = { deploymentsAllowed: true };
+
+    return data.budgets.map((budget: number): boolean => {
+      const current: { id: string; freezesDeployments: boolean } | null =
+        computeSloPolicyTier({
+          budgetRemainingPercentage: budget,
+          tiers: data.tiers,
+          currentTierId: tierId,
+        });
+      const change: SloDeploymentGateChange = getSloDeploymentGateChange({
+        tier: current,
+        stored: stored,
+        now: new Date("2026-11-09T12:00:00.000Z"),
+      });
+
+      tierId = current?.id || null;
+      stored = change.gate;
+
+      return change.gate.deploymentsAllowed;
+    });
+  }
+
+  it("names the tier's switch as the model titles it, off by default, on the tier's form", () => {
+    const column: { title?: string; defaultValue?: unknown } =
+      tier.getTableColumnMetadata("freezesDeployments");
+
+    expect(column.title).toBe("Freeze Deployments");
+    expect(column.defaultValue).toBe(false);
+    expect(
+      fieldTypeOf(readSource("policyTierForm"), "Freeze Deployments"),
+    ).toBe("Toggle");
+    expect(gate).toContain(
+      "Open the SLO's **Error Budget Policy**, edit the tier, switch on **Freeze Deployments** and save.",
+    );
+    expect(section(page, "Set up a policy")).toContain(
+      "Switch on **Freeze Deployments** if pipelines should hold back releases while the SLO is in the tier.",
+    );
+  });
+
+  it("names the tiers table's column and what it says, as the page draws them", () => {
+    expect(readSource("policyPage")).toContain('title: "Deployments",');
+    expect(readSource("policyTierCopy")).toContain('translationKey("Frozen")');
+    expect(readSource("policyTierCopy")).toContain('translationKey("Allowed")');
+    expect(gate).toContain(
+      "The tier's **Deployments** column in the table says **Frozen**.",
+    );
+  });
+
+  it("names the two fields the SLO answers with, read with the SLO's own permission and written by the worker alone", () => {
+    expect(firstCells(gate)).toEqual(
+      COLUMNS.map((column: string): string => {
+        return `\`${column}\``;
+      }),
+    );
+
+    for (const column of COLUMNS) {
+      const access: {
+        create?: Array<Permission>;
+        read?: Array<Permission>;
+        update?: Array<Permission>;
+      } | null = slo.getColumnAccessControlFor(column);
+
+      expect({
+        column,
+        create: access?.create,
+        update: access?.update,
+        readable: Boolean(
+          access?.read?.includes(Permission.ReadServiceLevelObjective) &&
+            access?.read?.includes(Permission.Viewer),
+        ),
+      }).toEqual({ column, create: [], update: [], readable: true });
+    }
+
+    // Allowed until a tier says otherwise: every SLO that has none.
+    expect(slo.getTableColumnMetadata("deploymentsAllowed").defaultValue).toBe(
+      true,
+    );
+    expect(gate).toContain(
+      "The SLO answers with two fields, read with the SLO's own read permission:",
+    );
+  });
+
+  it("checks with the request the SLO's API answers: its own get-item, selecting real columns", () => {
+    const crudPath: string = slo.getCrudApiPath()?.toString() || "";
+    const requests: Array<string> = allMatches(
+      gate,
+      /https:\/\/oneuptime\.com\/api(\/[\w-]+)\/(?:<slo-id>|\$SLO_ID)\/get-item/g,
+    );
+
+    // The shell check, the GitHub Actions step and the GitLab CI job.
+    expect(requests).toEqual([crudPath, crudPath, crudPath]);
+
+    const selects: Array<string> = allMatches(gate, /"select": (\{[^}]+\})/g);
+
+    expect(selects).toHaveLength(3);
+
+    for (const select of selects) {
+      for (const field of Object.keys(JSON.parse(select))) {
+        const access: { read?: Array<Permission> } | null =
+          slo.getColumnAccessControlFor(field);
+
+        expect({
+          field,
+          column: slo.hasColumn(field),
+          readable: Boolean(
+            access?.read?.includes(Permission.ReadServiceLevelObjective),
+          ),
+        }).toEqual({ field, column: true, readable: true });
+      }
+
+      expect(JSON.parse(select)["deploymentsAllowed"]).toBe(true);
+    }
+
+    /*
+     * Each one prints the answer and compares it with "true", so it fails
+     * closed whatever jq's version: jq 1.6 exits 0 on an empty input, which
+     * an unreachable OneUptime or a proxy's empty answer would hand it, so a
+     * `jq -e` pipeline would have released on no answer at all.
+     */
+    expect(gate.split("jq -r '.deploymentsAllowed'").length - 1).toBe(3);
+    expect(gate.split('= "true"').length - 1).toBe(3);
+    expect(gate).not.toContain("jq -e");
+    expect(gate).toContain("The check passes only when the answer is `true`.");
+  });
+
+  it("is frozen and allowed again with the tier the worker puts the SLO in, in its one state write", () => {
+    const worker: string = readSource("worker");
+
+    expect(worker).toContain(
+      "getSloDeploymentGateChange({\n      tier: policyTier,",
+    );
+    expect(worker).toContain("...deploymentGateChange.columns,");
+
+    // The recommended policy: frozen at 0%, still frozen below the 2% exit, allowed again at it.
+    const policy: Array<{
+      id: string;
+      thresholdPercentage: number;
+      freezesDeployments: boolean;
+    }> = SLO_RECOMMENDED_POLICY_TIERS.map(
+      (
+        recommended: SloRecommendedPolicyTier,
+      ): {
+        id: string;
+        thresholdPercentage: number;
+        freezesDeployments: boolean;
+      } => {
+        return {
+          id: recommended.name,
+          thresholdPercentage: recommended.thresholdPercentage,
+          freezesDeployments: recommended.freezesDeployments,
+        };
+      },
+    );
+
+    expect(
+      allowedAlong({
+        budgets: [30, 0, 1.9, SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE],
+        tiers: policy,
+      }),
+    ).toEqual([true, false, false, true]);
+
+    // From one tier that freezes to another, they stay frozen.
+    expect(
+      allowedAlong({
+        budgets: [20, -2, 3],
+        tiers: policy.map(
+          (entry: {
+            id: string;
+            thresholdPercentage: number;
+            freezesDeployments: boolean;
+          }) => {
+            return {
+              ...entry,
+              freezesDeployments: entry.thresholdPercentage < 50,
+            };
+          },
+        ),
+      }),
+    ).toEqual([false, false, false]);
+
+    // No policy: allowed, whatever the budget.
+    expect(allowedAlong({ budgets: [100, 0, -50], tiers: [] })).toEqual([
+      true,
+      true,
+      true,
+    ]);
+
+    expect(gate).toContain(
+      "Deployments are frozen by the evaluation that puts the SLO in a tier that freezes them, and allowed again by the one that takes it out, with the tier's own recovery margins",
+    );
+    expect(gate).toContain(
+      "From one tier that freezes to another, they stay frozen, and `deploymentsFrozenAt` keeps its time.",
+    );
+    expect(gate).toContain(
+      "Otherwise it is `true`: when the SLO has no policy, while its budget is above every tier, and in a tier that does not freeze deployments.",
+    );
+  });
+
+  it("keeps the answer of an SLO that measures nothing, as it keeps its tier", () => {
+    const guard: string = blockFrom(
+      readSource("worker"),
+      "async function setGuardStatusAndResolveOpenAlerts",
+      "\n}\n",
+    );
+
+    expect(guard).not.toContain("deploymentsAllowed");
+    expect(guard).not.toContain("DeploymentGate");
+    expect(gate).toContain(
+      "A **Paused** or **Misconfigured** SLO keeps the answer it had, as it keeps its tier",
+    );
+    expect(section(page, "When the budget is not measured")).toContain(
+      "In each of these cases the SLO keeps the answer it gave about deployments, because it keeps its tier",
+    );
+  });
+
+  it("applies a switched freeze within about a minute: the switch asks for the SLO's next evaluation", () => {
+    expect(
+      blockFrom(
+        readSource("policyTierService"),
+        "const EVALUATION_COLUMNS",
+        "];",
+      ),
+    ).toContain('"freezesDeployments"');
+    expect(gate).toContain(
+      "Switching **Freeze Deployments** on or off for the tier the SLO is in applies within about a minute.",
+    );
+  });
+
+  it("says the recommended policy's Budget exhausted tier freezes deployments, and only it", () => {
+    expect(
+      SLO_RECOMMENDED_POLICY_TIERS.filter(
+        (recommended: SloRecommendedPolicyTier): boolean => {
+          return recommended.freezesDeployments;
+        },
+      ).map((recommended: SloRecommendedPolicyTier): string => {
+        return recommended.name;
+      }),
+    ).toEqual(["Budget exhausted"]);
+    expect(gate).toContain(
+      "The recommended policy's **Budget exhausted** tier freezes deployments.",
+    );
+    expect(section(page, "The recommended policy")).toContain(
+      "**Budget exhausted** freezes deployments, as its agreement says, and the confirmation marks it so",
+    );
+    // The confirmation marks it, from the definition.
+    expect(readSource("recommendedPolicyModal")).toContain(
+      "tier.freezesDeployments ? (",
+    );
+    // The starter writes the freeze its definition says.
+    expect(
+      blockFrom(
+        readSource("policyTierService"),
+        "public buildRecommendedTier(",
+        "return tier;",
+      ),
+    ).toContain(
+      "tier.freezesDeployments = data.recommended.freezesDeployments === true;",
+    );
+  });
+
+  it("records the answer in the audit log as OneUptime's own, but not its time", () => {
+    const ignored: string = blockFrom(
+      fs.readFileSync(
+        path.join(
+          PACKAGES_DIR,
+          "Common/Models/DatabaseModels/ServiceLevelObjective.ts",
+        ),
+        "utf8",
+      ),
+      "ignoreColumns: [",
+      "]",
+    );
+
+    expect(ignored).toContain('"deploymentsFrozenAt",');
+    expect(ignored).not.toContain('"deploymentsAllowed",');
+    expect(section(page, "Where the tier shows")).toContain(
+      "The SLO's **Audit Logs** record each tier change, and each time deployments are frozen or allowed again, as a change OneUptime made itself",
+    );
+    expect(englishPage(FEED)).toContain(
+      "The error budget policy tier the SLO is in, and whether its deployments are allowed, are the exception",
+    );
+  });
+
+  it("says when deployments are frozen and allowed again in the feed, and since when on the Overview", () => {
+    const worker: string = readSource("worker");
+
+    expect(worker).toContain(
+      "ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed",
+    );
+    expect(worker).toContain(
+      "ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen",
+    );
+    expect(readSource("policyTierCard")).toContain(
+      "DEPLOYMENTS_FROZEN_SINCE_TEMPLATE",
+    );
+    expect(readSource("policyTierCopy")).toContain(
+      '"Deployments frozen since {{time}}"',
+    );
+    expect(gate).toContain(
+      "While deployments are frozen, the SLO's **Overview** shows since when, and its **Feed** says when they are frozen and allowed again.",
+    );
+    expect(section(englishPage(FEED), "The SLO feed")).toContain(
+      "| Deployments frozen or allowed again | Someone switched **Freeze Deployments** on or off for the tier the SLO is in",
+    );
+  });
+
+  it("no longer lists a deployment gate as not available", () => {
+    const later: string = section(page, "Not available yet");
+
+    expect(later).not.toContain("a deployment gate");
+    expect(later).toContain(
+      "OneUptime does not stop a release by itself: a pipeline that checks `deploymentsAllowed` does",
     );
   });
 });
@@ -1791,6 +3237,20 @@ describe("SLO Feed and Audit Logs, against the feed and the audit log settings",
       "Label rule applied",
     [ServiceLevelObjectiveFeedEventType.OwnerRuleExecuted]:
       "Owner rule applied",
+    [ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyTierChanged]:
+      "Error budget policy tier changed",
+    [ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised]:
+      "Error budget policy alert raised",
+    [ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentDeclared]:
+      "Error budget policy incident declared",
+    [ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertResolved]:
+      "Error budget policy alert or incident resolved",
+    [ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentResolved]:
+      "Error budget policy alert or incident resolved",
+    [ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen]:
+      "Deployments frozen or allowed again",
+    [ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed]:
+      "Deployments frozen or allowed again",
   };
 
   it("describes every event the feed can post, one row each kind", () => {

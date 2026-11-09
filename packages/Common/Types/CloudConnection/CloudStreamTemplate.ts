@@ -1,9 +1,9 @@
 import { isAwsRegion } from "../Cloud/AwsRegionCode";
 import {
+  AWS_DEFAULT_PERIOD_SECONDS,
   AWS_KEY_METRICS,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
-  DAILY_PERIOD_SECONDS,
 } from "../Cloud/CloudKeyMetrics";
 import { AWS_LOG_GROUP_NAME_MAX_LENGTH } from "../Cloud/CloudLogGroups";
 import { JSONObject } from "../JSON";
@@ -340,9 +340,13 @@ export function getCloudStreamOptionsProblem(data: {
 
 /*
  * The metric stream's filters for the key metrics: each namespace
- * OneUptime reads, with its key metrics. Amazon S3's are left out: they are
- * daily storage metrics, which a metric stream does not carry, so the
- * connection's own reads keep reading them.
+ * OneUptime reads, with its key metrics - the ones read every five
+ * minutes, which a stream brings a minute at a time. A metric published a
+ * few times a day or once is left to the connection's own reads, which
+ * keep reading it: S3's daily storage metrics, which a metric stream does
+ * not carry, and ACM's DaysToExpiry, published twice a day and read once
+ * an hour, which a stream would bring an hour or two sooner - nothing to a
+ * count of days - for a bigger template.
  */
 export function getCloudStreamKeyMetricFilters(): Array<{
   Namespace: string;
@@ -353,7 +357,7 @@ export function getCloudStreamKeyMetricFilters(): Array<{
   for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
     const metricNames: Array<string> = namespace.metrics
       .filter((metric: AwsKeyMetric): boolean => {
-        return metric.periodSeconds < DAILY_PERIOD_SECONDS;
+        return metric.periodSeconds <= AWS_DEFAULT_PERIOD_SECONDS;
       })
       .map((metric: AwsKeyMetric): string => {
         return metric.metricName;

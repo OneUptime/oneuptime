@@ -30,6 +30,7 @@ import DashboardModelQueryInterpolation, {
 } from "../../../Utils/Dashboard/ModelQueryVariableInterpolation";
 import DashboardVariableInterpolation from "../../../Utils/Dashboard/VariableInterpolation";
 import DashboardLabelVariable from "../../../Utils/Dashboard/LabelVariable";
+import DashboardWidgetIds from "../../../Utils/Dashboard/DashboardWidgetIds";
 import {
   STORAGE_ARRAY_HARDWARE_UNHEALTHY_FILTER,
   STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,
@@ -80,8 +81,21 @@ export interface PublicDashboardResourceListPolicyResult {
 }
 
 export interface BuildPublicDashboardResourceListPolicyData {
+  /*
+   * The widget as the public page draws it: a component of
+   * PublicDashboardViewConfig.getDrawnConfig, found in whatever shape it was
+   * stored, deserialized, and with an `arguments` object - an empty one for
+   * a widget saved without settings, which the page draws with its defaults
+   * (issue #6315).
+   */
   widget: JSONObject;
-  dashboardViewConfig: unknown;
+  /*
+   * The variables the public page's toolbar draws, as it draws them
+   * (PublicDashboardViewConfig.getDrawnConfig's `variables`): the source of
+   * every variable id, type, attribute key, default and label choice
+   * (resolveDashboardVariableSelections).
+   */
+  variables: Array<DashboardVariable> | undefined;
   requestedVariables: unknown;
   requestedQuery: unknown;
   /*
@@ -248,6 +262,12 @@ const STORAGE_ARRAY_HARDWARE_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
  * dashboard widget. No caller-supplied project, kind, filter, sort, or limit is
  * copied. The route adds the dashboard's projectId after this policy returns.
  *
+ * The widget and the variables come as the public page draws them
+ * (PublicDashboardViewConfig.getDrawnConfig) - the reading every board makes
+ * of a stored config, signed in and public alike - so a widget lists with
+ * exactly the settings and variables it is drawn with, in whatever shape
+ * they were stored (issue #6315).
+ *
  * The one thing a request may name is a viewer's sort from a header click
  * (issue #5082): a column and a direction, taken only when the column is one
  * of the stored widget's own sortable columns (Utils/Dashboard/
@@ -277,7 +297,7 @@ export default class PublicDashboardResourceListPolicy {
 
     const variables: Array<DashboardVariable> =
       PublicDashboardResourceListPolicy.resolveDashboardVariableSelections({
-        dashboardViewConfig: data.dashboardViewConfig,
+        variables: data.variables,
         requestedVariables: data.requestedVariables,
       });
 
@@ -1111,10 +1131,9 @@ export default class PublicDashboardResourceListPolicy {
           argumentsObject,
           "labelIds",
         ),
-        labelVariableId: PublicDashboardResourceListPolicy.optionalString(
+        labelVariableId: PublicDashboardResourceListPolicy.optionalVariableId(
           argumentsObject,
           "labelVariableId",
-          false,
         ),
         variables,
       });
@@ -1917,10 +1936,9 @@ export default class PublicDashboardResourceListPolicy {
           argumentsObject,
           "labelIds",
         ),
-        labelVariableId: PublicDashboardResourceListPolicy.optionalString(
+        labelVariableId: PublicDashboardResourceListPolicy.optionalVariableId(
           argumentsObject,
           "labelVariableId",
-          false,
         ),
         variables,
       });
@@ -2025,14 +2043,51 @@ export default class PublicDashboardResourceListPolicy {
 
     const values: Array<string> = [];
     for (const item of value) {
-      if (typeof item !== "string" || item.length === 0) {
+      const text: string | null =
+        PublicDashboardResourceListPolicy.readListValue(item);
+      if (text === null || text.length === 0) {
         throw new BadDataException(
           `Dashboard widget ${key} contains an invalid value.`,
         );
       }
-      values.push(item);
+      values.push(text);
     }
     return values;
+  }
+
+  /*
+   * One value of a list a widget filters by, as the page filters by it:
+   * text, or an id stored as an ObjectID (`{"_type": "ObjectID", "value":
+   * ...}`), revived or left as that JSON (issue #6315) - read by the one
+   * reader every board reads a widget's ids with (DashboardWidgetIds, issue
+   * #6328). Null for anything else - a number, a list, a query operator, a
+   * date - in either encoding, which is refused as before.
+   */
+  private static readListValue(item: unknown): string | null {
+    return DashboardWidgetIds.readId(item);
+  }
+
+  /*
+   * The id of the variable a widget follows, as the page reads it: text, or
+   * an ObjectID stored as its JSON (DashboardWidgetIds, issue #6328). Left
+   * out, null or empty is none; anything else that names no id is refused,
+   * as a typed value in a text setting is.
+   */
+  private static optionalVariableId(
+    object: Record<string, unknown>,
+    key: string,
+  ): string | undefined {
+    const value: unknown = object[key];
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+
+    const id: string | null = DashboardWidgetIds.readId(value);
+    if (id === null) {
+      throw new BadDataException(`Dashboard widget ${key} must be a string.`);
+    }
+
+    return id.length > 0 ? id : undefined;
   }
 
   private static optionalString(
@@ -2067,11 +2122,26 @@ export default class PublicDashboardResourceListPolicy {
     return value;
   }
 
+  /*
+   * A stored row cap: a number, or text that says one. A value revived from
+   * typed JSON - a date, an ObjectID, a query operator - is read as its JSON
+   * is, as no number at all, and so is any other object: Number() of a date
+   * is its time in milliseconds, which would read as the project's ceiling
+   * (issue #6315).
+   */
   private static storedLimit(data: {
     value: unknown;
     fallback: number;
     ceiling: number;
   }): number {
+    if (
+      data.value !== null &&
+      typeof data.value === "object" &&
+      !Array.isArray(data.value)
+    ) {
+      return data.fallback;
+    }
+
     const parsed: number = Number(
       typeof data.value === "string" ? data.value.trim() : data.value,
     );
@@ -2138,32 +2208,35 @@ export default class PublicDashboardResourceListPolicy {
   }
 
   /*
+   * The dashboard variables a public widget's query reads, each with the
+   * viewer's pick: the Telemetry Attribute and Project Label variables of the
+   * toolbar the public page draws, with the selection the request sends under
+   * each one's id.
+   *
+   * `variables` are the ones the page draws (PublicDashboardViewConfig.
+   * getDrawnConfig), not the stored list: every board reads a stored list
+   * written as JSON text, a variable without an id or with one an earlier
+   * variable has (each drawn under an id of its own - the id the page then
+   * sends its pick under), `isMultiSelect` written as "true" and a default
+   * written as a number, and so these are read here as the toolbar reads
+   * them. Read as stored, any one of them refused every list and SLO widget
+   * on the dashboard (issue #6315).
+   *
+   * Every id, type, attribute key, default and label choice comes from the
+   * drawn variables; the request only ever contributes bounded selected
+   * values. A pick is read for the one drawn variable under its id, never for
+   * another - a pick under an id no drawn variable has is not read at all -
+   * and is applied by that variable's own type and key, through the helpers
+   * the signed-in widgets use: a label pick must be one of its own variable's
+   * choices (DashboardLabelVariable.getFilter).
+   *
    * Public so the SLO history route resolves a viewer's toolbar selections
-   * through exactly the same validation as this route: stored variables are
-   * the source of every id, type and attribute key, and the request only ever
-   * contributes bounded selected values.
+   * through exactly the same validation as this route.
    */
   public static resolveDashboardVariableSelections(data: {
-    dashboardViewConfig: unknown;
+    variables: Array<DashboardVariable> | undefined;
     requestedVariables: unknown;
   }): Array<DashboardVariable> {
-    const dashboardViewConfig: Record<string, unknown> =
-      PublicDashboardResourceListPolicy.requireObject(
-        data.dashboardViewConfig,
-        "Dashboard view config",
-      );
-    const storedVariablesValue: unknown = dashboardViewConfig["variables"];
-    const storedVariables: Array<unknown> =
-      storedVariablesValue === undefined || storedVariablesValue === null
-        ? []
-        : Array.isArray(storedVariablesValue)
-          ? storedVariablesValue
-          : (() => {
-              throw new BadDataException(
-                "Dashboard view config variables must be an array.",
-              );
-            })();
-
     const requestedSelections: Map<
       string,
       Record<string, unknown>
@@ -2171,15 +2244,15 @@ export default class PublicDashboardResourceListPolicy {
       data.requestedVariables,
     );
     const variables: Array<DashboardVariable> = [];
-    const storedIds: Set<string> = new Set<string>();
+    const drawnIds: Set<string> = new Set<string>();
 
-    for (const storedValue of storedVariables) {
-      const stored: Record<string, unknown> =
+    for (const drawnValue of data.variables || []) {
+      const drawn: Record<string, unknown> =
         PublicDashboardResourceListPolicy.requireObject(
-          storedValue,
-          "Stored dashboard variable",
+          drawnValue,
+          "Dashboard variable",
         );
-      const type: unknown = stored["type"];
+      const type: unknown = drawn["type"];
       if (
         type !== DashboardVariableType.TelemetryAttribute &&
         type !== DashboardVariableType.ProjectLabel
@@ -2187,7 +2260,13 @@ export default class PublicDashboardResourceListPolicy {
         continue;
       }
 
-      const id: unknown = stored["id"];
+      /*
+       * The page draws every variable under an id of its own, as text, and
+       * reads its other fields in the types the toolbar reads them in. These
+       * checks hold for every variable it draws: one they do not hold for is
+       * not a variable the page draws, and is refused.
+       */
+      const id: unknown = drawn["id"];
       if (
         typeof id !== "string" ||
         id.length === 0 ||
@@ -2195,12 +2274,12 @@ export default class PublicDashboardResourceListPolicy {
       ) {
         throw new BadDataException("Stored dashboard variable is malformed.");
       }
-      if (storedIds.has(id)) {
+      if (drawnIds.has(id)) {
         throw new BadDataException("Dashboard variable IDs must be unique.");
       }
-      storedIds.add(id);
+      drawnIds.add(id);
 
-      const isMultiSelect: unknown = stored["isMultiSelect"];
+      const isMultiSelect: unknown = drawn["isMultiSelect"];
       if (
         isMultiSelect !== undefined &&
         isMultiSelect !== null &&
@@ -2209,7 +2288,7 @@ export default class PublicDashboardResourceListPolicy {
         throw new BadDataException("Stored dashboard variable is malformed.");
       }
 
-      const defaultValue: unknown = stored["defaultValue"];
+      const defaultValue: unknown = drawn["defaultValue"];
       if (
         defaultValue !== undefined &&
         defaultValue !== null &&
@@ -2223,7 +2302,7 @@ export default class PublicDashboardResourceListPolicy {
         requestedSelections.get(id);
       const selectedValue: unknown = selection?.["selectedValue"];
       const selectedValues: unknown = selection?.["selectedValues"];
-      const name: unknown = stored["name"];
+      const name: unknown = drawn["name"];
       const storedIsMultiSelect: boolean = isMultiSelect === true;
 
       const variable: DashboardVariable = {
@@ -2244,58 +2323,43 @@ export default class PublicDashboardResourceListPolicy {
       };
 
       if (type === DashboardVariableType.ProjectLabel) {
-        variable.labelOptions =
-          PublicDashboardResourceListPolicy.readLabelOptions(stored);
+        /*
+         * The choices as the toolbar offers them. Whether they are choices a
+         * label filter can use, and the pick one of them, is for
+         * DashboardLabelVariable.getFilter to say when a widget filters by
+         * this variable - as on the page, where choices no widget filters
+         * by take no other widget down.
+         */
+        const labelOptions: unknown = drawn["labelOptions"];
+        variable.labelOptions = Array.isArray(labelOptions)
+          ? ([...labelOptions] as NonNullable<
+              DashboardVariable["labelOptions"]
+            >)
+          : undefined;
       } else {
-        const attributeKey: unknown = stored["attributeKey"];
+        /*
+         * The key as the page reads it, untrimmed. A variable without one
+         * filters no list, here as on the page (DashboardModelQueryInterpolation,
+         * DashboardVariableInterpolation), and an SLO widget may still follow
+         * its pick by name (SloWidgetSource).
+         */
+        const attributeKey: unknown = drawn["attributeKey"];
         if (
-          typeof attributeKey !== "string" ||
-          attributeKey.trim().length === 0 ||
-          attributeKey.length > MAX_VARIABLE_VALUE_LENGTH
+          attributeKey !== undefined &&
+          attributeKey !== null &&
+          (typeof attributeKey !== "string" ||
+            attributeKey.length > MAX_VARIABLE_VALUE_LENGTH)
         ) {
           throw new BadDataException("Stored dashboard variable is malformed.");
         }
-        variable.attributeKey = attributeKey.trim();
+        variable.attributeKey =
+          typeof attributeKey === "string" ? attributeKey : undefined;
       }
 
       variables.push(variable);
     }
 
     return variables;
-  }
-
-  private static readLabelOptions(
-    stored: Record<string, unknown>,
-  ): NonNullable<DashboardVariable["labelOptions"]> {
-    const value: unknown = stored["labelOptions"];
-    if (!Array.isArray(value)) {
-      throw new BadDataException(
-        "Stored dashboard label options are malformed.",
-      );
-    }
-
-    return value.map((entry: unknown): { label: string; value: string } => {
-      const option: Record<string, unknown> =
-        PublicDashboardResourceListPolicy.requireObject(
-          entry,
-          "Stored dashboard label option",
-        );
-      const label: unknown = option["label"];
-      const labelId: unknown = option["value"];
-      if (
-        typeof label !== "string" ||
-        label.length === 0 ||
-        label.length > MAX_VARIABLE_VALUE_LENGTH ||
-        typeof labelId !== "string" ||
-        labelId.length === 0 ||
-        labelId.length > MAX_VARIABLE_VALUE_LENGTH
-      ) {
-        throw new BadDataException(
-          "Stored dashboard label options are malformed.",
-        );
-      }
-      return { label, value: labelId };
-    });
   }
 
   private static validateRequestedVariableSelections(

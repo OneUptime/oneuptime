@@ -381,12 +381,16 @@ describe("approving or dismissing a fix from a chat", () => {
     expect(gate).toContain(
       '"Only someone who may start runbook executions can approve or dismiss this fix."',
     );
-    // The button the page names is the card's own.
+    /*
+     * The button the page names is the card's own - "Approve & Run", or
+     * "Approve" for the first of the two approvals a riskier fix needs
+     * where the project asks for two (#6148's follow-up).
+     */
     expect(
       readRepoFile(
         "App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep.tsx",
       ),
-    ).toContain('title="Approve & Run"');
+    ).toContain('title={isFirstOfTwoApprovals ? "Approve" : "Approve & Run"}');
     // The pill and the fix's approval step say the same.
     expect(REMEDIATION_FIX_STEP_COPY.waitingForSomeonesApproval).toBe(
       REMEDIATION_STEP_STATUS_TEXT.needsSomeonesApproval,

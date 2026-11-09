@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -97,6 +99,7 @@ class OnCallDutyPolicyLabelRuleEngineServiceClass
       return await this.applyRules({
         onCallDutyPolicy: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running on-call duty policy label rules: ${error}`, {
@@ -112,6 +115,8 @@ class OnCallDutyPolicyLabelRuleEngineServiceClass
   private async applyRules(data: {
     onCallDutyPolicy: OnCallDutyPolicy;
     rules: Array<OnCallDutyPolicyLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { onCallDutyPolicy, rules } = data;
 
@@ -196,11 +201,12 @@ class OnCallDutyPolicyLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await OnCallDutyPolicyService.getRepository()
-      .createQueryBuilder()
-      .relation(OnCallDutyPolicy, "labels")
-      .of(onCallDutyPolicy.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: OnCallDutyPolicyService,
+      resourceId: onCallDutyPolicy.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     const mergedLabelIds: Set<string> = new Set([
       ...existingLabelIds,

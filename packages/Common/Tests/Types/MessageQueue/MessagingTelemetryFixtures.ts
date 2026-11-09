@@ -2643,6 +2643,24 @@ export const METRIC_FIXTURES: ReadonlyArray<MetricFixture> = [
     expected: SERVICE_BUS_ORDERS,
   },
   {
+    name: "Azure Monitor ScheduledMessages",
+    metricName: "azure_scheduledmessages_average",
+    attributes: { ...SERVICE_BUS_ENTITY },
+    expected: SERVICE_BUS_ORDERS,
+  },
+  {
+    name: "Azure Monitor Size (Service Bus)",
+    metricName: "azure_size_average",
+    attributes: { ...SERVICE_BUS_ENTITY },
+    expected: SERVICE_BUS_ORDERS,
+  },
+  {
+    name: "Azure Monitor ServerSendLatency",
+    metricName: "azure_serversendlatency_average",
+    attributes: { ...SERVICE_BUS_ENTITY },
+    expected: SERVICE_BUS_ORDERS,
+  },
+  {
     name: "Azure Monitor IncomingMessages (Service Bus)",
     metricName: "azure_incomingmessages_total",
     attributes: { ...SERVICE_BUS_ENTITY },
@@ -2752,6 +2770,12 @@ export const METRIC_FIXTURES: ReadonlyArray<MetricFixture> = [
       ...EVENT_HUBS_ENTITY,
       metadata_operationresult: "serverbusy",
     },
+    expected: EVENT_HUBS_TELEMETRY,
+  },
+  {
+    name: "Azure Monitor Size (Event Hubs)",
+    metricName: "azure_size_average",
+    attributes: { ...EVENT_HUBS_ENTITY },
     expected: EVENT_HUBS_TELEMETRY,
   },
 

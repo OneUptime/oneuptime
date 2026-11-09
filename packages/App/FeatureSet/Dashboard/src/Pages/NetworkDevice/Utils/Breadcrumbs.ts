@@ -114,6 +114,12 @@ export function getNetworkDeviceBreadcrumbs(
       "View Device",
       "Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Network",
+      "View Device",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_DELETE, [
       "Project",
       "Network",
@@ -139,7 +145,7 @@ export function getNetworkDeviceBreadcrumbs(
       "Project",
       "Network",
       "Topology",
-      "Endpoints",
+      "Discovered Devices",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_TOPOLOGY, [
       "Project",

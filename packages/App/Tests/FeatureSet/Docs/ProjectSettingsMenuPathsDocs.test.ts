@@ -23,7 +23,7 @@ import path from "path";
  * THE DOCS SEND READERS DOWN PROJECT SETTINGS' REAL MENU, IN EVERY LANGUAGE.
  *
  * Project Settings' side menu folds every section but Basic: a page in one -
- * Billing, Usage History, AI Features, Domains, API Keys - is not on screen
+ * Billing, Usage, AI Features, Domains, API Keys - is not on screen
  * until its section is opened, so a path to it names the section ("Project
  * Settings → Billing and Invoices → Billing"). The product's own texts are
  * held to that (ProjectSettingsMenuPathsInProductText); the docs pages wrote
@@ -190,7 +190,7 @@ describe("the checks themselves", () => {
     expect(FOLDED_PAGES).toEqual(
       expect.arrayContaining([
         { section: "Billing and Invoices", page: "Billing" },
-        { section: "Billing and Invoices", page: "Usage History" },
+        { section: "Telemetry & APM", page: "Usage" },
         { section: "AI", page: "AI Features" },
         { section: "Advanced", page: "Domains" },
         { section: "Advanced", page: "API Keys" },
@@ -226,7 +226,7 @@ describe("the checks themselves", () => {
     ["da", "Tilføj en under **Projektindstillinger** > **Fakturering**."],
     ["ja", "**プロジェクト設定 → ドメイン** で確認済みのドメイン"],
     // No space before the next word, as Japanese and Chinese often write it.
-    ["zh-CN", "请在“项目设置 → 使用历史”中查看"],
+    ["zh-CN", "请在“项目设置 → 用量”中查看"],
     ["fa", "در **تنظیمات پروژه ← دامنه‌ها** تأیید شده"],
     // The import, as the guides wrote it while it was in Basic.
     [
@@ -315,7 +315,7 @@ describe("every docs page sends readers down Project Settings' real menu", () =>
     ).toEqual(
       expect.arrayContaining([
         "Project Settings > Billing and Invoices > Billing",
-        "Project Settings > Billing and Invoices > Usage History",
+        "Project Settings > Telemetry & APM > Usage",
         "Project Settings > AI > AI Features",
         "Project Settings > Advanced > Domains",
         "Project Settings > Advanced > API Keys",

@@ -46,7 +46,11 @@ import {
   getAuditLogExportDestinationDefinition,
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import AuditLogExportSettingsUtil from "Common/Server/Utils/AuditLog/Export/AuditLogExportSettings";
-import { AuditLogExportRecord } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
+import {
+  AUDIT_LOG_EXPORT_SCHEMA_VERSIONS,
+  AuditLogExportRecord,
+  AuditLogExportSchemaVersion,
+} from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -796,7 +800,187 @@ describe("the audit log exporter", () => {
     });
   });
 
+  /*
+   * Issue #6247: each export sends the record version it says. One saved
+   * before version 2 existed keeps version 1 (the column's default), so
+   * whatever reads it keeps working; version 2 adds each change's summary
+   * lines - a workflow save's steps - and changes nothing else.
+   */
+  describe("the record version each export sends", () => {
+    const WORKFLOW_SAVE: Record<string, unknown> = {
+      field: "graph",
+      oldValue: "1 step and no connections",
+      newValue: "2 steps and 1 connection",
+      summary: [
+        'Added "Log" (log-1)',
+        'Connected "Manual" (manual-1) to "Log" (log-1)',
+      ],
+    };
+
+    function sentChanges(): Array<unknown> {
+      return webhook.batches.flatMap(
+        (batch: { records: Array<AuditLogExportRecord> }) => {
+          return batch.records.flatMap((record: AuditLogExportRecord) => {
+            return record.changes;
+          });
+        },
+      );
+    }
+
+    function sentVersions(): Array<number> {
+      return webhook.batches.flatMap(
+        (batch: { records: Array<AuditLogExportRecord> }) => {
+          return batch.records.map((record: AuditLogExportRecord): number => {
+            return record.schemaVersion;
+          });
+        },
+      );
+    }
+
+    test("an export saved before version 2 sends version 1, as it always did", async () => {
+      useInMemoryExports([webhookExport({ schemaVersion: 1 })]);
+      auditLog.add({
+        createdAt: secondsBefore(120),
+        changes: [WORKFLOW_SAVE as never],
+      });
+
+      await exporter().exportAll();
+
+      expect(sentVersions()).toEqual([1]);
+      expect(sentChanges()).toEqual([
+        {
+          field: "graph",
+          oldValue: "1 step and no connections",
+          newValue: "2 steps and 1 connection",
+        },
+      ]);
+    });
+
+    test("a version 2 export sends what changed in the workflow's steps", async () => {
+      useInMemoryExports([webhookExport({ schemaVersion: 2 })]);
+      auditLog.add({
+        createdAt: secondsBefore(120),
+        changes: [
+          WORKFLOW_SAVE as never,
+          { field: "name", oldValue: "Page", newValue: "Page the team" },
+        ],
+      });
+
+      await exporter().exportAll();
+
+      expect(sentVersions()).toEqual([2]);
+      expect(sentChanges()).toEqual([
+        WORKFLOW_SAVE,
+        {
+          field: "name",
+          oldValue: "Page",
+          newValue: "Page the team",
+          summary: null,
+        },
+      ]);
+    });
+
+    test("a version the row holds that this release does not know is sent as version 1", async () => {
+      for (const schemaVersion of [0, 3, Number.NaN]) {
+        jest.restoreAllMocks();
+        webhook.batches.length = 0;
+        useInMemoryExports([webhookExport({ schemaVersion })]);
+        auditLog.add({ createdAt: secondsBefore(120) });
+
+        await exporter().exportAll();
+
+        expect([schemaVersion, new Set(sentVersions())]).toEqual([
+          schemaVersion,
+          new Set([1]),
+        ]);
+      }
+    });
+
+    test("switched to version 2, an export sends it from its next batch; what was delivered stays as sent", async () => {
+      const row: StoredExport = webhookExport({ schemaVersion: 1 });
+      useInMemoryExports([row]);
+      auditLog.add({
+        createdAt: secondsBefore(300),
+        changes: [WORKFLOW_SAVE as never],
+      });
+
+      await exporter().exportAll();
+
+      row.schemaVersion = 2;
+      auditLog.add({
+        createdAt: secondsBefore(120),
+        changes: [WORKFLOW_SAVE as never],
+      });
+
+      await exporter().exportAll();
+
+      expect(sentVersions()).toEqual([1, 2]);
+      expect(
+        (sentChanges() as Array<Record<string, unknown>>).map(
+          (change: Record<string, unknown>): unknown => {
+            return change["summary"];
+          },
+        ),
+      ).toEqual([undefined, WORKFLOW_SAVE["summary"]]);
+    });
+
+    test("a file destination writes each line in the export's version too", async () => {
+      for (const schemaVersion of AUDIT_LOG_EXPORT_SCHEMA_VERSIONS) {
+        jest.restoreAllMocks();
+        s3.batches.length = 0;
+        useInMemoryExports([
+          s3Export({
+            schemaVersion,
+            startsAt: new Date("2026-10-24T00:00:00.000Z"),
+          }),
+        ]);
+        // Old enough for a file to be written at once.
+        auditLog.add({
+          createdAt: "2026-10-24T08:00:00.000Z",
+          changes: [WORKFLOW_SAVE as never],
+        });
+
+        await exporter().exportAll();
+
+        const record: AuditLogExportRecord = s3.batches[0]!.records[0]!;
+
+        expect(record.schemaVersion).toBe(schemaVersion);
+        expect(
+          Object.prototype.hasOwnProperty.call(record.changes[0], "summary"),
+        ).toBe(schemaVersion === 2);
+      }
+    });
+  });
+
   describe("toBatch", () => {
+    test("in a version, every record is that version; with none named, version 1", () => {
+      const rows: Array<Record<string, unknown>> = [
+        {
+          _id: ObjectID.generate().toString(),
+          createdAt: "2026-10-24 09:00:01",
+          changes: JSON.stringify([
+            { field: "graph", summary: ['Added "Log" (log-1)'] },
+          ]),
+        },
+      ];
+
+      for (const schemaVersion of [
+        ...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS,
+        undefined,
+      ] as Array<AuditLogExportSchemaVersion | undefined>) {
+        const batch: Array<AuditLogExportRecord> = AuditLogExporter.toBatch({
+          rows: rows as never,
+          maxBytes: 1024 * 1024,
+          schemaVersion,
+        });
+
+        expect(batch[0]!.schemaVersion).toBe(schemaVersion || 1);
+        expect(batch[0]!.changes[0]!.summary).toEqual(
+          schemaVersion === 2 ? ['Added "Log" (log-1)'] : undefined,
+        );
+      }
+    });
+
     test("leaves out rows it cannot place, and keeps the rest in order", () => {
       const rows: Array<Record<string, unknown>> = [
         { _id: "", createdAt: "2026-10-24 09:00:00" },
@@ -845,6 +1029,32 @@ describe("the audit log exporter", () => {
       expect(delivered.batch.records[0]!.action).toBe("Test");
       expect(delivered.batch.records[0]!.createdAt).toBe(NOW.toISOString());
       expect(delivered.egress.blockPrivateAddresses).toBe(false);
+    });
+
+    test("a test arrives in the version the export sends, the first when none is named", async () => {
+      for (const schemaVersion of [
+        ...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS,
+        undefined,
+      ] as Array<AuditLogExportSchemaVersion | undefined>) {
+        const destination: RecordingDestination = new RecordingDestination();
+
+        await AuditLogExporter.sendTest({
+          settings: {
+            type: AuditLogExportDestinationType.Webhook,
+            config: { url: "https://93.184.216.34/audit" },
+            secrets: {},
+          },
+          isInstanceExport: true,
+          projectId: null,
+          schemaVersion,
+          destination,
+          now: NOW,
+        });
+
+        expect(destination.deliveries[0]!.batch.records[0]!.schemaVersion).toBe(
+          schemaVersion || 1,
+        );
+      }
     });
 
     test("a project's test keeps the project's egress policy and names the project", async () => {

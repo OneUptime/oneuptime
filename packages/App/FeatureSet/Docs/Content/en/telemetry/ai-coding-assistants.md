@@ -83,7 +83,7 @@ On a metric data point, the list is shorter and starts with the email, because t
 
 | Column | Keys, preferred first |
 | --- | --- |
-| Employee | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Employee | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Team / cost centre | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Model | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime also reads tokens from `gen_ai.client.token.usage`, `gen_ai.client.tok
 Two things to know before you read the numbers:
 
 - **`gemini_cli.token.usage` is left out on purpose.** Gemini CLI sends its tokens twice, as its own metric and as `gen_ai.client.token.usage`, and reading both would double them. Its tokens are counted once, through `gen_ai.client.token.usage`. Gemini CLI sends no cost metric: turn on its traces to have each call priced.
-- **Only input and output tokens are counted.** The token type is read from `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` or `token_type`, and only `input` and `output` (or the older `prompt` and `completion`) count. Cache reads and writes, Codex's `total` (which repeats the others) and `reasoning_output` (part of `output`) are left out, so a metric-sourced total is smaller than the sum of everything a tool sends.
+- **Only input and output tokens are counted.** The token type is read from `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` or `token_type`, and only `input` and `output` (or the older `prompt` and `completion`) count, with Claude Code's `cacheRead` and `cacheCreation` as input, since its `input` leaves them out. Other cache reads and writes, Codex's `total` (which repeats the others) and `reasoning_output` (part of `output`) are left out, so a metric-sourced total is smaller than the sum of everything a tool sends.
 
 ## The Usage tab
 
@@ -188,7 +188,7 @@ Codex also sends its metrics to OpenAI by default: see [OpenAI Codex](/docs/tele
 
 ## What OneUptime does not do yet
 
-- **No coding-tool admin connectors.** OneUptime reads the OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts behind the tools ([AI Provider Accounts](/docs/telemetry/ai-provider-accounts)), but not Cursor's Admin API, GitHub's Copilot billing, or Windsurf's or JetBrains' APIs.
+- **No coding-tool admin connector but Cursor's.** OneUptime reads the OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts behind the tools, and a Cursor team's Admin API ([AI Provider Accounts](/docs/telemetry/ai-provider-accounts)), but not GitHub's Copilot billing, or Windsurf's or JetBrains' APIs.
 - **Cost is an estimate unless a tool reports it.** A reported cost is used as it is; otherwise OneUptime prices tokens at list prices. Cursor's `cursor.cost.usage` is itself an estimate.
 - **Identity on log records is not read.** Codex's `user.email`, which it sends only on logs, is not joined to spend.
 - **Cursor's `cursor.user.email` is not read yet**, so Cursor users show as their `cursor.user.id` integer.
@@ -201,7 +201,7 @@ Roll out in this order; each step is useful on its own. Use a project that does 
 
 1. **Gemini CLI**, if anyone uses it. It sends `user.email` with no setup, so it shows attribution working end to end. Turn on its traces too: it sends no cost metric.
 2. **Claude Code**: one managed settings file for the fleet, `user.email` for free, a real cost metric, and acceptance rate, commits, pull requests and lines of code per developer.
-3. **Cursor**, on the Enterprise plan: one screen in Cursor's dashboard, no developer machine touched, though people arrive as integers.
+3. **Cursor**, on the Enterprise plan: one screen in Cursor's dashboard, no developer machine touched, though people arrive as integers. On the Teams plan, or for what Cursor charged by person, connect its Admin API key as a [provider account](/docs/telemetry/ai-provider-accounts#cursor), with or without the export.
 4. **Copilot and Codex**, which both need an identity set on each machine. Do it when you provision machines: calls that arrived without one cannot be attributed later.
 5. **A LiteLLM gateway** for everything else, with one virtual key per employee.
 

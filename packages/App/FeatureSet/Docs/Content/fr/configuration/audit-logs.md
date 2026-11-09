@@ -71,49 +71,39 @@ Une modification de ces paramètres s'applique en moins d'une minute.
 
 Filtrez par **Type de ressource**, **Nom de la ressource**, **Action**, **E-mail de l'utilisateur** ou **Heure**. Une modification ne liste que les champs qui ont changé, avant et après, et un enregistrement qui ne change rien n'ajoute aucune entrée.
 
+Une ressource sans nom propre est nommée par ce qui la nomme dans OneUptime : une exception par son type et le début de son message, les identifiants, les adresses et tout ce qui ressemble à un secret étant masqués, une exécution de runbook par son runbook, le numéro de téléphone d'une politique d'appels entrants par le numéro, et un modèle ou un domaine par son propre nom.
+
 Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien d'autres ressources ont aussi leur propre page **Journaux d'audit**, dans une section repliée de leur menu latéral comme **Avancé**. Elle ne liste que les entrées de cette ressource, avec celles de ce qui lui appartient : la page d'un SLO montre aussi ses règles et ses propriétaires.
 
 ## Ce qui est enregistré
 
-| Ressource | **Type de ressource** dans le journal |
+Tout ce que les personnes créent, modifient ou suppriment dans un projet est enregistré : moniteurs, incidents, alertes, pages de statut, workflows et leurs étapes, files d'attente, tableaux de bord, politiques d'astreinte, équipes et qui en fait partie, clés d'API et chaque réglage. **Type de ressource** indique sur quoi porte une entrée, par exemple `Monitor`, `Workflow` ou `Queue`.
+
+| Non enregistré | Pourquoi |
 | --- | --- |
-| Moniteurs | `Monitor` |
-| Incidents | `Incident` |
-| Alertes | `Alert` |
-| Pages de statut | `Status Page` |
-| Événements de maintenance planifiée | `Scheduled Maintenance Event` |
-| Politiques d'astreinte | `On-Call Policy` |
-| SLO | `Service Level Objective` |
-| Les règles et propriétaires d'un SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Équipes | `Team` |
-| Rôles personnalisés, et les équipes et clés API qui en reçoivent un | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Étiquettes | `Label` |
-| États et gravités d'incident | `Incident State`, `Incident Severity` |
-| États et gravités d'alerte | `Alert State`, `Alert Severity` |
-| Statuts de moniteur | `Monitor Status` |
-| États de maintenance planifiée | `Scheduled Maintenance State` |
-| Rôles d'incident | `Incident Role` |
-| Statuts de post-mortem | `Postmortem Status` |
-| Clés API | `API Key` |
-| Clients MCP que les personnes connectent | `MCP Client Authorization` |
-| Éléments d'inventaire | `Inventory Item` |
-| Configurations du collecteur | `Collector Config` |
-| vCenter | `vCenter` |
-| Clouds OpenStack, et les vérifications exécutées sur eux | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Captures de paquets, et leurs téléchargements | `Packet Capture` |
-| Dossiers de sécurité et leurs priorités et statuts, playbooks et leurs exécutions, entités protégées, criticité des entités, et le risque d'une entité quand quelqu'un le réinitialise | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Exceptions de règle | `Rule Exception` |
-| Listes de surveillance | `Watchlist` |
-| Valeurs de liste de surveillance | `Watchlist Value` |
-| Chasses | `Hunt` |
-| Tâches et preuves des dossiers de sécurité | `Security Case Task`, `Security Case Evidence` |
-| Magasins de données et leurs détections, et les problèmes, paramètres, paramètres des contrôles, types de données personnalisés et règles de résidence de Sécurité des données | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Paramètres d'Observabilité des données | `Data Observability Setting` |
-| Exports du journal d'audit | `Audit Log Export` |
+| Journaux de messages | Chacun est déjà la trace d'un e-mail, d'un SMS, d'un appel, d'une notification push ou d'un message de chat que OneUptime a envoyé ou reçu. |
+| Traces d'exécutions | Chacune est déjà la trace d'une exécution de workflow, d'une escalade d'astreinte, d'une analyse, d'une importation ou d'une exécution d'IA. |
+| Ce que signalent les agents et la télémétrie | Les ressources découvertes, les relevés et l'utilisation changent à chaque rapport, pas parce que quelqu'un les a modifiés. |
+| Flux d'activité | Un flux affiche des modifications que le journal d'audit enregistre déjà. |
+| L'état de travail de OneUptime | Les sessions, les tâches en attente et les autres états que OneUptime conserve pendant son travail. |
+| La configuration des notifications propre à une personne | Les adresses, les numéros et les règles d'astreinte personnelles de chaque personne n'appartiennent qu'à elle. |
 
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.
 
-Les autres enregistrements ne figurent pas dans le journal d'audit, comme qui fait partie d'une équipe, ou une autorisation ajoutée seule à une équipe. Les champs que personne ne peut lire sont omis de chaque entrée, et les clés, jetons et mots de passe sont enregistrés comme `[REDACTED]` : l'entrée montre qu'ils ont changé, jamais leur valeur.
+Les champs que seul OneUptime écrit, comme le moment où un hôte a été vu pour la dernière fois, sont omis de chaque entrée, tout comme les champs que personne ne peut lire. Quand OneUptime en écrit un parce que quelqu'un le lui a demandé, comme fusionner une exception avec une autre ou réinitialiser l'URL d'un webhook, l'entrée l'enregistre comme une modification de cette personne. Les clés, jetons et mots de passe sont enregistrés comme `[REDACTED]` : l'entrée montre qu'ils ont changé, jamais leur valeur. Les étapes d'un workflow sont enregistrées comme ce qui a changé, en nommant les réglages d'une étape mais jamais ce qui y a été saisi, et le déplacement d'une étape sur le canevas n'est pas enregistré.
+
+Ce que OneUptime fait parce que quelqu'un le lui a demandé est aussi enregistré comme une modification de cette personne, que le projet stocke ou non les événements système :
+
+- Lancer, approuver, terminer, ignorer et annuler une exécution de runbook. Ses étapes sont enregistrées comme ce qui a été fait à chacune, par exemple `Approved "Restart the API" (step 3)`, jamais avec ce qu'une étape a affiché.
+- Ce qu'une règle change quand quelqu'un l'exécute : les libellés et les propriétaires qu'elle ajoute, les enregistrements qu'une règle de confidentialité rend privés, les appareils qu'une règle d'affectation de site déplace, les appareils et les moniteurs qu'une règle d'import automatique crée, et ce qu'une règle de moniteurs d'une page de statut ou d'un SLO change sur sa page ou son SLO.
+- L'achat, l'association et la libération du numéro de téléphone d'une politique d'appels entrants.
+- La résolution d'une alerte de données que quelqu'un marque comme attendue ou comme n'étant pas un problème.
+- La réinitialisation du lien d'un flux de calendrier.
+- Les équipes que quelqu'un rejoint en se connectant avec SSO.
+
+Ce qu'une règle fait d'elle-même est une modification de OneUptime lui-même, enregistrée quand **Stocker les événements système** est activé : les libellés et les propriétaires qu'une règle ajoute à la création d'un enregistrement, et un enregistrement qu'elle rend alors privé ; les appareils et les moniteurs qu'une règle d'import automatique crée à partir de nouveaux résultats d'analyse ; et ce qu'une règle de moniteurs d'une page de statut ou d'un SLO change quand une règle, un moniteur ou un libellé est enregistré.
+
+La réinitialisation de l'agent IA d'un hôte, d'un cluster ou d'un compte cloud est enregistrée sur la page **Journaux d'audit** propre à cette ressource, comme la modification de `aiAgentResetAt` par la personne qui l'a réinitialisé : qui, et quand. De même pour la création d'une clé pour l'agent IA d'un compte cloud : les clés apparaissent comme modifiées, jamais avec une clé ou un hachage. Ce qu'un agent signale quand il se connecte et se manifeste reste exclu, comme avant.
 
 ## Combien de temps les entrées sont conservées
 

@@ -69,6 +69,8 @@ describe("exception detail data ownership", () => {
         showHeaderActions: false,
       },
     ],
+    // Its audit log is read by the table it draws, not by the page.
+    [ExceptionDetailSection.AuditLogs, { ...NOTHING_EXTRA }],
   ];
 
   test.each(plans)(

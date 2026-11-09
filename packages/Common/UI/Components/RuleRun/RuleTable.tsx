@@ -34,7 +34,7 @@ import {
   hasRuleEnabledColumn,
   withRuleEnabledOnEditOnly,
 } from "./RuleEnabledField";
-import RuleView, { RuleWording } from "./RuleView";
+import RuleView, { RuleOwnership, RuleWording } from "./RuleView";
 import RunRuleNowModal from "./RunRuleNowModal";
 import getRunRulesBulkAction from "./RunRulesBulkAction";
 import React, { Fragment, ReactElement, useMemo, useState } from "react";
@@ -68,6 +68,12 @@ export interface ComponentProps<TBaseModel extends BaseModel>
    * the page's when they name any.
    */
   ruleWording?: RuleWording<TBaseModel> | undefined;
+  /*
+   * On the rule's own page (viewRuleId), who may change it, for a rule of a
+   * kind teams can own (RuleOwnership): its page's Edit and Delete locked
+   * as getEditDisabledReason and getDeleteDisabledReason lock its row.
+   */
+  ruleOwnership?: RuleOwnership<TBaseModel> | undefined;
 }
 
 function getParentRoute(): Route {
@@ -154,6 +160,7 @@ const RuleTable: <TBaseModel extends BaseModel>(
     listRoute,
     ruleRunNouns,
     ruleWording,
+    ruleOwnership,
     ...tableProps
   } = props;
 
@@ -223,6 +230,8 @@ const RuleTable: <TBaseModel extends BaseModel>(
         ruleCriteriaSubject={props.ruleCriteriaSubject}
         ruleRunNouns={ruleRunNouns}
         ruleWording={ruleWording}
+        onEditFormItemFetched={props.onEditFormItemFetched}
+        ownership={ruleOwnership}
       />
     );
   }

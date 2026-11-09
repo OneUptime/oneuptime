@@ -12,6 +12,7 @@ import {
   LLM_PROVIDER_NAME_ATTRIBUTE,
 } from "../../../Types/LlmObservability/LlmProviderUsageMetrics";
 import ObjectID from "../../../Types/ObjectID";
+import { normalizeLlmProvider } from "../../../Types/Telemetry/LlmProviders";
 import MetricService from "../../Services/MetricService";
 import AggregateBy from "../../Types/AnalyticsDatabase/AggregateBy";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -21,9 +22,9 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * of oneuptime.llm.provider.cost over a time range, optionally for one
  * provider (gen_ai.provider.name) and one model.
  *
- * A provider's cost points sit at the start of their UTC day, so "today so
- * far" is the sum from today's midnight - the figure a budget compares with
- * its daily limit.
+ * A provider's cost points sit at the start of their UTC day (Cursor's at
+ * the start of their UTC hour), so "today so far" is the sum from today's
+ * midnight - the figure a budget compares with its daily limit.
  */
 
 export interface LlmProviderSpendScope {
@@ -46,8 +47,15 @@ export default class LlmProviderSpend {
 
     const attributes: Record<string, string> = {};
 
+    /*
+     * A connection's points name the provider as the conventions do
+     * (azure.ai.openai), so a budget's older spelling (az.ai.openai,
+     * azure_openai) is read as that name.
+     */
     if (scope.provider && scope.provider.trim()) {
-      attributes[LLM_PROVIDER_NAME_ATTRIBUTE] = scope.provider.trim();
+      attributes[LLM_PROVIDER_NAME_ATTRIBUTE] = normalizeLlmProvider({
+        reported: scope.provider,
+      });
     }
 
     if (scope.model && scope.model.trim()) {

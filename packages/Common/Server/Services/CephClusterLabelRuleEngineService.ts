@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
@@ -101,6 +103,7 @@ class CephClusterLabelRuleEngineServiceClass
       return await this.applyRules({
         cephCluster: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running Ceph cluster label rules: ${error}`, {
@@ -116,6 +119,8 @@ class CephClusterLabelRuleEngineServiceClass
   private async applyRules(data: {
     cephCluster: CephCluster;
     rules: Array<CephClusterLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { cephCluster, rules } = data;
 
@@ -202,11 +207,12 @@ class CephClusterLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await CephClusterService.getRepository()
-      .createQueryBuilder()
-      .relation(CephCluster, "labels")
-      .of(cephCluster.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: CephClusterService,
+      resourceId: cephCluster.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory cephCluster.labels so a downstream owner-rule engine in

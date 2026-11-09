@@ -329,6 +329,14 @@ Via API:et skickar du valet bredvid fälten du ändrar, i `miscDataProps`:
 
 som innehåll i `PUT /api/status-page-announcement/<announcement-id>` (eller `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Utelämna `miscDataProps` så är redigeringen tyst, som tidigare.
 
+### Offentliga anteckningar som väntar på godkännande
+
+Ett projekt kan låta offentliga anteckningar godkännas innan de publiceras: se [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar). En anteckning som väntar meddelar ingen prenumerant. Dess avisering skickas när den publiceras, som för en anteckning som skrivs in i det ögonblicket, och bara om dess val vid **Meddela statussideprenumeranter** säger det; en avvisad anteckning skickas aldrig. Fram till dess har den ingen avisering att försöka igen eller skicka igen.
+
+En redigering av en publicerad anteckning väntar också. Var **Meddela prenumeranter om denna uppdatering** ikryssad skickas dess uppdatering när redigeringen har godkänts, och aldrig om redigeringen avvisas eller dras tillbaka.
+
+Ett tillståndsbyte som skickas med en offentlig anteckning som väntar på godkännande bärs inte av anteckningen: tillståndsbytet meddelar prenumeranterna själv, som det skulle göra utan anteckning, och anteckningen följer när den har publicerats.
+
 ## Språket i aviseringar till prenumeranter
 
 Varje prenumerant får allt på sitt eget språk: e-postmeddelandet eller sms:et som bekräftar prenumerationen, välkomsten och länken för att hantera den, varje avisering om en incident, en incidentepisod, en schemalagd underhållshändelse eller ett meddelande, via e-post, sms, Slack och Microsoft Teams, och e-postrapporten.

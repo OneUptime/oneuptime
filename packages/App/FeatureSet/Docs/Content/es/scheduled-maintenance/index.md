@@ -58,7 +58,7 @@ Abre **Mantenimiento programado** desde el menú **Productos** de la barra super
 | **Calendario** | **Calendario de mantenimiento**: cada evento en un mes, una semana o un día, junto a los calendarios de fuera del proyecto que añadas. |
 | **Espacio de trabajo** | **Slack**, **Microsoft Teams** y **Mattermost**, según lo que el proyecto haya conectado, o **Conectar un espacio de trabajo** si no tiene ninguno. |
 | **Reglas**    | **Reglas del propietario**, **Reglas de runbook**, **Reglas de etiquetas**, **Reglas de recordatorio**.                     |
-| **Ajustes**   | **Estado del evento**, **Plantillas de eventos**, **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Ajustes del calendario**, **Numeración**. |
+| **Ajustes**   | **Estado del evento**, **Plantillas de eventos**, **Plantillas de notas**, **Aprobación de notas públicas**, **Campos personalizados**, **Mediciones**, **Ajustes del calendario**, **Numeración**. |
 
 **Vista general** y **Calendario** están abiertas; **Espacio de trabajo**, **Reglas**, **Ajustes** y **Desarrolladores** empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Desarrolladores** contiene **Terraform**, **API**, **CLI** y **Asistentes de IA**, para gestionar el mantenimiento desde código. Todo lo relativo al mantenimiento está aquí, no en **Ajustes del proyecto**.
 

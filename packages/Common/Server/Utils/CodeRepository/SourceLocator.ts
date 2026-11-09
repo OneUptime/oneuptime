@@ -16,10 +16,7 @@ import {
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
-import {
-  CodeHost,
-  CodeHostCapability,
-} from "../../../Types/CodeRepository/CodeHost";
+import { CodeHost } from "../../../Types/CodeRepository/CodeHost";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -31,14 +28,15 @@ import ObjectID from "../../../Types/ObjectID";
  * directory, a Windows path. The project's repositories name it relative to
  * their root ("src/orders/parser.ts"). This finds, for each frame, the
  * repository and path that hold it, and a link to the line on its host
- * (GitHub, GitLab, Forgejo or Gitea):
+ * (GitHub, GitLab, Forgejo, Gitea or Azure DevOps):
  *
  *   - only repositories the person may read, that OneUptime reaches and
  *     whose files it reads (CodeHostAccess): through the GitHub App, its
  *     installation still bound to this project - a tree is read with the
  *     App's token, so an unbound row would read another tenant's code - or
  *     through the repository's connection, whose token was not refused. A
- *     Git repository's files are not read, so it gets no link;
+ *     Git repository's files are read on Azure DevOps only, so a Git
+ *     repository anywhere else gets no link;
  *   - the frame's path is normalized the way stack-trace resolution does it
  *     (container prefixes off; a library's file, under node_modules or
  *     site-packages, is nobody's own code and gets no link), then matched by
@@ -221,7 +219,7 @@ export default class SourceLocator {
 
   /*
    * The file on its host, on the repository's main branch, at its line:
-   * GitHub's, GitLab's, Forgejo's or Gitea's page for it.
+   * GitHub's, GitLab's, Forgejo's, Gitea's or Azure DevOps' page for it.
    */
   public static getFileUrl(
     repository: LocatableRepository,
@@ -322,7 +320,10 @@ export default class SourceLocator {
             summary &&
             summary.state === CodeHostConnectionState.Connected &&
             summary.isReachableFromServer &&
-            CodeHost.can(summary.provider, CodeHostCapability.ReadCode),
+            CodeHost.canReadRepositoryCode({
+              type: summary.provider,
+              repositoryUrl: repository.repositoryUrl?.toString(),
+            }),
         );
       })
       .map((repository: CodeRepository): LocatableRepositoryWithTree => {

@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import Workflow from "../../Models/DatabaseModels/Workflow";
@@ -94,6 +96,7 @@ class WorkflowLabelRuleEngineServiceClass
       return await this.applyRules({
         workflow: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running workflow label rules: ${error}`, {
@@ -109,6 +112,8 @@ class WorkflowLabelRuleEngineServiceClass
   private async applyRules(data: {
     workflow: Workflow;
     rules: Array<WorkflowLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { workflow, rules } = data;
 
@@ -189,11 +194,12 @@ class WorkflowLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await WorkflowService.getRepository()
-      .createQueryBuilder()
-      .relation(Workflow, "labels")
-      .of(workflow.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: WorkflowService,
+      resourceId: workflow.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory workflow.labels so a downstream owner-rule engine in

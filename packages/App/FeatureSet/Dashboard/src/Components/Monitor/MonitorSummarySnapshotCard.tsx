@@ -24,6 +24,7 @@ import React, {
   useState,
 } from "react";
 import SummaryInfo from "./SummaryView/SummaryInfo";
+import { getContentNotKeptNote } from "../EventView/EventEvaluationDetailsCopy";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -180,6 +181,22 @@ const MonitorSummarySnapshotCard: FunctionComponent<ComponentProps> = (
             <div className="text-sm text-gray-500">
               {translator.translateText(
                 "The response body shown above was truncated because the capture was too large.",
+              )}
+            </div>
+          )}
+
+          {/*
+           * The monitor keeps no response content on its incidents and
+           * alerts (its Settings page): the body was left out on purpose.
+           * An Incoming Request monitor's is the request it received.
+           */}
+          {snapshot.isResponseContentOmitted && (
+            <div
+              data-testid="monitor-summary-response-content-omitted"
+              className="text-sm text-gray-500"
+            >
+              {translator.translateText(
+                getContentNotKeptNote(snapshot.monitorType),
               )}
             </div>
           )}

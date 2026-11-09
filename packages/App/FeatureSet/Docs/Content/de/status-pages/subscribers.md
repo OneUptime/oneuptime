@@ -329,6 +329,14 @@ Das bearbeitete Element zeigt einen **Status der Aktualisierungsbenachrichtigung
 
 als Body von `PUT /api/status-page-announcement/<announcement-id>` (oder `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Lassen Sie `miscDataProps` weg, bleibt die Bearbeitung wie bisher still.
 
+### Öffentliche Notizen, die auf Genehmigung warten
+
+Ein Projekt kann öffentliche Notizen genehmigen lassen, bevor sie veröffentlicht werden: siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen). Eine Notiz, die wartet, informiert keine Abonnenten. Ihre Benachrichtigung wird gesendet, wenn sie veröffentlicht wird, so wie bei einer Notiz, die in diesem Moment gepostet wird, und nur, wenn ihre Wahl bei **Statusseiten-Abonnenten benachrichtigen** das vorsieht; eine abgelehnte Notiz wird nie gesendet. Bis dahin hat sie keine Benachrichtigung, die sich wiederholen oder erneut senden ließe.
+
+Auch die Bearbeitung einer veröffentlichten Notiz wartet. War **Abonnenten über diese Aktualisierung benachrichtigen** angehakt, wird ihr Update gesendet, sobald die Bearbeitung genehmigt ist, und nie, wenn die Bearbeitung abgelehnt oder zurückgezogen wird.
+
+Ein Statuswechsel, der mit einer öffentlichen Notiz gesendet wird, die auf Genehmigung wartet, wird nicht von der Notiz getragen: Der Statuswechsel benachrichtigt die Abonnenten selbst, wie er es ohne Notiz täte, und die Notiz folgt, sobald sie veröffentlicht ist.
+
 ## Die Sprache der Nachrichten an Abonnenten
 
 Jeder Abonnent wird in seiner eigenen Sprache angeschrieben: die E-Mail oder SMS, die das Abonnement bestätigt, die Begrüßung und der Link zum Verwalten, jede Benachrichtigung über einen Vorfall, eine Vorfall-Episode, ein geplantes Wartungsereignis oder eine Ankündigung, per E-Mail, SMS, Slack und Microsoft Teams, und der E-Mail-Bericht.

@@ -22,7 +22,8 @@ export interface ComponentProps {
  * and what it costs), then what OneUptime AI did and may
  * do in it, what changed in it - in the cloud (Changes) and in OneUptime
  * (Feed: its Cloud AI agent, and who changed what AI may do) - its own
- * settings, its API pages and, last, deleting it.
+ * settings, its API pages, who changed it in OneUptime (Audit Logs) and,
+ * last, deleting it.
  */
 const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -162,6 +163,16 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
       })}
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
         <SideMenuItem
           link={{
             title: "Delete Account",

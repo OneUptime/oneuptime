@@ -5,6 +5,8 @@ import NetworkSiteAssignmentRule from "../../../Models/DatabaseModels/NetworkSit
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import UserType from "../../../Types/UserType";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { SiteAssignmentRuleRunResult } from "../../../Types/NetworkAutomation/RuleRunResult";
 import { describe, expect, it, afterEach } from "@jest/globals";
 
@@ -151,6 +153,7 @@ function run(
     ruleId?: ObjectID | undefined;
     projectId?: ObjectID | undefined;
     reassignDevicesAlreadyInASite?: boolean | undefined;
+    props?: DatabaseCommonInteractionProps | undefined;
   } = {},
 ): Promise<SiteAssignmentRuleRunResult> {
   return NetworkDeviceService.applySiteAssignmentRuleToExistingDevices({
@@ -158,6 +161,7 @@ function run(
     projectId: overrides.projectId || PROJECT_ID,
     reassignDevicesAlreadyInASite:
       overrides.reassignDevicesAlreadyInASite ?? false,
+    props: overrides.props,
   });
 }
 
@@ -272,6 +276,44 @@ describe("NetworkDeviceService.applySiteAssignmentRuleToExistingDevices", () => 
       await run();
 
       expect(updateSpy.mock.calls[0]![0].props).toEqual({ isRoot: true });
+    });
+
+    /*
+     * Whoever ran the rule moved the devices (issue #6300's family): each
+     * device is written on their behalf, as root still - the run's
+     * permission was asked at the route - so the audit log credits them,
+     * not System, and nothing of what they may do rides along.
+     */
+    it("moves each device on the behalf of whoever ran the rule", async () => {
+      mockRules([fakeRule({ subnetCidr: "10.0.5.0/24" })]);
+      mockDevices([
+        fakeDevice({ index: 0, hostname: "10.0.5.9" }),
+        fakeDevice({ index: 1, hostname: "10.0.5.10" }),
+      ]);
+      const updateSpy: jest.SpyInstance = mockUpdate();
+      const runnerId: ObjectID = new ObjectID(
+        "77777777-7777-4777-8777-777777777777",
+      );
+
+      await run({
+        props: {
+          tenantId: PROJECT_ID,
+          userId: runnerId,
+          userType: UserType.User,
+          userTenantAccessPermission: {},
+          isMasterAdmin: false,
+        },
+      });
+
+      expect(updateSpy).toHaveBeenCalledTimes(2);
+
+      for (const call of updateSpy.mock.calls) {
+        expect((call as Array<{ props: unknown }>)[0]!.props).toEqual({
+          isRoot: true,
+          userId: runnerId,
+          userType: UserType.User,
+        });
+      }
     });
 
     it("leaves a device no criterion matches alone", async () => {

@@ -41,6 +41,13 @@ export const NEVER_ROLLED_UP_EVENT_TYPES: ReadonlySet<NotificationSettingEventTy
      * three-minute warning would arrive after the target it warns of.
      */
     NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
+    /*
+     * A public note waiting for the person's approval: it is published only
+     * once somebody approves it, and the customers it is written for are
+     * waiting for it - often in the middle of an incident. Held back five
+     * minutes, the update would reach them five minutes late.
+     */
+    NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
   ]);
 
 /*

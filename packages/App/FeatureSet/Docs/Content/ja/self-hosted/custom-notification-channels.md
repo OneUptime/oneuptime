@@ -79,6 +79,7 @@ flowchart TB
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ flowchart TB
 | `recordType`、`record` | 呼び出しの対象: `incident`、`alert`、`incidentEpisode`、`alertEpisode` のいずれか |
 | `onCallPolicy`、`escalationRule` | 呼び出したポリシーとレベル |
 | `isPageAgain` | レコードがしばらく前に確認され、まだ解決していない場合は `true` |
+| `isObserverPage` | オブザーバーとして呼び出された場合は `true`。ほかの人が対応する間、状況を知らされます。呼び出しを確認しても、見たことを示すだけです |
 | `actions` | [呼び出しに対応する](#呼び出しに対応する) ためにサービスが呼び出すリンク |
 
 複数の人への呼び出しは、人ごとに 1 つのリクエストになり、それぞれにその人専用のリンクが付きます。これで OneUptime は誰が応答したかを把握できます。タイトル、メッセージ、説明は合計で 16,384 文字までに収められます。それより長い説明は切り詰められ、末尾が「… (truncated — see OneUptime for the full text)」になります。
@@ -170,6 +172,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

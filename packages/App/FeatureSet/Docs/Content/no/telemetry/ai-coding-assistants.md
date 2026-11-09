@@ -83,7 +83,7 @@ På et datapunkt for en måling er listen kortere og begynner med e-posten, ford
 
 | Kolonne | Nøkler, den foretrukne først |
 | --- | --- |
-| Ansatt | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Ansatt | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Team / kostnadssted | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Modell | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime leser også tokens fra `gen_ai.client.token.usage`, `gen_ai.client.tok
 To ting å vite før du leser tallene:
 
 - **`gemini_cli.token.usage` er utelatt med vilje.** Gemini CLI sender tokens to ganger, som sin egen måling og som `gen_ai.client.token.usage`, og å lese begge ville doble dem. Tokens telles én gang, gjennom `gen_ai.client.token.usage`. Gemini CLI sender ingen kostnadsmåling: slå på traces for at hvert kall skal bli priset.
-- **Bare input- og outputtokens telles.** Tokentypen leses fra `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` eller `token_type`, og bare `input` og `output` (eller de eldre `prompt` og `completion`) teller. Cachelesing og -skriving, Codex' `total` (som gjentar de andre) og `reasoning_output` (en del av `output`) utelates, så en total fra målinger er mindre enn summen av alt et verktøy sender.
+- **Bare input- og outputtokens telles.** Tokentypen leses fra `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` eller `token_type`, og bare `input` og `output` (eller de eldre `prompt` og `completion`) teller, med Claude Codes `cacheRead` og `cacheCreation` som input, siden dets `input` utelater dem. Annen cachelesing og -skriving, Codex' `total` (som gjentar de andre) og `reasoning_output` (en del av `output`) utelates, så en total fra målinger er mindre enn summen av alt et verktøy sender.
 
 ## Fanen Forbruk
 
@@ -188,7 +188,7 @@ Codex sender også målingene sine til OpenAI som standard: se [OpenAI Codex](/d
 
 ## Hva OneUptime ikke gjør ennå
 
-- **Ingen administrasjonskoblinger mot kodeverktøy.** OneUptime leser kontoene hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI bak verktøyene ([Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts)), men ikke Cursors Admin API, GitHubs Copilot-fakturering eller API-ene til Windsurf eller JetBrains.
+- **Ingen administrasjonskoblinger mot kodeverktøy, bortsett fra Cursors.** OneUptime leser kontoene hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI bak verktøyene, og et Cursor-teams Admin API ([Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts)), men ikke GitHubs Copilot-fakturering eller API-ene til Windsurf eller JetBrains.
 - **Kostnad er et anslag med mindre et verktøy rapporterer den.** En rapportert kostnad brukes som den er; ellers priser OneUptime tokens etter listepriser. Cursors `cursor.cost.usage` er selv et anslag.
 - **Identitet på loggposter leses ikke.** Codex' `user.email`, som den bare sender på logger, knyttes ikke til forbruket.
 - **Cursors `cursor.user.email` leses ikke ennå**, så Cursor-brukere vises som heltallet `cursor.user.id`.
@@ -201,7 +201,7 @@ Rull ut i denne rekkefølgen; hvert steg er nyttig i seg selv. Bruk et prosjekt 
 
 1. **Gemini CLI**, hvis noen bruker det. Det sender `user.email` uten oppsett, så det viser tilordningen fungere hele veien. Slå på traces også: det sender ingen kostnadsmåling.
 2. **Claude Code**: én fil med administrerte innstillinger for flåten, `user.email` gratis, en ekte kostnadsmåling og godkjenningsrate, commits, pull requests og kodelinjer per utvikler.
-3. **Cursor**, med Enterprise-abonnementet: én skjerm i Cursors dashbord, ingen utviklermaskin berørt, selv om personer kommer inn som heltall.
+3. **Cursor**, med Enterprise-abonnementet: én skjerm i Cursors dashbord, ingen utviklermaskin berørt, selv om personer kommer inn som heltall. Med Teams-abonnementet, eller for det Cursor tok betalt per person, kobler du til administrator-API-nøkkelen som en [leverandørkonto](/docs/telemetry/ai-provider-accounts#cursor), med eller uten eksporten.
 4. **Copilot og Codex**, som begge trenger en identitet satt på hver maskin. Gjør det når du klargjør maskiner: kall som kom inn uten, kan ikke tilordnes i ettertid.
 5. **En LiteLLM-gateway** for alt annet, med én virtuell nøkkel per ansatt.
 

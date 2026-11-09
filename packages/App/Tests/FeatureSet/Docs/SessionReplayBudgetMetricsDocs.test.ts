@@ -1277,8 +1277,12 @@ describe("Session replay storage budget alerts docs", (): void => {
         "Common/Server/Services/TelemetryUsageBillingService.ts",
       );
 
+      /*
+       * The session replay series lead the exclusion list; since #5917 the
+       * telemetry ingestion budget series follow them in the same list.
+       */
       expect(billing).toMatch(
-        /TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES:\s*ReadonlyArray<string>\s*=\s*SessionReplayBudgetMetricTypeUtil\.getAll\(\)/,
+        /TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES:\s*ReadonlyArray<string>\s*=\s*\[\s*\.\.\.SessionReplayBudgetMetricTypeUtil\.getAll\(\)/,
       );
       expect(billing).toMatch(
         /excludeNames:[^\n]*TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES/,

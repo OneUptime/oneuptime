@@ -53,7 +53,7 @@ Een openbaar dashboard:
 
 Behandel het delen van een dashboard als het publiceren van een webpagina. Elke widget erop wordt leesbaar voor iedereen met de link. Kijk wat er op het canvas staat voordat je het deelt.
 
-Elke widget publiceert alleen wat hij tekent, en alleen voor de resources waarop hij is ingesteld. Een SLO-widget publiceert bijvoorbeeld de kerncijfers van die SLO, maar nooit de definitie: zie [SLO](/docs/dashboards/widgets#slo). Widgets met een externe **Data Source** zijn de uitzondering: die worden helemaal uit een openbaar dashboard weggelaten in plaats van weergegeven, omdat hun configuratie de query zelf is. Nog een paar widgets kunnen niet worden weergegeven zonder aangemelde sessie, en melden dat op hun plek: [Op een openbaar dashboard](/docs/dashboards/widgets#op-een-openbaar-dashboard) noemt ze.
+Elke widget publiceert alleen wat hij tekent, en alleen voor de resources waarop hij is ingesteld. Een SLO-widget publiceert bijvoorbeeld de kerncijfers van die SLO, maar nooit de definitie: zie [SLO](/docs/dashboards/widgets#slo). Widgets met een externe **Data Source** zijn de uitzondering: die worden helemaal uit een openbaar dashboard weggelaten in plaats van weergegeven, omdat hun configuratie de query zelf is. Nog een paar widgets kunnen niet worden weergegeven zonder aangemelde sessie, en melden dat op hun plek: [Op een openbaar dashboard](/docs/dashboards/widgets#op-een-openbaar-dashboard) noemt ze. Ze publiceren alleen hun titel, nooit de zoekopdrachten en filters waarmee ze hun gegevens lezen. Ook variabelen publiceren alleen wat hun keuzelijsten tonen: de query van een oude queryvariabele wordt nooit gepubliceerd.
 
 ## Delen met een wachtwoord
 

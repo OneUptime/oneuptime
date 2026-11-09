@@ -12,7 +12,6 @@ import {
   getHostCollectorServiceCommands,
 } from "Common/Utils/HostCollector/HostCollectorInstallCommand";
 import {
-  translatableTerm,
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -42,7 +41,10 @@ import { shellQuote } from "../SetupGuide/SetupGuide";
  *
  * Fixed titles and descriptions are English translation keys the card
  * translates where it draws them; a sentence with a value in it is filled
- * here, in the reader's language, from a whole-sentence template.
+ * here, in the reader's language, from a whole-sentence template. What is
+ * said about the resource itself ("Connect this cluster", "the cluster
+ * switches to Connected") is a whole sentence for each kind of resource,
+ * never one with the resource's noun put in (see the guide's setupCopy).
  */
 
 export interface ResourceConnectionGuideStep {
@@ -52,11 +54,34 @@ export interface ResourceConnectionGuideStep {
   code?: string | undefined;
 }
 
+// A title and the sentence under it: English translation keys.
+export interface ResourceConnectionCopy {
+  title: string;
+  description: string;
+}
+
 export interface ResourceConnectionGuide {
-  // What the resource is called in running text: "cluster", "Docker host" ...
-  resourceNoun: string;
   // What sends its data: "OneUptime Kubernetes Agent" ...
   agentName: string;
+  /*
+   * What the card says while nothing has ever arrived - "Connect this
+   * cluster", and why it reads Disconnected - and once data has stopped -
+   * "This cluster stopped sending data", and when OneUptime last heard
+   * from it. {{agentName}} is agentName; {{lastHeard}} is when data last
+   * arrived ("3 hours ago").
+   *
+   * Whole sentences, a set for each kind of resource, never one with the
+   * resource's noun put in ("Connect this {{resourceNoun}}"). In most of
+   * the Dashboard's languages "this" and "a different" take the noun's
+   * gender and case - "dieser Cluster", "diese Cloud", "von diesem
+   * Speicher-Array"; "ce cluster", "cette flotte", "cet hôte" - and
+   * Swedish and Norwegian put the noun itself in its definite form ("det
+   * här klustret"), so no one wording of "this {{resourceNoun}}" fits every
+   * noun, and those languages had kept such sentences in English (issue
+   * #6308). Each language words each kind's sentences for its own noun.
+   */
+  setupCopy: ResourceConnectionCopy;
+  stoppedCopy: ResourceConnectionCopy;
   // Shown while nothing has ever arrived.
   setupSteps: Array<ResourceConnectionGuideStep>;
   // Shown once data has arrived before and then stopped.
@@ -72,6 +97,32 @@ export interface ResourceConnectionGuide {
     | {
         title: string;
         description: string;
+      }
+    | undefined;
+  /*
+   * For a resource that sends data only while it is used - a RUM
+   * application, whose data comes from its visitors' browsers and phones,
+   * and a serverless function, which sends data only while it runs. A
+   * stretch with nothing arriving is then the resource being idle, not
+   * broken, and its pill says "No recent traffic" or "No recent
+   * invocations" rather than "Disconnected" (issues #6191, #6269). The
+   * card says so too: in grey, with when data last arrived, and with the
+   * troubleshooting steps folded behind `checksLabel` for when it should
+   * be busy. Before its first data the card asks for the setup with
+   * `waitingDescription`, which does not call it "Disconnected" (its pill
+   * says "Waiting for data"). English translation keys; {{lastHeard}} in
+   * the description is when data last arrived ("3 hours ago"). Whole
+   * sentences about the resource, with no noun put in: a language words
+   * "this application" its own way. The card says these in place of
+   * setupCopy's description and stoppedCopy, which such a guide gives the
+   * same keys.
+   */
+  idleCopy?:
+    | {
+        title: string;
+        description: string;
+        checksLabel: string;
+        waitingDescription: string;
       }
     | undefined;
   // What the card's link says: "Open the setup guide" when left out.
@@ -142,24 +193,25 @@ const PICK_INGESTION_KEY_STEP: ResourceConnectionGuideStep = {
     "Open the setup guide and choose an ingestion key, or create one there. The commands on that page are filled in with the key and your OneUptime URL.",
 };
 
+/*
+ * The last setup step. Its description is one key for each kind of
+ * resource, with what to check if nothing comes, ending in a colon when the
+ * step's command is that check: "Refresh this page after a few minutes —
+ * the cluster switches to Connected once its first data arrives. If it does
+ * not, check that the agent pods are Running:". One key, not two sentences
+ * joined with a space, which Japanese and Chinese do not put between theirs.
+ */
 const waitForDataStep: (
-  resourceNoun: string,
-  check?: { description: string; code: string } | undefined,
+  description: string,
+  code?: string | undefined,
 ) => ResourceConnectionGuideStep = (
-  resourceNoun: string,
-  check?: { description: string; code: string } | undefined,
+  description: string,
+  code?: string | undefined,
 ): ResourceConnectionGuideStep => {
-  const waitSentence: string = translateTemplate(
-    "Refresh this page after a few minutes — the {{resourceNoun}} switches to Connected once its first data arrives.",
-    { resourceNoun: translatableTerm(resourceNoun, { inSentence: true }) },
-  );
-
   return {
     title: "Wait for the first data",
-    description: check
-      ? `${waitSentence} ${translateTemplate(check.description)}`
-      : waitSentence,
-    code: check?.code,
+    description: description,
+    code: code,
   };
 };
 
@@ -167,6 +219,154 @@ const waitForDataStep: (
 const EXPORT_ERRORS_DESCRIPTION: string = translationKey(
   "Look for export errors. A 401 means the ingestion key was deleted or changed; a connection error means it cannot reach OneUptime.",
 );
+
+// ---- what the card says about each kind of resource -------------------------
+
+// The card's sentences about one kind of resource (the guide's setupCopy).
+interface ResourceKindCopy {
+  setupCopy: ResourceConnectionCopy;
+  stoppedCopy: ResourceConnectionCopy;
+}
+
+// A Kubernetes, Docker Swarm, Proxmox or Ceph cluster.
+const CLUSTER_COPY: ResourceKindCopy = {
+  setupCopy: {
+    title: translationKey("Connect this cluster"),
+    description: translationKey(
+      "No data has arrived from this cluster yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+    ),
+  },
+  stoppedCopy: {
+    title: translationKey("This cluster stopped sending data"),
+    description: translationKey(
+      "OneUptime last heard from this cluster {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+    ),
+  },
+};
+
+const DOCKER_HOST_COPY: ResourceKindCopy = {
+  setupCopy: {
+    title: translationKey("Connect this Docker host"),
+    description: translationKey(
+      "No data has arrived from this Docker host yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+    ),
+  },
+  stoppedCopy: {
+    title: translationKey("This Docker host stopped sending data"),
+    description: translationKey(
+      "OneUptime last heard from this Docker host {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+    ),
+  },
+};
+
+const PODMAN_HOST_COPY: ResourceKindCopy = {
+  setupCopy: {
+    title: translationKey("Connect this Podman host"),
+    description: translationKey(
+      "No data has arrived from this Podman host yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+    ),
+  },
+  stoppedCopy: {
+    title: translationKey("This Podman host stopped sending data"),
+    description: translationKey(
+      "OneUptime last heard from this Podman host {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+    ),
+  },
+};
+
+// An OpenStack cloud.
+const CLOUD_COPY: ResourceKindCopy = {
+  setupCopy: {
+    title: translationKey("Connect this cloud"),
+    description: translationKey(
+      "No data has arrived from this cloud yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+    ),
+  },
+  stoppedCopy: {
+    title: translationKey("This cloud stopped sending data"),
+    description: translationKey(
+      "OneUptime last heard from this cloud {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+    ),
+  },
+};
+
+const STORAGE_ARRAY_COPY: ResourceKindCopy = {
+  setupCopy: {
+    title: translationKey("Connect this storage array"),
+    description: translationKey(
+      "No data has arrived from this storage array yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+    ),
+  },
+  stoppedCopy: {
+    title: translationKey("This storage array stopped sending data"),
+    description: translationKey(
+      "OneUptime last heard from this storage array {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+    ),
+  },
+};
+
+const VCENTER_COPY: ResourceKindCopy = {
+  setupCopy: {
+    title: translationKey("Connect this vCenter"),
+    description: translationKey(
+      "No data has arrived from this vCenter yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+    ),
+  },
+  stoppedCopy: {
+    title: translationKey("This vCenter stopped sending data"),
+    description: translationKey(
+      "OneUptime last heard from this vCenter {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+    ),
+  },
+};
+
+// A host with an OpenTelemetry Collector, or the collector OneUptime installed.
+const HOST_COPY: ResourceKindCopy = {
+  setupCopy: {
+    title: translationKey("Connect this host"),
+    description: translationKey(
+      "No data has arrived from this host yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+    ),
+  },
+  stoppedCopy: {
+    title: translationKey("This host stopped sending data"),
+    description: translationKey(
+      "OneUptime last heard from this host {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+    ),
+  },
+};
+
+// An IoT fleet.
+const FLEET_COPY: ResourceKindCopy = {
+  setupCopy: {
+    title: translationKey("Connect this fleet"),
+    description: translationKey(
+      "No data has arrived from this fleet yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+    ),
+  },
+  stoppedCopy: {
+    title: translationKey("This fleet stopped sending data"),
+    description: translationKey(
+      "OneUptime last heard from this fleet {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+    ),
+  },
+};
+
+// A cloud environment (an app platform's cluster, account and region).
+const ENVIRONMENT_COPY: ResourceKindCopy = {
+  setupCopy: {
+    title: translationKey("Connect this environment"),
+    description: translationKey(
+      "No data has arrived from this environment yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+    ),
+  },
+  stoppedCopy: {
+    title: translationKey("This environment stopped sending data"),
+    description: translationKey(
+      "OneUptime last heard from this environment {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+    ),
+  },
+};
 
 // ---- Kubernetes ------------------------------------------------------------
 
@@ -178,7 +378,7 @@ export const getKubernetesClusterConnectionGuide: (
   const podsCommand: string = `kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE}`;
 
   return {
-    resourceNoun: translationKey("cluster"),
+    ...CLUSTER_COPY,
     agentName: "OneUptime Kubernetes Agent",
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
@@ -188,10 +388,12 @@ export const getKubernetesClusterConnectionGuide: (
           "Run the helm install command from the setup guide against this cluster. Keep clusterName exactly as below so the data lands on this cluster:",
         code: `--set clusterName=${quoteForShell(clusterIdentifier)}`,
       },
-      waitForDataStep("cluster", {
-        description: "If it does not, check that the agent pods are Running:",
-        code: podsCommand,
-      }),
+      waitForDataStep(
+        translationKey(
+          "Refresh this page after a few minutes — the cluster switches to Connected once its first data arrives. If it does not, check that the agent pods are Running:",
+        ),
+        podsCommand,
+      ),
     ],
     troubleshootingSteps: [
       {
@@ -220,11 +422,20 @@ export const getKubernetesClusterConnectionGuide: (
 
 interface ContainerHostAgent {
   runtimeName: string; // "Docker"
-  // What the host is called in running text: "Docker host".
-  resourceNoun: string;
   cli: string; // "docker"
   containerName: string; // "oneuptime-docker-agent"
   hostNameVariable: string; // "DOCKER_HOST_NAME"
+  // What the card says about this kind of host.
+  copy: ResourceKindCopy;
+  /*
+   * The steps' sentences about this kind of host, whole: the install step
+   * ("... so the data lands on this Docker host:", with {{cli}} and
+   * {{variable}}), the wait step, and the host name check ({{variable}}
+   * and {{hostName}}).
+   */
+  installDescription: string;
+  waitDescription: string;
+  hostNameDescription: string;
 }
 
 const getContainerHostConnectionGuide: (
@@ -234,30 +445,22 @@ const getContainerHostConnectionGuide: (
   agent: ContainerHostAgent,
   hostIdentifier: string,
 ): ResourceConnectionGuide => {
-  const resourceNoun: string = agent.resourceNoun;
   const psCommand: string = `${agent.cli} ps --filter name=${agent.containerName}`;
 
   return {
-    resourceNoun: resourceNoun,
+    ...agent.copy,
     agentName: `OneUptime ${agent.runtimeName} Agent`,
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
       {
         title: `Run the agent on this host`,
-        description: translateTemplate(
-          "Run the {{cli}} run command from the setup guide on this host. Set {{variable}} as below so the data lands on this {{resourceNoun}}:",
-          {
-            cli: agent.cli,
-            variable: agent.hostNameVariable,
-            resourceNoun: translatableTerm(resourceNoun, { inSentence: true }),
-          },
-        ),
+        description: translateTemplate(agent.installDescription, {
+          cli: agent.cli,
+          variable: agent.hostNameVariable,
+        }),
         code: `-e ${agent.hostNameVariable}=${quoteForShell(hostIdentifier)}`,
       },
-      waitForDataStep(resourceNoun, {
-        description: "If it does not, check the agent container is up:",
-        code: psCommand,
-      }),
+      waitForDataStep(agent.waitDescription, psCommand),
     ],
     troubleshootingSteps: [
       {
@@ -275,14 +478,10 @@ const getContainerHostConnectionGuide: (
       },
       {
         title: "Check the host name",
-        description: translateTemplate(
-          'The agent must still run with {{variable}}="{{hostName}}". A different name sends the data to a different {{resourceNoun}}.',
-          {
-            variable: agent.hostNameVariable,
-            hostName: hostIdentifier,
-            resourceNoun: translatableTerm(resourceNoun, { inSentence: true }),
-          },
-        ),
+        description: translateTemplate(agent.hostNameDescription, {
+          variable: agent.hostNameVariable,
+          hostName: hostIdentifier,
+        }),
       },
     ],
   };
@@ -296,10 +495,19 @@ export const getDockerHostConnectionGuide: (
   return getContainerHostConnectionGuide(
     {
       runtimeName: "Docker",
-      resourceNoun: translationKey("Docker host"),
       cli: "docker",
       containerName: "oneuptime-docker-agent",
       hostNameVariable: "DOCKER_HOST_NAME",
+      copy: DOCKER_HOST_COPY,
+      installDescription: translationKey(
+        "Run the {{cli}} run command from the setup guide on this host. Set {{variable}} as below so the data lands on this Docker host:",
+      ),
+      waitDescription: translationKey(
+        "Refresh this page after a few minutes — the Docker host switches to Connected once its first data arrives. If it does not, check the agent container is up:",
+      ),
+      hostNameDescription: translationKey(
+        'The agent must still run with {{variable}}="{{hostName}}". A different name sends the data to a different Docker host.',
+      ),
     },
     hostIdentifier,
   );
@@ -313,10 +521,19 @@ export const getPodmanHostConnectionGuide: (
   return getContainerHostConnectionGuide(
     {
       runtimeName: "Podman",
-      resourceNoun: translationKey("Podman host"),
       cli: "podman",
       containerName: "oneuptime-podman-agent",
       hostNameVariable: "PODMAN_HOST_NAME",
+      copy: PODMAN_HOST_COPY,
+      installDescription: translationKey(
+        "Run the {{cli}} run command from the setup guide on this host. Set {{variable}} as below so the data lands on this Podman host:",
+      ),
+      waitDescription: translationKey(
+        "Refresh this page after a few minutes — the Podman host switches to Connected once its first data arrives. If it does not, check the agent container is up:",
+      ),
+      hostNameDescription: translationKey(
+        'The agent must still run with {{variable}}="{{hostName}}". A different name sends the data to a different Podman host.',
+      ),
     },
     hostIdentifier,
   );
@@ -324,8 +541,81 @@ export const getPodmanHostConnectionGuide: (
 
 // ---- Compose-based agents: Swarm, Proxmox, Ceph, VMware, storage arrays ----
 
+/*
+ * What a Compose-based agent's card and steps say about the kind of
+ * resource it reports - a cluster, a cloud, a storage array, a vCenter -
+ * each a whole sentence (see the guide's setupCopy).
+ */
+interface ComposeResourceSentences {
+  copy: ResourceKindCopy;
+  // The wait step, ending with the check of the agent's container.
+  waitDescription: string;
+  // What the diagnostic script checks: "... the cluster name and the ingestion key ...".
+  diagnosticDescription: string;
+  // "Check the cluster name"
+  nameTitle: string;
+  // Its sentence, with the agent's {{variable}} and the resource's {{name}}.
+  nameDescription: string;
+}
+
+const COMPOSE_CLUSTER_SENTENCES: ComposeResourceSentences = {
+  copy: CLUSTER_COPY,
+  waitDescription: translationKey(
+    "Refresh this page after a few minutes — the cluster switches to Connected once its first data arrives. If it does not, check the agent container is up:",
+  ),
+  diagnosticDescription: translationKey(
+    "It checks the whole chain — the agent, what it scrapes, the cluster name and the ingestion key — and says what is wrong.",
+  ),
+  nameTitle: translationKey("Check the cluster name"),
+  nameDescription: translationKey(
+    '{{variable}} in the agent\'s .env must still be "{{name}}". A different name sends the data to a different cluster.',
+  ),
+};
+
+const OPENSTACK_CLOUD_SENTENCES: ComposeResourceSentences = {
+  copy: CLOUD_COPY,
+  waitDescription: translationKey(
+    "Refresh this page after a few minutes — the cloud switches to Connected once its first data arrives. If it does not, check the agent container is up:",
+  ),
+  diagnosticDescription: translationKey(
+    "It checks the whole chain — the agent, what it scrapes, the cloud name and the ingestion key — and says what is wrong.",
+  ),
+  nameTitle: translationKey("Check the cloud name"),
+  nameDescription: translationKey(
+    '{{variable}} in the agent\'s .env must still be "{{name}}". A different name sends the data to a different cloud.',
+  ),
+};
+
+const STORAGE_ARRAY_SENTENCES: ComposeResourceSentences = {
+  copy: STORAGE_ARRAY_COPY,
+  waitDescription: translationKey(
+    "Refresh this page after a few minutes — the storage array switches to Connected once its first data arrives. If it does not, check the agent container is up:",
+  ),
+  diagnosticDescription: translationKey(
+    "It checks the whole chain — the agent, what it scrapes, the storage array name and the ingestion key — and says what is wrong.",
+  ),
+  nameTitle: translationKey("Check the storage array name"),
+  nameDescription: translationKey(
+    '{{variable}} in the agent\'s .env must still be "{{name}}". A different name sends the data to a different storage array.',
+  ),
+};
+
+const VCENTER_SENTENCES: ComposeResourceSentences = {
+  copy: VCENTER_COPY,
+  waitDescription: translationKey(
+    "Refresh this page after a few minutes — the vCenter switches to Connected once its first data arrives. If it does not, check the agent container is up:",
+  ),
+  diagnosticDescription: translationKey(
+    "It checks the whole chain — the agent, what it scrapes, the vCenter name and the ingestion key — and says what is wrong.",
+  ),
+  nameTitle: translationKey("Check the vCenter name"),
+  nameDescription: translationKey(
+    '{{variable}} in the agent\'s .env must still be "{{name}}". A different name sends the data to a different vCenter.',
+  ),
+};
+
 interface ComposeAgent {
-  resourceNoun: string; // "cluster"
+  sentences: ComposeResourceSentences;
   agentName: string; // "OneUptime Proxmox Agent"
   containerName: string; // "oneuptime-proxmox-agent"
   nameVariable: string; // "PROXMOX_CLUSTER_NAME"
@@ -349,7 +639,7 @@ const getComposeAgentConnectionGuide: (
   const psCommand: string = `docker ps --filter name=${agent.containerName}`;
 
   return {
-    resourceNoun: agent.resourceNoun,
+    ...agent.sentences.copy,
     agentName: agent.agentName,
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
@@ -360,10 +650,7 @@ const getComposeAgentConnectionGuide: (
         }),
         code: formatEnvFileLine(agent.nameVariable, name),
       },
-      waitForDataStep(agent.resourceNoun, {
-        description: "If it does not, check the agent container is up:",
-        code: psCommand,
-      }),
+      waitForDataStep(agent.sentences.waitDescription, psCommand),
     ],
     troubleshootingSteps: [
       {
@@ -377,14 +664,7 @@ const getComposeAgentConnectionGuide: (
       agent.troubleshootScriptUrl
         ? {
             title: "Run the diagnostic script",
-            description: translateTemplate(
-              "It checks the whole chain — the agent, what it scrapes, the {{resourceNoun}} name and the ingestion key — and says what is wrong.",
-              {
-                resourceNoun: translatableTerm(agent.resourceNoun, {
-                  inSentence: true,
-                }),
-              },
-            ),
+            description: agent.sentences.diagnosticDescription,
             // Quoted when it needs to be: a placeholder address is no redirection.
             code: `curl -fsSL ${shellQuote(agent.troubleshootScriptUrl)} -o troubleshoot.sh && bash troubleshoot.sh`,
           }
@@ -394,21 +674,11 @@ const getComposeAgentConnectionGuide: (
             code: `docker logs ${agent.containerName} --tail 50`,
           },
       {
-        title: translateTemplate("Check the {{resourceNoun}} name", {
-          resourceNoun: translatableTerm(agent.resourceNoun, {
-            inSentence: true,
-          }),
+        title: agent.sentences.nameTitle,
+        description: translateTemplate(agent.sentences.nameDescription, {
+          variable: agent.nameVariable,
+          name: name,
         }),
-        description: translateTemplate(
-          '{{variable}} in the agent\'s .env must still be "{{name}}". A different name sends the data to a different {{resourceNoun}}.',
-          {
-            variable: agent.nameVariable,
-            name: name,
-            resourceNoun: translatableTerm(agent.resourceNoun, {
-              inSentence: true,
-            }),
-          },
-        ),
       },
     ],
   };
@@ -434,7 +704,7 @@ export const getDockerSwarmClusterConnectionGuide: (
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
-      resourceNoun: translationKey("cluster"),
+      sentences: COMPOSE_CLUSTER_SENTENCES,
       agentName: "OneUptime Docker Swarm Agent",
       containerName: "oneuptime-docker-swarm-agent",
       nameVariable: "DOCKER_SWARM_CLUSTER_NAME",
@@ -459,7 +729,7 @@ export const getProxmoxClusterConnectionGuide: (
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
-      resourceNoun: translationKey("cluster"),
+      sentences: COMPOSE_CLUSTER_SENTENCES,
       agentName: "OneUptime Proxmox Agent",
       containerName: "oneuptime-proxmox-agent",
       nameVariable: "PROXMOX_CLUSTER_NAME",
@@ -484,7 +754,7 @@ export const getOpenStackCloudConnectionGuide: (
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
-      resourceNoun: translationKey("cloud"),
+      sentences: OPENSTACK_CLOUD_SENTENCES,
       agentName: "OneUptime OpenStack Agent",
       containerName: "oneuptime-openstack-agent",
       nameVariable: "OPENSTACK_CLOUD_NAME",
@@ -509,7 +779,7 @@ export const getCephClusterConnectionGuide: (
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
-      resourceNoun: translationKey("cluster"),
+      sentences: COMPOSE_CLUSTER_SENTENCES,
       agentName: "OneUptime Ceph Agent",
       containerName: "oneuptime-ceph-agent",
       nameVariable: "CEPH_CLUSTER_NAME",
@@ -534,7 +804,7 @@ export const getStorageArrayConnectionGuide: (
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
-      resourceNoun: translationKey("storage array"),
+      sentences: STORAGE_ARRAY_SENTENCES,
       agentName: "OneUptime Storage Array Agent",
       containerName: "oneuptime-storage-array-agent",
       nameVariable: "STORAGE_ARRAY_NAME",
@@ -559,7 +829,7 @@ export const getVMwareVCenterConnectionGuide: (
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
-      resourceNoun: "vCenter",
+      sentences: VCENTER_SENTENCES,
       agentName: "OneUptime VMware Agent",
       containerName: "oneuptime-vmware-agent",
       nameVariable: "VMWARE_VCENTER_NAME",
@@ -650,7 +920,7 @@ const getManagedHostConnectionGuide: (
   const isStarting: boolean = isHostCollectorStillStarting(collector);
 
   return {
-    resourceNoun: translationKey("host"),
+    ...HOST_COPY,
     agentName: translationKey("OneUptime collector"),
     startingCopy: isStarting
       ? {
@@ -701,7 +971,7 @@ export const getHostConnectionGuide: (
   }
 
   return {
-    resourceNoun: translationKey("host"),
+    ...HOST_COPY,
     agentName: "OpenTelemetry Collector",
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
@@ -751,7 +1021,7 @@ export const getIoTFleetConnectionGuide: (
   const encoded: string = encodeResourceAttributeValue(fleetName);
 
   return {
-    resourceNoun: translationKey("fleet"),
+    ...FLEET_COPY,
     agentName: translationKey(
       "OpenTelemetry exporter on your devices or gateway",
     ),
@@ -763,7 +1033,11 @@ export const getIoTFleetConnectionGuide: (
           "Send OTLP from the OpenTelemetry SDK, a gateway collector or MQTT, as the setup guide shows. Every device's resource attributes must name this fleet:",
         code: `OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=${encoded},service.name=iot/${encoded}`,
       },
-      waitForDataStep("fleet"),
+      waitForDataStep(
+        translationKey(
+          "Refresh this page after a few minutes — the fleet switches to Connected once its first data arrives.",
+        ),
+      ),
     ],
     troubleshootingSteps: [
       {
@@ -815,7 +1089,7 @@ export const getCloudResourceConnectionGuide: (
     .join(",");
 
   return {
-    resourceNoun: translationKey("environment"),
+    ...ENVIRONMENT_COPY,
     agentName: translationKey("OpenTelemetry SDK or collector"),
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
@@ -825,7 +1099,11 @@ export const getCloudResourceConnectionGuide: (
           "Follow the setup guide for your platform: export OTLP to OneUptime with the cloud resource detector turned on. Its cloud attributes must match this environment:",
         code: attributes || undefined,
       },
-      waitForDataStep("environment"),
+      waitForDataStep(
+        translationKey(
+          "Refresh this page after a few minutes — the environment switches to Connected once its first data arrives.",
+        ),
+      ),
     ],
     troubleshootingSteps: [
       {
@@ -850,13 +1128,39 @@ export const getCloudResourceConnectionGuide: (
 
 // ---- RUM applications -------------------------------------------------------
 
+/*
+ * A RUM application's data comes from the people using the app, so fifteen
+ * minutes with nothing is usually nobody using it (RumApplicationStatus,
+ * issue #6191): the card says that, calmly, and keeps the checks for when
+ * people are using it one click away.
+ */
+export const RUM_APPLICATION_IDLE_COPY: NonNullable<
+  ResourceConnectionGuide["idleCopy"]
+> = {
+  title: translationKey("No traffic in the last 15 minutes"),
+  description: translationKey(
+    "OneUptime last heard from this application {{lastHeard}}. It sends data only while people use it, so this is normal when nobody is, such as overnight.",
+  ),
+  checksLabel: translationKey("What to check if people are using it"),
+  waitingDescription: translationKey(
+    "No data has arrived from this application yet. Set up the OpenTelemetry browser or mobile SDK — it takes a few minutes.",
+  ),
+};
+
 export const getRumApplicationConnectionGuide: (
   appIdentifier: string,
 ) => ResourceConnectionGuide = (
   appIdentifier: string,
 ): ResourceConnectionGuide => {
   return {
-    resourceNoun: translationKey("application"),
+    setupCopy: {
+      title: translationKey("Connect this application"),
+      description: RUM_APPLICATION_IDLE_COPY.waitingDescription,
+    },
+    stoppedCopy: {
+      title: RUM_APPLICATION_IDLE_COPY.title,
+      description: RUM_APPLICATION_IDLE_COPY.description,
+    },
     agentName: translationKey("OpenTelemetry browser or mobile SDK"),
     setupSteps: [
       {
@@ -870,8 +1174,17 @@ export const getRumApplicationConnectionGuide: (
           "Add the browser (or mobile) SDK from the setup guide to your app, with the browser resource detector on. Set service.name so the data lands on this application:",
         code: `service.name=${encodeResourceAttributeValue(appIdentifier)}`,
       },
-      waitForDataStep("application"),
+      /*
+       * Its data comes from a visit, so the step asks for one, and names
+       * the status the application's pill will switch to.
+       */
+      {
+        title: "Wait for the first data",
+        description:
+          "Open your app so it sends its first data, then refresh this page. The application switches to Receiving data.",
+      },
     ],
+    idleCopy: RUM_APPLICATION_IDLE_COPY,
     troubleshootingSteps: [
       {
         title: "Check the app is still instrumented",
@@ -896,6 +1209,25 @@ export const getRumApplicationConnectionGuide: (
 };
 
 // ---- Serverless functions ---------------------------------------------------
+
+/*
+ * A function sends data only while it runs, so fifteen minutes with
+ * nothing is usually nothing having invoked it (ServerlessFunctionStatus,
+ * issue #6269): the card says that, calmly, and keeps the checks for a
+ * function that should be running one click away.
+ */
+export const SERVERLESS_FUNCTION_IDLE_COPY: NonNullable<
+  ResourceConnectionGuide["idleCopy"]
+> = {
+  title: translationKey("No invocations in the last 15 minutes"),
+  description: translationKey(
+    "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.",
+  ),
+  checksLabel: translationKey("What to check if it should be running"),
+  waitingDescription: translationKey(
+    "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.",
+  ),
+};
 
 /*
  * `cloudPlatform` is the one the function reported. On Azure Functions the
@@ -925,7 +1257,14 @@ export const getServerlessFunctionConnectionGuide: (
       )}`;
 
   return {
-    resourceNoun: translationKey("function"),
+    setupCopy: {
+      title: translationKey("Connect this function"),
+      description: SERVERLESS_FUNCTION_IDLE_COPY.waitingDescription,
+    },
+    stoppedCopy: {
+      title: SERVERLESS_FUNCTION_IDLE_COPY.title,
+      description: SERVERLESS_FUNCTION_IDLE_COPY.description,
+    },
     agentName: "OpenTelemetry SDK",
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
@@ -936,12 +1275,17 @@ export const getServerlessFunctionConnectionGuide: (
           : "Add the OpenTelemetry SDK for its runtime and set the environment variables from the setup guide. faas.name must match this function:",
         code: attributes,
       },
+      /*
+       * Its data comes from an invocation, so the step asks for one, and
+       * names the status the function's pill will switch to.
+       */
       {
         title: "Deploy and invoke it",
         description:
-          "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes — it switches to Connected once the first data arrives.",
+          "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.",
       },
     ],
+    idleCopy: SERVERLESS_FUNCTION_IDLE_COPY,
     troubleshootingSteps: [
       {
         title: "Check it is being invoked",

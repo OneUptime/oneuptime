@@ -20,7 +20,7 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 | **Regole etichette** | Aggiunge etichette agli eventi che corrispondono.                 |
 | **Regole dei promemoria** | Ricorda l'evento ai proprietari a intervalli finché non è completato. |
 
-La sezione **Impostazioni** contiene **Stato evento**, trattato in [Stati della manutenzione](/docs/scheduled-maintenance/states), **Modelli di eventi**, trattato in [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario** e **Numerazione**. **Impostazioni del calendario** è trattato in [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#calendari-esterni), il resto più sotto.
+La sezione **Impostazioni** contiene **Stato evento**, trattato in [Stati della manutenzione](/docs/scheduled-maintenance/states), **Modelli di eventi**, trattato in [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates), poi **Modelli di note**, **Approvazione delle note pubbliche**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario** e **Numerazione**. **Impostazioni del calendario** è trattato in [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#calendari-esterni), il resto più sotto.
 
 La sezione **Area di lavoro** contiene le regole Slack e Microsoft Teams che pubblicano gli eventi nei canali. Vedere [Slack](/docs/workspace-connections/slack#regole-di-notifica) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams#regole-di-notifica).
 
@@ -93,6 +93,10 @@ Questi promemoria sono per il vostro team. I promemoria che gli iscritti delle v
 ### Modelli di note
 
 **Manutenzione programmata → Impostazioni → Modelli di note** contiene testi pronti per gli aggiornamenti sulla manutenzione. La scheda **Modelli di nota pubblica o privata per gli eventi di manutenzione programmata** li elenca; **Crea: Modello di nota per la manutenzione programmata** chiede un **Nome del modello**, una **Descrizione del modello** e la **Nota**. Un modello viene offerto quando qualcuno scrive una nota pubblica o privata su un evento e quando ne cambia lo stato, e il suo testo si può modificare prima della pubblicazione. A differenza dei modelli di nota degli incidenti, i modelli di nota della manutenzione non compilano variabili.
+
+### Approvazione delle note pubbliche
+
+**Manutenzione programmata → Impostazioni → Approvazione delle note pubbliche** fa approvare le note pubbliche degli eventi di manutenzione programmata prima che vengano pubblicate. Funziona come la pagina degli incidenti, con un proprio interruttore e propri passaggi: attivate **Richiedi l'approvazione prima che le note pubbliche vengano pubblicate** e scegliete chi approva in **Chi approva**. Così le note di manutenzione possono richiedere un'approvazione mentre quelle degli incidenti no, o essere approvate da altre persone. Solo **Proprietario del progetto** e **Amministratore del progetto** possono modificarla. Vedete [Approvazione delle note pubbliche](/docs/incidents/settings#approvazione-delle-note-pubbliche) per i passaggi e [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche) per che cosa fa una nota mentre attende.
 
 ### Campi personalizzati
 

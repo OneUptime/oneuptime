@@ -45,6 +45,7 @@ export enum CloudResourceViewTab {
   Documentation = "documentation",
   Settings = "settings",
   Owners = "owners",
+  AuditLogs = "audit-logs",
   Delete = "delete",
   DeveloperTerraform = "developer-terraform",
   DeveloperApi = "developer-api",
@@ -75,6 +76,7 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
   [CloudResourceViewTab.Documentation]: "documentation",
   [CloudResourceViewTab.Settings]: "settings",
   [CloudResourceViewTab.Owners]: "owners",
+  [CloudResourceViewTab.AuditLogs]: "audit-logs",
   [CloudResourceViewTab.Delete]: "delete",
   [CloudResourceViewTab.DeveloperTerraform]: "developer/terraform",
   [CloudResourceViewTab.DeveloperApi]: "developer/api",
@@ -114,6 +116,8 @@ export const ENVIRONMENT_VIEW_PAGES: Readonly<
   [CloudResourceViewTab.Settings]:
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS,
   [CloudResourceViewTab.Owners]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS,
+  [CloudResourceViewTab.AuditLogs]:
+    PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS,
   [CloudResourceViewTab.Delete]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE,
   [CloudResourceViewTab.DeveloperTerraform]: getDeveloperDocsPageKey(
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
@@ -161,6 +165,7 @@ export const RESOURCE_VIEW_PAGES: Readonly<
     PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION,
   [CloudResourceViewTab.Settings]: PageMap.CLOUD_RESOURCE_VIEW_SETTINGS,
   [CloudResourceViewTab.Owners]: PageMap.CLOUD_RESOURCE_VIEW_OWNERS,
+  [CloudResourceViewTab.AuditLogs]: PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS,
   [CloudResourceViewTab.Delete]: PageMap.CLOUD_RESOURCE_VIEW_DELETE,
   [CloudResourceViewTab.DeveloperTerraform]: getDeveloperDocsPageKey(
     PageMap.CLOUD_RESOURCE_VIEW,

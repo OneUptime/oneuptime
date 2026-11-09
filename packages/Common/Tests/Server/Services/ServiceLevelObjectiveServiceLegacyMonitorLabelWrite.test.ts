@@ -660,7 +660,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - a create carrying the d
     jest
       .spyOn(ServiceLevelObjectiveService, "updateOneById")
       .mockResolvedValue(1);
-    jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(null);
+    jest.spyOn(AlertSeverityService, "findBy").mockResolvedValue([]);
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(new ServiceLevelObjectiveBurnRateRule());

@@ -23,12 +23,21 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS]: new Route(`/admin/settings/host`),
 
   [PageMap.PROJECTS]: new Route(`/admin/projects`),
+  // Every project's telemetry usage, heaviest first.
+  [PageMap.TELEMETRY_USAGE]: new Route(`/admin/telemetry-usage`),
   [PageMap.PROJECT_VIEW]: new Route(`/admin/projects/${RouteParams.ModelID}`),
   [PageMap.PROJECT_SUBSCRIPTION]: new Route(
     `/admin/projects/${RouteParams.ModelID}/subscription`,
   ),
   [PageMap.PROJECT_SUPPORT]: new Route(
     `/admin/projects/${RouteParams.ModelID}/support`,
+  ),
+  [PageMap.PROJECT_TELEMETRY_USAGE]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/telemetry-usage`,
+  ),
+  // The project's own telemetry ingestion budgets, and today's usage of them.
+  [PageMap.PROJECT_INGESTION_BUDGETS]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/ingestion-budgets`,
   ),
   [PageMap.PROJECT_DELETE]: new Route(
     `/admin/projects/${RouteParams.ModelID}/delete`,
@@ -98,6 +107,10 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_API_KEY]: new Route(`/admin/settings/api-key`),
   [PageMap.SETTINGS_DATA_RETENTION]: new Route(
     `/admin/settings/data-retention`,
+  ),
+  // Every project's default telemetry ingestion budgets.
+  [PageMap.SETTINGS_INGESTION_BUDGETS]: new Route(
+    `/admin/settings/ingestion-budgets`,
   ),
 
   [PageMap.SEND_EMAIL]: new Route(`/admin/send-email`),

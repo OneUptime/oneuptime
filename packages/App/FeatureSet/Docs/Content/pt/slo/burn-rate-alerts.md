@@ -4,7 +4,7 @@ Os orçamentos de erros dizem onde você está; as regras de taxa de consumo diz
 
 :::cards
 - [Como uma regra decide](#como-uma-regra-decide-disparar): Duas janelas, ambas acima do limite.
-- [Regras padrão](#regras-padrão): Fast burn e Slow burn, ajustadas à janela do SLO.
+- [Regras padrão](#regras-padrão): Fast burn, Slow burn e Slow leak, ajustadas à janela do SLO.
 - [Criar uma regra](#criar-ou-editar-uma-regra): Cinco etapas na página Burn Rate Rules do SLO.
 - [Variáveis de modelo](#o-que-cada-alerta-e-incidente-diz): Escreva seus próprios títulos e descrições.
 :::
@@ -28,6 +28,8 @@ Com uma taxa de consumo de 1, você gasta o orçamento exatamente ao longo da ja
 
 A taxa de consumo não depende de quanto orçamento resta. Ela responde a "quão ruim está agora?", que é o que você precisa saber para decidir se aciona alguém.
 
+Para agir em vez disso conforme o orçamento que resta, por exemplo publicando só trabalho de confiabilidade quando resta um quarto dele, dê ao SLO uma [política de orçamento de erros](/docs/slo/error-budget-policy).
+
 ## Como uma regra decide disparar
 
 O OneUptime verifica cada regra de taxa de consumo habilitada a cada avaliação do SLO, a cada 5 minutos. Cada regra mede a taxa de consumo em duas janelas e só dispara quando as duas estão no limite dela ou acima:
@@ -46,18 +48,21 @@ flowchart TB
     short -->|"Sim"| fire["Gerar o alerta,<br/>declarar o incidente<br/>ou ambos"]
 ```
 
-Uma regra não pode disparar até o SLO ter uma janela longa completa de histórico de monitoramento: senão, a primeiríssima verificação com falha de um monitor, dividida por poucos minutos de histórico, daria uma taxa de consumo enorme. Então um SLO novo não pode disparar a regra **Fast burn** na primeira hora, nem a regra **Slow burn** nas primeiras seis. Se depois um SLO deixar de ter tanto histórico, por exemplo depois que seus monitores foram trocados por novos, a regra resolve o que abriu em vez de deixar pendurado. Uma regra também não dispara enquanto algum dos monitores do SLO está em uma manutenção programada: veja [Manutenção programada](#manutenção-programada).
+Uma regra não pode disparar até o SLO ter uma janela longa completa de histórico de monitoramento: senão, a primeiríssima verificação com falha de um monitor, dividida por poucos minutos de histórico, daria uma taxa de consumo enorme. Então um SLO novo não pode disparar a regra **Fast burn** na primeira hora, a regra **Slow burn** nas primeiras seis, nem a regra **Slow leak** nos primeiros três dias. Se depois um SLO deixar de ter tanto histórico, por exemplo depois que seus monitores foram trocados por novos, a regra resolve o que abriu em vez de deixar pendurado. Uma regra também não dispara enquanto algum dos monitores do SLO está em uma manutenção programada: veja [Manutenção programada](#manutenção-programada).
 
 ## Regras padrão
 
-Todo SLO novo recebe duas regras de taxa de consumo. Para uma janela de 30 dias:
+Todo SLO novo recebe três regras de taxa de consumo. Para uma janela de 30 dias:
 
 | Regra | Limite | Janela longa | Janela curta | Dispara quando |
 | --- | --- | --- | --- | --- |
 | **Fast burn** | 14.4× | 1 hora | 5 minutos | Cerca de 2% do orçamento é consumido em uma hora: acabaria em cerca de 2 dias. |
 | **Slow burn** | 6× | 6 horas | 30 minutos | Cerca de 5% do orçamento é consumido em seis horas: acabaria em cerca de 5 dias. |
+| **Slow leak** | 1× | 3 dias | 6 horas | Cerca de 10% do orçamento é consumido em três dias: acabaria até o fim da janela. |
 
-Os limites de 14.4× e 6× são calculados para um orçamento de 30 dias, então o OneUptime os ajusta à janela do seu SLO. Cada regra sempre significa "2% do orçamento em 1 hora" ou "5% do orçamento em 6 horas":
+Fast burn e Slow burn são acionamentos: geram um alerta com a severidade de alerta mais alta do projeto. Slow leak é um ticket: gera seu alerta com a severidade de alerta mais baixa do projeto. Ela detecta um consumo constante que as outras duas nunca alcançam: com uma taxa de consumo de 3×, um orçamento de 99,9% acaba em 10 dias, e mesmo assim só Slow leak dispara. Depois que o alerta dela é resolvido, ela espera 24 horas, e não a sua janela longa de 3 dias, antes de gerar outro.
+
+Os limites são calculados para um orçamento de 30 dias, então o OneUptime os ajusta à janela do seu SLO. Fast burn e Slow burn sempre significam "2% do orçamento em 1 hora" e "5% do orçamento em 6 horas":
 
 | Janela do SLO | Limite de Fast burn | Limite de Slow burn |
 | --- | --- | --- |
@@ -66,7 +71,51 @@ Os limites de 14.4× e 6× são calculados para um orçamento de 30 dias, então
 | 30 dias | 14.4× | 6× |
 | 90 dias | 43.2× | 18× |
 
-SLOs de mês do calendário recebem os valores de 30 dias. As duas regras geram um alerta com a severidade de alerta mais alta do projeto, com o título e a descrição padrão, resolvem-no automaticamente e não adicionam proprietários nem rótulos. Elas não declaram incidentes, então atualizar o OneUptime nunca começa a declarar incidentes por você. Edite-as, exclua-as ou adicione as suas.
+Slow leak sempre significa "10% do orçamento na sua janela longa". Em uma janela de 30 dias ou mais, as janelas dela continuam em 3 dias e 6 horas, e o limite cresce com a janela. Em uma janela mais curta, a janela longa dela é um décimo da janela do SLO e a curta, um doze avos da longa, então o limite continua em 1×. Se a janela longa continuasse em 3 dias, o limite cairia abaixo de 1× e a regra dispararia em um SLO que está a caminho de cumprir a meta.
+
+| Janela do SLO | Limite de Slow leak | Janela longa | Janela curta |
+| --- | --- | --- | --- |
+| 7 dias | 1× | 16.8 horas | 84 minutos |
+| 28 dias | 1× | 2.8 dias | 5.6 horas |
+| 30 dias | 1× | 3 dias | 6 horas |
+| 90 dias | 3× | 3 dias | 6 horas |
+
+SLOs de mês do calendário recebem os valores de 30 dias. As regras usam o título e a descrição padrão, resolvem seus alertas automaticamente e não adicionam proprietários nem rótulos. Nenhuma delas declara um incidente, então atualizar o OneUptime nunca começa a declarar incidentes por você. Edite-as, exclua-as ou adicione as suas.
+
+### Adicionar as regras recomendadas a um SLO existente
+
+SLOs criados antes de Slow leak existir têm só Fast burn e Slow burn: atualizar o OneUptime nunca adiciona uma regra que começaria a gerar alertas por conta própria. Enquanto faltar a um SLO uma das três regras padrão, a página **Regras de taxa de consumo** dele as nomeia em um aviso acima da tabela. Clique no botão **Adicionar regras recomendadas** do aviso para ver exatamente o que ele adiciona, ajustado à janela do SLO, e confirme. Ele só adiciona as regras que faltam, e clicar nele de novo não adiciona nada.
+
+Uma regra conta como já existente quando o SLO tem uma regra com o mesmo nome, ou uma com a mesma janela longa, esteja ela ligada ou desligada. Assim, uma regra padrão que você renomeou ou ajustou nunca é adicionada duas vezes. Para que o aviso deixe de oferecer uma regra padrão que você não quer, mantenha a regra e desabilite-a em vez de excluí-la. Você precisa de permissão para criar regras de taxa de consumo de SLO. Cada regra que o botão adiciona é publicada no feed do SLO e registrada nos registros de auditoria dele, como uma regra que você mesmo cria.
+
+### Adicioná-las a vários SLOs de uma vez
+
+Para dar as regras recomendadas a vários SLOs, comece pela lista de SLOs em vez da página de cada SLO.
+
+:::steps
+#### Selecionar os SLOs
+
+Abra **SLOs** e selecione os SLOs que quer atualizar. Para incluir todos os SLOs que um filtro mostra, selecione a página inteira e depois todas as correspondências que a lista oferece.
+
+#### Escolher Adicionar regras recomendadas
+
+Abra **Ações em massa** e escolha **Adicionar regras recomendadas**.
+
+#### Conferir o que será adicionado e confirmar
+
+Antes que qualquer coisa seja adicionada, a confirmação conta quantos dos SLOs selecionados recebem cada regra, ajustada à janela de cada um. Quando SLOs com janelas diferentes recebem uma regra em versões diferentes, como Slow leak em um SLO de 7 dias e em um de 30 dias, ela lista cada versão com o limite, as janelas e os SLOs que a recebem. Ela também diz quantos já têm todas as regras recomendadas e quantos não puderam ser lidos. Clique em **Adicionar regras recomendadas** para adicioná-las.
+:::
+
+Cada SLO recebe só as regras que lhe faltam, exatamente como a própria página **Regras de taxa de consumo** dele as adicionaria: a mesma verificação do que conta como já existente, e um item no feed e uma entrada nos registros de auditoria para cada regra. O resultado diz, para cada SLO, se regras foram adicionadas, se ele já tinha todas as regras recomendadas ou se ele não foi alterado e por quê, por exemplo um SLO que você não tem permissão para alterar. Um SLO que não é alterado nunca impede os outros, e executar a ação de novo nos mesmos SLOs não adiciona nada. SLOs arquivados não aparecem na lista e as regras nunca são oferecidas a eles, porque eles não são avaliados: desarquive o SLO primeiro.
+
+Scripts podem fazer o mesmo pela API, com uma [chave de API](/docs/api-reference/api-reference) do projeto. As requisições para um único SLO recebem `{ "serviceLevelObjectiveId": "..." }` e respondem com as regras em `rules`. As requisições em massa recebem `{ "serviceLevelObjectiveIds": ["..."] }`, no máximo 100 SLOs por requisição, e respondem com uma entrada para cada SLO em `results`, na ordem pedida:
+
+| Requisição | O que faz |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | Lista as regras recomendadas que faltam ao SLO. Não grava nada. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | Adiciona essas regras e lista o que adicionou. Pedir de novo não adiciona nada. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | Diz o que falta a cada SLO: `Missing` com as regras, `NothingMissing` ou `Refused` para um SLO que você não tem permissão para ler. Não grava nada. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | Adiciona o que falta a cada SLO, um SLO após o outro: `Added` com as regras, `NothingMissing`, `Refused` ou `Failed` com as regras adicionadas antes da falha. Pedir de novo só adiciona o que ainda falta. |
 
 ## Criar ou editar uma regra
 
@@ -108,7 +157,7 @@ Toda resposta a **Quando dispara** abre algo. A API recusa uma regra que não cr
 A tabela de regras mostra, para cada regra, o limite, as janelas e a supressão, o que ela declara (e se o alerta ou o incidente só se resolve à mão, ou é privado), as severidades, as políticas de plantão, os proprietários e os rótulos.
 
 > [!TIP]
-> Um bom ponto de partida: mantenha as duas regras padrão, envie a regra de consumo rápido para a política de plantão que aciona as pessoas, com severidade alta, e deixe a regra de consumo lento gerar um alerta de severidade mais baixa para o horário comercial. Se sua equipe trabalha com incidentes, escolha **Declarar um incidente** para a regra de consumo rápido, ou **Ambos** para receber também um alerta.
+> Um bom ponto de partida: mantenha as três regras padrão, envie a regra de consumo rápido para a política de plantão que aciona as pessoas, com severidade alta, deixe a regra de consumo lento gerar um alerta de severidade mais baixa para o horário comercial e deixe a regra de vazamento lento como um ticket para a equipe responsável. Se sua equipe trabalha com incidentes, escolha **Declarar um incidente** para a regra de consumo rápido, ou **Ambos** para receber também um alerta.
 
 ## O que uma regra declara
 
@@ -166,6 +215,9 @@ Para escrever os seus, use variáveis de modelo no título, na descrição e nas
 | `{{errorBudgetRemaining}}` | Orçamento de erros ainda disponível, como duração. Começa com um sinal de menos quando o orçamento foi ultrapassado. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | Orçamento de erros ainda disponível, em minutos. | `18.37` |
 | `{{windowDescription}}` | A janela de conformidade do SLO, por extenso. | `rolling 30-day window` |
+| `{{policyTier}}` | Nome do nível da política de orçamento de erros em que o SLO está após esta avaliação. "None" quando não está em nenhum nível. | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | Limite de orçamento restante desse nível, como porcentagem. Vazio quando o SLO não está em nenhum nível. | `25` |
+| `{{policyTierWhatWeDo}}` | O que a equipe combinou fazer nesse nível, como está escrito no nível. Vazio quando o SLO não está em nenhum nível. | `Only reliability work and critical fixes ship.` |
 
 Por exemplo, o título `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` vira `Fast burn: Checkout availability is burning 21.5x`.
 
@@ -191,7 +243,7 @@ Rótulos, equipes proprietárias e políticas de plantão precisam pertencer ao 
 
 - **A resolução segue a janela longa.** Com a resolução automática ligada (o padrão), o OneUptime resolve o alerta e o incidente de uma regra assim que a taxa de consumo da janela longa cai abaixo do limite. Resolver pela janela curta faria tudo oscilar: uma queda intermitente se resolveria depois de cinco minutos tranquilos e acionaria as pessoas de novo a noite inteira.
 - **Resolução automática desligada.** Desligue **Resolver alerta automaticamente** ou **Resolver incidente automaticamente** e esse registro fica aberto até alguém resolvê-lo, mesmo depois que o consumo se recuperou. A regra não abre outro por cima, e depois que ele é resolvido à mão e a janela longa está abaixo do limite, a regra pode disparar de novo após a supressão.
-- **Supressão de novos disparos.** Depois que um registro é resolvido, a regra não declara de novo esse tipo de registro durante o período de supressão, por padrão a duração da janela longa. Assim, um sistema em recuperação tem tempo de se recuperar sem acionar ninguém pelo ruído que sobra.
+- **Supressão de novos disparos.** Depois que um registro é resolvido, a regra não declara de novo esse tipo de registro durante o período de supressão, por padrão a duração da janela longa. Assim, um sistema em recuperação tem tempo de se recuperar sem acionar ninguém pelo ruído que sobra. Slow leak é criada com 24 horas em vez da sua janela longa de 3 dias, então um vazamento que volta é informado de novo no dia seguinte.
 
 Algumas mudanças sempre resolvem o que uma regra abriu, não importa o que digam as configurações de resolução automática dela, para que nada continue escalando por uma regra que não pode mais justificar isso:
 
@@ -212,7 +264,7 @@ O **Feed** do SLO publica cada alerta que uma regra gera e cada incidente que el
 ## Solução de problemas
 
 :::details Uma regra não disparou logo depois que o SLO foi criado
-Uma regra só dispara quando o SLO tem uma janela longa completa de histórico de monitoramento: uma hora para a regra de consumo rápido padrão, seis horas para a de consumo lento.
+Uma regra só dispara quando o SLO tem uma janela longa completa de histórico de monitoramento: uma hora para a regra de consumo rápido padrão, seis horas para a de consumo lento e três dias para a de vazamento lento, ou um décimo da janela do SLO quando ela tem menos de 30 dias.
 :::
 
 :::details Um alerta foi resolvido enquanto a queda continuava
@@ -231,6 +283,7 @@ Não para SLOs medidos pela disponibilidade dos monitores. A disponibilidade é 
 
 :::cards
 - [Orçamentos de erros](/docs/slo/error-budget): O que é o orçamento e quanto ele dura.
+- [Política de orçamento de erros](/docs/slo/error-budget-policy): Aja conforme o orçamento que resta, nível por nível.
 - [Regras de escalonamento](/docs/on-call/escalation-rules): Quem é acionado, e em que ordem.
 - [Feed e registros de auditoria de SLO](/docs/slo/feed-and-audit-logs): Cada alerta e incidente que uma regra gera.
 :::

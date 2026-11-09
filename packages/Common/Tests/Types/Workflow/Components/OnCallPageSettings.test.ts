@@ -31,7 +31,9 @@ import {
   readPageAbout,
   readPageIdList,
   readPageRecordId,
+  readPageAs,
 } from "../../../../Types/Workflow/Components/OnCallPageSettings";
+import OnCallPageAs from "../../../../Types/OnCallDutyPolicy/OnCallPageAs";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
@@ -56,6 +58,8 @@ describe("the stored ids of a Page step's settings never change", () => {
       alertSeverity: "alert-severity",
       incidentId: "incident-id",
       alertId: "alert-id",
+      // What they are paged as: responders or observers (OnCallPageAs).
+      pageAs: "page-as",
     });
   });
 
@@ -622,5 +626,36 @@ describe("as the workflow runner hands the settings over", () => {
         resolve("{{local.components.incident-on-create-1.returnValues.model}}"),
       ),
     ).toBe(A);
+  });
+});
+
+/*
+ * PAGE AS (OnCallPageAs): what the people a page step pages are asked to
+ * do. Empty is Responders, as every page step was before it had the
+ * setting; anything that is neither choice is null, for the step to say so.
+ */
+describe("readPageAs", () => {
+  test.each([
+    [undefined, OnCallPageAs.Responders],
+    [null, OnCallPageAs.Responders],
+    ["", OnCallPageAs.Responders],
+    ["   ", OnCallPageAs.Responders],
+    ["Responders", OnCallPageAs.Responders],
+    ["responders", OnCallPageAs.Responders],
+    ["Observers", OnCallPageAs.Observers],
+    [" OBSERVERS ", OnCallPageAs.Observers],
+  ])("%p is %p", (value: unknown, expected: OnCallPageAs) => {
+    expect(readPageAs(value)).toBe(expected);
+  });
+
+  test.each([["watchers"], [1], [true], [{}], [["Observers"]]])(
+    "%p is neither: null",
+    (value: unknown) => {
+      expect(readPageAs(value)).toBeNull();
+    },
+  );
+
+  test("its stored id never changes", () => {
+    expect(PAGE_ARGUMENT_IDS.pageAs).toBe("page-as");
   });
 });

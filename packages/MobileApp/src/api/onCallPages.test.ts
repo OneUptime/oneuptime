@@ -244,3 +244,138 @@ describe("toOnCallPageItem", () => {
     expect(toOnCallPageItem(42, PROJECT)).toBeNull();
   });
 });
+
+/*
+ * An observer's page (oncall/observerPage.ts) is told apart by its run,
+ * read through the page itself: onCallDutyPolicyExecutionLog.isObserverPage.
+ * A server older than observer pages - or than reading that through a page -
+ * refuses the whole list for asking (a bad request), and the list must still
+ * load: it is read again as it always was, every page a responder's.
+ */
+describe("an observer's page in the list", () => {
+  function axiosError(status: number): Error {
+    return Object.assign(new Error(`Request failed with status ${status}`), {
+      isAxiosError: true,
+      response: { status, data: {} },
+    });
+  }
+
+  function selectOf(call: Array<unknown>): Record<string, unknown> {
+    return (call[1] as { select: Record<string, unknown> }).select;
+  }
+
+  beforeEach(() => {
+    postSpy().mockReset();
+    postSpy().mockResolvedValue({ data: { data: [] } } as never);
+  });
+
+  test("asks for whether each page's run pages as observers", async () => {
+    await fetchMyOnCallPages(PROJECT);
+
+    expect(postSpy()).toHaveBeenCalledTimes(1);
+    expect(
+      selectOf(postSpy().mock.calls[0]!)["onCallDutyPolicyExecutionLog"],
+    ).toEqual({ _id: true, isObserverPage: true });
+  });
+
+  test("a page whose run pages as observers says so; a responder's says nothing", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        data: [
+          {
+            _id: "log-observer",
+            createdAt: "2026-03-03T12:00:00.000Z",
+            onCallDutyPolicyExecutionLog: {
+              _id: "run-1",
+              isObserverPage: true,
+            },
+            triggeredByIncident: { _id: "incident-9", title: "Replica lag" },
+          },
+          {
+            _id: "log-responder",
+            createdAt: "2026-03-03T11:00:00.000Z",
+            onCallDutyPolicyExecutionLog: {
+              _id: "run-2",
+              isObserverPage: false,
+            },
+            triggeredByIncident: { _id: "incident-9", title: "Replica lag" },
+          },
+          {
+            _id: "log-unread",
+            createdAt: "2026-03-03T10:00:00.000Z",
+            onCallDutyPolicyExecutionLog: { isObserverPage: "true" },
+            triggeredByIncident: { _id: "incident-9", title: "Replica lag" },
+          },
+        ],
+      },
+    } as never);
+
+    const pages: OnCallPageItem[] = await fetchMyOnCallPages(PROJECT);
+
+    expect(pages[0]?.isObserverPage).toBe(true);
+    expect(pages[1]).not.toHaveProperty("isObserverPage");
+    expect(pages[2]).not.toHaveProperty("isObserverPage");
+  });
+
+  test("an older server's refusal of the question loads the list as before, once more and without it", async () => {
+    postSpy()
+      .mockRejectedValueOnce(axiosError(400) as never)
+      .mockResolvedValueOnce({
+        data: {
+          data: [
+            {
+              _id: "log-1",
+              createdAt: "2026-03-03T12:00:00.000Z",
+              triggeredByIncident: { _id: "incident-9", title: "Replica lag" },
+            },
+          ],
+        },
+      } as never);
+
+    const pages: OnCallPageItem[] = await fetchMyOnCallPages(PROJECT);
+
+    expect(postSpy()).toHaveBeenCalledTimes(2);
+    expect(selectOf(postSpy().mock.calls[0]!)).toHaveProperty(
+      "onCallDutyPolicyExecutionLog",
+    );
+    expect(selectOf(postSpy().mock.calls[1]!)).not.toHaveProperty(
+      "onCallDutyPolicyExecutionLog",
+    );
+    // Everything else is asked for exactly as before.
+    expect(selectOf(postSpy().mock.calls[1]!)["onCallDutyPolicy"]).toEqual({
+      _id: true,
+      name: true,
+    });
+    expect(
+      pages.map((page: OnCallPageItem) => {
+        return page._id;
+      }),
+    ).toEqual(["log-1"]);
+    expect(pages[0]).not.toHaveProperty("isObserverPage");
+  });
+
+  test("any other failure - signed out, SSO, the server down, no signal - is not asked again: it is the list's error", async () => {
+    for (const error of [
+      axiosError(401),
+      axiosError(406),
+      axiosError(500),
+      new Error("Network Error"),
+    ]) {
+      postSpy().mockReset();
+      postSpy().mockRejectedValueOnce(error as never);
+
+      await expect(fetchMyOnCallPages(PROJECT)).rejects.toBe(error);
+      expect(postSpy()).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  test("a list refused without the question too is the list's error", async () => {
+    const second: Error = axiosError(400);
+    postSpy()
+      .mockRejectedValueOnce(axiosError(400) as never)
+      .mockRejectedValueOnce(second as never);
+
+    await expect(fetchMyOnCallPages(PROJECT)).rejects.toBe(second);
+    expect(postSpy()).toHaveBeenCalledTimes(2);
+  });
+});

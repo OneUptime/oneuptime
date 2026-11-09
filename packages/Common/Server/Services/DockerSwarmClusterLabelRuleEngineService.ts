@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
@@ -107,6 +109,7 @@ class DockerSwarmClusterLabelRuleEngineServiceClass
       return await this.applyRules({
         dockerSwarmCluster: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running DockerSwarm cluster label rules: ${error}`, {
@@ -122,6 +125,8 @@ class DockerSwarmClusterLabelRuleEngineServiceClass
   private async applyRules(data: {
     dockerSwarmCluster: DockerSwarmCluster;
     rules: Array<DockerSwarmClusterLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { dockerSwarmCluster, rules } = data;
 
@@ -212,11 +217,12 @@ class DockerSwarmClusterLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await DockerSwarmClusterService.getRepository()
-      .createQueryBuilder()
-      .relation(DockerSwarmCluster, "labels")
-      .of(dockerSwarmCluster.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: DockerSwarmClusterService,
+      resourceId: dockerSwarmCluster.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory dockerSwarmCluster.labels so a downstream owner-rule engine in

@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
@@ -99,6 +101,7 @@ class DockerHostLabelRuleEngineServiceClass
       return await this.applyRules({
         dockerHost: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running Docker host label rules: ${error}`, {
@@ -114,6 +117,8 @@ class DockerHostLabelRuleEngineServiceClass
   private async applyRules(data: {
     dockerHost: DockerHost;
     rules: Array<DockerHostLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { dockerHost, rules } = data;
 
@@ -200,11 +205,12 @@ class DockerHostLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await DockerHostService.getRepository()
-      .createQueryBuilder()
-      .relation(DockerHost, "labels")
-      .of(dockerHost.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: DockerHostService,
+      resourceId: dockerHost.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory dockerHost.labels so a downstream owner-rule engine in

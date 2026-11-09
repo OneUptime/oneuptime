@@ -81,6 +81,12 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
     suffix: "/settings",
     title: "Settings",
   },
+  {
+    key: "EXCEPTIONS_VIEW_AUDIT_LOGS",
+    section: "AuditLogs",
+    suffix: "/audit-logs",
+    title: "Audit Logs",
+  },
 ];
 
 describe("exception detail page wiring", () => {
@@ -117,7 +123,7 @@ describe("exception detail page wiring", () => {
     );
   });
 
-  test("mounts the seven pages beneath one exception layout", () => {
+  test("mounts the eight pages beneath one exception layout", () => {
     const routes: string = dense(
       readSource("Routes", "ExceptionsRoutes.tsx"),
     ).replace(/,\)/g, ")");
@@ -201,6 +207,7 @@ describe("exception detail page wiring", () => {
       ["Logs", ["<ExceptionLogs"]],
       ["AIAssistance", ["<ExceptionAIAssistance"]],
       ["Settings", ["<ExceptionSettings"]],
+      ["AuditLogs", ["<AuditLogsTable"]],
     ];
 
     const sectionStarts: Array<[string, number]> = expectations.map(

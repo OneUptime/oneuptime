@@ -86,7 +86,7 @@ OneUptime retrouve l'application par son `service.name`, sans tenir compte de la
 
 Les chiffres viennent des spans que votre instrumentation envoie. **Chargements de page** compte le span `documentLoad` que l'instrumentation de chargement de page enregistre à chaque chargement complet : un changement de route dans une application monopage n'est donc pas un chargement de page.
 
-Une application affiche **Connecté** tant que la télémétrie arrive, et **Déconnecté** après 15 minutes sans télémétrie. Le temps pendant lequel OneUptime lui-même était arrêté ou rattrapait sa file d'ingestion ne compte pas dans ces 15 minutes.
+Une application affiche **Reçoit des données** tant que la télémétrie arrive, et **Aucun trafic récent** après 15 minutes sans télémétrie, ce qui est normal tant que personne n'utilise l'application. Une application ajoutée à la main affiche **En attente de données** jusqu'à l'arrivée de ses premières données. Le temps pendant lequel OneUptime lui-même était arrêté ou rattrapait sa file d'ingestion ne compte pas dans ces 15 minutes.
 
 ## Bien démarrer
 

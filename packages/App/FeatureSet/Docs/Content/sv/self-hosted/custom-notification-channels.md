@@ -79,6 +79,7 @@ Varje larm är en `POST`-begäran med en JSON-body:
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ Varje larm är en `POST`-begäran med en JSON-body:
 | `recordType`, `record` | Vad larmet handlar om: en `incident`, `alert`, `incidentEpisode` eller `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | Policyn och nivån som larmade personen |
 | `isPageAgain` | `true` när posten bekräftades för en stund sedan och fortfarande inte är löst |
+| `isObserverPage` | `true` när personen larmas som observatör: hålls informerad medan andra hanterar den. Att bekräfta larmet betyder bara att de har sett det |
 | `actions` | Länkarna som din tjänst anropar för att [agera på larmet](#agera-på-ett-larm) |
 
 Ett larm till flera personer är en begäran per person, var och en med personens egna länkar, så att OneUptime vet vem som svarade. Titeln, meddelandet och beskrivningen får tillsammans vara högst 16 384 tecken; en längre beskrivning kortas och slutar med ”… (truncated — see OneUptime for the full text)”.
@@ -170,6 +172,7 @@ En avisering går till varje påslagen kanal, som en begäran per kanal, med `ev
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

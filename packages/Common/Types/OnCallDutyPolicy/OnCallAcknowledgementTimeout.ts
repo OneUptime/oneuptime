@@ -44,7 +44,32 @@
  * worker that pages again, the feed and the runs' chat messages), the
  * Dashboard and the docs tests. It imports nothing that needs a server or
  * React.
+ *
+ * The words a page again sends the person it pages are written in that
+ * person's language (Types/UserLanguage): each function that writes one
+ * takes the translator of their language, and writes English - exactly as
+ * it always has - without one. A call's words stay English: a call is
+ * spoken by a voice that speaks English.
  */
+
+import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "../Translator";
+
+// The translator of what nobody asked to read in another language: English.
+let englishTranslator: Translator | null = null;
+
+const getEnglishTranslator: () => Translator = (): Translator => {
+  if (!englishTranslator) {
+    englishTranslator = createTranslator(undefined, DEFAULT_LANGUAGE);
+  }
+
+  return englishTranslator;
+};
 
 // What "Page again" starts with in the Dashboard: half an hour.
 export const DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES: number = 30;
@@ -215,22 +240,36 @@ export function isOnCallPageAgainRun(
 
 /*
  * A timeout in words: "30 minutes", "1 hour", "1 hour 30 minutes",
- * "24 hours".
+ * "24 hours" - in `translator`'s language ("1 Stunde 30 Minuten").
  */
-export function describeOnCallAcknowledgementTimeout(minutes: number): string {
+export function describeOnCallAcknowledgementTimeout(
+  minutes: number,
+  translator: Translator = getEnglishTranslator(),
+): string {
   const whole: number = Math.max(0, Math.floor(minutes));
   const hours: number = Math.floor(whole / 60);
   const rest: number = whole % 60;
 
-  const minutesText: string = rest === 1 ? "1 minute" : `${rest} minutes`;
+  const minutesText: string = translator.translatePlural(
+    { one: "{{count}} minute", other: "{{count}} minutes" },
+    rest,
+  );
 
   if (hours === 0) {
     return minutesText;
   }
 
-  const hoursText: string = hours === 1 ? "1 hour" : `${hours} hours`;
+  const hoursText: string = translator.translatePlural(
+    { one: "{{count}} hour", other: "{{count}} hours" },
+    hours,
+  );
 
-  return rest === 0 ? hoursText : `${hoursText} ${minutesText}`;
+  return rest === 0
+    ? hoursText
+    : translator.translateTemplate("{{hours}} {{minutes}}", {
+        hours: hoursText,
+        minutes: minutesText,
+      });
 }
 
 // Which page again of how many, for a line about one: "1 of 5".
@@ -332,13 +371,108 @@ export function getOnCallPageAgainNoticeReason(
 }
 
 /*
+ * The words a page again writes for each kind of record, by the kind as a
+ * sentence names it ("incident", "alert", "incident episode", "alert
+ * episode"): each sentence whole, so a language words it for its own
+ * noun ("Diese Warnung", "Dieser Vorfall").
+ */
+interface PageAgainRecordWords {
+  headline: string;
+  emailLineInProjectAfter: string;
+  emailLineInProject: string;
+  emailLineAfter: string;
+  emailLine: string;
+}
+
+const PAGE_AGAIN_RECORD_WORDS: Readonly<Record<string, PageAgainRecordWords>> =
+  {
+    incident: {
+      headline: translationKey("Incident still not resolved"),
+      emailLineInProjectAfter: translationKey(
+        "This incident in the project {{project}} is still not resolved {{duration}} after it was acknowledged.",
+      ),
+      emailLineInProject: translationKey(
+        "This incident in the project {{project}} is still not resolved after it was acknowledged.",
+      ),
+      emailLineAfter: translationKey(
+        "This incident is still not resolved {{duration}} after it was acknowledged.",
+      ),
+      emailLine: translationKey(
+        "This incident is still not resolved after it was acknowledged.",
+      ),
+    },
+    alert: {
+      headline: translationKey("Alert still not resolved"),
+      emailLineInProjectAfter: translationKey(
+        "This alert in the project {{project}} is still not resolved {{duration}} after it was acknowledged.",
+      ),
+      emailLineInProject: translationKey(
+        "This alert in the project {{project}} is still not resolved after it was acknowledged.",
+      ),
+      emailLineAfter: translationKey(
+        "This alert is still not resolved {{duration}} after it was acknowledged.",
+      ),
+      emailLine: translationKey(
+        "This alert is still not resolved after it was acknowledged.",
+      ),
+    },
+    "incident episode": {
+      headline: translationKey("Incident episode still not resolved"),
+      emailLineInProjectAfter: translationKey(
+        "This incident episode in the project {{project}} is still not resolved {{duration}} after it was acknowledged.",
+      ),
+      emailLineInProject: translationKey(
+        "This incident episode in the project {{project}} is still not resolved after it was acknowledged.",
+      ),
+      emailLineAfter: translationKey(
+        "This incident episode is still not resolved {{duration}} after it was acknowledged.",
+      ),
+      emailLine: translationKey(
+        "This incident episode is still not resolved after it was acknowledged.",
+      ),
+    },
+    "alert episode": {
+      headline: translationKey("Alert episode still not resolved"),
+      emailLineInProjectAfter: translationKey(
+        "This alert episode in the project {{project}} is still not resolved {{duration}} after it was acknowledged.",
+      ),
+      emailLineInProject: translationKey(
+        "This alert episode in the project {{project}} is still not resolved after it was acknowledged.",
+      ),
+      emailLineAfter: translationKey(
+        "This alert episode is still not resolved {{duration}} after it was acknowledged.",
+      ),
+      emailLine: translationKey(
+        "This alert episode is still not resolved after it was acknowledged.",
+      ),
+    },
+  };
+
+// The minutes a notice says, when it says a number of them.
+const getNoticeMinutes: (notice: OnCallPageAgainNotice) => number | null = (
+  notice: OnCallPageAgainNotice,
+): number | null => {
+  const minutes: number = Number(notice.minutes || 0);
+
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : null;
+};
+
+/*
  * A page again's headline, where a first page says "New incident assigned
  * to you": "Incident still not resolved". `recordNoun` is the record's kind
  * as a sentence names it: "incident", "alert", "incident episode", "alert
  * episode".
  */
-export function getOnCallPageAgainHeadline(recordNoun: string): string {
+export function getOnCallPageAgainHeadline(
+  recordNoun: string,
+  translator: Translator = getEnglishTranslator(),
+): string {
   const noun: string = recordNoun.trim() || "record";
+  const words: PageAgainRecordWords | undefined = PAGE_AGAIN_RECORD_WORDS[noun];
+
+  if (words) {
+    return translator.translateText(words.headline) || words.headline;
+  }
 
   return `${noun.charAt(0).toUpperCase()}${noun.slice(1)} still not resolved`;
 }
@@ -360,30 +494,69 @@ export function getOnCallPageAgainCallSentence(data: {
 /*
  * What an email says first, where a first page's says "A new incident has
  * been created in the project - Acme": "This incident in the project Acme
- * is still not resolved 30 minutes after it was acknowledged."
+ * is still not resolved 30 minutes after it was acknowledged." - in
+ * `translator`'s language.
  */
 export function getOnCallPageAgainEmailLine(data: {
   recordNoun: string;
   projectName: string;
   notice: OnCallPageAgainNotice;
+  translator?: Translator | undefined;
 }): string {
   const project: string = data.projectName.trim();
+  const words: PageAgainRecordWords | undefined =
+    PAGE_AGAIN_RECORD_WORDS[data.recordNoun.trim()];
 
-  return `This ${data.recordNoun}${
-    project ? ` in the project ${project}` : ""
-  } is ${getOnCallPageAgainNoticeReason(data.notice)}.`;
+  if (!words) {
+    return `This ${data.recordNoun}${
+      project ? ` in the project ${project}` : ""
+    } is ${getOnCallPageAgainNoticeReason(data.notice)}.`;
+  }
+
+  const translator: Translator = data.translator || getEnglishTranslator();
+  const minutes: number | null = getNoticeMinutes(data.notice);
+
+  const template: string = project
+    ? minutes !== null
+      ? words.emailLineInProjectAfter
+      : words.emailLineInProject
+    : minutes !== null
+      ? words.emailLineAfter
+      : words.emailLine;
+
+  return translator.translateTemplate(template, {
+    project: project,
+    duration: composedValue((sentence: Translator): string => {
+      return describeOnCallAcknowledgementTimeout(minutes || 0, sentence);
+    }),
+  });
 }
 
 /*
  * What a chat message and a Telegram message say under the record, where a
- * first page's say "You're getting this because you're on call.".
+ * first page's say "You're getting this because you're on call." - in
+ * `translator`'s language.
  */
 export function getOnCallPageAgainWhyLine(
   notice: OnCallPageAgainNotice,
+  translator: Translator = getEnglishTranslator(),
 ): string {
-  return `You're getting this because it is ${getOnCallPageAgainNoticeReason(
-    notice,
-  )}.`;
+  const minutes: number | null = getNoticeMinutes(notice);
+
+  if (minutes === null) {
+    return translator.translateTemplate(
+      "You're getting this because it is still not resolved after it was acknowledged.",
+    );
+  }
+
+  return translator.translateTemplate(
+    "You're getting this because it is still not resolved {{duration}} after it was acknowledged.",
+    {
+      duration: composedValue((sentence: Translator): string => {
+        return describeOnCallAcknowledgementTimeout(minutes, sentence);
+      }),
+    },
+  );
 }
 
 /*

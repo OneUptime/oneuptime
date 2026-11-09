@@ -33,6 +33,38 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
           }}
           icon={IconProp.Info}
         />
+        {/*
+         * What the project sends, on every install: its members see the same
+         * under Project Settings > Telemetry & APM > Usage.
+         */}
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.telemetryUsage"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PROJECT_TELEMETRY_USAGE] as Route,
+              {
+                modelId: props.modelId,
+              },
+            ),
+          }}
+          icon={IconProp.ChartBar}
+        />
+        {/*
+         * The budgets the instance admin holds the project to, beside what it
+         * sends: its members see them, read only, on their Usage page.
+         */}
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.ingestionBudgets"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PROJECT_INGESTION_BUDGETS] as Route,
+              {
+                modelId: props.modelId,
+              },
+            ),
+          }}
+          icon={IconProp.Gauge}
+        />
       </SideMenuSection>
 
       <SideMenuSection title={t("sideMenu.members")}>

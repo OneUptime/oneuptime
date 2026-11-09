@@ -26,6 +26,15 @@ const MessageQueueSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Topology",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MESSAGE_QUEUES_TOPOLOGY] as Route,
+            ),
+          },
+          icon: IconProp.FlowDiagram,
+        },
+        {
+          link: {
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MESSAGE_QUEUES_DOCUMENTATION] as Route,

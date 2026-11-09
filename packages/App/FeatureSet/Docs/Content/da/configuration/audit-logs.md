@@ -71,49 +71,39 @@ En ændring af disse indstillinger træder i kraft inden for et minut.
 
 Filtrér efter **Ressourcetype**, **Ressourcenavn**, **Handling**, **Bruger-e-mail** eller **Tid**. En ændring viser kun de felter, der blev ændret, før og efter, og en gemning, der ikke ændrer noget, tilføjer ingen post.
 
+En ressource uden sit eget navn får navn efter det, der navngiver den i OneUptime: en undtagelse efter sin type og begyndelsen af sin meddelelse, med id'er, adresser og alt, der ligner en hemmelighed, maskeret, en kørsel af en runbook efter sin runbook, telefonnummeret på en politik for indgående opkald efter nummeret, og en skabelon eller et domæne efter sit eget navn.
+
 Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer har også deres egen side **Auditlogs** i et sammenfoldet afsnit af deres sidemenu, som **Avanceret**. Den viser kun den ressources poster, sammen med posterne for det, der hører til den: et SLO's side viser også dets regler og ejere.
 
 ## Hvad registreres
 
-| Ressource | **Ressourcetype** i loggen |
+Alt, hvad folk opretter, ændrer eller sletter i et projekt, registreres: monitorer, hændelser, alarmer, statussider, workflows og deres trin, køer, dashboards, vagtpolitikker, teams og hvem der er med i dem, API-nøgler og alle indstillinger. **Ressourcetype** siger, hvad en post handler om, for eksempel `Monitor`, `Workflow` eller `Queue`.
+
+| Registreres ikke | Hvorfor |
 | --- | --- |
-| Monitorer | `Monitor` |
-| Hændelser | `Incident` |
-| Alarmer | `Alert` |
-| Statussider | `Status Page` |
-| Planlagte vedligeholdelseshændelser | `Scheduled Maintenance Event` |
-| Vagtpolitikker | `On-Call Policy` |
-| SLO'er | `Service Level Objective` |
-| Et SLO's regler og ejere | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Teams | `Team` |
-| Brugerdefinerede roller, og de teams og API-nøgler, der får en | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Etiketter | `Label` |
-| Hændelsesstatusser og -alvorsgrader | `Incident State`, `Incident Severity` |
-| Advarselsstatusser og -alvorsgrader | `Alert State`, `Alert Severity` |
-| Monitorstatusser | `Monitor Status` |
-| Statusser for planlagt vedligeholdelse | `Scheduled Maintenance State` |
-| Hændelsesroller | `Incident Role` |
-| Postmortem-statusser | `Postmortem Status` |
-| API-nøgler | `API Key` |
-| MCP-klienter, som folk forbinder | `MCP Client Authorization` |
-| Inventarelementer | `Inventory Item` |
-| Collector-konfigurationer | `Collector Config` |
-| vCentre | `vCenter` |
-| OpenStack-clouds og de tjek, der kører mod dem | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Pakkeopsamlinger og deres downloads | `Packet Capture` |
-| Sikkerhedssager og deres prioriteter og statusser, playbooks og deres kørsler, beskyttede enheder, entitetskritikalitet samt en entitets risiko, når nogen nulstiller den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Regelundtagelser | `Rule Exception` |
-| Overvågningslister | `Watchlist` |
-| Overvågningslisteværdier | `Watchlist Value` |
-| Hunts | `Hunt` |
-| Sikkerhedssagers opgaver og beviser | `Security Case Task`, `Security Case Evidence` |
-| Datalagre og deres fund samt Datasikkerheds problemer, indstillinger, kontrolindstillinger, brugerdefinerede datatyper og residensregler | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Indstillinger for Dataobservabilitet | `Data Observability Setting` |
-| Eksporter af auditloggen | `Audit Log Export` |
+| Logge over beskeder | Hver af dem er allerede registreringen af en e-mail, sms, et opkald, en pushnotifikation eller en chatbesked, som OneUptime har sendt eller modtaget. |
+| Registreringer af kørsler | Hver af dem er allerede registreringen af en workflowkørsel, en vagteskalering, en scanning, en import eller en AI-kørsel. |
+| Det, agenter og telemetri rapporterer | Fundne ressourcer, målinger og forbrug ændrer sig ved hver rapport, ikke fordi nogen har ændret dem. |
+| Aktivitetsfeeds | Et feed viser ændringer, som auditloggen allerede registrerer. |
+| OneUptimes arbejdstilstand | Sessioner, jobs i kø og anden tilstand, som OneUptime holder, mens det arbejder. |
+| En persons egen notifikationsopsætning | Hver persons adresser, numre og personlige vagtregler er kun deres egne. |
 
 Det registreres også, når en administrator tilføjer eller fjerner en notifikationsmetode eller en personlig vagtregel på en andens konto, uden selve adressen eller nummeret.
 
-Andre data er ikke i auditloggen, som hvem der er med i et team, eller en tilladelse, der er føjet til et team for sig. Felter, som ingen må læse, udelades af alle poster, og nøgler, tokens og adgangskoder registreres som `[REDACTED]`: posten viser, at de er ændret, aldrig deres værdi.
+Felter, som kun OneUptime skriver, for eksempel hvornår en vært sidst blev set, udelades af alle poster, og det samme gør felter, som ingen må læse. Når OneUptime skriver et af dem, fordi nogen bad om det, for eksempel når en undtagelse flettes ind i en anden, eller en webhook-URL nulstilles, registrerer posten det som deres ændring. Nøgler, tokens og adgangskoder registreres som `[REDACTED]`: posten viser, at de er ændret, aldrig deres værdi. Et workflows trin registreres som det, der ændrede sig, med navnene på et trins indstillinger, men aldrig det, der blev skrevet i dem, og når et trin flyttes på lærredet, registreres det ikke.
+
+Det, OneUptime gør, fordi nogen bad om det, registreres også som deres ændring, uanset om projektet gemmer systemhændelser:
+
+- At starte, godkende, fuldføre, springe over og annullere en kørsel af en runbook. Dens trin registreres som det, der blev gjort ved hvert af dem, for eksempel `Approved "Restart the API" (step 3)`, aldrig med det, et trin skrev ud.
+- Det, en regel ændrer, når nogen kører den: de etiketter og ejere, den tilføjer, de poster, en privatlivsregel gør private, de enheder, en regel for tildeling af lokation flytter, de enheder og monitorer, en regel for automatisk import opretter, og det, en monitorregel på en statusside eller et SLO ændrer på siden eller SLO'et.
+- At købe, tilknytte og frigive telefonnummeret på en politik for indgående opkald.
+- At løse en dataalarm, som nogen markerer som forventet eller som ikke et problem.
+- At nulstille linket til et kalenderfeed.
+- De teams, nogen bliver medlem af, når de logger ind med SSO.
+
+Det, en regel gør af sig selv, er OneUptimes egen ændring og registreres, når **Gem systemhændelser** er slået til: de etiketter og ejere, en regel tilføjer, når en post oprettes, og en post, den da gør privat; de enheder og monitorer, en regel for automatisk import opretter ud fra nye scanningsresultater; og det, en monitorregel på en statusside eller et SLO ændrer, når en regel, en monitor eller en etiket gemmes.
+
+Når nogen nulstiller AI-agenten for en vært, en klynge eller en cloudkonto, registreres det på ressourcens egen side **Auditlogs** som deres ændring af `aiAgentResetAt`: hvem, og hvornår. Det samme gælder, når nogen laver en nøgle til en cloudkontos AI-agent: nøglerne vises som ændret, aldrig med en nøgle eller en hash. Det, en agent rapporterer, når den forbinder og melder sig, er udeladt som før.
 
 ## Hvor længe poster gemmes
 

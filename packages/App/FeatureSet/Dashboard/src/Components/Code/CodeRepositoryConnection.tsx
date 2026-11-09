@@ -91,7 +91,8 @@ export const getConnectionFacts: (data: {
  * connection gone (connect it again from Repositories), or a Git server
  * only one of the project's own Runners reaches - and, in one quiet line,
  * what works in GitHub repositories only (commands from comments and
- * production reviews; on a Git server, the pull request itself).
+ * production reviews; on a Git server, the pull request itself). A Git
+ * repository on Azure DevOps says, in one more, that its code is read.
  *
  * Replace access token asks for the new token (and, for a Git server, the
  * username) in a dialog; the server checks it with the Git server before
@@ -122,6 +123,21 @@ const CodeRepositoryConnection: FunctionComponent<ComponentProps> = (
     connection,
     translator,
   });
+
+  /*
+   * A Git repository on Azure DevOps whose server OneUptime reaches, with
+   * credentials it takes: its code is read too (CodeHost.
+   * canReadRepositoryCode), and the card says so.
+   */
+  const readsCodeOnAzureDevOps: boolean =
+    provider === CodeRepositoryType.Git &&
+    Boolean(connection?.id) &&
+    connection?.isReachableFromServer !== false &&
+    !connection?.isTokenRefused &&
+    CodeHost.canReadRepositoryCode({
+      type: provider,
+      repositoryUrl: props.repository.repositoryUrl,
+    });
 
   /*
    * What Replace access token checks the new one with: the host, by name -
@@ -195,6 +211,18 @@ const CodeRepositoryConnection: FunctionComponent<ComponentProps> = (
         >
           {translator.translateText(
             CODE_REPOSITORY_CONNECTION_COPY.notReachableFromServer,
+          )}
+        </p>
+      ) : (
+        <></>
+      )}
+      {readsCodeOnAzureDevOps ? (
+        <p
+          data-testid="code-repository-reads-code"
+          className="text-sm leading-6 text-gray-600"
+        >
+          {translator.translateText(
+            CODE_REPOSITORY_CONNECTION_COPY.readsCodeOnAzureDevOps,
           )}
         </p>
       ) : (

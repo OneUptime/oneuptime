@@ -2,10 +2,11 @@
  * The records the Cloud recommendations fixture draws: one AWS account a
  * connection reads, with the resources a team typically runs - a load
  * balancer in front of three machines (one of them so new its metrics have
- * not arrived), two databases (one whose inventory lists its storage), two
- * functions, a queue - and the ones no recommended monitor is for: a
- * network, a bucket, and a network load balancer, whose namespace no
- * template reads. Every value is made up.
+ * not arrived), two databases (one whose inventory lists its class, engine,
+ * storage and parameter group), two functions, a queue, a certificate - and
+ * the ones no recommended monitor is for: a network, a bucket, and a
+ * network load balancer, whose namespace no template reads. Every value is
+ * made up.
  */
 
 export const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -34,6 +35,7 @@ export const RESOURCE_IDS = {
   imageResizer: uuid("40000000", 13),
   // An App Platforms environment of the same account: never a cloud resource here.
   storefrontEnvironment: uuid("40000000", 14),
+  wwwCertificate: uuid("40000000", 15),
 };
 
 function attributes(namespace, dimensions, region) {
@@ -121,6 +123,8 @@ export function buildResources(now) {
           DBInstanceClass: "db.r6g.large",
           Engine: "postgres",
           AllocatedStorage: 200,
+          // A group of the team's own: it may set max_connections.
+          DBParameterGroupName: "orders-postgres16",
         },
       },
       now,
@@ -259,6 +263,28 @@ export function buildResources(now) {
       now,
     ),
     resource(
+      RESOURCE_IDS.wwwCertificate,
+      {
+        // ACM publishes its days to expiry twice a day.
+        name: "www.acme-commerce.example",
+        cloudResourceType: "AWS::CertificateManager::Certificate",
+        providerResourceId:
+          "arn:aws:acm:us-east-1:123456789012:certificate/0f4a8f3e-6c2b-4e7a-9d1c-2b3a4c5d6e7f",
+        cloudRegion: "us-east-1",
+        lastSeenAt: new Date(now - 5 * 60 * 60 * 1000),
+        telemetryAttributes: attributes(
+          "AWS/CertificateManager",
+          {
+            CertificateArn:
+              "arn:aws:acm:us-east-1:123456789012:certificate/0f4a8f3e-6c2b-4e7a-9d1c-2b3a4c5d6e7f",
+          },
+          "us-east-1",
+        ),
+        cloudProperties: {},
+      },
+      now,
+    ),
+    resource(
       RESOURCE_IDS.prodVpc,
       {
         name: "prod-vpc",
@@ -310,7 +336,7 @@ export function buildAccount(now) {
     provider: "aws",
     accountId: AWS_ACCOUNT,
     providerAccountName: "Production",
-    resourceCount: 13,
+    resourceCount: 14,
     lastSeenAt: new Date(now - 4 * 60 * 1000),
     cloudConnectionId: CONNECTION_ID,
     isArchived: false,

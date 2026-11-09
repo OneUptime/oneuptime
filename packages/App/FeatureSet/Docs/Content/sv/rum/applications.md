@@ -23,7 +23,7 @@ flowchart TB
 ```
 
 - `service.name` är applikationens identitet och jämförs utan skillnad på stora och små bokstäver: `Storefront-Web` och `storefront-web` är en enda applikation.
-- Ett nytt `service.name` startar en ny applikation. Den gamla behåller sin historik och går över till **Frånkopplad**, den nya börjar tom, och de två slås aldrig ihop.
+- Ett nytt `service.name` startar en ny applikation. Den gamla behåller sin historik och visar **Ingen trafik nyligen** när dess data upphör, den nya börjar tom, och de två slås aldrig ihop.
 - Använd ett `service.name` per app, inte ett per miljö. Skilj miljöer åt med en etikett som `oneuptime.label.env=production`, så att de delar en applikation och en historik.
 
 ### Byt namn på en applikation
@@ -52,13 +52,19 @@ Sedan öppnas dess installationsguide av sig själv, med appnamnet som kodsnutte
 
 Om projektet redan har en applikation med det `service.name`, upptäckt, tillagd tidigare eller arkiverad, säger formuläret det i stället för att skapa en till.
 
-## Anslutningsstatus
+## Status
 
-En applikation visar **Ansluten** medan telemetri kommer in och **Frånkopplad** efter 15 minuter utan någon. Både OpenTelemetry-telemetri och trafik från sessionsuppspelning räknas.
+En applikations **Status** säger om dess data kommer in, och när du håller muspekaren över den, vad den betyder. Både OpenTelemetry-telemetri och trafik från sessionsuppspelning räknas.
+
+| Status | Vad det betyder |
+| --- | --- |
+| **Tar emot data** | Telemetri har kommit in under de senaste 15 minuterna. |
+| **Ingen trafik nyligen** | Telemetri har kommit in tidigare, men ingen under de senaste 15 minuterna. En app skickar bara data medan folk använder den, så det här är normalt när ingen gör det, till exempel på natten. |
+| **Väntar på data** | Inget har kommit in ännu: applikationen lades till för hand, och dess app har inte skickat något. Dess **Översikt** visar hur du konfigurerar den. |
 
 **Senast sedd** uppdateras med några minuters mellanrum i stället för vid varje batch, så den kan ligga upp till ungefär fem minuter efter den verkliga trafiken, och de 15 minuterna ger utrymme för det. Tid då OneUptime självt låg nere eller höll på att hinna ikapp sin intagningskö räknas inte.
 
-**Frånkopplad** är inte ett fel i sig: ett internt verktyg utan besökare på natten är verkligen frånkopplat. Om folk använder appen kan du läsa [RUM-felsökning](/docs/rum/troubleshooting).
+**Ingen trafik nyligen** är inget fel. Om folk använder appen just nu visar applikationens **Översikt** vad du ska kontrollera, och [RUM-felsökning](/docs/rum/troubleshooting) går igenom varje kontroll.
 
 ## Etiketter
 
@@ -180,5 +186,5 @@ Avgränsa övervakningen du skapar till applikationen, så att en backend-tjäns
 - [Sessionsuppspelning](/docs/telemetry/session-replay): Spela in vad användarna såg, med egen policy och lagring.
 - [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules): De två regelformulären, steg för steg.
 - [Köra regler på befintliga resurser](/docs/configuration/run-rules-now): Tillämpa en ny regel på de applikationer du redan har.
-- [RUM-felsökning](/docs/rum/troubleshooting): När en applikation saknas, är tom eller visar Frånkopplad.
+- [RUM-felsökning](/docs/rum/troubleshooting): När en applikation saknas eller är tom, eller inte har någon trafik nyligen medan folk använder den.
 :::

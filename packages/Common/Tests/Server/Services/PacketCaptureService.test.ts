@@ -1,3 +1,4 @@
+import AuditLogService from "../../../Server/Services/AuditLogService";
 import FileService from "../../../Server/Services/FileService";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import {
@@ -1571,6 +1572,98 @@ describe("requestStop", () => {
         }),
       ),
     ).toBe(ALREADY_FINISHED_MESSAGE);
+  });
+
+  /*
+   * The stop goes round DatabaseService's hooks, so who asked for it is
+   * recorded here (issue #6276): the capture as it was, and when the stop
+   * was asked for as the write stored it.
+   */
+  describe("the audit log", () => {
+    const PERSON: { tenantId: ObjectID; userId: ObjectID } = {
+      tenantId: PROJECT_ID,
+      userId: new ObjectID("77777777-7777-4777-8777-777777777777"),
+    };
+
+    function stubRecord(): Spy {
+      return jest
+        .spyOn(AuditLogService, "recordUpdate")
+        .mockResolvedValue(undefined as never) as unknown as Spy;
+    }
+
+    test("records who stopped it, once the stop is written", async () => {
+      const { service } = buildService();
+      const read: Spy = stubCaptureStatus(service, PacketCaptureStatus.Running);
+      const stoppedAt: Date = new Date("2026-11-07T10:00:00.000Z");
+      const statements: Array<RecordedStatement> = stubTransaction(service, [
+        [[{ _id: CAPTURE_ID.toString(), stopRequestedAt: stoppedAt }], 1],
+      ]);
+      const record: Spy = stubRecord();
+
+      await service.requestStop({
+        packetCaptureId: CAPTURE_ID,
+        projectId: PROJECT_ID,
+        props: PERSON,
+      });
+
+      expect(flatten(statements[0]!.sql)).toContain(
+        'RETURNING "_id", "stopRequestedAt"',
+      );
+      // What the entry names: the capture, and when a stop was asked for before.
+      expect(
+        Object.keys(
+          (read.mock.calls[0]![0] as { select: JSONObject }).select,
+        ).sort(),
+      ).toEqual(["_id", "name", "projectId", "status", "stopRequestedAt"]);
+
+      expect(record.mock.calls).toHaveLength(1);
+
+      const recorded: {
+        model: unknown;
+        before: PacketCapture;
+        updatedFields: JSONObject;
+        itemId: ObjectID;
+        props: unknown;
+        includeColumns: Array<string>;
+      } = record.mock.calls[0]![0] as never;
+
+      expect(recorded.model).toBeInstanceOf(PacketCapture);
+      expect(recorded.before.id?.toString()).toBe(CAPTURE_ID.toString());
+      expect(recorded.updatedFields).toEqual({ stopRequestedAt: stoppedAt });
+      expect(recorded.itemId.toString()).toBe(CAPTURE_ID.toString());
+      expect(recorded.props).toBe(PERSON);
+      expect(recorded.includeColumns).toEqual(["stopRequestedAt"]);
+    });
+
+    test("records nothing for a stop that was refused, or that nobody handed over", async () => {
+      const record: Spy = stubRecord();
+
+      const refused: PacketCaptureServiceType = buildService().service;
+      stubCaptureStatus(refused, PacketCaptureStatus.Running);
+      stubTransaction(refused, [[[], 0]]);
+
+      await refusal(
+        refused.requestStop({
+          packetCaptureId: CAPTURE_ID,
+          projectId: PROJECT_ID,
+          props: PERSON,
+        }),
+      );
+
+      jest.restoreAllMocks();
+      const unnamed: PacketCaptureServiceType = buildService().service;
+      stubCaptureStatus(unnamed, PacketCaptureStatus.Running);
+      stubTransaction(unnamed, [[[{ _id: CAPTURE_ID.toString() }], 1]]);
+      const recordAfter: Spy = stubRecord();
+
+      await unnamed.requestStop({
+        packetCaptureId: CAPTURE_ID,
+        projectId: PROJECT_ID,
+      });
+
+      expect(record.mock.calls).toHaveLength(0);
+      expect(recordAfter.mock.calls).toHaveLength(0);
+    });
   });
 });
 

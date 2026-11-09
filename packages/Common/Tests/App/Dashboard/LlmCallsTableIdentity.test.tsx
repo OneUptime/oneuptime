@@ -196,6 +196,11 @@ describe("LlmCallsTable — employee columns", () => {
         return column.title;
       });
 
+    /*
+     * Duration joined them (#5776): narrow, and what a person opens a call
+     * for after its cost. The AI pages have no side menu, so the nine still
+     * fit a laptop.
+     */
     expect(visibleTitles).toEqual([
       "Seen At",
       "Service",
@@ -204,6 +209,7 @@ describe("LlmCallsTable — employee columns", () => {
       "Team",
       "Tokens (in / out)",
       "Cost",
+      "Duration",
       "Status",
     ]);
   });

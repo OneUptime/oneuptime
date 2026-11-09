@@ -33,6 +33,11 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorEvaluationDetailsCapture, {
+  GetEvaluationDetails,
+} from "./MonitorEvaluationDetailsCapture";
 import SeriesContextEnricher from "./SeriesContextEnricher";
 import OpenStackAlertContext, {
   OpenStackSeriesDescription,
@@ -102,6 +107,15 @@ export default class MonitorAlert {
      * "the criteria that raised it".
      */
     criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
+    /*
+     * Whether the monitor keeps response content on its records
+     * (Monitor.keepResponseContent): the state timeline's copy of a check
+     * that resolves one keeps no body and no headers when it does not.
+     * Kept when absent.
+     */
+    keepResponseContent?: boolean | undefined;
+    // The step the check ran: the state timeline's copy names its destination.
+    monitorStep?: MonitorStep | undefined;
   }): Promise<Array<Alert>> {
     /*
      * check active alerts and if there are open alerts, do not create another
@@ -178,6 +192,8 @@ export default class MonitorAlert {
           openAlert: openAlert,
           rootCause: rootCause,
           dataToProcess: input.dataToProcess,
+          keepResponseContent: input.keepResponseContent,
+          monitorStep: input.monitorStep,
         });
 
         input.evaluationSummary?.events.push({
@@ -311,6 +327,13 @@ export default class MonitorAlert {
             ? input.rootCause
             : input.wholeMonitor.rootCause,
         dataToProcess: input.dataToProcess,
+        keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+          input.monitor,
+        ),
+        monitorStep: MonitorRecordEvidence.findCheckStep({
+          monitor: input.monitor,
+          check: input.dataToProcess,
+        }),
       });
 
       input.evaluationSummary?.events.push({
@@ -344,6 +367,13 @@ export default class MonitorAlert {
      * monitor page shows, long after the monitor log has aged out.
      */
     monitorSummary?: MonitorSummarySnapshot | null | undefined;
+    /**
+     * The evaluation details of the criteria this call acts on, built
+     * the first time a alert is really created
+     * (MonitorEvaluationDetailsCapture). Stored on every alert the
+     * details describe: not on one series of a grouped metric criteria.
+     */
+    getEvaluationDetails?: GetEvaluationDetails | undefined;
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
@@ -426,6 +456,13 @@ export default class MonitorAlert {
             criteriaInstance: input.criteriaInstance,
             dataToProcess: input.dataToProcess,
             evaluationSummary: input.evaluationSummary,
+            keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+              input.monitor,
+            ),
+            monitorStep: MonitorRecordEvidence.findCheckStep({
+              monitor: input.monitor,
+              check: input.dataToProcess,
+            }),
             breachingSeriesFingerprints,
             breachingSeriesFingerprintsByCriteriaId:
               input.breachingSeriesFingerprintsByCriteriaId,
@@ -798,9 +835,21 @@ export default class MonitorAlert {
            * never open. Inputs stay as they are - they are still being read
            * for this and the next alert.
            */
-          alert.createdStateLog = toStorableJson(
-            input.dataToProcess,
-          ) as unknown as JSONObject;
+          /*
+           * Redacted as the monitor's own log is, and without its body and
+           * headers when the monitor keeps no response content
+           * (MonitorRecordEvidence).
+           */
+          alert.createdStateLog = MonitorRecordEvidence.toStoredCheck({
+            dataToProcess: input.dataToProcess,
+            keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+              input.monitor,
+            ),
+            monitorStep: MonitorRecordEvidence.findCheckStep({
+              monitor: input.monitor,
+              check: input.dataToProcess,
+            }),
+          });
 
           /*
            * Same capture on every alert this evaluation opens - they all
@@ -813,6 +862,26 @@ export default class MonitorAlert {
 
           if (serializedMonitorSummary) {
             alert.monitorSummary = serializedMonitorSummary;
+          }
+
+          /*
+           * Why it opened: the criteria's filters, what the check found
+           * and where, redacted and bounded. Built once, when the first
+           * record of this criteria is created.
+           */
+          if (
+            input.getEvaluationDetails &&
+            MonitorEvaluationDetailsCapture.describesRecord({
+              monitorType: input.monitor.monitorType,
+              seriesFingerprint: seriesFingerprint,
+            })
+          ) {
+            const evaluationDetails: JSONObject | null =
+              await input.getEvaluationDetails();
+
+            if (evaluationDetails) {
+              alert.evaluationDetails = evaluationDetails;
+            }
           }
 
           if (input.criteriaInstance.data?.id) {
@@ -1187,6 +1256,8 @@ export default class MonitorAlert {
       | ProbeMonitorResponse
       | IncomingMonitorRequest
       | DataToProcess;
+    keepResponseContent?: boolean | undefined;
+    monitorStep?: MonitorStep | undefined;
   }): Promise<void> {
     const resolvedStateId: ObjectID =
       await AlertStateTimelineService.getResolvedStateIdForProject(
@@ -1205,10 +1276,12 @@ export default class MonitorAlert {
     }
 
     if (input.dataToProcess) {
-      // Storable copy, for the same reason as createdStateLog above.
-      alertStateTimeline.stateChangeLog = toStorableJson(
-        input.dataToProcess,
-      ) as unknown as JSONObject;
+      // Redacted and storable, as createdStateLog above.
+      alertStateTimeline.stateChangeLog = MonitorRecordEvidence.toStoredCheck({
+        dataToProcess: input.dataToProcess as DataToProcess,
+        keepResponseContent: input.keepResponseContent !== false,
+        monitorStep: input.monitorStep,
+      });
     }
 
     try {
@@ -1300,8 +1373,11 @@ export default class MonitorAlert {
    * Alert auto-resolve lists templates by criteria; the presence of any
    * template for a criteria means "this criteria's alerts are configured
    * to auto-resolve".
+   *
+   * Turning monitoring off asks the same (MonitorTurnedOff): it resolves
+   * exactly the alerts this says the monitor would have resolved.
    */
-  private static isAutoResolveConfiguredForAlert(input: {
+  public static isAutoResolveConfiguredForAlert(input: {
     openAlert: Alert;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
   }): boolean {

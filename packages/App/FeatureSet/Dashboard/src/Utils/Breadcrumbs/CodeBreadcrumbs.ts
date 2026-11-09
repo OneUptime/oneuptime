@@ -37,6 +37,13 @@ export function getCodeBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS,
       ["Project", "Code", "Repositories", "Repository", "Production Reviews"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Code",
+      "Repositories",
+      "Repository",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORY_VIEW_DELETE, [
       "Project",
       "Code",

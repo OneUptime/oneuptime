@@ -31,6 +31,7 @@ import SlackAuthAction, {
 } from "../Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
 import SlackRemediationActions from "../Utils/Workspace/Slack/Actions/Remediation";
+import SlackPublicNoteApprovalActions from "../Utils/Workspace/Slack/Actions/PublicNoteApproval";
 import SlackActionType from "../Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../Utils/Workspace/Slack/Actions/AlertEpisode";
@@ -1211,6 +1212,25 @@ export default class SlackAPI {
               req: req,
               res: res,
             });
+          }
+
+          /*
+           * A public note waiting for approval, in its approvers' direct
+           * messages: Approve, Reject and Reject's form.
+           */
+          if (
+            SlackPublicNoteApprovalActions.isPublicNoteApprovalAction({
+              actionType: action.actionType,
+            })
+          ) {
+            return SlackPublicNoteApprovalActions.handlePublicNoteApprovalAction(
+              {
+                slackRequest: authResult,
+                action: action,
+                req: req,
+                res: res,
+              },
+            );
           }
 
           /*

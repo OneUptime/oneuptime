@@ -32,10 +32,11 @@ import Permission from "../../../Types/Permission";
  *   "Past 1 Day": a drag narrows the card, a double-click or its Reset
  *   zoom returns to the past day, and the page's minute poll must not drop
  *   the zoom.
- * - The metrics preview (metric monitors) charts the step's rolling range;
- *   MetricView zooms it through the preview's own state. The header, which
- *   used to keep naming a rolling range the chart no longer showed, names
- *   the zoomed window; picking a range, even the same one, ends the zoom.
+ * - The metrics card (metric monitors, issue #5759) is a metric
+ *   investigation over the past three hours: a drag narrows it, a
+ *   double-click or the Reset zoom beside its picker returns to the range
+ *   picked, picking a range ends the zoom, and the page's minute poll must
+ *   not drop it.
  *
  * Real cards, real MetricView; only MetricCharts is stood in for, with
  * buttons that call exactly the handlers MetricView hands the charts.
@@ -145,36 +146,19 @@ jest.mock("../../../UI/Components/Date/RangeStartAndEndDateView", () => {
   };
 });
 
-// The rolling-range picker in the preview's modal, as a plain select.
-jest.mock("../../../UI/Components/Dropdown/Dropdown", () => {
-  return {
-    __esModule: true,
-    default: (props: {
-      options: Array<{ label: string; value: unknown }>;
-      value?: { value: unknown } | undefined;
-      onChange?: ((value: unknown) => void) | undefined;
-    }) => {
-      return (
-        <select
-          data-testid="rolling-time-dropdown"
-          value={String(props.value?.value ?? "")}
-          onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-            props.onChange?.(event.target.value);
-          }}
-        >
-          <option value="">Select</option>
-          {props.options.map((option: { label: string; value: unknown }) => {
-            return (
-              <option key={String(option.value)} value={String(option.value)}>
-                {option.label}
-              </option>
-            );
-          })}
-        </select>
-      );
-    },
-  };
-});
+// The card's status changes are read and drawn in MonitorMetricsCard.test.tsx.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MetricMonitor/useMonitorStatusChanges",
+  () => {
+    const noChanges: Array<unknown> = [];
+    return {
+      __esModule: true,
+      default: (): Array<unknown> => {
+        return noChanges;
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/Project", () => {
   return {
@@ -221,7 +205,7 @@ jest.mock("../../../UI/Utils/User", () => {
 import MonitorResponseTimeCard, {
   ComponentProps as ResponseTimeCardProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorResponseTimeCard";
-import MonitorTelemetryPreview from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorTelemetryPreview";
+import MonitorMetricsCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MetricMonitor/MonitorMetricsCard";
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
@@ -232,13 +216,11 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import TimeRange from "../../../Types/Time/TimeRange";
-import InBetween from "../../../Types/BaseDatabase/InBetween";
-import { getZoomedWindowLabel } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MetricMonitor/MetricMonitorPreview";
 
 const NOW: Date = new Date("2026-09-28T12:00:00.000Z");
 const DAY_AGO: Date = new Date("2026-09-27T12:00:00.000Z");
 const HOUR_AGO: Date = new Date("2026-09-28T11:00:00.000Z");
-const SIX_HOURS_AGO: Date = new Date("2026-09-28T06:00:00.000Z");
+const THREE_HOURS_AGO: Date = new Date("2026-09-28T09:00:00.000Z");
 
 const MONITOR_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -313,14 +295,6 @@ async function chartsSettled(metricName: string): Promise<void> {
   });
   // waitFor ticks the fake clock; "now" is where the assertions read it.
   jest.setSystemTime(NOW);
-}
-
-/*
- * The header names a zoom compactly, as the explorers' pickers name a
- * custom range (getZoomedWindowLabel, pinned in its own suite).
- */
-function zoomedHeaderTitle(start: Date, end: Date): string {
-  return getZoomedWindowLabel(new InBetween<Date>(start, end));
 }
 
 beforeEach(() => {
@@ -530,7 +504,7 @@ describe("the Overview's response-time card zooms itself", () => {
   });
 });
 
-describe("the Overview's metrics preview zooms itself", () => {
+describe("the Overview's metrics card zooms itself", () => {
   const stepsWith: (rollingTime: RollingTime) => MonitorSteps = (
     rollingTime: RollingTime,
   ): MonitorSteps => {
@@ -539,6 +513,7 @@ describe("the Overview's metrics preview zooms itself", () => {
         monitorStepsInstanceArray: [
           {
             data: {
+              id: "step-1",
               metricMonitor: {
                 rollingTime: rollingTime,
                 metricViewConfig: {
@@ -569,24 +544,16 @@ describe("the Overview's metrics preview zooms itself", () => {
     } as unknown as MonitorSteps;
   };
 
-  async function renderPreview(): Promise<RenderResult> {
+  async function renderCard(): Promise<RenderResult> {
     const result: RenderResult = render(
-      <MonitorTelemetryPreview
+      <MonitorMetricsCard
+        monitorId={MONITOR_ID}
         monitorType={MonitorType.Metrics}
-        monitorSteps={stepsWith(RollingTime.Past1Hour)}
+        monitorSteps={stepsWith(RollingTime.Past5Minutes)}
       />,
     );
     await chartsSettled(PREVIEW_METRIC);
     return result;
-  }
-
-  // The rolling window the preview first charted (resolved at mount).
-  function initialWindow(): Window {
-    const first: Window | undefined = fetchedWindowsFor(PREVIEW_METRIC)[0];
-    if (!first) {
-      throw new Error("The preview never fetched");
-    }
-    return first;
   }
 
   async function zoom(): Promise<void> {
@@ -598,135 +565,99 @@ describe("the Overview's metrics preview zooms itself", () => {
     });
   }
 
-  function openRangeModalAndSave(pick?: RollingTime): void {
-    fireEvent.click(
-      screen.getByText(zoomedHeaderTitle(MOCK_DRAG.start, MOCK_DRAG.end)),
-    );
-    if (pick) {
-      fireEvent.change(screen.getByTestId("rolling-time-dropdown"), {
-        target: { value: pick },
-      });
-    }
-    jest.setSystemTime(NOW);
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  function pickerButton(): HTMLElement {
+    return screen.getByTestId("metric-investigation-time-button");
   }
 
-  test("the header names the rolling range, and the chart offers a drag with no reset yet", async () => {
-    await renderPreview();
+  test("charts the past three hours, a minute a point, and offers a drag with no reset yet", async () => {
+    await renderCard();
 
-    expect(screen.getByText(RollingTime.Past1Hour)).toBeInTheDocument();
+    expect(fetchedWindowsFor(PREVIEW_METRIC)[0]).toEqual(
+      windowOf(THREE_HOURS_AGO, NOW),
+    );
+    expect(pickerButton()).toHaveTextContent("Past 3 Hours");
     expect(chartsOf(PREVIEW_METRIC).onTimeRangeSelect).toBeInstanceOf(Function);
     expect(chartsOf(PREVIEW_METRIC).onTimeRangeReset).toBeUndefined();
-    const [start, end] = initialWindow();
-    expect(end - start).toBeGreaterThanOrEqual(60 * 60 * 1000);
+    expect(
+      screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
+    ).toBeNull();
   });
 
-  test("a drag re-queries the zoomed window and the header names that window", async () => {
-    await renderPreview();
+  test("a drag re-queries the zoomed window, and Reset zoom beside the picker goes back", async () => {
+    await renderCard();
 
     await zoom();
 
     expect(
-      screen.getByText(zoomedHeaderTitle(MOCK_DRAG.start, MOCK_DRAG.end)),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(RollingTime.Past1Hour)).toBeNull();
-    expect(
       screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
     ).toBeVisible();
     expect(chartsOf(PREVIEW_METRIC).onTimeRangeReset).toBeInstanceOf(Function);
+
+    jest.setSystemTime(NOW);
+    fireEvent.click(screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID));
+
+    await waitFor(() => {
+      expect(lastFetchedWindowFor(PREVIEW_METRIC)).toEqual(
+        windowOf(THREE_HOURS_AGO, NOW),
+      );
+    });
+    expect(pickerButton()).toHaveTextContent("Past 3 Hours");
+    expect(
+      screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
+    ).toBeNull();
   });
 
-  test("a double-click brings the rolling window back, and the header its range", async () => {
-    await renderPreview();
-    const rollingWindow: Window = initialWindow();
+  test("a double-click brings the past three hours back", async () => {
+    await renderCard();
 
     await zoom();
     await click(`Double-click ${PREVIEW_METRIC}`);
 
     await waitFor(() => {
-      expect(lastFetchedWindowFor(PREVIEW_METRIC)).toEqual(rollingWindow);
+      expect(lastFetchedWindowFor(PREVIEW_METRIC)).toEqual(
+        windowOf(THREE_HOURS_AGO, NOW),
+      );
     });
-    expect(screen.getByText(RollingTime.Past1Hour)).toBeInTheDocument();
-    expect(
-      screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
-    ).toBeNull();
     expect(chartsOf(PREVIEW_METRIC).onTimeRangeReset).toBeUndefined();
   });
 
-  test("Reset zoom does what a double-click does", async () => {
-    await renderPreview();
-    const rollingWindow: Window = initialWindow();
+  test("picking a range ends the zoom and charts that range", async () => {
+    await renderCard();
 
     await zoom();
-    fireEvent.click(screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID));
-
-    await waitFor(() => {
-      expect(lastFetchedWindowFor(PREVIEW_METRIC)).toEqual(rollingWindow);
-    });
-    expect(screen.getByText(RollingTime.Past1Hour)).toBeInTheDocument();
-  });
-
-  test("picking the SAME rolling range in the header ends the zoom", async () => {
-    await renderPreview();
-
-    await zoom();
-    openRangeModalAndSave();
+    jest.setSystemTime(NOW);
+    fireEvent.click(pickerButton());
+    fireEvent.click(
+      within(
+        screen.getByTestId("metric-investigation-time-dropdown"),
+      ).getByText("Past 1 Hour"),
+    );
 
     await waitFor(() => {
       expect(lastFetchedWindowFor(PREVIEW_METRIC)).toEqual(
         windowOf(HOUR_AGO, NOW),
       );
     });
-    expect(screen.getByText(RollingTime.Past1Hour)).toBeInTheDocument();
+    expect(pickerButton()).toHaveTextContent("Past 1 Hour");
     expect(
       screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
     ).toBeNull();
-  });
-
-  test("picking another rolling range ends the zoom and charts that range", async () => {
-    await renderPreview();
-
-    await zoom();
-    openRangeModalAndSave(RollingTime.Past6Hours);
-
-    await waitFor(() => {
-      expect(lastFetchedWindowFor(PREVIEW_METRIC)).toEqual(
-        windowOf(SIX_HOURS_AGO, NOW),
-      );
-    });
-    expect(screen.getByText(RollingTime.Past6Hours)).toBeInTheDocument();
-    expect(
-      screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
-    ).toBeNull();
-  });
-
-  test("re-picking the same range while NOT zoomed changes nothing", async () => {
-    await renderPreview();
-    const fetchesBefore: number = fetchResultsMock.mock.calls.length;
-
-    fireEvent.click(screen.getByText(RollingTime.Past1Hour));
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    expect(screen.getByText(RollingTime.Past1Hour)).toBeInTheDocument();
-    expect(fetchResultsMock.mock.calls.length).toBe(fetchesBefore);
   });
 
   test("the overview's poll (an equal step, new objects) keeps the zoom", async () => {
-    const result: RenderResult = await renderPreview();
+    const result: RenderResult = await renderCard();
 
     await zoom();
     const fetchesBefore: number = fetchResultsMock.mock.calls.length;
 
     result.rerender(
-      <MonitorTelemetryPreview
+      <MonitorMetricsCard
+        monitorId={MONITOR_ID}
         monitorType={MonitorType.Metrics}
-        monitorSteps={stepsWith(RollingTime.Past1Hour)}
+        monitorSteps={stepsWith(RollingTime.Past5Minutes)}
       />,
     );
 
-    expect(
-      screen.getByText(zoomedHeaderTitle(MOCK_DRAG.start, MOCK_DRAG.end)),
-    ).toBeInTheDocument();
     expect(
       screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
     ).toBeVisible();

@@ -75,6 +75,7 @@ La autonomía es una línea recta. En una ventana móvil, el tiempo de inactivid
 El gráfico **Consumo del presupuesto de errores** de la **Vista general** traza el presupuesto restante, en porcentaje, a lo largo de la ventana de cumplimiento actual:
 
 - Una línea en el 0 % marca dónde se agota el presupuesto, y una línea discontinua marca el umbral de riesgo del SLO.
+- Cuando el SLO tiene una política de presupuesto de errores, una línea con etiqueta marca también el umbral de cada nivel: consulta [Política de presupuesto de errores](/docs/slo/error-budget-policy).
 - En los SLO de mes natural, una línea tenue baja de forma uniforme desde un presupuesto lleno al principio del mes hasta uno vacío en el reinicio. Por debajo de ella, el mes gasta su presupuesto demasiado rápido.
 - Se registra un punto en cada evaluación, cada 5 minutos, así que el gráfico de un SLO nuevo está vacío hasta su primera evaluación.
 - Arrastra sobre el gráfico para ampliar una parte de la ventana. Haz doble clic, o clic en **Restablecer zoom**, para volver a ver toda la ventana.
@@ -126,6 +127,8 @@ stateDiagram-v2
 
 Con el umbral predeterminado del 20 %, un SLO en riesgo vuelve a estar en buen estado con un 25 % de presupuesto restante, y un SLO con el presupuesto agotado vuelve a estar en riesgo con un 2 %. Cada cambio de estado se publica en el **Feed** del SLO, con el SLI, el presupuesto y la tasa de consumo que lo explican.
 
+Un estado dice cuánto presupuesto queda, no qué hace tu equipo al respecto. Para dejarlo escrito en cada nivel de presupuesto restante, por ejemplo en el umbral de riesgo o cuando el presupuesto se agota, dale al SLO una [política de presupuesto de errores](/docs/slo/error-budget-policy).
+
 ## Notificaciones a los propietarios
 
 Cuando un SLO pasa a **En riesgo** o **Presupuesto agotado**, OneUptime avisa a sus propietarios:
@@ -143,6 +146,7 @@ Para que un SLO cerca de un límite no avise una y otra vez, sus propietarios re
 
 :::cards
 - [Alertas e incidentes de tasa de consumo](/docs/slo/burn-rate-alerts): Avisa a tu equipo cuando el presupuesto se consume demasiado rápido.
+- [Política de presupuesto de errores](/docs/slo/error-budget-policy): Deja escrito lo que hace el equipo a medida que se agota el presupuesto.
 - [Métricas y paneles de SLO](/docs/slo/metrics): Representa el presupuesto a lo largo del tiempo.
 - [Visión general de los SLO](/docs/slo/introduction): Objetivos, ventanas y estados de inactividad.
 :::

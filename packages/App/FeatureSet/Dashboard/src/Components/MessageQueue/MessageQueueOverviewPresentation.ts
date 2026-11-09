@@ -15,6 +15,7 @@ import { MESSAGE_QUEUE_DOCS_PATH } from "../../Pages/MessageQueue/Utils/Document
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import { isCloudConnectionPerQueueSystem } from "Common/Types/MessageQueue/MessageQueueCloudConnectionMetrics";
 import { MessageQueueMetricDescriptor } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
 import {
   MessagingBrokerMetricsSource,
@@ -156,6 +157,9 @@ export const MESSAGE_QUEUE_BROKER_METRICS_DOCS_ANCHOR: string =
   "broker-health-metrics";
 export const MESSAGE_QUEUE_BROKER_HEALTH_EMPTY_DOCS_ANCHOR: string =
   "broker-health-stays-empty";
+// What gives a queue its spans, and so its processing time.
+export const MESSAGE_QUEUE_INSTRUMENTING_DOCS_ANCHOR: string =
+  "instrumenting-applications";
 
 /** The docs route to one heading of the Queues guide. */
 export function getMessageQueueDocsRoute(anchor: string): Route {
@@ -211,9 +215,27 @@ export interface MessageQueueBrokerMetricsGuidance {
    * fills this section in.
    */
   reachesQueue: boolean;
+  /*
+   * Whether connecting the queue's cloud account (Cloud > Connect) fills
+   * this section in: an Azure subscription reads a Service Bus or Event
+   * Hubs namespace's key metrics per queue (isCloudConnectionPerQueueSystem).
+   */
+  connectsCloudAccount: boolean;
 }
 
-function sourceLabelOf(source: MessagingBrokerMetricsSource): string {
+function sourceLabelOf(
+  source: MessagingBrokerMetricsSource,
+  system: string | null | undefined,
+): string {
+  if (
+    source.kind === "cloud-monitoring" &&
+    isCloudConnectionPerQueueSystem(system)
+  ) {
+    return translateTemplate(
+      "Cloud monitoring: a connected Azure subscription, or the {{receiver}} receiver",
+      { receiver: source.receiver },
+    );
+  }
   switch (source.kind) {
     case "receiver":
       return translateTemplate(
@@ -313,7 +335,7 @@ export function getMessageQueueBrokerMetricsGuidance(
 
   return {
     sourceKind: source.kind,
-    sourceLabel: sourceLabelOf(source),
+    sourceLabel: sourceLabelOf(source, system),
     description: description,
     docsRoute: getMessageQueueSystemDocsRoute(system),
     docsLabel: known
@@ -322,6 +344,8 @@ export function getMessageQueueBrokerMetricsGuidance(
         })
       : translateTemplate("Broker health metrics in the Queues guide →"),
     reachesQueue: reachesQueue,
+    connectsCloudAccount:
+      reachesQueue && isCloudConnectionPerQueueSystem(system),
   };
 }
 

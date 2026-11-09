@@ -26,7 +26,12 @@ import { MESSAGE_QUEUE_LATE_METRIC_MINUTES } from "Common/Server/Utils/Telemetry
  *   - the queue's telemetry is never filtered by an attribute, its counters
  *     are turned into rates in a .ts module (RateChartReloadWiring sweeps
  *     .tsx components for computeCounterRate), and the Create monitor link
- *     is built only through the alert templates' query and view builders.
+ *     is built only through the alert templates' query and view builders;
+ *   - the one read without the queue's key — what an Azure queue's
+ *     namespace sent, for the Broker metrics card — filters by the scope
+ *     attribute alone and is made only while none of the queue's metrics
+ *     arrives (shouldReadMessageQueueNamespace); the card's week of
+ *     arrivals is read under the key, through its cache.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -83,6 +88,27 @@ const METRICS: string = readSquashed("Pages/MessageQueue/View/Metrics.tsx");
 const QUERIES: string = readSquashed(
   "Components/MessageQueue/MessageQueueTelemetryQueries.ts",
 );
+/*
+ * The span groups' definitions, shared by the Overview and the topology
+ * (issue #6189): Common/Types/MessageQueue/MessageQueueSpanPopulation.ts.
+ */
+const POPULATIONS: string = fs
+  .readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Common",
+      "Types",
+      "MessageQueue",
+      "MessageQueueSpanPopulation.ts",
+    ),
+    "utf8",
+  )
+  .replace(BLOCK_COMMENT, " ")
+  .replace(LINE_COMMENT, "$1")
+  .replace(WHITESPACE, " ");
 const LINK: string = readSquashed(
   "Components/MessageQueue/MessageQueueMetricMonitorLink.ts",
 );
@@ -117,8 +143,15 @@ describe("the queue Overview's data loading", () => {
       "}, [telemetryScope, timeRange, telemetryRefreshCount]);",
     );
     expect(effect).toContain("telemetryInFlightRef.current = true;");
-    // The answer, the name lookup after it, and the failure all check it.
-    expect(countOf(effect, "if (ignore) { return; }")).toBe(3);
+    /*
+     * The answer, the three reads after it (the services' names, the cloud
+     * connections' names, the namespace's series) and the failure all
+     * check it.
+     */
+    expect(countOf(effect, "if (ignore) { return; }")).toBe(5);
+    expect(effect).toContain(
+      "await Promise.all([ readServiceNames(), readConnectionNames(), readNamespace(), ]);",
+    );
     expect(effect).toContain("return () => { ignore = true; };");
   });
 
@@ -192,11 +225,21 @@ describe("the queue Overview's data loading", () => {
       "}),",
     );
     expect(read).toContain("messagingSystem: item.messagingSystem,");
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       "export const MESSAGE_QUEUE_PUBLISH_SPAN_KIND: SpanKind = SpanKind.Producer;",
     );
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       "export const MESSAGE_QUEUE_CONSUME_SPAN_KIND: SpanKind = SpanKind.Consumer;",
+    );
+    // The Overview's module takes them from there, never a copy of its own.
+    expect(QUERIES).toContain(
+      '} from "Common/Types/MessageQueue/MessageQueueSpanPopulation";',
+    );
+    expect(QUERIES).not.toContain(
+      "export const MESSAGE_QUEUE_PUBLISH_SPAN_KIND",
+    );
+    expect(QUERIES).not.toContain(
+      "export const MESSAGE_QUEUE_CONSUME_SPAN_KIND",
     );
     // An empty card says whether the queue had any span at all.
     expect(countOf(OVERVIEW, "queueHasSpans={hasSpans}")).toBe(2);
@@ -281,6 +324,71 @@ describe("the queue's telemetry queries", () => {
     );
   });
 
+  test("the one read without the key: an Azure namespace's series, only while nothing of the queue's arrives", () => {
+    const read: string = between(
+      QUERIES,
+      "export async function fetchMessageQueueNamespaceSeries(",
+      "export function findMessageQueueCatalogMetric(",
+    );
+    // Its only filter beyond the project, the time and the names.
+    expect(read).toContain(
+      "attributes: { [scopeKeys[0]]: new Search<string>(namespace) },",
+    );
+    expect(read).not.toContain("entityKeys:");
+    expect(read).toContain("aggregationInterval: AggregationInterval.Total,");
+    // The Overview makes it only when the status says nothing arrives.
+    const namespace: string = between(
+      OVERVIEW,
+      "const readNamespace: () => Promise<void> =",
+      "await Promise.all([ readServiceNames(), readConnectionNames(), readNamespace(), ]);",
+    );
+    expect(namespace).toContain("!shouldReadMessageQueueNamespace({");
+    expect(
+      namespace.indexOf("!shouldReadMessageQueueNamespace({"),
+    ).toBeLessThan(
+      namespace.indexOf("await fetchMessageQueueNamespaceSeries({"),
+    );
+    expect(countOf(OVERVIEW, "fetchMessageQueueNamespaceSeries(")).toBe(1);
+
+    // The week of arrivals: under the key, through the page's cache.
+    const arrivals: string = between(
+      QUERIES,
+      "export async function fetchMessageQueueBrokerMetricArrivals(",
+      "export const MESSAGE_QUEUE_BROKER_METRIC_ARRIVALS_TTL_MS",
+    );
+    expect(arrivals).toContain("entityKeys: entityKeys,");
+    expect(arrivals).not.toContain("attributes:");
+    expect(arrivals).toContain("groupBy: { name: true },");
+    // The week's read is grouped by the cloud connection too: its sources.
+    expect(arrivals).toContain(
+      "groupByAttributeKeys: bySource ? [MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY] : undefined,",
+    );
+    expect(arrivals).toContain(
+      "read(recentSince, AggregationInterval.Minute, false), read(since, AggregationInterval.Hour, true),",
+    );
+    expect(arrivals).toContain(
+      "sources: getMessageQueueBrokerMetricSources(lookback),",
+    );
+
+    // The connections' names: only theirs, only when the arrivals name any.
+    const names: string = between(
+      OVERVIEW,
+      "const readConnectionNames: () => Promise<void> =",
+      "const readNamespace: () => Promise<void> =",
+    );
+    expect(names).toContain(
+      "const ids: Array<string> = arrivals?.sources.connectionIds || []; if (ids.length === 0) { return; }",
+    );
+    expect(names).toContain("modelType: CloudConnection,");
+    expect(names).toContain("select: { _id: true, name: true },");
+    expect(names).toContain("if (ignore) { return; }");
+    expect(OVERVIEW).toContain("connectionNames={connectionNames}");
+    expect(OVERVIEW).toContain(
+      "fetchMessageQueueBrokerMetricArrivalsCached({ projectId, keys, metrics: catalog, cache: brokerArrivalsCacheRef.current, })",
+    );
+    expect(countOf(OVERVIEW, "fetchMessageQueueBrokerMetricArrivals(")).toBe(0);
+  });
+
   test("an empty key set is never an empty Includes", () => {
     expect(SCOPE).toContain(
       "if (!isMessageQueueScoped(keys)) { return null; } return new Includes([...(keys as ReadonlyArray<string>)]);",
@@ -357,9 +465,13 @@ describe("Create monitor", () => {
     expect(OVERVIEW).toContain("identity={identity}");
     // The queue's identity decides whether its broker metrics can reach it.
     expect(SECTION).toContain(
-      "getMessageQueueBrokerMetricsGuidance( props.messagingSystem, props.identity, )",
+      "getMessageQueueBrokerMetricsGuidance(props.messagingSystem, props.identity)",
     );
     expect(SECTION).toContain("{guidance.reachesQueue ? ( <AppLink");
+    // And so whether the Broker metrics card is drawn at all.
+    expect(SECTION).toContain(
+      "metricsStatus && (hasData || guidance.reachesQueue) ? ( <MessageQueueBrokerMetricsCard",
+    );
   });
 
   test("the hint beside Create monitor is built from the criteria Monitor Create builds", () => {

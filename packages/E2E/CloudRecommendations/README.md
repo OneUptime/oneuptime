@@ -24,9 +24,11 @@ npm run test-cloud-recommendations-ui
 An "Acme Commerce" workspace with one AWS account, `Production`, that a
 connection reads (`Fixture/Data.js`): an Application Load Balancer, `web-alb`,
 in front of three EC2 instances (`web-3` so new its metrics have not arrived),
-two RDS instances (`orders-db`, whose inventory lists its allocated storage,
-and `reports-db`, whose does not), three Lambda functions (one with a long
-name, as a team's naming convention writes them) and an SQS queue - and the
+two RDS instances (`orders-db`, whose inventory lists its class, engine,
+allocated storage and a parameter group of the team's own, and `reports-db`,
+whose inventory has not listed it yet), three Lambda functions (one with a
+long name, as a team's naming convention writes them), an SQS queue and an ACM
+certificate (`www.acme-commerce.example`) - and the
 resources no recommended monitor is for yet: a network load balancer
 (`AWS/NetworkELB`), a VPC and an S3 bucket. One row of the account is an App
 Platforms environment, never a cloud resource here.

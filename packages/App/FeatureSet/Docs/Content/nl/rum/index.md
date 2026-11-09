@@ -86,7 +86,7 @@ OneUptime vindt de applicatie via `service.name`, zonder op hoofdletters te lett
 
 De tellingen komen uit de spans die je instrumentatie verstuurt. **Paginaladingen** telt de span `documentLoad` die de instrumentatie voor paginaladingen bij elke volledige lading vastlegt, dus een routewissel binnen een single-page-app is geen paginalading.
 
-Een applicatie toont **Verbonden** zolang er telemetrie binnenkomt en **Verbinding verbroken** na 15 minuten zonder. Tijd waarin OneUptime zelf plat lag of zijn innamewachtrij inhaalde, telt niet mee voor die 15 minuten.
+Een applicatie toont **Ontvangt gegevens** zolang er telemetrie binnenkomt en **Geen recent verkeer** na 15 minuten zonder, wat normaal is zolang niemand de app gebruikt. Een met de hand toegevoegde applicatie toont **Wachten op gegevens** tot haar eerste gegevens binnenkomen. Tijd waarin OneUptime zelf plat lag of zijn innamewachtrij inhaalde, telt niet mee voor die 15 minuten.
 
 ## Aan de slag
 

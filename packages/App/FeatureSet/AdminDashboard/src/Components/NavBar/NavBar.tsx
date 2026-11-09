@@ -73,6 +73,17 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
         ]
       : []),
     {
+      title: "Telemetry Usage",
+      description: "How much telemetry each project sends, heaviest first.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.TELEMETRY_USAGE] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.TELEMETRY_USAGE],
+      icon: IconProp.ChartBar,
+      iconColor: "indigo",
+      category: monitoringCategory,
+    },
+    {
       title: "OneUptime Health",
       description: "Live status, datastore capacity and queue backlogs.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HEALTH] as Route),

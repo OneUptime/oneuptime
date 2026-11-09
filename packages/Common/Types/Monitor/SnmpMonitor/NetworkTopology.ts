@@ -199,7 +199,10 @@ export interface NetworkTopologyNode {
    * advertise for it (CDP cdpCacheAddress / LLDP lldpRemManAddrTable). It
    * is the field that makes such a peer actionable rather than merely
    * visible — nothing can be monitored without an address — so a reader
-   * must not assume a node with an ipAddress is an endpoint.
+   * must not assume a node with an ipAddress is an endpoint. A MANAGED
+   * device carries it as well (issue #5775): the IP it is polled at, or
+   * the one a switch's endpoint row saw it at, which the map draws under
+   * its name.
    */
   macAddress?: string | undefined;
   ipAddress?: string | undefined;

@@ -9,6 +9,7 @@ import {
   PageSearchIndexEntry,
 } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
 import { PROJECT_AI_DAILY_LIMITS_CARD_KEY } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import { FIX_APPROVALS_CARD_KEY } from "../../FeatureSet/Dashboard/src/Components/AISettings/FixApprovalsCopy";
 import { RETENTION_BY_TELEMETRY_TYPE_PLACE } from "../../FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryRetentionFold";
 import {
   getPageSearchAreas,
@@ -502,6 +503,17 @@ describe("a folded setting opens its fold at its card", () => {
       pageKey: PageMap.SETTINGS_AI_FEATURES,
       place: PROJECT_AI_DAILY_LIMITS_CARD_KEY,
     },
+    // Two people approve a riskier fix, beside the daily limits (#6148's follow-up).
+    {
+      name: "Fix approvals",
+      pageKey: PageMap.SETTINGS_AI_FEATURES,
+      place: FIX_APPROVALS_CARD_KEY,
+    },
+    {
+      name: "Two people approve riskier fixes",
+      pageKey: PageMap.SETTINGS_AI_FEATURES,
+      place: FIX_APPROVALS_CARD_KEY,
+    },
   ];
 
   test.each(FOLDED)(
@@ -540,7 +552,8 @@ describe("a folded setting opens its fold at its card", () => {
     expect([
       PROJECT_AI_DAILY_LIMITS_CARD_KEY,
       RETENTION_BY_TELEMETRY_TYPE_PLACE,
-    ]).toEqual(["DailyLimits", "retention-by-telemetry-type"]);
+      FIX_APPROVALS_CARD_KEY,
+    ]).toEqual(["DailyLimits", "retention-by-telemetry-type", "FixApprovals"]);
   });
 
   test("a setting in sight opens its page as it is", () => {

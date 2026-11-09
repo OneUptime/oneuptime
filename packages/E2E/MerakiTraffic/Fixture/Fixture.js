@@ -45,6 +45,12 @@
  *              picked for the devices | absent (default): one, which is
  *   ?lang=     de reads the German locale file
  *   ?theme=    dark adds html.dark (handled by server.js)
+ *   ?lists=    long: an estate of 150 networks, 24 applications and 45
+ *              clients, so Top networks, Top applications and Top clients
+ *              show ten of more and "View all" opens the rest (issue #5762)
+ *   ?router=   linked: the branch router added by hand (ROUTER_TRAFFIC) is
+ *              linked to the Leeds MX already | absent (default): it is
+ *              linked to no appliance, and its page offers to link it
  *
  * The device's and the site's Traffic pages are the production pages at
  * their own addresses (DEVICE_TRAFFIC, SITE_TRAFFIC below): the Head
@@ -52,8 +58,9 @@
  *
  * Every read and write is recorded on window.__merakiTrafficFixture:
  * usageRequests, flowRequests, tests, readNows, creates, updates, deletes,
- * deviceAdds (each Add devices asked for), probeAsks and unhandled -
- * anything the fixture does not model. The spec asserts `unhandled` is
+ * deviceAdds (each Add devices asked for), probeAsks, listRequests (a page
+ * of a whole list), applianceAsks, links and unlinks (issue #5762) and
+ * unhandled - anything the fixture does not model. The spec asserts `unhandled` is
  * empty. finishRead() ends the read a connection is waiting for, as the
  * worker would; progressDeviceAdd(added, total) and finishDeviceAdd() move
  * an Add devices on, as its worker job would.
@@ -99,6 +106,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
+import {
+  getNameLikeness,
+  isLikelyName,
+} from "Common/Utils/NetworkDevice/DeviceNameLikeness";
 
 /*
  * ---------------------------------------------------------------------------
@@ -125,6 +136,7 @@ const verdict = ["pass", "several", "auth"].includes(params.get("verdict"))
   : "pass";
 const language = params.get("lang") === "de" ? "de" : "en";
 const role = params.get("role") === "member" ? "member" : "owner";
+const longLists = params.get("lists") === "long";
 
 /*
  * What the last read counted of the organization's device list: every device,
@@ -387,6 +399,58 @@ const UPLINKS = [
   ["cellular", 0, 71, 0],
 ];
 
+/*
+ * An estate of many branches (?lists=long): 146 stores beside the four
+ * networks above, each with its MX, its applications and its clients.
+ */
+const STORE_TOWNS = ["Leeds", "York", "Bath", "Derby", "Hull", "Truro", "Ely"];
+const STORES = longLists
+  ? Array.from({ length: 146 }, (_unused, index) => {
+      const number = String(index + 101);
+      return {
+        id: `L_70000000000${number}`,
+        name: `Store ${number} · ${STORE_TOWNS[index % STORE_TOWNS.length]}`,
+        serial: `Q2PN-ST00-0${number}`,
+        appliance: `ST${number} MX67`,
+        down: 300_000 - index * 1_500,
+        up: 60_000 - index * 300,
+      };
+    })
+  : [];
+const ALL_NETWORKS = [...NETWORKS, ...STORES];
+
+const MORE_APPLICATIONS = longLists
+  ? [
+      "Spotify",
+      "Salesforce",
+      "Slack",
+      "Webex",
+      "GitHub",
+      "Box",
+      "Adobe Creative Cloud",
+      "Apple iCloud",
+      "LinkedIn",
+      "Netflix",
+      "Google Drive",
+      "Zscaler",
+      "Okta",
+      "Atlassian",
+      "Workday",
+      "ServiceNow",
+      "Twitch",
+      "WhatsApp",
+    ].map((application, index) => {
+      return [
+        application,
+        `${application.toLowerCase().replace(/[^a-z]/g, "")}.example`,
+        0.008 - index * 0.0003,
+        "TCP",
+        443,
+        3,
+      ];
+    })
+  : [];
+
 const CLIENTS = [
   [
     "k5f1c2a",
@@ -422,6 +486,30 @@ const CLIENTS = [
   ],
   ["k2d77f0", "", "10.30.4.17", "b8:27:eb:5d:33:a2", "Raspberry Pi", 2],
 ];
+
+// Forty more clients, on the stores, for ?lists=long.
+const MORE_CLIENTS = longLists
+  ? Array.from({ length: 40 }, (_unused, index) => {
+      return [
+        `kstore${index}`,
+        index % 5 === 0 ? "" : `Till ${index + 1}`,
+        `10.70.${index}.20`,
+        `00:1b:63:00:${String(index % 100).padStart(2, "0")}:01`,
+        "Ingenico",
+        4 + (index % STORES.length),
+      ];
+    })
+  : [];
+
+/*
+ * A branch router added by hand at its WAN address (issue #5762): polled by
+ * a probe, with no serial number of an appliance - so Meraki's traffic of
+ * the Leeds MX it is used to have nowhere to show on its page.
+ */
+const ROUTER_ID = "40000000-0000-4000-8000-000000000002";
+const ROUTER_NAME = "BR012-EDGE-GW01";
+const ROUTER_HOSTNAME = "203.0.113.12";
+let routerSerial = params.get("router") === "linked" ? "Q2PN-LDS0-0012" : null;
 
 const READ_AT = new Date(Date.now() - 2 * 60 * 1000);
 
@@ -584,6 +672,11 @@ const fixture = {
   deviceAdds: [],
   // How often the project's probes were listed (the Add devices dialog).
   probeAsks: 0,
+  // Issue #5762: each page of a whole list, each appliance list, link and unlink.
+  listRequests: [],
+  applianceAsks: [],
+  links: [],
+  unlinks: [],
   // The Add devices a connection waits for gets on: `added` of `total`.
   progressDeviceAdd: (added, total) => {
     for (const connection of connections) {
@@ -751,6 +844,9 @@ function emptyUsage(body) {
     topDestinations: [],
     topClients: [],
     topConversations: [],
+    networkCount: 0,
+    applicationCount: 0,
+    clientCount: 0,
     lastUplinkAt: null,
     lastAnalyticsAt: null,
     uplinksReadTo: null,
@@ -758,12 +854,58 @@ function emptyUsage(body) {
   };
 }
 
+// The busiest first, as the server sorts a list: both ways, then the key.
+function byTotal(first, second) {
+  return (
+    second.sentOctets +
+    second.receivedOctets -
+    (first.sentOctets + first.receivedOctets)
+  );
+}
+
+/*
+ * Which appliance a device's page is of (issue #5762), as the server says:
+ * the Head Office MX by its serial number, the branch router by its link -
+ * or none yet.
+ */
+function deviceApplianceOf(deviceId) {
+  const serial =
+    deviceId === DEVICE_ID
+      ? DEVICE_SERIAL
+      : deviceId === ROUTER_ID
+        ? routerSerial
+        : null;
+  const network = ALL_NETWORKS.find((candidate) => {
+    return candidate.serial === serial;
+  });
+
+  if (!network) {
+    return deviceId === ROUTER_ID ? { status: "unlinked" } : undefined;
+  }
+
+  return {
+    status: "linked",
+    serial: network.serial,
+    name: network.appliance,
+    controllerNetworkName: network.name,
+    isLinkedBySerialNumber: true,
+  };
+}
+
 // The page's window, as the Meraki side answers it: known rates, a gentle wave.
 function usageFor(body) {
   const answer = emptyUsage(body);
+  const deviceAppliance = body.networkDeviceId
+    ? deviceApplianceOf(body.networkDeviceId)
+    : undefined;
 
   if (!connections.some(isRead)) {
     return answer;
+  }
+
+  // A device of no appliance: its page offers to link it.
+  if (deviceAppliance && deviceAppliance.status === "unlinked") {
+    return { ...answer, isAvailable: false, connections: [], deviceAppliance };
   }
 
   const filters = body.filters || {};
@@ -792,7 +934,7 @@ function usageFor(body) {
   const inScope = (network) => {
     if (body.networkDeviceId) {
       return (
-        body.networkDeviceId === DEVICE_ID && network.serial === DEVICE_SERIAL
+        Boolean(deviceAppliance) && network.serial === deviceAppliance.serial
       );
     }
     if (body.networkSiteId) {
@@ -802,7 +944,7 @@ function usageFor(body) {
     }
     return true;
   };
-  const networks = NETWORKS.filter((network) => {
+  const networks = ALL_NETWORKS.filter((network) => {
     return (
       inScope(network) &&
       (!filters.controllerNetworkId ||
@@ -884,11 +1026,11 @@ function usageFor(body) {
   // Meraki counts these per network: an uplink's filter leaves them as they are.
   const applicationBytes = (allDown + allUp) * 0.82;
   // The part of the organization's traffic the filters keep: its flows too.
-  const everything = NETWORKS.filter(inScope).reduce((total, network) => {
+  const everything = ALL_NETWORKS.filter(inScope).reduce((total, network) => {
     return total + (network.down + network.up) * seconds;
   }, 0);
   const kept = everything > 0 ? (allDown + allUp) / everything : 0;
-  const topApplications = APPLICATIONS.map(
+  const allApplications = [...APPLICATIONS, ...MORE_APPLICATIONS].map(
     ([application, , weight, protocol, port]) => {
       return {
         application,
@@ -900,7 +1042,7 @@ function usageFor(body) {
       };
     },
   );
-  const topDestinations = APPLICATIONS.map(
+  const topDestinations = [...APPLICATIONS, ...MORE_APPLICATIONS].map(
     ([application, destination, weight, protocol, port]) => {
       return {
         destination,
@@ -912,24 +1054,27 @@ function usageFor(body) {
       };
     },
   );
-  const topClients = CLIENTS.filter(([, , , , , networkIndex]) => {
-    return networks.includes(NETWORKS[networkIndex]);
-  }).map(([clientKey, name, ip, mac, manufacturer, networkIndex], index) => {
-    const bytes =
-      (NETWORKS[networkIndex].down + NETWORKS[networkIndex].up) *
-      seconds *
-      (0.09 - index * 0.012);
-    return {
-      clientKey,
-      name,
-      ip,
-      mac,
-      manufacturer,
-      controllerNetworkName: NETWORKS[networkIndex].name,
-      sentOctets: Math.round(bytes * 0.2),
-      receivedOctets: Math.round(bytes * 0.8),
-    };
-  });
+  const allClients = [...CLIENTS, ...MORE_CLIENTS]
+    .filter(([, , , , , networkIndex]) => {
+      return networks.includes(ALL_NETWORKS[networkIndex]);
+    })
+    .map(([clientKey, name, ip, mac, manufacturer, networkIndex], index) => {
+      const bytes =
+        (ALL_NETWORKS[networkIndex].down + ALL_NETWORKS[networkIndex].up) *
+        seconds *
+        Math.max(0.002, 0.09 - index * 0.012);
+      return {
+        clientKey,
+        name,
+        ip,
+        mac,
+        manufacturer,
+        controllerNetworkName: ALL_NETWORKS[networkIndex].name,
+        sentOctets: Math.round(bytes * 0.2),
+        receivedOctets: Math.round(bytes * 0.8),
+      };
+    })
+    .sort(byTotal);
   // What each network reached, the busiest first.
   const topConversations = networks
     .flatMap((network) => {
@@ -963,14 +1108,40 @@ function usageFor(body) {
     return share(network) > 0;
   }).length;
 
+  const allNetworks = networks
+    .map((network) => {
+      return {
+        controllerNetworkId: network.id,
+        name: network.name,
+        sentOctets: Math.round(
+          network.up * seconds * share(network) * uplinkShare,
+        ),
+        receivedOctets: Math.round(
+          network.down * seconds * share(network) * uplinkShare,
+        ),
+      };
+    })
+    .sort(byTotal);
+  const sortedApplications = [...allApplications].sort(byTotal);
+
   return {
     ...answer,
     isAvailable: true,
+    ...(deviceAppliance ? { deviceAppliance } : {}),
+    // Every row of the three lists, for usage-list (never sent to the page).
+    allRows: {
+      networks: allNetworks,
+      applications: sortedApplications,
+      clients: allClients,
+    },
+    networkCount: allNetworks.length,
+    applicationCount: sortedApplications.length,
+    clientCount: allClients.length,
     bucketSeconds,
     totals: {
       sentOctets: Math.round(up),
       receivedOctets: Math.round(down),
-      flows: topApplications.reduce((total, row) => {
+      flows: allApplications.reduce((total, row) => {
         return total + row.flows;
       }, 0),
     },
@@ -983,18 +1154,8 @@ function usageFor(body) {
       receivedOctets: Math.round((allDown + allUp) * 0.48),
     },
     series,
-    topNetworks: networks.map((network) => {
-      return {
-        controllerNetworkId: network.id,
-        name: network.name,
-        sentOctets: Math.round(
-          network.up * seconds * share(network) * uplinkShare,
-        ),
-        receivedOctets: Math.round(
-          network.down * seconds * share(network) * uplinkShare,
-        ),
-      };
-    }),
+    // As the server caps every top list: the busiest ten.
+    topNetworks: allNetworks.slice(0, 10),
     topUplinks: networks
       .flatMap((network) => {
         return UPLINKS.filter(([interfaceName]) => {
@@ -1037,13 +1198,176 @@ function usageFor(body) {
       };
     }),
     uplinkSeries,
-    topApplications,
-    topDestinations,
-    topClients,
+    topApplications: sortedApplications.slice(0, 10),
+    topDestinations: topDestinations.sort(byTotal).slice(0, 10),
+    topClients: allClients.slice(0, 10),
     topConversations,
     lastUplinkAt: new Date(lastUplinkAt).toISOString(),
     uplinksReadTo: new Date(lastUplinkAt).toISOString(),
     lastAnalyticsAt: new Date(Date.now() - 70 * 60 * 1000).toISOString(),
+  };
+}
+
+/*
+ * A page of a whole list (POST /network-traffic/usage-list), as the server
+ * answers it: the page's rows of that list, searched without case, sorted
+ * busiest first by both ways, in or out, from `skip`, `limit` of them.
+ */
+function listFor(body) {
+  const usage = usageFor(body);
+  const all =
+    (usage.allRows || { networks: [], applications: [], clients: [] })[
+      body.list
+    ] || [];
+  const search = String(body.search || "").toLowerCase();
+  const texts = (row) => {
+    return [
+      row.name,
+      row.controllerNetworkId,
+      row.application,
+      row.ip,
+      row.mac,
+      row.manufacturer,
+    ].filter(Boolean);
+  };
+  const matching = all.filter((row) => {
+    return (
+      !search ||
+      texts(row).some((text) => {
+        return String(text).toLowerCase().includes(search);
+      })
+    );
+  });
+  const sortBy = body.sortBy || "total";
+  const amount = (row) => {
+    return sortBy === "in"
+      ? row.receivedOctets
+      : sortBy === "out"
+        ? row.sentOctets
+        : row.sentOctets + row.receivedOctets;
+  };
+  const sorted = [...matching].sort((first, second) => {
+    return amount(second) - amount(first);
+  });
+  const skip = Number(body.skip || 0);
+  const limit = Number(body.limit || 25);
+
+  return {
+    list: body.list,
+    count: matching.length,
+    networks: body.list === "networks" ? sorted.slice(skip, skip + limit) : [],
+    applications:
+      body.list === "applications" ? sorted.slice(skip, skip + limit) : [],
+    clients: body.list === "clients" ? sorted.slice(skip, skip + limit) : [],
+  };
+}
+
+// Which device each appliance is here: the Head Office MX's, the router's link.
+function linkedDeviceOf(serial) {
+  if (serial === DEVICE_SERIAL) {
+    return { id: DEVICE_ID, name: "HQ MX250" };
+  }
+
+  if (serial && serial === routerSerial) {
+    return { id: ROUTER_ID, name: ROUTER_NAME };
+  }
+
+  return null;
+}
+
+/*
+ * The appliances a device can be linked to (POST
+ * /network-traffic/usage-appliances), as the server lists them: the likely
+ * ones first - named like the device, by the product's own likeness rules -
+ * then the rest by name; an appliance another device is says which.
+ */
+function appliancesFor(body) {
+  const deviceId = body.networkDeviceId;
+  const names =
+    deviceId === ROUTER_ID ? [ROUTER_NAME, ROUTER_HOSTNAME] : ["HQ MX250"];
+  const search = String(body.search || "").toLowerCase();
+  const rows = ALL_NETWORKS.map((network) => {
+    const linked = linkedDeviceOf(network.serial);
+    const likeness = getNameLikeness({
+      names,
+      otherNames: [network.appliance, network.name],
+      otherSerial: network.serial,
+    });
+
+    return {
+      likeness,
+      appliance: {
+        serial: network.serial,
+        name: network.appliance,
+        controllerNetworkId: network.id,
+        controllerNetworkName: network.name,
+        connectionName: "Acme Networks",
+        lastSeenAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+        octets: Math.round((network.down + network.up) * 7 * 24 * 3600),
+        ...(linked
+          ? { linkedDeviceId: linked.id, linkedDeviceName: linked.name }
+          : {}),
+        isLikely: false,
+      },
+    };
+  });
+  const likely = rows
+    .filter((row) => {
+      return (
+        isLikelyName(row.likeness) &&
+        (!row.appliance.linkedDeviceId ||
+          row.appliance.linkedDeviceId === deviceId)
+      );
+    })
+    .sort((first, second) => {
+      return second.likeness.score - first.likeness.score;
+    })
+    .slice(0, 3);
+
+  for (const row of likely) {
+    row.appliance.isLikely = true;
+    row.appliance.likenessReason = row.likeness.reason;
+    if (row.likeness.shared) {
+      row.appliance.likenessShared = row.likeness.shared;
+    }
+  }
+
+  const rest = rows
+    .filter((row) => {
+      return !row.appliance.isLikely;
+    })
+    .map((row) => {
+      return row.appliance;
+    })
+    .sort((first, second) => {
+      return first.name.localeCompare(second.name, undefined, {
+        numeric: true,
+      });
+    });
+  const ordered = [
+    ...likely.map((row) => {
+      return row.appliance;
+    }),
+    ...rest,
+  ];
+  const matching = ordered.filter((appliance) => {
+    return (
+      !search ||
+      [
+        appliance.name,
+        appliance.serial,
+        appliance.controllerNetworkName,
+        appliance.connectionName,
+      ].some((text) => {
+        return text.toLowerCase().includes(search);
+      })
+    );
+  });
+
+  return {
+    appliances: matching.slice(0, 50),
+    total: ordered.length,
+    matching: matching.length,
   };
 }
 
@@ -1301,9 +1625,21 @@ ModelAPI.getItem = async (options) => {
       : null;
   }
 
-  // The Head Office MX: a device in OneUptime, polled by no probe here.
+  /*
+   * The Head Office MX: a device in OneUptime, polled by no probe here. And
+   * the branch router added by hand at its WAN address (issue #5762).
+   */
   if (options.modelType === NetworkDevice) {
     fixture.deviceAsks += 1;
+
+    if (options.id.toString() === ROUTER_ID) {
+      return Object.assign(new NetworkDevice(), {
+        _id: ROUTER_ID,
+        name: ROUTER_NAME,
+        hostname: ROUTER_HOSTNAME,
+      });
+    }
+
     return options.id.toString() === DEVICE_ID
       ? Object.assign(new NetworkDevice(), {
           _id: DEVICE_ID,
@@ -1403,7 +1739,56 @@ async function handleApi(method, options) {
 
   if (method === "POST" && url.endsWith("/network-traffic/usage-summary")) {
     fixture.usageRequests.push(serialize(options.data));
-    return ok(usageFor(options.data || {}));
+    const answer = usageFor(options.data || {});
+    delete answer.allRows;
+    return ok(answer);
+  }
+
+  if (method === "POST" && url.endsWith("/network-traffic/usage-list")) {
+    fixture.listRequests.push(serialize(options.data));
+    return ok(listFor(options.data || {}));
+  }
+
+  if (method === "POST" && url.endsWith("/network-traffic/usage-appliances")) {
+    fixture.applianceAsks.push(serialize(options.data));
+    return ok(appliancesFor(options.data || {}));
+  }
+
+  /*
+   * A link (NetworkControllerApplianceLink): one appliance is one device, so
+   * the Head Office MX's appliance is refused, as the server refuses it.
+   */
+  if (method === "POST" && url.endsWith("/network-traffic/link-appliance")) {
+    const data = options.data || {};
+    fixture.links.push(serialize(data));
+    const linked = linkedDeviceOf(data.deviceSerial);
+
+    if (linked && linked.id !== data.networkDeviceId) {
+      return new HTTPErrorResponse(
+        400,
+        {
+          message: `This appliance is linked to ${linked.name} already. Unlink it there first.`,
+        },
+        {},
+      );
+    }
+
+    if (data.networkDeviceId === ROUTER_ID) {
+      routerSerial = data.deviceSerial;
+    }
+
+    return ok({ deviceSerial: data.deviceSerial, isRefiled: true });
+  }
+
+  if (method === "POST" && url.endsWith("/network-traffic/unlink-appliance")) {
+    const data = options.data || {};
+    fixture.unlinks.push(serialize(data));
+
+    if (data.networkDeviceId === ROUTER_ID) {
+      routerSerial = null;
+    }
+
+    return ok({ deviceSerial: "Q2PN-LDS0-0012", isRefiled: true });
   }
 
   if (method === "POST" && url.endsWith("/network-traffic/summary")) {

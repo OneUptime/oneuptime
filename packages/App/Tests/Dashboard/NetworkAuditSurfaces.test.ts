@@ -49,8 +49,18 @@ const SITE_ENDPOINTS: string = readCode(
   "View",
   "Endpoints.tsx",
 );
+/*
+ * Both pages draw the Discovered Devices list (issue #5775), which holds
+ * their words.
+ */
+const DISCOVERED_DEVICES: string = readCode(
+  "Components",
+  "NetworkDevice",
+  "DiscoveredDevices",
+  "DiscoveredDevicesTable.tsx",
+);
 
-describe("an empty Endpoints page says where endpoints come from", () => {
+describe("an empty Discovered Devices page says where they come from", () => {
   /*
    * Endpoints are collected by a switch or router with Collect Connected
    * Endpoints turned on, a device setting that is off by default. The page
@@ -58,17 +68,29 @@ describe("an empty Endpoints page says where endpoints come from", () => {
    * no such setting.
    */
   test("the network's list names the device setting and where it is", () => {
-    expect(ENDPOINTS).toContain(
-      'noItemsMessage={ "No endpoints yet. Turn on Collect Connected Endpoints in a switch or router\'s polling settings to see what is plugged into it." }',
+    expect(ENDPOINTS).toContain("<DiscoveredDevicesTable />");
+    expect(DISCOVERED_DEVICES).toContain(
+      'noneYet: translationKey("No discovered devices yet."),',
     );
-    expect(ENDPOINTS).not.toContain("monitors");
+    expect(DISCOVERED_DEVICES).toContain(
+      'howToCollect: translationKey( "Turn on Collect Connected Endpoints in a switch or router\'s polling settings to see what is plugged into it.", ),',
+    );
+    expect(DISCOVERED_DEVICES).toMatch(
+      /description: props\.siteId \? DISCOVERED_DEVICES_COPY\.siteHowToCollect : DISCOVERED_DEVICES_COPY\.howToCollect,/,
+    );
+    expect(DISCOVERED_DEVICES).not.toContain("your switch and router monitors");
   });
 
   test("a site's list does too", () => {
     expect(SITE_ENDPOINTS).toContain(
-      'noItemsMessage="No endpoints at this site yet. Turn on Collect Connected Endpoints in a switch or router\'s polling settings to see what is plugged in."',
+      "<DiscoveredDevicesTable siteId={modelId.toString()} />",
     );
-    expect(SITE_ENDPOINTS).not.toContain("monitors");
+    expect(DISCOVERED_DEVICES).toContain(
+      'siteNoneYet: translationKey("No discovered devices at this site yet."),',
+    );
+    expect(DISCOVERED_DEVICES).toContain(
+      'siteHowToCollect: translationKey( "Turn on Collect Connected Endpoints in a switch or router\'s polling settings to see what is plugged in.", ),',
+    );
   });
 
   test("the labels it names are the ones the device Settings page draws", () => {
@@ -91,13 +113,16 @@ describe("an empty Endpoints page says where endpoints come from", () => {
     );
   });
 
-  test("the list says what an endpoint is, and that nothing ages out on its own", () => {
-    expect(ENDPOINTS).toContain(
-      "What is plugged into your switches and routers, read from their address tables. Nothing is removed on its own: Last Seen says when each was last there.",
+  test("the list says what a discovered device is, and that nothing ages out on its own", () => {
+    expect(DISCOVERED_DEVICES).toContain(
+      "Every device your switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
+    );
+    expect(DISCOVERED_DEVICES).toContain(
+      "Every device this site's switches, routers and network controllers have seen. Nothing is removed on its own: Last Seen says when each was last there.",
     );
   });
 
-  test("the Overview's Endpoints tile says the same when there are none", () => {
+  test("the Overview's Discovered Devices tile says the same when there are none", () => {
     expect(OVERVIEW).toContain(
       '"None yet: turn on Collect Connected Endpoints on a switch or router."',
     );
@@ -140,9 +165,9 @@ describe("the Overview's tiles and lists go where they talk about", () => {
     expect(tiles).toContain("DEVICES_WITH_INTERFACES_DOWN_SELECTION");
   });
 
-  test("Sites opens the sites, Endpoints the endpoints", () => {
+  test("Sites opens the sites, Discovered Devices the discovered devices", () => {
     expect(tile("Sites")).toContain("RouteMap[PageMap.NETWORK_SITES] as Route");
-    expect(tile("Endpoints")).toContain(
+    expect(tile("Discovered Devices")).toContain(
       "RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS] as Route",
     );
   });

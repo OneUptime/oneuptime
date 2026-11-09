@@ -8,6 +8,7 @@ import {
   DiscoveryImportDeviceOutcome,
   DiscoveryImportHostResult,
   DiscoveryImportMonitorOutcome,
+  DiscoveryImportSource,
   DiscoveryImportView,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
 import ObjectID from "Common/Types/ObjectID";
@@ -446,9 +447,14 @@ export function getPhaseDescription(
   }
 
   if (model.isActive) {
-    return translator.translateText(
-      "You can close this window: the import carries on, and Review Results shows where it stands.",
-    ) as string;
+    // An import from the Discovered Devices list has no scan to review.
+    return view.source === DiscoveryImportSource.DiscoveredDevices
+      ? (translator.translateText(
+          "You can close this window: the import carries on, and the Discovered Devices list shows where it stands.",
+        ) as string)
+      : (translator.translateText(
+          "You can close this window: the import carries on, and Review Results shows where it stands.",
+        ) as string);
   }
 
   if (model.retryableCount > 0) {

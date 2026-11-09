@@ -2,12 +2,17 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   AWS_DEFAULT_PERIOD_SECONDS,
   AWS_KEY_METRICS,
+  AZURE_DIMENSION_ATTRIBUTE_PREFIX,
+  AZURE_ENTITY_NAME_ATTRIBUTE,
+  AZURE_ENTITY_NAME_DIMENSION,
   AZURE_KEY_METRICS,
   AZURE_MAX_METRICS_PER_RESOURCE,
+  AZURE_MAX_SPLIT_SERIES_PER_METRIC,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
   AzureTypeKeyMetrics,
   DAILY_PERIOD_SECONDS,
+  HOURLY_PERIOD_SECONDS,
   GCP_KEY_METRICS,
   GcpKeyMetric,
   GcpTypeKeyMetrics,
@@ -18,7 +23,9 @@ import {
   getAzureStoredMetricName,
   getGcpKeyMetricTypes,
   getKeyMetricCount,
+  isAzureKeyMetricStoredName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
+import { MESSAGE_QUEUE_METRICS } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
 import {
   AWS_CLOUDWATCH_DISCOVERY_NAMESPACES,
   getCloudResourceTypeDescriptor,
@@ -69,15 +76,17 @@ describe("AWS", () => {
     }
   });
 
-  test("each metric reads one statistic, every 5 minutes or once a day", () => {
+  test("each metric reads one statistic, every 5 minutes, once an hour or once a day", () => {
     for (const entry of AWS_KEY_METRICS) {
       for (const metric of entry.metrics) {
         expect(["Average", "Sum", "Maximum", "Minimum"]).toContain(
           metric.statistic,
         );
-        expect([AWS_DEFAULT_PERIOD_SECONDS, DAILY_PERIOD_SECONDS]).toContain(
-          metric.periodSeconds,
-        );
+        expect([
+          AWS_DEFAULT_PERIOD_SECONDS,
+          HOURLY_PERIOD_SECONDS,
+          DAILY_PERIOD_SECONDS,
+        ]).toContain(metric.periodSeconds);
         expect(metric.unit.length).toBeGreaterThan(0);
       }
     }
@@ -88,6 +97,70 @@ describe("AWS", () => {
         return metric.periodSeconds;
       }),
     ).toEqual([DAILY_PERIOD_SECONDS, DAILY_PERIOD_SECONDS]);
+    expect(HOURLY_PERIOD_SECONDS).toBe(3600);
+  });
+
+  /*
+   * ACM publishes DaysToExpiry twice a day for every certificate, and stops
+   * once one expires: read once an hour, a 5-minute period would hold it
+   * for one period in 144, and listed only when it reported in the last
+   * three hours, a certificate would be found for a few hours after each
+   * point and lost for the rest of the day.
+   */
+  test("a certificate's days to expiry are read once an hour, and listed whatever their last point's age", () => {
+    const acm: AwsNamespaceKeyMetrics | undefined = getAwsKeyMetrics(
+      "AWS/CertificateManager",
+    );
+
+    expect(acm).toEqual({
+      namespace: "AWS/CertificateManager",
+      isListedWhenQuiet: true,
+      metrics: [
+        {
+          metricName: "DaysToExpiry",
+          statistic: "Minimum",
+          unit: "None",
+          periodSeconds: HOURLY_PERIOD_SECONDS,
+        },
+      ],
+    });
+    // Certificates are a Region's own, read in every Region.
+    expect(acm!.onlyRegion).toBeUndefined();
+    // The catalog finds a certificate from the namespace, by its ARN.
+    expect(getAwsNamespaceOfType("AWS::CertificateManager::Certificate")).toBe(
+      "AWS/CertificateManager",
+    );
+    expect(
+      getKeyMetricCount(
+        CloudProvider.AWS,
+        "AWS::CertificateManager::Certificate",
+      ),
+    ).toBe(1);
+  });
+
+  test("only a namespace published a few times a day is listed when quiet: every other keeps the last three hours", () => {
+    const quiet: Array<string> = AWS_KEY_METRICS.filter(
+      (entry: AwsNamespaceKeyMetrics): boolean => {
+        return Boolean(entry.isListedWhenQuiet);
+      },
+    ).map((entry: AwsNamespaceKeyMetrics): string => {
+      return entry.namespace;
+    });
+
+    expect(quiet).toEqual(["AWS/CertificateManager"]);
+
+    // And each of its metrics is read less often than every 5 minutes.
+    for (const entry of AWS_KEY_METRICS) {
+      if (!entry.isListedWhenQuiet) {
+        continue;
+      }
+
+      for (const metric of entry.metrics) {
+        expect(metric.periodSeconds).toBeGreaterThanOrEqual(
+          HOURLY_PERIOD_SECONDS,
+        );
+      }
+    }
   });
 
   test("the global services are read where CloudWatch keeps them", () => {
@@ -167,6 +240,92 @@ describe("Azure", () => {
     expect(
       getAzureStoredMetricName("Composite Disk Read Bytes/sec", "Average"),
     ).toBe("azure_composite_disk_read_bytes/sec_average");
+  });
+});
+
+describe("Azure Service Bus and Event Hubs, split per queue", () => {
+  test("only their namespaces are split, by EntityName, as the azure_monitor receiver names it", () => {
+    const split: Array<string> = AZURE_KEY_METRICS.filter(
+      (entry: AzureTypeKeyMetrics): boolean => {
+        return Boolean(entry.splitByDimension);
+      },
+    ).map((entry: AzureTypeKeyMetrics): string => {
+      return entry.type;
+    });
+
+    expect(split).toEqual([
+      "Microsoft.ServiceBus/namespaces",
+      "Microsoft.EventHub/namespaces",
+    ]);
+    expect(
+      getAzureKeyMetrics("microsoft.servicebus/Namespaces")?.splitByDimension,
+    ).toBe(AZURE_ENTITY_NAME_DIMENSION);
+    expect(AZURE_ENTITY_NAME_DIMENSION).toBe("EntityName");
+    expect(AZURE_DIMENSION_ATTRIBUTE_PREFIX).toBe("metadata_");
+    expect(AZURE_ENTITY_NAME_ATTRIBUTE).toBe("metadata_entityname");
+    // As many queues a namespace as the Queues guide asks the receiver to read.
+    expect(AZURE_MAX_SPLIT_SERIES_PER_METRIC).toBe(1000);
+  });
+
+  test("every metric read of a namespace, with its usual aggregation, is one the Queues catalog files on a queue", () => {
+    const usual: Record<string, string> = {
+      IncomingMessages: "Total",
+      OutgoingMessages: "Total",
+      ActiveMessages: "Average",
+      DeadletteredMessages: "Average",
+      ServerErrors: "Total",
+      ThrottledRequests: "Total",
+    };
+
+    for (const [type, system] of [
+      ["Microsoft.ServiceBus/namespaces", "servicebus"],
+      ["Microsoft.EventHub/namespaces", "eventhubs"],
+    ] as Array<[string, string]>) {
+      for (const metric of getAzureKeyMetrics(type)!.metrics) {
+        const stored: string = getAzureStoredMetricName(metric, usual[metric]!);
+
+        expect(
+          MESSAGE_QUEUE_METRICS.some(
+            (descriptor: { system: string; metricName: string }): boolean => {
+              return (
+                descriptor.system === system && descriptor.metricName === stored
+              );
+            },
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+
+  test("a stored name is a connection's when it is a key metric of the type, whatever its aggregation", () => {
+    const serviceBus: string = "Microsoft.ServiceBus/namespaces";
+
+    expect(
+      isAzureKeyMetricStoredName(serviceBus, "azure_activemessages_average"),
+    ).toBe(true);
+    expect(
+      isAzureKeyMetricStoredName(serviceBus, "AZURE_INCOMINGMESSAGES_TOTAL"),
+    ).toBe(true);
+    expect(
+      isAzureKeyMetricStoredName(serviceBus, "azure_activemessages_maximum"),
+    ).toBe(true);
+    // A metric only a collector reads.
+    expect(
+      isAzureKeyMetricStoredName(serviceBus, "azure_scheduledmessages_average"),
+    ).toBe(false);
+    expect(isAzureKeyMetricStoredName(serviceBus, "azure_size_average")).toBe(
+      false,
+    );
+    expect(
+      isAzureKeyMetricStoredName(
+        "Microsoft.EventHub/namespaces",
+        "azure_activemessages_average",
+      ),
+    ).toBe(false);
+    expect(
+      isAzureKeyMetricStoredName("Microsoft.Nothing/things", "azure_x_total"),
+    ).toBe(false);
+    expect(isAzureKeyMetricStoredName(serviceBus, "")).toBe(false);
   });
 });
 

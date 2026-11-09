@@ -138,11 +138,20 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
         breadcrumbTitles: ["Project", "Network", "Topology", "Device Topology"],
       },
+      /*
+       * Every device discovery has seen, monitored or not (issue #5775):
+       * named for what it lists, at the address the Endpoints page had.
+       */
       {
-        title: "Endpoints",
+        title: "Discovered Devices",
         pageMapKey: PageMap.NETWORK_DEVICE_ENDPOINTS,
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
-        breadcrumbTitles: ["Project", "Network", "Topology", "Endpoints"],
+        breadcrumbTitles: [
+          "Project",
+          "Network",
+          "Topology",
+          "Discovered Devices",
+        ],
       },
       {
         title: "Latency Matrix",
@@ -524,7 +533,7 @@ describe("Network side menu", () => {
 
       for (const title of [
         "Device Topology",
-        "Endpoints",
+        "Discovered Devices",
         "Latency Matrix",
         "Site Links",
         "Device Links",
@@ -540,7 +549,7 @@ describe("Network side menu", () => {
         }),
       ).toEqual([
         "Device Topology",
-        "Endpoints",
+        "Discovered Devices",
         "Latency Matrix",
         "Site Links",
         "Device Links",
@@ -708,7 +717,7 @@ describe("Network side menu", () => {
   describe("active routes", () => {
     test.each([
       [PageMap.NETWORK_DEVICE_TOPOLOGY, "Device Topology"],
-      [PageMap.NETWORK_DEVICE_ENDPOINTS, "Endpoints"],
+      [PageMap.NETWORK_DEVICE_ENDPOINTS, "Discovered Devices"],
       [PageMap.NETWORK_DEVICE_LATENCY_MATRIX, "Latency Matrix"],
       [PageMap.NETWORK_SITE_LINKS, "Site Links"],
       [PageMap.NETWORK_DEVICE_LINKS, "Device Links"],
@@ -866,7 +875,7 @@ describe("Network side menu", () => {
 
   describe("mobile summaries", () => {
     test.each([
-      [PageMap.NETWORK_DEVICE_ENDPOINTS, "Topology / Endpoints"],
+      [PageMap.NETWORK_DEVICE_ENDPOINTS, "Topology / Discovered Devices"],
       [PageMap.NETWORK_DEVICE_DISCOVERY, "Network / Discovery"],
       [PageMap.NETWORK_TRAFFIC, "Network / Traffic"],
       [PageMap.NETWORK_EVENTS, "Network / Events"],

@@ -41,9 +41,19 @@ const DOCS: Route = new Route(
   "/dashboard/project-1/kubernetes/cluster-1/documentation",
 );
 
+// The card's sentences about the resource are the guide's own (issue #6308).
 const GUIDE: ResourceConnectionGuide = {
-  resourceNoun: "widget",
   agentName: "OneUptime Widget Agent",
+  setupCopy: {
+    title: "Connect this widget",
+    description:
+      "No data has arrived from this widget yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+  },
+  stoppedCopy: {
+    title: "This widget stopped sending data",
+    description:
+      "OneUptime last heard from this widget {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+  },
   setupSteps: [
     { title: "First setup step", description: "Do the first thing." },
     {
@@ -371,6 +381,264 @@ describe("ResourceConnectionGuideCard for a resource that stopped reporting", ()
 
     expect(stoppedClasses).toContain("border-amber-200");
     expect(setupClasses).toContain("border-indigo-200");
+  });
+});
+
+/*
+ * Issue #6191: a resource that sends data only while people use it (a RUM
+ * application) is idle, not broken, when nothing has arrived for a while.
+ * Its guide's idleCopy makes the card say so - in grey, with when data last
+ * arrived - and fold its checks away behind one line; before its first data
+ * it asks for the setup without calling the resource "Disconnected".
+ */
+describe("ResourceConnectionGuideCard for a resource that is idle when unused", () => {
+  const IDLE_GUIDE: ResourceConnectionGuide = {
+    ...GUIDE,
+    idleCopy: {
+      title: "Nobody used this widget lately",
+      description:
+        "OneUptime last heard from this widget {{lastHeard}}. That is normal.",
+      checksLabel: "What to check if it is in use",
+      waitingDescription: "No data from this widget yet. Set it up.",
+    },
+  };
+
+  function renderIdle(
+    guide: ResourceConnectionGuide = IDLE_GUIDE,
+  ): HTMLElement {
+    render(
+      <ResourceConnectionGuideCard
+        status="disconnected"
+        lastSeenAt={new Date("2026-09-30T09:00:00.000Z")}
+        guide={guide}
+        documentationRoute={DOCS}
+      />,
+    );
+    return card() as HTMLElement;
+  }
+
+  function toggle(): HTMLElement {
+    return screen.getByTestId("resource-connection-guide-steps-toggle");
+  }
+
+  function stepsList(): HTMLElement {
+    return document.getElementById(
+      toggle().getAttribute("aria-controls") as string,
+    ) as HTMLElement;
+  }
+
+  test("says it is idle, in grey, with when data last arrived", () => {
+    const element: HTMLElement = renderIdle();
+
+    expect(element).toHaveAttribute("data-state", "disconnected");
+    expect(element).toHaveAttribute("data-variant", "idle");
+    expect(
+      screen.getByRole("heading", { name: "Nobody used this widget lately" }),
+    ).toBeInTheDocument();
+    expect(element).toHaveTextContent(
+      "OneUptime last heard from this widget 3 hours ago. That is normal.",
+    );
+    expect(element.className).toContain("border-gray-200");
+    expect(element.className).not.toMatch(/amber|red/);
+    // Not the agent's card.
+    expect(element).not.toHaveTextContent(/stopped sending data/);
+    expect(element).not.toHaveTextContent(/no longer reporting/);
+  });
+
+  test("an ISO-string lastSeenAt reads the same", () => {
+    render(
+      <ResourceConnectionGuideCard
+        status="disconnected"
+        lastSeenAt="2026-09-28T12:00:00.000Z"
+        guide={IDLE_GUIDE}
+        documentationRoute={DOCS}
+      />,
+    );
+
+    expect(card()).toHaveTextContent(
+      "OneUptime last heard from this widget 2 days ago.",
+    );
+  });
+
+  test("folds its checks behind one button, which shows and hides them", () => {
+    renderIdle();
+
+    expect(toggle().tagName).toBe("BUTTON");
+    expect(toggle()).toHaveAttribute("type", "button");
+    expect(
+      screen.getByRole("button", { name: "What to check if it is in use" }),
+    ).toBe(toggle());
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(stepsList().tagName).toBe("OL");
+    expect(stepsList()).toHaveAttribute("hidden");
+    expect(stepsList()).toHaveClass("hidden");
+    expect(screen.queryAllByRole("heading", { level: 3 })).toHaveLength(0);
+
+    fireEvent.click(toggle());
+
+    expect(toggle()).toHaveAttribute("aria-expanded", "true");
+    expect(stepsList()).not.toHaveAttribute("hidden");
+    expect(stepsList()).toHaveClass("grid");
+    expect(stepTitles()).toEqual([
+      "First check",
+      "Second check",
+      "Third check",
+    ]);
+    // The checks, never the setup steps.
+    expect(screen.queryByText("First setup step")).not.toBeInTheDocument();
+    expect(screen.getByText("widget-agent status").tagName).toBe("CODE");
+
+    fireEvent.click(toggle());
+
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(stepsList()).toHaveAttribute("hidden");
+  });
+
+  test("the header is ruled off from the checks only while they show", () => {
+    const element: HTMLElement = renderIdle();
+    const header: HTMLElement = element.firstElementChild as HTMLElement;
+
+    expect(header.className).not.toContain("border-b");
+
+    fireEvent.click(toggle());
+
+    expect(header.className).toContain("border-b");
+  });
+
+  test("its link to the setup guide is the quieter, outlined button", () => {
+    renderIdle();
+
+    const link: HTMLElement = screen.getByRole("link", {
+      name: "Open the setup guide",
+    });
+
+    expect(link).toHaveAttribute("href", DOCS.toString());
+    expect(link).toHaveClass("bg-white");
+    expect(link).not.toHaveClass("bg-indigo-600");
+  });
+
+  test("an idle guide with no checks draws no fold and no list", () => {
+    const element: HTMLElement = renderIdle({
+      ...IDLE_GUIDE,
+      troubleshootingSteps: [],
+    });
+
+    expect(
+      screen.queryByTestId("resource-connection-guide-steps-toggle"),
+    ).toBeNull();
+    expect(element.querySelector("ol")).toBeNull();
+  });
+
+  test("before its first data it asks for the setup in its own words, never 'Disconnected'", () => {
+    render(
+      <ResourceConnectionGuideCard
+        status={undefined}
+        lastSeenAt={undefined}
+        guide={IDLE_GUIDE}
+        documentationRoute={DOCS}
+      />,
+    );
+
+    expect(card()).toHaveAttribute("data-state", "never-connected");
+    expect(card()).toHaveAttribute("data-variant", "setup");
+    expect(
+      screen.getByRole("heading", { name: "Connect this widget" }),
+    ).toBeInTheDocument();
+    expect(card()).toHaveTextContent(
+      "No data from this widget yet. Set it up.",
+    );
+    expect(card()).not.toHaveTextContent(/disconnected/i);
+    // What to do now is not folded away.
+    expect(
+      screen.queryByTestId("resource-connection-guide-steps-toggle"),
+    ).toBeNull();
+    expect(stepTitles()).toEqual([
+      "First setup step",
+      "Second setup step",
+      "Third setup step",
+    ]);
+    expect(
+      screen.getByRole("link", { name: "Open the setup guide" }),
+    ).toHaveClass("bg-indigo-600");
+  });
+
+  test("draws nothing at all once data arrives", () => {
+    const { container } = render(
+      <ResourceConnectionGuideCard
+        status="connected"
+        lastSeenAt={NOW}
+        guide={IDLE_GUIDE}
+        documentationRoute={DOCS}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test("two idle cards on one page each fold their own checks", () => {
+    render(
+      <div>
+        <ResourceConnectionGuideCard
+          status="disconnected"
+          lastSeenAt={NOW}
+          guide={IDLE_GUIDE}
+          documentationRoute={DOCS}
+        />
+        <ResourceConnectionGuideCard
+          status="disconnected"
+          lastSeenAt={NOW}
+          guide={IDLE_GUIDE}
+          documentationRoute={DOCS}
+        />
+      </div>,
+    );
+
+    const toggles: Array<HTMLElement> = screen.getAllByTestId(
+      "resource-connection-guide-steps-toggle",
+    );
+    const controlled: Array<string> = toggles.map((button: HTMLElement) => {
+      return button.getAttribute("aria-controls") || "";
+    });
+
+    expect(new Set(controlled).size).toBe(2);
+
+    fireEvent.click(toggles[0]!);
+
+    expect(toggles[0]).toHaveAttribute("aria-expanded", "true");
+    expect(toggles[1]).toHaveAttribute("aria-expanded", "false");
+    expect(document.getElementById(controlled[1]!)).toHaveAttribute("hidden");
+  });
+});
+
+/*
+ * And a resource whose agent should always report keeps the card it had: an
+ * amber "stopped sending data", its checks in full view, the setup guide as
+ * the main button.
+ */
+describe("ResourceConnectionGuideCard for an always-on agent that stopped", () => {
+  test("keeps its checks in view and its primary link, with no fold", () => {
+    render(
+      <ResourceConnectionGuideCard
+        status="disconnected"
+        lastSeenAt={NOW}
+        guide={GUIDE}
+        documentationRoute={DOCS}
+      />,
+    );
+
+    expect(card()).toHaveAttribute("data-variant", "stopped");
+    expect(
+      screen.queryByTestId("resource-connection-guide-steps-toggle"),
+    ).toBeNull();
+    expect(card()!.querySelector("ol")).not.toHaveAttribute("hidden");
+    expect(stepTitles()).toEqual([
+      "First check",
+      "Second check",
+      "Third check",
+    ]);
+    expect(
+      screen.getByRole("link", { name: "Open the setup guide" }),
+    ).toHaveClass("bg-indigo-600");
   });
 });
 

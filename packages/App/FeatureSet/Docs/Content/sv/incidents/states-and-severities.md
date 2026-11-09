@@ -115,14 +115,20 @@ Du kan inte sätta de tre flaggorna från det här formuläret — de hör till 
 
 ## Ordningen är en verklig begränsning, inte en visningspreferens
 
-Ordningen upprätthålls när en tillståndsändring skrivs, inte bara när listan ritas:
+Ordningen upprätthålls när en tillståndsändring skrivs, inte bara när listan ritas. En och samma regel gäller för varje tillståndsändring av en incident, ett larm, en incident- eller larmepisod och en schemalagd underhållshändelse, vem som än gör den — instrumentpanelen, Slack, Microsoft Teams, API:t, Terraform, ett arbetsflöde eller OneUptime själv — och oavsett om den skickas som en rad på postens tillståndstidslinje eller som en uppdatering av dess aktuella tillstånd:
 
-- **Övergångar bakåt avvisas.** Att flytta en incident till ett tillstånd som står tidigare i ordningen än dess nuvarande misslyckas med ett fel som nämner båda tillstånden.
+- **Övergångar bakåt avvisas.** Att flytta en incident till ett tillstånd som står tidigare i ordningen än dess nuvarande misslyckas med ett fel som nämner båda tillstånden: "Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states." En episod är bunden av samma regel som incidenterna den grupperar, med ett eget felmeddelande ("Episode cannot transition to …"), så en löst episod flyttas inte tillbaka till ett tidigare tillstånd — och inte heller, genom den, dess incidenter. En uppdatering som skulle flytta en post bakåt avvisas innan något sparas.
 - **Att välja det aktuella tillståndet igen avvisas.** Att sätta en incident i det tillstånd den redan är i misslyckas med "Incident state cannot be same as previous state."
 - **En bakåtdaterad rad kan inte upprepa sin granne.** Att infoga en tidslinjerad vars tillstånd är samma som raden efter den avvisas också.
-- **Rubrikens knappar följer de flaggade tillståndens plats i ordningen.** **Bekräfta** och **Lös** erbjuds utifrån var det aktuella tillståndet står i den sorterade listan. Ett eget tillstånd som är placerat *efter* det lösta tillståndet visar aldrig en knapp **Lös**, eftersom en incident i det redan räknas som löst.
+- **Rubrikens knappar följer de flaggade tillståndens plats i ordningen.** **Bekräfta** och **Lös** erbjuds utifrån var det aktuella tillståndet står i den sorterade listan. Ett eget tillstånd som är placerat *efter* det lösta tillståndet visar aldrig en knapp **Lös**, eftersom en incident i det redan räknas som löst. Rubrikens tillståndsmeny och formuläret för tillståndsändring i Slack och Microsoft Teams erbjuder bara tillstånden efter det aktuella; för en post i listans sista tillstånd säger Slack och Teams "There is no later state to move this incident to." i stället för att öppna ett tomt formulär.
 
 Så när du lägger till ett tillstånd, placera det där en incident verkligen skulle passera det. Att ordna det fel ser inte bara konstigt ut — det gör övergångar omöjliga. Att flytta ett tillstånd längre ner ändrar vad incidenterna som redan är i det räknas som, i samma ögonblick som du släpper det.
+
+En episod flyttar bara sina incidenter dit de kan gå. När en episod byter tillstånd flyttas var och en av dess incidenter med bara om incidentens egen ordning tillåter flytten: En incident som redan är i det tillståndet, eller förbi det — löst på egen hand, eller i ett eget tillstånd efter det lösta tillståndet — stannar där den är.
+
+En flytt går uppåt i listan igen: en grupperingsregels återöppning. En regel som är inställd på att öppna nyligen lösta episoder igen öppnar en löst episod igen när en matchande incident kommer inom dess tidsfönster, och flyttar episoden tillbaka till ditt skapandetillstånd. Det är OneUptimes egen flytt — inget du skickar kan be om den — och den öppnar inte episodens incidenter igen.
+
+För att rätta ett tillstånd som satts av misstag tar du bort dess rad på sidan med postens tillståndstidslinje (se [Tillståndstidslinjen](#tillståndstidslinjen)). Posten går tillbaka till tillståndet i dess senaste återstående rad; en episod där du tar bort raden som löste den är öppen igen, och dess lösningstid rensas.
 
 Via API:t och Terraform är ordningen kolumnen `order`: lägre tal kommer först. Ett tillstånd som skapas utan hamnar precis ovanför det lösta tillståndet; ett som skapas eller uppdateras med ett tal tar den platsen, och tillstånden i vägen flyttar ner ett steg. Tal som ingen annan har behålls som de skrevs, så ett tillstånd som hanteras av Terraform läser tillbaka talet det fick.
 

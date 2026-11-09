@@ -22,7 +22,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -112,6 +114,7 @@ class ServerlessFunctionOwnerRuleEngineServiceClass
         serverlessFunction: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running serverless function owner rules: ${error}`, {
@@ -128,6 +131,8 @@ class ServerlessFunctionOwnerRuleEngineServiceClass
     serverlessFunction: ServerlessFunction;
     rules: Array<ServerlessFunctionOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { serverlessFunction, rules } = data;
 
@@ -247,7 +252,7 @@ class ServerlessFunctionOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: ServerlessFunctionOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -265,7 +270,7 @@ class ServerlessFunctionOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: ServerlessFunctionOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

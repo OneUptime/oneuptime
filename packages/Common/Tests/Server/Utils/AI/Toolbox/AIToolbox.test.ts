@@ -5,7 +5,9 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
+import ConflictException from "../../../../../Types/Exception/ConflictException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import logger from "../../../../../Server/Utils/Logger";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import { AIToolRefusal } from "../../../../../Types/AI/AIChatTypes";
 
@@ -926,6 +928,37 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
       expect(outcome.textForLlm).not.toContain("Adjust the arguments");
     },
   );
+
+  test("a change made to a record that moved on before it ran is not done, saying what to do instead: no other arguments to try, no refusal, and no fault logged (issue #6274)", async () => {
+    const conflict: ConflictException = new ConflictException(
+      "This workflow was saved again after this change was proposed, and that save changed steps this change touches too. So this change was not made, and nothing was changed. Read the workflow again and propose the change again on the workflow as it is now.",
+    );
+    lookupBehaviour = async (): Promise<JSONObject> => {
+      throw conflict;
+    };
+    const errors: SpyInstance<typeof logger.error> = jest.spyOn(
+      logger,
+      "error",
+    );
+
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "lookup_context",
+      args: { type: "services" },
+      ctx: contextFor({ allow: [Permission.ProjectOwner] }),
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.errorMessage).toBe(conflict.message);
+    expect(outcome.textForLlm).toBe(`Not done: ${conflict.message}`);
+    expect(outcome.textForLlm).not.toContain("Adjust the arguments");
+    // Not a refusal: the model reads the record again and proposes once more.
+    expect(outcome.refusal).toBeUndefined();
+    expect(errors).not.toHaveBeenCalled();
+
+    lookupBehaviour = async (): Promise<JSONObject> => {
+      return {};
+    };
+  });
 });
 
 /*

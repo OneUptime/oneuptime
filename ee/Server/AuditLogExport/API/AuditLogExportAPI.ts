@@ -17,6 +17,11 @@ import Response from "Common/Server/Utils/Response";
 import ConnectorErrorMessage from "Common/Server/Utils/SecurityEvent/ConnectorErrorMessage";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import {
+  AUDIT_LOG_EXPORT_SCHEMA_VERSION,
+  AuditLogExportSchemaVersion,
+  readAuditLogExportSchemaVersion,
+} from "Common/Types/AuditLog/Export/AuditLogExportRecord";
+import {
   AuditLogExportDestinationDefinition,
   AuditLogExportDestinationKind,
   getAuditLogExportDestinationDefinition,
@@ -41,12 +46,15 @@ import { AuditLogExportDeliveryReceipt } from "../Destinations/Types";
  * operator can act on (S3's AccessDenied: allow s3:PutObject on the folder).
  *
  * The body is either
- *   { exportId, config?, secrets? } - a saved export, with the edit form's
- *     unsaved values over it by the rule a save applies (a secret value
- *     replaces the stored one, "" or undefined keeps it, null removes it);
- *     the stored secrets are read here and never returned; or
- *   { destinationType, config, secrets } - settings never saved, so the
- *     create form can test before storing anything.
+ *   { exportId, config?, secrets?, schemaVersion? } - a saved export, with
+ *     the edit form's unsaved values over it by the rule a save applies (a
+ *     secret value replaces the stored one, "" or undefined keeps it, null
+ *     removes it); the stored secrets are read here and never returned; or
+ *   { destinationType, config, secrets, schemaVersion? } - settings never
+ *     saved, so the create form can test before storing anything.
+ *
+ * The test entry arrives in the record version the form says, else the
+ * saved export's, else the newest - the one a new export sends.
  *
  * Same gate as setting an export up: a project's test asks exactly what
  * creating an export in the project asks (the role, the plan, the Enterprise
@@ -77,6 +85,11 @@ export function describeTestSuccess(data: {
     return `A test file was written to ${data.receipt.location}. Real entries are written next to it, in folders by date.`;
   }
 
+  // Over UDP nothing answers that it arrived, so only the receiver can say.
+  if (data.receipt.isUnconfirmed) {
+    return `A test entry was sent to ${data.receipt.location}. Its action is Test. UDP does not confirm delivery, so check that it arrived.`;
+  }
+
   return `A test entry was sent to ${data.receipt.location}. Its action is Test.`;
 }
 
@@ -90,8 +103,22 @@ async function readSettingsToTest(data: {
   body: JSONObject;
   props: DatabaseCommonInteractionProps;
   projectId: ObjectID | null;
-}): Promise<{ settings: AuditLogExportSettings; isInstanceExport: boolean }> {
+}): Promise<{
+  settings: AuditLogExportSettings;
+  isInstanceExport: boolean;
+  schemaVersion: AuditLogExportSchemaVersion;
+}> {
   const exportIdValue: JSONValue | undefined = data.body["exportId"];
+  const askedVersion: JSONValue | undefined = data.body["schemaVersion"];
+  const schemaVersionOr: (
+    stored: AuditLogExportSchemaVersion,
+  ) => AuditLogExportSchemaVersion = (
+    stored: AuditLogExportSchemaVersion,
+  ): AuditLogExportSchemaVersion => {
+    return askedVersion === undefined || askedVersion === null
+      ? stored
+      : AuditLogExportServiceClass.readSchemaVersion(askedVersion);
+  };
 
   if (exportIdValue === undefined || exportIdValue === null) {
     return {
@@ -102,6 +129,7 @@ async function readSettingsToTest(data: {
         isInstanceExport: !data.projectId,
       }),
       isInstanceExport: !data.projectId,
+      schemaVersion: schemaVersionOr(AUDIT_LOG_EXPORT_SCHEMA_VERSION),
     };
   }
 
@@ -138,6 +166,7 @@ async function readSettingsToTest(data: {
         destinationType: true,
         config: true,
         secrets: true,
+        schemaVersion: true,
       },
       props: { isRoot: true },
     },
@@ -164,6 +193,9 @@ async function readSettingsToTest(data: {
       isInstanceExport: AuditLogExportServiceClass.isInstanceExport(stored),
     }),
     isInstanceExport: AuditLogExportServiceClass.isInstanceExport(stored),
+    schemaVersion: schemaVersionOr(
+      readAuditLogExportSchemaVersion(stored.schemaVersion),
+    ),
   };
 }
 
@@ -210,11 +242,12 @@ export class AuditLogExportTest {
     props: DatabaseCommonInteractionProps;
     projectId: ObjectID | null;
   }): Promise<JSONObject> {
-    const { settings, isInstanceExport } = await readSettingsToTest({
-      body: data.body,
-      props: data.props,
-      projectId: data.projectId,
-    });
+    const { settings, isInstanceExport, schemaVersion } =
+      await readSettingsToTest({
+        body: data.body,
+        props: data.props,
+        projectId: data.projectId,
+      });
 
     const definition: AuditLogExportDestinationDefinition =
       getAuditLogExportDestinationDefinition(settings.type)!;
@@ -226,6 +259,7 @@ export class AuditLogExportTest {
         settings,
         isInstanceExport,
         projectId: data.projectId,
+        schemaVersion,
       });
     } catch (error) {
       return {

@@ -1118,6 +1118,85 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
     });
   });
 
+  /*
+   * A post only one person sees (#6254): the answer to a form they sent - a
+   * public note that waits for approval - in the channel they sent it from.
+   */
+  describe("a post only one person sees", () => {
+    const PERSON_ID: string = "p".repeat(26);
+
+    test("is Mattermost's ephemeral post, to them, in the channel, its mentions broken", async () => {
+      on("POST", "/api/v4/posts/ephemeral", ok({ id: POST_ID }));
+
+      await MattermostUtil.postEphemeral({
+        authToken: AUTH_TOKEN,
+        userId: PERSON_ID,
+        channelId: PUBLIC_CHANNEL_ID,
+        markdown: "⏳ Sent for approval. It waits for @channel and Bob.",
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0]!.method).toBe("POST");
+      expect(calls[0]!.path).toBe("/api/v4/posts/ephemeral");
+      expect(calls[0]!.args.headers["Authorization"]).toBe(
+        `Bearer ${ACCESS_TOKEN}`,
+      );
+
+      const body: JSONObject = calls[0]!.args.data as JSONObject;
+
+      expect(body["user_id"]).toBe(PERSON_ID);
+      expect((body["post"] as JSONObject)["channel_id"]).toBe(
+        PUBLIC_CHANNEL_ID,
+      );
+      // The text as every post writes it: no mention left to notify anyone.
+      expect((body["post"] as JSONObject)["message"]).toBe(
+        MattermostUtil.getMessageText(
+          "⏳ Sent for approval. It waits for @channel and Bob.",
+        ),
+      );
+      expect((body["post"] as JSONObject)["message"]).not.toContain("@channel");
+      // Posting twice would show it twice: it is not tried again.
+      expect(calls[0]!.args.options.retries).toBe(0);
+    });
+
+    test("is held to what a post takes", async () => {
+      on("POST", "/api/v4/posts/ephemeral", ok({ id: POST_ID }));
+
+      await MattermostUtil.postEphemeral({
+        authToken: AUTH_TOKEN,
+        userId: PERSON_ID,
+        channelId: PUBLIC_CHANNEL_ID,
+        markdown: "x".repeat(MattermostUtil.MESSAGE_MAX_LENGTH * 2),
+      });
+
+      const post: JSONObject = (calls[0]!.args.data as JSONObject)[
+        "post"
+      ] as JSONObject;
+
+      expect(String(post["message"]).length).toBeLessThanOrEqual(
+        MattermostUtil.MESSAGE_MAX_LENGTH,
+      );
+    });
+
+    test("a person or a channel that is not a Mattermost id is never posted to", async () => {
+      for (const ids of [
+        { userId: "../../users/me", channelId: PUBLIC_CHANNEL_ID },
+        { userId: PERSON_ID, channelId: "town-square" },
+      ]) {
+        await expect(
+          MattermostUtil.postEphemeral({
+            authToken: AUTH_TOKEN,
+            userId: ids.userId,
+            channelId: ids.channelId,
+            markdown: "Sent for approval.",
+          }),
+        ).rejects.toThrow("is not valid");
+      }
+
+      expect(calls).toEqual([]);
+    });
+  });
+
   describe("messages", () => {
     const blocks: Array<WorkspaceMessageBlock> = [
       {
@@ -1408,6 +1487,74 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
         message: "You are on call.",
         channel_id: "d".repeat(26),
       });
+    });
+
+    /*
+     * Where it landed (#6317): the direct message channel and the post, what
+     * an edit of it names - a public note's approval message is replaced
+     * there once the note is decided.
+     */
+    test("a direct message says where it landed: its channel and its post", async () => {
+      on(
+        "POST",
+        "/api/v4/channels/direct",
+        ok({ id: "d".repeat(26), type: "D" }),
+      );
+      on("POST", "/api/v4/posts", ok({ id: POST_ID }));
+
+      expect(
+        await MattermostUtil.sendDirectMessageToUser({
+          authToken: AUTH_TOKEN,
+          workspaceUserId: ALICE_ID,
+          messageBlocks: [
+            { _type: "WorkspacePayloadMarkdown", text: "You are on call." },
+          ] as unknown as Array<WorkspaceMessageBlock>,
+        }),
+      ).toEqual({ channelId: "d".repeat(26), messageId: POST_ID });
+    });
+
+    test("a direct message's post edited in place: what it says now, its link and no button", async () => {
+      on("PUT", `/api/v4/posts/${POST_ID}/patch`, ok({ id: POST_ID }));
+
+      await MattermostUtil.updateMessage({
+        authToken: AUTH_TOKEN,
+        projectId: ObjectID.generate(),
+        location: { channelId: "d".repeat(26) },
+        messageId: POST_ID,
+        messageBlocks: [
+          {
+            _type: "WorkspacePayloadMarkdown",
+            text: "✅ This public note was approved by **Bob**.",
+          },
+          {
+            _type: "WorkspacePayloadButtons",
+            buttons: [
+              {
+                _type: "WorkspaceMessagePayloadButton",
+                title: "View in OneUptime",
+                value: "",
+                actionId: "OpenInOneUptime",
+                url: URL.fromString("https://oneuptime.example/notes"),
+              },
+            ],
+          },
+        ] as unknown as Array<WorkspaceMessageBlock>,
+      });
+
+      const patch: JSONObject = calls[0]!.args.data as JSONObject;
+
+      expect(patch["message"]).toBe(
+        "✅ This public note was approved by **Bob**.",
+      );
+
+      const attachment: JSONObject = (
+        (patch["props"] as JSONObject)["attachments"] as Array<JSONObject>
+      )[0]!;
+
+      expect(String(attachment["text"])).toContain(
+        "https://oneuptime.example/notes",
+      );
+      expect(attachment["actions"]).toBeUndefined();
     });
 
     test("opens a form for whoever pressed, posting its submission back to OneUptime", async () => {

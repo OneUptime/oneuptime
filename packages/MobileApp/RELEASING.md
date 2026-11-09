@@ -435,6 +435,38 @@ with an on-call policy:
    their page in the browser on the reader's OneUptime.
 6. On a self-hosted server that relays its pushes, repeat 1 and 2.
 
+### On-call pages: I've seen it under an observer's push
+
+The same release registers a second category, `ON_CALL_OBSERVER_PAGE`, with
+one action: **I've seen it**. The server names it on the push of an
+observer's page (people paged to be kept informed while others respond:
+an on-call rule set to page its policies as observers, a workflow's page
+step, a page from Slack or Microsoft Teams). It opens the app on the record,
+like the actions above, and marks the reader's own page seen through
+`POST /api/on-call-page/seen/<record type>/<record id>` - it never
+acknowledges the record. While the page is open, the record's screen says
+**FYI (observer)** and offers I've seen it in place of Acknowledge, and My
+Pages labels the page FYI (observer), Seen or Not seen yet. A server older
+than this names no category for an observer's page and has no seen route:
+the push has no actions and the screens are as before.
+
+Before the release, with a rule that pages a policy you are on as observers:
+
+1. Create an incident it matches, with the phone locked. The push reads
+   "FYI: Incident ...": under it is I've seen it, and no Acknowledge or
+   Escalate.
+2. Tap I've seen it: the app opens on the incident, the page is marked seen
+   once, and the incident stays as it was - not acknowledged - in the app
+   and on the Dashboard. The screen then offers what it offers anybody.
+3. Open the incident from My Pages before answering: the screen says FYI
+   (observer), offers I've seen it first, and no Acknowledge; My Pages shows
+   the page as FYI (observer), Not seen yet, and leaves it out of "need a
+   response".
+4. Page yourself as a responder on the same build: the push still has
+   Acknowledge and Escalate (repeat 1 to 4 of the section above).
+5. When `app.json` moves past 1.6.0, the FAQ's "Can I acknowledge a page
+   from the notification?" names I've seen it for an observer's page too.
+
 ## 5. Publish Android through Play Console
 
 This is the route verified for 1.1.0; it gives visibility into the production

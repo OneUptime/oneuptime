@@ -13,8 +13,7 @@ const DashboardAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Dashboard Audit Logs"
       description="All changes made to this dashboard."
-      resourceType="Dashboard"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

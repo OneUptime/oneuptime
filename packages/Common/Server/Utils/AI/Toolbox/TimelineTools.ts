@@ -265,6 +265,8 @@ export const GetIncidentTimelineTool: ObservabilityTool = {
         query: {
           incidentId: incidentId,
           projectId: ctx.projectId,
+          // Published notes: one waiting for approval was told to nobody.
+          isPublished: true,
         },
         select: {
           _id: true,

@@ -106,6 +106,16 @@ enum NotificationSettingEventType {
    */
   SEND_SECURITY_HUNT_FOUND_NOTIFICATION = "Send notification when a scheduled hunt that names me or my team finds security events",
 
+  /*
+   * Public note approval (PublicNoteApprovalNotifications). A public note on
+   * an incident, an episode or a scheduled maintenance event waits for the
+   * person - named on the approval step it waits for, or on a team the step
+   * names - and is published only once somebody approves it. The second
+   * tells the person who sent a note for approval how it was decided.
+   */
+  SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION = "Send notification when a public note is waiting for my approval",
+  SEND_PUBLIC_NOTE_APPROVAL_DECIDED_NOTIFICATION = "Send notification when a public note I sent for approval is approved or rejected",
+
   // On Call Notifications
   SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on-call roster",
   SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER = "When user is next on-call roster",

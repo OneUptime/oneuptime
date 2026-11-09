@@ -53,7 +53,7 @@ En offentlig instrumentpanel:
 
 Behandla delning av en instrumentpanel som publicering av en webbsida. Varje widget på den blir läsbar för alla med länken. Titta på vad som finns på arbetsytan innan du delar den.
 
-Varje widget publicerar bara det den ritar, och bara för resurserna den har riktats mot. En SLO-widget publicerar till exempel det SLO:ets nyckeltal men aldrig dess definition: se [SLO](/docs/dashboards/widgets#slo). Widgetar med en extern **Data Source** är undantaget: de tas helt bort från en offentlig instrumentpanel i stället för att renderas, eftersom deras konfiguration är själva frågan. Några fler widgetar kan inte visas utan en inloggad session, och säger det på sin plats: [På en offentlig instrumentpanel](/docs/dashboards/widgets#på-en-offentlig-instrumentpanel) listar dem.
+Varje widget publicerar bara det den ritar, och bara för resurserna den har riktats mot. En SLO-widget publicerar till exempel det SLO:ets nyckeltal men aldrig dess definition: se [SLO](/docs/dashboards/widgets#slo). Widgetar med en extern **Data Source** är undantaget: de tas helt bort från en offentlig instrumentpanel i stället för att renderas, eftersom deras konfiguration är själva frågan. Några fler widgetar kan inte visas utan en inloggad session, och säger det på sin plats: [På en offentlig instrumentpanel](/docs/dashboards/widgets#på-en-offentlig-instrumentpanel) listar dem. De publicerar bara sin titel, aldrig de sökningar och filter de läser sina data med. Även variabler publicerar bara det deras väljare visar: frågan i en äldre frågevariabel publiceras aldrig.
 
 ## Dela med ett lösenord
 

@@ -6,8 +6,10 @@
  * a column whose read ACL includes `Permission.Viewer`. Whatever
  * `saveMonitorLog` is handed is what a read-only API key can select back out.
  *
- * The unit-level behaviour of the redactor is pinned in
- * MonitorPayloadRedaction.test.ts. What THIS suite pins is the wiring: that
+ * The unit-level behaviour of the redactors is pinned in
+ * MonitorPayloadRedaction.test.ts, and the rules every copy of a check is
+ * cut by - the row included - in MonitorCheckCopiesRedaction.test.ts (#6341).
+ * What THIS suite pins is the wiring: that
  * the row actually enqueued for ClickHouse is the redacted one, that the
  * caller's live `dataToProcess` is not collaterally damaged on the way, and
  * that the rest of the row (ids, timestamps, retention) is unchanged -- so the
@@ -125,6 +127,7 @@ const saveAndFlush: SaveAndFlushFunction = async (
     monitorId: MONITOR_ID,
     projectId: PROJECT_ID,
     dataToProcess: dataToProcess,
+    keepResponseContent: true,
   });
 
   await new Promise<void>((resolve: () => void) => {
@@ -273,18 +276,21 @@ describe("MonitorLogUtil.saveMonitorLog", () => {
       monitorId: undefined as unknown as ObjectID,
       projectId: PROJECT_ID,
       dataToProcess: serverBeat() as unknown as DataToProcess,
+      keepResponseContent: true,
     });
 
     MonitorLogUtil.saveMonitorLog({
       monitorId: MONITOR_ID,
       projectId: undefined as unknown as ObjectID,
       dataToProcess: serverBeat() as unknown as DataToProcess,
+      keepResponseContent: true,
     });
 
     MonitorLogUtil.saveMonitorLog({
       monitorId: MONITOR_ID,
       projectId: PROJECT_ID,
       dataToProcess: undefined as unknown as DataToProcess,
+      keepResponseContent: true,
     });
 
     await new Promise<void>((resolve: () => void) => {

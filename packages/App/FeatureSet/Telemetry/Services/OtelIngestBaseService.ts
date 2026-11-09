@@ -26,6 +26,7 @@ import CloudResourceService, {
   CloudMonitoredResourceFindOrCreateResult,
 } from "Common/Server/Services/CloudResourceService";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
+import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
 import ServerlessFunctionInstanceService from "Common/Server/Services/ServerlessFunctionInstanceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
 import CloudAppService from "Common/Server/Services/CloudAppService";
@@ -237,6 +238,12 @@ type RumApplicationMatch = {
   clientType: string;
   appIdentifier: string;
 };
+
+/*
+ * The fence for a RUM application's <signal>LastReceivedAt stamp, one per
+ * (application, signal): see OtelIngestBaseService.recordRumSignalArrival.
+ */
+export const RUM_SIGNAL_FENCE_SCOPE: string = "rum-signal";
 
 export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
@@ -4849,10 +4856,16 @@ export default abstract class OtelIngestBaseService {
    * every ingest path so the app's telemetry tabs work even when service.name
    * is also a backend service — the discriminator choice happens in
    * resolveTelemetryResource.
+   *
+   * `signal` is what the batch carries - traces, logs or metrics - and
+   * stamps the application's <signal>LastReceivedAt (issue #5770), so the
+   * Dashboard can tell "logs are not set up" from "no logs in this time
+   * range". Left out (the profiles path), nothing is stamped.
    */
   protected static async autoDiscoverRum(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+    signal?: RumTelemetrySignal | undefined;
   }): Promise<ObjectID | null> {
     const application: RumApplicationMatch | null = this.readDiscoveryMatch({
       resource: "RUM application",
@@ -4885,6 +4898,7 @@ export default abstract class OtelIngestBaseService {
       attributes: data.attributes,
       clientType: application.clientType,
       appIdentifier: application.appIdentifier,
+      signal: data.signal,
     });
   }
 
@@ -4894,6 +4908,7 @@ export default abstract class OtelIngestBaseService {
     attributes: JSONArray;
     clientType: string;
     appIdentifier: string;
+    signal?: RumTelemetrySignal | undefined;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -4947,6 +4962,13 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
+      if (data.signal) {
+        await this.recordRumSignalArrival({
+          rumApplicationId: liveIdStr,
+          signal: data.signal,
+        });
+      }
+
       // Live inventory: record this client platform (coarse, not per-device).
       const clientName: string | null =
         this.getStringAttribute(data.attributes, "browser.platform") ||
@@ -4982,6 +5004,44 @@ export default abstract class OtelIngestBaseService {
         "Error auto-discovering RUM application: " + (err as Error).message,
       );
       return null;
+    }
+  }
+
+  /*
+   * That a batch of `signal` arrived from this RUM application: its
+   * <signal>LastReceivedAt column (issue #5770), at most once per signal
+   * per application per fence window, under a fence of its own - a logs
+   * batch never waits for the traces stamp's window, nor the other way
+   * round.
+   *
+   * Bookkeeping for the Dashboard's setup check, so it fails alone: a write
+   * that throws releases its own fence, for the next batch to try again,
+   * and is logged. It is never rethrown, because discoverMatchedRum's catch
+   * would turn it into a batch with no RUM application - telemetry filed
+   * under the wrong resource for the sake of a timestamp.
+   */
+  private static async recordRumSignalArrival(data: {
+    rumApplicationId: string;
+    signal: RumTelemetrySignal;
+  }): Promise<void> {
+    const fenceId: string = `${data.rumApplicationId}:${data.signal}`;
+
+    if (!(await this.shouldRunMaintenance(RUM_SIGNAL_FENCE_SCOPE, fenceId))) {
+      return;
+    }
+
+    try {
+      await RumApplicationService.markTelemetrySignalReceived({
+        rumApplicationId: new ObjectID(data.rumApplicationId),
+        signal: data.signal,
+      });
+    } catch (err) {
+      await this.clearMaintenanceFence(RUM_SIGNAL_FENCE_SCOPE, fenceId);
+      logger.warn(
+        `RUM application ${data.rumApplicationId}: could not record that ${data.signal} arrived: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 

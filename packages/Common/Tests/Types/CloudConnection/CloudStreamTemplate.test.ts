@@ -4,8 +4,11 @@ import os from "os";
 import path from "path";
 import {
   AWS_KEY_METRICS,
+  AwsKeyMetric,
   AwsNamespaceKeyMetrics,
   DAILY_PERIOD_SECONDS,
+  HOURLY_PERIOD_SECONDS,
+  getAwsKeyMetrics,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import {
   CLOUD_STREAM_BUFFER_INTERVAL_SECONDS,
@@ -707,14 +710,14 @@ describe("the Firehose streams and the bucket", () => {
 });
 
 describe("the metric stream's filters", () => {
-  test("are the key metrics of every namespace, but S3's daily storage metrics", () => {
+  test("are the key metrics of every namespace, but those read less often than every five minutes", () => {
     const filters: Array<{ Namespace: string; MetricNames: Array<string> }> =
       getCloudStreamKeyMetricFilters();
     const expected: Map<string, Set<string>> = new Map();
 
     for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
       for (const metric of namespace.metrics) {
-        if (metric.periodSeconds >= DAILY_PERIOD_SECONDS) {
+        if (metric.periodSeconds >= HOURLY_PERIOD_SECONDS) {
           continue;
         }
 
@@ -737,11 +740,27 @@ describe("the metric stream's filters", () => {
       );
     }
 
+    // S3's daily storage, and ACM's days to expiry, published twice a day.
+    for (const namespace of ["AWS/S3", "AWS/CertificateManager"]) {
+      expect(
+        filters.some((filter: { Namespace: string }) => {
+          return filter.Namespace === namespace;
+        }),
+      ).toBe(false);
+    }
+
     expect(
-      filters.some((filter: { Namespace: string }) => {
-        return filter.Namespace === "AWS/S3";
+      getAwsKeyMetrics("AWS/S3")!.metrics.every((metric: AwsKeyMetric) => {
+        return metric.periodSeconds === DAILY_PERIOD_SECONDS;
       }),
-    ).toBe(false);
+    ).toBe(true);
+    expect(
+      getAwsKeyMetrics("AWS/CertificateManager")!.metrics.map(
+        (metric: AwsKeyMetric) => {
+          return metric.periodSeconds;
+        },
+      ),
+    ).toEqual([HOURLY_PERIOD_SECONDS]);
   });
 
   test("are in the key template, and every metric is streamed without them", () => {

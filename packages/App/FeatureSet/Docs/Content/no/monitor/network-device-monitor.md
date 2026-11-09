@@ -66,7 +66,7 @@ Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**,
 
 | Seksjon | Sider |
 | --- | --- |
-| **Topologi** | **Enhetstopologi**, **Endepunkter**, **Latensmatrise**, **Lokasjonslenker**, **Enhetslenker** |
+| **Topologi** | **Enhetstopologi**, **Oppdagede enheter**, **Latensmatrise**, **Lokasjonslenker**, **Enhetslenker** |
 | **Regler** | **Regler for automatisk import**, **Regler for lokasjonstildeling**, **Eierregler**, **Etikettregler**, **Lenkeregler** |
 | **Innstillinger** | **Varslingsretningslinjer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
 | **Avansert** | **SNMP-walk**, **Arkiverte enheter** |
@@ -974,7 +974,18 @@ For at kartet skal fylles ut:
 - Slå på LLDP, eller CDP på Cisco-enheter, på selve enhetene.
 - På et Meraki-nettverk kobler du til dashbordet. En [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) tegner kablene Meraki kjenner, også dem til en MX som bare svarer på ping.
 
-Klikk på en ikke-administrert peer, så registrerer **Add to Monitoring** den som en sondepollet enhet. Den tar sonden naboene er enige om, så den pinges fra første polling, og du kan legge til påloggingsinformasjon senere hvis den viser seg å ha SNMP.
+Klikk på en ikke-administrert peer, så registrerer **Legg til i overvåking** den som en sondepollet enhet. Den tar sonden naboene er enige om, så den pinges fra første polling, og du kan legge til påloggingsinformasjon senere hvis den viser seg å ha SNMP.
+
+### Oppdagede enheter
+
+**Nettverk → Topologi → Oppdagede enheter** viser hver enhet svitsjene, ruterne og nettverkskontrollerne dine har sett, overvåket eller ikke. Listen åpner på **Ikke overvåket**, enhetene det ennå gjenstår å ta stilling til; **Overvåket**, **Skjult på kartet** og **Alle** viser resten. Kartets knapp **Oppdagede enheter** åpner den og sier hvor mange enheter som ikke overvåkes; på kartet til en lokasjon åpner den listen til den lokasjonen. En enhets **Navn** er klassifiseringen du ga den med **Rediger klassifisering**, ellers vertsnavnet, IP-adressen eller MAC-adressen, aldri produsenten. Ved siden av står **IP-adresse**, **MAC-adresse**, **Leverandør**, **Sett på** (svitsjen, porten og VLAN-et), **Sist sett** og **Tilstand**: **Overvåket**, med en lenke til enheten, **Bare oppdaget**, **Skjult på kartet** eller **Ikke sett nylig**. Søket finner en enhet på navn, IP-adresse, leverandør eller MAC-adresse, med eller uten skilletegn. Ingenting forsvinner av seg selv fra listen: **Sist sett** sier når en enhet sist var der.
+
+Velg enheter, eller hver enhet som samsvarer med søket, og deretter:
+
+- **Legg til i overvåking** importerer dem slik vertene fra en skanning importeres (se [Import av det en skanning fant](#import-av-det-en-skanning-fant)), med de samme valgene: hvor ofte de sjekkes, og om hver får en monitor fra en monitormal. En **Enhetsrolle** sier hva de er, og en **SNMP-påloggingsprofil** går gjennom dem; uten profil pinges en enhet og gås gjennom med standardprofilen til lokasjonen når lokasjonen har en. Hver enhet havner på lokasjonen der den ble sett, beholder MAC-adressen den ble sett med, og polles av sonden til svitsjen som så den. Enheter som allerede overvåkes, holdes utenfor, og det samme gjør en enhet som ennå ikke har en IP-adresse, til ARP-tabellen til en ruter eller en nettverkskontroller rapporterer en: Vinduet nevner begge, med grunnen. Ingenting legges til to ganger: En enhet der MAC-adressen allerede tilhører en enhet i prosjektet, eller der IP-adressen allerede tilhører en enhet på lokasjonen, viser **Allerede lagt til**. Importen kjører på serveren, så du kan lukke vinduet: Listen viser importen til den er ferdig.
+- **Skjul på kartet** tar dem av topologikartet for alle i prosjektet når du har bekreftet. Ingenting slettes, og en overvåket enhet skjules aldri: Kartet tegner den som enheten den er, og overvåkingen dens endres ikke. **Vis på kartet** setter dem tilbake, og **Vis dem** ved kartets antall skjulte noder viser alle skjulte noder i prosjektet igjen på én gang.
+
+Knappene på en rad gjør det samme for én enhet. På kartet står IP-adressen til en node under navnet, og søket finner også en node på IP-adressen eller MAC-adressen, uansett hvordan en svitsj skrev den. Klikk på en oppdaget enhet på kartet, så tilbyr panelet **Legg til i overvåking**, som legger den til på samme måte, og **Skjul på kartet**.
 
 ### Velg oppsettet kartet åpner med
 
@@ -1018,7 +1029,7 @@ For det må kartet vite hvilken lært MAC som er enhetens. Det finnes to måter,
 
 Svitsjen enheten henger på, trenger også **Collect Connected Endpoints** slått på: det er derfra porten kommer. Adresser matches innenfor enhetens lokasjon, siden hver filial har en `10.0.0.5`; en MAC treffer uansett lokasjon.
 
-En [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) gjør alt dette uten at noe må slås på. Klientlisten til Meraki viser hvilken svitsj og port hver klient er på, så en enhet plasseres så snart den svitsjen er en nettverksenhet her, på samme lokasjon. Listen gir også enheten MAC-adressen, og det Meraki kaller en klient, vises i kolonnen **Vertsnavn** under **Endepunkter**. Den leses hver andre time, så en ny enhet kan bruke så lang tid på å dukke opp. Så lenge Meraki rapporterer en klient, går porten dens foran en gjennomgått videresendingstabell, fordi Meraki kan skille en tilgangsport fra en opplink. En Wi-Fi-klient plasseres bare på tilgangspunktet sitt når den er en enhet her: Telefonene på et gjestenettverk holdes utenfor kartet.
+En [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) gjør alt dette uten at noe må slås på. Klientlisten til Meraki viser hvilken svitsj og port hver klient er på, så en enhet plasseres så snart den svitsjen er en nettverksenhet her, på samme lokasjon. Listen gir også enheten MAC-adressen, og det Meraki kaller en klient, er navnet på enheten under **Oppdagede enheter** og på kartet, med mindre du gir den en egen klassifisering. Den leses hver andre time, så en ny enhet kan bruke så lang tid på å dukke opp. Så lenge Meraki rapporterer en klient, går porten dens foran en gjennomgått videresendingstabell, fordi Meraki kan skille en tilgangsport fra en opplink. En Wi-Fi-klient plasseres bare på tilgangspunktet sitt når den er en enhet her: Telefonene på et gjestenettverk holdes utenfor kartet.
 
 Enhetens oversikt har et kort **Koblet til** som navngir svitsjen, porten og VLAN-et. En svitsj, ruter eller brannmur som rapporterer naboene sine over LLDP eller CDP, viser dem der i stedet: sin egen port, naboen (en lenke når den er en enhet her) og porten i den andre enden, med **Åpne kartet** ved siden av. På kartet viser enhetens skuff det samme under **Koblet til**, og lenkens skuff sier at den ble lært fra svitsjens videresendingstabell. Parent-Child-visningen tegner enheten under svitsjen. En lenke du har tegnet for hånd under **Enhetslenker** for det samme paret, slås sammen med den lærte i stedet for å doble den: den lærte porten erstatter en feilskrevet, og en forelder du har satt på den håndtegnede lenken, beholdes.
 

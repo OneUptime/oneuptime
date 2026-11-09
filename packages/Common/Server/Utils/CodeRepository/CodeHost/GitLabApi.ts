@@ -30,6 +30,8 @@ import {
   CodeHostCommitRange,
   CodeHostCommitSummary,
   CodeHostFileContent,
+  CodeHostFileExpected,
+  CodeHostFileVersion,
   CodeHostFileWrite,
   CodeHostOpenedPullRequest,
   CodeHostPullRequestDetails,
@@ -39,6 +41,19 @@ import {
   CodeHostRepositoryPage,
 } from "./CodeHostTypes";
 import CodeHostText from "./CodeHostText";
+import CodeHostFilesMovedError from "./CodeHostFilesMovedError";
+
+/*
+ * What GitLab says when it refuses a commit held to the files as they
+ * were read (issue #6331): an update whose file changed since its last
+ * commit, a create of a file made meanwhile, an update of one deleted.
+ */
+const FILE_MOVED_REFUSALS: ReadonlyArray<string> = [
+  "has changed since you started editing it",
+  "already exists",
+  "doesn't exist",
+  "does not exist",
+];
 
 /*
  * A GITLAB SERVER - GitLab.com or a self-managed one - THROUGH ITS API (v4).
@@ -370,12 +385,76 @@ export default class GitLabApi {
       return null;
     }
 
+    const blobSha: string = CodeHostText.readString(file["blob_id"]);
+
     return {
       content,
       filePath: data.filePath,
       sizeInBytes: Number(file["size"]) || 0,
       totalLines: CodeHostText.countLines(content),
       htmlUrl: `${CodeHostUrl.trimTrailingSlashes(data.webUrl)}/-/blob/${CodeHostUrl.encodePath(data.ref)}/${CodeHostUrl.encodePath(data.filePath)}`,
+      ...(blobSha ? { blobSha } : {}),
+    };
+  }
+
+  /*
+   * The git blob SHA of the file at a path on a branch, as a commit made
+   * there now would find it (issue #6313), or null where there is no file.
+   * GitLab names it with the file, at any size and binary or not.
+   */
+  public async getFileBlobId(data: {
+    project: string;
+    ref: string;
+    filePath: string;
+  }): Promise<string | null> {
+    const version: CodeHostFileVersion | null = await this.getFileVersion(data);
+
+    return version ? version.blobSha : null;
+  }
+
+  /*
+   * The file at a path on a branch, as a commit made there now would find
+   * it, or null where there is none: its git blob SHA (issue #6313), and
+   * the last commit that changed it, which a commit of it is held to
+   * (issue #6331) - both from the one answer GitLab gives for the file.
+   */
+  public async getFileVersion(data: {
+    project: string;
+    ref: string;
+    filePath: string;
+  }): Promise<CodeHostFileVersion | null> {
+    let answer: CodeHostApiAnswer;
+
+    try {
+      answer = await this.client.getJson(
+        `${GitLabApi.projectPath(data.project)}/repository/files/${encodeURIComponent(data.filePath)}`,
+        { ref: data.ref },
+      );
+    } catch (error) {
+      if (
+        error instanceof CodeHostHttpError &&
+        error.kind === CodeHostHttpErrorKind.NotFound
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
+
+    const file: JSONObject = GitLabApi.asObject(answer.json, "the file");
+    const blobId: string = CodeHostText.readString(file["blob_id"]);
+
+    if (!blobId) {
+      throw GitLabApi.badAnswer("the file");
+    }
+
+    const lastCommitId: string = CodeHostText.readString(
+      file["last_commit_id"],
+    );
+
+    return {
+      blobSha: blobId,
+      ...(CodeHostText.isCommitSha(lastCommitId) ? { lastCommitId } : {}),
     };
   }
 
@@ -778,38 +857,85 @@ export default class GitLabApi {
    * API, which takes several files at once. Each file is created, or
    * updated where it is there already - which GitLab needs said - and sent
    * in base64, so no text is changed on its way.
+   *
+   * A file held to how it was read (expected, issue #6331) is not looked
+   * for again: it is created only if it was not there, and updated only if
+   * the last commit that changed it is still the one read (last_commit_id).
+   * GitLab refuses the whole commit otherwise - a push that landed since -
+   * and nothing is written (CodeHostFilesMovedError). A file it is not held
+   * to is looked for here and written as GitLab has it now, as it always
+   * was; so is one whose read named no last commit, which a GitLab that
+   * says none cannot hold.
    */
   public async commitFiles(data: {
     project: string;
     branchName: string;
     commitMessage: string;
     files: Array<CodeHostFileWrite>;
+    expected?: ReadonlyArray<CodeHostFileExpected> | undefined;
   }): Promise<CodeHostCommitMade> {
     const actions: Array<JSONObject> = [];
+    const held: Array<string> = [];
 
     for (const file of data.files) {
-      const isThere: boolean = await this.isFileThere({
-        project: data.project,
-        ref: data.branchName,
-        filePath: file.filePath,
-      });
+      const expected: CodeHostFileExpected | undefined = data.expected?.find(
+        (candidate: CodeHostFileExpected): boolean => {
+          return candidate.filePath === file.filePath;
+        },
+      );
+
+      const isThere: boolean = expected
+        ? expected.blobSha !== null
+        : await this.isFileThere({
+            project: data.project,
+            ref: data.branchName,
+            filePath: file.filePath,
+          });
+
+      if (expected) {
+        held.push(file.filePath);
+      }
 
       actions.push({
         action: isThere ? "update" : "create",
         file_path: file.filePath,
         content: Buffer.from(file.content, "utf8").toString("base64"),
         encoding: "base64",
+        ...(isThere && expected?.lastCommitId
+          ? { last_commit_id: expected.lastCommitId }
+          : {}),
       });
     }
 
-    const answer: CodeHostApiAnswer = await this.client.postJson(
-      `${GitLabApi.projectPath(data.project)}/repository/commits`,
-      {
-        branch: data.branchName,
-        commit_message: data.commitMessage,
-        actions,
-      },
-    );
+    let answer: CodeHostApiAnswer;
+
+    try {
+      answer = await this.client.postJson(
+        `${GitLabApi.projectPath(data.project)}/repository/commits`,
+        {
+          branch: data.branchName,
+          commit_message: data.commitMessage,
+          actions,
+        },
+      );
+    } catch (error) {
+      if (
+        held.length > 0 &&
+        error instanceof CodeHostHttpError &&
+        error.statusCode === 400 &&
+        FILE_MOVED_REFUSALS.some((refusal: string): boolean => {
+          return error.message.includes(refusal);
+        })
+      ) {
+        throw new CodeHostFilesMovedError({
+          filePaths: held,
+          reason:
+            "GitLab refused the commit: a file it writes changed on the branch after it was read.",
+        });
+      }
+
+      throw error;
+    }
 
     const commit: JSONObject = GitLabApi.asObject(
       answer.json,

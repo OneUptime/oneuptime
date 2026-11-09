@@ -668,6 +668,50 @@ export default class Workflow extends BaseModel {
   })
   public graph?: JSONObject = undefined;
 
+  /*
+   * How many times the graph has been saved: one more with every save of it
+   * (WorkflowService), whoever makes it - the builder, Ask AI, the API - and
+   * never for anything else. It is how a save says which graph it was made
+   * to (issue #6257): a save sent with the revision it read
+   * (miscDataProps.graphRevision) is made only while the workflow is still
+   * at that revision, so a builder open on an older graph never saves over
+   * a teammate's change without being told. Turning the workflow on, a new
+   * name or a new webhook key leave it as it is, so none of them is ever
+   * taken for a change to the graph. Written by the server alone, like
+   * isWebhookSigningSecretSet: nobody may create or update it, and it is
+   * never exported.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Number,
+    title: "Graph Revision",
+    description:
+      "How many times the workflow's graph has been saved. To save a graph only if nobody has saved one since you read the workflow, send this number as miscDataProps.graphRevision with the graph: a save made to an older graph is refused with 409 Conflict. Set by the server.",
+    defaultValue: 0,
+    isDefaultValueColumn: true,
+    example: 4,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public graphRevision?: number = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

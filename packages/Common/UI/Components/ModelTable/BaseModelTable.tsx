@@ -595,6 +595,24 @@ export interface BaseTableProps<
   deleteRequestOptions?: RequestOptions | undefined;
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;
   onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+  /*
+   * Rows the reader may not change, though their permissions let them change
+   * others of the list - a rule other teams own - and why: the reason, or
+   * undefined for a row they may change. Such a row keeps Edit in its menu,
+   * locked, with the reason as its tooltip, and so does its row switch
+   * (ModelTable's rowSwitch).
+   */
+  getEditDisabledReason?:
+    | ((item: TBaseModel) => string | undefined)
+    | undefined;
+  /*
+   * The record the Edit form fetched, before the form opens on it - for a
+   * form with a field that is no column of the record (ModelForm's
+   * onItemFetched).
+   */
+  onEditFormItemFetched?:
+    | ((item: TBaseModel) => Promise<TBaseModel>)
+    | undefined;
   onBeforeDelete?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   /*
    * Rows that can never be deleted - a project's built-in states, say - and
@@ -3868,6 +3886,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonStyleType: ButtonStyleType.OUTLINE,
         disabled: updateGate.disabled,
         tooltip: updateGate.tooltip,
+        getDisabledReason: props.getEditDisabledReason,
         onClick: async (
           item: TBaseModel,
           onCompleteAction: VoidFunction,

@@ -32,6 +32,7 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import { getLookupWindowBody } from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import {
   DictionaryEntryValue,
@@ -453,6 +454,12 @@ export default class MetricUtil {
                     | Dictionary<DictionaryEntryValue>
                     | undefined,
                 ) as any,
+                /*
+                 * For the services the query names only (issue #6266),
+                 * as a Metrics monitor limited to them reads it. A query
+                 * that names none reads every service, as before.
+                 */
+                ...MetricQueryServices.getServiceQuery(queryConfig),
               },
               aggregationType:
                 (queryConfig.metricQueryData.filterData
@@ -750,6 +757,8 @@ export default class MetricUtil {
     metricName: string;
     startAndEndDate: InBetween<Date>;
     attributes?: Dictionary<DictionaryEntryValue> | undefined;
+    // The services the calling query reads for; none: every service.
+    serviceIds?: Array<string> | undefined;
   }): Promise<Array<ExemplarPoint>> {
     if (getPublicDashboardContext()) {
       /*
@@ -780,6 +789,9 @@ export default class MetricUtil {
           traceId: new NotEqual<string>(""),
           ...(sanitizedAttributes
             ? { attributes: sanitizedAttributes as any }
+            : {}),
+          ...(data.serviceIds && data.serviceIds.length > 0
+            ? { primaryEntityId: new Includes(data.serviceIds) }
             : {}),
         } as any,
         select: {

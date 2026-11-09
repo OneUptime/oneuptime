@@ -33,6 +33,8 @@ const FOLDERS: Array<string> = [
   "Components/Form/Monitor/LlmMonitor",
   // Connect: the three ways in, the connection form, test and list.
   "Components/AI/Connect",
+  // The setup check: Connect's card and the empty views' findings.
+  "Components/AI/SetupCheck",
 ];
 
 // The pages of AI / LLM this work drew, one file each.
@@ -45,6 +47,12 @@ const FILES: Array<string> = [
   "Pages/Llm/Layout.tsx",
   "Components/AI/LlmNavTabs.tsx",
   "Components/AI/LlmProviderUsage.tsx",
+  // Calls (the served model, Duration) and Usage's tiles and table.
+  "Components/AI/LlmCallsTable.tsx",
+  "Components/AI/LlmUsageTotals.tsx",
+  "Components/AI/LlmUsageBreakdown.tsx",
+  // A trace span's LLM tab: the call, its log events and their notes.
+  "Components/Traces/LlmSpanPanel.tsx",
 ];
 
 const THEME_CSS_PATH: string = path.join(
