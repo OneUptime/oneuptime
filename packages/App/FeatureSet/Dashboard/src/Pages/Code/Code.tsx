@@ -34,6 +34,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * Where each repository is hosted, by id, for the mark beside its name on
@@ -272,6 +274,10 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             connection={connection}
             onConnectOtherHost={connectDialog.open}
           />
+          {/* What Code does once a repository is in (ProductOnboarding). */}
+          <div className="mt-6">
+            <ProductShowcase product={ProductKey.Code} hidesSteps={true} />
+          </div>
           {/* Tasks that never found a repository stay readable. */}
           {data && data.tasksWithoutRepositoryCount > 0 ? renderTasks() : <></>}
         </div>

@@ -36,6 +36,11 @@ import useEveryNewEventRulesOffer, {
   EveryNewEventRulesOffer,
 } from "../../Components/OnCallPolicy/UseEveryNewEventRulesOffer";
 import { JSONObject } from "Common/Types/JSON";
+import useProductFirstRun, {
+  ProductFirstRun,
+} from "../../Components/ProductOnboarding/UseProductFirstRun";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * Whether the user may add escalation rules, which "Who gets paged first?"
@@ -51,6 +56,11 @@ const canAddEscalationRules: () => boolean = (): boolean => {
 const OnCallDutyPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // Until the first one, the page explains the product under the empty table.
+  const firstRun: ProductFirstRun = useProductFirstRun<OnCallDutyPolicy>({
+    modelType: OnCallDutyPolicy,
+    query: { isArchived: false },
+  });
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<OnCallDutyPolicy>({ modelType: OnCallDutyPolicy });
 
@@ -127,14 +137,16 @@ const OnCallDutyPage: FunctionComponent<
     <Fragment>
       <ModelTable<OnCallDutyPolicy>
         modelType={OnCallDutyPolicy}
+        refreshToggle={firstRun.refreshToken}
+        showCreateForm={firstRun.showCreateForm}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
         enableJsonImportExport={true}
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"
         customFieldsModelType={OnCallDutyPolicyCustomField}
-        topContent={filterBar}
-        emptyState={facetEmptyState}
+        topContent={firstRun.getTopContent(filterBar)}
+        emptyState={firstRun.getEmptyState(facetEmptyState)}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -176,6 +188,7 @@ const OnCallDutyPage: FunctionComponent<
         onCreateSuccess={(
           item: OnCallDutyPolicy,
         ): Promise<OnCallDutyPolicy> => {
+          firstRun.onRecordCreated();
           /*
            * A new policy opens on its Escalation Rules: Level 1 is there when
            * someone was picked to be paged first, and adding the first rule
@@ -260,6 +273,12 @@ const OnCallDutyPage: FunctionComponent<
           },
         ]}
       />
+      {firstRun.isFirstRun && (
+        <ProductShowcase
+          product={ProductKey.OnCall}
+          startButton={firstRun.startButton}
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

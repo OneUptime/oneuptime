@@ -7,8 +7,21 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useCreatePageFirstRun, {
+  CreatePageFirstRun,
+} from "../../Components/ProductOnboarding/UseCreatePageFirstRun";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
+import PageMap from "../../Utils/PageMap";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // Until the first one, the page explains the product under the empty table.
+  const firstRun: CreatePageFirstRun = useCreatePageFirstRun<Monitor>({
+    modelType: Monitor,
+    product: ProductKey.Monitors,
+    startTitle: "Create Monitor",
+    createPage: PageMap.MONITOR_CREATE,
+  });
   return (
     <Fragment>
       {/*
@@ -31,7 +44,10 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           tableId: ALL_MONITORS_TABLE_ID,
         }}
         videoLink={URL.fromString("https://youtu.be/_fQ_F4EisBQ")}
+        emptyState={firstRun.emptyState}
+        refreshToggle={firstRun.refreshToken}
       />
+      {firstRun.showcase}
     </Fragment>
   );
 };

@@ -30,8 +30,17 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
+import useProductFirstRun, {
+  ProductFirstRun,
+} from "../../Components/ProductOnboarding/UseProductFirstRun";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // Until the first one, the page explains the product under the empty table.
+  const firstRun: ProductFirstRun = useProductFirstRun<Runbook>({
+    modelType: Runbook,
+  });
   const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
     useBulkOwnerActions<Runbook>({
       ownerUserModelType: RunbookOwnerUser,
@@ -105,12 +114,14 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <ModelTable<Runbook>
         modelType={Runbook}
+        refreshToggle={firstRun.refreshToken}
+        showCreateForm={firstRun.showCreateForm}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
         actionButtons={[...switchRowActions]}
         id="runbooks-table"
         userPreferencesKey="runbooks-table"
-        topContent={filterBar}
-        emptyState={facetEmptyState}
+        topContent={firstRun.getTopContent(filterBar)}
+        emptyState={firstRun.getEmptyState(facetEmptyState)}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
@@ -133,6 +144,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           item: Runbook,
           modalType?: ModalType,
         ): Promise<Runbook> => {
+          firstRun.onRecordCreated();
           if (modalType === ModalType.Create && item._id) {
             Navigation.navigate(
               RouteUtil.populateRouteParams(
@@ -261,6 +273,12 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
+      {firstRun.isFirstRun && (
+        <ProductShowcase
+          product={ProductKey.Runbooks}
+          startButton={firstRun.startButton}
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

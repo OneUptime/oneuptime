@@ -190,20 +190,36 @@ describe("the AI Insights inbox", () => {
 
   /*
    * A project with no insights yet: five tiles reading 0 and filters that
-   * narrow nothing were drawn above "No insights yet". The page is the
-   * empty state alone now, with its one way on.
+   * narrow nothing were drawn above "No insights yet". The page explains
+   * the product now (ProductOnboarding): what Insights do, how they come,
+   * an example, and its one way on.
    */
-  test("a project with no insights yet is its empty state alone, with one way on", async () => {
+  test("a project with no insights yet explains the product, with one way on", async () => {
     rows = [];
     renderInbox();
 
-    await screen.findByText("No insights yet", {}, { timeout: WAIT_TIMEOUT });
+    await screen.findByText(
+      "Problems found for you, before they page anyone",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
 
     expect(screen.getByTestId("ai-insights-first-run")).toBeInTheDocument();
+    expect(screen.getByTestId("product-showcase")).toHaveAttribute(
+      "data-product",
+      "ai-insights",
+    );
     expect(
       screen.getByRole("button", { name: "Go to Insights Settings" }),
     ).toBeInTheDocument();
-    // No status tiles, no filters, and no intro saying what the state says.
+    // The steps to a first insight, and the documentation.
+    expect(
+      screen.getByText("Send telemetry or connect your infrastructure"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Documentation/ }),
+    ).toHaveAttribute("href", "/docs/ai/ai-sre");
+    // No status tiles, no filters, no intro, and no second empty state.
     expect(screen.queryByText("All insights")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("combobox", { name: "Sort insights" }),
@@ -213,29 +229,29 @@ describe("the AI Insights inbox", () => {
         /^OneUptime AI watches your telemetry around the clock/,
       ),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText("No insights yet")).not.toBeInTheDocument();
   });
 
-  test("the first run's way on is drawn as a button, centred, and the page is not a screen of white on a phone", async () => {
+  test("the first run's way on is the showcase's own button, drawn large and primary", async () => {
     rows = [];
     renderInbox();
 
-    await screen.findByText("No insights yet", {}, { timeout: WAIT_TIMEOUT });
+    await screen.findByText(
+      "Problems found for you, before they page anyone",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
 
     const button: HTMLElement = screen.getByRole("button", {
       name: "Go to Insights Settings",
     });
 
-    // A bordered button: the OUTLINE style has no border and read as text.
-    expect(button).toHaveClass("border", "border-gray-300", "bg-white");
-    // Button's dialog-footer margin is taken off, so it sits centred.
-    expect(button.parentElement?.className).toContain("[&>button]:md:ml-0");
-
-    const empty: HTMLElement = document.getElementById(
-      "ai-insights-empty-state",
-    ) as HTMLElement;
-
-    expect(empty).toHaveClass("py-20", "md:pt-52", "md:pb-52");
-    expect(empty).not.toHaveClass("pt-52");
+    expect(button).toHaveAttribute(
+      "data-testid",
+      "resource-showcase-add-button",
+    );
+    expect(button.className).toContain("bg-indigo-600");
+    expect(document.getElementById("ai-insights-empty-state")).toBeNull();
   });
 
   test("a filter from a shared link keeps the inbox whole, so it can be cleared", async () => {

@@ -49,6 +49,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * DATA SECURITY AT A GLANCE.
@@ -237,6 +239,8 @@ const DataSecurityOverviewPage: FunctionComponent<
         <OverviewGettingStarted
           hasCloudConnection={Boolean(overview.hasCloudConnection)}
         />
+        {/* What Data Security finds once a database is in (ProductOnboarding). */}
+        <ProductShowcase product={ProductKey.DataSecurity} hidesSteps={true} />
       </div>
     );
   }

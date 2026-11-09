@@ -1,7 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ExceptionsViewer from "../../Components/Exceptions/ExceptionsViewer";
+import TelemetryFirstRunShowcase from "../../Components/ProductOnboarding/TelemetryFirstRunShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const UnresolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -17,7 +19,14 @@ const UnresolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
 
   // A product page: a project with no exception yet is offered the setup guide.
   return (
-    <ExceptionsViewer defaultStatus="unresolved" offersSetupWhenEmpty={true} />
+    <Fragment>
+      {/* Until the project's first telemetry: what the product does, and its setup guide. */}
+      <TelemetryFirstRunShowcase product={ProductKey.Exceptions} />
+      <ExceptionsViewer
+        defaultStatus="unresolved"
+        offersSetupWhenEmpty={true}
+      />
+    </Fragment>
   );
 };
 

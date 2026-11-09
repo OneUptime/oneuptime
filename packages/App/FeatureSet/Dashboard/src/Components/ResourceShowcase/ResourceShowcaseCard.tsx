@@ -1,6 +1,9 @@
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
+import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -33,6 +36,8 @@ export interface ShowcaseAddButton {
    */
   title: string;
   onClick: () => void;
+  // A plus, unless the button opens something other than a create form.
+  icon?: IconProp | undefined;
   disabled?: boolean | undefined;
   // Why it is disabled.
   tooltip?: string | undefined;
@@ -42,6 +47,15 @@ export interface ComponentProps {
   showcase: ResourceShowcase;
   // Left out where the viewer has no way to add one.
   addButton?: ShowcaseAddButton | undefined;
+  // The product's documentation, linked beside the button ("/docs/slo/introduction").
+  docsRoute?: Route | URL | undefined;
+  /*
+   * Leaves out the showcase's steps where the page above it already walks
+   * through them (a product's own get-started steps).
+   */
+  hidesSteps?: boolean | undefined;
+  // Drawn without its own frame, inside a dialog (a product's About).
+  isBare?: boolean | undefined;
 }
 
 export const RESOURCE_SHOWCASE_TEST_ID: string = "resource-showcase";
@@ -51,6 +65,10 @@ export const RESOURCE_SHOWCASE_PREVIEW_TEST_ID: string =
   "resource-showcase-preview";
 export const RESOURCE_SHOWCASE_CHART_TEST_ID: string =
   "resource-showcase-chart";
+export const RESOURCE_SHOWCASE_STEPS_TEST_ID: string =
+  "resource-showcase-steps";
+export const RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID: string =
+  "resource-showcase-docs-link";
 
 // Over the feature grid.
 export const RESOURCE_SHOWCASE_FEATURES_TITLE: string =
@@ -62,6 +80,10 @@ export const RESOURCE_SHOWCASE_EXAMPLE_LABEL: string =
 export const RESOURCE_SHOWCASE_EXAMPLE_DESCRIPTION: string = translationKey(
   "An example of what you see once one is connected.",
 );
+
+// The link to the product's documentation.
+export const RESOURCE_SHOWCASE_DOCS_TEXT: string =
+  translationKey("Documentation");
 
 // The example's state, and the span of its chart when it names none.
 const CONNECTED_TEXT: string = translationKey("Connected");
@@ -78,6 +100,10 @@ export const SHOWCASE_CHART_RANGE_TEXT: string = translationKey("Last hour");
  */
 export const SHOWCASE_CLASS_NAME: string =
   "mb-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm [container-type:inline-size]";
+
+// In a dialog, which is its frame.
+export const SHOWCASE_BARE_CLASS_NAME: string =
+  "overflow-hidden bg-white [container-type:inline-size]";
 
 export const SHOWCASE_HERO_CLASS_NAME: string =
   "relative grid gap-10 px-5 py-8 sm:px-8 [@container(min-width:56rem)]:grid-cols-2 [@container(min-width:56rem)]:items-center [@container(min-width:56rem)]:py-10";
@@ -171,7 +197,9 @@ const ShowcasePreviewPanel: FunctionComponent<{
   return (
     <div
       role="img"
-      aria-label={translate(RESOURCE_SHOWCASE_EXAMPLE_DESCRIPTION)}
+      aria-label={translate(
+        preview.description || RESOURCE_SHOWCASE_EXAMPLE_DESCRIPTION,
+      )}
       data-testid={RESOURCE_SHOWCASE_PREVIEW_TEST_ID}
       className={SHOWCASE_PREVIEW_CLASS_NAME}
     >
@@ -200,7 +228,7 @@ const ShowcasePreviewPanel: FunctionComponent<{
             </div>
             <span className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              {translate(CONNECTED_TEXT)}
+              {translate(preview.badge || CONNECTED_TEXT)}
             </span>
           </div>
 
@@ -333,6 +361,7 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
     return translator.translateText(text) || text;
   };
   const showcase: ResourceShowcase = props.showcase;
+  const steps: Array<string> = props.hidesSteps ? [] : showcase.steps || [];
   const titleId: string = `resource-showcase-title-${useId().replace(
     /[^A-Za-z0-9_-]/g,
     "",
@@ -340,7 +369,7 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
 
   return (
     <section
-      className={SHOWCASE_CLASS_NAME}
+      className={props.isBare ? SHOWCASE_BARE_CLASS_NAME : SHOWCASE_CLASS_NAME}
       aria-labelledby={titleId}
       data-testid={RESOURCE_SHOWCASE_TEST_ID}
     >
@@ -371,37 +400,78 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
               {translate(showcase.description)}
             </p>
 
-            {props.addButton && (
-              <div className="mt-6">
-                <Button
-                  title={props.addButton.title}
-                  icon={IconProp.Add}
-                  buttonStyle={ButtonStyleType.PRIMARY}
-                  buttonSize={ButtonSize.Large}
-                  disabled={props.addButton.disabled}
-                  tooltip={props.addButton.tooltip}
-                  onClick={props.addButton.onClick}
-                  dataTestId={RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID}
-                />
+            {steps.length > 0 && (
+              <ol
+                className="mt-6 space-y-3"
+                data-testid={RESOURCE_SHOWCASE_STEPS_TEST_ID}
+              >
+                {steps.map((step: string, index: number): ReactElement => {
+                  return (
+                    <li key={step} className="flex items-start gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold tabular-nums text-indigo-700 ring-1 ring-inset ring-indigo-200"
+                      >
+                        {index + 1}
+                      </span>
+                      <span className="min-w-0 pt-0.5 text-sm leading-relaxed text-gray-700">
+                        {translate(step)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+
+            {(props.addButton || props.docsRoute) && (
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+                {props.addButton && (
+                  <Button
+                    title={props.addButton.title}
+                    icon={props.addButton.icon || IconProp.Add}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    buttonSize={ButtonSize.Large}
+                    disabled={props.addButton.disabled}
+                    tooltip={props.addButton.tooltip}
+                    onClick={props.addButton.onClick}
+                    dataTestId={RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID}
+                  />
+                )}
+                {props.docsRoute && (
+                  <Link
+                    to={props.docsRoute}
+                    openInNewTab={true}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-700 hover:text-indigo-900 hover:underline"
+                    dataTestId={RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID}
+                  >
+                    <Icon
+                      icon={IconProp.Book}
+                      className="h-4 w-4 flex-shrink-0"
+                    />
+                    {translate(RESOURCE_SHOWCASE_DOCS_TEXT)}
+                  </Link>
+                )}
               </div>
             )}
 
-            <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
-              {showcase.highlights.map((highlight: string): ReactElement => {
-                return (
-                  <li
-                    key={highlight}
-                    className="inline-flex items-center gap-1.5 text-sm text-gray-600"
-                  >
-                    <Icon
-                      icon={IconProp.CheckCircle}
-                      className="h-4 w-4 flex-shrink-0 text-emerald-600"
-                    />
-                    {translate(highlight)}
-                  </li>
-                );
-              })}
-            </ul>
+            {showcase.highlights.length > 0 && (
+              <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+                {showcase.highlights.map((highlight: string): ReactElement => {
+                  return (
+                    <li
+                      key={highlight}
+                      className="inline-flex items-center gap-1.5 text-sm text-gray-600"
+                    >
+                      <Icon
+                        icon={IconProp.CheckCircle}
+                        className="h-4 w-4 flex-shrink-0 text-emerald-600"
+                      />
+                      {translate(highlight)}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
 
           <ShowcasePreviewPanel
@@ -412,37 +482,39 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-8 sm:px-8">
-        <h3 className="text-sm font-semibold text-gray-900">
-          {translate(RESOURCE_SHOWCASE_FEATURES_TITLE)}
-        </h3>
-        <ul className={SHOWCASE_FEATURES_CLASS_NAME}>
-          {showcase.features.map((feature: ShowcaseFeature): ReactElement => {
-            return (
-              <li
-                key={feature.title}
-                className="flex gap-3"
-                data-testid="resource-showcase-feature"
-              >
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-                  <Icon
-                    icon={feature.icon}
-                    className="h-5 w-5 text-indigo-600"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-gray-900">
-                    {translate(feature.title)}
+      {showcase.features.length > 0 && (
+        <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-8 sm:px-8">
+          <h3 className="text-sm font-semibold text-gray-900">
+            {translate(RESOURCE_SHOWCASE_FEATURES_TITLE)}
+          </h3>
+          <ul className={SHOWCASE_FEATURES_CLASS_NAME}>
+            {showcase.features.map((feature: ShowcaseFeature): ReactElement => {
+              return (
+                <li
+                  key={feature.title}
+                  className="flex gap-3"
+                  data-testid="resource-showcase-feature"
+                >
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                    <Icon
+                      icon={feature.icon}
+                      className="h-5 w-5 text-indigo-600"
+                    />
                   </div>
-                  <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                    {translate(feature.description)}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-gray-900">
+                      {translate(feature.title)}
+                    </div>
+                    <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                      {translate(feature.description)}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </section>
   );
 };

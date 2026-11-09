@@ -29,8 +29,18 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
+import useProductFirstRun, {
+  ProductFirstRun,
+} from "../../Components/ProductOnboarding/UseProductFirstRun";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // Until the first one, the page explains the product under the empty table.
+  const firstRun: ProductFirstRun = useProductFirstRun<StatusPage>({
+    modelType: StatusPage,
+    query: { isArchived: false },
+  });
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<StatusPage>({ modelType: StatusPage });
 
@@ -92,8 +102,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <div>
       <ModelTable<StatusPage>
-        topContent={filterBar}
-        emptyState={facetEmptyState}
+        topContent={firstRun.getTopContent(filterBar)}
+        emptyState={firstRun.getEmptyState(facetEmptyState)}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -101,6 +111,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onResourcesFetched(data);
         }}
         modelType={StatusPage}
+        refreshToggle={firstRun.refreshToken}
+        showCreateForm={firstRun.showCreateForm}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
         /*
@@ -121,6 +133,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           item: StatusPage,
           modalType?: ModalType,
         ): Promise<StatusPage> => {
+          firstRun.onRecordCreated();
           /*
            * A new status page opens on its Overview, which starts with its
            * next step: it shows visitors nothing until monitors are added.
@@ -243,6 +256,12 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
+      {firstRun.isFirstRun && (
+        <ProductShowcase
+          product={ProductKey.StatusPages}
+          startButton={firstRun.startButton}
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </div>

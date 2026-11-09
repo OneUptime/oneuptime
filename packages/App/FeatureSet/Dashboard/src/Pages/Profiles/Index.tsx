@@ -1,7 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ProfilesOverview from "../../Components/Profiles/ProfilesOverview";
+import TelemetryFirstRunShowcase from "../../Components/ProductOnboarding/TelemetryFirstRunShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const ProfilesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -15,7 +17,13 @@ const ProfilesPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <ProfilesOverview />;
+  return (
+    <Fragment>
+      {/* Until the project's first telemetry: what the product does, and its setup guide. */}
+      <TelemetryFirstRunShowcase product={ProductKey.Profiles} />
+      <ProfilesOverview />
+    </Fragment>
+  );
 };
 
 export default ProfilesPage;

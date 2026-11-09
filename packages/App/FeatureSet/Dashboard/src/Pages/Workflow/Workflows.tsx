@@ -49,8 +49,18 @@ import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdo
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useProductFirstRun, {
+  ProductFirstRun,
+} from "../../Components/ProductOnboarding/UseProductFirstRun";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // Until the first one, the page explains the product under the empty table.
+  const firstRun: ProductFirstRun = useProductFirstRun<Workflow>({
+    modelType: Workflow,
+    query: { isArchived: false },
+  });
   const translator: Translator = useTranslator();
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
 
@@ -156,13 +166,14 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         <ModelTable<Workflow>
           modelType={Workflow}
+          refreshToggle={firstRun.refreshToken}
           // Each row's ⋯ menu: Enable or Disable (the one that changes the row), then Archive.
           actionButtons={[...switchRowActions, ...archiveRowActions]}
           enableJsonImportExport={true}
           id="workflows-table"
           userPreferencesKey="workflow-table"
-          topContent={filterBar}
-          emptyState={facetEmptyState}
+          topContent={firstRun.getTopContent(filterBar)}
+          emptyState={firstRun.getEmptyState(facetEmptyState)}
           currentFacetState={facetSaveState}
           onFacetStateRestored={restoreFacetState}
           query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -298,6 +309,19 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
         />
+        {firstRun.isFirstRun && (
+          <ProductShowcase
+            product={ProductKey.Workflows}
+            startButton={
+              firstRun.startButton && {
+                ...firstRun.startButton,
+                onClick: () => {
+                  setShowCreateModal(true);
+                },
+              }
+            }
+          />
+        )}
         {showCreateModal ? (
           <CreateWorkflowModal
             onClose={() => {

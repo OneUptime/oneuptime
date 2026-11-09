@@ -41,6 +41,11 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ProductShowcase, {
+  getProductStartButton,
+} from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 
 /*
  * What a person opening Data Observability needs first: how many tables are
@@ -154,49 +159,19 @@ const DataObservabilityOverviewPage: FunctionComponent<
   if (overview.storeCount === 0) {
     return (
       <>
-        <Card
-          title="Watch your data, not just your services"
-          description="Connect a database and every table in it is watched from the first minute: its rows, size, last change and columns. Only the catalog is read, so no value leaves the database, and no threshold has to be set."
-          buttons={[
-            {
+        <ProductShowcase
+          product={ProductKey.DataObservability}
+          startButton={getProductStartButton({
+            modelType: DatabaseServer,
+            button: {
               title: "Connect a Database",
-              buttonStyle: ButtonStyleType.PRIMARY,
-              icon: IconProp.Add,
               onClick: () => {
                 setSuggestion(undefined);
                 setIsConnecting(true);
               },
             },
-            {
-              title: "Read the Docs",
-              buttonStyle: ButtonStyleType.OUTLINE,
-              icon: IconProp.Book,
-              onClick: () => {
-                Navigation.navigate(
-                  route(PageMap.DATA_OBSERVABILITY_DOCUMENTATION),
-                );
-              },
-            },
-          ]}
-        >
-          <ul className="list-disc space-y-1 px-6 pb-6 text-sm text-gray-600">
-            <li>
-              {translator.translateText(
-                "PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, MongoDB and the major warehouses, connected by OneUptime or by a probe inside your network.",
-              )}
-            </li>
-            <li>
-              {translator.translateText(
-                "Databases already connected for Data Security are watched too.",
-              )}
-            </li>
-            <li>
-              {translator.translateText(
-                "Every number is a metric: chart it, put it on a dashboard, or alert on it with a learned baseline.",
-              )}
-            </li>
-          </ul>
-        </Card>
+          })}
+        />
         <DataSourceSuggestionsCard
           onConnect={(chosen: DataObservabilitySourceSuggestion) => {
             setSuggestion(chosen);

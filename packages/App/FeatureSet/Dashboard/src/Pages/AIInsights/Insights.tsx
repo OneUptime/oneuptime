@@ -59,6 +59,8 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const INSIGHTS_PER_PAGE: number = 20;
 
@@ -776,7 +778,24 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
     return (
       <div className="space-y-5" data-testid="ai-insights-first-run">
         <AIPlanGate />
-        {getContent()}
+        {/*
+         * The product's own page explains the product (ProductOnboarding);
+         * an insights list scoped to one resource keeps its empty state.
+         */}
+        {scope ? (
+          getContent()
+        ) : (
+          <ProductShowcase
+            product={ProductKey.AIInsights}
+            startButton={{
+              title: "Go to Insights Settings",
+              icon: IconProp.Settings,
+              onClick: () => {
+                Navigation.navigate(settingsRoute);
+              },
+            }}
+          />
+        )}
       </div>
     );
   }
