@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 इन्हें उसी `resource` ऑब्जेक्ट से बनाएँ। जिस लॉग या मेट्रिक पाइपलाइन के रिसोर्स में `browser.*` न हो, वह एक अलग बैकएंड सेवा के रूप में दर्ज होती है।
 
+लॉग पाइपलाइन सिर्फ़ वे रिकॉर्ड भेजती है जो आपका कोड लिखता है, इसलिए जहाँ भी जानने लायक कुछ हो, वहाँ एक रिकॉर्ड लिखें:
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## एंडपॉइंट संदर्भ
 
 | सिग्नल | एंडपॉइंट | हेडर |
