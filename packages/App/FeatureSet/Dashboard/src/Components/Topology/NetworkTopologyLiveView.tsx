@@ -1158,9 +1158,13 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           className="mb-3 text-xs text-gray-500"
           data-testid="network-topology-suppressed-note"
         >
-          {`${topology.suppressedNodeCount} ${
-            topology.suppressedNodeCount === 1 ? "node is" : "nodes are"
-          } hidden from this map. `}
+          {translator.translatePlural(
+            {
+              one: "{{count}} node is hidden from this map.",
+              other: "{{count}} nodes are hidden from this map.",
+            },
+            topology.suppressedNodeCount,
+          )}{" "}
           <button
             type="button"
             className="font-medium text-indigo-600 underline hover:text-indigo-800"
