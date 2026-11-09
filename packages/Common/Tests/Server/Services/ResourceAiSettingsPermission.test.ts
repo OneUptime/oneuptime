@@ -1017,11 +1017,21 @@ describe.each(FULLY_COVERED)(
 
     beforeEach(() => {
       withoutResourceAiAgents();
+      /*
+       * The resource as the internal find hands it back: an instance of its
+       * model, as TypeORM loads it. The update reads the row's column
+       * metadata through it to tell what the write changes
+       * (getChangedColumns), as it does for every audited model - and a
+       * project's records are audited by default since #6245.
+       */
       getJestSpyOn(wiring.service, "_findBy").mockResolvedValue([
-        resource({
-          _id: RESOURCE_ID.toString(),
-          aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
-        }),
+        Object.assign(
+          new wiring.modelType(),
+          resource({
+            _id: RESOURCE_ID.toString(),
+            aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+          }),
+        ),
       ]);
       repositoryUpdate = jest.fn().mockResolvedValue({ affected: 1 });
       getJestSpyOn(wiring.service, "getRepository").mockReturnValue({

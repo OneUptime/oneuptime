@@ -25,7 +25,10 @@ import { ModelSchema } from "../../Utils/Schema/ModelSchema";
  *     every create (it would put every new row at that number);
  *   - writable by whoever can create and edit the row, because dragging a
  *     row is an edit of its order column;
- *   - scoped by columns that exist, so "its list" means something.
+ *   - scoped by columns that exist, so "its list" means something: the id
+ *     of the list's parent (a status page's links), or a kind of row every
+ *     row names, from a set of its own (a project's public note approval
+ *     steps for incidents, and those for scheduled maintenance).
  *
  * And the set itself is pinned: a list that gains or loses the decorator is
  * a change somebody should notice.
@@ -239,6 +242,16 @@ const EXPECTED: Record<string, ListOrderSettings> = {
     scopeColumns: ["projectId"],
     sortOrder: SortOrder.Ascending,
   },
+  /*
+   * A project's public note approval steps (#6252), a note going through
+   * them in this order: one list for incidents' notes (their episodes'
+   * too), one for scheduled maintenance's, by the event type.
+   */
+  PublicNoteApprovalStep: {
+    column: "order",
+    scopeColumns: ["projectId", "eventType"],
+    sortOrder: SortOrder.Ascending,
+  },
 };
 
 const listModels: Array<ModelType> = (
@@ -349,13 +362,33 @@ describe("drag-ordered lists (@ListOrderColumn)", () => {
       expect(access?.create?.length || 0).toBeGreaterThan(0);
     });
 
+    /*
+     * An id - of the list's parent, or the project - or a kind of row: a
+     * required text column with a set of values of its own, each value a
+     * list of its own, which ListOrderMaintainer reads as the text it holds.
+     */
     test("the columns that say which list a row is in exist", () => {
       expect(settings.scopeColumns.length).toBeGreaterThan(0);
 
       for (const scopeColumn of settings.scopeColumns) {
-        expect(model.getTableColumnMetadata(scopeColumn)?.type).toBe(
-          TableColumnType.ObjectID,
-        );
+        const metadata: TableColumnMetadata | undefined =
+          model.getTableColumnMetadata(scopeColumn);
+
+        if (metadata?.type === TableColumnType.ObjectID) {
+          continue;
+        }
+
+        expect({
+          scopeColumn,
+          type: metadata?.type,
+          required: metadata?.required,
+          hasValuesOfItsOwn: (metadata?.allowedValues || []).length > 0,
+        }).toEqual({
+          scopeColumn,
+          type: TableColumnType.ShortText,
+          required: true,
+          hasValuesOfItsOwn: true,
+        });
       }
     });
   });

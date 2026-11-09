@@ -7,6 +7,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -70,7 +71,8 @@ export default class ListOrderMaintainer {
    * { _id } }`, the dashboard's spelling) instead of the foreign key
    * (`statusPageId`), so the relation is read when the key is absent.
    * `undefined` means the row does not say; `null` means "no parent", which
-   * is a list of its own.
+   * is a list of its own. A kind of row - a public note approval step's
+   * event type - is read as the text it holds.
    */
   public static readScopeValue<TBaseModel extends BaseModel>(data: {
     model: TBaseModel;
@@ -80,7 +82,9 @@ export default class ListOrderMaintainer {
     const direct: unknown = data.row[data.column];
 
     if (direct !== undefined) {
-      return ListOrderMaintainer.toScopeValue(direct);
+      return ListOrderMaintainer.isIdColumn(data.model, data.column)
+        ? ListOrderMaintainer.toScopeValue(direct)
+        : direct;
     }
 
     for (const relationColumn of data.model.getTableColumns().columns) {
@@ -118,10 +122,26 @@ export default class ListOrderMaintainer {
   }
 
   /*
-   * Scope columns are id columns (Tests/Models/ListOrderColumnModels pins
-   * that), so an id that arrives as a plain string - a relation object's
-   * `_id`, a deserialized payload - is read as the ObjectID the foreign key
-   * would hold, and both spellings query the list the same way.
+   * Whether a scope column holds an id - of the list's parent, or of the
+   * project - rather than the kind of row it is. A scope column is one or
+   * the other (Tests/Models/ListOrderColumnModels pins that): a public note
+   * approval step's event type makes incidents' steps and scheduled
+   * maintenance's steps lists of their own, by the text it holds (#6252).
+   */
+  private static isIdColumn<TBaseModel extends BaseModel>(
+    model: TBaseModel,
+    column: string,
+  ): boolean {
+    return (
+      model.getTableColumnMetadata(column)?.type === TableColumnType.ObjectID
+    );
+  }
+
+  /*
+   * An id column's value, or a relation's id: an id that arrives as a plain
+   * string - a relation object's `_id`, a deserialized payload - is read as
+   * the ObjectID the foreign key would hold, and both spellings query the
+   * list the same way.
    */
   private static toScopeValue(value: unknown): unknown {
     if (value === null) {

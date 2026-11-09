@@ -297,6 +297,8 @@ const DATABASE_SERVER_ROOT_ONLY_COLUMNS: Array<string> = [
   "aiAccessLastVerifiedAt",
   "aiAccessLastError",
   "aiAccessConfiguredAt",
+  // Stamped by the server when someone resets the database's AI agent (#6322).
+  "aiAgentResetAt",
   // Written by the metrics ingest: each engine template's latest readings and their verdict.
   "engineReadings",
   "engineReadingsAt",

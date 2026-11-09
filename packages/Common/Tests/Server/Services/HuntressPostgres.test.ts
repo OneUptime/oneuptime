@@ -72,8 +72,10 @@ import { DataSource, Logger } from "typeorm";
  *
  * The tables are cloned structure-only (LIKE ... INCLUDING ALL: columns,
  * defaults, indexes, no foreign keys) into a uniquely named schema that is
- * dropped afterwards. The workflow service, the workflow rules and Valkey,
- * the only side effects outside Postgres, are stubbed.
+ * dropped afterwards - WorkflowVersion among them: a saved workflow keeps
+ * its graph as a version of its history (#6256). The workflow service, the
+ * workflow rules and Valkey, the only side effects outside Postgres, are
+ * stubbed.
  */
 
 // describe.skip's type is the one both branches share.
@@ -84,6 +86,7 @@ const describePostgres: typeof describe.skip =
 
 const TABLES: Array<string> = [
   "Workflow",
+  "WorkflowVersion",
   "Incident",
   "HuntressConnection",
   "HuntressConnectionOnCallDutyPolicy",
@@ -323,6 +326,22 @@ describePostgres("Huntress workflows against a migrated Postgres", () => {
       });
 
       expect(read?.webhookSigningSecret).toBe(secret);
+
+      // Its first version keeps the graph to go back to, never the secret.
+      const versions: Array<{ versionNumber: number; graph: unknown }> =
+        await database.query(
+          `SELECT "versionNumber", "graph" FROM "${schema}"."WorkflowVersion" WHERE "workflowId" = $1`,
+          [created.id!.toString()],
+        );
+
+      expect(
+        versions.map((version: { versionNumber: number }): number => {
+          return version.versionNumber;
+        }),
+      ).toEqual([1]);
+      expect(JSON.stringify(versions)).not.toContain(
+        secret.slice("whsec_".length),
+      );
       expect(recorder.failures).toEqual([]);
     });
 

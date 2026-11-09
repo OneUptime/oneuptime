@@ -57,6 +57,12 @@ const describePostgres: typeof describe =
 
 const TABLES: Array<string> = [
   "Project",
+  /*
+   * A rule removed after a failed add is read whole for its audit log
+   * snapshot first, the people who made and deleted it included (a
+   * project's records are audited by default since #6245).
+   */
+  "User",
   "StatusPage",
   "StatusPageHistoryChartBarColorRule",
 ];

@@ -104,6 +104,13 @@ const TABLES: Array<string> = [
   "KubernetesClusterLabel",
   "DockerHost",
   "PodmanHost",
+  /*
+   * A delete of a database or of an alias reads the row whole for its audit
+   * log snapshot, its project and the people who made and deleted it
+   * included (a project's records are audited by default since #6245).
+   */
+  "Project",
+  "User",
 ];
 
 /*

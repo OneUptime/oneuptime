@@ -97,6 +97,13 @@ const TABLES: Array<string> = [
   "ScheduledMaintenanceState",
   "ScheduledMaintenance",
   "ScheduledMaintenanceLabel",
+  /*
+   * A rule's delete reads the rule whole for its audit log snapshot, its
+   * project and the people who made and deleted it included (a project's
+   * records are audited by default since #6245).
+   */
+  "Project",
+  "User",
 ];
 
 const MINUTE_IN_MS: number = 60 * 1000;

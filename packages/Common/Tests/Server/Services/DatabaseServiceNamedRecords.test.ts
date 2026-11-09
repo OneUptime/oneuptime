@@ -378,7 +378,32 @@ const updateAnnouncementsWhere: (
   });
 };
 
-// The reads of the rows an update writes, with the status pages they have.
+/*
+ * The write's own read of the rows it writes, once the asks are done
+ * (_updateBy's find, which locates them and tells what the write changes).
+ * An announcement is audited (every project's records are, by default,
+ * since #6245), so it also reads what the audit log entry names: the
+ * announcement's title and, for the pages it changes, their names.
+ */
+const isWritesOwnRead: (each: RowRead) => boolean = (
+  each: RowRead,
+): boolean => {
+  const select: Record<string, unknown> | undefined = each.findBy.select as
+    | Record<string, unknown>
+    | undefined;
+  const pages: unknown = select?.["statusPages"];
+
+  return (
+    Boolean(select?.["title"]) &&
+    typeof pages === "object" &&
+    Boolean((pages as Record<string, unknown> | null)?.["name"])
+  );
+};
+
+/*
+ * The reads of the rows an update writes, with the status pages they have,
+ * that ask about the pages it adds: not the write's own read.
+ */
 const rowReadsWithPages: () => Array<RowRead> = (): Array<RowRead> => {
   return rowReads.filter((each: RowRead): boolean => {
     const select: Record<string, unknown> | undefined = each.findBy.select as
@@ -387,7 +412,8 @@ const rowReadsWithPages: () => Array<RowRead> = (): Array<RowRead> => {
 
     return (
       Boolean(select?.["statusPages"]) &&
-      typeof select?.["statusPages"] === "object"
+      typeof select?.["statusPages"] === "object" &&
+      !isWritesOwnRead(each)
     );
   });
 };
@@ -565,6 +591,26 @@ describe("an update that gives a record a parent it does not have", () => {
     expect(readsBeforeHook).toBe(1);
     expect(rowReadsWithPages()).toHaveLength(1);
     expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_C] }]);
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  test("the write reads its rows once, after the asks, with what its audit log entry names", async () => {
+    await updateAnnouncement({
+      statusPages: [{ _id: PAGE_A }, { _id: PAGE_C }],
+    });
+
+    const writesOwn: Array<RowRead> = rowReads.filter(isWritesOwnRead);
+
+    expect(writesOwn).toHaveLength(1);
+    expect(writesOwn[0]!.findBy.select).toMatchObject({
+      _id: true,
+      projectId: true,
+      title: true,
+      statusPages: { _id: true, name: true },
+    });
+    // The last read, after the asks about the page it adds.
+    expect(rowReads[rowReads.length - 1]).toBe(writesOwn[0]);
+    expect(rowReadsWithPages()).toHaveLength(1);
     expect(save).toHaveBeenCalledTimes(1);
   });
 

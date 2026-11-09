@@ -917,12 +917,25 @@ describe("DatabaseService translates a boolean isEnabled on relation-only rules"
 
         const queries: Array<CapturedQuery> = takeCapturedQueries();
 
-        expect(queries).toHaveLength(1);
-        expectEffectiveEnabledPredicate(queries[0]!, {
-          alias,
-          qualified: true,
-          value: false,
-        });
+        /*
+         * A rule's delete is audited (every project's records are, by
+         * default, since #6245), so it reads each rule whole for the audit
+         * log's snapshot, its labels and severities included - TypeORM's two
+         * paging statements for a read that joins a to-many relation, the
+         * page of ids and then those rows. Both carry the predicate.
+         */
+        expect(service.getModel().enableAuditLogOn?.delete).toBe(true);
+        expect(queries).toHaveLength(2);
+        expect(queries[0]!.sql).toMatch(/^SELECT DISTINCT "distinctAlias"\./);
+
+        for (const query of queries) {
+          expect(query.sql).toContain("LEFT JOIN");
+          expectEffectiveEnabledPredicate(query, {
+            alias,
+            qualified: true,
+            value: false,
+          });
+        }
       });
 
       test("hardDeleteBy renders the same operator for its SELECT and its DELETE", async () => {

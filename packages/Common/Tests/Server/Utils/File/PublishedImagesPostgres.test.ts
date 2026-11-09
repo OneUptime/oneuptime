@@ -1451,14 +1451,29 @@ describePostgres("PublishedImages against Postgres", () => {
       expect(notAsked).toBeDefined();
     });
 
-    test("getRowsShownUnderSql reads the notes of the records asked about that carry an image", async () => {
+    /*
+     * With each note's own switch (#6252): a record shown again publishes
+     * only the notes that are published themselves, so a note waiting for
+     * approval, or rejected, is read with it off and its images stay
+     * private (PublishedImages.addChangesShownUnder).
+     */
+    test("getRowsShownUnderSql reads the notes of the records asked about that carry an image, with whether each is published", async () => {
       const source: PublishedMarkdown = sourceOf("IncidentPublicNote", "note");
       const imageToken: string = token();
+      const heldImageToken: string = token();
 
       const { noteId, parentId } = await noteUnder({
         table: "IncidentPublicNote",
         imageToken: imageToken,
         parent: {},
+      });
+
+      // Waiting for approval: read too, as not published.
+      const heldNoteId: string = await insertRecord(source, {
+        projectId: PROJECT_A,
+        note: byToken(heldImageToken),
+        incidentId: parentId,
+        isPublished: false,
       });
 
       // Without an image, deleted, or of another record: not read.
@@ -1484,12 +1499,26 @@ describePostgres("PublishedImages against Postgres", () => {
         [[parentId]],
       );
 
-      expect(rows).toEqual([
+      expect(
+        rows.sort(
+          (a: Record<string, unknown>, b: Record<string, unknown>): number => {
+            return Number(b["isPublished"]) - Number(a["isPublished"]);
+          },
+        ),
+      ).toEqual([
         {
           _id: noteId,
           projectId: PROJECT_A,
           incidentId: parentId,
+          isPublished: true,
           note: byToken(imageToken),
+        },
+        {
+          _id: heldNoteId,
+          projectId: PROJECT_A,
+          incidentId: parentId,
+          isPublished: false,
+          note: byToken(heldImageToken),
         },
       ]);
     });

@@ -419,9 +419,14 @@ describe("moving a row of a drag-ordered list", () => {
     expect(findAllBy).not.toHaveBeenCalled();
     expect(written).toEqual([]);
 
+    /*
+     * Nor reads the row's place: the order column is not selected. (Its
+     * status page is: a link's audit log entries roll up to its status page,
+     * read with every audited update since #6245.)
+     */
     const select: Record<string, unknown> = (findBy.mock.calls[0]![0] as any)
       .select;
-    expect(select["statusPageId"]).toBeUndefined();
+    expect(select["order"]).toBeUndefined();
   });
 
   test("clearing a row's number sends it to the end of its list", async () => {

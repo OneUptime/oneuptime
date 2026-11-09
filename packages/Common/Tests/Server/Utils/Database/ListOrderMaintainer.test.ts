@@ -1,4 +1,5 @@
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
+import PublicNoteApprovalStep from "../../../../Models/DatabaseModels/PublicNoteApprovalStep";
 import StatusPageHeaderLink from "../../../../Models/DatabaseModels/StatusPageHeaderLink";
 import ListOrderMaintainer, {
   ListOrderScope,
@@ -144,6 +145,57 @@ describe("ListOrderMaintainer.getScope", () => {
     expect(
       ListOrderMaintainer.getScopeColumns({ model: model, settings: settings }),
     ).toEqual(["statusPageId", "projectId"]);
+  });
+});
+
+/*
+ * A list scoped by a kind of row as well as its project (#6252): a
+ * project's public note approval steps are one list for incidents and one
+ * for scheduled maintenance, by the step's event type - text, read and
+ * queried as the text it is, never as an id.
+ */
+describe("ListOrderMaintainer.getScope, for a list of a kind of row", () => {
+  const stepModel: PublicNoteApprovalStep = new PublicNoteApprovalStep();
+  const stepSettings: ListOrderSettings = stepModel.getListOrder()!;
+
+  const stepScopeOf: (
+    row: Record<string, unknown>,
+  ) => ListOrderScope<any> | null = (
+    row: Record<string, unknown>,
+  ): ListOrderScope<any> | null => {
+    return ListOrderMaintainer.getScope({
+      model: stepModel,
+      settings: stepSettings,
+      row: row,
+    });
+  };
+
+  test("reads the kind as the text it holds, and the project as an id", () => {
+    const scope: ListOrderScope<any> | null = stepScopeOf({
+      projectId: PROJECT_ID,
+      eventType: "Incident",
+    });
+
+    expect(scope).not.toBeNull();
+    expect((scope!.query as any)["eventType"]).toBe("Incident");
+    expect((scope!.query as any)["projectId"]).toBeInstanceOf(ObjectID);
+    expect(scope!.key).toBe(`projectId=${PROJECT_ID}&eventType=Incident`);
+  });
+
+  test("each kind is a list of its own, in each project", () => {
+    const keys: Array<string> = [
+      { projectId: PROJECT_ID, eventType: "Incident" },
+      { projectId: PROJECT_ID, eventType: "ScheduledMaintenance" },
+      { projectId: OTHER_PROJECT_ID, eventType: "Incident" },
+    ].map((row: Record<string, unknown>): string => {
+      return stepScopeOf(row)!.key;
+    });
+
+    expect(new Set(keys).size).toBe(3);
+  });
+
+  test("a step that does not say its kind has no list", () => {
+    expect(stepScopeOf({ projectId: PROJECT_ID, name: "Legal" })).toBeNull();
   });
 });
 

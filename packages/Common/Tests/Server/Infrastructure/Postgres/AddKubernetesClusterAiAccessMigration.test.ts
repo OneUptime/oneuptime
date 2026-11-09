@@ -1,6 +1,7 @@
 import { AddKubernetesClusterAiAccess1794400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1794400000000-AddKubernetesClusterAiAccess";
 import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796100000000-AddKubernetesAiAgentAndAiDefaults";
 import { RemoveRunbookCredentials1805780000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805780000000-RemoveRunbookCredentials";
+import { AddAiAgentResetAt1808996200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808996200000-AddAiAgentResetAt";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -124,6 +125,29 @@ const DEFAULTS_MOVED_LATER: Array<MovedDefault> = [
     table: "KubernetesCluster",
     property: "isAiInvestigationEnabled",
     migration: new AddKubernetesAiAgentAndAiDefaults1796100000000(),
+  },
+];
+
+/*
+ * AI columns of the cluster that a LATER migration added. This migration has
+ * shipped, so it never gains them (existing installs ran it long ago); each
+ * is held instead to the later migration that adds it, with the DDL the
+ * model's declaration needs, and to that migration's down(), which drops it.
+ */
+interface AddedLater {
+  table: string;
+  property: string;
+  ddl: string;
+  migration: MigrationInterface;
+}
+
+const COLUMNS_ADDED_LATER: Array<AddedLater> = [
+  // When someone last reset the cluster's AI agent (#6322, issue #6302).
+  {
+    table: "KubernetesCluster",
+    property: "aiAgentResetAt",
+    ddl: "TIMESTAMP WITH TIME ZONE",
+    migration: new AddAiAgentResetAt1808996200000(),
   },
 ];
 
@@ -478,8 +502,49 @@ describe("AddKubernetesClusterAiAccess migration - columns", () => {
         return column.propertyName;
       });
 
-    expect([...modelColumns].sort()).toEqual([...added].sort());
+    // Or a later migration adds it (COLUMNS_ADDED_LATER, held below).
+    const addedLater: Array<string> = COLUMNS_ADDED_LATER.map(
+      (column: AddedLater): string => {
+        return column.property;
+      },
+    );
+
+    expect([...modelColumns].sort()).toEqual([...added, ...addedLater].sort());
   });
+
+  test.each(COLUMNS_ADDED_LATER)(
+    "$table.$property: a later migration adds it as the model declares it, and its down() drops it",
+    async (column: AddedLater) => {
+      const declared: ColumnMetadataArgs = declaredColumn(
+        KubernetesCluster,
+        column.property,
+      );
+
+      // Nullable, with no default and no length: the type alone.
+      expect(declared.options.name).toBeUndefined();
+      expect(declared.options.nullable).toBe(true);
+      expect(declared.options.default).toBeUndefined();
+      expect(declared.options.length).toBeUndefined();
+      expect(column.ddl).toBe(POSTGRES_SPELLING[String(declared.options.type)]);
+
+      expect(await recordQueries("up", column.migration)).toContain(
+        `ALTER TABLE "${column.table}" ADD "${column.property}" ${column.ddl}`,
+      );
+      expect(await recordQueries("down", column.migration)).toContain(
+        `ALTER TABLE "${column.table}" DROP COLUMN "${column.property}"`,
+      );
+      expect(registeredNames.indexOf(column.migration.name!)).toBeGreaterThan(
+        registeredNames.indexOf(OWN_CLASS_NAME),
+      );
+
+      // This migration, which shipped before it, does not add it.
+      expect(
+        (await recordQueries("up")).filter((statement: string): boolean => {
+          return statement.includes(` ADD "${column.property}" `);
+        }),
+      ).toEqual([]);
+    },
+  );
 
   test.each(DECLARED_COLUMNS)(
     "$table.$property matches the column the model declares",

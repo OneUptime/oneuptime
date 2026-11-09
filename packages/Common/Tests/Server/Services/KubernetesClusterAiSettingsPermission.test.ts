@@ -1072,13 +1072,26 @@ describe("KubernetesCluster AI access through updateOneById", () => {
   let repositoryUpdate: jest.Mock;
   let feedItems: jest.SpyInstance;
 
+  /*
+   * A cluster as the internal find hands it back: a KubernetesCluster, as
+   * TypeORM loads it. The update reads the row's column metadata through it
+   * to tell what the write changes (getChangedColumns), as it does for every
+   * audited model - and a project's records are audited by default since
+   * #6245.
+   */
+  function storedCluster(
+    overrides: Record<string, unknown> = {},
+  ): KubernetesCluster {
+    return Object.assign(new KubernetesCluster(), cluster(overrides));
+  }
+
   beforeEach(() => {
     // No Kubernetes AI agent unless a test says otherwise.
     jest
       .spyOn(KubernetesAiAgentService, "findForClusters")
       .mockResolvedValue(new Map<string, KubernetesAiAgent>());
     getJestSpyOn(KubernetesClusterService, "_findBy").mockResolvedValue([
-      cluster({
+      storedCluster({
         _id: CLUSTER_ID.toString(),
         aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
       }),
@@ -1140,7 +1153,7 @@ describe("KubernetesCluster AI access through updateOneById", () => {
 
   it("refuses a Settings Member turning fixes on from Off before anything is written", async () => {
     getJestSpyOn(KubernetesClusterService, "_findBy").mockResolvedValue([
-      cluster({
+      storedCluster({
         _id: CLUSTER_ID.toString(),
         aiRemediationMode: KubernetesAiRemediationMode.Disabled,
       }),
@@ -1161,7 +1174,7 @@ describe("KubernetesCluster AI access through updateOneById", () => {
 
   it("writes a Settings Member's clearing of the Runner of a cluster with an AI agent", async () => {
     getJestSpyOn(KubernetesClusterService, "_findBy").mockResolvedValue([
-      cluster({
+      storedCluster({
         _id: CLUSTER_ID.toString(),
         aiAccessRunnerId: RUNNER_ID,
       }),

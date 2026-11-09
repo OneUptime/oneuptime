@@ -84,6 +84,16 @@ const MARKDOWN_COLUMNS_ADDED_LATER: Array<string> = [
   "DataAsset.description",
   // And a data pipeline's (#5634).
   "DataPipeline.description",
+  // An edit of a published public note, held for approval (#6252).
+  "IncidentPublicNote.pendingNote",
+  "IncidentEpisodePublicNote.pendingNote",
+  "ScheduledMaintenancePublicNote.pendingNote",
+  // An SLO error budget policy's tiers: what each does and the records it opens (#6332).
+  "ServiceLevelObjectiveErrorBudgetPolicyTier.alertDescriptionTemplate",
+  "ServiceLevelObjectiveErrorBudgetPolicyTier.alertRemediationNotes",
+  "ServiceLevelObjectiveErrorBudgetPolicyTier.incidentDescriptionTemplate",
+  "ServiceLevelObjectiveErrorBudgetPolicyTier.incidentRemediationNotes",
+  "ServiceLevelObjectiveErrorBudgetPolicyTier.whatWeDo",
 ];
 
 async function statementsFor(
