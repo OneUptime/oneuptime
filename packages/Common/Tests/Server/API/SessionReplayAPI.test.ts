@@ -2333,8 +2333,60 @@ describe("Session replay playback API", () => {
        * too: raw columns would sum across ReplacingMergeTree versions.
        */
       expect(statement.query).toContain(
-        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount + aggCustomSignalFrustrationCount) > 0",
       );
+    });
+
+    /*
+     * Issue #6443: "sessions where Payment failed fired". The name is bound
+     * as a parameter into exact membership over the argMax'd names, and a
+     * value that is not a string is no filter rather than a 500.
+     */
+    test("filters.customSignalName is bound into exact membership over the names alias", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { customSignalName: "Payment failed" },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      expect(statement.query).toMatch(
+        /AND has\(aggCustomSignalNames, \{p\d+:String\}\)/,
+      );
+      expect(statement.query).not.toContain("Payment failed");
+      expect(Object.values(statement.query_params)).toContain("Payment failed");
+
+      headerQuerySpy.mockClear();
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { customSignalName: 42 },
+        },
+      });
+
+      const ignored: Statement = headerQuerySpy.mock.calls[0]![0] as Statement;
+
+      expect(ignored.query).not.toContain("has(aggCustomSignalNames");
     });
 
     /*
@@ -2371,10 +2423,10 @@ describe("Session replay playback API", () => {
         .calls[0]![0] as Statement;
 
       expect(statement.query).toContain(
-        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) = 0",
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount + aggCustomSignalFrustrationCount) = 0",
       );
       expect(statement.query).not.toContain(
-        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount + aggCustomSignalFrustrationCount) > 0",
       );
     });
 

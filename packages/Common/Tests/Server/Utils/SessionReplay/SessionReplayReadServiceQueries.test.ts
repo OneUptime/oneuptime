@@ -857,6 +857,43 @@ describe("SessionReplayReadService statements", () => {
         /AND has\(aggRoutes, \{p\d+:String\}\)/,
       );
     });
+
+    /*
+     * Issue #6443: "sessions where Payment failed fired". Exact membership
+     * over the argMax'd names, bound as a parameter, never the raw column
+     * (which would match a superseded header version).
+     */
+    test("the application's own signal filter is exact membership over the names alias", async () => {
+      const query: string = await listQuery({
+        customSignalName: "Payment failed",
+      });
+      expect(havingSection(query)).toMatch(
+        /AND has\(aggCustomSignalNames, \{p\d+:String\}\)/,
+      );
+      expect(query).toContain(
+        "argMax(customSignalNames, version) AS aggCustomSignalNames",
+      );
+      expect(query).not.toContain("Payment failed");
+      expect(whereSection(query)).not.toContain("customSignalNames");
+    });
+
+    test("frustration counts the application's own frustration signals, never the marker-only ones", async () => {
+      const frustrated: string = await listQuery({ hasFrustration: true });
+      expect(havingSection(frustrated)).toContain(
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount + aggCustomSignalFrustrationCount) > 0",
+      );
+      expect(havingSection(frustrated)).not.toContain("aggCustomSignalCount");
+      expect(frustrated).toContain(
+        "toFloat64(argMax(customSignalFrustrationCount, version)) AS aggCustomSignalFrustrationCount",
+      );
+
+      headerQuerySpy.mockClear();
+
+      const calm: string = await listQuery({ hasFrustration: false });
+      expect(havingSection(calm)).toContain(
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount + aggCustomSignalFrustrationCount) = 0",
+      );
+    });
   });
 
   describe("list sort and cursor", () => {
@@ -870,7 +907,7 @@ describe("SessionReplayReadService statements", () => {
       ["errorCount", "aggErrorCount"],
       [
         "frustration",
-        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount)",
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount + aggCustomSignalFrustrationCount)",
       ],
     ] as Array<[SessionReplaySortBy, string]>)(
       "sortBy %s orders by its alias with a sessionId tiebreak",
@@ -1010,6 +1047,9 @@ describe("SessionReplayReadService statements", () => {
             aggFirstErrorOffsetMs: "12000",
             aggExpiresAt: 1700604800000,
             aggTags: { build: "1.2.3" },
+            aggCustomSignalCount: "3",
+            aggCustomSignalFrustrationCount: 2,
+            aggCustomSignalNames: ["Help opened", "Payment failed"],
           },
         ]) as never,
       );
@@ -1018,6 +1058,9 @@ describe("SessionReplayReadService statements", () => {
         await SessionReplayReadService.listSessions(listRequest());
       const item: SessionReplayListItem = result.sessions[0]!;
 
+      expect(item.customSignalCount).toBe(3);
+      expect(item.customSignalFrustrationCount).toBe(2);
+      expect(item.customSignalNames).toEqual(["Help opened", "Payment failed"]);
       expect(item.routes).toHaveLength(MAX_LIST_ROUTES);
       expect(item.routes[0]).toBe("/a");
       expect(item.traceCount).toBe(3);
@@ -1828,7 +1871,46 @@ describe("SessionReplayReadService statements", () => {
       },
       aggIdentifiedUserKey: "hmac-key",
       aggVisitorId: "0123456789abcdef0123456789abcdef",
+      aggCustomSignalCount: 4,
+      aggCustomSignalFrustrationCount: 1,
+      aggCustomSignalNames: ["Checkout error"],
     };
+
+    test("carries the application's own signals to the player, none for an older session", async () => {
+      headerQuerySpy.mockResolvedValue(fakeResultSet([headerRow]) as never);
+
+      const header: SessionReplaySessionHeader | null =
+        await SessionReplayReadService.getSessionHeader({
+          projectId: projectId,
+          sessionId: "s-1",
+        });
+
+      expect(header!.customSignalCount).toBe(4);
+      expect(header!.customSignalFrustrationCount).toBe(1);
+      expect(header!.customSignalNames).toEqual(["Checkout error"]);
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "s-1",
+            headerProjectId: "p",
+            applicationId: "a",
+            aggStartTime: 1700000000000,
+            aggEndTime: 1700000060000,
+          },
+        ]) as never,
+      );
+
+      const older: SessionReplaySessionHeader | null =
+        await SessionReplayReadService.getSessionHeader({
+          projectId: projectId,
+          sessionId: "s-1",
+        });
+
+      expect(older!.customSignalCount).toBe(0);
+      expect(older!.customSignalFrustrationCount).toBe(0);
+      expect(older!.customSignalNames).toEqual([]);
+    });
 
     test("never names the identity columns and pins the application only when given one", async () => {
       headerQuerySpy.mockResolvedValue(fakeResultSet([headerRow]) as never);
@@ -2158,7 +2240,7 @@ describe("SessionReplayReadService statements", () => {
         "toFloat64(max(aggStartTime)) AS rollupLastSeenUnixMs",
         "toFloat64(sum(aggDurationMs)) AS rollupTotalDurationMs",
         "toFloat64(sum(aggErrorCount)) AS rollupErrorCount",
-        "toFloat64(sum(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount)) AS rollupFrustrationCount",
+        "toFloat64(sum(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount + aggCustomSignalFrustrationCount)) AS rollupFrustrationCount",
         "toFloat64(countIf(aggHasError)) AS rollupErrorSessionCount",
         "toFloat64(sum(aggPageCount)) AS rollupPageCount",
         "argMax(sessionId, aggStartTime) AS rollupLastSessionId",
@@ -2528,6 +2610,9 @@ describe("SessionReplayReadService statements", () => {
         deadClickCount: 0,
         errorClickCount: 0,
         refreshRageCount: 0,
+        customSignalCount: 0,
+        customSignalFrustrationCount: 0,
+        customSignalNames: [],
         pageCount: 1,
         triggerReason: "always",
         maskingMode: "MaskAllText",

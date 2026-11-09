@@ -184,12 +184,18 @@ export type SessionReplayListCursor = SessionReplaySortedListCursorDto;
 export interface SessionReplayListFilters {
   hasError?: boolean | undefined;
   /*
-   * Any frustration signal (rage/dead/error clicks, refresh rage).
+   * Any frustration signal (rage/dead/error clicks, refresh rage, and the
+   * application's own signals set to count as frustration).
    * Server-side, so "frustration" filters the whole table — the old
    * client-side version filtered only the fetched page, silently showing
    * an empty list for a project whose frustrated sessions sat on page 2.
    */
   hasFrustration?: boolean | undefined;
+  /*
+   * "Sessions where Payment failed fired": exact membership in the names
+   * of the application's own signals the session hit (issue #6443).
+   */
+  customSignalName?: string | undefined;
   isFinalized?: boolean | undefined;
   triggerReasons?: Array<string> | undefined;
   browserNames?: Array<string> | undefined;
@@ -268,6 +274,14 @@ export interface SessionReplayListItem {
   deadClickCount: number;
   errorClickCount: number;
   refreshRageCount: number;
+  /*
+   * The application's own signals (issue #6443): every hit, the hits set
+   * to count as frustration, and the sorted names hit. 0, 0 and [] for a
+   * session recorded before them.
+   */
+  customSignalCount: number;
+  customSignalFrustrationCount: number;
+  customSignalNames: Array<string>;
   pageCount: number;
   triggerReason: string;
   entryUrl: string;
@@ -470,6 +484,10 @@ export interface SessionReplaySessionHeader {
   deadClickCount: number;
   errorClickCount: number;
   refreshRageCount: number;
+  /* The application's own signals; see SessionReplayListItem. */
+  customSignalCount: number;
+  customSignalFrustrationCount: number;
+  customSignalNames: Array<string>;
   pageCount: number;
   triggerReason: string;
   maskingMode: string;
@@ -728,9 +746,11 @@ const LIVE_DURATION_EXPRESSION: string = `toFloat64(if(${argMaxColumn(
 /*
  * The frustration total, shared by the hasFrustration predicate and the
  * "frustration" sort so the two can never disagree about what counts.
+ * The application's own signals join it only where they were set to
+ * count as frustration (issue #6443); a marker-only signal never does.
  */
 const FRUSTRATION_TOTAL_EXPRESSION: string =
-  "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount)";
+  "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount + aggCustomSignalFrustrationCount)";
 
 /*
  * Aliases deliberately differ from the physical column names. See the
@@ -758,6 +778,23 @@ const HEADER_AGGREGATES: Array<AggregatedColumn> = [
   {
     alias: "aggRefreshRageCount",
     expression: argMaxNumeric("refreshRageCount"),
+  },
+  /*
+   * The application's own signals (issue #6443). The frustration half is
+   * part of FRUSTRATION_TOTAL_EXPRESSION; the names are what the
+   * customSignalName filter matches, over the argMax'd whole like routes.
+   */
+  {
+    alias: "aggCustomSignalCount",
+    expression: argMaxNumeric("customSignalCount"),
+  },
+  {
+    alias: "aggCustomSignalFrustrationCount",
+    expression: argMaxNumeric("customSignalFrustrationCount"),
+  },
+  {
+    alias: "aggCustomSignalNames",
+    expression: argMaxColumn("customSignalNames"),
   },
   { alias: "aggPageCount", expression: argMaxNumeric("pageCount") },
   { alias: "aggTriggerReason", expression: argMaxColumn("triggerReason") },
@@ -923,6 +960,8 @@ const USER_ROLLUP_SESSION_ALIASES: ReadonlyArray<string> = [
   "aggDeadClickCount",
   "aggErrorClickCount",
   "aggRefreshRageCount",
+  /* Part of FRUSTRATION_TOTAL_EXPRESSION, which the rollup sums. */
+  "aggCustomSignalFrustrationCount",
   "aggPageCount",
   "aggEntryUrl",
   "aggBrowserName",
@@ -1854,6 +1893,12 @@ export default class SessionReplayReadService {
           deadClickCount: readNumber(row, "aggDeadClickCount"),
           errorClickCount: readNumber(row, "aggErrorClickCount"),
           refreshRageCount: readNumber(row, "aggRefreshRageCount"),
+          customSignalCount: readNumber(row, "aggCustomSignalCount"),
+          customSignalFrustrationCount: readNumber(
+            row,
+            "aggCustomSignalFrustrationCount",
+          ),
+          customSignalNames: readStringArray(row, "aggCustomSignalNames"),
           pageCount: readNumber(row, "aggPageCount"),
           triggerReason: readString(row, "aggTriggerReason"),
           entryUrl: readString(row, "aggEntryUrl"),
@@ -2298,6 +2343,12 @@ export default class SessionReplayReadService {
       deadClickCount: readNumber(row, "aggDeadClickCount"),
       errorClickCount: readNumber(row, "aggErrorClickCount"),
       refreshRageCount: readNumber(row, "aggRefreshRageCount"),
+      customSignalCount: readNumber(row, "aggCustomSignalCount"),
+      customSignalFrustrationCount: readNumber(
+        row,
+        "aggCustomSignalFrustrationCount",
+      ),
+      customSignalNames: readStringArray(row, "aggCustomSignalNames"),
       pageCount: readNumber(row, "aggPageCount"),
       triggerReason: readString(row, "aggTriggerReason"),
       maskingMode: readString(row, "aggMaskingMode"),
@@ -3963,7 +4014,8 @@ export default class SessionReplayReadService {
           item.rageClickCount +
           item.deadClickCount +
           item.errorClickCount +
-          item.refreshRageCount
+          item.refreshRageCount +
+          item.customSignalFrustrationCount
         );
       case "startTime":
       default:
@@ -4129,6 +4181,21 @@ export default class SessionReplayReadService {
         SQL`${{
           type: TableColumnType.Text,
           value: filters.route,
+        }})`,
+      );
+    }
+
+    if (filters.customSignalName) {
+      /*
+       * Exact membership, like route: the names are the application's own
+       * and the list offers them from its settings, so there is nothing to
+       * search. Over the argMax alias, never the raw column.
+       */
+      statement.append(" AND has(aggCustomSignalNames, ");
+      statement.append(
+        SQL`${{
+          type: TableColumnType.Text,
+          value: filters.customSignalName,
         }})`,
       );
     }
