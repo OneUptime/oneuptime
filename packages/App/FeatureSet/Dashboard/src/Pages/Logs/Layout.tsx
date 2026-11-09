@@ -6,6 +6,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import { TelemetryIngestionBudgetExplorerBanner } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 
 // Which of Logs' tabs a page is under (its AI pages: the AI tab).
 export const getActiveLogsTab: (path: string) => LogsTabKey = (
@@ -35,6 +37,8 @@ const LogsLayout: FunctionComponent<PageComponentProps> = (): ReactElement => {
       breadcrumbLinks={getLogsBreadcrumbs(path)}
       headerRight={<LogsNavTabs active={getActiveLogsTab(path)} />}
     >
+      {/* Only while today's Logs budget is past its warning or used up. */}
+      <TelemetryIngestionBudgetExplorerBanner signal={ProductType.Logs} />
       <Outlet />
     </Page>
   );

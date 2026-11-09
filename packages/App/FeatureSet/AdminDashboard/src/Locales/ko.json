@@ -64,7 +64,8 @@
     "more": "더 보기",
     "sendEmail": "이메일 보내기",
     "logout": "로그아웃",
-    "telemetryUsage": "텔레메트리 사용량"
+    "telemetryUsage": "텔레메트리 사용량",
+    "ingestionBudgets": "수집 예산"
   },
   "topAlert": {
     "title": "OneUptime 관리자 대시보드",
@@ -133,7 +134,10 @@
     "settingsApiKey": "API 키",
     "moreCommunication": "커뮤니케이션",
     "moreSendEmail": "이메일 보내기",
-    "telemetryUsage": "텔레메트리 사용량"
+    "telemetryUsage": "텔레메트리 사용량",
+    "ingestionBudgets": "수집 예산",
+    "settingsTelemetry": "텔레메트리",
+    "settingsIngestionBudgets": "수집 예산"
   },
   "pages": {
     "users": {
@@ -307,7 +311,15 @@
       "dataResidencyFieldTitle": "데이터 레지던시",
       "dataResidencyFieldDescription": "이 프로젝트의 데이터가 호스팅되는 위치를 나타내는 레이블입니다(예: \"EU (Frankfurt)\"). 프로젝트 사용자에게 숨기려면 비워 두세요.",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
-      "dataResidencyNotSet": "설정되지 않음"
+      "dataResidencyNotSet": "설정되지 않음",
+      "ingestionBudgets": {
+        "dailyCardTitle": "이 프로젝트의 일일 예산",
+        "dailyCardDescription": "인스턴스 기본값 대신 적용되는 이 프로젝트 자체의 신호별 일일 예산입니다. 인스턴스 기본값을 쓰려면 신호를 비워 두고, 제한하지 않으려면 0을 입력하세요. 프로젝트 관리자는 이 값을 볼 수 있지만 바꿀 수는 없습니다.",
+        "dailyEditButton": "일일 예산 편집",
+        "rateCardTitle": "이 프로젝트의 속도 제한",
+        "rateCardDescription": "선택 사항입니다. 인스턴스 기본값 대신 적용되는 이 프로젝트 자체의 신호별 속도 제한입니다. 인스턴스 기본값을 쓰려면 신호를 비워 두고, 제한하지 않으려면 0을 입력하세요.",
+        "rateEditButton": "속도 제한 편집"
+      }
     },
     "projectSubscription": {
       "title": "프로젝트 구독",
@@ -600,6 +612,17 @@
         "cardTitle": "글로벌 LLM 공급자",
         "cardDescription": "글로벌 LLM 공급자는 AI 기능을 위해 모든 프로젝트에서 사용할 수 있습니다. OpenAI, Anthropic, Ollama 또는 기타 LLM 공급자를 구성하세요.",
         "noItems": "구성된 LLM 공급자가 없습니다. AI 기능을 활성화하려면 LLM 공급자를 추가하세요."
+      },
+      "ingestionBudgets": {
+        "dailyCardTitle": "기본 일일 예산",
+        "dailyCardDescription": "모든 프로젝트가 예산일마다 보낼 수 있는 텔레메트리 신호별 최대량이며, 도착할 때 압축 해제된 크기로 집계됩니다. 예산이 소진되면 예산이 초기화될 때까지 그 신호는 거부됩니다. 프로젝트 아래 해당 프로젝트 페이지에서 설정한 프로젝트 자체 예산이 이 값보다 우선합니다. 제한하지 않으려면 신호를 비워 두세요.",
+        "dailyEditButton": "기본 일일 예산 편집",
+        "resetCardTitle": "경고 및 초기화",
+        "resetCardDescription": "예산이 얼마 남지 않았을 때 프로젝트에 경고하는 시점과, 각 예산일이 다시 시작되는 시간입니다.",
+        "resetEditButton": "경고 및 초기화 편집",
+        "rateCardTitle": "기본 속도 제한",
+        "rateCardDescription": "선택 사항입니다. 모든 프로젝트가 각 신호를 보낼 수 있는 최대 속도로, 한 번의 버스트가 몇 분 만에 하루 예산을 소진하지 못하게 합니다. 이보다 빠른 요청에는 Retry-After와 함께 429가 반환되며, 보내는 쪽이 요청을 다시 시도합니다. 제한하지 않으려면 신호를 비워 두세요.",
+        "rateEditButton": "기본 속도 제한 편집"
       }
     },
     "telemetryUsage": {
@@ -1925,6 +1948,47 @@
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "각 프로젝트의 일별 텔레메트리 사용량을 보관할 일수로, 30에서 1095 사이입니다. 비워 두면 120일입니다.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "각 프로젝트의 일별 텔레메트리 사용량을 보관할 일수. 이보다 오래된 사용량은 삭제됩니다.",
   "Scheduled Maintenance": "예정된 유지 관리",
+  "Logs (GB per day)": "로그(GB/일)",
+  "Traces (GB per day)": "트레이스(GB/일)",
+  "Metrics (GB per day)": "메트릭(GB/일)",
+  "Profiles (GB per day)": "프로필(GB/일)",
+  "Security Events (GB per day)": "보안 이벤트(GB/일)",
+  "Logs (MB per second)": "로그(MB/초)",
+  "Traces (MB per second)": "트레이스(MB/초)",
+  "Metrics (MB per second)": "메트릭(MB/초)",
+  "Profiles (MB per second)": "프로필(MB/초)",
+  "Security Events (MB per second)": "보안 이벤트(MB/초)",
+  "Instance default": "인스턴스 기본값",
+  "Warning Threshold (%)": "경고 임계값(%)",
+  "Projects are warned, and their owners emailed, when this share of a daily budget is used. From 1 to 99. Leave empty for 80.": "일일 예산 중 이 비율을 사용하면 프로젝트에 경고가 표시되고 소유자에게 이메일이 발송됩니다. 1에서 99까지입니다. 비워 두면 80입니다.",
+  "Reset Time": "초기화 시간",
+  "When each budget day starts again, as HH:MM on the 24-hour clock. Leave empty for 00:00.": "각 예산일이 다시 시작되는 시간으로, 24시간제 HH:MM 형식입니다. 비워 두면 00:00입니다.",
+  "Reset Time Zone": "초기화 시간대",
+  "The time zone of the reset time. Leave empty for UTC.": "초기화 시간의 시간대입니다. 비워 두면 UTC입니다.",
+  "Ingestion Budgets": "수집 예산",
+  "Telemetry counted against today's budgets as it arrives, decompressed. Once a daily budget is used up, that signal is refused until the budget resets at {{resetsAt}}.": "도착할 때 압축 해제된 크기로 오늘의 예산에 집계된 텔레메트리입니다. 일일 예산이 소진되면 예산이 초기화되는 {{resetsAt}}까지 해당 신호가 거부됩니다.",
+  "Ingestion Key Budgets": "수집 키 예산",
+  "Ingestion keys with a budget of their own. A key's budget only subdivides the project's.": "자체 예산이 있는 수집 키입니다. 키의 예산은 프로젝트의 예산을 나눌 뿐입니다.",
+  "No ingestion budgets": "수집 예산 없음",
+  "Every signal is accepted without a daily budget or a rate limit.": "모든 신호가 일일 예산이나 속도 제한 없이 수락됩니다.",
+  "Today's counts could not be read right now. Budgets are not enforced while they cannot be counted.": "지금은 오늘의 집계를 읽을 수 없습니다. 집계할 수 없는 동안에는 예산이 적용되지 않습니다.",
+  "Ingestion Key": "수집 키",
+  "Signal": "신호",
+  "Used Today": "오늘 사용량",
+  "Daily Budget": "일일 예산",
+  "Rate Limit": "속도 제한",
+  "Dropped": "삭제됨",
+  "Throttled": "스로틀링됨",
+  "{{count}} requests": "요청 {{count}}개",
+  "{{count}} requests_one": "요청 {{count}}개",
+  "No daily budget": "일일 예산 없음",
+  "Within budget": "예산 이내",
+  "Past warning": "경고 임계값 초과",
+  "Used up": "소진됨",
+  "Unknown": "알 수 없음",
+  "Set for this project": "이 프로젝트에 설정됨",
+  "This key's own": "이 키의 자체 예산",
+  "{{size}} per second": "{{size}}/초",
   "markdownCallouts": {
     "caution": "주의",
     "danger": "위험",

@@ -64,7 +64,8 @@
     "more": "Ещё",
     "sendEmail": "Отправить email",
     "logout": "Выйти",
-    "telemetryUsage": "Использование телеметрии"
+    "telemetryUsage": "Использование телеметрии",
+    "ingestionBudgets": "Бюджеты приема"
   },
   "topAlert": {
     "title": "Панель администратора OneUptime",
@@ -133,7 +134,10 @@
     "settingsApiKey": "API-ключ",
     "moreCommunication": "Коммуникации",
     "moreSendEmail": "Отправить email",
-    "telemetryUsage": "Использование телеметрии"
+    "telemetryUsage": "Использование телеметрии",
+    "ingestionBudgets": "Бюджеты приема",
+    "settingsTelemetry": "Телеметрия",
+    "settingsIngestionBudgets": "Бюджеты приема"
   },
   "pages": {
     "users": {
@@ -307,7 +311,15 @@
       "dataResidencyFieldTitle": "Размещение данных",
       "dataResidencyFieldDescription": "Метка, указывающая, где размещаются данные этого проекта, например \"ЕС (Франкфурт)\". Оставьте пустым, чтобы скрыть её от пользователей проекта.",
       "dataResidencyFieldPlaceholder": "ЕС (Франкфурт)",
-      "dataResidencyNotSet": "Не задано"
+      "dataResidencyNotSet": "Не задано",
+      "ingestionBudgets": {
+        "dailyCardTitle": "Дневные бюджеты этого проекта",
+        "dailyCardDescription": "Собственный дневной бюджет этого проекта для каждого сигнала вместо значения по умолчанию для экземпляра. Оставьте сигнал пустым, чтобы использовать значение по умолчанию для экземпляра, или введите 0, чтобы не ограничивать его. Администраторы проекта видят эти значения, но не могут их изменить.",
+        "dailyEditButton": "Изменить дневные бюджеты",
+        "rateCardTitle": "Лимиты скорости этого проекта",
+        "rateCardDescription": "Необязательно. Собственный лимит скорости этого проекта для каждого сигнала вместо значения по умолчанию для экземпляра. Оставьте сигнал пустым, чтобы использовать значение по умолчанию для экземпляра, или введите 0, чтобы не ограничивать его.",
+        "rateEditButton": "Изменить лимиты скорости"
+      }
     },
     "projectSubscription": {
       "title": "Подписка проекта",
@@ -600,6 +612,17 @@
         "cardTitle": "Глобальные LLM-провайдеры",
         "cardDescription": "Глобальные LLM-провайдеры доступны для всех проектов для функций AI. Настройте OpenAI, Anthropic, Ollama или других LLM-провайдеров.",
         "noItems": "LLM-провайдеры не настроены. Добавьте LLM-провайдера, чтобы включить функции AI."
+      },
+      "ingestionBudgets": {
+        "dailyCardTitle": "Дневные бюджеты по умолчанию",
+        "dailyCardDescription": "Сколько каждого сигнала телеметрии любой проект может отправить за бюджетный день; учитывается в распакованном виде по мере поступления. Когда бюджет исчерпан, этот сигнал отклоняется до сброса бюджета. Собственный бюджет проекта, заданный на его странице в разделе «Проекты», имеет приоритет над этими значениями. Оставьте сигнал пустым, чтобы не ограничивать его.",
+        "dailyEditButton": "Изменить дневные бюджеты по умолчанию",
+        "resetCardTitle": "Предупреждение и сброс",
+        "resetCardDescription": "Когда проекты получают предупреждение о том, что бюджет заканчивается, и когда начинается новый бюджетный день.",
+        "resetEditButton": "Изменить предупреждение и сброс",
+        "rateCardTitle": "Лимиты скорости по умолчанию",
+        "rateCardDescription": "Необязательно. Наибольшая скорость, с которой любой проект может отправлять каждый сигнал, чтобы один всплеск не израсходовал дневной бюджет за считаные минуты. На более быстрые запросы приходит ответ 429 с Retry-After, и отправители повторяют их. Оставьте сигнал пустым, чтобы не ограничивать его.",
+        "rateEditButton": "Изменить лимиты скорости по умолчанию"
       }
     },
     "telemetryUsage": {
@@ -1925,6 +1948,47 @@
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Сколько дней хранятся ежедневные данные об использовании телеметрии каждого проекта: от 30 до 1095. Оставьте пустым, чтобы хранить 120 дней.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Количество дней хранения ежедневных данных об использовании телеметрии каждого проекта. Данные старше этого срока удаляются.",
   "Scheduled Maintenance": "Плановое обслуживание",
+  "Logs (GB per day)": "Журналы (GB в день)",
+  "Traces (GB per day)": "Трассировки (GB в день)",
+  "Metrics (GB per day)": "Метрики (GB в день)",
+  "Profiles (GB per day)": "Профили (GB в день)",
+  "Security Events (GB per day)": "События безопасности (GB в день)",
+  "Logs (MB per second)": "Журналы (MB в секунду)",
+  "Traces (MB per second)": "Трассировки (MB в секунду)",
+  "Metrics (MB per second)": "Метрики (MB в секунду)",
+  "Profiles (MB per second)": "Профили (MB в секунду)",
+  "Security Events (MB per second)": "События безопасности (MB в секунду)",
+  "Instance default": "По умолчанию для экземпляра",
+  "Warning Threshold (%)": "Порог предупреждения (%)",
+  "Projects are warned, and their owners emailed, when this share of a daily budget is used. From 1 to 99. Leave empty for 80.": "Проекты получают предупреждение, а их владельцы — письмо, когда израсходована эта доля дневного бюджета. От 1 до 99. Оставьте пустым для 80.",
+  "Reset Time": "Время сброса",
+  "When each budget day starts again, as HH:MM on the 24-hour clock. Leave empty for 00:00.": "Когда начинается новый бюджетный день, в 24-часовом формате HH:MM. Оставьте пустым для 00:00.",
+  "Reset Time Zone": "Часовой пояс сброса",
+  "The time zone of the reset time. Leave empty for UTC.": "Часовой пояс времени сброса. Оставьте пустым для UTC.",
+  "Ingestion Budgets": "Бюджеты приема",
+  "Telemetry counted against today's budgets as it arrives, decompressed. Once a daily budget is used up, that signal is refused until the budget resets at {{resetsAt}}.": "Телеметрия, учтённая в сегодняшних бюджетах по мере поступления, в распакованном виде. Когда дневной бюджет исчерпан, этот сигнал отклоняется до сброса бюджета ({{resetsAt}}).",
+  "Ingestion Key Budgets": "Бюджеты ключей приема",
+  "Ingestion keys with a budget of their own. A key's budget only subdivides the project's.": "Ключи приема с собственным бюджетом. Бюджет ключа лишь делит бюджет проекта.",
+  "No ingestion budgets": "Нет бюджетов приема",
+  "Every signal is accepted without a daily budget or a rate limit.": "Все сигналы принимаются без дневного бюджета и лимита скорости.",
+  "Today's counts could not be read right now. Budgets are not enforced while they cannot be counted.": "Сегодняшние подсчёты сейчас не удалось прочитать. Пока подсчёт невозможен, бюджеты не применяются.",
+  "Ingestion Key": "Ключ приема",
+  "Signal": "Сигнал",
+  "Used Today": "Использовано сегодня",
+  "Daily Budget": "Дневной бюджет",
+  "Rate Limit": "Лимит скорости",
+  "Dropped": "Отброшено",
+  "Throttled": "Троттлинг",
+  "{{count}} requests": "Запросов: {{count}}",
+  "{{count}} requests_one": "{{count}} запрос",
+  "No daily budget": "Без дневного бюджета",
+  "Within budget": "В рамках бюджета",
+  "Past warning": "Выше порога предупреждения",
+  "Used up": "Исчерпан",
+  "Unknown": "Неизвестно",
+  "Set for this project": "Задан для этого проекта",
+  "This key's own": "Собственный бюджет ключа",
+  "{{size}} per second": "{{size}} в секунду",
   "markdownCallouts": {
     "caution": "Осторожно",
     "danger": "Опасно",

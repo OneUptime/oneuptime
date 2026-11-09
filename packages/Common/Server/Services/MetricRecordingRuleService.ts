@@ -12,6 +12,9 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import { generateOutputMetricName } from "../../Types/Metrics/RecordingRuleOutputMetricName";
+import TelemetryIngestionBudgetMetricTypeUtil, {
+  TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX,
+} from "../../Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_METRIC_NAME_PREFIX,
 } from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
@@ -35,6 +38,16 @@ export class Service extends DatabaseService<Model> {
     ) {
       throw new BadDataException(
         `Metric names that start with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics. Choose another output metric name.`,
+      );
+    }
+
+    // The same for the telemetry ingestion budget readings, for the same reason.
+    if (
+      typeof name === "string" &&
+      TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(name)
+    ) {
+      throw new BadDataException(
+        `Metric names that start with "${TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry ingestion budget metrics. Choose another output metric name.`,
       );
     }
   }

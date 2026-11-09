@@ -19,6 +19,10 @@ import { DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE } from "Common/Types/Telemetry/
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { TelemetryIngestionBudgetValueKind } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import TelemetryIngestionBudgetStatusCard from "Common/UI/Components/TelemetryIngestionBudget/TelemetryIngestionBudgetStatusCard";
+import { fetchProjectTelemetryIngestionBudgetStatus } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
+import IngestionKeyBudgetSummary from "../../Components/TelemetryIngestionBudget/IngestionKeyBudgetSummary";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -31,6 +35,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refresher, setRefresher] = React.useState<boolean>(false);
+  const [budgetRefresher, setBudgetRefresher] = React.useState<number>(0);
 
   return (
     <Fragment>
@@ -378,6 +383,190 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
           ],
           modelId: modelId,
         }}
+      />
+
+      {/*
+       * The key's own ingestion budgets: a daily budget and, folded into a
+       * second step, a per-second rate for each signal. They only subdivide
+       * the project's - the server refuses one above the project's budget -
+       * and an empty one leaves the project's budget as the only limit.
+       */}
+      <CardModelDetail<TelemetryIngestionKey>
+        name="Telemetry Ingestion Key Budgets"
+        cardProps={{
+          title: "Ingestion Budgets",
+          description:
+            "The most of each signal this key may send in a budget day, and how fast. A key's budget only subdivides the project's, so it can be no more than the project's own.",
+        }}
+        refresher={refresher}
+        isEditable={true}
+        editButtonText="Edit Ingestion Budgets"
+        onSaveSuccess={() => {
+          setBudgetRefresher(budgetRefresher + 1);
+        }}
+        formSteps={[
+          { title: "Daily Budgets", id: "daily-budgets" },
+          { title: "Rate Limits", id: "rate-limits" },
+        ]}
+        formFields={[
+          {
+            field: { logsDailyIngestionBudgetInGB: true },
+            title: "Logs (GB per day)",
+            stepId: "daily-budgets",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            hideColumnDescription: true,
+            description:
+              "Leave a signal empty for no budget of the key's own: the project's still applies.",
+            placeholder: "No budget of its own",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { tracesDailyIngestionBudgetInGB: true },
+            title: "Traces (GB per day)",
+            stepId: "daily-budgets",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            hideColumnDescription: true,
+            placeholder: "No budget of its own",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { metricsDailyIngestionBudgetInGB: true },
+            title: "Metrics (GB per day)",
+            stepId: "daily-budgets",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            hideColumnDescription: true,
+            placeholder: "No budget of its own",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { profilesDailyIngestionBudgetInGB: true },
+            title: "Profiles (GB per day)",
+            stepId: "daily-budgets",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            hideColumnDescription: true,
+            placeholder: "No budget of its own",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { securityEventsDailyIngestionBudgetInGB: true },
+            title: "Security Events (GB per day)",
+            stepId: "daily-budgets",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            hideColumnDescription: true,
+            placeholder: "No budget of its own",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { logsIngestionRateLimitInMBPerSecond: true },
+            title: "Logs (MB per second)",
+            stepId: "rate-limits",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            hideColumnDescription: true,
+            description:
+              "Optional. Faster requests are answered 429 with Retry-After, and senders retry them.",
+            placeholder: "No limit of its own",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { tracesIngestionRateLimitInMBPerSecond: true },
+            title: "Traces (MB per second)",
+            stepId: "rate-limits",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            hideColumnDescription: true,
+            placeholder: "No limit of its own",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { metricsIngestionRateLimitInMBPerSecond: true },
+            title: "Metrics (MB per second)",
+            stepId: "rate-limits",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            hideColumnDescription: true,
+            placeholder: "No limit of its own",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { profilesIngestionRateLimitInMBPerSecond: true },
+            title: "Profiles (MB per second)",
+            stepId: "rate-limits",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            hideColumnDescription: true,
+            placeholder: "No limit of its own",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { securityEventsIngestionRateLimitInMBPerSecond: true },
+            title: "Security Events (MB per second)",
+            stepId: "rate-limits",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            hideColumnDescription: true,
+            placeholder: "No limit of its own",
+            validation: { minValue: 0 },
+          },
+        ]}
+        modelDetailProps={{
+          modelType: TelemetryIngestionKey,
+          id: "model-detail-ingestion-key-budgets",
+          fields: [
+            {
+              field: {
+                logsDailyIngestionBudgetInGB: true,
+                tracesDailyIngestionBudgetInGB: true,
+                metricsDailyIngestionBudgetInGB: true,
+                profilesDailyIngestionBudgetInGB: true,
+                securityEventsDailyIngestionBudgetInGB: true,
+              },
+              title: "Daily Budgets",
+              fieldType: FieldType.Element,
+              getElement: (item: TelemetryIngestionKey): ReactElement => {
+                return (
+                  <IngestionKeyBudgetSummary
+                    item={item}
+                    kind={TelemetryIngestionBudgetValueKind.DailyBudget}
+                  />
+                );
+              },
+            },
+            {
+              field: {
+                logsIngestionRateLimitInMBPerSecond: true,
+                tracesIngestionRateLimitInMBPerSecond: true,
+                metricsIngestionRateLimitInMBPerSecond: true,
+                profilesIngestionRateLimitInMBPerSecond: true,
+                securityEventsIngestionRateLimitInMBPerSecond: true,
+              },
+              title: "Rate Limits",
+              fieldType: FieldType.Element,
+              getElement: (item: TelemetryIngestionKey): ReactElement => {
+                return (
+                  <IngestionKeyBudgetSummary
+                    item={item}
+                    kind={TelemetryIngestionBudgetValueKind.RateLimit}
+                  />
+                );
+              },
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      {/* What the key used of its own budgets today; nothing while it has none. */}
+      <TelemetryIngestionBudgetStatusCard
+        key={budgetRefresher}
+        fetchStatus={fetchProjectTelemetryIngestionBudgetStatus}
+        ingestionKeyId={modelId.toString()}
+        hideWhenUnbudgeted={true}
       />
 
       <ResetObjectID<TelemetryIngestionKey>

@@ -71,7 +71,7 @@ const titleOf: (permission: Permission) => string = (
 };
 
 describe("the page in the docs", () => {
-  test("is in the Telemetry group, between Data Retention and Continuous Profiling", () => {
+  test("is in the Telemetry group, between Data Retention and Ingestion Budgets", () => {
     const telemetry: NavGroup = (DocsNav as unknown as Array<NavGroup>).find(
       (group: NavGroup): boolean => {
         return group.title === "Telemetry";
@@ -84,7 +84,7 @@ describe("the page in the docs", () => {
 
     expect(index).toBeGreaterThan(0);
     expect(urls[index - 1]).toBe("/docs/telemetry/data-retention");
-    expect(urls[index + 1]).toBe("/docs/telemetry/profiles");
+    expect(urls[index + 1]).toBe("/docs/telemetry/ingestion-budgets");
     expect(telemetry.links[index]!.title).toBe("Telemetry Usage");
   });
 

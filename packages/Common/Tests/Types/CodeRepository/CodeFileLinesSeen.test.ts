@@ -1260,12 +1260,19 @@ describe("every interleaving of reads in windows, pushes and Ask AI's own commit
 
     // The draws reach every outcome, many times - reads that add up to a whole file too.
     expect(checks).toBeGreaterThan(5000);
-    for (const outcome of ["nothing", ...Object.values(CodeFileUnseen)]) {
+    for (const outcome of [
+      "nothing",
+      ...Object.values(CodeFileUnseen).filter((unseen: CodeFileUnseen) => {
+        return unseen !== CodeFileUnseen.ValuesHidden;
+      }),
+    ]) {
       expect({ outcome, enough: (said[outcome] || 0) > 100 }).toEqual({
         outcome,
         enough: true,
       });
     }
+    // Values hidden are said of what a change writes, never of what Ask AI saw (issue #6364).
+    expect(said[CodeFileUnseen.ValuesHidden]).toBeUndefined();
     expect(addedUpToAll).toBeGreaterThan(20);
   });
 });

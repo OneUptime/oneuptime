@@ -175,6 +175,7 @@ describe("Admin Settings: only Basic starts open", () => {
       { title: "Monitoring", expanded: false },
       { title: "Runbooks", expanded: false },
       { title: "Data Retention", expanded: false },
+      { title: "Telemetry", expanded: false },
       { title: "AI", expanded: false },
       { title: "API and Integrations", expanded: false },
     ]);
@@ -196,6 +197,7 @@ describe("Admin Settings: only Basic starts open", () => {
       { title: "«Monitoring»", expanded: false },
       { title: "«Runbooks»", expanded: false },
       { title: "«Data Retention»", expanded: false },
+      { title: "«Telemetry»", expanded: false },
       { title: "«AI»", expanded: false },
       { title: "«API and Integrations»", expanded: false },
     ]);
@@ -213,6 +215,8 @@ describe("Admin Settings: only Basic starts open", () => {
     // Single sign-on, under Basic: no folded "Authentication" section of its own.
     [PageMap.SETTINGS_SSO, "Basic", "Single Sign-On"],
     [PageMap.SETTINGS_API_KEY, "API and Integrations", "API Key"],
+    // Every project's default telemetry ingestion budgets (#5917).
+    [PageMap.SETTINGS_INGESTION_BUDGETS, "Telemetry", "Ingestion Budgets"],
   ])(
     "the %s page opens %s and marks %s",
     async (page: string, section: string, entry: string) => {
