@@ -1044,11 +1044,18 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
     expect(approvals).toBeGreaterThan(200);
     expect(heldBack).toBeGreaterThan(50);
     expect(approvals - heldBack).toBeGreaterThan(50);
-    for (const outcome of ["nothing", ...Object.values(CodeFileUnseen)]) {
+    for (const outcome of [
+      "nothing",
+      ...Object.values(CodeFileUnseen).filter((unseen: CodeFileUnseen) => {
+        return unseen !== CodeFileUnseen.ReadInPart;
+      }),
+    ]) {
       expect({ outcome, count: (said[outcome] || 0) > 100 }).toEqual({
         outcome,
         count: true,
       });
     }
+    // Every read here showed all of its file: none was read in part (issue #6330).
+    expect(said[CodeFileUnseen.ReadInPart]).toBeUndefined();
   });
 });
