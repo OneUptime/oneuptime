@@ -123,6 +123,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "A Server key is a password.",
     "A role that manages ingestion keys.",
     "On OneUptime Cloud, a payment method.",
+    // The link to Ingestion Budgets (issue #5917).
+    "A key can have budgets of its own.",
   ],
   [TOPOLOGY]: [
     "Only what was active is drawn.",

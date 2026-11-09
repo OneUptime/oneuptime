@@ -64,7 +64,8 @@
     "more": "Mere",
     "sendEmail": "Send e-mail",
     "logout": "Log ud",
-    "telemetryUsage": "Telemetriforbrug"
+    "telemetryUsage": "Telemetriforbrug",
+    "ingestionBudgets": "Indtagelsesbudgetter"
   },
   "topAlert": {
     "title": "OneUptime admin-dashboard",
@@ -133,7 +134,10 @@
     "settingsApiKey": "API-nøgle",
     "moreCommunication": "Kommunikation",
     "moreSendEmail": "Send e-mail",
-    "telemetryUsage": "Telemetriforbrug"
+    "telemetryUsage": "Telemetriforbrug",
+    "ingestionBudgets": "Indtagelsesbudgetter",
+    "settingsTelemetry": "Telemetri",
+    "settingsIngestionBudgets": "Indtagelsesbudgetter"
   },
   "pages": {
     "users": {
@@ -307,7 +311,15 @@
       "dataResidencyFieldTitle": "Dataopbevaring",
       "dataResidencyFieldDescription": "En betegnelse for, hvor dette projekts data hostes, f.eks. \"EU (Frankfurt)\". Lad feltet være tomt for at skjule det for projektets brugere.",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
-      "dataResidencyNotSet": "Ikke angivet"
+      "dataResidencyNotSet": "Ikke angivet",
+      "ingestionBudgets": {
+        "dailyCardTitle": "Daglige budgetter for dette projekt",
+        "dailyCardDescription": "Dette projekts eget daglige budget for hvert signal i stedet for instansstandarden. Lad et signal stå tomt for instansstandarden, eller angiv 0 for ingen grænse. Projektets administratorer kan se disse, men ikke ændre dem.",
+        "dailyEditButton": "Rediger daglige budgetter",
+        "rateCardTitle": "Hastighedsgrænser for dette projekt",
+        "rateCardDescription": "Valgfrit. Dette projekts egen hastighedsgrænse for hvert signal i stedet for instansstandarden. Lad et signal stå tomt for instansstandarden, eller angiv 0 for ingen grænse.",
+        "rateEditButton": "Rediger hastighedsgrænser"
+      }
     },
     "projectSubscription": {
       "title": "Projektabonnement",
@@ -600,6 +612,17 @@
         "cardTitle": "Globale LLM-udbydere",
         "cardDescription": "Globale LLM-udbydere er tilgængelige for alle projekter for AI-funktioner. Konfigurer OpenAI, Anthropic, Ollama eller andre LLM-udbydere.",
         "noItems": "Ingen LLM-udbydere konfigureret. Tilføj en LLM-udbyder for at aktivere AI-funktioner."
+      },
+      "ingestionBudgets": {
+        "dailyCardTitle": "Daglige standardbudgetter",
+        "dailyCardDescription": "Det meste af hvert telemetrisignal, hvert projekt må sende på en budgetdag, talt dekomprimeret, efterhånden som det ankommer. Når et budget er brugt op, afvises det signal, indtil budgettet nulstilles. Et projekts eget budget, angivet på dets side under Projekter, går forud for disse. Lad et signal stå tomt for ingen grænse.",
+        "dailyEditButton": "Rediger daglige standardbudgetter",
+        "resetCardTitle": "Advarsel og nulstilling",
+        "resetCardDescription": "Hvornår projekter advares om, at et budget er ved at slippe op, og hvornår hver budgetdag begynder forfra.",
+        "resetEditButton": "Rediger advarsel og nulstilling",
+        "rateCardTitle": "Standardhastighedsgrænser",
+        "rateCardDescription": "Valgfrit. Det hurtigste, hvert projekt må sende hvert signal, så én spidsbelastning ikke kan bruge en dags budget op på få minutter. Hurtigere anmodninger besvares med 429 og Retry-After, og afsenderne prøver dem igen. Lad et signal stå tomt for ingen grænse.",
+        "rateEditButton": "Rediger standardhastighedsgrænser"
       }
     },
     "telemetryUsage": {
@@ -1925,6 +1948,47 @@
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Hvor mange dage hvert projekts daglige telemetriforbrug opbevares, fra 30 til 1095. Lad stå tom for 120 dage.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Antal dage, hvert projekts daglige telemetriforbrug skal opbevares. Forbrug, der er ældre end dette, slettes.",
   "Scheduled Maintenance": "Planlagt vedligeholdelse",
+  "Logs (GB per day)": "Protokoller (GB pr. dag)",
+  "Traces (GB per day)": "Spor (GB pr. dag)",
+  "Metrics (GB per day)": "Metrikker (GB pr. dag)",
+  "Profiles (GB per day)": "Profiler (GB pr. dag)",
+  "Security Events (GB per day)": "Sikkerhedshændelser (GB pr. dag)",
+  "Logs (MB per second)": "Protokoller (MB pr. sekund)",
+  "Traces (MB per second)": "Spor (MB pr. sekund)",
+  "Metrics (MB per second)": "Metrikker (MB pr. sekund)",
+  "Profiles (MB per second)": "Profiler (MB pr. sekund)",
+  "Security Events (MB per second)": "Sikkerhedshændelser (MB pr. sekund)",
+  "Instance default": "Instansstandard",
+  "Warning Threshold (%)": "Advarselstærskel (%)",
+  "Projects are warned, and their owners emailed, when this share of a daily budget is used. From 1 to 99. Leave empty for 80.": "Projekter advares, og deres ejere får en e-mail, når denne andel af et dagligt budget er brugt. Fra 1 til 99. Lad feltet stå tomt for 80.",
+  "Reset Time": "Nulstillingstidspunkt",
+  "When each budget day starts again, as HH:MM on the 24-hour clock. Leave empty for 00:00.": "Hvornår hver budgetdag begynder forfra, som HH:MM i 24-timersformat. Lad feltet stå tomt for 00:00.",
+  "Reset Time Zone": "Tidszone for nulstilling",
+  "The time zone of the reset time. Leave empty for UTC.": "Tidszonen for nulstillingstidspunktet. Lad feltet stå tomt for UTC.",
+  "Ingestion Budgets": "Indtagelsesbudgetter",
+  "Telemetry counted against today's budgets as it arrives, decompressed. Once a daily budget is used up, that signal is refused until the budget resets at {{resetsAt}}.": "Telemetri tælles mod dagens budgetter, efterhånden som den ankommer, dekomprimeret. Når et dagligt budget er brugt op, afvises det signal, indtil budgettet nulstilles {{resetsAt}}.",
+  "Ingestion Key Budgets": "Budgetter for indtagelsesnøgler",
+  "Ingestion keys with a budget of their own. A key's budget only subdivides the project's.": "Indtagelsesnøgler med deres eget budget. En nøgles budget er kun en underopdeling af projektets.",
+  "No ingestion budgets": "Ingen indtagelsesbudgetter",
+  "Every signal is accepted without a daily budget or a rate limit.": "Alle signaler accepteres uden et dagligt budget eller en hastighedsgrænse.",
+  "Today's counts could not be read right now. Budgets are not enforced while they cannot be counted.": "Dagens optællinger kunne ikke læses lige nu. Budgetter håndhæves ikke, mens de ikke kan tælles.",
+  "Ingestion Key": "Indtagelsesnøgle",
+  "Signal": "Signal",
+  "Used Today": "Brugt i dag",
+  "Daily Budget": "Dagligt budget",
+  "Rate Limit": "Hastighedsgrænse",
+  "Dropped": "Kasseret",
+  "Throttled": "Begrænset",
+  "{{count}} requests": "{{count}} anmodninger",
+  "{{count}} requests_one": "{{count}} anmodning",
+  "No daily budget": "Intet dagligt budget",
+  "Within budget": "Inden for budget",
+  "Past warning": "Advarsel nået",
+  "Used up": "Opbrugt",
+  "Unknown": "Ukendt",
+  "Set for this project": "Angivet for dette projekt",
+  "This key's own": "Nøglens eget budget",
+  "{{size}} per second": "{{size}} pr. sekund",
   "markdownCallouts": {
     "caution": "Forsigtig",
     "danger": "Fare",

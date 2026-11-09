@@ -39,7 +39,7 @@ const SecurityEventsLayout: FunctionComponent<
       })}
       sideMenu={<SecurityEventsSideMenu />}
     >
-      {/* Only while today's SecurityEvents budget is past its warning or used up. */}
+      {/* Only while today's Security Events budget is past its warning or used up. */}
       <TelemetryIngestionBudgetExplorerBanner
         signal={ProductType.SecurityEvents}
       />

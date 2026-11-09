@@ -26,6 +26,7 @@ flowchart TB
 
 - **La clé décide du projet.** Vous n'envoyez jamais d'ID de projet : les données envoyées avec une clé arrivent dans le projet auquel la clé appartient.
 - **Les changements atteignent chaque serveur en une minute.** Désactiver une clé, réinitialiser son secret, ou changer ses origines, son expiration ou sa limite prend effet en une minute environ.
+- **Une clé peut avoir ses propres budgets.** Un budget quotidien et un débit par seconde pour chaque signal, dans la limite de ceux de son projet : voir [Budgets d'ingestion](/docs/telemetry/ingestion-budgets).
 - **Une clé de serveur est un mot de passe.** Quiconque l'a peut envoyer de la télémétrie dans votre projet. Gardez-la dans les secrets de vos serveurs, jamais dans le contrôle de version ni dans une page web.
 
 ## Serveur ou navigateur
@@ -155,4 +156,5 @@ Rien n'a envoyé de données avec cette clé depuis que OneUptime enregistre son
 - [Catalogue de services](/docs/telemetry/services): Voir les services sous lesquels votre télémétrie est rangée.
 - [Rétention des données](/docs/telemetry/data-retention): Décider combien de temps les données sont conservées.
 - [Filtres de suppression et règles de masquage](/docs/telemetry/drop-filters-and-scrub-rules): Supprimer ou masquer des données avant leur stockage.
+- [Budgets d'ingestion](/docs/telemetry/ingestion-budgets): Plafonner ce que chaque clé peut envoyer en une journée.
 :::
