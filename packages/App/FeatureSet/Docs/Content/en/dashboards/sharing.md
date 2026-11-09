@@ -53,7 +53,7 @@ A public dashboard:
 
 Treat sharing a dashboard like publishing a webpage. Every widget on it becomes readable by anyone with the link. Look at what's on the canvas before you share it.
 
-Each widget publishes only what it draws, and only for the resources it was pointed at. An SLO widget, for instance, publishes that SLO's headline numbers but never its definition — see [SLO](/docs/dashboards/widgets#slo). External **Data Source** widgets are the exception: they are dropped from a public dashboard entirely rather than rendered, because their configuration is the query itself. A few more widgets cannot be shown without a signed-in session, and say so in their place: [On a public dashboard](/docs/dashboards/widgets#on-a-public-dashboard) lists them.
+Each widget publishes only what it draws, and only for the resources it was pointed at. An SLO widget, for instance, publishes that SLO's headline numbers but never its definition — see [SLO](/docs/dashboards/widgets#slo). External **Data Source** widgets are the exception: they are dropped from a public dashboard entirely rather than rendered, because their configuration is the query itself. A few more widgets cannot be shown without a signed-in session, and say so in their place: [On a public dashboard](/docs/dashboards/widgets#on-a-public-dashboard) lists them. They publish only their title, never the searches and filters they read their data with. Variables, too, publish only what their pickers show: a legacy query variable's query is never published.
 
 ## Sharing with a password
 

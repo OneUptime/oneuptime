@@ -23,6 +23,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import { PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE } from "../../../../Server/Utils/Dashboard/PublicDashboardSloWidget";
 import { UNHEALTHY_HARDWARE_STATUSES } from "../../../../Server/Services/StorageArrayResourceService";
 import { STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES } from "../../../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
+import StoredDashboardViewConfig from "../../../../Utils/Dashboard/StoredDashboardViewConfig";
 
 const RANGE_START: Date = new Date("2026-08-09T10:00:00.000Z");
 const RANGE_END: Date = new Date("2026-08-09T11:00:00.000Z");
@@ -2081,6 +2082,197 @@ describe("PublicDashboardResourceListPolicy", () => {
         return `threw: ${String(error)}`;
       }
     };
+
+    /*
+     * Issue #6338: a public dashboard serves each variable only the fields
+     * its toolbar draws it with - never a legacy Query variable's query, a
+     * Telemetry Attribute variable's label choices or a custom list's
+     * attribute key - and no key a variable does not have. The policy
+     * reads the variables the page draws, so it must answer every list
+     * exactly as it did when every field was served.
+     */
+    describe("every type of variable answers as before, whatever else it holds (issue #6338)", () => {
+      const LABEL_ID: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
+      const OTHER_LABEL_ID: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+
+      // Every field a variable has, whatever its type, and a key none has.
+      const EVERY_FIELD: JSONObject = {
+        attributeKey: "container.image.name",
+        customListValues: "nginx,redis",
+        labelOptions: [
+          { label: "Production", value: LABEL_ID },
+          { label: "Staging", value: OTHER_LABEL_ID },
+        ],
+        query: "SELECT DISTINCT image FROM internal_registry.images",
+        internalNote: "for the owner only",
+      };
+
+      // The variables as the page drew them when every field was served.
+      const drawnBefore6338: (stored: unknown) => Array<DashboardVariable> = (
+        stored: unknown,
+      ): Array<DashboardVariable> => {
+        return (
+          StoredDashboardViewConfig.read({ components: [], variables: stored })
+            .variables || []
+        );
+      };
+
+      interface VariableCase {
+        name: string;
+        componentType: DashboardComponentType;
+        argumentsObject: JSONObject;
+      }
+
+      const CASES: Array<VariableCase> = [
+        {
+          name: "a container list filtered by a Telemetry Attribute variable",
+          componentType: CONTAINERS,
+          argumentsObject: {},
+        },
+        {
+          name: "a monitor list following a project label variable",
+          componentType: DashboardComponentType.MonitorList,
+          argumentsObject: { labelVariableId: "image" },
+        },
+        {
+          name: "an SLO list following a project label variable",
+          componentType: DashboardComponentType.SloList,
+          argumentsObject: { labelVariableId: "image", labelIds: [LABEL_ID] },
+        },
+        {
+          name: "an SLO widget following a Telemetry Attribute variable",
+          componentType: DashboardComponentType.Slo,
+          argumentsObject: { serviceLevelObjectiveVariableId: "image" },
+        },
+      ];
+
+      const PICKS: Array<Array<JSONObject>> = [
+        [],
+        [{ id: "image", selectedValue: "redis", selectedValues: [] }],
+        [{ id: "image", selectedValue: LABEL_ID, selectedValues: [] }],
+        [{ id: "image", selectedValue: "", selectedValues: [LABEL_ID] }],
+        [{ id: "image", selectedValue: null, selectedValues: [] }],
+      ];
+
+      it.each(CASES)("$name", (testCase: VariableCase) => {
+        for (const type of [
+          ...Object.values(DashboardVariableType),
+          "Some type from the future",
+        ]) {
+          for (const isMultiSelect of [false, true]) {
+            const variables: Array<JSONObject> = [
+              {
+                id: "image",
+                name: "image",
+                type: type,
+                isMultiSelect: isMultiSelect,
+                defaultValue: isMultiSelect ? undefined : "nginx",
+                ...EVERY_FIELD,
+              } as unknown as JSONObject,
+            ];
+
+            for (const stored of [variables, JSON.stringify(variables)]) {
+              // What is served holds none of the query, nor a key no variable has.
+              expect(JSON.stringify(drawnVariables(stored))).not.toContain(
+                "internal_registry",
+              );
+              expect(JSON.stringify(drawnVariables(stored))).not.toContain(
+                "for the owner only",
+              );
+
+              for (const requestedVariables of PICKS) {
+                const answerWith: (
+                  drawn: Array<DashboardVariable>,
+                ) => unknown = (drawn: Array<DashboardVariable>): unknown => {
+                  try {
+                    const result: PublicDashboardResourceListPolicyResult =
+                      PublicDashboardResourceListPolicy.build({
+                        widget: widget(
+                          testCase.componentType,
+                          testCase.argumentsObject,
+                        ),
+                        variables: drawn,
+                        requestedVariables: requestedVariables,
+                        requestedQuery: {},
+                      });
+
+                    return { query: result.query, sort: result.sort };
+                  } catch (error) {
+                    return { refused: (error as Error).message };
+                  }
+                };
+
+                expect([
+                  type,
+                  isMultiSelect,
+                  requestedVariables,
+                  answerWith(drawnVariables(stored)),
+                ]).toEqual([
+                  type,
+                  isMultiSelect,
+                  requestedVariables,
+                  answerWith(drawnBefore6338(stored)),
+                ]);
+              }
+            }
+          }
+        }
+      });
+
+      it("not vacuous: the variables filter the lists, and a variable of the wrong type is refused", () => {
+        const telemetry: Array<JSONObject> = [
+          {
+            id: "image",
+            name: "image",
+            type: DashboardVariableType.TelemetryAttribute,
+            ...EVERY_FIELD,
+          },
+        ];
+        const labels: Array<JSONObject> = [
+          {
+            id: "image",
+            name: "image",
+            type: DashboardVariableType.ProjectLabel,
+            ...EVERY_FIELD,
+          },
+        ];
+
+        expect(
+          PublicDashboardResourceListPolicy.build({
+            widget: widget(CONTAINERS, {}),
+            variables: drawnVariables(telemetry),
+            requestedVariables: [
+              { id: "image", selectedValue: "redis", selectedValues: [] },
+            ],
+            requestedQuery: {},
+          }).query,
+        ).toEqual({ kind: "Container", imageName: "redis" });
+
+        expect(
+          PublicDashboardResourceListPolicy.build({
+            widget: widget(DashboardComponentType.MonitorList, {
+              labelVariableId: "image",
+            }),
+            variables: drawnVariables(labels),
+            requestedVariables: [
+              { id: "image", selectedValue: LABEL_ID, selectedValues: [] },
+            ],
+            requestedQuery: {},
+          }).query["labels"],
+        ).toEqual(new Includes([LABEL_ID]));
+
+        expect(() => {
+          return PublicDashboardResourceListPolicy.build({
+            widget: widget(DashboardComponentType.MonitorList, {
+              labelVariableId: "image",
+            }),
+            variables: drawnVariables(telemetry),
+            requestedVariables: [],
+            requestedQuery: {},
+          });
+        }).toThrow(BadDataException);
+      });
+    });
 
     describe("each variable shape reads as the editor's", () => {
       it("reads a variable list written as JSON text as the same list stored as a list", () => {
