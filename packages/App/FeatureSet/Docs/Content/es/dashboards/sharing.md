@@ -53,7 +53,7 @@ Un panel público:
 
 Trata el compartir un panel como publicar una página web. Cada widget que contiene pasa a ser legible por cualquiera que tenga el enlace. Mira lo que hay en el lienzo antes de compartirlo.
 
-Cada widget publica solo lo que dibuja, y solo de los recursos a los que se apuntó. Un widget SLO, por ejemplo, publica las cifras principales de ese SLO pero nunca su definición: consulta [SLO](/docs/dashboards/widgets#slo). Los widgets de **Fuente de datos** externa son la excepción: se quitan por completo de un panel público en lugar de renderizarse, porque su configuración es la propia consulta. Algunos widgets más no pueden mostrarse sin una sesión iniciada, y lo indican en su lugar: [En un panel público](/docs/dashboards/widgets#en-un-panel-público) los enumera.
+Cada widget publica solo lo que dibuja, y solo de los recursos a los que se apuntó. Un widget SLO, por ejemplo, publica las cifras principales de ese SLO pero nunca su definición: consulta [SLO](/docs/dashboards/widgets#slo). Los widgets de **Fuente de datos** externa son la excepción: se quitan por completo de un panel público en lugar de renderizarse, porque su configuración es la propia consulta. Algunos widgets más no pueden mostrarse sin una sesión iniciada, y lo indican en su lugar: [En un panel público](/docs/dashboards/widgets#en-un-panel-público) los enumera. Solo publican su título, nunca las búsquedas ni los filtros con los que leen sus datos. Las variables, igualmente, solo publican lo que muestran sus selectores: la consulta de una variable de consulta antigua nunca se publica.
 
 ## Compartir con una contraseña
 
