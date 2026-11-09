@@ -62,6 +62,14 @@ const LASTING_SIGNS: ReadonlyArray<string> = [
   "content_filter",
   "budget",
   "daily limit",
+  /*
+   * A run that reached one of its own limits (Types/AI/AIAgentRunLimits,
+   * getRefusal): its number is the project's ("500 model calls"), not a
+   * status code, and a run tried again starts at the same limit.
+   */
+  "time limit",
+  "per run",
+  "may make no more",
   "model not found",
   "does not exist",
   "not supported",

@@ -12,6 +12,11 @@ import CodeTaskStageUtil, {
 } from "../../../Types/AI/CodeTaskStage";
 import { CodeTaskState } from "../../../Types/AI/CodeTask";
 import PullRequestState from "../../../Types/CodeRepository/PullRequestState";
+import AIAgentRunLimitsHelper, {
+  AIAgentRunLimits,
+  AIRunStopReason,
+  AIRunTimeLimitSource,
+} from "../../../Types/AI/AIAgentRunLimits";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
@@ -74,6 +79,30 @@ describe("TransientAIFailure.classify", () => {
     "",
   ])("%s is not", (message: string) => {
     expect(TransientAIFailure.classify(message)).toBeNull();
+  });
+
+  test("a run that reached one of its own limits fails at once, whatever the limit's number (#6440)", () => {
+    // A project's limit of 500 model calls is no 500 from the provider.
+    for (const count of [408, 429, 500, 502, 503, 504, 529, 500_000]) {
+      const limits: AIAgentRunLimits = {
+        maxLlmCalls: count,
+        maxToolCalls: count,
+        maxTokens: count,
+        maxWallClockMs: count * 60 * 1000,
+        timeLimitSource: AIRunTimeLimitSource.Project,
+      };
+
+      for (const reason of Object.values(AIRunStopReason)) {
+        const refusal: string = AIAgentRunLimitsHelper.getRefusal(
+          reason,
+          limits,
+        );
+
+        expect({ refusal, kind: TransientAIFailure.classify(refusal) }).toEqual(
+          { refusal, kind: null },
+        );
+      }
+    }
   });
 
   test("a status code is read only where it stands on its own", () => {
