@@ -125,6 +125,7 @@ import DropLegacyHuntressTables from "./DropLegacyHuntressTables";
 import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUnits";
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
+import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -988,6 +989,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
+  /*
+   * Whom OneUptime asked to approve each step of a public note is recorded
+   * since #6353 (PublicNoteApprovalRequest): the notes already waiting take
+   * the people their step asks now as asked, without asking anybody, so the
+   * first change of their approvers asks only those who are new. After
+   * AddPublicNoteApprovalRequest1809063180000; Postgres-only and
+   * idempotent; it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new RecordApproversAskedAboutWaitingPublicNotes(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
