@@ -147,6 +147,51 @@ describe("Create monitor in the logs explorer's toolbar", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * A view that leaves out what a log monitor's filters cannot hold (a
+   * service, a host, message text) says so before the monitor widens past
+   * it - after what the button does, as the Traces and Metrics buttons say
+   * what they cannot carry.
+   */
+  test("names what the monitor will not leave out, after what it does", async () => {
+    await renderViewer({
+      onCreateMonitor: () => {},
+      createMonitorNotCarriedHint: "Not carried over: excluded services",
+    });
+
+    fireEvent.mouseEnter(
+      screen.getByRole("button", {
+        name: "Create monitor",
+      }),
+    );
+
+    expect(
+      await screen.findByText(
+        "Create monitor: get alerted about logs like these. — Not carried over: excluded services",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("says only what it does when the monitor carries everything the view leaves out", async () => {
+    await renderViewer({
+      onCreateMonitor: () => {},
+      createMonitorNotCarriedHint: "",
+    });
+
+    fireEvent.mouseEnter(
+      screen.getByRole("button", {
+        name: "Create monitor",
+      }),
+    );
+
+    expect(
+      await screen.findByText(
+        "Create monitor: get alerted about logs like these.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Not carried over/)).not.toBeInTheDocument();
+  });
+
   test("is not drawn for any other logs view", async () => {
     await renderViewer();
 

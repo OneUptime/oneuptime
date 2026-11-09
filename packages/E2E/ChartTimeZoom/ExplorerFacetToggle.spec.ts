@@ -1417,3 +1417,153 @@ test.describe("The minus on a touch tablet", () => {
     );
   });
 });
+
+/*
+ * A pivot keeps what the view leaves out. A Logs to Traces pivot (and back)
+ * used to drop every value left out - the cross-signal scope had no field
+ * for "is not" - so the other explorer opened on rows the view did not
+ * show. Now each rides the address as the "is not" chip the target's own
+ * minus writes, and what has no field in the target is named in the
+ * button's tooltip, before the click.
+ */
+test.describe("A pivot keeps what the view leaves out", () => {
+  test("Logs to Traces: a service left out opens the traces explorer with it left out", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, LOGS_PATH);
+
+    const services: Locator = facetSection(page, "Service");
+    await expect(valueRow(services, "checkout-api")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
+    const checkoutId: string = await serviceId(page, "checkout-api");
+
+    await excludeValue(services, checkoutId, "checkout-api");
+
+    // Nothing left behind, so the button names nothing as not carried.
+    const traces: Locator = page.getByRole("button", {
+      name: "Open the traces explorer with this scope",
+      exact: true,
+    });
+    await expect(traces).toBeVisible();
+    await traces.click();
+
+    await page.waitForURL(
+      (url: URL): boolean => {
+        return url.pathname === TRACES_PATH;
+      },
+      { timeout: 30000 },
+    );
+
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Service is not",
+      { timeout: 60000 },
+    );
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "checkout-api",
+    );
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", SPAN_TABLE))?.[
+          "primaryEntityId"
+        ];
+      })
+      .toEqual({ _type: "NotEqual", value: checkoutId });
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/traces/histogram"))?.[
+          "excludedServiceIds"
+        ];
+      })
+      .toEqual([checkoutId]);
+  });
+
+  test("Logs to Traces: a severity left out has no span field, and the button says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, LOGS_PATH);
+
+    const severity: Locator = facetSection(page, "Severity");
+    await expect(valueRow(severity, "Error")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
+
+    await excludeValue(severity, "Error", "Error");
+
+    await expect(
+      page.getByRole("button", {
+        name: "Open the traces explorer with this scope — Not carried over: excluded severity",
+        exact: true,
+      }),
+    ).toBeVisible();
+  });
+
+  test("Traces to Logs: a service left out stays left out; a status left out is named first", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, TRACES_PATH);
+
+    const status: Locator = facetSection(page, "Status");
+    await expect(valueRow(status, "Error")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
+    const checkoutId: string = await serviceId(page, "checkout-api");
+
+    await excludeValue(
+      facetSection(page, "Service"),
+      checkoutId,
+      "checkout-api",
+    );
+    await excludeValue(status, "2", "Error");
+
+    const logs: Locator = page.getByRole("button", {
+      name: "View logs for this scope",
+    });
+    await logs.hover();
+    await expect(
+      page.getByRole("tooltip").filter({
+        hasText:
+          "Open the logs explorer scoped like this view — not carried over: excluded values",
+      }),
+    ).toBeVisible();
+
+    await logs.click();
+    await page.waitForURL(
+      (url: URL): boolean => {
+        return url.pathname === LOGS_PATH;
+      },
+      { timeout: 30000 },
+    );
+
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "checkout-api",
+      { timeout: 60000 },
+    );
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", LOG_TABLE))?.[
+          "primaryEntityId"
+        ];
+      })
+      .toEqual({ _type: "NotEqual", value: checkoutId });
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/logs/histogram"))?.[
+          "excludedServiceIds"
+        ];
+      })
+      .toEqual([checkoutId]);
+  });
+});

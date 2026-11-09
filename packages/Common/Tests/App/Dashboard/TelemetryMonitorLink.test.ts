@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   applyTelemetryMonitorLinkQuery,
   getLogsFilterLinkQuery,
+  getTelemetryFilterLinkNotCarried,
   getTelemetryMonitorLinkParams,
   getTelemetryMonitorLinkRecipeKey,
   getTracesFilterLinkQuery,
@@ -18,7 +19,13 @@ import {
 import { TelemetryRuleRecipeKey } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
 import { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import NotContains from "../../../Types/BaseDatabase/NotContains";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
 import Search from "../../../Types/BaseDatabase/Search";
+import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import Dictionary from "../../../Types/Dictionary";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -475,5 +482,273 @@ describe("the step watching what the link shows", () => {
       ...MonitorStepTraceMonitorUtil.getDefault(),
       spanName: "GET /cart",
     });
+  });
+});
+
+/*
+ * A view that LEAVES values out (a facet row's minus: "Severity is not
+ * debug"). Before, Create monitor read only what a view kept, so a monitor
+ * made from "everything but debug" watched debug too. Now what the monitor's
+ * filters can hold is carried exactly - a severity or a span status left out
+ * as the ones left in, an attribute value as "does not equal" / "is none
+ * of" - and what they cannot is named, for the button to say so.
+ */
+describe("a view that leaves values out", () => {
+  test("a severity left out is every other severity a log is stored with", () => {
+    expect(
+      getLogsFilterLinkQuery({ severityText: new NotEqual("Debug") }),
+    ).toEqual({
+      severityTexts: [
+        LogSeverity.Unspecified,
+        LogSeverity.Information,
+        LogSeverity.Warning,
+        LogSeverity.Error,
+        LogSeverity.Trace,
+        LogSeverity.Fatal,
+      ],
+    });
+  });
+
+  test("several left out are the ones left in, and the recipe follows them", () => {
+    const query: TelemetryMonitorLinkQuery = getLogsFilterLinkQuery({
+      severityText: new IncludesNone([
+        "Unspecified",
+        "Information",
+        "Warning",
+        "Trace",
+        "Debug",
+      ]),
+    });
+
+    expect(query.severityTexts).toEqual([LogSeverity.Error, LogSeverity.Fatal]);
+    expect(
+      getTelemetryMonitorLinkRecipeKey({
+        monitorType: MonitorType.Logs,
+        query,
+      }),
+    ).toBe(TelemetryRuleRecipeKey.ErrorLogs);
+  });
+
+  test("a severity nobody stores, or every severity, left out narrows nothing", () => {
+    expect(
+      getLogsFilterLinkQuery({ severityText: new NotEqual("Loud") }),
+    ).toEqual({});
+    expect(
+      getLogsFilterLinkQuery({
+        severityText: new IncludesNone(Object.values(LogSeverity)),
+      }),
+    ).toEqual({});
+  });
+
+  test("a severity kept wins over one left out of the same column", () => {
+    expect(
+      getLogsFilterLinkQuery({ severityText: "Error" }).severityTexts,
+    ).toEqual([LogSeverity.Error]);
+  });
+
+  test("a span status left out is the other statuses, and Status is not Error watches the spans that stop", () => {
+    const query: TelemetryMonitorLinkQuery = getTracesFilterLinkQuery({
+      statusCode: new NotEqual(SpanStatus.Error),
+    });
+
+    expect(query.spanStatuses).toEqual([SpanStatus.Unset, SpanStatus.Ok]);
+    expect(
+      getTelemetryMonitorLinkRecipeKey({
+        monitorType: MonitorType.Traces,
+        query,
+      }),
+    ).toBe(TelemetryRuleRecipeKey.SpansStop);
+    expect(
+      getTracesFilterLinkQuery({
+        statusCode: new IncludesNone([SpanStatus.Unset, SpanStatus.Ok]),
+      }).spanStatuses,
+    ).toEqual([SpanStatus.Error]);
+    expect(getTracesFilterLinkQuery({ statusCode: new NotEqual(42) })).toEqual(
+      {},
+    );
+  });
+
+  test("an attribute value left out is carried beside the kept ones", () => {
+    expect(
+      getLogsFilterLinkQuery({
+        attributes: {
+          "k8s.namespace": "shop",
+          "http.method": new NotEqual("OPTIONS"),
+          "http.route": new IncludesNone(["/health", "/ready", "/health"]),
+        },
+      }),
+    ).toEqual({
+      attributes: { "k8s.namespace": "shop" },
+      excludedAttributes: {
+        "http.method": ["OPTIONS"],
+        "http.route": ["/health", "/ready"],
+      },
+    });
+    expect(
+      getTracesFilterLinkQuery({
+        attributes: { "resource.host.name": new NotEqual("web-01") },
+      }),
+    ).toEqual({ excludedAttributes: { "resource.host.name": ["web-01"] } });
+  });
+
+  test("the attributes left out survive the link's round trip, and an edited link is read with care", () => {
+    const query: TelemetryMonitorLinkQuery = {
+      attributes: { tenant: "acme" },
+      excludedAttributes: { "http.method": ["OPTIONS", "HEAD"] },
+    };
+
+    expect(
+      readTelemetryMonitorLinkQuery(writeTelemetryMonitorLinkQuery(query)),
+    ).toEqual(query);
+
+    expect(
+      readTelemetryMonitorLinkQuery(
+        JSON.stringify({
+          attributes: { tenant: "acme" },
+          excludedAttributes: {
+            // Kept and left out at once: kept.
+            tenant: ["acme"],
+            "http.method": "OPTIONS",
+            "http.route": [42, "/health", "", "/health"],
+            "": ["x"],
+          },
+        }),
+      ),
+    ).toEqual({
+      attributes: { tenant: "acme" },
+      excludedAttributes: { "http.route": ["/health"] },
+    });
+
+    const tooMany: JSONObject = {};
+
+    for (let index: number = 0; index < 40; index++) {
+      tooMany[`key.${index}`] = [`value-${index}`];
+    }
+
+    expect(
+      Object.keys(
+        readTelemetryMonitorLinkQuery(
+          JSON.stringify({ excludedAttributes: tooMany }),
+        )?.excludedAttributes || {},
+      ),
+    ).toHaveLength(TELEMETRY_MONITOR_LINK_MAX_ATTRIBUTES);
+  });
+
+  test("the monitor's attribute filter holds them as does not equal and is none of", () => {
+    const monitorStep: MonitorStep = new MonitorStep();
+    monitorStep.setLogMonitor(MonitorStepLogMonitorUtil.getDefault());
+
+    const result: MonitorStep = applyTelemetryMonitorLinkQuery({
+      monitorType: MonitorType.Logs,
+      monitorStep,
+      query: {
+        attributes: { tenant: "acme" },
+        excludedAttributes: {
+          "http.method": ["OPTIONS"],
+          "http.route": ["/health", "/ready"],
+          // A key kept stays kept.
+          tenant: ["globex"],
+        },
+      },
+    });
+    const attributes: Dictionary<unknown> = result.data?.logMonitor
+      ?.attributes as Dictionary<unknown>;
+
+    expect(attributes["tenant"]).toBe("acme");
+    expect(attributes["http.method"]).toBeInstanceOf(NotEqual);
+    expect((attributes["http.method"] as NotEqual<string>).value).toBe(
+      "OPTIONS",
+    );
+    expect(attributes["http.route"]).toBeInstanceOf(IncludesNone);
+    expect((attributes["http.route"] as IncludesNone).values).toEqual([
+      "/health",
+      "/ready",
+    ]);
+
+    // The query the monitor runs leaves them out too.
+    const runQuery: Dictionary<unknown> = MonitorStepLogMonitorUtil.toQuery(
+      result.data!.logMonitor!,
+    ) as unknown as Dictionary<unknown>;
+
+    expect(
+      (runQuery["attributes"] as Dictionary<unknown>)["http.method"],
+    ).toBeInstanceOf(NotEqual);
+  });
+
+  test("saved and read back, the step's attribute filter keeps its operators", () => {
+    const monitorStep: MonitorStep = new MonitorStep();
+    monitorStep.setTraceMonitor(MonitorStepTraceMonitorUtil.getDefault());
+
+    const seeded: MonitorStep = applyTelemetryMonitorLinkQuery({
+      monitorType: MonitorType.Traces,
+      monitorStep,
+      query: { excludedAttributes: { "resource.host.name": ["web-01"] } },
+    });
+    const stored: JSONObject = JSONFunctions.serialize(
+      seeded.data!.traceMonitor!.attributes as unknown as JSONObject,
+    ) as JSONObject;
+    const restored: Dictionary<unknown> = JSONFunctions.deserialize(
+      stored,
+    ) as unknown as Dictionary<unknown>;
+
+    expect(restored["resource.host.name"]).toBeInstanceOf(NotEqual);
+    expect((restored["resource.host.name"] as NotEqual<string>).value).toBe(
+      "web-01",
+    );
+  });
+
+  test("what a monitor's filters cannot hold is named: services, resources, message text, names and kinds, attribute patterns", () => {
+    expect(
+      getTelemetryFilterLinkNotCarried({
+        primaryEntityId: new NotEqual(new ObjectID(SERVICE_A)),
+        excludedResourceFilters: {
+          hostId: [SERVICE_B],
+          kubernetesClusterId: [],
+        },
+        body: new NotContains("healthcheck"),
+        attributes: {
+          "http.route": new NotWildcard(["/api/*"]),
+          "http.user_agent": [new NotContains("bot"), new NotEqual("x")],
+          // Carried, so never named.
+          "http.method": new NotEqual("OPTIONS"),
+        },
+      }),
+    ).toEqual([
+      "!serviceIds",
+      "!hostId",
+      "!body",
+      "!attributes.http.route",
+      "!attributes.http.user_agent",
+    ]);
+
+    expect(
+      getTelemetryFilterLinkNotCarried({
+        primaryEntityId: new IncludesNone([SERVICE_A, SERVICE_B]),
+        name: [new Search("GET"), new NotEqual("GET /health")],
+        kind: new NotEqual("SPAN_KIND_CLIENT"),
+        statusCode: new NotEqual(SpanStatus.Error),
+      }),
+    ).toEqual(["!serviceIds", "!name", "!kind"]);
+  });
+
+  test("a view that keeps what it shows, or leaves out only what is carried, names nothing", () => {
+    expect(
+      getTelemetryFilterLinkNotCarried({
+        primaryEntityId: new Includes([SERVICE_A]),
+        severityText: new NotEqual("Debug"),
+        statusCode: new IncludesNone([SpanStatus.Error]),
+        body: new Search("declined"),
+        attributes: { tenant: "acme", "http.method": new NotEqual("GET") },
+      }),
+    ).toEqual([]);
+    expect(getTelemetryFilterLinkNotCarried({})).toEqual([]);
+  });
+
+  test("a span name searched as a part of it beside names left out keeps the part searched for", () => {
+    expect(
+      getTracesFilterLinkQuery({
+        name: [new Search("GET"), new IncludesNone(["GET /health"])],
+      }),
+    ).toEqual({ spanName: "GET" });
   });
 });

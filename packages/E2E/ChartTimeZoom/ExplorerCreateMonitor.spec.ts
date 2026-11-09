@@ -51,6 +51,7 @@ interface LinkQuery {
   spanStatuses?: Array<number>;
   messageContains?: string;
   spanName?: string;
+  excludedAttributes?: Record<string, Array<string>>;
 }
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -147,6 +148,33 @@ function createLink(url: string): {
   };
 }
 
+// A value's row in a facet section, by the value it filters on.
+function facetRow(section: Locator, value: string): Locator {
+  return section.locator(
+    `[data-testid="facet-value-row"][data-value="${value}"]`,
+  );
+}
+
+/*
+ * Leave a value out with the minus beside it, as a reader does: the minus
+ * shows while its row is hovered.
+ */
+async function excludeValue(
+  section: Locator,
+  value: string,
+  name: string,
+): Promise<void> {
+  await expect(facetRow(section, value)).toBeVisible({ timeout: 60000 });
+  await facetRow(section, value).hover();
+  await section
+    .getByRole("button", { name: `Exclude ${name}`, exact: true })
+    .click();
+  await expect(facetRow(section, value)).toHaveAttribute(
+    "data-state",
+    "excluded",
+  );
+}
+
 async function boxOf(
   locator: Locator,
 ): Promise<{ x: number; y: number; width: number; height: number }> {
@@ -190,6 +218,91 @@ test.describe("Create monitor from the logs explorer", () => {
     expect(link.monitorType).toBe("Logs");
     expect(link.query.severityTexts).toEqual(["Error"]);
     expect(link.query.serviceIds).toEqual([services[0]!.id]);
+  });
+
+  /*
+   * A view that leaves a severity out ("Severity is not Error"): before,
+   * Create monitor read only what a view kept, and its monitor watched the
+   * errors the reader had just left out. A log is stored with one of seven
+   * severities, so the monitor watches the six left in - exactly the view.
+   */
+  test("a severity left out leads to a monitor of the severities left in, and the button names nothing it cannot carry", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(120000);
+
+    await open(page, LOGS_PATH);
+    await excludeValue(facetSection(page, "Severity"), "Error", "Error");
+
+    const button: Locator = page.getByTestId("logs-create-monitor");
+    await button.hover();
+    await expect(
+      page.getByRole("tooltip").filter({
+        hasText: "Create monitor: get alerted about logs like these.",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("tooltip").filter({ hasText: "Not carried over" }),
+    ).toHaveCount(0);
+
+    await button.click();
+    await page.waitForURL(
+      (url: URL): boolean => {
+        return url.pathname === CREATE_PATH;
+      },
+      { timeout: 30000 },
+    );
+
+    const link: ReturnType<typeof createLink> = createLink(page.url());
+    expect(link.monitorType).toBe("Logs");
+    expect(link.query.severityTexts).toEqual([
+      "Unspecified",
+      "Information",
+      "Warning",
+      "Trace",
+      "Debug",
+      "Fatal",
+    ]);
+  });
+
+  test("a service left out is named on the button, and is not watched as one kept", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(120000);
+
+    await open(page, LOGS_PATH);
+    const { services } = await dataset(page);
+    const checkout: { id: string; name: string } = services[0]!;
+
+    await excludeValue(
+      facetSection(page, "Service"),
+      checkout.id,
+      checkout.name,
+    );
+
+    const button: Locator = page.getByTestId("logs-create-monitor");
+    await button.hover();
+    await expect(
+      page.getByRole("tooltip").filter({
+        hasText:
+          "Create monitor: get alerted about logs like these. — Not carried over: excluded services",
+      }),
+    ).toBeVisible();
+
+    await button.click();
+    await page.waitForURL(
+      (url: URL): boolean => {
+        return url.pathname === CREATE_PATH;
+      },
+      { timeout: 30000 },
+    );
+
+    // Never carried as the service it leaves out.
+    expect(createLink(page.url()).query.serviceIds).toBeUndefined();
   });
 
   test("the toolbar keeps one line in a 1280px window: the bell alone there, named Create monitor, its words where the row has room", async ({
@@ -292,6 +405,58 @@ test.describe("Create monitor from the trace explorer", () => {
     expect(link.query.serviceIds).toEqual([checkout.id]);
     // OpenTelemetry's Error status: 2.
     expect(link.query.spanStatuses).toEqual([2]);
+  });
+
+  test("Status is not Error leads to a monitor of the statuses left in; a service left out is named first", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(120000);
+
+    await open(page, TRACES_PATH);
+    const { services } = await dataset(page);
+    const checkout: { id: string; name: string } = services[0]!;
+
+    await excludeValue(facetSection(page, "Status"), "2", "Error");
+
+    const button: Locator = page.getByTestId("traces-create-monitor");
+    await button.hover();
+    await expect(
+      page.getByRole("tooltip").filter({
+        hasText: "Create monitor: get alerted about requests like these.",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("tooltip").filter({ hasText: "Not carried over" }),
+    ).toHaveCount(0);
+
+    await excludeValue(
+      facetSection(page, "Service"),
+      checkout.id,
+      checkout.name,
+    );
+    await button.hover();
+    await expect(
+      page.getByRole("tooltip").filter({
+        hasText:
+          "Create monitor: get alerted about requests like these. — Not carried over: excluded values",
+      }),
+    ).toBeVisible();
+
+    await button.click();
+    await page.waitForURL(
+      (url: URL): boolean => {
+        return url.pathname === CREATE_PATH;
+      },
+      { timeout: 30000 },
+    );
+
+    const link: ReturnType<typeof createLink> = createLink(page.url());
+    expect(link.monitorType).toBe("Traces");
+    // Unset (0) and Ok (1): every status a span has but Error.
+    expect(link.query.spanStatuses).toEqual([0, 1]);
+    expect(link.query.serviceIds).toBeUndefined();
   });
 
   test("its search keeps 16rem beside the buttons; past that the buttons wrap under it", async ({

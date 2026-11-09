@@ -1,4 +1,8 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotContains from "Common/Types/BaseDatabase/NotContains";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import NotWildcard from "Common/Types/BaseDatabase/NotWildcard";
 import Search from "Common/Types/BaseDatabase/Search";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
@@ -33,6 +37,15 @@ import { TelemetryRuleRecipeKey } from "./TelemetryRuleRecipes";
  * The link's query is read as text a person may have edited: values of the
  * wrong kind, ids that are not ids and severities nobody stores are left
  * out, and long text is cut, so a link can only ever narrow the form.
+ *
+ * What the view LEAVES OUT (a facet row's minus: "Severity is not debug")
+ * is carried as the monitor's filters can hold it, exactly: a severity or
+ * a span status left out as the ones left in (ingest stores only seven
+ * severities, and a span has one of three statuses), an attribute value
+ * left out as the attribute filter's "does not equal" or "is none of". What
+ * they cannot hold - a service, a host or other resource, or message text
+ * left out - is left out of the monitor, which widens what it watches, and
+ * is named on the Create monitor button first (getLogsFilterLinkNotCarried).
  */
 
 export const TELEMETRY_MONITOR_TYPE_QUERY_PARAM: string = "monitorType";
@@ -51,6 +64,12 @@ export interface TelemetryMonitorLinkQuery {
   spanName?: string | undefined;
   // Exceptions.
   exceptionTypes?: Array<string> | undefined;
+  /*
+   * Attribute values the view leaves out, by key ("Host Name is not
+   * web-01"): the monitor's attribute filter holds one as "does not equal"
+   * and several as "is none of". Logs and Traces.
+   */
+  excludedAttributes?: Dictionary<Array<string>> | undefined;
 }
 
 /*
@@ -250,6 +269,42 @@ export const readTelemetryMonitorLinkQuery: (
     query.exceptionTypes = exceptionTypes;
   }
 
+  const excludedInput: unknown = input["excludedAttributes"];
+
+  if (
+    excludedInput &&
+    typeof excludedInput === "object" &&
+    !Array.isArray(excludedInput)
+  ) {
+    const excludedAttributes: Dictionary<Array<string>> = {};
+
+    for (const [key, value] of Object.entries(excludedInput as JSONObject)) {
+      const name: string | undefined = readText(key);
+      const values: Array<string> = readTexts(value);
+
+      /*
+       * A value an attribute both keeps and leaves out is kept, as the
+       * explorers' chips never hold one twice; at most as many keys as the
+       * kept attributes.
+       */
+      if (
+        !name ||
+        values.length === 0 ||
+        (query.attributes && query.attributes[name] !== undefined) ||
+        Object.keys(excludedAttributes).length >=
+          TELEMETRY_MONITOR_LINK_MAX_ATTRIBUTES
+      ) {
+        continue;
+      }
+
+      excludedAttributes[name] = values;
+    }
+
+    if (Object.keys(excludedAttributes).length > 0) {
+      query.excludedAttributes = excludedAttributes;
+    }
+  }
+
   return query;
 };
 
@@ -287,6 +342,13 @@ export const writeTelemetryMonitorLinkQuery: (
     output["exceptionTypes"] = query.exceptionTypes;
   }
 
+  if (
+    query.excludedAttributes &&
+    Object.keys(query.excludedAttributes).length > 0
+  ) {
+    output["excludedAttributes"] = query.excludedAttributes;
+  }
+
   return JSON.stringify(output);
 };
 
@@ -317,6 +379,151 @@ const getFilterValues: (value: unknown) => Array<string> = (
   }
 
   return [];
+};
+
+/*
+ * The values a filter's field leaves out, as text: one value a "not
+ * equal" holds, or the values a "none of" holds. Empty for anything else.
+ */
+const getExcludedFilterValues: (value: unknown) => Array<string> = (
+  value: unknown,
+): Array<string> => {
+  if (value instanceof NotEqual) {
+    const item: unknown = value.value;
+
+    return item === undefined || item === null ? [] : [String(item)];
+  }
+
+  if (value instanceof IncludesNone) {
+    return value.values.map((item: unknown) => {
+      return String(item);
+    });
+  }
+
+  return [];
+};
+
+// Whether a filter's field leaves values out: a "not equal" or a "none of".
+const isExcludingFilterValue: (value: unknown) => boolean = (
+  value: unknown,
+): boolean => {
+  return value instanceof NotEqual || value instanceof IncludesNone;
+};
+
+/*
+ * Every severity a log can be stored with but the ones left out, in the
+ * enum's order: what "Severity is not debug" watches, exactly. Ingest
+ * stores only these seven (LogSeverity), so the ones left in are the whole
+ * of what the view shows. Empty when nothing known is left out - or when
+ * all of them are, which a monitor's filter cannot say (it reads an empty
+ * list as every severity).
+ */
+const getSeveritiesLeftIn: (excluded: Array<string>) => Array<LogSeverity> = (
+  excluded: Array<string>,
+): Array<LogSeverity> => {
+  const leftOut: Set<LogSeverity> = new Set<LogSeverity>();
+
+  for (const text of excluded) {
+    const severity: LogSeverity | null = normalizeLogSeverity(text);
+
+    if (severity) {
+      leftOut.add(severity);
+    }
+  }
+
+  const all: Array<LogSeverity> = Object.values(LogSeverity);
+  const leftIn: Array<LogSeverity> = all.filter((severity: LogSeverity) => {
+    return !leftOut.has(severity);
+  });
+
+  return leftOut.size === 0 || leftIn.length === 0 ? [] : leftIn;
+};
+
+/*
+ * Every span status but the ones left out: what "Status is not Error"
+ * watches, exactly - a span has one of three. Empty when nothing known is
+ * left out, or all of them are.
+ */
+const getSpanStatusesLeftIn: (excluded: Array<string>) => Array<SpanStatus> = (
+  excluded: Array<string>,
+): Array<SpanStatus> => {
+  const leftOut: Set<SpanStatus> = new Set<SpanStatus>();
+
+  for (const text of excluded) {
+    const status: number = Number(text);
+
+    if (SPAN_STATUSES.includes(status as SpanStatus)) {
+      leftOut.add(status as SpanStatus);
+    }
+  }
+
+  const leftIn: Array<SpanStatus> = SPAN_STATUSES.filter(
+    (status: SpanStatus) => {
+      return !leftOut.has(status);
+    },
+  );
+
+  return leftOut.size === 0 || leftIn.length === 0 ? [] : leftIn;
+};
+
+/*
+ * The attribute values a filter leaves out exactly, by key - a "not equal"
+ * or a "none of" on an attribute - at most as many keys as a link carries.
+ */
+const getFilterExcludedAttributes: (
+  value: unknown,
+) => Dictionary<Array<string>> | undefined = (
+  value: unknown,
+): Dictionary<Array<string>> | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const excluded: Dictionary<Array<string>> = {};
+
+  for (const [key, item] of Object.entries(value as Dictionary<unknown>)) {
+    const values: Array<string> = getExcludedFilterValues(item);
+
+    if (
+      key &&
+      values.length > 0 &&
+      Object.keys(excluded).length < TELEMETRY_MONITOR_LINK_MAX_ATTRIBUTES
+    ) {
+      excluded[key] = Array.from(new Set<string>(values)).slice(
+        0,
+        TELEMETRY_MONITOR_LINK_MAX_VALUES,
+      );
+    }
+  }
+
+  return Object.keys(excluded).length > 0 ? excluded : undefined;
+};
+
+/*
+ * The attributes a filter leaves out that the monitor's attribute filter
+ * cannot be handed from a link: a pattern or a part of a value left out.
+ */
+const getFilterAttributesLeftOutAsPatterns: (
+  value: unknown,
+) => Array<string> = (value: unknown): Array<string> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return [];
+  }
+
+  const keys: Array<string> = [];
+
+  for (const [key, item] of Object.entries(value as Dictionary<unknown>)) {
+    const operators: Array<unknown> = Array.isArray(item) ? item : [item];
+    const isNegatedPattern: boolean = operators.some((entry: unknown) => {
+      return entry instanceof NotContains || entry instanceof NotWildcard;
+    });
+
+    if (key && isNegatedPattern) {
+      keys.push(key);
+    }
+  }
+
+  return keys;
 };
 
 /*
@@ -354,6 +561,13 @@ export const getLogsFilterLinkQuery: (
     }
   }
 
+  // "Severity is not debug": the severities left in.
+  if (severityTexts.length === 0) {
+    severityTexts.push(
+      ...getSeveritiesLeftIn(getExcludedFilterValues(filter["severityText"])),
+    );
+  }
+
   if (severityTexts.length > 0) {
     query.severityTexts = severityTexts;
   }
@@ -374,7 +588,82 @@ export const getLogsFilterLinkQuery: (
     query.attributes = attributes;
   }
 
+  const excludedAttributes: Dictionary<Array<string>> | undefined =
+    getFilterExcludedAttributes(filter["attributes"]);
+
+  if (excludedAttributes) {
+    query.excludedAttributes = excludedAttributes;
+  }
+
   return query;
+};
+
+/*
+ * What a logs or traces view leaves out that its monitor cannot (the
+ * filter its list is read with): a service, a host or other resource,
+ * message text or a span name, an attribute pattern. Named as the
+ * cross-signal pivots name what they cannot carry - the kept field marked
+ * `!` (`!serviceIds`, `!hostId`, `!body`, `!attributes.<key>`) - so the
+ * Create monitor button can say so before the monitor widens past the
+ * view. A severity, a span status or an attribute value left out is
+ * carried (getLogsFilterLinkQuery), and never named here.
+ */
+export const getTelemetryFilterLinkNotCarried: (
+  filter: Dictionary<unknown>,
+) => Array<string> = (filter: Dictionary<unknown>): Array<string> => {
+  const notCarried: Array<string> = [];
+
+  const add: (field: string) => void = (field: string): void => {
+    if (!notCarried.includes(field)) {
+      notCarried.push(field);
+    }
+  };
+
+  if (isExcludingFilterValue(filter["primaryEntityId"])) {
+    add("!serviceIds");
+  }
+
+  const excludedResources: unknown = filter["excludedResourceFilters"];
+
+  if (
+    excludedResources &&
+    typeof excludedResources === "object" &&
+    !Array.isArray(excludedResources)
+  ) {
+    for (const [facetKey, ids] of Object.entries(
+      excludedResources as Dictionary<unknown>,
+    )) {
+      if (facetKey && Array.isArray(ids) && ids.length > 0) {
+        add(`!${facetKey}`);
+      }
+    }
+  }
+
+  const body: unknown = filter["body"];
+
+  if (body instanceof NotContains) {
+    add("!body");
+  }
+
+  const name: unknown = filter["name"];
+  const nameParts: Array<unknown> = Array.isArray(name) ? name : [name];
+
+  if (nameParts.some(isExcludingFilterValue)) {
+    add("!name");
+  }
+
+  // A trace monitor has no span kind to keep or leave out.
+  if (isExcludingFilterValue(filter["kind"])) {
+    add("!kind");
+  }
+
+  for (const key of getFilterAttributesLeftOutAsPatterns(
+    filter["attributes"],
+  )) {
+    add(`!attributes.${key}`);
+  }
+
+  return notCarried;
 };
 
 // A filter's exact attribute values; any other kind of value is left out.
@@ -435,11 +724,27 @@ export const getTracesFilterLinkQuery: (
     }
   }
 
+  // "Status is not Error": the statuses left in.
+  if (spanStatuses.length === 0) {
+    spanStatuses.push(
+      ...getSpanStatusesLeftIn(getExcludedFilterValues(filter["statusCode"])),
+    );
+  }
+
   if (spanStatuses.length > 0) {
     query.spanStatuses = spanStatuses;
   }
 
-  const name: unknown = filter["name"];
+  /*
+   * A name searched as a part of it beside names left out ("GET, but not
+   * GET /health") holds both; the part searched for is the span name.
+   */
+  const rawName: unknown = filter["name"];
+  const name: unknown = Array.isArray(rawName)
+    ? rawName.find((part: unknown) => {
+        return part instanceof Search;
+      })
+    : rawName;
 
   if (name instanceof Search && name.value.trim()) {
     query.spanName = name.value.trim();
@@ -457,6 +762,13 @@ export const getTracesFilterLinkQuery: (
 
   if (attributes) {
     query.attributes = attributes;
+  }
+
+  const excludedAttributes: Dictionary<Array<string>> | undefined =
+    getFilterExcludedAttributes(filter["attributes"]);
+
+  if (excludedAttributes) {
+    query.excludedAttributes = excludedAttributes;
   }
 
   return query;
@@ -548,6 +860,14 @@ export const applyTelemetryMonitorLinkQuery: (data: {
         })
       : undefined;
 
+  /*
+   * The attributes the monitor watches: the values kept, and each value
+   * left out as the attribute filter's "does not equal" (one) or "is none
+   * of" (several) - what it shows as when the form is opened.
+   */
+  const linkAttributes: Dictionary<string | number | boolean> | undefined =
+    getLinkAttributes(query);
+
   switch (data.monitorType) {
     case MonitorType.Logs: {
       const logMonitor: MonitorStepLogMonitor =
@@ -556,7 +876,7 @@ export const applyTelemetryMonitorLinkQuery: (data: {
       step.setLogMonitor({
         ...logMonitor,
         ...(serviceIds ? { telemetryServiceIds: serviceIds } : {}),
-        ...(query.attributes ? { attributes: { ...query.attributes } } : {}),
+        ...(linkAttributes ? { attributes: linkAttributes } : {}),
         ...(query.severityTexts
           ? { severityTexts: [...query.severityTexts] }
           : {}),
@@ -571,7 +891,7 @@ export const applyTelemetryMonitorLinkQuery: (data: {
       step.setTraceMonitor({
         ...traceMonitor,
         ...(serviceIds ? { telemetryServiceIds: serviceIds } : {}),
-        ...(query.attributes ? { attributes: { ...query.attributes } } : {}),
+        ...(linkAttributes ? { attributes: linkAttributes } : {}),
         ...(query.spanStatuses
           ? { spanStatuses: [...query.spanStatuses] }
           : {}),
@@ -599,4 +919,39 @@ export const applyTelemetryMonitorLinkQuery: (data: {
   }
 
   return step;
+};
+
+/*
+ * A link's attributes as a monitor's attribute filter holds them: a kept
+ * value as itself, a value left out as "does not equal", several as "is
+ * none of". Undefined when the link names no attribute.
+ */
+const getLinkAttributes: (
+  query: TelemetryMonitorLinkQuery,
+) => Dictionary<string | number | boolean> | undefined = (
+  query: TelemetryMonitorLinkQuery,
+): Dictionary<string | number | boolean> | undefined => {
+  const attributes: Dictionary<unknown> = { ...(query.attributes || {}) };
+
+  for (const [key, values] of Object.entries(query.excludedAttributes || {})) {
+    if (!key || attributes[key] !== undefined || values.length === 0) {
+      continue;
+    }
+
+    attributes[key] =
+      values.length === 1
+        ? new NotEqual<string>(values[0]!)
+        : new IncludesNone(values);
+  }
+
+  if (Object.keys(attributes).length === 0) {
+    return undefined;
+  }
+
+  /*
+   * The step's type names plain values only, but its attribute filter holds
+   * the operators its form offers (dictionaryEnableOperators); they are
+   * saved as their JSON and read back by MonitorStep.fromJSON.
+   */
+  return attributes as Dictionary<string | number | boolean>;
 };

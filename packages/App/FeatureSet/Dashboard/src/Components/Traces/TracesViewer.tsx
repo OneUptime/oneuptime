@@ -120,6 +120,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import Dictionary from "Common/Types/Dictionary";
 import {
+  getTelemetryFilterLinkNotCarried,
   getTelemetryMonitorLinkParams,
   getTracesFilterLinkQuery,
 } from "../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
@@ -3439,6 +3440,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   }, [baseQuery]);
 
   /*
+   * What the view leaves out that a trace monitor's filters cannot hold (a
+   * service, a host, a span name or kind left out), named on the button
+   * before the monitor widens past the view, in the words the pivot
+   * buttons use.
+   */
+  const createMonitorNotCarried: Array<string> = useMemo(() => {
+    return describeDroppedScopeFields(
+      getTelemetryFilterLinkNotCarried(
+        baseQuery as unknown as Dictionary<unknown>,
+      ),
+    );
+  }, [baseQuery]);
+
+  /*
    * Build the route to a trace's detail page so rows can render as real
    * anchors (cmd/ctrl/middle-click → open in new tab).
    */
@@ -3738,7 +3753,18 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             </Tooltip>
           </div>
           {props.offersCreateMonitor && canCreateMonitor ? (
-            <Tooltip text="Create monitor: get alerted about requests like these.">
+            <Tooltip
+              text={
+                createMonitorNotCarried.length > 0
+                  ? `${translator.translateText(
+                      "Create monitor: get alerted about requests like these.",
+                    )} — ${translator.translateTemplate(
+                      "Not carried over: {{fields}}",
+                      { fields: getNotCarriedList(createMonitorNotCarried) },
+                    )}`
+                  : "Create monitor: get alerted about requests like these."
+              }
+            >
               {/*
                * Its words show on a phone, where the toolbar wraps onto
                * rows of its own, and on a toolbar of 80rem and more;

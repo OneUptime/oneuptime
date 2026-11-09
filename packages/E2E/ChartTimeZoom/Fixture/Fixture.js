@@ -3517,6 +3517,28 @@ async function handleApi(method, options) {
     return ok({ link: null });
   }
 
+  /*
+   * The explorers' ingestion budget banner (Common's
+   * TelemetryIngestionBudgetBanner, since 2026-11-09) reads the project's
+   * budgets today. None are set here, as the server answers for a project
+   * that set none, so the banner draws nothing.
+   */
+  if (
+    method === "GET" &&
+    parsed.pathname.endsWith("/telemetry-ingestion-budget/project")
+  ) {
+    return ok({
+      dayStartsAt: "2026-09-21T00:00:00.000Z",
+      resetsAt: "2026-09-22T00:00:00.000Z",
+      resetTime: "00:00",
+      timezone: "UTC",
+      warningPercent: 80,
+      countersAvailable: true,
+      project: { scope: "project", signals: [] },
+      ingestionKeys: [],
+    });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({});
 }

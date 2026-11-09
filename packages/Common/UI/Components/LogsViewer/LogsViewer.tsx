@@ -245,6 +245,12 @@ export interface ComponentProps {
   onShowDocumentation?: (() => void) | undefined;
   // "Create monitor" in the toolbar: a monitor watching what the view shows.
   onCreateMonitor?: (() => void) | undefined;
+  /*
+   * What the view leaves out that the monitor cannot, as a sentence in the
+   * reader's language ("Not carried over: excluded services"): said in the
+   * button's tooltip, after what the button does.
+   */
+  createMonitorNotCarriedHint?: string | undefined;
   viewMode?: LogsViewMode | undefined;
   onViewModeChange?: ((mode: LogsViewMode) => void) | undefined;
   analyticsServiceIds?: Array<string> | undefined;
@@ -1394,6 +1400,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     },
     onShowDocumentation: props.onShowDocumentation,
     onCreateMonitor: props.onCreateMonitor,
+    createMonitorNotCarriedHint: props.createMonitorNotCarriedHint,
     signalPivotActions: props.signalPivotActions,
     ...(showFacetPanelToggle
       ? {

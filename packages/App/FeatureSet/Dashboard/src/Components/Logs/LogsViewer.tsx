@@ -185,6 +185,7 @@ import {
 } from "../../Utils/LogsCrossSignalPivot";
 import {
   getLogsFilterLinkQuery,
+  getTelemetryFilterLinkNotCarried,
   getTelemetryMonitorLinkParams,
 } from "../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -2653,6 +2654,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   }, [filterOptions, navigateToExplorer]);
 
   /*
+   * What the view leaves out that a log monitor's filters cannot hold (a
+   * service, a host, message text left out), named on the button before
+   * the monitor widens past the view - the words the pivot buttons use.
+   * Made again when the language changes, not when the translator does.
+   */
+  const createMonitorNotCarriedHint: string = useMemo(() => {
+    return formatDroppedScopeHint(
+      getTelemetryFilterLinkNotCarried(
+        filterOptions as unknown as Dictionary<unknown>,
+      ),
+      translator,
+    );
+  }, [filterOptions, translator.language]);
+
+  /*
    * Made again when the language changes, not when the translator does: a
    * new translator is made on every render.
    */
@@ -3190,6 +3206,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
               ? navigateToCreateMonitor
               : undefined
           }
+          createMonitorNotCarriedHint={createMonitorNotCarriedHint || undefined}
           lockedFilterSignal="logs"
           histogramBuckets={histogram.buckets}
           histogramLoading={histogram.isLoading}

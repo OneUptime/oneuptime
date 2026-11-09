@@ -67,6 +67,12 @@ export interface LogsViewerToolbarProps {
   onShowDocumentation?: (() => void) | undefined;
   // "Create monitor": a monitor watching what the view shows.
   onCreateMonitor?: (() => void) | undefined;
+  /*
+   * What the view leaves out that the monitor cannot, already in the
+   * reader's language ("Not carried over: excluded services"), said after
+   * what the button does, as the Traces and Metrics buttons say theirs.
+   */
+  createMonitorNotCarriedHint?: string | undefined;
   signalPivotActions?: Array<LogsSignalPivotAction> | undefined;
   /*
    * The phone-only "Filters" toggle for the facet sidebar. Below md the
@@ -301,9 +307,15 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
 
         {props.onCreateMonitor && (
           <Tooltip
-            text={translator.translateText(
-              "Create monitor: get alerted about logs like these.",
-            )}
+            text={
+              props.createMonitorNotCarriedHint
+                ? `${translator.translateText(
+                    "Create monitor: get alerted about logs like these.",
+                  )} — ${props.createMonitorNotCarriedHint}`
+                : translator.translateText(
+                    "Create monitor: get alerted about logs like these.",
+                  )
+            }
           >
             {/*
              * Its words show where the row has room for them: on a phone,
