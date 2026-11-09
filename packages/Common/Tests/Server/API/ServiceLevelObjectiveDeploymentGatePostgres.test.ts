@@ -769,7 +769,11 @@ describePostgres("the SLO deploy gate through the API, on Postgres", () => {
     );
 
     expect(
-      await readColumn("ServiceLevelObjective", frozenSloId, "deploymentsAllowed"),
+      await readColumn(
+        "ServiceLevelObjective",
+        frozenSloId,
+        "deploymentsAllowed",
+      ),
     ).toBe(false);
   });
 

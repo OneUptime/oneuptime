@@ -274,9 +274,9 @@ describe("getSloDeploymentGateChangedFeedMarkdown", () => {
     expect(gate({ tierName: "  " }).feedInfoInMarkdown).toBe(
       "🔒 Deployments of [SLO Checkout](https://oneuptime.com/dashboard/project-1/slos/slo-1) are frozen.",
     );
-    expect(
-      gate({ tierName: undefined }).moreInformationInMarkdown,
-    ).toContain("**Error budget policy tier**: none");
+    expect(gate({ tierName: undefined }).moreInformationInMarkdown).toContain(
+      "**Error budget policy tier**: none",
+    );
   });
 
   test("the tier's name is text: it cannot restyle the item or move a link", () => {

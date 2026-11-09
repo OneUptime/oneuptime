@@ -836,11 +836,9 @@ describe("the tiers table", () => {
 
     // The column is read from the tier's own switch.
     const column: { title: string; field?: unknown } | undefined =
-      mockTableProps?.columns.find(
-        (candidate: { title: string }): boolean => {
-          return candidate.title === "Deployments";
-        },
-      );
+      mockTableProps?.columns.find((candidate: { title: string }): boolean => {
+        return candidate.title === "Deployments";
+      });
 
     expect(column?.field).toEqual({ freezesDeployments: true });
   });
@@ -855,9 +853,9 @@ describe("the tiers table", () => {
 
     await renderPage();
 
-    expect(screen.getByTestId(POLICY_TIER_DEPLOYMENTS_TEST_ID)).toHaveTextContent(
-      "Allowed",
-    );
+    expect(
+      screen.getByTestId(POLICY_TIER_DEPLOYMENTS_TEST_ID),
+    ).toHaveTextContent("Allowed");
   });
 
   test("marks the tier the SLO is in, and when it entered it", async () => {

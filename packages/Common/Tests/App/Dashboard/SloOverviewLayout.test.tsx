@@ -877,12 +877,12 @@ describe("the tier of the error budget policy the SLO is in", () => {
     });
 
     expect(
-      heading.compareDocumentPosition(badge) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      heading.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      badge.compareDocumentPosition(within(tierCard()).getByTestId("markdown")) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      badge.compareDocumentPosition(
+        within(tierCard()).getByTestId("markdown"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

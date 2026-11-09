@@ -1319,13 +1319,11 @@ describe("Use the recommended policy", () => {
   it("builds each recommended tier with the freeze its definition says", () => {
     for (const recommended of SLO_RECOMMENDED_POLICY_TIERS) {
       const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
-        ServiceLevelObjectiveErrorBudgetPolicyTierService.buildRecommendedTier(
-          {
-            projectId: PROJECT_ID,
-            serviceLevelObjectiveId: SLO_ID,
-            recommended: recommended,
-          },
-        );
+        ServiceLevelObjectiveErrorBudgetPolicyTierService.buildRecommendedTier({
+          projectId: PROJECT_ID,
+          serviceLevelObjectiveId: SLO_ID,
+          recommended: recommended,
+        });
 
       expect({ name: tier.name, freezes: tier.freezesDeployments }).toEqual({
         name: recommended.name,

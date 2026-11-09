@@ -689,7 +689,10 @@ describe("the recommended policy over the API", () => {
 
     expect(
       json.map((entry: JSONObject): [JSONValue, JSONValue] => {
-        return [entry["name"] as JSONValue, entry["freezesDeployments"] as JSONValue];
+        return [
+          entry["name"] as JSONValue,
+          entry["freezesDeployments"] as JSONValue,
+        ];
       }),
     ).toEqual([
       ["Caution", false],
@@ -773,11 +776,12 @@ describe("the recommended policy freezes deployments in Budget exhausted only", 
       [SLO_POLICY_BUDGET_EXHAUSTED_TIER_NAME, true],
     ]);
 
-    const exhausted: SloRecommendedPolicyTier = SLO_RECOMMENDED_POLICY_TIERS.find(
-      (tier: SloRecommendedPolicyTier): boolean => {
-        return tier.freezesDeployments;
-      },
-    ) as SloRecommendedPolicyTier;
+    const exhausted: SloRecommendedPolicyTier =
+      SLO_RECOMMENDED_POLICY_TIERS.find(
+        (tier: SloRecommendedPolicyTier): boolean => {
+          return tier.freezesDeployments;
+        },
+      ) as SloRecommendedPolicyTier;
 
     expect(exhausted.thresholdPercentage).toBe(0);
     expect(exhausted.whatWeDo).toContain("Freeze non-critical releases");
@@ -918,7 +922,11 @@ describe("computeSloDeploymentGate", () => {
 describe("getSloDeploymentGateChange: what an evaluation writes", () => {
   test("allowed, and still allowed: nothing is written, nothing is said", () => {
     expect(
-      getSloDeploymentGateChange({ tier: null, stored: ALLOWED_GATE, now: NOW }),
+      getSloDeploymentGateChange({
+        tier: null,
+        stored: ALLOWED_GATE,
+        now: NOW,
+      }),
     ).toEqual({
       gate: { deploymentsAllowed: true, deploymentsFrozenAt: null },
       transition: null,
@@ -1079,7 +1087,12 @@ describe("the deploy gate follows the tier, with the tier's hysteresis", () => {
       evaluations.map((evaluation: Evaluation): string | null => {
         return evaluation.tierId;
       }),
-    ).toEqual(["caution", "reliability-first", "reliability-first", "exhausted"]);
+    ).toEqual([
+      "caution",
+      "reliability-first",
+      "reliability-first",
+      "exhausted",
+    ]);
     expect(allowedAlong(evaluations)).toEqual([true, true, true, false]);
     expect(evaluations[3]!.transition).toBe(SloDeploymentGateTransition.Frozen);
     expect(evaluations[3]!.gate.deploymentsFrozenAt?.getTime()).toBe(

@@ -141,8 +141,7 @@ describe("the error budget policy tier form", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      freeze.compareDocumentPosition(fold()) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      freeze.compareDocumentPosition(fold()) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     // Not one of the outputs: the fold stays folded.
     expect(fold()).toHaveAttribute("aria-expanded", "false");
