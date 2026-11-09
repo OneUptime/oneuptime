@@ -32,6 +32,7 @@ export const SUPPORTED_ACCOUNTS_LANGUAGES: Array<AccountsLanguage> = [
   },
   { code: "hi", nativeName: "हिन्दी", englishName: "Hindi" },
   { code: "fa", nativeName: "فارسی", englishName: "Persian" },
+  { code: "ar", nativeName: "العربية", englishName: "Arabic" },
 ];
 
 export const SUPPORTED_ACCOUNTS_LANGUAGE_CODES: Array<string> =

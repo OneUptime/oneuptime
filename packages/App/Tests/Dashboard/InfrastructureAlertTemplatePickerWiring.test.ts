@@ -850,8 +850,8 @@ describe("the words, in every language", () => {
     AGGREGATION_DESCRIPTION,
   ];
 
-  test("there are sixteen languages besides English", () => {
-    expect(NON_ENGLISH).toHaveLength(16);
+  test("there are seventeen languages besides English", () => {
+    expect(NON_ENGLISH).toHaveLength(17);
   });
 
   test.each(ADDED)(

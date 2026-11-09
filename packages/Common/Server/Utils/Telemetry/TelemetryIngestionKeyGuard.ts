@@ -1,5 +1,6 @@
 import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
+import { TelemetryIngestRefusalReason } from "../../../Types/Telemetry/TelemetryIngestRefusal";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
   getIngestSurfaceReadableName,
@@ -50,6 +51,21 @@ export interface TelemetryIngestionKeyRefusal {
    */
   message: string;
 }
+
+/*
+ * The reason a guard refusal is counted under against the key
+ * (TelemetryIngestRefusalRecorder, issue #6378).
+ */
+export const TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL: Readonly<
+  Record<TelemetryIngestionKeyRefusalReason, TelemetryIngestRefusalReason>
+> = {
+  [TelemetryIngestionKeyRefusalReason.Disabled]:
+    TelemetryIngestRefusalReason.KeyDisabled,
+  [TelemetryIngestionKeyRefusalReason.Expired]:
+    TelemetryIngestRefusalReason.KeyExpired,
+  [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey]:
+    TelemetryIngestRefusalReason.BrowserKeyNotAllowedHere,
+};
 
 export default class TelemetryIngestionKeyGuard {
   /**

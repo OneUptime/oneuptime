@@ -405,8 +405,8 @@ describe("cards, feeds and dialogs say what they show", () => {
 });
 
 describe("every new sentence is translated in every language", () => {
-  test("there are sixteen languages besides English", () => {
-    expect(NON_ENGLISH).toHaveLength(16);
+  test("there are seventeen languages besides English", () => {
+    expect(NON_ENGLISH).toHaveLength(17);
   });
 
   test.each(

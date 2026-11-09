@@ -7,6 +7,7 @@ import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
 import { JSONObject } from "../../../../../Types/JSON";
 import { READER_LANGUAGE_CODES } from "../../../../../Types/ReaderLanguage";
+import { isRightToLeftLanguage } from "../../../../../Types/ReadingDirection";
 import { Translator } from "../../../../../UI/Utils/TranslateTemplate";
 import API from "../../../../../Utils/API";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
@@ -351,9 +352,39 @@ ${SubscriberMessageText.chatLine(translator, SubscriberChatText.description, Sub
     );
   });
 
+  // An Arabic card is read from the right as well: its values are isolated.
+  test("in Arabic each fact's value is isolated, as in Persian", async () => {
+    const translator: Translator = getServerTranslator("ar");
+    const card: JSONObject = await cardFor(
+      SubscriberMessageText.incidentStateChangeChatMessage(translator, {
+        title: "Checkout is down",
+        resourcesAffected: "Checkout API (EU)",
+        severityName: "Major Incident",
+        stateName: "Resolved",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      }),
+    );
+
+    expect(
+      sentFactsOf(card).map((fact: Fact): string => {
+        return fact.value;
+      }),
+    ).toEqual([
+      isolated("Checkout API (EU)"),
+      isolated("حادثة كبرى"),
+      isolated(SubscriberMessageText.nameInLanguage(translator, "Resolved")),
+    ]);
+    expect(
+      sentFactsOf(card).map((fact: Fact): string => {
+        return fact.name;
+      })[0],
+    ).toBe("الموارد المتأثرة");
+  });
+
   test.each(
     READER_LANGUAGE_CODES.filter((language: string): boolean => {
-      return language !== "fa";
+      return !isRightToLeftLanguage(language);
     }),
   )("in %s no value carries an isolate mark", async (language: string) => {
     const card: JSONObject = await cardFor(

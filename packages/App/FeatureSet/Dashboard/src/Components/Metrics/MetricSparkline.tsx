@@ -2,11 +2,10 @@ import React, { FunctionComponent, ReactElement, useCallback } from "react";
 import { SparkAreaChart } from "Common/UI/Components/Charts/ChartLibrary/SparkChart/SparkChart";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { SparklinePoint } from "./Utils/SparklinePoint";
 
-export interface SparklinePoint {
-  time: string;
-  value: number;
-}
+// Kept where it was imported from; it lives in a React-free sibling.
+export type { SparklinePoint };
 
 export interface MetricSparklineProps {
   points: Array<SparklinePoint>;

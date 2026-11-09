@@ -615,11 +615,17 @@ export default class MetricUtil {
    * no group-by) MetricService routes the read to the per-host MV.
    * dedupedAggregate also makes the cache hot when the user clicks
    * a row and the explorer immediately re-issues the same query.
+   *
+   * Each name is read with Avg unless `getAggregationType` names another
+   * for it (a row whose series add up to its number, MetricRowScope).
    */
   public static async fetchSparklineAggregates(data: {
     metricNames: Array<string>;
     attributes?: Dictionary<DictionaryEntryValue> | undefined;
     startAndEndDate: InBetween<Date>;
+    getAggregationType?:
+      | ((metricName: string) => MetricsAggregationType)
+      | undefined;
   }): Promise<Map<string, AggregatedResult>> {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     if (!projectId || data.metricNames.length === 0) {
@@ -645,7 +651,9 @@ export default class MetricUtil {
                   ? { attributes: sanitizedAttributes as any }
                   : {}),
               },
-              aggregationType: MetricsAggregationType.Avg,
+              aggregationType: data.getAggregationType
+                ? data.getAggregationType(name)
+                : MetricsAggregationType.Avg,
               aggregateColumnName: "value",
               aggregationTimestampColumnName: "time",
               startTimestamp,

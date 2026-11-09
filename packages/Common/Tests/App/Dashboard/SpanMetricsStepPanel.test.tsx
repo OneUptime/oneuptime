@@ -607,7 +607,7 @@ describe("in the reader's language", () => {
   });
 
   test("every language keeps each name of a step's sentence once, or its reader would get English", () => {
-    expect(LANGUAGES).toHaveLength(16);
+    expect(LANGUAGES).toHaveLength(17);
 
     for (const language of LANGUAGES) {
       const locale: Record<string, string> = readLocale(language);

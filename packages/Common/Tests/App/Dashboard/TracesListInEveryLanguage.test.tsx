@@ -713,7 +713,7 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
           ].join(
             ["ja", "zh-CN", "zh-TW"].includes(language)
               ? "、"
-              : language === "fa"
+              : ["ar", "fa"].includes(language)
                 ? "، "
                 : ", ",
           ),
@@ -856,7 +856,7 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
             ].join(
               ["ja", "zh-CN", "zh-TW"].includes(language)
                 ? "、"
-                : language === "fa"
+                : ["ar", "fa"].includes(language)
                   ? "، "
                   : ", ",
             ),

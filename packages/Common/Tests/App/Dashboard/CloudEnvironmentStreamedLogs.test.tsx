@@ -267,7 +267,7 @@ describe("getCloudEnvironmentNoLogsMessage", () => {
         return file.endsWith(".json");
       });
 
-    expect(files).toHaveLength(17);
+    expect(files).toHaveLength(18);
 
     for (const file of files) {
       const locale: Record<string, string> = JSON.parse(

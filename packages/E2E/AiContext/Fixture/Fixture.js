@@ -427,20 +427,25 @@ function liveEvent(sequence, eventType, extra = {}) {
 }
 
 /*
- * A live run's steps after the AI context line: one search of the logs at a
- * time, each a call to the model and a tool call, as a run's are.
+ * A live run's steps after the AI context line: a search of the logs, the
+ * metrics or the traces at a time, each a call to the model and a tool
+ * call, as a run's are. The feed draws the tool call alone (the model call
+ * that chose it answered), and folds the same search done three times in
+ * a row into one row (issue #6437): the tools take turns, so each step is
+ * a row of its own.
  */
+const LIVE_STEP_TOOLS = ["search_logs", "query_metrics", "query_traces"];
+
 function liveStep(index) {
   const sequence = 100 + index * 4;
+  const toolName = LIVE_STEP_TOOLS[index % LIVE_STEP_TOOLS.length];
 
   return [
     liveEvent(sequence, AIRunEventType.LlmCallStarted),
     liveEvent(sequence + 1, AIRunEventType.LlmCallCompleted),
-    liveEvent(sequence + 2, AIRunEventType.ToolCallStarted, {
-      toolName: "search_logs",
-    }),
+    liveEvent(sequence + 2, AIRunEventType.ToolCallStarted, { toolName }),
     liveEvent(sequence + 3, AIRunEventType.ToolCallCompleted, {
-      toolName: "search_logs",
+      toolName,
       resultSummary: { rowCount: 10 + index, durationInMs: 200 + index },
     }),
   ];

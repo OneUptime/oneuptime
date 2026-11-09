@@ -120,7 +120,7 @@ describe("the settings / admin audit's strings", () => {
   test("are read from the modules that draw them", () => {
     // Forty role lines (two pairs of roles share theirs), three answers and more.
     expect(STRINGS.length).toBeGreaterThan(70);
-    expect(FILES).toHaveLength(16);
+    expect(FILES).toHaveLength(17);
   });
 
   test("English keys every one as itself", () => {

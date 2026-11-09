@@ -147,8 +147,13 @@ function placeholdersOf(text: string): Array<string> {
   return (text.match(/\{\{\w+\}\}/g) || []).sort();
 }
 
-// Code a sentence names, which no language translates.
-const CODE: RegExp = /src\/telemetry\.ts|web-vitals|try\/catch|OTLP/g;
+/*
+ * Code a sentence names, which no language translates - the key-swap
+ * steps (issue #6378) name the header a key travels in, and the setting
+ * a mobile app sets it with.
+ */
+const CODE: RegExp =
+  /src\/telemetry\.ts|web-vitals|try\/catch|x-oneuptime-token|OTEL_EXPORTER_OTLP_HEADERS|OTLP/g;
 
 function codeOf(text: string): Array<string> {
   return (text.match(CODE) || []).sort();
@@ -171,6 +176,12 @@ describe("the RUM setup diagnosis's words", () => {
       "Add a log pipeline to src/telemetry.ts",
       "Show the past 3 months",
       "Session Replay recorded {{count}} sessions with errors in this time range, so errors do happen._one",
+      // The Pick another key dialog's steps (issue #6378).
+      "The key this app sends with is turned off or has expired, so everything sent with it is refused. Put another key in its place.",
+      "Put it in place of the refused key",
+      "Release and check",
+      "Your app sends with the refused key in the x-oneuptime-token header. Put this one in its place, in OTEL_EXPORTER_OTLP_HEADERS or wherever your app sets that header in code.",
+      "RUM troubleshooting",
     ]) {
       expect(keys).toContain(sentence);
     }

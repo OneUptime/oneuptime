@@ -64,7 +64,7 @@ The variables are read when Claude Code starts. Metrics are sent every 60 second
 
 ### Check that data arrives
 
-Open **Metrics** and look for `claude_code.token.usage`, then open **Products → AI / LLM** and go to **Usage**: your cost shows under your email, marked **from GenAI metrics**.
+Open **Metrics** and look for `claude_code.token.usage`, then open **Products → AI / LLM** and go to **Usage**: your cost shows under your email, marked **From usage metrics**.
 :::
 
 To send metrics and events to different places, set `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` and `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` instead, with the full path (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 On **Products → AI / LLM → Usage**, `claude_code.cost.usage` feeds the **Employee**, **Team** and **Model** tables, and `claude_code.token.usage` the token totals. Two rules decide what you see:
 
-- **The metrics fill in for spans; they are never added to them.** If the same project gets GenAI spans with cost from your own apps, Claude Code's spend does not show. Send Claude Code to a project of its own. See [Spans come first, metrics fill in](/docs/telemetry/ai-llm-observability#spans-come-first-metrics-fill-in).
-- **A row from metrics carries cost only.** Its calls and token cells show `—`, and the **Provider** and **Application / Service** tables stay empty: the metrics name no provider and belong to no OneUptime service.
+- **Claude Code is counted beside your apps.** Its metrics arrive under its own service, so its spend is added to the AI calls your apps send to the same project. If you turn on its traces (beta), turn them on for everyone: from then on Claude Code is counted from its traces alone, once. See [Each service is counted from what it sends](/docs/telemetry/ai-llm-observability#each-service-is-counted-from-what-it-sends).
+- **A row from metrics names no call.** It says **From usage metrics** under its name, its calls cell shows `—`, and the **Provider** table puts it under **Unattributed**: the metrics name no provider.
 
 Everything else, such as acceptance rate, lines of code, commits and pull requests per developer, or spend by `query_source`, you chart on a [dashboard](/docs/dashboards/index) from the metrics below, and alert on with a [Metrics Monitor](/docs/monitor/metrics-monitor).
 

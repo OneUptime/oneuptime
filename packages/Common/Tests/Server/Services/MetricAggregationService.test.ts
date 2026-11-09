@@ -9,6 +9,7 @@ import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableN
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test, afterEach, jest } from "@jest/globals";
+import { decodedQueryParams } from "../../Helpers/StatementEcho";
 
 describe("MetricAggregationService.getMetricsForTrace statement building", () => {
   type BuildMetricsForTraceStatement = (
@@ -41,15 +42,15 @@ describe("MetricAggregationService.getMetricsForTrace statement building", () =>
     expect(statement.query).toMatch(/AND traceId = \{p\d+:String\}/);
     expect(statement.query).toContain("retentionDate >= now()");
     expect(statement.query).toMatch(/ORDER BY time ASC LIMIT \{p\d+:Int32\}/);
-    expect(Object.values(statement.query_params)).toContain(
+    expect(Object.values(decodedQueryParams(statement))).toContain(
       AnalyticsTableName.Metric,
     );
-    expect(Object.values(statement.query_params)).toContain(
+    expect(Object.values(decodedQueryParams(statement))).toContain(
       projectId.toString(),
     );
-    expect(Object.values(statement.query_params)).toContain("trace-1");
+    expect(Object.values(decodedQueryParams(statement))).toContain("trace-1");
     // Default row cap.
-    expect(Object.values(statement.query_params)).toContain(500);
+    expect(Object.values(decodedQueryParams(statement))).toContain(500);
   });
 
   test("spanIds add a parameterized IN predicate; empty array behaves as absent", () => {
@@ -62,7 +63,7 @@ describe("MetricAggregationService.getMetricsForTrace statement building", () =>
     expect(withSpans.query).toMatch(
       /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
     );
-    expect(Object.values(withSpans.query_params)).toContainEqual([
+    expect(Object.values(decodedQueryParams(withSpans))).toContainEqual([
       "span-a",
       "span-b",
     ]);
@@ -89,15 +90,15 @@ describe("MetricAggregationService.getMetricsForTrace statement building", () =>
       traceId: "trace-1",
       limit: 10,
     });
-    expect(Object.values(small.query_params)).toContain(10);
+    expect(Object.values(decodedQueryParams(small))).toContain(10);
 
     const oversized: Statement = buildMetricsForTraceStatement({
       projectId,
       traceId: "trace-1",
       limit: 999999,
     });
-    expect(Object.values(oversized.query_params)).toContain(500);
-    expect(Object.values(oversized.query_params)).not.toContain(999999);
+    expect(Object.values(decodedQueryParams(oversized))).toContain(500);
+    expect(Object.values(decodedQueryParams(oversized))).not.toContain(999999);
   });
 
   test("injection-shaped values stay out of the query text", () => {
@@ -112,8 +113,10 @@ describe("MetricAggregationService.getMetricsForTrace statement building", () =>
 
     expect(statement.query).not.toContain(evilTraceId);
     expect(statement.query).not.toContain(evilSpanId);
-    expect(Object.values(statement.query_params)).toContain(evilTraceId);
-    expect(Object.values(statement.query_params)).toContainEqual([evilSpanId]);
+    expect(Object.values(decodedQueryParams(statement))).toContain(evilTraceId);
+    expect(Object.values(decodedQueryParams(statement))).toContainEqual([
+      evilSpanId,
+    ]);
   });
 });
 

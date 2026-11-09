@@ -440,8 +440,8 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
       ) as Record<string, unknown>;
     }
 
-    test("there are seventeen", () => {
-      expect(LANGUAGES).toHaveLength(17);
+    test("there are eighteen", () => {
+      expect(LANGUAGES).toHaveLength(18);
     });
 
     test.each(LANGUAGES)(

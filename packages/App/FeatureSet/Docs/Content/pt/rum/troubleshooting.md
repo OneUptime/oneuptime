@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 Um aplicativo web precisa de uma chave **Navegador**, e um aplicativo móvel de uma chave **Servidor**: consulte [Configuração para navegadores](/docs/rum/browser-setup) e [Configuração para dispositivos móveis](/docs/rum/mobile-setup). Os endpoints de exportação também rejeitam uma chave errada com `401`, como a especificação OTLP pede, então um SDK bem-comportado registra a rejeição em vez de tentar de novo. Essa linha passa despercebida com facilidade no console do navegador, e esta verificação responde diretamente.
 
+O OneUptime também conta o que recusa de uma chave que conhece. A página da chave, em **Configurações do projeto → Telemetria e APM → Chaves de ingestão**, mostra em **Telemetria recusada** o que foi recusado nos últimos 30 dias, e a **Verificação da configuração** na página **Documentação** da aplicação diz que tipo de telemetria é recusado, por quê e como corrigir. Uma chave ausente ou desconhecida não indica nenhum projeto, então nada a conta: esta verificação e o `401` são tudo o que há.
+
 ## Verificar o que sai do navegador
 
 Abra as ferramentas de desenvolvedor do navegador na página do aplicativo, selecione a aba Rede e filtre por `otlp`. Você procura `POST /otlp/v1/traces` respondida com um status `2xx`.
@@ -121,6 +123,7 @@ O gráfico vazio na **Visão geral** da aplicação diz qual é o caso, e a **Ve
 | **Nenhuma exceção neste intervalo de tempo** ou **Nenhum registro neste intervalo de tempo** | Alguns chegaram antes, e o gráfico diz quando chegou o último. Escolha o intervalo mais longo que ele oferece. |
 | **Nada chegou deste app ainda** | Não chega telemetria de nenhum tipo: comece por [Verificar a chave](#verificar-a-chave). |
 | **O SDK do OpenTelemetry não está enviando dados** | Só a reprodução de sessões envia dados desta aplicação: configure o SDK como em [Configuração para navegadores](/docs/rum/browser-setup). |
+| **As exceções estão sendo recusadas** ou **Os registros estão sendo recusados** | O OneUptime os recusou depois que o último chegou, e o gráfico diz por quê e quando: a chave está desativada ou expirou, não permite a origem do seu site, um limite ou orçamento se esgotou, ou o projeto não tem método de pagamento. O botão do gráfico resolve: **Escolher outra chave**, **Abrir a chave**, **Ver orçamentos** ou **Adicionar um método de pagamento**. |
 
 As exceções precisam de um manipulador de erros, porque o SDK não captura erros não tratados: [Relatar erros não tratados](/docs/rum/browser-setup#relatar-erros-não-tratados) tem o código. Um erro que um error boundary ou um `try`/`catch` trata nunca chega à janela, então registre-o onde você o trata, com `span.recordException`.
 

@@ -551,6 +551,100 @@ describe("agents, searches and calls without content", () => {
     expect(transcript.costUsd).toBeCloseTo(0.3, 10);
   });
 
+  /*
+   * Pydantic AI's agent run carries its calls' totals, with a tool span
+   * between the run and the call that made them: the run is not the
+   * call's parent, and its repeat is still left out (LlmCallCountingUtil).
+   */
+  test("an agent run's repeat of its calls' tokens and cost counts once, through a tool span", () => {
+    const transcript: LlmTranscript = LlmConversationTranscriptUtil.build([
+      call({
+        spanId: "run",
+        kind: LlmCallKind.Agent,
+        startMs: T0,
+        endMs: T0 + 9000,
+        inputTokens: 300,
+        outputTokens: 30,
+        costUsd: 0.3,
+      }),
+      call({
+        spanId: "tool",
+        parentSpanId: "run",
+        kind: LlmCallKind.Tool,
+        startMs: T0 + 500,
+        endMs: T0 + 8000,
+        inputTokens: 0,
+        outputTokens: 0,
+        costUsd: 0,
+      }),
+      call({
+        spanId: "model",
+        parentSpanId: "tool",
+        startMs: T0 + 1000,
+        endMs: T0 + 7000,
+        inputTokens: 300,
+        outputTokens: 30,
+        costUsd: 0.3,
+      }),
+    ]);
+
+    expect(transcript.inputTokens).toBe(300);
+    expect(transcript.outputTokens).toBe(30);
+    expect(transcript.costUsd).toBeCloseTo(0.3, 10);
+  });
+
+  // OpenLLMetry's LangChain span over the OpenAI SDK's span of one call.
+  test("two instrumentations of one call count once", () => {
+    const transcript: LlmTranscript = LlmConversationTranscriptUtil.build([
+      call({
+        spanId: "chain",
+        kind: LlmCallKind.Other,
+        inputTokens: 1000,
+        outputTokens: 200,
+        costUsd: 0.5,
+      }),
+      call({
+        spanId: "sdk",
+        parentSpanId: "chain",
+        startMs: T0 + 10,
+        endMs: T0 + 990,
+        inputTokens: 1000,
+        outputTokens: 200,
+        costUsd: 0.5,
+      }),
+    ]);
+
+    expect(transcript.inputTokens).toBe(1000);
+    expect(transcript.outputTokens).toBe(200);
+    expect(transcript.costUsd).toBeCloseTo(0.5, 10);
+  });
+
+  test("a run whose calls report tokens but no price keeps its own cost", () => {
+    const transcript: LlmTranscript = LlmConversationTranscriptUtil.build([
+      call({
+        spanId: "run",
+        kind: LlmCallKind.Agent,
+        startMs: T0,
+        endMs: T0 + 9000,
+        inputTokens: 100,
+        outputTokens: 10,
+        costUsd: 0.3,
+      }),
+      call({
+        spanId: "model",
+        parentSpanId: "run",
+        startMs: T0 + 1000,
+        endMs: T0 + 2000,
+        inputTokens: 100,
+        outputTokens: 10,
+        costUsd: 0,
+      }),
+    ]);
+
+    expect(transcript.inputTokens).toBe(100);
+    expect(transcript.costUsd).toBeCloseTo(0.3, 10);
+  });
+
   test("a wrapper that failed when no child did shows the failure", () => {
     const transcript: LlmTranscript = LlmConversationTranscriptUtil.build([
       call({

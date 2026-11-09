@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { Moment } from "Common/Types/Date";
 import {
   FeedClock,
@@ -64,7 +65,7 @@ const getFormat: (data: {
   let format: Intl.DateTimeFormat | null = null;
 
   try {
-    format = new Intl.DateTimeFormat(locale, {
+    format = new Intl.DateTimeFormat(getNumberLocale(locale), {
       ...data.options,
       timeZone: data.clock.timezone,
     });
@@ -503,7 +504,7 @@ const formatUnit: (
     let formatter: UnitFormatter | null = null;
 
     try {
-      formatter = new Intl.NumberFormat(locale, {
+      formatter = new Intl.NumberFormat(getNumberLocale(locale), {
         style: "unit",
         unit: unit,
         unitDisplay: "long",

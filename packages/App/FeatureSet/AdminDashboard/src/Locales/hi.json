@@ -1064,6 +1064,8 @@
   "e.g. Production OpenAI": "उदा. प्रोडक्शन OpenAI",
   "What this provider is for.": "यह प्रदाता किसलिए है।",
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "हर अनुरोध के साथ प्रदाता को भेजे जाने वाले अतिरिक्त JSON पैरामीटर, जैसे {\"temperature\": 0.2}। जब तक आपके मॉडल को इनकी ज़रूरत न हो, खाली छोड़ें।",
+  "Response Timeout (Seconds)": "प्रतिक्रिया टाइमआउट (सेकंड)",
+  "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.": "प्रदाता के एक अनुरोध का उत्तर देने की प्रतीक्षा के सेकंड। 120 के लिए खाली छोड़ें (Ollama के लिए 300)। धीमे या स्व-होस्टेड मॉडल के लिए इसे बढ़ाएँ।",
   "Never put keys here.": "यहाँ कभी कुंजियाँ न डालें।",
   "Your deployment's name, exactly as Foundry shows it.": "आपके डिप्लॉयमेंट का नाम, ठीक वैसा जैसा Foundry दिखाता है।",
   "{{name}} (default)": "{{name}} (डिफ़ॉल्ट)",
