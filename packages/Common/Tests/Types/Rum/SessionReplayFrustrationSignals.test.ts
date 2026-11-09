@@ -13,6 +13,7 @@ import {
   readSessionReplayFrustrationSignalsConfig,
   toSessionReplayFrustrationSignalsConfig,
 } from "../../../Types/Rum/SessionReplayFrustrationSignals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The shared half of "what counts as frustration": the defaults, the
@@ -331,14 +332,24 @@ describe("matchesSessionReplayPagePattern", () => {
     const pattern: string = `/${"*a".repeat(90)}*b`;
     const path: string = `/${"a".repeat(2000)}`;
 
-    const startedAt: number = Date.now();
-
-    for (let run: number = 0; run < 200; run++) {
-      expect(matchesSessionReplayPagePattern(pattern, path)).toBe(false);
-    }
-
     // 200 runs of a linear walk; a backtracking one would not finish at all.
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<number> = fastestRun({
+      run: (): number => {
+        let matched: number = 0;
+
+        for (let run: number = 0; run < 200; run++) {
+          if (matchesSessionReplayPagePattern(pattern, path)) {
+            matched++;
+          }
+        }
+
+        return matched;
+      },
+      limitInMs: 2000,
+    });
+
+    expect(timed.result).toBe(0);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

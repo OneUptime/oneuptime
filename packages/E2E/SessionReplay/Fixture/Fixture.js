@@ -32,6 +32,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
 
 // Actual routed pages, shared components, manifest parsing, binary chunk decoding,
 // and the lazy rrweb Replayer all execute. Only API/user boundaries are replaced.
@@ -1687,8 +1688,9 @@ window.fetch = async (input, init) => {
 };
 /*
  * ?lang=de (or any Dashboard language) draws the pages in that language,
- * from the Dashboard's own locale file, with <html lang> and dir set as
- * the Dashboard sets them: Persian reads right to left.
+ * from the Dashboard's own locale file, with <html lang> and dir set by
+ * the Dashboard's own setPageLanguage: Persian and Arabic read right to
+ * left.
  */
 const language = params.get("lang") || "en";
 const resources = { en: { translation: {} } };
@@ -1698,8 +1700,7 @@ if (language !== "en") {
     resources[language] = { translation: await response.json() };
   }
 }
-document.documentElement.lang = language;
-document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
+setPageLanguage(language);
 await i18next.use(initReactI18next).init({
   lng: language,
   fallbackLng: "en",

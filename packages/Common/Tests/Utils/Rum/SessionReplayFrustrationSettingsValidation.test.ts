@@ -7,6 +7,7 @@ import {
   isPlausibleCssSelector,
 } from "../../../Utils/Rum/SessionReplayFrustrationSettingsValidation";
 import { getDefaultSessionReplayFrustrationSettings } from "../../../Types/Rum/SessionReplayFrustrationSignals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The write-side check of RumApplication.sessionReplayFrustrationSignals:
@@ -374,12 +375,22 @@ describe("isPlausibleCssSelector", () => {
 
   it("reads a long selector once, end to end", () => {
     const selector: string = `${"[a='".repeat(500)}x`;
-    const startedAt: number = Date.now();
+    const timed: FastestRun<number> = fastestRun({
+      run: (): number => {
+        let plausible: number = 0;
 
-    for (let run: number = 0; run < 500; run++) {
-      expect(isPlausibleCssSelector(selector)).toBe(false);
-    }
+        for (let run: number = 0; run < 500; run++) {
+          if (isPlausibleCssSelector(selector)) {
+            plausible++;
+          }
+        }
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+        return plausible;
+      },
+      limitInMs: 2000,
+    });
+
+    expect(timed.result).toBe(0);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

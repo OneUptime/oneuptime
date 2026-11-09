@@ -153,10 +153,10 @@ holds what the page sends to what the person did:
   application's own: names that counted as frustration and a marker.
 - **`?lang=<language>`** draws any page in a Dashboard language, from its
   locale file (`/locales/<language>.json`), with `<html lang>` and `dir`
-  set as the Dashboard sets them: `?lang=fa` reads right to left. With
-  `?theme=dark` it is what the page's screenshots under
-  `frustration-signals/` are for: 1280, 1024, 768 and 390 pixels wide,
-  light and dark, German and Persian, and a failed read.
+  set by the Dashboard's own `setPageLanguage`: `?lang=fa` and `?lang=ar`
+  read right to left. With `?theme=dark` it is what the page's screenshots
+  under `frustration-signals/` are for: 1280, 1024, 768 and 390 pixels
+  wide, light and dark, German and Persian, and a failed read.
 
 Screenshots are written to `output/playwright/session-replay-ui/`. They are
 production UI screenshots with synthetic data, not screenshots of a separate

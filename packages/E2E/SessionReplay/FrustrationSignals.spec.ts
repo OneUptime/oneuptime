@@ -453,6 +453,12 @@ test("draws the page at each width, light and dark, in German and Persian, for t
       await expectNoSidewaysScroll(page);
     }
 
+    // The Persian shots are of the page laid out right to left.
+    await expect(page.locator("html")).toHaveAttribute(
+      "dir",
+      shot.query.includes("lang=fa") ? "rtl" : "ltr",
+    );
+
     await page.screenshot({
       path: path.join(artifacts, `${shot.name}.png`),
       fullPage: true,
