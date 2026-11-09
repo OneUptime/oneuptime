@@ -60,6 +60,8 @@ import { SparklinePoint } from "./MetricSparkline";
 import MetricUtil from "./Utils/Metrics";
 import {
   FetchMetricRowValueOverrides,
+  GetMetricRowAggregation,
+  MetricRowAggregation,
   MetricRowValueOverride,
   MetricRowValueOverrideMap,
   getMetricServiceIdsByName,
@@ -155,6 +157,7 @@ async function fetchEntityScopedSparklineAggregates(data: {
   startAndEndDate: InBetween<Date>;
   entityKeys: Array<string>;
   entityScope?: EntityScopeFilter | undefined;
+  getAggregationType: (metricName: string) => MetricsAggregationType;
 }): Promise<Map<string, AggregatedResult>> {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   if (!projectId || data.metricNames.length === 0) {
@@ -187,7 +190,7 @@ async function fetchEntityScopedSparklineAggregates(data: {
               modelType: Metric,
               aggregateBy: {
                 query,
-                aggregationType: MetricsAggregationType.Avg,
+                aggregationType: data.getAggregationType(name),
                 aggregateColumnName: "value",
                 aggregationTimestampColumnName: "time",
                 startTimestamp: data.startAndEndDate.startValue,
@@ -512,6 +515,20 @@ interface Props {
    * same kind of number. Unset: no caption, as before.
    */
   defaultRowValueCaption?: string | undefined;
+  /*
+   * The aggregation a row reads its metric with, for a host that knows a
+   * metric's series are parts of one number (Utils/MetricRowScope): a
+   * Service Bus namespace's messages arrive once per queue, and the
+   * namespace's count is their sum, not the average queue. Such a row's
+   * sparkline and value are read with it, its caption says so, and a click
+   * opens the explorer with it, so a monitor created from there reads the
+   * same. It is asked with the range the list reads, as a sum of a level
+   * holds at one-minute intervals only. A row the host computes itself
+   * (fetchRowValueOverrides) keeps the host's value. Undefined for a name:
+   * the per-bucket average of every series, as before. Must be
+   * referentially stable: the sparklines refetch when it changes.
+   */
+  getRowAggregation?: GetMetricRowAggregation | undefined;
   /*
    * The unit a row's value is in, for a host that knows a metric's declared
    * unit is wrong in its scope (MariaDB reports `mysql.buffer_pool.limit`,
@@ -1463,6 +1480,31 @@ const MetricsViewer: FunctionComponent<Props> = (
           },
         );
 
+        // How each of the others is read: the host's aggregation, or Avg.
+        const rowAggregations: Map<string, MetricRowAggregation> = new Map();
+        if (props.getRowAggregation) {
+          for (const name of defaultNames) {
+            const rowAggregation: MetricRowAggregation | undefined =
+              props.getRowAggregation(
+                name,
+                new InBetween<Date>(dateRange.startValue, dateRange.endValue),
+              );
+            if (rowAggregation) {
+              rowAggregations.set(name, rowAggregation);
+            }
+          }
+        }
+        const getAggregationType: (
+          metricName: string,
+        ) => MetricsAggregationType = (
+          metricName: string,
+        ): MetricsAggregationType => {
+          return (
+            rowAggregations.get(metricName)?.aggregationType ||
+            MetricsAggregationType.Avg
+          );
+        };
+
         /*
          * Backend-aggregated fetch (one parallel call per metric name).
          * The previous getList path with `limit: 5000` truncated by
@@ -1488,6 +1530,7 @@ const MetricsViewer: FunctionComponent<Props> = (
                   ),
                   entityKeys,
                   entityScope: entityScope,
+                  getAggregationType: getAggregationType,
                 })
               : await MetricUtil.fetchSparklineAggregates({
                   metricNames: defaultNames,
@@ -1497,6 +1540,7 @@ const MetricsViewer: FunctionComponent<Props> = (
                     dateRange.startValue,
                     dateRange.endValue,
                   ),
+                  getAggregationType: getAggregationType,
                 });
 
         const last: Record<string, number> = {};
@@ -1522,6 +1566,11 @@ const MetricsViewer: FunctionComponent<Props> = (
               caption: override.caption,
             };
             continue;
+          }
+          const rowAggregation: MetricRowAggregation | undefined =
+            rowAggregations.get(name);
+          if (rowAggregation) {
+            labels[name] = { caption: rowAggregation.caption };
           }
           const aggregated: AggregatedResult = aggregates.get(name) || {
             data: [],
@@ -1570,6 +1619,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     entityScope,
     attributeFilters,
     props.fetchRowValueOverrides,
+    props.getRowAggregation,
   ]);
 
   // Facet configs
@@ -1820,9 +1870,21 @@ const MetricsViewer: FunctionComponent<Props> = (
         }
       }
 
+      /*
+       * The aggregation the row was read with over this range, so the chart
+       * - and a monitor created from it - reads the number the row showed.
+       */
+      const rowAggregation: MetricRowAggregation | undefined =
+        props.getRowAggregation
+          ? props.getRowAggregation(
+              metric.name || "",
+              RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange),
+            )
+          : undefined;
       const queryPayload: Record<string, unknown> = {
         metricName: metric.name || "",
-        aggregationType: MetricsAggregationType.Avg,
+        aggregationType:
+          rowAggregation?.aggregationType || MetricsAggregationType.Avg,
       };
       if (Object.keys(presetAttributes).length > 0) {
         queryPayload["attributes"] = presetAttributes;
@@ -1917,6 +1979,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       props.entityKeyDisplays,
       entityScope,
       JSON.stringify(props.eventScope || {}),
+      props.getRowAggregation,
     ],
   );
 

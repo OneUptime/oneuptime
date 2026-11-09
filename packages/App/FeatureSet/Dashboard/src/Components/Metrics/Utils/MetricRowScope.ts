@@ -1,5 +1,6 @@
 import Service from "Common/Models/DatabaseModels/Service";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import { SparklinePoint } from "../MetricSparkline";
 
 /*
@@ -21,6 +22,13 @@ import { SparklinePoint } from "../MetricSparkline";
  *    Database catalog: a total across databases, a counter as a per-second
  *    rate) hands over its own points for the names it knows, with a suffix
  *    ("/s") and a one-line caption saying what the number is.
+ *
+ * 3. A row's aggregation. A host whose metrics are read right by another
+ *    aggregation than the average - a Service Bus namespace's messages arrive
+ *    once per queue, and the namespace's number is their sum - names it per
+ *    metric: the list reads the row's sparkline and value with it, captions
+ *    it, and opens the explorer with it, so a monitor created from there
+ *    reads the same number.
  */
 
 export interface MetricRowValueOverride {
@@ -39,6 +47,22 @@ export type FetchMetricRowValueOverrides = (data: {
   metricNames: Array<string>;
   startAndEndDate: InBetween<Date>;
 }) => Promise<MetricRowValueOverrideMap>;
+
+export interface MetricRowAggregation {
+  aggregationType: MetricsAggregationType;
+  // One short line under the value saying what it is ("total of series").
+  caption?: string | undefined;
+}
+
+/*
+ * The aggregation a row reads its metric with over the range the list reads
+ * (an aggregation may hold at some interval lengths only); undefined keeps
+ * the list's own, the average of every series.
+ */
+export type GetMetricRowAggregation = (
+  metricName: string,
+  startAndEndDate: InBetween<Date>,
+) => MetricRowAggregation | undefined;
 
 /**
  * metric name → the ids of the services that reported it, from rows of a

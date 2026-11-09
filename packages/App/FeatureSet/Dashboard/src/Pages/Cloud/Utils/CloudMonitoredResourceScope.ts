@@ -1,5 +1,12 @@
 import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKind";
 import {
+  getCloudResourceMetricAggregation,
+  hasCloudResourceSummedMetrics,
+} from "Common/Types/Cloud/CloudResourceMetricAggregation";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import {
   AWS_CLOUDWATCH_DIMENSION_PREFIX,
   AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE,
   AWS_JSON_INSTANCE_ID_ATTRIBUTE,
@@ -11,6 +18,10 @@ import {
   SERVICE_NAME_ATTRIBUTE,
 } from "Common/Types/Cloud/CloudMonitoredResource";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  GetMetricRowAggregation,
+  MetricRowAggregation,
+} from "../../../Components/Metrics/Utils/MetricRowScope";
 
 /*
  * How a Cloud Resource - one IaaS or PaaS resource discovered from Azure
@@ -119,4 +130,74 @@ export function getCloudMonitoredResourceAttributeDisplayKeys(
   }
 
   return displayKeys;
+}
+
+/*
+ * How a resource's metric rows read (MetricsViewer's getRowAggregation and
+ * defaultRowValueCaption), for a resource whose metrics arrive once per part
+ * of it: a Service Bus or Event Hubs namespace's, once per queue, topic and
+ * event hub (CloudResourceMetricAggregation). Each metric whose parts add up
+ * reads as their total, its row saying "total of series", and opens the
+ * explorer - and a monitor created from it - with Sum: a count over any
+ * range, an amount held (messages waiting) over a range read by the minute,
+ * up to 3 hours. Each other row says it is the "average of series".
+ * Undefined for every other resource, whose rows read and caption exactly
+ * as they did.
+ */
+export interface CloudMonitoredResourceRowAggregation {
+  getRowAggregation: GetMetricRowAggregation;
+  defaultRowValueCaption: string;
+}
+
+export const CLOUD_RESOURCE_SUMMED_ROW_CAPTION: string =
+  translationKey("total of series");
+export const CLOUD_RESOURCE_AVERAGED_ROW_CAPTION: string =
+  translationKey("average of series");
+
+export interface CloudMonitoredResourceAggregationSource {
+  cloudProvider?: unknown;
+  cloudResourceType?: unknown;
+}
+
+export function getCloudMonitoredResourceRowAggregation(
+  source: CloudMonitoredResourceAggregationSource | null | undefined,
+): CloudMonitoredResourceRowAggregation | undefined {
+  const provider: string =
+    typeof source?.cloudProvider === "string" ? source.cloudProvider : "";
+  const type: string =
+    typeof source?.cloudResourceType === "string"
+      ? source.cloudResourceType
+      : "";
+
+  if (!hasCloudResourceSummedMetrics({ provider, type })) {
+    return undefined;
+  }
+
+  return {
+    getRowAggregation: (
+      metricName: string,
+      startAndEndDate: InBetween<Date>,
+    ): MetricRowAggregation | undefined => {
+      const aggregationType: AggregationType | undefined =
+        getCloudResourceMetricAggregation({
+          provider,
+          type,
+          metricName,
+          // The intervals the aggregate API reads this range in.
+          aggregationInterval:
+            AggregationIntervalUtil.getAggregationIntervalForWindow({
+              startDate: startAndEndDate.startValue,
+              endDate: startAndEndDate.endValue,
+            }),
+        });
+
+      return aggregationType
+        ? {
+            aggregationType: aggregationType,
+            caption: CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
+          }
+        : undefined;
+    },
+    defaultRowValueCaption: CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
+  };
 }
