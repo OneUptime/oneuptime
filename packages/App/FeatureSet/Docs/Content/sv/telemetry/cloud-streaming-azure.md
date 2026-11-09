@@ -1,6 +1,6 @@
 # Strömma Azure Monitor-mätvärden och -loggar
 
-En ansluten Azure-prenumeration kan strömma sina Azure Monitor-mätvärden och resursloggar till OneUptime. Diagnostikinställningar skickar dem till händelsehubbar i din prenumeration, och OneUptime läser händelsehubbarna varje minut: nyckelmätvärden kommer några minuter efter att Azure Monitor har dem, i stället för vid anslutningens nästa läsning, och resursloggar kommer som OneUptime-loggar, var och en arkiverad under den resurs den gäller. Ett kommando i Azure Cloud Shell konfigurerar allt, och det finns inget att köra.
+En ansluten Azure-prenumeration kan strömma sina Azure Monitor-mätvärden och resursloggar till OneUptime. Diagnostikinställningar skickar dem till händelsehubbar i din prenumeration, och OneUptime läser händelsehubbarna varje minut: de flesta nyckelmätvärden kommer några minuter efter att Azure Monitor har dem, i stället för vid anslutningens nästa läsning, och resursloggar kommer som OneUptime-loggar, var och en arkiverad under den resurs den gäller. Ett kommando i Azure Cloud Shell konfigurerar allt, och det finns inget att köra.
 
 :::cards
 - [Så fungerar det](#så-fungerar-det): Diagnostikinställningar skickar till en händelsehubb i varje region, och OneUptime läser dem.
@@ -22,7 +22,7 @@ flowchart TB
 
 - **En händelsehubb i varje region.** En diagnostikinställning skickar bara till en händelsehubb i resursens egen region, så kommandot skapar en Event Hubs-namnrymd i varje region där dina resurser finns, alla i en resursgrupp, och riktar varje resurs diagnostikinställning mot händelsehubben i dess region.
 - **OneUptime läser dem.** Azure Monitor skickar bara till en händelsehubb, ett lagringskonto eller en Log Analytics-arbetsyta, aldrig till en adress hos dig: en händelsehubb som OneUptime läser är vägen där du inte behöver köra något. OneUptime loggar in som anslutningens egen app, som får läsa de händelsehubbarna och inget annat.
-- **Läsningarna lämnar strömmade mätvärden åt strömmen.** Medan strömmen levererar en resurstyps nyckelmätvärden i en region slutar anslutningens läsningar att skriva dem, så ingen datapunkt räknas två gånger. Läsningarna fortsätter att hitta resurser, deras tillstånd och deras ändringar, och tar tillbaka mätvärdena efter 15 minuter utan någon händelse.
+- **Läsningarna lämnar strömmade mätvärden åt strömmen.** Medan strömmen levererar en resurstyps nyckelmätvärden i en region slutar anslutningens läsningar att skriva dem som den bär, så ingen datapunkt räknas två gånger, och fortsätter att skriva [dem som den inte kan bära](#vad-som-kommer). Läsningarna fortsätter att hitta resurser, deras tillstånd och deras ändringar, och tar tillbaka mätvärdena efter 15 minuter utan någon händelse.
 - **Ingenting går förlorat medan OneUptime inte kan läsa.** Händelser väntar i händelsehubbarna tills OneUptime läser dem, så länge händelsehubbarna sparar dem, och OneUptime minns hur långt det har läst varje partition, så att det fortsätter där det slutade.
 
 ## Innan du börjar
@@ -41,7 +41,7 @@ Gå till **Moln → Anslut** och välj **Strömma mätvärden och loggar** på A
 
 ### Välj vad som ska strömmas
 
-**Mätvärden** strömmar varje nyckelmätvärde för varje resurs, minut för minut: de mätvärden som OneUptime visar och bedömer varje resurs efter. **Mätvärden och loggar** lägger till varje resurs egna loggar, varje kategori som Azure för för den, och **Loggar** strömmar bara resursloggar.
+**Mätvärden** strömmar varje resurs nyckelmätvärden, minut för minut, de mätvärden som OneUptime visar och bedömer varje resurs efter, utom [dem som en diagnostikinställning inte kan skicka](#vad-som-kommer), som anslutningen fortsätter att läsa. **Mätvärden och loggar** lägger till varje resurs egna loggar, varje kategori som Azure för för den, och **Loggar** strömmar bara resursloggar.
 
 ### Slå på läsning
 
@@ -75,7 +75,20 @@ När den första prenumerationen inte är den där OneUptime läser händelsehub
 | Resursloggar | I loggutforskaren, under anslutningens telemetritjänst, med prenumerationen, regionen och kategorin som attribut |
 | Loggar för en resurs som OneUptime känner till | Också på den resursen: dess sida i Moln får en flik **Loggar** |
 
-Strömmen bär nyckelmätvärdena som anslutningen läser minut för minut. Ett mätvärde som den läser med grövre upplösning, till exempel ett lagringskontos använda kapacitet, stannar hos läsningarna. En logg arkiveras under sin resurs efter resursens ARM-id, som bärs som `cloud.resource_id`, och behåller sin kategori, åtgärd, resultat och egenskaper som attribut, till exempel `azure.category`.
+Strömmen bär nyckelmätvärdena som anslutningen läser minut för minut. Läsningarna fortsätter att skriva resten enligt sitt schema: ett mätvärde som de läser med grövre upplösning, till exempel ett containerregisters använda lagring, och varje nyckelmätvärde som en diagnostikinställning inte kan skicka, som Azure Monitors lista över mätvärden som stöds markerar som inte exporterbart i kolumnen DS Export:
+
+- Virtuella datorer och skalningsuppsättningar: `Network In Total`, `Network Out Total`.
+- Diskar: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
+- Azure Cosmos DB-konton: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
+- Lagringskonton: `UsedCapacity`.
+- AKS-kluster: `kube_pod_status_ready`.
+- Programgatewayer: `ApplicationGatewayTotalTime`, `Throughput`.
+- Brandväggar: `Throughput`.
+- NAT-gatewayer: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+
+En Service Bus- eller Event Hubs-namnrymd strömmar inga mätvärden. Läsningarna läser dess nyckelmätvärden för varje kö, topic och händelsehubb, och namnrymdens egna totaler summerar dem, medan en diagnostikinställning bara skickar namnrymdens totaler, och inte alls 4 av en Service Bus-namnrymds 6 nyckelmätvärden eller 2 av en Event Hubs-namnrymds 4. Så läsningarna skriver alla, med eller utan strömning, och inget meddelande räknas två gånger.
+
+En logg arkiveras under sin resurs efter resursens ARM-id, som bärs som `cloud.resource_id`, och behåller sin kategori, åtgärd, resultat och egenskaper som attribut, till exempel `azure.category`.
 
 Virtuella datorer, skalningsuppsättningar, diskar, nätverksgränssnitt, virtuella nätverk, privata slutpunkter, NAT-gatewayer, DNS-zoner och App Service-planer skickar inga egna resursloggar, så deras sidor har ingen flik **Loggar**. Ett lagringskontos loggar är dess tjänsters, och en containerapps loggar är dess miljös.
 

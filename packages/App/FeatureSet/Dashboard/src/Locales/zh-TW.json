@@ -45713,7 +45713,7 @@
   "Event hub": "事件中樞",
   "Every entry of severity WARNING or above: what went wrong, not every request.": "嚴重性為 WARNING 或以上的每個項目：只有出問題的部分，而非每個請求。",
   "Every entry the projects write but the Data Access audit logs, which record every read. A busy project's logs can cost far more.": "專案寫入的每個項目，但不含記錄每次讀取的 Data Access 稽核日誌。繁忙專案的日誌費用可能高出許多。",
-  "Every key metric of every resource, a minute at a time: what OneUptime charts and judges each resource by.": "每個資源的每個關鍵指標，每分鐘一次：OneUptime 據此繪製圖表並評估每個資源。",
+  "The key metrics Azure can stream, a minute at a time: the connection keeps reading the rest.": "Azure 能夠串流的關鍵指標，每分鐘一次：其餘的由連線繼續讀取。",
   "Every log": "所有日誌",
   "Every stream key of {{name}} stops working at once, and what Pub/Sub pushes is refused from now on. What was delivered stays.": "{{name}} 的所有串流金鑰會立即失效，從現在起 Pub/Sub 推送的內容都會遭拒。已傳送的內容會保留。",
   "Have Cloud Logging push its logs through Pub/Sub as they are written.": "讓 Cloud Logging 在日誌寫入時立即透過 Pub/Sub 推送。",

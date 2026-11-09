@@ -45713,7 +45713,7 @@
   "Event hub": "Концентратор событий",
   "Every entry of severity WARNING or above: what went wrong, not every request.": "Все записи с уровнем WARNING и выше: то, что пошло не так, а не каждый запрос.",
   "Every entry the projects write but the Data Access audit logs, which record every read. A busy project's logs can cost far more.": "Все записи, которые пишут проекты, кроме журналов аудита Data Access, где фиксируется каждое чтение. Журналы загруженного проекта могут стоить гораздо дороже.",
-  "Every key metric of every resource, a minute at a time: what OneUptime charts and judges each resource by.": "Каждая ключевая метрика каждого ресурса, поминутно: то, по чему OneUptime строит графики и оценивает каждый ресурс.",
+  "The key metrics Azure can stream, a minute at a time: the connection keeps reading the rest.": "Ключевые метрики, которые Azure может передавать потоком, поминутно: остальные подключение продолжает читать.",
   "Every log": "Все журналы",
   "Every stream key of {{name}} stops working at once, and what Pub/Sub pushes is refused from now on. What was delivered stays.": "Все ключи потока {{name}} сразу перестают работать, и отправки Pub/Sub с этого момента отклоняются. Доставленное сохраняется.",
   "Have Cloud Logging push its logs through Pub/Sub as they are written.": "Пусть Cloud Logging отправляет журналы через Pub/Sub сразу после их записи.",

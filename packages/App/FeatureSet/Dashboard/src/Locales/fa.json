@@ -45713,7 +45713,7 @@
   "Event hub": "هاب رویداد",
   "Every entry of severity WARNING or above: what went wrong, not every request.": "هر مدخل با شدت WARNING یا بالاتر: آنچه خراب شد، نه هر درخواست.",
   "Every entry the projects write but the Data Access audit logs, which record every read. A busy project's logs can cost far more.": "هر مدخلی که پروژه‌ها می‌نویسند جز لاگ‌های حسابرسی Data Access، که هر خواندن را ثبت می‌کنند. لاگ‌های یک پروژه پرکار می‌تواند بسیار گران‌تر تمام شود.",
-  "Every key metric of every resource, a minute at a time: what OneUptime charts and judges each resource by.": "هر متریک کلیدی هر منبع، دقیقه به دقیقه: همان چیزی که OneUptime بر اساس آن نمودار هر منبع را می‌کشد و آن را می‌سنجد.",
+  "The key metrics Azure can stream, a minute at a time: the connection keeps reading the rest.": "متریک‌های کلیدی‌ای که Azure می‌تواند جریان دهد، دقیقه به دقیقه: بقیه را اتصال همچنان می‌خواند.",
   "Every log": "همه لاگ‌ها",
   "Every stream key of {{name}} stops working at once, and what Pub/Sub pushes is refused from now on. What was delivered stays.": "همه کلیدهای جریان {{name}} بی‌درنگ از کار می‌افتند و از این پس آنچه Pub/Sub ارسال می‌کند رد می‌شود. آنچه تحویل شده باقی می‌ماند.",
   "Have Cloud Logging push its logs through Pub/Sub as they are written.": "بگذارید Cloud Logging لاگ‌هایش را همان لحظه که نوشته می‌شوند از راه Pub/Sub ارسال کند.",
