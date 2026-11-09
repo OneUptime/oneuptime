@@ -657,11 +657,12 @@ describe("InfrastructureInvestigationToolkit run_infrastructure_command", () => 
   });
 
   /*
-   * No time limit is the default: without a deadline the wait is planned
-   * without one, and however long the run has been going a command is
-   * never refused for time.
+   * A toolkit given no deadline plans the wait without one, and however
+   * long the run has been going a command is never refused for time. (Every
+   * run passes one: its time limit, 120 minutes unless the project set its
+   * own.)
    */
-  it("has no deadline by default, so an unlimited run never refuses for time", async () => {
+  it("has no deadline when given none, so such a run never refuses for time", async () => {
     const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
     const kit: InfrastructureInvestigationToolkit = toolkit([status()]);
 

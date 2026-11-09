@@ -213,7 +213,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
           cardProps={{
             title: "Investigation limits",
             description:
-              "Investigations start right away and run until they are done unless you set a limit here.",
+              "Investigations start right away and run until they are done, within the project's time limit per run, unless you set a limit here.",
             buttons: limitsGate.lockedButtons,
             /*
              * Its place in More settings: the name the folded header lists
@@ -242,10 +242,10 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Alert Investigation Time Limit (Minutes)",
               description:
-                "Stop an alert investigation after this many minutes and report what it found. Leave empty for no limit.",
+                "Stop an alert investigation after this many minutes and report what it found. Leave empty for the project's time limit per run, 120 minutes unless it set its own.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
-              placeholder: "No time limit",
+              placeholder: "The project's time limit",
             },
           ]}
           modelDetailProps={{
@@ -268,7 +268,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
                   alertAiInvestigationTimeLimitInMinutes: true,
                 },
                 title: "Alert Investigation Time Limit (Minutes)",
-                placeholder: "No time limit",
+                placeholder: "The project's time limit",
                 fieldType: FieldType.Number,
               },
             ],

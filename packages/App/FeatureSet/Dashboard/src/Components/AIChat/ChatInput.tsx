@@ -22,7 +22,7 @@ export interface ComponentProps {
   /*
    * When provided and a run is working, the send button becomes a Stop button
    * that cancels the in-flight run — operators learn things mid-investigation
-   * and should never be locked out for the full turn budget.
+   * and should never have to wait out the turn.
    */
   onStop?: (() => void) | undefined;
   isStopping?: boolean | undefined;

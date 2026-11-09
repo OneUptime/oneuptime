@@ -316,7 +316,8 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
   /*
    * Auto-remediation command composition/execution
    * (RemediationExecutionRunner). Same trigger shape as planning, with a
-   * larger per-run tool budget — the daily subject lane must cover it.
+   * run that may make as many tool calls as the fix needs — the daily subject
+   * lane must cover it.
    */
   AI_REMEDIATION_EXECUTION_FEATURE,
   /*

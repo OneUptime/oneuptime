@@ -71,9 +71,10 @@ export { CLUSTER_TOOL_NAMES, isClusterToolName } from "../AI/ClusterToolFormat";
  * own events. The server records a command that reached kubectl as a
  * completed call (rowCount 1 when it succeeded, 0 when kubectl returned an
  * error), a command that never reached kubectl — refused, never picked up
- * by the cluster's Runner, or out of budget — as a failed call, and a
- * command a Runner took whose result never came back as a failed call
- * marked "result unknown". The three are never confused for one another.
+ * by the cluster's Runner, or past the run's time limit or a cap the
+ * project set — as a failed call, and a command a Runner took whose result
+ * never came back as a failed call marked "result unknown". The three are
+ * never confused for one another.
  */
 export interface KubectlActivitySummary {
   // run_kubectl calls that ran on the cluster.

@@ -12,10 +12,17 @@ import {
   EnableAiCopy,
   getProjectAiDailyLimitColumns,
   getProjectAiDailyLimitFieldError,
+  getProjectAiRunLimitFieldError,
+  getProjectAiRunLimitsFoldedItem,
+  getProjectAiRunLimitsFromItem,
   PROJECT_AI_ADVANCED_SECTION_TEST_ID,
   PROJECT_AI_DAILY_LIMITS_CARD_KEY,
+  PROJECT_AI_RUN_LIMIT_FIELDS,
+  PROJECT_AI_RUN_LIMITS_CARD_KEY,
   ProjectAiDailyLimitsCopy,
   ProjectAiNoticeContext,
+  ProjectAiRunLimitField,
+  ProjectAiRunLimitsCopy,
 } from "../../Components/AISettings/ProjectAiSettingsCopy";
 import useProjectAiDailyLimits, {
   ProjectAiDailyLimitsSection,
@@ -33,6 +40,10 @@ import {
   PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
   PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
 } from "Common/Types/AI/ProjectAiDailyLimits";
+import {
+  PROJECT_AI_RUN_LIMIT_COLUMNS,
+  ProjectAiRunLimitValues,
+} from "Common/Types/AI/ProjectAiRunLimits";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -79,7 +90,15 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * today. The card writes the limit columns alone, and like Enable AI they
  * take Project Owner or Manage Billing, so its Edit is gated on them.
  *
- * Beside them under More settings, Fix approvals (#6148's follow-up): one
+ * Beside them, Limits per run (issue #6440): how far one OneUptime AI run
+ * may go - its model calls, tool calls, tokens and time - for every kind of
+ * run, from an investigation to a code task. None is set by default: a run
+ * goes as far as its work needs, and only its time limit (120 minutes
+ * unless set) and loop detection stop it. A run a limit stops says which
+ * one, linked here (ProjectAiRunLimitsCopy). The card writes its four
+ * columns alone, which take Project Owner or Manage Billing.
+ *
+ * Then, under the same More settings, Fix approvals (#6148's follow-up): one
  * switch, off by default, that asks two people to approve a fix OneUptime
  * AI proposes when it holds a riskier change (FixApprovalsCopy). Folded,
  * the header says "Fix approvals: Two people" while it is on.
@@ -95,10 +114,53 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isTwoApprovalsOn, setIsTwoApprovalsOn] = useState<boolean | null>(
     null,
   );
+  /*
+   * The limits per run as the card last read them: the folded header shows
+   * a chip on the card's name once one is set.
+   */
+  const [runLimits, setRunLimits] = useState<ProjectAiRunLimitValues | null>(
+    null,
+  );
 
   if (!projectId) {
     return <></>;
   }
+
+  const runLimitsGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
+    fields: [...PROJECT_AI_RUN_LIMIT_COLUMNS],
+    buttonTitle: "Edit",
+  });
+
+  const runLimitFormFields: Fields<Project> = PROJECT_AI_RUN_LIMIT_FIELDS.map(
+    (limit: ProjectAiRunLimitField) => {
+      return {
+        field: { [limit.column]: true },
+        title: limit.title,
+        description: limit.description,
+        required: false,
+        fieldType: FormFieldSchemaType.Number,
+        placeholder: limit.placeholder,
+        customValidation: (values: FormValues<Project>): string | null => {
+          return getProjectAiRunLimitFieldError({
+            column: limit.column,
+            value: (values as Record<string, unknown>)[limit.column],
+            fieldTitle: limit.title,
+            translator,
+          });
+        },
+      };
+    },
+  ) as Fields<Project>;
+
+  const runLimitDetailFields: Array<Field<Project>> =
+    PROJECT_AI_RUN_LIMIT_FIELDS.map((limit: ProjectAiRunLimitField) => {
+      return {
+        field: { [limit.column]: true },
+        title: limit.title,
+        placeholder: limit.placeholder,
+        fieldType: FieldType.Number,
+      };
+    }) as Array<Field<Project>>;
 
   /*
    * Spend is offered only where AI is billed: elsewhere nothing is spent,
@@ -214,6 +276,7 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
         description={ProjectAiDailyLimitsCopy.sectionDescription}
         items={[
           ...dailyLimits.items,
+          getProjectAiRunLimitsFoldedItem(runLimits),
           getFixApprovalsFoldedItem(isTwoApprovalsOn),
         ]}
         summary={dailyLimits.summary}
@@ -241,6 +304,38 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
             id: "model-detail-project-ai-daily-limits",
             onItemLoaded: dailyLimits.onCardLoaded,
             fields: detailFields,
+            modelId: projectId,
+          }}
+        />
+
+        {/*
+         * How far one run may go (issue #6440): nothing set by default, so
+         * a run is held only to its time limit and loop detection. Its
+         * place is where a run a limit stopped links to.
+         */}
+        <CardModelDetail<Project>
+          name="Project AI Limits per Run"
+          cardProps={{
+            title: ProjectAiRunLimitsCopy.cardTitle,
+            description: ProjectAiRunLimitsCopy.cardDescription,
+            buttons: runLimitsGate.lockedButtons,
+            id: PROJECT_AI_RUN_LIMITS_CARD_KEY,
+          }}
+          isEditable={runLimitsGate.isEditable}
+          editButtonText="Edit"
+          editModalTitle={ProjectAiRunLimitsCopy.cardTitle}
+          formFields={runLimitFormFields}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-ai-run-limits",
+            onItemLoaded: (item: Project): void => {
+              setRunLimits(
+                getProjectAiRunLimitsFromItem(
+                  item as unknown as Record<string, unknown>,
+                ),
+              );
+            },
+            fields: runLimitDetailFields,
             modelId: projectId,
           }}
         />

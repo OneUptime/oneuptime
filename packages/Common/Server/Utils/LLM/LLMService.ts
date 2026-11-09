@@ -2436,7 +2436,7 @@ export default class LLMService {
        * Anthropic requires strictly alternating user/assistant turns and
        * returns a 400 on two consecutive same-role messages. The agent loop
        * can legitimately emit back-to-back user turns (e.g. a tool_result
-       * user message immediately followed by the "budget exhausted, answer
+       * user message immediately followed by the "time limit reached, answer
        * now" nudge), so coalesce a run of same-role messages into one instead
        * of failing the whole request.
        */

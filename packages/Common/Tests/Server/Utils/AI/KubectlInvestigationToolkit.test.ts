@@ -1358,10 +1358,10 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () 
   });
 
   /*
-   * No time limit is the default: what the runners derive for a project
-   * that configured none is no deadline at all, and a toolkit without one
-   * plans without a deadline and never refuses a command for time — however
-   * long the run has been going.
+   * What the runners derive for a project that configured nothing is the
+   * time limit per run, 120 minutes (issue #6440). A toolkit given no
+   * deadline at all plans without one and never refuses a command for
+   * time, however long the run has been going.
    */
   it("every run's default deadline is 120 minutes on, and a toolkit given none never refuses for time", async () => {
     // What an investigation's runner passes when the project set nothing.

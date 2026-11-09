@@ -77,7 +77,7 @@ import { getAiContextEventSummary } from "../AiContext/AiContextPrompt";
  * for both incidents and alerts (and, later, anomalies). It:
  *   1. records the run as an AIRun(Investigation) + AIRunEvents (audit trail),
  *   2. runs the existing read-only, tool-grounded, citation-minting agent loop
- *      (ObservabilityAssistant) with the AI persona and a larger budget,
+ *      (ObservabilityAssistant) with the AI persona and the run limits,
  *   3. brands the cited analysis, judges confidence via the structured
  *      ConfidenceSignal (deterministic evidence floor + one constrained
  *      classification call — G6: no control flow from free-form prose), and
