@@ -130,21 +130,35 @@ async function resolveOtelBody(
     );
   }
 
-  const decoded: OtelDecodedPayload =
-    await OtelPayloadDecoder.decodeFromQueueMeasured({
+  const decodeInput: Parameters<typeof OtelPayloadDecoder.decodeFromQueue>[0] =
+    {
       productType: jobData.productType,
       format: jobData.bodyFormat,
       encoding: jobData.bodyEncoding ?? "none",
       bodyKey: jobData.bodyKey,
+    };
+
+  let body: JSONObject;
+
+  /*
+   * Only a body counted against an ingestion budget at an estimate carries a
+   * charge to settle, and only that one needs its inflated size measured;
+   * every other job decodes exactly as it did before budgets existed.
+   */
+  if (jobData.ingestionBudgetCharge) {
+    const decoded: OtelDecodedPayload =
+      await OtelPayloadDecoder.decodeFromQueueMeasured(decodeInput);
+
+    await settleIngestionBudgetCharge({
+      jobData: jobData,
+      decodedBytes: decoded.decodedBytes,
+      isFirstAttempt: options?.isFirstAttempt !== false,
     });
 
-  await settleIngestionBudgetCharge({
-    jobData: jobData,
-    decodedBytes: decoded.decodedBytes,
-    isFirstAttempt: options?.isFirstAttempt !== false,
-  });
-
-  const body: JSONObject = decoded.body;
+    body = decoded.body;
+  } else {
+    body = await OtelPayloadDecoder.decodeFromQueue(decodeInput);
+  }
 
   applyPinnedServiceName(body, jobData);
 
