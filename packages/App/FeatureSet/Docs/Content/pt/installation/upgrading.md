@@ -435,6 +435,14 @@ Para manter os limites antigos, defina-os você mesmo: **Gravidade mínima para 
 
 As páginas de IA também mudaram nos menus laterais de Incidentes e Alertas. A seção **IA** de cada menu, logo depois de **Episódios** e recolhida até você abri-la, reúne tudo o que a OneUptime AI faz para aquele tipo de sinal: **Insights** e **Registros**, que são novas, depois **Configurações**, a página que se chamava **Investigação**, e **Regras de remediação automática**, a página que se chamava **Remediação**. Os endereços delas passaram de `…/settings/ai` e `…/settings/auto-remediation-rules` para `…/ai/settings` e `…/ai/auto-remediation-rules`. Os endereços antigos abrem as novas páginas, então os favoritos continuam funcionando.
 
+### As execuções de IA têm apenas um tempo limite
+
+Uma execução da OneUptime AI parava antes em números fixos, como 100 chamadas ao modelo e 300 chamadas de ferramentas em uma investigação, e 40 chamadas ao modelo e 100.000 tokens de saída em uma tarefa de código. Eles acabaram: uma execução agora faz quantas chamadas o seu trabalho precisar, por até 120 minutos. Uma investigação sem tempo limite definido, que antes não tinha nenhum, agora também para aos 120 minutos. A detecção de loops ainda interrompe uma investigação ou uma resposta que anda em círculos, e você pode interromper qualquer execução.
+
+Em um projeto existente, uma pergunta difícil pode agora levar mais chamadas do que antes, e portanto mais tokens e, no OneUptime Cloud, mais créditos de IA; os limites diários do projeto continuam limitando o dia. Para limitar mais cada execução, defina **Chamadas ao modelo por execução**, **Chamadas de ferramentas por execução**, **Tokens por execução** ou **Tempo limite por execução (minutos)** em **Configurações do projeto → IA → Recursos de IA**, em **Mais configurações**. Uma execução que atinge um deles responde com o que encontrou e diz qual limite a interrompeu. Nada é migrado: nenhum projeto tinha essas configurações antes.
+
+Um Runner anterior a esta versão ainda interrompe uma tarefa de código em 40 chamadas ao modelo e 100.000 tokens de saída; atualize-o para remover esses limites.
+
 ### Os AI Logs ganham um índice para os limites diários de IA
 
 Os limites diários de IA de um projeto (**Configurações do projeto → IA → Recursos de IA → Mais configurações**) e os limites diários de tokens de incidentes e alertas somam os AI Logs do dia antes de cada chamada de IA. Até agora isso lia todo AI Log que o projeto já tinha escrito, e uma instalação auto-hospedada guarda todos. A atualização adiciona um índice nos AI Logs (`LlmLog`), sobre o projeto e o horário de cada chamada, então cada verificação lê só os do dia. A página dos AI Logs também lista os logs de um projeto mais rápido.

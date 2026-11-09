@@ -15,7 +15,7 @@ Code ist der Ort, an dem Sie OneUptime AI bitten, in Ihren Repositorys zu arbeit
 :::
 
 > [!TIP]
-> Sie können das auch aus GitHub heraus starten. Erwähnen Sie die OneUptime GitHub App in einem Issue oder einem Pull Request, und sie implementiert, überarbeitet oder prüft direkt dort: siehe [GitHub App](/docs/ai/github-app). Es ist derselbe Agent, derselbe Runner und dasselbe Budget; nur der Auslöser unterscheidet sich.
+> Sie können das auch aus GitHub heraus starten. Erwähnen Sie die OneUptime GitHub App in einem Issue oder einem Pull Request, und sie implementiert, überarbeitet oder prüft direkt dort: siehe [GitHub App](/docs/ai/github-app). Es ist derselbe Agent, derselbe Runner und dieselben Limits; nur der Auslöser unterscheidet sich.
 
 ## KI in einem Repository bitten
 
@@ -97,7 +97,7 @@ flowchart TB
 
 Die Seite, auf der die Aufgabe gestartet wurde, zeigt ihren Live-Status. Jede Aufgabe steht in ihrem Repository unter **Produkte → Code**: Ihre Seite ist ihre Unterhaltung, und das **Protokoll** jedes Durchgangs hat eine Zeile für jede Datei, die der Runner gelesen oder geschrieben hat, und jeden Befehl, den er ausgeführt hat.
 
-Jeder Lauf unterliegt Budgets, die der Server durchsetzt: höchstens **40 LLM-Aufrufe** und **100.000 Ausgabe-Tokens**. Die Abfragen der Produktionstelemetrie eines Laufs zählen zu denselben 40 Aufrufen. Ein Lauf, der eines davon erreicht, endet mit einer Zusammenfassung der bisherigen Arbeit, statt in einer Schleife zu laufen. Korrekturläufe zählen auch zu den täglichen KI-Limits des Projekts, wenn das Projekt sie festlegt.
+Eine Ausführung macht so viele LLM-Aufrufe und Abfragen der Produktionstelemetrie, wie ihre Arbeit braucht, innerhalb ihres Zeitlimits: 120 Minuten, sofern das Projekt kein eigenes festlegt. Das Projekt kann jede Ausführung unter **Limits pro Ausführung** enger begrenzen, unter **Weitere Einstellungen** auf **Projekteinstellungen → KI → KI-Funktionen**; eine Ausführung, die ein Limit erreicht, endet mit einer Zusammenfassung der bisherigen Arbeit. Ein Runner von vor diesem Release stoppt eine Ausführung weiterhin bei 40 LLM-Aufrufen und 100.000 Ausgabe-Token: Aktualisieren Sie ihn, um diese Grenzen aufzuheben. Korrekturläufe zählen außerdem zu den täglichen KI-Limits des Projekts, wenn das Projekt sie festlegt.
 
 ## Wo Korrekturaufgaben starten
 
@@ -145,7 +145,7 @@ Was der Agent lesen darf, entscheidet der OneUptime-Server anhand der Aufgabe se
 - **Nur lesend.** Die Abfragen laufen auf dem OneUptime-Server, nie auf dem Runner, der keine Zugangsdaten besitzt, mit denen sich Telemetrie lesen lässt. Nichts, was sie tun, kann Ihr Projekt ändern.
 - **Dieses Projekt, und nur die Dienste, die zu diesem Repository gehören.** Sie müssen sie nicht zuordnen: Es sind die Dienste, für die OneUptime dieses Repository findet, so wie es das Repository einer Korrektur findet - die Stack-Traces ihrer Ausnahmen laufen durch seine Dateien, sie heißen wie das Repository, oder es ist das einzige Repository des Projekts. Die Telemetrie eines anderen Dienstes lässt sich nicht lesen.
 - **Keine privaten Vorfälle**, und Token, Schlüssel, Passwörter und E-Mail-Adressen werden geschwärzt, bevor der Agent ein Ergebnis sieht, wie überall, wo OneUptime AI Ihre Daten liest.
-- **Begrenzt.** Höchstens **12** Abfragen pro Lauf, von denen jede zu den 40 Aufrufen des Laufs zählt.
+- **Begrenzt.** Durch das Zeitlimit der Ausführung und durch **Tool-Aufrufe pro Ausführung**, wenn das Projekt es festlegt: Jede Abfrage ist ein Tool-Aufruf.
 
 Wenn kein Dienst zum Repository gehört, läuft die Aufgabe wie bisher ohne Produktionstelemetrie.
 
@@ -192,7 +192,7 @@ Nichts aus einem Pull Request, der aus einem Fork kommt, wird je als Anleitung d
 Code fragt nicht mehr nach Einrichtungs-, Build- und Testbefehlen, aber ein Repository, das sie hat, früher oder über die API oder Terraform gesetzt, behält sie. Sie stehen schreibgeschützt auf der Karte **Build- und Testbefehle** unter **Weitere Einstellungen** auf der Seite **Einstellungen** des Repositorys, und **Befehle entfernen** entfernt alle drei. Solange einer davon gesetzt ist, prüft jeder Korrekturlauf auf einem eigenen Runner seine Änderung auch damit, bevor der Pull Request geöffnet wird:
 
 1. Wenn der Code-Agent fertig ist, laufen die Befehle der Reihe nach im Stammverzeichnis des Repositorys, auf dem Runner, im geklonten Arbeitsbereich. Jeder bekommt bis zu 15 Minuten und läuft mit `CI=true`, sodass nichts auf eine Eingabe wartet; der erste Fehler beendet den Durchlauf.
-2. Bei einem Fehler geht das Ende der Ausgabe des fehlgeschlagenen Befehls als Reparaturaufgabe an denselben Code-Agenten zurück, mit der Anweisung, seine eigene Änderung zu korrigieren, statt Tests abzuschwächen oder zu überspringen, und die Befehle laufen erneut. Er unternimmt höchstens **2** Reparaturversuche. Sie teilen sich das LLM-Budget des Laufs, und ihre Änderungen landen im selben Commit wie die Korrektur.
+2. Bei einem Fehler geht das Ende der Ausgabe des fehlgeschlagenen Befehls als Reparaturaufgabe an denselben Code-Agenten zurück, mit der Anweisung, seine eigene Änderung zu korrigieren, statt Tests abzuschwächen oder zu überspringen, und die Befehle laufen erneut. Er unternimmt höchstens **2** Reparaturversuche. Sie zählen zu den Limits der Ausführung, und ihre Änderungen landen im selben Commit wie die Korrektur.
 3. Das Ergebnis, bestanden, fehlgeschlagen oder übersprungen (keine Befehle gesetzt oder ein globaler Runner), steht in einem Abschnitt Verification der Beschreibung des Pull Requests und wird am Pull Request der Aufgabe gespeichert.
 
 Eine Änderung, die die Prüfung weiterhin nicht besteht, wird nicht verworfen: Der Pull Request öffnet sich trotzdem, mit einem deutlich markierten Abschnitt "Verification failed", der den fehlgeschlagenen Befehl nennt und mit seiner Ausgabe endet. Die Arbeit bleibt erhalten, und der Prüfer entscheidet. Ein Repository ohne gesetzte Befehle wird als übersprungen gemeldet, statt einen grünen Build vorzutäuschen.

@@ -23,6 +23,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
+import { DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES } from "../../../Types/AI/AIAgentRunLimits";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -361,7 +362,7 @@ describe.each(
     await waitForDetailValue(SEVERITY_TITLE, "Every severity");
     await waitForDetailValue(COOLDOWN_TITLE, "No cooldown");
     await waitForDetailValue(page.titles.maxConcurrent, "No limit");
-    await waitForDetailValue(page.titles.timeLimit, "No time limit");
+    await waitForDetailValue(page.titles.timeLimit, "The project's time limit");
     await waitForDetailValue(page.titles.tokenLimit, "No limit");
     await waitForDetailValue(page.titles.fixTaskLimit, "No limit");
   });
@@ -450,10 +451,22 @@ describe.each(
 
     // How many at once, and for how long.
     dialog = await openEditForm(INVESTIGATION_LIMITS);
-    expect(placeholdersIn(dialog)).toEqual(["No limit", "No time limit"]);
+    expect(placeholdersIn(dialog)).toEqual([
+      "No limit",
+      "The project's time limit",
+    ]);
     expect(dialog.textContent || "").toMatch(
       /Leave empty for no limit\. Queued ones wait for a free slot for up to 30 minutes\./,
     );
+    /*
+     * An empty time limit is not "no time limit" (issue #6440): it falls
+     * back to the project's time limit per run, whose default the
+     * description names as runs have it.
+     */
+    expect(dialog.textContent || "").toContain(
+      `Leave empty to use the project's time limit per run: ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes, unless the project set its own.`,
+    );
+    expect(dialog.textContent || "").not.toMatch(/no time limit/i);
     expectNoRetiredDefault(dialog.textContent || "");
     fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
 

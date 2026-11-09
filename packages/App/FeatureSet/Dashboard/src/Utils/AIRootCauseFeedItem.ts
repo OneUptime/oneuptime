@@ -456,6 +456,16 @@ export function buildAIRootCauseFeedContent(
     paragraphs.push(labelParagraph(getRootCauseLabel(report), rootCause));
   }
 
+  /*
+   * A run a limit stopped says so in the entry too, as the report wrote it
+   * (issue #6440): the gist above is what it found before it stopped.
+   */
+  const stopNote: string = (report.stopNote || "").trim();
+
+  if (stopNote) {
+    paragraphs.push(stopNote);
+  }
+
   return {
     text: paragraphs.join("\n\n"),
     moreInformationInMarkdown: markdown,
