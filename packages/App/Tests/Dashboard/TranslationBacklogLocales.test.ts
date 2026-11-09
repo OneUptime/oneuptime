@@ -152,7 +152,7 @@ const BACKLOG_WORDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   "AI Insights": [
     "Needs Attention",
-    "Fix Opened",
+    "Fix task",
     "Seen any time",
     "Details",
     "AI Insights",

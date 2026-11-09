@@ -1,6 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import InsightFixTask from "../../../Components/AIInsights/InsightFixTask";
+import useInsightFixTasks, {
+  InsightFixTasks,
+} from "../../../Components/AIInsights/UseInsightFixTasks";
+import { INSIGHT_FIX_TASK_DESCRIPTION } from "../../../Components/Code/CodeTaskStatusCopy";
+import { CodeTaskSummaryJSON } from "Common/Types/AI/CodeTask";
 import {
   getHumanVerdictElement,
   getInsightTypeElement,
@@ -317,6 +321,15 @@ const AIInsightViewPage: FunctionComponent<
 
   // The fix task's pull request verdict, read once per fix task.
   const fixAiRunId: string | undefined = insight?.fixAiRunId?.toString();
+
+  /*
+   * The fix task itself: where it stands, read again while it moves - what
+   * the Fix Task card shows and the status says.
+   */
+  const fixTasks: InsightFixTasks = useInsightFixTasks([fixAiRunId]);
+  const fixTask: CodeTaskSummaryJSON | undefined = fixAiRunId
+    ? fixTasks.tasks.get(fixAiRunId.toLowerCase())
+    : undefined;
 
   useEffect(() => {
     setFixProduction(null);
@@ -920,7 +933,7 @@ const AIInsightViewPage: FunctionComponent<
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {getInsightTypeElement(insight.insightType)}
                   {getSeverityElement(insight.severity)}
-                  {getStatusElement(status || undefined)}
+                  {getStatusElement(status || undefined, fixTask)}
                   {getHumanVerdictElement(humanVerdict)}
                 </div>
               </div>
@@ -1296,34 +1309,24 @@ const AIInsightViewPage: FunctionComponent<
             <></>
           )}
 
-          <InsightPanel title="Details" icon={IconProp.List}>
-            <InsightFactsList facts={facts} />
-          </InsightPanel>
-
+          {/*
+           * The fix task first: it moves, and may want the reader (Try
+           * again, Retry now, its pull request) - the facts under it do not.
+           */}
           {insight.fixAiRunId ? (
             <InsightPanel
               title="Fix Task"
               icon={IconProp.Code}
-              description="OneUptime AI queued an agent task for this insight. Fix pull requests open ready for review and are always human-reviewed — nothing merges automatically."
+              description={INSIGHT_FIX_TASK_DESCRIPTION}
             >
-              {/*
-               * A real anchor (not a Button) so cmd/ctrl-click, middle-click
-               * and "open in new tab" work — Link always sets href.
-               */}
-              <Link
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.CODE_TASK_VIEW] as Route,
-                  { modelId: insight.fixAiRunId },
-                )}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500"
-              >
-                <span>
-                  {translator.translateText(
-                    "View the fix task and pull request",
-                  )}
-                </span>
-                <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
-              </Link>
+              <InsightFixTask
+                taskId={insight.fixAiRunId.toString()}
+                task={fixTask}
+                isLoaded={fixTasks.isLoaded}
+                onChanged={() => {
+                  void fixTasks.reload();
+                }}
+              />
               {fixProduction ? (
                 <FixProductionVerdict
                   production={fixProduction}
@@ -1337,6 +1340,10 @@ const AIInsightViewPage: FunctionComponent<
           ) : (
             <></>
           )}
+
+          <InsightPanel title="Details" icon={IconProp.List}>
+            <InsightFactsList facts={facts} />
+          </InsightPanel>
         </div>
       </div>
     </div>

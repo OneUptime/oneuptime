@@ -1,6 +1,10 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import FixProductionVerdict from "../AI/FixProductionVerdict";
-import CodeApi, { CodeTaskListResponse, CodeTaskListScope } from "./CodeApi";
+import CodeApi, {
+  CodeTaskListResponse,
+  CodeTaskListScope,
+  CodeTaskRetryManyResponse,
+} from "./CodeApi";
 import {
   PRODUCTION_REVIEW_COPY,
   getProductionReviewGlance,
@@ -20,19 +24,37 @@ import {
   QUEUED_LABEL,
 } from "./CodeTaskCopy";
 import CodeTaskStateMark from "./CodeTaskStateMark";
+import CodeTaskRetryNote from "./CodeTaskRetryNote";
+import {
+  CODE_TASK_LIST_FILTERS,
+  CODE_TASK_ROW_FAILED_AFTER_ATTEMPTS,
+} from "./CodeTaskStatusCopy";
+import { CodeTaskTurnDuration } from "./CodeTaskWorkTime";
 import CodeTimeAgo from "./CodeTimeAgo";
 import CodeHostMark from "./CodeHostMark";
 import { getPullRequestCopy } from "./CodeHostCopy";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import {
+  CodeTaskListCountsJSON,
+  CodeTaskListFilter,
   CodeTaskListKind,
   CodeTaskOriginType,
   CodeTaskState,
   CodeTaskSummaryJSON,
 } from "Common/Types/AI/CodeTask";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
+import { TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME } from "Common/UI/Components/Table/TableHeaderControls";
+import { CLEAR_SEARCH } from "Common/UI/Components/Table/TableEmptyStateBuilders";
 import API from "Common/UI/Utils/API/API";
+import {
+  CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  getLineDirection,
+} from "Common/UI/Utils/LineDirection";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -43,6 +65,9 @@ import React, {
   useRef,
   useState,
 } from "react";
+
+// How long the search box waits for typing to stop before it reads.
+export const CODE_TASK_SEARCH_DELAY_MS: number = 300;
 
 export { getTaskRoute } from "./CodePaths";
 
@@ -81,6 +106,16 @@ export interface ComponentProps {
    */
   repositoryHost?: CodeTaskRepositoryHost | undefined;
   dataTestId?: string | undefined;
+  /*
+   * The filters (in progress, failed, ...) with how many tasks each shows,
+   * and a search: for a list of tasks, not of production reviews.
+   */
+  showFilters?: boolean | undefined;
+  /*
+   * The reader may ask AI again here: a failed or stopped task's row has
+   * Try again, and failed tasks can be picked and tried again together.
+   */
+  canRetry?: boolean | undefined;
 }
 
 // Where a task's repository is hosted, for the mark beside its name.
@@ -107,6 +142,19 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<CodeTaskListFilter>(
+    CodeTaskListFilter.All,
+  );
+  const [searchInput, setSearchInput] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
+  const [counts, setCounts] = useState<CodeTaskListCountsJSON | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+  const [retryResult, setRetryResult] = useState<{
+    retried: number;
+    failedMessage: string | null;
+    failedCount: number;
+  } | null>(null);
   const onCountRef: React.MutableRefObject<
     ((count: number) => void) | undefined
   > = useRef(props.onCount);
@@ -115,6 +163,20 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
   // The scope as one value, so a new object for the same scope reads nothing again.
   const scopeKey: string = JSON.stringify(props.scope);
   const kind: CodeTaskListKind = props.kind || CodeTaskListKind.Tasks;
+  const showFilters: boolean = Boolean(
+    props.showFilters && kind === CodeTaskListKind.Tasks,
+  );
+
+  // The search reads once typing stops.
+  useEffect(() => {
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+      setSearch(searchInput.trim());
+    }, CODE_TASK_SEARCH_DELAY_MS);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [searchInput]);
 
   const load: (limit: number) => Promise<void> = useCallback(
     async (limit: number): Promise<void> => {
@@ -124,12 +186,29 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
           skip: 0,
           limit: limit,
           ...(kind === CodeTaskListKind.ProductionReviews ? { kind } : {}),
+          ...(showFilters ? { filter, search, withCounts: true } : {}),
         });
 
         setTasks(response.tasks);
         setCount(response.count);
+        setCounts(response.counts || null);
         setError(null);
-        onCountRef.current?.(response.count);
+
+        /*
+         * The page counts every task, whatever the list shows of them. A
+         * search's counts are of what it matches, so they are not the
+         * page's: one that matched nothing told the page there was no task
+         * at all, and the page hid its list - the search with it.
+         */
+        const total: number | null = response.counts
+          ? response.counts[CodeTaskListFilter.All]
+          : showFilters && filter !== CodeTaskListFilter.All
+            ? null
+            : response.count;
+
+        if (!search && total !== null) {
+          onCountRef.current?.(total);
+        }
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
@@ -137,7 +216,7 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
       setIsLoadingMore(false);
     },
-    [scopeKey, kind],
+    [scopeKey, kind, showFilters, filter, search],
   );
 
   useEffect(() => {
@@ -146,6 +225,55 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
       // handled inside load
     });
   }, [load, props.refreshToken]);
+
+  // Another filter or search starts from its first page, with nothing picked.
+  useEffect(() => {
+    setShown(CODE_TASK_PAGE_SIZE);
+    setSelectedIds(new Set());
+  }, [filter, search]);
+
+  const canRetryTask: (task: CodeTaskSummaryJSON) => boolean = (
+    task: CodeTaskSummaryJSON,
+  ): boolean => {
+    return Boolean(
+      props.canRetry &&
+        task.recipe === CodeFixTaskType.CodeRequest &&
+        (task.state === CodeTaskState.Failed ||
+          task.state === CodeTaskState.Stopped),
+    );
+  };
+
+  /*
+   * Try tasks again: one row's Try again, or the tasks picked. Each is
+   * asked as its own page asks it; the list then reads itself again.
+   */
+  const retryTasks: (taskIds: Array<string>) => Promise<void> = async (
+    taskIds: Array<string>,
+  ): Promise<void> => {
+    setRetryingIds(new Set(taskIds));
+    setRetryResult(null);
+
+    try {
+      const result: CodeTaskRetryManyResponse =
+        await CodeApi.retryMany(taskIds);
+
+      setRetryResult({
+        retried: result.retried,
+        failedCount: result.failed.length,
+        failedMessage: result.failed[0]?.message || null,
+      });
+    } catch (err) {
+      setRetryResult({
+        retried: 0,
+        failedCount: taskIds.length,
+        failedMessage: API.getFriendlyMessage(err),
+      });
+    }
+
+    setSelectedIds(new Set());
+    setRetryingIds(new Set());
+    await load(shown);
+  };
 
   const hasWorkingTask: boolean = tasks.some(
     (task: CodeTaskSummaryJSON): boolean => {
@@ -169,7 +297,148 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
     };
   }, [hasWorkingTask, load, shown]);
 
-  if (isLoading && tasks.length === 0) {
+  const isFiltered: boolean =
+    filter !== CodeTaskListFilter.All || Boolean(search);
+
+  const toolbar: ReactElement = showFilters ? (
+    <CodeTaskListToolbar
+      filter={filter}
+      counts={counts}
+      searchInput={searchInput}
+      onFilter={(next: CodeTaskListFilter) => {
+        setFilter(next);
+      }}
+      onSearch={(next: string) => {
+        setSearchInput(next);
+      }}
+    />
+  ) : (
+    <></>
+  );
+
+  const retryableShown: Array<CodeTaskSummaryJSON> = tasks.filter(
+    (task: CodeTaskSummaryJSON): boolean => {
+      return canRetryTask(task);
+    },
+  );
+
+  // A row of the list has a box to pick it: every row keeps its place.
+  const hasSelectColumn: boolean = retryableShown.length > 0;
+
+  /*
+   * How many are picked, then what trying them again did. Only these words
+   * are the bar's live region, kept while the bar is up, so a screen reader
+   * hears the count and the result, and not the buttons beside them.
+   */
+  const bulkBar: ReactElement =
+    selectedIds.size > 0 || retryResult ? (
+      <div
+        data-testid="code-task-list-bulk"
+        className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-gray-100 bg-gray-50 px-4 py-2 text-sm sm:px-5"
+      >
+        <span role="status" className="min-w-0">
+          {selectedIds.size > 0 ? (
+            <span className="font-medium text-gray-900">
+              {translator.translateTemplate("{{count}} selected", {
+                count: translator.formatNumber(selectedIds.size),
+              })}
+            </span>
+          ) : (
+            <></>
+          )}
+          {retryResult && selectedIds.size === 0 ? (
+            <span
+              data-testid="code-task-list-retry-result"
+              className={
+                retryResult.failedCount > 0 ? "text-red-700" : "text-gray-700"
+              }
+            >
+              {[
+                retryResult.retried > 0
+                  ? translator.translatePlural(
+                      {
+                        one: "Trying {{count}} task again.",
+                        other: "Trying {{count}} tasks again.",
+                      },
+                      retryResult.retried,
+                    )
+                  : "",
+                retryResult.failedCount > 0
+                  ? translator.translatePlural(
+                      {
+                        one: "{{count}} task could not be tried again: {{reason}}",
+                        other:
+                          "{{count}} tasks could not be tried again: {{reason}}",
+                      },
+                      retryResult.failedCount,
+                      { reason: retryResult.failedMessage || "" },
+                    )
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            </span>
+          ) : (
+            <></>
+          )}
+        </span>
+        {selectedIds.size > 0 ? (
+          <>
+            <button
+              type="button"
+              data-testid="code-task-list-retry-selected"
+              disabled={retryingIds.size > 0}
+              onClick={() => {
+                void retryTasks([...selectedIds]);
+              }}
+              className={`rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm ${getHandDrawnButtonStateClassName(
+                {
+                  isBusy: retryingIds.size > 0,
+                  hoverClassName: "hover:bg-indigo-500",
+                },
+              )}`}
+            >
+              {translator.translateText("Retry selected")}
+            </button>
+            {retryableShown.length > selectedIds.size ? (
+              <button
+                type="button"
+                data-testid="code-task-list-select-all"
+                onClick={() => {
+                  setSelectedIds(
+                    new Set(
+                      retryableShown.map((task: CodeTaskSummaryJSON) => {
+                        return task.id;
+                      }),
+                    ),
+                  );
+                }}
+                className="rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
+              >
+                {translator.translateText("Select all")}
+              </button>
+            ) : (
+              <></>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedIds(new Set());
+              }}
+              className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+            >
+              {translator.translateText("Clear")}
+            </button>
+          </>
+        ) : (
+          <></>
+        )}
+      </div>
+    ) : (
+      <></>
+    );
+
+  if (isLoading && tasks.length === 0 && !isFiltered) {
     return (
       <div
         data-testid="code-task-list-loading"
@@ -199,32 +468,101 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
 
   if (error && tasks.length === 0) {
     return (
-      <div className="p-4">
-        <ErrorMessage
-          message={error}
-          onRefreshClick={() => {
-            setIsLoading(true);
-            load(shown).catch(() => {
-              // handled inside load
-            });
-          }}
-        />
+      <div data-testid="code-task-list-error">
+        {toolbar}
+        <div className="p-4">
+          <ErrorMessage
+            message={error}
+            onRefreshClick={() => {
+              setIsLoading(true);
+              load(shown).catch(() => {
+                // handled inside load
+              });
+            }}
+          />
+        </div>
       </div>
     );
   }
 
-  if (tasks.length === 0) {
+  if (tasks.length === 0 && !isFiltered && !isLoading) {
     return props.emptyState;
   }
 
   return (
     <div data-testid={props.dataTestId || "code-task-list"}>
-      <ul className="divide-y divide-gray-100">
+      {toolbar}
+      {bulkBar}
+      {tasks.length === 0 ? (
+        <div
+          data-testid="code-task-list-no-match"
+          className="px-6 py-10 text-center"
+        >
+          <p className="text-sm text-gray-600">
+            {isLoading
+              ? translator.translateText("Loading…")
+              : translator.translateText("No tasks match.")}
+          </p>
+          {isLoading ? (
+            <></>
+          ) : (
+            <button
+              type="button"
+              data-testid="code-task-list-clear-filters"
+              onClick={() => {
+                setFilter(CodeTaskListFilter.All);
+                setSearchInput("");
+                setSearch("");
+              }}
+              className="mt-2 rounded-md px-2.5 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+            >
+              {translator.translateText("Clear filters")}
+            </button>
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+      <ul
+        aria-busy={isLoading ? "true" : undefined}
+        className={`divide-y divide-gray-100 transition-opacity ${
+          isLoading && tasks.length > 0 ? "opacity-60" : ""
+        }`}
+      >
         {tasks.map((task: CodeTaskSummaryJSON) => {
+          const isRetryable: boolean = canRetryTask(task);
+
           return (
             <CodeTaskRow
               key={task.id}
               task={task}
+              hasSelectColumn={hasSelectColumn}
+              isSelected={selectedIds.has(task.id)}
+              onSelect={
+                isRetryable
+                  ? (isSelected: boolean) => {
+                      setSelectedIds((current: Set<string>) => {
+                        const next: Set<string> = new Set(current);
+
+                        if (isSelected) {
+                          next.add(task.id);
+                        } else {
+                          next.delete(task.id);
+                        }
+
+                        return next;
+                      });
+                    }
+                  : undefined
+              }
+              onRetry={
+                isRetryable
+                  ? () => {
+                      void retryTasks([task.id]);
+                    }
+                  : undefined
+              }
+              isRetrying={retryingIds.has(task.id)}
               repositoryName={
                 props.repositoryNames && task.codeRepositoryId
                   ? props.repositoryNames.get(task.codeRepositoryId)
@@ -295,17 +633,40 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
  * anything last happened, its pull request and what production showed -
  * with how much it changed at the end, "+23 −1".
  */
-export const CodeTaskRow: FunctionComponent<{
+export interface CodeTaskRowProps {
   task: CodeTaskSummaryJSON;
   // The task's repository, named on a list across repositories.
   repositoryName?: string | undefined;
   // Where it is hosted: the mark beside its name.
   repositoryHost?: CodeTaskRepositoryHost | undefined;
-}> = (props: {
-  task: CodeTaskSummaryJSON;
-  repositoryName?: string | undefined;
-  repositoryHost?: CodeTaskRepositoryHost | undefined;
-}): ReactElement => {
+  // A failed or stopped task the reader may try again: picked, or now.
+  isSelected?: boolean | undefined;
+  onSelect?: ((isSelected: boolean) => void) | undefined;
+  onRetry?: (() => void) | undefined;
+  isRetrying?: boolean | undefined;
+  /*
+   * Some row of the list has a box to pick it: a row with none keeps the
+   * box's place, so every row's mark and title start in one column.
+   */
+  hasSelectColumn?: boolean | undefined;
+}
+
+/*
+ * A row's Try again, under its words on a phone: beside them, it squeezed
+ * the title to a few words a line. Its start is the title's: the box's
+ * column (1rem + 1rem), the link's start (0.75rem), the mark (1.25rem) and
+ * the gap after it (0.75rem) - or, with no box, the link's start (1rem),
+ * the mark and the gap.
+ */
+export const ROW_RETRY_UNDER_TITLE_CLASS_NAME: string =
+  "max-sm:-mt-1 max-sm:mb-3 max-sm:basis-full max-sm:pl-[4.75rem]";
+
+export const ROW_RETRY_UNDER_TITLE_NO_BOX_CLASS_NAME: string =
+  "max-sm:-mt-1 max-sm:mb-3 max-sm:basis-full max-sm:pl-12";
+
+export const CodeTaskRow: FunctionComponent<CodeTaskRowProps> = (
+  props: CodeTaskRowProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const task: CodeTaskSummaryJSON = props.task;
   const isRequest: boolean = task.recipe === CodeFixTaskType.CodeRequest;
@@ -351,21 +712,61 @@ export const CodeTaskRow: FunctionComponent<{
 
   const meta: Array<ReactElement> = [];
 
-  // Said in words only while it moves or asks something of someone.
-  if (CODE_TASK_STATE_COPY[task.state].isSaidInRow) {
+  /*
+   * A task AI tries again by itself says which attempt it is on, and while
+   * it waits, when the next starts - instead of "Queued".
+   */
+  const isRetryingByItself: boolean = Boolean(
+    task.state === CodeTaskState.Working && task.retry,
+  );
+
+  if (isRetryingByItself) {
+    meta.push(
+      <CodeTaskRetryNote
+        key="retry"
+        retry={task.retry!}
+        isCompact={true}
+        dataTestId="code-task-row-retry"
+      />,
+    );
+  }
+
+  /*
+   * After how many attempts it failed, when AI tried it again by itself:
+   * its state says so - "Failed after 3 attempts" - and the line under its
+   * facts says why.
+   */
+  const isFailed: boolean = task.state === CodeTaskState.Failed;
+  const failedAttempts: number =
+    isFailed && task.retry && task.retry.attempt > 1 ? task.retry.attempt : 0;
+
+  /*
+   * Said in words only while it moves or asks something of someone - and a
+   * stopped task whose row offers Try again, so the button has its reason.
+   */
+  const isStateSaid: boolean =
+    !isRetryingByItself &&
+    (CODE_TASK_STATE_COPY[task.state].isSaidInRow ||
+      (task.state === CodeTaskState.Stopped && Boolean(props.onRetry)));
+
+  if (isStateSaid) {
     meta.push(
       <span
         key="state"
         data-testid="code-task-row-state"
         className={`font-medium ${CODE_TASK_STATE_TEXT_CLASS_NAMES[task.state]}`}
       >
-        {translator.translateText(
-          isQueued
-            ? QUEUED_LABEL
-            : isProductionReview && task.state === CodeTaskState.Working
-              ? PRODUCTION_REVIEW_COPY.rowReviewing
-              : CODE_TASK_STATE_COPY[task.state].label,
-        )}
+        {failedAttempts
+          ? translator.translateTemplate(CODE_TASK_ROW_FAILED_AFTER_ATTEMPTS, {
+              count: translator.formatNumber(failedAttempts),
+            })
+          : translator.translateText(
+              isQueued
+                ? QUEUED_LABEL
+                : isProductionReview && task.state === CodeTaskState.Working
+                  ? PRODUCTION_REVIEW_COPY.rowReviewing
+                  : CODE_TASK_STATE_COPY[task.state].label,
+            )}
       </span>,
     );
   }
@@ -438,7 +839,20 @@ export const CodeTaskRow: FunctionComponent<{
 
   meta.push(<CodeTimeAgo key="time" date={task.lastActivityAt} />);
 
+  // How long its latest turn took, or has so far.
+  if (task.startedAt && !isProductionReview) {
+    meta.push(
+      <CodeTaskTurnDuration
+        key="duration"
+        startedAt={task.startedAt}
+        completedAt={task.completedAt}
+      />,
+    );
+  }
+
   if (task.pullRequest?.number) {
+    const pullRequestState: string = task.pullRequest.state;
+
     meta.push(
       <span
         key="pull-request"
@@ -451,6 +865,23 @@ export const CodeTaskRow: FunctionComponent<{
           {
             number: task.pullRequest.number.toString(),
           },
+        )}
+        {/* Open is the usual state, so it is not said. */}
+        {pullRequestState === "merged" || pullRequestState === "closed" ? (
+          <span
+            data-testid="code-task-row-pull-request-state"
+            className={
+              pullRequestState === "merged"
+                ? "font-medium text-violet-700"
+                : "text-gray-500"
+            }
+          >
+            {translator.translateText(
+              pullRequestState === "merged" ? "Merged" : "Closed",
+            )}
+          </span>
+        ) : (
+          <></>
         )}
       </span>,
     );
@@ -468,11 +899,63 @@ export const CodeTaskRow: FunctionComponent<{
     );
   }
 
+  /*
+   * Why it failed, under its facts, as it was written: what the reader
+   * decides Try again on without opening it.
+   */
+  const failure: string = isFailed ? task.errorMessage || "" : "";
+  const hasBoxColumn: boolean = Boolean(
+    props.onSelect || props.hasSelectColumn,
+  );
+
+  /*
+   * The title and the reason are cut short at their own end: an English
+   * title too long for a Persian page's row ends in "..." after its last
+   * word, not before its first, and a short one still starts where the
+   * page's lines do (LineDirection).
+   */
+  const titleDirection: ReadingDirection | undefined = getLineDirection(
+    title,
+    translator.language,
+  );
+  const failureDirection: ReadingDirection | undefined = getLineDirection(
+    failure,
+    translator.language,
+  );
+
   return (
-    <li data-testid="code-task-row" data-task-state={task.state}>
+    <li
+      data-testid="code-task-row"
+      data-task-state={task.state}
+      className={`flex flex-wrap items-start sm:flex-nowrap ${props.isSelected ? "bg-indigo-50/60" : ""}`}
+    >
+      {props.onSelect ? (
+        <input
+          type="checkbox"
+          data-testid="code-task-row-select"
+          checked={Boolean(props.isSelected)}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            props.onSelect?.(event.target.checked);
+          }}
+          aria-label={translator.translateTemplate("Select {{name}}", {
+            name: title,
+          })}
+          className="ml-4 mt-3.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 sm:ml-5"
+        />
+      ) : props.hasSelectColumn ? (
+        <span
+          aria-hidden="true"
+          data-testid="code-task-row-select-space"
+          className="ml-4 mt-3.5 h-4 w-4 flex-shrink-0 sm:ml-5"
+        />
+      ) : (
+        <></>
+      )}
       <Link
         to={getTaskRoute(task.id)}
-        className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5"
+        className={`group flex min-w-0 flex-1 items-start gap-3 py-3 pr-4 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:pr-5 ${
+          hasBoxColumn ? "pl-3" : "pl-4 sm:pl-5"
+        }`}
       >
         <CodeTaskStateMark
           state={task.state}
@@ -482,15 +965,35 @@ export const CodeTaskRow: FunctionComponent<{
         <div className="min-w-0 flex-1">
           <p
             data-testid="code-task-row-title"
-            className="line-clamp-2 break-words text-sm font-medium leading-5 text-gray-900 sm:line-clamp-1"
+            dir={titleDirection}
+            className={`line-clamp-2 break-words text-sm font-medium leading-5 text-gray-900 sm:line-clamp-1${
+              titleDirection
+                ? ` ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                : ""
+            }`}
           >
-            {title}
+            <IsolatedText text={title} />
           </p>
           <CodeMetaList
             dataTestId="code-task-row-meta"
             className="mt-1 text-xs text-gray-500"
             items={meta}
           />
+          {failure ? (
+            <p
+              data-testid="code-task-row-error"
+              dir={failureDirection}
+              className={`mt-1 line-clamp-2 break-words text-xs text-red-700${
+                failureDirection
+                  ? ` ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                  : ""
+              }`}
+            >
+              <IsolatedText text={failure} />
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
         {task.changes ? (
           <CodeDiffStat
@@ -502,7 +1005,166 @@ export const CodeTaskRow: FunctionComponent<{
           <></>
         )}
       </Link>
+      {props.onRetry ? (
+        <div
+          data-testid="code-task-row-try-again"
+          className={`flex-shrink-0 sm:mr-5 sm:mt-2.5 ${
+            hasBoxColumn
+              ? ROW_RETRY_UNDER_TITLE_CLASS_NAME
+              : ROW_RETRY_UNDER_TITLE_NO_BOX_CLASS_NAME
+          }`}
+        >
+          <button
+            type="button"
+            data-testid="code-task-row-retry-button"
+            disabled={props.isRetrying}
+            onClick={props.onRetry}
+            className={`rounded-md bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 ${getHandDrawnButtonStateClassName(
+              {
+                isBusy: props.isRetrying,
+                hoverClassName: "hover:bg-gray-50",
+              },
+            )}`}
+          >
+            {translator.translateText("Try again")}
+          </button>
+        </div>
+      ) : (
+        <></>
+      )}
     </li>
+  );
+};
+
+/*
+ * A task list's filters - each with how many tasks it shows - and its
+ * search, above its rows. The search sits beside the filters only while
+ * they all fit on one line there, and goes under them otherwise - in any
+ * language, at any width the list is given - so the filters never wrap
+ * beside it.
+ */
+const CodeTaskListToolbar: FunctionComponent<{
+  filter: CodeTaskListFilter;
+  counts: CodeTaskListCountsJSON | null;
+  searchInput: string;
+  onFilter: (filter: CodeTaskListFilter) => void;
+  onSearch: (search: string) => void;
+}> = (props: {
+  filter: CodeTaskListFilter;
+  counts: CodeTaskListCountsJSON | null;
+  searchInput: string;
+  onFilter: (filter: CodeTaskListFilter) => void;
+  onSearch: (search: string) => void;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const inputRef: React.MutableRefObject<HTMLInputElement | null> =
+    useRef<HTMLInputElement | null>(null);
+
+  return (
+    <div
+      data-testid="code-task-list-toolbar"
+      className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-gray-100 px-4 py-3 sm:px-5"
+    >
+      <div
+        role="group"
+        aria-label={translator.translateText("Filter tasks")}
+        className="flex flex-wrap gap-1.5"
+      >
+        {CODE_TASK_LIST_FILTERS.map(
+          (entry: { filter: CodeTaskListFilter; label: string }) => {
+            const isActive: boolean = entry.filter === props.filter;
+            const count: number | undefined = props.counts?.[entry.filter];
+
+            return (
+              <button
+                key={entry.filter}
+                type="button"
+                data-testid={`code-task-filter-${entry.filter}`}
+                aria-pressed={isActive}
+                onClick={() => {
+                  props.onFilter(entry.filter);
+                }}
+                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700 ring-indigo-600/30"
+                    : "bg-white text-gray-600 ring-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                {translator.translateText(entry.label)}
+                {count !== undefined ? (
+                  <span
+                    data-testid="code-task-filter-count"
+                    className={`tabular-nums ${
+                      isActive ? "text-indigo-600" : "text-gray-400"
+                    }`}
+                  >
+                    {translator.formatNumber(count)}
+                  </span>
+                ) : (
+                  <></>
+                )}
+              </button>
+            );
+          },
+        )}
+      </div>
+      {/*
+        The search as every table's: a magnifier, and an x that empties it.
+        It takes the rest of the filters' line, and a line of its own (the
+        list's width) once that rest is narrower than 12rem.
+      */}
+      <div
+        data-testid="code-task-list-search-box"
+        role="presentation"
+        onClick={() => {
+          inputRef.current?.focus();
+        }}
+        className="flex h-8 min-w-[12rem] flex-1 cursor-text items-center gap-2 rounded-md bg-white px-2.5 shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-indigo-600"
+      >
+        <Icon
+          icon={IconProp.Search}
+          className="h-4 w-4 flex-none text-gray-400"
+        />
+        <input
+          ref={inputRef}
+          type="search"
+          data-testid="code-task-list-search"
+          value={props.searchInput}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            props.onSearch(event.target.value);
+          }}
+          onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+            if (event.key === "Escape" && props.searchInput) {
+              event.preventDefault();
+              props.onSearch("");
+            }
+          }}
+          placeholder={translator.translateText("Search tasks")}
+          aria-label={translator.translateText("Search tasks")}
+          className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 [&::-webkit-search-cancel-button]:hidden"
+        />
+        {props.searchInput ? (
+          <button
+            type="button"
+            data-testid="code-task-list-search-clear"
+            aria-label={translator.translateText(CLEAR_SEARCH)}
+            title={translator.translateText(CLEAR_SEARCH)}
+            onMouseDown={(event: React.MouseEvent) => {
+              event.preventDefault();
+            }}
+            onClick={() => {
+              props.onSearch("");
+              inputRef.current?.focus();
+            }}
+            className={TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME}
+          >
+            <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+          </button>
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
   );
 };
 

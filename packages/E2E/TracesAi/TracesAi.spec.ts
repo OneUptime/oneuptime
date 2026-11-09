@@ -826,9 +826,9 @@ test.describe("Traces → AI → a finding", () => {
   }, testInfo: TestInfo) => {
     await page.goto(`${AI}/insights/${FAILING_INSIGHT}`);
 
-    await expect(
-      page.getByText("View the fix task and pull request"),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByTestId("ai-insight-fix-view-task")).toBeVisible({
+      timeout: 60000,
+    });
     await expect(page.getByTestId("telemetry-ai-fix")).toHaveCount(0);
 
     // Open in Traces: only the operation's failed spans.
