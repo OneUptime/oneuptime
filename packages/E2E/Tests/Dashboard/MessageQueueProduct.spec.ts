@@ -1079,13 +1079,18 @@ test.describe.skip("Queues Product", () => {
     test.setTimeout(420000);
     const page: Page = ctx.page;
 
-    // The tile names the metric it reads; nothing else on the page does.
+    /*
+     * The tile names the metric it reads. The Broker metrics card's list
+     * names every metric too, folded (hidden) from the first load on, so
+     * the wait looks in the tile: the first match on the page is hidden.
+     */
     await waitForTelemetryText({
       page,
       projectId: ctx.projectId,
       url: urlFor(queuePath(ctx.projectId, ctx.kafkaQueueId)),
       ready: brokerHealthSettled(page),
       text: KAFKA_LAG_METRIC,
+      target: brokerMetricTile(page, KAFKA_LAG_METRIC_ID),
     });
 
     const brokerHealth: Locator = page.getByTestId(
@@ -1338,12 +1343,14 @@ test.describe.skip("Queues Product", () => {
       ingestionKey: ctx.ingestionKey,
     });
 
+    // In the tile, as for Kafka's lag: the Broker metrics card names it too.
     await waitForTelemetryText({
       page,
       projectId: ctx.projectId,
       url: urlFor(queuePath(ctx.projectId, ctx.serviceBusQueueId)),
       ready: brokerHealthSettled(page),
       text: SERVICE_BUS_ACTIVE_METRIC,
+      target: brokerMetricTile(page, SERVICE_BUS_ACTIVE_METRIC_ID),
     });
 
     const activeTile: Locator = brokerMetricTile(
