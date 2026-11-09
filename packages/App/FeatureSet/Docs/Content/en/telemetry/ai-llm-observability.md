@@ -44,7 +44,7 @@ All three are under **Products → AI / LLM → Connect**. Use one, two or all o
 | Way in | What you get | How |
 | --- | --- | --- |
 | **Your apps** | Every AI call as it happens: the conversation, the person, the prompt and the answer, tokens, cost and errors | OpenTelemetry from your code or a gateway, in five steps |
-| **Your AI provider accounts** | What each OpenAI, Anthropic, Azure, Bedrock or Vertex AI account used and cost, by day | A read-only credential and no code: [AI Provider Accounts](/docs/telemetry/ai-provider-accounts) |
+| **Your AI provider accounts** | What each OpenAI, Anthropic, Azure, Bedrock, Vertex AI or Cursor account used and cost, by day or by hour | A read-only credential and no code: [AI Provider Accounts](/docs/telemetry/ai-provider-accounts) |
 | **Your company's AI tools** | What your people ask Claude Enterprise or Microsoft 365 Copilot, by person | A read-only credential and no code: [Company AI Tools](/docs/telemetry/ai-company-tools) |
 
 Provider accounts and coding assistants bring usage and cost, never a call: they fill **Usage**, and **Conversations** and **Calls** stay empty until your apps send their AI calls or a company AI tool is connected. [Check what is arriving](#check-what-is-arriving) shows which way brings what.
@@ -240,7 +240,7 @@ A ready-made alert raises an alert that resolves itself, and shows the monitor a
 
 The **Usage** tab shows the calls, tokens and cost of a time range (the last 7 days unless you pick another), and a table of the top 25 under one of five breakdowns: **Employee**, **Team**, **Model**, **Provider** and **Application / Service**. Calls that name nobody are counted under **Unattributed**, never dropped.
 
-These are **Your AI calls**. Pick **Provider accounts** instead to see what your connected OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts were billed: see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#see-the-usage). The two are never added together.
+These are **Your AI calls**. Pick **Provider accounts** instead to see what your connected OpenAI, Anthropic, Azure, Bedrock, Vertex AI and Cursor accounts were billed: see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#see-the-usage). The two are never added together.
 
 People and teams come from identity attributes on the call: see [Employee and team attribution](/docs/telemetry/ai-coding-assistants#employee-and-team-attribution).
 
@@ -386,7 +386,7 @@ The monitor's rolling window is shorter than 15 minutes, so it sometimes finds n
 ## Next steps
 
 :::cards
-- [AI Provider Accounts](/docs/telemetry/ai-provider-accounts): Usage and cost of your OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts, with no code.
+- [AI Provider Accounts](/docs/telemetry/ai-provider-accounts): Usage and cost of your OpenAI, Anthropic, Azure, Bedrock, Vertex AI and Cursor accounts, with no code.
 - [Company AI Tools](/docs/telemetry/ai-company-tools): What your people ask Claude Enterprise and Microsoft 365 Copilot.
 - [AI Coding Assistants](/docs/telemetry/ai-coding-assistants): Spend by engineer for Claude Code, Cursor, Codex, Gemini CLI and Copilot.
 - [AI Gateways](/docs/telemetry/ai-gateways): Trace every app's model calls from one LiteLLM or Portkey gateway.

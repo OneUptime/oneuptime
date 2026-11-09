@@ -188,7 +188,7 @@ Codex sender også sine metrikker til OpenAI som standard: se [OpenAI Codex](/do
 
 ## Hvad OneUptime endnu ikke gør
 
-- **Ingen administrationsforbindelser til kodeværktøjer.** OneUptime læser konti hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI bag værktøjerne ([AI-udbyderkonti](/docs/telemetry/ai-provider-accounts)), men ikke Cursors Admin API, GitHubs Copilot-fakturering eller Windsurfs og JetBrains' API'er.
+- **Ingen administrationsforbindelser til kodeværktøjer ud over Cursors.** OneUptime læser konti hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI bag værktøjerne og et Cursor-teams Admin API ([AI-udbyderkonti](/docs/telemetry/ai-provider-accounts)), men ikke GitHubs Copilot-fakturering eller Windsurfs og JetBrains' API'er.
 - **Omkostninger er et overslag, medmindre et værktøj rapporterer dem.** En rapporteret omkostning bruges, som den er; ellers prissætter OneUptime tokens til listepriser. Cursors `cursor.cost.usage` er selv et overslag.
 - **Identitet på logposter læses ikke.** Codex' `user.email`, som det kun sender på logs, knyttes ikke til forbruget.
 - **Cursors `cursor.user.email` læses endnu ikke**, så Cursor-brugere vises som deres heltal `cursor.user.id`.
@@ -201,7 +201,7 @@ Rul ud i denne rækkefølge; hvert trin er nyttigt i sig selv. Brug et projekt, 
 
 1. **Gemini CLI**, hvis nogen bruger det. Det sender `user.email` uden opsætning, så det viser tildelingen fungere hele vejen igennem. Slå også dets traces til: det sender ingen omkostningsmetrik.
 2. **Claude Code**: én fil med administrerede indstillinger til flåden, `user.email` gratis, en rigtig omkostningsmetrik samt acceptrate, commits, pull requests og kodelinjer pr. udvikler.
-3. **Cursor**, med Enterprise-abonnementet: én skærm i Cursors dashboard, ingen udviklermaskine berørt, selv om personer ankommer som heltal.
+3. **Cursor**, med Enterprise-abonnementet: én skærm i Cursors dashboard, ingen udviklermaskine berørt, selv om personer ankommer som heltal. Med Teams-abonnementet, eller for det, Cursor tog pr. person, kan du forbinde dets administrator-API-nøgle som en [udbyderkonto](/docs/telemetry/ai-provider-accounts#cursor), med eller uden eksporten.
 4. **Copilot og Codex**, som begge kræver en identitet sat på hver maskine. Gør det, når du klargør maskiner: kald, der ankom uden en, kan ikke tildeles bagefter.
 5. **En LiteLLM-gateway** til alt det andet, med én virtuel nøgle pr. medarbejder.
 

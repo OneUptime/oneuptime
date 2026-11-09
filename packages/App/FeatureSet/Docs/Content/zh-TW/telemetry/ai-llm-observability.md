@@ -44,7 +44,7 @@ flowchart TB
 | 接入方式 | 你會得到什麼 | 方法 |
 | --- | --- | --- |
 | **你的應用程式** | 即時記錄每次 AI 呼叫：對話、人員、提示詞和回答、token、成本和錯誤 | 來自程式碼或閘道的 OpenTelemetry，分五個步驟完成 |
-| **你的 AI 提供者帳戶** | 每個 OpenAI、Anthropic、Azure、Bedrock 或 Vertex AI 帳戶每天的使用量和成本 | 只需一個唯讀憑證，不需要程式碼： [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts) |
+| **你的 AI 提供者帳戶** | 每個 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 或 Cursor 帳戶每天或每小時的使用量和成本 | 只需一個唯讀憑證，不需要程式碼： [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts) |
 | **公司的 AI 工具** | 員工向 Claude Enterprise 或 Microsoft 365 Copilot 問的問題，依人員劃分 | 只需一個唯讀憑證，不需要程式碼： [公司的 AI 工具](/docs/telemetry/ai-company-tools) |
 
 提供者帳戶和程式設計助理帶來的是使用量和成本，從不帶來呼叫：它們填入的是 **使用量** ，而 **對話** 和 **呼叫** 會一直是空的，直到你的應用程式傳送 AI 呼叫，或連線了公司的 AI 工具。[檢查正在到達的內容](#檢查正在到達的內容) 會說明哪種方式帶來什麼。
@@ -240,7 +240,7 @@ trace.get_current_span().add_event(
 
 **使用量** 分頁會顯示某個時間範圍（除非你另外選擇，否則為最近 7 天）內的呼叫、token 和成本，以及依五種細分之一列出的前 25 名表格： **員工** 、 **團隊** 、 **模型** 、 **提供者** 和 **應用程式 / 服務** 。沒有指明任何人的呼叫會計入 **未歸屬** ，絕不捨棄。
 
-這些是 **你的 AI 呼叫** 。如果想查看已連線的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 帳戶的帳單金額，請改選 **提供者帳戶** ：請參閱 [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts#查看使用量)。兩者絕不會相加。
+這些是 **你的 AI 呼叫** 。如果想查看已連線的 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 和 Cursor 帳戶的帳單金額，請改選 **提供者帳戶** ：請參閱 [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts#查看使用量)。兩者絕不會相加。
 
 人員和團隊來自呼叫上的身分屬性：請參閱 [員工和團隊歸屬](/docs/telemetry/ai-coding-assistants#員工和團隊歸屬)。
 
@@ -386,7 +386,7 @@ OneUptime 會讀取 OpenTelemetry GenAI 慣例，以及 OpenLLMetry、OpenInfere
 ## 後續步驟
 
 :::cards
-- [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts): 不需要程式碼，查看你的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 帳戶的使用量和成本。
+- [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts): 不需要程式碼，查看你的 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 和 Cursor 帳戶的使用量和成本。
 - [公司的 AI 工具](/docs/telemetry/ai-company-tools): 你的員工向 Claude Enterprise 和 Microsoft 365 Copilot 問了什麼問題。
 - [AI 程式設計助理](/docs/telemetry/ai-coding-assistants): Claude Code、Cursor、Codex、Gemini CLI 和 Copilot 依工程師劃分的支出。
 - [AI 閘道](/docs/telemetry/ai-gateways): 透過一個 LiteLLM 或 Portkey 閘道追蹤每個應用程式的模型呼叫。

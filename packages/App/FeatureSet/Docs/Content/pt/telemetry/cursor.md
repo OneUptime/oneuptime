@@ -1,13 +1,26 @@
 # Cursor
 
-O Cursor exporta a telemetria da equipe a partir dos próprios servidores do Cursor. Um administrador da equipe adiciona o OneUptime como destino uma única vez, no painel do Cursor, e os tokens, o custo estimado e as chamadas de ferramentas da equipe inteira chegam: nada para instalar ou configurar nas máquinas dos desenvolvedores.
+O Cursor exporta a telemetria da equipe a partir dos próprios servidores do Cursor. Um administrador da equipe adiciona o OneUptime como destino uma única vez, no painel do Cursor, e os tokens, o custo estimado e as chamadas de ferramentas da equipe inteira chegam: nada para instalar ou configurar nas máquinas dos desenvolvedores. No plano Teams também, o OneUptime pode ler o uso da equipe e o que o Cursor cobrou, por pessoa, com uma chave de API de administrador, em vez da exportação ou além dela.
 
 :::cards
+- [Dois caminhos](#dois-caminhos): Uma chave de API de administrador no OneUptime, ou o OpenTelemetry Export do Cursor.
 - [Configure](#configure): Crie uma chave no OneUptime e um destino no Cursor.
 - [O que você obtém](#o-que-você-obtém-e-o-que-não): Métricas e logs; nenhum trace.
 - [Quem gastou o quê](#atribuição-a-funcionários): As pessoas chegam como ids de usuário do Cursor.
 - [Solução de problemas](#solução-de-problemas): O que verificar quando nada chega.
 :::
+
+## Dois caminhos
+
+| | Chave de API de administrador | OpenTelemetry Export |
+| --- | --- | --- |
+| Plano do Cursor | Teams ou Enterprise | Enterprise |
+| Configuração | No OneUptime, em **Produtos → IA / LLM → Conectar** | No painel do Cursor, em **Team Settings → OpenTelemetry Export** |
+| O que chega | Tokens, requisições e o que o Cursor cobrou, por hora, pessoa e modelo, e quantos membros usam o Cursor | Tokens, custo estimado e chamadas de ferramentas, e um evento de log por requisição |
+| Desde quando | Os últimos 30 dias, depois a cada hora | À medida que acontece, a partir do dia em que você o ativa |
+| Aparece em **Uso** em | **Contas de provedor** | **Suas chamadas de IA** |
+
+Os dois trazem uso e custo, não conversas. Use um ou os dois: eles ficam separados e nunca são somados, e um orçamento conta um deles, conforme o campo **Contar gastos de**. Para conectar a chave, veja [Contas de provedores de IA](/docs/telemetry/ai-provider-accounts#cursor); o resto desta página configura o OpenTelemetry Export.
 
 ## Como funciona
 
@@ -129,7 +142,7 @@ O Cursor envia métricas e nenhum span GenAI, e as métricas só completam os sp
 Uma linha do Cursor carrega só o custo: as células de chamadas e tokens mostram `—`, porque `cursor.cost.usage` não tem detalhe por chamada. `cursor.token.usage` continua alimentando os totais de tokens acima da tabela (os tipos `input` e `output`; os tokens de cache ficam de fora), e você pode mostrá-lo em um dashboard por `cursor.token.type`.
 
 :::details Transformar um id de usuário do Cursor em uma pessoa
-Os nomes e os valores cobrados estão na Admin API do Cursor, que o OneUptime não chama: consulte-a você mesmo se precisar. Ela é só para o Enterprise, fica em `https://api.cursor.com`, e recebe uma chave de API de administrador como nome de usuário com uma senha vazia:
+Os nomes e os valores cobrados estão na Admin API do Cursor, que o OneUptime lê quando você conecta a chave dela como uma [conta de provedor](/docs/telemetry/ai-provider-accounts#cursor): essa conta identifica as pessoas pelo e-mail. Para relacionar um `cursor.user.id` você mesmo, chame a API em `https://api.cursor.com`, com uma chave de API de administrador como nome de usuário e uma senha vazia:
 
 ```bash
 curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
@@ -150,7 +163,7 @@ Estas regras mudam o que você vê nos gráficos, então conheça-as antes de re
 
 ## O custo é uma estimativa, não uma fatura
 
-O Cursor documenta `cursor.cost.usage` como uma estimativa aproximada. Ela não separa o uso incluído do uso cobrado sob demanda; com as suas próprias chaves de modelo, reflete só a tarifa de tokens do Cursor, não a fatura do seu provedor; e um `cursor.api.correction` posterior pode retirar um uso que já foi contado. Leia-a como uma tendência. Para um número que bata com a fatura, some os `chargedCents` da Admin API do Cursor.
+O Cursor documenta `cursor.cost.usage` como uma estimativa aproximada. Ela não separa o uso incluído do uso cobrado sob demanda; com as suas próprias chaves de modelo, reflete só a tarifa de tokens do Cursor, não a fatura do seu provedor; e um `cursor.api.correction` posterior pode retirar um uso que já foi contado. Leia-a como uma tendência. Para um número que bata com a fatura, some os `chargedCents` da Admin API do Cursor. Uma equipe do Cursor conectada como [conta de provedor](/docs/telemetry/ai-provider-accounts#cursor) faz isso por você, hora a hora.
 
 ## Solução de problemas
 
@@ -174,6 +187,7 @@ Isso é `cursor.user.id`, lido quando o Cursor não envia `cursor.user.email`. A
 
 :::cards
 - [Assistentes de programação com IA](/docs/telemetry/ai-coding-assistants): Como o gasto é atribuído em todos os assistentes de programação.
+- [Contas de provedores de IA](/docs/telemetry/ai-provider-accounts#cursor): Leia o uso de uma equipe do Cursor e o que o Cursor cobrou com uma chave de API de administrador.
 - [Gateways de IA](/docs/telemetry/ai-gateways): Traces e prompts completos para as chamadas a modelos que suas próprias aplicações fazem.
 - [Monitor de métricas](/docs/monitor/metrics-monitor): Alerte sobre `cursor.cost.usage`, `cursor.token.usage` ou `cursor.tool.calls`.
 :::

@@ -89,7 +89,7 @@ describe("the three ways", () => {
       [
         "providers",
         "Your AI provider accounts",
-        "What your OpenAI, Anthropic, Azure, Bedrock or Vertex AI accounts used and cost, with no code.",
+        "What your OpenAI, Anthropic, Azure, Bedrock, Vertex AI or Cursor accounts used and cost, with no code.",
       ],
       [
         "tools",
@@ -271,7 +271,7 @@ describe("the tiles", () => {
     });
   }
 
-  test("provider accounts: OpenAI, Anthropic, Azure, Bedrock and Vertex AI", () => {
+  test("provider accounts: OpenAI, Anthropic, Azure, Bedrock, Vertex AI and Cursor", () => {
     renderTiles(LlmConnectionKind.ProviderAccount);
 
     expect(tileProviders()).toEqual([
@@ -280,10 +280,17 @@ describe("the tiles", () => {
       LlmConnectionProvider.AzureOpenAI,
       LlmConnectionProvider.AwsBedrock,
       LlmConnectionProvider.GoogleVertexAI,
+      LlmConnectionProvider.Cursor,
     ]);
     expect(
       screen.getByTestId(`llm-connection-tile-${LlmConnectionProvider.OpenAI}`),
     ).toHaveTextContent("Usage and cost of your OpenAI organization.");
+    // Cursor's tile says what it brings, and what it does not.
+    expect(
+      screen.getByTestId(`llm-connection-tile-${LlmConnectionProvider.Cursor}`),
+    ).toHaveTextContent(
+      "Usage and cost of your Cursor team by person, not conversations.",
+    );
   });
 
   test("company AI tools: Claude Enterprise and Microsoft 365 Copilot", () => {
@@ -653,6 +660,205 @@ describe("telling your people, and the tools with no API", () => {
       // A guide opens beside the page, without handing it the opener.
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      // Nothing to connect for them here.
+      expect(within(tool).queryByRole("button")).not.toBeInTheDocument();
+    }
+  });
+
+  /*
+   * #5547: Cursor is looked for with the company AI tools; its Admin API
+   * has usage and cost, not conversations, so it is a provider account -
+   * and its entry here opens that form.
+   */
+  test("Cursor, first: usage and cost not conversations, connected from here", () => {
+    const onConnect: MockFunction = getJestMockFunction();
+
+    render(<LlmOtherAiTools onConnect={onConnect} canConnect={true} />);
+
+    const tools: Array<HTMLElement> = screen.getAllByTestId(
+      /^llm-other-ai-tool-(?!connect-)/,
+    );
+
+    expect(tools[0]).toHaveAttribute("data-testid", "llm-other-ai-tool-cursor");
+
+    const cursor: HTMLElement = screen.getByTestId("llm-other-ai-tool-cursor");
+
+    expect(cursor).toHaveTextContent("Cursor");
+    expect(cursor).toHaveTextContent(
+      "Cursor's Admin API gives usage and cost by person, not conversations, so Cursor is connected with your AI provider accounts.",
+    );
+    expect(
+      within(cursor)
+        .getByRole("link")
+        .getAttribute("href")
+        ?.endsWith("/telemetry/ai-provider-accounts#cursor"),
+    ).toBe(true);
+
+    const connect: HTMLElement = within(cursor).getByTestId(
+      "llm-other-ai-tool-connect-cursor",
+    );
+
+    expect(connect).toHaveTextContent("Connect Cursor");
+    expect(connect).toBeEnabled();
+
+    fireEvent.click(connect);
+
+    expect(onConnect).toHaveBeenCalledTimes(1);
+    expect(onConnect).toHaveBeenCalledWith(LlmConnectionProvider.Cursor);
+  });
+
+  test("without the right to connect, Cursor's button is off and does nothing", () => {
+    const onConnect: MockFunction = getJestMockFunction();
+
+    render(
+      <LlmOtherAiTools
+        onConnect={onConnect}
+        canConnect={false}
+        connectDisabledReason="You do not have permission to create this AI Connection."
+      />,
+    );
+
+    const connect: HTMLElement = screen.getByTestId(
+      "llm-other-ai-tool-connect-cursor",
+    );
+
+    expect(connect).toBeDisabled();
+    fireEvent.click(connect);
+    expect(onConnect).not.toHaveBeenCalled();
+  });
+
+  test("with nothing to open, Cursor keeps its guide and no button", () => {
+    render(<LlmOtherAiTools />);
+
+    const cursor: HTMLElement = screen.getByTestId("llm-other-ai-tool-cursor");
+
+    expect(within(cursor).getByRole("link")).toHaveTextContent("Read how");
+    expect(
+      within(cursor).queryByTestId("llm-other-ai-tool-connect-cursor"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("Cursor's test", () => {
+  const cursor: LlmConnectionDefinition = getLlmConnectionDefinition(
+    LlmConnectionProvider.Cursor,
+  )!;
+
+  test("counts the team's members beside the people who used it", async () => {
+    const runTest: MockFunction = getJestMockFunction().mockResolvedValue({
+      provider: LlmConnectionProvider.Cursor,
+      status: "pass",
+      message: "Connected. Found usage in the last 7 days.",
+      counts: {
+        days: 7,
+        models: 4,
+        people: 12,
+        members: 40,
+        inputTokens: 5_400_000,
+        outputTokens: 610_000,
+        requests: 2310,
+        costUsd: 96.25,
+      },
+      durationMs: 2400,
+    } as LlmConnectionTestResult);
+
+    render(<LlmConnectionTestPanel definition={cursor} runTest={runTest} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("llm-connection-test-button"));
+    });
+
+    const figures: HTMLElement = within(
+      screen.getByTestId("llm-connection-test-pass"),
+    ).getByTestId("llm-connection-test-figures");
+
+    expect(figures).toHaveTextContent("Cost$96.25");
+    expect(figures).toHaveTextContent("People12");
+    expect(figures).toHaveTextContent("Members40");
+  });
+
+  test("a busy team's test counts its requests, and its members", async () => {
+    const runTest: MockFunction = getJestMockFunction().mockResolvedValue({
+      provider: LlmConnectionProvider.Cursor,
+      status: "pass",
+      message: "Connected. Found 48210 requests in the last 7 days.",
+      counts: { days: 7, requests: 48210, members: 900 },
+      durationMs: 2400,
+    } as LlmConnectionTestResult);
+
+    render(<LlmConnectionTestPanel definition={cursor} runTest={runTest} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("llm-connection-test-button"));
+    });
+
+    const figures: HTMLElement = screen.getByTestId(
+      "llm-connection-test-figures",
+    );
+
+    expect(figures).toHaveTextContent("Members900");
+    expect(figures).not.toHaveTextContent("People");
+  });
+
+  test("a key that may not read the team: Cursor's words, not a role or scope", async () => {
+    const runTest: MockFunction = getJestMockFunction().mockResolvedValue({
+      provider: LlmConnectionProvider.Cursor,
+      status: "fail",
+      message:
+        "Cursor accepted the key but refused the team members request (HTTP 403: Enterprise access required).",
+      failureKind: LlmConnectionFailureKind.Permission,
+      durationMs: 80,
+    } as LlmConnectionTestResult);
+
+    render(<LlmConnectionTestPanel definition={cursor} runTest={runTest} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("llm-connection-test-button"));
+    });
+
+    const status: HTMLElement = screen.getByTestId("llm-connection-test-fail");
+
+    expect(status).toHaveTextContent(
+      "Cursor accepted the key, but it may not read the team's usage.",
+    );
+    expect(status).toHaveTextContent(
+      "Use an Admin API key of a Teams or Enterprise team: a team admin creates it in the Cursor dashboard, under Settings, Cursor Admin API Keys. Then test again.",
+    );
+    expect(status).not.toHaveTextContent("role or scope");
+    expect(screen.getByTestId("llm-connection-test-details")).toHaveTextContent(
+      "HTTP 403: Enterprise access required",
+    );
+  });
+
+  test("a refused key and a rate limit keep the words every provider has", async () => {
+    for (const [failureKind, headline] of [
+      [
+        LlmConnectionFailureKind.Authentication,
+        "The key or secret was not accepted.",
+      ],
+      [
+        LlmConnectionFailureKind.RateLimited,
+        "The provider asked OneUptime to slow down.",
+      ],
+    ] as Array<[LlmConnectionFailureKind, string]>) {
+      const runTest: MockFunction = getJestMockFunction().mockResolvedValue({
+        provider: LlmConnectionProvider.Cursor,
+        status: "fail",
+        message: "Cursor answered.",
+        failureKind,
+        durationMs: 80,
+      } as LlmConnectionTestResult);
+
+      render(<LlmConnectionTestPanel definition={cursor} runTest={runTest} />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("llm-connection-test-button"));
+      });
+
+      expect(screen.getByTestId("llm-connection-test-fail")).toHaveTextContent(
+        headline,
+      );
+      cleanup();
     }
   });
 });
