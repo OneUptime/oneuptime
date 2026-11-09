@@ -564,6 +564,66 @@ describe("Azure key metrics a diagnostic setting cannot export", () => {
       ),
     ).toBeNull();
   });
+
+  /*
+   * The lookup reads a table built once from AZURE_KEY_METRICS: every key
+   * metric of every type is found under the stored name of each
+   * aggregation it can be read with, in any case and with spaces around,
+   * and under no other type, nor under a name no key metric is stored as.
+   */
+  test("every key metric of every type is found by each of its stored names, and only on its own type", () => {
+    const aggregations: Array<string> = [
+      "Average",
+      "Total",
+      "Maximum",
+      "Minimum",
+      "Count",
+    ];
+
+    for (const entry of AZURE_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        for (const aggregation of aggregations) {
+          const stored: string = getAzureStoredMetricName(metric, aggregation);
+
+          expect({
+            type: entry.type,
+            stored,
+            metric: getAzureKeyMetricOfStoredName(entry.type, stored),
+          }).toEqual({ type: entry.type, stored, metric });
+          expect(
+            getAzureKeyMetricOfStoredName(
+              ` ${entry.type.toUpperCase()} `,
+              ` ${stored.toUpperCase()} `,
+            ),
+          ).toBe(metric);
+
+          // Another type that reads no metric of that name does not know it.
+          for (const other of AZURE_KEY_METRICS) {
+            if (
+              other.type !== entry.type &&
+              !other.metrics.some((candidate: string): boolean => {
+                return candidate.toLowerCase() === metric.toLowerCase();
+              })
+            ) {
+              expect({
+                type: other.type,
+                stored,
+                metric: getAzureKeyMetricOfStoredName(other.type, stored),
+              }).toEqual({ type: other.type, stored, metric: null });
+            }
+          }
+        }
+
+        // A name the receiver never stores it as: the aggregation missing.
+        expect(
+          getAzureKeyMetricOfStoredName(
+            entry.type,
+            getAzureStoredMetricName(metric, "").slice(0, -1),
+          ),
+        ).toBeNull();
+      }
+    }
+  });
 });
 
 describe("Google Cloud", () => {

@@ -687,6 +687,38 @@ const AZURE_STORED_AGGREGATIONS: ReadonlyArray<string> = [
 ];
 
 /*
+ * Each type's key metrics by every stored name one can be read under
+ * (lowercased type -> stored name -> Azure Monitor's name), built once. A
+ * read checks every datapoint it writes against it while its subscription
+ * streams (CloudStreamedMetrics) - a split namespace's thousand queues
+ * included - so a lookup is two map reads, not a stored name built for
+ * each metric and aggregation of the type.
+ */
+const AZURE_KEY_METRICS_BY_STORED_NAME: ReadonlyMap<
+  string,
+  ReadonlyMap<string, string>
+> = new Map(
+  AZURE_KEY_METRICS.map(
+    (entry: AzureTypeKeyMetrics): [string, ReadonlyMap<string, string>] => {
+      const byStoredName: Map<string, string> = new Map<string, string>();
+
+      for (const metric of entry.metrics) {
+        for (const aggregation of AZURE_STORED_AGGREGATIONS) {
+          const stored: string = getAzureStoredMetricName(metric, aggregation);
+
+          // The type's first metric stored under a name keeps it.
+          if (!byStoredName.has(stored)) {
+            byStoredName.set(stored, metric);
+          }
+        }
+      }
+
+      return [entry.type.toLowerCase(), byStoredName];
+    },
+  ),
+);
+
+/*
  * Whether a cloud connection's read reads this stored metric of the type:
  * one of its key metrics, whatever aggregation its definition calls
  * primary (the read learns that from Azure, so the name is matched with
@@ -708,21 +740,16 @@ export function getAzureKeyMetricOfStoredName(
   type: string,
   storedMetricName: string,
 ): string | null {
-  const keyMetrics: AzureTypeKeyMetrics | undefined = getAzureKeyMetrics(
-    type || "",
-  );
   const stored: string = (storedMetricName || "").trim().toLowerCase();
 
-  if (!keyMetrics || !stored) {
+  if (!stored) {
     return null;
   }
 
   return (
-    keyMetrics.metrics.find((metric: string): boolean => {
-      return AZURE_STORED_AGGREGATIONS.some((aggregation: string): boolean => {
-        return getAzureStoredMetricName(metric, aggregation) === stored;
-      });
-    }) || null
+    AZURE_KEY_METRICS_BY_STORED_NAME.get(
+      (type || "").trim().toLowerCase(),
+    )?.get(stored) || null
   );
 }
 
