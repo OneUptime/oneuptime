@@ -109,6 +109,9 @@ interface World {
 
 let world: World;
 
+// Each time an edit had a note's chat copies replaced (#6317).
+let chatCopiesReplaced: Array<string>;
+
 function round(overrides: Partial<PublicNoteApprovalRound> = {}): JSONObject {
   return PublicNoteApproval.toJSON({
     ...PublicNoteApproval.startRound({
@@ -426,6 +429,19 @@ beforeEach(() => {
   getJestSpyOn(PublicNoteApprovalNotifications, "tellSender").mockResolvedValue(
     true as never,
   );
+  chatCopiesReplaced = [];
+  getJestSpyOn(
+    PublicNoteApprovalNotifications,
+    "replaceChatMessages",
+  ).mockImplementation(((data: {
+    kind: PublicNoteKind;
+    projectId: ObjectID;
+    noteId: ObjectID;
+  }): void => {
+    chatCopiesReplaced.push(
+      `${data.kind}:${data.projectId.toString()}:${data.noteId.toString()}`,
+    );
+  }) as never);
 });
 
 afterEach(() => {
@@ -802,5 +818,85 @@ describe("PublicNoteApprovalEngine.afterUpdate", () => {
         props: propsOf(ALICE),
       }),
     ).resolves.toBe(true);
+  });
+});
+
+/*
+ * THE CHAT COPIES OF ITS APPROVAL MESSAGE (#6317). An edit that ends the
+ * round a note's approval messages asked about - sends it for approval
+ * again, holds a new edit in place of one that waited, drops a waiting edit,
+ * or lets an edit apply as it is over one that waited once approval is off
+ * - has the chat copies replaced, once, for that note of its project. One
+ * that ends nothing, or that a decision overtook, has none replaced.
+ */
+describe("an edit and the chat copies of its note's approval message", () => {
+  const THIS_NOTE: string = `${PublicNoteKind.Incident}:${PROJECT_ID.toString()}:${new ObjectID(NOTE_ID).toString()}`;
+
+  test("a waiting note edited, and sent for approval again: replaced once", async () => {
+    const run: EditRun = await runEdit(editOf({ note: NEW_TEXT }));
+
+    expect(run.update.resentNoteIds).toEqual([NOTE_ID]);
+    expect(run.update.projectId).toBe(PROJECT_ID.toString());
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE]);
+  });
+
+  test("a published note's waiting edit edited again: replaced once", async () => {
+    world.notes = [publishedWithWaitingEdit()];
+
+    const run: EditRun = await runEdit(editOf({ note: NEW_TEXT }));
+
+    expect(run.update.heldEditNoteIds).toEqual([NOTE_ID]);
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE]);
+  });
+
+  test("an edit back to the published text drops the waiting one: replaced once", async () => {
+    world.notes = [publishedWithWaitingEdit()];
+
+    const run: EditRun = await runEdit(editOf({ note: APPROVED_TEXT }));
+
+    expect(run.update.droppedEditNoteIds).toEqual([NOTE_ID]);
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE]);
+  });
+
+  test("approval off, an edit applies as it is over one that waited: the waiting edit's copies are replaced, and the edit is announced as any edit", async () => {
+    world.isRequired = {};
+    world.notes = [publishedWithWaitingEdit()];
+
+    const run: EditRun = await runEdit(editOf({ note: NEW_TEXT }));
+
+    expect(run.update.withdrawnEditNoteIds).toEqual([NOTE_ID]);
+    expect(run.update.projectId).toBe(PROJECT_ID.toString());
+    expect(run.handled).toBe(false);
+    expect(stored().note).toBe(NEW_TEXT);
+    expect(stored().pendingNote).toBeNull();
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE]);
+  });
+
+  test("approval off, an edit of a published note with nothing waiting: nothing to replace, and nothing carried", async () => {
+    world.isRequired = {};
+    world.notes = [publishedNote()];
+
+    const run: EditRun = await runEdit(editOf({ note: NEW_TEXT }));
+
+    expect(PublicNoteApprovalEngine.getCarryForward(run.update)).toBeNull();
+    expect(chatCopiesReplaced).toEqual([]);
+  });
+
+  test("written back as it is: nothing ends, and nothing is replaced", async () => {
+    await runEdit(editOf({ note: APPROVED_TEXT }));
+
+    expect(chatCopiesReplaced).toEqual([]);
+  });
+
+  test("an edit a decision overtook writes nothing, and replaces nothing", async () => {
+    const refusal: Error = await refusalOf(() => {
+      return runEdit(editOf({ note: NEW_TEXT }), async () => {
+        await decide(PublicNoteApprovalDecision.Reject, "Not yet.");
+      });
+    });
+
+    expect(refusal.message).toBe(PublicNoteApprovalMessages.changedMeanwhile);
+    // The rejection's own, and not the edit's.
+    expect(chatCopiesReplaced).toEqual([THIS_NOTE]);
   });
 });

@@ -1,4 +1,5 @@
 import { JSONArray, JSONObject, JSONValue } from "../../JSON";
+import { readAuditLogChange } from "../../../Utils/AuditLog/AuditLogTypedValues";
 
 /*
  * ONE AUDIT LOG ENTRY AS IT IS EXPORTED: the JSON object every
@@ -18,6 +19,13 @@ import { JSONArray, JSONObject, JSONValue } from "../../JSON";
  * Nothing secret is in an entry: the recorder leaves out every field
  * nobody may read (passwords, keys, tokens) before it is written, and the
  * export carries the entry as recorded.
+ *
+ * A typed value - a phone number, an email address, a URL - is what it
+ * holds, "+14155550100", in every version: the recorder records it so, and
+ * an entry recorded before it did, as { "_type": "Phone", "value": ... },
+ * is read so on its way out (readAuditLogExportTypedValues). That changes
+ * no key, so it is no new version: a value has always been whatever its
+ * field holds, and the { _type, value } JSON was never part of the schema.
  *
  * THE VERSIONS. Each export says which version it sends
  * (AuditLogExport.schemaVersion), and every record says which it is:
@@ -350,6 +358,40 @@ export function toAuditLogExportRecord(
     workflowName: readText(row["workflowName"]),
     changes: readAuditLogExportChanges(row["changes"], schemaVersion),
   };
+}
+
+/*
+ * A record as the recorder writes entries now (issue #6325): a phone
+ * number, an email address or a URL an entry recorded as its JSON before -
+ * { "_type": "Phone", "value": "+14155550100" } - goes out as what it
+ * holds, "+14155550100", in every version, and with no summary lines when
+ * that leaves both values plain, as a change recorded today has none; a
+ * hash goes out as "[REDACTED]". Everything else is as recorded, and a
+ * record with no typed value in it comes back as it is, the same object.
+ *
+ * It runs after the export's redaction (AuditLogExportRedaction), so a
+ * secret field is the marker before anything reads it. toAuditLogExportRecord
+ * stays the row as recorded, which the version 1 guard holds to the line
+ * version 1 first wrote.
+ */
+export function readAuditLogExportTypedValues(
+  record: AuditLogExportRecord,
+): AuditLogExportRecord {
+  let isChanged: boolean = false;
+
+  const changes: Array<AuditLogExportChange> = record.changes.map(
+    (change: AuditLogExportChange): AuditLogExportChange => {
+      const read: AuditLogExportChange = readAuditLogChange(change);
+
+      if (read !== change) {
+        isChanged = true;
+      }
+
+      return read;
+    },
+  );
+
+  return isChanged ? { ...record, changes } : record;
 }
 
 /*

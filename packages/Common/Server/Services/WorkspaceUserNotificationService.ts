@@ -6,6 +6,7 @@ import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MattermostUtil from "../Utils/Workspace/Mattermost/Mattermost";
 import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
+import { WorkspaceDirectMessageLocation } from "../Utils/Workspace/WorkspaceBase";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -34,6 +35,18 @@ import WorkspaceType, {
  * there; workspace bot tokens live in this database, so this service sends
  * in-process instead.
  */
+
+/*
+ * A direct message that was sent: the chat, the workspace it was sent
+ * through - the Slack workspace, Microsoft 365 tenant or Mattermost team, as
+ * the project's connection names it (WorkspaceProjectAuthToken
+ * .workspaceProjectId) - and where it landed.
+ */
+export interface WorkspaceSentDirectMessage
+  extends WorkspaceDirectMessageLocation {
+  workspaceType: WorkspaceType;
+  workspaceProjectId: string;
+}
 
 export interface SendWorkspaceDirectMessageOptions {
   projectId: ObjectID;
@@ -70,6 +83,13 @@ export interface SendWorkspaceDirectMessageOptions {
   onCallPolicyEscalationRuleId?: ObjectID | undefined;
   onCallScheduleId?: ObjectID | undefined;
   teamId?: ObjectID | undefined;
+  /*
+   * Told where the message landed once it is sent - to keep it, so it can
+   * be edited later (a public note's approval message is replaced once the
+   * note is decided). Not called when the send failed or the chat did not
+   * say; a failure of its own is logged and never fails the send.
+   */
+  onSent?: ((sent: WorkspaceSentDirectMessage) => Promise<void>) | undefined;
 }
 
 export class WorkspaceUserNotificationService extends BaseService {
@@ -86,6 +106,7 @@ export class WorkspaceUserNotificationService extends BaseService {
     );
 
     let sendError: Error | null = null;
+    let sent: WorkspaceSentDirectMessage | null = null;
 
     try {
       if (!options.workspaceUserId) {
@@ -110,8 +131,10 @@ export class WorkspaceUserNotificationService extends BaseService {
         options.notificationText ||
         WorkspaceNotificationText.fromBlocks(options.messageBlocks);
 
+      let location: WorkspaceDirectMessageLocation | null = null;
+
       if (options.workspaceType === WorkspaceType.Slack) {
-        await SlackUtil.sendDirectMessageToUser({
+        location = await SlackUtil.sendDirectMessageToUser({
           authToken: projectAuth.authToken,
           workspaceUserId: options.workspaceUserId,
           messageBlocks: options.messageBlocks,
@@ -119,14 +142,14 @@ export class WorkspaceUserNotificationService extends BaseService {
           ...(notificationText ? { text: notificationText } : {}),
         });
       } else if (options.workspaceType === WorkspaceType.MicrosoftTeams) {
-        await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
+        location = await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
           projectId: options.projectId,
           workspaceUserId: options.workspaceUserId,
           messageBlocks: options.messageBlocks,
           ...(notificationText ? { text: notificationText } : {}),
         });
       } else if (options.workspaceType === WorkspaceType.Mattermost) {
-        await MattermostUtil.sendDirectMessageToUser({
+        location = await MattermostUtil.sendDirectMessageToUser({
           authToken: projectAuth.authToken,
           workspaceUserId: options.workspaceUserId,
           messageBlocks: options.messageBlocks,
@@ -135,6 +158,14 @@ export class WorkspaceUserNotificationService extends BaseService {
         throw new BadDataException(
           `Direct messages are not supported for workspace type ${options.workspaceType}.`,
         );
+      }
+
+      if (location && projectAuth.workspaceProjectId) {
+        sent = {
+          ...location,
+          workspaceType: options.workspaceType,
+          workspaceProjectId: projectAuth.workspaceProjectId,
+        };
       }
     } catch (error: unknown) {
       const errorMessage: string =
@@ -148,6 +179,19 @@ export class WorkspaceUserNotificationService extends BaseService {
         `Failed to send ${workspaceDisplayName} direct message notification.`,
       );
       logger.error(error);
+    }
+
+    // Where it landed, for whoever keeps it. Best effort: it never fails the send.
+    if (!sendError && sent && options.onSent) {
+      try {
+        await options.onSent(sent);
+      } catch (keepError) {
+        logger.error(
+          `A ${workspaceDisplayName} direct message was sent, but OneUptime could not keep where it landed.`,
+          { projectId: options.projectId.toString() },
+        );
+        logger.error(keepError, { projectId: options.projectId.toString() });
+      }
     }
 
     /*

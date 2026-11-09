@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 46732,
-    "untranslated": 11161
+    "keys": 46825,
+    "untranslated": 11093
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -353,6 +353,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} SLO",
     "{{count}} VM",
     "{{count}} alarm",
     "{{count}} app",

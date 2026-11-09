@@ -1,6 +1,10 @@
 import { AUDIT_LOG_REDACTED_VALUE } from "../../Types/AuditLog/AuditLogRedaction";
 import { looksLikeSecretName } from "../../Types/AuditLog/AuditLogCoverage";
 import { limitLines } from "../Workflow/WorkflowGraphChanges";
+import {
+  AuditLogTypedValueReading,
+  readAuditLogTypedValue,
+} from "./AuditLogTypedValues";
 
 /*
  * WHAT AN AUDIT LOG ENTRY SAYS ABOUT A VALUE: readable, bounded, and never a
@@ -66,9 +70,11 @@ const isNothing: (value: unknown) => boolean = (value: unknown): boolean => {
 
 /*
  * A copy of a JSON value in which every value kept under a key that says it
- * is a secret ("password", "apiKey", "Authorization", "x-api-key", ...), and
- * the "value" of a pair named like one, is "[REDACTED]". The keys stay, so an
- * entry still shows where a secret is set.
+ * is a secret ("password", "apiKey", "Authorization", "x-api-key", ...), the
+ * "value" of a pair named like one, and a hash anywhere - written as
+ * { "_type": "HashedString", "value": ... }, a secret whatever its key
+ * (AuditLogTypedValues) - is "[REDACTED]". The keys stay, so an entry still
+ * shows where a secret is set.
  */
 export const redactSecretsInJson: (value: unknown) => unknown = (
   value: unknown,
@@ -93,6 +99,12 @@ const redactAtDepth: (value: unknown, depth: number) => unknown = (
 
   if (!isPlainObject(value)) {
     return value;
+  }
+
+  if (
+    readAuditLogTypedValue(value)?.reading === AuditLogTypedValueReading.Secret
+  ) {
+    return AUDIT_LOG_REDACTED_VALUE;
   }
 
   const isSecretPair: boolean = PAIR_NAME_KEYS.some(

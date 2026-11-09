@@ -88,6 +88,35 @@ SLOs created before Slow leak existed have only Fast burn and Slow burn: upgradi
 
 A rule counts as there when the SLO has a rule with the same name, or one with the same long window, whether it is on or off. So a default rule you renamed or tuned is never added twice. To stop the note offering a default rule you do not want, keep the rule and disable it instead of deleting it. You need permission to create SLO burn rate rules. Each rule it adds is posted to the SLO's feed and recorded in its audit logs, like a rule you create yourself.
 
+### Add them to many SLOs at once
+
+To give many SLOs the recommended rules, start from the SLO list instead of each SLO's own page.
+
+:::steps
+#### Select the SLOs
+
+Open **SLOs** and select the SLOs to update. To take every SLO a filter shows, select the whole page, then every match the list offers.
+
+#### Choose Add recommended rules
+
+Open **Bulk Actions** and choose **Add recommended rules**.
+
+#### Check what it adds, and confirm
+
+Before anything is added, the confirmation counts how many of the selected SLOs get each rule, scaled to their own windows. Where SLOs with different windows get a rule in different shapes, such as Slow leak on a 7-day and on a 30-day SLO, it lists each shape with its threshold, its windows and the SLOs that get it. It also says how many already have every recommended rule, and how many could not be read. Click **Add recommended rules** to add them.
+:::
+
+Each SLO gets only the rules it is missing, exactly as its own **Burn Rate Rules** page would add them: the same check of what counts as there, and a feed item and an audit log entry for every rule. The result says, for each SLO, whether rules were added, it already had every recommended rule, or it was not changed and why, for example an SLO you may not change. One SLO that is not changed never stops the others, and running it again on the same SLOs adds nothing. Archived SLOs are not on the list and are never offered the rules, because they are not evaluated: unarchive an SLO first.
+
+Scripts can do the same through the API, with an [API key](/docs/api-reference/api-reference) of the project. The requests for one SLO take `{ "serviceLevelObjectiveId": "..." }` and answer with the rules in `rules`. The bulk requests take `{ "serviceLevelObjectiveIds": ["..."] }`, at most 100 SLOs per request, and answer with one entry for each SLO in `results`, in the order asked:
+
+| Request | What it does |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | Lists the recommended rules the SLO is missing. It writes nothing. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | Adds them, and lists what it added. Asking again adds nothing. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | Says what each SLO is missing: `Missing` with the rules, `NothingMissing`, or `Refused` for an SLO you may not read. It writes nothing. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | Adds what each SLO is missing, one SLO after another: `Added` with the rules, `NothingMissing`, `Refused`, or `Failed` with the rules added before it failed. Asking again adds only what is still missing. |
+
 ## Create or edit a rule
 
 You need permission to create SLO burn rate rules.

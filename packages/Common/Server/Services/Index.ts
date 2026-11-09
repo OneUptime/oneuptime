@@ -540,6 +540,7 @@ import IncidentVideoCallService from "./IncidentVideoCallService";
 import AlertVideoCallService from "./AlertVideoCallService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
+import WorkspacePublicNoteApprovalMessageService from "./WorkspacePublicNoteApprovalMessageService";
 import WorkspaceHomeChoiceService from "./WorkspaceHomeChoiceService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
@@ -1126,6 +1127,7 @@ const services: Array<BaseService> = [
   AlertVideoCallService,
   WorkspaceNotificationLogService,
   WorkspaceLiveMessageService,
+  WorkspacePublicNoteApprovalMessageService,
   WorkspaceHomeChoiceService,
   WorkspaceNotificationSummaryService,
   WorkspaceUserGroupService,

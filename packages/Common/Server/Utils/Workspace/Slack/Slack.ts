@@ -32,6 +32,7 @@ import BadRequestException from "../../../../Types/Exception/BadRequestException
 import WorkspaceBase, {
   WorkspaceChannel,
   WorkspaceChannelToCreate,
+  WorkspaceDirectMessageLocation,
   WorkspaceMessageLocation,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
@@ -802,7 +803,7 @@ export default class SlackUtil extends WorkspaceBase {
      * `text`): a direct message notifies, so it says something readable.
      */
     text?: string | undefined;
-  }): Promise<void> {
+  }): Promise<WorkspaceDirectMessageLocation | null> {
     // Send direct message to user
 
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
@@ -811,7 +812,7 @@ export default class SlackUtil extends WorkspaceBase {
       },
     );
 
-    await this.sendPayloadBlocksToChannel({
+    const thread: WorkspaceThread = await this.sendPayloadBlocksToChannel({
       authToken: data.authToken,
       workspaceChannel: {
         id: data.workspaceUserId,
@@ -821,6 +822,19 @@ export default class SlackUtil extends WorkspaceBase {
       blocks: blocks,
       text: data.text,
     });
+
+    /*
+     * Where it landed: the direct message channel Slack opened (D...), which
+     * an edit has to name - chat.update takes no member id - and its ts.
+     */
+    if (!thread.threadId || !thread.channel?.id) {
+      return null;
+    }
+
+    return {
+      channelId: thread.channel.id,
+      messageId: thread.threadId,
+    };
   }
 
   @CaptureSpan()
@@ -2088,8 +2102,20 @@ export default class SlackUtil extends WorkspaceBase {
       payloadBlocksLogAttributes,
     );
 
+    /*
+     * The channel Slack posted in: the channel itself or - for a message
+     * sent to a member's id - the direct message channel it opened (D...),
+     * the one an edit of the message names.
+     */
+    const postedInChannelId: unknown = (response.jsonData as JSONObject)[
+      "channel"
+    ];
+
     return {
-      channel: data.workspaceChannel,
+      channel:
+        typeof postedInChannelId === "string" && postedInChannelId
+          ? { ...data.workspaceChannel, id: postedInChannelId }
+          : data.workspaceChannel,
       threadId: (response.jsonData as JSONObject)["ts"] as string,
     };
   }

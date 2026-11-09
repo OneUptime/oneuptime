@@ -117,6 +117,12 @@ import {
  * an absence rule), and a queue with no consumers is often intended — a
  * batch job that connects on a schedule, a topic nobody reads yet — while
  * the harm it does, messages piling up, is exactly what Backlog catches.
+ * Nor scheduled, size or latency: scheduled messages wait by design (a
+ * sender chose to deliver them later), a queue's size counts against a
+ * maximum each queue and tier sets for itself, and how long the broker
+ * takes to accept a send has no level that is bad on every tier. Each of
+ * them still has "Create monitor", which seeds a monitor the reader sets
+ * the threshold of.
  * UNALERTABLE_MESSAGE_QUEUE_COUNTERS lists every counter the rule leaves
  * out, and UNTEMPLATED_MESSAGE_QUEUE_GAUGES every gauge with a thresholdable
  * signal that is deliberately left out, with the reason; the tests prove the
@@ -667,6 +673,9 @@ const COUNTER_TEMPTATION_BY_SIGNAL: Readonly<
   oldestMessageAge: "messages getting old",
   throttled: "throttling",
   consumers: "consumers leaving",
+  scheduled: "scheduled messages piling up",
+  size: "a queue filling its storage",
+  latency: "slow sends",
 };
 
 /*
