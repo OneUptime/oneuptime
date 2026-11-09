@@ -1442,19 +1442,31 @@ describe("query_slos — error budget policy", () => {
     expect(QuerySlosTool.description).toContain("the tier the SLO is in now");
   });
 
+  /*
+   * The SLO's own row: the line that carries deploymentsAllowed and is not
+   * the note above the rows, which names the field to say how to read it.
+   */
+  const sloRowOf: (result: ToolExecutionResult) => string = (
+    result: ToolExecutionResult,
+  ): string => {
+    return (
+      result.dataForLlm.split("\n").find((line: string): boolean => {
+        return line.includes("deploymentsAllowed") && !line.startsWith("Note:");
+      }) || ""
+    );
+  };
+
   test("an SLO's row answers the deploy gate: allowed, and the model is told how to read it", async () => {
     const { result } = await detail({
       slo: sloInTier(CAUTION_ID, "Caution"),
       tiers: policy(),
     });
 
-    const sloRow: string =
-      result.dataForLlm.split("\n").find((line: string): boolean => {
-        return line.includes("deploymentsAllowed");
-      }) || "";
+    const sloRow: string = sloRowOf(result);
 
     expect(sloRow).toMatch(/deploymentsAllowed[^,\n]*true/);
-    expect(result.dataForLlm).not.toContain("deploymentsFrozenAt");
+    // No freeze time on an allowed SLO's row.
+    expect(sloRow).not.toContain("deploymentsFrozenAt");
     expect(result.dataForLlm).toContain(
       "deploymentsAllowed on an SLO row is the deploy gate CI/CD pipelines read before they release",
     );
@@ -1481,9 +1493,11 @@ describe("query_slos — error budget policy", () => {
       ),
     });
 
-    expect(result.dataForLlm).toMatch(/deploymentsAllowed[^,\n]*false/);
-    expect(result.dataForLlm).toContain("deploymentsFrozenAt");
-    expect(result.dataForLlm).toContain("2026-08-13");
+    const sloRow: string = sloRowOf(result);
+
+    expect(sloRow).toMatch(/deploymentsAllowed[^,\n]*false/);
+    expect(sloRow).toContain("deploymentsFrozenAt");
+    expect(sloRow).toContain("2026-08-13");
     expect(widgetField(result, "Deployments")).toBe(
       "frozen by the error budget policy",
     );
@@ -1537,7 +1551,7 @@ describe("query_slos — error budget policy", () => {
 
     const { result } = await detail({ slo: frozen, tiers: "denied" });
 
-    expect(result.dataForLlm).toMatch(/deploymentsAllowed[^,\n]*false/);
+    expect(sloRowOf(result)).toMatch(/deploymentsAllowed[^,\n]*false/);
     expect(widgetField(result, "Deployments")).toBe(
       "frozen by the error budget policy",
     );
