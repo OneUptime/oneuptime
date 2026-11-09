@@ -174,6 +174,8 @@ import { formatSinceDate } from "../../../../App/FeatureSet/Dashboard/src/Compon
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
+import Icon from "../../../UI/Components/Icon/Icon";
+import IconProp from "../../../Types/Icon/IconProp";
 
 const MINUTE_MS: number = 60 * 1000;
 const HOUR_MS: number = 60 * MINUTE_MS;
@@ -292,6 +294,20 @@ function rowSignals(): Array<string | null> {
 
 function fromNow(date: Date): string {
   return OneUptimeDate.fromNow(date, new Date());
+}
+
+// The shape an icon draws, to tell one icon from another.
+function shapeOf(icon: IconProp): string {
+  const drawn: { container: HTMLElement; unmount: () => void } = render(
+    <Icon icon={icon} />,
+  );
+  const shape: string = drawn.container.querySelector("svg")?.innerHTML || "";
+  drawn.unmount();
+  return shape;
+}
+
+function shapeIn(element: HTMLElement): string {
+  return element.querySelector("svg")?.innerHTML || "";
 }
 
 beforeEach(() => {
@@ -451,6 +467,55 @@ describe("the setup check of a browser application", () => {
     expect(screen.getByTestId("rum-logs-setup")).toBeInTheDocument();
   });
 
+  test("an app added after the upgrade: nothing yet, never 'since the day it was added'", async () => {
+    const addedAt: Date = ago(2 * DAY_MS);
+    arrange({
+      app: Promise.resolve({
+        ...pageLoadsOnlyApp(),
+        createdAt: addedAt,
+        // The same now() of the insert as its createdAt.
+        signalArrivalsTrackedSince: addedAt,
+      }),
+      newestException: Promise.resolve(null),
+      newestWebVital: Promise.resolve(null),
+    });
+    await renderCard();
+
+    // Logs are kept from the day it was added, Web Vitals 30 days back.
+    for (const signal of ["exceptions", "logs", "webVitals"]) {
+      expect(rowText(signal)).toBe("Not set up. Nothing has arrived yet.");
+      expect(row(signal)).toHaveAttribute("data-tone", "warning");
+    }
+    expect(screen.queryByText(/since/)).toBeNull();
+
+    // The application's record is read with the day it was added.
+    expect(getItemMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ createdAt: true }),
+      }),
+    );
+  });
+
+  test("a step in the docs opens in a new tab and wears the new-tab icon; a step on this page, a chevron", async () => {
+    arrange({
+      app: Promise.resolve(pageLoadsOnlyApp()),
+      newestException: Promise.resolve(null),
+      newestWebVital: Promise.resolve(null),
+    });
+    await renderCard();
+
+    const docsStep: HTMLElement = within(row("webVitals")).getByRole("link", {
+      name: "Set up Web Vitals",
+    });
+    const pageStep: HTMLElement = within(row("logs")).getByRole("button", {
+      name: "Set up logs",
+    });
+
+    expect(docsStep).toHaveAttribute("target", "_blank");
+    expect(shapeIn(docsStep)).toBe(shapeOf(IconProp.ExternalLink));
+    expect(shapeIn(pageStep)).toBe(shapeOf(IconProp.ChevronRight));
+  });
+
   test("quiet for more than a day: the row says when the latest came in", async () => {
     const lastLog: Date = ago(3 * DAY_MS);
     arrange({
@@ -533,9 +598,7 @@ describe("the setup check of a browser application", () => {
     await renderCard();
 
     for (const signal of ["traces", "exceptions", "logs", "webVitals"]) {
-      expect(rowText(signal)).toBe(
-        "Waiting. Nothing has arrived from this app yet.",
-      );
+      expect(rowText(signal)).toBe("Waiting for data");
       expect(row(signal)).toHaveAttribute("data-tone", "waiting");
     }
     expect(rowDetail("traces")).toBe(

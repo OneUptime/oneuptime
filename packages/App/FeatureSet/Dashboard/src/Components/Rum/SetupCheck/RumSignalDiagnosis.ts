@@ -83,6 +83,11 @@ export interface RumApplicationArrivalFacts {
    * (isReplayOnlyInstrumented).
    */
   replayOnly: boolean;
+  /*
+   * When the application was added, when known. "Nothing since" a date no
+   * later than that is nothing in the app's whole life: "nothing yet".
+   */
+  createdAt?: Date | null | undefined;
 }
 
 export interface RumSignalDiagnosisInput {
@@ -171,6 +176,14 @@ export const RUM_WEB_VITALS_LOOKBACK_DAYS: number = 30;
  * arrivals were first kept has been silent since, not merely unstamped.
  */
 export const RUM_SIGNAL_STAMP_TOLERANCE_MS: number = 15 * 60 * 1000;
+
+/*
+ * How long after an application was added its arrivals can start being
+ * kept and still count as kept for its whole life: both dates are the
+ * same now() of the insert, so a minute is margin enough, and an app
+ * added before the upgrade that started keeping them is far older.
+ */
+export const RUM_TRACKED_SINCE_CREATED_TOLERANCE_MS: number = 60 * 1000;
 
 function toTime(value: Date | null | undefined): number | null {
   if (!value) {
@@ -383,10 +396,23 @@ export function diagnoseRumSignal(
     return { ...none, state: "not-set-up", cause: "names" };
   }
 
+  /*
+   * An application added after its arrivals were first kept has them from
+   * the moment it was added (the same now() as its createdAt), and the
+   * Web Vitals read looks 30 days back whatever the app's age: "nothing
+   * since" the day it was added, or before, is nothing yet.
+   */
+  const createdAt: number | null = toTime(input.app.createdAt);
+  const keptForItsWholeLife: boolean =
+    trackedSince !== null &&
+    createdAt !== null &&
+    trackedSince - createdAt <= RUM_TRACKED_SINCE_CREATED_TOLERANCE_MS;
+
   return {
     ...none,
     state: "not-set-up",
     cause: "signal",
-    since: trackedSince !== null ? input.trackedSince : null,
+    since:
+      trackedSince !== null && !keptForItsWholeLife ? input.trackedSince : null,
   };
 }

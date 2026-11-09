@@ -63,6 +63,7 @@ describe("getRumApplicationArrivalFacts", () => {
       anythingArrived: false,
       lastHeardFromAt: null,
       replayOnly: false,
+      createdAt: null,
     });
   });
 
@@ -80,6 +81,7 @@ describe("getRumApplicationArrivalFacts", () => {
       anythingArrived: true,
       lastHeardFromAt: daysAgo(1),
       replayOnly: false,
+      createdAt: null,
     });
   });
 
@@ -92,6 +94,7 @@ describe("getRumApplicationArrivalFacts", () => {
       anythingArrived: true,
       lastHeardFromAt: daysAgo(2),
       replayOnly: true,
+      createdAt: null,
     });
   });
 
@@ -128,6 +131,17 @@ describe("getRumApplicationArrivalFacts", () => {
         app({ lastSeenAt: daysAgo(4).toISOString() }),
       ).lastHeardFromAt,
     ).toEqual(daysAgo(4));
+  });
+
+  test("when the app was added, so a date no later than that reads 'yet'", () => {
+    expect(
+      getRumApplicationArrivalFacts(app({ createdAt: daysAgo(6) })).createdAt,
+    ).toEqual(daysAgo(6));
+    expect(
+      getRumApplicationArrivalFacts(
+        app({ createdAt: daysAgo(6).toISOString() }),
+      ).createdAt,
+    ).toEqual(daysAgo(6));
   });
 });
 
@@ -202,6 +216,7 @@ describe("RUM_SIGNAL_APPLICATION_SELECT", () => {
         "metricsLastReceivedAt",
         "signalArrivalsTrackedSince",
         "retainTelemetryDataForDays",
+        "createdAt",
       ]),
     );
 

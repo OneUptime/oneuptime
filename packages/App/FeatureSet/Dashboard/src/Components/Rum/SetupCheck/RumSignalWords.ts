@@ -225,9 +225,12 @@ export const ROW_SDK_MISSING: string = translationKey(
 export const ROW_VITALS_OTHER_NAMES: string = translationKey(
   "Not found. Metrics arrive, but none in the past 30 days under a name the Web Vitals card reads.",
 );
-export const ROW_NOTHING_ARRIVED: string = translationKey(
-  "Waiting. Nothing has arrived from this app yet.",
-);
+/*
+ * Nothing at all has arrived from the app, so every row waits alike: each
+ * says only that, short, and the hint under it says what sends that kind.
+ * The application's status pill says the same (RumApplicationStatus).
+ */
+export const ROW_NOTHING_ARRIVED: string = translationKey("Waiting for data");
 export const ROW_UNKNOWN: string = translationKey("Couldn't be checked.");
 
 // Why a signal that never arrived is not set up, under its row.

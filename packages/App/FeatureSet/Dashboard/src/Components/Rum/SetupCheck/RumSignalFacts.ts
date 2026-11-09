@@ -27,6 +27,8 @@ export const RUM_SIGNAL_APPLICATION_SELECT: Select<RumApplication> = {
   metricsLastReceivedAt: true,
   signalArrivalsTrackedSince: true,
   retainTelemetryDataForDays: true,
+  // A "since" date no later than the app was added reads "yet".
+  createdAt: true,
 };
 
 export function toDateOrNull(value: unknown): Date | null {
@@ -58,6 +60,7 @@ export function getRumApplicationArrivalFacts(
     anythingArrived: lastHeardFromAt !== null,
     lastHeardFromAt,
     replayOnly: isReplayOnlyInstrumented(app),
+    createdAt: toDateOrNull(app.createdAt),
   };
 }
 

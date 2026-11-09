@@ -100,11 +100,20 @@ const SetupCheckRow: FunctionComponent<RowProps> = (
   const action: RumSignalAction | undefined = props.line.action;
   const testId: string = `rum-setup-check-${props.signal}`;
 
+  /*
+   * A guide in the docs opens in a new tab, and its icon says so; the rest
+   * stay on this page. Icon turns a chevron round on a right-to-left page
+   * by itself.
+   */
   const actionContent: ReactElement | null = action ? (
     <>
       <span>{action.label}</span>
-      {/* Icon turns a chevron round on a right-to-left page by itself. */}
-      <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+      <Icon
+        icon={
+          action.kind === "docs" ? IconProp.ExternalLink : IconProp.ChevronRight
+        }
+        className={action.kind === "docs" ? "h-3.5 w-3.5" : "h-4 w-4"}
+      />
     </>
   ) : null;
 

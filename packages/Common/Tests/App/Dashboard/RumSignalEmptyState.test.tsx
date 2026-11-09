@@ -78,6 +78,18 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumSignalWords";
 import Route from "../../../Types/API/Route";
 import TimeRange from "../../../Types/Time/TimeRange";
+import Icon from "../../../UI/Components/Icon/Icon";
+import IconProp from "../../../Types/Icon/IconProp";
+
+// The shape an icon draws, to tell one icon from another.
+function shapeOf(icon: IconProp): string {
+  const drawn: { container: HTMLElement; unmount: () => void } = render(
+    <Icon icon={icon} />,
+  );
+  const shape: string = drawn.container.querySelector("svg")?.innerHTML || "";
+  drawn.unmount();
+  return shape;
+}
 
 const DOCUMENTATION: Route = new Route("/dashboard/p/rum/a/documentation");
 
@@ -167,6 +179,10 @@ describe("an empty chart's explanation", () => {
     );
     expect(help).toHaveAttribute("target", "_blank");
     expect(help).toHaveAttribute("rel", "noopener noreferrer");
+    // A new tab, and its icon says so - as the Logs page's link does.
+    expect(help.querySelector("svg")?.innerHTML).toBe(
+      shapeOf(IconProp.ExternalLink),
+    );
   });
 
   test("the setup step opens the signal's dialog", () => {

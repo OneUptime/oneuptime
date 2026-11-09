@@ -226,7 +226,9 @@ const RumSignalEmptyState: FunctionComponent<ComponentProps> = (
               className={HELP_LINK_CLASS_NAME}
               data-testid={`${testId}-help`}
             >
-              {props.copy.helpLink.text}
+              {/* A new tab, as the Logs page's link beside its icon says. */}
+              <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+              <span>{props.copy.helpLink.text}</span>
             </a>
           ) : (
             <></>

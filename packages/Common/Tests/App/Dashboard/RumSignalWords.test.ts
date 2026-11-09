@@ -566,10 +566,10 @@ describe("the setup check's rows", () => {
     });
   });
 
-  test("nothing arrived from the app: waiting", () => {
+  test("nothing arrived from the app: waiting, as its status pill says", () => {
     expect(line("traces", "not-arriving")).toEqual({
       tone: "waiting",
-      text: "Waiting. Nothing has arrived from this app yet.",
+      text: "Waiting for data",
       detail:
         "Page loads and requests come from the OpenTelemetry browser SDK, which the steps below set up.",
     });

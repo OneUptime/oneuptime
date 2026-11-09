@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   RUM_SETUP_CHECK_RECENT_WINDOW_MS,
   RUM_SIGNAL_STAMP_TOLERANCE_MS,
+  RUM_TRACKED_SINCE_CREATED_TOLERANCE_MS,
   RUM_WEB_VITALS_LOOKBACK_DAYS,
   RUM_WIDER_RANGES,
   RumApplicationArrivalFacts,
@@ -290,6 +291,102 @@ describe("diagnoseRumSignal: never arrived", () => {
       state: "not-set-up",
       since: null,
     });
+  });
+
+  /*
+   * An app added after the upgrade has its arrivals kept from the moment
+   * it was added - the same now() of the insert - so "nothing since the
+   * day it was added" is nothing in its whole life: "not set up yet",
+   * never "since <the day it was added>".
+   */
+  test("an app whose arrivals are kept from the moment it was added: nothing yet, no date", () => {
+    const addedAt: Date = ago(3 * DAY);
+
+    expect(
+      diagnose({
+        trackedSince: addedAt,
+        app: { ...ACTIVE_APP, createdAt: addedAt },
+      }),
+    ).toEqual({
+      state: "not-set-up",
+      cause: "signal",
+      lastArrivalAt: null,
+      since: null,
+      widerRange: null,
+    });
+
+    // Both dates come from the same insert; up to a minute apart count alike.
+    expect(RUM_TRACKED_SINCE_CREATED_TOLERANCE_MS).toBe(MINUTE);
+    expect(
+      diagnose({
+        trackedSince: new Date(
+          addedAt.getTime() + RUM_TRACKED_SINCE_CREATED_TOLERANCE_MS,
+        ),
+        app: { ...ACTIVE_APP, createdAt: addedAt },
+      }).since,
+    ).toBeNull();
+
+    const keptLater: Date = new Date(
+      addedAt.getTime() + RUM_TRACKED_SINCE_CREATED_TOLERANCE_MS + 1000,
+    );
+    expect(
+      diagnose({
+        trackedSince: keptLater,
+        app: { ...ACTIVE_APP, createdAt: addedAt },
+      }).since,
+    ).toEqual(keptLater);
+  });
+
+  test("an app added before its arrivals were kept keeps the date: what came before is not known", () => {
+    expect(
+      diagnose({
+        trackedSince: TRACKED_SINCE,
+        app: { ...ACTIVE_APP, createdAt: ago(200 * DAY) },
+      }),
+    ).toMatchObject({
+      state: "not-set-up",
+      cause: "signal",
+      since: TRACKED_SINCE,
+    });
+
+    // Added an hour before the upgrade: that hour's arrivals were not kept.
+    expect(
+      diagnose({
+        trackedSince: TRACKED_SINCE,
+        app: {
+          ...ACTIVE_APP,
+          createdAt: new Date(TRACKED_SINCE.getTime() - HOUR),
+        },
+      }).since,
+    ).toEqual(TRACKED_SINCE);
+  });
+
+  test("a look back that starts before the app was added (Web Vitals' 30 days) is its whole life: nothing yet", () => {
+    expect(
+      diagnose({
+        trackedSince: ago(RUM_WEB_VITALS_LOOKBACK_DAYS * DAY),
+        app: { ...ACTIVE_APP, createdAt: ago(2 * DAY) },
+      }),
+    ).toMatchObject({ state: "not-set-up", cause: "signal", since: null });
+  });
+
+  test("an unknown or unreadable creation date keeps the date", () => {
+    for (const createdAt of [null, undefined, new Date("not a date")]) {
+      expect(diagnose({ app: { ...ACTIVE_APP, createdAt } }).since).toEqual(
+        TRACKED_SINCE,
+      );
+    }
+  });
+
+  test("the creation date never turns silence into 'not set up'", () => {
+    const lastHeardFromAt: Date = ago(40 * DAY);
+
+    expect(
+      diagnose({
+        trackedSince: TRACKED_SINCE,
+        app: { ...ACTIVE_APP, lastHeardFromAt, createdAt: ago(60 * DAY) },
+      }),
+    ).toMatchObject({ state: "quiet", since: lastHeardFromAt });
   });
 });
 
