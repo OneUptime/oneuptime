@@ -855,8 +855,10 @@ describe("the deploy gate, as the SLO's pages draw it", () => {
       "2026-11-08T10:00:00.000Z",
     );
 
-    slo.deploymentsFrozenAt = undefined;
-    expect(getSloDeploymentFreeze(slo)).toEqual({ frozenAt: null });
+    // Frozen, read without the time: a freeze, since when unknown.
+    const withoutTime: ServiceLevelObjective = new ServiceLevelObjective();
+    withoutTime.deploymentsAllowed = false;
+    expect(getSloDeploymentFreeze(withoutTime)).toEqual({ frozenAt: null });
   });
 
   test("the Overview's badge says since when as one sentence with the time in it", () => {

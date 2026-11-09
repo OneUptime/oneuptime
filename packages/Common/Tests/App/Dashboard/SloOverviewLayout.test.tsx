@@ -949,7 +949,7 @@ describe("the tier of the error budget policy the SLO is in", () => {
     freezing.freezesDeployments = true;
     overviewData.policyTiers = [freezing];
     putSloIn(freezing);
-    storedSlo.deploymentsAllowed = undefined;
+    delete storedSlo.deploymentsAllowed;
 
     renderPage();
     await waitForDetails();

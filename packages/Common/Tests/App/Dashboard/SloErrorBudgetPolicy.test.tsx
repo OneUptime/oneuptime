@@ -850,7 +850,7 @@ describe("the tiers table", () => {
       name: "Caution",
       thresholdPercentage: 50,
     });
-    row.freezesDeployments = undefined;
+    delete row.freezesDeployments;
     mockRows = [row];
 
     await renderPage();

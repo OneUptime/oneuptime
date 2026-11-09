@@ -123,6 +123,66 @@ describe("the error budget policy tier form", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("asks Freeze Deployments right under What We Do, off and outside the fold, and saves it switched on", async () => {
+    const { user, onSubmit } = renderForm({
+      whatWeDo: "Freeze non-critical releases.",
+    });
+
+    const whatWeDo: HTMLElement = await screen.findByRole("textbox", {
+      name: /^What We Do/,
+    });
+    const freeze: HTMLElement = screen.getByRole("switch", {
+      name: /^Freeze Deployments/,
+    });
+
+    expect(freeze).not.toBeChecked();
+    expect(
+      whatWeDo.compareDocumentPosition(freeze) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      freeze.compareDocumentPosition(fold()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Not one of the outputs: the fold stays folded.
+    expect(fold()).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByText(
+        "While the SLO is in this tier, CI/CD pipelines that check it hold back releases.",
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("textbox", { name: /^Name/ }), {
+      target: { value: "Budget exhausted" },
+    });
+    fireEvent.change(
+      screen.getByRole("spinbutton", { name: /^Budget Left Threshold \(%\)/ }),
+      { target: { value: "0" } },
+    );
+
+    await user.click(freeze);
+
+    expect(freeze).toBeChecked();
+    expect(fold()).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Create SLO Error Budget Policy Tier",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    const saved: TierValues = onSubmit.mock.calls[0]![0] as TierValues;
+
+    expect(saved.freezesDeployments).toBe(true);
+    // Freezing deployments raises nothing.
+    expect(saved.shouldCreateAlert).not.toBe(true);
+    expect(saved.shouldCreateIncident).not.toBe(true);
+  });
+
   test("opened, it offers both switches, off, and nothing else until one is on", async () => {
     const { user } = renderForm();
 

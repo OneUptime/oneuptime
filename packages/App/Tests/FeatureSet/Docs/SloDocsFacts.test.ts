@@ -36,7 +36,6 @@ import {
   SLO_POLICY_TIER_WHAT_WE_DO_MAX_LENGTH,
   SLO_RECOMMENDED_POLICY_TIERS,
   SloDeploymentGateChange,
-  SloDeploymentGateTransition,
   SloExistingPolicyTier,
   SloRecommendedPolicyTier,
   SloStoredDeploymentGate,
@@ -3079,9 +3078,6 @@ describe("Deployment gate, against the policy, the worker and the API", () => {
     expect(later).toContain(
       "OneUptime does not stop a release by itself: a pipeline that checks `deploymentsAllowed` does",
     );
-    expect(
-      SloDeploymentGateTransition.Frozen !== SloDeploymentGateTransition.Allowed,
-    ).toBe(true);
   });
 });
 
