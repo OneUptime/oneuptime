@@ -494,6 +494,57 @@ describe("DATABASE_SERVER_METRICS", () => {
     }
   });
 
+  /*
+   * A description is one key of the Dashboard's locales, so the sentence a
+   * kind of entry ends with is written out in each (the (i) beside its tile
+   * and chart reads it whole, in the reader's language). Each says it in
+   * the same words, so every language says it once, the same way.
+   */
+  test("an off-by-default or agent-query entry ends with its sentence, word for word, and no other entry carries one", () => {
+    const AGENT_ENABLED_NOTE: string =
+      " Off by default in the collector's receiver; the Database Agent switches it on, and your own collector has to enable it too.";
+    const AGENT_QUERY_NOTE: string =
+      " The receiver does not report it: the Database Agent reads it with SQL, and your own collector has to enable the same sqlquery receiver.";
+    let noted: number = 0;
+
+    for (const metric of DATABASE_SERVER_METRICS) {
+      const note: string | undefined =
+        metric.source === "agent-query"
+          ? AGENT_QUERY_NOTE
+          : metric.enabledByDefault === false
+            ? AGENT_ENABLED_NOTE
+            : undefined;
+      const description: string = metric.description;
+      const without: string = note
+        ? description.slice(0, description.length - note.length)
+        : description;
+
+      expect({
+        metric: metric.metricName,
+        endsWithItsNote: note ? description.endsWith(note) : true,
+        otherNotes: [AGENT_ENABLED_NOTE, AGENT_QUERY_NOTE].filter(
+          (sentence: string): boolean => {
+            return without.includes(sentence.trim());
+          },
+        ),
+      }).toEqual({
+        metric: metric.metricName,
+        endsWithItsNote: true,
+        otherNotes: [],
+      });
+
+      if (note) {
+        noted++;
+        // What the metric is comes first, as a sentence of its own.
+        expect(without.trim().length).toBeGreaterThan(0);
+        expect(without.endsWith(".")).toBe(true);
+      }
+    }
+
+    // PostgreSQL's four and Galera's five checks, and the six optional ones.
+    expect(noted).toBe(15);
+  });
+
   test("titles are unique within an engine", () => {
     for (const system of CURATED_SYSTEMS) {
       const titles: Array<string> = getDatabaseServerMetrics(system).map(

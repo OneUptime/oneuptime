@@ -455,9 +455,10 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * The curated metrics' names: a database's engine charts and tiles, a
    * queue's Broker health charts and tiles (with the unit words their
    * titles add, "Buffer pool size (pages)"), and the storage array, Proxmox,
-   * OpenStack and Ceph metric pickers and Metrics tabs. Only the names the
-   * files mark are read: metric names, attribute keys and descriptions stay
-   * as written.
+   * OpenStack and Ceph metric pickers and Metrics tabs. The database and
+   * queue catalogs mark their descriptions too, which the (i) beside those
+   * tiles and charts says. Only the text the files mark is read: metric
+   * names and attribute keys stay as written.
    */
   {
     directory:
