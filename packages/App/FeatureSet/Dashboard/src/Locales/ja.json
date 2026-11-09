@@ -47259,5 +47259,20 @@
   "The most tokens one run may use. Leave empty for no limit.": "1 回の実行で使用できるトークンの最大数です。空欄にすると上限なしです。",
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "1 回の実行が、見つかった内容で回答するまでにかけられる時間です。空欄にすると既定の 120 分になります。インシデントまたはアラートの調査の制限時間が設定されている場合は、そちらが優先されます。",
   "120 minutes (the default)": "120 分（既定）",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} は {{min}} から {{max}} までの整数にしてください。空欄にすると既定値になります。"
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} は {{min}} から {{max}} までの整数にしてください。空欄にすると既定値になります。",
+  "From AI calls": "AI 呼び出しから",
+  "From AI calls and usage metrics": "AI 呼び出しと使用量メトリクスから",
+  "From usage metrics": "使用量メトリクスから",
+  "Services counted from usage metrics: {{services}}": "使用量メトリクスから集計したサービス: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "使用量メトリクスは含まれていません。あなたのロールではメトリクスを読めません。",
+  "AI calls": "AI 呼び出し",
+  "No cost reported": "コストの報告なし",
+  "No tokens reported": "トークンの報告なし",
+  "Ranked by cost over the selected range.": "選択した範囲のコスト順。",
+  "Share of cost": "コストの割合",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} は、モデルが示されていない使用量です。",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} は、プロバイダーが示されていない使用量です（例：コーディングアシスタントの使用量メトリクス）。",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} は、チームが示されていない使用量です（例：{{teamId}} なしで送信されたもの）。",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} は、誰のものかが示されていない使用量です（例：{{userEmail}} なしで送信されたもの）。",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "使用量メトリクスは含まれていません。あなたのロールではメトリクスを読めません。プロジェクト管理者にアクセス権を依頼してください。"
 }

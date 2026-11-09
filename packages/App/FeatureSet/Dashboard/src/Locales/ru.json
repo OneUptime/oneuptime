@@ -47259,5 +47259,20 @@
   "The most tokens one run may use. Leave empty for no limit.": "Наибольшее число токенов, которое может использовать один запуск. Оставьте пустым, чтобы не ограничивать.",
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "Сколько может длиться один запуск, прежде чем ответить тем, что он нашёл. Оставьте пустым для значения по умолчанию — 120 минут. Лимит времени расследования инцидента или оповещения, если он задан, действует первым.",
   "120 minutes (the default)": "120 минут (по умолчанию)",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}}: нужно целое число от {{min}} до {{max}}. Оставьте пустым для значения по умолчанию."
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}}: нужно целое число от {{min}} до {{max}}. Оставьте пустым для значения по умолчанию.",
+  "From AI calls": "Из вызовов ИИ",
+  "From AI calls and usage metrics": "Из вызовов ИИ и метрик использования",
+  "From usage metrics": "Из метрик использования",
+  "Services counted from usage metrics: {{services}}": "Сервисы, учтённые по метрикам использования: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "Метрики использования не учтены: ваша роль не может читать метрики.",
+  "AI calls": "Вызовы ИИ",
+  "No cost reported": "Стоимость не указана",
+  "No tokens reported": "Токены не указаны",
+  "Ranked by cost over the selected range.": "Отсортировано по стоимости за выбранный период.",
+  "Share of cost": "Доля стоимости",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} — это использование, в котором не указана модель.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} — это использование, в котором не указан провайдер, например метрики использования ИИ-ассистента для программирования.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} — это использование, в котором не указана команда, например отправленное без {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} — это использование, в котором не указано, кто его сделал, например отправленное без {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Метрики использования не учтены: ваша роль не может читать метрики. Попросите доступ у администратора проекта."
 }

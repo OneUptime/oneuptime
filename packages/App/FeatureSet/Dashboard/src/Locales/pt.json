@@ -47259,5 +47259,20 @@
   "The most tokens one run may use. Leave empty for no limit.": "O máximo de tokens que uma execução pode usar. Deixe vazio para não ter limite.",
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "Quanto tempo uma execução pode levar antes de responder com o que encontrou. Deixe vazio para o padrão, 120 minutos. O tempo limite de uma investigação de incidente ou alerta, quando definido, vem primeiro.",
   "120 minutes (the default)": "120 minutos (padrão)",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} deve ser um número inteiro de {{min}} a {{max}}. Deixe vazio para usar o padrão."
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} deve ser um número inteiro de {{min}} a {{max}}. Deixe vazio para usar o padrão.",
+  "From AI calls": "Das chamadas de IA",
+  "From AI calls and usage metrics": "Das chamadas de IA e das métricas de uso",
+  "From usage metrics": "Das métricas de uso",
+  "Services counted from usage metrics: {{services}}": "Serviços contados pelas métricas de uso: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "As métricas de uso ficam de fora: sua função não pode ler métricas.",
+  "AI calls": "Chamadas de IA",
+  "No cost reported": "Nenhum custo informado",
+  "No tokens reported": "Nenhum token informado",
+  "Ranked by cost over the selected range.": "Ordenados por custo no período selecionado.",
+  "Share of cost": "Parcela do custo",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} é o uso que não indica nenhum modelo.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} é o uso que não indica nenhum provedor, como as métricas de uso de um assistente de programação.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} é o uso que não indica nenhuma equipe, por exemplo enviado sem {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} é o uso que não indica quem o fez, por exemplo enviado sem {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "As métricas de uso ficam de fora: sua função não pode ler métricas. Peça acesso a um administrador do projeto."
 }

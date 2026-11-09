@@ -47259,5 +47259,20 @@
   "The most tokens one run may use. Leave empty for no limit.": "Det høyeste antallet tokens én kjøring kan bruke. La stå tom for ingen grense.",
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "Hvor lenge én kjøring kan vare før den svarer med det den fant. La stå tom for standarden, 120 minutter. En tidsgrense for undersøkelser av hendelser eller varsler går foran, der en er satt.",
   "120 minutes (the default)": "120 minutter (standard)",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} må være et heltall fra {{min}} til {{max}}. La feltet stå tomt for standarden."
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} må være et heltall fra {{min}} til {{max}}. La feltet stå tomt for standarden.",
+  "From AI calls": "Fra AI-kall",
+  "From AI calls and usage metrics": "Fra AI-kall og bruksmålinger",
+  "From usage metrics": "Fra bruksmålinger",
+  "Services counted from usage metrics: {{services}}": "Tjenester telt fra bruksmålinger: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "Bruksmålinger er utelatt: rollen din kan ikke lese målinger.",
+  "AI calls": "AI-kall",
+  "No cost reported": "Ingen kostnad rapportert",
+  "No tokens reported": "Ingen tokens rapportert",
+  "Ranked by cost over the selected range.": "Sortert etter kostnad i det valgte tidsrommet.",
+  "Share of cost": "Andel av kostnad",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} er forbruk som ikke oppgir noen modell.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} er forbruk som ikke oppgir noen leverandør, som bruksmålingene til en kodeassistent.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} er forbruk som ikke oppgir noe team, for eksempel sendt uten {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} er forbruk som ikke oppgir hvem som sto bak, for eksempel sendt uten {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Bruksmålinger er utelatt: rollen din kan ikke lese målinger. Be en prosjektadministrator om tilgang."
 }

@@ -47259,5 +47259,20 @@
   "The most tokens one run may use. Leave empty for no limit.": "Det högsta antalet tokens en körning får använda. Lämna tomt för ingen gräns.",
   "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. An incident or alert investigation time limit, where one is set, comes first.": "Hur länge en körning får pågå innan den svarar med det den hittade. Lämna tomt för standardvärdet, 120 minuter. En tidsgräns för utredningar av incidenter eller larm går före, där en är satt.",
   "120 minutes (the default)": "120 minuter (standard)",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} måste vara ett heltal från {{min}} till {{max}}. Lämna tomt för standardvärdet."
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.": "{{field}} måste vara ett heltal från {{min}} till {{max}}. Lämna tomt för standardvärdet.",
+  "From AI calls": "Från AI-anrop",
+  "From AI calls and usage metrics": "Från AI-anrop och användningsmätvärden",
+  "From usage metrics": "Från användningsmätvärden",
+  "Services counted from usage metrics: {{services}}": "Tjänster räknade från användningsmätvärden: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "Användningsmätvärden är utelämnade: din roll kan inte läsa mätvärden.",
+  "AI calls": "AI-anrop",
+  "No cost reported": "Ingen kostnad rapporterad",
+  "No tokens reported": "Inga tokens rapporterade",
+  "Ranked by cost over the selected range.": "Sorterat efter kostnad under det valda intervallet.",
+  "Share of cost": "Andel av kostnad",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} är användning som inte anger någon modell.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} är användning som inte anger någon leverantör, till exempel en kodassistents användningsmätvärden.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} är användning som inte anger något team, till exempel skickad utan {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} är användning som inte anger vem som stod för den, till exempel skickad utan {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Användningsmätvärden är utelämnade: din roll kan inte läsa mätvärden. Be en projektadministratör om åtkomst."
 }
