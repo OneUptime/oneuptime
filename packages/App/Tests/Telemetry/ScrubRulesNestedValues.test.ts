@@ -14,6 +14,7 @@ import {
   SCRUB_MAX_VALUE_DEPTH,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
 import crypto from "crypto";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -434,6 +435,56 @@ describe.each(ENGINES)(
       );
     });
 
+    test("a hostile record meets every kind of rule in time in line with its size, each value still scrubbed", () => {
+      const LIMIT_IN_MS: number = 2000;
+      // Every pattern, a custom one and a keys rule, as a project can hold them.
+      const everyRule: Array<RuleSpec> = [
+        EMAIL_MASK,
+        { patternType: "creditCard", action: "mask" },
+        { patternType: "ssn", action: "mask" },
+        { patternType: "phoneNumber", action: "mask" },
+        { patternType: "ipAddress", action: "mask" },
+        { patternType: "custom", customRegex: "SECRET-[A-Z0-9]+" },
+        SENSITIVE_KEYS,
+      ];
+
+      const run: FastestRun<JSONObject> = fastestRun({
+        run: (): JSONObject => {
+          // Made again for each attempt: the services write into it.
+          const attributes: JSONObject = {
+            deep: nest("ada@example.com", 50_000) as JSONObject,
+            wide: new Array<string>(100_000).fill("ada@example.com"),
+          };
+
+          // A hundred lists of a hundred fill the record's allowance.
+          for (let index: number = 0; index < 300; index++) {
+            attributes[`list${index}`] = new Array<string>(100).fill(
+              "SECRET-X1 from 10.0.0.1",
+            );
+          }
+
+          return scrubAttributes(attributes, everyRule);
+        },
+        limitInMs: LIMIT_IN_MS,
+      });
+
+      expect(run.inMs).toBeLessThan(LIMIT_IN_MS);
+      expect(run.result["deep"]).toBe(
+        JSON.stringify(nest("a***@***.com", 50_000)),
+      );
+      expect(run.result["wide"]).toBe(
+        JSON.stringify(new Array<string>(100_000).fill("a***@***.com")),
+      );
+      expect(run.result["list99"]).toEqual(
+        new Array<string>(100).fill("[REDACTED] from ***.***.***.***"),
+      );
+      expect(run.result["list100"]).toBe(
+        JSON.stringify(
+          new Array<string>(100).fill("[REDACTED] from ***.***.***.***"),
+        ),
+      );
+    });
+
     test("Sensitive Attribute Keys hides a held value whole when it names a secret anywhere, and keeps one that names none", () => {
       expect(
         scrubAttributes(
@@ -528,6 +579,64 @@ describe("a project's pattern work allowance, inside lists", () => {
       expect(
         (row["attributes"] as JSONObject)["http.request.header.x_debug"],
       ).toEqual(["[REDACTED] ok", ["and [REDACTED]"]]);
+    }
+
+    expect(allowance.stoppedQuestions).toBe(0);
+  });
+
+  test("a long text as deep inside a span's event or link value as a rule reads adds its share too: a custom rule masks it exactly", () => {
+    const allowance: PatternWorkAllowance = new PatternWorkAllowance({
+      pool: 0,
+      workPerRecordText: 2048,
+      workPerRecordCharacter: 128,
+    });
+    const rules: Array<CompiledRule> = traceRules([
+      { patternType: "custom", customRegex: "token=\\w+" },
+    ]);
+    // Longer than the grant of the span's own short texts covers.
+    const filler: string = "x".repeat(3000);
+    const deepest: (index: number) => JSONObject = (
+      index: number,
+    ): JSONObject => {
+      return nest(
+        `${filler} token=abc${index} ok`,
+        SCRUB_MAX_VALUE_DEPTH,
+      ) as JSONObject;
+    };
+
+    const rows: Array<JSONObject> = PatternWorkScope.run(
+      allowance,
+      (): Array<JSONObject> => {
+        const scrubbed: Array<JSONObject> = [];
+
+        for (let index: number = 0; index < 20; index++) {
+          scrubbed.push(
+            TraceScrubRuleService.scrubSpan(
+              {
+                name: "",
+                attributes: {},
+                events: [{ name: "e", attributes: { value: deepest(index) } }],
+                links: [{ attributes: { value: deepest(index) } }],
+              },
+              rules as never,
+            ),
+          );
+        }
+
+        return scrubbed;
+      },
+    );
+
+    for (const row of rows) {
+      for (const part of ["events", "links"]) {
+        const value: unknown = (
+          (row[part] as Array<JSONObject>)[0]!["attributes"] as JSONObject
+        )["value"];
+
+        expect(unnest(value, SCRUB_MAX_VALUE_DEPTH)).toBe(
+          `${filler} [REDACTED] ok`,
+        );
+      }
     }
 
     expect(allowance.stoppedQuestions).toBe(0);
