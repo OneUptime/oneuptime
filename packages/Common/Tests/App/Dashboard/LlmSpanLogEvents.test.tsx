@@ -156,7 +156,7 @@ describe("the span's time, its log read and its errors", () => {
     expect(nanosToMs(null)).toBeNull();
   });
 
-  test("the span's records, a minute before it to ten minutes after it", () => {
+  test("the span's records, a minute before it to a minute after it, no longer ten (#6395)", () => {
     const query: JSONObject = buildSpanLogEventsQuery({
       projectId: PROJECT_ID,
       traceId: "0af7651916cd43dd8448eb211c80319c",
@@ -177,6 +177,8 @@ describe("the span's time, its log read and its errors", () => {
     expect(time.endValue).toEqual(
       new Date(1_002_000 + LLM_LOG_EVENT_AFTER_CALL_MS),
     );
+    expect(time.startValue).toEqual(new Date(1_000_000 - 60_000));
+    expect(time.endValue).toEqual(new Date(1_002_000 + 60_000));
   });
 
   test("an end before the start reads from the start; no project, no project filter", () => {

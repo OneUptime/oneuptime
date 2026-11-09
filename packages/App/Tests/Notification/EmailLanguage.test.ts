@@ -341,6 +341,19 @@ describe("getEmailLanguageVariables", () => {
     });
   });
 
+  test("Arabic is read from the right too", () => {
+    expect(getEmailLanguageVariables("ar")).toEqual({
+      emailLanguage: "ar",
+      emailDirection: "rtl",
+      isEmailRightToLeft: "true",
+    });
+    expect(getEmailLanguageVariables("ar-EG")).toEqual({
+      emailLanguage: "ar",
+      emailDirection: "rtl",
+      isEmailRightToLeft: "true",
+    });
+  });
+
   test("names only the variables MailService reserves", () => {
     for (const name of Object.keys(getEmailLanguageVariables("fa"))) {
       expect(EMAIL_LANGUAGE_VARIABLE_NAMES).toContain(name);
@@ -479,6 +492,12 @@ describe("writeEmailNumber", () => {
     expect(writeEmailNumber(12, "fa")).toBe("۱۲");
   });
 
+  test("Arabic writes its counts in Latin digits", () => {
+    expect(writeEmailNumber(12, "ar")).toBe("12");
+    expect(writeEmailNumber(0, "ar")).toBe("0");
+    expect(writeEmailNumber(1234, "ar")).toMatch(/^1\D?234$/);
+  });
+
   test("a language OneUptime does not write in is English", () => {
     expect(writeEmailNumber(1234, "tlh")).toBe("1234");
   });
@@ -548,6 +567,40 @@ describe("MailService.render", () => {
     expect(visibleText(rendered.body)).toContain(
       "حادثه جدید: \u{2068}Zorbex checkout\u{2069}",
     );
+  });
+
+  test("an Arabic email reads from the right, in Arabic, its figures in Latin digits", async () => {
+    const rendered: RenderedEmail = await MailService.render(
+      email(EmailTemplateType.SubscriberIncidentCreated, "ar", {
+        ...SUBSCRIBER_VARIABLES,
+        incidentSeverityColor: "#dc2626",
+        incidentSeverityTextColor: "#b91c1c",
+      }),
+    );
+
+    expect(attributeOf(startTagOf(rendered.body, "<html"), "lang")).toBe("ar");
+    expect(attributeOf(startTagOf(rendered.body, "<html"), "dir")).toBe("rtl");
+    expect(attributeOf(startTagOf(rendered.body, "<body"), "dir")).toBe("rtl");
+
+    expect(
+      attributeOf(startTagOf(rendered.body, 'class="st-ColorDot"'), "style"),
+    ).toContain("margin: 0 0 0 8px;");
+
+    const text: string = visibleText(rendered.body);
+
+    // The title is isolated, so it reads its own way in the Arabic heading.
+    expect(text).toContain("حادثة جديدة: \u{2068}Zorbex checkout\u{2069}");
+    expect(text).toContain(
+      "أُبلغ عن حادثة جديدة قد تؤثر في الخدمات التي اشتركت فيها.",
+    );
+    expect(text).toContain("الخطورة Zorbex severity");
+    expect(text).toContain("الموارد المتأثرة Zorbex API");
+    expect(text).toContain("عرض تفاصيل الحادثة");
+    expect(text).toContain("إلغاء الاشتراك");
+    expect(text).toContain("مدعوم من OneUptime");
+    expect(text).not.toContain("New Incident");
+    expect(text).not.toContain("Powered by");
+    expect(text).not.toMatch(/[٠-٩۰-۹]/);
   });
 
   test("an English email keeps its colour dot where it always was", async () => {

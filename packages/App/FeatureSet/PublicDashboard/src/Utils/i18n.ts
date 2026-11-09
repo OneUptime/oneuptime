@@ -17,6 +17,7 @@ import zhCN from "../Locales/zh-CN.json";
 import zhTW from "../Locales/zh-TW.json";
 import hi from "../Locales/hi.json";
 import fa from "../Locales/fa.json";
+import ar from "../Locales/ar.json";
 
 /*
  * A public dashboard's words in its visitor's language - the browser's, as
@@ -44,4 +45,5 @@ export const PUBLIC_DASHBOARD_LANGUAGE: string = startVisitorTranslation({
   "zh-TW": zhTW,
   hi,
   fa,
+  ar,
 });

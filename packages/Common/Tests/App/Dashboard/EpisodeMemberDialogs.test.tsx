@@ -47,6 +47,7 @@ import AddToExistingEpisodeModal from "../../../../App/FeatureSet/Dashboard/src/
 import AddToNewEpisodeModal from "../../../../App/FeatureSet/Dashboard/src/Components/EpisodeMembers/AddToNewEpisodeModal";
 import {
   ALERT_EPISODE_MEMBER_KIND,
+  EpisodeMemberKindConfig,
   INCIDENT_EPISODE_MEMBER_KIND,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EpisodeMembers/EpisodeMemberKinds";
 import { EPISODE_MEMBER_PICKER_LIMIT } from "../../../../App/FeatureSet/Dashboard/src/Components/EpisodeMembers/EpisodeMembersApi";
@@ -794,6 +795,7 @@ describe("the lists' Add to Existing Episode", () => {
   function open(
     recordIds: Array<string>,
     withCreateInstead: boolean = true,
+    config: EpisodeMemberKindConfig = ALERT_EPISODE_MEMBER_KIND,
   ): void {
     onPick = getJestMockFunction();
     onCreateInstead = getJestMockFunction();
@@ -801,7 +803,7 @@ describe("the lists' Add to Existing Episode", () => {
     render(
       <MemoryRouter>
         <AddToExistingEpisodeModal
-          config={ALERT_EPISODE_MEMBER_KIND}
+          config={config}
           recordIds={recordIds}
           onClose={() => {}}
           onPick={onPick as unknown as (episode: unknown) => void}
@@ -837,6 +839,10 @@ describe("the lists' Add to Existing Episode", () => {
     expect(resolved).toHaveTextContent("Recently Resolved");
     expect(resolved).toHaveTextContent("Last week's outage");
     expect(within(ongoing).getAllByText("4 alerts").length).toBeGreaterThan(0);
+    expect(ALERT_EPISODE_MEMBER_KIND.memberCount).toEqual({
+      one: "{{count}} alert",
+      other: "{{count}} alerts",
+    });
 
     /*
      * Each section is dated by what it is sorted by: an ongoing episode by
@@ -977,6 +983,52 @@ describe("the lists' Add to Existing Episode", () => {
     // Nor told to start one.
     expect(empty).toHaveTextContent("No episodes yet");
     expect(empty).not.toHaveTextContent("Start one");
+  });
+});
+
+/*
+ * How many an episode holds is worded by the kind's own count
+ * (EpisodeMemberKindConfig.memberCount, "{{count}} alerts"), which every
+ * language words its own way: Arabic as a label and its count,
+ * "التنبيهات: 4". A count put before a translated noun ("{{count}}
+ * {{itemsName}}") read "4 التنبيهات".
+ */
+describe("the lists' Add to Existing Episode counts with the kind's own words", () => {
+  test("each episode's count is the kind's count wording, filled in", async () => {
+    const config: EpisodeMemberKindConfig = {
+      ...ALERT_EPISODE_MEMBER_KIND,
+      memberCount: {
+        one: "{{count}} grouped alert",
+        other: "{{count}} grouped alerts",
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <AddToExistingEpisodeModal
+          config={config}
+          recordIds={[id(1)]}
+          onClose={() => {}}
+          onPick={() => {}}
+        />
+      </MemoryRouter>,
+    );
+
+    const ongoing: HTMLElement = await screen.findByTestId(
+      "add-to-existing-episode-list-section-open",
+    );
+
+    expect(
+      within(ongoing).getAllByText("4 grouped alerts").length,
+    ).toBeGreaterThan(0);
+    expect(within(ongoing).queryByText("4 alerts")).toBeNull();
+  });
+
+  test("incidents count as incidents", () => {
+    expect(INCIDENT_EPISODE_MEMBER_KIND.memberCount).toEqual({
+      one: "{{count}} incident",
+      other: "{{count}} incidents",
+    });
   });
 });
 

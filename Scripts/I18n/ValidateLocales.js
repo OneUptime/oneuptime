@@ -35,7 +35,7 @@ const LOCALE_DIRS = {
   Server: "packages/Common/Server/Locales",
 };
 
-// en.json is the source of truth; these 16 locales must mirror it.
+// en.json is the source of truth; these 17 locales must mirror it.
 const LOCALES = [
   "de",
   "fr",
@@ -53,7 +53,26 @@ const LOCALES = [
   "zh-TW",
   "hi",
   "fa",
+  "ar",
 ];
+
+/*
+ * The documentation - the docs site and the API Reference, which shares its
+ * languages (Common/Types/Docs/DocsLanguage) - is written in every language
+ * but these: an Arabic reader of the docs reads them in English.
+ */
+const NOT_IN_DOCS = ["ar"];
+
+const DOCS_DIRS = ["Docs", "APIReference"];
+
+// The locales a feature set's en.json is mirrored in.
+const localesOf = (featureSet) => {
+  return DOCS_DIRS.includes(featureSet)
+    ? LOCALES.filter((locale) => {
+        return !NOT_IN_DOCS.includes(locale);
+      })
+    : LOCALES;
+};
 
 /*
  * A {{placeholder}} - or, in a last alternative, a "{{" that starts none,
@@ -116,7 +135,7 @@ for (const [fs_name, dir] of Object.entries(LOCALE_DIRS)) {
   }
   const enKeys = Object.keys(en);
 
-  for (const locale of LOCALES) {
+  for (const locale of localesOf(fs_name)) {
     const locPath = path.join(REPO_ROOT, dir, `${locale}.json`);
     let loc;
     try {

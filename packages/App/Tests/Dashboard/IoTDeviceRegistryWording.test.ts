@@ -59,14 +59,14 @@ describe("the Device Registry's Enabled switch", () => {
     );
   });
 
-  test("the sentence is in English and translated in all sixteen other languages", () => {
+  test("the sentence is in English and translated in all seventeen other languages", () => {
     const others: Array<string> = Object.keys(locales).filter(
       (language: string): boolean => {
         return language !== "en";
       },
     );
 
-    expect(others).toHaveLength(16);
+    expect(others).toHaveLength(17);
     expect(locales["en"]![ENABLED_DESCRIPTION]).toBe(ENABLED_DESCRIPTION);
     for (const language of others) {
       const value: unknown = locales[language]![ENABLED_DESCRIPTION];

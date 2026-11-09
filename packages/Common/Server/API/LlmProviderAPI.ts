@@ -145,6 +145,10 @@ export default class LlmProviderAPI extends BaseAPI<
             ...(provider.apiKey ? { apiKey: provider.apiKey } : {}),
             ...(provider.baseUrl ? { baseUrl: provider.baseUrl } : {}),
             ...(provider.modelName ? { modelName: provider.modelName } : {}),
+            // A test waits as long as the provider's AI features would.
+            ...(provider.requestTimeoutInSeconds
+              ? { requestTimeoutInSeconds: provider.requestTimeoutInSeconds }
+              : {}),
             /*
              * The egress policy AIService.executeWithLogging gives the same
              * provider, so the verdict here is the one AI features would get.

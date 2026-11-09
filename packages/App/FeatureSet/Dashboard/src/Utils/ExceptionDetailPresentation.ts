@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -74,10 +75,9 @@ export function formatRelativeTime(
     }
 
     try {
-      return new Intl.RelativeTimeFormat(language, { numeric: "auto" }).format(
-        diffMs >= 0 ? -count : count,
-        unit,
-      );
+      return new Intl.RelativeTimeFormat(getNumberLocale(language), {
+        numeric: "auto",
+      }).format(diffMs >= 0 ? -count : count, unit);
     } catch {
       return null;
     }

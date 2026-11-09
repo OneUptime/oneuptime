@@ -504,8 +504,8 @@ describe("the tooltips: one plain sentence each", () => {
       return file.endsWith(".json");
     });
 
-  test("there are 17 locales", () => {
-    expect(locales).toHaveLength(17);
+  test("there are 18 locales", () => {
+    expect(locales).toHaveLength(18);
   });
 
   test("every locale has every one, and every locale but English has them translated", () => {
