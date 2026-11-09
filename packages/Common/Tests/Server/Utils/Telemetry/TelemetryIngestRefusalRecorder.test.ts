@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import TelemetryIngestRefusalRecorder, {
   MAX_PENDING_REFUSALS,
   REFUSAL_WRITE_DELAY_MS,
@@ -73,7 +66,8 @@ const KEY_B: ObjectID = new ObjectID("7c0f0000-0000-4000-8000-0000000000b1");
 const PROJECT: ObjectID = new ObjectID("7c0f0000-0000-4000-8000-000000000001");
 
 type WriterMock = jest.Mock<
-  (batches: Array<TelemetryIngestRefusalBatch>) => Promise<void>
+  Promise<void>,
+  [Array<TelemetryIngestRefusalBatch>]
 >;
 
 interface Harness {

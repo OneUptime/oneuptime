@@ -268,10 +268,12 @@ describe("a setup check row whose telemetry is refused", () => {
 });
 
 describe("an empty chart whose telemetry is refused", () => {
-  test.each([
+  const PANELS: Array<[RumPanelSignal, string]> = [
     ["exceptions", "Exceptions are being refused"],
     ["logs", "Logs are being refused"],
-  ] as const)(
+  ];
+
+  test.each(PANELS)(
     "%s: the title, the reason, when, its fix and why nothing arrives",
     (signal: RumPanelSignal, title: string) => {
       for (const state of ["not-set-up", "not-arriving", "quiet"] as const) {

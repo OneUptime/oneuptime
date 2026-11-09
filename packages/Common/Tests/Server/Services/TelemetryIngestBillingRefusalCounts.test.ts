@@ -23,14 +23,7 @@ import { TelemetryIngestRefusalReason } from "../../../Types/Telemetry/Telemetry
 import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import * as EnvironmentConfig from "../../../Server/EnvironmentConfig";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A BILLING REFUSAL IS COUNTED AGAINST THE KEY IT WAS THROWN FOR
