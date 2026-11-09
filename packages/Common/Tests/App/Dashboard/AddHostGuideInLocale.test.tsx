@@ -169,7 +169,7 @@ async function renderIn(
 
 describe("Add Host in every language", () => {
   test("ships for every Dashboard language", () => {
-    expect(LANGUAGES).toHaveLength(17);
+    expect(LANGUAGES).toHaveLength(18);
   });
 
   test.each(LANGUAGES)(

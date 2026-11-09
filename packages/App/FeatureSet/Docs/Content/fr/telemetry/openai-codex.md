@@ -124,10 +124,10 @@ OneUptime lit les personnes sur les spans et les points de métriques, jamais su
 
 Avec la configuration ci-dessus, voici ce que cela donne dans l'onglet **Utilisation** :
 
-- Les jetons viennent des spans, par personne, et `codex.turn.token_usage` ne s'y ajoute pas : les deux ne sont jamais additionnés ([pourquoi](/docs/telemetry/ai-llm-observability#les-spans-dabord-les-métriques-en-relais)).
+- Les jetons viennent des spans, par personne, et `codex.turn.token_usage` ne s'y ajoute pas : les deux ne sont jamais additionnés ([pourquoi](/docs/telemetry/ai-llm-observability#chaque-service-est-compté-à-partir-de-ce-quil-envoie)).
 - Les spans de Codex ne nomment aucun modèle, donc OneUptime ne peut pas les tarifer, et leur coût vaut 0. Les totaux de coût prennent alors le coût de Codex dans `codex.turn.cost_microusd`, converti en USD pour vous.
-- Les tableaux **Employé**, **Équipe** et **Modèle** affichent les lignes des spans : des jetons par personne, mais aucun coût par personne.
-- Sans traces, ce sont les métriques qui remplissent ces tableaux, avec le coût seulement, le tout sous **Non attribué**, car les métriques de Codex ne nomment personne.
+- Les tableaux **Employé** et **Équipe** montrent les jetons des spans par personne, et le coût de Codex sur une seule ligne **Non attribué**, puisque ses métriques ne nomment personne. Le tableau **Modèle** est à l'inverse : le coût par modèle, les jetons sous **Non attribué**.
+- Sans traces, les métriques comptent les jetons et le coût de Codex : sous **Non attribué** dans les tableaux **Employé** et **Équipe**, et par modèle dans le tableau **Modèle**.
 
 Le coût le plus précis par tour, avec la personne, se trouve dans l'enregistrement de log `codex.turn_cost`. OneUptime ne relie pas encore les enregistrements de log aux dépenses, mais gardez l'exportateur de logs activé : l'historique sera là quand ce sera le cas.
 

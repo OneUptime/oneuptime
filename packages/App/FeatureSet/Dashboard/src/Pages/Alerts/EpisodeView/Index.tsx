@@ -556,6 +556,10 @@ const AlertEpisodeView: FunctionComponent<
             title="Alerts in this episode"
             singularNoun="alert"
             pluralNoun="alerts"
+            countTemplate={{
+              one: "{{count}} alert",
+              other: "{{count}} alerts",
+            }}
             viewAllRoute={RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERT_EPISODE_VIEW_ALERTS] as Route,
               { modelId: modelId },

@@ -5161,6 +5161,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         result.contentInMarkdown,
       );
 
+      /*
+       * An answer a limit stopped says so under it, in OneUptime's own
+       * words with the link to the setting - placed after the model's text
+       * is made safe, so the link stays a link.
+       */
+      if (result.stopNoteInMarkdown) {
+        replyText = replyText.isEmpty()
+          ? FeedMarkdown.asMarkdown(result.stopNoteInMarkdown)
+          : mdText`${replyText}\n\n${FeedMarkdown.asMarkdown(result.stopNoteInMarkdown)}`;
+      }
+
       // Build a compact "Sources" footer from the server-minted citations.
       if (result.citations && result.citations.length > 0) {
         const sourceLines: Array<MarkdownText> =

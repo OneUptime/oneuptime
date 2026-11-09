@@ -124,10 +124,10 @@ OneUptime 从 span 和指标数据点读取人员，从不从日志记录读取�
 
 使用上面的配置时， **用量** 标签页上的结果如下：
 
-- token 来自 span，按人员划分，`codex.turn.token_usage` 不会再叠加上去：两者从不相加（ [原因](/docs/telemetry/ai-llm-observability#span-优先指标补充) ）。
+- token 来自 span，按人员划分，`codex.turn.token_usage` 不会再叠加上去：两者从不相加（ [原因](/docs/telemetry/ai-llm-observability#每个服务按其发送的数据计数) ）。
 - Codex 的 span 不指明模型，因此 OneUptime 无法为其计价，它们的成本为 0。于是成本总数会从 `codex.turn.cost_microusd` 中取 Codex 的成本，并为你换算为 USD。
-- **员工** 、 **团队** 和 **模型** 表显示 span 的行：有按人员的 token，但没有按人员的成本。
-- 没有跟踪时，改由指标填充这些表，只有成本，并且全部归入 **未归属** ，因为 Codex 的指标不指明任何人。
+- **员工** 和 **团队** 表按人员显示 span 的 token，并把 Codex 的成本显示在一个 **未归属** 行中，因为它的指标不指明任何人。 **模型** 表正好相反：成本按模型显示，token 归入 **未归属** 。
+- 没有跟踪时，由指标计数 Codex 的 token 和成本：在 **员工** 和 **团队** 表中归入 **未归属** ，在 **模型** 表中按模型显示。
 
 最精确的每轮成本（并带有人员信息）是日志记录 `codex.turn_cost`。OneUptime 目前还不会把日志记录与支出关联，但请保持日志导出器开启：等到支持时，历史数据已经在那里了。
 

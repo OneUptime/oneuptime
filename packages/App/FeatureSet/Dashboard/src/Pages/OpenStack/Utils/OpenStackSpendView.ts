@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -102,14 +103,14 @@ export function formatOpenStackSpendMoney(data: {
   const locale: string = data.translator.language || "en";
 
   if (!data.currency) {
-    return rounded.toLocaleString(locale, {
+    return rounded.toLocaleString(getNumberLocale(locale), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
   }
 
   try {
-    return new Intl.NumberFormat(locale, {
+    return new Intl.NumberFormat(getNumberLocale(locale), {
       style: "currency",
       currency: data.currency,
     }).format(rounded);
@@ -127,7 +128,7 @@ export function formatOpenStackUsageNumber(
   }
 
   return (Math.round(value * 100) / 100).toLocaleString(
-    translator.language || "en",
+    getNumberLocale(translator.language || "en"),
     { maximumFractionDigits: 2 },
   );
 }

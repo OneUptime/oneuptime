@@ -407,8 +407,8 @@ const SPAN_TYPE: string = "Span Type";
 const SPAN_KIND: string = "Span Kind";
 
 describe("the filters this test reads, from the code that draws them", () => {
-  test("every Dashboard locale is read: English and the 16 languages", () => {
-    expect(LANGUAGES).toHaveLength(17);
+  test("every Dashboard locale is read: English and the 17 languages", () => {
+    expect(LANGUAGES).toHaveLength(18);
     expect(LANGUAGES).toContain("en");
     expect(LANGUAGES).toContain("ja");
     expect(LANGUAGES).toContain("es");

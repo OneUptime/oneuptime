@@ -73,6 +73,12 @@ const LlmUsagePage: FunctionComponent<PageComponentProps> = (
           value={source}
           ariaLabel={translationKey("Usage source")}
           dataTestId="llm-usage-source"
+          /*
+           * A phone's width shared by the two sources: "Your AI calls" and
+           * "Provider accounts" are wider than a phone in some languages
+           * (Persian), and pushed the page sideways.
+           */
+          fillWidthOnPhone={true}
           onChange={(value: LlmUsageSourceKey) => {
             setSource(value);
             Navigation.setQueryString({

@@ -129,17 +129,17 @@ Hver post bærer disse ressursattributtene:
 
 ### Hvor Cursor vises på fanen Forbruk
 
-Cursor sender målinger og ingen GenAI-spans, og målingene fyller bare hullene i spans: **hvis det samme prosjektet mottar GenAI-spans med kostnad, vises ikke Cursors forbruk.** Send Cursor til et eget prosjekt. Se [Spans kommer først, målinger fyller hullene](/docs/telemetry/ai-llm-observability#spans-kommer-først-målinger-fyller-hullene).
+Cursor sender målinger og ingen GenAI-spans, under sin egen tjeneste, `cursor`, så forbruket telles ved siden av AI-kallene appene dine sender til samme prosjekt, aldri i stedet for dem. Se [Hver tjeneste telles ut fra det den sender](/docs/telemetry/ai-llm-observability#hver-tjeneste-telles-ut-fra-det-den-sender).
 
 | Inndeling | For Cursor |
 | --- | --- |
 | **Ansatt** | Ja, etter `cursor.user.email`, ellers `cursor.user.id` |
 | **Team** | Ja, etter `cursor.team.id` |
 | **Modell** | Ja, etter `cursor.model.name` |
-| **Leverandør** | Nei: Cursor sier aldri hvilken leverandør som betjente et kall |
-| **Applikasjon / Tjeneste** | Nei: Cursors målinger hører ikke til noen OneUptime-tjeneste |
+| **Leverandør** | Under **Ikke tilordnet**: Cursor sier aldri hvilken leverandør som betjente et kall |
+| **Applikasjon / Tjeneste** | Ja, under tjenesten `cursor` |
 
-En Cursor-rad bærer bare kostnad: cellene for kall og tokens viser `—`, fordi `cursor.cost.usage` ikke har detaljer per kall. `cursor.token.usage` fyller fortsatt tokentotalene over tabellen (typene `input` og `output`; cachetokens er utelatt), og du kan vise den i et dashbord etter `cursor.token.type`.
+En Cursor-rad sier **Fra bruksmålinger** under navnet sitt, og cellen for kall viser `—`, fordi en teller ikke har detaljer per kall. Kostnaden kommer fra `cursor.cost.usage` og tokenene fra `cursor.token.usage` (typene `input` og `output`; cachetokens utelates), som du også kan vise på et dashbord etter `cursor.token.type`.
 
 :::details Gjør en Cursor-bruker-id om til en person
 Navn og fakturerte beløp ligger i Cursors Admin API, som OneUptime leser når du kobler til nøkkelen som en [leverandørkonto](/docs/telemetry/ai-provider-accounts#cursor): den kontoen navngir personer med e-post. For å matche en `cursor.user.id` selv kaller du API-et på `https://api.cursor.com`, med en administrator-API-nøkkel som brukernavn og et tomt passord:
@@ -176,7 +176,7 @@ Cursor kobler til fra sine egne servere: OTLP-endpointet ditt må kunne nås fra
 :::
 
 :::details Logger kommer inn, men fanen Forbruk viser ikke noe forbruk fra Cursor
-Prosjektet mottar også GenAI-spans med kostnad, så Cursors målinger leses ikke. Send Cursor til et eget prosjekt, med sin egen inntaksnøkkel.
+Cursors forbruk kommer fra målingene, ikke fra loggene: sjekk at signalet for målinger er slått på i Cursor, og se etter `cursor.cost.usage` under **Målinger**. Hvis rollen din ikke kan lese målinger, utelater fanen Forbruk dem og sier det.
 :::
 
 :::details Personer vises som tall

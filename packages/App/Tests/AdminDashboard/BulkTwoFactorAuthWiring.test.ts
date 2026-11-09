@@ -297,13 +297,14 @@ describe("Bulk two factor auth action extraction", () => {
     expect(interpolatedTranslationKeys().length).toBe(4);
   });
 
-  test("all seventeen locale files are being looked at", () => {
+  test("all eighteen locale files are being looked at", () => {
     /*
      * The locale loops prove nothing if the directory read comes back short.
      * i18next's fallbackLng is "en", so a locale file that simply lacks these
      * keys renders an English confirmation with no error to notice.
      */
     expect(localeFileNames).toEqual([
+      "ar.json",
       "da.json",
       "de.json",
       "en.json",

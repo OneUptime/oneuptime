@@ -28,6 +28,12 @@ export interface ComponentProps {
    */
   actions?: ReactNode | undefined;
   actionsTestId?: string | undefined;
+  /*
+   * More about the message, under the way forward: the error a run that
+   * did not finish stopped with, for whoever wants it. A block of its own
+   * (it brings its own margin), never inside the line's paragraph.
+   */
+  details?: ReactNode | undefined;
 }
 
 // The marks a notice usually carries, in the card's own colours.
@@ -39,6 +45,13 @@ export const noticeFailedIcon: ReactElement = (
     className={`${NOTICE_ICON_CLASS_NAME} text-red-600`}
   />
 );
+
+/*
+ * A link among a notice's actions: the card's own link look, its words on
+ * the actions' line (with an ArrowGluedText arrow when it leaves the card).
+ */
+export const NOTICE_LINK_CLASS_NAME: string =
+  "min-w-0 break-words rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 export const noticeDoneIcon: ReactElement = (
   <Icon
@@ -84,7 +97,7 @@ const InvestigationNotice: FunctionComponent<ComponentProps> = (
         )}
         {props.actions ? (
           <div
-            className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1"
+            className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2"
             data-testid={props.actionsTestId}
           >
             {props.actions}
@@ -92,6 +105,7 @@ const InvestigationNotice: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+        {props.details || <></>}
       </div>
       {props.onDismiss ? (
         <button

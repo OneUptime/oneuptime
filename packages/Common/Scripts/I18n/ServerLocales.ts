@@ -61,6 +61,7 @@ export const TRANSLATED_LANGUAGES: ReadonlyArray<string> = [
   "zh-TW",
   "hi",
   "fa",
+  "ar",
 ];
 
 // Languages without a "one" form: their "_one" keys are never read.

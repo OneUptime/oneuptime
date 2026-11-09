@@ -11,7 +11,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * on Postgres 11 and later the ADD changes the table's metadata only: no row
  * is rewritten, and every existing workflow starts at 0.
  */
-export class AddWorkflowGraphRevision1808995900000 implements MigrationInterface {
+export class AddWorkflowGraphRevision1808995900000
+  implements MigrationInterface
+{
   public name: string = "AddWorkflowGraphRevision1808995900000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {

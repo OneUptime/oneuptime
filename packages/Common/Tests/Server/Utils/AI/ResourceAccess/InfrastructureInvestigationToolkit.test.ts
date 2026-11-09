@@ -28,7 +28,6 @@ import ObjectID from "../../../../../Types/ObjectID";
 import AiResourceType from "../../../../../Types/ResourceAiAgent/AiResourceType";
 import {
   DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS,
-  MAX_RESOURCE_COMMANDS_PER_INVESTIGATION,
   MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM,
   MAX_RESOURCE_COMMAND_TIMEOUT_MS,
   ResourceAiAccessStatus,
@@ -49,10 +48,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   id, programs) and the read-command guide of each tool policy present,
  *   once per policy;
  * - every command is checked here first (Read tier only, the guide on a
- *   refusal), bounded (a per-run runaway guard, 1–120 s timeout, and the
- *   run's deadline when its project configured a time limit — by default
- *   there is none), and a dead agent trips a breaker after its first
- *   unclaimed command;
+ *   refusal), bounded (1–120 s timeout, the run's deadline when its caller
+ *   passes one, and a cap of commands only when its caller sets one - none
+ *   by default, issue #6440), and a dead agent trips a breaker after its
+ *   first unclaimed command;
  * - output is never cut: the toolkit asks for all of it and pages a long
  *   one (first page, then a note naming the outputId to read the rest
  *   from); isTruncated only reports a cut made before it arrived;
@@ -300,8 +299,8 @@ describe("InfrastructureInvestigationToolkit tools", () => {
   });
 
   /*
-   * The default cap is a runaway guard, not a ration: the model is told to
-   * run what it needs, and that output is paged rather than cut.
+   * No cap by default (issue #6440): the model is told to run what it
+   * needs, and that output is paged rather than cut.
    */
   it("tells the model to run what it needs and that output is never cut off", () => {
     const description: string = tool(
@@ -318,7 +317,7 @@ describe("InfrastructureInvestigationToolkit tools", () => {
     expect(description).not.toContain("At most");
   });
 
-  it("states an explicit smaller command cap", () => {
+  it("states a cap its caller set, whatever its size", () => {
     expect(
       tool(
         toolkit([status()], { maxCommands: 3 }),
@@ -328,15 +327,13 @@ describe("InfrastructureInvestigationToolkit tools", () => {
       ),
     ).toBe(true);
 
-    // A cap at the guard is the guard: not stated.
+    // The old 200 is a cap like any other now: said when set.
     expect(
       tool(
-        toolkit([status()], {
-          maxCommands: MAX_RESOURCE_COMMANDS_PER_INVESTIGATION,
-        }),
+        toolkit([status()], { maxCommands: 200 }),
         RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
       ).definition.description,
-    ).not.toContain("At most");
+    ).toContain("At most 200 commands in this run.");
   });
 
   it("mentions shortening the timeout only when the run has a time limit", () => {
@@ -359,7 +356,7 @@ describe("InfrastructureInvestigationToolkit tools", () => {
         toolkit([status()], { runDeadlineAtMs: Date.now() + 60_000 }),
       ),
     ).toBe(
-      `${unlimited} Shortened automatically when the investigation's configured time limit is close.`,
+      `${unlimited} Shortened automatically when the investigation's time limit is close.`,
     );
   });
 
@@ -583,27 +580,19 @@ describe("InfrastructureInvestigationToolkit run_infrastructure_command", () => 
     expect(kit.getCommandsRun()).toBe(2);
   });
 
-  it("uses the shared runaway guard of MAX_RESOURCE_COMMANDS_PER_INVESTIGATION by default", async () => {
-    expect(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION).toBe(200);
-
+  /*
+   * A run used to stop at 200 commands (the "runaway guard"). Now it sends
+   * as many as it needs (issue #6440): the run's own limits hold it.
+   */
+  it("has no cap by default: a run sends past the old 200 commands", async () => {
     const kit: InfrastructureInvestigationToolkit = toolkit([status()]);
 
-    for (
-      let index: number = 0;
-      index < MAX_RESOURCE_COMMANDS_PER_INVESTIGATION;
-      index++
-    ) {
+    for (let index: number = 0; index < 250; index++) {
       expect((await execute(kit)).success).toBe(true);
     }
 
-    const over: ToolCallOutcome = await execute(kit);
-
-    expect(over.success).toBe(false);
-    expect(over.textForLlm).toContain(
-      `This run has already sent ${MAX_RESOURCE_COMMANDS_PER_INVESTIGATION} infrastructure commands, the most one run may send.`,
-    );
-    expect(run).toHaveBeenCalledTimes(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION);
-    expect(kit.getCommandsRun()).toBe(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION);
+    expect(run).toHaveBeenCalledTimes(250);
+    expect(kit.getCommandsRun()).toBe(250);
   });
 
   it.each<[unknown, number]>([
@@ -656,7 +645,7 @@ describe("InfrastructureInvestigationToolkit run_infrastructure_command", () => 
 
     expect(result.success).toBe(false);
     expect(result.textForLlm).toContain(
-      "Not enough time is left before this investigation's configured time limit to run another infrastructure command (about 5s remain;",
+      "Not enough time is left before this investigation's time limit to run another infrastructure command (about 5s remain;",
     );
     expect(result.textForLlm).toContain(
       `a command needs at least ${Math.round(
@@ -668,11 +657,12 @@ describe("InfrastructureInvestigationToolkit run_infrastructure_command", () => 
   });
 
   /*
-   * No time limit is the default: without a deadline the wait is planned
-   * without one, and however long the run has been going a command is
-   * never refused for time.
+   * A toolkit given no deadline plans the wait without one, and however
+   * long the run has been going a command is never refused for time. (Every
+   * run passes one: its time limit, 120 minutes unless the project set its
+   * own.)
    */
-  it("has no deadline by default, so an unlimited run never refuses for time", async () => {
+  it("has no deadline when given none, so such a run never refuses for time", async () => {
     const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
     const kit: InfrastructureInvestigationToolkit = toolkit([status()]);
 

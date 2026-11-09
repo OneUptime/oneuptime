@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import AdminModelAPI from "../../../Utils/ModelAPI";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -56,7 +57,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
   // A count the way the admin's language writes it: 2881 is "2,881".
   const formatCount: (value: number) => string = (value: number): string => {
     try {
-      return value.toLocaleString(i18n.language || undefined);
+      return value.toLocaleString(getNumberLocale(i18n.language || undefined));
     } catch {
       return value.toLocaleString();
     }

@@ -159,7 +159,13 @@ import {
   LLM_SETUP_CHECK_ROUTE,
   LlmSetupCheckResponse,
 } from "../../Types/Telemetry/LlmSetupCheckApi";
+import {
+  LLM_USAGE_ROUTE,
+  LlmUsageResponse,
+  readLlmUsageDimension,
+} from "../../Types/Telemetry/LlmUsageApi";
 import LlmMetricUsageReader from "../Utils/Telemetry/LlmMetricUsageReader";
+import LlmUsageReader from "../Utils/Telemetry/LlmUsageReader";
 import LlmSetupCheckReader from "../Utils/Telemetry/LlmSetupCheckReader";
 import PromiseCache from "../Utils/PromiseCache";
 import TelemetryReadScopeUtil, {
@@ -2492,10 +2498,11 @@ router.post(
 
 /*
  * What the GenAI metrics of a range add up to - tokens and cost, in total
- * or by person, team or model - counted the way a counter counts
- * (LlmMetricUsageReader): the Usage tab's figures for the coding assistants
- * and the SDKs that send metrics. Same read access as the metrics model;
- * the caller's service scope narrows the read.
+ * or by person, team, model, provider or service - counted the way a
+ * counter counts, resets included (LlmMetricUsageReader). The Usage tab
+ * reads LLM_USAGE_ROUTE below, which counts these beside the AI calls;
+ * this route stays for the callers that read the metrics alone. Same read
+ * access as the metrics model; the caller's service scope narrows the read.
  */
 router.post(
   LLM_METRIC_USAGE_ROUTE,
@@ -2548,6 +2555,100 @@ router.post(
         dimension: readLlmMetricUsageDimension(body["dimension"]),
         serviceIds: serviceFilter.serviceIds,
         excludedServiceIds: serviceFilter.excludedServiceIds,
+      });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        usage as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * What a range's AI usage adds up to - calls, tokens and cost, in total and
+ * by person, team, model, provider or service - for the Usage tab
+ * (LlmUsageReader): the AI calls (spans), each model call counted once, and
+ * the usage metrics, each service counted from the signal it sends. Same
+ * read access as the AI calls; the usage metrics are read only when the
+ * caller may read metrics (else the answer says they were left out), each
+ * signal narrowed to the caller's services.
+ */
+router.post(
+  LLM_USAGE_ROUTE,
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+      const endTime: Date = readBodyDate(
+        body["endTime"],
+        OneUptimeDate.getCurrentDate(),
+      );
+      const startTime: Date = readBodyDate(
+        body["startTime"],
+        OneUptimeDate.addRemoveDays(endTime, -7),
+      );
+
+      if (startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must be before endTime"),
+        );
+      }
+
+      const spanFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Span,
+          props: databaseProps,
+        });
+
+      /*
+       * Metrics the caller may not read are left out, and the answer says
+       * so. Any other failure fails the read: a lookup that broke is never
+       * told to the reader as their role.
+       */
+      let metricFilter: TelemetryServiceFilter | null = null;
+
+      try {
+        metricFilter = await TelemetryReadAccess.getServiceFilter({
+          modelType: Metric,
+          props: databaseProps,
+        });
+      } catch (err: unknown) {
+        if (!(err instanceof NotAuthorizedException)) {
+          throw err;
+        }
+
+        metricFilter = null;
+      }
+
+      const usage: LlmUsageResponse = await LlmUsageReader.read({
+        projectId: databaseProps.tenantId,
+        startTime: startTime,
+        endTime: endTime,
+        dimension: readLlmUsageDimension(body["dimension"]),
+        serviceIds: spanFilter.serviceIds,
+        excludedServiceIds: spanFilter.excludedServiceIds,
+        metricFilter: metricFilter,
       });
 
       return Response.sendJsonObjectResponse(

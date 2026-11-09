@@ -903,7 +903,7 @@ describe("EntryLoadFailure: its words", () => {
       PARTIAL_SOURCE.slice(
         start + "var RIGHT_TO_LEFT = ".length,
         PARTIAL_SOURCE.indexOf(";", start),
-      ).replace("fa:", '"fa":'),
+      ).replace(/([A-Za-z-]+):/g, '"$1":'),
     ) as Record<string, boolean>;
 
     for (const language of Object.keys(words)) {

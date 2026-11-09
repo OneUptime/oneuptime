@@ -915,7 +915,7 @@ describe("a part whose inventory cannot be read says so", () => {
       .filter((file: string): boolean => {
         return file.endsWith(".json");
       });
-    expect(files).toHaveLength(17);
+    expect(files).toHaveLength(18);
 
     for (const title of Object.values(PROXMOX_PART_READ_ERROR_TITLES)) {
       for (const file of files) {

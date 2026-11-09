@@ -119,9 +119,16 @@ describe("getStatusPageLanguageHead", () => {
     });
   });
 
+  it("serves Arabic right to left", () => {
+    expect(getStatusPageLanguageHead("ar")).toEqual({
+      lang: "ar",
+      dir: "rtl",
+    });
+  });
+
   it("serves every other language a status page can show left to right", () => {
     for (const code of SUPPORTED_STATUS_PAGE_LANGUAGE_CODES) {
-      if (code === "fa") {
+      if (code === "fa" || code === "ar") {
         continue;
       }
 
@@ -137,7 +144,7 @@ describe("getStatusPageLanguageHead", () => {
     ["an unset one", undefined],
     ["an empty one", ""],
     ["one a status page cannot show", "xx"],
-    ["a right-to-left one a status page cannot show yet", "ar"],
+    ["a right-to-left one a status page cannot show yet", "he"],
   ])(
     "serves %s in English, left to right",
     (_label: string, defaultLanguage: string | null | undefined) => {

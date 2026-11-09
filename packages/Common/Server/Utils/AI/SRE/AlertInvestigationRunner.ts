@@ -558,16 +558,19 @@ export default class AIAlertInvestigationRunner {
     }
 
     /*
-     * How far the run may go, stated once: no time limit unless the project
-     * configured one. When it did, the engine enforces it between tool
-     * calls and the command toolkits plan every command's wait to end
-     * before it, so a command issued late in the run cannot outlive it (the
-     * loop cannot interrupt a tool once it is running).
+     * How far the run may go, stated once: the project's limits per run,
+     * and the lane's time limit (else the project's, else the default). The
+     * engine enforces the time limit between tool calls, and the command
+     * toolkits plan every command's wait to end before it, so a command
+     * issued late in the run cannot outlive it (the loop cannot interrupt a
+     * tool once it is running).
      */
     const runLimits: AIAgentRunLimits =
       await AIInvestigationEngine.getRunLimitsForProject(projectId, "Alert");
-    const runDeadlineAtMs: number | undefined =
-      AIAgentRunLimitsHelper.getDeadlineAtMs(runLimits, Date.now());
+    const runDeadlineAtMs: number = AIAgentRunLimitsHelper.getDeadlineAtMs(
+      runLimits,
+      Date.now(),
+    );
 
     // One pager for the run, so read_tool_output reads every toolkit's output.
     const outputPager: ToolOutputPager = new ToolOutputPager();
@@ -744,9 +747,7 @@ export default class AIAlertInvestigationRunner {
         contextSummary,
         promptOmissions,
         ...(contextNotes.length > 0 ? { contextNotes } : {}),
-        maxLlmCalls: runLimits.maxLlmCalls,
-        maxToolCalls: runLimits.maxToolCalls,
-        maxWallClockMs: runLimits.maxWallClockMs,
+        runLimits,
         ...(additionalInstructions.length > 0
           ? { additionalInstructions: additionalInstructions.join("\n\n") }
           : {}),

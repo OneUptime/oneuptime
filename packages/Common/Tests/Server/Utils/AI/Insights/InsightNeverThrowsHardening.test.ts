@@ -5,6 +5,7 @@ import InsightFixRouting, {
   InsightFixRoutingResult,
 } from "../../../../../Server/Utils/AI/SRE/Insights/FixRouting";
 import InsightTriage, {
+  InsightTriageNotEnqueuedReason,
   InsightTriageResult,
 } from "../../../../../Server/Utils/AI/SRE/Insights/Triage";
 import {
@@ -204,7 +205,7 @@ describe("InsightTriage — every dependency rejecting degrades to {}", () => {
       .mockResolvedValue(new PositiveNumber(0));
   }
 
-  test("a rejecting provider lookup resolves to {}", async () => {
+  test("a rejecting provider lookup resolves to no run, failed on the way", async () => {
     greenProject();
     jest
       .spyOn(LlmProviderService, "getLLMProviderForProject")
@@ -212,10 +213,12 @@ describe("InsightTriage — every dependency rejecting degrades to {}", () => {
 
     await expect(
       InsightTriage.enqueueInsightTriage({ insight: makeExceptionInsight() }),
-    ).resolves.toEqual({});
+    ).resolves.toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.Failed,
+    });
   });
 
-  test("a rejecting dedupe count resolves to {} — no enqueue happens", async () => {
+  test("a rejecting dedupe count resolves to no run — no enqueue happens", async () => {
     greenProject();
     greenProvider();
     jest.spyOn(AIRunService, "countBy").mockRejectedValue(new Error("db down"));
@@ -226,12 +229,14 @@ describe("InsightTriage — every dependency rejecting degrades to {}", () => {
 
     await expect(
       InsightTriage.enqueueInsightTriage({ insight: makeExceptionInsight() }),
-    ).resolves.toEqual({});
+    ).resolves.toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.Failed,
+    });
 
     expect(enqueue).not.toHaveBeenCalled();
   });
 
-  test("a rejecting queue enqueue (contract breach — it is documented never-throws) still resolves to {}", async () => {
+  test("a rejecting queue enqueue (contract breach — it is documented never-throws) still resolves to no run", async () => {
     greenProject();
     greenProvider();
     greenDedupe();
@@ -241,10 +246,12 @@ describe("InsightTriage — every dependency rejecting degrades to {}", () => {
 
     await expect(
       InsightTriage.enqueueInsightTriage({ insight: makeExceptionInsight() }),
-    ).resolves.toEqual({});
+    ).resolves.toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.Failed,
+    });
   });
 
-  test("PINNED: a failing triage-link write after a SUCCESSFUL enqueue resolves to {} — the run exists unlinked, and the dedupe count blocks a duplicate next tick", async () => {
+  test("PINNED: a failing triage-link write after a SUCCESSFUL enqueue resolves to no run — the run exists unlinked, and the dedupe count blocks a duplicate next tick", async () => {
     greenProject();
     greenProvider();
     greenDedupe();
@@ -258,13 +265,15 @@ describe("InsightTriage — every dependency rejecting degrades to {}", () => {
 
     await expect(
       InsightTriage.enqueueInsightTriage({ insight: makeExceptionInsight() }),
-    ).resolves.toEqual({});
+    ).resolves.toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.Failed,
+    });
 
     // The run WAS enqueued — only the insight → run link write was lost.
     expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
-  test("defensive: an insight without an id resolves to {} before the project is even read", async () => {
+  test("defensive: an insight without an id resolves to no run before the project is even read", async () => {
     const findProject: jest.SpyInstance = jest.spyOn(
       ProjectService,
       "findOneById",
@@ -275,7 +284,9 @@ describe("InsightTriage — every dependency rejecting degrades to {}", () => {
         insight: makeExceptionInsight({ id: undefined }),
       });
 
-    expect(result).toEqual({});
+    expect(result).toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.NotFound,
+    });
     expect(findProject).not.toHaveBeenCalled();
   });
 });

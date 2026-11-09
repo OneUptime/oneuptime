@@ -1,16 +1,24 @@
 import { readNumber, readString } from "./LlmConversationApi";
+import {
+  ALL_LLM_USAGE_DIMENSIONS,
+  LlmUsageDimension,
+  readLlmUsageDimension,
+} from "./LlmUsageApi";
 
 /*
  * The contract of POST /telemetry/llm/metric-usage: what the GenAI metrics
  * of a time range add up to - the tokens and cost the coding assistants
  * (Claude Code, Codex, Gemini CLI, Copilot, Cursor) and the SDKs that send
- * metrics without spans report - in total and by person, team or model.
+ * metrics without spans report - in total and by person, team, model,
+ * provider or service. The Usage tab reads POST /telemetry/llm/usage
+ * (LlmUsageApi), which counts these beside the AI calls.
  *
  * Counted the way a counter counts (LlmMetricUsageReader): a delta series'
  * points are added up, a cumulative series counts what it grew by inside the
- * range. Adding up a cumulative series' points - each one the running total
- * since the process started - counts every token and dollar once per export:
- * a session exporting every minute for a day read as 1,440 days of use.
+ * range, step by step in time order, a drop read as a restart from zero.
+ * Adding up a cumulative series' points - each one the running total since
+ * the process started - counts every token and dollar once per export: a
+ * session exporting every minute for a day read as 1,440 days of use.
  *
  * Both sides read the body defensively: a server mid-rollout or a hand-made
  * request degrades to "nothing", never to a crash.
@@ -18,25 +26,16 @@ import { readNumber, readString } from "./LlmConversationApi";
 
 export const LLM_METRIC_USAGE_ROUTE: string = "/telemetry/llm/metric-usage";
 
-// What the figures are grouped by; "none" reads the totals alone.
-export enum LlmMetricUsageDimension {
-  None = "none",
-  Employee = "employee",
-  Team = "team",
-  Model = "model",
-}
+// What the figures are grouped by: the Usage tab's dimensions.
+export { LlmUsageDimension as LlmMetricUsageDimension };
 
-export const ALL_LLM_METRIC_USAGE_DIMENSIONS: Array<LlmMetricUsageDimension> = [
-  LlmMetricUsageDimension.None,
-  LlmMetricUsageDimension.Employee,
-  LlmMetricUsageDimension.Team,
-  LlmMetricUsageDimension.Model,
-];
+export const ALL_LLM_METRIC_USAGE_DIMENSIONS: Array<LlmUsageDimension> =
+  ALL_LLM_USAGE_DIMENSIONS;
 
 export interface LlmMetricUsageRequestBody {
   startTime: string;
   endTime: string;
-  dimension: LlmMetricUsageDimension;
+  dimension: LlmUsageDimension;
 }
 
 export interface LlmMetricUsageFigures {
@@ -50,7 +49,7 @@ export interface LlmMetricUsageFigures {
 }
 
 export interface LlmMetricUsageGroup extends LlmMetricUsageFigures {
-  // The person, team or model; "" when the points named none.
+  // The person, team, model, provider or service; "" when the points named none.
   key: string;
 }
 
@@ -72,16 +71,8 @@ export function emptyLlmMetricUsageFigures(): LlmMetricUsageFigures {
   };
 }
 
-export function readLlmMetricUsageDimension(
-  value: unknown,
-): LlmMetricUsageDimension {
-  return (
-    ALL_LLM_METRIC_USAGE_DIMENSIONS.find(
-      (dimension: LlmMetricUsageDimension): boolean => {
-        return dimension === value;
-      },
-    ) || LlmMetricUsageDimension.None
-  );
+export function readLlmMetricUsageDimension(value: unknown): LlmUsageDimension {
+  return readLlmUsageDimension(value);
 }
 
 function readFigures(value: unknown): LlmMetricUsageFigures {

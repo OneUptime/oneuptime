@@ -1,3 +1,4 @@
+import { getNumberLocale } from "../../../Types/DateLanguage";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -32,7 +33,7 @@ export const formatProgressPercent: (
   language: string,
 ) => string = (percent: number, language: string): string => {
   try {
-    return new Intl.NumberFormat(language, {
+    return new Intl.NumberFormat(getNumberLocale(language), {
       style: "percent",
       maximumFractionDigits: 0,
     }).format(percent / 100);

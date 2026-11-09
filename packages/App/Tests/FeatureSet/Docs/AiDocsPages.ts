@@ -260,7 +260,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "It fixes",
     "It learns.",
     "and",
-    "no time limit",
+    "the project's time limit per run",
     "investigation time limit",
     "Cost controls",
     "Ask follow-up questions",
@@ -383,10 +383,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "The Host AI agent is root on the host.",
   ],
   [CODE_PAGE]: [
-    "40 LLM calls",
-    "100,000 output tokens",
     "2",
-    "12",
     // What a fix reads of production, and the rules it reads it by.
     "Exceptions",
     "Traces",

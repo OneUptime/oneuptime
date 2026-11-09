@@ -317,7 +317,9 @@ describe("holdBackBase64Data", () => {
 
       const markdown: string = holdBackBase64Data(text, holder.hold);
 
-      expect(markdown).toBe(`${before}\uE0050\uE006${data.slice(-1)}) and after`);
+      expect(markdown).toBe(
+        `${before}\uE0050\uE006${data.slice(-1)}) and after`,
+      );
       expect(holder.putBack(markdown)).toBe(text);
     },
   );

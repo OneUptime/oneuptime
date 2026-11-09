@@ -2,6 +2,13 @@ import AIInvestigationEngine, {
   InvestigationRequest,
 } from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import AIInvestigationQueue from "../../../../Server/Utils/AI/SRE/InvestigationQueue";
+import AIRunRetryPolicy, {
+  AIRunRetryDecision,
+} from "../../../../Server/Utils/AI/AIRunRetryPolicy";
+import {
+  AIRunAttemptOutcome,
+  AIRunFailureKind,
+} from "../../../../Types/AI/AIRunAttempt";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
 import LlmLogService from "../../../../Server/Services/LlmLogService";
@@ -160,8 +167,11 @@ describe("an investigation that outgrows Ollama's context window", () => {
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
 
     failOrRequeue = jest
-      .spyOn(AIInvestigationQueue, "failOrRequeue")
-      .mockResolvedValue("finalized");
+      .spyOn(AIInvestigationQueue, "failOrRequeueWithDetails")
+      .mockResolvedValue({
+        outcome: "finalized",
+        attemptEnd: { outcome: AIRunAttemptOutcome.GaveUp },
+      });
   });
 
   afterEach(() => {
@@ -232,6 +242,17 @@ describe("an investigation that outgrows Ollama's context window", () => {
     expect(failure.errorMessage).toContain(
       LLMService.CONTEXT_WINDOW_OVERFLOW_ERROR,
     );
+    // The run-level retry policy reads the same failure the same way.
+    expect(
+      AIRunRetryPolicy.decide({
+        error: (failure as { error?: unknown }).error,
+        message: failure.errorMessage,
+        attempt: 1,
+      }),
+    ).toMatchObject({
+      shouldRetry: false,
+      failureKind: AIRunFailureKind.ContextWindow,
+    });
     expect(failure.errorMessage).toContain(
       'set "num_ctx" under "options" in this LLM provider\'s Additional Parameters to 65536 or more (it is 32768 now)',
     );
@@ -291,5 +312,15 @@ describe("an investigation that outgrows Ollama's context window", () => {
     expect(failure.errorMessage).not.toContain(
       LLMService.CONTEXT_WINDOW_OVERFLOW_ERROR,
     );
+
+    // And the run-level retry policy tries it again, after a wait.
+    const decision: AIRunRetryDecision = AIRunRetryPolicy.decide({
+      error: (failure as { error?: unknown }).error,
+      message: failure.errorMessage,
+      attempt: 1,
+      isPermanent: failure.isPermanent,
+    });
+    expect(decision.shouldRetry).toBe(true);
+    expect(decision.delayInMs).toBeGreaterThan(0);
   });
 });

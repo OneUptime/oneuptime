@@ -129,17 +129,17 @@ Hver post bærer disse ressourceattributter:
 
 ### Hvor Cursor vises på fanen Forbrug
 
-Cursor sender metrikker og ingen GenAI-spans, og metrikkerne udfylder kun hullerne i spans: **hvis det samme projekt modtager GenAI-spans med omkostninger, vises Cursors forbrug ikke.** Send Cursor til et projekt for sig selv. Se [Spans kommer først, metrikker udfylder hullerne](/docs/telemetry/ai-llm-observability#spans-kommer-først-metrikker-udfylder-hullerne).
+Cursor sender metrikker og ingen GenAI-spans, under sin egen tjeneste, `cursor`, så dets forbrug tælles ved siden af de AI-kald, dine apps sender til samme projekt, aldrig i stedet for dem. Se [Hver tjeneste tælles ud fra det, den sender](/docs/telemetry/ai-llm-observability#hver-tjeneste-tælles-ud-fra-det-den-sender).
 
 | Opdeling | For Cursor |
 | --- | --- |
 | **Medarbejder** | Ja, efter `cursor.user.email`, ellers `cursor.user.id` |
 | **Team** | Ja, efter `cursor.team.id` |
 | **Model** | Ja, efter `cursor.model.name` |
-| **Udbyder** | Nej: Cursor siger aldrig, hvilken udbyder der betjente et kald |
-| **Applikation / Tjeneste** | Nej: Cursors metrikker tilhører ingen OneUptime-tjeneste |
+| **Udbyder** | Under **Ikke tildelt**: Cursor siger aldrig, hvilken udbyder der betjente et kald |
+| **Applikation / Tjeneste** | Ja, under tjenesten `cursor` |
 
-En Cursor-række bærer kun omkostninger: dens celler for kald og tokens viser `—`, fordi `cursor.cost.usage` ikke har detaljer pr. kald. `cursor.token.usage` fodrer stadig tokentotalerne over tabellen (dens typer `input` og `output`; cachetokens er udeladt), og du kan vise den i et dashboard efter `cursor.token.type`.
+En Cursor-række siger **Fra forbrugsmetrikker** under sit navn, og dens celle for kald viser `—`, fordi en tæller ikke har detaljer pr. kald. Dens omkostninger kommer fra `cursor.cost.usage` og dens tokens fra `cursor.token.usage` (dens typer `input` og `output`; cachetokens udelades), som du også kan vise i et dashboard efter `cursor.token.type`.
 
 :::details Gør et Cursor-bruger-id til en person
 Navne og fakturerede beløb ligger i Cursors Admin API, som OneUptime læser, når du forbinder dets nøgle som en [udbyderkonto](/docs/telemetry/ai-provider-accounts#cursor): den konto navngiver personer med deres e-mail. For selv at matche et `cursor.user.id` kalder du API'et på `https://api.cursor.com` med en administrator-API-nøgle som brugernavn og en tom adgangskode:
@@ -176,7 +176,7 @@ Cursor forbinder fra sine egne servere: dit OTLP-endpoint skal kunne nås fra in
 :::
 
 :::details Logs ankommer, men fanen Forbrug viser intet forbrug fra Cursor
-Projektet modtager også GenAI-spans med omkostninger, så Cursors metrikker læses ikke. Send Cursor til et projekt for sig selv, med sin egen indtagelsesnøgle.
+Cursors forbrug kommer fra dets metrikker, ikke fra dets logs: tjek, at Cursors signal for metrikker er slået til, og søg efter `cursor.cost.usage` under **Målinger**. Hvis din rolle ikke må læse metrikker, udelader fanen Forbrug dem og siger det.
 :::
 
 :::details Personer vises som tal

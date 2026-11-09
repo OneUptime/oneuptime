@@ -127,8 +127,8 @@ function listSourceFiles(directory: string): Array<string> {
 }
 
 describe("the locale files", () => {
-  test("all 17 are present", () => {
-    expect(localeFiles).toHaveLength(17);
+  test("all 18 are present", () => {
+    expect(localeFiles).toHaveLength(18);
   });
 
   test("have the same keys, in the same order, in every language", () => {

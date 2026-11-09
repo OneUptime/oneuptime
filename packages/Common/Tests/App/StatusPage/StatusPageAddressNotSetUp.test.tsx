@@ -1023,7 +1023,7 @@ describe("the page's words in every language", () => {
     .sort();
 
   test("every status page language has them", () => {
-    expect(LANGUAGES).toHaveLength(17);
+    expect(LANGUAGES).toHaveLength(18);
   });
 
   test.each(LANGUAGES)(
