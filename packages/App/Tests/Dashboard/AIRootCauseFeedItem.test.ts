@@ -697,3 +697,60 @@ describe("a follow-up check's entry", () => {
     });
   });
 });
+
+/*
+ * An investigation a limit stopped (issue #6440): OneUptime writes one line
+ * under the analysis saying which limit, and where it is changed. The entry
+ * says it too, after the gist - the summary and the root cause are what the
+ * run found before it stopped - and the report behind the toggle keeps it
+ * where it was written.
+ */
+describe("an entry of an investigation a limit stopped", () => {
+  const STOP_NOTE: string =
+    "_This investigation stopped at the incident investigation time limit of 20 minutes. Change it in [Incidents → AI → Settings → More settings → Investigation limits](https://oneuptime.example.com/dashboard/p1/incidents/ai/settings#InvestigationLimits)._";
+
+  function stoppedReport(analysis: string): string {
+    return serverReport(`${analysis}\n\n${STOP_NOTE}`);
+  }
+
+  test("closes with the stop note, after the summary and the root cause", () => {
+    const content: AIRootCauseFeedContent = buildAIRootCauseFeedContent(
+      stoppedReport(SERVER_ANALYSIS),
+    );
+
+    expect(content.text).toBe(`${EXPECTED_COMPACT_TEXT}\n\n${STOP_NOTE}`);
+    expect(content.moreInformationInMarkdown).toBe(
+      stoppedReport(SERVER_ANALYSIS),
+    );
+  });
+
+  test("says it once, even when the root cause is the report's last section", () => {
+    const analysis: string = [
+      `**Summary** — ${SUMMARY_TEXT}`,
+      `**Most likely root cause** — ${ROOT_CAUSE_TEXT}`,
+    ].join("\n\n");
+    const text: string = buildAIRootCauseFeedContent(
+      stoppedReport(analysis),
+    ).text;
+
+    expect(text.split("This investigation stopped")).toHaveLength(2);
+    expect(text.endsWith(STOP_NOTE)).toBe(true);
+    expect(text).toContain(`**Most likely root cause:** ${COMPACT_ROOT_CAUSE}`);
+  });
+
+  test("an unstructured report a limit stopped is posted exactly as written", () => {
+    const unstructured: string = stoppedReport(
+      "I read checkout-api's logs until the time ran out.",
+    );
+
+    expect(buildAIRootCauseFeedContent(unstructured)).toEqual({
+      text: unstructured,
+    });
+  });
+
+  test("a report no limit stopped has no such line", () => {
+    expect(buildAIRootCauseFeedContent(SERVER_REPORT).text).not.toContain(
+      "stopped",
+    );
+  });
+});

@@ -143,10 +143,11 @@ export class Service extends DatabaseService<Model> {
   /*
    * Count one production telemetry tool call of a code-fix run, when the run
    * may still make one: a single conditional UPDATE that adds one to the
-   * run's toolCallCount while it is below `maxToolCalls`, the run is a
-   * Running code-fix run and it is claimed by `aiAgentId`. True when the
-   * call was counted - false when the run is at its cap or moved on - so two
-   * calls at the same moment cannot both take the last one.
+   * run's toolCallCount while the run is a Running code-fix run claimed by
+   * `aiAgentId` - and, when the project set a limit of tool calls per run,
+   * while the count is below it. True when the call was counted - false
+   * when the run is at that limit or moved on - so two calls at the same
+   * moment cannot both take the last one.
    *
    * For a code-fix run toolCallCount counts the tool calls the SERVER
    * executed for it (CodeAgentTelemetry); its file and command tools run on
@@ -156,9 +157,13 @@ export class Service extends DatabaseService<Model> {
   public async reserveCodeAgentToolCall(data: {
     aiRunId: ObjectID;
     aiAgentId: ObjectID;
-    maxToolCalls: number;
+    /*
+     * The project's limit of tool calls per run, or null for none (the
+     * default, issue #6440): the call is then counted, never refused.
+     */
+    maxToolCalls: number | null;
   }): Promise<boolean> {
-    const result: UpdateResult = await this.getRepository()
+    let update: UpdateQueryBuilder<Model> = this.getRepository()
       .createQueryBuilder()
       .update(Model)
       .set({
@@ -171,10 +176,15 @@ export class Service extends DatabaseService<Model> {
       .andWhere('"status" = :status', { status: AIRunStatus.Running })
       .andWhere('"aiAgentId" = :aiAgentId', {
         aiAgentId: data.aiAgentId.toString(),
-      })
-      .andWhere('COALESCE("toolCallCount", 0) < :maxToolCalls', {
+      });
+
+    if (data.maxToolCalls !== null) {
+      update = update.andWhere('COALESCE("toolCallCount", 0) < :maxToolCalls', {
         maxToolCalls: data.maxToolCalls,
-      })
+      });
+    }
+
+    const result: UpdateResult = await update
       .andWhere('"deletedAt" IS NULL')
       .execute();
 

@@ -61,9 +61,8 @@ import {
   KubernetesRunnerPosture,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { JSONObject } from "../../../../Types/JSON";
-import {
-  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
-  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+import AIAgentRunLimitsHelper, {
+  DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
 } from "../../../../Types/AI/AIAgentRunLimits";
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import ObjectID from "../../../../Types/ObjectID";
@@ -549,7 +548,7 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       expectSettledNoneApplicable(AI_DISABLED_MESSAGE);
     });
 
-    it("asks the project for Enable AI alone", async () => {
+    it("asks the project for Enable AI alone, then - past the gate - for its limits per run", async () => {
       mockHappyPathLoads();
       const projectRead: jest.SpyInstance = jest.spyOn(
         ProjectService,
@@ -559,12 +558,42 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
 
       await run();
 
-      expect(projectRead).toHaveBeenCalledTimes(1);
-      expect(projectRead).toHaveBeenCalledWith({
+      expect(projectRead).toHaveBeenCalledTimes(2);
+      // The gate: Enable AI, and no other switch.
+      expect(projectRead).toHaveBeenNthCalledWith(1, {
         id: PROJECT_ID,
         select: { enableAi: true },
         props: { isRoot: true },
       });
+      // How far the run may go (issue #6440): no switch among them.
+      expect(projectRead).toHaveBeenNthCalledWith(2, {
+        id: PROJECT_ID,
+        select: {
+          aiRunMaxModelCalls: true,
+          aiRunMaxToolCalls: true,
+          aiRunMaxTokens: true,
+          aiRunTimeLimitInMinutes: true,
+          incidentAiInvestigationTimeLimitInMinutes: true,
+          alertAiInvestigationTimeLimitInMinutes: true,
+        },
+        props: { isRoot: true },
+      });
+    });
+
+    it("a round the gate settles never reads the limits", async () => {
+      mockHappyPathLoads();
+      mockProject({ enableAi: false });
+      const projectRead: jest.SpyInstance = jest.spyOn(
+        ProjectService,
+        "findOneById",
+      );
+
+      await run();
+
+      expect(projectRead).toHaveBeenCalledTimes(1);
+      expect(projectRead).toHaveBeenCalledWith(
+        expect.objectContaining({ select: { enableAi: true } }),
+      );
     });
 
     it.each([
@@ -1436,15 +1465,24 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
     expect(incidentFeed).not.toHaveBeenCalled();
   });
 
-  it("gives the cluster round no wall clock: its reads plan no deadline and the engine has no time limit", async () => {
+  /*
+   * A remediation run is held to the project's limits per run (issue
+   * #6440): with nothing set, no cap on calls, and the default 120 minutes -
+   * which its reads plan their waits against, so the loop and every command
+   * agree on one deadline.
+   */
+  it("gives the cluster round the default limits: no caps, and its reads plan against the same deadline", async () => {
     mockSuggestionHonouringSelect(clusterRow());
     const request: { get: () => InvestigationRequest } = captureRequest();
+    const before: number = Date.now();
 
     await run();
 
-    expect(request.get().maxWallClockMs).toBeUndefined();
-    expect(request.get().maxLlmCalls).toBe(AI_AGENT_RUNAWAY_MAX_LLM_CALLS);
-    expect(request.get().maxToolCalls).toBe(AI_AGENT_RUNAWAY_MAX_TOOL_CALLS);
+    const after: number = Date.now();
+
+    expect(request.get().runLimits).toEqual(
+      AIAgentRunLimitsHelper.getDefault(),
+    );
     expect(toolNames(request.get())).toContain("run_kubectl");
     // Its read output is paged, so the reader comes with the reads.
     expect(toolNames(request.get())).toContain("read_tool_output");
@@ -1452,7 +1490,28 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
     const deadlineAtMs: number | undefined = await deadlinePlannedForRunKubectl(
       request.get(),
     );
-    expect(deadlineAtMs).toBeUndefined();
+    const limitMs: number = DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES * 60 * 1000;
+    expect(deadlineAtMs).toBeGreaterThanOrEqual(before + limitMs);
+    expect(deadlineAtMs).toBeLessThanOrEqual(after + limitMs);
+  });
+
+  it("gives the cluster round the project's limits per run when it set them", async () => {
+    mockSuggestionHonouringSelect(clusterRow());
+    mockProject({
+      aiRunMaxModelCalls: 40,
+      aiRunMaxToolCalls: 90,
+      aiRunTimeLimitInMinutes: 30,
+    });
+    const request: { get: () => InvestigationRequest } = captureRequest();
+
+    await run();
+
+    expect(request.get().runLimits).toMatchObject({
+      maxLlmCalls: 40,
+      maxToolCalls: 90,
+      maxTokens: undefined,
+      maxWallClockMs: 30 * 60 * 1000,
+    });
   });
 
   it("the harness catches a select that drops executionMode: the same row would then silently run Suggest", async () => {
@@ -3088,17 +3147,24 @@ describe("RemediationExecutionRunner.executeRemediation — rule-driven runs and
     );
   });
 
-  it("gives a rule-driven run no wall clock either", async () => {
+  it("gives a rule-driven run the default limits too", async () => {
     const request: { get: () => InvestigationRequest } = captureRequest();
+    const before: number = Date.now();
 
     await run();
 
-    expect(request.get().maxWallClockMs).toBeUndefined();
+    const after: number = Date.now();
+
+    expect(request.get().runLimits).toEqual(
+      AIAgentRunLimitsHelper.getDefault(),
+    );
 
     const deadlineAtMs: number | undefined = await deadlinePlannedForRunKubectl(
       request.get(),
     );
-    expect(deadlineAtMs).toBeUndefined();
+    const limitMs: number = DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES * 60 * 1000;
+    expect(deadlineAtMs).toBeGreaterThanOrEqual(before + limitMs);
+    expect(deadlineAtMs).toBeLessThanOrEqual(after + limitMs);
   });
 
   it("drops a cluster whose breaker tripped from the command targets, keeps it readable, and tells the model", async () => {

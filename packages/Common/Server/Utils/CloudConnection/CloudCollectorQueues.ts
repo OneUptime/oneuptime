@@ -3,6 +3,7 @@ import {
   AZURE_ENTITY_NAME_ATTRIBUTE,
   getAzureKeyMetrics,
 } from "../../../Types/Cloud/CloudKeyMetrics";
+import { AZURE_MONITOR_RESOURCE_ID_ATTRIBUTE } from "../../../Types/Cloud/CloudMonitoredResource";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -27,6 +28,19 @@ import ObjectID from "../../../Types/ObjectID";
  * one past the receiver's maximum_number_of_records_per_resource, or a
  * metric missing from its `metrics` list - the connection still writes. A
  * collector that stops is replaced within that lookback.
+ *
+ * A collector can also send a namespace's own total of a metric, split by
+ * nothing: an azure_monitor receiver with its dimensions turned off, or
+ * whose dimensions leave EntityName out. Its series carries the
+ * namespace's resource id, as each queue's series of the read does, and
+ * the namespace's totals add up every series on that id
+ * (CloudResourceMetricAggregation) - its Metrics rows, a monitor of it and
+ * OneUptime AI's reads of it alike - so each message would be counted
+ * twice: once in the collector's total and once in its queue's series. So
+ * for each metric of each namespace a collector sent a total of
+ * (namespaceTotals), the read still writes each queue's series, which
+ * files it on its queue, but without the namespace's resource id: the
+ * namespace's totals are then the collector's alone.
  *
  * The read still judges the namespace's health from everything it read
  * (CloudResourceReadings reads its own payloads), so a namespace reads the
@@ -70,11 +84,18 @@ export interface CollectorMessagingQueues {
    * collector's - never a queue counted twice.
    */
   wholeNamespaces: ReadonlySet<string>;
+  /*
+   * Each metric of each namespace (getMessagingNamespaceSeriesKey) a
+   * collector delivered the namespace's own total of, split by no queue:
+   * the read's queues' series of it stay off the namespace's totals.
+   */
+  namespaceTotals: ReadonlySet<string>;
 }
 
 export const NO_COLLECTOR_QUEUES: CollectorMessagingQueues = {
   series: new Set<string>(),
   wholeNamespaces: new Set<string>(),
+  namespaceTotals: new Set<string>(),
 };
 
 // Looks up what a collector delivered: CloudCollectorQueuesReader, or a test's fake.
@@ -223,39 +244,70 @@ export function getSplitMessagingMetricNames(
   return Array.from(names).sort();
 }
 
+// A datapoint without the attribute that files it on its Azure resource.
+function withoutResourceId(point: JSONObject): JSONObject {
+  return {
+    ...point,
+    attributes: readArray(point["attributes"]).filter(
+      (raw: unknown): boolean => {
+        return readObject(raw)["key"] !== AZURE_MONITOR_RESOURCE_ID_ATTRIBUTE;
+      },
+    ),
+  };
+}
+
 /*
  * One read payload without the queues' metrics a collector delivered
- * lately, and how many datapoints it left out. Null when nothing is left to
+ * lately, and how many datapoints it left out; each queue's series of a
+ * metric a collector sent the namespace's total of is kept off the
+ * namespace (offNamespace counts them). Null when nothing is left to
  * write. The payload given is not changed.
  */
 export function withoutCollectorQueues(data: {
   payload: JSONObject;
   collector: CollectorMessagingQueues;
-}): { payload: JSONObject | null; leftOut: number } {
+}): { payload: JSONObject | null; leftOut: number; offNamespace: number } {
   if (
     data.collector.series.size === 0 &&
-    data.collector.wholeNamespaces.size === 0
+    data.collector.wholeNamespaces.size === 0 &&
+    data.collector.namespaceTotals.size === 0
   ) {
-    return { payload: data.payload, leftOut: 0 };
+    return { payload: data.payload, leftOut: 0, offNamespace: 0 };
   }
 
   let leftOut: number = 0;
+  let offNamespace: number = 0;
   const keptResources: Array<JSONObject> = [];
 
-  const isCollectors: (metricName: string, point: unknown) => boolean = (
+  // What becomes of one datapoint: written, left to a collector, or written off the namespace.
+  const placeOf: (
     metricName: string,
     point: unknown,
-  ): boolean => {
+  ) => "write" | "collector" | "offNamespace" = (
+    metricName: string,
+    point: unknown,
+  ): "write" | "collector" | "offNamespace" => {
     const key: MessagingQueueSeriesKey | null = readMessagingQueueSeriesKey(
       metricName,
       readArray(readObject(point)["attributes"]),
     );
 
-    return (
-      key !== null &&
-      (data.collector.series.has(getMessagingQueueSeriesKey(key)) ||
-        data.collector.wholeNamespaces.has(getMessagingNamespaceSeriesKey(key)))
-    );
+    if (key === null) {
+      return "write";
+    }
+
+    const namespaceKey: string = getMessagingNamespaceSeriesKey(key);
+
+    if (
+      data.collector.series.has(getMessagingQueueSeriesKey(key)) ||
+      data.collector.wholeNamespaces.has(namespaceKey)
+    ) {
+      return "collector";
+    }
+
+    return data.collector.namespaceTotals.has(namespaceKey)
+      ? "offNamespace"
+      : "write";
   };
 
   for (const rawResource of readArray(data.payload["resourceMetrics"])) {
@@ -279,11 +331,21 @@ export function withoutCollectorQueues(data: {
 
         const series: JSONObject = readObject(metric[shape]);
         const points: JSONArray = readArray(series["dataPoints"]);
-        const keptPoints: JSONArray = points.filter(
-          (point: unknown): boolean => {
-            return !isCollectors(name, point);
-          },
-        );
+        const keptPoints: JSONArray = [];
+
+        for (const point of points) {
+          const place: "write" | "collector" | "offNamespace" = placeOf(
+            name,
+            point,
+          );
+
+          if (place === "write") {
+            keptPoints.push(point);
+          } else if (place === "offNamespace") {
+            keptPoints.push(withoutResourceId(readObject(point)));
+            offNamespace++;
+          }
+        }
 
         leftOut += points.length - keptPoints.length;
 
@@ -320,5 +382,6 @@ export function withoutCollectorQueues(data: {
           }
         : null,
     leftOut,
+    offNamespace,
   };
 }

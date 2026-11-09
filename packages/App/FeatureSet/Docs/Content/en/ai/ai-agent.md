@@ -15,7 +15,7 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 :::
 
 > [!TIP]
-> You can also start this from GitHub. Mention the OneUptime GitHub App on an issue or a pull request and it implements, revises or reviews right there: see [GitHub App](/docs/ai/github-app). It is the same agent, the same Runner and the same budgets; only the trigger differs.
+> You can also start this from GitHub. Mention the OneUptime GitHub App on an issue or a pull request and it implements, revises or reviews right there: see [GitHub App](/docs/ai/github-app). It is the same agent, the same Runner and the same limits; only the trigger differs.
 
 ## Ask AI in a repository
 
@@ -97,7 +97,7 @@ flowchart TB
 
 The page the task was started from shows its live status. Every task is listed in its repository under **Products → Code**: its page is its conversation, and each turn's **Log** has a line for every file the Runner read or wrote and every command it ran.
 
-Each run is held to budgets the server enforces: at most **40 LLM calls** and **100,000 output tokens**. A run's production telemetry queries count against the same 40 calls. A run that reaches one finishes with a summary of the work so far instead of looping. Fix runs also count toward the project's daily AI limits, when the project sets them.
+A run makes as many LLM calls and production telemetry queries as its work needs, within its time limit: 120 minutes unless the project sets its own. The project can hold every run to less in **Limits per run**, under **More settings** on **Project Settings → AI → AI Features**; a run that reaches a limit finishes with a summary of the work so far. A Runner from before this release still stops a run at 40 LLM calls and 100,000 output tokens: upgrade it to lift them. Fix runs also count toward the project's daily AI limits, when the project sets them.
 
 ## Where fix tasks start
 
@@ -145,7 +145,7 @@ What the agent can read is decided by the OneUptime server, from the task itself
 - **Read only.** The queries run on the OneUptime server, never on the Runner, which holds no credential that reads telemetry. Nothing they do can change your project.
 - **This project, and only the services this repository serves.** You do not map them: they are the services OneUptime finds this repository for, the way it finds the repository of a fix - their exceptions' stack traces run through its files, they are named like it, or it is the project's only repository. Another service's telemetry cannot be read.
 - **No private incidents**, and tokens, keys, passwords and email addresses are redacted before the agent sees a result, as everywhere OneUptime AI reads your data.
-- **Bounded.** At most **12** queries per run, each counted against the run's 40 calls.
+- **Bounded.** By the run's time limit, and by **Tool Calls per Run** when the project sets it: each query is one tool call.
 
 When no service maps to the repository, the task runs without production telemetry, as before.
 
@@ -192,7 +192,7 @@ Nothing from a pull request that comes from a fork is ever read as the repositor
 Code no longer asks for setup, build and test commands, but a repository that has them, set before or through the API or Terraform, keeps them. They show read-only on the **Build and Test Commands** card, under **More settings** on the repository's **Settings** page, and **Remove Commands** removes all three. While any of them is set, every fix run on a Runner of your own also checks its change with them before the pull request opens:
 
 1. When the code agent finishes, the commands run in order at the root of the repository, on the Runner, in the cloned workspace. Each one gets up to 15 minutes and runs with `CI=true`, so nothing waits on a prompt; the first failure stops the pass.
-2. On a failure, the end of the failing command's output goes back to the same code agent as a repair task, with instructions to fix its own change rather than weaken or skip tests, and the commands run again. It makes at most **2** repair attempts. They share the run's LLM budget, and their edits land in the same commit as the fix.
+2. On a failure, the end of the failing command's output goes back to the same code agent as a repair task, with instructions to fix its own change rather than weaken or skip tests, and the commands run again. It makes at most **2** repair attempts. They count toward the run's limits, and their edits land in the same commit as the fix.
 3. The outcome, passed, failed or skipped (no commands set, or a global Runner), is written in a Verification section of the pull request's description and recorded on the task's pull request.
 
 A change that still fails verification is not thrown away: the pull request opens anyway, with a clearly marked "Verification failed" section that names the failing command and ends with its output. The work is kept, and the reviewer decides. A repository with no commands set is reported as skipped, rather than implying a green build.

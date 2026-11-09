@@ -33,6 +33,7 @@ import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
 } from "Common/Types/AI/AIChatPermissionMode";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
+import { DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES } from "Common/Types/AI/AIAgentRunLimits";
 import { INCIDENT_AND_ALERT_TRIGGER_ENTITIES } from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   CODE_TASK_LIMITS,
@@ -656,18 +657,18 @@ describe("Ask AI", () => {
       "A change through the agent, such as restarting a service, never runs from Ask AI: it gives you the exact command instead",
     );
 
-    // At most so many for one answer, through each kind of agent's toolkit.
-    const perAnswer: number = numberConstant(
-      readRepoFile("Common/Server/Utils/AI/Chat/ChatInfrastructureAccess.ts"),
-      "MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER",
-    );
-    expect(access).toContain(
-      "maxCommands: MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER,",
-    );
+    /*
+     * As many as the answer needs (#6440): no count of its own, only a cap
+     * a caller passes, through each kind of agent's toolkit, and none does.
+     */
+    expect(access).not.toContain("MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER");
+    expect(access).toContain("maxCommands?: number | undefined;");
     expect(access.split("maxCommands: data.maxCommands,").length - 1).toBe(2);
+    expect(api).not.toContain("maxCommands");
     expect(section).toContain(
-      `at most ${perAnswer} for one answer through each kind of agent`,
+      "as many as the answer needs, checked by OneUptime and again by the agent",
     );
+    expect(section).not.toMatch(/at most \d+ for one answer/);
 
     /*
      * The commands only read; Ask AI's own actions - a runbook among them -
@@ -1104,7 +1105,12 @@ describe("Code", () => {
     );
   });
 
-  it("states the run's budgets as the server enforces them", () => {
+  /*
+   * Issue #6440: a run has no count of its own, only its time limit and the
+   * project's limits per run; a Runner from before still winds down on the
+   * numbers the server tells it.
+   */
+  it("states the run's limits as the server enforces them, and an older Runner's", () => {
     const completion: string = readRepoFile(
       "Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
     );
@@ -1113,16 +1119,34 @@ describe("Code", () => {
     );
     const calls: number = numberConstant(
       completion,
-      "MAX_COMPLETION_CALLS_PER_RUN",
+      "LEGACY_MAX_COMPLETION_CALLS",
     );
     const tokens: number = numberConstant(
       completion,
-      "MAX_OUTPUT_TOKENS_PER_RUN",
+      "LEGACY_MAX_OUTPUT_TOKENS",
     );
 
-    expect(run).toContain(
-      `at most ${bold(`${calls} LLM calls`)} and ${bold(`${tokens.toLocaleString("en-US")} output tokens`)}`,
+    expect(completion).not.toMatch(
+      /MAX_COMPLETION_CALLS_PER_RUN|MAX_OUTPUT_TOKENS_PER_RUN|MAX_TELEMETRY_TOOL_CALLS_PER_RUN/,
     );
+    expect(run).toContain(
+      `A run makes as many LLM calls and production telemetry queries as its work needs, within its time limit: ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes unless the project sets its own.`,
+    );
+    expect(run).toContain(
+      `The project can hold every run to less in ${bold("Limits per run")}, under ${bold("More settings")} on ${bold("Project Settings → AI → AI Features")}; a run that reaches a limit finishes with a summary of the work so far.`,
+    );
+    expect(run).toContain(
+      `A Runner from before this release still stops a run at ${calls} LLM calls and ${tokens.toLocaleString("en-US")} output tokens: upgrade it to lift them.`,
+    );
+    expect(run).not.toMatch(/budget|at most \*\*\d/i);
+
+    // A production query is one tool call of the run.
+    expect(
+      flat(englishSection(CODE_PAGE, "## Production telemetry in a fix")),
+    ).toContain(
+      `${bold("Bounded.")} By the run's time limit, and by ${bold("Tool Calls per Run")} when the project sets it: each query is one tool call.`,
+    );
+    expect(flat(englishPage(CODE_PAGE))).not.toMatch(/budget/i);
   });
 
   it("names an exception fix's branch as the Runner names it", () => {
@@ -1799,14 +1823,19 @@ describe("GitHub App", () => {
     );
   });
 
-  it("states a run's budget as a fix task's", () => {
-    const completion: string = readRepoFile(
-      "Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
-    );
+  it("states a run's limits as a fix task's", () => {
+    const page: string = flat(englishPage(GITHUB_APP));
 
-    expect(flat(englishPage(GITHUB_APP))).toContain(
-      `a clone, up to ${numberConstant(completion, "MAX_COMPLETION_CALLS_PER_RUN")} LLM calls and ${numberConstant(completion, "MAX_OUTPUT_TOKENS_PER_RUN").toLocaleString("en-US")} output tokens`,
+    expect(page).toContain(
+      `a clone, as many LLM calls as the work needs within the run's time limit (${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes unless the project sets its own)`,
     );
+    expect(page).toContain(
+      "A review's production queries count as tool calls toward the project's limits per run.",
+    );
+    expect(page).toContain(
+      "It is the same agent and the same Runner as in [Code](/docs/ai/ai-agent), with the same limits; only the trigger differs.",
+    );
+    expect(page).not.toMatch(/budget/i);
   });
 
   it("connects a repository in Products → Code", () => {

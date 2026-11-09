@@ -10,7 +10,10 @@ import {
   AzureStreamResource,
 } from "Common/Server/Utils/CloudConnection/CloudStreamReader";
 import { KafkaRecord } from "Common/Server/Utils/CloudConnection/Kafka/KafkaProtocol";
-import { getAzureStoredMetricName } from "Common/Types/Cloud/CloudKeyMetrics";
+import {
+  getAzureStoredMetricName,
+  isAzureStreamedKeyMetric,
+} from "Common/Types/Cloud/CloudKeyMetrics";
 import { CLOUD_RESOURCE_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudLogGroups";
 import {
   ParsedAzureResourceId,
@@ -43,7 +46,11 @@ import { DeliveredResource } from "../AwsFirehose/FirehoseRecords";
  * METRICS are written as the connection's read writes them, so a streamed
  * metric and a read one are one series: only the key metrics its reads
  * read each type with (AzureStreamMetricDefinition), and only those they
- * read a minute at a time - a coarser one stays the read's - each as a
+ * read a minute at a time - a coarser one stays the read's - and leave to
+ * a stream (isAzureStreamedKeyMetric: not one a diagnostic setting cannot
+ * export, should Azure send it after all, nor any of a Service Bus or
+ * Event Hubs namespace, whose queues' own series the read writes and adds
+ * up, where a diagnostic setting sends the namespace's total), each as a
  * gauge named azure_<metric>_<the read's aggregation> of that aggregation's
  * value, on the read's own datapoint attributes: the resource's ARM id as
  * the read wrote it (Azure uppercases it in diagnostic records), its name,
@@ -371,11 +378,17 @@ export function decodeAzureDiagnosticEvents(data: {
           field(record, "timeGrain"),
         ).toUpperCase();
 
-        // Not a key metric, not read a minute at a time, or a resource the reads do not hold yet.
+        /*
+         * Not a key metric, not read a minute at a time, one the read keeps
+         * writing while it streams (a metric a diagnostic setting cannot
+         * export, or any of a namespace the read splits by queue), or a
+         * resource the reads do not hold yet.
+         */
         if (
           !definition ||
           definition.grain !== STREAMED_TIME_GRAIN ||
           (grain && grain !== STREAMED_TIME_GRAIN) ||
+          !isAzureStreamedKeyMetric(type, definition.name) ||
           !known ||
           timeMs === null
         ) {

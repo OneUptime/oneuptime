@@ -1373,7 +1373,7 @@ describe("execute_remediation_command on a resource round", () => {
     expect(recordOutcome).not.toHaveBeenCalled();
   });
 
-  it(`sends at most the run's command budget`, async () => {
+  it(`sends at most the run's limit of commands that change things`, async () => {
     const toolkit: RemediationCommandToolkit = buildToolkit();
 
     for (let i: number = 0; i < 5; i++) {
@@ -1382,7 +1382,11 @@ describe("execute_remediation_command on a resource round", () => {
 
     const outcome: ToolCallOutcome = await execute(toolkit, resourceArgs());
 
-    expect(outcome.textForLlm).toContain("command budget");
+    expect(outcome.textForLlm).toContain(
+      "This remediation has sent 5 commands that change things, the most one remediation may send.",
+    );
+    // A limit on what it changes, never spoken of as a budget (issue #6440).
+    expect(outcome.textForLlm.toLowerCase()).not.toContain("budget");
     expect(enqueue).toHaveBeenCalledTimes(5);
   });
 });

@@ -92,7 +92,7 @@ Quand plusieurs règles qui investiguent correspondent, OneUptime AI peut utilis
 
 - **Ce qu'un serveur renvoie, ce sont des données, jamais des instructions.** OneUptime AI lit les descriptions et les réponses de ses outils comme du texte venu d'hors de OneUptime : elles ne changent jamais une règle, une approbation ni ce que OneUptime AI peut faire.
 - **L'adresse est vérifiée à chaque connexion.** OneUptime ne se connecte jamais à sa propre adresse ni à une adresse link-local. Sur OneUptime Cloud, il refuse aussi les adresses de réseau privé : utilisez l'adresse publique du serveur. Un OneUptime auto-hébergé atteint les adresses privées sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` est défini. Les redirections ne sont pas suivies.
-- **Limites.** Un projet a au plus 20 serveurs, et OneUptime lit au plus 200 outils de chacun. La connexion expire après 20 secondes, la liste des outils après 30 et un appel d'outil après 60. Une réponse de plus de 2 Mo est refusée, et une exécution fait au plus 40 appels aux serveurs MCP.
+- **Limites.** Un projet a au plus 20 serveurs, et OneUptime lit au plus 200 outils de chacun. La connexion expire après 20 secondes, la liste des outils après 30 et un appel d'outil après 60. Une réponse de plus de 2 Mo est refusée. Les appels d'une exécution aux serveurs MCP comptent dans les limites par exécution du projet, lorsqu'il en fixe.
 - **Chaque appel est enregistré.** Chaque appel est une étape de l'exécution, visible dans son activité, et chaque modification d'une correction figure dans l'étape **Remédiation** avec ce que le serveur a répondu. Les appels au modèle derrière eux sont dans **Paramètres du projet → IA → Journaux IA**.
 
 ## Dépannage
