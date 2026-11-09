@@ -1286,7 +1286,7 @@ describe("the note's words in every language", () => {
         return file.replace(/\.json$/, "");
       });
 
-    expect(languages).toHaveLength(16);
+    expect(languages).toHaveLength(17);
 
     for (const language of languages) {
       const entries: Record<string, string> = readLocale(language);

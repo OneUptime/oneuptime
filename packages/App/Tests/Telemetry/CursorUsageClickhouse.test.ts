@@ -30,6 +30,11 @@ import {
   LlmMetricUsageDimension,
   LlmMetricUsageResponse,
 } from "Common/Types/Telemetry/LlmMetricUsageApi";
+import {
+  LlmUsageDimension,
+  LlmUsageResponse,
+  LlmUsageSource,
+} from "Common/Types/Telemetry/LlmUsageApi";
 import AggregateBy from "Common/Server/Types/AnalyticsDatabase/AggregateBy";
 import {
   LlmMetricSource,
@@ -114,6 +119,7 @@ import LlmCostBudgetEvaluator, {
   LlmResolvedSpend,
 } from "Common/Server/Utils/Telemetry/LlmCostBudgetEvaluator";
 import LlmMetricUsageReader from "Common/Server/Utils/Telemetry/LlmMetricUsageReader";
+import LlmUsageReader from "Common/Server/Utils/Telemetry/LlmUsageReader";
 import LlmSetupCheckReader from "Common/Server/Utils/Telemetry/LlmSetupCheckReader";
 import MetricService from "Common/Server/Services/MetricService";
 import SpanService from "Common/Server/Services/SpanService";
@@ -777,6 +783,22 @@ integration("Cursor's usage against ClickHouse", () => {
     expect(calls.totals.costUsd).toBeCloseTo(0.08, 9);
     expect(calls.totals.inputTokens).toBe(300);
     expect(calls.totals.outputTokens).toBe(40);
+
+    /*
+     * The Usage tab's tiles (#6349): the Export, counted from its metrics
+     * under its own service - never with the Admin API's points.
+     */
+    const usage: LlmUsageResponse = await LlmUsageReader.read({
+      projectId: PROJECT,
+      startTime: from,
+      endTime: to,
+      dimension: LlmUsageDimension.None,
+    });
+
+    expect(usage.totals.costUsd).toBeCloseTo(0.08, 9);
+    expect(usage.totals.inputTokens).toBe(300);
+    expect(usage.totals.outputTokens).toBe(40);
+    expect(usage.totals.costSource).toBe(LlmUsageSource.Metrics);
 
     // Provider accounts: the Admin API's points alone.
     expect(

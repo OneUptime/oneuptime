@@ -490,7 +490,7 @@ describe("the manage page's words", () => {
         return file.endsWith(".json") && file !== "en.json";
       });
 
-    expect(locales).toHaveLength(16);
+    expect(locales).toHaveLength(17);
 
     for (const file of locales) {
       const update: Record<string, unknown> = (

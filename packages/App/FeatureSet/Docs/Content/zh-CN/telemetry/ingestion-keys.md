@@ -122,6 +122,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 被拒绝的请求会收到一个状态和一句说明原因的话。
 
+密钥页面也会计数： **被拒绝的遥测** 列出过去 30 天此密钥被拒绝的内容、原因、端点、请求数和时间。缺失或输错的密钥不属于任何项目，因此不会被统计。
+
 | 应答 | 含义 |
 | --- | --- |
 | `401` 加 `Missing ingestion token` | 请求中没有密钥。请在 `x-oneuptime-token` 中发送它。 |

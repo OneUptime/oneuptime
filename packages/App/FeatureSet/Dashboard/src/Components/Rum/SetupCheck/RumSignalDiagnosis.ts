@@ -45,12 +45,15 @@ import { getTimeRangeWindowMs } from "../../SessionReplay/SessionReplayEmptyReas
  * anyway. So the copy says the likely cause (the browser SDK sends neither
  * on its own) and what is true either way, and asks no change of anyone.
  *
- * Ingest refusals cannot help either: a key that is revoked or switched
- * off and an origin a Browser key does not allow are refused before the
- * request is read, so before it names an application, and a Content
- * Security Policy or a CORS block never reaches the server at all. Only
- * Session Replay counts its refusals per application, and its row reads
- * them (Components/SessionReplay/useSessionReplayHealth).
+ * Ingest refusals are a separate answer (issue #6378, RumIngestRefusals): a
+ * key that is switched off or expired, an origin a Browser key does not
+ * allow, a used-up budget are refused before the request is read, so before
+ * it names an application. They are counted per key, and the setup check
+ * and the empty charts say "refused" for a kind only when a refusal that
+ * speaks for the app is newer than the kind's latest arrival. A Content
+ * Security Policy or a CORS block never reaches the server at all. Session
+ * Replay also counts its own gates' refusals per application, and its row
+ * reads them (Components/SessionReplay/useSessionReplayHealth).
  */
 
 export type RumSignalState =

@@ -60,11 +60,17 @@ import { SparklinePoint } from "./MetricSparkline";
 import MetricUtil from "./Utils/Metrics";
 import {
   FetchMetricRowValueOverrides,
+  GetMetricRowAggregation,
+  MetricRowAggregation,
   MetricRowValueOverride,
   MetricRowValueOverrideMap,
   getMetricServiceIdsByName,
   resolveMetricRowValueOverride,
 } from "./Utils/MetricRowScope";
+import {
+  DatabaseTimePoint,
+  getCompleteBucketSeries,
+} from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
 import {
@@ -155,6 +161,7 @@ async function fetchEntityScopedSparklineAggregates(data: {
   startAndEndDate: InBetween<Date>;
   entityKeys: Array<string>;
   entityScope?: EntityScopeFilter | undefined;
+  getAggregationType: (metricName: string) => MetricsAggregationType;
 }): Promise<Map<string, AggregatedResult>> {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   if (!projectId || data.metricNames.length === 0) {
@@ -187,7 +194,7 @@ async function fetchEntityScopedSparklineAggregates(data: {
               modelType: Metric,
               aggregateBy: {
                 query,
-                aggregationType: MetricsAggregationType.Avg,
+                aggregationType: data.getAggregationType(name),
                 aggregateColumnName: "value",
                 aggregationTimestampColumnName: "time",
                 startTimestamp: data.startAndEndDate.startValue,
@@ -513,6 +520,22 @@ interface Props {
    */
   defaultRowValueCaption?: string | undefined;
   /*
+   * The aggregation a row reads its metric with, for a host that knows a
+   * metric's series are parts of one number (Utils/MetricRowScope): a
+   * Service Bus namespace's messages arrive once per queue, and the
+   * namespace's count is their sum, not the average queue. Such a row's
+   * sparkline and value are read with it, its caption says so, and a click
+   * opens the explorer with it, so a monitor created from there reads the
+   * same. It is asked with the range the list reads, as a sum of a level
+   * holds at one-minute intervals only. A row read as a total (Sum, Count)
+   * shows its whole intervals only, the ones that ended `settleMs` ago
+   * (getMetricRowPoints). A row the host computes itself
+   * (fetchRowValueOverrides) keeps the host's value. Undefined for a name:
+   * the per-bucket average of every series, as before. Must be
+   * referentially stable: the sparklines refetch when it changes.
+   */
+  getRowAggregation?: GetMetricRowAggregation | undefined;
+  /*
    * The unit a row's value is in, for a host that knows a metric's declared
    * unit is wrong in its scope (MariaDB reports `mysql.buffer_pool.limit`,
    * declared in bytes, as a page count). Undefined keeps the metric's own.
@@ -555,6 +578,48 @@ export function getMetricRowClickHandler(data: {
   return (): void => {
     data.navigate(data.metric);
   };
+}
+
+/*
+ * The points a row read with this aggregation shows. A total per interval
+ * (Sum, Count) counts what had arrived in it: the range's newest interval
+ * is still filling, its oldest began before the range did, and a source
+ * that delivers late (a cloud's metrics, `settleMs`) leaves the newest ones
+ * short for minutes after they end. Drawn as they were, a namespace's
+ * messages over a day fell at both ends of the line, and its value - the
+ * newest interval - read the few minutes that had arrived. So such a row
+ * keeps its whole intervals (getCompleteBucketSeries, as the Queue and
+ * Database pages' counts do), and its value is the newest whole one. Any
+ * other aggregation reads as it did, partial intervals and all.
+ */
+export function getMetricRowPoints(data: {
+  points: Array<SparklinePoint>;
+  aggregationType: MetricsAggregationType;
+  startAndEndDate: InBetween<Date>;
+  settleMs?: number | undefined;
+  now?: number | undefined;
+}): Array<SparklinePoint> {
+  if (
+    data.aggregationType !== MetricsAggregationType.Sum &&
+    data.aggregationType !== MetricsAggregationType.Count
+  ) {
+    return data.points;
+  }
+
+  const whole: Array<DatabaseTimePoint> = getCompleteBucketSeries(
+    data.points.map((point: SparklinePoint): DatabaseTimePoint => {
+      return { x: new Date(point.time), y: point.value };
+    }),
+    {
+      start: data.startAndEndDate.startValue,
+      end: data.startAndEndDate.endValue,
+    },
+    (data.now ?? Date.now()) - Math.max(0, data.settleMs || 0),
+  );
+
+  return whole.map((point: DatabaseTimePoint): SparklinePoint => {
+    return { time: point.x.toISOString(), value: point.y };
+  });
 }
 
 /*
@@ -1463,6 +1528,31 @@ const MetricsViewer: FunctionComponent<Props> = (
           },
         );
 
+        // How each of the others is read: the host's aggregation, or Avg.
+        const rowAggregations: Map<string, MetricRowAggregation> = new Map();
+        if (props.getRowAggregation) {
+          for (const name of defaultNames) {
+            const rowAggregation: MetricRowAggregation | undefined =
+              props.getRowAggregation(
+                name,
+                new InBetween<Date>(dateRange.startValue, dateRange.endValue),
+              );
+            if (rowAggregation) {
+              rowAggregations.set(name, rowAggregation);
+            }
+          }
+        }
+        const getAggregationType: (
+          metricName: string,
+        ) => MetricsAggregationType = (
+          metricName: string,
+        ): MetricsAggregationType => {
+          return (
+            rowAggregations.get(metricName)?.aggregationType ||
+            MetricsAggregationType.Avg
+          );
+        };
+
         /*
          * Backend-aggregated fetch (one parallel call per metric name).
          * The previous getList path with `limit: 5000` truncated by
@@ -1488,6 +1578,7 @@ const MetricsViewer: FunctionComponent<Props> = (
                   ),
                   entityKeys,
                   entityScope: entityScope,
+                  getAggregationType: getAggregationType,
                 })
               : await MetricUtil.fetchSparklineAggregates({
                   metricNames: defaultNames,
@@ -1497,6 +1588,7 @@ const MetricsViewer: FunctionComponent<Props> = (
                     dateRange.startValue,
                     dateRange.endValue,
                   ),
+                  getAggregationType: getAggregationType,
                 });
 
         const last: Record<string, number> = {};
@@ -1523,6 +1615,11 @@ const MetricsViewer: FunctionComponent<Props> = (
             };
             continue;
           }
+          const rowAggregation: MetricRowAggregation | undefined =
+            rowAggregations.get(name);
+          if (rowAggregation) {
+            labels[name] = { caption: rowAggregation.caption };
+          }
           const aggregated: AggregatedResult = aggregates.get(name) || {
             data: [],
           };
@@ -1544,10 +1641,17 @@ const MetricsViewer: FunctionComponent<Props> = (
           points.sort((a: SparklinePoint, b: SparklinePoint): number => {
             return new Date(a.time).getTime() - new Date(b.time).getTime();
           });
-          out[name] = points;
-          if (points.length > 0) {
+          // A total keeps its whole intervals (getMetricRowPoints).
+          const rowPoints: Array<SparklinePoint> = getMetricRowPoints({
+            points,
+            aggregationType: getAggregationType(name),
+            startAndEndDate: dateRange,
+            settleMs: rowAggregation?.settleMs,
+          });
+          out[name] = rowPoints;
+          if (rowPoints.length > 0) {
             // Most recent point — the rightmost bucket on the chart.
-            last[name] = points[points.length - 1]!.value;
+            last[name] = rowPoints[rowPoints.length - 1]!.value;
           }
         }
         setSparklineData(out);
@@ -1570,6 +1674,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     entityScope,
     attributeFilters,
     props.fetchRowValueOverrides,
+    props.getRowAggregation,
   ]);
 
   // Facet configs
@@ -1820,9 +1925,21 @@ const MetricsViewer: FunctionComponent<Props> = (
         }
       }
 
+      /*
+       * The aggregation the row was read with over this range, so the chart
+       * - and a monitor created from it - reads the number the row showed.
+       */
+      const rowAggregation: MetricRowAggregation | undefined =
+        props.getRowAggregation
+          ? props.getRowAggregation(
+              metric.name || "",
+              RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange),
+            )
+          : undefined;
       const queryPayload: Record<string, unknown> = {
         metricName: metric.name || "",
-        aggregationType: MetricsAggregationType.Avg,
+        aggregationType:
+          rowAggregation?.aggregationType || MetricsAggregationType.Avg,
       };
       if (Object.keys(presetAttributes).length > 0) {
         queryPayload["attributes"] = presetAttributes;
@@ -1917,6 +2034,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       props.entityKeyDisplays,
       entityScope,
       JSON.stringify(props.eventScope || {}),
+      props.getRowAggregation,
     ],
   );
 

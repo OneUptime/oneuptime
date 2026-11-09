@@ -356,7 +356,7 @@ describe("the words", () => {
     });
 
   test("every Dashboard language has them, translated", () => {
-    expect(locales).toHaveLength(17);
+    expect(locales).toHaveLength(18);
 
     for (const [file, locale] of locales) {
       for (const key of KEYS) {

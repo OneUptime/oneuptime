@@ -105,7 +105,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 
 Defínela donde ya preparas los equipos de los desarrolladores: un perfil MDM, un archivo de ajustes gestionados o un perfil de shell de tus dotfiles. Los valores no pueden contener espacios: usa guiones bajos, o codificación porcentual como `%20`. Codex no tiene atributos de recurso, así que define las mismas claves en su `[otel.span_attributes]`.
 
-Para separar el gasto por aplicación, usa el nombre del servicio (`OTEL_SERVICE_NAME`, o el ajuste propio de la herramienta). El desglose **Aplicación / Servicio** solo cubre las herramientas que envían spans de GenAI.
+Para separar el gasto por aplicación, usa el nombre del servicio (`OTEL_SERVICE_NAME`, o el ajuste propio de la herramienta). El desglose **Aplicación / Servicio** clasifica cada servicio, tanto si envía spans de GenAI como si solo envía métricas.
 
 ### Lo que deliberadamente no se trata como el empleado
 
@@ -144,21 +144,21 @@ Dos cosas que debes saber antes de leer las cifras:
 
 Abre **Productos → IA / LLM** y ve a **Uso**. Ordena **Empleado**, **Equipo**, **Modelo**, **Proveedor** y **Aplicación / Servicio** por gasto, en los últimos 7 días si no eliges otro periodo. Las llamadas que no nombran a nadie se cuentan en **Sin atribuir**: una fila grande de **Sin atribuir** te dice qué herramienta aún necesita su identidad.
 
-### Las métricas de los asistentes de programación suplen, no suman
+### Las métricas de los asistentes de programación se cuentan junto a las llamadas de tus aplicaciones
 
-Los spans de GenAI van primero: las métricas solo se leen para una cifra que los spans no aportaron, y las dos nunca se suman ([por qué](/docs/telemetry/ai-llm-observability#primero-los-spans-las-métricas-los-suplen)). Para los asistentes de programación eso tiene una consecuencia tajante: **si el mismo proyecto recibe spans de GenAI con coste, el gasto de los asistentes de programación no aparece.** Dales a los asistentes de programación un proyecto propio, con su propia clave de ingesta.
+Cada servicio se cuenta a partir de lo que envía ([cómo](/docs/telemetry/ai-llm-observability#cada-servicio-se-cuenta-a-partir-de-lo-que-envía)). Las métricas de un asistente de programación llegan con su propio servicio, así que su gasto se suma a las llamadas de IA que tus aplicaciones envían al mismo proyecto, nunca en su lugar, y una aplicación que envía spans de GenAI y métricas de las mismas llamadas se cuenta una vez, a partir de sus spans.
 
-Cuando la sustitución sí se aplica, esto es lo que cada desglose puede mostrar de una herramienta que solo envía métricas:
+Esto es lo que muestra cada desglose de una herramienta que solo envía métricas:
 
 | Desglose | Desde las métricas |
 | --- | --- |
 | **Empleado** | Sí, desde cada clave de identidad de arriba, con o sin el prefijo `resource.` |
 | **Equipo** | Sí, desde las claves de equipo |
 | **Modelo** | Sí: Claude Code y Codex envían un `model` sin prefijo, Cursor `cursor.model.name` |
-| **Proveedor** | No: las métricas de los asistentes de programación no nombran ningún proveedor |
-| **Aplicación / Servicio** | No: sus métricas no pertenecen a ningún servicio de OneUptime |
+| **Proveedor** | En **Sin atribuir**: las métricas de los asistentes de programación no nombran ningún proveedor |
+| **Aplicación / Servicio** | Sí: cada herramienta bajo el servicio que nombran sus métricas, como `cursor` |
 
-Una fila leída de las métricas solo lleva el coste: sus celdas de llamadas y tokens muestran `—`, porque un contador de gasto no tiene detalle por llamada, y un 0 ahí afirmaría que la persona no hizo ninguna llamada. La tabla lleva la marca **de las métricas de GenAI**.
+Una fila leída de las métricas dice **De las métricas de uso** bajo su nombre. Su celda de llamadas muestra `—`, porque un contador no tiene detalle por llamada, y un 0 ahí afirmaría que la persona no hizo ninguna llamada; sus celdas de tokens muestran los tokens que contaron sus métricas.
 
 ## ¿Sin OpenTelemetry? Pon un gateway delante
 
@@ -197,7 +197,7 @@ Codex también envía sus métricas a OpenAI por defecto: consulta [OpenAI Codex
 
 ## Por dónde empezar
 
-Despliégalo en este orden; cada paso es útil por sí solo. Usa un proyecto que no reciba ya spans de GenAI de tus propias aplicaciones, o [la regla de sustitución](#las-métricas-de-los-asistentes-de-programación-suplen-no-suman) mantiene el gasto de los asistentes de programación fuera de la página.
+Despliégalo en este orden; cada paso es útil por sí solo. Los asistentes de programación pueden compartir proyecto con tus propias aplicaciones: [cada uno se cuenta junto a ellas](#las-métricas-de-los-asistentes-de-programación-se-cuentan-junto-a-las-llamadas-de-tus-aplicaciones).
 
 1. **Gemini CLI**, si alguien lo usa. Envía `user.email` sin configuración, así que muestra la atribución de principio a fin. Activa también sus trazas: no envía ninguna métrica de coste.
 2. **Claude Code**: un archivo de ajustes gestionados para la flota, `user.email` sin esfuerzo, una métrica de coste real, y la tasa de aceptación, los commits, las pull requests y las líneas de código por desarrollador.

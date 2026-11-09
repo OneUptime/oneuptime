@@ -114,8 +114,8 @@ function textsOf(code: string): Array<string> {
 }
 
 describe("the Match Condition's two options", () => {
-  test("cover the seventeen Dashboard languages", () => {
-    expect(EVERY_LOCALE).toHaveLength(17);
+  test("cover the eighteen Dashboard languages", () => {
+    expect(EVERY_LOCALE).toHaveLength(18);
     expect(EVERY_LOCALE).toEqual(
       expect.arrayContaining(Object.keys(FIXED_ANY_WORDS)),
     );

@@ -51,8 +51,9 @@ import {
  * table built from the REAL Metric model: a collector's queues in either
  * dimension spelling, a connection's own series never counted as a
  * collector's, the half hour's edge, another project, another metric, a
- * total split by nothing, and a lookup past its limit, which hands the
- * whole namespace's metric to the collector.
+ * total split by nothing - the namespace's own, which keeps the read's
+ * queues of that metric off the namespace's totals - and a lookup past its
+ * limit, which hands the whole namespace's metric to the collector.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -218,12 +219,19 @@ const DATAPOINTS: Array<Datapoint> = [
     agoMs: 5 * MINUTE_MS,
     attributes: receiver({ namespace: "orders-ns", entity: "orders" }),
   },
-  // A total split by nothing: no queue.
+  // A total split by nothing: the namespace's own, no queue's.
   {
     projectId: PROJECT,
     name: INCOMING,
     agoMs: 5 * MINUTE_MS,
     attributes: receiver({ namespace: "orders-ns" }),
+  },
+  // Another namespace's total, by a connection: never a collector's.
+  {
+    projectId: PROJECT,
+    name: ACTIVE,
+    agoMs: 5 * MINUTE_MS,
+    attributes: connection({ namespace: "clicks-ns" }),
   },
   // Another project's collector.
   {
@@ -375,6 +383,47 @@ function writtenSeries(payload: JSONObject | null): Array<string> {
   return found;
 }
 
+// Each written series as metric|queue|the namespace whose totals it adds to, or none.
+function onNamespace(payload: JSONObject | null): Array<string> {
+  const found: Array<string> = [];
+
+  for (const rm of ((payload || {})["resourceMetrics"] as Array<JSONObject>) ||
+    []) {
+    for (const sm of rm["scopeMetrics"] as Array<JSONObject>) {
+      for (const metric of sm["metrics"] as Array<JSONObject>) {
+        for (const point of (metric["gauge"] as JSONObject)[
+          "dataPoints"
+        ] as Array<JSONObject>) {
+          const valueOf: (key: string) => string | undefined = (
+            key: string,
+          ): string | undefined => {
+            const attribute: JSONObject | undefined = (
+              point["attributes"] as Array<JSONObject>
+            ).find((candidate: JSONObject): boolean => {
+              return candidate["key"] === key;
+            });
+
+            return attribute
+              ? ((attribute["value"] as JSONObject)["stringValue"] as string)
+              : undefined;
+          };
+          const resourceId: string | undefined = valueOf(
+            "azuremonitor.resource_id",
+          );
+
+          found.push(
+            `${metric["name"] as string}|${valueOf("metadata_entityname")}|${
+              resourceId ? resourceId.split("/").slice(-1)[0] : "none"
+            }`,
+          );
+        }
+      }
+    }
+  }
+
+  return found;
+}
+
 describe("a connection's queue series and a collector's are filed on the same queue", () => {
   function keysOf(attributes: JSONObject, name: string): Array<string> {
     const row: JSONObject = { name, attributes, entityKeys: [] };
@@ -500,6 +549,14 @@ integration("Which queues a collector reads, from ClickHouse", () => {
       ].sort(),
     );
     expect(found.wholeNamespaces.size).toBe(0);
+    // The total split by nothing is the namespace's own, a collector's.
+    expect(Array.from(found.namespaceTotals)).toEqual([
+      getMessagingNamespaceSeriesKey({
+        metricName: INCOMING,
+        type: SERVICE_BUS_TYPE,
+        namespace: "orders-ns",
+      }),
+    ]);
   });
 
   test("one metric asked, one metric answered", async () => {
@@ -523,8 +580,11 @@ integration("Which queues a collector reads, from ClickHouse", () => {
       until: NOW,
     });
 
-    const toWrite: { payload: JSONObject | null; leftOut: number } =
-      withoutCollectorQueues({ payload: readPayload(), collector: found });
+    const toWrite: {
+      payload: JSONObject | null;
+      leftOut: number;
+      offNamespace: number;
+    } = withoutCollectorQueues({ payload: readPayload(), collector: found });
 
     expect(toWrite.leftOut).toBe(2);
     expect(writtenSeries(toWrite.payload)).toEqual([
@@ -532,6 +592,17 @@ integration("Which queues a collector reads, from ClickHouse", () => {
       `${INCOMING}|payments`,
       `${ACTIVE}|orders`,
       `${ACTIVE}|payments`,
+    ]);
+    /*
+     * The collector sent orders-ns's own total of incoming messages: the
+     * read's queues of it are filed on each queue, off the namespace.
+     */
+    expect(toWrite.offNamespace).toBe(2);
+    expect(onNamespace(toWrite.payload)).toEqual([
+      `${INCOMING}|invoices|none`,
+      `${INCOMING}|payments|none`,
+      `${ACTIVE}|orders|orders-ns`,
+      `${ACTIVE}|payments|orders-ns`,
     ]);
   });
 
@@ -545,6 +616,7 @@ integration("Which queues a collector reads, from ClickHouse", () => {
 
     expect(found.series.size).toBe(0);
     expect(found.wholeNamespaces.size).toBe(0);
+    expect(found.namespaceTotals.size).toBe(0);
   });
 
   test("more queues than a lookup lists hand the whole namespace's metric to the collector", async () => {
@@ -590,7 +662,7 @@ integration("Which queues a collector reads, from ClickHouse", () => {
         collector: found,
       });
 
-    expect(toWrite).toEqual({ payload: null, leftOut: 1 });
+    expect(toWrite).toEqual({ payload: null, leftOut: 1, offNamespace: 0 });
   });
 });
 

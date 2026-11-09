@@ -23,7 +23,8 @@ const THIRTEEN_TO_FOURTEEN_HEADING: string =
   "## Upgrading from OneUptime 13 → 14";
 const NOTE_HEADING: string =
   "### The AI Logs get an index for the daily AI limits";
-const PREVIOUS_NOTE_HEADING: string = "### AI has no limits by default";
+const PREVIOUS_NOTE_HEADING: string =
+  "### AI runs are held only to a time limit";
 const NEXT_NOTE_HEADING: string =
   "### Fixing new incidents and alerts has a switch of its own";
 

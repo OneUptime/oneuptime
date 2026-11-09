@@ -474,14 +474,25 @@ describe("the project's AI switches", () => {
     expect(source).toContain("getConfirmation={getEnableAiConfirmation}");
     expect(source).not.toContain("Edit AI Features");
 
-    expect(source.split("<CardModelDetail").length - 1).toBe(1);
+    /*
+     * Two cards under the fold: the Daily limits, then the Limits per run
+     * (issue #6440) - both inside it, after the switch.
+     */
+    expect(source.split("<CardModelDetail").length - 1).toBe(2);
     const fold: number = source.indexOf("<AdvancedPageSection");
     const card: number = source.indexOf("<CardModelDetail");
+    const runCard: number = source.lastIndexOf("<CardModelDetail");
     expect(fold).toBeGreaterThan(source.indexOf("<ModelSwitchCard"));
     expect(card).toBeGreaterThan(fold);
-    expect(card).toBeLessThan(source.indexOf("</AdvancedPageSection>"));
+    expect(runCard).toBeGreaterThan(card);
+    expect(runCard).toBeLessThan(source.indexOf("</AdvancedPageSection>"));
+    expect(source.slice(card, runCard)).toContain(
+      'name="Project AI Daily Limits"',
+    );
+    expect(source.slice(runCard)).toContain('name="Project AI Limits per Run"');
+    expect(source.slice(runCard)).toContain("formFields={runLimitFormFields}");
 
-    // The card's fields are the daily limits, and Enable AI is none of them.
+    // The cards' fields are the limits, and Enable AI is none of them.
     const fields: string = source.slice(
       source.indexOf("const formFields"),
       source.indexOf("return ("),
@@ -489,6 +500,14 @@ describe("the project's AI switches", () => {
     expect(fields).toContain("aiDailyTokenLimit: true");
     expect(fields).toContain("aiDailySpendLimitInUSD: true");
     expect(fields).not.toContain("enableAi");
+
+    const runFields: string = source.slice(
+      source.indexOf("const runLimitFormFields"),
+      source.indexOf("const runLimitDetailFields"),
+    );
+    expect(runFields).toContain("PROJECT_AI_RUN_LIMIT_FIELDS.map(");
+    expect(runFields).toContain("field: { [limit.column]: true }");
+    expect(runFields).not.toContain("enableAi");
 
     // The AI context, between the switch and the fold, edits its column alone.
     const contextCard: number = source.indexOf("<ProjectAiContextCard />");

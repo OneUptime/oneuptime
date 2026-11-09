@@ -384,8 +384,8 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
       expect(NEW_KEYS).not.toContain(key);
     }
 
-    // Exactly 17 Dashboard locales: English and the sixteen translations.
-    expect(localeFiles.length).toBe(17);
+    // Exactly 18 Dashboard locales: English and the seventeen translations.
+    expect(localeFiles.length).toBe(18);
   });
 
   test("no locale keeps a key the feature no longer renders", () => {

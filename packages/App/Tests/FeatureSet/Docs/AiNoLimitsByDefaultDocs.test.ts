@@ -12,6 +12,7 @@ import AIWorkloadLimits, {
   MAX_AI_INVESTIGATION_COOLDOWN_IN_MINUTES,
   MIN_AI_MAX_CONCURRENT_INVESTIGATIONS,
 } from "Common/Types/AI/AIWorkloadLimits";
+import { DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES } from "Common/Types/AI/AIAgentRunLimits";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "Common/Types/Docs/DocsLanguage";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -44,8 +45,8 @@ const THIRTEEN_TO_FOURTEEN_HEADING: string =
 const NOTE_HEADING: string = "### AI has no limits by default";
 const PREVIOUS_NOTE_HEADING: string =
   "### New projects start with every AI feature on";
-const NEXT_NOTE_HEADING: string =
-  "### The AI Logs get an index for the daily AI limits";
+// The note that a run is held only to its time limit now (#6440).
+const NEXT_NOTE_HEADING: string = "### AI runs are held only to a time limit";
 
 // How long a queued investigation waits in a lane with a cap before it expires.
 const QUEUE_EXPIRY_IN_MINUTES: number = 30;
@@ -325,7 +326,10 @@ const AI_SRE_PAGES: Record<string, AiSrePage> = {
       },
       {
         name: "Investigation time limit",
-        says: ["Unset (the default) means **no time limit**"],
+        // Unset, the project's time limit per run holds it (#6440).
+        says: [
+          `Unset (the default) means **the project's time limit per run**: ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes unless the project sets its own.`,
+        ],
       },
       {
         name: "Daily token limit",
@@ -377,7 +381,9 @@ const AI_SRE_PAGES: Record<string, AiSrePage> = {
       },
       {
         name: "محدودیت زمانی بررسی",
-        says: ["تنظیم‌نشده (پیش‌فرض) یعنی **بدون محدودیت زمانی**"],
+        says: [
+          `تنظیم‌نشده (پیش‌فرض) یعنی **سقف زمانی هر اجرای پروژه**: ${persian(DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES)} دقیقه، مگر اینکه پروژه سقف خودش را تعیین کند.`,
+        ],
       },
       {
         name: "محدودیت روزانه توکن",

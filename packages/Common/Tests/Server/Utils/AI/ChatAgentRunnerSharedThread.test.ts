@@ -29,7 +29,6 @@ import AIChatMessageRole from "../../../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../../../Types/AI/AIChatMessageStatus";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
-import { AI_AGENT_RUNAWAY_MAX_TOOL_CALLS } from "../../../../Types/AI/AIAgentRunLimits";
 import {
   AIChatCitation,
   AIChatToolAction,
@@ -50,8 +49,10 @@ import {
  * The chat agent as it runs inside an incident's investigation box: a
  * shared thread (every responder's history, each question attributed),
  * run-scoped tools (kubectl, infrastructure, read_tool_output) gated by the
- * permission mode exactly like toolbox tools, no wall clock, context
- * compaction, and answers that are finished instead of cut off.
+ * permission mode exactly like toolbox tools, context compaction, and
+ * answers that are finished instead of cut off. A turn's limits - none on
+ * calls by default, its time limit, loop detection - are pinned in
+ * ChatAgentRunnerRunLimits.test.ts.
  */
 
 type SpyInstance = jest.SpyInstance;
@@ -667,82 +668,6 @@ describe("ChatAgentRunner — extra mutation tools follow the permission mode", 
   });
 });
 
-describe("ChatAgentRunner.runTurn — no wall clock", () => {
-  test("still offers tools after hours of wall-clock time", async () => {
-    const spies: Spies = installSpies();
-    let now: number = 1_000_000;
-    jest.spyOn(Date, "now").mockImplementation(() => {
-      now += 60 * 60 * 1000;
-      return now;
-    });
-
-    spies.executeWithLogging
-      .mockResolvedValueOnce(
-        response({
-          stopReason: "tool_use",
-          toolCalls: [{ id: "call-1", name: "query_incidents", arguments: {} }],
-        }) as never,
-      )
-      .mockResolvedValueOnce(
-        response({
-          stopReason: "tool_use",
-          toolCalls: [{ id: "call-2", name: "query_incidents", arguments: {} }],
-        }) as never,
-      )
-      .mockResolvedValueOnce(response({ content: "Done." }) as never);
-
-    await ChatAgentRunner.runTurn(buildRequest());
-
-    expect(spies.executeWithLogging).toHaveBeenCalledTimes(3);
-    expect(llmRequest(spies, 2).tools).toBeDefined();
-    expect(spies.toolboxExecute).toHaveBeenCalledTimes(2);
-
-    // No wrap-up instruction was ever sent.
-    const everyMessage: string = JSON.stringify(llmRequest(spies, 2).messages);
-    expect(everyMessage).not.toContain("Answer now with the findings so far");
-    expect(everyMessage).not.toContain("budget for this turn");
-  });
-
-  test("the runaway guard makes the model answer once it is reached", async () => {
-    const spies: Spies = installSpies();
-
-    // One response asking for more tool calls than the guard allows.
-    const calls: Array<{ id: string; name: string; arguments: JSONObject }> =
-      Array.from(
-        { length: AI_AGENT_RUNAWAY_MAX_TOOL_CALLS + 2 },
-        (_: unknown, index: number) => {
-          return {
-            id: `call-${index}`,
-            name: "query_incidents",
-            arguments: {},
-          };
-        },
-      );
-
-    spies.executeWithLogging
-      .mockResolvedValueOnce(
-        response({ stopReason: "tool_use", toolCalls: calls }) as never,
-      )
-      .mockResolvedValueOnce(response({ content: "Summary." }) as never);
-
-    await ChatAgentRunner.runTurn(buildRequest());
-
-    expect(spies.toolboxExecute).toHaveBeenCalledTimes(
-      AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
-    );
-
-    const second: AILogRequest = llmRequest(spies, 1);
-    expect(second.tools).toBeUndefined();
-
-    const lastUser: { content: string } | undefined = [...second.messages]
-      .reverse()
-      .find((message: { role: string }) => {
-        return message.role === "user";
-      }) as { content: string } | undefined;
-    expect(lastUser?.content).toContain("very large number of calls");
-  });
-});
-
 describe("ChatAgentRunner.runTurn — answers are finished, not cut off", () => {
   test("continues an answer the output limit cut, and joins the parts", async () => {
     const spies: Spies = installSpies();
@@ -808,7 +733,8 @@ describe("ChatAgentRunner.runTurn — context compaction", () => {
     const toolCall: (id: string) => AILogResponse = (id: string) => {
       return response({
         stopReason: "tool_use",
-        toolCalls: [{ id, name: "run_kubectl", arguments: {} }],
+        // Each call reads something else: a run that learns, not a loop.
+        toolCalls: [{ id, name: "run_kubectl", arguments: { step: id } }],
       });
     };
 

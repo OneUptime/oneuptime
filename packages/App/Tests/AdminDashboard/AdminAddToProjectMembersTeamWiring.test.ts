@@ -138,8 +138,8 @@ describe("Projects > Users > Invite User starts on the members team", () => {
 });
 
 describe("the Admin Dashboard's languages", () => {
-  test("all seventeen are read", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("all eighteen are read", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
   });
 
   test.each(LOCALE_FILES)(

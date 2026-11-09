@@ -937,6 +937,9 @@ import { AddPublicNoteApprovalRequest1809063230000 } from "./1809063230000-AddPu
 import { AddTelemetryIngestionBudgets1809063245917 } from "./1809063245917-AddTelemetryIngestionBudgets";
 import { AllowDiscoveryImportWithoutScan1809063255775 } from "./1809063255775-AllowDiscoveryImportWithoutScan";
 import { AddUserLanguage1809063412000 } from "./1809063412000-AddUserLanguage";
+import { AddTelemetryIngestionKeyRefusals1809071100000 } from "./1809071100000-AddTelemetryIngestionKeyRefusals";
+import { AddAIRunRetryAtAndProviderTimeout1809080100000 } from "./1809080100000-AddAIRunRetryAtAndProviderTimeout";
+import { AddProjectAiRunLimits1809080210000 } from "./1809080210000-AddProjectAiRunLimits";
 
 export default [
   InitialMigration,
@@ -1878,4 +1881,7 @@ export default [
   AddTelemetryIngestionBudgets1809063245917,
   AllowDiscoveryImportWithoutScan1809063255775,
   AddUserLanguage1809063412000,
+  AddTelemetryIngestionKeyRefusals1809071100000,
+  AddAIRunRetryAtAndProviderTimeout1809080100000,
+  AddProjectAiRunLimits1809080210000,
 ];

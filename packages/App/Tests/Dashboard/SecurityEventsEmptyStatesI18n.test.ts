@@ -569,8 +569,8 @@ describe("Security Events empty states translations", () => {
     expect(translation).toMatch(/nsSeparator:\s*false/);
   });
 
-  test("all 17 Dashboard locales are covered", () => {
-    expect(localeFiles).toHaveLength(17);
+  test("all 18 Dashboard locales are covered", () => {
+    expect(localeFiles).toHaveLength(18);
     expect(localeFiles).toContain("en.json");
   });
 

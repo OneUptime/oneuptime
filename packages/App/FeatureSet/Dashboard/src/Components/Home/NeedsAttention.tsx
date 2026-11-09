@@ -23,6 +23,11 @@ import {
 } from "Common/UI/Components/Pill/PillColors";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -429,6 +434,11 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
     row: AttentionRow,
     groupKey: string,
   ): ReactElement => {
+    const titleDirection: ReadingDirection | undefined = getLineDirection(
+      row.title,
+      translator.language,
+    );
+
     return (
       <li key={row.id}>
         <AppLink
@@ -447,7 +457,18 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
               style={getPillDotStyle(getPillColors(row.accentColor))}
             ></span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-gray-900">
+              {/*
+               * Cut short at its own end: an English title on an Arabic
+               * page loses its end, not its start (LineDirection).
+               */}
+              <span
+                className={`block truncate text-sm font-medium text-gray-900${
+                  titleDirection
+                    ? ` ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                    : ""
+                }`}
+                dir={titleDirection}
+              >
                 {row.title || translator.translateText("Untitled")}
               </span>
               {row.subtitle || row.time ? (

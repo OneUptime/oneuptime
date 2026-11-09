@@ -17,10 +17,18 @@
  *   ?state=  resolved (default) | ongoing | created
  *            Incident #1042, Alert #311 and both episodes. "ongoing" stops
  *            them at Acknowledged, "created" before it.
- *   ?ai=     report (default) | none | queued | running | failed | pending
- *            | legacy | waiting | waiting-viewer
+ *   ?ai=     report (default) | none | queued | running | failed
+ *            | failed-viewer | retrying | pending | legacy | waiting
+ *            | waiting-viewer
  *            What POST /ai-investigation/{incident,alert} returns for
  *            Incident #1042 and Alert #311. Other incidents/alerts have no run.
+ *            "failed" is a run that did not finish, answered for someone who
+ *            may change the record, so the card offers Try again (issue
+ *            #6438, POST /ai-investigation/try-again): the record's next read
+ *            answers the new run, queued. "failed-viewer" is the same run for
+ *            someone who may not. "retrying" is a run between attempts (issue
+ *            #6437): its first ran out of time with the AI provider, and it
+ *            tries again 2 minutes from NOW.
  *            "legacy" is a completed report from an API replica that predates
  *            structured evidence: no `evidence` or `references` keys.
  *            "waiting" is an investigation rule's wait (issue #5074): no run
@@ -70,7 +78,9 @@
  *            minutes after its start; "overrun" is still Ongoing 30 minutes
  *            after its end.
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
- *            investigation, investigate-now, conversation, conversation-send, resend,
+ *            investigation, investigate-now, investigation-try-again (Try
+ *            again on a run that did not finish is refused: OneUptime AI is
+ *            switched off), conversation, conversation-send, resend,
  *            channel-links, channel-members (the channel card's read),
  *            channel-add (its Join channel and Add people), pass-on-read
  *            (whether the viewer is paged, for Escalate), pass-on
@@ -594,6 +604,19 @@ const WAIT_ENDS_IN_MINUTES = { default: 8, tomorrow: 23 * 60, ended: -0.5 }[
 ];
 const WAIT_MINUTES = waitEndMode === "tomorrow" ? 1440 : 10;
 const startedNow = new Set();
+/*
+ * A run that did not finish (issue #6438): "failed" is answered for someone
+ * who may change the record, so the card offers Try again; "failed-viewer"
+ * for someone who may not.
+ */
+const isFailedMode = aiMode === "failed" || aiMode === "failed-viewer";
+/*
+ * Records whose investigation someone started again with Try again, by id,
+ * and the new run's id: their next read answers the new run, queued.
+ */
+const triedAgain = new Map();
+// When the run waiting between attempts (?ai=retrying) tries again.
+const RETRY_IN_MINUTES = 2;
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
 const titleMode = ["long", "sentence"].includes(params.get("title"))
   ? params.get("title")
@@ -6297,6 +6320,42 @@ function buildEvents(investigation, options) {
       0,
     );
   }
+  /*
+   * The attempt ended without the report, and the run waits before its
+   * next one (issue #6437): the model call that ran out of time, and the
+   * attempt's end, as AIRunRetryPolicy records them.
+   */
+  if (options.ending === "retrying") {
+    push(AIRunEventType.LlmCallStarted, {}, 120000);
+    push(
+      AIRunEventType.LlmCallFailed,
+      {
+        resultSummary: {
+          errorMessage:
+            "OpenAI API request failed: the LLM provider did not respond within 120 seconds.",
+        },
+      },
+      0,
+    );
+    push(
+      AIRunEventType.AttemptEnded,
+      {
+        resultSummary: {
+          errorMessage:
+            "OpenAI API request failed: the LLM provider did not respond within 120 seconds.",
+          attemptEnd: {
+            outcome: "WillRetry",
+            failureKind: "ProviderTimeout",
+            attempt: 1,
+            maxAttempts: 3,
+            nextAttemptAt: iso(options.retryAt),
+            timeoutInSeconds: 120,
+          },
+        },
+      },
+      0,
+    );
+  }
   return events;
 }
 
@@ -6453,9 +6512,11 @@ function investigationPayload(investigation) {
     };
   }
 
+  // Try again starts a new run: its own id, queued now.
+  const triedAgainRunId = triedAgain.get(String(investigation.subjectId));
   const run = make(AIRun, {
-    _id: investigation.runId,
-    createdAt: investigation.createdAt,
+    _id: triedAgainRunId || investigation.runId,
+    createdAt: triedAgainRunId ? NOW : investigation.createdAt,
     llmCallCount: 0,
     toolCallCount: 0,
     totalTokens: 0,
@@ -6467,9 +6528,29 @@ function investigationPayload(investigation) {
   let isAnalysisPending = false;
   const toolCount = investigation.citations.length;
 
-  // A waiting record someone started with Investigate now is queued.
-  if (aiMode === "queued" || isWaitingMode) {
+  /*
+   * A waiting record someone started with Investigate now is queued, and so
+   * is the new run of one someone tried again.
+   */
+  if (aiMode === "queued" || isWaitingMode || triedAgainRunId) {
     run.status = AIRunStatus.Queued;
+  } else if (aiMode === "retrying") {
+    /*
+     * Between attempts (issue #6437): its first attempt ran out of time
+     * with the AI provider four minutes ago, and it tries again in two.
+     */
+    const startedAt = new Date(NOW.getTime() - 4 * MINUTE);
+    const retryAt = new Date(NOW.getTime() + RETRY_IN_MINUTES * MINUTE);
+    run.status = AIRunStatus.Queued;
+    run.startedAt = startedAt;
+    run.retryAt = retryAt;
+    run.llmCallCount = 2;
+    run.toolCallCount = 4;
+    run.totalTokens = 10230;
+    events = buildEvents(
+      { ...investigation, startedAt },
+      { toolCount: 4, ending: "retrying", retryAt },
+    );
   } else if (aiMode === "running") {
     run.status = AIRunStatus.Running;
     run.startedAt = investigation.startedAt;
@@ -6477,7 +6558,7 @@ function investigationPayload(investigation) {
     run.toolCallCount = 3;
     run.totalTokens = 9120;
     events = buildEvents(investigation, { toolCount: 3, openTool: true });
-  } else if (aiMode === "failed") {
+  } else if (isFailedMode) {
     run.status = AIRunStatus.Error;
     run.startedAt = investigation.startedAt;
     run.completedAt = new Date(investigation.startedAt.getTime() + 38000);
@@ -6533,6 +6614,11 @@ function investigationPayload(investigation) {
 
   const payload = {
     run: runJson,
+    /*
+     * Try again (issue #6438), as AIInvestigationAPI answers it: for a run
+     * that did not finish, to someone who may change the record.
+     */
+    mayTryAgain: aiMode === "failed" && run.status === AIRunStatus.Error,
     events: BaseModel.toJSONArray(events, AIRunEvent),
     analysisMarkdown,
     analysisTldr,
@@ -8767,6 +8853,39 @@ async function handleApi(method, options) {
     }
     startedNow.add(String(investigation.subjectId));
     return ok({ runId: investigation.runId });
+  }
+
+  /*
+   * Try again on an investigation that did not finish (issue #6438): a new
+   * run, queued, as InvestigationTryAgain starts one - the record's next
+   * read answers it - or refused with the server's words: OneUptime AI
+   * switched off, for ?fail=investigation-try-again, and a run that is not
+   * one to try again (queued or running already, or someone else's to start).
+   */
+  if (method === "POST" && url.endsWith("/ai-investigation/try-again")) {
+    if (failures.has("investigation-try-again")) {
+      throw fail(
+        400,
+        "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+      );
+    }
+    const isAlert = body.subjectType === "alert";
+    const investigation = isAlert
+      ? investigations.alert
+      : investigations.incident;
+    if (
+      aiMode !== "failed" ||
+      String(body.subjectId) !== String(investigation.subjectId) ||
+      triedAgain.has(String(investigation.subjectId))
+    ) {
+      throw fail(
+        400,
+        `This ${isAlert ? "alert" : "incident"}'s investigation is queued or running already.`,
+      );
+    }
+    const newRunId = ID.aiRun(100 + triedAgain.size + 1);
+    triedAgain.set(String(investigation.subjectId), newRunId);
+    return ok({ runId: newRunId });
   }
 
   if (url.includes("/ai-investigation/evidence")) {

@@ -27,7 +27,7 @@ import { FastestRun, fastestRun } from "../Helpers/FastestRun";
  *
  * The server reads a reader's language the way every frontend reads a
  * browser's: from a tag ("de-AT", "zh-Hant-HK") and from a request's
- * Accept-Language header, onto the seventeen codes OneUptime writes in.
+ * Accept-Language header, onto the eighteen codes OneUptime writes in.
  */
 
 describe("the languages OneUptime writes in", () => {
@@ -37,7 +37,8 @@ describe("the languages OneUptime writes in", () => {
       [...SUPPORTED_STATUS_PAGE_LANGUAGE_CODES].sort(),
     );
     expect(READER_LANGUAGE_CODES[0]).toBe(DEFAULT_READER_LANGUAGE);
-    expect(READER_LANGUAGE_CODES).toHaveLength(17);
+    expect(READER_LANGUAGE_CODES).toHaveLength(18);
+    expect(READER_LANGUAGE_CODES[READER_LANGUAGE_CODES.length - 1]).toBe("ar");
   });
 
   test("a code is one of them only as written", () => {
@@ -62,6 +63,12 @@ describe("toReaderLanguage", () => {
     ["zh-HK", "zh-TW"],
     ["zh-Hant-TW", "zh-TW"],
     ["fa-IR", "fa"],
+    // Every Arabic-speaking region reads OneUptime's one Arabic.
+    ["ar", "ar"],
+    ["ar-SA", "ar"],
+    ["ar-EG", "ar"],
+    ["ar_AE", "ar"],
+    ["ar-Arab-MA", "ar"],
     ["en-GB", "en"],
     ["xx-YY", "en"],
     ["", "en"],
@@ -166,6 +173,8 @@ describe("getReaderLanguageFromAcceptLanguage", () => {
     ["zh-HK", "zh-TW"],
     ["zh-Hans", "zh-CN"],
     ["fa", "fa"],
+    ["ar-SA,ar;q=0.9,en-US;q=0.8", "ar"],
+    ["xx, ar-EG;q=0.4", "ar"],
     ["en-US,en;q=0.9", "en"],
     ["xx, yy", null],
     ["*", null],
@@ -231,6 +240,8 @@ describe("toDetectedLanguage (each frontend's language detector)", () => {
     ["zh-Hans-CN", "zh-CN"],
     ["ja", "ja"],
     ["FA", "fa"],
+    ["ar-AE", "ar"],
+    ["AR", "ar"],
   ])("%p is shown as %p", (tag: string, language: string) => {
     expect(toDetectedLanguage(tag, READER_LANGUAGE_CODES)).toBe(language);
   });

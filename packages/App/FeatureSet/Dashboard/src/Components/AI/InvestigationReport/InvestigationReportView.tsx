@@ -1,5 +1,6 @@
 import InvestigationCitationChip from "./InvestigationCitationChip";
 import InvestigationReferenceLink from "./InvestigationReferenceLink";
+import InvestigationStopNote from "./InvestigationStopNote";
 import {
   InvestigationReportSubjectType,
   getEventReferenceKey,
@@ -275,6 +276,13 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
    */
   const followUpLead: string = (report.followUpLead || "").trim();
 
+  /*
+   * A run a limit stopped: OneUptime's line saying which limit, and where
+   * it is changed (InvestigationStopNote). It closes the report, before
+   * the caveat.
+   */
+  const stopNote: string = (report.stopNote || "").trim();
+
   return (
     <>
       {followUpLead ? (
@@ -533,18 +541,21 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
           <div className="text-sm leading-6 text-gray-700">
             {renderMarkdown(report.bodyMarkdown)}
           </div>
-        ) : hasSummary ? (
+        ) : hasSummary || stopNote ? (
           <></>
         ) : (
           /*
            * Only the report's chrome was published (brand heading, evidence
            * list, footer): without this line the card would jump straight
-           * from its title to the caveat.
+           * from its title to the caveat. A run a limit stopped says why it
+           * has nothing more instead (its stop note, below).
            */
           <p className="text-sm text-gray-500">
             {translator.translateText("The report has no further details.")}
           </p>
         )}
+
+        {stopNote ? <InvestigationStopNote note={stopNote} /> : <></>}
 
         {/*
           The caveat closes the report it qualifies, and Copy report sits

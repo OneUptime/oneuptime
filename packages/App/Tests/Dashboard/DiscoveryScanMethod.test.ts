@@ -389,8 +389,8 @@ describe("the words, in every language", () => {
     }
   });
 
-  test("ships sixteen other languages", () => {
-    expect(OTHER_LOCALES).toHaveLength(16);
+  test("ships seventeen other languages", () => {
+    expect(OTHER_LOCALES).toHaveLength(17);
   });
 
   test.each(OTHER_LOCALES)("%s has every word", (fileName: string) => {

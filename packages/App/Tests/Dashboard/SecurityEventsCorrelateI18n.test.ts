@@ -179,8 +179,8 @@ describe("Security Events Correlate translations", () => {
     expect(missing).toEqual([]);
   });
 
-  test("all 17 Dashboard locales are covered", () => {
-    expect(localeFiles).toHaveLength(17);
+  test("all 18 Dashboard locales are covered", () => {
+    expect(localeFiles).toHaveLength(18);
     expect(localeFiles).toContain("en.json");
   });
 

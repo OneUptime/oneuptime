@@ -2,6 +2,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import LlmLogEventReader, {
   LLM_LOG_EVENT_MAX_RECORDS,
   LLM_LOG_EVENT_MAX_WINDOWS,
+  LLM_LOG_EVENT_TITLE_CALLS_MS,
   LLM_LOG_EVENT_TITLE_RECORDS_PER_TRACE,
   LlmLogEventReadResult,
   LlmLogEventWindow,
@@ -113,9 +114,9 @@ afterEach(() => {
 });
 
 describe("the time windows a conversation's log events are read in", () => {
-  test("a minute before a trace's first call to ten minutes after its last", () => {
+  test("a minute before a trace's first call to a minute after its last, no longer ten (#6395)", () => {
     expect(LLM_LOG_EVENT_BEFORE_CALL_MS).toBe(MINUTE);
-    expect(LLM_LOG_EVENT_AFTER_CALL_MS).toBe(10 * MINUTE);
+    expect(LLM_LOG_EVENT_AFTER_CALL_MS).toBe(MINUTE);
 
     expect(
       LlmLogEventReader.getWindows([
@@ -125,7 +126,7 @@ describe("the time windows a conversation's log events are read in", () => {
     ).toEqual([
       {
         startMs: T0 - MINUTE,
-        endMs: T0 + 9000 + 10 * MINUTE,
+        endMs: T0 + 9000 + MINUTE,
         traceIds: [TRACE_A],
       },
     ]);
@@ -140,7 +141,7 @@ describe("the time windows a conversation's log events are read in", () => {
     expect(windows).toHaveLength(2);
 
     for (const window of windows) {
-      expect(window.endMs - window.startMs).toBeLessThan(12 * MINUTE);
+      expect(window.endMs - window.startMs).toBeLessThan(3 * MINUTE);
     }
 
     expect(windows[0]!.traceIds).toEqual([TRACE_A]);
@@ -156,7 +157,7 @@ describe("the time windows a conversation's log events are read in", () => {
     ).toEqual([
       {
         startMs: T0 - MINUTE,
-        endMs: T0 + 3 * MINUTE + 10 * MINUTE,
+        endMs: T0 + 3 * MINUTE + MINUTE,
         traceIds: [TRACE_A, TRACE_B],
       },
     ]);
@@ -171,7 +172,7 @@ describe("the time windows a conversation's log events are read in", () => {
     ).toEqual([
       {
         startMs: T0 - MINUTE,
-        endMs: T0 + 3000 + 10 * MINUTE,
+        endMs: T0 + 3000 + MINUTE,
         traceIds: [TRACE_A],
       },
     ]);
@@ -192,7 +193,7 @@ describe("the time windows a conversation's log events are read in", () => {
     ).toEqual([
       {
         startMs: T0 - MINUTE,
-        endMs: T0 + 10 * MINUTE,
+        endMs: T0 + MINUTE,
         traceIds: [TRACE_C],
       },
     ]);
@@ -215,12 +216,12 @@ describe("the time windows a conversation's log events are read in", () => {
     expect(windows).toEqual([
       {
         startMs: T0 - MINUTE,
-        endMs: T0 + hour + 10 * MINUTE,
+        endMs: T0 + hour + MINUTE,
         traceIds: [TRACE_A, TRACE_B],
       },
       {
         startMs: T0 + 10 * hour - MINUTE,
-        endMs: T0 + 10 * hour + 10 * MINUTE,
+        endMs: T0 + 10 * hour + MINUTE,
         traceIds: [TRACE_C],
       },
     ]);
@@ -654,6 +655,29 @@ describe("a conversation's title from its log events", () => {
     expect(Array.from(titles.entries())).toEqual([
       ["t:first", "Say this is a test."],
     ]);
+  });
+
+  test("a title is still looked for up to ten minutes after the conversation's start: the read knows no end of its first call (#6395)", async () => {
+    const spy: ReturnType<typeof jest.spyOn> = serveLogs([]);
+
+    await LlmLogEventReader.readTitles({
+      projectId: PROJECT,
+      requests: [{ key: "t:a", traceId: TRACE_A, startedAtMs: T0 }],
+      logFilter: {},
+    });
+
+    expect(LLM_LOG_EVENT_TITLE_CALLS_MS + LLM_LOG_EVENT_AFTER_CALL_MS).toBe(
+      10 * MINUTE,
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    const values: Array<unknown> = paramValues(
+      spy.mock.calls[0]![0] as Statement,
+    );
+
+    // A minute before 10:00, and ten minutes after it.
+    expect(values).toContain("2026-11-09 09:59:00.000000000");
+    expect(values).toContain("2026-11-09 10:10:00.000000000");
   });
 
   test("no row to title: nothing is read", async () => {

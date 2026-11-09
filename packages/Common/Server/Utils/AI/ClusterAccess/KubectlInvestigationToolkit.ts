@@ -5,7 +5,6 @@ import {
   DEFAULT_KUBECTL_TIMEOUT_MS,
   KubectlCommandTier,
   KubernetesClusterAiAccessStatus,
-  MAX_KUBECTL_COMMANDS_PER_INVESTIGATION,
   MAX_KUBECTL_TIMEOUT_MS,
   getKubernetesAiAccessTargetKind,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -101,8 +100,10 @@ export interface KubectlInvestigationToolkitOptions {
   aiRunId: ObjectID;
   clusters: Array<KubernetesClusterAiAccessStatus>;
   /*
-   * Commands one run may send. Defaults to the runaway guard: an
-   * investigation runs as many kubectl commands as it needs.
+   * Commands one run may send, when its caller sets a cap. None by default:
+   * an investigation runs as many kubectl commands as it needs, held only to
+   * the run's own limits (the project's tool calls per run, loop detection
+   * and the time limit: Types/AI/AIAgentRunLimits).
    */
   maxCommands?: number | undefined;
   /*
@@ -118,9 +119,11 @@ export interface KubectlInvestigationToolkitOptions {
    */
   readinessCheck?: "investigation" | "remediation" | undefined;
   /*
-   * When the run's configured time limit ends (epoch milliseconds). Every
-   * command's wait is planned to end before it; absent (the default — no
-   * time limit), commands are only bounded by their own timeouts.
+   * When the run's time limit ends (epoch milliseconds): an investigation's
+   * or a remediation's runner passes it, since every run has one. Every
+   * command's wait is planned to end before it. Absent (an Ask AI answer,
+   * whose loop holds its own time limit between calls), commands are only
+   * bounded by their own timeouts.
    */
   runDeadlineAtMs?: number | undefined;
 }
@@ -270,14 +273,13 @@ export default class KubectlInvestigationToolkit {
   }
 
   private buildRunKubectlTool(): ObservabilityAssistantExtraTool {
-    const maxCommands: number =
-      this.options.maxCommands ?? MAX_KUBECTL_COMMANDS_PER_INVESTIGATION;
+    const maxCommands: number | undefined = this.options.maxCommands;
 
     return {
       definition: {
         name: RUN_KUBECTL_TOOL_NAME,
         description: `Run ONE read-only kubectl command on a linked cluster and get its output. Allowed: get, describe, logs, events, top, rollout status/history, api-resources, explain, auth can-i, cluster-info. Anything that changes the cluster (delete, scale, patch, apply, exec, ...) is refused here — this is an investigation. Reading Secrets is refused too, and credential-looking values (Secret data, passwords, tokens, keys) are redacted from every output before you see it, so do not spend commands on them. Always pass -n <namespace> for namespaced objects. Output is never cut off: a long output shows its first page and tells you how to read the rest with ${READ_TOOL_OUTPUT_TOOL_NAME}. Run as many commands as the investigation needs.${
-          maxCommands < MAX_KUBECTL_COMMANDS_PER_INVESTIGATION
+          maxCommands !== undefined
             ? ` At most ${maxCommands} commands in this run.`
             : ""
         }`,
@@ -303,7 +305,7 @@ export default class KubectlInvestigationToolkit {
               type: "number",
               description: `Timeout in milliseconds (default ${DEFAULT_KUBECTL_TIMEOUT_MS}, max ${MAX_KUBECTL_TIMEOUT_MS}).${
                 this.options.runDeadlineAtMs !== undefined
-                  ? " Shortened automatically when the investigation's configured time limit is close."
+                  ? " Shortened automatically when the investigation's time limit is close."
                   : ""
               }`,
             },
@@ -319,9 +321,9 @@ export default class KubectlInvestigationToolkit {
 
   private async runKubectl(
     args: JSONObject,
-    maxCommands: number,
+    maxCommands: number | undefined,
   ): Promise<ToolCallOutcome> {
-    if (this.commandsRun >= maxCommands) {
+    if (maxCommands !== undefined && this.commandsRun >= maxCommands) {
       return this.failure(
         `This run has already sent ${maxCommands} kubectl commands, the most one run may send. Finish your analysis with what you have.`,
       );
@@ -414,7 +416,7 @@ export default class KubectlInvestigationToolkit {
 
     if (!budget.ok) {
       return this.failure(
-        `Not enough time is left before this investigation's configured time limit to run another kubectl command (about ${KubectlInvestigationToolkit.describeSeconds(
+        `Not enough time is left before this investigation's time limit to run another kubectl command (about ${KubectlInvestigationToolkit.describeSeconds(
           budget.refusal.remainingBudgetMs,
         )} remain; a command needs at least ${KubectlInvestigationToolkit.describeSeconds(
           budget.refusal.minimumBudgetMs,

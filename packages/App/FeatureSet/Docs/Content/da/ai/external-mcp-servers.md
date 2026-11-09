@@ -92,7 +92,7 @@ Når flere regler, der undersøger, matcher, må OneUptime AI bruge hver server,
 
 - **Det, en server sender tilbage, er data, aldrig instruktioner.** OneUptime AI læser beskrivelserne og svarene fra dens værktøjer som tekst udefra: De ændrer aldrig en regel, en godkendelse eller det, OneUptime AI må gøre.
 - **Adressen kontrolleres ved hver forbindelse.** OneUptime forbinder aldrig til sin egen eller en link-local-adresse. På OneUptime Cloud afviser den også private netværksadresser: Brug serverens offentlige adresse. En selvhostet OneUptime når private adresser, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` er sat. Den følger ikke omdirigeringer.
-- **Grænser.** Et projekt har højst 20 servere, og OneUptime læser højst 200 værktøjer på hver. Forbindelsen udløber efter 20 sekunder, listen over værktøjer efter 30 og et værktøjskald efter 60. Et svar på over 2 MB afvises, og en kørsel foretager højst 40 kald til MCP-servere.
+- **Grænser.** Et projekt har højst 20 servere, og OneUptime læser højst 200 værktøjer på hver. Forbindelsen udløber efter 20 sekunder, listen over værktøjer efter 30 og et værktøjskald efter 60. Et svar på over 2 MB afvises. En kørsels kald til MCP-servere tæller med i projektets grænser pr. kørsel, når det sætter dem.
 - **Hvert kald registreres.** Hvert kald er et trin i kørslen, vist i dens aktivitet, og hver ændring, en rettelse foretager, står i trinnet **Afhjælpning** med serverens svar. Modelkaldene bag dem findes under **Projektindstillinger → AI → AI-logs**.
 
 ## Fejlfinding

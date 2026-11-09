@@ -357,7 +357,7 @@ function usageRequests(): Array<{ url: string; headers: unknown }> {
 }
 
 describe("More settings on Project Settings → AI → AI Features", () => {
-  test("is folded under Enable AI, and names its cards, Daily limits and Fix approvals", async () => {
+  test("is folded under Enable AI, and names its cards, Daily limits, Limits per run and Fix approvals", async () => {
     openAiFeaturesPage();
 
     await screen.findByTestId(
@@ -368,11 +368,13 @@ describe("More settings on Project Settings → AI → AI Features", () => {
 
     expect(moreSettingsHeader()).toHaveAttribute("aria-expanded", "false");
     /*
-     * The daily limits, then since #6148's follow-up the switch that asks two
-     * people to approve a riskier fix (FixApprovalsCopy).
+     * The daily limits and the limits per run (#6440), then since #6148's
+     * follow-up the switch that asks two people to approve a riskier fix
+     * (FixApprovalsCopy).
      */
     expect(listedNames(moreSettingsHeader())).toEqual([
       "Daily limits",
+      "Limits per run",
       "Fix approvals",
     ]);
 

@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 En webapp har brug for en **Browser**-nøgle, og en mobilapp for en **Server**-nøgle: se [Browseropsætning](/docs/rum/browser-setup) og [Mobilopsætning](/docs/rum/mobile-setup). Eksportendpoints afviser også en forkert nøgle med `401`, som OTLP-specifikationen kræver, så et velopdragent SDK logger afvisningen i stedet for at prøve igen. Den linje er let at overse i browserkonsollen, og dette tjek svarer direkte.
 
+OneUptime tæller også, hvad den afviser fra en nøgle, den kender. Nøglens side under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** viser under **Afvist telemetri**, hvad der er afvist de seneste 30 dage, og **Opsætningstjek** på applikationens side **Dokumentation** siger, hvilken slags telemetri der afvises, hvorfor, og hvordan du retter det. En manglende eller ukendt nøgle peger ikke på noget projekt, så intet tæller den: dette tjek og `401` er alt, hvad der er.
+
 ## Tjek, hvad der forlader browseren
 
 Åbn browserens udviklerværktøjer på appens side, vælg fanen Netværk, og filtrér på `otlp`. Du leder efter `POST /otlp/v1/traces` besvaret med en `2xx`-status.
@@ -121,6 +123,7 @@ Det tomme diagram på applikationens **Oversigt** siger, hvilket tilfælde det e
 | **Ingen undtagelser i dette tidsinterval** eller **Ingen logs i dette tidsinterval** | Der er ankommet nogle før, og diagrammet siger, hvornår den seneste ankom. Vælg det længere tidsrum, det tilbyder. |
 | **Intet er ankommet fra denne app endnu** | Der ankommer ingen telemetri overhovedet: start med [Tjek nøglen](#tjek-nøglen). |
 | **OpenTelemetry SDK'et rapporterer ikke** | Kun sessionsafspilning rapporterer fra denne app: opsæt SDK'et som i [Browseropsætning](/docs/rum/browser-setup). |
+| **Undtagelser bliver afvist** eller **Protokoller bliver afvist** | OneUptime har afvist dem, efter at den seneste ankom, og diagrammet siger hvorfor og hvornår: nøglen er slået fra eller udløbet, den tillader ikke dit websteds oprindelse, en grænse eller et budget er brugt op, eller projektet har ingen betalingsmetode. Dens knap retter det: **Vælg en anden nøgle**, **Åbn nøglen**, **Se budgetter** eller **Tilføj en betalingsmetode**. |
 
 Undtagelser kræver en fejlhåndtering, fordi SDK'et ikke fanger ufangede fejl: [Rapporter ufangede fejl](/docs/rum/browser-setup#rapporter-ufangede-fejl) har koden. En fejl, som en error boundary eller en `try`/`catch` håndterer, når aldrig vinduet, så registrer den, hvor du håndterer den, med `span.recordException`.
 
