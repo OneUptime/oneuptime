@@ -865,6 +865,37 @@ describe("placeholder text the file on the branch holds itself", () => {
     );
   });
 
+  test("held to the file on the branch committed to, not on another", async () => {
+    const repository: FakeGitRepository = makeRepository({
+      files: {
+        // The placeholder text is the branch's own; main never had it.
+        main: { "Tests/Redact.test.ts": "// no tests yet\n" },
+        "fix/login": { "Tests/Redact.test.ts": TESTS_WITHOUT_VALUES },
+      },
+    });
+    serveOnGitHub(repository);
+    const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
+
+    const read: ToolExecutionResult = await conversation.read("Tests/Redact.test.ts", {
+      branchName: "fix/login",
+    });
+    const reads: number = repository.contentReads.length;
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [
+        {
+          filePath: "Tests/Redact.test.ts",
+          content: `${writtenFrom(read.dataForLlm, true)}// one more\n`,
+        },
+      ]),
+    );
+
+    expect(Object.keys(prepared)).toEqual(["arguments"]);
+    expect(repository.contentReads.slice(reads)).toEqual([
+      { branchName: "fix/login", filePath: "Tests/Redact.test.ts" },
+    ]);
+  });
+
   test("placeholder text the person asks for, new in the file: said, so they approve it knowingly", async () => {
     const repository: FakeGitRepository = makeRepository({
       files: { "fix/login": { "Tests/Redact.test.ts": TESTS_WITHOUT_VALUES } },
