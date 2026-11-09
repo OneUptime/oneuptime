@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 Eine Web-App braucht einen **Browser**-Schlüssel, eine Mobile-App einen **Server**-Schlüssel: siehe [Einrichtung für Browser](/docs/rum/browser-setup) und [Einrichtung für Mobilgeräte](/docs/rum/mobile-setup). Auch die Export-Endpunkte lehnen einen ungültigen Schlüssel mit `401` ab, wie es die OTLP-Spezifikation verlangt, daher protokolliert ein ordentliches SDK die Ablehnung, statt es erneut zu versuchen. Diese Zeile übersieht man in der Browser-Konsole leicht, und diese Prüfung antwortet direkt.
 
+OneUptime zählt außerdem, was es von einem bekannten Schlüssel ablehnt. Die Seite des Schlüssels unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** zeigt unter **Abgelehnte Telemetrie**, was in den letzten 30 Tagen abgelehnt wurde, und die **Einrichtungsprüfung** auf der Seite **Dokumentation** der Anwendung sagt, welche Art von Telemetrie abgelehnt wird, warum und wie Sie das beheben. Ein fehlender oder unbekannter Schlüssel nennt kein Projekt, daher zählt ihn nichts: Diese Prüfung und die `401` sind alles, was es dazu gibt.
+
 ## Prüfen, was den Browser verlässt
 
 Öffnen Sie auf der Seite der App die Entwicklertools Ihres Browsers, wählen Sie den Tab „Netzwerk“ und filtern Sie nach `otlp`. Sie suchen `POST /otlp/v1/traces` mit einem `2xx`-Status als Antwort.
@@ -121,6 +123,7 @@ Das leere Diagramm in der **Übersicht** der Anwendung sagt, welcher Fall vorlie
 | **Keine Ausnahmen in diesem Zeitraum** oder **Keine Protokolle in diesem Zeitraum** | Früher kamen welche an, und das Diagramm nennt den Zeitpunkt der letzten Ankunft. Wählen Sie den längeren Zeitraum, den es anbietet. |
 | **Von dieser App ist noch nichts angekommen** | Es kommt keinerlei Telemetrie an: Beginnen Sie mit [Den Schlüssel prüfen](#den-schlüssel-prüfen). |
 | **Das OpenTelemetry SDK meldet nichts** | Von dieser App meldet nur die Sitzungswiedergabe: Richten Sie das SDK wie in [Einrichtung für Browser](/docs/rum/browser-setup) ein. |
+| **Ausnahmen werden abgelehnt** oder **Protokolle werden abgelehnt** | OneUptime hat sie nach der letzten Ankunft abgelehnt, und das Diagramm sagt, warum und wann: Der Schlüssel ist ausgeschaltet oder abgelaufen, er lässt den Ursprung Ihrer Website nicht zu, ein Limit oder Budget ist aufgebraucht, oder das Projekt hat keine Zahlungsmethode. Seine Schaltfläche behebt es: **Anderen Schlüssel wählen**, **Schlüssel öffnen**, **Budgets ansehen** oder **Zahlungsmethode hinzufügen**. |
 
 Ausnahmen brauchen einen Fehler-Handler, weil das SDK unbehandelte Fehler nicht erfasst: [Unbehandelte Fehler melden](/docs/rum/browser-setup#unbehandelte-fehler-melden) enthält den Code. Ein Fehler, den eine Error Boundary oder ein `try`/`catch` abfängt, erreicht das Fenster nie. Erfassen Sie ihn also dort, wo Sie ihn behandeln, mit `span.recordException`.
 

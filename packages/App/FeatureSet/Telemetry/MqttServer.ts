@@ -20,10 +20,14 @@ import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredExce
 import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import ProjectService from "Common/Server/Services/ProjectService";
 import TelemetryIngestionKeyGuard, {
+  TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL,
   TelemetryIngestionKeyRefusal,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
+import TelemetryIngestRefusalRecorder, {
+  recordTelemetryIngestBillingRefusal,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestRefusalRecorder";
 import IoTDeviceCredentialService, {
   IoTDeviceCredentialContext,
 } from "Common/Server/Services/IoTDeviceCredentialService";
@@ -266,6 +270,15 @@ async function resolveAuthContext(
       `MQTT: ingestion key ${policy.ingestionKeyId.toString()} refused — ${refusal.reason}.`,
       { service: "telemetry" },
     );
+
+    // Counted against the key, for its page (issue #6378).
+    TelemetryIngestRefusalRecorder.record({
+      projectId: policy.projectId,
+      ingestionKeyId: policy.ingestionKeyId,
+      reason: TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL[refusal.reason],
+      surface: TelemetryIngestSurface.Mqtt,
+    });
+
     return null;
   }
 
@@ -509,6 +522,15 @@ async function createMqttBroker(): Promise<Aedes> {
           err instanceof ProjectBlockedException
         ) {
           logger.warn(err.message, { service: "telemetry" });
+
+          /*
+           * Counted against the project-wide key it was thrown for, when
+           * one was (issue #6378); a device credential names no key.
+           */
+          recordTelemetryIngestBillingRefusal({
+            err,
+            surface: TelemetryIngestSurface.Mqtt,
+          });
           done(
             makeAuthenticateError(
               err.message,

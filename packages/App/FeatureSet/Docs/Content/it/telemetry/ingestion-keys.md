@@ -122,6 +122,8 @@ Per cambiare un segreto senza perdere dati, create una seconda chiave, spostate 
 
 Una richiesta rifiutata riceve uno stato e una frase che dice il perché.
 
+Anche la pagina della chiave tiene il conto: **Telemetria rifiutata** elenca ciò che è stato rifiutato dalla chiave negli ultimi 30 giorni, perché, su quale endpoint, quante richieste e quando. Una chiave mancante o digitata male non appartiene a nessun progetto, quindi nulla la conta.
+
 | Risposta | Che cosa significa |
 | --- | --- |
 | `401` con `Missing ingestion token` | La richiesta non ha una chiave. Inviatela in `x-oneuptime-token`. |
