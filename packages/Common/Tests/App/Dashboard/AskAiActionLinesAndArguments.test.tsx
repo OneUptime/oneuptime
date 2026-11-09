@@ -43,6 +43,13 @@ import AIConversationMessage from "../../../Models/DatabaseModels/AIConversation
 import {
   AI_ACTION_CARD_KINDS,
   AI_ACTION_CARD_LINES,
+  AI_ACTION_CODE_FILE,
+  AI_ACTION_LINES,
+  AI_ACTION_PLURAL_LINES,
+  AI_ACTION_TITLES,
+  aiActionList,
+  aiActionPluralSentence,
+  aiActionResourceByName,
   aiActionSentence,
   aiActionTerm,
 } from "../../../Types/AI/AIActionWords";
@@ -445,5 +452,120 @@ describe("what OneUptime keeps in an action for itself", () => {
     expect(line).toHaveTextContent("fix: charge");
     expect(line).not.toHaveTextContent(CODE_CHANGE_PROPOSED_ON_KEY);
     expect(line).not.toHaveTextContent("fedcba9876543210");
+  });
+});
+
+/*
+ * Issue #6331: a card with a line under its title left out every list
+ * argument - the rule for the resources a new incident links, which the
+ * line names - so a pull request whose card said which files it would
+ * write over unseen showed no "Files: 3". The code change's lines name
+ * some of its files, never how many it writes: the row stays.
+ */
+describe("a code change's card keeps its Files row beside its line", () => {
+  const CHANGES: Array<JSONObject> = [
+    { filePath: "src/a.ts", content: "a" },
+    { filePath: "src/b.ts", content: "b" },
+    { filePath: "src/c.ts", content: "c" },
+  ];
+
+  const labelsOf: (line: HTMLElement) => Array<string> = (
+    line: HTMLElement,
+  ): Array<string> => {
+    return within(line)
+      .getAllByTestId("tool-approval-argument-label")
+      .map((label: HTMLElement): string => {
+        return label.textContent || "";
+      });
+  };
+
+  test("a pull request that would write over a file changed since the read: Files: 3 is still drawn", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action({
+            toolName: "open_code_pull_request",
+            title: "Open pull request: Fix charge",
+            description:
+              "This file changed on main after Ask AI read it, and Ask AI's version undoes that change: src/a.ts.",
+            words: {
+              title: aiActionSentence(AI_ACTION_TITLES.openPullRequest, {
+                title: "Fix charge",
+              }),
+              description: [
+                aiActionPluralSentence(
+                  AI_ACTION_PLURAL_LINES.codeFilesChangedSinceRead,
+                  1,
+                  {
+                    branch: "main",
+                    files: aiActionList([
+                      aiActionSentence(AI_ACTION_CODE_FILE, {
+                        file: "src/a.ts",
+                      }),
+                    ]),
+                  },
+                ),
+              ],
+            },
+            arguments: {
+              title: "Fix charge",
+              description: "The charge was off by one.",
+              changes: CHANGES,
+            },
+            status: AIChatToolActionStatus.Pending,
+          }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={(): void => {}}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
+
+    expect(labelsOf(line)).toEqual(["Description:", "Files:"]);
+    expect(line).toHaveTextContent("3");
+    expect(line).not.toHaveTextContent("filePath");
+  });
+
+  test("a new alert's line names the resources it links: its list is still left out", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action({
+            toolName: "create_alert",
+            title: "Create alert: High memory",
+            description: 'Linked to host "test01".',
+            words: {
+              title: aiActionSentence(AI_ACTION_TITLES.createAlert, {
+                title: "High memory",
+              }),
+              description: [
+                aiActionSentence(AI_ACTION_LINES.linkedTo, {
+                  resources: aiActionList([
+                    aiActionResourceByName({ noun: "host", name: "test01" }),
+                  ]),
+                }),
+              ],
+            },
+            arguments: {
+              title: "High memory",
+              note: "Memory above 90%.",
+              hostIds: ["cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
+            },
+            status: AIChatToolActionStatus.Pending,
+          }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={(): void => {}}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
+
+    expect(line).not.toHaveTextContent("hostIds");
+    expect(line).not.toHaveTextContent("cccccccc");
+    expect(labelsOf(line)).toEqual(["Note:"]);
   });
 });

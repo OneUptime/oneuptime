@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * at once. Each row goes with its note, its project and the person it was
  * about (ON DELETE CASCADE).
  */
-export class AddPublicNoteApprovalRequest1809063180000
+export class AddPublicNoteApprovalRequest1809063230000
   implements MigrationInterface
 {
-  public name: string = "AddPublicNoteApprovalRequest1809063180000";
+  public name: string = "AddPublicNoteApprovalRequest1809063230000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -1,11 +1,12 @@
 # Policy del budget di errore
 
-Una policy del budget di errore mette per iscritto cosa il tuo team ha concordato di fare mentre il budget di errore di uno SLO si esaurisce, per esempio rivedere le modifiche rischiose quando ne è stata spesa la metà, o congelare i rilasci quando è stato speso tutto. OneUptime mette lo SLO nel livello della policy raggiunto dal suo budget, mostra l'accordo del team per quel livello nelle pagine dello SLO e può generare un avviso o dichiarare un incidente quando lo SLO entra in un livello. È la pratica della policy del budget di errore del [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+Una policy del budget di errore mette per iscritto cosa il tuo team ha concordato di fare mentre il budget di errore di uno SLO si esaurisce, per esempio rivedere le modifiche rischiose quando ne è stata spesa la metà, o congelare i rilasci quando è stato speso tutto. OneUptime mette lo SLO nel livello della policy raggiunto dal suo budget, mostra l'accordo del team per quel livello nelle pagine dello SLO, può generare un avviso o dichiarare un incidente quando lo SLO entra in un livello, e dice alle tue pipeline CI/CD se trattenere i rilasci. È la pratica della policy del budget di errore del [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Come funzionano i livelli](#come-funzionano-i-livelli): Quale livello si applica e quando lo SLO lo lascia.
 - [Configurare una policy](#configurare-una-policy): Parti dalla policy consigliata o scrivi i tuoi livelli.
 - [Avvisi e incidenti](#avvisi-e-incidenti): Avvisa il tuo team quando lo SLO entra in un livello.
+- [Gate delle distribuzioni](#gate-delle-distribuzioni): Trattieni i rilasci in CI/CD finché un livello congela le distribuzioni.
 - [Leggere il livello dall'API](#leggere-il-livello-dallapi): Controlla il livello da CI e script.
 :::
 
@@ -20,6 +21,8 @@ Una policy è un insieme di livelli. Ogni livello ha tre campi:
 | **Cosa facciamo** | Cosa il team ha concordato di fare mentre lo SLO è nel livello, in Markdown. Obbligatorio, fino a 10.000 caratteri. |
 
 Un livello si applica finché il budget rimanente è pari o inferiore alla sua soglia, quindi un livello allo 0% è quello di un budget esaurito. Quando si applicano più livelli, lo SLO è in quello con la soglia più bassa: il più grave. Quando non se ne applica nessuno, lo SLO non è in nessun livello. Con livelli al 50%, al 25% e allo 0%, uno SLO a cui resta il 30% del budget è nel livello del 50%, e uno a cui resta il 10% è nel livello del 25%.
+
+Un livello può anche congelare le distribuzioni finché lo SLO ci si trova: vedi [Gate delle distribuzioni](#gate-delle-distribuzioni).
 
 ### Entrare in un livello e uscirne
 
@@ -59,7 +62,7 @@ Finché lo SLO non ha livelli, la pagina offre **Usa la policy consigliata**. Fa
 
 ### Oppure aggiungere un livello da te
 
-Fai clic su **Crea: Livello della policy del budget di errore dello SLO**. Inserisci un **Nome** e un **Soglia di budget rimasto (%)**, e scrivi l'accordo del team in **Cosa facciamo**.
+Fai clic su **Crea: Livello della policy del budget di errore dello SLO**. Inserisci un **Nome** e un **Soglia di budget rimasto (%)**, e scrivi l'accordo del team in **Cosa facciamo**. Attiva **Congela le distribuzioni** se le pipeline devono trattenere i rilasci finché lo SLO è nel livello.
 
 ### Scegliere cosa genera il livello
 
@@ -72,21 +75,21 @@ Aggiungere, modificare o eliminare un livello ha effetto subito: OneUptime valut
 
 **Usa la policy consigliata** aggiunge tre livelli, a metà del budget, a un quarto e a zero, con questo testo in inglese:
 
-| Livello | Si applica con | Cosa fa il team |
-| --- | --- | --- |
-| **Caution** | 50% rimanente o meno | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. |
-| **Reliability first** | 25% rimanente o meno | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. |
-| **Budget exhausted** | 0% rimanente o meno | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. |
+| Livello | Si applica con | Cosa fa il team | Distribuzioni |
+| --- | --- | --- | --- |
+| **Caution** | 50% rimanente o meno | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. | Consentite |
+| **Reliability first** | 25% rimanente o meno | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | Consentite |
+| **Budget exhausted** | 0% rimanente o meno | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | Congelate |
 
-Nessuno di loro genera un avviso o dichiara un incidente finché non lo attivi. Vengono aggiunti solo i livelli che lo SLO non ha: un livello con lo stesso nome, o con la stessa soglia, conta come presente, che sia attivo o no. Chiederlo due volte, da una seconda scheda o tramite l'API, quindi non aggiunge niente due volte. Ogni livello aggiunto così viene registrato nei registri di audit dello SLO come aggiunto da te.
+Nessuno di loro genera un avviso o dichiara un incidente finché non lo attivi. **Budget exhausted** congela le distribuzioni, come dice il suo accordo, e la conferma lo indica: vedi [Gate delle distribuzioni](#gate-delle-distribuzioni). I livelli aggiunti prima che il gate esistesse non congelano niente finché non attivi il congelamento. Vengono aggiunti solo i livelli che lo SLO non ha: un livello con lo stesso nome, o con la stessa soglia, conta come presente, che sia attivo o no. Chiederlo due volte, da una seconda scheda o tramite l'API, quindi non aggiunge niente due volte. Ogni livello aggiunto così viene registrato nei registri di audit dello SLO come aggiunto da te.
 
 ## Dove compare il livello
 
-- La **Panoramica** dello SLO mostra il livello in cui si trova e cosa il team ha concordato di fare lì, così chiunque apra lo SLO vede l'accordo che vale adesso.
+- La **Panoramica** dello SLO mostra il livello in cui si trova e cosa il team ha concordato di fare lì, così chiunque apra lo SLO vede l'accordo che vale adesso. Finché il livello congela le distribuzioni, un badge rosso sotto il suo nome dice da quando.
 - Il grafico **Burn-down del budget di errore** traccia una linea con etichetta alla soglia di ogni livello, accanto a quella della soglia a rischio.
-- Il **Feed** dello SLO pubblica ogni cambio di livello: il livello che lo SLO ha lasciato e quello in cui è entrato, il budget rimanente e cosa il team ha concordato di fare nel nuovo livello.
-- I **Registri di audit** dello SLO registrano ogni cambio di livello come una modifica fatta da OneUptime stesso, quindi lo mostrano solo con **Memorizza eventi di sistema** attivo: vedi [Attivare i registri di audit](/docs/slo/feed-and-audit-logs#attivare-i-registri-di-audit). L'aggiunta, la modifica e la rimozione di un livello vengono registrate a nome della persona che le ha fatte.
-- L'API di lettura dello SLO restituisce il livello: vedi [Leggere il livello dall'API](#leggere-il-livello-dallapi).
+- Il **Feed** dello SLO pubblica ogni cambio di livello: il livello che lo SLO ha lasciato e quello in cui è entrato, il budget rimanente, cosa il team ha concordato di fare nel nuovo livello, e se il cambio ha congelato le distribuzioni o le ha di nuovo consentite.
+- I **Registri di audit** dello SLO registrano ogni cambio di livello, e ogni volta che le distribuzioni vengono congelate o di nuovo consentite, come una modifica fatta da OneUptime stesso, quindi li mostrano solo con **Memorizza eventi di sistema** attivo: vedi [Attivare i registri di audit](/docs/slo/feed-and-audit-logs#attivare-i-registri-di-audit). L'aggiunta, la modifica e la rimozione di un livello vengono registrate a nome della persona che le ha fatte.
+- L'API di lettura dello SLO restituisce il livello, e se le distribuzioni sono consentite: vedi [Leggere il livello dall'API](#leggere-il-livello-dallapi) e [Gate delle distribuzioni](#gate-delle-distribuzioni).
 
 ## Avvisi e incidenti
 
@@ -124,6 +127,98 @@ La descrizione predefinita nomina il livello, confronta il budget rimanente con 
 - Uno SLO **In pausa** o **Configurato male** non misura alcun budget, quindi il suo livello resta dov'era, e ciò che il livello ha generato resta aperto finché la misurazione non riprende. Le regole del tasso di consumo invece risolvono allora ciò che hanno aperto.
 - Disattivare la valutazione dello SLO, o archiviare lo SLO, risolve ciò che hanno generato i suoi livelli. Il livello in cui si trova lo SLO resta com'era.
 - Eliminare lo SLO elimina i suoi livelli e risolve ciò che hanno generato.
+- In ognuno di questi casi lo SLO mantiene la risposta che dava sulle distribuzioni, perché mantiene il suo livello: vedi [Gate delle distribuzioni](#gate-delle-distribuzioni).
+
+## Gate delle distribuzioni
+
+Un livello può congelare le distribuzioni. Finché lo SLO è in un livello con **Congela le distribuzioni** attivo, il campo `deploymentsAllowed` dello SLO è `false`, quindi una pipeline CI/CD che lo controlla prima di un rilascio trattiene il rilascio. Altrimenti è `true`: quando lo SLO non ha una policy, finché il suo budget è sopra ogni livello, e in un livello che non congela le distribuzioni. Il livello **Budget exhausted** della policy consigliata congela le distribuzioni.
+
+:::steps
+### Attivare Congela le distribuzioni
+
+Apri la **Policy del budget di errore** dello SLO, modifica il livello, attiva **Congela le distribuzioni** e salva. Nella tabella, la colonna **Distribuzioni** del livello dice **Congelate**.
+
+### Dare una chiave alla pipeline
+
+Crea una [chiave API](/docs/api-reference/api-reference) del progetto che possa leggere lo SLO, e salvala come segreto della pipeline con il nome `ONEUPTIME_API_KEY`.
+
+### Controllare lo SLO prima del rilascio
+
+Aggiungi il controllo qui sotto come passo prima di quello che esegue la distribuzione, con l'ID dello SLO al posto di `<slo-id>`.
+:::
+
+:::tabs
+@tab Shell
+```bash
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
+```
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop while the error budget policy freezes deployments
+        env:
+          ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+          SLO_ID: <slo-id>
+        run: |
+          SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item" \
+            -H "ApiKey: $ONEUPTIME_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
+            echo "Not deploying: $SLO"
+            exit 1
+          fi
+      - name: Deploy
+        run: ./deploy.sh
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+error-budget-gate:
+  stage: test
+  image: alpine:3.20
+  variables:
+    SLO_ID: <slo-id>
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - >
+      SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item"
+      -H "ApiKey: $ONEUPTIME_API_KEY"
+      -H 'Content-Type: application/json'
+      -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+    - echo "$SLO"
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
+```
+:::
+
+Il controllo passa solo quando la risposta è `true`. Uno SLO congelato, una risposta senza il campo (la chiave non può leggere lo SLO, o l'ID è sbagliato) e l'assenza di qualsiasi risposta fermano ciascuno il passo, quindi una pipeline non rilascia mai sulla base di una risposta che non ha ricevuto. In GitLab CI il job gira nello stage test, quindi uno SLO congelato ferma lo stage deploy che lo segue; aggiungi `ONEUPTIME_API_KEY` come variabile CI/CD mascherata. Su un'installazione self-hosted, usa il suo indirizzo invece di oneuptime.com.
+
+Lo SLO risponde con due campi, letti con l'autorizzazione di lettura dello SLO stesso:
+
+| Campo | Cosa contiene |
+| --- | --- |
+| `deploymentsAllowed` | `false` finché lo SLO è in un livello che congela le distribuzioni, `true` altrimenti. |
+| `deploymentsFrozenAt` | Quando le distribuzioni sono state congelate. Vuoto finché sono consentite. |
+
+Come cambia la risposta:
+
+- Le distribuzioni vengono congelate dalla valutazione che mette lo SLO in un livello che le congela, e di nuovo consentite da quella che lo fa uscire, con i margini di uscita propri del livello: vedi [Entrare in un livello e uscirne](#entrare-in-un-livello-e-uscirne). Da un livello che congela a un altro restano congelate, e `deploymentsFrozenAt` mantiene il suo orario.
+- Attivare o disattivare **Congela le distribuzioni** per il livello in cui si trova lo SLO ha effetto entro circa un minuto. Per rilasciare prima che il budget si riprenda, disattivalo: la modifica viene registrata a tuo nome nei registri di audit dello SLO.
+- Uno SLO **In pausa** o **Configurato male** mantiene la risposta che aveva, come mantiene il suo livello: una finestra di manutenzione che mette in pausa ogni monitor non toglie un congelamento né ne avvia uno. Uno SLO disabilitato o archiviato non viene valutato affatto, quindi anche lui mantiene la sua risposta.
+- Finché le distribuzioni sono congelate, la **Panoramica** dello SLO mostra da quando, e il suo **Feed** dice quando vengono congelate e di nuovo consentite.
 
 ## Leggere il livello dall'API
 
@@ -164,7 +259,7 @@ Queste autorizzazioni sono nel gruppo SLO di un ruolo. I ruoli Project Owner e P
 
 ## Non ancora disponibile
 
-Alcune parti di una policy del budget di errore non sono ancora disponibili: un gate di deployment che blocchi i rilasci da solo (al suo posto un job di CI può leggere il livello dall'API), trigger di workflow e notifiche Slack o Microsoft Teams per ogni livello, una policy condivisa da più SLO, la presa in carico di un livello o la concessione di un'eccezione, e livelli basati sull'autonomia del budget invece che sul budget rimanente.
+Alcune parti di una policy del budget di errore non sono ancora disponibili: trigger di workflow e notifiche Slack o Microsoft Teams per ogni livello, una policy condivisa da più SLO, la presa in carico di un livello o la concessione di un'eccezione, e livelli basati sull'autonomia del budget invece che sul budget rimanente. OneUptime non ferma un rilascio da solo: lo fa una pipeline che controlla `deploymentsAllowed`, come mostra [Gate delle distribuzioni](#gate-delle-distribuzioni).
 
 ## Passi successivi
 

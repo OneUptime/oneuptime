@@ -32,7 +32,8 @@ Il feed si trova nella pagina **Feed** dello SLO, e i suoi ultimi elementi in **
 | SLO abilitato o disabilitato | La valutazione viene attivata o disattivata. |
 | SLO archiviato o ripristinato | Lo SLO viene archiviato o tolto dall'archivio. |
 | Stato cambiato | Una valutazione porta lo SLO a un nuovo stato. Mostra lo SLI, il budget di errore, il tasso di consumo e la soglia a rischio che lo spiegano, e il motivo per **In pausa** o **Configurato male**. |
-| Livello della policy del budget di errore cambiato | Una valutazione porta lo SLO in un livello della sua policy del budget di errore, in un altro livello o fuori da ogni livello. Mostra il livello lasciato e quello in cui è entrato, il budget rimanente e cosa il team ha concordato di fare nel nuovo livello. Vedi [Policy del budget di errore](/docs/slo/error-budget-policy). |
+| Livello della policy del budget di errore cambiato | Una valutazione porta lo SLO in un livello della sua policy del budget di errore, in un altro livello o fuori da ogni livello. Mostra il livello lasciato e quello in cui è entrato, il budget rimanente e cosa il team ha concordato di fare nel nuovo livello, e dice quando il cambio ha congelato le distribuzioni o le ha di nuovo consentite. Vedi [Policy del budget di errore](/docs/slo/error-budget-policy). |
+| Distribuzioni congelate o di nuovo consentite | Qualcuno ha attivato o disattivato **Congela le distribuzioni** per il livello in cui si trova lo SLO, e la valutazione successiva ha congelato le distribuzioni o le ha di nuovo consentite. Un cambio di livello che lo fa lo dice invece nel suo elemento. Vedi [Gate delle distribuzioni](/docs/slo/error-budget-policy#gate-delle-distribuzioni). |
 | Avviso di tasso di consumo generato | Una regola del tasso di consumo crea un avviso. Rimanda all'avviso e mostra i tassi di consumo che l'hanno fatto scattare. |
 | Incidente di tasso di consumo dichiarato | Una regola del tasso di consumo dichiara un incidente. Rimanda all'incidente e mostra i tassi di consumo che l'hanno fatto scattare. |
 | Avviso o incidente di tasso di consumo risolto | L'avviso o l'incidente di una regola si chiude: risolto automaticamente, o a mano mentre la risoluzione automatica era disattivata. |
@@ -67,7 +68,7 @@ Le modifiche alle regole e ai proprietari vengono registrate sulla regola o sul 
 
 Restano fuori due cose:
 
-- **I risultati delle valutazioni.** SLI, budget di errore, tasso di consumo, stato e orari di valutazione cambiano ogni pochi minuti. La loro cronologia si trova nella **Panoramica**, nella pagina **Metriche** e nel **Feed**. Il livello della policy del budget di errore in cui si trova lo SLO fa eccezione: un cambio di livello viene registrato come una modifica fatta da OneUptime stesso.
+- **I risultati delle valutazioni.** SLI, budget di errore, tasso di consumo, stato e orari di valutazione cambiano ogni pochi minuti. La loro cronologia si trova nella **Panoramica**, nella pagina **Metriche** e nel **Feed**. Il livello della policy del budget di errore in cui si trova lo SLO, e se le sue distribuzioni sono consentite, fanno eccezione: una modifica di uno dei due viene registrata come una modifica fatta da OneUptime stesso.
 - **Le modifiche che OneUptime fa da solo**, come una regola dei monitor che collega o scollega un monitor, a meno che **Memorizza eventi di sistema** non sia attivo per il progetto. Il **Feed** registra comunque i collegamenti e gli scollegamenti dei monitor.
 
 ### Attivare i registri di audit

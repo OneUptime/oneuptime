@@ -64,6 +64,11 @@ export const getSloFeedEventKind: GetSloFeedEventKindFunction = (
     case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertResolved:
     case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentResolved:
       return { icon: IconProp.CheckCircle, tone: FeedTone.Success };
+    // The deploy gate: a lock while deployments are frozen, open once they are not.
+    case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen:
+      return { icon: IconProp.Lock, tone: FeedTone.Danger };
+    case ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed:
+      return { icon: IconProp.LockOpen, tone: FeedTone.Success };
     case ServiceLevelObjectiveFeedEventType.MonitorsAttached:
       return SHARED_FEED_ENTRY_KINDS.Linked;
     case ServiceLevelObjectiveFeedEventType.MonitorsDetached:

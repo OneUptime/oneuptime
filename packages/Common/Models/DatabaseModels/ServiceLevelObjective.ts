@@ -86,13 +86,15 @@ const decimalTransformer: ValueTransformer = {
  * told, with their context, in the SLO feed), so a worker-only write records
  * nothing. autoAddedMonitors is the monitor-rule engine's bookkeeping of which
  * attached monitors it owns; the attachment itself stays audited on
- * `monitors`. The one worker column that IS recorded is
- * currentErrorBudgetPolicyTierName: an SLO entering or leaving a tier of its
- * error budget policy is a decision the team agreed to act on, so it is
- * recorded (as a system event, like every change the worker makes) under the
- * tier's name, while the tier's id and entry time beside it stay out. The SLO's burn-rate rules, monitor rules and owners roll their
- * entries up to this resource (their rootResource), so the SLO's Audit Logs
- * page shows them too.
+ * `monitors`. Two worker columns ARE recorded:
+ * currentErrorBudgetPolicyTierName - an SLO entering or leaving a tier of its
+ * error budget policy is a decision the team agreed to act on - and, by the
+ * same reasoning, deploymentsAllowed: deployments frozen and allowed again
+ * is that decision as CI/CD acts on it. Both are recorded as system events,
+ * like every change the worker makes, while the tier's id and entry time and
+ * the freeze time beside them stay out. The SLO's burn-rate rules, monitor
+ * rules and owners roll their entries up to this resource (their
+ * rootResource), so the SLO's Audit Logs page shows them too.
  */
 @EnableAuditLog({
   ignoreColumns: [
@@ -105,6 +107,7 @@ const decimalTransformer: ValueTransformer = {
     "statusChangeNotificationSentAt",
     "currentErrorBudgetPolicyTierId",
     "currentErrorBudgetPolicyTierEnteredAt",
+    "deploymentsFrozenAt",
     "lastEvaluatedAt",
     "nextEvaluationAt",
     "lastAccumulatedBucketEndAt",
@@ -1290,6 +1293,76 @@ export default class ServiceLevelObjective extends BaseModel {
     nullable: true,
   })
   public currentErrorBudgetPolicyTierEnteredAt?: Date = undefined;
+
+  /*
+   * THE DEPLOY GATE: CI/CD's yes/no. False while the SLO is in a tier of its
+   * error budget policy that freezes deployments, true otherwise - with no
+   * policy, above every tier, or in a tier that does not freeze them. The
+   * evaluation worker writes it in the same hooked state write as the tier
+   * columns, from the tier it just decided, so it moves with the tier and
+   * its hysteresis (SloErrorBudgetPolicy.computeSloDeploymentGate). While
+   * the SLO is not measured - Paused, Misconfigured, disabled or archived -
+   * its tier stays as it was, and so does this answer.
+   *
+   * A column rather than an answer worked out on each read: a pipeline asks
+   * with the API key that reads the SLO's budget, gets the answer the
+   * Overview shows, and a workflow can follow it as an SLO update.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    title: "Deployments Allowed",
+    description:
+      "False while this Service Level Objective is in a tier of its error budget policy that freezes deployments, and true otherwise, so a CI/CD pipeline can check it before it releases. Kept as it is while the SLO is not measured. Computed by the worker.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public deploymentsAllowed?: boolean = undefined;
+
+  /*
+   * Since when deployments are frozen: the evaluation that froze them. Kept
+   * while the SLO moves between two tiers that both freeze, so the Overview's
+   * "Deployments frozen since" does not reset; empty while they are allowed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Deployments Frozen At",
+    description:
+      "When deployments of this Service Level Objective were frozen: when it entered a tier of its error budget policy that freezes deployments, or the tier it is in started freezing them. Empty while deployments are allowed. Computed by the worker.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public deploymentsFrozenAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

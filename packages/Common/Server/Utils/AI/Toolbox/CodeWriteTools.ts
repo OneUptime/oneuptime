@@ -16,9 +16,11 @@ import CodeHostWriters, {
 import {
   CodeHostBranch,
   CodeHostCommitMade,
+  CodeHostFileExpected,
   CodeHostFileWrite,
   CodeHostOpenedPullRequest,
 } from "../../CodeRepository/CodeHost/CodeHostTypes";
+import CodeHostFilesMovedError from "../../CodeRepository/CodeHost/CodeHostFilesMovedError";
 import {
   truncateLongText,
   truncateShortText,
@@ -59,11 +61,13 @@ import {
 import {
   CodeChangeKind,
   CodeFileNow,
+  CodeFilesReadNow,
   UnseenCodeChange,
   describeChangedSinceProposed,
   findUnseenCodeChange,
   getCodeChangeProposedOn,
   getCodeFilesSeenFromWrite,
+  readCodeFileVersionsNow,
   readCodeFilesNow,
 } from "./CodeFilesSeen";
 import { describeCodeFilesUnseenForReviewer } from "./CodeChangeReviewerNote";
@@ -503,6 +507,17 @@ async function prepareCodeChange(data: {
   }
 }
 
+// What an approved change was held to: its card's files, and each as the approval read it again.
+interface HeldChange {
+  proposedOn: CodeChangeProposedOn;
+  /*
+   * Each file as the approval read it again (issue #6331): the version the
+   * commit itself is then held to, so a push between that read and the
+   * commit is refused by the host, never written over.
+   */
+  expected: Array<CodeHostFileExpected>;
+}
+
 /*
  * An approved change is made only on the files its card was shown on: one
  * that changed on the branch since - or can no longer be read there - is
@@ -516,7 +531,7 @@ async function holdToWhatTheCardShowed(data: {
   writer: CodeHostWriter;
   branchName: string;
   changes: Array<CodeHostFileWrite>;
-}): Promise<CodeChangeProposedOn | null> {
+}): Promise<HeldChange | null> {
   const proposedOn: CodeChangeProposedOn | null = readCodeChangeProposedOn(
     data.args[CODE_CHANGE_PROPOSED_ON_KEY],
   );
@@ -535,10 +550,10 @@ async function holdToWhatTheCardShowed(data: {
   };
 
   if (held.files.length === 0) {
-    return proposedOn;
+    return { proposedOn, expected: [] };
   }
 
-  const now: Array<CodeFileNow> = await readCodeFilesNow({
+  const now: CodeFilesReadNow = await readCodeFileVersionsNow({
     writer: data.writer,
     branchName: data.branchName,
     filePaths: held.files.map((file: CodeFileProposedOn): string => {
@@ -548,7 +563,7 @@ async function holdToWhatTheCardShowed(data: {
 
   const changed: Array<string> = findCodeFilesChangedSinceProposed({
     proposedOn: held,
-    now,
+    now: now.files,
   });
 
   if (changed.length > 0) {
@@ -561,7 +576,56 @@ async function holdToWhatTheCardShowed(data: {
     );
   }
 
-  return proposedOn;
+  return { proposedOn, expected: now.versions };
+}
+
+/*
+ * The commit of an approved change, held to the files as the approval read
+ * them again (issue #6331): a push that landed between that read and the
+ * commit - a teammate's, CI's, a merge queue's - makes the host refuse it,
+ * and nothing is written. Said as the approval's own refusal says it:
+ * read the files again, and propose the change again. A change held to
+ * nothing - a caller that keeps no record, a card that could not check its
+ * files - is written as the branch has it, as it always was.
+ */
+async function commitHeldToTheRead(data: {
+  change: CodeChangeKind;
+  writer: CodeHostWriter;
+  // The branch the commit is made on: the one named, or a pull request's new one.
+  branchName: string;
+  // The branch the files were read on: the same, or the pull request's base.
+  readOnBranchName: string;
+  changes: Array<CodeHostFileWrite>;
+  commitMessage: string;
+  held: HeldChange | null;
+}): Promise<CodeHostCommitMade> {
+  try {
+    return await data.writer.commitFiles({
+      branchName: data.branchName,
+      files: data.changes,
+      commitMessage: data.commitMessage,
+      ...(data.held && data.held.expected.length > 0
+        ? { expected: data.held.expected }
+        : {}),
+    });
+  } catch (error) {
+    if (error instanceof CodeHostFilesMovedError) {
+      throw new BadDataException(
+        describeChangedSinceProposed({
+          change: data.change,
+          branchName: data.readOnBranchName,
+          filePaths:
+            error.filePaths.length > 0
+              ? error.filePaths
+              : data.changes.map((change: CodeHostFileWrite): string => {
+                  return change.filePath;
+                }),
+        }),
+      );
+    }
+
+    throw error;
+  }
 }
 
 export const CommitCodeToBranchTool: ObservabilityTool = {
@@ -646,8 +710,8 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
 
     await assertBranchIsWritable({ repository, writer, branchName });
 
-    // Only on the files the card was shown on (issue #6313).
-    await holdToWhatTheCardShowed({
+    // Only on the files the card was shown on (issue #6313), as the approval read them (issue #6331).
+    const held: HeldChange | null = await holdToWhatTheCardShowed({
       change: CodeChangeKind.Commit,
       args,
       writer,
@@ -655,10 +719,14 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
       changes,
     });
 
-    const commit: CodeHostCommitMade = await writer.commitFiles({
-      branchName: branchName,
-      files: changes,
-      commitMessage: commitMessage,
+    const commit: CodeHostCommitMade = await commitHeldToTheRead({
+      change: CodeChangeKind.Commit,
+      writer,
+      branchName,
+      readOnBranchName: branchName,
+      changes,
+      commitMessage,
+      held,
     });
 
     return {
@@ -805,15 +873,17 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       );
     }
 
-    // Only on the files the card was shown on (issue #6313).
-    const proposedOn: CodeChangeProposedOn | null =
-      await holdToWhatTheCardShowed({
-        change: CodeChangeKind.PullRequest,
-        args,
-        writer,
-        branchName: baseBranchName,
-        changes,
-      });
+    // Only on the files the card was shown on (issue #6313), as the approval read them (issue #6331).
+    const held: HeldChange | null = await holdToWhatTheCardShowed({
+      change: CodeChangeKind.PullRequest,
+      args,
+      writer,
+      branchName: baseBranchName,
+      changes,
+    });
+    const proposedOn: CodeChangeProposedOn | null = held
+      ? held.proposedOn
+      : null;
 
     const headBranchName: string = buildAiBranchName(title);
 
@@ -828,10 +898,19 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       );
     }
 
-    const commit: CodeHostCommitMade = await writer.commitFiles({
+    /*
+     * The new branch starts as the base is now: a push to the base after
+     * the approval read it, to a file this writes, is on it too - and the
+     * commit, held to that read, is refused rather than undo it in the diff.
+     */
+    const commit: CodeHostCommitMade = await commitHeldToTheRead({
+      change: CodeChangeKind.PullRequest,
+      writer,
       branchName: headBranchName,
-      files: changes,
+      readOnBranchName: baseBranchName,
+      changes,
       commitMessage: ToolArgs.getString(args, "commitMessage") || title,
+      held,
     });
 
     /*

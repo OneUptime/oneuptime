@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 Создавайте их с тем же объектом `resource`. Конвейер журналов или метрик, ресурс которого не содержит `browser.*`, относится к отдельному бэкенд-сервису.
 
+Конвейер журналов отправляет только те записи, которые пишет ваш код, поэтому пишите запись везде, где происходит что-то, о чём стоит знать:
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## Справочник адресов
 
 | Сигнал | Адрес | Заголовок |

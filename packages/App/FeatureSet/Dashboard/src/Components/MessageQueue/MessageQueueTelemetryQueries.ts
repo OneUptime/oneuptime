@@ -24,7 +24,9 @@ import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationInterv
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { CLOUD_CONNECTION_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudConnectionTelemetry";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   MessageQueueMetricDescriptor,
@@ -82,7 +84,11 @@ import AnalyticsModelAPI, {
  * resolve to an empty result without touching the API. No attribute filter
  * ever scopes the queue: its spans name it under five generations of keys
  * and its broker metrics under a different key per broker, which is exactly
- * why ingest stamps one key on all of them.
+ * why ingest stamps one key on all of them. One read is the exception, by
+ * design: fetchMessageQueueNamespaceSeries asks what a namespace-scoped
+ * queue's NAMESPACE sent — by its scope attribute, without the key — to say
+ * why none of it reached the queue (a namespace total, other entities only).
+ * It counts series and charts nothing.
  *
  * Spans are told apart by kind AND by the operation they record
  * (MessageQueueSpanPopulation): PRODUCER spans are publishes, and so are the
@@ -1637,6 +1643,385 @@ export function hasMessageQueueBrokerMetricData(
   return results.some((result: MessageQueueBrokerMetricResult): boolean => {
     return result.series.length > 0;
   });
+}
+
+// ---- the Broker metrics card ----------------------------------------------
+
+/*
+ * What the Broker metrics card (MessageQueueBrokerMetricsStatus) reads
+ * besides the range's own results: when each catalog metric last arrived for
+ * the queue, over a lookback longer than any range a reader usually picks,
+ * and — for a namespace-scoped queue none of whose metrics is in the range —
+ * what the namespace sends at all. Neither ever reads a value: a count of
+ * datapoints per interval is all either needs.
+ */
+
+// How far back a metric's last arrival is looked for.
+export const MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS: number = 7;
+
+/*
+ * The recent stretch read minute by minute, so a metric that arrived lately
+ * says when to the minute; an older arrival is known to the hour.
+ */
+export const MESSAGE_QUEUE_BROKER_METRIC_RECENT_HOURS: number = 3;
+
+/** When each of a queue's catalog metrics last arrived for it. */
+export interface MessageQueueBrokerMetricArrivals {
+  // The lookback's start: a metric absent below did not arrive since.
+  since: Date;
+  /*
+   * Stored metric name → the start of the newest interval it arrived in: a
+   * minute within the recent stretch, an hour before it.
+   */
+  lastArrivedAt: ReadonlyMap<string, Date>;
+}
+
+function uniqueMetricNamesOf(
+  metrics: ReadonlyArray<MessageQueueMetricDescriptor>,
+): Array<string> {
+  const names: Array<string> = [];
+  for (const descriptor of metrics) {
+    const name: string = (descriptor.metricName || "").trim().toLowerCase();
+    if (name && !names.includes(name)) {
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+// metric name → its newest interval with a datapoint, from rows by name.
+function newestIntervalByName(
+  result: AggregatedResult | null | undefined,
+): Map<string, number> {
+  const newest: Map<string, number> = new Map<string, number>();
+  for (const row of (result?.data || []) as Array<AggregatedModel>) {
+    const raw: unknown = row["name"];
+    const name: string =
+      typeof raw === "string" ? raw.trim().toLowerCase() : "";
+    const time: number | null = intervalTimeOf(row);
+    const count: number = Number(row["value"]);
+    if (!name || time === null || !(count > 0)) {
+      continue;
+    }
+    const known: number | undefined = newest.get(name);
+    if (known === undefined || time > known) {
+      newest.set(name, time);
+    }
+  }
+  return newest;
+}
+
+/**
+ * When each catalog metric last arrived for the queue in the last
+ * MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS: two counts of its datapoints by
+ * name — per minute over the recent stretch, per hour over the lookback —
+ * under the queue's key. Null (and no API call) when unscoped; null too when
+ * a read fails or comes back cut off, so the card never claims a metric
+ * never arrived on an answer it did not get whole.
+ */
+export async function fetchMessageQueueBrokerMetricArrivals(data: {
+  projectId: ObjectID | string | null | undefined;
+  keys: ReadonlyArray<string>;
+  metrics: ReadonlyArray<MessageQueueMetricDescriptor>;
+  // When the lookback ends; the present by default.
+  now?: Date | undefined;
+}): Promise<MessageQueueBrokerMetricArrivals | null> {
+  const entityKeys: Includes | null = getMessageQueueEntityKeysQueryValue(
+    data.keys,
+  );
+  const projectId: ObjectID | null = projectIdOf(data.projectId);
+  const names: Array<string> = uniqueMetricNamesOf(data.metrics);
+  if (!entityKeys || !projectId || names.length === 0) {
+    return null;
+  }
+
+  const now: Date = data.now || OneUptimeDate.getCurrentDate();
+  const since: Date = OneUptimeDate.addRemoveDays(
+    now,
+    -MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS,
+  );
+  const recentSince: Date = OneUptimeDate.addRemoveHours(
+    now,
+    -MESSAGE_QUEUE_BROKER_METRIC_RECENT_HOURS,
+  );
+
+  const read: (
+    start: Date,
+    interval: AggregationInterval,
+  ) => Promise<AggregatedResult> = (
+    start: Date,
+    interval: AggregationInterval,
+  ): Promise<AggregatedResult> => {
+    return AnalyticsModelAPI.aggregate<Metric>({
+      modelType: Metric,
+      aggregateBy: aggregateBy<Metric>({
+        query: {
+          projectId: projectId,
+          time: new InBetween<Date>(start, now),
+          name: new Includes(names),
+          entityKeys: entityKeys,
+        },
+        aggregationType: AggregationType.Count,
+        aggregateColumnName: "value",
+        timestampColumnName: "time",
+        start: start,
+        end: now,
+        groupBy: { name: true },
+        aggregationInterval: interval,
+      }),
+    });
+  };
+
+  try {
+    const [recent, lookback]: [AggregatedResult, AggregatedResult] =
+      await Promise.all([
+        read(recentSince, AggregationInterval.Minute),
+        read(since, AggregationInterval.Hour),
+      ]);
+    if (recent.truncated || lookback.truncated) {
+      return null;
+    }
+    const byMinute: Map<string, number> = newestIntervalByName(recent);
+    const byHour: Map<string, number> = newestIntervalByName(lookback);
+    const lastArrivedAt: Map<string, Date> = new Map<string, Date>();
+    for (const name of names) {
+      const time: number | undefined = byMinute.get(name) ?? byHour.get(name);
+      if (time !== undefined) {
+        lastArrivedAt.set(name, new Date(time));
+      }
+    }
+    return { since: since, lastArrivedAt: lastArrivedAt };
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * How long the arrivals are reused across the Overview's refreshes. They
+ * change only when a metric starts or stops arriving, and each read covers
+ * a week: re-read on every auto-refresh they would cost two week-long
+ * aggregates a tick. The range's own results keep an arriving metric's time
+ * current in between (MessageQueueBrokerMetricsStatus takes the newer).
+ */
+export const MESSAGE_QUEUE_BROKER_METRIC_ARRIVALS_TTL_MS: number =
+  5 * 60 * 1000;
+
+/**
+ * The arrivals of a queue's metrics, kept across the Overview's refreshes
+ * per queue scope (project, keys) and metric set for
+ * MESSAGE_QUEUE_BROKER_METRIC_ARRIVALS_TTL_MS. A failed read (null) is never
+ * kept, so the next refresh tries again.
+ */
+export class MessageQueueBrokerMetricArrivalsCache {
+  private readonly ttlMs: number;
+  private readonly entries: Map<
+    string,
+    { storedAt: number; arrivals: MessageQueueBrokerMetricArrivals }
+  > = new Map();
+
+  public constructor(
+    ttlMs: number = MESSAGE_QUEUE_BROKER_METRIC_ARRIVALS_TTL_MS,
+  ) {
+    this.ttlMs = ttlMs;
+  }
+
+  public static keyOf(data: {
+    projectId: ObjectID | string | null | undefined;
+    keys: ReadonlyArray<string>;
+    metrics: ReadonlyArray<MessageQueueMetricDescriptor>;
+  }): string {
+    return JSON.stringify([
+      String(data.projectId || ""),
+      [...data.keys],
+      uniqueMetricNamesOf(data.metrics),
+    ]);
+  }
+
+  public get(
+    key: string,
+    now: number,
+  ): MessageQueueBrokerMetricArrivals | null {
+    const entry:
+      | { storedAt: number; arrivals: MessageQueueBrokerMetricArrivals }
+      | undefined = this.entries.get(key);
+    if (!entry || now - entry.storedAt >= this.ttlMs) {
+      return null;
+    }
+    return entry.arrivals;
+  }
+
+  public set(
+    key: string,
+    arrivals: MessageQueueBrokerMetricArrivals | null,
+    now: number,
+  ): void {
+    if (!arrivals) {
+      this.entries.delete(key);
+      return;
+    }
+    this.entries.set(key, { storedAt: now, arrivals: arrivals });
+  }
+}
+
+/**
+ * The arrivals, from `cache` while fresh, else read and kept
+ * (fetchMessageQueueBrokerMetricArrivals).
+ */
+export async function fetchMessageQueueBrokerMetricArrivalsCached(data: {
+  projectId: ObjectID | string | null | undefined;
+  keys: ReadonlyArray<string>;
+  metrics: ReadonlyArray<MessageQueueMetricDescriptor>;
+  cache: MessageQueueBrokerMetricArrivalsCache;
+  // When the entry is judged fresh and the lookback ends; the present by default.
+  now?: Date | undefined;
+}): Promise<MessageQueueBrokerMetricArrivals | null> {
+  const now: Date = data.now || OneUptimeDate.getCurrentDate();
+  const key: string = MessageQueueBrokerMetricArrivalsCache.keyOf(data);
+  const kept: MessageQueueBrokerMetricArrivals | null = data.cache.get(
+    key,
+    now.getTime(),
+  );
+  if (kept) {
+    return kept;
+  }
+  const arrivals: MessageQueueBrokerMetricArrivals | null =
+    await fetchMessageQueueBrokerMetricArrivals({
+      projectId: data.projectId,
+      keys: data.keys,
+      metrics: data.metrics,
+      now: now,
+    });
+  data.cache.set(key, arrivals, now.getTime());
+  return arrivals;
+}
+
+/*
+ * The stored key of the resource attribute a cloud connection (Cloud >
+ * Connect) puts on what it delivers: what tells its namespace totals apart
+ * from a collector's.
+ */
+export const MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY: string = `resource.${CLOUD_CONNECTION_ID_ATTRIBUTE}`;
+
+/** One series a namespace sent in the range, by what it names. */
+export interface MessageQueueNamespaceSeries {
+  // The broker scope it carries, as stored (Azure: the namespace, `name`).
+  namespace: string;
+  // The destination it names, as stored; "" for a namespace's own total.
+  entity: string;
+  // Whether a cloud connection delivered it rather than a collector.
+  fromCloudConnection: boolean;
+}
+
+function stringAttributeOf(
+  attributes: Record<string, unknown>,
+  keys: ReadonlyArray<string>,
+): string {
+  for (const key of keys) {
+    const value: unknown = Object.prototype.hasOwnProperty.call(attributes, key)
+      ? attributes[key]
+      : undefined;
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
+/**
+ * What a namespace-scoped queue's NAMESPACE sent in the range under the
+ * system's catalog metric names, whatever queue (if any) each series reached:
+ * one count per series over the whole window, grouped by the scope key, the
+ * destination keys and the cloud connection key — never scoped by the
+ * queue's entity key, since the point is to find metrics that did not reach
+ * it. The scope is matched loosely on the server (a case-insensitive
+ * contains: an ARM name keeps the casing it was created with, the queue's
+ * scope is lowercased) and exactly here, by the caller
+ * (getMessageQueueNamespaceFinding). Null when the system's catalog has no
+ * scope key or the queue no namespace (no API call), and on failure;
+ * `isComplete` is false when the answer was cut off.
+ */
+export async function fetchMessageQueueNamespaceSeries(data: {
+  projectId: ObjectID | string | null | undefined;
+  start: Date;
+  end: Date;
+  metrics: ReadonlyArray<MessageQueueMetricDescriptor>;
+  namespace: string | null | undefined;
+}): Promise<{
+  series: Array<MessageQueueNamespaceSeries>;
+  isComplete: boolean;
+} | null> {
+  const projectId: ObjectID | null = projectIdOf(data.projectId);
+  const namespace: string = (data.namespace || "").trim();
+  const names: Array<string> = uniqueMetricNamesOf(data.metrics);
+  const scopeKeys: Array<string> = [];
+  const destinationKeys: Array<string> = [];
+  for (const descriptor of data.metrics) {
+    for (const key of descriptor.scopeAttributes || []) {
+      if (!scopeKeys.includes(key)) {
+        scopeKeys.push(key);
+      }
+    }
+    for (const key of descriptor.destinationAttributes) {
+      if (!destinationKeys.includes(key)) {
+        destinationKeys.push(key);
+      }
+    }
+  }
+  if (!projectId || !namespace || names.length === 0 || !scopeKeys[0]) {
+    return null;
+  }
+
+  const groupKeys: Array<string> = [];
+  for (const key of [
+    ...scopeKeys,
+    ...destinationKeys,
+    MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY,
+  ]) {
+    if (!groupKeys.includes(key)) {
+      groupKeys.push(key);
+    }
+  }
+
+  try {
+    const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Metric>({
+      modelType: Metric,
+      aggregateBy: aggregateBy<Metric>({
+        query: {
+          projectId: projectId,
+          time: new InBetween<Date>(data.start, data.end),
+          name: new Includes(names),
+          attributes: { [scopeKeys[0]]: new Search<string>(namespace) },
+        },
+        aggregationType: AggregationType.Count,
+        aggregateColumnName: "value",
+        timestampColumnName: "time",
+        start: data.start,
+        end: data.end,
+        groupByAttributeKeys: groupKeys,
+        aggregationInterval: AggregationInterval.Total,
+      }),
+    });
+
+    const series: Array<MessageQueueNamespaceSeries> = [];
+    for (const row of (result.data || []) as Array<AggregatedModel>) {
+      const raw: unknown = row["attributes"];
+      const attributes: Record<string, unknown> =
+        raw && typeof raw === "object" && !Array.isArray(raw)
+          ? (raw as Record<string, unknown>)
+          : {};
+      series.push({
+        namespace: stringAttributeOf(attributes, scopeKeys),
+        entity: stringAttributeOf(attributes, destinationKeys),
+        fromCloudConnection:
+          stringAttributeOf(attributes, [
+            MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY,
+          ]) !== "",
+      });
+    }
+    return { series: series, isComplete: !result.truncated };
+  } catch {
+    return null;
+  }
 }
 
 // ---- the Metrics tab -------------------------------------------------------

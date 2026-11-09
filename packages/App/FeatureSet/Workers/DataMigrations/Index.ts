@@ -960,7 +960,7 @@ const DataMigrations: Array<DataMigrationBase> = [
    * since #6353 (PublicNoteApprovalRequest): the notes already waiting take
    * the people their step asks now as asked, without asking anybody, so the
    * first change of their approvers asks only those who are new. After
-   * AddPublicNoteApprovalRequest1809063180000; Postgres-only and
+   * AddPublicNoteApprovalRequest1809063230000; Postgres-only and
    * idempotent, with no order of its own, so it sits above the runbook
    * moves, which keep the places right before the last slot
    * AddAuditLogMcpClientColumns asserts for itself.

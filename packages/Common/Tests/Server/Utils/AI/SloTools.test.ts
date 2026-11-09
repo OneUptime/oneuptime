@@ -1123,6 +1123,7 @@ describe("query_slos — error budget policy", () => {
     thresholdPercentage: number;
     whatWeDo?: string;
     isEnabled?: boolean;
+    freezesDeployments?: boolean;
     shouldCreateAlert?: boolean;
     shouldCreateIncident?: boolean;
   }): ServiceLevelObjectiveErrorBudgetPolicyTier {
@@ -1133,6 +1134,10 @@ describe("query_slos — error budget policy", () => {
     tier.thresholdPercentage = data.thresholdPercentage;
     tier.whatWeDo = data.whatWeDo ?? `${data.name}: what the team does.`;
     tier.isEnabled = data.isEnabled ?? true;
+
+    if (data.freezesDeployments !== undefined) {
+      tier.freezesDeployments = data.freezesDeployments;
+    }
 
     if (data.shouldCreateAlert !== undefined) {
       tier.shouldCreateAlert = data.shouldCreateAlert;
@@ -1435,5 +1440,168 @@ describe("query_slos — error budget policy", () => {
   test("the tool description says it reports the error budget policy", () => {
     expect(QuerySlosTool.description).toContain("error budget policy");
     expect(QuerySlosTool.description).toContain("the tier the SLO is in now");
+  });
+
+  /*
+   * The SLO's own row: the line that carries deploymentsAllowed and is not
+   * the note above the rows, which names the field to say how to read it.
+   */
+  const sloRowOf: (result: ToolExecutionResult) => string = (
+    result: ToolExecutionResult,
+  ): string => {
+    return (
+      result.dataForLlm.split("\n").find((line: string): boolean => {
+        return line.includes("deploymentsAllowed") && !line.startsWith("Note:");
+      }) || ""
+    );
+  };
+
+  test("an SLO's row answers the deploy gate: allowed, and the model is told how to read it", async () => {
+    const { result } = await detail({
+      slo: sloInTier(CAUTION_ID, "Caution"),
+      tiers: policy(),
+    });
+
+    const sloRow: string = sloRowOf(result);
+
+    expect(sloRow).toMatch(/deploymentsAllowed[^,\n]*true/);
+    // No freeze time on an allowed SLO's row.
+    expect(sloRow).not.toContain("deploymentsFrozenAt");
+    expect(result.dataForLlm).toContain(
+      "deploymentsAllowed on an SLO row is the deploy gate CI/CD pipelines read before they release",
+    );
+    expect(widgetField(result, "Deployments")).toBe("allowed");
+  });
+
+  test("a frozen SLO's row says so, and since when", async () => {
+    const frozen: ServiceLevelObjective = sloInTier(
+      EXHAUSTED_ID,
+      "Budget exhausted",
+    );
+    frozen.deploymentsAllowed = false;
+    frozen.deploymentsFrozenAt = new Date("2026-08-13T10:05:00Z");
+
+    const { result } = await detail({
+      slo: frozen,
+      tiers: policy().map(
+        (
+          tier: ServiceLevelObjectiveErrorBudgetPolicyTier,
+        ): ServiceLevelObjectiveErrorBudgetPolicyTier => {
+          tier.freezesDeployments = tier.name === "Budget exhausted";
+          return tier;
+        },
+      ),
+    });
+
+    const sloRow: string = sloRowOf(result);
+
+    expect(sloRow).toMatch(/deploymentsAllowed[^,\n]*false/);
+    expect(sloRow).toContain("deploymentsFrozenAt");
+    expect(sloRow).toContain("2026-08-13");
+    expect(widgetField(result, "Deployments")).toBe(
+      "frozen by the error budget policy",
+    );
+
+    // Each tier says whether it freezes deployments.
+    const exhaustedRow: string =
+      result.dataForLlm.split("\n").find((line: string): boolean => {
+        return (
+          line.includes("errorBudgetPolicyTier") &&
+          line.includes("Budget exhausted")
+        );
+      }) || "";
+
+    expect(exhaustedRow).toMatch(/freezesDeployments[^,\n]*true/);
+    expect(result.dataForLlm).toContain(
+      "freezesDeployments says whether being in the tier freezes deployments",
+    );
+  });
+
+  test("reads the deploy gate with the SLO, and each tier's switch with the tiers", async () => {
+    const findOneByIdSpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(sloInTier(null, null) as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    const tiersSpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveErrorBudgetPolicyTierService, "findBy")
+      .mockResolvedValue(policy() as never);
+
+    await QuerySlosTool.execute({ sloId: SLO_ID.toString() }, ctx);
+
+    const sloSelect: JSONObject = (
+      findOneByIdSpy.mock.calls[0]?.[0] as JSONObject
+    )["select"] as JSONObject;
+    const tierSelect: JSONObject = (tiersSpy.mock.calls[0]?.[0] as JSONObject)[
+      "select"
+    ] as JSONObject;
+
+    expect(sloSelect["deploymentsAllowed"]).toBe(true);
+    expect(sloSelect["deploymentsFrozenAt"]).toBe(true);
+    expect(tierSelect["freezesDeployments"]).toBe(true);
+  });
+
+  test("a caller who may not read tiers still gets the deploy gate: it is SLO data", async () => {
+    const frozen: ServiceLevelObjective = sloInTier(
+      EXHAUSTED_ID,
+      "Budget exhausted",
+    );
+    frozen.deploymentsAllowed = false;
+
+    const { result } = await detail({ slo: frozen, tiers: "denied" });
+
+    expect(sloRowOf(result)).toMatch(/deploymentsAllowed[^,\n]*false/);
+    expect(widgetField(result, "Deployments")).toBe(
+      "frozen by the error budget policy",
+    );
+  });
+
+  test("list mode answers the deploy gate on every row", async () => {
+    const frozen: ServiceLevelObjective = sloInTier(
+      EXHAUSTED_ID,
+      "Budget exhausted",
+    );
+    frozen.deploymentsAllowed = false;
+
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveService, "findBy")
+      .mockResolvedValue([
+        frozen,
+        buildSlo({ id: ObjectID.generate(), name: "Search latency" }),
+      ] as never);
+    jest
+      .spyOn(ServiceLevelObjectiveService, "countBy")
+      .mockResolvedValue(new PositiveNumber(2) as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute({}, ctx);
+
+    const lines: Array<string> = result.dataForLlm.split("\n");
+
+    expect(
+      lines.find((line: string): boolean => {
+        return line.includes("Checkout availability");
+      }),
+    ).toMatch(/deploymentsAllowed[^,\n]*false/);
+    expect(
+      lines.find((line: string): boolean => {
+        return line.includes("Search latency");
+      }),
+    ).toMatch(/deploymentsAllowed[^,\n]*true/);
+    expect(result.dataForLlm).toContain(
+      "deploymentsAllowed on an SLO row is the deploy gate",
+    );
+
+    const select: JSONObject = (findBySpy.mock.calls[0]?.[0] as JSONObject)[
+      "select"
+    ] as JSONObject;
+    expect(select["deploymentsAllowed"]).toBe(true);
+  });
+
+  test("the tool description says how to read the deploy gate", () => {
+    expect(QuerySlosTool.description).toContain("deploymentsAllowed: false");
+    expect(QuerySlosTool.description).toContain(
+      "whether each freezes deployments",
+    );
   });
 });

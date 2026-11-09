@@ -3303,6 +3303,9 @@ describe("Queues docs", (): void => {
         published: "published",
         consumed: "consumed",
         consumers: "consumers",
+        scheduled: "scheduled messages",
+        size: "size",
+        latency: "send latency",
       };
       const listed: RegExpMatchArray | null = paragraph.match(
         /obvious bad direction — ([^.]+)\./,

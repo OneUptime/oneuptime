@@ -18,7 +18,7 @@ import PublicNoteApprovalRequest, {
 import ScheduledMaintenancePublicNote from "../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import User from "../../../../Models/DatabaseModels/User";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddPublicNoteApprovalRequest1809063180000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809063180000-AddPublicNoteApprovalRequest";
+import { AddPublicNoteApprovalRequest1809063230000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809063230000-AddPublicNoteApprovalRequest";
 import AllServices from "../../../../Server/Services/Index";
 import PublicNoteApprovalRequestService from "../../../../Server/Services/PublicNoteApprovalRequestService";
 import {
@@ -50,7 +50,7 @@ import {
  * to generate once it has run.)
  */
 
-const MIGRATION_TIMESTAMP: string = "1809063180000";
+const MIGRATION_TIMESTAMP: string = "1809063230000";
 const MIGRATION_BASE_NAME: string = "AddPublicNoteApprovalRequest";
 const MIGRATION_FILE_NAME: string = `${MIGRATION_TIMESTAMP}-${MIGRATION_BASE_NAME}.ts`;
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
@@ -82,7 +82,7 @@ async function statementsOf(step: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddPublicNoteApprovalRequest1809063180000()[step](runner);
+  await new AddPublicNoteApprovalRequest1809063230000()[step](runner);
 
   return statements;
 }
@@ -210,13 +210,13 @@ describe("executing it", () => {
 
   test("is a MigrationInterface whose two steps are still named up and down", () => {
     const migration: MigrationInterface =
-      new AddPublicNoteApprovalRequest1809063180000();
+      new AddPublicNoteApprovalRequest1809063230000();
 
     expect(typeof migration.up).toBe("function");
     expect(typeof migration.down).toBe("function");
     expect(
       Object.getOwnPropertyNames(
-        AddPublicNoteApprovalRequest1809063180000.prototype,
+        AddPublicNoteApprovalRequest1809063230000.prototype,
       ).sort(),
     ).toEqual(["constructor", "down", "up"]);
   });
@@ -335,20 +335,20 @@ describe("the migration runs", () => {
   test("it is in the exported migration list, exactly once", () => {
     expect(
       SchemaMigrations.filter((migration: unknown): boolean => {
-        return migration === AddPublicNoteApprovalRequest1809063180000;
+        return migration === AddPublicNoteApprovalRequest1809063230000;
       }),
     ).toHaveLength(1);
   });
 
   test("its declared name, its class name and its timestamp agree", () => {
-    expect(new AddPublicNoteApprovalRequest1809063180000().name).toBe(
+    expect(new AddPublicNoteApprovalRequest1809063230000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
-    expect(AddPublicNoteApprovalRequest1809063180000.name).toBe(
+    expect(AddPublicNoteApprovalRequest1809063230000.name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(
-      AddPublicNoteApprovalRequest1809063180000.name.match(
+      AddPublicNoteApprovalRequest1809063230000.name.match(
         CLASS_TIMESTAMP,
       )?.[1],
     ).toBe(MIGRATION_TIMESTAMP);
@@ -364,7 +364,7 @@ describe("the migration runs", () => {
 
   test("its timestamp sorts after every migration registered before it", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddPublicNoteApprovalRequest1809063180000,
+      AddPublicNoteApprovalRequest1809063230000,
     );
 
     expect(position).toBeGreaterThan(-1);

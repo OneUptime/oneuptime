@@ -109,6 +109,33 @@ L'application existe, mais ses pages n'affichent rien.
 - **Attendez quelques minutes.** L'ingestion passe par une file, et **Dernière fois vu** est actualisé toutes les quelques minutes plutôt qu'à chaque lot.
 - **Vérifiez le projet.** Une clé écrit dans son propre projet : la télémétrie envoyée avec la clé d'un autre projet est là-bas, pas ici.
 
+## Les exceptions ou les journaux sont vides
+
+Les chargements de page et les requêtes arrivent, mais **Exceptions** ou **Journaux** restent vides. Le SDK OpenTelemetry pour navigateur envoie de lui-même des traces des chargements de page et des requêtes, mais aucune exception et aucun journal : une application peut donc sembler connectée alors que ces deux-là restent vides pour de bon.
+
+Le graphique vide de la **Vue d'ensemble** de l'application indique de quel cas il s'agit, et la **Vérification de la configuration** de sa page **Documentation** liste chaque type de télémétrie avec le moment où le plus récent est arrivé :
+
+| Le graphique indique | Ce que cela signifie |
+| --- | --- |
+| **Les exceptions ne sont pas configurées** ou **Les journaux ne sont pas configurés** | Cette application n'en a encore jamais envoyé. **Configurer les exceptions** ou **Configurer les journaux** affiche le code qui les envoie, avec votre URL et votre clé déjà renseignées. |
+| **Aucune exception sur cette période** ou **Aucun journal sur cette période** | Il en est déjà arrivé, et le graphique indique la date de la dernière arrivée. Choisissez la période plus longue qu'il propose. |
+| **Rien n'est encore arrivé de cette application** | Aucune télémétrie n'arrive : commencez par [Vérifier la clé](#vérifier-la-clé). |
+| **Le SDK OpenTelemetry ne remonte rien** | Seule la relecture de session remonte des données de cette application : configurez le SDK comme dans [Configuration navigateur](/docs/rum/browser-setup). |
+
+Les exceptions ont besoin d'un gestionnaire d'erreurs, car le SDK ne capture pas les erreurs non interceptées : [Signaler les erreurs non interceptées](/docs/rum/browser-setup#signaler-les-erreurs-non-interceptées) donne le code. Une erreur qu'une error boundary ou un `try`/`catch` intercepte n'atteint jamais la fenêtre : enregistrez-la là où vous la traitez, avec `span.recordException`.
+
+Les journaux ont besoin d'un pipeline de journaux et de code qui écrit des entrées de journal, car un `LoggerProvider` seul n'envoie rien : [Ajouter journaux et métriques](/docs/rum/browser-setup#ajouter-journaux-et-métriques) donne les deux. Construisez le pipeline avec la même `resource` que vos traces, sinon les journaux sont classés sous un service backend.
+
+Quand les chargements de page arrivent, la clé, ses origines autorisées et votre Content Security Policy laissent aussi passer les exceptions et les journaux, tant que l'exportateur de journaux utilise la même clé et le même hôte. Un gestionnaire d'erreurs qui n'a encore rien intercepté n'envoie rien, exactement comme un gestionnaire jamais ajouté : levez une erreur de test depuis la console du navigateur pour distinguer les deux :
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+En moins d'une minute, elle apparaît dans la **Vue d'ensemble** de l'application, sous **Exceptions**.
+
 ## La page Clients est vide
 
 La page **Clients** liste `browser.platform` sur le web et `device.model.identifier` sur mobile. Deux raisons pour lesquelles elle reste vide alors que tout le reste fonctionne :

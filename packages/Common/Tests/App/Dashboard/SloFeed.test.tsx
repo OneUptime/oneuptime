@@ -198,6 +198,15 @@ describe("SLO feed icons", () => {
       ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentResolved,
       IconProp.CheckCircle,
     ],
+    // The deploy gate: shut while frozen, open once allowed again.
+    [
+      ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+      IconProp.Lock,
+    ],
+    [
+      ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed,
+      IconProp.LockOpen,
+    ],
   ])("%s is drawn as %s", (eventType: string, icon: IconProp) => {
     expect(getSloFeedEventIcon(eventType)).toBe(icon);
   });
@@ -303,6 +312,19 @@ describe("SLO feed icons", () => {
       // A tier change is not what the tier raised.
       [
         ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyTierChanged,
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised,
+      ],
+      [
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed,
+      ],
+      // Deployments frozen is not a tier change, nor an alert.
+      [
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyTierChanged,
+      ],
+      [
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
         ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised,
       ],
     ];
