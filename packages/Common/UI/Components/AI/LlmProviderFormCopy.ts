@@ -2,6 +2,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import LlmType from "../../../Types/LLM/LlmType";
 import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 import LlmProviderEndpoint from "../../../Utils/LLM/LlmProviderEndpoint";
+import { getLlmProviderDefaultResponseTimeoutInSeconds } from "../../../Utils/LLM/LlmProviderResponseTimeout";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 
 /*
@@ -342,6 +343,31 @@ export function getLlmProviderShownValue(data: {
   }
 
   return "-";
+}
+
+/*
+ * A provider's Response Timeout (Seconds) as its page shows it: the seconds
+ * set, or - left empty - the default the server waits
+ * (LlmProviderResponseTimeout: "120 (default)", 300 for Ollama), in the
+ * reader's digits. A failed run's notice sends its reader here to raise it.
+ */
+export function getLlmProviderShownResponseTimeout(data: {
+  requestTimeoutInSeconds: number | undefined | null;
+  llmType: unknown;
+  translator: Translator;
+}): string {
+  const seconds: number | undefined | null = data.requestTimeoutInSeconds;
+
+  return getLlmProviderShownValue({
+    value:
+      typeof seconds === "number" && seconds > 0
+        ? data.translator.formatNumber(seconds)
+        : undefined,
+    defaultValue: data.translator.formatNumber(
+      getLlmProviderDefaultResponseTimeoutInSeconds(readLlmType(data.llmType)),
+    ),
+    translator: data.translator,
+  });
 }
 
 /*

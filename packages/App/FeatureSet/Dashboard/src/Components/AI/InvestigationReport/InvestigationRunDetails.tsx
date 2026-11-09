@@ -13,13 +13,9 @@ import InvestigationEvidenceList, {
   InvestigationEvidenceSubjectType,
   LoadEvidenceRows,
 } from "./InvestigationEvidenceList";
+import { ActivityFeedRun } from "../../AIChat/ActivityFeedRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
-
-// The details are a finished run's: no step of it is still running.
-const FINISHED_RUN: { status: AIRunStatus } = {
-  status: AIRunStatus.Completed,
-};
 import { InvestigationEvidenceItem } from "Common/Types/AI/InvestigationEvidence";
 import IconProp from "Common/Types/Icon/IconProp";
 import { InvestigationEvidenceCheckedEntry } from "Common/Utils/AI/InvestigationReport";
@@ -39,6 +35,22 @@ import React, {
   useState,
 } from "react";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+
+/*
+ * The details are a finished run's: no step of it is still running, and
+ * the activity says when it started and how long it took when the card
+ * knows (run).
+ */
+export function getFinishedActivityRun(
+  run: ActivityFeedRun | null | undefined,
+): ActivityFeedRun {
+  return {
+    status: AIRunStatus.Completed,
+    createdAt: run?.createdAt,
+    startedAt: run?.startedAt,
+    completedAt: run?.completedAt,
+  };
+}
 
 export interface InvestigationRunUsage {
   toolCallCount: number;
@@ -469,6 +481,11 @@ export interface ComponentProps {
   focusRequest?: EvidenceFocusRequest | null | undefined;
   // Where "Load rows" asks, for a subject with its own route.
   loadEvidenceRows?: LoadEvidenceRows | undefined;
+  /*
+   * The run's times, when the card read them: the activity then says how
+   * long the run took, under when it started.
+   */
+  run?: ActivityFeedRun | null | undefined;
 }
 
 /*
@@ -731,7 +748,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
           hideChrome={true}
           showLiveIndicator={false}
           maxVisibleSteps={Math.max(stepCount, 1)}
-          run={FINISHED_RUN}
+          run={getFinishedActivityRun(props.run)}
           showStepTimes={true}
         />
       </div>

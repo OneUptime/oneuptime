@@ -19,6 +19,7 @@ import * as React from "react";
 import ChatActivityFeed, {
   countActivitySteps,
   describeElapsedTime,
+  isFailedToolCallRetried,
   MIN_REPEATED_STEPS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
 import {
@@ -29,7 +30,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ActivityFeedRun";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
-import { AIRunEventResultSummary } from "../../../Types/AI/AIChatTypes";
+import {
+  AIRunEventResultSummary,
+  AIToolRefusal,
+} from "../../../Types/AI/AIChatTypes";
 import {
   AIRunAttemptEnd,
   AIRunAttemptOutcome,
@@ -433,6 +437,27 @@ describe("a run tried more than once reads as its attempts", () => {
     expect(screen.getByText("Thinking…")).toBeVisible();
   });
 
+  test("a narrow card breaks its row between how it ended and its steps, never inside either", () => {
+    render(
+      <ChatActivityFeed
+        events={RETRIED_RUN}
+        hideChrome={true}
+        run={run(AIRunStatus.Running)}
+      />,
+    );
+
+    const parts: Array<Element> = Array.from(
+      screen
+        .getByTestId("activity-attempt-toggle")
+        .querySelectorAll(".inline-block.max-w-full"),
+    );
+    expect(
+      parts.map((part: Element): string => {
+        return part.textContent || "";
+      }),
+    ).toEqual(["· did not finish", "· 3 steps"]);
+  });
+
   test("opened, it shows what it did, what was left open, and how it ended", () => {
     const { container } = render(
       <ChatActivityFeed
@@ -615,6 +640,246 @@ describe("a run tried more than once reads as its attempts", () => {
   });
 });
 
+/*
+ * A read that failed says the model tries it another way ("did not
+ * succeed - retrying differently"): a promise its attempt keeps by going
+ * on. The customer's triage ended on such a step, and its activity went on
+ * promising a retry that never came. The last step of an attempt that
+ * ended - or of a run that is over - says it failed, as a model call that
+ * failed does; the run's own end line says why it stopped.
+ */
+describe("a failed read promises another way only while its attempt can keep it", () => {
+  const RETRYING: string = "did not succeed — retrying differently";
+
+  function failedCall(
+    toolName: string = "query_traces",
+    resultSummary: AIRunEventResultSummary = { errorMessage: "bad window" },
+  ): Array<StepEvent> {
+    return [
+      { eventType: AIRunEventType.ToolCallStarted, toolName },
+      { eventType: AIRunEventType.ToolCallFailed, toolName, resultSummary },
+    ];
+  }
+
+  function endedAttempt(attempt: number): StepEvent {
+    return attemptEnded({
+      outcome: AIRunAttemptOutcome.WillRetry,
+      failureKind: AIRunFailureKind.ProviderTimeout,
+      attempt,
+      maxAttempts: 3,
+      timeoutInSeconds: 120,
+    });
+  }
+
+  test("while its run runs, the latest one still promises it", () => {
+    const { container } = render(
+      <ChatActivityFeed
+        events={events([
+          { eventType: AIRunEventType.RunStarted },
+          ...failedCall(),
+        ])}
+        hideChrome={true}
+        run={run(AIRunStatus.Running)}
+      />,
+    );
+
+    expect(stepTexts(container)).toEqual([
+      "Starting investigation",
+      `Analyzing traces · ${RETRYING}`,
+    ]);
+  });
+
+  test.each([
+    AIRunStatus.Error,
+    AIRunStatus.Cancelled,
+    AIRunStatus.Stale,
+    AIRunStatus.Completed,
+  ])(
+    "a %s run's last step was never followed by another way: it failed",
+    (status: AIRunStatus) => {
+      const { container } = render(
+        <ChatActivityFeed
+          events={events([
+            { eventType: AIRunEventType.RunStarted },
+            ...search(),
+            ...failedCall(),
+          ])}
+          hideChrome={true}
+          run={run(status)}
+        />,
+      );
+
+      expect(stepTexts(container)).toEqual([
+        "Starting investigation",
+        "Searching logs · 3 rows",
+        "Analyzing traces · failed",
+      ]);
+      expect(container.textContent).not.toContain(RETRYING);
+    },
+  );
+
+  test("one the model went on from kept its promise, also once the run is over", () => {
+    const { container } = render(
+      <ChatActivityFeed
+        events={events([
+          { eventType: AIRunEventType.RunStarted },
+          ...failedCall(),
+          ...search(),
+        ])}
+        hideChrome={true}
+        run={run(AIRunStatus.Error)}
+      />,
+    );
+
+    expect(stepTexts(container)).toEqual([
+      "Starting investigation",
+      `Analyzing traces · ${RETRYING}`,
+      "Searching logs · 3 rows",
+    ]);
+  });
+
+  test("an executor's line after it is not the model going on", () => {
+    const { container } = render(
+      <ChatActivityFeed
+        events={events([
+          { eventType: AIRunEventType.RunStarted },
+          ...failedCall(),
+          {
+            eventType: AIRunEventType.ProgressLog,
+            resultSummary: { message: "Uploading the report" },
+          },
+        ])}
+        hideChrome={true}
+        run={run(AIRunStatus.Error)}
+      />,
+    );
+
+    expect(stepTexts(container)).toContain("Analyzing traces · failed");
+  });
+
+  test("an attempt that ended on one failed, though the run tries again", () => {
+    const { container } = render(
+      <ChatActivityFeed
+        events={events([
+          { eventType: AIRunEventType.RunStarted },
+          ...failedCall(),
+          endedAttempt(1),
+          { eventType: AIRunEventType.RunStarted },
+          ...failedCall("search_logs"),
+        ])}
+        hideChrome={true}
+        run={run(AIRunStatus.Running)}
+      />,
+    );
+
+    // The attempt running now may still try another way.
+    expect(stepTexts(container)).toEqual([
+      "Starting investigation",
+      `Searching logs · ${RETRYING}`,
+    ]);
+
+    const toggle: HTMLElement = screen.getByTestId("activity-attempt-toggle");
+    fireEvent.click(toggle);
+
+    expect(
+      stepTexts(
+        document.getElementById(toggle.getAttribute("aria-controls")!)!,
+      ),
+    ).toEqual([
+      "Starting investigation",
+      "Analyzing traces · failed",
+      "Did not finish: The AI provider did not answer within 120 seconds. Trying again.",
+    ]);
+  });
+
+  test("an earlier attempt without an end line is over once a later one started", () => {
+    const { container } = render(
+      <ChatActivityFeed
+        events={events([
+          { eventType: AIRunEventType.RunStarted },
+          ...failedCall(),
+          { eventType: AIRunEventType.RunStarted },
+          ...search(),
+        ])}
+        hideChrome={true}
+        run={run(AIRunStatus.Running)}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("activity-attempt-toggle"));
+
+    expect(stepTexts(container)).toContain("Analyzing traces · failed");
+    expect(container.textContent).not.toContain(RETRYING);
+  });
+
+  test("a run waiting between attempts: the attempt that ended on one failed", () => {
+    const { container } = render(
+      <ChatActivityFeed
+        events={events([
+          { eventType: AIRunEventType.RunStarted },
+          ...failedCall(),
+          endedAttempt(1),
+        ])}
+        hideChrome={true}
+        run={run(AIRunStatus.Queued, {
+          retryAt: new Date(Date.now() + 60 * 1000),
+        })}
+      />,
+    );
+
+    expect(stepTexts(container)).toContain("Analyzing traces · failed");
+  });
+
+  test("an action, a refused call and a cluster command still say what became of them", () => {
+    const { container } = render(
+      <ChatActivityFeed
+        events={events([
+          { eventType: AIRunEventType.RunStarted },
+          ...failedCall("create_incident", {
+            isAction: true,
+            errorMessage: "could not save",
+          }),
+          ...failedCall("query_slos", { refusal: AIToolRefusal.Plan }),
+          ...failedCall("run_kubectl", { errorMessage: "forbidden" }),
+        ])}
+        hideChrome={true}
+        run={run(AIRunStatus.Error)}
+      />,
+    );
+
+    const texts: Array<string> = stepTexts(container);
+    expect(texts[1]).toMatch(/· not done$/);
+    expect(texts[2]).not.toMatch(/· (failed|did not succeed)/);
+    expect(texts[3]).toMatch(/· did not run on the cluster$/);
+    expect(container.textContent).not.toContain(RETRYING);
+  });
+
+  test("which failed calls promise another way at all", () => {
+    function failed(
+      toolName: string,
+      resultSummary: AIRunEventResultSummary = {},
+    ): AIRunEvent {
+      return events([
+        { eventType: AIRunEventType.ToolCallFailed, toolName, resultSummary },
+      ])[0]!;
+    }
+
+    expect(isFailedToolCallRetried(failed("query_traces"))).toBe(true);
+    expect(
+      isFailedToolCallRetried(
+        failed("query_traces", { refusal: AIToolRefusal.Permission }),
+      ),
+    ).toBe(false);
+    expect(
+      isFailedToolCallRetried(failed("create_incident", { isAction: true })),
+    ).toBe(false);
+    expect(isFailedToolCallRetried(failed("run_kubectl"))).toBe(false);
+    expect(isFailedToolCallRetried(failed("run_infrastructure_command"))).toBe(
+      false,
+    );
+  });
+});
+
 describe("a long attempt shows its latest steps, and the rest on request", () => {
   const TOOLS: Array<string> = [
     "search_logs",
@@ -648,6 +913,9 @@ describe("a long attempt shows its latest steps, and the rest on request", () =>
       name: "Show 4 earlier steps",
     });
     expect(showEarlier).toHaveAttribute("data-testid", "activity-show-earlier");
+    // In the steps' details' size and gray, not a smaller, paler 11px.
+    expect(showEarlier).toHaveClass("text-xs", "text-gray-500");
+    expect(showEarlier.className).not.toContain("text-[11px]");
     expect(screen.queryByText("Starting investigation")).toBeNull();
 
     fireEvent.click(showEarlier);
@@ -963,6 +1231,46 @@ describe("the run's summary: when it started, how long it took, how many steps",
     expect(summary().querySelector("time")).toHaveAttribute(
       "dateTime",
       at("14:00:00"),
+    );
+  });
+
+  /*
+   * It was 11px and gray-400 - smaller and paler than the steps it heads,
+   * under 4.5:1 - and a narrow card broke it inside "took 6 minutes".
+   */
+  test("in the steps' own size, each part's words kept together", () => {
+    render(
+      <ChatActivityFeed
+        events={events([
+          { eventType: AIRunEventType.RunStarted, at: at("14:00:00") },
+          ...search("14:00:05"),
+          { eventType: AIRunEventType.RunCompleted, at: at("14:06:00") },
+        ])}
+        hideChrome={true}
+        showStepTimes={true}
+        run={run(AIRunStatus.Completed, {
+          startedAt: new Date(at("14:00:00")),
+          completedAt: new Date(at("14:06:00")),
+        })}
+      />,
+    );
+
+    expect(summary()).toHaveClass("text-xs", "text-gray-500");
+    expect(summary().className).not.toMatch(/text-\[11px\]|text-gray-400/);
+
+    const parts: Array<Element> = Array.from(summary().children);
+    expect(
+      parts.map((part: Element): string => {
+        return part.textContent || "";
+      }),
+    ).toEqual(["Started 14:00", "· took 6 minutes", "· 2 steps"]);
+    for (const part of parts) {
+      // Whole on a line, and still wrapping inside itself when wider.
+      expect(part).toHaveClass("inline-block", "max-w-full");
+    }
+    // The parts are apart by spaces the line can break at.
+    expect(summary().textContent).toBe(
+      "Started 14:00 · took 6 minutes · 2 steps",
     );
   });
 

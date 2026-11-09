@@ -414,7 +414,10 @@ function getLlmProviderResponseTimeoutField(
     fieldType: FormFieldSchemaType.Number,
     required: false,
     collapsibleSection: advancedSection,
-    placeholder: "120",
+    /*
+     * No placeholder: one number is wrong for some provider (Ollama waits
+     * 300 seconds, the rest 120), and the description says both.
+     */
     validation: {
       minValue: 10,
       maxValue: 3600,

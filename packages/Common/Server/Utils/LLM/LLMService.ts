@@ -20,6 +20,10 @@ import RejectedRequestParameter from "./RejectedRequestParameter";
 import LlmProviderEndpoint, {
   AzureOpenAIRequestEndpoint,
 } from "../../../Utils/LLM/LlmProviderEndpoint";
+import {
+  LLM_PROVIDER_DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS,
+  OLLAMA_DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS,
+} from "../../../Utils/LLM/LlmProviderResponseTimeout";
 import { withoutTrailingSlashes } from "../../../Utils/TrailingRuns";
 import crypto from "crypto";
 import OldestKeyMap from "../../../Utils/OldestKeyMap";
@@ -1334,7 +1338,8 @@ export default class LLMService {
         isGlobalProvider: data.config.isGlobalProvider,
         options: this.buildRequestPolicy({
           request: data.request,
-          defaultTimeoutInMs: 120000,
+          defaultTimeoutInMs:
+            LLM_PROVIDER_DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS * 1000,
           providerTimeoutInSeconds: data.config.requestTimeoutInSeconds,
         }),
         logAttributes: data.logAttributes,
@@ -2961,7 +2966,8 @@ export default class LLMService {
         isGlobalProvider: data.config.isGlobalProvider,
         options: this.buildRequestPolicy({
           request: data.request,
-          defaultTimeoutInMs: 120000,
+          defaultTimeoutInMs:
+            LLM_PROVIDER_DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS * 1000,
           providerTimeoutInSeconds: data.config.requestTimeoutInSeconds,
         }),
         logAttributes: data.logAttributes,
@@ -3432,7 +3438,9 @@ export default class LLMService {
           isGlobalProvider: config.isGlobalProvider,
           options: this.buildRequestPolicy({
             request: request,
-            defaultTimeoutInMs: 300000, // Ollama may be slower
+            // Ollama may be slower: it runs on its owner's own hardware.
+            defaultTimeoutInMs:
+              OLLAMA_DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS * 1000,
             providerTimeoutInSeconds: config.requestTimeoutInSeconds,
           }),
           logAttributes: ollamaLogAttributes,

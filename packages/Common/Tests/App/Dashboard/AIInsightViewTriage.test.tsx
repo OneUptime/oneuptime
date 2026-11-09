@@ -13,6 +13,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React, { act } from "react";
 import AIInsightViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AIInsights/View/Index";
@@ -130,6 +131,25 @@ async function renderPage(): Promise<void> {
   await screen.findByText(EVIDENCE);
 }
 
+// The triage's steps: a list under its own Activity heading.
+function activityRegion(): HTMLElement {
+  return screen.getByRole("region", { name: "Activity" });
+}
+
+/*
+ * The AI Triage panel's body: the strip (or the notice, or the summary)
+ * and the activity under it.
+ */
+function triageBody(): HTMLElement {
+  return (screen.queryByTestId("ai-triage-status") ||
+    screen.getByTestId("ai-triage-failure"))!.parentElement as HTMLElement;
+}
+
+// What moves in the panel: a spinner or a pulse, plain or motion-safe.
+function movingMarks(): Array<Element> {
+  return Array.from(triageBody().querySelectorAll("[class*='animate-']"));
+}
+
 function expectNoActivity(): void {
   expect(screen.queryByText("Activity")).not.toBeInTheDocument();
   expect(screen.queryByText("Triaging…")).not.toBeInTheDocument();
@@ -218,18 +238,29 @@ describe("AI insight detail — triage activity", () => {
   test("a running triage without an RCA shows its live query trail", async () => {
     await renderPage();
 
-    // The status strip and the activity header both describe the live run.
-    expect(screen.getAllByText("Triaging…")).toHaveLength(2);
-    expect(screen.getByText("Starting investigation")).toBeVisible();
+    /*
+     * The strip says where the triage stands, once: its steps are a list
+     * under a heading of their own - not a second message (a chat bubble
+     * headed "Triaging…" under the strip that said it).
+     */
+    expect(screen.getAllByText("Triaging…")).toHaveLength(1);
+    expect(screen.getByTestId("ai-triage-status")).toHaveTextContent(
+      "Triaging…",
+    );
+    expect(screen.getByTestId("ai-triage-status-pulse")).toBeInTheDocument();
+    const activity: HTMLElement = activityRegion();
+    expect(
+      within(activity).getByRole("heading", { level: 3, name: "Activity" }),
+    ).toBeVisible();
+    expect(within(activity).getByText("Starting investigation")).toBeVisible();
     /*
      * The model call that answered is no step of its own (issue #6437):
      * the search it chose follows it.
      */
     expect(screen.queryByText("Thinking")).not.toBeInTheDocument();
-    expect(screen.getByText("Searching logs")).toBeVisible();
+    expect(within(activity).getByText("Searching logs")).toBeVisible();
     expect(screen.getByText("· 3 rows · 1.5s")).toBeVisible();
     expect(screen.queryByText(RCA)).not.toBeInTheDocument();
-    expect(screen.queryByText("Activity")).not.toBeInTheDocument();
   });
 
   test("a queued triage without an RCA keeps its status and activity", async () => {
@@ -237,9 +268,13 @@ describe("AI insight detail — triage activity", () => {
 
     await renderPage();
 
-    expect(screen.getByText("Queued — waiting for a worker…")).toBeVisible();
-    expect(screen.getByText("Triaging…")).toBeVisible();
-    expect(screen.getByText("Searching logs")).toBeVisible();
+    expect(screen.getByTestId("ai-triage-status")).toHaveTextContent(
+      "Queued — waiting for a worker…",
+    );
+    // About to be picked up: the strip pulses, and nothing says it twice.
+    expect(screen.getByTestId("ai-triage-status-pulse")).toBeInTheDocument();
+    expect(screen.queryByText("Triaging…")).not.toBeInTheDocument();
+    expect(within(activityRegion()).getByText("Searching logs")).toBeVisible();
   });
 
   test("a completed run without an RCA keeps its available activity", async () => {
@@ -310,8 +345,8 @@ describe("AI insight detail — triage activity", () => {
 
     await renderPage();
 
-    expect(screen.getAllByText("Triaging…")).toHaveLength(2);
-    expect(screen.getByText("Searching logs")).toBeVisible();
+    expect(screen.getAllByText("Triaging…")).toHaveLength(1);
+    expect(within(activityRegion()).getByText("Searching logs")).toBeVisible();
   });
 
   test("polling completion replaces live activity with the posted RCA without remounting", async () => {
@@ -319,7 +354,7 @@ describe("AI insight detail — triage activity", () => {
     await renderPage();
 
     expect(screen.getByText("Searching logs")).toBeVisible();
-    expect(screen.getAllByText("Triaging…")).toHaveLength(2);
+    expect(screen.getAllByText("Triaging…")).toHaveLength(1);
     expect(getItemMock).toHaveBeenCalledTimes(1);
     expect(postMock).toHaveBeenCalledTimes(1);
 
@@ -568,6 +603,51 @@ describe("AI insight detail — triage Try again", () => {
       })}`,
     );
     expect(screen.queryByTestId("ai-triage-failure")).toBeNull();
+    /*
+     * It is not at work: it waits for its time, so nothing on the panel
+     * moves until then - no pulse on the strip, no spinner in its steps.
+     */
+    expect(screen.queryByTestId("ai-triage-status-pulse")).toBeNull();
+    expect(movingMarks()).toEqual([]);
+    expect(screen.queryByText("Triaging…")).not.toBeInTheDocument();
+  });
+
+  test("the strip's words wrap beside a mark and a pulse that never shrink", async () => {
+    server.run = { _id: RUN_ID, status: AIRunStatus.Running };
+
+    await renderPage();
+
+    const strip: HTMLElement = screen.getByTestId("ai-triage-status");
+    const [mark, words] = Array.from(strip.children) as Array<HTMLElement>;
+    expect(mark).toHaveClass("flex-shrink-0");
+    expect(words).toHaveTextContent("Triaging…");
+    expect(words).toHaveClass("min-w-0", "break-words");
+
+    const pulse: HTMLElement = screen.getByTestId("ai-triage-status-pulse");
+    expect(pulse).toHaveAttribute("aria-hidden", "true");
+    // At the strip's end in either direction, and still for reduced motion.
+    expect(pulse).toHaveClass(
+      "ms-auto",
+      "flex-shrink-0",
+      "motion-safe:animate-ping",
+    );
+    expect(pulse.className).not.toMatch(/(^|\s)(ml-auto|animate-ping)(\s|$)/);
+  });
+
+  test("a triage that did not finish keeps its steps under their heading, after the notice", async () => {
+    await renderPage();
+
+    const notice: HTMLElement = screen.getByTestId("ai-triage-failure");
+    const activity: HTMLElement = activityRegion();
+    expect(
+      notice.compareDocumentPosition(activity) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(within(activity).getByText("Searching logs")).toBeVisible();
+    // Nothing moves on a triage that stopped, and nothing says it works.
+    expect(movingMarks()).toEqual([]);
+    expect(screen.queryByText("Triaging…")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ai-triage-status")).toBeNull();
   });
 
   test("a triage whose retry time has passed waits for a worker", async () => {

@@ -1442,8 +1442,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     statusMeta = { text: "Investigating…", indicator: "live" };
     isFailed = false;
   } else if (retryAt) {
-    // An attempt failed, and the next one waits (issue #6438).
-    statusMeta = { text: "Trying again soon", indicator: "live" };
+    /*
+     * An attempt failed, and the next one waits (issue #6438): nothing
+     * moves until its time, so the mark is the calm clock, not the pulse.
+     */
+    statusMeta = { text: "Trying again soon", indicator: "waiting" };
     isFailed = false;
   } else if (runStatus === AIRunStatus.Queued) {
     statusMeta = { text: "Queued", indicator: "live" };
@@ -1902,6 +1905,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               subjectId={subjectIdString}
               runId={runId}
               focusRequest={evidenceFocusRequest}
+              run={runTimes}
             />
           ) : (
             <></>

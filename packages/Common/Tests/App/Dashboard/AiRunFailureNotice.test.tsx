@@ -16,8 +16,24 @@ import {
   screen,
 } from "@testing-library/react";
 import * as React from "react";
-import AiRunFailureNotice from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiRunFailureNotice";
-import AiRunTryAgainButton from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiRunTryAgainButton";
+import AiRunFailureNotice, {
+  AiRunFailureSettingsLink,
+  getAiRunFailureSettingsLink,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiRunFailureNotice";
+import AiRunTryAgainButton, {
+  TRY_AGAIN_ERROR_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiRunTryAgainButton";
+import { NOTICE_LINK_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotice";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
+import Project from "../../../Models/DatabaseModels/Project";
+import { PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN } from "../../../Types/AI/ProjectAiDailyLimits";
+import {
+  ButtonSize,
+  OUTLINE_BUTTON_CLASS_NAME,
+} from "../../../UI/Components/Button/Button";
+import PermissionGate, { ModelAction } from "../../../UI/Utils/PermissionGate";
+import ProjectUtil from "../../../UI/Utils/Project";
 import {
   AiRunFailure,
   AiRunFailureWords,
@@ -44,6 +60,7 @@ import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import {
   getProjectBalanceWhoCanAddSentence,
   PROJECT_AI_CREDITS_USED_UP_MESSAGE,
+  PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
 } from "../../../Utils/Project/ProjectBalance";
 
 /*
@@ -292,10 +309,17 @@ describe("AiRunFailureNotice", () => {
 
     const BOX: RegExp =
       /(^|\s)(bg-[a-z]+-(50|100)(\/\d+)?|rounded-(lg|xl|2xl)|shadow(-sm|-md|-lg)?|border(\s|$))/;
+    const tryAgain: HTMLElement = screen.getByRole("button", {
+      name: "Try again",
+    });
     const boxes: Array<string> = [
       notice,
       ...Array.from(notice.querySelectorAll("*")),
     ]
+      .filter((element: Element): boolean => {
+        // Try again is a button, bordered as every outline button is.
+        return element !== tryAgain && !tryAgain.contains(element);
+      })
       .map((element: Element): string => {
         return element.getAttribute("class") || "";
       })
@@ -321,6 +345,282 @@ describe("AiRunFailureNotice", () => {
   });
 });
 
+/*
+ * The notice's "what to do" names a settings page. Whoever may make the
+ * change there is taken to it, beside Try again; a reader who may not
+ * keeps the sentence (it says where, and who), and is never sent to a page
+ * that refuses them.
+ */
+describe("the settings page a failure's fix is made on", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "10000000-0000-4000-8000-000000000001",
+  );
+
+  // Where each kind of failure is fixed; null: there is nothing to change.
+  const FIXED_ON: Record<
+    AIRunFailureKind,
+    { label: string; page: PageMap; path: string } | null
+  > = {
+    [AIRunFailureKind.ProviderTimeout]: {
+      label: "Open LLM Providers",
+      page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
+      path: "settings/llm-providers",
+    },
+    [AIRunFailureKind.ProviderUnavailable]: {
+      label: "Open LLM Providers",
+      page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
+      path: "settings/llm-providers",
+    },
+    [AIRunFailureKind.ProviderRejected]: {
+      label: "Open LLM Providers",
+      page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
+      path: "settings/llm-providers",
+    },
+    [AIRunFailureKind.ContextWindow]: {
+      label: "Open LLM Providers",
+      page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
+      path: "settings/llm-providers",
+    },
+    [AIRunFailureKind.NotConfigured]: {
+      label: "Open LLM Providers",
+      page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
+      path: "settings/llm-providers",
+    },
+    [AIRunFailureKind.LimitReached]: {
+      label: "Open AI Features",
+      page: PageMap.SETTINGS_AI_FEATURES,
+      path: "settings/ai-features",
+    },
+    [AIRunFailureKind.CreditsUsedUp]: {
+      label: "Open AI Credits",
+      page: PageMap.SETTINGS_AI_CREDITS,
+      path: "settings/ai-credits",
+    },
+    [AIRunFailureKind.ServerStopped]: null,
+    [AIRunFailureKind.Other]: null,
+  };
+
+  function endedWith(failureKind: AIRunFailureKind): Array<AIRunEvent> {
+    return [
+      runFailed({
+        outcome: AIRunAttemptOutcome.GaveUp,
+        failureKind,
+        attempt: 1,
+        maxAttempts: 1,
+      }),
+    ];
+  }
+
+  function allow(isAllowed: boolean): void {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed });
+    jest
+      .spyOn(PermissionGate, "checkColumnUpdate")
+      .mockReturnValue({ isAllowed });
+  }
+
+  beforeEach(() => {
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  });
+
+  test("every kind of failure is decided: fixed on a page, or nothing to change", () => {
+    expect(Object.keys(FIXED_ON).sort()).toEqual(
+      Object.values(AIRunFailureKind).sort(),
+    );
+  });
+
+  test.each(Object.values(AIRunFailureKind))(
+    "%s: its page, for whoever may make the change there",
+    (kind: AIRunFailureKind) => {
+      allow(true);
+      const expected: { label: string; page: PageMap } | null = FIXED_ON[kind];
+      const link: AiRunFailureSettingsLink | null =
+        getAiRunFailureSettingsLink(kind);
+
+      if (!expected) {
+        expect(link).toBeNull();
+        return;
+      }
+
+      expect(link).toEqual({
+        label: expected.label,
+        page: expected.page,
+        isAllowed: true,
+      });
+    },
+  );
+
+  test("a provider is changed by who may update one, and added by who may create one", () => {
+    const check: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(PermissionGate, "check")
+      .mockReturnValue({ isAllowed: false });
+
+    expect(
+      getAiRunFailureSettingsLink(AIRunFailureKind.ProviderTimeout)?.isAllowed,
+    ).toBe(false);
+    expect(check).toHaveBeenLastCalledWith(
+      expect.any(LlmProvider),
+      ModelAction.Update,
+    );
+
+    getAiRunFailureSettingsLink(AIRunFailureKind.NotConfigured);
+    expect(check).toHaveBeenLastCalledWith(
+      expect.any(LlmProvider),
+      ModelAction.Create,
+    );
+  });
+
+  test("the daily limits are asked of their column; the credits, of who may add them", () => {
+    const columnCheck: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(PermissionGate, "checkColumnUpdate")
+      .mockReturnValue({ isAllowed: true });
+
+    getAiRunFailureSettingsLink(AIRunFailureKind.LimitReached);
+    expect(columnCheck).toHaveBeenCalledTimes(1);
+    expect(columnCheck).toHaveBeenLastCalledWith(
+      expect.any(Project),
+      PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+    );
+
+    columnCheck.mockClear();
+    getAiRunFailureSettingsLink(AIRunFailureKind.CreditsUsedUp);
+    expect(
+      columnCheck.mock.calls.map((call: Array<unknown>): unknown => {
+        return call[1];
+      }),
+    ).toEqual([
+      ...PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.AI],
+    ]);
+
+    // One of them refused: not who may add credits, so no link.
+    columnCheck.mockReturnValueOnce({ isAllowed: true });
+    columnCheck.mockReturnValueOnce({ isAllowed: false });
+    expect(
+      getAiRunFailureSettingsLink(AIRunFailureKind.CreditsUsedUp)?.isAllowed,
+    ).toBe(false);
+  });
+
+  test("whoever may make the fix is taken to its page, between Try again and Details", () => {
+    allow(true);
+    render(
+      <AiRunFailureNotice
+        title="Triage did not finish"
+        events={TIMED_OUT_THREE_TIMES}
+        errorMessage={PROVIDER_ERROR}
+        onTryAgain={async (): Promise<void> => {}}
+        testId="triage-failure"
+      />,
+    );
+
+    const link: HTMLElement = screen.getByRole("link", {
+      name: "Open LLM Providers",
+    });
+    expect(link).toHaveAttribute("data-testid", "triage-failure-settings");
+    expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/settings/llm-providers`,
+    );
+    // The notice's link: indigo words with the arrow glued to the last.
+    expect(link.className).toContain(NOTICE_LINK_CLASS_NAME);
+    expect(link.querySelector("[aria-hidden='true'] svg")).not.toBeNull();
+    // The fix sentence still says where, for who reads rather than clicks.
+    expect(screen.getByTestId("triage-failure-fix")).toHaveTextContent(
+      "Project Settings > AI > LLM Providers",
+    );
+
+    const row: Array<string | null> = Array.from(
+      screen.getByTestId("triage-failure-actions").children,
+    ).map((child: Element): string | null => {
+      return child.getAttribute("data-testid");
+    });
+    expect(row).toEqual([
+      "triage-failure-try-again",
+      "triage-failure-settings",
+      "triage-failure-details-toggle",
+    ]);
+  });
+
+  test.each(
+    Object.values(AIRunFailureKind).filter((kind: AIRunFailureKind) => {
+      return FIXED_ON[kind] !== null;
+    }),
+  )("%s takes whoever may fix it to the page its words name", (kind) => {
+    allow(true);
+    render(
+      <AiRunFailureNotice
+        title="Triage did not finish"
+        events={endedWith(kind)}
+        testId="triage-failure"
+      />,
+    );
+
+    const link: HTMLElement = screen.getByTestId("triage-failure-settings");
+    expect(link).toHaveAccessibleName(FIXED_ON[kind]!.label);
+    expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/${FIXED_ON[kind]!.path}`,
+    );
+    // A link alone is a row of ways forward of its own.
+    expect(screen.getByTestId("triage-failure-actions")).toContainElement(link);
+  });
+
+  test("a reader who may not make the fix keeps the sentence, without a link to a page that refuses them", () => {
+    allow(false);
+    render(
+      <AiRunFailureNotice
+        title="Triage did not finish"
+        events={TIMED_OUT_THREE_TIMES}
+        errorMessage={PROVIDER_ERROR}
+        testId="triage-failure"
+      />,
+    );
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByTestId("triage-failure-settings")).toBeNull();
+    expect(screen.getByTestId("triage-failure-fix")).toHaveTextContent(
+      "Project Settings > AI > LLM Providers",
+    );
+    // Details is still there to press.
+    expect(screen.getByRole("button", { name: "Details" })).toBeVisible();
+  });
+
+  test("with no link, no Try again and no error, there is no row of actions at all", () => {
+    allow(false);
+    render(
+      <AiRunFailureNotice
+        title="Triage did not finish"
+        events={endedWith(AIRunFailureKind.LimitReached)}
+        testId="triage-failure"
+      />,
+    );
+
+    expect(screen.queryByTestId("triage-failure-actions")).toBeNull();
+  });
+
+  test("a server that stopped, or an error the words cannot name, has nothing to change: no link", () => {
+    allow(true);
+    const { rerender } = render(
+      <AiRunFailureNotice
+        title="Triage did not finish"
+        events={endedWith(AIRunFailureKind.ServerStopped)}
+        onTryAgain={async (): Promise<void> => {}}
+      />,
+    );
+
+    expect(screen.queryByRole("link")).toBeNull();
+
+    rerender(
+      <AiRunFailureNotice
+        title="Triage did not finish"
+        events={[]}
+        errorMessage="The tool loop crashed"
+        onTryAgain={async (): Promise<void> => {}}
+      />,
+    );
+
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+});
+
 describe("AiRunTryAgainButton", () => {
   test("starts the run again once, and locks while it works", async () => {
     const pending: Deferred = deferred();
@@ -333,13 +633,19 @@ describe("AiRunTryAgainButton", () => {
     const button: HTMLElement = screen.getByTestId("ai-run-try-again");
     expect(button).toHaveTextContent("Try again");
     expect(button).toHaveAttribute("type", "button");
+    expect(button).toHaveAttribute("aria-disabled", "false");
+    expect(button.querySelector("svg")?.getAttribute("class")).not.toContain(
+      "animate-spin",
+    );
 
     fireEvent.click(button);
 
     expect(onTryAgain).toHaveBeenCalledTimes(1);
     expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button).toHaveAttribute("aria-disabled", "true");
     expect(button).toHaveTextContent("Starting again…");
+    // Its arrow gives way to the spinner while it works: one mark, not two.
+    expect(button.querySelectorAll("svg")).toHaveLength(1);
     expect(button.querySelector("svg")?.getAttribute("class")).toContain(
       "animate-spin",
     );
@@ -354,9 +660,62 @@ describe("AiRunTryAgainButton", () => {
     });
 
     expect(button).not.toBeDisabled();
-    expect(button).toHaveAttribute("aria-busy", "false");
+    expect(button).toHaveAttribute("aria-disabled", "false");
     expect(button).toHaveTextContent("Try again");
+    expect(button.querySelector("svg")?.getAttribute("class")).not.toContain(
+      "animate-spin",
+    );
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  /*
+   * It read as a link: indigo words with an arrow, in a row with Details
+   * (gray words) - two things to press that looked like two things to
+   * read. It is the product's outline button now, sized to its words at
+   * every width, as a button in a card's row is.
+   */
+  test("it is the product's outline button, sized to its words", () => {
+    render(<AiRunTryAgainButton onTryAgain={async (): Promise<void> => {}} />);
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Try again",
+    });
+    expect(button.className).toContain(OUTLINE_BUTTON_CLASS_NAME);
+    expect(button.className).toContain(ButtonSize.Small);
+    // Not a dialog footer's button: as wide as its words, with no margin.
+    expect(button.className).not.toMatch(/(^|\s)(w-full|md:ml-3)(\s|$)/);
+    expect(button.className).not.toMatch(/(^|\s)text-indigo-\d+/);
+  });
+
+  test("its refusal takes a whole line after the row's last action, never one between them", async () => {
+    render(
+      <AiRunFailureNotice
+        title="Triage did not finish"
+        events={TIMED_OUT_THREE_TIMES}
+        errorMessage={PROVIDER_ERROR}
+        onTryAgain={async (): Promise<void> => {
+          throw new Error("The network is down");
+        }}
+        testId="triage-failure"
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("triage-failure-try-again"));
+    });
+
+    const refusal: HTMLElement = screen.getByRole("alert");
+    expect(refusal).toHaveTextContent("The network is down");
+    expect(refusal.className).toBe(TRY_AGAIN_ERROR_CLASS_NAME);
+    expect(refusal).toHaveClass("order-last", "basis-full");
+    // In the notice's row of actions, so the row orders it last.
+    expect(screen.getByTestId("triage-failure-actions")).toContainElement(
+      refusal,
+    );
+    expect(screen.getByTestId("triage-failure-actions")).toHaveClass(
+      "flex",
+      "flex-wrap",
+    );
   });
 
   test("a refusal is said under it, in the server's words, and it can be pressed again", async () => {

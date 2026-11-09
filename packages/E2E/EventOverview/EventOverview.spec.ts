@@ -3462,6 +3462,255 @@ test.describe("investigation states", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * A run that did not finish, and one between attempts (issues #6437, #6438)
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * A customer's AI run failed with its provider's own error and nothing to
+ * press, and its steps went on spinning after it had died. The card now
+ * says why in words to act on, takes whoever may make the fix to the
+ * settings page it is made on, and offers Try again to whoever may start
+ * the run again. A run waiting between attempts says when it tries again,
+ * and nothing on it moves until then.
+ */
+const FAILED_CAUSE: string =
+  "The AI provider could not be reached, or was too busy to answer.";
+const FAILED_FIX: string =
+  "Check that the AI provider is up and that OneUptime can reach it, then try again.";
+// The fixture's refusal of Try again (?fail=investigation-try-again).
+const TRY_AGAIN_REFUSAL: string =
+  "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
+// ?ai=retrying tries again two minutes after the pinned clock.
+const RETRY_TIME: string = "(6:22 PM|18:22)";
+
+function failureNotice(page: Page): Locator {
+  return investigationStep(page).getByTestId("investigation-error");
+}
+
+function tryAgainButton(page: Page): Locator {
+  return failureNotice(page).getByRole("button", { name: "Try again" });
+}
+
+test.describe("a run that did not finish (issues #6437, #6438)", () => {
+  test("?ai=failed says why in words to act on, with Try again and the page the fix is made on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=failed");
+
+    const notice: Locator = failureNotice(page);
+    await expect(notice).toBeVisible({ timeout: 30000 });
+    await expect(
+      notice.getByText("The investigation stopped before it could report.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(notice.getByTestId("investigation-error-cause")).toHaveText(
+      FAILED_CAUSE,
+    );
+    await expect(notice.getByTestId("investigation-error-fix")).toHaveText(
+      FAILED_FIX,
+    );
+
+    // The ways forward, in one row: Try again, the settings, Details.
+    const actions: Locator = notice.getByTestId("investigation-error-actions");
+    await expect(tryAgainButton(page)).toBeEnabled();
+    const settings: Locator = actions.getByRole("link", {
+      name: "Open LLM Providers",
+    });
+    await expect(settings).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/settings/llm-providers`,
+    );
+    const details: Locator = actions.getByRole("button", { name: "Details" });
+    await expect(details).toHaveAttribute("aria-expanded", "false");
+    const [tryAgainBox, settingsBox, detailsBox] = await documentBoxes(page, [
+      tryAgainButton(page),
+      settings,
+      details,
+    ]);
+    // One row, read left to right, their middles on one line.
+    expect(tryAgainBox!.x + tryAgainBox!.width).toBeLessThan(settingsBox!.x);
+    expect(settingsBox!.x + settingsBox!.width).toBeLessThan(detailsBox!.x);
+    for (const box of [settingsBox!, detailsBox!]) {
+      expect(
+        Math.abs(
+          box.y + box.height / 2 - (tryAgainBox!.y + tryAgainBox!.height / 2),
+        ),
+      ).toBeLessThan(4);
+    }
+
+    // The provider's own words wait under Details.
+    await details.click();
+    await expect(notice.getByTestId("investigation-error-details")).toHaveText(
+      "The LLM provider returned 529 Overloaded three times; the investigation stopped after 4 of 12 planned tool calls.",
+    );
+
+    /*
+     * The step it stopped on was never followed by another way: it says it
+     * failed, rather than promising a retry that never came - and nothing
+     * spins on a run that is over.
+     */
+    const steps: Locator =
+      investigationStep(page).getByTestId("activity-step-text");
+    await expect(steps.last()).toHaveText("Checking recent changes · failed");
+    await expect(investigationStep(page)).not.toContainText(
+      "retrying differently",
+    );
+    await expect(
+      investigationStep(page).locator("[class*='animate-']"),
+    ).toHaveCount(0);
+
+    await screenshotElement(
+      investigationStep(page),
+      "investigation-did-not-finish",
+    );
+  });
+
+  test("Try again starts it again, once, for this incident, and the card turns to the new run", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=failed");
+    await expect(tryAgainButton(page)).toBeEnabled({ timeout: 30000 });
+
+    await tryAgainButton(page).click();
+
+    await expect(
+      stepPillWords(investigationCard(page), "investigation"),
+    ).toHaveText("Queued", { timeout: 30000 });
+    await expect(failureNotice(page)).toHaveCount(0);
+
+    const started: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/ai-investigation/try-again",
+    );
+    expect(started).toHaveLength(1);
+    expect(started[0]!.method).toBe("POST");
+    expect(started[0]!.body).toEqual({
+      subjectType: "incident",
+      subjectId: INCIDENT_ID,
+    });
+  });
+
+  test("a refusal says why in the server's words, on a line of its own under the row, and the button stays", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=failed&fail=investigation-try-again");
+    await expect(tryAgainButton(page)).toBeEnabled({ timeout: 30000 });
+
+    await tryAgainButton(page).click();
+
+    const refusal: Locator = failureNotice(page).getByRole("alert");
+    await expect(refusal).toHaveText(TRY_AGAIN_REFUSAL);
+    await expect(refusal).toHaveAttribute(
+      "data-testid",
+      "investigation-error-try-again-error",
+    );
+    await expect(tryAgainButton(page)).toBeEnabled();
+    await expect(
+      stepPillWords(investigationCard(page), "investigation"),
+    ).toHaveText("Did not finish");
+
+    /*
+     * It came between Try again and the rest of the row, pushing them onto
+     * a line of their own: now the row stays whole, and the refusal is the
+     * line under it.
+     */
+    const actions: Locator = failureNotice(page).getByTestId(
+      "investigation-error-actions",
+    );
+    const [tryAgainBox, settingsBox, detailsBox, refusalBox] =
+      await documentBoxes(page, [
+        tryAgainButton(page),
+        actions.getByRole("link", { name: "Open LLM Providers" }),
+        actions.getByRole("button", { name: "Details" }),
+        refusal,
+      ]);
+    for (const box of [settingsBox!, detailsBox!]) {
+      expect(
+        Math.abs(
+          box.y + box.height / 2 - (tryAgainBox!.y + tryAgainBox!.height / 2),
+        ),
+      ).toBeLessThan(4);
+    }
+    for (const box of [tryAgainBox!, settingsBox!, detailsBox!]) {
+      expect(box.y + box.height).toBeLessThanOrEqual(refusalBox!.y + 1);
+    }
+
+    await screenshotElement(
+      investigationStep(page),
+      "investigation-try-again-refused",
+    );
+  });
+
+  test("?ai=failed-viewer: someone who may not start it again reads why, with no Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=failed-viewer");
+
+    await expect(failureNotice(page)).toBeVisible({ timeout: 30000 });
+    await expect(
+      failureNotice(page).getByTestId("investigation-error-cause"),
+    ).toHaveText(FAILED_CAUSE);
+    await expect(tryAgainButton(page)).toHaveCount(0);
+    await expect(
+      failureNotice(page).getByRole("button", { name: "Details" }),
+    ).toBeVisible();
+  });
+
+  test("?ai=retrying says when it tries again; it is no failure, and nothing on it moves", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=retrying");
+
+    const step: Locator = investigationStep(page);
+    await expect(stepPillWords(step, "investigation")).toHaveText(
+      "Trying again soon",
+      { timeout: 30000 },
+    );
+    // A wait, drawn as one: the calm clock, not the pulse of a run at work.
+    await expect(stepPill(step, "investigation")).toHaveAttribute(
+      "data-indicator",
+      "waiting",
+    );
+    await expect(step).toContainText(
+      new RegExp(
+        `The last attempt did not finish\\. OneUptime tries again at ${RETRY_TIME}; its steps so far are below\\.`,
+      ),
+    );
+    await expect(step.getByTestId("activity-attempt-end")).toHaveText(
+      new RegExp(
+        `^Did not finish: The AI provider did not answer within 120 seconds\\. Trying again at ${RETRY_TIME}\\.$`,
+      ),
+    );
+    // The model call that ran out of time failed; nothing promises a retry.
+    await expect(
+      step.getByTestId("activity-step-text").filter({ hasText: "Thinking" }),
+    ).toHaveText(["Thinking · failed"]);
+
+    // Nothing to press, and nothing moves until its time.
+    await expect(failureNotice(page)).toHaveCount(0);
+    await expect(step.getByRole("button", { name: "Try again" })).toHaveCount(
+      0,
+    );
+    await expect(step.locator("[class*='animate-']")).toHaveCount(0);
+
+    await screenshotElement(step, "investigation-trying-again-soon");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * An investigation rule's wait (issue #5074)
  * ---------------------------------------------------------------------------
  */
@@ -4348,6 +4597,15 @@ const CARD_STATES: ReadonlyArray<CardState> = [
     name: "a page OneUptime AI holds",
     query: "state=created&hold=1",
     badge: "Completed",
+  },
+  /*
+   * Between attempts (issue #6437): it tries again two minutes from now.
+   * Last, as the states above are named by their place in this list.
+   */
+  {
+    name: "an investigation waiting to try again",
+    query: "ai=retrying",
+    badge: "Trying again soon",
   },
 ];
 
@@ -15596,6 +15854,15 @@ test.describe("screenshots", () => {
       { file: "ai-card-pending", state: CARD_STATES[7]! },
       { file: "ai-card-none", state: CARD_STATES[8]! },
       { file: "ai-card-waiting", state: CARD_STATES[11]! },
+      { file: "ai-card-retrying", state: CARD_STATES[13]! },
+      {
+        file: "ai-card-failed-dark",
+        state: {
+          name: "failed, dark",
+          query: "ai=failed&theme=dark",
+          badge: "Did not finish",
+        },
+      },
       {
         file: "ai-card-waiting-viewer",
         state: {

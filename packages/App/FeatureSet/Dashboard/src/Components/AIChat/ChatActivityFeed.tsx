@@ -307,6 +307,12 @@ interface ActivityStep {
    * step's View opens it (AiContextActivityDialog).
    */
   aiContext?: AiContextActivity | undefined;
+  /*
+   * A failed call whose detail says the model tries another way ("did not
+   * succeed - retrying differently"): a promise its attempt keeps only if
+   * it goes on after it (settleRetryPromises).
+   */
+  promisesRetry?: boolean | undefined;
 }
 
 /*
@@ -476,6 +482,20 @@ export const REFUSED_TOOL_CALL_DETAILS: { [key in AIToolRefusal]: string } = {
 };
 
 /*
+ * Whether a failed call's step says the model tries another way: a read
+ * that failed - not a refused call, an action, or a command on a cluster or
+ * an infrastructure resource, which say what became of them instead.
+ */
+export function isFailedToolCallRetried(event: AIRunEvent): boolean {
+  return (
+    !isAIToolRefusal(event.resultSummary?.refusal) &&
+    event.toolName !== RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME &&
+    event.toolName !== RUN_KUBECTL_TOOL_NAME &&
+    event.resultSummary?.isAction !== true
+  );
+}
+
+/*
  * The detail for a failed call. A refused call - the person may not make
  * it, a team blocks it, the plan does not include it - is never tried
  * again: it was not done, and the step says why. A failed action (a tool
@@ -514,7 +534,7 @@ export function describeFailedToolCall(
     return translator.translateText("not done") as string;
   }
 
-  if (event.toolName !== RUN_KUBECTL_TOOL_NAME) {
+  if (isFailedToolCallRetried(event)) {
     return translator.translateText(
       "did not succeed — retrying differently",
     ) as string;
@@ -870,23 +890,26 @@ function buildSteps(
     }
   };
 
+  // The step completed, if one was open with that text.
   const completeLastRunning: (
     text: string | undefined,
     detail: string | undefined,
     failed: boolean,
-  ) => void = (
+  ) => ActivityStep | undefined = (
     text: string | undefined,
     detail: string | undefined,
     failed: boolean,
-  ): void => {
+  ): ActivityStep | undefined => {
     for (let i: number = steps.length - 1; i >= 0; i--) {
       const step: ActivityStep = steps[i]!;
       if (step.status === "running" && (!text || step.text === text)) {
         step.status = failed ? "failed" : "done";
         step.detail = detail;
-        return;
+        return step;
       }
     }
+
+    return undefined;
   };
 
   for (const event of events) {
@@ -988,13 +1011,18 @@ function buildSteps(
         );
         break;
       }
-      case AIRunEventType.ToolCallFailed:
-        completeLastRunning(
+      case AIRunEventType.ToolCallFailed: {
+        const failedStep: ActivityStep | undefined = completeLastRunning(
           friendlyToolName(event.toolName, translator),
           describeFailedToolCall(event, translator),
           true,
         );
+
+        if (failedStep && isFailedToolCallRetried(event)) {
+          failedStep.promisesRetry = true;
+        }
         break;
+      }
       /*
        * Plain progress lines from an external executor (e.g. the code-fix
        * agent container). The display text lives in resultSummary.message.
@@ -1322,6 +1350,52 @@ interface ActivityAttempt {
   end?: AIRunAttemptEnd | undefined;
 }
 
+/*
+ * A failed call's "retrying differently" is a promise its attempt keeps by
+ * going on: the last step of an attempt that ended - or of a run that is
+ * over (canStepsRun false) - was never followed by another way, so it says
+ * "failed", as a model call that failed does (issue #6437). The run's own
+ * end line says why it stopped.
+ */
+function settleRetryPromises(
+  steps: Array<ActivityStep>,
+  canStepsRun: boolean,
+  failedText: string,
+): Array<ActivityStep> {
+  const lastWorkStepIndexes: Map<number, number> = new Map<number, number>();
+  const endedAttempts: Set<number> = new Set<number>();
+  let latestAttempt: number = 1;
+
+  steps.forEach((step: ActivityStep, index: number): void => {
+    const attempt: number = step.attempt || 1;
+    latestAttempt = Math.max(latestAttempt, attempt);
+
+    if (step.kind === "attemptEnd") {
+      endedAttempts.add(attempt);
+      return;
+    }
+
+    // An executor's log line is not the model going on.
+    if (step.kind !== "log") {
+      lastWorkStepIndexes.set(attempt, index);
+    }
+  });
+
+  return steps.map((step: ActivityStep, index: number): ActivityStep => {
+    const attempt: number = step.attempt || 1;
+
+    if (
+      !step.promisesRetry ||
+      lastWorkStepIndexes.get(attempt) !== index ||
+      !(endedAttempts.has(attempt) || attempt < latestAttempt || !canStepsRun)
+    ) {
+      return step;
+    }
+
+    return { ...step, detail: failedText, promisesRetry: false };
+  });
+}
+
 function groupAttempts(steps: Array<ActivityStep>): Array<ActivityAttempt> {
   const attempts: Array<ActivityAttempt> = [];
 
@@ -1421,13 +1495,17 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
   );
 
   const canStepsRun: boolean = canRunHaveRunningSteps(props.run);
-  const steps: Array<ActivityStep> = buildSteps(props.events, translator).map(
-    (step: ActivityStep): ActivityStep => {
-      // A run that is over, or waits in the queue, has no step running.
-      return step.status === "running" && !canStepsRun
-        ? { ...step, status: "stopped" }
-        : step;
-    },
+  const steps: Array<ActivityStep> = settleRetryPromises(
+    buildSteps(props.events, translator).map(
+      (step: ActivityStep): ActivityStep => {
+        // A run that is over, or waits in the queue, has no step running.
+        return step.status === "running" && !canStepsRun
+          ? { ...step, status: "stopped" }
+          : step;
+      },
+    ),
+    canStepsRun,
+    translator.translateText("failed") as string,
   );
   const maxVisibleSteps: number = Math.max(props.maxVisibleSteps ?? 7, 1);
   const showLiveIndicator: boolean = props.showLiveIndicator ?? true;
@@ -1830,7 +1908,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             data-testid="activity-show-earlier"
-            className="rounded text-[11px] font-medium text-gray-500 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="rounded text-xs font-medium leading-4 text-gray-500 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             onClick={() => {
               setAttemptsShowingAll([...attemptsShowingAll, attempt.number]);
             }}
@@ -1925,12 +2003,22 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
             <span className="font-medium text-gray-600">
               {describeAttemptNumber(attempt.number)}
             </span>{" "}
+            {/*
+              Each part whole, as a step's detail is: a phone breaks the
+              row between them, never inside "17 steps" - and a part wider
+              than the row still wraps inside itself.
+            */}
             <span className="text-gray-400">
-              · {describeAttemptOutcome(attempt)} ·{" "}
-              {translator.translatePlural(
-                { one: "{{count}} step", other: "{{count}} steps" },
-                countWorkSteps(attempt.steps),
-              )}
+              <span className="inline-block max-w-full">
+                · {describeAttemptOutcome(attempt)}
+              </span>{" "}
+              <span className="inline-block max-w-full">
+                ·{" "}
+                {translator.translatePlural(
+                  { one: "{{count}} step", other: "{{count}} steps" },
+                  countWorkSteps(attempt.steps),
+                )}
+              </span>
             </span>
           </span>
           {props.showStepTimes && startedAt ? (
@@ -2017,14 +2105,31 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
       ),
     );
 
+    /*
+     * In the steps' own size, and a shade darker than their details: it is
+     * the line the list is read from. Each part keeps its words together,
+     * as a step's detail does - a narrow card breaks the line between
+     * them, never inside "6 steps" - and a part wider than the line still
+     * wraps inside itself.
+     */
     return (
       <p
         data-testid="activity-run-summary"
-        className="text-[11px] text-gray-400"
+        className="text-xs leading-5 text-gray-500"
       >
-        <time dateTime={startedAt.toISOString()}>{parts[0]}</time>
+        <time
+          dateTime={startedAt.toISOString()}
+          className="inline-block max-w-full"
+        >
+          {parts[0]}
+        </time>
         {parts.slice(1).map((part: string, index: number): ReactElement => {
-          return <span key={index}> · {part}</span>;
+          return (
+            <React.Fragment key={index}>
+              {" "}
+              <span className="inline-block max-w-full">· {part}</span>
+            </React.Fragment>
+          );
         })}
       </p>
     );

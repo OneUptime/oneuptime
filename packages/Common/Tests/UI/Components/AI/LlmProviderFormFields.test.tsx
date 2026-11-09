@@ -218,7 +218,8 @@ describe("the response timeout", () => {
       expect(isRequired(field, LlmType.OpenAI)).toBe(false);
       expect(isRequired(field, LlmType.Ollama)).toBe(false);
       expect(field.validation).toEqual({ minValue: 10, maxValue: 3600 });
-      expect(field.placeholder).toBe("120");
+      // No one number: the default is 120 seconds, but 300 for Ollama.
+      expect(field.placeholder).toBeUndefined();
       expect(field.description).toBe(
         LlmProviderFormCopy.responseTimeoutDescription,
       );

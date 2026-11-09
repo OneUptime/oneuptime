@@ -1,7 +1,9 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import IconProp from "Common/Types/Icon/IconProp";
-import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
-import Icon from "Common/UI/Components/Icon/Icon";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -18,8 +20,9 @@ import React, {
  * button every AI card offers it with - an insight's triage, an incident's
  * or alert's investigation, and any other kind of run. The card says what
  * starting the run again means (onTryAgain posts to the server and reads
- * the card again); this button is what pressing it looks like: locked
- * while it works, and what stopped it - the server's words - under it.
+ * the card again); this button is what pressing it looks like: the
+ * product's outline button, busy while it works, and what stopped it - the
+ * server's words - on a line of its own under the notice's actions.
  *
  * Offer it only to who may start the run: the server checks again.
  */
@@ -30,10 +33,19 @@ export interface ComponentProps {
    * read where the run stands; rejects with the refusal to show.
    */
   onTryAgain: () => Promise<void>;
-  // English, translated here. "Try again" unless the card says otherwise.
+  // English, translated by the button. "Try again" unless the card says otherwise.
   label?: string | undefined;
   testId?: string | undefined;
 }
+
+/*
+ * The refusal's line: in a notice's row of actions (a wrapping flex row) it
+ * takes a whole line after the last of them - never between Try again and
+ * Details, which it pushed onto a line of their own. Anywhere else it is a
+ * paragraph under the button.
+ */
+export const TRY_AGAIN_ERROR_CLASS_NAME: string =
+  "order-last basis-full break-words text-sm leading-6 text-red-700";
 
 const AiRunTryAgainButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -85,42 +97,30 @@ const AiRunTryAgainButton: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="space-y-1">
-      <button
-        type="button"
-        data-testid={testId}
-        disabled={isBusy}
-        aria-busy={isBusy}
-        className={`inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
-          {
-            isBusy,
-            hoverClassName: "hover:text-indigo-700 hover:underline",
-          },
-        )}`}
+    <>
+      <Button
+        title={isBusy ? "Starting again…" : props.label || "Try again"}
+        icon={IconProp.Refresh}
+        buttonStyle={ButtonStyleType.OUTLINE}
+        buttonSize={ButtonSize.Small}
+        isLoading={isBusy}
+        dataTestId={testId}
         onClick={() => {
           void tryAgain();
         }}
-      >
-        <Icon
-          icon={IconProp.ArrowPath}
-          className={`h-4 w-4 flex-shrink-0 ${isBusy ? "animate-spin" : ""}`}
-        />
-        {isBusy
-          ? translator.translateText("Starting again…")
-          : translator.translateText(props.label || "Try again")}
-      </button>
+      />
       {error ? (
         <p
           role="alert"
           data-testid={`${testId}-error`}
-          className="break-words text-sm text-red-700"
+          className={TRY_AGAIN_ERROR_CLASS_NAME}
         >
           {error}
         </p>
       ) : (
         <></>
       )}
-    </div>
+    </>
   );
 };
 

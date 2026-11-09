@@ -12,9 +12,11 @@
  * request OneUptime opened on its own) and edge's requests have no spans
  * inside them.
  *
- * Scenarios are picked with query parameters (see TraceFindings.js), and
- * ?theme=dark is read by server.js. Every read and write is recorded on
- * window.__tracesAiFixture so a spec can check what the page asked for.
+ * Scenarios are picked with query parameters (see TraceFindings.js, and
+ * TriageRuns.js for the slow finding's AI triage, ?triage=), and
+ * ?theme=dark is read by server.js. ?fail=triage-try-again refuses Try
+ * again on a triage that did not finish. Every read and write is recorded
+ * on window.__tracesAiFixture so a spec can check what the page asked for.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -51,7 +53,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import { TRIAGE_RUN_IDS, triageRun } from "./TriageRuns";
 import {
+  AI_INSIGHT_IDS,
   AI_TASK_IDS,
   SERVICE_IDS,
   aiInsights,
@@ -93,6 +97,9 @@ const fixture = {
 
 // The fixes started on this page, by finding: a second ask finds them running.
 const startedTaskIds = {};
+
+// The findings whose triage Try again started again: their run is queued.
+const triedAgainInsightIds = new Set();
 
 window.__tracesAiFixture = fixture;
 
@@ -150,8 +157,34 @@ async function handleApi(method, options) {
     return ok(aiProviders());
   }
 
+  /*
+   * Try again on a triage that did not finish (issue #6438): a new run,
+   * queued - the card's next read answers it - or refused in the server's
+   * words, for ?fail=triage-try-again.
+   */
+  if (url.includes("/ai-insight/triage-try-again")) {
+    if (failures.has("triage-try-again")) {
+      fail(
+        400,
+        "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+      );
+    }
+    triedAgainInsightIds.add(String(body.insightId));
+    return ok({ runId: TRIAGE_RUN_IDS.again });
+  }
+
+  // The slow finding's triage (?triage=); the others were never triaged.
   if (url.includes("/ai-insight/triage-run")) {
-    return ok({ run: null, events: [] });
+    if (String(body.insightId) !== AI_INSIGHT_IDS.slow) {
+      return ok({ run: null, events: [], mayTryAgain: false });
+    }
+    return ok(
+      triageRun({
+        projectId: PROJECT_ID,
+        now: NOW,
+        wasTriedAgain: triedAgainInsightIds.has(String(body.insightId)),
+      }),
+    );
   }
 
   return ok({});

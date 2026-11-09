@@ -101,6 +101,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -179,6 +180,8 @@ const AIInsightViewPage: FunctionComponent<
    * server says (issue #6438).
    */
   const [mayTryAgainTriage, setMayTryAgainTriage] = useState<boolean>(false);
+  // The triage's Activity heading, which names its list of steps.
+  const triageActivityHeadingId: string = useId();
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const triageSignatureRef: React.MutableRefObject<string> = useRef<string>("");
 
@@ -752,6 +755,13 @@ const AIInsightViewPage: FunctionComponent<
     isTriageFailed = false;
   }
 
+  /*
+   * The strip's pulse: a triage at work, or about to be picked up. One that
+   * waits for its next attempt is not working - its strip says when it
+   * tries again, and nothing on it moves until then.
+   */
+  const isTriageWorking: boolean = isTriageActive && !triageRetryAt;
+
   const facts: Array<InsightFact> = [];
 
   if (insight.serviceName) {
@@ -1124,7 +1134,7 @@ const AIInsightViewPage: FunctionComponent<
               icon={IconProp.Sparkles}
               description="OneUptime AI looked into this without changing anything: the likely cause, what it affects and what to do first, with the evidence for each."
             >
-              <div className="space-y-3">
+              <div className="space-y-5">
                 {insight.triageSummaryMarkdown ? (
                   /*
                    * safeMode is mandatory here too: this summary is LLM output
@@ -1152,43 +1162,59 @@ const AIInsightViewPage: FunctionComponent<
                     testId="ai-triage-failure"
                   />
                 ) : (
-                  <div>
-                    <div
-                      data-testid="ai-triage-status"
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${triageStatusMeta.className}`}
-                    >
-                      <span className="flex-shrink-0">
-                        <Icon
-                          icon={triageStatusMeta.icon}
-                          className="h-4 w-4"
-                        />
-                      </span>
-                      <span>{triageStatusMeta.text}</span>
-                      {isTriageActive ? (
-                        <span className="ml-auto inline-block h-2 w-2 animate-ping rounded-full bg-indigo-500" />
-                      ) : (
-                        <></>
-                      )}
-                    </div>
-                    {isTriageFailed && triageRun?.errorMessage ? (
-                      <p className="mt-2 text-xs text-red-700">
-                        {triageRun.errorMessage}
-                      </p>
+                  <div
+                    data-testid="ai-triage-status"
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${triageStatusMeta.className}`}
+                  >
+                    <span className="flex-shrink-0">
+                      <Icon icon={triageStatusMeta.icon} className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 break-words">
+                      {triageStatusMeta.text}
+                    </span>
+                    {isTriageWorking ? (
+                      <span
+                        aria-hidden="true"
+                        data-testid="ai-triage-status-pulse"
+                        className="ms-auto inline-block h-2 w-2 flex-shrink-0 rounded-full bg-indigo-500 motion-safe:animate-ping"
+                      />
                     ) : (
                       <></>
                     )}
                   </div>
                 )}
 
+                {/*
+                  The steps under a heading of their own, as the
+                  investigation card shows them: the strip or the notice
+                  above already says where the triage stands, so the list
+                  is not drawn as a second message (a chat bubble that said
+                  "Triaging…" again under the strip that said it).
+                */}
                 {!insight.triageSummaryMarkdown && triageEvents.length > 0 ? (
-                  <ChatActivityFeed
-                    events={triageEvents}
-                    title={isTriageActive ? "Triaging…" : "Activity"}
-                    showLiveIndicator={isTriageActive}
-                    maxVisibleSteps={MAX_VISIBLE_STEPS}
-                    run={triageRun ? toActivityFeedRun(triageRun) : undefined}
-                    showStepTimes={true}
-                  />
+                  <section
+                    aria-labelledby={triageActivityHeadingId}
+                    data-testid="ai-triage-activity"
+                  >
+                    <h3
+                      id={triageActivityHeadingId}
+                      className="text-sm font-medium text-gray-900"
+                    >
+                      {translator.translateText("Activity")}
+                    </h3>
+                    <div className="mt-3">
+                      <ChatActivityFeed
+                        events={triageEvents}
+                        hideChrome={true}
+                        showLiveIndicator={false}
+                        maxVisibleSteps={MAX_VISIBLE_STEPS}
+                        run={
+                          triageRun ? toActivityFeedRun(triageRun) : undefined
+                        }
+                        showStepTimes={true}
+                      />
+                    </div>
+                  </section>
                 ) : (
                   <></>
                 )}

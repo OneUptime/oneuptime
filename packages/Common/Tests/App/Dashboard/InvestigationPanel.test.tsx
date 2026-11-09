@@ -5971,6 +5971,16 @@ describe("InvestigationPanel Try again", () => {
     expect(
       screen.getByTestId("ai-card-step-investigation-pill"),
     ).toHaveTextContent("Trying again soon");
+    /*
+     * Nothing moves until its time: the pill shows the calm clock of a
+     * wait, not the pulse of a run at work.
+     */
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveAttribute("data-indicator", "waiting");
+    expect(
+      document.querySelector('[class~="motion-safe:animate-ping"]'),
+    ).toBeNull();
     expect(screen.getByLabelText("Live investigation")).toHaveTextContent(
       `The last attempt did not finish. OneUptime tries again at ${OneUptimeDate.getLocalTimeString(
         new Date(RETRY_AT),
@@ -6024,5 +6034,34 @@ describe("InvestigationPanel Try again", () => {
     await flush();
 
     expect(lastActivityProps().run?.status).toBe(AIRunStatus.Error);
+  });
+
+  test("a report's activity is told the run's times, so it says when the run started and how long it took", async () => {
+    const payload: JSONObject = investigationPayload({
+      status: AIRunStatus.Completed,
+      analysisMarkdown: ANALYSIS,
+      events: [activityEvent],
+      completedAt: COMPLETED_AT,
+    });
+    (payload["run"] as JSONObject)["createdAt"] = "2026-08-07T11:54:00.000Z";
+    (payload["run"] as JSONObject)["startedAt"] = "2026-08-07T11:55:00.000Z";
+    postMock.mockResolvedValue(successfulResponse(payload) as never);
+
+    renderPanel();
+    await flush();
+
+    // The report's activity sits in its run details.
+    expect(detailsToggle()).toHaveTextContent("Investigation activity");
+    const run: ActivityFeedRun | undefined = lastActivityProps().run;
+    expect(run?.status).toBe(AIRunStatus.Completed);
+    expect(new Date(run!.createdAt!).toISOString()).toBe(
+      "2026-08-07T11:54:00.000Z",
+    );
+    expect(new Date(run!.startedAt!).toISOString()).toBe(
+      "2026-08-07T11:55:00.000Z",
+    );
+    expect(new Date(run!.completedAt!).toISOString()).toBe(COMPLETED_AT);
+    // Finished: no wait for another attempt is carried into the report.
+    expect(run?.retryAt).toBeUndefined();
   });
 });
