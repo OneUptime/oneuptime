@@ -41,6 +41,7 @@ import {
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import Permission from "Common/Types/Permission";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { readAuditLogValue } from "Common/Utils/AuditLog/AuditLogTypedValues";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -534,6 +535,35 @@ describe("the Audit Log Export page's entries", () => {
     ).toContain("collapsibleSection: advancedSection");
   });
 
+  /*
+   * Issue #6325: a phone number, an email address or a URL goes out as its
+   * text, a port as its number - as the audit log records them now, and as
+   * the export reads an entry recorded before, which held the value as
+   * { "_type": "Phone", "value": ... }. No key changed, so no version did.
+   */
+  it("says a typed value goes out as its text and a port as its number, as the audit log reads them", () => {
+    const sent: string = section(english(), WHAT_IS_SENT_HEADING);
+
+    expect(sent).toContain(
+      "Each `oldValue` and `newValue` is the field's value: text, a number, `true` or `false`, or JSON for a setting with several parts.",
+    );
+    expect(sent).toContain(
+      "A phone number, an email address or a URL is its text, such as `+14155550100`, and a port is its number.",
+    );
+    expect(readAuditLogValue({ _type: "Phone", value: "+14155550100" })).toBe(
+      "+14155550100",
+    );
+    expect(readAuditLogValue({ _type: "Email", value: "a@example.com" })).toBe(
+      "a@example.com",
+    );
+    expect(readAuditLogValue({ _type: "URL", value: "https://a.example" })).toBe(
+      "https://a.example",
+    );
+    expect(readAuditLogValue({ _type: "Port", value: 587 })).toBe(587);
+    // No version was added for it: a version only ever adds keys.
+    expect(AUDIT_LOG_EXPORT_SCHEMA_VERSION).toBe(2);
+  });
+
   it("names the test entry's action and the mark a secret is recorded as", () => {
     expect(english()).toContain(
       `one entry whose action is \`${AUDIT_LOG_EXPORT_TEST_ACTION}\``,
@@ -613,6 +643,23 @@ describe("who may export, and where", () => {
 describeWhenEnterprisePresent(
   "the Enterprise half, where ee/ is checked out",
   () => {
+    it("sends every entry's typed values as the page says, after its secrets are redacted, in every version", () => {
+      const exporter: string = readEe(
+        "Server/AuditLogExport/AuditLogExporter.ts",
+      );
+      const toBatch: string = exporter.slice(
+        exporter.indexOf("public static toBatch("),
+      );
+
+      expect(toBatch).toContain(
+        "readAuditLogExportTypedValues(\n        redactAuditLogExportRecord(read),\n      )",
+      );
+      // Read whatever version the export sends: not inside toAuditLogExportRecord's versions.
+      expect(toBatch.slice(0, toBatch.indexOf("readAuditLogExportTypedValues"))).toContain(
+        "toAuditLogExportRecord(\n        row,\n        data.schemaVersion,\n      )",
+      );
+    });
+
     it("names the screens' buttons and states as the export screens draw them", () => {
       const copy: string = readEe(
         "Dashboard/AuditLogExport/AuditLogExportCopy.ts",

@@ -147,6 +147,8 @@ Jeder Eintrag ist ein JSON-Objekt, seine Schlüssel immer in dieser Reihenfolge:
 
 Eine Datei enthält einen Eintrag pro Zeile, mit gzip komprimiert, und wird unter der Stunde ihres ersten Eintrags abgelegt: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Jeder `oldValue` und `newValue` ist der Wert des Felds: Text, eine Zahl, `true` oder `false` oder JSON für eine Einstellung aus mehreren Teilen. Eine Telefonnummer, eine E-Mail-Adresse oder eine URL ist ihr Text, etwa `+14155550100`, und ein Port ist seine Nummer.
+
 Schlüssel, Tokens und Passwörter gehen nie hinaus: Sie werden als `[REDACTED]` erfasst, und Felder, die niemand lesen darf, fehlen in jedem Eintrag.
 
 ## Datensatzversionen

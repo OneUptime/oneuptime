@@ -147,6 +147,8 @@ Cada entrada é um objeto JSON, com as chaves sempre nesta ordem:
 
 Um arquivo contém uma entrada por linha, compactado com gzip, e é arquivado pela hora da primeira entrada: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Cada `oldValue` e `newValue` é o valor do campo: texto, um número, `true` ou `false`, ou JSON para uma configuração formada por várias partes. Um número de telefone, um endereço de e-mail ou uma URL é o seu texto, como `+14155550100`, e uma porta é o seu número.
+
 Chaves, tokens e senhas nunca saem: são registrados como `[REDACTED]`, e os campos que ninguém pode ler ficam fora de todas as entradas.
 
 ## Versões do registro
