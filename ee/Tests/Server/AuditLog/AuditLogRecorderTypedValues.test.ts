@@ -63,7 +63,13 @@ import {
   readAuditLogTypedValue,
 } from "Common/Utils/AuditLog/AuditLogTypedValues";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { getMetadataArgsStorage } from "typeorm";
+/*
+ * The typeorm copy Common's models register their columns with, as
+ * TeamComplianceStatusPostgres imports it. A bare "typeorm" from ee/Tests
+ * resolves only through the repository root's node_modules, which compile-ee
+ * never installs (it installs Common, App, the two dashboards and ee).
+ */
+import { getMetadataArgsStorage } from "Common/node_modules/typeorm";
 
 /*
  * A PHONE NUMBER IN AN AUDIT LOG ENTRY READS AS THE NUMBER (issue #6325).
