@@ -635,6 +635,8 @@ En ressurs i en [tilkoblet konto](/docs/telemetry/cloud-accounts) får på fanen
 3. Klikk **Opprett monitor fra denne visningen**: monitoren overvåker den metrikken for den ressursen.
 :::
 
+Et Service Bus-navneområde rapporterer målingene sine én gang per kø og emne, og et Event Hubs-navneområde én gang per event hub. Der de kan legges sammen, viser en rad i fanen **Målinger** for navneområdet summen av dem, med **sum av serier** under. En monitor opprettet fra den raden leser også summen, og det samme gjør en monitor opprettet via API-et eller Terraform uten en aggregering. De andre radene viser **gjennomsnitt av serier**, altså den gjennomsnittlige køen eller event huben: en forsinkelse og, over et tidsrom på mer enn 3 timer, en mengde navneområdet holder, som ventende meldinger.
+
 > [!IMPORTANT]
 > Skyovervåking publiserer hvert tall minutter etter tidspunktet det måler: 10 til 20 minutter for CloudWatch som polles som ovenfor, noen få minutter for Azure Monitor og Cloud Monitoring. Det lagres under tidspunktet det måler. Gi en monitor over disse metrikkene et vindu som er lengre enn det (30 minutter for CloudWatch, 15 for de andre), ellers ser den ingen data og utløses aldri.
 
