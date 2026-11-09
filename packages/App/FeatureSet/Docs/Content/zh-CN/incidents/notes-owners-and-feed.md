@@ -264,7 +264,7 @@ flowchart TB
 
 **从 Slack、Microsoft Teams 和 Mattermost。** 添加备注的表单会说明，公开备注获批后才会发布到状态页。发送公开备注的人会得知它已提交审批，以及它在等待谁：在 Slack 和 Mattermost 中是一条只有本人能看到的消息，在 Microsoft Teams 中则在对话里。通过 📣 或 📢 表情回应保存的备注，也会在确认消息中说明同样的内容。频道会在备注发布时得知它。
 
-**从 Slack、Microsoft Teams 和 Mattermost 审批。** 在 **用户设置 → 通知设置** 中为 **公开备注审批** 打开 Slack、Microsoft Teams 或 Mattermost 的审批人，会在那里收到 OneUptime 发来的私信：谁发送了它、它在等待哪一步，以及批准、拒绝或在 OneUptime 中打开它的按钮。按下按钮时，会以其聊天账号所关联的 OneUptime 账号的身份、按照与备注上按钮相同的规则做出决定，在那里拒绝同样需要理由。只有他们本人能看到回复。如果别人先做了决定，或者在消息发出后备注或其步骤发生了变化，则不会做出任何决定，回复会说明发生了什么。备注一经决定，每位审批人关于它的消息都会改为说明发生了什么，只保留指向 OneUptime 的链接。请参阅 [Slack](/docs/workspace-connections/slack)、 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 和 [Mattermost](/docs/workspace-connections/mattermost)。
+**从 Slack、Microsoft Teams 和 Mattermost 审批。** 在 **用户设置 → 通知设置** 中为 **公开备注审批** 打开 Slack、Microsoft Teams 或 Mattermost 的审批人，会在那里收到 OneUptime 发来的私信：谁发送了它、它在等待哪一步，以及批准、拒绝或在 OneUptime 中打开它的按钮。按下按钮时，会以其聊天账号所关联的 OneUptime 账号的身份、按照与备注上按钮相同的规则做出决定，在那里拒绝同样需要理由。只有他们本人能看到回复。如果别人先做了决定，或者在消息发出后备注或其步骤发生了变化，则不会做出任何决定，回复会说明发生了什么。备注一经决定，每位审批人关于它的消息都会改为说明发生了什么，只保留指向 OneUptime 的链接。审批步骤在备注等待期间发生变化时，关于它已不再等待的步骤的消息也会这样改变，其步骤不再询问的人的消息也一样；它现在等待的人会收到属于自己的、带按钮的消息。请参阅 [Slack](/docs/workspace-connections/slack)、 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 和 [Mattermost](/docs/workspace-connections/mattermost)。
 
 信息流会把每一步记录为一条 `PublicNoteApproval` 条目：备注被提交审批、获批或被拒绝、编辑被撤回，或备注未经审批就发布。这些条目不会发布到聊天频道；发布到频道的是已发布的备注。
 

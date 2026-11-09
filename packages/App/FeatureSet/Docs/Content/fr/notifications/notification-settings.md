@@ -81,7 +81,7 @@ Voir [Dossiers de sécurité](/docs/telemetry/security-cases#notifications).
 
 La carte **Approbation des notes publiques**, sur l'onglet **Pages de statut**, concerne les notes publiques qui attendent une approbation avant d'être publiées, dans un projet qui l'exige :
 
-- **Note publique en attente de mon approbation** vous indique qu'une note publique, ou sa modification, attend une étape que vous approuvez, nommément ou par une équipe. On ne vous demande rien sur une note que vous avez envoyée, ni sur une étape qui suit une étape que vous avez approuvée. Elle est activée au départ par e-mail et par push, et **Récapitulatif par e-mail** ne la retient jamais : les clients pour qui la note est écrite l'attendent.
+- **Note publique en attente de mon approbation** vous indique qu'une note publique, ou sa modification, attend une étape que vous approuvez, nommément ou par une équipe. On ne vous demande rien sur une note que vous avez envoyée, ni sur une étape qui suit une étape que vous avez approuvée. Vous êtes sollicité une fois pour chaque étape : quand la note l'atteint, ou quand vous devenez l'un de ses approbateurs pendant que la note attend, parce que les étapes d'approbation ont changé ou que vous avez rejoint une équipe qu'une étape nomme. Elle est activée au départ par e-mail et par push, et **Récapitulatif par e-mail** ne la retient jamais : les clients pour qui la note est écrite l'attendent.
 - **Ma note publique approuvée ou rejetée** vous indique qu'une note que vous avez envoyée pour approbation a été approuvée et publiée, ou rejetée, avec la raison. Elle est activée au départ par e-mail.
 
 Voir [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques).
