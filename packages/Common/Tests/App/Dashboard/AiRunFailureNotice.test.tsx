@@ -543,25 +543,30 @@ describe("the settings page a failure's fix is made on", () => {
     Object.values(AIRunFailureKind).filter((kind: AIRunFailureKind) => {
       return FIXED_ON[kind] !== null;
     }),
-  )("%s takes whoever may fix it to the page its words name", (kind) => {
-    allow(true);
-    render(
-      <AiRunFailureNotice
-        title="Triage did not finish"
-        events={endedWith(kind)}
-        testId="triage-failure"
-      />,
-    );
+  )(
+    "%s takes whoever may fix it to the page its words name",
+    (kind: AIRunFailureKind) => {
+      allow(true);
+      render(
+        <AiRunFailureNotice
+          title="Triage did not finish"
+          events={endedWith(kind)}
+          testId="triage-failure"
+        />,
+      );
 
-    const link: HTMLElement = screen.getByTestId("triage-failure-settings");
-    expect(link).toHaveAccessibleName(FIXED_ON[kind]!.label);
-    expect(link).toHaveAttribute(
-      "href",
-      `/dashboard/${PROJECT_ID.toString()}/${FIXED_ON[kind]!.path}`,
-    );
-    // A link alone is a row of ways forward of its own.
-    expect(screen.getByTestId("triage-failure-actions")).toContainElement(link);
-  });
+      const link: HTMLElement = screen.getByTestId("triage-failure-settings");
+      expect(link).toHaveAccessibleName(FIXED_ON[kind]!.label);
+      expect(link).toHaveAttribute(
+        "href",
+        `/dashboard/${PROJECT_ID.toString()}/${FIXED_ON[kind]!.path}`,
+      );
+      // A link alone is a row of ways forward of its own.
+      expect(screen.getByTestId("triage-failure-actions")).toContainElement(
+        link,
+      );
+    },
+  );
 
   test("a reader who may not make the fix keeps the sentence, without a link to a page that refuses them", () => {
     allow(false);
