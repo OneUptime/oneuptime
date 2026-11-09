@@ -100,7 +100,7 @@
     "resultCount": "الموارد: {{matched}} من {{total}}",
     "noMatchesInGroup": "لا توجد موارد هنا تطابق بحثك.",
     "noResultsTitle": "لا توجد موارد مطابقة",
-    "noResultsDescription": "لا شيء في هذه الصفحة يطابق \"{{query}}\". جرّب بحثًا أقصر."
+    "noResultsDescription": "لا شيء في هذه الصفحة يطابق «{{query}}». جرّب بحثًا أقصر."
   },
   "incidents": {
     "title": "الحوادث",
@@ -202,32 +202,32 @@
     },
     "slack": {
       "title": "الاشتراك عبر Slack",
-      "description": "ستُرسل جميع تحديثاتنا إلى Webhook هذا الخاص بـ Slack.",
+      "description": "ستُرسل جميع تحديثاتنا إلى خطاف الويب هذا في Slack.",
       "workspaceName": "اسم مساحة عمل Slack",
       "workspaceNameDescription": "أدخل اسم مساحة عمل Slack للتحقق.",
       "workspaceNamePlaceholder": "my-company-workspace",
       "webhookUrl": "عنوان URL لـ Incoming Webhook في Slack",
-      "webhookUrlDescription": "ستُرسل تحديثات صفحة الحالة إلى Webhook هذا الخاص بـ Slack.",
+      "webhookUrlDescription": "ستُرسل تحديثات صفحة الحالة إلى خطاف الويب هذا في Slack.",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "managePrompt": "يُرجى إدخال اسم مساحة عمل Slack التي اشتركت بها",
       "manageDescription": "سنرسل إليك رابط إدارة الاشتراك إلى مساحة العمل هذه."
     },
     "microsoftTeams": {
       "title": "الاشتراك عبر Microsoft Teams",
-      "description": "ستُرسل جميع تحديثاتنا إلى Webhook هذا الخاص بـ Teams.",
+      "description": "ستُرسل جميع تحديثاتنا إلى خطاف الويب هذا في Teams.",
       "workspaceName": "اسم مساحة عمل Microsoft Teams",
       "workspaceNameDescription": "أدخل اسم مساحة عمل Microsoft Teams للتحقق.",
       "workspaceNamePlaceholder": "my-company-workspace",
       "webhookUrl": "عنوان URL لـ Incoming Webhook في Microsoft Teams",
-      "webhookUrlDescription": "ستُرسل تحديثات صفحة الحالة إلى Webhook هذا الخاص بـ Teams.",
+      "webhookUrlDescription": "ستُرسل تحديثات صفحة الحالة إلى خطاف الويب هذا في Teams.",
       "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
       "managePrompt": "يُرجى إدخال اسم مساحة عمل Microsoft Teams التي اشتركت بها",
       "manageDescription": "سنرسل إليك رابط إدارة الاشتراك إلى مساحة العمل هذه."
     },
     "webhook": {
-      "title": "الاشتراك عبر Webhook",
-      "description": "ستُرسل جميع تحديثاتنا كطلبات JSON POST إلى عنوان URL لهذا الـ Webhook.",
-      "webhookUrl": "عنوان URL للـ Webhook",
+      "title": "الاشتراك عبر خطاف الويب",
+      "description": "ستُرسل جميع تحديثاتنا كطلبات JSON POST إلى عنوان URL لخطاف الويب هذا.",
+      "webhookUrl": "عنوان URL لخطاف الويب",
       "webhookUrlDescription": "سيُرسل طلب JSON POST إلى عنوان URL هذا عند كل حدث في صفحة الحالة.",
       "webhookUrlPlaceholder": "https://example.com/webhook"
     },
@@ -399,7 +399,7 @@
     "majorIncident": "حادثة كبرى",
     "minorIncident": "حادثة طفيفة",
     "operational": "يعمل بشكل طبيعي",
-    "degraded": "متراجع",
+    "degraded": "متدهور",
     "offline": "غير متصل",
     "scheduled": "مجدول",
     "ongoing": "جارٍ",

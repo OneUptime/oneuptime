@@ -356,6 +356,116 @@ describe("the Dashboard's most-used words, in Arabic", () => {
     expect(glossary).toContain("| Incident Commander | قائد الحادثة |");
     expect(glossary).toContain("| Grouping rule | قاعدة التجميع |");
   });
+
+  /*
+   * The UI review looked at an incident, an alert and both kinds of episode
+   * in Arabic: these still showed in English - the line under Ask OneUptime
+   * AI and its keyboard hint, the video call card, the sentence saying how
+   * the monitor's criteria matched, the roles card's counts, the episode's
+   * header facts and the card listing its incidents, and the alert's own
+   * versions of what the incident page already said in Arabic.
+   */
+  test("what the incident, alert and episode pages still showed in English is Arabic", () => {
+    const expected: Record<string, string> = {
+      "Ask a follow-up question, or ask it to act.":
+        "اطرح سؤال متابعة، أو اطلب منه اتخاذ إجراء.",
+      "Everyone on this incident sees this conversation.":
+        "يرى هذه المحادثة كل من يعمل على هذه الحادثة.",
+      "Everyone on this alert sees this conversation.":
+        "يرى هذه المحادثة كل من يعمل على هذا التنبيه.",
+      "{{enter}} to send · {{shiftEnter}} for a new line":
+        "{{enter}} للإرسال · {{shiftEnter}} لسطر جديد",
+      "OneUptime AI has not tried to fix this alert.":
+        "لم يحاول OneUptime AI إصلاح هذا التنبيه.",
+      "Where this alert's responders talk it through.":
+        "حيث يناقش المستجيبون لهذا التنبيه ما يجري.",
+      "Your team's measurements, worked out for this alert.":
+        "قياسات فريقك، محسوبة لهذا التنبيه.",
+      "{{criteria}} matched when all of its filters did.":
+        "تطابق المعيار {{criteria}} عندما تطابقت كل عوامل التصفية فيه.",
+      "{{count}} members assigned": "الأعضاء المعيّنون: {{count}}",
+      "{{count}} members assigned_one": "{{count}} عضو معيّن",
+      "The last {{count}} minutes, {{type}}":
+        "الدقائق الـ{{count}} الماضية، {{type}}",
+      "Last incident added": "آخر حادثة أُضيفت",
+      Grouping: "التجميع",
+      "View all {{itemsName}}": "عرض كل {{itemsName}}",
+      incidents: "الحوادث",
+      alerts: "التنبيهات",
+      "Response Status Code": "رمز حالة الاستجابة",
+    };
+
+    for (const [key, word] of Object.entries(expected)) {
+      expect([key, english[key]]).not.toEqual([key, undefined]);
+      expect([key, arabic[key]]).toEqual([key, word]);
+    }
+
+    /*
+     * The video call card's sentence names its event through a placeholder
+     * ("incident" or "alert"), so it is named after a fixed noun and keeps
+     * the placeholder, as Locales/ARABIC.md asks.
+     */
+    expect(
+      arabic[
+        "Start a dedicated call so the {{eventNoun}}'s responders can talk it through."
+      ],
+    ).toContain("هذا الحدث ({{eventNoun}})");
+  });
+
+  /*
+   * Degraded is a service that still works, but worse: متدهور, the word
+   * Arabic status pages and monitoring tools use. متراجع ("receding") read
+   * as a trend, not a state. It is the same word on the status page, in the
+   * Dashboard and in the server's messages.
+   */
+  test("Degraded is متدهور everywhere OneUptime names the state", () => {
+    const statusPage: LocaleTree = readLocale("StatusPage", "ar");
+
+    expect(
+      ((statusPage["statusNames"] as LocaleTree)["degraded"] as string) || "",
+    ).toBe("متدهور");
+    expect(arabic["Degraded"]).toBe("متدهور");
+    expect(readLocale("Server", "ar")["Degraded"]).toBe("متدهور");
+
+    const receding: Array<string> = [];
+
+    for (const app of APPS) {
+      for (const [key, text] of leaves(readLocale(app, "ar"))) {
+        if (text.includes("متراجع")) {
+          receding.push(`${app}: ${key}`);
+        }
+      }
+    }
+
+    expect(receding).toEqual([]);
+
+    const glossary: string = fs.readFileSync(
+      path.join(PACKAGES, LOCALE_DIRS["Dashboard"] as string, "ARABIC.md"),
+      "utf8",
+    );
+
+    expect(glossary).toContain(
+      "| Operational / Degraded / Offline | يعمل بشكل طبيعي / متدهور / غير متصل |",
+    );
+  });
+
+  /*
+   * "Code" is OneUptime's Code product (a tab of Home's Explore OneUptime
+   * card, a menu item) and the Markdown toolbar's code button: never الرمز,
+   * which is a symbol or a token.
+   */
+  test("Code is التعليمات البرمجية, never a symbol", () => {
+    const navbar: LocaleTree = arabic["navbar"] as LocaleTree;
+
+    expect(arabic["Code"]).toBe("التعليمات البرمجية");
+    expect((navbar["categories"] as LocaleTree)["code"]).toBe(
+      "التعليمات البرمجية",
+    );
+    expect((navbar["items"] as LocaleTree)["codeTitle"]).toBe(
+      "التعليمات البرمجية",
+    );
+    expect(readLocale("Accounts", "ar")["Code"]).toBe("التعليمات البرمجية");
+  });
 });
 
 describe("the status page's uptime bars, in Arabic", () => {

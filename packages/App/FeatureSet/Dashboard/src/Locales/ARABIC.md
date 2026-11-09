@@ -43,6 +43,12 @@ A noun that arrives in a placeholder (`{{resourceName}}`, `{{noun}}`) is
 named after a fixed noun, `هذا المورد ({{resourceName}})`, so no adjective
 has to agree with a word it cannot see.
 
+A plural noun in a placeholder (`{{itemsName}}`) arrives with its article
+(`incidents` is `الحوادث`), so the sentence around it is worded for one:
+`عرض كل {{itemsName}}`, `تعذّر تحديث {{itemsName}}`, and
+`لا شيء من {{itemsName}} في هذه الحلقة بعد` rather than `لا توجد {{itemsName}}`,
+which wants a noun without one.
+
 ## Digits and the calendar
 
 Arabic in OneUptime writes Latin digits (0-9) and the Gregorian calendar, as
@@ -119,6 +125,15 @@ font is fetched from another site). Latin text keeps Inter.
 | Suppressed (alerts) | مكتومة |
 | Re-investigation cooldown | فترة التهدئة قبل إعادة التحقيق |
 | Measurement | القياس |
+| Criteria (a monitor's) | المعيار (المعايير) |
+| Filters (of a criteria, a list) | عوامل التصفية |
+| Matched / Did not match | مطابق / غير مطابق |
+| Investigation (AI) | التحقيق |
+| Remediation | المعالجة |
+| Verdict | الحكم |
+| Tokens (AI) | الرموز |
+| Responders | المستجيبون |
+| Feed (an incident's, an alert's) | الموجز |
 | Incident Commander | قائد الحادثة |
 | Call transcript | النص المكتوب للمكالمة |
 | Ingestion key | مفتاح الاستيعاب |
@@ -135,9 +150,11 @@ font is fetched from another site). Latin text keeps Inter.
 | Storage array | مصفوفة التخزين |
 | Data store | مخزن البيانات |
 | Merge request / Pull request | طلب دمج / طلب سحب |
-| Operational / Degraded / Offline | يعمل بشكل طبيعي / متراجع / غير متصل |
+| Operational / Degraded / Offline | يعمل بشكل طبيعي / متدهور / غير متصل |
 | Turn on / Turn off | تفعيل / إيقاف |
 | Webhook (in a sentence) | خطاف الويب |
+| Code (the product, a code block) | التعليمات البرمجية |
+| Huddle (Slack's) | huddle |
 
 Kept in Latin letters: product, vendor and protocol names, plan names, the
 default teams Owners, Admin and Members, and units such as `ms` and `GB`.

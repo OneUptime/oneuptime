@@ -17,6 +17,11 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import React, {
@@ -195,6 +200,10 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
         {items.map((event: ScheduledMaintenance): ReactElement => {
           const id: string = event._id?.toString() || "";
           const startsAt: Date | undefined = toDate(event.startsAt);
+          const titleDirection: ReadingDirection | undefined = getLineDirection(
+            event.title,
+            translator.language,
+          );
 
           return (
             <li key={id}>
@@ -240,7 +249,19 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
                     )}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-gray-900">
+                    {/*
+                     * Cut short at its own end: an English title on an
+                     * Arabic page loses its end, not its start
+                     * (LineDirection).
+                     */}
+                    <span
+                      className={`block truncate text-sm font-medium text-gray-900${
+                        titleDirection
+                          ? ` ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                          : ""
+                      }`}
+                      dir={titleDirection}
+                    >
                       {event.title || translator.translateText("Untitled")}
                     </span>
                     {startsAt ? (

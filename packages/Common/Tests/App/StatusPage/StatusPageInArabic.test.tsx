@@ -179,7 +179,8 @@ describe("a status page read in Arabic", () => {
       majorIncident: ARABIC["statusNames.majorIncident"],
     }).toEqual({
       operational: "يعمل بشكل طبيعي",
-      degraded: "متراجع",
+      // Degraded is the word for a service that works, but worse (Locales/ARABIC.md).
+      degraded: "متدهور",
       offline: "غير متصل",
       identified: "تم التحديد",
       acknowledged: "تم الإقرار",
@@ -216,6 +217,50 @@ describe("a status page read in Arabic", () => {
       .sort();
 
     expect(sameAsEnglish).toEqual(SAME_AS_ENGLISH);
+  });
+
+  /*
+   * The subscribe page's webhook sentences said "Webhook" in Latin letters
+   * ("إلى Webhook هذا الخاص بـ Slack") while its own menu said
+   * "خطافات الويب": a webhook in a sentence is خطاف الويب, as the glossary
+   * says. Slack's and Teams' own feature name, "Incoming Webhook", and the
+   * example addresses keep their Latin letters.
+   */
+  test("a webhook in a sentence is خطاف الويب, as the subscribe menu says", () => {
+    const webhook: RegExp = /webhook/i;
+    const sentences: Array<string> = Object.keys(ENGLISH).filter(
+      (path: string): boolean => {
+        const english: string = ENGLISH[path] as string;
+
+        return (
+          webhook.test(english) &&
+          !english.includes("Incoming Webhook") &&
+          !path.endsWith("Placeholder")
+        );
+      },
+    );
+
+    // The title, the address label, the menu, the channel and the four sentences.
+    expect(sentences.length).toBeGreaterThanOrEqual(8);
+
+    for (const path of sentences) {
+      const arabic: string = ARABIC[path] as string;
+
+      expect([path, webhook.test(arabic)]).toEqual([path, false]);
+      expect([path, arabic.includes("خطاف")]).toEqual([path, true]);
+    }
+
+    expect(ARABIC["subscribe.webhook.title"]).toBe("الاشتراك عبر خطاف الويب");
+    expect(ARABIC["subscribe.slack.description"]).toBe(
+      "ستُرسل جميع تحديثاتنا إلى خطاف الويب هذا في Slack.",
+    );
+  });
+
+  test("a visitor's search is quoted the Arabic way", () => {
+    expect(ENGLISH["search.noResultsDescription"]).toContain('"{{query}}"');
+    expect(ARABIC["search.noResultsDescription"]).toBe(
+      "لا شيء في هذه الصفحة يطابق «{{query}}». جرّب بحثًا أقصر.",
+    );
   });
 
   test("a question ends in the Arabic question mark", () => {
