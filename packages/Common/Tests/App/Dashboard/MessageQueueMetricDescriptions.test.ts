@@ -26,7 +26,13 @@ import {
  *   - the p95 tile is ONE percentile over the window (AggregationInterval
  *     .Total), the chart one per interval — and each says which;
  *   - the count chart draws whole intervals only;
- *   - each text sits beside the tile, chart or card it explains.
+ *   - each text sits beside the tile, chart or card it explains — a tile
+ *     that reads the broker's counts instead of spans
+ *     (MessageQueueOverviewFigures) says which metrics it reads, and the
+ *     Messages chart then has a text of its own: messagesChartBroker beside
+ *     a line of spans, where a line marked broker metrics is the broker's,
+ *     and messagesChartBrokerOnly when every line is the broker's, which
+ *     the lines' names then do not say.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -87,6 +93,11 @@ const BROKER_HEALTH: string = readSquashed(
   "MessageQueue",
   "MessageQueueBrokerHealthSection.tsx",
 );
+const FIGURES: string = readSquashed(
+  "Components",
+  "MessageQueue",
+  "MessageQueueOverviewFigures.ts",
+);
 
 const TEXT: Record<MessageQueueMetric, string> =
   MESSAGE_QUEUE_METRIC_DESCRIPTIONS;
@@ -144,16 +155,33 @@ describe("the queue Overview's descriptions", () => {
       const start: number = tiles.indexOf(`title: "${title}",`);
       const next: number = tiles.indexOf("title:", start + 1);
       const tile: string = tiles.slice(start, next === -1 ? undefined : next);
+      if (key === "p95Processing") {
+        // No broker measures it: its text is always the spans' one.
+        expect(tile).toContain(
+          `description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.${key},`,
+        );
+        continue;
+      }
+      /*
+       * The spans' text, or — when the tile reads the broker's counts —
+       * the words naming the metrics it reads.
+       */
+      expect(tile).toContain(`: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.${key},`);
       expect(tile).toContain(
-        `description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.${key},`,
+        "? getMessageQueueBrokerFigureDescription( figures.",
       );
     }
   });
 
   test("each chart and card carries its own text", () => {
     expect(between(OVERVIEW, 'title="Messages"', "/>")).toContain(
-      "description={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChart}",
+      'description={ messagesChart.sources === "broker" ? MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChartBrokerOnly : messagesChart.sources === "mixed" ? MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChartBroker : MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChart }',
     );
+    // The lines and their names come from where the text is picked.
+    expect(between(OVERVIEW, 'title="Messages"', "/>")).toContain(
+      "series={messagesChart.lines as Array<SeriesPoint>}",
+    );
+    expect(OVERVIEW).toContain("= getMessageQueueMessagesChart(figures);");
     expect(between(OVERVIEW, 'title="p95 processing time"', "/>")).toContain(
       "description={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.p95ProcessingChart}",
     );
@@ -260,6 +288,12 @@ describe("the queue Overview's descriptions", () => {
 
   test("the count chart draws whole intervals only, and says so", () => {
     expect(TEXT.messagesChart).toContain("Only whole intervals are drawn");
+    expect(TEXT.messagesChartBroker).toContain(
+      "Only whole intervals are drawn",
+    );
+    expect(TEXT.messagesChartBrokerOnly).toContain(
+      "Only whole intervals are drawn",
+    );
     expect(QUERIES).toContain(
       "publishedSeries: getCompleteBucketSeries(publishedSeries, window)",
     );
@@ -268,6 +302,44 @@ describe("the queue Overview's descriptions", () => {
     );
     expect(QUERIES).toContain(
       "errorSeries: getCompleteBucketSeries(tiles.errorSeries, window)",
+    );
+  });
+
+  test("a tile that reads the broker's counts says so, and which it reads", () => {
+    // The chart's text, beside a line the broker draws.
+    expect(TEXT.messagesChartBroker).toContain(
+      "A line marked broker metrics is the broker's own count",
+    );
+    expect(FIGURES).toContain(
+      'broker: translationKey("Published (broker metrics)"),',
+    );
+    /*
+     * Every line the broker's: its names are plain, so the text says whose
+     * counts they all are — and that no traced application is why.
+     */
+    expect(TEXT.messagesChartBrokerOnly).toContain(
+      "all from the broker's own counts",
+    );
+    expect(TEXT.messagesChartBrokerOnly).toContain(
+      "no traced application publishes to it or consumes from it",
+    );
+    expect(TEXT.messagesChartBrokerOnly).not.toContain("marked");
+    expect(FIGURES).toContain(
+      "seriesName: isMixed ? line.names[line.figure.source] : line.names.spans,",
+    );
+    // Published reads messages in, Consumed messages out, Errors failures.
+    expect(FIGURES).toContain(
+      "Messages {{system}} counted coming in to this queue in the selected range ({{metrics}}).",
+    );
+    expect(FIGURES).toContain(
+      "Messages {{system}} counted going out of this queue in the selected range ({{metrics}}).",
+    );
+    expect(FIGURES).toContain(
+      "Failures {{system}} counted on this queue in the selected range, added up ({{metrics}}).",
+    );
+    // Spans win: a figure is the broker's only when its side has none.
+    expect(FIGURES).toContain(
+      "if (spanCount > 0) { return spanFigure(spanCount, spanSeries); }",
     );
   });
 
