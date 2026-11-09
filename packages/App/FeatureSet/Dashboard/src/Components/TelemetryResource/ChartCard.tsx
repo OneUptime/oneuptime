@@ -87,6 +87,14 @@ export interface ChartCardProps {
   // What the chart plots, shown in an (i) tooltip beside the title.
   description?: string | undefined;
   /*
+   * What the empty box says instead of "No data in this time range" when
+   * the page knows why the chart is empty ("Needs consumer traces"): an
+   * English literal the card draws in the reader's language.
+   */
+  emptyMessage?: string | undefined;
+  // A link or a line drawn under it: where to read what fills the chart.
+  emptyAction?: ReactElement | undefined;
+  /*
    * Moments to mark on the chart - an app's deploys - as the metric charts
    * mark incidents and changes: a hairline through the plot, its words in
    * the chip above it.
@@ -177,6 +185,10 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
   }
 
   if (!hasData) {
+    const emptyMessage: string = props.emptyMessage
+      ? translator.translateText(props.emptyMessage) || props.emptyMessage
+      : translator.translateText("No data in this time range") ||
+        "No data in this time range";
     /*
      * A zoom into a quiet stretch lands here, with no chart to
      * double-click. The empty plot area takes the double-click instead, so
@@ -195,8 +207,20 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
           }`}
           onDoubleClick={emptyStateReset}
         >
-          {/* Every page's empty chart, in the reader's language. */}
-          {translator.translateText("No data in this time range")}
+          {/*
+           * Every page's empty chart, in the reader's language - or what the
+           * page says fills it, with where to read how. Balanced, so a label
+           * that needs two lines splits evenly and never leaves its arrow on
+           * a line of its own.
+           */}
+          {props.emptyAction ? (
+            <div className="flex flex-col items-center gap-2 px-4 text-center text-balance">
+              <span>{emptyMessage}</span>
+              {props.emptyAction}
+            </div>
+          ) : (
+            emptyMessage
+          )}
         </div>
       </div>
     );
