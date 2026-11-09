@@ -265,10 +265,13 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      changes.set(`${step.projectId.toString().toLowerCase()}|${step.eventType}`, {
-        projectId: step.projectId,
-        eventType: step.eventType,
-      });
+      changes.set(
+        `${step.projectId.toString().toLowerCase()}|${step.eventType}`,
+        {
+          projectId: step.projectId,
+          eventType: step.eventType,
+        },
+      );
     }
 
     return Array.from(changes.values());

@@ -104,7 +104,15 @@ export const EVE: string = "e5e5e5e5-0000-4000-8000-000000000005";
 export const FRANK: string = "f6f6f6f6-0000-4000-8000-000000000006";
 export const GRACE: string = "a7a7a7a7-0000-4000-8000-000000000007";
 
-export const PEOPLE: Array<string> = [ALICE, BOB, CAROL, DAVE, EVE, FRANK, GRACE];
+export const PEOPLE: Array<string> = [
+  ALICE,
+  BOB,
+  CAROL,
+  DAVE,
+  EVE,
+  FRANK,
+  GRACE,
+];
 
 export const NAMES: Record<string, string> = {
   [ALICE]: "Alice",
@@ -555,8 +563,9 @@ const MODEL_TYPES: Record<PublicNoteKind, { new (): BaseModel }> = {
   [PublicNoteKind.ScheduledMaintenance]: ScheduledMaintenancePublicNote,
 };
 
-const hosts: Partial<Record<PublicNoteKind, PublicNoteApprovalHost<BaseModel>>> =
-  {};
+const hosts: Partial<
+  Record<PublicNoteKind, PublicNoteApprovalHost<BaseModel>>
+> = {};
 
 export function host(kind: PublicNoteKind): PublicNoteApprovalHost<BaseModel> {
   if (!hosts[kind]) {
@@ -655,7 +664,9 @@ function valueOf(
   return null;
 }
 
-function titlesOf(blocks: Array<WorkspaceMessageBlock> | undefined): Array<string> {
+function titlesOf(
+  blocks: Array<WorkspaceMessageBlock> | undefined,
+): Array<string> {
   return buttonsOf(blocks).map((button: WorkspaceMessagePayloadButton) => {
     return button.title;
   });
@@ -803,16 +814,17 @@ export const LEGAL_ID: string = "5e000000-0000-4000-8000-0000000000a2";
 export const MAINTENANCE_ID: string = "5e000000-0000-4000-8000-0000000000b1";
 
 function installWorld(): void {
-  getJestSpyOn(PublicNoteApproverChanges, "getHost").mockImplementation(
-    ((kind: PublicNoteKind) => {
-      return host(kind);
-    }) as never,
-  );
-  getJestSpyOn(WorkspacePublicNoteApprovalActions, "getHost").mockImplementation(
-    ((kind: PublicNoteKind) => {
-      return host(kind);
-    }) as never,
-  );
+  getJestSpyOn(PublicNoteApproverChanges, "getHost").mockImplementation(((
+    kind: PublicNoteKind,
+  ) => {
+    return host(kind);
+  }) as never);
+  getJestSpyOn(
+    WorkspacePublicNoteApprovalActions,
+    "getHost",
+  ).mockImplementation(((kind: PublicNoteKind) => {
+    return host(kind);
+  }) as never);
 
   getJestSpyOn(PublicNoteApprovalPolicy, "getSteps").mockImplementation(
     (async (data: {
@@ -1059,7 +1071,8 @@ function installWorld(): void {
         );
       })
       .map((request: StoredRequest): PublicNoteApprovalRequest => {
-        const model: PublicNoteApprovalRequest = new PublicNoteApprovalRequest();
+        const model: PublicNoteApprovalRequest =
+          new PublicNoteApprovalRequest();
         model.userId = new ObjectID(request.userId);
         model.kind = request.kind as never;
         model.isFinal = request.isFinal;
@@ -1173,36 +1186,37 @@ function installWorld(): void {
     } as unknown as WorkspaceProjectAuthToken;
   }) as never);
 
-  for (const [workspaceType, util] of [
-    [WorkspaceType.Slack, SlackUtil],
-    [WorkspaceType.MicrosoftTeams, MicrosoftTeamsUtil],
-    [WorkspaceType.Mattermost, MattermostUtil],
-  ] as Array<[WorkspaceType, unknown]>) {
-    getJestSpyOn(util, "updateMessage").mockImplementation((async (data: {
-      location: WorkspaceMessageLocation;
-      messageId: string;
-      messageBlocks: Array<WorkspaceMessageBlock>;
-    }) => {
-      world.replaced.push({
-        workspaceType: workspaceType,
-        messageId: data.messageId,
-        markdown: data.messageBlocks
-          .filter((block: WorkspaceMessageBlock): boolean => {
-            return block._type === "WorkspacePayloadMarkdown";
-          })
-          .map((block: WorkspaceMessageBlock): string => {
-            return (block as WorkspacePayloadMarkdown).text;
-          })
-          .join("\n\n"),
-        buttonTitles: titlesOf(data.messageBlocks),
-      });
-    }) as never);
-  }
+  installChatEdits(WorkspaceType.Slack, SlackUtil);
+  installChatEdits(WorkspaceType.MicrosoftTeams, MicrosoftTeamsUtil);
+  installChatEdits(WorkspaceType.Mattermost, MattermostUtil);
 
   getJestSpyOn(
     WorkspaceNotificationLogService,
     "logButtonPressed",
   ).mockResolvedValue({} as never);
+}
+
+// One chat's edit of a message it holds: recorded as the copy's new words.
+function installChatEdits(workspaceType: WorkspaceType, util: unknown): void {
+  getJestSpyOn(util, "updateMessage").mockImplementation((async (data: {
+    location: WorkspaceMessageLocation;
+    messageId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+  }) => {
+    world.replaced.push({
+      workspaceType: workspaceType,
+      messageId: data.messageId,
+      markdown: data.messageBlocks
+        .filter((block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadMarkdown";
+        })
+        .map((block: WorkspaceMessageBlock): string => {
+          return (block as WorkspacePayloadMarkdown).text;
+        })
+        .join("\n\n"),
+      buttonTitles: titlesOf(data.messageBlocks),
+    });
+  }) as never);
 }
 
 /*
@@ -1265,7 +1279,8 @@ export async function decide(
     noteId: new ObjectID(note._id),
     decision: decision,
     props: { userId: new ObjectID(userId), tenantId: note.projectId },
-    text: decision === PublicNoteApprovalDecision.Reject ? "Not yet." : undefined,
+    text:
+      decision === PublicNoteApprovalDecision.Reject ? "Not yet." : undefined,
   });
 }
 
@@ -1285,7 +1300,8 @@ interface StepHooks {
 }
 
 export function stepHooks(): StepHooks {
-  const service: StepHooks = PublicNoteApprovalStepService as unknown as StepHooks;
+  const service: StepHooks =
+    PublicNoteApprovalStepService as unknown as StepHooks;
 
   return {
     onCreateSuccess: service.onCreateSuccess.bind(service),
@@ -1307,7 +1323,9 @@ export async function writeSteps(data: {
   eventType?: PublicNoteApprovalEventType;
   projectId?: ObjectID;
   stepId: string;
-  write: (steps: Array<PublicNoteApprovalStepRule>) => Array<PublicNoteApprovalStepRule>;
+  write: (
+    steps: Array<PublicNoteApprovalStepRule>,
+  ) => Array<PublicNoteApprovalStepRule>;
 }): Promise<void> {
   const eventType: PublicNoteApprovalEventType =
     data.eventType || PublicNoteApprovalEventType.Incident;
@@ -1441,8 +1459,9 @@ export function keptCopies(note?: WorldNote): Array<string> {
       return (
         !note ||
         String(
-          (kept as unknown as Record<string, unknown>)[NOTE_COLUMNS[note.kind]] ||
-            "",
+          (kept as unknown as Record<string, unknown>)[
+            NOTE_COLUMNS[note.kind]
+          ] || "",
         ) === note._id
       );
     })

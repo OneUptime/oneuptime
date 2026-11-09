@@ -20,7 +20,11 @@ import PublicNoteApproval, {
   PublicNoteApprovalStepRule,
 } from "../../../../Types/StatusPage/PublicNoteApproval";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
-import { SeededRandom, seededRandom, shuffled } from "../../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../../Helpers/SeededRandom";
 import {
   ALICE,
   BOB,
@@ -138,7 +142,11 @@ function oraclePosition(
     };
   }
 
-  return { stepId: left[0]!.id, isFinal: left.length === 1, isAskedAgain: false };
+  return {
+    stepId: left[0]!.id,
+    isFinal: left.length === 1,
+    isAskedAgain: false,
+  };
 }
 
 function oracleAsked(
@@ -256,9 +264,12 @@ function check(seed: number, move: string): void {
         );
       }).length;
 
-      expect({ where, userId, note: current._id, notified: notified > 0 }).toEqual(
-        { where, userId, note: current._id, notified: true },
-      );
+      expect({
+        where,
+        userId,
+        note: current._id,
+        notified: notified > 0,
+      }).toEqual({ where, userId, note: current._id, notified: true });
 
       // 2. One message that asks what is true, in each of their chats.
       for (const workspaceType of world.chatAccounts[userId] || []) {
@@ -277,14 +288,21 @@ function check(seed: number, move: string): void {
           workspaceType,
           note: current._id,
           live: theirs.map((kept: WorkspacePublicNoteApprovalMessage) => {
-            return [kept.submittedAt, kept.stepId, kept.isFinal, kept.textDigest];
+            return [
+              kept.submittedAt,
+              kept.stepId,
+              kept.isFinal,
+              kept.textDigest,
+            ];
           }),
         }).toEqual({
           where,
           userId,
           workspaceType,
           note: current._id,
-          live: [[round.submittedAt, position!.stepId, position!.isFinal, digest]],
+          live: [
+            [round.submittedAt, position!.stepId, position!.isFinal, digest],
+          ],
         });
       }
     }
@@ -324,9 +342,11 @@ function check(seed: number, move: string): void {
     )!;
 
     // 5. The sender of the round is never asked about it.
-    expect({ where, asked: sent.userId, sender: sentRound?.submittedByUserId !== sent.userId }).toEqual(
-      { where, asked: sent.userId, sender: true },
-    );
+    expect({
+      where,
+      asked: sent.userId,
+      sender: sentRound?.submittedByUserId !== sent.userId,
+    }).toEqual({ where, asked: sent.userId, sender: true });
 
     if (sent.channels !== UserNotificationChannels.ChatOnly) {
       const key: string = `${sent.noteId}|${sent.value.submittedAt}|${sent.value.stepId}|${sent.userId}`;
@@ -335,7 +355,11 @@ function check(seed: number, move: string): void {
   }
 
   for (const [key, count] of notifiedBy.entries()) {
-    const [noteId, submittedAt, stepId] = key.split("|") as [string, string, string];
+    const [noteId, submittedAt, stepId] = key.split("|") as [
+      string,
+      string,
+      string,
+    ];
     const seen: Set<string> = positionsSeen.get(noteId) || new Set<string>();
     const allowed: number =
       (seen.has(`${submittedAt}|${stepId}|false`) ? 1 : 0) +
@@ -352,7 +376,13 @@ function check(seed: number, move: string): void {
   // 5. Nobody is asked about a step after approving another step of the round.
   for (const asked of askedAt) {
     const approvedBefore: boolean = approvedAt.some(
-      (approval: { noteId: string; submittedAt: string; stepId: string; userId: string; clock: number }) => {
+      (approval: {
+        noteId: string;
+        submittedAt: string;
+        stepId: string;
+        userId: string;
+        clock: number;
+      }) => {
         return (
           approval.noteId === asked.noteId &&
           approval.submittedAt === asked.submittedAt &&
@@ -442,7 +472,12 @@ function recordApprovals(): void {
 
     for (const given of round?.approvals || []) {
       const known: boolean = approvedAt.some(
-        (approval: { noteId: string; submittedAt: string; stepId: string; userId: string }) => {
+        (approval: {
+          noteId: string;
+          submittedAt: string;
+          stepId: string;
+          userId: string;
+        }) => {
           return (
             approval.noteId === note._id &&
             approval.submittedAt === round!.submittedAt &&
@@ -578,7 +613,10 @@ function stepMove(random: SeededRandom): Move {
                 return {
                   ...rule,
                   teamIds: teams,
-                  userIds: teams.length === 0 && rule.userIds.length === 0 ? people : rule.userIds,
+                  userIds:
+                    teams.length === 0 && rule.userIds.length === 0
+                      ? people
+                      : rule.userIds,
                 };
             }
           });
@@ -810,9 +848,11 @@ async function play(seed: number, moves: number): Promise<void> {
 
     check(
       seed,
-      `move ${index + 1}: ${played.map((move: Move) => {
-        return move.name;
-      }).join(" + ")}`,
+      `move ${index + 1}: ${played
+        .map((move: Move) => {
+          return move.name;
+        })
+        .join(" + ")}`,
     );
   }
 
@@ -864,11 +904,28 @@ beforeEach(() => {
   });
 
   setSteps(PublicNoteApprovalEventType.Incident, [
-    step({ id: "5e000000-0000-4000-8000-0000000000a1", name: "Support", order: 1, userIds: [BOB, DAVE] }),
-    step({ id: "5e000000-0000-4000-8000-0000000000a2", name: "Legal", order: 2, userIds: [CAROL], teamIds: [LEGAL_TEAM] }),
+    step({
+      id: "5e000000-0000-4000-8000-0000000000a1",
+      name: "Support",
+      order: 1,
+      userIds: [BOB, DAVE],
+    }),
+    step({
+      id: "5e000000-0000-4000-8000-0000000000a2",
+      name: "Legal",
+      order: 2,
+      userIds: [CAROL],
+      teamIds: [LEGAL_TEAM],
+    }),
   ]);
   setSteps(PublicNoteApprovalEventType.ScheduledMaintenance, [
-    step({ id: "5e000000-0000-4000-8000-0000000000b1", name: "Maintenance", order: 1, userIds: [EVE], teamIds: [PLATFORM] }),
+    step({
+      id: "5e000000-0000-4000-8000-0000000000b1",
+      name: "Maintenance",
+      order: 1,
+      userIds: [EVE],
+      teamIds: [PLATFORM],
+    }),
   ]);
 });
 
@@ -903,11 +960,17 @@ describe("PublicNoteApproverChanges: random interleavings against an oracle", ()
     }
   });
 
-  const SEEDS: Array<number> = Array.from({ length: 30 }, (_: unknown, index: number) => {
-    return 6353 + index * 97;
-  });
+  const SEEDS: Array<number> = Array.from(
+    { length: 30 },
+    (_: unknown, index: number) => {
+      return 6353 + index * 97;
+    },
+  );
 
-  test.each(SEEDS)("seed %i: asks everyone the step asks, once, and no one else", async (seed: number) => {
-    await play(seed, 30);
-  });
+  test.each(SEEDS)(
+    "seed %i: asks everyone the step asks, once, and no one else",
+    async (seed: number) => {
+      await play(seed, 30);
+    },
+  );
 });

@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import URL from "../../../Types/API/URL";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
@@ -104,22 +111,30 @@ beforeEach(() => {
     .mockResolvedValue(undefined as never);
   jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
-    .mockResolvedValue(URL.fromString("https://oneuptime.example/dashboard") as never);
+    .mockResolvedValue(
+      URL.fromString("https://oneuptime.example/dashboard") as never,
+    );
 
   jest
     .spyOn(UserEmailService, "findBy")
     .mockResolvedValue([{ email: "bob@example.com" }] as never);
-  jest.spyOn(UserSmsService, "findBy").mockResolvedValue([{ phone: "+1555" }] as never);
+  jest
+    .spyOn(UserSmsService, "findBy")
+    .mockResolvedValue([{ phone: "+1555" }] as never);
   jest
     .spyOn(UserWhatsAppService, "findBy")
     .mockResolvedValue([{ phone: "+1555" }] as never);
   jest
     .spyOn(UserTelegramService, "findBy")
     .mockResolvedValue([{ telegramChatId: "42" }] as never);
-  jest.spyOn(UserCallService, "findBy").mockResolvedValue([{ phone: "+1555" }] as never);
+  jest
+    .spyOn(UserCallService, "findBy")
+    .mockResolvedValue([{ phone: "+1555" }] as never);
   jest
     .spyOn(UserWebhookService, "findBy")
-    .mockResolvedValue([{ webhookUrl: "https://hooks.example", name: "Mine" }] as never);
+    .mockResolvedValue([
+      { webhookUrl: "https://hooks.example", name: "Mine" },
+    ] as never);
   jest
     .spyOn(UserSlackService, "findBy")
     .mockResolvedValue([{ slackUserId: "U0BOB" }] as never);
@@ -130,9 +145,11 @@ beforeEach(() => {
     .spyOn(UserMattermostService, "findBy")
     .mockResolvedValue([{ mattermostUserId: "m".repeat(26) }] as never);
 
-  jest.spyOn(EmailRollupWriter, "sendOrRollup").mockImplementation((async () => {
-    reached.push("email");
-  }) as never);
+  jest
+    .spyOn(EmailRollupWriter, "sendOrRollup")
+    .mockImplementation((async () => {
+      reached.push("email");
+    }) as never);
   jest.spyOn(SmsService, "sendSms").mockImplementation((async () => {
     reached.push("sms");
   }) as never);

@@ -224,11 +224,14 @@ describe("executing it", () => {
 
 describe("the table it makes", () => {
   test("its unique index is the model's: every request is written once", () => {
-    const indexes: Array<IndexMetadataArgs> = getMetadataArgsStorage().indices.filter(
-      (index: IndexMetadataArgs): boolean => {
-        return index.target === PublicNoteApprovalRequest && Boolean(index.unique);
-      },
-    );
+    const indexes: Array<IndexMetadataArgs> =
+      getMetadataArgsStorage().indices.filter(
+        (index: IndexMetadataArgs): boolean => {
+          return (
+            index.target === PublicNoteApprovalRequest && Boolean(index.unique)
+          );
+        },
+      );
 
     expect(indexes).toHaveLength(1);
     expect(indexes[0]!.columns).toEqual(UNIQUE_COLUMNS);
@@ -238,10 +241,10 @@ describe("the table it makes", () => {
     const create: string = (await statementsOf("up"))[0]!;
 
     for (const column of UNIQUE_COLUMNS) {
-      expect([column, new RegExp(`"${column}" [a-z ()0-9]+ NOT NULL`).test(create)]).toEqual([
+      expect([
         column,
-        true,
-      ]);
+        new RegExp(`"${column}" [a-z ()0-9]+ NOT NULL`).test(create),
+      ]).toEqual([column, true]);
     }
   });
 
@@ -345,7 +348,9 @@ describe("the migration runs", () => {
       MIGRATION_CLASS_NAME,
     );
     expect(
-      AddPublicNoteApprovalRequest1809063180000.name.match(CLASS_TIMESTAMP)?.[1],
+      AddPublicNoteApprovalRequest1809063180000.name.match(
+        CLASS_TIMESTAMP,
+      )?.[1],
     ).toBe(MIGRATION_TIMESTAMP);
   });
 

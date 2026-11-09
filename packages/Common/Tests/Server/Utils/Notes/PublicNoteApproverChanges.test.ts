@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import logger from "../../../../Server/Utils/Logger";
 import { PublicNoteKind } from "../../../../Server/Utils/Notes/PublicNoteApprovalEngine";
 import PublicNoteApprovalPolicy from "../../../../Server/Utils/Notes/PublicNoteApprovalPolicy";
@@ -10,7 +17,6 @@ import {
   PublicNoteApprovalStepRule,
 } from "../../../../Types/StatusPage/PublicNoteApproval";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
-import { getJestSpyOn } from "../../../Spy";
 import {
   ALICE,
   BOB,
@@ -50,6 +56,10 @@ import {
   world,
   writeSteps,
 } from "./PublicNoteApproverChangesWorld";
+import type { SpyInstance } from "jest-mock";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySpy = SpyInstance<(...args: Array<any>) => any>;
 
 /*
  * WHEN WHO APPROVES A WAITING PUBLIC NOTE CHANGES, ITS NEW APPROVERS ARE
@@ -237,7 +247,9 @@ describe.each(KINDS)("a waiting note of %s", (kind: PublicNoteKind) => {
       stepId: SUPPORT_ID,
       write: (steps: Array<PublicNoteApprovalStepRule>) => {
         return steps.map((rule: PublicNoteApprovalStepRule) => {
-          return rule.id === SUPPORT_ID ? { ...rule, name: "Front line" } : rule;
+          return rule.id === SUPPORT_ID
+            ? { ...rule, name: "Front line" }
+            : rule;
         });
       },
     });
@@ -520,7 +532,10 @@ describe("only the notes a change is about", () => {
 
     // The step of this project was written; the other project's note waits as it was.
     expect(notified(theirs)).toEqual([]);
-    expect(getSteps(PublicNoteApprovalEventType.Incident, OTHER_PROJECT_ID)[0]!.userIds).toEqual([BOB]);
+    expect(
+      getSteps(PublicNoteApprovalEventType.Incident, OTHER_PROJECT_ID)[0]!
+        .userIds,
+    ).toEqual([BOB]);
   });
 });
 
@@ -612,7 +627,14 @@ describe("team joins and leaves", () => {
     world.teams[PLATFORM] = [FRANK];
     const note: WorldNote = await waitingNote(PublicNoteKind.Incident);
     expect(keptCopies(note)).toEqual(
-      [...CHATS.map((chat: WorkspaceType) => `Bob:${chat}`), ...CHATS.map((chat: WorkspaceType) => `Frank:${chat}`)].sort(),
+      [
+        ...CHATS.map((chat: WorkspaceType) => {
+          return `Bob:${chat}`;
+        }),
+        ...CHATS.map((chat: WorkspaceType) => {
+          return `Frank:${chat}`;
+        }),
+      ].sort(),
     );
     forgetWhatWasSent();
 
@@ -620,12 +642,23 @@ describe("team joins and leaves", () => {
     await settled();
 
     expect(keptCopies(note)).toEqual(
-      CHATS.map((chat: WorkspaceType) => `Bob:${chat}`).sort(),
+      CHATS.map((chat: WorkspaceType) => {
+        return `Bob:${chat}`;
+      }).sort(),
     );
-    const replaced: Array<{ who: string; markdown: string; buttonTitles: Array<string> }> =
-      replacedCopies(note);
-    expect(replaced.map((copy: { who: string }) => copy.who)).toEqual(
-      CHATS.map((chat: WorkspaceType) => `Frank:${chat}`).sort(),
+    const replaced: Array<{
+      who: string;
+      markdown: string;
+      buttonTitles: Array<string>;
+    }> = replacedCopies(note);
+    expect(
+      replaced.map((copy: { who: string }) => {
+        return copy.who;
+      }),
+    ).toEqual(
+      CHATS.map((chat: WorkspaceType) => {
+        return `Frank:${chat}`;
+      }).sort(),
     );
 
     for (const copy of replaced) {
@@ -657,7 +690,9 @@ describe("team joins and leaves", () => {
     expect(notified(note)).toEqual([]);
     expect(askedInChatOnly(note)).toEqual(["Frank"]);
     expect(keptCopies(note)).toEqual(
-      CHATS.map((chat: WorkspaceType) => `Frank:${chat}`).sort(),
+      CHATS.map((chat: WorkspaceType) => {
+        return `Frank:${chat}`;
+      }).sort(),
     );
   });
 });
@@ -691,16 +726,19 @@ describe("chat copies about a step a note no longer waits for", () => {
         buttonTitles: Array<string>;
       }> = replacedCopies(note);
 
-      expect(replaced.map((copy: { who: string }) => copy.who)).toEqual([
-        `Bob:${chat}`,
-        `Dave:${chat}`,
-      ]);
+      expect(
+        replaced.map((copy: { who: string }) => {
+          return copy.who;
+        }),
+      ).toEqual([`Bob:${chat}`, `Dave:${chat}`]);
 
       for (const copy of replaced) {
         expect(copy.markdown).toContain(
           "The approval steps of this public note on",
         );
-        expect(copy.markdown).toContain("changed after you were asked about it.");
+        expect(copy.markdown).toContain(
+          "changed after you were asked about it.",
+        );
         expect(copy.markdown).toContain(
           "It waits for step 1 of 2 (Legal): Carol.",
         );
@@ -752,18 +790,24 @@ describe("chat copies about a step a note no longer waits for", () => {
 
     const replaced: Array<{ who: string; markdown: string }> =
       replacedCopies(note);
-    expect(replaced.map((copy: { who: string }) => copy.who)).toEqual(
-      CHATS.map((chat: WorkspaceType) => `Carol:${chat}`).sort(),
+    expect(
+      replaced.map((copy: { who: string }) => {
+        return copy.who;
+      }),
+    ).toEqual(
+      CHATS.map((chat: WorkspaceType) => {
+        return `Carol:${chat}`;
+      }).sort(),
     );
     expect(replaced[0]!.markdown).toContain(
       "It waits for step 2 of 3 (Legal): Carol.",
     );
 
-    const after: Array<{ buttonTitles: Array<string> }> = world.copies.filter(
-      (copy: { userId: string }) => {
+    const after: Array<{ buttonTitles: Array<string> }> = world.copies
+      .filter((copy: { userId: string }) => {
         return copy.userId === CAROL;
-      },
-    ).slice(before.length);
+      })
+      .slice(before.length);
     expect(after).toHaveLength(CHATS.length);
 
     for (const copy of after) {
@@ -772,7 +816,9 @@ describe("chat copies about a step a note no longer waits for", () => {
     }
 
     expect(keptCopies(note)).toEqual(
-      CHATS.map((chat: WorkspaceType) => `Carol:${chat}`).sort(),
+      CHATS.map((chat: WorkspaceType) => {
+        return `Carol:${chat}`;
+      }).sort(),
     );
   });
 
@@ -790,10 +836,19 @@ describe("chat copies about a step a note no longer waits for", () => {
       },
     });
 
-    const replaced: Array<{ who: string; markdown: string; buttonTitles: Array<string> }> =
-      replacedCopies(note);
-    expect(replaced.map((copy: { who: string }) => copy.who)).toEqual(
-      CHATS.map((chat: WorkspaceType) => `Dave:${chat}`).sort(),
+    const replaced: Array<{
+      who: string;
+      markdown: string;
+      buttonTitles: Array<string>;
+    }> = replacedCopies(note);
+    expect(
+      replaced.map((copy: { who: string }) => {
+        return copy.who;
+      }),
+    ).toEqual(
+      CHATS.map((chat: WorkspaceType) => {
+        return `Dave:${chat}`;
+      }).sort(),
     );
     expect(replaced[0]!.markdown).toContain(
       "You are no longer asked to approve this public note on",
@@ -803,7 +858,9 @@ describe("chat copies about a step a note no longer waits for", () => {
     );
     expect(replaced[0]!.buttonTitles).toEqual(["View in OneUptime"]);
     expect(keptCopies(note)).toEqual(
-      CHATS.map((chat: WorkspaceType) => `Bob:${chat}`).sort(),
+      CHATS.map((chat: WorkspaceType) => {
+        return `Bob:${chat}`;
+      }).sort(),
     );
   });
 
@@ -847,7 +904,9 @@ describe("chat copies about a step a note no longer waits for", () => {
       stepId: LEGAL_ID,
       write: (steps: Array<PublicNoteApprovalStepRule>) => {
         return steps.map((rule: PublicNoteApprovalStepRule) => {
-          return rule.id === LEGAL_ID ? { ...rule, name: "Legal review" } : rule;
+          return rule.id === LEGAL_ID
+            ? { ...rule, name: "Legal review" }
+            : rule;
         });
       },
     });
@@ -876,10 +935,10 @@ describe("many waiting notes", () => {
 
     let running: number = 0;
     let mostAtOnce: number = 0;
-    const getSteps: jest.SpyInstance = jest.spyOn(
+    const getSteps: AnySpy = jest.spyOn(
       PublicNoteApprovalPolicy,
       "getSteps",
-    );
+    ) as AnySpy;
     const real: (...args: Array<unknown>) => Promise<unknown> =
       getSteps.getMockImplementation() as never;
     getSteps.mockImplementation((async (...args: Array<unknown>) => {
@@ -936,7 +995,7 @@ describe("many waiting notes", () => {
     let mostAtOnce: number = 0;
     const original: typeof PublicNoteApproverChanges.followUpProject =
       PublicNoteApproverChanges.followUpProject.bind(PublicNoteApproverChanges);
-    const followUpProject: jest.SpyInstance = jest
+    const followUpProject: AnySpy = jest
       .spyOn(PublicNoteApproverChanges, "followUpProject")
       .mockImplementation((async (
         change: Parameters<typeof PublicNoteApproverChanges.followUpProject>[0],
@@ -948,7 +1007,7 @@ describe("many waiting notes", () => {
         } finally {
           running--;
         }
-      }) as never);
+      }) as never) as AnySpy;
 
     for (let index: number = 0; index < 20; index++) {
       await writeSteps({
@@ -1010,7 +1069,12 @@ describe("each person asked once, whatever runs at once", () => {
     const note: WorldNote = await waitingNote(PublicNoteKind.Incident);
     forgetWhatWasSent();
     setSteps(PublicNoteApprovalEventType.Incident, [
-      step({ id: SUPPORT_ID, name: "Support", order: 1, userIds: [BOB, DAVE, FRANK, GRACE] }),
+      step({
+        id: SUPPORT_ID,
+        name: "Support",
+        order: 1,
+        userIds: [BOB, DAVE, FRANK, GRACE],
+      }),
       step({ id: LEGAL_ID, name: "Legal", order: 2, userIds: [CAROL] }),
     ]);
 
@@ -1056,17 +1120,34 @@ describe("each person asked once, whatever runs at once", () => {
     ]);
     await settled();
 
-    expect(roundOf(note).approvals.map((given: { userId: string }) => given.userId)).toEqual([BOB]);
+    expect(
+      roundOf(note).approvals.map((given: { userId: string }) => {
+        return given.userId;
+      }),
+    ).toEqual([BOB]);
     expect(notified(note)).toEqual(["Carol", "Eve"]);
     expect(askedInChat(note)).toEqual(["Carol", "Eve"]);
     expect(keptCopies(note)).toEqual(
-      [...CHATS.map((chat: WorkspaceType) => `Carol:${chat}`), ...CHATS.map((chat: WorkspaceType) => `Eve:${chat}`)].sort(),
+      [
+        ...CHATS.map((chat: WorkspaceType) => {
+          return `Carol:${chat}`;
+        }),
+        ...CHATS.map((chat: WorkspaceType) => {
+          return `Eve:${chat}`;
+        }),
+      ].sort(),
     );
   });
 
   test("a team join racing a step change asks the joiner once", async () => {
     setSteps(PublicNoteApprovalEventType.Incident, [
-      step({ id: SUPPORT_ID, name: "Support", order: 1, userIds: [BOB], teamIds: [PLATFORM] }),
+      step({
+        id: SUPPORT_ID,
+        name: "Support",
+        order: 1,
+        userIds: [BOB],
+        teamIds: [PLATFORM],
+      }),
       step({ id: LEGAL_ID, name: "Legal", order: 2, userIds: [CAROL] }),
     ]);
     const note: WorldNote = await waitingNote(PublicNoteKind.Incident);
@@ -1079,7 +1160,9 @@ describe("each person asked once, whatever runs at once", () => {
         stepId: SUPPORT_ID,
         write: (steps: Array<PublicNoteApprovalStepRule>) => {
           return steps.map((rule: PublicNoteApprovalStepRule) => {
-            return rule.id === SUPPORT_ID ? { ...rule, name: "Front line" } : rule;
+            return rule.id === SUPPORT_ID
+              ? { ...rule, name: "Front line" }
+              : rule;
           });
         },
       }),
@@ -1282,9 +1365,7 @@ describe("notes that waited before whom they asked was recorded", () => {
 
     // Bob and Dave for the incident's note, Eve for maintenance: two requests each.
     expect(recorded).toBe(6);
-    expect(
-      await PublicNoteApproverChanges.recordWaitingNotesAsAsked(),
-    ).toBe(0);
+    expect(await PublicNoteApproverChanges.recordWaitingNotesAsAsked()).toBe(0);
 
     await change({
       change: "update",

@@ -5,6 +5,10 @@ import PublicNoteApprovalRequestService, {
 } from "../../../Server/Services/PublicNoteApprovalRequestService";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import type { SpyInstance } from "jest-mock";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySpy = SpyInstance<(...args: Array<any>) => any>;
 
 /*
  * WRITING EACH REQUEST ONCE (#6353): PublicNoteApprovalRequestService.
@@ -134,7 +138,8 @@ describe("claim", () => {
     await expect(
       PublicNoteApprovalRequestService.claim({
         projectId: PROJECT_ID,
-        noteColumn: `"projectId") VALUES (1); --` as PublicNoteApprovalRequestNoteColumn,
+        noteColumn:
+          `"projectId") VALUES (1); --` as PublicNoteApprovalRequestNoteColumn,
         noteId: NOTE_ID,
         userId: BOB,
         submittedAt: "x",
@@ -179,13 +184,15 @@ describe("claim", () => {
   });
 
   test("a failure is thrown: the caller decides whether to ask anyway", async () => {
-    jest.spyOn(PublicNoteApprovalRequestService, "getRepository").mockReturnValue({
-      manager: {
-        query: async (): Promise<never> => {
-          throw new Error("insert or update violates foreign key constraint");
+    jest
+      .spyOn(PublicNoteApprovalRequestService, "getRepository")
+      .mockReturnValue({
+        manager: {
+          query: async (): Promise<never> => {
+            throw new Error("insert or update violates foreign key constraint");
+          },
         },
-      },
-    } as never);
+      } as never);
 
     await expect(
       PublicNoteApprovalRequestService.claim({
@@ -203,9 +210,9 @@ describe("claim", () => {
 
 describe("findForStep and release", () => {
   test("findForStep reads one step of one round of the note, of the project, as OneUptime", async () => {
-    const findBy: jest.SpyInstance = jest
+    const findBy: AnySpy = jest
       .spyOn(PublicNoteApprovalRequestService, "findBy")
-      .mockResolvedValue([] as never);
+      .mockResolvedValue([] as never) as AnySpy;
 
     await PublicNoteApprovalRequestService.findForStep({
       projectId: PROJECT_ID,
@@ -226,9 +233,9 @@ describe("findForStep and release", () => {
   });
 
   test("release deletes each of the requests named, of those people, of that step, with no hooks", async () => {
-    const deleteBy: jest.SpyInstance = jest
+    const deleteBy: AnySpy = jest
       .spyOn(PublicNoteApprovalRequestService, "deleteBy")
-      .mockResolvedValue(1 as never);
+      .mockResolvedValue(1 as never) as AnySpy;
 
     await expect(
       PublicNoteApprovalRequestService.release({
@@ -260,10 +267,10 @@ describe("findForStep and release", () => {
   });
 
   test("release of nobody deletes nothing", async () => {
-    const deleteBy: jest.SpyInstance = jest.spyOn(
+    const deleteBy: AnySpy = jest.spyOn(
       PublicNoteApprovalRequestService,
       "deleteBy",
-    );
+    ) as AnySpy;
 
     await expect(
       PublicNoteApprovalRequestService.release({

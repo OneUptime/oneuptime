@@ -138,14 +138,12 @@ export default class PublicNoteApproverChanges {
                   ),
               );
             })
-            .map(
-              (step: PublicNoteApprovalStep): PublicNoteApproverChange => {
-                return {
-                  projectId: step.projectId!,
-                  eventType: step.eventType!,
-                };
-              },
-            ),
+            .map((step: PublicNoteApprovalStep): PublicNoteApproverChange => {
+              return {
+                projectId: step.projectId!,
+                eventType: step.eventType!,
+              };
+            }),
         );
       },
     );
@@ -229,9 +227,7 @@ export default class PublicNoteApproverChanges {
     const found: Array<WaitingNote> = [];
 
     for (const kind of this.getKinds(change.eventType)) {
-      const notes: Array<BaseModel> = await this.getHost(
-        kind,
-      ).service.findBy({
+      const notes: Array<BaseModel> = await this.getHost(kind).service.findBy({
         query: {
           projectId: change.projectId,
           approvalStatus: PublicNoteApprovalStatus.WaitingForApproval,
@@ -367,7 +363,9 @@ export default class PublicNoteApproverChanges {
   }
 
   // What the engine knows of a kind of note: the note service's own.
-  public static getHost(kind: PublicNoteKind): PublicNoteApprovalHost<BaseModel> {
+  public static getHost(
+    kind: PublicNoteKind,
+  ): PublicNoteApprovalHost<BaseModel> {
     switch (kind) {
       case PublicNoteKind.Incident:
         return IncidentPublicNoteService.getApprovalHost() as unknown as PublicNoteApprovalHost<BaseModel>;

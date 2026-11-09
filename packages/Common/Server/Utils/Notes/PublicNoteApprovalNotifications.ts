@@ -276,9 +276,7 @@ export default class PublicNoteApprovalNotifications {
 
     if (data.request && data.isFollowUp) {
       try {
-        askedAlready = await PublicNoteApprovalRequests.readAsked(
-          data.request,
-        );
+        askedAlready = await PublicNoteApprovalRequests.readAsked(data.request);
       } catch (error) {
         logger.error(
           "Public note approval: could not read who was asked about a public note's step, so nobody new was asked.",

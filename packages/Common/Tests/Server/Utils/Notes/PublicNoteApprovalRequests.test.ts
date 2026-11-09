@@ -15,6 +15,10 @@ import PublicNoteApprovalRequests, {
 } from "../../../../Server/Utils/Notes/PublicNoteApprovalRequests";
 import { UserNotificationChannels } from "../../../../Server/Services/UserNotificationSettingService";
 import ObjectID from "../../../../Types/ObjectID";
+import type { SpyInstance } from "jest-mock";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySpy = SpyInstance<(...args: Array<any>) => any>;
 
 /*
  * THE RECORD OF WHOM A STEP OF A PUBLIC NOTE ASKED (#6353), AS
@@ -137,12 +141,12 @@ describe("the requests a person asked about a step holds", () => {
 
 describe("claim", () => {
   test("writes both requests of the person for the step, as one claim, and says what it won", async () => {
-    const claim: jest.SpyInstance = jest
+    const claim: AnySpy = jest
       .spyOn(PublicNoteApprovalRequestService, "claim")
       .mockResolvedValue([
         PublicNoteApprovalRequestKind.Notifications,
         PublicNoteApprovalRequestKind.Chat,
-      ] as never);
+      ] as never) as AnySpy;
 
     await expect(
       PublicNoteApprovalRequests.claim({
@@ -164,7 +168,10 @@ describe("claim", () => {
   });
 
   test.each([
-    [[PublicNoteApprovalRequestKind.Chat], { notifications: false, chat: true }],
+    [
+      [PublicNoteApprovalRequestKind.Chat],
+      { notifications: false, chat: true },
+    ],
     [
       [PublicNoteApprovalRequestKind.Notifications],
       { notifications: true, chat: false },
@@ -196,17 +203,23 @@ describe("claim", () => {
 
 describe("readAsked", () => {
   test("by person: notifications for this step asked again or not, chat for this message", async () => {
-    jest.spyOn(PublicNoteApprovalRequestService, "findForStep").mockResolvedValue([
-      request(BOB, PublicNoteApprovalRequestKind.Notifications, false, false),
-      // Bob's chat message asked as the step was not the last: not this one.
-      request(BOB, PublicNoteApprovalRequestKind.Chat, false, false),
-      request(CAROL, PublicNoteApprovalRequestKind.Notifications, false, false),
-      request(CAROL, PublicNoteApprovalRequestKind.Chat, true, false),
-    ] as never);
+    jest
+      .spyOn(PublicNoteApprovalRequestService, "findForStep")
+      .mockResolvedValue([
+        request(BOB, PublicNoteApprovalRequestKind.Notifications, false, false),
+        // Bob's chat message asked as the step was not the last: not this one.
+        request(BOB, PublicNoteApprovalRequestKind.Chat, false, false),
+        request(
+          CAROL,
+          PublicNoteApprovalRequestKind.Notifications,
+          false,
+          false,
+        ),
+        request(CAROL, PublicNoteApprovalRequestKind.Chat, true, false),
+      ] as never);
 
-    const asked: Map<string, unknown> = await PublicNoteApprovalRequests.readAsked(
-      key({ isFinal: true }),
-    );
+    const asked: Map<string, unknown> =
+      await PublicNoteApprovalRequests.readAsked(key({ isFinal: true }));
 
     expect(asked.get(BOB.toString())).toEqual({
       notifications: true,
@@ -216,14 +229,17 @@ describe("readAsked", () => {
   });
 
   test("the step asked again asks again by notifications: an earlier ask of it does not count", async () => {
-    jest.spyOn(PublicNoteApprovalRequestService, "findForStep").mockResolvedValue([
-      request(BOB, PublicNoteApprovalRequestKind.Notifications, false, false),
-      request(BOB, PublicNoteApprovalRequestKind.Chat, true, false),
-    ] as never);
+    jest
+      .spyOn(PublicNoteApprovalRequestService, "findForStep")
+      .mockResolvedValue([
+        request(BOB, PublicNoteApprovalRequestKind.Notifications, false, false),
+        request(BOB, PublicNoteApprovalRequestKind.Chat, true, false),
+      ] as never);
 
-    const asked: Map<string, unknown> = await PublicNoteApprovalRequests.readAsked(
-      key({ isFinal: true, isAskedAgain: true }),
-    );
+    const asked: Map<string, unknown> =
+      await PublicNoteApprovalRequests.readAsked(
+        key({ isFinal: true, isAskedAgain: true }),
+      );
 
     expect(asked.get(BOB.toString())).toEqual({
       notifications: false,
@@ -232,9 +248,9 @@ describe("readAsked", () => {
   });
 
   test("reads the step of the round, of the note, of the project", async () => {
-    const find: jest.SpyInstance = jest
+    const find: AnySpy = jest
       .spyOn(PublicNoteApprovalRequestService, "findForStep")
-      .mockResolvedValue([] as never);
+      .mockResolvedValue([] as never) as AnySpy;
 
     await PublicNoteApprovalRequests.readAsked(key());
 
@@ -249,9 +265,9 @@ describe("readAsked", () => {
 
 describe("release and releaseChat", () => {
   test("release takes back only what the claim gave", async () => {
-    const release: jest.SpyInstance = jest
+    const release: AnySpy = jest
       .spyOn(PublicNoteApprovalRequestService, "release")
-      .mockResolvedValue(1 as never);
+      .mockResolvedValue(1 as never) as AnySpy;
 
     await PublicNoteApprovalRequests.release({
       key: key(),
@@ -276,9 +292,9 @@ describe("release and releaseChat", () => {
   });
 
   test("releaseChat takes back the chat requests of the message replaced, never the notifications'", async () => {
-    const release: jest.SpyInstance = jest
+    const release: AnySpy = jest
       .spyOn(PublicNoteApprovalRequestService, "release")
-      .mockResolvedValue(2 as never);
+      .mockResolvedValue(2 as never) as AnySpy;
 
     await PublicNoteApprovalRequests.releaseChat({
       projectId: PROJECT_ID,
@@ -302,10 +318,10 @@ describe("release and releaseChat", () => {
   });
 
   test("releaseChat of nobody reads nothing", async () => {
-    const release: jest.SpyInstance = jest.spyOn(
+    const release: AnySpy = jest.spyOn(
       PublicNoteApprovalRequestService,
       "release",
-    );
+    ) as AnySpy;
 
     await PublicNoteApprovalRequests.releaseChat({
       projectId: PROJECT_ID,
@@ -323,11 +339,11 @@ describe("release and releaseChat", () => {
     jest
       .spyOn(PublicNoteApprovalRequestService, "release")
       .mockRejectedValue(new Error("down") as never);
-    const error: jest.SpyInstance = jest
+    const error: AnySpy = jest
       .spyOn(logger, "error")
       .mockImplementation((): void => {
         return undefined;
-      });
+      }) as AnySpy;
 
     await expect(
       PublicNoteApprovalRequests.release({
@@ -356,13 +372,13 @@ describe("release and releaseChat", () => {
 
 describe("record", () => {
   test("claims each person once, and counts what it wrote", async () => {
-    const claim: jest.SpyInstance = jest
+    const claim: AnySpy = jest
       .spyOn(PublicNoteApprovalRequestService, "claim")
       .mockResolvedValueOnce([
         PublicNoteApprovalRequestKind.Notifications,
         PublicNoteApprovalRequestKind.Chat,
       ] as never)
-      .mockResolvedValueOnce([] as never);
+      .mockResolvedValueOnce([] as never) as AnySpy;
 
     await expect(
       PublicNoteApprovalRequests.record({

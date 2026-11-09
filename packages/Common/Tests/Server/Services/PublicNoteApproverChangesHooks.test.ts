@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import PublicNoteApprovalStep from "../../../Models/DatabaseModels/PublicNoteApprovalStep";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import PublicNoteApprovalStepService from "../../../Server/Services/PublicNoteApprovalStepService";
@@ -6,7 +13,11 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
 import PublicNoteApprovalPolicy from "../../../Server/Utils/Notes/PublicNoteApprovalPolicy";
@@ -14,6 +25,10 @@ import PublicNoteApproverChanges from "../../../Server/Utils/Notes/PublicNoteApp
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import ObjectID from "../../../Types/ObjectID";
 import { PublicNoteApprovalEventType } from "../../../Types/StatusPage/PublicNoteApproval";
+import type { SpyInstance } from "jest-mock";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySpy = SpyInstance<(...args: Array<any>) => any>;
 
 /*
  * WHAT STARTS FOLLOWING UP THE NOTES WAITING FOR APPROVAL (#6353): the step
@@ -101,26 +116,26 @@ function memberOf(
   return member;
 }
 
-let stepsChanged: jest.SpyInstance;
-let stepsUpdated: jest.SpyInstance;
-let teamsChanged: jest.SpyInstance;
+let stepsChanged: AnySpy;
+let stepsUpdated: AnySpy;
+let teamsChanged: AnySpy;
 
 beforeEach(() => {
   stepsChanged = jest
     .spyOn(PublicNoteApproverChanges, "afterStepsChanged")
     .mockImplementation((): void => {
       return undefined;
-    });
+    }) as AnySpy;
   stepsUpdated = jest
     .spyOn(PublicNoteApproverChanges, "afterStepsUpdated")
     .mockImplementation((): void => {
       return undefined;
-    });
+    }) as AnySpy;
   teamsChanged = jest
     .spyOn(PublicNoteApproverChanges, "afterTeamMembersChanged")
     .mockImplementation((): void => {
       return undefined;
-    });
+    }) as AnySpy;
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
@@ -185,9 +200,9 @@ describe("PublicNoteApprovalStepService", () => {
       carryForward: null,
     };
 
-    await expect(
-      stepHooks.onUpdateSuccess(onUpdate, [STEP_ID]),
-    ).resolves.toBe(onUpdate);
+    await expect(stepHooks.onUpdateSuccess(onUpdate, [STEP_ID])).resolves.toBe(
+      onUpdate,
+    );
     expect(stepsUpdated).toHaveBeenCalledWith([STEP_ID]);
 
     await stepHooks.onUpdateSuccess(onUpdate, []);
@@ -224,12 +239,17 @@ describe("PublicNoteApprovalStepService", () => {
     expect(stepsChanged).not.toHaveBeenCalled();
 
     await expect(
-      stepHooks.onDeleteSuccess(onDelete, [new ObjectID("5e000000-0000-4000-8000-000000000001")]),
+      stepHooks.onDeleteSuccess(onDelete, [
+        new ObjectID("5e000000-0000-4000-8000-000000000001"),
+      ]),
     ).resolves.toBe(onDelete);
 
     expect(stepsChanged).toHaveBeenCalledTimes(1);
     expect(stepsChanged.mock.calls[0]![0]).toEqual([
-      { projectId: PROJECT_ID, eventType: PublicNoteApprovalEventType.Incident },
+      {
+        projectId: PROJECT_ID,
+        eventType: PublicNoteApprovalEventType.Incident,
+      },
       {
         projectId: OTHER_PROJECT_ID,
         eventType: PublicNoteApprovalEventType.Incident,
@@ -338,7 +358,10 @@ describe("TeamMemberService", () => {
     }
 
     jest
-      .spyOn(UserNotificationSettingService, "removeDefaultNotificationSettingsForUser")
+      .spyOn(
+        UserNotificationSettingService,
+        "removeDefaultNotificationSettingsForUser",
+      )
       .mockResolvedValue(undefined as never);
     jest
       .spyOn(ProductAnalytics, "captureForUser")
@@ -376,11 +399,13 @@ describe("TeamMemberService", () => {
   });
 
   test("an invitation accepted hands over each project of the memberships it wrote, once", async () => {
-    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([
-      memberOf(PROJECT_ID, true),
-      memberOf(PROJECT_ID, true),
-      memberOf(OTHER_PROJECT_ID, true),
-    ] as never);
+    jest
+      .spyOn(TeamMemberService, "findBy")
+      .mockResolvedValue([
+        memberOf(PROJECT_ID, true),
+        memberOf(PROJECT_ID, true),
+        memberOf(OTHER_PROJECT_ID, true),
+      ] as never);
 
     await memberHooks.onUpdateSuccess(
       {
@@ -425,7 +450,10 @@ describe("TeamMemberService", () => {
     await memberHooks.onDeleteSuccess(
       {
         deleteBy: { props: { isRoot: true } } as DeleteBy<TeamMember>,
-        carryForward: [memberOf(PROJECT_ID, true), memberOf(OTHER_PROJECT_ID, false)],
+        carryForward: [
+          memberOf(PROJECT_ID, true),
+          memberOf(OTHER_PROJECT_ID, false),
+        ],
       },
       [ObjectID.generate()],
     );

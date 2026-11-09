@@ -1253,7 +1253,10 @@ export default class PublicNoteApprovalEngine {
     );
 
     // Who was asked is recorded by the round: a note with none is left as it was.
-    if (!PublicNoteApproval.isWaiting(PublicNoteApproval.getState(note)) || !round) {
+    if (
+      !PublicNoteApproval.isWaiting(PublicNoteApproval.getState(note)) ||
+      !round
+    ) {
       return [];
     }
 
@@ -1320,7 +1323,10 @@ export default class PublicNoteApprovalEngine {
       note.approval,
     );
 
-    if (!PublicNoteApproval.isWaiting(PublicNoteApproval.getState(note)) || !round) {
+    if (
+      !PublicNoteApproval.isWaiting(PublicNoteApproval.getState(note)) ||
+      !round
+    ) {
       return 0;
     }
 

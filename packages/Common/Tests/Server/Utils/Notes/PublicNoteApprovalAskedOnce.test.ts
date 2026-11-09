@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import UserNotificationSettingService, {
@@ -17,6 +24,10 @@ import PublicNoteApprovalRequests, {
 } from "../../../../Server/Utils/Notes/PublicNoteApprovalRequests";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
+import type { SpyInstance } from "jest-mock";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySpy = SpyInstance<(...args: Array<any>) => any>;
 
 /*
  * EACH APPROVER ASKED ABOUT A STEP ONCE (#6353): what askApprovers does
@@ -66,7 +77,10 @@ const REQUEST: PublicNoteApprovalRequestKey = {
 };
 
 let members: Set<string>;
-let sent: Array<{ userId: string; channels: UserNotificationChannels | undefined }>;
+let sent: Array<{
+  userId: string;
+  channels: UserNotificationChannels | undefined;
+}>;
 let failingSends: Set<string>;
 
 async function ask(
@@ -76,8 +90,8 @@ async function ask(
     isFollowUp?: boolean;
   } = {},
 ): Promise<Array<string>> {
-  const asked: Array<ObjectID> = await PublicNoteApprovalNotifications.askApprovers(
-    {
+  const asked: Array<ObjectID> =
+    await PublicNoteApprovalNotifications.askApprovers({
       facts: facts(),
       userIds: data.userIds || [BOB, CAROL],
       namedUserIds: [BOB],
@@ -88,8 +102,7 @@ async function ask(
       },
       ...("request" in data ? { request: data.request } : { request: REQUEST }),
       ...(data.isFollowUp ? { isFollowUp: true } : {}),
-    },
-  );
+    });
 
   return asked.map((id: ObjectID): string => {
     return id.toString();
@@ -102,7 +115,10 @@ beforeEach(() => {
   failingSends = new Set();
 
   jest
-    .spyOn(AccessTokenService, "getDatabaseCommonInteractionPropsByUserAndProject")
+    .spyOn(
+      AccessTokenService,
+      "getDatabaseCommonInteractionPropsByUserAndProject",
+    )
     .mockImplementation((async (data: {
       userId: ObjectID;
       projectId: ObjectID;
@@ -116,7 +132,10 @@ beforeEach(() => {
       } as DatabaseCommonInteractionProps;
     }) as never);
   jest
-    .spyOn(UserNotificationSettingService, "addPublicNoteApprovalNotificationSettings")
+    .spyOn(
+      UserNotificationSettingService,
+      "addPublicNoteApprovalNotificationSettings",
+    )
     .mockResolvedValue(undefined as never);
   jest
     .spyOn(UserNotificationSettingService, "sendUserNotification")
@@ -147,22 +166,22 @@ afterEach(() => {
 
 function claims(
   byUser: Record<string, PublicNoteApprovalRequestClaim>,
-): jest.SpyInstance {
+): AnySpy {
   return jest
     .spyOn(PublicNoteApprovalRequests, "claim")
     .mockImplementation((async (data: {
       userId: ObjectID;
     }): Promise<PublicNoteApprovalRequestClaim> => {
       return byUser[data.userId.toString()] || ASK_BY_NOTHING;
-    }) as never);
+    }) as never) as AnySpy;
 }
 
 describe("a step's ask, with what it asks about", () => {
   test("claims each person, and asks by what the claim won: everything, the chat alone, or nothing", async () => {
-    const claim: jest.SpyInstance = claims({
+    const claim: AnySpy = claims({
       [BOB]: ASK_BY_EVERYTHING,
       [CAROL]: { notifications: false, chat: true },
-    });
+    }) as AnySpy;
 
     await expect(ask({ userIds: [BOB, CAROL, ALICE] })).resolves.toEqual([
       BOB,
@@ -192,7 +211,7 @@ describe("a step's ask, with what it asks about", () => {
 
   test("a claim is made only for a member of the project who may read the note", async () => {
     members.delete(CAROL);
-    const claim: jest.SpyInstance = claims({ [BOB]: ASK_BY_EVERYTHING });
+    const claim: AnySpy = claims({ [BOB]: ASK_BY_EVERYTHING }) as AnySpy;
 
     await ask();
 
@@ -221,9 +240,9 @@ describe("a step's ask, with what it asks about", () => {
 
   test("a send that fails takes its claim back, for the next ask; the others are asked", async () => {
     claims({ [BOB]: ASK_BY_EVERYTHING, [CAROL]: ASK_BY_EVERYTHING });
-    const release: jest.SpyInstance = jest
+    const release: AnySpy = jest
       .spyOn(PublicNoteApprovalRequests, "release")
-      .mockResolvedValue(undefined as never);
+      .mockResolvedValue(undefined as never) as AnySpy;
     failingSends.add(BOB);
 
     await expect(ask()).resolves.toEqual([CAROL]);
@@ -237,10 +256,10 @@ describe("a step's ask, with what it asks about", () => {
   });
 
   test("with no step to name, everybody is asked as before: nothing is claimed", async () => {
-    const claim: jest.SpyInstance = jest.spyOn(
+    const claim: AnySpy = jest.spyOn(
       PublicNoteApprovalRequests,
       "claim",
-    );
+    ) as AnySpy;
 
     await expect(ask({ request: undefined })).resolves.toEqual([BOB, CAROL]);
     expect(claim).not.toHaveBeenCalled();
@@ -255,13 +274,13 @@ describe("a follow-up's ask", () => {
         [CAROL, { notifications: true, chat: false }],
       ]) as never,
     );
-    const claim: jest.SpyInstance = claims({
+    const claim: AnySpy = claims({
       [CAROL]: { notifications: false, chat: true },
-    });
-    const props: jest.SpyInstance = jest.spyOn(
+    }) as AnySpy;
+    const props: AnySpy = jest.spyOn(
       AccessTokenService,
       "getDatabaseCommonInteractionPropsByUserAndProject",
-    );
+    ) as AnySpy;
 
     await expect(ask({ isFollowUp: true })).resolves.toEqual([CAROL]);
 
@@ -281,10 +300,10 @@ describe("a follow-up's ask", () => {
     jest
       .spyOn(PublicNoteApprovalRequests, "readAsked")
       .mockRejectedValue(new Error("down") as never);
-    const claim: jest.SpyInstance = jest.spyOn(
+    const claim: AnySpy = jest.spyOn(
       PublicNoteApprovalRequests,
       "claim",
-    );
+    ) as AnySpy;
 
     await expect(ask({ isFollowUp: true })).resolves.toEqual([]);
     expect(sent).toEqual([]);
@@ -308,10 +327,10 @@ describe("a follow-up's ask", () => {
   });
 
   test("asks nobody with no step to name: it could not tell whom it asked", async () => {
-    const claim: jest.SpyInstance = jest.spyOn(
+    const claim: AnySpy = jest.spyOn(
       PublicNoteApprovalRequests,
       "claim",
-    );
+    ) as AnySpy;
 
     await expect(
       ask({ request: undefined, isFollowUp: true }),
@@ -327,7 +346,7 @@ describe("a follow-up's ask", () => {
         [CAROL, ASK_BY_EVERYTHING],
       ]) as never,
     );
-    const project: jest.SpyInstance = jest.spyOn(ProjectService, "findOneById");
+    const project: AnySpy = jest.spyOn(ProjectService, "findOneById") as AnySpy;
 
     await expect(ask({ isFollowUp: true })).resolves.toEqual([]);
     expect(project).not.toHaveBeenCalled();
