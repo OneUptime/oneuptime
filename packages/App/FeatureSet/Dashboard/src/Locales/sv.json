@@ -46873,5 +46873,16 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "{{variable}} i agentens .env måste fortfarande vara \"{{name}}\". Ett annat namn skickar data till ett annat moln.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "{{variable}} i agentens .env måste fortfarande vara \"{{name}}\". Ett annat namn skickar data till ett annat kluster.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "{{variable}} i agentens .env måste fortfarande vara \"{{name}}\". Ett annat namn skickar data till en annan lagringsarray.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} i agentens .env måste fortfarande vara \"{{name}}\". Ett annat namn skickar data till en annan vCenter."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} i agentens .env måste fortfarande vara \"{{name}}\". Ett annat namn skickar data till en annan vCenter.",
+  "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.": "Villkoren kontrolleras varje gång ett SLO:s felbudgetpolicy ändras: när SLO:et går in i en nivå, återhämtar sig till en mindre allvarlig nivå eller lämnar alla nivåer, och när dess distributioner fryses eller tillåts igen.",
+  "Deployments allowed again": "Distributioner tillåtna igen",
+  "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.": "Varje regel väljer de SLO:er den gäller och publicerar i kanaler du redan har när ett SLO går in i en nivå i sin felbudgetpolicy, återhämtar sig eller lämnar alla nivåer, och när dess distributioner fryses eller tillåts igen.",
+  "Entered a more severe tier": "Gick in i en allvarligare nivå",
+  "Error Budget Policy Change": "Ändring i felbudgetpolicy",
+  "Every SLO.": "Alla SLO:er.",
+  "Left every tier": "Lämnade alla nivåer",
+  "Recovered to a less severe tier": "Återhämtade sig till en mindre allvarlig nivå",
+  "SLO Notification Rule": "Aviseringsregel för SLO:er",
+  "SLO Notification Rules": "Aviseringsregler för SLO:er",
+  "Which SLOs": "Vilka SLO:er"
 }

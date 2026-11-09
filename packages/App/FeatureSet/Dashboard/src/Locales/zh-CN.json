@@ -46873,5 +46873,16 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "代理的 .env 中的 {{variable}} 必须仍为“{{name}}”。名称不同时，数据会发送到另一个云。",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "代理的 .env 中的 {{variable}} 必须仍为“{{name}}”。名称不同时，数据会发送到另一个集群。",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "代理的 .env 中的 {{variable}} 必须仍为“{{name}}”。名称不同时，数据会发送到另一个存储阵列。",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "代理的 .env 中的 {{variable}} 必须仍为“{{name}}”。名称不同时，数据会发送到另一个 vCenter。"
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "代理的 .env 中的 {{variable}} 必须仍为“{{name}}”。名称不同时，数据会发送到另一个 vCenter。",
+  "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.": "每当 SLO 的错误预算策略发生变化时都会检查条件：SLO 进入某个级别、恢复到较轻的级别或离开所有级别时，以及其部署被冻结或重新允许时。",
+  "Deployments allowed again": "部署已重新允许",
+  "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.": "每条规则选定适用的 SLO，然后在 SLO 进入其错误预算策略的某个级别、恢复或离开所有级别时，以及其部署被冻结或重新允许时，发布到你已有的频道。",
+  "Entered a more severe tier": "进入更严重的级别",
+  "Error Budget Policy Change": "错误预算策略变更",
+  "Every SLO.": "所有 SLO。",
+  "Left every tier": "离开所有级别",
+  "Recovered to a less severe tier": "恢复到较轻的级别",
+  "SLO Notification Rule": "SLO 通知规则",
+  "SLO Notification Rules": "SLO 通知规则",
+  "Which SLOs": "哪些 SLO"
 }

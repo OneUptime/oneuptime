@@ -46873,5 +46873,16 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे क्लाउड पर चला जाता है।",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे क्लस्टर पर चला जाता है।",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे स्टोरेज ऐरे पर चला जाता है।",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे vCenter पर चला जाता है।"
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे vCenter पर चला जाता है।",
+  "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.": "शर्तें हर बार जांची जाती हैं जब किसी SLO की एरर बजट नीति बदलती है: जब SLO किसी स्तर में आता है, कम गंभीर स्तर पर लौटता है या किसी भी स्तर में नहीं रहता, और जब उसके डिप्लॉयमेंट फ़्रीज़ होते हैं या फिर से अनुमत होते हैं।",
+  "Deployments allowed again": "डिप्लॉयमेंट फिर से अनुमत हैं",
+  "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.": "हर नियम उन SLO को चुनता है जिनके लिए वह है, फिर जब कोई SLO अपनी एरर बजट नीति के किसी स्तर में आता है, लौटता है या किसी भी स्तर में नहीं रहता, और जब उसके डिप्लॉयमेंट फ़्रीज़ होते हैं या फिर से अनुमत होते हैं, तो आपके मौजूदा चैनलों में पोस्ट करता है।",
+  "Entered a more severe tier": "ज़्यादा गंभीर स्तर में आया",
+  "Error Budget Policy Change": "एरर बजट नीति में बदलाव",
+  "Every SLO.": "हर SLO।",
+  "Left every tier": "किसी भी स्तर में नहीं रहा",
+  "Recovered to a less severe tier": "कम गंभीर स्तर पर लौटा",
+  "SLO Notification Rule": "SLO सूचना नियम",
+  "SLO Notification Rules": "SLO सूचना नियम",
+  "Which SLOs": "कौन-से SLO"
 }

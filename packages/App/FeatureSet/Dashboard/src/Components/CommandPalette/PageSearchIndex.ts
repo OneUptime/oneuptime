@@ -1637,6 +1637,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Service Level Objectives",
         pages: [{ page: PageMap.SLOS, title: "SLOs", icon: IconProp.Gauge }],
       },
+      // The rules that post SLOs' error budget policy changes to chat.
+      workspaceSection({
+        slack: PageMap.SLOS_WORKSPACE_CONNECTION_SLACK,
+        microsoftTeams: PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST,
+      }),
       ...resourceSettingsSections({
         ownerRules: PageMap.SLOS_SETTINGS_OWNER_RULES,
         labelRules: PageMap.SLOS_SETTINGS_LABEL_RULES,

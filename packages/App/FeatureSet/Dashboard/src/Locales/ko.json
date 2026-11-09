@@ -46873,5 +46873,16 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 클라우드로 전송됩니다.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 클러스터로 전송됩니다.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 스토리지 어레이로 전송됩니다.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 vCenter로 전송됩니다."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 vCenter로 전송됩니다.",
+  "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.": "조건은 SLO의 오류 예산 정책이 바뀔 때마다 확인됩니다: SLO가 단계에 들어가거나, 덜 심각한 단계로 회복하거나, 모든 단계에서 벗어날 때, 그리고 배포가 동결되거나 다시 허용될 때.",
+  "Deployments allowed again": "배포 다시 허용",
+  "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.": "각 규칙은 대상 SLO를 고른 뒤, SLO가 오류 예산 정책의 단계에 들어가거나 회복하거나 모든 단계에서 벗어날 때, 그리고 배포가 동결되거나 다시 허용될 때 기존 채널에 게시합니다.",
+  "Entered a more severe tier": "더 심각한 단계 진입",
+  "Error Budget Policy Change": "오류 예산 정책 변경",
+  "Every SLO.": "모든 SLO.",
+  "Left every tier": "모든 단계에서 이탈",
+  "Recovered to a less severe tier": "덜 심각한 단계로 회복",
+  "SLO Notification Rule": "SLO 알림 규칙",
+  "SLO Notification Rules": "SLO 알림 규칙",
+  "Which SLOs": "대상 SLO"
 }

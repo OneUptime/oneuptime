@@ -46873,5 +46873,16 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "{{variable}} nel file .env dell'agente deve essere ancora \"{{name}}\". Con un nome diverso, i dati vanno a un altro cloud.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "{{variable}} nel file .env dell'agente deve essere ancora \"{{name}}\". Con un nome diverso, i dati vanno a un altro cluster.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "{{variable}} nel file .env dell'agente deve essere ancora \"{{name}}\". Con un nome diverso, i dati vanno a un altro array di storage.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} nel file .env dell'agente deve essere ancora \"{{name}}\". Con un nome diverso, i dati vanno a un altro vCenter."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} nel file .env dell'agente deve essere ancora \"{{name}}\". Con un nome diverso, i dati vanno a un altro vCenter.",
+  "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.": "Le condizioni vengono verificate ogni volta che cambia la policy del budget di errore di uno SLO: quando lo SLO entra in un livello, torna a uno meno grave o esce da tutti i livelli, e quando le sue distribuzioni vengono congelate o di nuovo consentite.",
+  "Deployments allowed again": "Distribuzioni di nuovo consentite",
+  "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.": "Ogni regola sceglie gli SLO a cui si applica, poi pubblica nei canali che hai già quando uno SLO entra in un livello della sua policy del budget di errore, torna a uno meno grave o esce da tutti i livelli, e quando le sue distribuzioni vengono congelate o di nuovo consentite.",
+  "Entered a more severe tier": "Entrato in un livello più grave",
+  "Error Budget Policy Change": "Modifica della policy del budget di errore",
+  "Every SLO.": "Tutti gli SLO.",
+  "Left every tier": "Uscito da tutti i livelli",
+  "Recovered to a less severe tier": "Tornato a un livello meno grave",
+  "SLO Notification Rule": "Regola di notifica degli SLO",
+  "SLO Notification Rules": "Regole di notifica degli SLO",
+  "Which SLOs": "Quali SLO"
 }

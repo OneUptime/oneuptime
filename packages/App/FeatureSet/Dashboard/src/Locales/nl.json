@@ -46873,5 +46873,16 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "{{variable}} in de .env van de agent moet nog steeds \"{{name}}\" zijn. Met een andere naam gaan de gegevens naar een andere cloud.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "{{variable}} in de .env van de agent moet nog steeds \"{{name}}\" zijn. Met een andere naam gaan de gegevens naar een ander cluster.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "{{variable}} in de .env van de agent moet nog steeds \"{{name}}\" zijn. Met een andere naam gaan de gegevens naar een ander opslagarray.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} in de .env van de agent moet nog steeds \"{{name}}\" zijn. Met een andere naam gaan de gegevens naar een andere vCenter."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} in de .env van de agent moet nog steeds \"{{name}}\" zijn. Met een andere naam gaan de gegevens naar een andere vCenter.",
+  "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.": "De voorwaarden worden gecontroleerd telkens wanneer het foutbudgetbeleid van een SLO verandert: wanneer de SLO een niveau binnengaat, herstelt naar een minder streng niveau of alle niveaus verlaat, en wanneer de implementaties worden bevroren of weer worden toegestaan.",
+  "Deployments allowed again": "Implementaties weer toegestaan",
+  "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.": "Elke regel kiest de SLO's waarvoor hij geldt en plaatst berichten in kanalen die u al hebt wanneer een SLO een niveau van zijn foutbudgetbeleid binnengaat, herstelt of alle niveaus verlaat, en wanneer de implementaties worden bevroren of weer worden toegestaan.",
+  "Entered a more severe tier": "Strenger niveau binnengegaan",
+  "Error Budget Policy Change": "Wijziging in foutbudgetbeleid",
+  "Every SLO.": "Elke SLO.",
+  "Left every tier": "Alle niveaus verlaten",
+  "Recovered to a less severe tier": "Hersteld naar een minder streng niveau",
+  "SLO Notification Rule": "Meldingsregel voor SLO's",
+  "SLO Notification Rules": "Meldingsregels voor SLO's",
+  "Which SLOs": "Welke SLO's"
 }

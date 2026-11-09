@@ -46873,5 +46873,16 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "{{variable}} dans le fichier .env de l'agent doit toujours valoir « {{name}} ». Un autre nom envoie les données vers un autre cloud.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "{{variable}} dans le fichier .env de l'agent doit toujours valoir « {{name}} ». Un autre nom envoie les données vers un autre cluster.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "{{variable}} dans le fichier .env de l'agent doit toujours valoir « {{name}} ». Un autre nom envoie les données vers une autre baie de stockage.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} dans le fichier .env de l'agent doit toujours valoir « {{name}} ». Un autre nom envoie les données vers un autre vCenter."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} dans le fichier .env de l'agent doit toujours valoir « {{name}} ». Un autre nom envoie les données vers un autre vCenter.",
+  "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.": "Les conditions sont vérifiées chaque fois que la politique de budget d'erreur d'un SLO change : quand le SLO entre dans un palier, revient à un palier moins sévère ou sort de tous les paliers, et quand ses déploiements sont gelés ou de nouveau autorisés.",
+  "Deployments allowed again": "Déploiements de nouveau autorisés",
+  "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.": "Chaque règle choisit les SLO qu'elle concerne, puis publie dans vos canaux existants quand un SLO entre dans un palier de sa politique de budget d'erreur, revient à un palier moins sévère ou sort de tous les paliers, et quand ses déploiements sont gelés ou de nouveau autorisés.",
+  "Entered a more severe tier": "Entré dans un palier plus sévère",
+  "Error Budget Policy Change": "Changement de la politique de budget d'erreur",
+  "Every SLO.": "Tous les SLO.",
+  "Left every tier": "Sorti de tous les paliers",
+  "Recovered to a less severe tier": "Revenu à un palier moins sévère",
+  "SLO Notification Rule": "Règle de notification des SLO",
+  "SLO Notification Rules": "Règles de notification des SLO",
+  "Which SLOs": "Quels SLO"
 }

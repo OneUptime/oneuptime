@@ -46873,5 +46873,16 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "{{variable}} در فایل .env عامل همچنان باید «{{name}}» باشد. با نامی دیگر، داده به ابر دیگری فرستاده می‌شود.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "{{variable}} در فایل .env عامل همچنان باید «{{name}}» باشد. با نامی دیگر، داده به خوشهٔ دیگری فرستاده می‌شود.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "{{variable}} در فایل .env عامل همچنان باید «{{name}}» باشد. با نامی دیگر، داده به آرایه ذخیره‌سازی دیگری فرستاده می‌شود.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} در فایل .env عامل همچنان باید «{{name}}» باشد. با نامی دیگر، داده به vCenter دیگری فرستاده می‌شود."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} در فایل .env عامل همچنان باید «{{name}}» باشد. با نامی دیگر، داده به vCenter دیگری فرستاده می‌شود.",
+  "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.": "شرط‌ها هر بار که سیاست بودجه خطای یک SLO تغییر کند بررسی می‌شوند: وقتی SLO وارد یک سطح می‌شود، به سطحی خفیف‌تر برمی‌گردد یا از همه سطح‌ها خارج می‌شود، و وقتی Deploymentهای آن فریز یا دوباره مجاز می‌شوند.",
+  "Deployments allowed again": "Deploymentها دوباره مجاز شده‌اند",
+  "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.": "هر قاعده SLOهایی را که برایشان است انتخاب می‌کند، سپس وقتی یک SLO وارد سطحی از سیاست بودجه خطای خود می‌شود، برمی‌گردد یا از همه سطح‌ها خارج می‌شود، و وقتی Deploymentهای آن فریز یا دوباره مجاز می‌شوند، در کانال‌های موجودتان ارسال می‌کند.",
+  "Entered a more severe tier": "ورود به سطحی شدیدتر",
+  "Error Budget Policy Change": "تغییر سیاست بودجه خطا",
+  "Every SLO.": "همه SLOها.",
+  "Left every tier": "خروج از همه سطح‌ها",
+  "Recovered to a less severe tier": "بازگشت به سطحی خفیف‌تر",
+  "SLO Notification Rule": "قاعده اعلان SLOها",
+  "SLO Notification Rules": "قواعد اعلان SLOها",
+  "Which SLOs": "کدام SLOها"
 }
