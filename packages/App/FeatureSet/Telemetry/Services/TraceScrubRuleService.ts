@@ -15,6 +15,9 @@ import {
   ScrubRegExp,
   scrubRegExpFromBuiltIn,
 } from "Common/Types/Telemetry/ScrubRule";
+import ScrubNestedValuesUtil, {
+  ScrubNestedValuesAllowance,
+} from "Common/Utils/Telemetry/ScrubNestedValues";
 
 interface CompiledRule {
   rule: TraceScrubRule;
@@ -75,6 +78,9 @@ const LLM_IDENTITY_COLUMN_KEYS: Array<string> = [
   "llmUserEmail",
   "llmTeam",
 ];
+
+// An attribute map none of whose values was held as text.
+const NOTHING_HELD: ReadonlySet<string> = new Set<string>();
 
 export class TraceScrubRuleService {
   public static async loadScrubRules(
@@ -265,37 +271,104 @@ export class TraceScrubRuleService {
     return result;
   }
 
+  /*
+   * The rules over an attribute map - a span's, an event's, a link's - in
+   * place. A text value is scrubbed as it is; a list or a map - OTLP's
+   * lists and key-value lists, a scope's attributes - text by text, keeping
+   * its shape, with numbers and true or false left alone
+   * (Common/Utils/Telemetry/ScrubNestedValues). A sensitive-keys rule hides
+   * every text under a key that looks secret: the attribute's own key, or a
+   * key inside its value. `heldAsText`: the keys whose values were too deep
+   * or too large to read value by value, and are read as their JSON text.
+   */
   private static scrubAttributesInPlace(
     attributes: JSONObject,
     rules: Array<CompiledRule>,
+    heldAsText: ReadonlySet<string>,
   ): void {
     for (const compiled of rules) {
       const isKeyTargeted: boolean =
         (compiled.rule.patternType as string) ===
         TraceScrubPatternType.SensitiveKeys;
-      const singleRule: Array<CompiledRule> = [compiled];
 
-      for (const key of Object.keys(attributes)) {
-        const v: unknown = attributes[key];
-        if (typeof v !== "string") {
-          continue;
-        }
+      if (isKeyTargeted) {
+        const action: string =
+          (compiled.rule.scrubAction as string) || TraceScrubAction.Redact;
 
-        if (isKeyTargeted) {
-          // Key match → the whole value gets the action.
-          if (compiled.regex.test(key)) {
-            attributes[key] = this.applyScrubAction(
-              v,
-              (compiled.rule.scrubAction as string) || TraceScrubAction.Redact,
+        // Key match → every text of the value gets the action.
+        ScrubNestedValuesUtil.hideAttributeTextsUnderSensitiveKeys(
+          attributes,
+          (key: string): boolean => {
+            return compiled.regex.test(key);
+          },
+          (text: string): string => {
+            return this.applyScrubAction(
+              text,
+              action,
               TraceScrubPatternType.SensitiveKeys,
             );
-          }
-          continue;
-        }
+          },
+          heldAsText,
+        );
 
-        attributes[key] = this.scrubString(v, singleRule);
+        continue;
+      }
+
+      const singleRule: Array<CompiledRule> = [compiled];
+
+      ScrubNestedValuesUtil.scrubAttributeTexts(
+        attributes,
+        (text: string): string => {
+          return this.scrubString(text, singleRule);
+        },
+      );
+    }
+  }
+
+  /*
+   * Before the rules read a record's attribute maps: a list or map too
+   * deep, or too large, for them to read value by value is held as its
+   * JSON text - as the Span table stores an attribute's list or map - so
+   * every rule reads the same value, in time in line with its length. The
+   * maps share the record's allowance, in the order given. Returns, for
+   * each map, the keys whose values it held as text.
+   */
+  private static holdOversizedValuesAsText(
+    attributeMaps: Array<unknown>,
+  ): Map<unknown, ReadonlySet<string>> {
+    const allowance: ScrubNestedValuesAllowance =
+      ScrubNestedValuesUtil.newRecordAllowance();
+    const heldAsText: Map<unknown, ReadonlySet<string>> = new Map<
+      unknown,
+      ReadonlySet<string>
+    >();
+
+    for (const attributes of attributeMaps) {
+      if (attributes && typeof attributes === "object") {
+        heldAsText.set(
+          attributes,
+          ScrubNestedValuesUtil.holdOversizedValuesAsText(
+            attributes as JSONObject,
+            allowance,
+          ),
+        );
       }
     }
+
+    return heldAsText;
+  }
+
+  // The attribute maps of a row's events or links.
+  private static attributeMapsOf(entries: unknown): Array<unknown> {
+    if (!Array.isArray(entries)) {
+      return [];
+    }
+
+    return entries.map((entry: unknown): unknown => {
+      return entry && typeof entry === "object"
+        ? (entry as JSONObject)["attributes"]
+        : undefined;
+    });
   }
 
   /*
@@ -348,7 +421,10 @@ export class TraceScrubRuleService {
     }
 
     const attributes: JSONObject = { ...content.attributes };
-    this.scrubAttributesInPlace(attributes, applicableRules);
+    const heldAsText: ReadonlySet<string> =
+      this.holdOversizedValuesAsText([attributes]).get(attributes) ||
+      NOTHING_HELD;
+    this.scrubAttributesInPlace(attributes, applicableRules, heldAsText);
 
     return {
       message: this.scrubString(content.message, applicableRules),
@@ -372,6 +448,20 @@ export class TraceScrubRuleService {
      */
     PatternWorkScope.handOverRecord(spanRow);
 
+    const heldAsText: Map<
+      unknown,
+      ReadonlySet<string>
+    > = this.holdOversizedValuesAsText([
+      spanRow["attributes"],
+      ...this.attributeMapsOf(spanRow["events"]),
+      ...this.attributeMapsOf(spanRow["links"]),
+    ]);
+    const heldIn: (attributes: unknown) => ReadonlySet<string> = (
+      attributes: unknown,
+    ): ReadonlySet<string> => {
+      return heldAsText.get(attributes) || NOTHING_HELD;
+    };
+
     /*
      * Each rule's `fieldsToScrub` is per-rule (name vs attributes
      * vs events vs all), so we still have to dispatch per rule.
@@ -387,7 +477,7 @@ export class TraceScrubRuleService {
 
       /*
        * SensitiveKeys is key-targeted, so it can only ever act on
-       * attributes (span + event) — a rule saved with a name-only scope
+       * attributes (span, event and link) — a rule saved with a name-only scope
        * would otherwise be a silent no-op while looking active in the
        * rules table. Treat it as All (the name pass skips key-targeted
        * rules inside scrubString anyway).
@@ -421,6 +511,7 @@ export class TraceScrubRuleService {
         this.scrubAttributesInPlace(
           spanRow["attributes"] as JSONObject,
           singleRule,
+          heldIn(spanRow["attributes"]),
         );
       }
 
@@ -452,6 +543,27 @@ export class TraceScrubRuleService {
         }
       }
 
+      /*
+       * Span link attributes - walk links[].attributes. A link's
+       * attributes are attributes the span carries, about another span it
+       * points at, so the rules that scrub the span's attributes scrub them
+       * too: Attributes (and All), never Name or Events alone.
+       */
+      if (
+        (scrubAll || fieldsToScrub === TraceScrubField.Attributes) &&
+        Array.isArray(spanRow["links"])
+      ) {
+        for (const attributes of this.attributeMapsOf(spanRow["links"])) {
+          if (attributes && typeof attributes === "object") {
+            this.scrubAttributesInPlace(
+              attributes as JSONObject,
+              singleRule,
+              heldIn(attributes),
+            );
+          }
+        }
+      }
+
       // Span event attributes — walk events[].attributes.
       if (
         (scrubAll || fieldsToScrub === TraceScrubField.Events) &&
@@ -465,6 +577,7 @@ export class TraceScrubRuleService {
             this.scrubAttributesInPlace(
               event["attributes"] as JSONObject,
               singleRule,
+              heldIn(event["attributes"]),
             );
           }
         }
