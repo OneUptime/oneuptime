@@ -118,13 +118,17 @@ De **Inloggegevens**, zoals `Bearer <token>`, worden verzonden in de header die 
 
 ### Syslog
 
-Elke vermelding is één RFC 5424-bericht naar de **Host** en **Poort**, via TLS op poort `6514` tenzij **Protocol** TCP aangeeft, met facility 13 (log audit) en severity 6 (informational):
+Elke vermelding is één RFC 5424-bericht naar de **Host** en **Poort**, via TLS op poort `6514` tenzij **Protocol** TCP of UDP aangeeft, met facility 13 (log audit) en severity 6 (informational):
 
 ```text
 <110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-Berichten worden gescheiden met octettelling (RFC 5425), tenzij **Berichtscheiding** één bericht per regel aangeeft. Een ontvanger waarvan een privé-CA het certificaat heeft ondertekend, heeft het certificaat van die CA nodig in **CA-certificaat**. Beide wachten onder **Meer velden**.
+Via TLS en TCP worden berichten gescheiden met octettelling (RFC 5425), tenzij **Berichtscheiding** één bericht per regel aangeeft. Een ontvanger waarvan een privé-CA het certificaat heeft ondertekend, heeft het certificaat van die CA nodig in **CA-certificaat**. Beide wachten onder **Meer velden**.
+
+Via UDP begint **Poort** bij `514`, en elk bericht is een eigen datagram (RFC 5426), dus geen enkel bericht wordt gescheiden. UDP verstuurt het auditlogboek als platte tekst, en niets bevestigt dat een bericht is aangekomen: als de host van de ontvanger antwoordt dat zijn poort dicht is, mislukt de batch en wordt die opnieuw geprobeerd, maar een bericht dat onderweg verloren gaat, wordt niet opnieuw verstuurd. Controleer na een test via UDP of de testvermelding is aangekomen. Moet elke vermelding aankomen, kies dan TLS of TCP.
+
+Via UDP is een bericht hoogstens **Maximale berichtgrootte** bytes lang: `8192`, tenzij dit onder **Meer velden** is gewijzigd, van `1024` tot `65507`. Een langere vermelding wordt ingekort zodat die past en blijft één JSON-object: eerst worden de waarden ingekort, zoals het auditlogboek ze inkort, bijvoorbeeld `[… 1,234 more characters]` of `[12.3 KB of JSON]`, daarna worden de wijzigingen die nog steeds niet passen in één geteld, bijvoorbeeld `[… 12 more changes]`.
 
 ## Wat er wordt verzonden
 
@@ -188,7 +192,7 @@ De export van een project in OneUptime Cloud kan geen privénetwerkadres bereike
 :::
 
 :::details Er komt niets aan
-Controleer of auditlogging in het project is ingeschakeld, en of iemand iets heeft gewijzigd nadat de export is opgeslagen. Opslag ontvangt pas een bestand als een batch vol of vijf minuten oud is.
+Controleer of auditlogging in het project is ingeschakeld, en of iemand iets heeft gewijzigd nadat de export is opgeslagen. Opslag ontvangt pas een bestand als een batch vol of vijf minuten oud is. Via UDP gooit een firewall berichten zonder melding weg: controleer of UDP de poort van de ontvanger mag bereiken.
 :::
 
 ## Volgende stappen

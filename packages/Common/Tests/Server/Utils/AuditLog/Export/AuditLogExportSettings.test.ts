@@ -557,6 +557,160 @@ describe("validating an export's settings", () => {
   });
 });
 
+/*
+ * Issue #6392: syslog over UDP, for a receiver that takes nothing else. Its
+ * port follows it (514), its framing is the datagram's own, and the longest
+ * message it sends is a setting of its own.
+ */
+describe("syslog over UDP", () => {
+  const syslog: (config: JSONObject) => AuditLogExportSettings = (
+    config: JSONObject,
+  ): AuditLogExportSettings => {
+    return validate({ type: AuditLogExportDestinationType.Syslog, config });
+  };
+
+  test("takes a host alone, on port 514, and keeps nothing it does not use", () => {
+    const settings: AuditLogExportSettings = syslog({
+      host: "10.0.0.5",
+      protocol: "udp",
+    });
+
+    expect(settings.config).toEqual({ host: "10.0.0.5", protocol: "udp" });
+    expect(AuditLogExportSettingsUtil.readConfigText(settings, "port")).toBe(
+      "514",
+    );
+    // No size stored: the destination sends at most its own default.
+    expect(
+      AuditLogExportSettingsUtil.readConfigText(settings, "maxMessageSize"),
+    ).toBe("");
+  });
+
+  /*
+   * A default was filled in for every field before the check, shown or not:
+   * framing's, hidden over UDP, came back as a setting Syslog does not have.
+   */
+  test("is not refused for the framing default a hidden field holds", () => {
+    expect((): void => {
+      syslog({ host: "10.0.0.5", protocol: "udp" });
+    }).not.toThrow();
+  });
+
+  test("drops a framing and a CA certificate left over from TLS, rather than refusing them", () => {
+    expect(
+      syslog({
+        host: "syslog.example.com",
+        port: 514,
+        protocol: "udp",
+        framing: "newline",
+        caCertificate: "-----BEGIN CERTIFICATE-----\nabc",
+        maxMessageSize: 2048,
+      }).config,
+    ).toEqual({
+      host: "syslog.example.com",
+      port: 514,
+      protocol: "udp",
+      maxMessageSize: 2048,
+    });
+  });
+
+  test("a port typed stays the port, over UDP as over TCP", () => {
+    for (const protocol of ["udp", "tcp", "tls"]) {
+      expect(
+        AuditLogExportSettingsUtil.readConfigText(
+          syslog({ host: "10.0.0.5", protocol, port: 1514 }),
+          "port",
+        ),
+      ).toBe("1514");
+    }
+  });
+
+  test("TCP and TLS keep 6514 when no port is named, as they always have", () => {
+    for (const config of [
+      { host: "10.0.0.5" },
+      { host: "10.0.0.5", protocol: "tls" },
+      { host: "10.0.0.5", protocol: "tcp" },
+    ]) {
+      expect(
+        AuditLogExportSettingsUtil.readConfigText(syslog(config), "port"),
+      ).toBe("6514");
+    }
+  });
+
+  test("a maximum message size over TLS or TCP is dropped: a stream has no datagram to fit", () => {
+    for (const protocol of ["tls", "tcp"]) {
+      expect(
+        syslog({ host: "10.0.0.5", protocol, maxMessageSize: 2048 }).config,
+      ).toEqual({ host: "10.0.0.5", protocol });
+    }
+  });
+
+  test("the maximum message size is a whole number from 1024 to 65507, both ends included", () => {
+    for (const size of [1024, 1500, 8192, 65507, "4096", " 2048 "]) {
+      expect((): void => {
+        syslog({ host: "10.0.0.5", protocol: "udp", maxMessageSize: size });
+      }).not.toThrow();
+    }
+
+    for (const size of [1023, 65508, 0, -1, 2048.5, "2048.5", 1e9, true]) {
+      expect(
+        refusal(() => {
+          return syslog({
+            host: "10.0.0.5",
+            protocol: "udp",
+            maxMessageSize: size,
+          });
+        }),
+      ).toBe("Maximum message size must be a whole number from 1024 to 65507.");
+    }
+
+    expect(
+      refusal(() => {
+        return syslog({
+          host: "10.0.0.5",
+          protocol: "udp",
+          maxMessageSize: "big",
+        });
+      }),
+    ).toBe("Maximum message size must be a number.");
+  });
+
+  test("a port out of range is refused in the same words over every protocol", () => {
+    for (const protocol of ["udp", "tcp", "tls"]) {
+      for (const port of [0, 65536, -514, 514.5, "514.5", true]) {
+        expect(
+          refusal(() => {
+            return syslog({ host: "10.0.0.5", protocol, port });
+          }),
+        ).toBe("Port must be a whole number from 1 to 65535.");
+      }
+
+      for (const port of [1, 65535, "514"]) {
+        expect((): void => {
+          syslog({ host: "10.0.0.5", protocol, port });
+        }).not.toThrow();
+      }
+    }
+  });
+
+  test("a protocol Syslog does not offer is refused, naming the three it does", () => {
+    expect(
+      refusal(() => {
+        return syslog({ host: "10.0.0.5", protocol: "sctp" });
+      }),
+    ).toBe("Protocol must be one of: tls, tcp, udp.");
+  });
+
+  test("its host is checked as over TCP", () => {
+    expect(
+      refusal(() => {
+        return syslog({ host: "udp://10.0.0.5", protocol: "udp" });
+      }),
+    ).toBe(
+      "Host must be a host name or an IP address, without a scheme or a port, such as syslog.example.com.",
+    );
+  });
+});
+
 describe("the folder files go to", () => {
   test("defaults to oneuptime/audit-logs/", () => {
     expect(getAuditLogExportFolder({})).toBe(AUDIT_LOG_EXPORT_DEFAULT_FOLDER);
@@ -749,6 +903,17 @@ describe("the egress policy on save", () => {
         { isInstanceExport: true },
       ),
     ).rejects.toThrow("Syslog host 127.0.0.1 is not allowed");
+
+    // Over UDP too: a datagram reaches only where a connection could.
+    await expect(
+      AuditLogExportSettingsUtil.assertTargetsAllowed(
+        validate({
+          type: AuditLogExportDestinationType.Syslog,
+          config: { host: "169.254.169.254", protocol: "udp" },
+        }),
+        { isInstanceExport: true },
+      ),
+    ).rejects.toThrow("Syslog host 169.254.169.254 is not allowed");
   });
 
   test("Amazon S3, Cloud Storage and Azure have no address of the export's choosing to check", async () => {

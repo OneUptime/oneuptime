@@ -31,6 +31,28 @@ export interface AuditLogExportDestinationField extends ConnectorField {
     | undefined;
   // A text field the form draws as several lines (a PEM certificate).
   isMultiline?: boolean | undefined;
+  /*
+   * A number field's range, both ends included: the form refuses a value
+   * outside it, and so does a save (AuditLogExportSettings), with a sentence
+   * naming both ends.
+   */
+  minValue?: number | undefined;
+  maxValue?: number | undefined;
+  /*
+   * A default that follows a choice another config field makes: syslog's
+   * port is 6514 over TLS and 514 over UDP. A config that holds no value
+   * reads the default of the choice it makes (readAuditLogExportConfigValue),
+   * and the form moves the field along when the choice changes, as long as
+   * it holds a value nobody typed - a default of one of the choices, or
+   * nothing. A choice not listed keeps the field's defaultValue, which is the
+   * default of the controlling field's own default choice.
+   */
+  defaultFollows?:
+    | {
+        key: string;
+        values: Readonly<Record<string, string | number>>;
+      }
+    | undefined;
 }
 
 export enum AuditLogExportDestinationKind {
@@ -71,6 +93,28 @@ export const AUDIT_LOG_EXPORT_DEFAULT_FOLDER: string = "oneuptime/audit-logs/";
 // The port a syslog destination uses when it names none: syslog over TLS (RFC 5425).
 export const AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT: number = 6514;
 
+// The port syslog over UDP uses when it names none (RFC 5426).
+export const AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT: number = 514;
+
+/*
+ * The longest message syslog over UDP sends, unless the export says another
+ * size: what rsyslog, the most common receiver, keeps of a message unless
+ * told otherwise. A receiver cuts a longer one wherever it stops reading,
+ * which leaves no JSON; OneUptime shortens the entry itself instead
+ * (SyslogDestination), so every message is whole JSON.
+ */
+export const AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE: number = 8192;
+
+// The shortest size an export may set: room for an entry's who, what and when.
+export const AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE: number = 1024;
+
+/*
+ * The most one UDP datagram carries over IPv4: 65,535 bytes less the IP
+ * header (20) and the UDP header (8), as RFC 5426 counts it. IPv6 carries
+ * 20 more, so this size goes over either.
+ */
+export const AUDIT_LOG_EXPORT_MAX_SYSLOG_UDP_MESSAGE_SIZE: number = 65507;
+
 // The header a webhook's credential goes in when it names none.
 export const AUDIT_LOG_EXPORT_DEFAULT_WEBHOOK_HEADER: string = "Authorization";
 
@@ -84,6 +128,13 @@ export enum AuditLogExportWebhookBodyFormat {
 export enum AuditLogExportSyslogProtocol {
   Tls = "tls",
   Tcp = "tcp",
+  /*
+   * One datagram per message (RFC 5426): for a receiver that takes nothing
+   * else. Nothing confirms a datagram arrived, so one lost on the way is
+   * lost without a word; only a host that answers its port is closed is
+   * heard (SyslogDestination).
+   */
+  Udp = "udp",
 }
 
 export enum AuditLogExportSyslogFraming {
@@ -423,7 +474,7 @@ export const AuditLogExportDestinationCatalog: Array<AuditLogExportDestinationDe
       type: AuditLogExportDestinationType.Syslog,
       title: "Syslog",
       description:
-        "One RFC 5424 message per entry to a syslog receiver, over TLS or TCP.",
+        "One RFC 5424 message per entry to a syslog receiver, over TLS, TCP or UDP.",
       icon: IconProp.Terminal,
       kind: AuditLogExportDestinationKind.Stream,
       docsPath: `${AUDIT_LOG_EXPORT_DOCS_PATH}#syslog`,
@@ -441,23 +492,36 @@ export const AuditLogExportDestinationCatalog: Array<AuditLogExportDestinationDe
         {
           key: "port",
           title: "Port",
-          description: `The receiver's port: ${AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT} for syslog over TLS, often 514 or 601 over TCP.`,
+          description: `The receiver's port: ${AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT} for syslog over TLS, ${AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT} over UDP, often 514 or 601 over TCP.`,
           type: "number",
           required: true,
           placeholder: String(AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT),
           defaultValue: AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT,
+          minValue: 1,
+          maxValue: 65535,
+          // TCP has no port of its own, so it keeps the TLS one, as it always has.
+          defaultFollows: {
+            key: "protocol",
+            values: {
+              [AuditLogExportSyslogProtocol.Tls]:
+                AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT,
+              [AuditLogExportSyslogProtocol.Udp]:
+                AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT,
+            },
+          },
         },
         {
           key: "protocol",
           title: "Protocol",
           description:
-            "TLS encrypts the audit log on the way. TCP sends it as plain text.",
+            "TLS encrypts the audit log on the way. TCP sends it as plain text. UDP sends it as plain text, with nothing to confirm it arrived.",
           type: "dropdown",
           required: true,
           defaultValue: AuditLogExportSyslogProtocol.Tls,
           options: [
             { label: "TLS", value: AuditLogExportSyslogProtocol.Tls },
             { label: "TCP", value: AuditLogExportSyslogProtocol.Tcp },
+            { label: "UDP", value: AuditLogExportSyslogProtocol.Udp },
           ],
         },
         {
@@ -479,6 +543,33 @@ export const AuditLogExportDestinationCatalog: Array<AuditLogExportDestinationDe
               value: AuditLogExportSyslogFraming.NewLine,
             },
           ],
+          // Over UDP each message is a datagram of its own, which frames it (RFC 5426).
+          showWhen: {
+            key: "protocol",
+            values: [
+              AuditLogExportSyslogProtocol.Tls,
+              AuditLogExportSyslogProtocol.Tcp,
+            ],
+          },
+        },
+        {
+          key: "maxMessageSize",
+          title: "Maximum message size",
+          description: `The longest message the receiver takes, in bytes. A longer entry is shortened to fit, and says so. Leave empty for ${AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE}.`,
+          type: "number",
+          required: false,
+          /*
+           * No default stored: an export that names no size sends at most
+           * the default size of the release it runs on (SyslogDestination).
+           */
+          placeholder: String(AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE),
+          minValue: AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE,
+          maxValue: AUDIT_LOG_EXPORT_MAX_SYSLOG_UDP_MESSAGE_SIZE,
+          isAdvanced: true,
+          showWhen: {
+            key: "protocol",
+            values: [AuditLogExportSyslogProtocol.Udp],
+          },
         },
         {
           key: "caCertificate",
@@ -516,6 +607,41 @@ export function getAuditLogExportDestinationTitle(
   return getAuditLogExportDestinationDefinition(type)?.title || "";
 }
 
+function isEmptyConfigValue(value: JSONValue | undefined): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim() === "")
+  );
+}
+
+/*
+ * A field's default for this config: the one the choice it follows makes
+ * (defaultFollows), else its own. The choice is read as stored - a config
+ * that makes none makes the controlling field's default choice, whose
+ * default is the field's own by the rule above.
+ */
+export function getAuditLogExportFieldDefault(
+  config: JSONObject | undefined | null,
+  field: AuditLogExportDestinationField,
+): JSONValue | undefined {
+  const follows: AuditLogExportDestinationField["defaultFollows"] =
+    field.defaultFollows;
+
+  if (follows && config) {
+    const choice: JSONValue | undefined = config[follows.key] as
+      | JSONValue
+      | undefined;
+    const key: string = typeof choice === "string" ? choice.trim() : "";
+
+    if (key && Object.prototype.hasOwnProperty.call(follows.values, key)) {
+      return follows.values[key];
+    }
+  }
+
+  return field.defaultValue;
+}
+
 // A config value as the form would read it, with the field's default when it holds none.
 export function readAuditLogExportConfigValue(
   config: JSONObject | undefined | null,
@@ -525,12 +651,8 @@ export function readAuditLogExportConfigValue(
     ? (config[field.key] as JSONValue | undefined)
     : undefined;
 
-  if (
-    value === undefined ||
-    value === null ||
-    (typeof value === "string" && value.trim() === "")
-  ) {
-    return field.defaultValue;
+  if (isEmptyConfigValue(value)) {
+    return getAuditLogExportFieldDefault(config, field);
   }
 
   return value;

@@ -118,13 +118,17 @@ OneUptime sender hver batch med POST til **URL**, som en JSON-matrise (`applicat
 
 ### Syslog
 
-Hver oppføring er én RFC 5424-melding til **Vert** og **Port**, over TLS på port `6514` med mindre **Protokoll** angir TCP, med facility 13 (log audit) og severity 6 (informational):
+Hver oppføring er én RFC 5424-melding til **Vert** og **Port**, over TLS på port `6514` med mindre **Protokoll** angir TCP eller UDP, med facility 13 (log audit) og severity 6 (informational):
 
 ```text
 <110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-Meldinger skilles med oktettelling (RFC 5425), med mindre **Meldingsskille** angir én melding per linje. En mottaker med et sertifikat som en privat CA har signert, trenger sertifikatet til den CA-en i **CA-sertifikat**. Begge venter under **Flere felt**.
+Over TLS og TCP skilles meldinger med oktettelling (RFC 5425), med mindre **Meldingsskille** angir én melding per linje. En mottaker med et sertifikat som en privat CA har signert, trenger sertifikatet til den CA-en i **CA-sertifikat**. Begge venter under **Flere felt**.
+
+Over UDP starter **Port** på `514`, og hver melding er sitt eget datagram (RFC 5426), så ingen skilles. UDP sender revisjonsloggen som ren tekst, og ingenting bekrefter at en melding kom frem: når mottakerens vert svarer at porten er lukket, mislykkes batchen og prøves igjen, men en melding som går tapt underveis, sendes ikke på nytt. Sjekk etter en test over UDP at testoppføringen kom frem. Når hver oppføring må komme frem, velg TLS eller TCP.
+
+Over UDP er en melding høyst **Maksimal meldingsstørrelse** byte: `8192`, med mindre du endrer den under **Flere felt**, fra `1024` til `65507`. En lengre oppføring forkortes så den passer, og forblir ett JSON-objekt: først kortes verdiene ned, slik revisjonsloggen korter dem, for eksempel `[… 1,234 more characters]` eller `[12.3 KB of JSON]`, deretter telles endringene som fortsatt ikke passer, i én, for eksempel `[… 12 more changes]`.
 
 ## Hva som sendes
 
@@ -188,7 +192,7 @@ Et prosjekts eksport i OneUptime Cloud kan ikke nå en privat nettverksadresse. 
 :::
 
 :::details Ingenting kommer frem
-Sjekk at revisjonslogging er slått på i prosjektet, og at noen har endret noe etter at eksporten ble lagret. Lagring mottar en fil først når en batch er full eller fem minutter gammel.
+Sjekk at revisjonslogging er slått på i prosjektet, og at noen har endret noe etter at eksporten ble lagret. Lagring mottar en fil først når en batch er full eller fem minutter gammel. Over UDP kaster en brannmur meldinger uten å si fra: sjekk at UDP kan nå mottakerens port.
 :::
 
 ## Neste steg
