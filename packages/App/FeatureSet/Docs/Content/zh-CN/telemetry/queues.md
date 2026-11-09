@@ -218,7 +218,7 @@ broker 知道任何应用都看不到的东西：有多少消息在等待、每�
 
 在没有被追踪的应用向队列发布或从队列消费时，该队列的 **已发布**、**已消费** 和 **错误** 磁贴以及 **消息** 图表会改为读取 broker 自己的计数：流入的消息、流出的消息，以及它的错误合计，其中被限流的请求在 **错误** 下单独计数；每一项都会在数字下方注明这一点。有 span 的队列会保留 span，因为它们说明了哪个服务做了什么。**p95 processing time** 只来自消费者的追踪，因为没有任何 broker 会测量消费者处理一条消息需要多长时间：没有追踪时，它显示 **需要消费者追踪**。
 
-该部分顶部的 **Broker 指标** 卡片列出为该队列的系统绘制的每个指标：它在所选范围内是否到达了该队列、最后一次到达是什么时候，以及其他每个指标为什么没有到达。计数可能没有任何内容可报告（没有被限流的请求是好消息）；broker 一直在报告却从未到达的水平值，是 Collector 没有请求的指标，卡片会给出其配置需要的行；指标也可能停止到达。对于没有任何指标到达的 Service Bus 或 Event Hubs 队列，卡片还会读取其命名空间改为发送的内容（见 [Broker 健康状况一直为空](#broker-健康状况一直为空)）。
+该部分顶部的 **Broker 指标** 卡片列出为该队列的系统绘制的每个指标：它在所选范围内是否到达了该队列、最后一次到达是什么时候，以及其他每个指标为什么没有到达。计数可能没有任何内容可报告（没有被限流的请求是好消息）；broker 一直在报告却从未到达的水平值，是 Collector 没有请求的指标，卡片会给出其配置需要的行；指标也可能停止到达。对于没有任何指标到达的 Service Bus 或 Event Hubs 队列，卡片还会读取其命名空间改为发送的内容（见 [Broker 健康状况一直为空](#broker-健康状况一直为空)）。卡片在摘要下方说明最近是什么读取了该队列的指标：Collector 的接收器、链接到 **云 → 连接** 的云连接，或两者都有。对于只有 [已连接的 Azure 订阅](/docs/telemetry/cloud-accounts) 读取的队列，订阅不读取的指标显示为 **仅 Collector**，并附上把它加到接收器中的行，而不是显示为缺失。
 
 ### Amazon SNS
 
@@ -595,7 +595,9 @@ OneUptime 不会在队列页面上绘制 Event Grid 的指标：Azure Monitor �
 
 ### Azure Event Hubs
 
-用 Collector 的 `azure_monitor` 接收器从 Azure Monitor 读取命名空间的指标，它按 EntityName 维度把指标拆分到每个事件中心。
+已连接的 Azure 订阅无需运行任何程序，即可按事件中心读取命名空间的关键指标。要读取全部指标，请运行 Collector 的 `azure_monitor` 接收器，它按 EntityName 维度把指标拆分到每个事件中心。
+
+[已连接的 Azure 订阅](/docs/telemetry/cloud-accounts) 为命名空间中最多 1,000 个事件中心读取 `azure_incomingmessages_total`、`azure_outgoingmessages_total`、`azure_servererrors_total` 和 `azure_throttledrequests_total`，无论命名空间有多少个事件中心，每次读取都只对每个命名空间调用一次 Azure Monitor。其余三个指标只有接收器读取，事件中心的 **Broker 指标** 卡片会把它们标为 **仅 Collector**。两者都读取某个事件中心的同一指标时，保留接收器的值并舍弃订阅的值，因此不会重复计数。
 
 接收器通过 `azure_auth` 扩展登录。在订阅上为服务主体授予 **Monitoring Reader** 角色：
 
@@ -659,7 +661,9 @@ Azure Monitor 没有 Event Hubs 的消费者滞后指标：它的 `ConsumerLag` 
 
 ### Azure Service Bus
 
-用 Collector 的 `azure_monitor` 接收器从 Azure Monitor 读取命名空间的指标，它按 EntityName 维度把指标拆分到每个队列和主题。
+已连接的 Azure 订阅无需运行任何程序，即可按队列和主题读取命名空间的关键指标。要读取全部指标，请运行 Collector 的 `azure_monitor` 接收器，它按 EntityName 维度把指标拆分到每个队列和主题。
+
+[已连接的 Azure 订阅](/docs/telemetry/cloud-accounts) 为命名空间中最多 1,000 个队列和主题读取 `azure_activemessages_average`、`azure_deadletteredmessages_average`、`azure_incomingmessages_total`、`azure_outgoingmessages_total`、`azure_servererrors_total` 和 `azure_throttledrequests_total`，无论命名空间有多少个队列，每次读取都只对每个命名空间调用一次 Azure Monitor：每 5 分钟读取一次时，有 50 个队列的命名空间每小时调用 12 次，与只有一个队列的命名空间相同。其余六个指标只有接收器读取，队列的 **Broker 指标** 卡片会把它们标为 **仅 Collector**。两者都读取某个队列的同一指标时，保留接收器的值并舍弃订阅的值，因此不会重复计数。
 
 接收器通过 `azure_auth` 扩展登录。在订阅上为服务主体授予 **Monitoring Reader** 角色：
 
@@ -718,7 +722,7 @@ service:
 - `maximum_number_of_records_per_resource` 是 Azure 每个指标和命名空间返回的序列数，除非你调高，否则为 10：请让它大于你的队列和主题数量（错误指标还会把每个实体按结果进一步拆分），否则其余的不会被报告。
 - Azure Monitor 不按主题订阅拆分：一个主题的计数涵盖它的所有订阅。
 - `metrics` 列表恰好收集队列页面绘制的内容，每个指标使用它所绘制的唯一聚合方式；添加一个指标（`IncomingRequests`、`Messages`、…）即可同时收集它。列表早于 `ScheduledMessages`、`Size` 或 `ServerSendLatency` 的 Collector 不会发送其中任何一个：队列的 **Broker 指标** 卡片会列出要添加的行。
-- 只有这个接收器会按队列和主题拆分指标。[已连接的 Azure 订阅](/docs/telemetry/cloud-accounts) 和导出指标的诊断设置都会发送命名空间的总计，不带 `EntityName`，因此它们都不会到达队列：订阅的指标在 **云 → 所有资源** 下该命名空间自己的页面上，而队列的 **Broker 指标** 卡片会说明它自己的指标为什么缺失。
+- [已连接的 Azure 订阅](/docs/telemetry/cloud-accounts) 也会像这个接收器一样按队列和主题拆分它的六个指标。导出指标的诊断设置会发送命名空间的总计，不带 `EntityName`，因此它们都不会到达队列：它们在 **云 → 所有资源** 下该命名空间自己的页面上，而队列的 **Broker 指标** 卡片会说明它自己的指标为什么缺失。
 - 这些指标都不取决于命名空间的定价层。`ServerSendLatency` 按每次发送报告，因此在该范围内没有收到任何发送的队列不会有它。
 - 接收器每天列出一次你的命名空间，因此新命名空间最多可能需要 24 小时才会出现。
 
@@ -1063,9 +1067,9 @@ service:
 - 它延迟了。`aws_cloudwatch` 会等待 `delay`（10 分钟）让 CloudWatch 发布，因此它的数据点会延迟 11 到 17 分钟到达，而 Pub/Sub 的指标会延迟几分钟到达。
 - 该系统没有绘制图表的指标：Azure Event Grid、NATS、ActiveMQ 以外的 JMS broker 以及 BullMQ（见各自的小节）。它们的指标在 **指标** 浏览器中。
 - 打开队列的 **Broker 指标** 卡片：它列出哪些指标已到达，以及其他指标为什么没有到达。对于没有任何指标到达的 Service Bus 或 Event Hubs 队列，它还会说明命名空间改为发送了什么，是以下三种情况之一。
-- **命名空间没有发来任何内容**：没有 Collector 读取它，或者每次读取都失败。为接收器的服务主体授予 **Monitoring Reader** 角色，并在 Collector 的日志中查找 `AuthorizationFailed` 或 `401`：客户端密码过期会让每次读取都停止。
-- **只有总计**：[已连接的 Azure 订阅](/docs/telemetry/cloud-accounts) 或诊断设置会把命名空间的指标作为整个命名空间的值发送，其中没有队列或主题。请同时用按 `EntityName` 拆分它们的 `azure_monitor` 接收器读取该命名空间。
-- **只有其他队列**：命名空间中其他队列和主题的指标已到达，但这个队列的没有。接收器的 `maximum_number_of_records_per_resource`（除非你调高，否则为 10）把它排除在外：请把它调高到大于命名空间中队列和主题的数量。
+- **命名空间没有发来任何内容**：没有任何程序读取它，或者每次读取都失败。在 **云 → 连接** 中连接它的 Azure 订阅，或运行 `azure_monitor` 接收器。为连接的应用或接收器的服务主体授予 **Monitoring Reader** 角色，并查看连接的上次读取，或在 Collector 的日志中查找 `AuthorizationFailed` 或 `401`：客户端密码过期会让每次读取都停止。
+- **只有总计**：命名空间的指标作为整个命名空间的值到达，其中没有队列或主题。诊断设置只会发送这些：请连接命名空间的订阅，或同时用 `azure_monitor` 接收器读取该命名空间，两者都会按 `EntityName` 拆分它们。[已连接的 Azure 订阅](/docs/telemetry/cloud-accounts) 只在开始读取每个队列之前，或在读取队列失败时，才只发送这些：原因见 **云 → 连接** 中的上次读取。
+- **只有其他队列**：命名空间中其他队列和主题的指标已到达，但这个队列的没有。接收器的 `maximum_number_of_records_per_resource`（除非你调高，否则为 10）把它排除在外：请把它调高到大于命名空间中队列和主题的数量。已连接的订阅最多读取 1,000 个：超出时，请同时用接收器读取该命名空间。
 
 ### 一个目标出现两个队列
 

@@ -49,7 +49,10 @@ import {
   MessageQueueNamespaceFinding,
   getMessageQueueBrokerMetricsStatus,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueBrokerMetricsStatus";
-import { MessageQueueBrokerMetricResult } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
+import {
+  MessageQueueBrokerMetricResult,
+  MessageQueueBrokerMetricSources,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
 import OneUptimeDate from "../../../Types/Date";
 import {
   MessageQueueMetricDescriptor,
@@ -94,6 +97,8 @@ function statusOf(data: {
   results?: Array<MessageQueueBrokerMetricResult>;
   arrived?: Record<string, Date>;
   brokerMetricsLastSeenAt?: Date | null;
+  // What read the queue lately; by default nothing the lookback can tell.
+  sources?: MessageQueueBrokerMetricSources;
 }): MessageQueueBrokerMetricsStatus {
   return getMessageQueueBrokerMetricsStatus({
     messagingSystem: "servicebus",
@@ -102,6 +107,7 @@ function statusOf(data: {
     arrivals: {
       since: ago(7 * DAY_MS),
       lastArrivedAt: new Map<string, Date>(Object.entries(data.arrived || {})),
+      sources: data.sources || { connectionIds: [], fromCollector: false },
     },
     brokerMetricsLastSeenAt: data.brokerMetricsLastSeenAt ?? null,
     window: { start: ago(60 * MINUTE_MS), end: NOW },
@@ -131,15 +137,18 @@ function renderCard(props: {
   status: MessageQueueBrokerMetricsStatus;
   namespaceFinding?: MessageQueueNamespaceFinding | null;
   setupGuidance?: React.ReactElement | undefined;
+  connectionNames?: Record<string, string> | undefined;
+  messagingSystem?: string | undefined;
 }): HTMLElement {
   render(
     <MemoryRouter>
       <MessageQueueBrokerMetricsCard
         modelId={MODEL_ID}
-        messagingSystem="servicebus"
+        messagingSystem={props.messagingSystem || "servicebus"}
         status={props.status}
         namespaceFinding={props.namespaceFinding ?? null}
         setupGuidance={props.setupGuidance}
+        connectionNames={props.connectionNames}
         now={NOW}
       />
     </MemoryRouter>,
@@ -147,8 +156,44 @@ function renderCard(props: {
   return screen.getByTestId("message-queue-broker-metrics-status");
 }
 
+// What an Azure cloud connection reads of a Service Bus queue.
+const CONNECTION_READS: Array<string> = [
+  "azure_activemessages_average",
+  "azure_deadletteredmessages_average",
+  "azure_incomingmessages_total",
+  "azure_outgoingmessages_total",
+  "azure_servererrors_total",
+  "azure_throttledrequests_total",
+];
+
+function connectedStatus(
+  sources: MessageQueueBrokerMetricSources,
+): MessageQueueBrokerMetricsStatus {
+  return statusOf({
+    results: CONNECTION_READS.map(
+      (name: string): MessageQueueBrokerMetricResult => {
+        return inRange(name);
+      },
+    ),
+    sources: sources,
+  });
+}
+
+function sourceLineIn(card: HTMLElement): HTMLElement {
+  return within(card).getByTestId("message-queue-broker-metrics-source");
+}
+
 function findingsIn(card: HTMLElement): Array<HTMLElement> {
   return within(card).queryAllByTestId("message-queue-broker-metrics-finding");
+}
+
+// A finding's links, in order: what each says, and where it goes.
+function linksOf(finding: HTMLElement): Array<[string, string | null]> {
+  return Array.from(finding.querySelectorAll("a")).map(
+    (link: HTMLAnchorElement): [string, string | null] => {
+      return [link.textContent || "", link.getAttribute("href")];
+    },
+  );
 }
 
 describe("the card's head", () => {
@@ -218,6 +263,222 @@ describe("the card's head", () => {
   });
 });
 
+describe("what reads the queue's metrics", () => {
+  test("a cloud connection alone: its name, linked to Cloud > Connect, under the summary", () => {
+    const card: HTMLElement = renderCard({
+      status: connectedStatus({
+        connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+        fromCollector: false,
+      }),
+      connectionNames: {
+        "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14": "Contoso production",
+      },
+    });
+    const source: HTMLElement = sourceLineIn(card);
+    expect(source).toHaveTextContent(
+      "Read by your cloud connection (Contoso production).",
+    );
+    const link: HTMLElement = within(source)
+      .getByTestId("message-queue-broker-metrics-source-connections")
+      .closest("a")!;
+    expect(link.getAttribute("href")).toMatch(/\/cloud\/connect$/);
+    expect(link).toHaveTextContent("Contoso production");
+    // Under the summary and the last received line, in that order.
+    const summary: HTMLElement = within(card).getByTestId(
+      "message-queue-broker-metrics-summary",
+    );
+    expect(summary).toHaveTextContent(
+      "6 of 12 metrics arrived in the selected range.",
+    );
+    const last: HTMLElement = within(card).getByTestId(
+      "message-queue-broker-metrics-last-received",
+    );
+    expect(
+      summary.compareDocumentPosition(last) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      last.compareDocumentPosition(source) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Nothing is missing: the badge says arriving, and no callout shows.
+    expect(card).toHaveAttribute("data-health", "arriving");
+    expect(findingsIn(card)).toHaveLength(0);
+    /*
+     * Then why 6 of 12: the six only the receiver reads, by their badge,
+     * after the connection's name.
+     */
+    const collectorOnly: HTMLElement = within(source).getByTestId(
+      "message-queue-broker-metrics-collector-only",
+    );
+    expect(collectorOnly).toHaveTextContent(
+      "The 6 metrics marked Collector only need the collector's azure_monitor receiver.",
+    );
+    expect(source).toHaveTextContent(
+      "Read by your cloud connection (Contoso production). The 6 metrics marked Collector only need the collector's azure_monitor receiver.",
+    );
+    expect(collectorOnly.querySelector("code")).toHaveTextContent(
+      "azure_monitor",
+    );
+  });
+
+  test("a connection whose name is not known is named by where it is", () => {
+    const card: HTMLElement = renderCard({
+      status: connectedStatus({
+        connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+        fromCollector: false,
+      }),
+    });
+    expect(sourceLineIn(card)).toHaveTextContent(
+      "Read by your cloud connection (Cloud > Connect).",
+    );
+  });
+
+  test("two connections: both names, once each", () => {
+    const card: HTMLElement = renderCard({
+      status: connectedStatus({
+        connectionIds: [
+          "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14",
+          "2a9d4e61-7f2c-4c8b-8d30-6f1a2b4c8e25",
+          "3b8e5f72-8a1d-4d9c-9e41-7a2b3c5d9f36",
+        ],
+        fromCollector: false,
+      }),
+      connectionNames: {
+        "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14": "Contoso production",
+        "2a9d4e61-7f2c-4c8b-8d30-6f1a2b4c8e25": "Fabrikam",
+        // A name two connections share is said once.
+        "3b8e5f72-8a1d-4d9c-9e41-7a2b3c5d9f36": "Fabrikam",
+      },
+    });
+    expect(sourceLineIn(card)).toHaveTextContent(
+      "Read by your cloud connections (Contoso production, Fabrikam).",
+    );
+  });
+
+  test("a collector beside the connection: the receiver as code, then the connection", () => {
+    const card: HTMLElement = renderCard({
+      status: connectedStatus({
+        connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+        fromCollector: true,
+      }),
+      connectionNames: {
+        "1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14": "Contoso production",
+      },
+    });
+    const source: HTMLElement = sourceLineIn(card);
+    expect(source).toHaveTextContent(
+      "Read by your collector's azure_monitor receiver and your cloud connection (Contoso production), which skips the metrics the receiver reads.",
+    );
+    // The receiver reads the Collector only ones: nothing to explain.
+    expect(
+      within(source).queryByTestId(
+        "message-queue-broker-metrics-collector-only",
+      ),
+    ).toBeNull();
+    const code: HTMLElement = source.querySelector("code")!;
+    expect(code).toHaveTextContent("azure_monitor");
+    expect(code).toHaveAttribute("dir", "ltr");
+    expect(within(source).getByRole("link")).toHaveTextContent(
+      "Contoso production",
+    );
+  });
+
+  test("a collector alone: its receiver, and no link", () => {
+    const card: HTMLElement = renderCard({
+      status: connectedStatus({ connectionIds: [], fromCollector: true }),
+    });
+    const source: HTMLElement = sourceLineIn(card);
+    expect(source).toHaveTextContent(
+      "Read by your collector's azure_monitor receiver.",
+    );
+    expect(within(source).queryByRole("link")).toBeNull();
+  });
+
+  test("no line while the lookback cannot tell, or nothing ever arrived", () => {
+    for (const status of [INCOMPLETE, STOPPED, NEVER]) {
+      const card: HTMLElement = renderCard({ status });
+      expect(
+        within(card).queryByTestId("message-queue-broker-metrics-source"),
+      ).toBeNull();
+      cleanup();
+    }
+  });
+
+  test("what the connection does not read: Collector only, a quiet badge, and the line that adds it", () => {
+    const card: HTMLElement = renderCard({
+      status: connectedStatus({
+        connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+        fromCollector: false,
+      }),
+    });
+    const row: HTMLElement = within(card)
+      .getAllByTestId("message-queue-broker-metric-status")
+      .find((element: HTMLElement): boolean => {
+        return (
+          element
+            .getAttribute("data-metric-id")
+            ?.includes("azure_scheduledmessages_average") || false
+        );
+      })!;
+    expect(row).toHaveAttribute("data-state", "collectorOnly");
+    expect(row).toHaveAttribute("data-reason", "notReadByConnection");
+    const badge: HTMLElement = within(row).getByText("Collector only");
+    expect(badge.className).toContain("text-gray-700");
+    const line: HTMLElement = within(row).getByTestId(
+      "message-queue-broker-metric-status-line",
+    );
+    expect(line).toHaveTextContent(
+      "Only the collector's azure_monitor receiver reads it: add ScheduledMessages: [Average] to its metrics list.",
+    );
+    expect(
+      Array.from(line.querySelectorAll("code")).map(
+        (code: HTMLElement): string => {
+          return code.textContent || "";
+        },
+      ),
+    ).toEqual(["azure_monitor", "ScheduledMessages: [Average]"]);
+  });
+
+  test("a level the connection reads that never arrives: its last read is what to look at", () => {
+    const card: HTMLElement = renderCard({
+      status: statusOf({
+        results: [inRange("azure_incomingmessages_total")],
+        sources: {
+          connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+          fromCollector: false,
+        },
+      }),
+    });
+    const findings: Array<HTMLElement> = findingsIn(card);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toHaveAttribute("data-kind", "missing");
+    expect(findings[0]).toHaveTextContent("2 metrics do not arrive");
+    expect(
+      within(findings[0]!).getByTestId(
+        "message-queue-broker-metrics-finding-step",
+      ),
+    ).toHaveTextContent(
+      "Check the connection's last read on Cloud > Connect: it says which metrics it could not read.",
+    );
+    expect(findings[0]).toHaveTextContent(
+      "Your cloud connection reads these, and none arrived in the selected range while this queue's other metrics did: Active messages, Dead-lettered messages.",
+    );
+    // No collector configuration to add, and no link to it.
+    expect(
+      within(findings[0]!).queryByTestId(
+        "message-queue-broker-metrics-finding-config",
+      ),
+    ).toBeNull();
+    // Its first link opens Cloud > Connect, where the connection's last read is.
+    expect(linksOf(findings[0]!)).toEqual([
+      ["Open Cloud > Connect →", expect.stringMatching(/\/cloud\/connect$/)],
+      [
+        "Troubleshooting in the Queues guide →",
+        "/docs/telemetry/queues#broker-health-stays-empty",
+      ],
+    ]);
+  });
+});
+
 describe("what the card asks the reader to do", () => {
   test("the metrics that should arrive and do not, with the lines that collect them", () => {
     const card: HTMLElement = renderCard({ status: INCOMPLETE });
@@ -278,6 +539,10 @@ describe("what the card asks the reader to do", () => {
       "/docs/telemetry/queues#broker-health-stays-empty",
     );
     expect(troubleshooting).toHaveAttribute("target", "_blank");
+    // A collector's metrics: nothing on Cloud > Connect fixes them.
+    expect(linksOf(finding)).toHaveLength(2);
+    expect(finding).not.toHaveTextContent("Cloud > Connect →");
+    expect(finding).not.toHaveTextContent("Connect an Azure subscription");
   });
 
   test("metrics that stopped: when, and what to look at", () => {
@@ -326,6 +591,23 @@ describe("what the card asks the reader to do", () => {
     expect(steps).toHaveLength(3);
     expect(steps[1]).toContain("Monitoring Reader role");
     expect(steps[2]).toContain("AuthorizationFailed");
+    // Nothing reads it yet: connecting the subscription comes first.
+    expect(linksOf(findings[0]!)).toEqual([
+      [
+        "Connect an Azure subscription →",
+        expect.stringMatching(/\/cloud\/connect\?cloud=azure$/),
+      ],
+      [
+        "Collector configuration for this queue →",
+        expect.stringMatching(
+          new RegExp(`/queues/${MODEL_ID.toString()}/documentation$`),
+        ),
+      ],
+      [
+        "Troubleshooting in the Queues guide →",
+        "/docs/telemetry/queues#broker-health-stays-empty",
+      ],
+    ]);
     // Several steps are numbered, in order.
     for (const step of within(findings[0]!).getAllByTestId(
       "message-queue-broker-metrics-finding-step",
@@ -342,6 +624,7 @@ describe("what the card asks the reader to do", () => {
         kind: "otherEntitiesOnly",
         namespace: "orders-ns",
         entityCount: 14,
+        fromCloudConnection: false,
       },
     });
     expect(findingsIn(others)[0]).toHaveAttribute(
@@ -372,8 +655,51 @@ describe("what the card asks the reader to do", () => {
       "namespaceTotalsOnly",
     );
     expect(findingsIn(totals)[0]).toHaveTextContent(
-      "Your Azure cloud connection reads this namespace's metrics for the namespace as a whole",
+      "Your Azure cloud connection sent only the namespace's totals in the selected range, not its figures for each queue and topic.",
     );
+    expect(findingsIn(totals)[0]).toHaveTextContent(
+      "Check the connection's last read on Cloud > Connect",
+    );
+    // The connection's own list, not the collector's configuration.
+    expect(linksOf(findingsIn(totals)[0]!)).toEqual([
+      ["Open Cloud > Connect →", expect.stringMatching(/\/cloud\/connect$/)],
+      [
+        "Troubleshooting in the Queues guide →",
+        "/docs/telemetry/queues#broker-health-stays-empty",
+      ],
+    ]);
+    cleanup();
+
+    // A namespace a connection read and now sends nothing: its connection.
+    const stoppedConnection: HTMLElement = renderCard({
+      status: statusOf({
+        arrived: { azure_activemessages_average: ago(2 * DAY_MS) },
+        sources: {
+          connectionIds: ["1f0c8a52-6d3e-4b7a-9c21-5e8f0a3b7d14"],
+          fromCollector: false,
+        },
+      }),
+      namespaceFinding: {
+        kind: "nothingFromNamespace",
+        namespace: "orders-ns",
+      },
+    });
+    expect(findingsIn(stoppedConnection)[0]).toHaveTextContent(
+      "your cloud connection stopped reading it, or its reads fail.",
+    );
+    expect(findingsIn(stoppedConnection)[0]).not.toHaveTextContent(
+      "Connect the namespace's Azure subscription",
+    );
+    expect(
+      linksOf(findingsIn(stoppedConnection)[0]!).map(
+        (link: [string, string | null]): string => {
+          return link[0];
+        },
+      ),
+    ).toEqual([
+      "Open Cloud > Connect →",
+      "Troubleshooting in the Queues guide →",
+    ]);
     cleanup();
 
     // Without a namespace finding, nothing ever arrived: no callout at all.

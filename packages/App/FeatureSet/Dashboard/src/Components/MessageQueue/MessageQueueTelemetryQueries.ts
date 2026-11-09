@@ -1665,6 +1665,32 @@ export const MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS: number = 7;
  */
 export const MESSAGE_QUEUE_BROKER_METRIC_RECENT_HOURS: number = 3;
 
+/*
+ * The stored key of the resource attribute a cloud connection (Cloud >
+ * Connect) puts on what it delivers: what tells its metrics - its reads'
+ * and its streams' - apart from a collector's.
+ */
+export const MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY: string = `resource.${CLOUD_CONNECTION_ID_ATTRIBUTE}`;
+
+/*
+ * What delivered a queue's metrics lately: each cloud connection (an Azure
+ * connection reads a Service Bus or Event Hubs namespace per queue), and a
+ * collector - whatever carries no connection's id.
+ */
+export interface MessageQueueBrokerMetricSources {
+  // The connections' ids, sorted.
+  connectionIds: Array<string>;
+  fromCollector: boolean;
+}
+
+/*
+ * How long before the queue's newest arrival what delivered it still counts
+ * as reading it: a source that stopped longer ago than that, while another
+ * still delivers, was replaced (a collector a cloud connection took over
+ * from, and the other way round).
+ */
+export const MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS: number = 2;
+
 /** When each of a queue's catalog metrics last arrived for it. */
 export interface MessageQueueBrokerMetricArrivals {
   // The lookback's start: a metric absent below did not arrive since.
@@ -1674,6 +1700,11 @@ export interface MessageQueueBrokerMetricArrivals {
    * minute within the recent stretch, an hour before it.
    */
   lastArrivedAt: ReadonlyMap<string, Date>;
+  /*
+   * What delivered them lately (MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS
+   * before the newest arrival); none when nothing arrived in the lookback.
+   */
+  sources: MessageQueueBrokerMetricSources;
 }
 
 function uniqueMetricNamesOf(
@@ -1711,13 +1742,66 @@ function newestIntervalByName(
   return newest;
 }
 
+/*
+ * What delivered the queue's metrics lately, from the lookback's rows by
+ * name and cloud connection: each source's newest hour, and the ones within
+ * MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS of the newest of all.
+ */
+export function getMessageQueueBrokerMetricSources(
+  result: AggregatedResult | null | undefined,
+): MessageQueueBrokerMetricSources {
+  // Connection id ("" for a collector) → its newest interval.
+  const newestBySource: Map<string, number> = new Map<string, number>();
+  let newest: number | null = null;
+
+  for (const row of (result?.data || []) as Array<AggregatedModel>) {
+    const time: number | null = intervalTimeOf(row);
+    const count: number = Number(row["value"]);
+    if (time === null || !(count > 0)) {
+      continue;
+    }
+    const raw: unknown = row["attributes"];
+    const source: string = stringAttributeOf(
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>)
+        : {},
+      [MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY],
+    );
+    const known: number | undefined = newestBySource.get(source);
+    if (known === undefined || time > known) {
+      newestBySource.set(source, time);
+    }
+    newest = newest === null ? time : Math.max(newest, time);
+  }
+
+  const connectionIds: Array<string> = [];
+  let fromCollector: boolean = false;
+  if (newest !== null) {
+    const from: number =
+      newest - MESSAGE_QUEUE_BROKER_METRIC_SOURCE_HOURS * 60 * 60 * 1000;
+    for (const [source, time] of newestBySource) {
+      if (time < from) {
+        continue;
+      }
+      if (source) {
+        connectionIds.push(source);
+      } else {
+        fromCollector = true;
+      }
+    }
+  }
+
+  return { connectionIds: connectionIds.sort(), fromCollector: fromCollector };
+}
+
 /**
  * When each catalog metric last arrived for the queue in the last
- * MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS: two counts of its datapoints by
- * name — per minute over the recent stretch, per hour over the lookback —
- * under the queue's key. Null (and no API call) when unscoped; null too when
- * a read fails or comes back cut off, so the card never claims a metric
- * never arrived on an answer it did not get whole.
+ * MESSAGE_QUEUE_BROKER_METRIC_LOOKBACK_DAYS, and what delivered them: two
+ * counts of its datapoints by name — per minute over the recent stretch,
+ * per hour over the lookback, that one by cloud connection too — under the
+ * queue's key. Null (and no API call) when unscoped; null too when a read
+ * fails or comes back cut off, so the card never claims a metric never
+ * arrived on an answer it did not get whole.
  */
 export async function fetchMessageQueueBrokerMetricArrivals(data: {
   projectId: ObjectID | string | null | undefined;
@@ -1748,9 +1832,11 @@ export async function fetchMessageQueueBrokerMetricArrivals(data: {
   const read: (
     start: Date,
     interval: AggregationInterval,
+    bySource: boolean,
   ) => Promise<AggregatedResult> = (
     start: Date,
     interval: AggregationInterval,
+    bySource: boolean,
   ): Promise<AggregatedResult> => {
     return AnalyticsModelAPI.aggregate<Metric>({
       modelType: Metric,
@@ -1767,6 +1853,9 @@ export async function fetchMessageQueueBrokerMetricArrivals(data: {
         start: start,
         end: now,
         groupBy: { name: true },
+        groupByAttributeKeys: bySource
+          ? [MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY]
+          : undefined,
         aggregationInterval: interval,
       }),
     });
@@ -1775,8 +1864,8 @@ export async function fetchMessageQueueBrokerMetricArrivals(data: {
   try {
     const [recent, lookback]: [AggregatedResult, AggregatedResult] =
       await Promise.all([
-        read(recentSince, AggregationInterval.Minute),
-        read(since, AggregationInterval.Hour),
+        read(recentSince, AggregationInterval.Minute, false),
+        read(since, AggregationInterval.Hour, true),
       ]);
     if (recent.truncated || lookback.truncated) {
       return null;
@@ -1790,7 +1879,11 @@ export async function fetchMessageQueueBrokerMetricArrivals(data: {
         lastArrivedAt.set(name, new Date(time));
       }
     }
-    return { since: since, lastArrivedAt: lastArrivedAt };
+    return {
+      since: since,
+      lastArrivedAt: lastArrivedAt,
+      sources: getMessageQueueBrokerMetricSources(lookback),
+    };
   } catch {
     return null;
   }
@@ -1894,13 +1987,6 @@ export async function fetchMessageQueueBrokerMetricArrivalsCached(data: {
   data.cache.set(key, arrivals, now.getTime());
   return arrivals;
 }
-
-/*
- * The stored key of the resource attribute a cloud connection (Cloud >
- * Connect) puts on what it delivers: what tells its namespace totals apart
- * from a collector's.
- */
-export const MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY: string = `resource.${CLOUD_CONNECTION_ID_ATTRIBUTE}`;
 
 /** One series a namespace sent in the range, by what it names. */
 export interface MessageQueueNamespaceSeries {
