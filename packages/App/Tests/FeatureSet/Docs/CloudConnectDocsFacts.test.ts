@@ -8,7 +8,13 @@ import {
 } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
-import { AZURE_MAX_METRICS_PER_RESOURCE } from "Common/Types/Cloud/CloudKeyMetrics";
+import {
+  AZURE_ENTITY_NAME_DIMENSION,
+  AZURE_MAX_METRICS_PER_RESOURCE,
+  AZURE_MAX_SPLIT_SERIES_PER_METRIC,
+  AzureTypeKeyMetrics,
+  getAzureKeyMetrics,
+} from "Common/Types/Cloud/CloudKeyMetrics";
 import {
   CloudConnectionAuthMethod,
   CloudConnectionCatalog,
@@ -505,6 +511,65 @@ describe("Connect a Cloud Account", () => {
     );
     expect(price("Google Cloud")).toContain(
       `The first ${written(GCP_FREE_TIME_SERIES_PER_MONTH)} time series read a month are free, then $${GCP_USD_PER_MILLION_TIME_SERIES.toFixed(2)} per million`,
+    );
+  });
+
+  /*
+   * A Service Bus or Event Hubs namespace's key metrics are split per
+   * queue, topic and event hub by the EntityName dimension, in the one
+   * Azure Monitor call its read makes anyway. Azure bills a call, not a
+   * series, so the page states the cost of a namespace of 50 queues at the
+   * default read interval: an hour's reads, one call each.
+   */
+  it("says a namespace's queues are read in its one call a read, what that costs an hour, and how many a read takes", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith(
+          "A Service Bus or Event Hubs namespace's key metrics",
+        );
+      });
+    const minutes: number = definition(
+      CloudProvider.Azure,
+    ).defaultReadIntervalInMinutes;
+
+    expect(paragraph).toBeDefined();
+
+    for (const type of [
+      "Microsoft.ServiceBus/namespaces",
+      "Microsoft.EventHub/namespaces",
+    ]) {
+      const keyMetrics: AzureTypeKeyMetrics = getAzureKeyMetrics(
+        type,
+      ) as AzureTypeKeyMetrics;
+
+      expect({ type, splitBy: keyMetrics.splitByDimension }).toEqual({
+        type,
+        splitBy: AZURE_ENTITY_NAME_DIMENSION,
+      });
+      // One call reads them all.
+      expect(keyMetrics.metrics.length).toBeLessThanOrEqual(
+        AZURE_MAX_METRICS_PER_RESOURCE,
+      );
+    }
+
+    // The split rides on the resource's own call, never a call per queue.
+    expect(source("azure")).toContain(
+      "? { splitBy, top: AZURE_MAX_SPLIT_SERIES_PER_METRIC }",
+    );
+    expect(60 % minutes).toBe(0);
+    expect(paragraph).toContain(
+      `split by the \`${AZURE_ENTITY_NAME_DIMENSION}\` dimension, in the same one call per namespace and read`,
+    );
+    expect(paragraph).toContain(
+      `read every ${minutes} minutes, a namespace of 50 queues costs ${60 / minutes} calls an hour, as a namespace of one does`,
+    );
+    expect(paragraph).toContain(
+      `A read takes up to ${written(AZURE_MAX_SPLIT_SERIES_PER_METRIC)} of them per namespace, and says so when there are more.`,
+    );
+    expect(paragraph).toContain("](/docs/telemetry/queues#azure-service-bus)");
+    expect(paragraph).toContain(
+      "where that receiver also reads a metric of a queue, its figures are kept and the connection's left out",
     );
   });
 

@@ -218,7 +218,7 @@ Seksjonen **Brokerhelse** for hver kø viser metrikkene som er oppført for syst
 
 Der ingen applikasjon med sporing publiserer til eller konsumerer fra en kø, leser køens fliser **Publisert**, **Konsumert** og **Feil** og grafen **Meldinger** i stedet brokerens egne tellinger (meldinger inn, meldinger ut og feilene lagt sammen, med strupte forespørsler talt for seg under **Feil**), og hver av dem sier det under tallet sitt. En kø med span beholder dem, siden de sier hvilken tjeneste som gjorde hva. Flisen **p95 processing time** kommer bare fra sporene til consumerne, fordi ingen broker måler hvor lenge en consumer bruker på en melding: uten dem står det **Krever spor fra forbrukere**.
 
-Kortet **Brokermetrikker** øverst i seksjonen viser hver metrikk som vises i grafer for køens system: om den har kommet inn for køen i det valgte tidsrommet, når den sist gjorde det, og hvorfor hver av de andre ikke gjorde det. Et antall kan ha ingenting å melde (ingen strupte forespørsler er gode nyheter); et nivå brokeren melder hele tiden og som aldri kommer inn, er et collectoren ikke ber om, og kortet gir linjene konfigurasjonen trenger; en metrikk kan også slutte å komme inn. For en Service Bus- eller Event Hubs-kø der ingen av metrikkene kommer inn, leser kortet også hva namespacet sender i stedet (se [Brokerhelsen forblir tom](#brokerhelsen-forblir-tom)).
+Kortet **Brokermetrikker** øverst i seksjonen viser hver metrikk som vises i grafer for køens system: om den har kommet inn for køen i det valgte tidsrommet, når den sist gjorde det, og hvorfor hver av de andre ikke gjorde det. Et antall kan ha ingenting å melde (ingen strupte forespørsler er gode nyheter); et nivå brokeren melder hele tiden og som aldri kommer inn, er et collectoren ikke ber om, og kortet gir linjene konfigurasjonen trenger; en metrikk kan også slutte å komme inn. For en Service Bus- eller Event Hubs-kø der ingen av metrikkene kommer inn, leser kortet også hva namespacet sender i stedet (se [Brokerhelsen forblir tom](#brokerhelsen-forblir-tom)). Under sammendraget sier kortet hva som har lest køens metrikker i det siste: collectorens receiver, skytilkoblingene dine, med lenke til **Sky → Koble til**, eller begge. På en kø som bare et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) leser, er en metrikk abonnementet ikke leser **Bare collector**, med linjen som legger den til i receiveren, i stedet for å mangle.
 
 ### Amazon SNS
 
@@ -595,7 +595,9 @@ OneUptime viser ikke metrikkene fra Event Grid på siden til en kø: Azure Monit
 
 ### Azure Event Hubs
 
-Les namespacets metrikker fra Azure Monitor med collectorens `azure_monitor`-receiver, som deler dem opp per event hub etter dimensjonen EntityName.
+Et tilkoblet Azure-abonnement leser namespacets viktigste metrikker for hver event hub, uten at du trenger å kjøre noe. For å lese alle kjører du collectorens `azure_monitor`-receiver, som deler dem opp per event hub etter dimensjonen EntityName.
+
+Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) leser `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` og `azure_throttledrequests_total` for opptil 1 000 event hubs i et namespace, med ett Azure Monitor-kall per namespace ved hver lesing, uansett hvor mange event hubs namespacet har. De tre andre leser bare receiveren, og en event hubs kort **Brokermetrikker** merker dem som **Bare collector**. Der begge leser en metrikk for en event hub, beholdes receiverens, og abonnementets utelates, så ingenting telles to ganger.
 
 Receiveren logger på gjennom utvidelsen `azure_auth`. Gi tjenestekontohaveren rollen **Monitoring Reader** på abonnementet:
 
@@ -659,7 +661,9 @@ Azure Monitor har ingen metrikk for consumer-lag for Event Hubs: `ConsumerLag` f
 
 ### Azure Service Bus
 
-Les namespacets metrikker fra Azure Monitor med collectorens `azure_monitor`-receiver, som deler dem opp per kø og topic etter dimensjonen EntityName.
+Et tilkoblet Azure-abonnement leser namespacets viktigste metrikker for hver kø og hvert topic, uten at du trenger å kjøre noe. For å lese alle kjører du collectorens `azure_monitor`-receiver, som deler dem opp per kø og topic etter dimensjonen EntityName.
+
+Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) leser `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` og `azure_throttledrequests_total` for opptil 1 000 køer og topics i et namespace, med ett Azure Monitor-kall per namespace ved hver lesing, uansett hvor mange køer namespacet har: med en lesing hvert 5. minutt koster et namespace med 50 køer 12 kall i timen, like mye som et namespace med én kø. De seks andre leser bare receiveren, og en køs kort **Brokermetrikker** merker dem som **Bare collector**. Der begge leser en metrikk for en kø, beholdes receiverens, og abonnementets utelates, så ingenting telles to ganger.
 
 Receiveren logger på gjennom utvidelsen `azure_auth`. Gi tjenestekontohaveren rollen **Monitoring Reader** på abonnementet:
 
@@ -718,7 +722,7 @@ service:
 - `maximum_number_of_records_per_resource` er hvor mange serier Azure returnerer per metrikk og namespace, 10 med mindre du øker det: hold det over antallet køer og topics du har (feilmetrikkene deler i tillegg opp hver entitet etter resultat), ellers rapporteres ikke resten.
 - Azure Monitor deler ikke opp etter topicabonnement: tellingene for et topic dekker alle abonnementene.
 - Listen `metrics` samler inn nøyaktig det køsiden viser, hver med den ene aggregeringen den viser; legg til en metrikk (`IncomingRequests`, `Messages`, …) for å samle inn den også. En collector med en liste som er eldre enn `ScheduledMessages`, `Size` eller `ServerSendLatency`, sender ingen av dem: køens kort **Brokermetrikker** nevner linjene som må legges til.
-- Bare denne receiveren deler opp metrikkene etter kø og topic. Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) og en diagnoseinnstilling som eksporterer metrikker, sender begge totalene for namespacet, uten `EntityName`, så ingen av dem når en kø: namespacets egen side under **Sky → Alle ressurser** har abonnementets, og en køs kort **Brokermetrikker** sier hvorfor køens egne mangler.
+- Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) deler opp de seks metrikkene sine etter kø og topic, slik denne receiveren gjør. En diagnoseinnstilling som eksporterer metrikker, sender totalene for namespacet, uten `EntityName`, så ingen av dem når en kø: namespacets egen side under **Sky → Alle ressurser** har dem, og en køs kort **Brokermetrikker** sier hvorfor køens egne mangler.
 - Ingen av disse metrikkene avhenger av namespacets nivå. `ServerSendLatency` rapporteres per sending, så en kø det ikke er sendt noe til i tidsrommet, har ingen.
 - Receiveren lister namespacene dine én gang om dagen, så et nytt namespace kan bruke opptil 24 timer på å dukke opp.
 
@@ -1063,9 +1067,9 @@ Når spanene faktisk navngir den, oppretter du den manuelt med samme system og d
 - Den er forsinket. `aws_cloudwatch` venter `delay` (10 minutter) på at CloudWatch publiserer, så punktene kommer 11 til 17 minutter for sent, og metrikkene fra Pub/Sub kommer minutter for sent.
 - Systemet har ingen metrikker i grafer: Azure Event Grid, NATS, andre JMS-brokere enn ActiveMQ og BullMQ (se seksjonene deres). Metrikkene deres finnes i utforskeren **Målinger**.
 - Åpne køens kort **Brokermetrikker**: det viser hvilke metrikker som kommer inn, og hvorfor de andre ikke gjør det. For en Service Bus- eller Event Hubs-kø der ingen av metrikkene kommer inn, sier det også hva namespacet sender i stedet, én av tre ting.
-- **Ingenting fra namespacet**: ingen collector leser det, eller hver lesing mislykkes. Gi receiverens tjenestekontohaver rollen **Monitoring Reader**, og se etter `AuthorizationFailed` eller `401` i loggen til collectoren: en utløpt klienthemmelighet stopper hver lesing.
-- **Bare totaler**: et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) eller en diagnoseinnstilling sender namespacets metrikker for namespacet som helhet, uten noen kø eller noe topic i dem. Les også namespacet med receiveren `azure_monitor`, som deler dem opp etter `EntityName`.
-- **Bare andre køer**: metrikker kommer inn for andre køer og topics i namespacet, men ikke for denne. Receiverens `maximum_number_of_records_per_resource` (10 med mindre du øker det) utelot den: øk det over antallet køer og topics i namespacet.
+- **Ingenting fra namespacet**: ingenting leser det, eller hver lesing mislykkes. Koble til Azure-abonnementet under **Sky → Koble til**, eller kjør receiveren `azure_monitor`. Gi tilkoblingens app eller receiverens tjenestekontohaver rollen **Monitoring Reader**, og se på tilkoblingens siste lesing, eller se etter `AuthorizationFailed` eller `401` i loggen til collectoren: en utløpt klienthemmelighet stopper hver lesing.
+- **Bare totaler**: namespacets metrikker kommer inn for namespacet som helhet, uten noen kø eller noe topic i dem. En diagnoseinnstilling sender bare dem: koble til namespacets abonnement, eller les også namespacet med receiveren `azure_monitor`; begge deler dem opp etter `EntityName`. Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) sendte bare dem før det leste hver kø, eller når lesingene av køene mislykkes: den siste lesingen under **Sky → Koble til** sier hvorfor.
+- **Bare andre køer**: metrikker kommer inn for andre køer og topics i namespacet, men ikke for denne. Receiverens `maximum_number_of_records_per_resource` (10 med mindre du øker det) utelot den: øk det over antallet køer og topics i namespacet. Et tilkoblet abonnement leser opptil 1 000 av dem: er det flere, les også namespacet med receiveren.
 
 ### To køer for én destinasjon
 

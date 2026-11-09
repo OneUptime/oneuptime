@@ -284,6 +284,8 @@ The calls OneUptime makes are billed to your cloud account, at your cloud's pric
 | Google Cloud | The first 1,000,000 time series read a month are free, then $0.50 per million |
 | Google Cloud costs | BigQuery bills the query of your billing export: the first 1 TiB a month is free, then $6.25 per TiB |
 
+A Service Bus or Event Hubs namespace's key metrics are read for each of its queues, topics and event hubs, split by the `EntityName` dimension, in the same one call per namespace and read: read every 5 minutes, a namespace of 50 queues costs 12 calls an hour, as a namespace of one does. A read takes up to 1,000 of them per namespace, and says so when there are more. Each one's metrics show on its page under [Queues](/docs/telemetry/queues#azure-service-bus), filed the way the collector's `azure_monitor` receiver files them, and where that receiver also reads a metric of a queue, its figures are kept and the connection's left out, so nothing is counted twice.
+
 ## What you see in OneUptime
 
 - **An account's page.** Under **Cloud → Accounts**, an account's Overview counts its resources by type and Region and says when a connection last read it. Its **Resources** lists them, its **Changes** lists what changed in it, newest first, and its **Topology** draws its Regions, the networks in them and what runs in each, with the open incidents and alerts on the resources they are linked to. On **Changes**, a change OneUptime AI made reads **OneUptime AI**, with the incident or alert it fixed, who approved it or that it ran on its own, and a link to its entry in the account's **AI Logs**. Its **Feed** records how the account came to OneUptime, its Cloud AI agent connecting or being reset, and who changed what OneUptime AI may do in it.
