@@ -109,8 +109,8 @@ describe("Ask AI links what an incident or alert is about", () => {
     // The line the server prepared, in the reader's language (ToolActionWords).
     expect(card).toContain("getToolActionDescription(action, translator)");
     expect(card).toContain("<ToolActionSentences sentences={description} />");
-    expect(runner).toContain(
-      "await this.prepareMutation(toolCall, toolContext)",
+    expect(runner).toMatch(
+      /await this\.prepareMutation\(toolCall, \{\s*\.\.\.toolContext,/,
     );
   });
 

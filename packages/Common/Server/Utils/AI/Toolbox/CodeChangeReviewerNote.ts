@@ -6,6 +6,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
+import { describeLineRanges } from "./CodeFilesSeen";
 
 type ReviewerNoteFunction = (data: {
   // The branch the pull request starts from.
@@ -19,11 +20,13 @@ type ReviewerNoteFunction = (data: {
  *
  * The card of an Ask AI pull request said it writes over what Ask AI never
  * read - a file changed on the base branch after Ask AI read it, read on
- * another branch only, never read, or not checked - and the person approved
- * it anyway. Whoever reviews it on GitHub, GitLab, Forgejo or Gitea may
- * never have seen the card, so the pull request's description says it too,
- * as Markdown: each file in a code span, so its name reads as written
- * (src/__init__.py, pages/[slug].tsx). Null when the card said nothing.
+ * another branch only, never read, read only in part (issue #6330), or not
+ * checked - and the person approved it anyway. Whoever reviews it on
+ * GitHub, GitLab, Forgejo or Gitea may never have seen the card, so the
+ * pull request's description says it too, as Markdown: each file in a
+ * code span, so its name reads as written (src/__init__.py,
+ * pages/[slug].tsx), and for a file read in part, the lines AI never saw,
+ * where its diff may drop code. Null when the card said nothing.
  */
 export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
   baseBranchName: string;
@@ -48,6 +51,10 @@ export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
             : mdText`${file}: AI read it on another branch, and it is different on ${base}.`;
         case CodeFileUnseen.NotRead:
           return mdText`${file}: AI did not read it before writing it.`;
+        case CodeFileUnseen.ReadInPart:
+          return finding.lineCount !== undefined && finding.linesNotRead
+            ? mdText`${file}: AI did not read ${describeLineRanges(finding.linesNotRead)} of its ${String(finding.lineCount)} ${finding.lineCount === 1 ? "line" : "lines"} before writing the whole file.`
+            : mdText`${file}: AI read only part of it before writing the whole file.`;
         case CodeFileUnseen.NotChecked:
         default:
           return mdText`${file}: OneUptime could not check it against what AI read.`;
@@ -55,6 +62,6 @@ export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
     },
   );
 
-  return mdText`**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace changes it did not read:
+  return mdText`**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:
 ${FeedMarkdown.bulletList(items)}`.toString();
 };

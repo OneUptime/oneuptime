@@ -38,8 +38,14 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
-import { AIChatRecordSeen } from "../../../../Types/AI/AIChatRecordSeen";
-import { normalizeCodeBranchName } from "../../../../Types/CodeRepository/CodeFileSeen";
+import {
+  AIChatLinesShown,
+  AIChatRecordSeen,
+} from "../../../../Types/AI/AIChatRecordSeen";
+import {
+  getCodeFileLinesShown,
+  normalizeCodeBranchName,
+} from "../../../../Types/CodeRepository/CodeFileSeen";
 import { getCodeFileSeenFromRead } from "./CodeFilesSeen";
 
 /*
@@ -677,6 +683,24 @@ function splitIntoLines(content: string): Array<string> {
 }
 
 /*
+ * How many lines a numbered block still holds whole once the serializer
+ * cut it at its own payload cap: the line breaks it kept, each the end of
+ * a line shown whole. Counted with indexOf, never a regular expression: a
+ * block can hold a single line tens of kilobytes long.
+ */
+function countWholeLinesKept(text: string): number {
+  let count: number = 0;
+  let at: number = text.indexOf("\n");
+
+  while (at !== -1) {
+    count++;
+    at = text.indexOf("\n", at + 1);
+  }
+
+  return count;
+}
+
+/*
  * Take as many whole lines as fit the code payload budget. Whole lines, not
  * bytes: a mid-line cut would hand the model a truncated identifier that reads
  * like real code.
@@ -1158,20 +1182,32 @@ export const ReadCodeFileTool: ObservabilityTool = {
      * read, kept with the citation by OneUptime - never the model - so a
      * commit written from it later says, before anyone approves it, what
      * was pushed to the file since (issue #6313). Whichever lines it shows,
-     * the version is the file's.
+     * the version is the file's - and the lines it shows are kept with it,
+     * when they are not all of them (issue #6330): a commit writes the
+     * whole file, so a version Ask AI saw only part of says so on the card.
      */
-    const recordSeen: AIChatRecordSeen | null = repository.id
-      ? getCodeFileSeenFromRead({
-          repositoryId: repository.id.toString(),
-          branchName: branchName,
-          filePath: filePath,
-          file: file,
-        })
-      : null;
+    const seen: (
+      linesShown?: AIChatLinesShown | undefined,
+    ) => AIChatRecordSeen | null = (
+      linesShown?: AIChatLinesShown | undefined,
+    ): AIChatRecordSeen | null => {
+      return repository.id
+        ? getCodeFileSeenFromRead({
+            repositoryId: repository.id.toString(),
+            branchName: branchName,
+            filePath: filePath,
+            file: file,
+            linesShown: linesShown,
+          })
+        : null;
+    };
 
     const allLines: Array<string> = splitIntoLines(file.content);
 
     if (allLines.length === 0) {
+      // An empty file shows all of itself.
+      const recordSeen: AIChatRecordSeen | null = seen();
+
       return {
         dataForLlm: `file: ${filePath}\nrepository: ${repository.organizationName}/${repository.repositoryName}@${branchName}\n\n(this file is empty — 0 bytes)`,
         rowCount: 0,
@@ -1257,6 +1293,23 @@ export const ReadCodeFileTool: ObservabilityTool = {
     const serialized: SerializedResult = ToolResultSerializer.serializeText(
       numbered,
       selected.length,
+    );
+
+    /*
+     * The lines this showed whole: each one selected - unless the serializer
+     * cut the block at its own cap, which only a line longer than a result
+     * may carry makes it do; then the lines it kept whole. Another read
+     * shows the rest, and reads of the same version add up.
+     */
+    const shownCount: number = serialized.isTruncated
+      ? Math.min(selected.length, countWholeLinesKept(serialized.text))
+      : selected.length;
+    const recordSeen: AIChatRecordSeen | null = seen(
+      getCodeFileLinesShown({
+        lineCount: allLines.length,
+        firstLine: startLine,
+        lastLine: startLine + shownCount - 1,
+      }),
     );
 
     const header: string = [
