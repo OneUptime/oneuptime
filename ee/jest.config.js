@@ -134,6 +134,11 @@ const deriveUiModuleNameMapper = (commonJestConfig) => {
 const commonJestConfig = readCommonJestConfig();
 
 module.exports = {
+  /*
+   * testTimeout is a global option in Jest 28: inside a `projects` entry it is
+   * silently dropped and the 5s default applies. Keep it here, never per project.
+   */
+  testTimeout: commonJestConfig.testTimeout || 60000,
   projects: [
     {
       displayName: "server",
@@ -148,7 +153,6 @@ module.exports = {
       globals: TS_JEST_GLOBALS,
       moduleNameMapper: { ...ANCHORED_CORE_MAPPERS },
       modulePaths: MODULE_PATHS,
-      testTimeout: 30000,
     },
     {
       displayName: "ui",
@@ -167,7 +171,6 @@ module.exports = {
       globals: TS_JEST_GLOBALS,
       moduleNameMapper: deriveUiModuleNameMapper(commonJestConfig),
       modulePaths: MODULE_PATHS,
-      testTimeout: commonJestConfig.testTimeout || 60000,
     },
   ],
 };

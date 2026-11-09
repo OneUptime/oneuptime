@@ -16,6 +16,7 @@ interface JestProject {
   testMatch: Array<string>;
   moduleNameMapper: Record<string, string>;
   setupFilesAfterEnv?: Array<string>;
+  testTimeout?: number;
 }
 
 // An anchored ("^...") or file-extension ("\\.(css|...)$") mapper key.
@@ -41,6 +42,7 @@ const EE_OVERRIDDEN_KEYS: ReadonlySet<string> = new Set<string>([
 ]);
 
 const jestConfig: {
+  testTimeout?: number;
   projects: Array<JestProject>;
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 } = require("../../jest.config.js");
@@ -77,6 +79,21 @@ describe("ee/jest.config.js", () => {
 
     for (const candidate of jestConfig.projects) {
       expect(candidate.rootDir).toBe(EE_DIR);
+    }
+  });
+
+  test("testTimeout is set globally, never inside a project", () => {
+    /*
+     * Jest 28 reads testTimeout from the global config only: a value inside a
+     * `projects` entry is dropped and the 5s default applies.
+     */
+    expect(jestConfig.testTimeout).toBeGreaterThanOrEqual(30000);
+
+    for (const candidate of jestConfig.projects) {
+      expect({
+        project: candidate.displayName,
+        testTimeout: candidate.testTimeout,
+      }).toEqual({ project: candidate.displayName, testTimeout: undefined });
     }
   });
 
