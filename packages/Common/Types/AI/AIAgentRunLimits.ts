@@ -390,6 +390,29 @@ export default class AIAgentRunLimitsHelper {
   }
 
   /*
+   * Whether a run finishing an answer the model's output limit cut off may
+   * make one more call for it, or which cap leaves it none: a cap the
+   * project set holds while an answer is finished too, so a run never makes
+   * more model calls, or uses more tokens, than the cap allows - the answer
+   * keeps what it has, and the note under it names the cap. The time limit
+   * and the tool-call cap leave a run its answer, and so its continuations.
+   */
+  public static getContinuationStopReason(
+    limits: AIAgentRunLimits,
+    usage: Pick<
+      AIAgentRunUsage,
+      "llmCallCount" | "toolCallCount" | "tokenCount" | "lastCallTokenCount"
+    >,
+  ): AIRunStopReason | null {
+    const decision: AIRunStopDecision | null = this.getCapStopDecision(
+      limits,
+      usage,
+    );
+
+    return decision && !decision.mayAnswer ? decision.reason : null;
+  }
+
+  /*
    * Whether one more tool call of a batch may run, or why not: a model asks
    * for as many calls at once as it likes, so the tool-call cap and the
    * time limit hold inside a batch too.

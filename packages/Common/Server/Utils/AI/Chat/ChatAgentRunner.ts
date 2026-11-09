@@ -1022,6 +1022,26 @@ export default class ChatAgentRunner {
         }
       }
 
+      if (isContinuingAnswer) {
+        /*
+         * Finishing a cut-off answer makes model calls too, and none past a
+         * cap the project set: the answer keeps what it has, and the note
+         * under it names the cap.
+         */
+        const capReason: AIRunStopReason | null =
+          AIAgentRunLimitsHelper.getContinuationStopReason(runLimits, {
+            llmCallCount: state.llmCallCount,
+            toolCallCount: state.toolCallCount,
+            tokenCount: state.totalTokens,
+            lastCallTokenCount: lastCallTokens,
+          });
+
+        if (capReason) {
+          stopReason = capReason;
+          break;
+        }
+      }
+
       const mustAnswer: boolean = stopReason !== null || isContinuingAnswer;
 
       /*

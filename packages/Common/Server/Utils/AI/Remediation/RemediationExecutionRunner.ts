@@ -896,13 +896,13 @@ export default class RemediationExecutionRunner {
 
     /*
      * How far the run may go, and the read toolkits' absolute deadline: the
-     * project's time limit per run (the default unless it set one), so the
-     * loop and every diagnostic command wait agree on one number.
+     * project's limits per run - no cap unless it set one, and its time
+     * limit (the default unless it set one) - so the loop and every
+     * diagnostic command wait agree on one number. Read once the round is
+     * past the project gate, so a round settled before it reads nothing.
      */
-    const runLimits: AIAgentRunLimits = await AIRunLimitsReader.read({
-      projectId,
-    });
-    const runDeadlineAtMs: number = AIAgentRunLimitsHelper.getDeadlineAtMs(
+    let runLimits: AIAgentRunLimits = AIAgentRunLimitsHelper.getDefault();
+    let runDeadlineAtMs: number = AIAgentRunLimitsHelper.getDeadlineAtMs(
       runLimits,
       Date.now(),
     );
@@ -1055,6 +1055,12 @@ export default class RemediationExecutionRunner {
         await this.completeRunQuietly(aiRunId);
         return;
       }
+
+      runLimits = await AIRunLimitsReader.read({ projectId });
+      runDeadlineAtMs = AIAgentRunLimitsHelper.getDeadlineAtMs(
+        runLimits,
+        Date.now(),
+      );
 
       if (suggestion.kubernetesClusterId) {
         /*

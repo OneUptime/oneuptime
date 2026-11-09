@@ -34,7 +34,6 @@ import {
   DEFAULT_KUBECTL_TIMEOUT_MS,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
-  MAX_KUBECTL_COMMANDS_PER_INVESTIGATION,
   MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM,
   MAX_KUBECTL_TIMEOUT_MS,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -54,9 +53,9 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - no investigation-ready cluster, no tools at all (the model is told in
  *   its context why, and a tool that always fails only burns budget);
  * - run_kubectl only accepts a cluster from the ready set, only Read-tier
- *   commands (never a Secret read), and at most
- *   MAX_KUBECTL_COMMANDS_PER_INVESTIGATION of them — a runaway guard, not a
- *   ration (an explicit smaller maxCommands is stated to the model);
+ *   commands (never a Secret read), and as many of them as the run needs:
+ *   no cap by default (issue #6440) - one its caller sets (maxCommands) is
+ *   stated to the model up front;
  * - a command runs as an AiInvestigation-origin job through the shared
  *   KubectlJobRunner (which records the outcome on the cluster) and its
  *   output reaches the model framed as untrusted cluster data, with Secret
@@ -1052,7 +1051,7 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
       rationale: "again",
     };
 
-    // A cap below the runaway guard is stated to the model up front.
+    // A cap its caller set is stated to the model up front.
     expect(tool.definition.description).toContain(
       " At most 2 commands in this run.",
     );
@@ -1071,12 +1070,12 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
   });
 
   /*
-   * By default the cap is a runaway guard, not a ration: the model is told
-   * to run as many commands as it needs and is not told a number.
+   * A run used to stop at 200 kubectl commands (the "runaway guard"). Now
+   * there is no cap by default (issue #6440): the model is told to run as
+   * many commands as it needs, is told no number, and is never refused for
+   * a count - the run's own limits hold it.
    */
-  it("defaults to the shared runaway guard of MAX_KUBECTL_COMMANDS_PER_INVESTIGATION", async () => {
-    expect(MAX_KUBECTL_COMMANDS_PER_INVESTIGATION).toBe(200);
-
+  it("has no cap by default: a run sends past the old 200 commands", async () => {
     const jobRun: jest.SpyInstance = jest
       .spyOn(KubectlJobRunner, "run")
       .mockResolvedValue(ranOutcome());
@@ -1102,25 +1101,16 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
       rationale: "again",
     };
 
-    for (
-      let index: number = 0;
-      index < MAX_KUBECTL_COMMANDS_PER_INVESTIGATION;
-      index++
-    ) {
-      expect((await tool.execute(call)).success).toBe(true);
+    for (let index: number = 0; index < 250; index++) {
+      const outcome: ToolCallOutcome = await tool.execute(call);
+
+      expect(outcome.success).toBe(true);
+      expect(outcome.textForLlm).not.toContain("the most one run may send");
     }
 
-    const over: ToolCallOutcome = await tool.execute(call);
-    expect(over.success).toBe(false);
-    expect(over.textForLlm).toContain(
-      `This run has already sent ${MAX_KUBECTL_COMMANDS_PER_INVESTIGATION} kubectl commands, the most one run may send.`,
-    );
-    expect(jobRun).toHaveBeenCalledTimes(
-      MAX_KUBECTL_COMMANDS_PER_INVESTIGATION,
-    );
-    expect(toolkit.getCommandsRun()).toBe(
-      MAX_KUBECTL_COMMANDS_PER_INVESTIGATION,
-    );
+    expect(jobRun).toHaveBeenCalledTimes(250);
+    expect(toolkit.getCommandsRun()).toBe(250);
+    // Each command keeps its own step, past 200 too.
     expect(
       (
         jobRun.mock.calls[jobRun.mock.calls.length - 1]![0] as Record<
@@ -1128,18 +1118,17 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
           unknown
         >
       )["stepId"],
-    ).toBe(
-      `ai-investigation-kubectl-${MAX_KUBECTL_COMMANDS_PER_INVESTIGATION}`,
-    );
+    ).toBe("ai-investigation-kubectl-250");
   });
 });
 
 /*
- * C27: a run has no time limit unless its project configured one. When it
- * did, the agent loop checks it only between tool calls, so the toolkit
- * plans each command's claim window and execution timeout against the
- * run's deadline and refuses what no longer fits. Without one, nothing
- * about a command's wait depends on the clock.
+ * C27: every investigation has a time limit (issue #6440) - its lane's,
+ * else its project's, else the default 120 minutes. The agent loop checks
+ * it only between tool calls, so the toolkit plans each command's claim
+ * window and execution timeout against the run's deadline and refuses what
+ * no longer fits. A caller that passes no deadline gets commands whose wait
+ * does not depend on the clock.
  */
 describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () => {
   const NOW_MS: number = 1_700_000_000_000;
@@ -1266,7 +1255,7 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () 
 
     expect(outcome.success).toBe(false);
     expect(outcome.textForLlm).toContain(
-      "Not enough time is left before this investigation's configured time limit to run another kubectl command (about 10s remain;",
+      "Not enough time is left before this investigation's time limit to run another kubectl command (about 10s remain;",
     );
     expect(outcome.textForLlm).toContain(
       `at least ${Math.round(KubectlWaitBudget.getMinimumBudgetMs() / 1000)}s`,
@@ -1317,13 +1306,16 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () 
       KubectlWaitBudget.getMinimumBudgetMs(),
       30_000,
       // The smallest time limit a project can configure.
-      AIAgentRunLimitsHelper.fromTimeLimitInMinutes(
-        MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
-      ).maxWallClockMs!,
+      AIAgentRunLimitsHelper.fromSettings({
+        timeLimitInMinutes: MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
+      }).maxWallClockMs,
       96_000,
       150_000,
       // A typical configured limit, from its start.
-      AIAgentRunLimitsHelper.fromTimeLimitInMinutes(15).maxWallClockMs!,
+      AIAgentRunLimitsHelper.fromSettings({ timeLimitInMinutes: 15 })
+        .maxWallClockMs,
+      // The default, from its start.
+      AIAgentRunLimitsHelper.getDefault().maxWallClockMs,
     ];
     const requests: Array<number> = [
       1_000,
@@ -1371,12 +1363,13 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () 
    * plans without a deadline and never refuses a command for time — however
    * long the run has been going.
    */
-  it("has no deadline by default, so an unlimited run never refuses for time", async () => {
+  it("every run's default deadline is 120 minutes on, and a toolkit given none never refuses for time", async () => {
+    // What an investigation's runner passes when the project set nothing.
     const defaults: AIAgentRunLimits = AIAgentRunLimitsHelper.getDefault();
-    expect(defaults.maxWallClockMs).toBeUndefined();
-    expect(
-      AIAgentRunLimitsHelper.getDeadlineAtMs(defaults, NOW_MS),
-    ).toBeUndefined();
+    expect(defaults.maxWallClockMs).toBe(120 * 60 * 1000);
+    expect(AIAgentRunLimitsHelper.getDeadlineAtMs(defaults, NOW_MS)).toBe(
+      NOW_MS + 120 * 60 * 1000,
+    );
 
     const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
     const toolkit: KubectlInvestigationToolkit =
@@ -1423,21 +1416,20 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () 
     );
 
     expect(timeoutDescription(toolkitWithDeadline(NOW_MS + 60_000))).toBe(
-      `${unlimited} Shortened automatically when the investigation's configured time limit is close.`,
+      `${unlimited} Shortened automatically when the investigation's time limit is close.`,
     );
   });
 
   it("can run a command at the start of the smallest time limit a project can configure", async () => {
-    const smallest: AIAgentRunLimits =
-      AIAgentRunLimitsHelper.fromTimeLimitInMinutes(
-        MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
-      );
+    const smallest: AIAgentRunLimits = AIAgentRunLimitsHelper.fromSettings({
+      timeLimitInMinutes: MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
+    });
     expect(smallest.maxWallClockMs).toBe(
       MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES * 60 * 1000,
     );
     // Even the floors of one command fit, or the tool would never run.
     expect(KubectlWaitBudget.getMinimumBudgetMs()).toBeLessThan(
-      smallest.maxWallClockMs!,
+      smallest.maxWallClockMs,
     );
 
     const outcome: ToolCallOutcome = await run(
@@ -1450,7 +1442,7 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () 
     expect(outcome.success).toBe(true);
     expect(
       KubectlWaitBudget.getWorstCaseWaitMs(enqueuedWindows()),
-    ).toBeLessThanOrEqual(smallest.maxWallClockMs!);
+    ).toBeLessThanOrEqual(smallest.maxWallClockMs);
   });
 });
 

@@ -105,9 +105,11 @@ export interface InfrastructureInvestigationToolkitOptions {
    */
   readinessCheck?: "investigation" | "remediation" | undefined;
   /*
-   * When the run's configured time limit ends (epoch milliseconds). Every
-   * command's wait is planned to end before it; absent (the default — no
-   * time limit), commands are only bounded by their own timeouts.
+   * When the run's time limit ends (epoch milliseconds): an investigation's
+   * or a remediation's runner passes it, since every run has one. Every
+   * command's wait is planned to end before it. Absent (an Ask AI answer,
+   * whose loop holds its own time limit between calls), commands are only
+   * bounded by their own timeouts.
    */
   runDeadlineAtMs?: number | undefined;
 }
@@ -331,7 +333,7 @@ export default class InfrastructureInvestigationToolkit {
               type: "number",
               description: `Timeout in milliseconds (default ${DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS}, max ${MAX_RESOURCE_COMMAND_TIMEOUT_MS}).${
                 this.options.runDeadlineAtMs !== undefined
-                  ? " Shortened automatically when the investigation's configured time limit is close."
+                  ? " Shortened automatically when the investigation's time limit is close."
                   : ""
               }`,
             },
@@ -467,7 +469,7 @@ export default class InfrastructureInvestigationToolkit {
 
     if (!budget.ok) {
       return this.failure(
-        `Not enough time is left before this investigation's configured time limit to run another infrastructure command (about ${InfrastructureInvestigationToolkit.describeSeconds(
+        `Not enough time is left before this investigation's time limit to run another infrastructure command (about ${InfrastructureInvestigationToolkit.describeSeconds(
           budget.refusal.remainingBudgetMs,
         )} remain; a command needs at least ${InfrastructureInvestigationToolkit.describeSeconds(
           budget.refusal.minimumBudgetMs,

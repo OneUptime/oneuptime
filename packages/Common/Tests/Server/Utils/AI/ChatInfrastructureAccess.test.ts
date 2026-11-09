@@ -3,7 +3,6 @@ import ChatInfrastructureAccess, {
   ChatInfrastructureTools,
   ChatPageInfrastructure,
   INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
-  MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER,
   PAGE_INFRASTRUCTURE_SECTION_HEADING,
   WITHOUT_ACCESS_SECTION_HEADING,
 } from "../../../../Server/Utils/AI/Chat/ChatInfrastructureAccess";
@@ -1011,9 +1010,12 @@ describe("ChatInfrastructureAccess.buildPageInstructions", () => {
     expect(text).toContain("never say you have no tool for it");
     expect(text).toContain("One command per call");
     expect(text).toContain("never a shell line");
+    // No count of commands per answer (issue #6440): the run's own limits hold it.
     expect(text).toContain(
-      `at most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} through each kind of agent for one answer`,
+      "For several commands, make several calls, and run the ones that answer the question.",
     );
+    expect(text).not.toMatch(/at most \d+/i);
+    expect(text).not.toMatch(/budget/i);
     expect(text).toContain(
       "These commands only read: a change (restart or stop a service, kill a process, scale, roll back, …) cannot be made with them.",
     );
@@ -1199,7 +1201,14 @@ describe("ChatInfrastructureAccess.buildWithoutAccessSection", () => {
 });
 
 describe("ChatInfrastructureAccess.buildForPage", () => {
-  test(`one answer sends at most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} commands through the agent, and is told so up front`, async () => {
+  /*
+   * An answer used to stop at 30 commands through each kind of agent. Now
+   * (issue #6440) it sends as many as its question needs: the run's own
+   * limits hold it (the project's tool calls per run, loop detection, the
+   * time limit), and every command still counts toward the project's hourly
+   * limit of investigation commands.
+   */
+  test("one answer sends as many commands through the agent as it needs, past the old 30, and is told of no cap", async () => {
     installStatusLookups({ resource: hostStatus() });
     installViewChecks();
     const run: SpyInstance = jest
@@ -1218,40 +1227,23 @@ describe("ChatInfrastructureAccess.buildForPage", () => {
       RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
     )!;
 
-    expect(tool.definition.description).toContain(
-      `At most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} commands in this run.`,
-    );
+    expect(tool.definition.description).not.toContain("At most");
 
-    for (
-      let sent: number = 0;
-      sent < MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER;
-      sent++
-    ) {
-      expect(
-        (
-          await tool.execute({
-            resourceId: HOST_ID,
-            command: "uptime",
-            rationale: "The user asked again.",
-          })
-        ).success,
-      ).toBe(true);
+    for (let sent: number = 0; sent < 45; sent++) {
+      const outcome: ToolCallOutcome = await tool.execute({
+        resourceId: HOST_ID,
+        command: "uptime",
+        rationale: "The user asked again.",
+      });
+
+      expect(outcome.success).toBe(true);
+      expect(outcome.textForLlm).not.toContain("infrastructure commands, the most");
     }
 
-    const refused: ToolCallOutcome = await tool.execute({
-      resourceId: HOST_ID,
-      command: "uptime",
-      rationale: "Once more.",
-    });
-
-    expect(refused.success).toBe(false);
-    expect(refused.textForLlm).toContain(
-      `already sent ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} infrastructure commands`,
-    );
-    expect(run).toHaveBeenCalledTimes(MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER);
+    expect(run).toHaveBeenCalledTimes(45);
   });
 
-  test("kubectl on a cluster's page has the same cap", async () => {
+  test("kubectl on a cluster's page has no cap either", async () => {
     installStatusLookups({ cluster: readyCluster() });
     installViewChecks();
 
@@ -1269,12 +1261,10 @@ describe("ChatInfrastructureAccess.buildForPage", () => {
     expect(
       toolNamed(infrastructure!.extraTools, RUN_KUBECTL_TOOL_NAME)!.definition
         .description,
-    ).toContain(
-      `At most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} commands in this run.`,
-    );
+    ).not.toContain("At most");
   });
 
-  test("the incident's shared thread keeps the investigation's runaway guard: no cap of its own", async () => {
+  test("the incident's shared thread has no cap of its own either", async () => {
     installViewChecks();
 
     const tools: ChatInfrastructureTools =

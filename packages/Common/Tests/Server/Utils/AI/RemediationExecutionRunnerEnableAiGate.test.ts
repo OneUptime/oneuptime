@@ -423,12 +423,30 @@ describe("RemediationExecutionRunner — Enable AI is the one project gate for e
 
       expect(outcome()).toBe("engine");
       expect(consentRead(kind)).toHaveBeenCalledTimes(1);
-      expect(projectRead).toHaveBeenCalledTimes(1);
-      expect(projectRead).toHaveBeenCalledWith({
+      /*
+       * The gate reads Enable AI and no other switch. Past it, the run reads
+       * how far it may go - the project's limits per run (issue #6440) -
+       * which are no switch.
+       */
+      expect(projectRead).toHaveBeenCalledTimes(2);
+      expect(projectRead).toHaveBeenNthCalledWith(1, {
         id: PROJECT_ID,
         select: { enableAi: true },
         props: { isRoot: true },
       });
+      expect(
+        Object.keys(
+          (projectRead.mock.calls[1]![0] as { select: Record<string, true> })
+            .select,
+        ).sort(),
+      ).toEqual([
+        "aiRunMaxModelCalls",
+        "aiRunMaxTokens",
+        "aiRunMaxToolCalls",
+        "aiRunTimeLimitInMinutes",
+        "alertAiInvestigationTimeLimitInMinutes",
+        "incidentAiInvestigationTimeLimitInMinutes",
+      ]);
       expect(captured).toHaveLength(1);
       expect(
         (captured[0]!.extraTools || []).map(

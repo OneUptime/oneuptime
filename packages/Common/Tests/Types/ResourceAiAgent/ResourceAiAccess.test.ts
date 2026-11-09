@@ -4,7 +4,6 @@ import {
   MAX_POSTURE_LIST_ENTRIES,
   MAX_POSTURE_STRING_LENGTH,
   MAX_RESOURCE_AGENT_OUTPUT_BYTES,
-  MAX_RESOURCE_COMMANDS_PER_INVESTIGATION,
   MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM,
   MAX_RESOURCE_COMMAND_TIMEOUT_MS,
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
@@ -33,11 +32,12 @@ import {
   KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   KubectlCommandTier,
   KubernetesAiRemediationMode,
-  MAX_KUBECTL_COMMANDS_PER_INVESTIGATION,
   MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM,
   MAX_KUBECTL_TIMEOUT_MS,
   UNATTENDED_REMEDIATION_MODES,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import * as ResourceAiAccessModule from "../../../Types/ResourceAiAgent/ResourceAiAccess";
+import * as KubernetesClusterAiAccessModule from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -98,9 +98,6 @@ describe("tier and mode parity with Kubernetes", () => {
   });
 
   test("the shared caps match the kubectl lane's", () => {
-    expect(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION).toBe(
-      MAX_KUBECTL_COMMANDS_PER_INVESTIGATION,
-    );
     expect(MAX_RESOURCE_COMMAND_TIMEOUT_MS).toBe(MAX_KUBECTL_TIMEOUT_MS);
     expect(MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM).toBe(
       MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM,
@@ -195,9 +192,21 @@ describe("pinned wire and deployment constants", () => {
     );
   });
 
+  test("no count of commands per run: a run is held only to its own limits (issue #6440)", () => {
+    // The old fixed 200 per investigation is gone from both lanes.
+    expect(
+      (ResourceAiAccessModule as Record<string, unknown>)[
+        "MAX_RESOURCE_COMMANDS_PER_INVESTIGATION"
+      ],
+    ).toBeUndefined();
+    expect(
+      (KubernetesClusterAiAccessModule as Record<string, unknown>)[
+        "MAX_KUBECTL_COMMANDS_PER_INVESTIGATION"
+      ],
+    ).toBeUndefined();
+  });
+
   test("the caps", () => {
-    // A runaway guard, not a ration: an investigation runs what it needs.
-    expect(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION).toBe(200);
     expect(DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS).toBe(30_000);
     expect(MAX_RESOURCE_COMMAND_TIMEOUT_MS).toBe(120_000);
     // What a caller that does not page gets; the toolkits page everything.
