@@ -110,7 +110,12 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
 export const PERMISSION_TITLES: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
-  [INVITING_PEOPLE]: ["Invite New Members"],
+  [INVITING_PEOPLE]: [
+    "Invite New Members",
+    "Delete Project",
+    "Edit Project",
+    "Edit Team",
+  ],
   [PROJECT_SETTINGS]: ["Manage Billing"],
   [BILLING]: [
     "Manage Billing",
