@@ -206,17 +206,22 @@ describe("right to left, list separators, and a language not worded yet", () => 
     );
   });
 
-  test("Japanese and Chinese list the files their own way, and read right for one file", () => {
-    for (const language of ["ja", "zh-CN", "zh-TW"]) {
+  test.each<[string, string]>([
+    ["ja", "1 個のファイル"],
+    ["zh-CN", "这 1 个文件"],
+    ["zh-TW", "這 1 個檔案"],
+  ])(
+    "%s lists the files its own way, and reads right for one file",
+    (language: string, oneFile: string) => {
       const translator: Translator = dashboardTranslator(language);
 
       expect(describeAIActionSentence(lineOf(2), translator)).toContain(
         "config/servers.ts、config/mail.ts",
       );
       // No "one" form: the general form names the one file, counted as 1.
-      expect(describeAIActionSentence(lineOf(1), translator)).toContain(" 1 ");
-    }
-  });
+      expect(describeAIActionSentence(lineOf(1), translator)).toContain(oneFile);
+    },
+  );
 
   test("Korean has no one form either: the general form counts the one file", () => {
     expect(
