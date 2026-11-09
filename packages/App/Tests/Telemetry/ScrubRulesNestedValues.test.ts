@@ -3,7 +3,7 @@ import TraceScrubRuleService from "../../FeatureSet/Telemetry/Services/TraceScru
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import LogScrubField from "Common/Types/Log/LogScrubField";
 import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
@@ -753,7 +753,7 @@ describe("TraceScrubRuleService: a span's events and links", () => {
       { "x.email": "bob@example.org" },
     ];
     const attributes: JSONObject = {
-      "exception.details": details as JSONObject,
+      "exception.details": details as JSONArray,
       "http.request.header.cookie": ["a=1"],
     };
 
@@ -804,7 +804,9 @@ describe("TraceScrubRuleService: a span's events and links", () => {
       {
         name: "",
         attributes: {},
-        events: [{ name: "exception", attributes: { deep: deep } }],
+        events: [
+          { name: "exception", attributes: { deep: deep as JSONObject } },
+        ],
         links: [],
       },
       rules as never,
