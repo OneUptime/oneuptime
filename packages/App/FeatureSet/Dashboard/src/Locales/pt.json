@@ -47021,5 +47021,10 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} no .env do agente ainda precisa ser \"{{name}}\". Com outro nome, os dados vão para outro vCenter.",
   "Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: {{files}}.": "Valores que parecem segredos ou dados pessoais foram ocultados da IA, e a versão da IA deste arquivo escreve marcadores de posição no lugar deles: {{files}}.",
   "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}.": "Valores que parecem segredos ou dados pessoais foram ocultados da IA, e as versões da IA destes {{count}} arquivos escrevem marcadores de posição no lugar deles: {{files}}.",
-  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}._one": "Valores que parecem segredos ou dados pessoais foram ocultados da IA, e a versão da IA deste arquivo escreve marcadores de posição no lugar deles: {{files}}."
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}._one": "Valores que parecem segredos ou dados pessoais foram ocultados da IA, e a versão da IA deste arquivo escreve marcadores de posição no lugar deles: {{files}}.",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests"
 }

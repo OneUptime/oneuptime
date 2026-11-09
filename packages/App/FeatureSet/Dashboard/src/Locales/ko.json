@@ -47021,5 +47021,10 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "에이전트 .env의 {{variable}} 값은 계속 \"{{name}}\" 그대로여야 합니다. 이름이 다르면 데이터가 다른 vCenter로 전송됩니다.",
   "Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: {{files}}.": "비밀 정보나 개인 데이터처럼 보이는 값은 AI에게 숨겨졌으며, 이 파일의 AI 버전은 그 자리에 자리 표시자를 씁니다: {{files}}.",
   "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}.": "비밀 정보나 개인 데이터처럼 보이는 값은 AI에게 숨겨졌으며, 파일 {{count}}개의 AI 버전은 그 자리에 자리 표시자를 씁니다: {{files}}.",
-  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}._one": "비밀 정보나 개인 데이터처럼 보이는 값은 AI에게 숨겨졌으며, 이 파일의 AI 버전은 그 자리에 자리 표시자를 씁니다: {{files}}."
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}._one": "비밀 정보나 개인 데이터처럼 보이는 값은 AI에게 숨겨졌으며, 이 파일의 AI 버전은 그 자리에 자리 표시자를 씁니다: {{files}}.",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests"
 }

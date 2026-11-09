@@ -47021,5 +47021,10 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} dans le fichier .env de l'agent doit toujours valoir « {{name}} ». Un autre nom envoie les données vers un autre vCenter.",
   "Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: {{files}}.": "Des valeurs qui ressemblent à des secrets ou à des données personnelles ont été masquées à l'IA, et sa version de ce fichier écrit des espaces réservés à leur place : {{files}}.",
   "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}.": "Des valeurs qui ressemblent à des secrets ou à des données personnelles ont été masquées à l'IA, et ses versions de ces {{count}} fichiers écrivent des espaces réservés à leur place : {{files}}.",
-  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}._one": "Des valeurs qui ressemblent à des secrets ou à des données personnelles ont été masquées à l'IA, et sa version de ce fichier écrit des espaces réservés à leur place : {{files}}."
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}._one": "Des valeurs qui ressemblent à des secrets ou à des données personnelles ont été masquées à l'IA, et sa version de ce fichier écrit des espaces réservés à leur place : {{files}}.",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests"
 }
