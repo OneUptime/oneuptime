@@ -2510,7 +2510,9 @@ describe("PublishedImages: a public note shows its images only while its record 
 
       delete row["isPublished"];
 
-      const readStored: jest.Mock = jest.fn(async () => {
+      const readStored: Mock<
+        (columns: Array<string>) => Promise<Record<string, unknown> | null>
+      > = jest.fn(async (): Promise<Record<string, unknown> | null> => {
         return { isPublished: true };
       });
 

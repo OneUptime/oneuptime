@@ -860,7 +860,8 @@ describe("the AI agent card follows the real status", () => {
       await KubernetesAiAgentService.resetAgent({
         projectId: PROJECT_ID,
         kubernetesClusterId: CLUSTER_ID,
-        userId: ObjectID.generate(),
+        // An admin's reset: the route's props, as the route passes them.
+        props: { userId: ObjectID.generate(), tenantId: PROJECT_ID },
       });
 
       await expectSignedOff(row);

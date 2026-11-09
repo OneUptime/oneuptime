@@ -266,10 +266,13 @@ describe("the RUM Applications list's Status column", () => {
   test("one added by hand, before its first data, reads Waiting for data, in grey, and says how to start", async () => {
     const column: Column = await statusColumn();
 
-    for (const fields of [
-      { otelCollectorStatus: undefined, lastSeenAt: undefined },
-      { otelCollectorStatus: "disconnected", lastSeenAt: undefined },
-    ] as Array<Partial<RumApplication>>) {
+    // Neither field written yet, or only the status: no lastSeenAt.
+    const cases: Array<Partial<RumApplication>> = [
+      {},
+      { otelCollectorStatus: "disconnected" },
+    ];
+
+    for (const fields of cases) {
       const pill: PillProps = pillOf(column, application(fields));
 
       expect(pill.text).toBe("Waiting for data");

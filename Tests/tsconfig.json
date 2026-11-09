@@ -1,0 +1,26 @@
+{
+  /*
+   * The project the TypeScript under Tests/ belongs to - the OpenStack e2e's
+   * Ops/openstack-e2e/checks-run.ts and whole-path-template.ts, which run the
+   * probe's and Common's own code - for editors and ESLint's typed linting
+   * (projectService in eslint.config.js), which both take a file's nearest
+   * tsconfig.json. Without this file the lookup walked on up to the
+   * repository-root tsconfig.json, which has no "include": the two were
+   * linted inside a program of the whole monorepo. That program outgrew the
+   * 12 GB heap Scripts/Lint/LintByProject.js gives each ESLint process, and
+   * js-lint failed on 2026-11-09 (ESLint killed by SIGABRT after 241 s; on
+   * 2026-11-06 the same files had linted in 99 s). With this file they lint
+   * in under a minute, in half a gigabyte.
+   *
+   * The repository root's compiler options, as before. Nothing builds from
+   * here: checks-record.sh runs checks-run.ts with ts-node and
+   * TS_NODE_PROJECT set to the probe's tsconfig.json, and whole-path.py
+   * bundles whole-path-template.ts with esbuild, which reads the same
+   * options through "extends" (the bundle is byte for byte what it was).
+   */
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["**/*.ts"]
+}
