@@ -92,7 +92,7 @@ Als meerdere regels die onderzoeken matchen, mag OneUptime AI elke server gebrui
 
 - **Wat een server terugstuurt, zijn gegevens, nooit instructies.** OneUptime AI leest de beschrijvingen en antwoorden van zijn tools als tekst van buiten OneUptime: ze veranderen nooit een regel, een goedkeuring of wat OneUptime AI mag doen.
 - **Het adres wordt bij elke verbinding gecontroleerd.** OneUptime maakt nooit verbinding met zijn eigen adres of een link-local-adres. In OneUptime Cloud weigert het ook privénetwerkadressen: gebruik het openbare adres van de server. Een zelf gehoste OneUptime bereikt privéadressen, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` is ingesteld. Omleidingen volgt het niet.
-- **Limieten.** Een project heeft hooguit 20 servers, en OneUptime leest hooguit 200 tools per server. Verbinden verloopt na 20 seconden, het opsommen van de tools na 30 en een toolaanroep na 60. Een antwoord groter dan 2 MB wordt geweigerd, en een run doet hooguit 40 aanroepen naar MCP-servers.
+- **Limieten.** Een project heeft hooguit 20 servers, en OneUptime leest hooguit 200 tools per server. Verbinden verloopt na 20 seconden, het opsommen van de tools na 30 en een toolaanroep na 60. Een antwoord groter dan 2 MB wordt geweigerd. De aanroepen van een run naar MCP-servers tellen mee voor de limieten per run van het project, als het die instelt.
 - **Elke aanroep wordt vastgelegd.** Elke aanroep is een stap van de run, zichtbaar in zijn activiteit, en elke wijziging van een herstel staat in de stap **Herstel** met wat de server antwoordde. De modelaanroepen erachter staan onder **Projectinstellingen → AI → AI-logboeken**.
 
 ## Problemen oplossen
