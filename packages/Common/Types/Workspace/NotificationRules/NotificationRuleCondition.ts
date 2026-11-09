@@ -576,17 +576,17 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleEventType.SecurityHunt:
         return [NotificationRuleConditionCheckOn.SecurityHuntName];
       /*
-       * Which SLOs a rule posts the error budget policy of - by name, by
-       * picking them, or by their labels - and which of the policy's
-       * changes (entered a tier, recovered, left every tier, deployments
-       * frozen or allowed again). A rule with no condition posts every
-       * change of every SLO.
+       * Which SLOs a rule posts the error budget policy of - picked from
+       * the project's, which a new condition starts on, or by their labels
+       * or name - and which of the policy's changes (entered a tier,
+       * recovered, left every tier, deployments frozen or allowed again).
+       * A rule with no condition posts every change of every SLO.
        */
       case NotificationRuleEventType.ServiceLevelObjective:
         return [
-          NotificationRuleConditionCheckOn.SloName,
           NotificationRuleConditionCheckOn.Slos,
           NotificationRuleConditionCheckOn.SloLabels,
+          NotificationRuleConditionCheckOn.SloName,
           NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
         ];
       default:

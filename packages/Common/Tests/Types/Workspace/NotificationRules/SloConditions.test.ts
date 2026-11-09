@@ -105,10 +105,11 @@ function matches(
   });
 }
 
+// In the order the Filter Type lists them: picking SLOs, which a new condition starts on, first.
 const SLO_CHECK_ONS: Array<NotificationRuleConditionCheckOn> = [
-  NotificationRuleConditionCheckOn.SloName,
   NotificationRuleConditionCheckOn.Slos,
   NotificationRuleConditionCheckOn.SloLabels,
+  NotificationRuleConditionCheckOn.SloName,
   NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
 ];
 
@@ -132,9 +133,9 @@ describe("SLO notification rule conditions", () => {
 
   it("names its conditions as the Dashboard draws them", () => {
     expect(SLO_CHECK_ONS).toEqual([
-      "SLO Name",
       "SLOs",
       "SLO Labels",
+      "SLO Name",
       "Error Budget Policy Change",
     ]);
   });

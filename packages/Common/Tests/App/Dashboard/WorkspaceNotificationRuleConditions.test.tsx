@@ -20,6 +20,8 @@ import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
+import SloErrorBudgetPolicyChange from "../../../Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
 import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
 import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
 import {
@@ -58,6 +60,10 @@ const SEARCH_LABEL_ID: string = "b2b2b2b2b2b2b2b2b2b2b2b2";
 const EMERGENCY_PRIORITY_ID: string = "c1000000-0000-4000-8000-0000000000e1";
 const ERADICATING_STATUS_ID: string = "c2000000-0000-4000-8000-0000000000e2";
 
+// Two of the project's SLOs, for an SLO rule's SLOs condition.
+const CHECKOUT_SLO_ID: string = "d1000000-0000-4000-8000-0000000000d1";
+const SEARCH_SLO_ID: string = "d2000000-0000-4000-8000-0000000000d2";
+
 function named<T extends { _id?: string; name?: string }>(
   model: T,
   id: string,
@@ -86,6 +92,7 @@ function lookupProps(): {
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
   securityCasePriorities: Array<SecurityCasePriority>;
   securityCaseStatuses: Array<SecurityCaseStatus>;
+  serviceLevelObjectives: Array<ServiceLevelObjective>;
   monitorStatus: Array<MonitorStatus>;
 } {
   // Most urgent first, as the project ranks them: its own Emergency on top.
@@ -135,6 +142,14 @@ function lookupProps(): {
         name: "Eradicating",
         order: 4,
       }),
+    ],
+    serviceLevelObjectives: [
+      named(
+        new ServiceLevelObjective(),
+        CHECKOUT_SLO_ID,
+        "Checkout availability",
+      ),
+      named(new ServiceLevelObjective(), SEARCH_SLO_ID, "Search latency"),
     ],
     monitorStatus: [
       named(new MonitorStatus(), "c4c4c4c4c4c4c4c4c4c4c4c4", "Offline"),
@@ -271,6 +286,13 @@ const APPLIES_TO: Array<{
     heading: "Which hunts",
     all: "All hunts",
     matching: "Only hunts that match conditions",
+  },
+  // An SLO's error budget policy: the words every SLO rule's conditions use.
+  {
+    eventType: NotificationRuleEventType.ServiceLevelObjective,
+    heading: "Which SLOs",
+    all: "All SLOs",
+    matching: "Only SLOs that match conditions",
   },
 ];
 
@@ -1187,5 +1209,231 @@ describe("A saved security case condition, on the rule's card", () => {
       screen.getAllByText(NotificationRuleConditionCheckOn.SecurityCasePriority)
         .length,
     ).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * An SLO rule posts the changes of the SLOs' error budget policies it is
+ * for: its Filter Type lists the SLO's own fields and what changed, a new
+ * condition starts on picking SLOs, and each value is drawn from the
+ * project's SLOs and labels or from the fixed list of changes.
+ */
+describe("An SLO rule's conditions", () => {
+  // The options the open dropdown lists, in order.
+  function listedOptions(): Array<string> {
+    return Array.from(document.querySelectorAll("[id*='-option-']")).map(
+      (option: Element): string => {
+        return (option.textContent || "").trim();
+      },
+    );
+  }
+
+  test("the Filter Type lists the SLO's fields and what changed, and no other record's", async () => {
+    renderConditions(NotificationRuleEventType.ServiceLevelObjective);
+
+    await clickAddCondition();
+    await openDropdown(0);
+
+    expect(screen.queryByText(NO_OPTIONS)).toBeNull();
+    expect(listedOptions()).toEqual([
+      "SLOs",
+      "SLO Labels",
+      "SLO Name",
+      "Error Budget Policy Change",
+    ]);
+    expect(
+      screen.queryByText(NotificationRuleConditionCheckOn.MonitorName),
+    ).toBeNull();
+  });
+
+  test("'Only SLOs that match conditions' starts on picking SLOs, as one of a list", async () => {
+    const { onChange } = renderConditions(
+      NotificationRuleEventType.ServiceLevelObjective,
+    );
+
+    await clickAddCondition();
+
+    const conditions: Array<NotificationRuleCondition> =
+      lastConditionsFrom(onChange);
+
+    expect(conditions).toHaveLength(1);
+    expect(conditions[0]!.checkOn).toBe(NotificationRuleConditionCheckOn.Slos);
+    expect(conditions[0]!.conditionType).toBe(ConditionType.ContainsAny);
+  });
+
+  test("SLOs offers the project's SLOs by name, and records each by id", async () => {
+    const { onChange } = renderConditions(
+      NotificationRuleEventType.ServiceLevelObjective,
+    );
+
+    await clickAddCondition();
+    await openDropdown(2);
+
+    expect(listedOptions()).toEqual(["Checkout availability", "Search latency"]);
+
+    await userEvent.setup().click(screen.getByText("Search latency"));
+
+    const conditions: Array<NotificationRuleCondition> =
+      lastConditionsFrom(onChange);
+
+    expect(conditions[0]!.checkOn).toBe(NotificationRuleConditionCheckOn.Slos);
+    expect(conditions[0]!.value).toEqual([SEARCH_SLO_ID]);
+  });
+
+  test("SLO Labels offers the project's labels, and records the one chosen by id", async () => {
+    const { onChange } = renderConditions(
+      NotificationRuleEventType.ServiceLevelObjective,
+    );
+
+    await clickAddCondition();
+    await pickFromDropdown({
+      index: 0,
+      optionLabel: NotificationRuleConditionCheckOn.SloLabels,
+    });
+    await openDropdown(1);
+
+    expect(listedOptions()).toEqual([
+      ConditionType.ContainsAny,
+      ConditionType.NotContains,
+      ConditionType.ContainsAll,
+    ]);
+
+    await userEvent.setup().click(screen.getByText(ConditionType.ContainsAny));
+    await pickFromDropdown({ index: 2, optionLabel: "Payments" });
+
+    const conditions: Array<NotificationRuleCondition> =
+      lastConditionsFrom(onChange);
+
+    expect(conditions[0]!.checkOn).toBe(
+      NotificationRuleConditionCheckOn.SloLabels,
+    );
+    expect(conditions[0]!.value).toEqual([PAYMENTS_LABEL_ID]);
+  });
+
+  test("Error Budget Policy Change offers every change, in the order a tier change reads, and records each as written", async () => {
+    const { onChange } = renderConditions(
+      NotificationRuleEventType.ServiceLevelObjective,
+    );
+
+    await clickAddCondition();
+    await pickFromDropdown({
+      index: 0,
+      optionLabel: NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+    });
+    await pickFromDropdown({
+      index: 1,
+      optionLabel: ConditionType.ContainsAny,
+    });
+    await openDropdown(2);
+
+    expect(listedOptions()).toEqual([
+      "Entered a more severe tier",
+      "Recovered to a less severe tier",
+      "Left every tier",
+      "Deployments frozen",
+      "Deployments allowed again",
+    ]);
+
+    await userEvent.setup().click(screen.getByText("Deployments frozen"));
+    await pickFromDropdown({
+      index: 2,
+      optionLabel: "Deployments allowed again",
+    });
+
+    const conditions: Array<NotificationRuleCondition> =
+      lastConditionsFrom(onChange);
+
+    expect(conditions[0]).toEqual({
+      checkOn: NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+      conditionType: ConditionType.ContainsAny,
+      value: [
+        SloErrorBudgetPolicyChange.DeploymentsFrozen,
+        SloErrorBudgetPolicyChange.DeploymentsAllowed,
+      ],
+    });
+  });
+
+  test("the name is compared as text, written in a box", async () => {
+    const { onChange } = renderConditions(
+      NotificationRuleEventType.ServiceLevelObjective,
+    );
+
+    await clickAddCondition();
+    await pickFromDropdown({
+      index: 0,
+      optionLabel: NotificationRuleConditionCheckOn.SloName,
+    });
+    await openDropdown(1);
+
+    expect(listedOptions()).toEqual(
+      NotificationRuleConditionUtil.getConditionTypeByCheckOn(
+        NotificationRuleConditionCheckOn.MonitorName,
+      ),
+    );
+
+    await userEvent.setup().click(screen.getByText(ConditionType.StartsWith));
+    await userEvent.setup().type(screen.getByRole("textbox"), "Checkout");
+
+    expect(lastConditionsFrom(onChange)[0]).toEqual({
+      checkOn: NotificationRuleConditionCheckOn.SloName,
+      conditionType: ConditionType.StartsWith,
+      value: "Checkout",
+    });
+  });
+});
+
+describe("A saved SLO condition, on the rule's card", () => {
+  function renderView(condition: NotificationRuleCondition): void {
+    render(
+      <NotificationRuleViewConditionElement
+        {...lookupProps()}
+        notificationRuleCondition={condition}
+      />,
+    );
+  }
+
+  test("names the SLOs it picks, not their ids, and leaves out one since deleted", () => {
+    renderView({
+      checkOn: NotificationRuleConditionCheckOn.Slos,
+      conditionType: ConditionType.ContainsAny,
+      value: [
+        CHECKOUT_SLO_ID,
+        "d9000000-0000-4000-8000-0000000000ff",
+        SEARCH_SLO_ID,
+      ],
+    });
+
+    expect(
+      screen.getByText("Checkout availability, Search latency"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(CHECKOUT_SLO_ID))).toBeNull();
+    expect(screen.queryByText(/d9000000/)).toBeNull();
+  });
+
+  test("names the SLO's labels as chips", () => {
+    renderView({
+      checkOn: NotificationRuleConditionCheckOn.SloLabels,
+      conditionType: ConditionType.ContainsAll,
+      value: [PAYMENTS_LABEL_ID, SEARCH_LABEL_ID],
+    });
+
+    expect(screen.getAllByText("Payments").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Search").length).toBeGreaterThan(0);
+    expect(screen.queryByText(new RegExp(PAYMENTS_LABEL_ID))).toBeNull();
+  });
+
+  test("names the changes it is for, as words", () => {
+    renderView({
+      checkOn: NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+      conditionType: ConditionType.NotContains,
+      value: [
+        SloErrorBudgetPolicyChange.RecoveredToLessSevereTier,
+        SloErrorBudgetPolicyChange.LeftEveryTier,
+      ],
+    });
+
+    expect(
+      screen.getByText("Recovered to a less severe tier, Left every tier"),
+    ).toBeInTheDocument();
   });
 });
