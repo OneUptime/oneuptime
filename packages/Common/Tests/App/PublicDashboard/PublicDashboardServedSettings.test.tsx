@@ -240,7 +240,7 @@ interface Drawn {
 function normalized(html: string): string {
   return html
     .replace(/:r[0-9a-z]+:/g, ":r:")
-    .replace(/="r[0-9a-z]{1,4}"/g, '="r"')
+    .replace(/[=]"r[0-9a-z]{1,4}"/g, '="r"')
     .replace(/syncid="[^"]*"/g, 'syncid=""');
 }
 
@@ -329,9 +329,10 @@ function expectDrawnAlike(
 ): void {
   expect([label, drawn.now.requests]).toEqual([label, drawn.before.requests]);
   expect([label, drawn.now.text]).toEqual([label, drawn.before.text]);
-  expect([label, firstDifference(drawn.before.html, drawn.now.html)]).toEqual(
-    [label, null],
-  );
+  expect([label, firstDifference(drawn.before.html, drawn.now.html)]).toEqual([
+    label,
+    null,
+  ]);
 }
 
 function decisionOf(componentType: string): PublicDashboardWidgetSettings {
@@ -660,14 +661,10 @@ beforeEach(() => {
   });
 
   publicPostMock.mockImplementation((...args: Array<any>) => {
-    return Promise.resolve(
-      respond(String(args[0]?.url || ""), args[0]?.data),
-    );
+    return Promise.resolve(respond(String(args[0]?.url || ""), args[0]?.data));
   });
   publicFetchMock.mockImplementation((...args: Array<any>) => {
-    return Promise.resolve(
-      respond(String(args[0]?.url || ""), args[0]?.data),
-    );
+    return Promise.resolve(respond(String(args[0]?.url || ""), args[0]?.data));
   });
 
   consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {
@@ -712,12 +709,14 @@ describe.each([...PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES])(
 
       // Before, every one of its settings was served; now none but its title.
       for (const setting of decisionOf(componentType).withheld) {
-        expect([setting, drawn.before.servedJson.includes(`"${setting}"`)]).toEqual(
-          [setting, true],
-        );
-        expect([setting, drawn.now.servedJson.includes(`"${setting}"`)]).toEqual(
-          [setting, false],
-        );
+        expect([
+          setting,
+          drawn.before.servedJson.includes(`"${setting}"`),
+        ]).toEqual([setting, true]);
+        expect([
+          setting,
+          drawn.now.servedJson.includes(`"${setting}"`),
+        ]).toEqual([setting, false]);
       }
 
       expect(drawn.before.servedJson).toContain("secret notes");
@@ -862,7 +861,13 @@ describe("the variables, from the fields each type of variable is served", () =>
     expectDrawnAlike("variables", drawn);
 
     // The toolbar shows every variable, each with its picker.
-    for (const label of ["Cluster", "Team", "Region", "Environment", "Search"]) {
+    for (const label of [
+      "Cluster",
+      "Team",
+      "Region",
+      "Environment",
+      "Search",
+    ]) {
       expect([label, drawn.now.html.includes(`>${label}<`)]).toEqual([
         label,
         true,

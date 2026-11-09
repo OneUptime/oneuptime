@@ -41,6 +41,9 @@ function withoutComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 }
 
+// A line that declares a key: `title?: string | undefined;`, `text: string;`.
+const KEY_LINE: RegExp = /^\s*([A-Za-z_][A-Za-z0-9_]*)\??\s*:/;
+
 /*
  * The top-level keys of the object type that follows `opening` in a
  * source: `arguments: {` in a widget type's declaration, `interface
@@ -67,8 +70,7 @@ export function declaredKeys(source: string, opening: string): Array<string> {
 
     if (character === "\n") {
       if (depth === 1) {
-        const match: RegExpExecArray | null =
-          /^\s*([A-Za-z_][A-Za-z0-9_]*)\??\s*:/.exec(line);
+        const match: RegExpExecArray | null = KEY_LINE.exec(line);
 
         if (match) {
           keys.push(match[1]!);

@@ -304,113 +304,118 @@ describe("issue #6338: a widget a public dashboard cannot draw is served its tit
     expect(PublicDashboardViewConfig.getDrawnConfig(stored)).toEqual(drawn);
   });
 
-  describe.each([...PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES])("%s", (componentType: DashboardComponentType) => {
-    // Every setting its type has, each holding a secret but its title.
-    const everySetting: () => JSONObject = (): JSONObject => {
-      const settings: JSONObject = {};
+  describe.each([...PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES])(
+    "%s",
+    (componentType: DashboardComponentType) => {
+      // Every setting its type has, each holding a secret but its title.
+      const everySetting: () => JSONObject = (): JSONObject => {
+        const settings: JSONObject = {};
 
-      for (const setting of settingsOf(componentType)) {
-        settings[setting] =
-          setting === "title"
-            ? VISIBLE_TITLE
-            : {
-                kept: `${componentType}-${setting}-secret`,
-                list: [`${componentType}-${setting}-secret-in-a-list`],
-              };
-      }
+        for (const setting of settingsOf(componentType)) {
+          settings[setting] =
+            setting === "title"
+              ? VISIBLE_TITLE
+              : {
+                  kept: `${componentType}-${setting}-secret`,
+                  list: [`${componentType}-${setting}-secret-in-a-list`],
+                };
+        }
 
-      // And settings its type does not have, which a script left there.
-      settings["notes"] = `${componentType}-notes-secret`;
-      settings["queryConfigs"] = [{ query: `${componentType}-query-secret` }];
+        // And settings its type does not have, which a script left there.
+        settings["notes"] = `${componentType}-notes-secret`;
+        settings["queryConfigs"] = [{ query: `${componentType}-query-secret` }];
 
-      return settings;
-    };
+        return settings;
+      };
 
-    test("has settings besides its title, every one of them stays on the server", () => {
-      expect(settingsOf(componentType).length).toBeGreaterThan(1);
-      expect(settingsOf(componentType)).toContain("title");
-    });
+      test("has settings besides its title, every one of them stays on the server", () => {
+        expect(settingsOf(componentType).length).toBeGreaterThan(1);
+        expect(settingsOf(componentType)).toContain("title");
+      });
 
-    test.each(STORED_SHAPES)(
-      "stored $name: served its title alone, and the page and the routes read it with nothing more",
-      (shape: StoredShape) => {
+      test.each(STORED_SHAPES)(
+        "stored $name: served its title alone, and the page and the routes read it with nothing more",
+        (shape: StoredShape) => {
+          const stored: DashboardViewConfig = configOf([
+            shape.store(widgetOf(componentType, everySetting())),
+          ]);
+
+          const json: string = servedJSON(stored);
+
+          expect(json).not.toContain("secret");
+          expect(json).toContain(VISIBLE_TITLE);
+
+          const [served] = servedWidgets(stored);
+
+          expect(served!["componentType"]).toBe(componentType);
+          expect(served!["arguments"]).toEqual({ title: VISIBLE_TITLE });
+
+          const drawn: DashboardViewConfig = pageDraws(stored);
+
+          expect(drawn.components).toHaveLength(1);
+          expect(drawn.components[0]!.componentType).toBe(componentType);
+          expect(drawn.components[0]!.arguments).toEqual({
+            title: VISIBLE_TITLE,
+          });
+          expect(PublicDashboardViewConfig.getDrawnConfig(stored)).toEqual(
+            drawn,
+          );
+
+          // A signed-in board still reads every setting it holds, as stored.
+          const signedIn: DashboardViewConfig =
+            StoredDashboardViewConfig.read(stored);
+
+          expect(
+            Object.keys(signedIn.components[0]!.arguments as JSONObject).sort(),
+          ).toEqual(Object.keys(everySetting()).sort());
+        },
+      );
+
+      test("a title of any kind is served as stored, and no title as none", () => {
+        for (const title of ["", "  ", 42, true, ["a"], { text: "a" }]) {
+          const [served] = servedWidgets(
+            configOf([
+              widgetOf(componentType, { ...everySetting(), title: title }),
+            ]),
+          );
+
+          expect([title, served!["arguments"]]).toEqual([title, { title }]);
+        }
+
+        const { title: _title, ...untitled } = everySetting();
+
+        expect(_title).toBe(VISIBLE_TITLE);
+
+        const [served] = servedWidgets(
+          configOf([widgetOf(componentType, untitled)]),
+        );
+
+        expect(served!["arguments"]).toEqual({});
+        expect(
+          servedJSON(configOf([widgetOf(componentType, untitled)])),
+        ).not.toContain("secret");
+      });
+
+      test("deeper than a board reads, it is a widget of no type, served no settings at all", () => {
         const stored: DashboardViewConfig = configOf([
-          shape.store(widgetOf(componentType, everySetting())),
+          wrapped(widgetOf(componentType, everySetting()), [
+            "envelope",
+            "envelope",
+            "envelope",
+            "envelope",
+            "envelope",
+            "envelope",
+          ]),
         ]);
-
-        const json: string = servedJSON(stored);
-
-        expect(json).not.toContain("secret");
-        expect(json).toContain(VISIBLE_TITLE);
 
         const [served] = servedWidgets(stored);
 
-        expect(served!["componentType"]).toBe(componentType);
-        expect(served!["arguments"]).toEqual({ title: VISIBLE_TITLE });
-
-        const drawn: DashboardViewConfig = pageDraws(stored);
-
-        expect(drawn.components).toHaveLength(1);
-        expect(drawn.components[0]!.componentType).toBe(componentType);
-        expect(drawn.components[0]!.arguments).toEqual({
-          title: VISIBLE_TITLE,
-        });
-        expect(PublicDashboardViewConfig.getDrawnConfig(stored)).toEqual(drawn);
-
-        // A signed-in board still reads every setting it holds, as stored.
-        const signedIn: DashboardViewConfig =
-          StoredDashboardViewConfig.read(stored);
-
-        expect(
-          Object.keys(signedIn.components[0]!.arguments as JSONObject).sort(),
-        ).toEqual(Object.keys(everySetting()).sort());
-      },
-    );
-
-    test("a title of any kind is served as stored, and no title as none", () => {
-      for (const title of ["", "  ", 42, true, ["a"], { text: "a" }]) {
-        const [served] = servedWidgets(
-          configOf([
-            widgetOf(componentType, { ...everySetting(), title: title }),
-          ]),
-        );
-
-        expect([title, served!["arguments"]]).toEqual([title, { title }]);
-      }
-
-      const { title: _title, ...untitled } = everySetting();
-
-      expect(_title).toBe(VISIBLE_TITLE);
-
-      const [served] = servedWidgets(
-        configOf([widgetOf(componentType, untitled)]),
-      );
-
-      expect(served!["arguments"]).toEqual({});
-      expect(servedJSON(configOf([widgetOf(componentType, untitled)]))).not.toContain(
-        "secret",
-      );
-    });
-
-    test("deeper than a board reads, it is a widget of no type, served no settings at all", () => {
-      const stored: DashboardViewConfig = configOf([
-        wrapped(widgetOf(componentType, everySetting()), [
-          "envelope",
-          "envelope",
-          "envelope",
-          "envelope",
-          "envelope",
-          "envelope",
-        ]),
-      ]);
-
-      const [served] = servedWidgets(stored);
-
-      expect(served!["componentType"]).toBe("");
-      expect(Object.keys(served!)).not.toContain("arguments");
-      expect(servedJSON(stored)).not.toContain(VISIBLE_TITLE);
-    });
-  });
+        expect(served!["componentType"]).toBe("");
+        expect(Object.keys(served!)).not.toContain("arguments");
+        expect(servedJSON(stored)).not.toContain(VISIBLE_TITLE);
+      });
+    },
+  );
 });
 
 describe("issue #6338: a widget the page draws is served the settings its type has, as stored, and nothing else", () => {
@@ -539,7 +544,10 @@ describe("issue #6338: a widget the page draws is served the settings its type h
     expect(servedJSON(stored)).not.toContain("secret");
     expect(
       servedWidgets(stored).map((widget: ServedWidget): unknown => {
-        return [widget["componentType"], Object.keys(widget).includes("arguments")];
+        return [
+          widget["componentType"],
+          Object.keys(widget).includes("arguments"),
+        ];
       }),
     ).toEqual([
       ["HostMetricChart", false],
@@ -618,8 +626,8 @@ describe("issue #6338: a variable is served what its picker is drawn with, and n
     (type: unknown) => {
       const stored: DashboardViewConfig = configOf([], [everyField(type)]);
 
-      const read: DashboardVariable = StoredDashboardViewConfig.read(stored)
-        .variables![0]!;
+      const read: DashboardVariable =
+        StoredDashboardViewConfig.read(stored).variables![0]!;
       const [served] = servedConfig(stored)["variables"] as Array<JSONObject>;
 
       const expected: JSONObject = {};
@@ -662,7 +670,13 @@ describe("issue #6338: a variable is served what its picker is drawn with, and n
         },
       ),
     );
-    expect(new Set(served.map((v: JSONObject) => v["id"])).size).toBe(3);
+    expect(
+      new Set(
+        served.map((v: JSONObject) => {
+          return v["id"];
+        }),
+      ).size,
+    ).toBe(3);
   });
 });
 
@@ -742,7 +756,9 @@ describe("property: a seeded dashboard serves nothing but what each widget and e
 
         (isDrawn ? markers : secrets).push(value);
         settings[key] =
-          random(3) === 0 ? { nested: [value] } : (value as unknown as JSONObject);
+          random(3) === 0
+            ? { nested: [value] }
+            : (value as unknown as JSONObject);
       }
 
       // The HTML widget's script is drawn while scripts may run.
@@ -754,7 +770,10 @@ describe("property: a seeded dashboard serves nothing but what each widget and e
         settings["javascript"] = script;
         (scriptsOn ? markers : secrets).push(script);
         // allowScripts held a marker above: it is a boolean now.
-        markers.splice(markers.indexOf(`marker${name}w${index}allowScripts`), 1);
+        markers.splice(
+          markers.indexOf(`marker${name}w${index}allowScripts`),
+          1,
+        );
       }
 
       // Settings no widget type has.

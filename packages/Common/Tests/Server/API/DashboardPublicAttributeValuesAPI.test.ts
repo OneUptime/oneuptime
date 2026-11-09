@@ -432,11 +432,11 @@ describe("DashboardAPI public attribute-values", () => {
           await callRoute({ attributeKey: "k8s.cluster.name" });
 
           if (variableType === DashboardVariableType.TelemetryAttribute) {
-            expect([variableType, asText, (nextFunction as jest.Mock).mock.calls]).toEqual([
+            expect([
               variableType,
               asText,
-              [],
-            ]);
+              (nextFunction as jest.Mock).mock.calls,
+            ]).toEqual([variableType, asText, []]);
             expect(getFetchArgs()["attributeKey"]).toBe("k8s.cluster.name");
           } else {
             expect([variableType, asText, getThrownError()]).toEqual([

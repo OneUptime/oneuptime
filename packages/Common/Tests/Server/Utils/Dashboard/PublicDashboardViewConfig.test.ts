@@ -2546,9 +2546,10 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
            * which the page draws above its note, and none of the search
            * text and filters it reads its data with (issue #6338).
            */
-          componentType = PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES[
-            random(PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES.length)
-          ]!;
+          componentType =
+            PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES[
+              random(PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES.length)
+            ]!;
           const marker: string = `public${name}x${index}`;
           const stored: JSONObject = { title: marker };
 

@@ -76,7 +76,9 @@ const isSortable: (componentType: DashboardComponentType) => boolean =
   isSortableWidgetType;
 
 // Every setting a decision names, in all three of its lists.
-function decidedSettings(decision: PublicDashboardWidgetSettings): Array<string> {
+function decidedSettings(
+  decision: PublicDashboardWidgetSettings,
+): Array<string> {
   return [
     ...decision.served,
     ...Object.keys(decision.servedWhileOn || {}),
@@ -111,9 +113,10 @@ describe("every widget type's settings are decided: served or withheld", () => {
 
     // Not vacuous: every type declares settings, its editor writes some.
     for (const componentType of SERVED_TYPES) {
-      expect([componentType, declaredSettings(componentType).length > 0]).toEqual(
-        [componentType, true],
-      );
+      expect([
+        componentType,
+        declaredSettings(componentType).length > 0,
+      ]).toEqual([componentType, true]);
       expect([componentType, editorSettings(componentType).length > 0]).toEqual(
         [componentType, true],
       );
@@ -255,9 +258,10 @@ describe("the widgets a public dashboard cannot draw", () => {
     );
 
     for (const componentType of PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES) {
-      expect([componentType, isDashboardComponentType(componentType)]).toEqual(
-        [componentType, true],
-      );
+      expect([componentType, isDashboardComponentType(componentType)]).toEqual([
+        componentType,
+        true,
+      ]);
       expect([
         componentType,
         DataSourceComponentTypes.includes(componentType),
@@ -394,7 +398,10 @@ describe("getPublicDashboardWidgetSettings", () => {
     }) as Record<string, unknown>;
 
     expect(
-      getPublicDashboardWidgetSettings(DashboardComponentType.LogChart, inherited),
+      getPublicDashboardWidgetSettings(
+        DashboardComponentType.LogChart,
+        inherited,
+      ),
     ).toEqual({});
     expect(
       getPublicDashboardWidgetSettings(DashboardComponentType.Text, inherited),
@@ -575,10 +582,7 @@ describe("every field of a variable is decided, for every type of it", () => {
   });
 
   test.each([
-    [
-      DashboardVariableType.CustomList,
-      ["customListValues"],
-    ],
+    [DashboardVariableType.CustomList, ["customListValues"]],
     [DashboardVariableType.TextInput, ["customListValues"]],
     [DashboardVariableType.Query, ["customListValues"]],
     [DashboardVariableType.TelemetryAttribute, ["attributeKey"]],
@@ -683,7 +687,8 @@ describe("getPublicDashboardVariable", () => {
         id: "region",
         name: "region",
         type: DashboardVariableType.Query,
-        query: "SELECT region FROM internal.customers WHERE plan = 'enterprise'",
+        query:
+          "SELECT region FROM internal.customers WHERE plan = 'enterprise'",
         defaultValue: "eu",
       }),
     ).toEqual({

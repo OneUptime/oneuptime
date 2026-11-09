@@ -13,7 +13,7 @@ import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import { getDashboardWidgetSortColumns } from "../../../Utils/Dashboard/DashboardWidgetSorts";
@@ -35,7 +35,7 @@ import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
  * - the metric routes' allowlists (/metrics-aggregate, /metric-types):
  *   the metric names, the keys a query may group and filter by, the
  *   columns it may group by and the services each metric is read for;
- * - /attribute-values': the attribute keys of the dashboard's variables;
+ * - /attribute-values: the attribute keys of the dashboard's variables;
  * - /resource-list's policy for every list widget, with the visitor's
  *   variable picks and sort;
  * - the SLO routes (/resource-list/slo, /slo-history-aggregate): the SLO a
@@ -120,17 +120,23 @@ interface Requests {
  * these requests: each list widget's list, each SLO widget's SLO and
  * history, every allowlist and the overview.
  */
-function answersOf(drawn: DashboardViewConfig, requests: Requests): RouteAnswers {
+function answersOf(
+  drawn: DashboardViewConfig,
+  requests: Requests,
+): RouteAnswers {
   const metricWidgetSettings: Array<JSONObject> =
     PublicDashboardViewConfig.getMetricWidgetSettings(drawn);
   const variables: Array<DashboardVariable> = drawn.variables || [];
 
-  const resolvedVariables: () => Array<DashboardVariable> = (): Array<DashboardVariable> => {
-    return PublicDashboardResourceListPolicy.resolveDashboardVariableSelections({
-      variables: variables,
-      requestedVariables: requests.variables,
-    });
-  };
+  const resolvedVariables: () => Array<DashboardVariable> =
+    (): Array<DashboardVariable> => {
+      return PublicDashboardResourceListPolicy.resolveDashboardVariableSelections(
+        {
+          variables: variables,
+          requestedVariables: requests.variables,
+        },
+      );
+    };
 
   return {
     widgets: drawn.components.map((component: DashboardBaseComponent) => {
@@ -143,7 +149,9 @@ function answersOf(drawn: DashboardViewConfig, requests: Requests): RouteAnswers
         component.heightInDashboardUnits,
       ];
     }),
-    metricNames: sorted(ROUTES.collectDashboardMetricNames(metricWidgetSettings)),
+    metricNames: sorted(
+      ROUTES.collectDashboardMetricNames(metricWidgetSettings),
+    ),
     groupByAttributeKeys: sorted(
       ROUTES.collectDashboardGroupByAttributeKeys(metricWidgetSettings),
     ),
@@ -319,7 +327,7 @@ function someOf<T>(random: SeededRandom, values: ReadonlyArray<T>): Array<T> {
 }
 
 // An id as the editor, the API or a script stores it.
-function storedId(random: SeededRandom, id: string): unknown {
+function storedId(random: SeededRandom, id: string): JSONValue {
   return random(3) === 0 ? { _type: "ObjectID", value: id } : id;
 }
 
@@ -344,7 +352,7 @@ function metricQuery(generation: Generation, index: number): JSONObject {
         ...(random(2) === 0
           ? {
               telemetryServiceIds: someOf(random, SERVICE_IDS).map(
-                (id: string): unknown => {
+                (id: string): JSONValue => {
                   return storedId(random, id);
                 },
               ),
@@ -383,7 +391,10 @@ function settingValue(
     case "metricQueryConfig":
       return metricQuery(generation, index);
     case "metricQueryConfigs":
-      return [metricQuery(generation, index), metricQuery(generation, index + 1)];
+      return [
+        metricQuery(generation, index),
+        metricQuery(generation, index + 1),
+      ];
     case "metricFormulaConfigs":
       return [{ metricFormulaData: { metricFormula: "a / 2" } }];
     case "columns":
@@ -396,7 +407,13 @@ function settingValue(
           metricName: `column.${generation.name}.${random(3)}`,
           aggregation: "Avg",
         },
-        { id: "c2", variable: "b", header: "Half", kind: "Formula", formula: "a / 2" },
+        {
+          id: "c2",
+          variable: "b",
+          header: "Half",
+          kind: "Formula",
+          formula: "a / 2",
+        },
       ];
     case "groupByAttributes":
       return [{ key: `table.group.${random(3)}`, header: "Host" }];
@@ -410,7 +427,10 @@ function settingValue(
     case "serviceLevelObjectiveVariableId":
       return random(4) === 0
         ? "a variable this dashboard does not have"
-        : storedId(random, pick(random, generation.variableIds.concat(["none"])));
+        : storedId(
+            random,
+            pick(random, generation.variableIds.concat(["none"])),
+          );
     case "serviceLevelObjectiveId":
       return random(4) === 0 ? 42 : storedId(random, pick(random, IDS));
     case "sloMetric":
@@ -432,7 +452,14 @@ function settingValue(
     case "sloStatuses":
     case "severityFilters":
     case "classNameFilters":
-      return someOf(random, ["Running", "Pending", "API", "Ping", "Met", "Error"]);
+      return someOf(random, [
+        "Running",
+        "Pending",
+        "API",
+        "Ping",
+        "Met",
+        "Error",
+      ]);
     case "imageName":
     case "nameSearch":
     case "bodyContains":
@@ -457,9 +484,11 @@ function settingValue(
   if (setting.endsWith("Ids")) {
     return someOf(
       random,
-      (setting === "labelIds" ? LABEL_IDS : IDS).map((id: string): unknown => {
-        return storedId(random, id);
-      }),
+      (setting === "labelIds" ? LABEL_IDS : IDS).map(
+        (id: string): JSONValue => {
+          return storedId(random, id);
+        },
+      ),
     );
   }
 
@@ -472,7 +501,13 @@ function settingValue(
       : pick(random, FILTER_VALUES);
   }
 
-  if (setting.startsWith("is") || setting.startsWith("show") || setting.startsWith("allow") || setting === "hideUnit" || setting === "includeChildSpans") {
+  if (
+    setting.startsWith("is") ||
+    setting.startsWith("show") ||
+    setting.startsWith("allow") ||
+    setting === "hideUnit" ||
+    setting === "includeChildSpans"
+  ) {
     return random(2) === 0;
   }
 
@@ -585,7 +620,9 @@ function generate(random: SeededRandom, name: string): GeneratedDashboard {
       }),
       query: `SELECT DISTINCT cluster FROM internal_${name}`,
       isMultiSelect: random(2) === 0,
-      ...(random(2) === 0 ? { defaultValue: pick(random, ["prod", "Met", LABEL_IDS[0]!]) } : {}),
+      ...(random(2) === 0
+        ? { defaultValue: pick(random, ["prod", "Met", LABEL_IDS[0]!]) }
+        : {}),
       ...(random(2) === 0 ? { selectedValue: "prod" } : {}),
       ...(random(3) === 0 ? { selectedValues: ["prod", LABEL_IDS[1]!] } : {}),
     };
@@ -622,7 +659,8 @@ function generate(random: SeededRandom, name: string): GeneratedDashboard {
       ...settings,
       ...junkSettings(generation, typeSettings),
     };
-    const componentId: string = random(5) === 0 ? "" : ObjectID.generate().toString();
+    const componentId: string =
+      random(5) === 0 ? "" : ObjectID.generate().toString();
     const asText: boolean = random(4) === 0;
 
     const entryOf: (widgetSettings: JSONObject) => JSONObject = (
@@ -675,7 +713,9 @@ function generate(random: SeededRandom, name: string): GeneratedDashboard {
     requests: {
       variables: requestedVariables,
       sorts: cleanEntries.map((): unknown => {
-        return random(3) === 0 ? pick(random, ["status:desc", "name:asc", "time:desc", "bogus"]) : undefined;
+        return random(3) === 0
+          ? pick(random, ["status:desc", "name:asc", "time:desc", "bogus"])
+          : undefined;
       }),
     },
   };
@@ -698,7 +738,10 @@ describe("every public route answers as before for every widget the page draws (
       const random: SeededRandom = seededRandom(seed);
 
       for (let run: number = 0; run < RUNS_PER_SEED; run++) {
-        const generated: GeneratedDashboard = generate(random, `s${seed}r${run}`);
+        const generated: GeneratedDashboard = generate(
+          random,
+          `s${seed}r${run}`,
+        );
         const answers: RouteAnswers = answersOf(
           drawnNow(generated.clean),
           generated.requests,
@@ -788,7 +831,9 @@ describe("every public route answers as before for every widget the page draws (
     };
 
     const requests: Requests = {
-      variables: [{ id: "v-label", selectedValue: LABEL_IDS[0]!, selectedValues: [] }],
+      variables: [
+        { id: "v-label", selectedValue: LABEL_IDS[0]!, selectedValues: [] },
+      ],
       sorts: [],
     };
 
@@ -803,7 +848,10 @@ describe("every public route answers as before for every widget the page draws (
       const random: SeededRandom = seededRandom(seed);
 
       for (let run: number = 0; run < RUNS_PER_SEED; run++) {
-        const generated: GeneratedDashboard = generate(random, `s${seed}r${run}`);
+        const generated: GeneratedDashboard = generate(
+          random,
+          `s${seed}r${run}`,
+        );
         const label: string = `seed ${seed}, dashboard ${run}`;
 
         const now: RouteAnswers = answersOf(
@@ -839,12 +887,12 @@ describe("every public route answers as before for every widget the page draws (
           "variableAttributeKeys",
         ] as const) {
           for (const allowed of dirtyNow[key]) {
-            expect([label, key, allowed, dirtyBefore[key].includes(allowed)]).toEqual([
+            expect([
               label,
               key,
               allowed,
-              true,
-            ]);
+              dirtyBefore[key].includes(allowed),
+            ]).toEqual([label, key, allowed, true]);
           }
         }
       }
@@ -886,13 +934,12 @@ describe("what a setting no widget type has allowed before, and the routes now r
       ],
     });
 
-    expect(answersOf(drawnBefore(stored), { variables: [], sorts: [] }).metricNames).toEqual([
-      "billing.revenue",
-      "system.cpu.utilization",
-    ]);
-    expect(answersOf(drawnNow(stored), { variables: [], sorts: [] }).metricNames).toEqual([
-      "system.cpu.utilization",
-    ]);
+    expect(
+      answersOf(drawnBefore(stored), { variables: [], sorts: [] }).metricNames,
+    ).toEqual(["billing.revenue", "system.cpu.utilization"]);
+    expect(
+      answersOf(drawnNow(stored), { variables: [], sorts: [] }).metricNames,
+    ).toEqual(["system.cpu.utilization"]);
   });
 
   test("a table's group-by and filter keys stored on a chart, which never groups or filters by them", () => {
@@ -937,7 +984,10 @@ describe("what a setting no widget type has allowed before, and the routes now r
     expect(
       answersOf(drawnBefore(stored), { variables: [], sorts: [] }).summaries,
     ).toEqual([
-      expect.objectContaining({ title: "Internal: payments migration", text: "Status" }),
+      expect.objectContaining({
+        title: "Internal: payments migration",
+        text: "Status",
+      }),
     ]);
     expect(
       answersOf(drawnNow(stored), { variables: [], sorts: [] }).summaries,

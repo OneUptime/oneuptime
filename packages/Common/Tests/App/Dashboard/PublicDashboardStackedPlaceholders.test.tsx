@@ -366,10 +366,7 @@ describe("which widgets the board lays out as a placeholder", () => {
 
     // Matched exactly, as every board matches a type.
     for (const notAType of [" LogChart ", "logchart", "", undefined]) {
-      expect([notAType, isWidgetDrawnHere(notAType)]).toEqual([
-        notAType,
-        true,
-      ]);
+      expect([notAType, isWidgetDrawnHere(notAType)]).toEqual([notAType, true]);
     }
   });
 

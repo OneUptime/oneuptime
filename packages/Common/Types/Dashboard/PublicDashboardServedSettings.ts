@@ -347,10 +347,7 @@ export const PUBLIC_DASHBOARD_WIDGET_SETTINGS: Readonly<
     "dockerHostIds",
     "nameSearch",
   ]),
-  [DashboardComponentType.DockerNetworkList]: drawn([
-    ...LIST,
-    "dockerHostIds",
-  ]),
+  [DashboardComponentType.DockerNetworkList]: drawn([...LIST, "dockerHostIds"]),
   [DashboardComponentType.DockerVolumeList]: drawn([...LIST, "dockerHostIds"]),
   [DashboardComponentType.PodmanHostList]: drawn([...LIST, "statusFilter"]),
   [DashboardComponentType.PodmanContainerList]: drawn([
@@ -363,10 +360,7 @@ export const PUBLIC_DASHBOARD_WIDGET_SETTINGS: Readonly<
     "podmanHostIds",
     "nameSearch",
   ]),
-  [DashboardComponentType.PodmanNetworkList]: drawn([
-    ...LIST,
-    "podmanHostIds",
-  ]),
+  [DashboardComponentType.PodmanNetworkList]: drawn([...LIST, "podmanHostIds"]),
   [DashboardComponentType.PodmanVolumeList]: drawn([...LIST, "podmanHostIds"]),
   [DashboardComponentType.HostList]: drawn([
     ...LIST,
@@ -384,10 +378,7 @@ export const PUBLIC_DASHBOARD_WIDGET_SETTINGS: Readonly<
     "guestTypeFilter",
     "statusFilter",
   ]),
-  [DashboardComponentType.VMwareHostList]: drawn([
-    ...LIST,
-    "vmwareVCenterIds",
-  ]),
+  [DashboardComponentType.VMwareHostList]: drawn([...LIST, "vmwareVCenterIds"]),
   [DashboardComponentType.VMwareVirtualMachineList]: drawn([
     ...LIST,
     "vmwareVCenterIds",
@@ -498,9 +489,7 @@ export function getPublicDashboardWidgetSettings(
     serve(key);
   }
 
-  for (const [key, condition] of Object.entries(
-    decision.servedWhileOn || {},
-  )) {
+  for (const [key, condition] of Object.entries(decision.servedWhileOn || {})) {
     if (settings[condition]) {
       serve(key);
     }
