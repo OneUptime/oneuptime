@@ -32,7 +32,8 @@ Feeden ligger på siden **Feed** til SLO-et, og de nyeste elementene under **Nyl
 | SLO aktivert eller deaktivert | Evalueringen slås på eller av. |
 | SLO arkivert eller gjenopprettet | SLO-et arkiveres eller fjernes fra arkivet. |
 | Status endret | En evaluering flytter SLO-et til en ny status. Viser SLI-en, feilbudsjettet, forbruksraten og risikoterskelen som forklarer den, og årsaken ved **Pauset** eller **Feilkonfigurert**. |
-| Nivå i feilbudsjettpolicyen endret | En evaluering flytter SLO-et inn i et nivå i feilbudsjettpolicyen, til et annet nivå eller ut av alle nivåer. Viser nivået det forlot og nivået det gikk inn i, gjenværende budsjett og hva teamet har avtalt å gjøre i det nye nivået. Se [Feilbudsjettpolicy](/docs/slo/error-budget-policy). |
+| Nivå i feilbudsjettpolicyen endret | En evaluering flytter SLO-et inn i et nivå i feilbudsjettpolicyen, til et annet nivå eller ut av alle nivåer. Viser nivået det forlot og nivået det gikk inn i, gjenværende budsjett og hva teamet har avtalt å gjøre i det nye nivået, og sier når endringen frøs distribusjoner eller tillot dem igjen. Se [Feilbudsjettpolicy](/docs/slo/error-budget-policy). |
+| Distribusjoner frosset eller tillatt igjen | Noen slo **Frys distribusjoner** på eller av for nivået SLO-et er i, og neste evaluering frøs distribusjoner eller tillot dem igjen. Når en endring av nivå gjør det, sier elementet for den endringen det i stedet. Se [Distribusjonssperre](/docs/slo/error-budget-policy#distribusjonssperre). |
 | Forbruksratevarsel utløst | En forbruksrateregel oppretter et varsel. Lenker til det og viser forbruksratene som utløste det. |
 | Forbruksratehendelse erklært | En forbruksrateregel erklærer en hendelse. Lenker til den og viser forbruksratene som utløste den. |
 | Forbruksratevarsel eller -hendelse løst | Varselet eller hendelsen til en regel lukkes: løst automatisk, eller for hånd mens automatisk løsning var slått av. |
@@ -67,7 +68,7 @@ Endringer i regler og eiere registreres på regelen eller eieren og samles på S
 
 To ting er utelatt:
 
-- **Evalueringsresultater.** SLI-en, feilbudsjettet, forbruksraten, statusen og evalueringstidene endres med noen minutters mellomrom. Historikken deres finnes i **Oversikt**, på siden **Målinger** og i **Feed**. Nivået i feilbudsjettpolicyen som SLO-et er i, er unntaket: En endring av nivå registreres som en endring OneUptime har gjort selv.
+- **Evalueringsresultater.** SLI-en, feilbudsjettet, forbruksraten, statusen og evalueringstidene endres med noen minutters mellomrom. Historikken deres finnes i **Oversikt**, på siden **Målinger** og i **Feed**. Nivået i feilbudsjettpolicyen som SLO-et er i, og om distribusjonene er tillatt, er unntaket: En endring av ett av dem registreres som en endring OneUptime har gjort selv.
 - **Endringer OneUptime gjør selv**, som en monitorregel som knytter til eller kobler fra en monitor, med mindre **Lagre systemhendelser** er slått på for prosjektet. **Feed** registrerer tilknytninger og frakoblinger av monitorer uansett.
 
 ### Slå på revisjonslogger

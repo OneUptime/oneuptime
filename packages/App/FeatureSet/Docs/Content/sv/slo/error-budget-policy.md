@@ -1,11 +1,12 @@
 # Felbudgetpolicy
 
-En felbudgetpolicy skriver ned vad ditt team har kommit överens om att göra medan ett SLO:s felbudget tar slut, till exempel att granska riskfyllda ändringar när hälften är förbrukad, eller att frysa releaser när allt är förbrukat. OneUptime placerar SLO:et i den nivå i policyn som budgeten har nått, visar teamets överenskommelse för nivån på SLO:ets sidor och kan utlösa ett larm eller deklarera en incident när SLO:et går in i en nivå. Det är praxisen med en felbudgetpolicy från [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+En felbudgetpolicy skriver ned vad ditt team har kommit överens om att göra medan ett SLO:s felbudget tar slut, till exempel att granska riskfyllda ändringar när hälften är förbrukad, eller att frysa releaser när allt är förbrukat. OneUptime placerar SLO:et i den nivå i policyn som budgeten har nått, visar teamets överenskommelse för nivån på SLO:ets sidor, kan utlösa ett larm eller deklarera en incident när SLO:et går in i en nivå och talar om för dina CI/CD-pipelines om de ska hålla tillbaka releaser. Det är praxisen med en felbudgetpolicy från [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Så fungerar nivåer](#så-fungerar-nivåer): Vilken nivå som gäller, och när SLO:et lämnar den.
 - [Ställ in en policy](#ställ-in-en-policy): Börja med den rekommenderade policyn, eller skriv dina egna nivåer.
 - [Larm och incidenter](#larm-och-incidenter): Larma ditt team när SLO:et går in i en nivå.
+- [Distributionsspärr](#distributionsspärr): Håll tillbaka releaser från CI/CD medan en nivå fryser distributioner.
 - [Läs nivån via API:et](#läs-nivån-via-apiet): Kontrollera nivån från CI och skript.
 :::
 
@@ -20,6 +21,8 @@ En policy är en uppsättning nivåer. Varje nivå har tre fält:
 | **Vad vi gör** | Vad teamet har kommit överens om att göra medan SLO:et är i nivån, i Markdown. Obligatoriskt, upp till 10 000 tecken. |
 
 En nivå gäller så länge återstående budget är vid eller under dess tröskel, så en nivå på 0 % är nivån för en förbrukad budget. När flera nivåer gäller är SLO:et i den med lägst tröskel: den allvarligaste. När ingen gäller är SLO:et inte i någon nivå. Med nivåer på 50 %, 25 % och 0 % är ett SLO med 30 % av budgeten kvar i nivån på 50 %, och ett med 10 % kvar är i nivån på 25 %.
+
+En nivå kan också frysa distributioner medan SLO:et är i den: se [Distributionsspärr](#distributionsspärr).
 
 ### Att gå in i en nivå och lämna den
 
@@ -59,7 +62,7 @@ Så länge SLO:et inte har några nivåer erbjuder sidan **Använd den rekommend
 
 ### Eller lägg till en nivå själv
 
-Klicka på **Skapa SLO-felbudgetpolicynivå**. Ange ett **Namn** och en **Tröskel för kvarvarande budget (%)**, och skriv teamets överenskommelse i **Vad vi gör**.
+Klicka på **Skapa SLO-felbudgetpolicynivå**. Ange ett **Namn** och en **Tröskel för kvarvarande budget (%)**, och skriv teamets överenskommelse i **Vad vi gör**. Slå på **Frys distributioner** om pipelines ska hålla tillbaka releaser medan SLO:et är i nivån.
 
 ### Välj vad nivån utlöser
 
@@ -72,21 +75,21 @@ Att lägga till, redigera eller ta bort en nivå gäller direkt: OneUptime utvä
 
 **Använd den rekommenderade policyn** lägger till tre nivåer, vid halva budgeten, en fjärdedel och noll, med den här engelska texten:
 
-| Nivå | Gäller vid | Vad teamet gör |
-| --- | --- | --- |
-| **Caution** | 50 % kvar eller mindre | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. |
-| **Reliability first** | 25 % kvar eller mindre | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. |
-| **Budget exhausted** | 0 % kvar eller mindre | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. |
+| Nivå | Gäller vid | Vad teamet gör | Distributioner |
+| --- | --- | --- | --- |
+| **Caution** | 50 % kvar eller mindre | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. | Tillåtna |
+| **Reliability first** | 25 % kvar eller mindre | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | Tillåtna |
+| **Budget exhausted** | 0 % kvar eller mindre | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | Frysta |
 
-Ingen av dem utlöser ett larm eller deklarerar en incident förrän du slår på det. Bara de nivåer som SLO:et saknar läggs till: en nivå med samma namn, eller med samma tröskel, räknas som befintlig, oavsett om den är på eller av. Att be om det två gånger, från en andra flik eller via API:et, lägger alltså inte till något två gånger. Varje nivå som läggs till så registreras i SLO:ets granskningsloggar som tillagd av dig.
+Ingen av dem utlöser ett larm eller deklarerar en incident förrän du slår på det. **Budget exhausted** fryser distributioner, som dess överenskommelse säger, och bekräftelsen visar det: se [Distributionsspärr](#distributionsspärr). Nivåer som lades till innan spärren fanns fryser ingenting förrän du slår på frysningen för dem. Bara de nivåer som SLO:et saknar läggs till: en nivå med samma namn, eller med samma tröskel, räknas som befintlig, oavsett om den är på eller av. Att be om det två gånger, från en andra flik eller via API:et, lägger alltså inte till något två gånger. Varje nivå som läggs till så registreras i SLO:ets granskningsloggar som tillagd av dig.
 
 ## Var nivån visas
 
-- SLO:ets **Översikt** visar nivån det är i och vad teamet har kommit överens om att göra där, så att alla som öppnar SLO:et ser den överenskommelse som gäller nu.
+- SLO:ets **Översikt** visar nivån det är i och vad teamet har kommit överens om att göra där, så att alla som öppnar SLO:et ser den överenskommelse som gäller nu. Medan nivån fryser distributioner visar en röd etikett under nivåns namn sedan när de är frysta.
 - Diagrammet **Nedbränning av felbudget** ritar en linje med etikett vid varje nivås tröskel, bredvid linjen för tröskeln för riskzon.
-- SLO:ets **Feed** visar varje byte av nivå: nivån som SLO:et lämnade och nivån det gick in i, återstående budget och vad teamet har kommit överens om att göra i den nya nivån.
-- SLO:ets **Granskningsloggar** registrerar varje byte av nivå som en ändring som OneUptime själv har gjort, och visar det därför bara med **Lagra systemhändelser** påslaget: se [Slå på granskningsloggar](/docs/slo/feed-and-audit-logs#slå-på-granskningsloggar). Att lägga till, redigera och ta bort en nivå registreras på den person som gjorde det.
-- SLO:ets läs-API returnerar nivån: se [Läs nivån via API:et](#läs-nivån-via-apiet).
+- SLO:ets **Feed** visar varje byte av nivå: nivån som SLO:et lämnade och nivån det gick in i, återstående budget, vad teamet har kommit överens om att göra i den nya nivån och om bytet frös distributioner eller tillät dem igen.
+- SLO:ets **Granskningsloggar** registrerar varje byte av nivå, och varje gång distributioner fryses eller tillåts igen, som en ändring som OneUptime själv har gjort, och visar dem därför bara med **Lagra systemhändelser** påslaget: se [Slå på granskningsloggar](/docs/slo/feed-and-audit-logs#slå-på-granskningsloggar). Att lägga till, redigera och ta bort en nivå registreras på den person som gjorde det.
+- SLO:ets läs-API returnerar nivån och om distributioner är tillåtna: se [Läs nivån via API:et](#läs-nivån-via-apiet) och [Distributionsspärr](#distributionsspärr).
 
 ## Larm och incidenter
 
@@ -124,6 +127,98 @@ Den inbyggda beskrivningen nämner nivån, ställer återstående budget mot niv
 - Ett SLO som är **Pausad** eller **Felkonfigurerad** mäter ingen budget, så dess nivå stannar där den var, och det nivån utlöste förblir öppet tills mätningen återupptas. Regler för förbrukningstakt löser däremot då det de har öppet.
 - Att stänga av utvärderingen av SLO:et, eller att arkivera SLO:et, löser det dess nivåer utlöste. Den nivå SLO:et är i förblir som den var.
 - Att ta bort SLO:et tar bort dess nivåer och löser det de utlöste.
+- I vart och ett av dessa fall behåller SLO:et det svar det gav om distributioner, eftersom det behåller sin nivå: se [Distributionsspärr](#distributionsspärr).
+
+## Distributionsspärr
+
+En nivå kan frysa distributioner. Medan SLO:et är i en nivå där **Frys distributioner** är påslaget har SLO:ets fält `deploymentsAllowed` värdet `false`, så en CI/CD-pipeline som kontrollerar det före en release håller tillbaka releasen. Annars är det `true`: när SLO:et inte har någon policy, medan dess budget ligger över alla nivåer, och i en nivå som inte fryser distributioner. Den rekommenderade policyns nivå **Budget exhausted** fryser distributioner.
+
+:::steps
+### Slå på Frys distributioner
+
+Öppna SLO:ets **Felbudgetpolicy**, redigera nivån, slå på **Frys distributioner** och spara. Nivåns kolumn **Distributioner** i tabellen visar **Frysta**.
+
+### Ge pipelinen en nyckel
+
+Skapa en [API-nyckel](/docs/api-reference/api-reference) för projektet som kan läsa SLO:et, och spara den som en hemlighet i pipelinen med namnet `ONEUPTIME_API_KEY`.
+
+### Kontrollera SLO:et före releasen
+
+Lägg till kontrollen nedan som ett steg före det steg som distribuerar, med SLO:ets ID i stället för `<slo-id>`.
+:::
+
+:::tabs
+@tab Shell
+```bash
+curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{ "select": { "deploymentsAllowed": true } }' \
+  | jq -e '.deploymentsAllowed == true'
+```
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop while the error budget policy freezes deployments
+        env:
+          ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+          SLO_ID: <slo-id>
+        run: |
+          SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item" \
+            -H "ApiKey: $ONEUPTIME_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+            echo "Not deploying: $SLO"
+            exit 1
+          fi
+      - name: Deploy
+        run: ./deploy.sh
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+error-budget-gate:
+  stage: test
+  image: alpine:3.20
+  variables:
+    SLO_ID: <slo-id>
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - >
+      SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item"
+      -H "ApiKey: $ONEUPTIME_API_KEY"
+      -H 'Content-Type: application/json'
+      -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+    - echo "$SLO"
+    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+```
+:::
+
+`jq -e` avslutas med 0 bara när svaret är `true`. Steget stoppas av ett fryst SLO, av ett svar utan fältet (nyckeln kan inte läsa SLO:et, eller ID:t är fel) och av att inget svar kommer alls, så att en pipeline aldrig gör en release på ett svar den inte har fått. I GitLab CI körs jobbet i stadiet test, så ett fryst SLO stoppar stadiet deploy som kommer efter det; lägg till `ONEUPTIME_API_KEY` som en maskerad CI/CD-variabel. På en egenhostad installation använder du dess egen adress i stället för oneuptime.com.
+
+SLO:et svarar med två fält, som läses med SLO:ets egen läsbehörighet:
+
+| Fält | Vad det innehåller |
+| --- | --- |
+| `deploymentsAllowed` | `false` medan SLO:et är i en nivå som fryser distributioner, annars `true`. |
+| `deploymentsFrozenAt` | När distributionerna frystes. Tomt medan de är tillåtna. |
+
+Så ändras svaret:
+
+- Distributioner fryses av den utvärdering som placerar SLO:et i en nivå som fryser dem, och tillåts igen av den som tar SLO:et ut ur nivån, med nivåns egna marginaler för återhämtning: se [Att gå in i en nivå och lämna den](#att-gå-in-i-en-nivå-och-lämna-den). Från en nivå som fryser till en annan förblir de frysta, och `deploymentsFrozenAt` behåller sin tid.
+- Att slå på eller av **Frys distributioner** för den nivå SLO:et är i gäller inom ungefär en minut. För att göra en release innan budgeten har återhämtat sig slår du av det: ändringen registreras i SLO:ets granskningsloggar som din.
+- Ett SLO som är **Pausad** eller **Felkonfigurerad** behåller det svar det hade, precis som det behåller sin nivå: ett underhållsfönster som pausar alla monitorer varken häver en frysning eller startar en. Ett inaktiverat eller arkiverat SLO utvärderas inte alls, så det behåller också sitt svar.
+- Medan distributioner är frysta visar SLO:ets **Översikt** sedan när, och dess **Feed** visar när de fryses och tillåts igen.
 
 ## Läs nivån via API:et
 
@@ -164,7 +259,7 @@ Dessa behörigheter finns i en rolls SLO-grupp. Rollerna Project Owner och Proje
 
 ## Inte tillgängligt än
 
-Vissa delar av en felbudgetpolicy finns inte ännu: en distributionsspärr som själv stoppar releaser (ett CI-jobb kan i stället läsa nivån via API:et), arbetsflödesutlösare och aviseringar i Slack eller Microsoft Teams för varje nivå, en policy som flera SLO:er delar, att kvittera en nivå eller ge ett undantag från den, och nivåer som bygger på budgetens räckvidd i stället för återstående budget.
+Vissa delar av en felbudgetpolicy finns inte ännu: arbetsflödesutlösare och aviseringar i Slack eller Microsoft Teams för varje nivå, en policy som flera SLO:er delar, att kvittera en nivå eller ge ett undantag från den, och nivåer som bygger på budgetens räckvidd i stället för återstående budget. OneUptime stoppar inte en release själv: det gör en pipeline som kontrollerar `deploymentsAllowed`, som [Distributionsspärr](#distributionsspärr) visar.
 
 ## Nästa steg
 

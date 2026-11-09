@@ -1,11 +1,12 @@
 # エラーバジェットポリシー
 
-エラーバジェットポリシーは、SLO のエラーバジェットが減っていくなかでチームが取り決めた対応を書き留めるものです。たとえば、半分を使ったらリスクのある変更をレビューする、すべて使ったらリリースを凍結する、といった対応です。OneUptime は、予算が達したポリシーの段階に SLO を置き、その段階でのチームの取り決めを SLO のページに表示し、SLO が段階に入ったときにアラートを発生させたりインシデントを宣言したりできます。これは [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/) のエラーバジェットポリシーのプラクティスです。
+エラーバジェットポリシーは、SLO のエラーバジェットが減っていくなかでチームが取り決めた対応を書き留めるものです。たとえば、半分を使ったらリスクのある変更をレビューする、すべて使ったらリリースを凍結する、といった対応です。OneUptime は、予算が達したポリシーの段階に SLO を置き、その段階でのチームの取り決めを SLO のページに表示し、SLO が段階に入ったときにアラートを発生させたりインシデントを宣言したりできるほか、リリースを保留すべきかどうかを CI/CD パイプラインに伝えます。これは [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/) のエラーバジェットポリシーのプラクティスです。
 
 :::cards
 - [段階のしくみ](#段階のしくみ): どの段階が適用され、SLO がいつそこから抜けるか。
 - [ポリシーを設定する](#ポリシーを設定する): 推奨ポリシーから始めるか、独自の段階を書きます。
 - [アラートとインシデント](#アラートとインシデント): SLO が段階に入ったときにチームに知らせます。
+- [デプロイゲート](#デプロイゲート): 段階がデプロイを凍結している間、CI/CD からのリリースを保留します。
 - [API で段階を読み取る](#api-で段階を読み取る): CI やスクリプトから段階を確認します。
 :::
 
@@ -20,6 +21,8 @@
 | **対応内容** | SLO がその段階にある間にチームがすると取り決めた対応 (Markdown)。必須で、10,000 文字まで書けます。 |
 
 段階は、予算の残りがそのしきい値以下である間適用されます。そのため、0% の段階は予算を使い切った状態の段階です。複数の段階が適用されるときは、しきい値が最も低い段階、つまり最も深刻な段階に SLO が入ります。どれも適用されないときは、SLO はどの段階にもいません。50%、25%、0% の段階がある場合、予算が 30% 残っている SLO は 50% の段階に、10% 残っている SLO は 25% の段階に入ります。
+
+段階は、SLO がその段階にある間、デプロイを凍結することもできます。[デプロイゲート](#デプロイゲート) を参照してください。
 
 ### 段階に入る、段階から抜ける
 
@@ -59,7 +62,7 @@ SLO に段階がまだないうちは、ページに **おすすめのポリシ�
 
 ### または自分で段階を追加する
 
-**SLO のエラーバジェットポリシーの段階を作成** をクリックします。**名前** と **残り予算のしきい値 (%)** を入力し、チームの取り決めを **対応内容** に書きます。
+**SLO のエラーバジェットポリシーの段階を作成** をクリックします。**名前** と **残り予算のしきい値 (%)** を入力し、チームの取り決めを **対応内容** に書きます。SLO がその段階にある間、パイプラインにリリースを保留させるには、**Deployment を凍結** をオンにします。
 
 ### 段階が発生させるものを選ぶ
 
@@ -72,21 +75,21 @@ SLO に段階がまだないうちは、ページに **おすすめのポリシ�
 
 **おすすめのポリシーを使う** は、予算の半分、4 分の 1、ゼロに 3 つの段階を次の英語の文言で追加します。
 
-| 段階 | 適用される条件 | チームの対応 |
-| --- | --- | --- |
-| **Caution** | 残り 50% 以下 | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. |
-| **Reliability first** | 残り 25% 以下 | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. |
-| **Budget exhausted** | 残り 0% 以下 | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. |
+| 段階 | 適用される条件 | チームの対応 | Deployment |
+| --- | --- | --- | --- |
+| **Caution** | 残り 50% 以下 | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. | 許可 |
+| **Reliability first** | 残り 25% 以下 | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | 許可 |
+| **Budget exhausted** | 残り 0% 以下 | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | 凍結 |
 
-どの段階も、オンにするまではアラートを発生させず、インシデントも宣言しません。追加されるのは SLO にまだない段階だけです。名前が同じ段階、またはしきい値が同じ段階は、オンでもオフでも、すでにあるものとみなされます。そのため、2 つ目のタブや API から 2 回実行しても、何も二重には追加されません。こうして追加された各段階は、あなたが追加したものとして SLO の監査ログに記録されます。
+どの段階も、オンにするまではアラートを発生させず、インシデントも宣言しません。**Budget exhausted** は、その取り決めのとおりデプロイを凍結し、確認画面にもそう示されます。[デプロイゲート](#デプロイゲート) を参照してください。デプロイゲートができる前に追加された段階は、凍結をオンにするまで何も凍結しません。追加されるのは SLO にまだない段階だけです。名前が同じ段階、またはしきい値が同じ段階は、オンでもオフでも、すでにあるものとみなされます。そのため、2 つ目のタブや API から 2 回実行しても、何も二重には追加されません。こうして追加された各段階は、あなたが追加したものとして SLO の監査ログに記録されます。
 
 ## 段階が表示される場所
 
-- SLO の **概要** には、SLO がいる段階と、チームがそこで取り決めた対応が表示されます。SLO を開いた人は誰でも、いま有効な取り決めを確認できます。
+- SLO の **概要** には、SLO がいる段階と、チームがそこで取り決めた対応が表示されます。SLO を開いた人は誰でも、いま有効な取り決めを確認できます。段階がデプロイを凍結している間は、段階名の下の赤いバッジに、いつから凍結されているかが表示されます。
 - **エラーバジェットのバーンダウン** グラフには、リスクありのしきい値の線と並んで、各段階のしきい値にラベル付きの線が引かれます。
-- SLO の **フィード** には、段階が変わるたびに投稿されます。SLO が抜けた段階と入った段階、予算の残り、新しい段階でチームが取り決めた対応です。
-- SLO の **監査ログ** は、段階の変化を OneUptime 自身による変更として記録します。そのため、表示されるのは **システムイベントを保存** がオンの場合だけです。[監査ログをオンにする](/docs/slo/feed-and-audit-logs#監査ログをオンにする) を参照してください。段階の追加、編集、削除は、それを行った人の操作として記録されます。
-- SLO の読み取り API は段階を返します。[API で段階を読み取る](#api-で段階を読み取る) を参照してください。
+- SLO の **フィード** には、段階が変わるたびに投稿されます。SLO が抜けた段階と入った段階、予算の残り、新しい段階でチームが取り決めた対応、そしてその変化でデプロイが凍結されたか再び許可されたかです。
+- SLO の **監査ログ** は、段階の変化と、デプロイの凍結や再許可を、そのつど OneUptime 自身による変更として記録します。そのため、表示されるのは **システムイベントを保存** がオンの場合だけです。[監査ログをオンにする](/docs/slo/feed-and-audit-logs#監査ログをオンにする) を参照してください。段階の追加、編集、削除は、それを行った人の操作として記録されます。
+- SLO の読み取り API は、段階と、デプロイが許可されているかどうかを返します。[API で段階を読み取る](#api-で段階を読み取る) と [デプロイゲート](#デプロイゲート) を参照してください。
 
 ## アラートとインシデント
 
@@ -124,6 +127,98 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 - **一時停止中** または **設定ミス** の SLO は予算を測定しないため、段階はそのまま残り、段階が発生させたものも測定が再開するまで開いたままです。これに対してバーンレートルールは、そのとき開いているものを解決します。
 - SLO の評価をオフにするか、SLO をアーカイブすると、その段階が発生させたものが解決されます。SLO がいる段階はそのまま残ります。
 - SLO を削除すると、その段階も削除され、段階が発生させたものが解決されます。
+- いずれの場合も、SLO は段階を保つので、デプロイについての応答もそのまま保ちます。[デプロイゲート](#デプロイゲート) を参照してください。
+
+## デプロイゲート
+
+段階はデプロイを凍結できます。**Deployment を凍結** がオンになっている段階に SLO がいる間、SLO の `deploymentsAllowed` 項目は `false` になります。そのため、リリース前にこの項目を確認する CI/CD パイプラインはリリースを保留します。それ以外のとき、つまり SLO にポリシーがないとき、予算がどの段階よりも上にある間、デプロイを凍結しない段階にいるときは `true` です。推奨ポリシーの **Budget exhausted** 段階はデプロイを凍結します。
+
+:::steps
+### Deployment を凍結 をオンにする
+
+SLO の **エラーバジェットポリシー** を開き、段階を編集して **Deployment を凍結** をオンにし、保存します。表のその段階の **Deployment** 列には **凍結** と表示されます。
+
+### パイプラインにキーを渡す
+
+SLO を読み取れるプロジェクトの [API キー](/docs/api-reference/api-reference) を作成し、`ONEUPTIME_API_KEY` という名前でパイプラインのシークレットとして保存します。
+
+### リリースの前に SLO を確認する
+
+下のチェックを、デプロイするステップの前にステップとして追加し、`<slo-id>` を SLO の ID に置き換えます。
+:::
+
+:::tabs
+@tab Shell
+```bash
+curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{ "select": { "deploymentsAllowed": true } }' \
+  | jq -e '.deploymentsAllowed == true'
+```
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop while the error budget policy freezes deployments
+        env:
+          ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+          SLO_ID: <slo-id>
+        run: |
+          SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item" \
+            -H "ApiKey: $ONEUPTIME_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+            echo "Not deploying: $SLO"
+            exit 1
+          fi
+      - name: Deploy
+        run: ./deploy.sh
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+error-budget-gate:
+  stage: test
+  image: alpine:3.20
+  variables:
+    SLO_ID: <slo-id>
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - >
+      SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item"
+      -H "ApiKey: $ONEUPTIME_API_KEY"
+      -H 'Content-Type: application/json'
+      -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+    - echo "$SLO"
+    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+```
+:::
+
+`jq -e` は、応答が `true` のときだけ 0 で終了します。凍結中の SLO、この項目のない応答 (キーが SLO を読み取れない、または ID が間違っている場合)、応答がまったくない場合は、いずれもステップを止めます。そのため、パイプラインが受け取っていない応答をもとにリリースすることはありません。GitLab CI では、ジョブが test ステージで実行されるので、SLO が凍結中なら後続の deploy ステージが止まります。`ONEUPTIME_API_KEY` はマスクされた CI/CD 変数として追加してください。セルフホストのインストールでは、oneuptime.com の代わりにそのインストール自身のアドレスを使います。
+
+SLO は 2 つの項目で応答します。どちらも SLO 自体の読み取り権限で読み取れます。
+
+| 項目 | 内容 |
+| --- | --- |
+| `deploymentsAllowed` | SLO がデプロイを凍結する段階にいる間は `false`、それ以外は `true` です。 |
+| `deploymentsFrozenAt` | デプロイが凍結された日時。許可されている間は空です。 |
+
+応答は次のように変わります。
+
+- デプロイは、デプロイを凍結する段階に SLO を入れた評価で凍結され、SLO をその段階から出した評価で再び許可されます。段階から出るタイミングには、その段階の回復の余裕が適用されます。[段階に入る、段階から抜ける](#段階に入る段階から抜ける) を参照してください。凍結する段階から別の凍結する段階に移ったときは凍結されたままで、`deploymentsFrozenAt` の時刻も変わりません。
+- SLO がいる段階の **Deployment を凍結** をオンまたはオフに切り替えると、約 1 分以内に反映されます。予算が回復する前にリリースするには、これをオフにします。この変更は、あなたによる変更として SLO の監査ログに記録されます。
+- **一時停止中** または **設定ミス** の SLO は、段階を保つのと同じく、それまでの応答を保ちます。すべてのモニターを一時停止するメンテナンス期間が、凍結を解除することも、凍結を始めることもありません。無効化またはアーカイブされた SLO はまったく評価されないため、やはり応答を保ちます。
+- デプロイが凍結されている間は、SLO の **概要** にいつから凍結されているかが表示され、**フィード** には凍結されたときと再び許可されたときが投稿されます。
 
 ## API で段階を読み取る
 
@@ -164,7 +259,7 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
 
 ## まだ利用できないもの
 
-エラーバジェットポリシーのうち、次のものはまだ利用できません。単独でリリースをブロックするデプロイゲート (代わりに CI のジョブが API で段階を読み取れます)、段階ごとのワークフロートリガーと Slack や Microsoft Teams の通知、複数の SLO で共有するポリシー、段階の確認済み処理や例外の設定、予算の残りではなく予算の残り期間に基づく段階です。
+エラーバジェットポリシーのうち、次のものはまだ利用できません。段階ごとのワークフロートリガーと Slack や Microsoft Teams の通知、複数の SLO で共有するポリシー、段階の確認済み処理や例外の設定、予算の残りではなく予算の残り期間に基づく段階です。OneUptime がリリースを単独で止めることはありません。[デプロイゲート](#デプロイゲート) で示したように、止めるのは `deploymentsAllowed` を確認するパイプラインです。
 
 ## 次のステップ
 

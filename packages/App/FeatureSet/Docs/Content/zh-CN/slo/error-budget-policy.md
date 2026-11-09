@@ -1,11 +1,12 @@
 # 错误预算策略
 
-错误预算策略写下团队约定在 SLO 的错误预算减少时要做的事，例如在用掉一半时审查有风险的更改，或在全部用完时冻结发布。OneUptime 会把 SLO 放到其预算已到达的策略级别，在 SLO 的页面上显示团队对该级别的约定，并可以在 SLO 进入某个级别时触发警报或声明事件。这是 [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/) 中的错误预算策略实践。
+错误预算策略写下团队约定在 SLO 的错误预算减少时要做的事，例如在用掉一半时审查有风险的更改，或在全部用完时冻结发布。OneUptime 会把 SLO 放到其预算已到达的策略级别，在 SLO 的页面上显示团队对该级别的约定，可以在 SLO 进入某个级别时触发警报或声明事件，并告诉你的 CI/CD 流水线是否要暂缓发布。这是 [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/) 中的错误预算策略实践。
 
 :::cards
 - [级别如何运作](#级别如何运作): 哪个级别生效，以及 SLO 何时离开它。
 - [设置策略](#设置策略): 从推荐策略开始，或编写自己的级别。
 - [警报和事件](#警报和事件): 在 SLO 进入某个级别时通知团队。
+- [部署闸门](#部署闸门): 在某个级别冻结部署期间，让 CI/CD 暂缓发布。
 - [通过 API 读取级别](#通过-api-读取级别): 从 CI 和脚本中检查级别。
 :::
 
@@ -20,6 +21,8 @@
 | **我们的做法** | SLO 处于该级别期间团队约定要做的事，使用 Markdown。必填，最多 10,000 个字符。 |
 
 只要剩余预算等于或低于某个级别的阈值，该级别就生效，因此 0% 的级别就是预算耗尽时的级别。多个级别同时生效时，SLO 处于阈值最低的那个级别，也就是最严重的级别。没有级别生效时，SLO 不在任何级别。如果有 50%、25% 和 0% 三个级别，剩余 30% 预算的 SLO 处于 50% 的级别，剩余 10% 的 SLO 处于 25% 的级别。
+
+级别还可以在 SLO 处于其中期间冻结部署：参见 [部署闸门](#部署闸门)。
 
 ### 进入和离开级别
 
@@ -59,7 +62,7 @@ stateDiagram-v2
 
 ### 或者自己添加级别
 
-点击 **创建SLO 错误预算策略级别**。输入 **名称** 和 **剩余预算阈值 (%)**，并在 **我们的做法** 中写下团队的约定。
+点击 **创建SLO 错误预算策略级别**。输入 **名称** 和 **剩余预算阈值 (%)**，并在 **我们的做法** 中写下团队的约定。如果流水线应在 SLO 处于该级别期间暂缓发布，请开启 **冻结部署**。
 
 ### 选择级别要触发什么
 
@@ -72,21 +75,21 @@ stateDiagram-v2
 
 **使用推荐的策略** 会在预算的一半、四分之一和零处添加三个级别，使用以下英文文字：
 
-| 级别 | 生效条件 | 团队要做的事 |
-| --- | --- | --- |
-| **Caution** | 剩余 50% 或更少 | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. |
-| **Reliability first** | 剩余 25% 或更少 | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. |
-| **Budget exhausted** | 剩余 0% 或更少 | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. |
+| 级别 | 生效条件 | 团队要做的事 | 部署 |
+| --- | --- | --- | --- |
+| **Caution** | 剩余 50% 或更少 | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. | 允许 |
+| **Reliability first** | 剩余 25% 或更少 | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | 允许 |
+| **Budget exhausted** | 剩余 0% 或更少 | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | 已冻结 |
 
-在你开启之前，它们都不会触发警报或声明事件。只会添加 SLO 还没有的级别：名称相同或阈值相同的级别，无论开启与否，都算已存在。因此，从第二个标签页或通过 API 请求两次，也不会重复添加任何内容。以这种方式添加的每个级别都会在 SLO 的审计日志中记录为由你添加。
+在你开启之前，它们都不会触发警报或声明事件。**Budget exhausted** 会冻结部署，正如它的约定所说，确认窗口中也会这样标注它：参见 [部署闸门](#部署闸门)。在部署闸门推出之前添加的级别不会冻结任何部署，除非你为它们开启该开关。只会添加 SLO 还没有的级别：名称相同或阈值相同的级别，无论开启与否，都算已存在。因此，从第二个标签页或通过 API 请求两次，也不会重复添加任何内容。以这种方式添加的每个级别都会在 SLO 的审计日志中记录为由你添加。
 
 ## 级别显示在哪里
 
-- SLO 的 **概览** 显示它所处的级别以及团队在那里约定要做的事，让每个打开 SLO 的人都能看到当前有效的约定。
+- SLO 的 **概览** 显示它所处的级别以及团队在那里约定要做的事，让每个打开 SLO 的人都能看到当前有效的约定。当该级别冻结部署时，其名称下方的红色徽章会显示从何时开始冻结。
 - **错误预算燃尽** 图表在每个级别的阈值处画一条带标签的线，与风险阈值的线并列。
-- SLO 的 **动态** 会发布每次级别变化：SLO 离开的级别和进入的级别、剩余预算，以及团队约定在新级别要做的事。
-- SLO 的 **审计日志** 会把每次级别变化记录为 OneUptime 自身做出的更改，因此只有在开启 **存储系统事件** 时才会显示：参见 [开启审计日志](/docs/slo/feed-and-audit-logs#开启审计日志)。添加、编辑和移除级别会以操作者本人的名义记录。
-- SLO 的读取 API 会返回级别：参见 [通过 API 读取级别](#通过-api-读取级别)。
+- SLO 的 **动态** 会发布每次级别变化：SLO 离开的级别和进入的级别、剩余预算、团队约定在新级别要做的事，以及这次变化是冻结了部署还是重新允许了部署。
+- SLO 的 **审计日志** 会把每次级别变化，以及每次部署被冻结或重新被允许，记录为 OneUptime 自身做出的更改，因此只有在开启 **存储系统事件** 时才会显示：参见 [开启审计日志](/docs/slo/feed-and-audit-logs#开启审计日志)。添加、编辑和移除级别会以操作者本人的名义记录。
+- SLO 的读取 API 会返回级别，以及是否允许部署：参见 [通过 API 读取级别](#通过-api-读取级别) 和 [部署闸门](#部署闸门)。
 
 ## 警报和事件
 
@@ -124,6 +127,98 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 - **已暂停** 或 **配置错误** 的 SLO 不测量预算，因此它的级别保持不变，级别触发的内容也会保持打开，直到恢复测量。消耗率规则则相反，此时会解决它们已打开的内容。
 - 关闭 SLO 的评估或归档 SLO，会解决其级别触发的内容。SLO 所处的级别保持不变。
 - 删除 SLO 会删除其级别，并解决它们触发的内容。
+- 在以上每种情况下，SLO 都会保留它对部署给出的答复，因为它保留了自己的级别：参见 [部署闸门](#部署闸门)。
+
+## 部署闸门
+
+级别可以冻结部署。当 SLO 处于开启了 **冻结部署** 的级别时，SLO 的 `deploymentsAllowed` 字段为 `false`，因此在发布前检查它的 CI/CD 流水线会暂缓这次发布。其他情况下它为 `true`：SLO 没有策略时、其预算高于所有级别时，以及处于不冻结部署的级别时。推荐策略中的 **Budget exhausted** 级别会冻结部署。
+
+:::steps
+### 开启 冻结部署
+
+打开 SLO 的 **错误预算策略**，编辑该级别，开启 **冻结部署** 并保存。表格中该级别的 **部署** 列会显示 **已冻结**。
+
+### 给流水线一个密钥
+
+创建一个能读取该 SLO 的项目 [API 密钥](/docs/api-reference/api-reference)，并把它存为流水线中名为 `ONEUPTIME_API_KEY` 的机密。
+
+### 在发布前检查 SLO
+
+把下面的检查添加为部署步骤之前的一个步骤，并用 SLO 的 ID 替换 `<slo-id>`。
+:::
+
+:::tabs
+@tab Shell
+```bash
+curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{ "select": { "deploymentsAllowed": true } }' \
+  | jq -e '.deploymentsAllowed == true'
+```
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop while the error budget policy freezes deployments
+        env:
+          ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+          SLO_ID: <slo-id>
+        run: |
+          SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item" \
+            -H "ApiKey: $ONEUPTIME_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+            echo "Not deploying: $SLO"
+            exit 1
+          fi
+      - name: Deploy
+        run: ./deploy.sh
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+error-budget-gate:
+  stage: test
+  image: alpine:3.20
+  variables:
+    SLO_ID: <slo-id>
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - >
+      SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item"
+      -H "ApiKey: $ONEUPTIME_API_KEY"
+      -H 'Content-Type: application/json'
+      -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+    - echo "$SLO"
+    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+```
+:::
+
+只有当答复为 `true` 时，`jq -e` 才以 0 退出。被冻结的 SLO、不含该字段的答复（密钥无法读取该 SLO，或 ID 错误）以及完全没有答复，都会让该步骤停止，因此流水线绝不会依据它没有得到的答复进行发布。在 GitLab CI 中，该作业在 test 阶段运行，因此被冻结的 SLO 会让其后的 deploy 阶段停止；请把 `ONEUPTIME_API_KEY` 添加为掩码 CI/CD 变量。在自托管安装上，请改用它自己的地址，而不是 oneuptime.com。
+
+SLO 用两个字段作答，使用 SLO 自身的读取权限读取：
+
+| 字段 | 内容 |
+| --- | --- |
+| `deploymentsAllowed` | SLO 处于冻结部署的级别时为 `false`，否则为 `true`。 |
+| `deploymentsFrozenAt` | 部署被冻结的时间。允许部署期间为空。 |
+
+答复如何变化：
+
+- 把 SLO 放进冻结部署的级别的那次评估会冻结部署，把它带出该级别的那次评估会重新允许部署，并沿用该级别自己的恢复余量：参见 [进入和离开级别](#进入和离开级别)。从一个冻结部署的级别转到另一个冻结部署的级别时，部署保持冻结，`deploymentsFrozenAt` 也保留原来的时间。
+- 为 SLO 所处的级别开启或关闭 **冻结部署**，会在大约一分钟内生效。若要在预算恢复之前发布，请关闭它：这次更改会以你的名义记录在 SLO 的审计日志中。
+- **已暂停** 或 **配置错误** 的 SLO 会保留原有的答复，就像它保留自己的级别一样：让所有监视器都暂停的维护窗口既不会解除冻结，也不会开始冻结。已禁用或已归档的 SLO 根本不会被评估，因此也会保留它的答复。
+- 部署被冻结期间，SLO 的 **概览** 会显示从何时开始冻结，其 **动态** 会说明部署何时被冻结、何时重新被允许。
 
 ## 通过 API 读取级别
 
@@ -164,7 +259,7 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
 
 ## 尚未提供
 
-错误预算策略的部分功能尚未提供：自行阻止发布的部署闸门（可以改由 CI 作业通过 API 读取级别）、每个级别的工作流触发器以及 Slack 或 Microsoft Teams 通知、由多个 SLO 共用的策略、确认某个级别或为其设置例外，以及基于预算剩余时间而不是剩余预算的级别。
+错误预算策略的部分功能尚未提供：每个级别的工作流触发器以及 Slack 或 Microsoft Teams 通知、由多个 SLO 共用的策略、确认某个级别或为其设置例外，以及基于预算剩余时间而不是剩余预算的级别。OneUptime 不会自行阻止发布：阻止发布的是检查 `deploymentsAllowed` 的流水线，正如 [部署闸门](#部署闸门) 所示。
 
 ## 后续步骤
 

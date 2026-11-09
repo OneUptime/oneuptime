@@ -1,11 +1,12 @@
 # Fehlerbudget-Richtlinie
 
-Eine Fehlerbudget-Richtlinie hält fest, was Ihr Team vereinbart hat zu tun, während das Fehlerbudget eines SLO schrumpft, etwa riskante Änderungen zu prüfen, sobald die Hälfte verbraucht ist, oder Releases einzufrieren, sobald alles verbraucht ist. OneUptime ordnet das SLO der Stufe der Richtlinie zu, die sein Budget erreicht hat, zeigt die Vereinbarung des Teams für diese Stufe auf den Seiten des SLO und kann eine Warnung auslösen oder einen Vorfall melden, wenn das SLO in eine Stufe eintritt. Das ist die Praxis der Fehlerbudget-Richtlinie aus dem [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+Eine Fehlerbudget-Richtlinie hält fest, was Ihr Team vereinbart hat zu tun, während das Fehlerbudget eines SLO schrumpft, etwa riskante Änderungen zu prüfen, sobald die Hälfte verbraucht ist, oder Releases einzufrieren, sobald alles verbraucht ist. OneUptime ordnet das SLO der Stufe der Richtlinie zu, die sein Budget erreicht hat, zeigt die Vereinbarung des Teams für diese Stufe auf den Seiten des SLO, kann eine Warnung auslösen oder einen Vorfall melden, wenn das SLO in eine Stufe eintritt, und sagt Ihren CI/CD-Pipelines, ob sie Releases zurückhalten sollen. Das ist die Praxis der Fehlerbudget-Richtlinie aus dem [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Wie Stufen funktionieren](#wie-stufen-funktionieren): Welche Stufe gilt und wann das SLO sie verlässt.
 - [Eine Richtlinie einrichten](#eine-richtlinie-einrichten): Mit der empfohlenen Richtlinie beginnen oder eigene Stufen schreiben.
 - [Warnungen und Vorfälle](#warnungen-und-vorfälle): Ihr Team alarmieren, wenn das SLO in eine Stufe eintritt.
+- [Deployment-Gate](#deployment-gate): Releases in CI/CD zurückhalten, solange eine Stufe Deployments einfriert.
 - [Die Stufe über die API lesen](#die-stufe-über-die-api-lesen): Die Stufe aus CI und Skripten prüfen.
 :::
 
@@ -20,6 +21,8 @@ Eine Richtlinie ist eine Reihe von Stufen. Jede Stufe hat drei Felder:
 | **Was wir tun** | Was das Team vereinbart hat zu tun, solange das SLO in der Stufe ist, in Markdown. Pflichtfeld, bis zu 10.000 Zeichen. |
 
 Eine Stufe gilt, solange das verbleibende Budget bei ihrem Schwellenwert oder darunter liegt, eine Stufe bei 0 % ist also die Stufe eines aufgebrauchten Budgets. Gelten mehrere Stufen, ist das SLO in der mit dem niedrigsten Schwellenwert: der strengsten. Gilt keine, ist das SLO in keiner Stufe. Mit Stufen bei 50 %, 25 % und 0 % ist ein SLO mit 30 % verbleibendem Budget in der 50-%-Stufe und eines mit 10 % in der 25-%-Stufe.
+
+Eine Stufe kann außerdem Deployments einfrieren, solange das SLO in ihr ist: siehe [Deployment-Gate](#deployment-gate).
 
 ### In eine Stufe eintreten und sie verlassen
 
@@ -59,7 +62,7 @@ Solange das SLO keine Stufen hat, bietet die Seite **Empfohlene Richtlinie verwe
 
 ### Oder selbst eine Stufe hinzufügen
 
-Klicken Sie auf **SLO-Fehlerbudget-Richtlinienstufe erstellen**. Geben Sie einen **Name** und einen **Schwellenwert für verbleibendes Budget (%)** ein, und schreiben Sie die Vereinbarung des Teams in **Was wir tun**.
+Klicken Sie auf **SLO-Fehlerbudget-Richtlinienstufe erstellen**. Geben Sie einen **Name** und einen **Schwellenwert für verbleibendes Budget (%)** ein, und schreiben Sie die Vereinbarung des Teams in **Was wir tun**. Schalten Sie **Deployments einfrieren** ein, wenn Pipelines Releases zurückhalten sollen, solange das SLO in der Stufe ist.
 
 ### Festlegen, was die Stufe auslöst
 
@@ -72,21 +75,21 @@ Das Hinzufügen, Bearbeiten oder Löschen einer Stufe wirkt sofort: OneUptime we
 
 **Empfohlene Richtlinie verwenden** fügt drei Stufen hinzu, bei der Hälfte des Budgets, einem Viertel und null, mit diesem englischen Wortlaut:
 
-| Stufe | Gilt bei | Was das Team tut |
-| --- | --- | --- |
-| **Caution** | 50 % übrig oder weniger | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. |
-| **Reliability first** | 25 % übrig oder weniger | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. |
-| **Budget exhausted** | 0 % übrig oder weniger | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. |
+| Stufe | Gilt bei | Was das Team tut | Deployments |
+| --- | --- | --- | --- |
+| **Caution** | 50 % übrig oder weniger | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. | Erlaubt |
+| **Reliability first** | 25 % übrig oder weniger | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | Erlaubt |
+| **Budget exhausted** | 0 % übrig oder weniger | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | Eingefroren |
 
-Keine von ihnen löst eine Warnung aus oder meldet einen Vorfall, bis Sie das einschalten. Es werden nur die Stufen hinzugefügt, die das SLO nicht hat: Eine Stufe mit demselben Namen oder mit demselben Schwellenwert zählt als vorhanden, ob sie ein- oder ausgeschaltet ist. Zweimal danach zu fragen, aus einem zweiten Tab oder über die API, fügt also nichts doppelt hinzu. Jede so hinzugefügte Stufe wird in den Audit-Protokollen des SLO als von Ihnen hinzugefügt festgehalten.
+Keine von ihnen löst eine Warnung aus oder meldet einen Vorfall, bis Sie das einschalten. **Budget exhausted** friert Deployments ein, wie es ihre Vereinbarung sagt, und die Bestätigung kennzeichnet sie entsprechend: siehe [Deployment-Gate](#deployment-gate). Stufen, die hinzugefügt wurden, bevor es das Gate gab, frieren nichts ein, bis Sie das Einfrieren einschalten. Es werden nur die Stufen hinzugefügt, die das SLO nicht hat: Eine Stufe mit demselben Namen oder mit demselben Schwellenwert zählt als vorhanden, ob sie ein- oder ausgeschaltet ist. Zweimal danach zu fragen, aus einem zweiten Tab oder über die API, fügt also nichts doppelt hinzu. Jede so hinzugefügte Stufe wird in den Audit-Protokollen des SLO als von Ihnen hinzugefügt festgehalten.
 
 ## Wo die Stufe erscheint
 
-- Die **Übersicht** des SLO zeigt die Stufe, in der es ist, und was das Team dort vereinbart hat, sodass jeder, der das SLO öffnet, die Vereinbarung sieht, die gerade gilt.
+- Die **Übersicht** des SLO zeigt die Stufe, in der es ist, und was das Team dort vereinbart hat, sodass jeder, der das SLO öffnet, die Vereinbarung sieht, die gerade gilt. Solange die Stufe Deployments einfriert, zeigt ein rotes Badge unter ihrem Namen, seit wann.
 - Das Diagramm **Fehlerbudget-Burn-down** zeichnet beim Schwellenwert jeder Stufe eine beschriftete Linie, neben der Linie der Risikoschwelle.
-- Der **Feed** des SLO zeigt jeden Stufenwechsel: die Stufe, die das SLO verlassen hat, und die, in die es eingetreten ist, das verbleibende Budget und was das Team in der neuen Stufe vereinbart hat.
-- Die **Audit-Protokolle** des SLO halten jeden Stufenwechsel als Änderung fest, die OneUptime selbst vorgenommen hat, und zeigen ihn daher nur mit eingeschaltetem **Systemereignisse speichern**: siehe [Audit-Protokolle einschalten](/docs/slo/feed-and-audit-logs#audit-protokolle-einschalten). Das Hinzufügen, Bearbeiten und Entfernen einer Stufe wird unter der Person festgehalten, die es getan hat.
-- Die Lese-API des SLO liefert die Stufe: siehe [Die Stufe über die API lesen](#die-stufe-über-die-api-lesen).
+- Der **Feed** des SLO zeigt jeden Stufenwechsel: die Stufe, die das SLO verlassen hat, und die, in die es eingetreten ist, das verbleibende Budget, was das Team in der neuen Stufe vereinbart hat, und ob der Wechsel Deployments eingefroren oder wieder erlaubt hat.
+- Die **Audit-Protokolle** des SLO halten jeden Stufenwechsel und jedes Einfrieren oder erneute Erlauben von Deployments als Änderung fest, die OneUptime selbst vorgenommen hat, und zeigen sie daher nur mit eingeschaltetem **Systemereignisse speichern**: siehe [Audit-Protokolle einschalten](/docs/slo/feed-and-audit-logs#audit-protokolle-einschalten). Das Hinzufügen, Bearbeiten und Entfernen einer Stufe wird unter der Person festgehalten, die es getan hat.
+- Die Lese-API des SLO liefert die Stufe und ob Deployments erlaubt sind: siehe [Die Stufe über die API lesen](#die-stufe-über-die-api-lesen) und [Deployment-Gate](#deployment-gate).
 
 ## Warnungen und Vorfälle
 
@@ -124,6 +127,98 @@ Die eingebaute Beschreibung nennt die Stufe, stellt das verbleibende Budget dem 
 - Ein SLO, das **Pausiert** oder **Falsch konfiguriert** ist, misst kein Budget, seine Stufe bleibt also, wo sie war, und was die Stufe ausgelöst hat, bleibt offen, bis wieder gemessen wird. Burn-Rate-Regeln lösen dann dagegen auf, was sie offen haben.
 - Das Ausschalten der Auswertung des SLO oder das Archivieren des SLO löst auf, was seine Stufen ausgelöst haben. Die Stufe, in der das SLO ist, bleibt, wie sie war.
 - Das Löschen des SLO löscht seine Stufen und löst auf, was sie ausgelöst haben.
+- In jedem dieser Fälle behält das SLO die Antwort, die es zu Deployments gegeben hat, weil es seine Stufe behält: siehe [Deployment-Gate](#deployment-gate).
+
+## Deployment-Gate
+
+Eine Stufe kann Deployments einfrieren. Solange das SLO in einer Stufe ist, in der **Deployments einfrieren** eingeschaltet ist, ist das Feld `deploymentsAllowed` des SLO `false`, sodass eine CI/CD-Pipeline, die es vor einem Release prüft, das Release zurückhält. Andernfalls ist es `true`: wenn das SLO keine Richtlinie hat, solange sein Budget über jeder Stufe liegt, und in einer Stufe, die keine Deployments einfriert. Die Stufe **Budget exhausted** der empfohlenen Richtlinie friert Deployments ein.
+
+:::steps
+### Deployments einfrieren einschalten
+
+Öffnen Sie die **Fehlerbudget-Richtlinie** des SLO, bearbeiten Sie die Stufe, schalten Sie **Deployments einfrieren** ein und speichern Sie. In der Tabelle zeigt die Spalte **Deployments** der Stufe dann **Eingefroren**.
+
+### Der Pipeline einen Schlüssel geben
+
+Erstellen Sie einen [API-Schlüssel](/docs/api-reference/api-reference) des Projekts, der das SLO lesen kann, und speichern Sie ihn als Geheimnis der Pipeline mit dem Namen `ONEUPTIME_API_KEY`.
+
+### Das SLO vor dem Release prüfen
+
+Fügen Sie die Prüfung unten als Schritt vor dem Schritt ein, der das Deployment ausführt, mit der ID des SLO anstelle von `<slo-id>`.
+:::
+
+:::tabs
+@tab Shell
+```bash
+curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{ "select": { "deploymentsAllowed": true } }' \
+  | jq -e '.deploymentsAllowed == true'
+```
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop while the error budget policy freezes deployments
+        env:
+          ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+          SLO_ID: <slo-id>
+        run: |
+          SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item" \
+            -H "ApiKey: $ONEUPTIME_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+            echo "Not deploying: $SLO"
+            exit 1
+          fi
+      - name: Deploy
+        run: ./deploy.sh
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+error-budget-gate:
+  stage: test
+  image: alpine:3.20
+  variables:
+    SLO_ID: <slo-id>
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - >
+      SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item"
+      -H "ApiKey: $ONEUPTIME_API_KEY"
+      -H 'Content-Type: application/json'
+      -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+    - echo "$SLO"
+    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+```
+:::
+
+`jq -e` endet nur dann mit dem Exit-Code 0, wenn die Antwort `true` ist. Ein eingefrorenes SLO, eine Antwort ohne das Feld (der Schlüssel kann das SLO nicht lesen, oder die ID ist falsch) und gar keine Antwort brechen den Schritt jeweils ab, sodass eine Pipeline nie auf eine Antwort hin ausliefert, die sie nicht bekommen hat. In GitLab CI läuft der Job in der Stage test, sodass ein eingefrorenes SLO die darauf folgende Stage deploy anhält; legen Sie `ONEUPTIME_API_KEY` als maskierte CI/CD-Variable an. Auf einer selbst gehosteten Installation verwenden Sie statt oneuptime.com deren eigene Adresse.
+
+Das SLO antwortet mit zwei Feldern, die mit der eigenen Leseberechtigung des SLO gelesen werden:
+
+| Feld | Was es enthält |
+| --- | --- |
+| `deploymentsAllowed` | `false`, solange das SLO in einer Stufe ist, die Deployments einfriert, sonst `true`. |
+| `deploymentsFrozenAt` | Wann Deployments eingefroren wurden. Leer, solange sie erlaubt sind. |
+
+Wie sich die Antwort ändert:
+
+- Deployments werden von der Auswertung eingefroren, die das SLO in eine Stufe bringt, die sie einfriert, und von der Auswertung wieder erlaubt, die es aus dieser Stufe herausholt, mit den Erholungsabständen der Stufe: siehe [In eine Stufe eintreten und sie verlassen](#in-eine-stufe-eintreten-und-sie-verlassen). Von einer einfrierenden Stufe in eine andere bleiben sie eingefroren, und `deploymentsFrozenAt` behält seinen Zeitpunkt.
+- Das Ein- oder Ausschalten von **Deployments einfrieren** für die Stufe, in der das SLO ist, wirkt innerhalb von etwa einer Minute. Um ein Release auszuliefern, bevor sich das Budget erholt, schalten Sie es aus: Die Änderung wird in den Audit-Protokollen des SLO als von Ihnen vorgenommen festgehalten.
+- Ein SLO, das **Pausiert** oder **Falsch konfiguriert** ist, behält die Antwort, die es hatte, so wie es seine Stufe behält: Ein Wartungsfenster, das jeden Monitor pausiert, hebt ein Einfrieren weder auf, noch beginnt es eines. Ein deaktiviertes oder archiviertes SLO wird gar nicht ausgewertet und behält daher ebenfalls seine Antwort.
+- Solange Deployments eingefroren sind, zeigt die **Übersicht** des SLO, seit wann, und sein **Feed** sagt, wann sie eingefroren und wieder erlaubt werden.
 
 ## Die Stufe über die API lesen
 
@@ -164,7 +259,7 @@ Diese Berechtigungen stehen in der SLO-Gruppe einer Rolle. Die Rollen Project Ow
 
 ## Noch nicht verfügbar
 
-Einige Teile einer Fehlerbudget-Richtlinie sind noch nicht verfügbar: ein Deployment-Gate, das Releases von selbst blockiert (ein CI-Job kann stattdessen die Stufe über die API lesen), Workflow-Auslöser sowie Slack- und Microsoft-Teams-Benachrichtigungen für jede Stufe, eine Richtlinie, die sich mehrere SLOs teilen, das Bestätigen einer Stufe oder das Gewähren einer Ausnahme davon, und Stufen, die sich nach der Budget-Reichweite statt nach dem verbleibenden Budget richten.
+Einige Teile einer Fehlerbudget-Richtlinie sind noch nicht verfügbar: Workflow-Auslöser sowie Slack- und Microsoft-Teams-Benachrichtigungen für jede Stufe, eine Richtlinie, die sich mehrere SLOs teilen, das Bestätigen einer Stufe oder das Gewähren einer Ausnahme davon, und Stufen, die sich nach der Budget-Reichweite statt nach dem verbleibenden Budget richten. OneUptime hält ein Release nicht von selbst an: Das tut eine Pipeline, die `deploymentsAllowed` prüft, wie [Deployment-Gate](#deployment-gate) zeigt.
 
 ## Nächste Schritte
 

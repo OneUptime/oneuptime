@@ -1,11 +1,12 @@
 # 오류 예산 정책
 
-오류 예산 정책은 SLO의 오류 예산이 줄어들 때 팀이 하기로 합의한 일을 적어 둔 것입니다. 예를 들어 절반을 쓰면 위험한 변경을 검토하고, 모두 쓰면 릴리스를 동결하는 식입니다. OneUptime은 예산이 도달한 정책 단계에 SLO를 두고, 그 단계에 대한 팀의 합의를 SLO의 페이지에 보여 주며, SLO가 단계에 들어갈 때 경고를 발생시키거나 인시던트를 선언할 수 있습니다. 이것은 [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/)의 오류 예산 정책 방식입니다.
+오류 예산 정책은 SLO의 오류 예산이 줄어들 때 팀이 하기로 합의한 일을 적어 둔 것입니다. 예를 들어 절반을 쓰면 위험한 변경을 검토하고, 모두 쓰면 릴리스를 동결하는 식입니다. OneUptime은 예산이 도달한 정책 단계에 SLO를 두고, 그 단계에 대한 팀의 합의를 SLO의 페이지에 보여 주며, SLO가 단계에 들어갈 때 경고를 발생시키거나 인시던트를 선언할 수 있고, CI/CD 파이프라인에 릴리스를 보류할지 여부를 알려 줍니다. 이것은 [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/)의 오류 예산 정책 방식입니다.
 
 :::cards
 - [단계의 작동 방식](#단계의-작동-방식): 어떤 단계가 적용되는지, SLO가 언제 그 단계를 벗어나는지.
 - [정책 설정](#정책-설정): 권장 정책에서 시작하거나 직접 단계를 작성합니다.
 - [경고와 인시던트](#경고와-인시던트): SLO가 단계에 들어가면 팀에 알립니다.
+- [배포 게이트](#배포-게이트): 단계가 배포를 동결하는 동안 CI/CD에서 릴리스를 보류합니다.
 - [API로 단계 읽기](#api로-단계-읽기): CI와 스크립트에서 단계를 확인합니다.
 :::
 
@@ -20,6 +21,8 @@
 | **우리가 할 일** | SLO가 그 단계에 있는 동안 팀이 하기로 합의한 일(Markdown). 필수이며 최대 10,000자입니다. |
 
 단계는 남은 예산이 그 임계값 이하인 동안 적용되므로, 0% 단계는 예산이 소진된 상태의 단계입니다. 여러 단계가 적용되면 SLO는 임계값이 가장 낮은 단계, 즉 가장 심각한 단계에 있습니다. 적용되는 단계가 없으면 SLO는 어떤 단계에도 없습니다. 50%, 25%, 0% 단계가 있으면 예산이 30% 남은 SLO는 50% 단계에, 10% 남은 SLO는 25% 단계에 있습니다.
+
+단계는 SLO가 그 단계에 있는 동안 배포를 동결할 수도 있습니다. [배포 게이트](#배포-게이트)를 참고하세요.
 
 ### 단계에 들어가고 벗어나기
 
@@ -59,7 +62,7 @@ SLO에 단계가 없는 동안에는 페이지에 **추천 정책 사용** 이 �
 
 ### 또는 직접 단계 추가하기
 
-**SLO 오류 예산 정책 단계 만들기** 를 클릭합니다. **이름** 과 **남은 예산 임계값 (%)** 를 입력하고, 팀의 합의를 **우리가 할 일** 에 씁니다.
+**SLO 오류 예산 정책 단계 만들기** 를 클릭합니다. **이름** 과 **남은 예산 임계값 (%)** 를 입력하고, 팀의 합의를 **우리가 할 일** 에 씁니다. SLO가 그 단계에 있는 동안 파이프라인이 릴리스를 보류해야 한다면 **배포 동결** 을 켭니다.
 
 ### 단계가 발생시킬 것 선택하기
 
@@ -72,21 +75,21 @@ SLO에 단계가 없는 동안에는 페이지에 **추천 정책 사용** 이 �
 
 **추천 정책 사용** 은 예산의 절반, 4분의 1, 0에 세 단계를 다음 영어 문구로 추가합니다.
 
-| 단계 | 적용 조건 | 팀이 하는 일 |
-| --- | --- | --- |
-| **Caution** | 50% 이하 남음 | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. |
-| **Reliability first** | 25% 이하 남음 | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. |
-| **Budget exhausted** | 0% 이하 남음 | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. |
+| 단계 | 적용 조건 | 팀이 하는 일 | 배포 |
+| --- | --- | --- | --- |
+| **Caution** | 50% 이하 남음 | Half of the error budget is spent. Review risky changes before they ship, and find out what has been spending the budget. | 허용 |
+| **Reliability first** | 25% 이하 남음 | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | 허용 |
+| **Budget exhausted** | 0% 이하 남음 | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | 동결 |
 
-어떤 단계도 켜기 전까지는 경고를 발생시키거나 인시던트를 선언하지 않습니다. SLO에 없는 단계만 추가됩니다. 이름이 같거나 임계값이 같은 단계는 켜져 있든 꺼져 있든 이미 있는 것으로 봅니다. 따라서 두 번째 탭이나 API에서 두 번 요청해도 아무것도 두 번 추가되지 않습니다. 이렇게 추가된 각 단계는 SLO의 감사 로그에 사용자가 추가한 것으로 기록됩니다.
+어떤 단계도 켜기 전까지는 경고를 발생시키거나 인시던트를 선언하지 않습니다. **Budget exhausted** 는 그 합의대로 배포를 동결하며, 확인 화면에도 그렇게 표시됩니다. [배포 게이트](#배포-게이트)를 참고하세요. 배포 게이트가 생기기 전에 추가된 단계는 동결을 켜기 전까지 아무것도 동결하지 않습니다. SLO에 없는 단계만 추가됩니다. 이름이 같거나 임계값이 같은 단계는 켜져 있든 꺼져 있든 이미 있는 것으로 봅니다. 따라서 두 번째 탭이나 API에서 두 번 요청해도 아무것도 두 번 추가되지 않습니다. 이렇게 추가된 각 단계는 SLO의 감사 로그에 사용자가 추가한 것으로 기록됩니다.
 
 ## 단계가 표시되는 곳
 
-- SLO의 **개요** 에는 SLO가 있는 단계와 팀이 그 단계에서 하기로 합의한 일이 표시되므로, SLO를 여는 사람은 누구나 지금 적용되는 합의를 볼 수 있습니다.
+- SLO의 **개요** 에는 SLO가 있는 단계와 팀이 그 단계에서 하기로 합의한 일이 표시되므로, SLO를 여는 사람은 누구나 지금 적용되는 합의를 볼 수 있습니다. 단계가 배포를 동결하는 동안에는 단계 이름 아래의 빨간 배지에 언제부터 동결되었는지 표시됩니다.
 - **오류 예산 소진 추이** 차트는 위험 임계값 선 옆에 각 단계의 임계값마다 레이블이 붙은 선을 그립니다.
-- SLO의 **피드** 에는 단계가 바뀔 때마다 게시됩니다. SLO가 벗어난 단계와 들어간 단계, 남은 예산, 새 단계에서 팀이 하기로 합의한 일입니다.
-- SLO의 **감사 로그** 는 단계 변화를 OneUptime이 직접 한 변경으로 기록하므로, **시스템 이벤트 저장** 이 켜져 있을 때만 보여 줍니다. [감사 로그 켜기](/docs/slo/feed-and-audit-logs#감사-로그-켜기)를 참고하세요. 단계 추가, 편집, 제거는 그 작업을 한 사람의 이름으로 기록됩니다.
-- SLO의 읽기 API는 단계를 반환합니다. [API로 단계 읽기](#api로-단계-읽기)를 참고하세요.
+- SLO의 **피드** 에는 단계가 바뀔 때마다 게시됩니다. SLO가 벗어난 단계와 들어간 단계, 남은 예산, 새 단계에서 팀이 하기로 합의한 일, 그리고 그 변화로 배포가 동결되었는지 다시 허용되었는지입니다.
+- SLO의 **감사 로그** 는 각 단계 변화와 배포가 동결되거나 다시 허용된 각 경우를 OneUptime이 직접 한 변경으로 기록하므로, **시스템 이벤트 저장** 이 켜져 있을 때만 보여 줍니다. [감사 로그 켜기](/docs/slo/feed-and-audit-logs#감사-로그-켜기)를 참고하세요. 단계 추가, 편집, 제거는 그 작업을 한 사람의 이름으로 기록됩니다.
+- SLO의 읽기 API는 단계와 배포 허용 여부를 반환합니다. [API로 단계 읽기](#api로-단계-읽기)와 [배포 게이트](#배포-게이트)를 참고하세요.
 
 ## 경고와 인시던트
 
@@ -124,6 +127,98 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 - **일시 중지됨** 또는 **잘못 구성됨** 상태인 SLO는 예산을 측정하지 않으므로, 단계는 그대로 남고 단계가 발생시킨 것도 측정이 다시 시작될 때까지 열려 있습니다. 반면 소진율 규칙은 이때 열려 있는 것을 해결합니다.
 - SLO의 평가를 끄거나 SLO를 보관하면 그 단계들이 발생시킨 것이 해결됩니다. SLO가 있는 단계는 그대로 남습니다.
 - SLO를 삭제하면 그 단계도 삭제되고, 단계들이 발생시킨 것이 해결됩니다.
+- 이 모든 경우에 SLO는 단계를 유지하므로, 배포에 대해 주던 응답도 그대로 유지합니다. [배포 게이트](#배포-게이트)를 참고하세요.
+
+## 배포 게이트
+
+단계는 배포를 동결할 수 있습니다. SLO가 **배포 동결** 이 켜진 단계에 있는 동안 SLO의 `deploymentsAllowed` 필드는 `false` 이므로, 릴리스 전에 이 필드를 확인하는 CI/CD 파이프라인은 릴리스를 보류합니다. 그 밖의 경우에는 `true` 입니다. SLO에 정책이 없을 때, 예산이 모든 단계보다 위에 있는 동안, 그리고 배포를 동결하지 않는 단계에 있을 때입니다. 권장 정책의 **Budget exhausted** 단계는 배포를 동결합니다.
+
+:::steps
+### 배포 동결 켜기
+
+SLO의 **오류 예산 정책** 을 열고 단계를 편집해 **배포 동결** 을 켠 뒤 저장합니다. 표에서 그 단계의 **배포** 열에 **동결** 이 표시됩니다.
+
+### 파이프라인에 키 주기
+
+SLO를 읽을 수 있는 프로젝트의 [API 키](/docs/api-reference/api-reference)를 만들고, 파이프라인의 시크릿에 `ONEUPTIME_API_KEY` 라는 이름으로 저장합니다.
+
+### 릴리스 전에 SLO 확인하기
+
+배포하는 스텝 앞에 아래 검사를 스텝으로 추가하고, `<slo-id>` 자리에 SLO의 ID를 넣습니다.
+:::
+
+:::tabs
+@tab Shell
+```bash
+curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{ "select": { "deploymentsAllowed": true } }' \
+  | jq -e '.deploymentsAllowed == true'
+```
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop while the error budget policy freezes deployments
+        env:
+          ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+          SLO_ID: <slo-id>
+        run: |
+          SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item" \
+            -H "ApiKey: $ONEUPTIME_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+            echo "Not deploying: $SLO"
+            exit 1
+          fi
+      - name: Deploy
+        run: ./deploy.sh
+```
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+error-budget-gate:
+  stage: test
+  image: alpine:3.20
+  variables:
+    SLO_ID: <slo-id>
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - >
+      SLO=$(curl -sS -X POST "https://oneuptime.com/api/service-level-objective/$SLO_ID/get-item"
+      -H "ApiKey: $ONEUPTIME_API_KEY"
+      -H 'Content-Type: application/json'
+      -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
+    - echo "$SLO"
+    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+```
+:::
+
+`jq -e` 는 응답이 `true` 일 때만 0으로 종료합니다. 동결된 SLO, 필드가 없는 응답(키가 SLO를 읽을 수 없거나 ID가 잘못된 경우), 응답이 아예 없는 경우는 모두 스텝을 멈추므로, 파이프라인은 받지 못한 응답으로 릴리스하는 일이 없습니다. GitLab CI에서는 작업이 test 스테이지에서 실행되므로, 동결된 SLO는 그 뒤의 deploy 스테이지를 멈춥니다. `ONEUPTIME_API_KEY` 는 마스킹된 CI/CD 변수로 추가하세요. 자체 호스팅 설치에서는 oneuptime.com 대신 그 설치의 주소를 사용하세요.
+
+SLO는 두 필드로 응답하며, 이 필드들은 SLO 자체의 읽기 권한으로 읽습니다.
+
+| 필드 | 내용 |
+| --- | --- |
+| `deploymentsAllowed` | SLO가 배포를 동결하는 단계에 있는 동안에는 `false`, 그 밖에는 `true` 입니다. |
+| `deploymentsFrozenAt` | 배포가 동결된 시각. 허용되는 동안에는 비어 있습니다. |
+
+응답은 다음과 같이 바뀝니다.
+
+- 배포는 배포를 동결하는 단계에 SLO를 넣는 평가에서 동결되고, SLO를 그 단계에서 빼내는 평가에서 다시 허용되며, 이때 단계 자체의 회복 여유가 적용됩니다. [단계에 들어가고 벗어나기](#단계에-들어가고-벗어나기)를 참고하세요. 동결하는 한 단계에서 동결하는 다른 단계로 옮겨 가면 계속 동결된 상태이며, `deploymentsFrozenAt` 도 그 시각을 유지합니다.
+- SLO가 있는 단계의 **배포 동결** 을 켜거나 끄면 약 1분 안에 적용됩니다. 예산이 회복되기 전에 릴리스하려면 이를 끄세요. 이 변경은 SLO의 감사 로그에 사용자가 한 것으로 기록됩니다.
+- **일시 중지됨** 또는 **잘못 구성됨** 상태인 SLO는 단계를 유지하는 것처럼 이전 응답도 유지합니다. 모든 모니터를 일시 중지하는 유지 관리 기간은 동결을 풀지도, 새로 시작하지도 않습니다. 비활성화되거나 보관된 SLO는 아예 평가되지 않으므로 역시 응답을 유지합니다.
+- 배포가 동결된 동안 SLO의 **개요** 에는 언제부터 동결되었는지 표시되고, **피드** 에는 배포가 동결된 시점과 다시 허용된 시점이 게시됩니다.
 
 ## API로 단계 읽기
 
@@ -164,7 +259,7 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
 
 ## 아직 제공되지 않는 기능
 
-오류 예산 정책의 일부는 아직 제공되지 않습니다. 스스로 릴리스를 막는 배포 게이트(대신 CI 작업이 API로 단계를 읽을 수 있습니다), 단계별 워크플로 트리거와 Slack 또는 Microsoft Teams 알림, 여러 SLO가 함께 쓰는 정책, 단계 확인 처리나 예외 부여, 남은 예산이 아닌 예산 잔여 기간에 따른 단계입니다.
+오류 예산 정책의 일부는 아직 제공되지 않습니다. 단계별 워크플로 트리거와 Slack 또는 Microsoft Teams 알림, 여러 SLO가 함께 쓰는 정책, 단계 확인 처리나 예외 부여, 남은 예산이 아닌 예산 잔여 기간에 따른 단계입니다. OneUptime은 스스로 릴리스를 막지 않습니다. [배포 게이트](#배포-게이트)에서 보듯이 릴리스를 막는 것은 `deploymentsAllowed` 를 확인하는 파이프라인입니다.
 
 ## 다음 단계
 
