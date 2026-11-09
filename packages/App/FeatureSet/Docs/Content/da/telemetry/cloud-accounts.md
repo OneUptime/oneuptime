@@ -284,6 +284,8 @@ De kald, OneUptime foretager, faktureres til din cloudkonto til din clouds prise
 | Google Cloud | De første 1.000.000 læste tidsserier om måneden er gratis, derefter $0.50 pr. million |
 | Google Cloud-omkostninger | BigQuery fakturerer forespørgslen på din faktureringseksport: den første 1 TiB om måneden er gratis, derefter $6.25 pr. TiB |
 
+Et Service Bus- eller Event Hubs-navneområdes vigtigste metrikker læses for hver af dets køer, emner og event hubs, opdelt efter dimensionen `EntityName`, i det samme ene kald pr. navneområde og læsning: med en læsning hvert 5. minut koster et navneområde med 50 køer 12 kald i timen, lige så meget som et navneområde med én kø. En læsning tager op til 1.000 af dem pr. navneområde og siger det, når der er flere. Metrikkerne for hver af dem vises på dens side under [Køer](/docs/telemetry/queues#azure-service-bus), tildelt sådan som collectorens `azure_monitor`-receiver tildeler dem, og hvor den receiver også læser en metrik for en kø, beholdes dens værdier, og forbindelsens udelades, så intet tælles to gange.
+
 ## Det, du ser i OneUptime
 
 - **En kontos side.** Under **Cloud → Konti** tæller en kontos oversigt dens ressourcer efter type og region og siger, hvornår en forbindelse sidst læste den. Dens **Ressourcer** viser dem, dens **Ændringer** viser, hvad der er ændret i den, nyeste først, og dens **Topologi** tegner dens regioner, netværkene i dem og hvad der kører i hvert, med de åbne hændelser og advarsler på de ressourcer, de er tilknyttet. På **Ændringer** står der **OneUptime AI** ved en ændring, som OneUptime AI har foretaget, med den hændelse eller advarsel, den rettede, hvem der godkendte den, eller at den kørte af sig selv, og et link til dens post på kontoens side **AI-logs**. Dens **Feed** registrerer, hvordan kontoen kom til OneUptime, hvornår dens Cloud-AI-agent oprettede forbindelse eller blev nulstillet, og hvem der ændrede, hvad OneUptime AI må gøre i den.
@@ -334,6 +336,10 @@ Den første læsning viser hver ressource i kontoen, uanset om den rapporterer m
 
 :::details Nogle af organisationens konti mangler
 Én forbindelse læser op til 50 konti, abonnementer eller projekter, og hver læsning siger det, når der er flere. Forbind de andre med en forbindelse for sig.
+:::
+
+:::details En læsning har advarsler
+En læsning, der virker, kan stadig udelade noget, fx en metrik, som din cloud ikke returnerede for nogle ressourcer, eller køerne i et navneområde ud over de første 1.000. Under **Cloud → Forbind** siger forbindelsens status så, hvor mange advarsler dens seneste læsning havde: vælg dem for at læse hver enkelt.
 :::
 
 ## Næste trin

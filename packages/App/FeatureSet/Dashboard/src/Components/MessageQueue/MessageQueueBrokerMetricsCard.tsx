@@ -1,18 +1,23 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { getConnectRouteFor } from "../Cloud/Connect/CloudConnectCallout";
 import {
+  MESSAGE_QUEUE_BROKER_METRICS_CONNECTIONS_SLOT,
   MessageQueueBrokerMetricState,
   MessageQueueBrokerMetricStatus,
   MessageQueueBrokerMetricsFinding,
   MessageQueueBrokerMetricsHealth,
+  MessageQueueBrokerMetricsSourceLine,
   MessageQueueBrokerMetricsStatus,
   MessageQueueNamespaceFinding,
   getMessageQueueBrokerMetricStateLabel,
   getMessageQueueBrokerMetricStatusLine,
   getMessageQueueBrokerMetricsHealthLabel,
   getMessageQueueBrokerMetricsLastReceived,
+  getMessageQueueBrokerMetricsSourceLine,
   getMessageQueueBrokerMetricsSummary,
+  getMessageQueueCollectorOnlyLine,
   getMessageQueueMissingMetricsFinding,
   getMessageQueueNamespaceFindingWords,
   getMessageQueueStoppedMetricsFinding,
@@ -25,6 +30,7 @@ import {
 } from "./MessageQueueOverviewPresentation";
 import { getMessageQueueSystemLabel } from "../../Pages/MessageQueue/Utils/MessageQueuePresentation";
 import Route from "Common/Types/API/Route";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -33,7 +39,13 @@ import Link from "Common/UI/Components/Link/Link";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateAround,
+  Translator,
+  formatList,
+  getTemplateAround,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -45,15 +57,20 @@ import React, { FunctionComponent, ReactElement } from "react";
  * While none of them has data in the range it is the section's only card,
  * so it says everything the section has to say:
  *
- *   - a line saying how many arrived in the range, and when the newest did
- *     — or, while none ever has, where the system's metrics come from (the
- *     section's setup guidance), unless a finding says more;
+ *   - a line saying how many arrived in the range, and when the newest did,
+ *     and what reads them — the cloud connection (its name, a link to
+ *     Cloud > Connect), the collector's receiver, or both, and for a queue
+ *     a connection alone reads, why the metrics marked Collector only do
+ *     not count — or, while none ever has, where the system's metrics come
+ *     from (the section's setup guidance), unless a finding says more;
  *   - a finding for what needs doing: the metrics that should arrive and do
  *     not (with the lines the collector's configuration needs), metrics
  *     that stopped, or — for an Azure queue none of whose metrics arrive —
  *     what its namespace sends instead (nothing, totals only, other queues
- *     only), each with links to the queue's collector configuration and the
- *     guide's troubleshooting;
+ *     only), each with links to where it is fixed: Cloud > Connect (to
+ *     connect the namespace's subscription, or to the connection that
+ *     reads it), the queue's collector configuration, and the guide's
+ *     troubleshooting;
  *   - every metric the system supports, folded: its name, its state, and
  *     why — or, for one that arrives, when it last did.
  *
@@ -76,6 +93,11 @@ export interface ComponentProps {
    * says why.
    */
   setupGuidance?: ReactElement | undefined;
+  /*
+   * The names of the cloud connections that read the queue, by id; a
+   * connection without one is named by where it is: Cloud > Connect.
+   */
+  connectionNames?: Readonly<Record<string, string>> | undefined;
   // The moment relative times are counted from.
   now: Date;
 }
@@ -93,6 +115,22 @@ export const BROKER_METRICS_CONFIGURATION_LINK_LABEL: string = translationKey(
 
 export const BROKER_METRICS_TROUBLESHOOTING_LINK_LABEL: string = translationKey(
   "Troubleshooting in the Queues guide →",
+);
+
+/*
+ * Cloud > Connect, opened on the Azure form: no cloud connection reads the
+ * queue's namespace, and a connected subscription would.
+ */
+export const BROKER_METRICS_CONNECT_AZURE_LINK_LABEL: string = translationKey(
+  "Connect an Azure subscription →",
+);
+
+/*
+ * Cloud > Connect's list of connections: one reads the queue, and its last
+ * read says what went wrong.
+ */
+export const BROKER_METRICS_CLOUD_CONNECT_LINK_LABEL: string = translationKey(
+  "Open Cloud > Connect →",
 );
 
 const LINK_CLASS_NAME: string =
@@ -123,9 +161,108 @@ function getStateBadgeType(
     case "stopped":
       return StatusBadgeType.Warning;
     default:
+      // Nothing to report, collector only, not received, not in this range.
       return StatusBadgeType.Neutral;
   }
 }
+
+/**
+ * What the source line's link says: the connections' names, or - while
+ * none is known (a connection since deleted, names not read) - where the
+ * connections are, Cloud > Connect, as the side menu names it.
+ */
+export function getMessageQueueBrokerMetricsConnectionsLabel(
+  connectionIds: ReadonlyArray<string>,
+  connectionNames: Readonly<Record<string, string>> | undefined,
+  translator: Translator,
+): string {
+  const names: Array<string> = [];
+  for (const id of connectionIds) {
+    const name: string = (connectionNames?.[id] || "").trim();
+    if (name && !names.includes(name)) {
+      names.push(name);
+    }
+  }
+  if (names.length > 0) {
+    return formatList(names, translator);
+  }
+  return `${translator.translateText("Cloud") || "Cloud"} > ${
+    translator.translateText("Connect") || "Connect"
+  }`;
+}
+
+/*
+ * What reads the queue's metrics, under the summary: the cloud connection's
+ * name links to Cloud > Connect, where its last read says how it went. A
+ * sentence may follow (getMessageQueueCollectorOnlyLine): why the summary
+ * counts metrics the connection does not read.
+ */
+const SourceLine: FunctionComponent<{
+  line: MessageQueueBrokerMetricsSourceLine;
+  connectionIds: ReadonlyArray<string>;
+  connectionNames: Readonly<Record<string, string>> | undefined;
+  collectorOnlyLine: string | null;
+}> = (props: {
+  line: MessageQueueBrokerMetricsSourceLine;
+  connectionIds: ReadonlyArray<string>;
+  connectionNames: Readonly<Record<string, string>> | undefined;
+  collectorOnlyLine: string | null;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const className: string = "mt-1 text-xs text-gray-500";
+  const collectorOnly: ReactElement = props.collectorOnlyLine ? (
+    <>
+      {" "}
+      <span data-testid="message-queue-broker-metrics-collector-only">
+        {renderMessageQueueInlineCode(props.collectorOnlyLine)}
+      </span>
+    </>
+  ) : (
+    <></>
+  );
+
+  if (!props.line.namesConnections) {
+    return (
+      <p
+        data-testid="message-queue-broker-metrics-source"
+        className={className}
+      >
+        {renderMessageQueueInlineCode(
+          translator.translateTemplate(props.line.template, props.line.values),
+        )}
+        {collectorOnly}
+      </p>
+    );
+  }
+
+  const around: TemplateAround = getTemplateAround(
+    translator,
+    props.line.template,
+    MESSAGE_QUEUE_BROKER_METRICS_CONNECTIONS_SLOT,
+    props.line.values,
+  );
+  return (
+    <p data-testid="message-queue-broker-metrics-source" className={className}>
+      {renderMessageQueueInlineCode(around.before)}
+      <AppLink
+        to={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.CLOUD_CONNECT] as Route,
+        )}
+        className="font-medium text-indigo-600 hover:underline"
+      >
+        <span data-testid="message-queue-broker-metrics-source-connections">
+          {getMessageQueueBrokerMetricsConnectionsLabel(
+            props.connectionIds,
+            props.connectionNames,
+            translator,
+          )}
+        </span>
+      </AppLink>
+      {renderMessageQueueInlineCode(around.after)}
+      {collectorOnly}
+    </p>
+  );
+};
 
 /**
  * What the card asks the reader to look at, most specific first: what the
@@ -149,6 +286,7 @@ export function getMessageQueueBrokerMetricsFindings(data: {
         data.namespaceFinding,
         data.messagingSystem,
         data.translator,
+        data.status.sources,
       ),
     );
   } else {
@@ -239,11 +377,47 @@ const FindingCallout: FunctionComponent<{
       ) : (
         <></>
       )}
-      <div className="mt-3 flex flex-col items-start gap-2 sm:flex-row sm:gap-4">
-        <AppLink to={props.documentationRoute} className={LINK_CLASS_NAME}>
-          {translator.translateText(BROKER_METRICS_CONFIGURATION_LINK_LABEL) ||
-            ""}
-        </AppLink>
+      {/*
+       * Where it is fixed first - Cloud > Connect, the queue's collector
+       * configuration, or both - then the guide.
+       */}
+      <div className="mt-3 flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:gap-x-4">
+        {finding.cloudConnectionLink === "connect" ? (
+          <AppLink
+            to={getConnectRouteFor(CloudProvider.Azure)}
+            className={LINK_CLASS_NAME}
+          >
+            <span data-testid="message-queue-broker-metrics-finding-connect">
+              {translator.translateText(
+                BROKER_METRICS_CONNECT_AZURE_LINK_LABEL,
+              ) || ""}
+            </span>
+          </AppLink>
+        ) : finding.cloudConnectionLink === "check" ? (
+          <AppLink
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_CONNECT] as Route,
+            )}
+            className={LINK_CLASS_NAME}
+          >
+            <span data-testid="message-queue-broker-metrics-finding-connections">
+              {translator.translateText(
+                BROKER_METRICS_CLOUD_CONNECT_LINK_LABEL,
+              ) || ""}
+            </span>
+          </AppLink>
+        ) : (
+          <></>
+        )}
+        {finding.linksCollectorConfiguration ? (
+          <AppLink to={props.documentationRoute} className={LINK_CLASS_NAME}>
+            {translator.translateText(
+              BROKER_METRICS_CONFIGURATION_LINK_LABEL,
+            ) || ""}
+          </AppLink>
+        ) : (
+          <></>
+        )}
         <Link
           to={getMessageQueueDocsRoute(
             MESSAGE_QUEUE_BROKER_HEALTH_EMPTY_DOCS_ANCHOR,
@@ -370,6 +544,8 @@ const MessageQueueBrokerMetricsCard: FunctionComponent<ComponentProps> = (
   );
   const showsSummary: boolean =
     status.health !== "never" || (findings.length === 0 && !showsSetupGuidance);
+  const sourceLine: MessageQueueBrokerMetricsSourceLine | null =
+    getMessageQueueBrokerMetricsSourceLine(status, props.messagingSystem);
 
   return (
     <Card
@@ -408,6 +584,20 @@ const MessageQueueBrokerMetricsCard: FunctionComponent<ComponentProps> = (
               >
                 {lastReceived}
               </p>
+            ) : (
+              <></>
+            )}
+            {sourceLine && status.sources ? (
+              <SourceLine
+                line={sourceLine}
+                connectionIds={status.sources.connectionIds}
+                connectionNames={props.connectionNames}
+                collectorOnlyLine={getMessageQueueCollectorOnlyLine(
+                  status,
+                  props.messagingSystem,
+                  translator,
+                )}
+              />
             ) : (
               <></>
             )}
