@@ -570,10 +570,17 @@ describe("the Setup check card: your apps", () => {
     expect(lines[1]).toEqual({
       key: "apps-content",
       tone: "ok",
-      text: "Prompts and answers arrive as log events, and conversations read them from there.",
+      text: "Prompts and answers arrive as log events, and conversations show them.",
       detail:
-        "Anyone who can read your app's logs can read them on the Logs page too, and the logs' scrub rules and drop filters apply to them.",
+        "Anyone who can read your apps' logs can read them too. Log scrub rules mask personal data in them before it is stored.",
     });
+    /*
+     * The logs' scrub rules mask them, not the traces' - the warning's
+     * "scrub rules" (CONTENT_HOW) are the spans' - and the apps are plural,
+     * as the line above names several.
+     */
+    expect(lines[1]!.detail).toContain("Log scrub rules");
+    expect(lines[1]!.detail).toContain("your apps' logs");
     // No longer the warning, nor advice to move them onto the spans.
     expect(JSON.stringify(lines)).not.toContain("aren't recorded");
     expect(JSON.stringify(lines)).not.toContain("on the spans instead");

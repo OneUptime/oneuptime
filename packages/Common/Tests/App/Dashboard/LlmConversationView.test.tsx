@@ -365,9 +365,17 @@ describe("prompts and answers sent as log events", () => {
     );
 
     expect(note).toHaveAttribute("data-state", LlmLogEventsRead.NotAllowed);
+    /*
+     * Said the way the product says what a permission hides, without
+     * claiming the app sent any: the reader cannot be told whether it did.
+     */
     expect(note).toHaveTextContent(
-      "You can't read this app's logs, so the prompts and answers it sends as log events aren't shown.",
+      "Any prompts and answers sent as log events are hidden: you need permission to read the logs of the app that sent them.",
     );
+    // A quiet grey note with a lock: nothing is broken.
+    expect(note.className).toContain("bg-gray-50");
+    expect(note.className).not.toContain("bg-amber-50");
+    expect(note).not.toHaveAttribute("role");
     // Nothing to try again: asking again reads the same.
     expect(
       screen.queryByTestId("llm-conversation-log-events-retry"),
@@ -414,8 +422,19 @@ describe("prompts and answers sent as log events", () => {
 
     expect(note).toHaveAttribute("data-state", LlmLogEventsRead.Failed);
     expect(note).toHaveTextContent(
-      "The prompts and answers sent as log events couldn't be read.",
+      "The logs couldn't be read, so any prompts and answers sent as log events aren't shown.",
     );
+    // Something went wrong: the amber note, with Try again as its one action.
+    expect(note.className).toContain("bg-amber-50");
+
+    const retry: HTMLElement = within(note).getByRole("button", {
+      name: "Try again",
+    });
+
+    expect(retry).toBe(screen.getByTestId("llm-conversation-log-events-retry"));
+    expect(retry).toHaveAttribute("type", "button");
+    // A keyboard reader sees where focus is.
+    expect(retry.className).toContain("focus-visible:ring-2");
     expect(
       screen.queryByTestId("llm-conversation-no-content-note"),
     ).not.toBeInTheDocument();

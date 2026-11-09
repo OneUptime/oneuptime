@@ -325,10 +325,10 @@ describe("the Setup check card: your apps", () => {
     );
 
     expect(content).toHaveTextContent(
-      "Prompts and answers arrive as log events, and conversations read them from there.",
+      "Prompts and answers arrive as log events, and conversations show them.",
     );
     expect(content).toHaveTextContent(
-      "Anyone who can read your app's logs can read them on the Logs page too, and the logs' scrub rules and drop filters apply to them.",
+      "Anyone who can read your apps' logs can read them too. Log scrub rules mask personal data in them before it is stored.",
     );
     expect(content).toHaveAttribute("data-tone", "ok");
     expect(appsGroup).not.toHaveTextContent(

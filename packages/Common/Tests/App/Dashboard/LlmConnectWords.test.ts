@@ -850,9 +850,9 @@ describe("the snippets for your apps", () => {
       "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar",
     );
     expect(java).toContain("java -javaagent:opentelemetry-javaagent.jar");
-    // Its prompts and answers arrive as log events, which conversations read.
+    // Its prompts and answers arrive as log events, which conversations show.
     expect(noteOf("java")).toContain(
-      "as log events, and conversations read them from there.",
+      "as log events, and conversations show them.",
     );
     expect(noteOf("java")).not.toContain("do not show");
     // The agent records no content until it is told to: never said as if it did.

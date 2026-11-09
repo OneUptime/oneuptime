@@ -148,7 +148,7 @@ builder.Services.AddOpenTelemetry()
      * so the snippet turns it on.
      */
     note: translationKey(
-      "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, and conversations read them from there.",
+      "The OpenTelemetry Java agent traces the OpenAI Java SDK, calling OpenAI or Azure OpenAI: each call arrives with its model, tokens and cost. With content capture on, it sends prompts and answers as log events, and conversations show them.",
     ),
     blocks: [
       {

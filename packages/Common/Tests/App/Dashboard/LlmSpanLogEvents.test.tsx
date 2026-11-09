@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 
@@ -460,10 +461,13 @@ describe("the AI call panel", () => {
 
     renderPanel();
 
-    // While it reads them.
-    expect(screen.getByTestId("llm-span-log-events-loading")).toHaveTextContent(
-      "Reading this call's log events…",
+    // While it reads them: a polite status line, where the source line goes.
+    const loading: HTMLElement = screen.getByTestId(
+      "llm-span-log-events-loading",
     );
+
+    expect(loading).toHaveTextContent("Reading this call's log events…");
+    expect(loading).toHaveAttribute("role", "status");
 
     resolveList(listOf(logsOf(GenAiLogEventFixture.JavaContent, span)));
 
@@ -507,8 +511,11 @@ describe("the AI call panel", () => {
 
     expect(note).toHaveAttribute("data-state", "notAllowed");
     expect(note).toHaveTextContent(
-      "You can't read this app's logs, so the prompts and answers it sends as log events aren't shown.",
+      "Any prompts and answers sent as log events are hidden: you need permission to read the logs of the app that sent them.",
     );
+    // What a permission hides is a quiet note, not an alarm.
+    expect(note.className).toContain("bg-gray-50");
+    expect(note).not.toHaveAttribute("role");
     expect(
       screen.queryByTestId("llm-span-log-events-retry"),
     ).not.toBeInTheDocument();
@@ -533,8 +540,14 @@ describe("the AI call panel", () => {
 
     expect(note).toHaveAttribute("data-state", "failed");
     expect(note).toHaveTextContent(
-      "The prompts and answers sent as log events couldn't be read.",
+      "The logs couldn't be read, so any prompts and answers sent as log events aren't shown.",
     );
+    // It takes the place of the read in progress: said out loud, in amber.
+    expect(note).toHaveAttribute("role", "alert");
+    expect(note.className).toContain("bg-amber-50");
+    expect(
+      within(note).getByRole("button", { name: "Try again" }),
+    ).toHaveAttribute("type", "button");
 
     fireEvent.click(screen.getByTestId("llm-span-log-events-retry"));
 

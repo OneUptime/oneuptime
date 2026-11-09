@@ -18,11 +18,10 @@ import LlmSpanDisplayUtil, {
 } from "../../Utils/LlmSpanDisplay";
 import { LlmCallContent } from "Common/Utils/Telemetry/LlmMessageParser";
 import {
-  LLM_LOG_EVENTS_FAILED,
   LLM_LOG_EVENTS_LOADING,
-  LLM_LOG_EVENTS_NOT_ALLOWED,
   LLM_LOG_EVENTS_SOURCE,
 } from "../LlmConversations/LlmConversationCopy";
+import LlmLogEventsNote from "../LlmConversations/LlmLogEventsNote";
 import {
   LlmSpanLogEventsState,
   LlmSpanMessages,
@@ -391,52 +390,36 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
+        {/*
+         * The log events' read draws one line where the prompt will be:
+         * "Reading ..." while it runs, then where the prompt and answer were
+         * read from - the same line, so nothing jumps when it answers.
+         */}
         {logEvents.kind === "loading" ? (
           <div
-            className="text-xs text-gray-500"
+            className="flex items-center gap-1.5 text-xs text-gray-500"
+            role="status"
             data-testid="llm-span-log-events-loading"
           >
-            {translator.translateText(LLM_LOG_EVENTS_LOADING)}
+            <Icon
+              icon={IconProp.Logs}
+              className="h-3.5 w-3.5 animate-pulse text-gray-400"
+            />
+            <span>{translator.translateText(LLM_LOG_EVENTS_LOADING)}</span>
           </div>
         ) : (
           <></>
         )}
 
         {logEvents.kind === "notAllowed" || logEvents.kind === "failed" ? (
-          <div
-            className="flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800"
-            data-testid="llm-span-log-events-note"
-            data-state={logEvents.kind}
-          >
-            <Icon
-              icon={
-                logEvents.kind === "notAllowed" ? IconProp.Lock : IconProp.Info
-              }
-              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
-            />
-            <div>
-              {logEvents.kind === "notAllowed"
-                ? translator.translateText(LLM_LOG_EVENTS_NOT_ALLOWED)
-                : translator.translateText(LLM_LOG_EVENTS_FAILED)}
-              {logEvents.kind === "failed" ? (
-                <>
-                  {" "}
-                  <button
-                    type="button"
-                    className="font-medium text-indigo-600 hover:text-indigo-700"
-                    data-testid="llm-span-log-events-retry"
-                    onClick={() => {
-                      setRetryToken(retryToken + 1);
-                    }}
-                  >
-                    {translator.translateText("Try again")}
-                  </button>
-                </>
-              ) : (
-                <></>
-              )}
-            </div>
-          </div>
+          <LlmLogEventsNote
+            state={logEvents.kind}
+            testIdPrefix="llm-span"
+            isAnnounced={true}
+            onRetry={() => {
+              setRetryToken(retryToken + 1);
+            }}
+          />
         ) : (
           <></>
         )}

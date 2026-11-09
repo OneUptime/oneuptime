@@ -1182,6 +1182,14 @@ describe("the AI / LLM Observability page", () => {
     expect(LlmLogEventsUtil.holdContentAsText(attributes)).toBe(1);
     expect(typeof attributes["gen_ai.input.messages"]).toBe("string");
 
+    // Connect's privacy line links the logs' scrub rules beside the traces'.
+    const appsPath: string = source("appsPath");
+    expect(appsPath).toContain("RouteMap[PageMap.LOGS_SETTINGS_SCRUB_RULES]");
+    expect(appsPath).toContain("RouteMap[PageMap.TRACES_SETTINGS_SCRUB_RULES]");
+    expect(appsPath).toContain(
+      "or {{logScrubRules}} for prompts sent as log events",
+    );
+
     expect(page).toContain(
       "so it is the logs' **Scrub Rules** and **Drop Filters** that apply to them, under **Logs → Settings**",
     );
@@ -1437,10 +1445,11 @@ describe("the AI / LLM Observability page: what is arriving, and from where", ()
       "Prompts and answers aren't recorded, so conversations show each call's time, tokens and cost but not what was said.",
     );
     expect(words).toContain(
-      "Prompts and answers arrive as log events, and conversations read them from there.",
+      "Prompts and answers arrive as log events, and conversations show them.",
     );
+    // What arriving as logs means: their readers, and the logs' scrub rules.
     expect(words).toContain(
-      "Anyone who can read your app's logs can read them on the Logs page too",
+      "Anyone who can read your apps' logs can read them too. Log scrub rules mask personal data in them before it is stored.",
     );
     expect(words).toContain("Your apps' newest AI call was {{time}}.");
     expect(words).toContain(
@@ -1526,7 +1535,7 @@ describe("the AI / LLM Observability page: what is arriving, and from where", ()
     expect(snippets).toContain("span_only instead of true");
     // Off until content capture is switched on, and then on the logs signal.
     expect(snippets).toContain(
-      "With content capture on, it sends prompts and answers as log events, and conversations read them from there.",
+      "With content capture on, it sends prompts and answers as log events, and conversations show them.",
     );
     // The Java snippet and the any-language one switch it on.
     expect(

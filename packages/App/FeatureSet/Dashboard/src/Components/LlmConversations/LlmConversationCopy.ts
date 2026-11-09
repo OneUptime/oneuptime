@@ -161,13 +161,21 @@ export function getLlmSortLabel(sort: LlmConversationSort): string {
  * an app sends as GenAI log events (rather than on its spans) are not shown:
  * the reader may not read that app's logs, or the logs could not be read
  * (LlmLogEventsRead). Shared by the conversation view and the span panel.
+ *
+ * Neither says the app sent any: a reader who may not read the logs cannot
+ * be told whether they hold some (an app with content capture off sends
+ * none), hence "any". Hidden for want of a permission is said the way the
+ * product says it elsewhere ("Probes are hidden: you need permission to
+ * read this monitor's probes."), and the app is "the app that sent them",
+ * which is right for a conversation of one app or of several, some of
+ * whose logs the reader may read.
  */
 export const LLM_LOG_EVENTS_NOT_ALLOWED: string = translationKey(
-  "You can't read this app's logs, so the prompts and answers it sends as log events aren't shown.",
+  "Any prompts and answers sent as log events are hidden: you need permission to read the logs of the app that sent them.",
 );
 
 export const LLM_LOG_EVENTS_FAILED: string = translationKey(
-  "The prompts and answers sent as log events couldn't be read.",
+  "The logs couldn't be read, so any prompts and answers sent as log events aren't shown.",
 );
 
 // Where a call's prompt and answer were read from, when not its span.

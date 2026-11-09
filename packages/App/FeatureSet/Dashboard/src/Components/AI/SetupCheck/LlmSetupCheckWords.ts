@@ -445,11 +445,16 @@ export const CONTENT_NOT_RECORDED: string = translationKey(
 );
 
 export const CONTENT_FROM_LOGS: string = translationKey(
-  "Prompts and answers arrive as log events, and conversations read them from there.",
+  "Prompts and answers arrive as log events, and conversations show them.",
 );
 
+/*
+ * What arriving as logs means for privacy: they are the apps' logs, read
+ * by whoever reads those, and masked by the logs' scrub rules - not the
+ * traces' (CONTENT_HOW says "scrub rules" for the spans' kind).
+ */
 export const CONTENT_FROM_LOGS_DETAIL: string = translationKey(
-  "Anyone who can read your app's logs can read them on the Logs page too, and the logs' scrub rules and drop filters apply to them.",
+  "Anyone who can read your apps' logs can read them too. Log scrub rules mask personal data in them before it is stored.",
 );
 
 export const CONTENT_HOW: string = translationKey(
