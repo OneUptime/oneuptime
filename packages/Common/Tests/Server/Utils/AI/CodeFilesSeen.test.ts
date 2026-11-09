@@ -3,6 +3,7 @@ import {
   CODE_UNSEEN_SUMMARIES,
   CodeChangeKind,
   CodeFileNow,
+  CodeFilesReadNow,
   MAX_FILES_NAMED_ON_CARD,
   MAX_LINE_RANGES_WRITTEN,
   MAX_NAME_LENGTH_ON_CARD,
@@ -19,6 +20,7 @@ import {
   getGitBlobSha,
   getGitObjectFormat,
   listFilesOnCard,
+  readCodeFileVersionsNow,
   readCodeFilesNow,
   summarizeCodeFilesUnseen,
   writeNameOnCard,
@@ -1204,5 +1206,78 @@ describe("a file Ask AI read only part of (issue #6330)", () => {
         files: now,
       }),
     ).toBeNull();
+  });
+});
+
+describe("what a commit made right after the read is held to (issue #6331)", () => {
+  test("each file read, by the version its host named - a GitLab file with its last commit - and none for one unread", async () => {
+    const LAST_COMMIT: string = "9f8e7d6c5b4a39281706f5e4d3c2b1a098765432";
+    const { writer, asked } = blobWriter(async () => {
+      return [
+        {
+          filePath: "src/a.ts",
+          blobSha: HELLO_BLOB_SHA1,
+          lastCommitId: LAST_COMMIT,
+        },
+        { filePath: "src/new.ts", blobSha: null },
+        { filePath: "src/dir", failure: "It is a folder on GitHub." },
+      ];
+    });
+
+    const read: CodeFilesReadNow = await readCodeFileVersionsNow({
+      writer,
+      branchName: "fix/login",
+      filePaths: ["src/a.ts", "src/new.ts", "src/dir", "src/unanswered.ts"],
+    });
+
+    // One read of each, for the card's check and the commit both.
+    expect(asked).toHaveLength(1);
+    expect(read.versions).toEqual([
+      { filePath: "src/a.ts", blobSha: HELLO_BLOB_SHA1, lastCommitId: LAST_COMMIT },
+      { filePath: "src/new.ts", blobSha: null },
+    ]);
+    expect(read.files).toEqual(
+      await readCodeFilesNow({
+        writer,
+        branchName: "fix/login",
+        filePaths: ["src/a.ts", "src/new.ts", "src/dir", "src/unanswered.ts"],
+      }),
+    );
+    // The versions are the host's SHAs, never what the files keep: those are keyed.
+    expect(JSON.stringify(read.files)).not.toContain(HELLO_BLOB_SHA1);
+  });
+
+  test("a host that throws, or does not answer in time: no version to hold anything to", async () => {
+    const { writer: throwing } = blobWriter(async () => {
+      throw new Error("down");
+    });
+    const { writer: slow } = blobWriter(
+      (): Promise<Array<CodeHostFileBlob>> => {
+        return new Promise<Array<CodeHostFileBlob>>(() => {});
+      },
+    );
+
+    for (const writer of [throwing, slow]) {
+      const read: CodeFilesReadNow = await readCodeFileVersionsNow({
+        writer,
+        branchName: "fix/login",
+        filePaths: ["src/a.ts"],
+        deadlineInMs: 5,
+      });
+
+      expect(read.versions).toEqual([]);
+      expect(read.files[0]!.now.state).toBe("unreadable");
+    }
+  });
+
+  test("no files, no read, no versions", async () => {
+    const { writer, asked } = blobWriter(async () => {
+      return [];
+    });
+
+    expect(
+      await readCodeFileVersionsNow({ writer, branchName: "b", filePaths: [] }),
+    ).toEqual({ files: [], versions: [] });
+    expect(asked).toEqual([]);
   });
 });
