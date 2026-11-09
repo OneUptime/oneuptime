@@ -25,3 +25,21 @@ the viewport's.
   and Persian.
 - `after-vm-hour-en-1280.png`: a virtual machine, whose metrics are not split: no caption and the
   average, exactly as before.
+
+## UI review
+
+The same page, with an aggregate mock that answers as ClickHouse does for a range that ends now:
+each queue's points sit at whole minutes, the newest eight minutes old (Azure's lateness), so the
+range's newest interval is still filling and its oldest began before the range did.
+
+- `review-before-servicebus-day-en-1280.png` (1x, before the review): over a day each total read
+  the newest 15 minutes, still filling: "720 Count" for a namespace taking about 5,400 messages a
+  quarter hour, and every summed sparkline fell at its right edge.
+- `review-servicebus-day-en-1280.png`: the same day after the review. A total keeps its whole
+  intervals and waits 15 minutes for Azure's late points: 5.4K, no fall. The captions are gray
+  500 (gray 400 at 10px was 2.5:1 on white).
+- `review-servicebus-week-de-1024.png`: a week, read by the hour, in German: each total is a
+  whole hour's.
+- `review-servicebus-hour-fa-768-dark.png`: Persian. The values read "153 Count" and "9.35 ms"
+  (they read "Count 187" and "ms 12.4" in `after-servicebus-hour-fa-768-dark.png`), and each
+  English description keeps its full stop at its end.
