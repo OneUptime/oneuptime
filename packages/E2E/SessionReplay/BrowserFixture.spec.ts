@@ -271,6 +271,7 @@ test("uses the shared table and groups replay navigation in its own category", a
     "Replay Users",
     "Health",
     "Replay Policy",
+    "Frustration Signals",
     "Replay Access Log",
     "Documentation",
   ]);
@@ -292,6 +293,12 @@ test("uses the shared table and groups replay navigation in its own category", a
   await expect(
     section.getByRole("link", { name: "Replay Policy" }),
   ).toHaveAttribute("href", `${applicationRoute}/session-replay-settings`);
+  await expect(
+    section.getByRole("link", { name: "Frustration Signals" }),
+  ).toHaveAttribute(
+    "href",
+    `${applicationRoute}/session-replay-frustration-signals`,
+  );
   await expect(
     section.getByRole("link", { name: "Replay Access Log" }),
   ).toHaveAttribute("href", `${applicationRoute}/session-replay-audit`);

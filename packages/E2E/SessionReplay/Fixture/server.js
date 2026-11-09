@@ -51,6 +51,11 @@ const tailwind = path.join(
  * tailwind.config (class-based dark mode).
  */
 const theme = path.join(repository, "packages/Common/UI/Styles/Theme.css");
+/* The Dashboard's locale files, for ?lang= (Fixture.js). */
+const locales = path.join(
+  repository,
+  "packages/App/FeatureSet/Dashboard/src/Locales",
+);
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Session replay UI regression fixture</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;window.__sessionReplayAssetOrigin=${JSON.stringify(assetOrigin)};if(new URLSearchParams(window.location.search).get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class"};</script><style>body{margin:0;background:#f8fafc;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 /*
  * The page's own policy. The replay iframe is about:blank, so it inherits
@@ -317,6 +322,17 @@ function serveFixture(request, response) {
   if (url.pathname === "/tailwind.js") {
     response.setHeader("Content-Type", "application/javascript");
     fs.createReadStream(tailwind).pipe(response);
+    return;
+  }
+  const locale = url.pathname.match(/^\/locales\/([A-Za-z-]+)\.json$/);
+  if (locale) {
+    const file = path.join(locales, `${locale[1]}.json`);
+    if (!fs.existsSync(file)) {
+      response.writeHead(404).end();
+      return;
+    }
+    response.setHeader("Content-Type", "application/json");
+    fs.createReadStream(file).pipe(response);
     return;
   }
   if (url.pathname === "/theme.css") {
