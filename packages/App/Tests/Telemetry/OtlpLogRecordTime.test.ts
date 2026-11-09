@@ -309,9 +309,9 @@ describe("an own time that is no time", () => {
     }
 
     expect(warnings).toEqual([
-      "Error processing timestamp [object Object]: Invalid timestamp: a object, using observed time",
-      "Error processing timestamp true: Invalid timestamp: a boolean, using observed time",
-      "Error processing timestamp 1: Invalid timestamp: a object, using observed time",
+      "Error processing timestamp [object Object]: Invalid timestamp of type object, using observed time",
+      "Error processing timestamp true: Invalid timestamp of type boolean, using observed time",
+      "Error processing timestamp 1: Invalid timestamp of type object, using observed time",
     ]);
   });
 });

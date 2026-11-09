@@ -221,7 +221,7 @@ export default class OtlpLogRecordTimeUtil {
     } else {
       return {
         kind: "invalid",
-        reason: `Invalid timestamp: a ${typeof value}`,
+        reason: `Invalid timestamp of type ${typeof value}`,
       };
     }
 

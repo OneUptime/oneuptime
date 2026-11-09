@@ -25,6 +25,7 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import logger from "Common/Server/Utils/Logger";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -469,6 +470,31 @@ describe("severity and time, whoever sent the Event", () => {
       expect(rows[0]!["timeUnixNano"]).toBe(
         String(OneUptimeDate.toUnixNano(new Date(OOM.lastSeen))),
       );
+      jest.restoreAllMocks();
+    }
+  });
+
+  test("a record whose own time is no time the Log table holds is dated when the Event last happened, not by its observed time (#6395)", async () => {
+    /*
+     * Past 2262 (before #6395 kept as the record's own time, so ClickHouse
+     * refused the row and its whole insert), below zero, and words.
+     */
+    for (const noTime of ["9300000000000000000", "-5", "soon"]) {
+      const rows: Array<JSONObject> = setupIngestMocks();
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+
+      await OtelLogsIngestService.processLogsFromQueue(
+        agentRequest([eventRecord(OOM, { timeUnixNano: noTime })]),
+      );
+
+      expect({ noTime, time: rows[0]!["time"] }).toEqual({
+        noTime,
+        time: timeOf(OOM),
+      });
+      expect(rows[0]!["timeUnixNano"]).toBe(
+        String(OneUptimeDate.toUnixNano(new Date(OOM.lastSeen))),
+      );
+      expect(rows[0]!["observedTimeUnixNano"]).toBe(OBSERVED_TIME_NANO);
       jest.restoreAllMocks();
     }
   });

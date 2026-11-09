@@ -1051,8 +1051,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    * Kubernetes inventory hook: convert the k8sobjects log
                    * body into a row for the inventory upsert. Buffered per
                    * cluster and flushed once per request batch below. The
-                   * upsert keeps a newer lastSeenAt, so out-of-order
-                   * delivery doesn't regress newer snapshots.
+                   * upsert never moves a resource's lastSeenAt back, so a
+                   * snapshot with a time of its own that arrives after a
+                   * newer one does not undo it; one with only an observed
+                   * time is seen when it is read here (inventorySeenAt).
                    *
                    * k8s.resource.name sits on each log record (not the
                    * resource envelope), so we read it from the record's
