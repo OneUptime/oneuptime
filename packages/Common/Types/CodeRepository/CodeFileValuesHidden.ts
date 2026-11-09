@@ -128,13 +128,15 @@ type FindWrittenFunction = (data: {
   content: string;
   // The file as the branch has it; "" for none.
   branchContent: string;
-  // The placeholders OneUptime writes in place of what it hides, in the order to say them.
+  // The placeholders OneUptime writes in place of what it hides.
   placeholders: ReadonlyArray<string>;
 }) => Array<CodeFilePlaceholderWritten>;
 
 /*
  * Each placeholder Ask AI's version holds more often than the branch's
- * file does, in the placeholders' order - none when it adds none.
+ * file does - none when it adds none - in the order the version first
+ * holds them, as a reader meets them; two first on one line in the
+ * placeholders' order.
  */
 export const findCodePlaceholdersWritten: FindWrittenFunction = (data: {
   content: string;
@@ -165,7 +167,12 @@ export const findCodePlaceholdersWritten: FindWrittenFunction = (data: {
     }
   }
 
-  return written;
+  // A stable sort: the placeholders' order stands between two that start on one line.
+  return written.sort(
+    (a: CodeFilePlaceholderWritten, b: CodeFilePlaceholderWritten): number => {
+      return a.lines[0]!.first - b.lines[0]!.first;
+    },
+  );
 };
 
 

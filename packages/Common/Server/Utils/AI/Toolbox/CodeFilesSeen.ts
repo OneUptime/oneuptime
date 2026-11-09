@@ -606,10 +606,15 @@ export const findLinesWithValuesHidden: LinesWithValuesHiddenFunction =
         });
 
       if (written.length > 0) {
-        lines.push({
-          first: data.firstLine + line,
-          last: data.firstLine + end - 1,
-        });
+        const first: number = data.firstLine + line;
+        const previous: AIChatLineRange | undefined = lines[lines.length - 1];
+
+        // Runs side by side read as one: "lines 1-3".
+        if (previous && previous.last === first - 1) {
+          previous.last = data.firstLine + end - 1;
+        } else {
+          lines.push({ first: first, last: data.firstLine + end - 1 });
+        }
 
         for (const placeholder of written) {
           placeholders.add(placeholder.placeholder);
@@ -620,14 +625,8 @@ export const findLinesWithValuesHidden: LinesWithValuesHiddenFunction =
       part = next;
     }
 
-    return {
-      lines: lines,
-      placeholders: REDACTION_PLACEHOLDERS.filter(
-        (placeholder: string): boolean => {
-          return placeholders.has(placeholder);
-        },
-      ),
-    };
+    // The placeholders in the order the model meets them.
+    return { lines: lines, placeholders: Array.from(placeholders) };
   };
 
 type ProposedOnFunction = (data: {
