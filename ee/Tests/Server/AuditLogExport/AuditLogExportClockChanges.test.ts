@@ -83,8 +83,9 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
  * (getAuditLogExportEntriesLostAt) to send "will start losing entries" a day
  * before it, and to say from when. In a zone that changes its clocks, a
  * calendar day in between can be 23 or 25 hours long - half an hour either
- * way on Lord Howe Island, two hours on Antarctica/Troll - and the two agree
- * only while both count calendar days.
+ * way on Lord Howe Island, two hours on Antarctica/Troll - so the email goes
+ * a day before the deletion only while the export counts days as the
+ * recorder does: by the calendar.
  *
  * CI runs in UTC, where every day is 24 hours, so there neither the
  * recorder's suites nor AuditLogExportNotifications.test.ts can tell

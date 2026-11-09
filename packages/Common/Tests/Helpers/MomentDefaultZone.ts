@@ -4,14 +4,15 @@ import moment from "moment-timezone";
  * MOMENT'S CALENDAR ARITHMETIC IN A ZONE THE TEST NAMES.
  *
  * Some behaviour shows only where the server's zone changes its clocks:
- * there a calendar day is 23 or 25 hours long (half an hour either way on
- * Lord Howe Island, two hours on Antarctica/Troll), and in UTC, where CI
- * runs, it never is. A test asks for such a zone in a docblock wherever Jest
- * honours one: Common's tests and ee/Tests/UI, whose environment
- * (Tests/Utils/TimezoneEnvironment.js) sets the worker's real zone before
- * the file loads (see TimezoneDocblockScan). ee's server tests run in Node's
- * own environment, which ignores the docblock, and a fresh Node started in
- * a real zone (TranspileOnlyNode) takes minutes to load the server code.
+ * there the day the clocks change is 23 or 25 hours long (half an hour
+ * either way on Lord Howe Island, two hours on Antarctica/Troll), and in
+ * UTC, where CI runs, no day is. A test asks for such a zone in a docblock
+ * wherever Jest honours one: Common's tests and ee/Tests/UI, whose
+ * environment (Tests/Utils/TimezoneEnvironment.js) sets the worker's real
+ * zone before the file loads (see TimezoneDocblockScan). ee's server tests
+ * run in Node's own environment, which ignores the docblock, and a fresh
+ * Node started in a real zone (TranspileOnlyNode) takes minutes to load the
+ * server code.
  *
  * For those, this sets moment's default zone. Every moment made without a
  * zone then reckons in it - so does OneUptimeDate's calendar arithmetic
