@@ -10,7 +10,9 @@ import {
 import {
   fetchNewestRumExceptionAt,
   fetchNewestRumWebVitalAt,
+  fetchRecentIngestRefusals,
 } from "./RumSignalReads";
+import { IngestRefusalFact } from "./RumIngestRefusals";
 
 /*
  * The reads behind a RUM application's setup check (issue #5770): its
@@ -20,7 +22,9 @@ import {
  * again, the last answers stay on screen.
  *
  * Each read stands alone: a viewer who may not read exceptions still sees
- * the rest, with "Couldn't be checked" on that one row.
+ * the rest, with "Couldn't be checked" on that one row. What the project's
+ * keys were refused (issue #6378) is read beside them; a viewer who may not
+ * read the keys gets the check without it, as it was before.
  */
 
 export interface RumSignalArrivalRead {
@@ -36,6 +40,11 @@ export interface RumSetupCheckReads {
   newestException: RumSignalArrivalRead | null;
   // null while it loads; at: null, never failed, for a mobile app.
   newestWebVital: RumSignalArrivalRead | null;
+  /*
+   * What the project's ingestion keys were refused in the past day; null
+   * while it loads, and when it could not be read.
+   */
+  refusals: Array<IngestRefusalFact> | null;
   isRefreshing: boolean;
   // The clock the reads were answered against.
   checkedAt: Date;
@@ -54,6 +63,7 @@ export default function useRumSetupCheck(
     applicationFailed: false,
     newestException: null,
     newestWebVital: null,
+    refusals: null,
     isRefreshing: true,
     checkedAt: OneUptimeDate.getCurrentDate(),
   });
@@ -93,9 +103,10 @@ export default function useRumSetupCheck(
       const isBrowser: boolean =
         !application || getRumClientKind(application) === "browser";
 
-      const [newestException, newestWebVital]: [
+      const [newestException, newestWebVital, refusals]: [
         RumSignalArrivalRead,
         RumSignalArrivalRead,
+        Array<IngestRefusalFact> | null,
       ] = await Promise.all([
         fetchNewestRumExceptionAt(new ObjectID(id))
           .then((at: Date | null): RumSignalArrivalRead => {
@@ -112,6 +123,9 @@ export default function useRumSetupCheck(
               })
               .catch(failedRead)
           : Promise.resolve({ at: null, failed: false }),
+        fetchRecentIngestRefusals(now).catch(() => {
+          return null;
+        }),
       ]);
 
       if (!isCurrent()) {
@@ -125,6 +139,7 @@ export default function useRumSetupCheck(
           applicationFailed: applicationFailed && !previous.application,
           newestException,
           newestWebVital,
+          refusals,
           isRefreshing: false,
           checkedAt: now,
         };

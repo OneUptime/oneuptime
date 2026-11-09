@@ -48,6 +48,12 @@ import {
 } from "../../../Components/Rum/SetupCheck/RumSignalWords";
 import RumSignalEmptyState from "../../../Components/Rum/SetupCheck/RumSignalEmptyState";
 import RumSignalSetupModal from "../../../Components/Rum/SetupCheck/RumSignalSetupModal";
+import RumKeySetupModal from "../../../Components/Rum/SetupCheck/RumKeySetupModal";
+import {
+  IngestRefusalFact,
+  getRumKindRefusal,
+} from "../../../Components/Rum/SetupCheck/RumIngestRefusals";
+import useRecentIngestRefusals from "../../../Components/Rum/SetupCheck/useRecentIngestRefusals";
 
 /*
  * A RUM application's Logs. Empty and unfiltered, the list says why
@@ -55,7 +61,9 @@ import RumSignalSetupModal from "../../../Components/Rum/SetupCheck/RumSignalSet
  * applications "no logs" means "not set up" - with the dialog that sets
  * them up - and for one that did send logs, when the last arrived and a
  * longer range that shows it. The page holds the viewer's window
- * (timeRangeOverride) so that range is one click away.
+ * (timeRangeOverride) so that range is one click away. Logs refused at
+ * ingest since the last one arrived (issue #6378) say so instead, with
+ * the fix.
  */
 
 const RumApplicationLogs: FunctionComponent<
@@ -73,6 +81,8 @@ const RumApplicationLogs: FunctionComponent<
     range: TimeRange.PAST_ONE_HOUR,
   });
   const [isSetUpOpen, setIsSetUpOpen] = useState<boolean>(false);
+  const [isPickingKey, setIsPickingKey] = useState<boolean>(false);
+  const refusals: Array<IngestRefusalFact> | null = useRecentIngestRefusals(0);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -142,10 +152,22 @@ const RumApplicationLogs: FunctionComponent<
     now,
   });
 
+  const client: "browser" | "mobile" = getRumClientKind(rumApplication);
+
   const copy: RumSignalEmptyCopy | null = getRumSignalEmptyCopy({
     signal: "logs",
     diagnosis,
-    client: getRumClientKind(rumApplication),
+    client,
+    refusal: getRumKindRefusal({
+      refusals,
+      kind: "logs",
+      lastArrivalAt: toDateOrNull(rumApplication.logsLastReceivedAt),
+      app: {
+        client,
+        appIdentifier: (rumApplication.appIdentifier as string) || null,
+      },
+      now,
+    }),
     translator,
     now,
   });
@@ -188,6 +210,9 @@ const RumApplicationLogs: FunctionComponent<
                 setIsSetUpOpen(true);
               }}
               onRangeChange={setTimeRange}
+              onPickKey={(): void => {
+                setIsPickingKey(true);
+              }}
             />
           ) : undefined
         }
@@ -203,6 +228,22 @@ const RumApplicationLogs: FunctionComponent<
           }
           onClose={(): void => {
             setIsSetUpOpen(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isPickingKey ? (
+        <RumKeySetupModal
+          appName={
+            (rumApplication.appIdentifier as string) ||
+            (rumApplication.name as string) ||
+            ""
+          }
+          clientType={client}
+          onClose={(): void => {
+            setIsPickingKey(false);
           }}
         />
       ) : (

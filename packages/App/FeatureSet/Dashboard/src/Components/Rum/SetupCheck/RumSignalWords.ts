@@ -15,6 +15,13 @@ import {
 } from "../RumSetupGuide";
 import { RUM_EMPTY_SIGNALS_DOCS_URL } from "../RumSignalSetupGuide";
 import { RumSignalDiagnosis } from "./RumSignalDiagnosis";
+import { RumKindRefusal } from "./RumIngestRefusals";
+import {
+  INGEST_REFUSAL_FIXES,
+  INGEST_REFUSAL_FIX_LABELS,
+  IngestRefusalFix,
+  getIngestRefusalReasonText,
+} from "../../Telemetry/IngestRefusalWords";
 
 /*
  * What a RUM application's empty Exceptions and Logs charts, its Logs page
@@ -53,7 +60,16 @@ export type RumSignalAction =
   // The application's Recording Health page.
   | { kind: "recording-health"; label: string }
   | { kind: "set-range"; label: string; range: RangeStartAndEndDateTime }
-  | { kind: "retry"; label: string };
+  | { kind: "retry"; label: string }
+  /*
+   * A refusal's fix (issue #6378): send with another key (the setup guide
+   * in a dialog, its first step the key), the refused key's own page, the
+   * project's budgets, or Billing.
+   */
+  | { kind: "pick-key"; label: string }
+  | { kind: "open-key"; label: string; keyId: string }
+  | { kind: "budgets"; label: string }
+  | { kind: "billing"; label: string };
 
 // An empty chart's (or the Logs page's) block.
 export interface RumSignalEmptyCopy {
@@ -271,6 +287,29 @@ export const REPLAY_LATEST_CHUNK: string = translationKey(
   "The latest recording came in {{time}}.",
 );
 
+/* ------------------------------------------------------------ Refusals */
+
+/*
+ * What the application sends of a kind is refused at ingest (issue #6378,
+ * RumIngestRefusals): the row says so and when, the reason under it
+ * (IngestRefusalWords), and its fix as the row's action.
+ */
+export const ROW_REFUSED: string = translationKey(
+  "Refused. The latest was refused {{time}}.",
+);
+export const ROW_PARTLY_REFUSED: string = translationKey(
+  "Arriving, but some are refused. The latest was refused {{time}}.",
+);
+export const EXCEPTIONS_REFUSED_TITLE: string = translationKey(
+  "Exceptions are being refused",
+);
+export const LOGS_REFUSED_TITLE: string = translationKey(
+  "Logs are being refused",
+);
+export const REFUSED_LATEST: string = translationKey(
+  "The latest was refused {{time}}.",
+);
+
 /* -------------------------------------------------------------- Helpers */
 
 const TWO_DAYS_MS: number = 2 * 24 * 60 * 60 * 1000;
@@ -317,6 +356,46 @@ function setUpAction(
   };
 }
 
+// A refusal's fix, as an action; undefined when nothing here puts it right.
+export function getRefusalAction(
+  refusal: RumKindRefusal,
+  translator: Translator,
+): RumSignalAction | undefined {
+  const fix: IngestRefusalFix | null =
+    INGEST_REFUSAL_FIXES[refusal.refusal.reason];
+
+  if (!fix) {
+    return undefined;
+  }
+
+  const label: string = translate(translator, INGEST_REFUSAL_FIX_LABELS[fix]);
+
+  if (fix === "open-key") {
+    return { kind: "open-key", label, keyId: refusal.refusal.keyId };
+  }
+
+  return { kind: fix, label };
+}
+
+// A setup check row whose kind is refused.
+function refusalLine(
+  refusal: RumKindRefusal,
+  translator: Translator,
+  now: Date,
+): RumSetupCheckLine {
+  const isRefused: boolean = refusal.state === "refused";
+
+  return {
+    tone: isRefused ? "error" : "warning",
+    text: translator.translateTemplate(
+      isRefused ? ROW_REFUSED : ROW_PARTLY_REFUSED,
+      { time: fromNow(refusal.refusal.lastRefusedAt, now) },
+    ),
+    detail: getIngestRefusalReasonText(refusal.refusal, translator),
+    action: getRefusalAction(refusal, translator),
+  };
+}
+
 function helpLink(
   translator: Translator,
 ): { text: string; url: string } | undefined {
@@ -338,11 +417,37 @@ export function getRumSignalEmptyCopy(data: {
   client: RumClientKind;
   // Recorded sessions with an error in the range, when they were counted.
   sessionsWithErrors?: number | null | undefined;
+  /*
+   * Whether what carries the signal is refused at ingest (traces carry
+   * exceptions): a refusal nothing has arrived since says so instead of
+   * the answer the arrivals alone would give.
+   */
+  refusal?: RumKindRefusal | null | undefined;
   translator: Translator;
   now: Date;
 }): RumSignalEmptyCopy | null {
   const { signal, diagnosis, client, translator, now } = data;
   const isExceptions: boolean = signal === "exceptions";
+
+  if (
+    data.refusal?.state === "refused" &&
+    diagnosis.state !== "loading" &&
+    diagnosis.state !== "receiving" &&
+    diagnosis.state !== "unknown"
+  ) {
+    return {
+      title: translate(
+        translator,
+        isExceptions ? EXCEPTIONS_REFUSED_TITLE : LOGS_REFUSED_TITLE,
+      ),
+      detail: getIngestRefusalReasonText(data.refusal.refusal, translator),
+      evidence: translator.translateTemplate(REFUSED_LATEST, {
+        time: fromNow(data.refusal.refusal.lastRefusedAt, now),
+      }),
+      action: getRefusalAction(data.refusal, translator),
+      helpLink: helpLink(translator),
+    };
+  }
 
   switch (diagnosis.state) {
     case "loading":
@@ -557,10 +662,25 @@ export function getRumSetupCheckLine(data: {
   signal: Exclude<RumSetupCheckSignal, "sessionReplay">;
   diagnosis: RumSignalDiagnosis;
   client: RumClientKind;
+  /*
+   * Whether what carries the signal is refused at ingest: refused wins
+   * over every answer but loading and unknown; partly refused only over
+   * arriving (it does arrive, so the rest of the answers do not hold).
+   */
+  refusal?: RumKindRefusal | null | undefined;
   translator: Translator;
   now: Date;
 }): RumSetupCheckLine {
   const { signal, diagnosis, client, translator, now } = data;
+
+  if (
+    data.refusal &&
+    diagnosis.state !== "loading" &&
+    diagnosis.state !== "unknown" &&
+    (data.refusal.state === "refused" || diagnosis.state === "receiving")
+  ) {
+    return refusalLine(data.refusal, translator, now);
+  }
 
   switch (diagnosis.state) {
     case "loading":
@@ -644,6 +764,8 @@ export function getSessionReplaySetupCheckLine(data: {
   error: SessionReplayHealthError | null;
   state: RecordingHealthState;
   lastChunkReceivedAt: Date | null;
+  // Whether recordings are refused at ingest, before the recorder's gates.
+  refusal?: RumKindRefusal | null | undefined;
   translator: Translator;
   now: Date;
 }): RumSetupCheckLine | null {
@@ -659,6 +781,25 @@ export function getSessionReplaySetupCheckLine(data: {
     }
 
     return { tone: "off", text: translate(translator, ROW_UNKNOWN) };
+  }
+
+  /*
+   * A refused key turns recordings away before the recorder's own gates
+   * count anything, so its health cannot tell: say so here. Partly refused
+   * only beside recordings that do arrive. Recording turned off is still
+   * the answer (nothing would be recorded with a good key either), and an
+   * unknown health leaves the arrivals unknown too.
+   */
+  if (
+    data.refusal &&
+    data.state !== "disabled-project" &&
+    data.state !== "disabled-app" &&
+    data.state !== "unknown" &&
+    (data.refusal.state === "refused" ||
+      data.state === "healthy" ||
+      data.state === "healthy-quiet")
+  ) {
+    return refusalLine(data.refusal, translator, now);
   }
 
   const tones: Record<RecordingHealthState, RumSetupCheckTone> = {
