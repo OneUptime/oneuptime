@@ -36,6 +36,10 @@ import {
 
 const english: Translator = createTranslator(undefined, "en");
 
+type FetchStatus = ReturnType<
+  typeof jest.fn<() => Promise<TelemetryIngestionBudgetStatus>>
+>;
+
 const resetsAt: (data: TelemetryIngestionBudgetStatus) => string = (
   data: TelemetryIngestionBudgetStatus,
 ): string => {
@@ -195,15 +199,15 @@ describe("what the banner says", () => {
 
 describe("the banner", () => {
   test("draws the notice, with a link to the budgets", async () => {
-    const fetchStatus: jest.Mock<
-      () => Promise<TelemetryIngestionBudgetStatus>
-    > = jest.fn(async (): Promise<TelemetryIngestionBudgetStatus> => {
-      return status({
-        project: [
-          budgeted(LOGS, { state: TelemetryIngestionBudgetState.Exhausted }),
-        ],
-      });
-    });
+    const fetchStatus: FetchStatus = jest.fn(
+      async (): Promise<TelemetryIngestionBudgetStatus> => {
+        return status({
+          project: [
+            budgeted(LOGS, { state: TelemetryIngestionBudgetState.Exhausted }),
+          ],
+        });
+      },
+    );
 
     render(
       <TelemetryIngestionBudgetBanner
@@ -222,11 +226,11 @@ describe("the banner", () => {
   });
 
   test("draws nothing when the status cannot be read", async () => {
-    const fetchStatus: jest.Mock<
-      () => Promise<TelemetryIngestionBudgetStatus>
-    > = jest.fn(async (): Promise<TelemetryIngestionBudgetStatus> => {
-      throw new Error("You do not have permission to read usage.");
-    });
+    const fetchStatus: FetchStatus = jest.fn(
+      async (): Promise<TelemetryIngestionBudgetStatus> => {
+        throw new Error("You do not have permission to read usage.");
+      },
+    );
 
     const { container } = render(
       <TelemetryIngestionBudgetBanner
@@ -245,11 +249,11 @@ describe("the banner", () => {
   });
 
   test("draws nothing while every budget is within limits", async () => {
-    const fetchStatus: jest.Mock<
-      () => Promise<TelemetryIngestionBudgetStatus>
-    > = jest.fn(async (): Promise<TelemetryIngestionBudgetStatus> => {
-      return status({ project: [budgeted(LOGS, {})] });
-    });
+    const fetchStatus: FetchStatus = jest.fn(
+      async (): Promise<TelemetryIngestionBudgetStatus> => {
+        return status({ project: [budgeted(LOGS, {})] });
+      },
+    );
 
     render(
       <TelemetryIngestionBudgetBanner

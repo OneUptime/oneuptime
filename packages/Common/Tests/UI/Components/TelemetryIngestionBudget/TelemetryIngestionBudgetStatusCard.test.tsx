@@ -35,7 +35,9 @@ import {
  * counted and refused today, where each limit was set, and its state.
  */
 
-type FetchStatus = jest.Mock<() => Promise<TelemetryIngestionBudgetStatus>>;
+type FetchStatus = ReturnType<
+  typeof jest.fn<() => Promise<TelemetryIngestionBudgetStatus>>
+>;
 
 const answering: (data: TelemetryIngestionBudgetStatus) => FetchStatus = (
   data: TelemetryIngestionBudgetStatus,

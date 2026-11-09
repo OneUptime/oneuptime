@@ -402,7 +402,10 @@ const TelemetryIngestionBudgetStatusCard: FunctionComponent<ComponentProps> = (
         ) : (
           <Alert
             type={AlertType.WARNING}
-            title={translator.translateText(COUNTERS_UNAVAILABLE)}
+            title={
+              translator.translateText(COUNTERS_UNAVAILABLE) ||
+              COUNTERS_UNAVAILABLE
+            }
             dataTestId="telemetry-ingestion-budget-counters-unavailable"
           />
         )}
