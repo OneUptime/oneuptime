@@ -1710,15 +1710,34 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     }
 
     if (step.kind === "log") {
+      /*
+       * A log line is the server's own sentence, often English on a page in
+       * another language - the line that a limit stopped the run, for one.
+       * dir="auto" reads it in its own direction: on a right-to-left page an
+       * English line keeps its full stop at its end, not before its first
+       * word, and the line still starts beside its mark like every step.
+       */
       if (step.severity === "Error" || step.severity === "Fatal") {
-        return <span className="break-words text-red-600">{step.text}</span>;
+        return (
+          <span dir="auto" className="break-words text-red-600">
+            {step.text}
+          </span>
+        );
       }
 
       if (step.severity === "Warning") {
-        return <span className="break-words text-amber-600">{step.text}</span>;
+        return (
+          <span dir="auto" className="break-words text-amber-600">
+            {step.text}
+          </span>
+        );
       }
 
-      return <span className="break-words text-gray-500">{step.text}</span>;
+      return (
+        <span dir="auto" className="break-words text-gray-500">
+          {step.text}
+        </span>
+      );
     }
 
     return (
