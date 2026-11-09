@@ -1051,7 +1051,37 @@ describe("a person's page, in the language of the person it pages", () => {
       expect(text).toContain(
         "Sie erhalten diese Nachricht, weil Sie Mitglied von Platform sind.",
       );
+      // What they wrote, quoted as German quotes it.
+      expect(text).toContain("💬 „Can you check the database?“");
     }
+  });
+
+  test("Persian quotes the message in its own marks, set apart to read its own way", async () => {
+    const PERSIAN: Translator = getServerTranslator("fa");
+    const quoted: string = `💬 «${FIRST_STRONG_ISOLATE}Can you check the database?${POP_DIRECTIONAL_ISOLATE}»`;
+
+    const telegram: string =
+      await service.generateTelegramBodyForIncidentCreated(
+        incident(),
+        NOTIFICATION,
+        undefined,
+        NOTICE,
+        undefined,
+        PERSIAN,
+      );
+    const slack: string = markdown(
+      await service.generateWorkspaceMessageBlocksForIncidentCreated(
+        incident(),
+        NOTIFICATION,
+        undefined,
+        NOTICE,
+        undefined,
+        PERSIAN,
+      ),
+    );
+
+    expect(telegram).toContain(quoted);
+    expect(slack).toContain(quoted);
   });
 });
 

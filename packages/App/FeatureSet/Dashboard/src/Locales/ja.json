@@ -47141,6 +47141,6 @@
   "Turn monitoring off or on for every monitor in this group at once.": "このグループのすべてのモニターの監視を一度にオフまたはオンにします。",
   "Turn off monitoring for this group?": "このグループの監視をオフにしますか？",
   "Not set (English)": "未設定（英語）",
-  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "ダッシュボードとオンコールの呼び出しはどのブラウザでもこの言語になります。未設定の場合、呼び出しは英語、ダッシュボードはブラウザの言語です。",
-  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "チームに表示されるあなたの名前とメールアドレス、そして OneUptime があなたに使うタイムゾーンと言語。"
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "チームに表示されるあなたの名前とメールアドレス、そして OneUptime があなたに使うタイムゾーンと言語。",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "オンコールの呼び出しとダッシュボードは、どのブラウザでもこの言語を使います。"
 }

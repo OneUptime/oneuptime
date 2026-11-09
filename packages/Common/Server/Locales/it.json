@@ -352,5 +352,6 @@
   "{{text}} Click to view details.": "{{text}} Tocca per vedere i dettagli.",
   "{{title}}, in {{project}}.": "{{title}}, nel progetto {{project}}.",
   "{{title}}.": "{{title}}.",
-  "{{what}} “{{message}}”": "{{what}} «{{message}}»"
+  "{{what}} “{{message}}”": "{{what}} «{{message}}»",
+  "“{{message}}”": "«{{message}}»"
 }

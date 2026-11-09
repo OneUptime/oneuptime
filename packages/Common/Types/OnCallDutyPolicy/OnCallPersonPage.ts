@@ -231,6 +231,23 @@ export function getOnCallPersonPageMessage(
 }
 
 /*
+ * The page's message in quotation marks, as a chat or Telegram message
+ * shows it under the record: "“Can you check the database?”" - with the
+ * marks of the person's language („…“, «…», 「…」), the message set
+ * apart in a language read from the right. Empty for none.
+ */
+export function getOnCallPersonPageQuotedMessage(
+  notice: OnCallPersonPageNotice,
+  translator: Translator = getEnglishTranslator(),
+): string {
+  const message: string = getOnCallPersonPageMessage(notice);
+
+  return message
+    ? translator.translateTemplate("“{{message}}”", { message: message })
+    : "";
+}
+
+/*
  * A push notification's title, where a page OneUptime starts says "New
  * Incident INC-42: <title>": "Alice Kim paged you: Incident INC-42".
  * `recordLabel` is the record's kind and number: "Incident INC-42".

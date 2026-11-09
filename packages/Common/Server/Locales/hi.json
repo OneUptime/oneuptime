@@ -352,5 +352,6 @@
   "{{text}} Click to view details.": "{{text}} विवरण देखने के लिए टैप करें।",
   "{{title}}, in {{project}}.": "{{title}}, {{project}} में।",
   "{{title}}.": "{{title}}।",
-  "{{what}} “{{message}}”": "{{what}} “{{message}}”"
+  "{{what}} “{{message}}”": "{{what}} “{{message}}”",
+  "“{{message}}”": "“{{message}}”"
 }

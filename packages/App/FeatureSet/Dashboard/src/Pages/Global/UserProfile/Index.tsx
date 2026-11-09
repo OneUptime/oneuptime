@@ -84,7 +84,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           dropdownOptions: USER_LANGUAGE_OPTIONS,
           placeholder: "Not set (English)",
           description:
-            "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.",
+            "Your on-call pages and the Dashboard use this language, on every browser.",
           required: false,
           title: "Language",
         },
@@ -116,9 +116,12 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             placeholder: "No timezone selected",
             fieldType: FieldType.Element,
             getElement: (user: User) => {
+              // Unset reads as quiet text, as Language beside it does.
               if (!user.timezone) {
                 return (
-                  <p>{translator.translateText("No timezone selected")}</p>
+                  <p className="text-gray-500">
+                    {translator.translateText("No timezone selected")}
+                  </p>
                 );
               }
 

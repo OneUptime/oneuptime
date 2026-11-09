@@ -352,5 +352,6 @@
   "{{text}} Click to view details.": "{{text}} 탭하여 자세히 보기.",
   "{{title}}, in {{project}}.": "{{project}}의 {{title}}.",
   "{{title}}.": "{{title}}.",
-  "{{what}} “{{message}}”": "{{what}} “{{message}}”"
+  "{{what}} “{{message}}”": "{{what}} “{{message}}”",
+  "“{{message}}”": "“{{message}}”"
 }

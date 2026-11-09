@@ -352,5 +352,6 @@
   "{{text}} Click to view details.": "{{text}} Tik voor details.",
   "{{title}}, in {{project}}.": "{{title}}, in project {{project}}.",
   "{{title}}.": "{{title}}.",
-  "{{what}} “{{message}}”": "{{what}} ‘{{message}}’"
+  "{{what}} “{{message}}”": "{{what}} ‘{{message}}’",
+  "“{{message}}”": "‘{{message}}’"
 }

@@ -167,7 +167,7 @@ import {
   getOnCallPersonPageEmailMessageLine,
   getOnCallPersonPageEmailSubject,
   getOnCallPersonPageLead,
-  getOnCallPersonPageMessage,
+  getOnCallPersonPageQuotedMessage,
   getOnCallPersonPageWhyLine,
   isOnCallPersonPage,
 } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
@@ -5539,16 +5539,19 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * A person's page message in a Telegram message, under the record:
-   * "💬 “Can you check the database?”", or nothing.
+   * "💬 “Can you check the database?”", quoted as the person's language
+   * quotes, or nothing.
    */
   private getTelegramPersonPageMessage(
     personPage: OnCallPersonPageNotice | undefined,
+    // The language of the person it pages (OnCallPageWords).
+    translator: Translator = getEnglishPageTranslator(),
   ): Array<string> {
-    const message: string = personPage
-      ? getOnCallPersonPageMessage(personPage)
+    const quoted: string = personPage
+      ? getOnCallPersonPageQuotedMessage(personPage, translator)
       : "";
 
-    return message ? ["", `💬 “${this.escapeTelegramHtml(message)}”`] : [];
+    return quoted ? ["", `💬 ${this.escapeTelegramHtml(quoted)}`] : [];
   }
 
   /*
@@ -5692,7 +5695,7 @@ export class Service extends ProjectReferencesService<Model> {
       `🚨 <b>${this.escapeTelegramHtml(this.getPageHeadline(OnCallPageKind.Alert, pageAgain, personPage, observerKind, translator))}</b>`,
       "",
       `📋 <b>${this.escapeTelegramHtml(alertIdentifier)}</b>`,
-      ...this.getTelegramPersonPageMessage(personPage),
+      ...this.getTelegramPersonPageMessage(personPage, translator),
       "",
       `👤 ${this.escapeTelegramHtml(this.getPageWhyLine(pageAgain, personPage, observerKind, translator))}`,
     ];
@@ -5757,7 +5760,7 @@ export class Service extends ProjectReferencesService<Model> {
       `🔥 <b>${this.escapeTelegramHtml(this.getPageHeadline(OnCallPageKind.Incident, pageAgain, personPage, observerKind, translator))}</b>`,
       "",
       `📋 <b>${this.escapeTelegramHtml(incidentIdentifier)}</b>`,
-      ...this.getTelegramPersonPageMessage(personPage),
+      ...this.getTelegramPersonPageMessage(personPage, translator),
       "",
       `👤 ${this.escapeTelegramHtml(this.getPageWhyLine(pageAgain, personPage, observerKind, translator))}`,
     ];
@@ -5949,8 +5952,9 @@ export class Service extends ProjectReferencesService<Model> {
     translator: Translator;
   }): Array<WorkspaceMessageBlock> {
     const pageAgain: OnCallPageAgainNotice | undefined = data.pageAgain;
+    // Quoted as the person's language quotes: „…“, «…», 「…」.
     const personPageMessage: string = data.personPage
-      ? getOnCallPersonPageMessage(data.personPage)
+      ? getOnCallPersonPageQuotedMessage(data.personPage, data.translator)
       : "";
     const lines: Array<string> = [
       mdText`🚨 **${data.headline}**`.toString(),
@@ -5964,7 +5968,7 @@ export class Service extends ProjectReferencesService<Model> {
       mdText`📋 **${data.identifier}**`.toString(),
       // What the person who paged wrote: text, as typed.
       ...(personPageMessage
-        ? ["", mdText`💬 “${personPageMessage}”`.toString()]
+        ? ["", mdText`💬 ${personPageMessage}`.toString()]
         : []),
       "",
       mdText`👤 ${this.getPageWhyLine(

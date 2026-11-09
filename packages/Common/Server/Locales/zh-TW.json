@@ -352,5 +352,6 @@
   "{{text}} Click to view details.": "{{text}} 點一下查看詳細資料。",
   "{{title}}, in {{project}}.": "{{project}} 中的 {{title}}。",
   "{{title}}.": "{{title}}。",
-  "{{what}} “{{message}}”": "{{what}}「{{message}}」"
+  "{{what}} “{{message}}”": "{{what}}「{{message}}」",
+  "“{{message}}”": "「{{message}}」"
 }

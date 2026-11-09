@@ -47141,6 +47141,6 @@
   "Turn monitoring off or on for every monitor in this group at once.": "이 그룹의 모든 모니터에 대해 모니터링을 한 번에 끄거나 켭니다.",
   "Turn off monitoring for this group?": "이 그룹의 모니터링을 끄시겠습니까?",
   "Not set (English)": "설정 안 됨 (영어)",
-  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "대시보드와 온콜 호출이 모든 브라우저에서 이 언어로 표시됩니다. 설정하지 않으면 호출은 영어로, 대시보드는 브라우저 언어를 따릅니다.",
-  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "팀에 보이는 이름과 이메일, 그리고 OneUptime이 사용하는 시간대와 언어입니다."
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "팀에 보이는 이름과 이메일, 그리고 OneUptime이 사용하는 시간대와 언어입니다.",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "온콜 호출과 대시보드가 모든 브라우저에서 이 언어를 사용합니다."
 }

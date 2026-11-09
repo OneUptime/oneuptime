@@ -47141,6 +47141,6 @@
   "Turn monitoring off or on for every monitor in this group at once.": "一次關閉或開啟此群組中所有監測器的監測。",
   "Turn off monitoring for this group?": "要關閉此群組的監測嗎？",
   "Not set (English)": "未設定（英文）",
-  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "儀表板和你的待命呼叫在任何瀏覽器中都使用此語言。未設定時，呼叫為英文，儀表板跟隨你的瀏覽器。",
-  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "團隊看到的您的姓名和電子郵件，以及 OneUptime 對您使用的時區和語言。"
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "團隊看到的您的姓名和電子郵件，以及 OneUptime 對您使用的時區和語言。",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "你的待命呼叫和儀表板在任何瀏覽器中都使用此語言。"
 }

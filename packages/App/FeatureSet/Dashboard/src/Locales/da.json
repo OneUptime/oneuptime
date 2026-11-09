@@ -47141,6 +47141,6 @@
   "Turn monitoring off or on for every monitor in this group at once.": "Slå overvågning fra eller til for alle monitorer i denne gruppe på én gang.",
   "Turn off monitoring for this group?": "Slå overvågning fra for denne gruppe?",
   "Not set (English)": "Ikke valgt (engelsk)",
-  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "Dashboardet og dine vagtkald er på dette sprog i alle browsere. Ikke valgt: kald på engelsk, og dashboardet følger din browser.",
-  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Dit navn og din e-mail, som dit team ser dem, og den tidszone og det sprog, OneUptime bruger med dig."
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Dit navn og din e-mail, som dit team ser dem, og den tidszone og det sprog, OneUptime bruger med dig.",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "Dine vagtkald og dashboardet bruger dette sprog i alle browsere."
 }

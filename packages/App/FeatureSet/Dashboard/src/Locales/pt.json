@@ -47141,6 +47141,6 @@
   "Turn monitoring off or on for every monitor in this group at once.": "Desligue ou ligue o monitoramento de todos os monitores deste grupo de uma só vez.",
   "Turn off monitoring for this group?": "Desligar o monitoramento deste grupo?",
   "Not set (English)": "Não definido (inglês)",
-  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "O painel e seus chamados de plantão ficam neste idioma, em qualquer navegador. Não definido: chamados em inglês, e o painel segue seu navegador.",
-  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Seu nome e seu e-mail como sua equipe os vê, e o fuso horário e o idioma que o OneUptime usa com você."
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Seu nome e seu e-mail como sua equipe os vê, e o fuso horário e o idioma que o OneUptime usa com você.",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "Seus chamados de plantão e o painel usam este idioma, em qualquer navegador."
 }

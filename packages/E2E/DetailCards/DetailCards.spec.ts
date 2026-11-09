@@ -581,6 +581,10 @@ test.describe("the maintainer's screenshot: User Settings > Profile", () => {
     await expect(timezone.getByTestId("detail-value")).toHaveText(
       "No timezone selected",
     );
+    // Quiet, as the unset Language beside it reads.
+    await expect(
+      timezone.getByTestId("detail-value").getByText("No timezone selected"),
+    ).toHaveCSS("color", "rgb(107, 114, 128)");
   });
 
   /*

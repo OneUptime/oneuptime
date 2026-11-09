@@ -352,5 +352,6 @@
   "{{text}} Click to view details.": "{{text}} タップして詳細を表示。",
   "{{title}}, in {{project}}.": "{{project}} の {{title}}。",
   "{{title}}.": "{{title}}。",
-  "{{what}} “{{message}}”": "{{what}}「{{message}}」"
+  "{{what}} “{{message}}”": "{{what}}「{{message}}」",
+  "“{{message}}”": "「{{message}}」"
 }
