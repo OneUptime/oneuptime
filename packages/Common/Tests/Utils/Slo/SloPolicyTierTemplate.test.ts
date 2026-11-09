@@ -274,13 +274,11 @@ describe("a policy tier's catalog", () => {
     ) => Array<string> = (
       groups: typeof SLO_POLICY_TIER_TEMPLATE_VARIABLE_GROUPS,
     ): Array<string> => {
-      return groups.flatMap(
-        (group: TemplateVariableGroup): Array<string> => {
-          return group.variables.map((variable: TemplateVariable): string => {
-            return variable.name;
-          });
-        },
-      );
+      return groups.flatMap((group: TemplateVariableGroup): Array<string> => {
+        return group.variables.map((variable: TemplateVariable): string => {
+          return variable.name;
+        });
+      });
     };
 
     expect(toNames(SLO_POLICY_TIER_TEMPLATE_VARIABLE_GROUPS)).toEqual(tierKeys);
