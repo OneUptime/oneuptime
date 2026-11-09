@@ -54,6 +54,12 @@ export interface ComponentProps {
    * through them (a product's own get-started steps).
    */
   hidesSteps?: boolean | undefined;
+  /*
+   * Leaves out the showcase's description where the page above it already
+   * says what the product is for: an empty list's table says it under "No
+   * monitors yet", a product's own connect card says it over its button.
+   */
+  hidesDescription?: boolean | undefined;
   // Drawn without its own frame, inside a dialog (a product's About).
   isBare?: boolean | undefined;
 }
@@ -67,6 +73,8 @@ export const RESOURCE_SHOWCASE_CHART_TEST_ID: string =
   "resource-showcase-chart";
 export const RESOURCE_SHOWCASE_STEPS_TEST_ID: string =
   "resource-showcase-steps";
+export const RESOURCE_SHOWCASE_DESCRIPTION_TEST_ID: string =
+  "resource-showcase-description";
 export const RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID: string =
   "resource-showcase-docs-link";
 
@@ -396,9 +404,14 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
             >
               {translate(showcase.title)}
             </h2>
-            <p className="mt-3 max-w-xl text-pretty text-base leading-relaxed text-gray-600">
-              {translate(showcase.description)}
-            </p>
+            {!props.hidesDescription && (
+              <p
+                className="mt-3 max-w-xl text-pretty text-base leading-relaxed text-gray-600"
+                data-testid={RESOURCE_SHOWCASE_DESCRIPTION_TEST_ID}
+              >
+                {translate(showcase.description)}
+              </p>
+            )}
 
             {steps.length > 0 && (
               <ol
@@ -424,7 +437,11 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
             )}
 
             {(props.addButton || props.docsRoute) && (
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+              /*
+               * Button keeps a dialog footer's margin (md:ml-3): here the
+               * button starts the row, level with the steps above it.
+               */
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
                 {props.addButton && (
                   <Button
                     title={props.addButton.title}

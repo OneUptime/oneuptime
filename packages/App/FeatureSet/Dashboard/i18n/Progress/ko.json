@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47209,
-    "untranslated": 10820
+    "keys": 47383,
+    "untranslated": 10817
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -90,6 +90,7 @@
     "Passthrough",
     "Pod · data",
     "Pod · production",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Project view",

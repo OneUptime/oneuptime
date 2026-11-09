@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47209,
-    "untranslated": 11031
+    "keys": 47383,
+    "untranslated": 11028
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -99,6 +99,7 @@
     "Placement Flavor Fits",
     "Placement Groups",
     "Pool",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Project view",

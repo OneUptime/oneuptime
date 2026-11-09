@@ -276,6 +276,8 @@ const OnCallDutyPage: FunctionComponent<
       {firstRun.isFirstRun && (
         <ProductShowcase
           product={ProductKey.OnCall}
+          // The empty table above says what the list is for.
+          hidesDescription={true}
           startButton={firstRun.startButton}
         />
       )}

@@ -276,6 +276,8 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {firstRun.isFirstRun && (
         <ProductShowcase
           product={ProductKey.Runbooks}
+          // The empty table above says what the list is for.
+          hidesDescription={true}
           startButton={firstRun.startButton}
         />
       )}

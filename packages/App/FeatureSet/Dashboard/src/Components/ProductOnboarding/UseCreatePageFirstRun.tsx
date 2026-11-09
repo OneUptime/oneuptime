@@ -8,9 +8,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../Infrastructure/UseFirstRecordWatch";
-import { getFirstRunEmptyState } from "../Infrastructure/FirstRecordWatch";
+import { ShowcaseAddButton } from "../ResourceShowcase/ResourceShowcaseCard";
 import { ProductKey } from "./ProductOnboarding";
 import ProductShowcase, { getProductStartButton } from "./ProductShowcase";
+import { getProductFirstRunEmptyState } from "./UseProductFirstRun";
 
 /*
  * A product list's first run (ProductOnboarding.ts), for a list whose first
@@ -21,7 +22,10 @@ import ProductShowcase, { getProductStartButton } from "./ProductShowcase";
  */
 
 export interface CreatePageFirstRun {
-  // For the table's emptyState: no second Create button under the showcase.
+  /*
+   * For the table's emptyState: no second Create button over the
+   * showcase's (getProductFirstRunEmptyState).
+   */
   emptyState: EmptyStateOptions;
   // For the table's refreshToggle, where it takes one.
   refreshToken: string;
@@ -41,30 +45,33 @@ export default function useCreatePageFirstRun<
   const watch: FirstRecordWatch = useFirstRecordWatch<TBaseModel>({
     modelType: data.modelType,
   });
+  // Offered only to someone who may create one.
+  const startButton: ShowcaseAddButton | undefined = getProductStartButton({
+    modelType: data.modelType,
+    button: {
+      title: data.startTitle,
+      onClick: () => {
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(RouteMap[data.createPage] as Route),
+        );
+      },
+    },
+  });
 
   return {
-    emptyState: getFirstRunEmptyState({
+    emptyState: getProductFirstRunEmptyState({
       emptyState: undefined,
       count: watch.count,
+      hasStartButton: Boolean(startButton),
     }),
     refreshToken: watch.refreshToken,
     showcase:
       watch.count === 0 ? (
         <ProductShowcase
           product={data.product}
-          startButton={getProductStartButton({
-            modelType: data.modelType,
-            button: {
-              title: data.startTitle,
-              onClick: () => {
-                Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    RouteMap[data.createPage] as Route,
-                  ),
-                );
-              },
-            },
-          })}
+          // The empty table above says what the list is for.
+          hidesDescription={true}
+          startButton={startButton}
         />
       ) : (
         <></>

@@ -37,9 +37,35 @@ export interface ProductFirstRun {
   showCreateForm: boolean;
   // The showcase's button: the table's own form, for whoever may use it.
   startButton: ShowcaseAddButton | undefined;
-  // The table's empty state and filter bar while there is nothing yet.
+  /*
+   * The table's empty state and filter bar while there is nothing yet
+   * (getProductFirstRunEmptyState).
+   */
   getEmptyState: (emptyState?: EmptyStateOptions) => EmptyStateOptions;
   getTopContent: <T>(topContent: T) => T | undefined;
+}
+
+/*
+ * The empty table's options under a product's explanation, while the
+ * project has none (getFirstRunEmptyState): the table leaves its Create
+ * button to the explanation's - unless the explanation has none to offer.
+ * Someone who may not create one reads the explanation without a button,
+ * and the table keeps its own locked one with the note that says why, as a
+ * phone shows it (a tooltip it cannot).
+ */
+export function getProductFirstRunEmptyState(data: {
+  emptyState: EmptyStateOptions | undefined;
+  count: number | null;
+  hasStartButton: boolean;
+}): EmptyStateOptions {
+  if (!data.hasStartButton) {
+    return data.emptyState || {};
+  }
+
+  return getFirstRunEmptyState({
+    emptyState: data.emptyState,
+    count: data.count,
+  });
 }
 
 export default function useProductFirstRun<TBaseModel extends BaseModel>(data: {
@@ -59,14 +85,22 @@ export default function useProductFirstRun<TBaseModel extends BaseModel>(data: {
     singularName: data.singularName,
   });
 
+  const startButton: ShowcaseAddButton | undefined = getUnlockedButton(
+    createForm.addButton,
+  );
+
   return {
     isFirstRun: watch.count === 0,
     refreshToken: watch.refreshToken,
     onRecordCreated: watch.onRecordCreated,
     showCreateForm: createForm.showCreateForm,
-    startButton: getUnlockedButton(createForm.addButton),
+    startButton: startButton,
     getEmptyState: (emptyState?: EmptyStateOptions): EmptyStateOptions => {
-      return getFirstRunEmptyState({ emptyState, count: watch.count });
+      return getProductFirstRunEmptyState({
+        emptyState,
+        count: watch.count,
+        hasStartButton: Boolean(startButton),
+      });
     },
     getTopContent: <T>(topContent: T): T | undefined => {
       return getFirstRunTopContent({ topContent, count: watch.count });

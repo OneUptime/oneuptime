@@ -696,13 +696,16 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
           return Promise.resolve(getSloViewRoute(item));
         }}
       />
+      {modals}
+      {/* Under the table (the modals above are dialogs over the page). */}
       {firstRun.isFirstRun && (
         <ProductShowcase
           product={ProductKey.Slos}
+          // The empty table above says what the list is for.
+          hidesDescription={true}
           startButton={firstRun.startButton}
         />
       )}
-      {modals}
     </Fragment>
   );
 };

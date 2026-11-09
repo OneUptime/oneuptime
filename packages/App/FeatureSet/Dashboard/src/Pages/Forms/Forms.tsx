@@ -277,6 +277,8 @@ const Forms: FunctionComponent<PageComponentProps> = (
       {firstRun.isFirstRun && (
         <ProductShowcase
           product={ProductKey.Forms}
+          // The empty table above says what the list is for.
+          hidesDescription={true}
           startButton={firstRun.startButton}
         />
       )}

@@ -276,7 +276,12 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
           {/* What Code does once a repository is in (ProductOnboarding). */}
           <div className="mt-6">
-            <ProductShowcase product={ProductKey.Code} hidesSteps={true} />
+            {/* The connect card above says what Code does, and its steps. */}
+            <ProductShowcase
+              product={ProductKey.Code}
+              hidesSteps={true}
+              hidesDescription={true}
+            />
           </div>
           {/* Tasks that never found a repository stay readable. */}
           {data && data.tasksWithoutRepositoryCount > 0 ? renderTasks() : <></>}

@@ -196,6 +196,7 @@ const language = ["de", "ja", "fa"].includes(params.get("lang"))
 
 window.__fixture = {
   listRequests: [],
+  countRequests: [],
   itemRequests: [],
   updates: [],
   creates: [],
@@ -1351,6 +1352,29 @@ ModelAPI.getCount = async (options) => {
   return RECORDS[tableName].filter((record) => {
     return matchesQuery(record, options.query);
   }).length;
+};
+
+/*
+ * How many records a table holds, as the server counts them: a product
+ * list asks it once, to explain the product under its empty table while
+ * the project has none (Components/ProductOnboarding).
+ */
+ModelAPI.count = async (options) => {
+  const tableName = new options.modelType().tableName;
+  window.__fixture.countRequests.push({
+    tableName,
+    query: serialize(options.query),
+  });
+
+  if (failsFor(tableName)) {
+    throw new Error(`Could not reach the server to count ${tableName}.`);
+  }
+
+  if (!RECORDS[tableName] && !EMPTY_TABLES.includes(tableName)) {
+    window.__fixture.unmodelled.push(`count ${tableName}`);
+  }
+
+  return ModelAPI.getCount(options);
 };
 
 ModelAPI.getItem = async (options) => {

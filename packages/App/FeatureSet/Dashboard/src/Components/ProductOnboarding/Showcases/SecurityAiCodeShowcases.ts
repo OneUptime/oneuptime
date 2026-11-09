@@ -112,7 +112,7 @@ export const DATA_SECURITY_SHOWCASE: ResourceShowcase = {
         name: "settings.api_key",
         detail: translationKey("Secret"),
         status: ShowcaseStatus.Warning,
-        statusText: translationKey("Review"),
+        statusText: translationKey("Needs a look"),
       },
     ],
   },
@@ -194,7 +194,8 @@ export const CODE_SHOWCASE: ResourceShowcase = {
       { label: translationKey("Tasks"), value: "12" },
       { label: translationKey("Pull requests"), value: "9" },
       { label: translationKey("Merged"), value: "7" },
-      { label: translationKey("Open"), value: "2" },
+      // Not "Open": the Dashboard's Open is the verb (German "Öffnen").
+      { label: translationKey("Waiting for review"), value: "2" },
     ],
     chart: {
       label: translationKey("Tasks"),
@@ -212,7 +213,7 @@ export const CODE_SHOWCASE: ResourceShowcase = {
         name: "#232",
         detail: translationKey("Retry failed payment calls"),
         status: ShowcaseStatus.Warning,
-        statusText: translationKey("Open"),
+        statusText: translationKey("Waiting for review"),
       },
       {
         name: "#233",

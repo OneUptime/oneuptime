@@ -26,7 +26,10 @@ import { ResourceShowcase } from "../ResourceShowcase/ResourceShowcase";
  *
  *   - a list (Monitors, Incidents, Status Pages ...): its empty table, and
  *     the showcase under it with the list's own Create button
- *     (ProductShowcase), until the first record;
+ *     (ProductShowcase), until the first record. The table already says
+ *     what the list is for, so the showcase leaves its description out
+ *     there (About says it). Someone who may not create one reads the
+ *     showcase without the button, under the table's own locked one;
  *   - telemetry (Logs, Traces, Metrics, Exceptions, Profiles): the showcase
  *     over the explorer until the project's first telemetry arrives, its
  *     button the setup guide that waits for that data
@@ -108,7 +111,8 @@ export const PRODUCTS_WITHOUT_ONBOARDING: Record<string, string> = {
   [PageMap.USERS]: "Project settings: who is in the project.",
   [PageMap.TEAMS]: "Project settings: the project's teams.",
   [PageMap.SETTINGS]: "Project settings.",
-  [PageMap.USER_SETTINGS]: "Your own settings: notifications, profile and more.",
+  [PageMap.USER_SETTINGS]:
+    "Your own settings: notifications, profile and more.",
 };
 
 // What a screen reader hears for a product's example.

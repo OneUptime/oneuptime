@@ -12,7 +12,8 @@ import { getProductOnboarding } from "./ProductOnboardings";
  * nothing in it yet (ProductOnboarding.ts): the showcase, its steps, the
  * page's own first button and the documentation. Someone who may not take
  * that first step (a read-only member) reads the same explanation without
- * the button.
+ * the button; the empty table above keeps its own locked one, and the note
+ * that says why (getProductFirstRunEmptyState).
  */
 
 export const PRODUCT_SHOWCASE_TEST_ID: string = "product-showcase";
@@ -23,6 +24,11 @@ export interface ComponentProps {
   startButton?: ShowcaseAddButton | undefined;
   // Where the page above already walks through its own steps.
   hidesSteps?: boolean | undefined;
+  /*
+   * Where the page above already says what the product is for: under an
+   * empty list, whose table says it, and under a connect card that does.
+   */
+  hidesDescription?: boolean | undefined;
 }
 
 /*
@@ -59,6 +65,7 @@ const ProductShowcase: FunctionComponent<ComponentProps> = (
         addButton={props.startButton}
         docsRoute={onboarding.docsRoute}
         hidesSteps={props.hidesSteps}
+        hidesDescription={props.hidesDescription}
       />
     </div>
   );

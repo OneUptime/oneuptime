@@ -17,12 +17,14 @@ and the server adds an incident and an alert on-call rule for it. The suite pins
 - in a new project (no policy, no on-call rule), the switch in the dialog: named for the
   policy, on, what it does said under it and read with it, between "Who gets paged first?"
   and More fields, the dialog still one page; the project's policies and both kinds of rules
-  counted once the empty list is back
+  counted once the empty list is back, beside the list's own count of its policies (which
+  decides whether the page explains On-Call under the empty list, its first step the list's
+  Create: `Components/ProductOnboarding`)
 - what Create sends: `pageForEveryNewIncidentAndAlert: true` as misc data beside the policy
   (never a column of it), and the new policy opening on its Escalation Rules; switched off
   (by its words, which are its label), nothing asks for the rules
-- when it is not asked: a project with a policy (`?policies=one`, and then nothing is
-  counted), one with an incident on-call rule and no policy (`?rules=incident`), counts that
+- when it is not asked: a project with a policy (`?policies=one`, and then only the list's
+  own count runs), one with an incident on-call rule and no policy (`?rules=incident`), counts that
   fail (`?counts=fail`), and someone who may create a policy but not an on-call rule
   (`?role=member`, a Project Member); none of them sends the switch
 - counts that answer late (`?counts=hold`): the switch joins the dialog already open, on

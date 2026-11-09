@@ -57,11 +57,11 @@ test.describe.skip("Inventory Product", () => {
      * A project seconds old has discovered nothing, so the Overview explains
      * the product (its showcase) rather than drawing the summary strip.
      */
-    await expect(
-      page.getByText("Everything you run, in one list"),
-    ).toBeVisible({
-      timeout: 60000,
-    });
+    await expect(page.getByText("Everything you run, in one list")).toBeVisible(
+      {
+        timeout: 60000,
+      },
+    );
   });
 
   test("registers an item by hand and opens its subpages", async ({

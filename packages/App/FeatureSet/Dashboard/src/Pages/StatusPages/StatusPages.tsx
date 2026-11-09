@@ -259,6 +259,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {firstRun.isFirstRun && (
         <ProductShowcase
           product={ProductKey.StatusPages}
+          // The empty table above says what the list is for.
+          hidesDescription={true}
           startButton={firstRun.startButton}
         />
       )}

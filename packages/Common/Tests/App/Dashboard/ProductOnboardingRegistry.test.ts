@@ -3,10 +3,12 @@ import * as fs from "fs";
 import * as path from "path";
 import {
   PRODUCTS_WITHOUT_ONBOARDING,
+  PRODUCT_ABOUT_TEXT,
   PRODUCT_EXAMPLE_DESCRIPTION,
   ProductKey,
   ProductOnboarding,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductOnboarding";
+import { RESOURCE_SHOWCASE_DOCS_TEXT } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
 import { PRODUCT_ONBOARDINGS } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductOnboardings";
 import {
   ResourceShowcase,
@@ -305,7 +307,10 @@ const FIRST_PAGES: Record<ProductKey, { file: string; draws: string }> = {
     file: "Pages/StorageArray/StorageArrays.tsx",
     draws: "STORAGE_ARRAY_SHOWCASE",
   },
-  [ProductKey.IoT]: { file: "Pages/IoT/Fleets.tsx", draws: "IOT_FLEET_SHOWCASE" },
+  [ProductKey.IoT]: {
+    file: "Pages/IoT/Fleets.tsx",
+    draws: "IOT_FLEET_SHOWCASE",
+  },
   [ProductKey.Databases]: {
     file: "Pages/Database/Databases.tsx",
     draws: "DATABASE_SHOWCASE",
@@ -331,6 +336,33 @@ const FIRST_PAGES: Record<ProductKey, { file: string; draws: string }> = {
     draws: "CLOUD_ENVIRONMENT_SHOWCASE",
   },
 };
+
+// The lists: each draws its explanation under its own empty table.
+const LISTS_UNDER_A_TABLE: Array<ProductKey> = [
+  ProductKey.Monitors,
+  ProductKey.Incidents,
+  ProductKey.Alerts,
+  ProductKey.ScheduledMaintenance,
+  ProductKey.OnCall,
+  ProductKey.StatusPages,
+  ProductKey.Slos,
+  ProductKey.Services,
+  ProductKey.Dashboards,
+  ProductKey.Workflows,
+  ProductKey.Runbooks,
+  ProductKey.Forms,
+];
+
+// What draws the showcase of a list whose first step is a page of its own.
+const CREATE_PAGE_FIRST_RUN: string =
+  "Components/ProductOnboarding/UseCreatePageFirstRun.tsx";
+
+// A product's key as the code names it: ProductKey.StatusPages.
+function keyName(product: ProductKey): string {
+  return Object.keys(ProductKey)[
+    Object.values(ProductKey).indexOf(product)
+  ] as string;
+}
 
 // The words a showcase draws, each an English translation key.
 function getShowcaseWords(showcase: ResourceShowcase): Array<string> {
@@ -369,6 +401,59 @@ const DRAWN_AS_WRITTEN_PATTERN: RegExp = /^[\d.,]+\s?(%|ms|s)?$/;
 const EN: Record<string, string> = JSON.parse(
   read("Locales/en.json"),
 ) as Record<string, string>;
+
+const I18N: string = path.join(DASHBOARD_SRC, "../i18n");
+
+// Every language the Dashboard ships besides English.
+const LOCALES: Array<string> = fs
+  .readdirSync(path.join(DASHBOARD_SRC, "Locales"))
+  .filter((file: string): boolean => {
+    return file.endsWith(".json") && file !== "en.json";
+  })
+  .map((file: string): string => {
+    return file.replace(/\.json$/, "");
+  })
+  .sort();
+
+const GLOBAL_SAME_AS_ENGLISH: Array<string> = JSON.parse(
+  fs.readFileSync(path.join(I18N, "SameAsEnglish.json"), "utf8"),
+) as Array<string>;
+
+/*
+ * The words the products' explanations add: the products' own showcases,
+ * the About button and dialog, and the telemetry products' first step and
+ * link. The resources' showcases are their lists' words, translated with
+ * those lists.
+ */
+function getProductWords(): Array<string> {
+  const words: Set<string> = new Set<string>([
+    PRODUCT_ABOUT_TEXT,
+    PRODUCT_EXAMPLE_DESCRIPTION,
+    RESOURCE_SHOWCASE_DOCS_TEXT,
+  ]);
+
+  for (const [product, onboarding] of ONBOARDINGS) {
+    words.add(onboarding.name);
+    if (isResource(product)) {
+      continue;
+    }
+    for (const word of getShowcaseWords(onboarding.showcase)) {
+      words.add(word);
+    }
+    for (const row of onboarding.showcase.preview.rows) {
+      if (!DRAWN_AS_WRITTEN_PATTERN.test(row.statusText)) {
+        words.add(row.statusText);
+      }
+    }
+  }
+
+  for (const firstRun of Object.values(TELEMETRY_FIRST_RUNS)) {
+    words.add(firstRun.startText);
+    words.add(firstRun.viewText);
+  }
+
+  return [...words];
+}
 
 describe("every product of the products menu explains itself", () => {
   const menuPages: Array<string> = getMenuPages();
@@ -450,9 +535,9 @@ describe("each explanation is complete", () => {
       // The documentation: a page of the docs, in its navigation and on disk.
       const docsPath: string = onboarding.docsRoute.toString();
       expect(docsPath.startsWith("/docs/")).toBe(true);
-      expect(fs.readFileSync(path.join(DOCS, "Utils/Nav.ts"), "utf8")).toContain(
-        `url: "${docsPath}"`,
-      );
+      expect(
+        fs.readFileSync(path.join(DOCS, "Utils/Nav.ts"), "utf8"),
+      ).toContain(`url: "${docsPath}"`);
       expect(
         fs.existsSync(
           path.join(DOCS, "Content/en", `${docsPath.replace("/docs/", "")}.md`),
@@ -490,6 +575,36 @@ describe("each explanation is complete", () => {
 
     expect(missing).toEqual([]);
   });
+
+  test.each(LOCALES)(
+    "%s: a product's words read in that language",
+    (locale: string) => {
+      const translations: Record<string, unknown> = JSON.parse(
+        read(`Locales/${locale}.json`),
+      ) as Record<string, unknown>;
+      const progress: { sameAsEnglish?: Array<string> } = JSON.parse(
+        fs.readFileSync(path.join(I18N, `Progress/${locale}.json`), "utf8"),
+      ) as { sameAsEnglish?: Array<string> };
+      const sameAsEnglish: Set<string> = new Set<string>([
+        ...GLOBAL_SAME_AS_ENGLISH,
+        ...(progress.sameAsEnglish || []),
+      ]);
+      const untranslated: Array<string> = [];
+
+      for (const word of getProductWords()) {
+        const value: unknown = translations[word];
+        if (
+          typeof value !== "string" ||
+          value.trim() === "" ||
+          (value === word && !sameAsEnglish.has(word))
+        ) {
+          untranslated.push(word);
+        }
+      }
+
+      expect(untranslated).toEqual([]);
+    },
+  );
 
   test("an example names no real company and no project of ours", () => {
     for (const [product, onboarding] of ONBOARDINGS) {
@@ -529,6 +644,55 @@ describe("the explanation is where each product is", () => {
       expect(read(firstPage.file)).toContain(firstPage.draws);
     },
   );
+
+  /*
+   * Under an empty list the table says what the list is for ("No monitors
+   * yet" and the card's description), and under Code's connect card the
+   * card says what Code does: the showcase does not say it a second time.
+   * Its title, steps, example and documentation follow; About, with no
+   * table above it, says it all.
+   */
+  test.each([...LISTS_UNDER_A_TABLE, ProductKey.Code])(
+    "%s: under the page's own words, its showcase leaves its description to them",
+    (product: ProductKey) => {
+      const firstPage: { file: string; draws: string } = FIRST_PAGES[product];
+      const source: string = read(firstPage.file);
+
+      if (firstPage.draws.startsWith("product: ")) {
+        // A list whose first step is a page of its own (useCreatePageFirstRun).
+        expect(read(CREATE_PAGE_FIRST_RUN)).toMatch(
+          /<ProductShowcase\s+product=\{data\.product\}[^>]*?hidesDescription=\{true\}/,
+        );
+        return;
+      }
+
+      const start: number = source.indexOf(
+        `product={ProductKey.${keyName(product)}}`,
+      );
+      const element: string = source.slice(
+        source.lastIndexOf("<ProductShowcase", start),
+        source.indexOf("/>", start),
+      );
+
+      expect(element.startsWith("<ProductShowcase")).toBe(true);
+      expect(element).toContain("hidesDescription={true}");
+    },
+  );
+
+  test("a showcase drawn alone says what its product is for", () => {
+    for (const [product] of ONBOARDINGS) {
+      if ([...LISTS_UNDER_A_TABLE, ProductKey.Code].includes(product)) {
+        continue;
+      }
+
+      const source: string = read(FIRST_PAGES[product].file);
+
+      expect({ product, hides: source.includes("hidesDescription") }).toEqual({
+        product,
+        hides: false,
+      });
+    }
+  });
 
   test("a telemetry product's button is its first step, and its setup guide waits for that telemetry", () => {
     for (const [product, firstRun] of Object.entries(TELEMETRY_FIRST_RUNS)) {

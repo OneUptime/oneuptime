@@ -216,9 +216,10 @@ describe("the AI Insights inbox", () => {
     expect(
       screen.getByText("Send telemetry or connect your infrastructure"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /Documentation/ }),
-    ).toHaveAttribute("href", "/docs/ai/ai-sre");
+    expect(screen.getByRole("link", { name: /Documentation/ })).toHaveAttribute(
+      "href",
+      "/docs/ai/ai-sre",
+    );
     // No status tiles, no filters, no intro, and no second empty state.
     expect(screen.queryByText("All insights")).not.toBeInTheDocument();
     expect(

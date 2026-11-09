@@ -1580,6 +1580,14 @@ jobs:
           # Archivable Values (1.8, Chromium only) came from group 16 on
           # 2026-11-08, when Monitor Overview's second half grew there: about
           # 16.9.
+          # Product Onboarding (11 tests, 1.6 to 1.75 minutes locally with its
+          # bundle, Chromium only: a new project's Monitors and Status Pages
+          # explaining their product under the empty table - its steps, its
+          # example, its documentation and the list's own first button - a
+          # read-only member's and a failed count's lists, About beside the
+          # title once there is one, at 1440, 1024, 768 and 390 pixels, German
+          # and Persian dark) joined it on 2026-11-09, the group with the most
+          # room: about 18.9.
           - group: 19
             openstack_pages_shard: 1/2
             suites: >-
@@ -1587,6 +1595,7 @@ jobs:
               test-ai-insights-ui
               test-global-runners-ui
               test-archivable-values-ui
+              test-product-onboarding-ui
           # Dashboard Templates (2.5) from group 10 on 2026-11-06, the group with
           # the most room, when Event Overview's second half grew past that
           # group's budget: about 14.1.
@@ -1896,4 +1905,6 @@ jobs:
             output/playwright/storage-array-pages-ui/test-results
             output/playwright/database-pages-ui/*.png
             output/playwright/database-pages-ui/test-results
+            output/playwright/product-onboarding-ui/*.png
+            output/playwright/product-onboarding-ui/test-results
           retention-days: 7
