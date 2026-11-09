@@ -47018,5 +47018,13 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे क्लाउड पर चला जाता है।",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे क्लस्टर पर चला जाता है।",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे स्टोरेज ऐरे पर चला जाता है।",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे vCenter पर चला जाता है।"
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "एजेंट की .env में {{variable}} अब भी \"{{name}}\" होना चाहिए। अलग नाम होने पर डेटा किसी दूसरे vCenter पर चला जाता है।",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: {{files}}.": "गोपनीय जानकारी या व्यक्तिगत डेटा जैसे दिखने वाले मान AI से छिपाए गए थे, और इस फ़ाइल का AI का संस्करण उनकी जगह प्लेसहोल्डर लिखता है: {{files}}।",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}.": "गोपनीय जानकारी या व्यक्तिगत डेटा जैसे दिखने वाले मान AI से छिपाए गए थे, और इन {{count}} फ़ाइलों के AI के संस्करण उनकी जगह प्लेसहोल्डर लिखते हैं: {{files}}।",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}._one": "गोपनीय जानकारी या व्यक्तिगत डेटा जैसे दिखने वाले मान AI से छिपाए गए थे, और इस फ़ाइल का AI का संस्करण उनकी जगह प्लेसहोल्डर लिखता है: {{files}}।",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests"
 }

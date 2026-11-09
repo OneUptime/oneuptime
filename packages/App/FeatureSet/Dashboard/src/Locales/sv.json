@@ -47018,5 +47018,13 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "{{variable}} i agentens .env måste fortfarande vara \"{{name}}\". Ett annat namn skickar data till ett annat moln.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "{{variable}} i agentens .env måste fortfarande vara \"{{name}}\". Ett annat namn skickar data till ett annat kluster.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "{{variable}} i agentens .env måste fortfarande vara \"{{name}}\". Ett annat namn skickar data till en annan lagringsarray.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} i agentens .env måste fortfarande vara \"{{name}}\". Ett annat namn skickar data till en annan vCenter."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} i agentens .env måste fortfarande vara \"{{name}}\". Ett annat namn skickar data till en annan vCenter.",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: {{files}}.": "Värden som ser ut som hemligheter eller personuppgifter doldes för AI, och AI:s version av den här filen skriver platshållare i stället för dem: {{files}}.",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}.": "Värden som ser ut som hemligheter eller personuppgifter doldes för AI, och AI:s versioner av de här {{count}} filerna skriver platshållare i stället för dem: {{files}}.",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}._one": "Värden som ser ut som hemligheter eller personuppgifter doldes för AI, och AI:s version av den här filen skriver platshållare i stället för dem: {{files}}.",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests"
 }

@@ -47018,5 +47018,13 @@
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cloud.": "{{variable}} in der .env des Agenten muss weiterhin „{{name}}“ sein. Ein anderer Name sendet die Daten an eine andere Cloud.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different cluster.": "{{variable}} in der .env des Agenten muss weiterhin „{{name}}“ sein. Ein anderer Name sendet die Daten an einen anderen Cluster.",
   "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different storage array.": "{{variable}} in der .env des Agenten muss weiterhin „{{name}}“ sein. Ein anderer Name sendet die Daten an ein anderes Speicher-Array.",
-  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} in der .env des Agenten muss weiterhin „{{name}}“ sein. Ein anderer Name sendet die Daten an ein anderes vCenter."
+  "{{variable}} in the agent's .env must still be \"{{name}}\". A different name sends the data to a different vCenter.": "{{variable}} in der .env des Agenten muss weiterhin „{{name}}“ sein. Ein anderer Name sendet die Daten an ein anderes vCenter.",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: {{files}}.": "Werte, die wie Geheimnisse oder personenbezogene Daten aussehen, wurden vor der KI verborgen, und die Version der KI schreibt an deren Stelle Platzhalter in diese Datei: {{files}}.",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}.": "Werte, die wie Geheimnisse oder personenbezogene Daten aussehen, wurden vor der KI verborgen, und die Versionen der KI schreiben an deren Stelle Platzhalter in diese {{count}} Dateien: {{files}}.",
+  "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}._one": "Werte, die wie Geheimnisse oder personenbezogene Daten aussehen, wurden vor der KI verborgen, und die Version der KI schreibt an deren Stelle Platzhalter in diese Datei: {{files}}.",
+  "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.": "Internal record of who was asked to approve each step of a public note, and how, so that nobody is asked about the same step twice.",
+  "Is Asked Again": "Is Asked Again",
+  "Note ID": "Note ID",
+  "Public Note Approval Request": "Public Note Approval Request",
+  "Public Note Approval Requests": "Public Note Approval Requests"
 }

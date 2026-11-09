@@ -8,6 +8,10 @@ import {
   readAIChatLineRanges,
   readAIChatRecordSeen,
 } from "../AI/AIChatRecordSeen";
+import {
+  CodeFilePlaceholderWritten,
+  readCodePlaceholdersWritten,
+} from "./CodeFileValuesHidden";
 
 /*
  * WHAT ASK AI HAS SEEN OF A REPOSITORY'S FILES, AND WHAT A COMMIT OF THEM
@@ -48,6 +52,12 @@ import {
  * version there; a line none of them showed is one the commit drops
  * unseen. A commit of Ask AI's own wrote all of a file, and a citation
  * from before OneUptime kept lines reads as all of it.
+ *
+ * And a line Ask AI saw is not every value in it (issue #6364): what looks
+ * like a secret or personal data reads as a placeholder, "[redacted-ip]",
+ * so a version Ask AI writes whole puts the placeholder where the value
+ * was. That is held to what the change writes, not to what Ask AI saw
+ * (CodeFileValuesHidden), and said beside the rest.
  *
  * Pure: no host, no clock, no key. The fingerprints are the caller's.
  */
@@ -464,6 +474,14 @@ export enum CodeFileUnseen {
   ReadInPart = "ReadInPart",
   // The branch could not be read, so nothing can be said of it.
   NotChecked = "NotChecked",
+  /*
+   * Ask AI's version holds a placeholder OneUptime showed it in place of a
+   * value it hid - an IP address, an email address, a key - more often
+   * than the file on the branch does (issue #6364): the change writes the
+   * placeholder where the value was. Said of what the change writes, so
+   * beside any of the others, never instead of one.
+   */
+  ValuesHidden = "ValuesHidden",
 }
 
 export interface CodeFileUnseenFinding {
@@ -474,6 +492,10 @@ export interface CodeFileUnseenFinding {
   // ReadInPart: how many lines the file has, and the runs of them Ask AI never saw.
   lineCount?: number | undefined;
   linesNotRead?: Array<AIChatLineRange> | undefined;
+  // ValuesHidden: each placeholder Ask AI's version holds more often than the branch's file does.
+  placeholdersWritten?: Array<CodeFilePlaceholderWritten> | undefined;
+  // ValuesHidden: the branch's file could not be read, so none of its own placeholders were counted.
+  branchTextNotRead?: boolean | undefined;
 }
 
 type FindLinesNotReadFunction = (data: {
@@ -717,6 +739,38 @@ const readLinesNotRead: ReadLinesNotReadFunction = (
     : null;
 };
 
+type ReadValuesHiddenFunction = (finding: Record<string, unknown>) => {
+  placeholdersWritten?: Array<CodeFilePlaceholderWritten>;
+  branchTextNotRead?: boolean;
+};
+
+/*
+ * What a finding of hidden values says Ask AI's version writes in their
+ * place (issue #6364), when it is well formed: a note for the pull
+ * request's reviewer too, so a damaged one leaves out the note, never the
+ * finding.
+ */
+const readValuesHidden: ReadValuesHiddenFunction = (
+  finding: Record<string, unknown>,
+): {
+  placeholdersWritten?: Array<CodeFilePlaceholderWritten>;
+  branchTextNotRead?: boolean;
+} => {
+  if (finding["unseen"] !== CodeFileUnseen.ValuesHidden) {
+    return {};
+  }
+
+  const placeholdersWritten: Array<CodeFilePlaceholderWritten> | null =
+    readCodePlaceholdersWritten(finding["placeholdersWritten"]);
+
+  return {
+    ...(placeholdersWritten ? { placeholdersWritten } : {}),
+    ...(finding["branchTextNotRead"] === true
+      ? { branchTextNotRead: true }
+      : {}),
+  };
+};
+
 type ReadProposedOnFunction = (value: unknown) => CodeChangeProposedOn | null;
 
 /*
@@ -789,6 +843,7 @@ export const readCodeChangeProposedOn: ReadProposedOnFunction = (
         ? { readOnBranch: finding["readOnBranch"] as string }
         : {}),
       ...(readLinesNotRead(finding) || {}),
+      ...readValuesHidden(finding),
     });
   }
 
