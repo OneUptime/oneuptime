@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "Что поступает из этого приложения, по видам, и что ещё не настроено.",
   "Why nothing arrives": "Почему ничего не поступает",
   "Write log records": "Пишите записи журналов",
-  "not set up": "не настроено"
+  "not set up": "не настроено",
+  "Couldn't load exceptions": "Не удалось загрузить исключения",
+  "Couldn't load logs": "Не удалось загрузить журналы"
 }

@@ -405,6 +405,25 @@ describe("not arriving, and unable to tell", () => {
       copyFor({ signal: "logs", diagnosis: diagnosis("unknown") })?.title,
     ).toBe("Couldn't check why there are no logs");
   });
+
+  test("a range that failed to load never says there are none", () => {
+    expect(
+      copyFor({
+        signal: "exceptions",
+        diagnosis: diagnosis("unknown", { rangeFailed: true }),
+      }),
+    ).toEqual({
+      title: "Couldn't load exceptions",
+      detail: "Something went wrong. Try again in a moment.",
+      action: { kind: "retry", label: "Try again" },
+    });
+    expect(
+      copyFor({
+        signal: "logs",
+        diagnosis: diagnosis("unknown", { rangeFailed: true }),
+      })?.title,
+    ).toBe("Couldn't load logs");
+  });
 });
 
 describe("the setup check's rows", () => {
@@ -713,6 +732,10 @@ describe("in German", () => {
       { signal: "logs", diagnosis: diagnosis("not-set-up", { cause: "sdk" }) },
       { signal: "exceptions", diagnosis: diagnosis("not-arriving") },
       { signal: "logs", diagnosis: diagnosis("unknown") },
+      {
+        signal: "exceptions",
+        diagnosis: diagnosis("unknown", { rangeFailed: true }),
+      },
       {
         signal: "logs",
         diagnosis: diagnosis("quiet", { since: ago(40 * DAY) }),

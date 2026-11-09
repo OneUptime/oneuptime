@@ -30,7 +30,9 @@ import { pickWiderRange } from "../../SessionReplay/SessionReplayEmptyReason";
  *   not-arriving - nothing at all has ever arrived from the application:
  *                  its SDK is not installed, or what it sends never gets
  *                  here (a key, an origin, a Content Security Policy);
- *   unknown      - a read failed: say so, and offer to try again;
+ *   unknown      - a read failed: say so, and offer to try again. When
+ *                  the range's own count failed (rangeFailed), whether
+ *                  anything arrived in it is what is unknown;
  *   loading      - a read is still out.
  *
  * Whether a signal is "set up but quiet" or "not set up" when it has never
@@ -136,6 +138,11 @@ export interface RumSignalDiagnosis {
   since: Date | null;
   // quiet: the narrowest longer named range that shows the last arrival.
   widerRange: RangeStartAndEndDateTime | null;
+  /*
+   * unknown only: the count of the range on screen failed, not the look
+   * back - so the chart cannot say there are none.
+   */
+  rangeFailed?: boolean | undefined;
 }
 
 const HOUR_MS: number = 60 * 60 * 1000;
@@ -268,7 +275,7 @@ export function diagnoseRumSignal(
     }
 
     if (count === null) {
-      return { ...none, state: "unknown" };
+      return { ...none, state: "unknown", rangeFailed: true };
     }
 
     if (count > 0) {

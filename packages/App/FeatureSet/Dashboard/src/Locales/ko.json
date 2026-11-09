@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "이 앱에서 도착하는 것을 종류별로, 그리고 아직 설정되지 않은 것을 보여 줍니다.",
   "Why nothing arrives": "아무것도 도착하지 않는 이유",
   "Write log records": "로그 레코드 쓰기",
-  "not set up": "설정되지 않음"
+  "not set up": "설정되지 않음",
+  "Couldn't load exceptions": "예외를 불러오지 못했습니다",
+  "Couldn't load logs": "로그를 불러오지 못했습니다"
 }

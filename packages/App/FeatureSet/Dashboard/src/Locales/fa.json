@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "آنچه از این برنامه می‌رسد، نوع به نوع، و آنچه هنوز راه‌اندازی نشده است.",
   "Why nothing arrives": "چرا چیزی نمی‌رسد",
   "Write log records": "رکوردهای لاگ را بنویسید",
-  "not set up": "راه‌اندازی نشده"
+  "not set up": "راه‌اندازی نشده",
+  "Couldn't load exceptions": "بارگیری استثناها ممکن نشد",
+  "Couldn't load logs": "بارگیری لاگ‌ها ممکن نشد"
 }

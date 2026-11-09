@@ -155,6 +155,15 @@ export const LOGS_UNKNOWN_TITLE: string = translationKey(
 export const UNKNOWN_DETAIL: string = translationKey(
   "Part of the check didn't load. Try again in a moment.",
 );
+// The range's own count failed: whether any arrived is what is unknown.
+export const EXCEPTIONS_LOAD_FAILED_TITLE: string = translationKey(
+  "Couldn't load exceptions",
+);
+export const LOGS_LOAD_FAILED_TITLE: string =
+  translationKey("Couldn't load logs");
+export const LOAD_FAILED_DETAIL: string = translationKey(
+  "Something went wrong. Try again in a moment.",
+);
 
 export const SET_UP_EXCEPTIONS: string = translationKey("Set up exceptions");
 export const SET_UP_LOGS: string = translationKey("Set up logs");
@@ -465,6 +474,19 @@ export function getRumSignalEmptyCopy(data: {
 
     case "unknown":
     default:
+      if (diagnosis.rangeFailed) {
+        return {
+          title: translate(
+            translator,
+            isExceptions
+              ? EXCEPTIONS_LOAD_FAILED_TITLE
+              : LOGS_LOAD_FAILED_TITLE,
+          ),
+          detail: translate(translator, LOAD_FAILED_DETAIL),
+          action: { kind: "retry", label: translate(translator, TRY_AGAIN) },
+        };
+      }
+
       return {
         title: translate(
           translator,

@@ -99,9 +99,15 @@ describe("diagnoseRumSignal: the range on screen", () => {
   });
 
   test("a count that failed is unknown, never 'not set up'", () => {
-    expect(
-      diagnose({ inRange: { count: null }, app: SILENT_NEW_APP }).state,
-    ).toBe("unknown");
+    expect(diagnose({ inRange: { count: null }, app: SILENT_NEW_APP })).toEqual(
+      {
+        state: "unknown",
+        rangeFailed: true,
+        lastArrivalAt: null,
+        since: null,
+        widerRange: null,
+      },
+    );
   });
 
   test("anything in the range is receiving: the chart draws it", () => {
@@ -131,9 +137,13 @@ describe("diagnoseRumSignal: the range on screen", () => {
   });
 
   test("an empty range whose newest-arrival read failed is unknown", () => {
-    expect(diagnose({ lastArrival: { at: null, failed: true } }).state).toBe(
-      "unknown",
-    );
+    const diagnosis: RumSignalDiagnosis = diagnose({
+      lastArrival: { at: null, failed: true },
+    });
+
+    expect(diagnosis.state).toBe("unknown");
+    // The range itself loaded: it is empty, only the reason is unknown.
+    expect(diagnosis.rangeFailed).toBeUndefined();
   });
 });
 

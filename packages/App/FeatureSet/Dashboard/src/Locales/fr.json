@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "Ce qui arrive de cette application, type par type, et ce qui n'est pas encore configuré.",
   "Why nothing arrives": "Pourquoi rien n'arrive",
   "Write log records": "Écrire des enregistrements de journaux",
-  "not set up": "non configuré"
+  "not set up": "non configuré",
+  "Couldn't load exceptions": "Impossible de charger les exceptions",
+  "Couldn't load logs": "Impossible de charger les journaux"
 }

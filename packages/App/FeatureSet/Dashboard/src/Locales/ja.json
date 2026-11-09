@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "このアプリから届くものを種類ごとに示し、まだセットアップされていないものも示します。",
   "Why nothing arrives": "何も届かない理由",
   "Write log records": "ログレコードを書き込む",
-  "not set up": "未セットアップ"
+  "not set up": "未セットアップ",
+  "Couldn't load exceptions": "例外を読み込めませんでした",
+  "Couldn't load logs": "ログを読み込めませんでした"
 }

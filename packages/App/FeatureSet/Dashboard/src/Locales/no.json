@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "Hva som kommer fra denne appen, type for type, og hva som ikke er satt opp ennå.",
   "Why nothing arrives": "Hvorfor ingenting kommer",
   "Write log records": "Skriv loggposter",
-  "not set up": "ikke satt opp"
+  "not set up": "ikke satt opp",
+  "Couldn't load exceptions": "Kunne ikke laste inn unntak",
+  "Couldn't load logs": "Kunne ikke laste inn logger"
 }

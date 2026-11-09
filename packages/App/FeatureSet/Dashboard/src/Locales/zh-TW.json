@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "此應用程式按類別傳來了哪些資料，以及哪些尚未設定。",
   "Why nothing arrives": "為什麼沒有資料到達",
   "Write log records": "寫入日誌記錄",
-  "not set up": "尚未設定"
+  "not set up": "尚未設定",
+  "Couldn't load exceptions": "無法載入例外",
+  "Couldn't load logs": "無法載入日誌"
 }

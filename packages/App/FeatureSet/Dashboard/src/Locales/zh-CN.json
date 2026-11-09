@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "此应用按类别传来了哪些数据，以及哪些尚未设置。",
   "Why nothing arrives": "为什么没有数据到达",
   "Write log records": "写入日志记录",
-  "not set up": "尚未设置"
+  "not set up": "尚未设置",
+  "Couldn't load exceptions": "无法加载异常",
+  "Couldn't load logs": "无法加载日志"
 }

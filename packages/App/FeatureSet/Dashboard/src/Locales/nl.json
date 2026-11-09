@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "Wat er van deze app binnenkomt, soort voor soort, en wat nog niet is ingesteld.",
   "Why nothing arrives": "Waarom er niets binnenkomt",
   "Write log records": "Logrecords schrijven",
-  "not set up": "niet ingesteld"
+  "not set up": "niet ingesteld",
+  "Couldn't load exceptions": "Kan uitzonderingen niet laden",
+  "Couldn't load logs": "Kan logboeken niet laden"
 }

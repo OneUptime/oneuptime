@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "What arrives from this app, kind by kind, and what is not set up yet.",
   "Why nothing arrives": "Why nothing arrives",
   "Write log records": "Write log records",
-  "not set up": "not set up"
+  "not set up": "not set up",
+  "Couldn't load exceptions": "Couldn't load exceptions",
+  "Couldn't load logs": "Couldn't load logs"
 }

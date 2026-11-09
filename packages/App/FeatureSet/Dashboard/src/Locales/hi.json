@@ -46683,5 +46683,7 @@
   "What arrives from this app, kind by kind, and what is not set up yet.": "इस ऐप से क्या आ रहा है, प्रकार-दर-प्रकार, और क्या अभी सेट अप नहीं है।",
   "Why nothing arrives": "कुछ भी क्यों नहीं आ रहा",
   "Write log records": "लॉग रिकॉर्ड लिखें",
-  "not set up": "सेट अप नहीं है"
+  "not set up": "सेट अप नहीं है",
+  "Couldn't load exceptions": "अपवाद लोड नहीं हो सके",
+  "Couldn't load logs": "लॉग लोड नहीं हो सके"
 }
