@@ -1,4 +1,6 @@
+import AggregationInterval from "../BaseDatabase/AggregationInterval";
 import FilterCondition from "../Filter/FilterCondition";
+import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
 import ObjectID from "../ObjectID";
 import RollingTime from "../RollingTime/RollingTime";
 import { CriteriaAlert } from "./CriteriaAlert";
@@ -787,10 +789,40 @@ export default class TelemetryAlertRuleUtil {
       const metricMonitor: MonitorStepMetricMonitor =
         monitorStep.data.metricMonitor ||
         MonitorStepMetricMonitorUtil.getDefault();
-      monitorStep.setMetricMonitor({
+      const next: MonitorStepMetricMonitor = {
         ...metricMonitor,
         rollingTime: rule.rollingTime,
-      });
+      };
+      const from: AggregationInterval =
+        MetricQueryCloudAggregation.getMetricMonitorReadInterval(metricMonitor);
+      const to: AggregationInterval =
+        MetricQueryCloudAggregation.getMetricMonitorReadInterval(next);
+
+      /*
+       * A window that moves the monitor to other intervals takes each
+       * query's default aggregation for them: a namespace's messages
+       * waiting add up by the minute, a window of up to 3 hours, and keep
+       * the average past it (MetricQueryCloudAggregation). A picked one
+       * stays.
+       */
+      monitorStep.setMetricMonitor(
+        from === to
+          ? next
+          : {
+              ...next,
+              metricViewConfig: {
+                ...MonitorStepMetricMonitorUtil.getMetricViewConfig(next),
+                queryConfigs:
+                  MetricQueryCloudAggregation.withQueriesFollowingInterval({
+                    queryConfigs:
+                      MonitorStepMetricMonitorUtil.getMetricViewConfig(next)
+                        .queryConfigs,
+                    from,
+                    to,
+                  }),
+              },
+            },
+      );
     }
   }
 

@@ -16,8 +16,10 @@ import {
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import {
   getCloudResourceMetricAggregation,
+  getCloudResourceSummedParts,
   hasCloudResourceSummedMetrics,
 } from "../../../Types/Cloud/CloudResourceMetricAggregation";
+import { AZURE_RESOURCE_TYPES } from "../../../Types/Cloud/CloudResourceCatalog";
 import {
   MESSAGE_QUEUE_METRICS,
   MessageQueueMetricDescriptor,
@@ -333,6 +335,78 @@ describe("every other resource keeps the average", () => {
         type: EVENT_HUBS,
       }),
     ).toBe(true);
+  });
+});
+
+/*
+ * What a namespace reports its metrics once per, in the words a moved
+ * monitor's feed entry and OneUptime AI's metric reads say it with: a
+ * Service Bus namespace's queues and topics, an Event Hubs namespace's
+ * event hubs - never one's parts named after the other's.
+ */
+describe("what a namespace's metrics arrive once per", () => {
+  test("a Service Bus namespace: per queue and topic, the average queue", () => {
+    expect(
+      getCloudResourceSummedParts({
+        provider: CloudProvider.Azure,
+        type: SERVICE_BUS,
+      }),
+    ).toEqual({
+      each: "queue and topic",
+      one: "queue",
+      all: "queues and topics",
+    });
+  });
+
+  test("an Event Hubs namespace: per event hub, the average event hub", () => {
+    expect(
+      getCloudResourceSummedParts({
+        provider: CloudProvider.Azure,
+        type: EVENT_HUBS,
+      }),
+    ).toEqual({ each: "event hub", one: "event hub", all: "event hubs" });
+  });
+
+  test("named as Azure and ingest spell the type", () => {
+    for (const type of [
+      "microsoft.servicebus/namespaces",
+      " Microsoft.ServiceBus/Namespaces ",
+    ]) {
+      expect(
+        getCloudResourceSummedParts({ provider: " Azure ", type: type })?.each,
+      ).toBe("queue and topic");
+    }
+  });
+
+  test("every type whose metrics add up is named, and no other", () => {
+    for (const descriptor of AZURE_RESOURCE_TYPES) {
+      const named: boolean = Boolean(
+        getCloudResourceSummedParts({
+          provider: CloudProvider.Azure,
+          type: descriptor.type,
+        }),
+      );
+
+      expect([descriptor.type, named]).toEqual([
+        descriptor.type,
+        hasCloudResourceSummedMetrics({
+          provider: CloudProvider.Azure,
+          type: descriptor.type,
+        }),
+      ]);
+    }
+
+    for (const provider of [CloudProvider.AWS, CloudProvider.GCP, "", null]) {
+      expect(
+        getCloudResourceSummedParts({ provider: provider, type: SERVICE_BUS }),
+      ).toBeUndefined();
+    }
+    expect(
+      getCloudResourceSummedParts({
+        provider: CloudProvider.Azure,
+        type: null,
+      }),
+    ).toBeUndefined();
   });
 });
 
