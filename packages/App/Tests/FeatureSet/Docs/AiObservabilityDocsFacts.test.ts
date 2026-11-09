@@ -97,6 +97,17 @@ import LlmConversationReplay, {
   IDLE_GAP_THRESHOLD_MS,
   REPLAY_SPEEDS,
 } from "Common/Utils/Telemetry/LlmConversationReplay";
+import LlmLogEventsUtil, {
+  LlmLogEventCall,
+  LlmLogEventRecord,
+} from "Common/Utils/Telemetry/LlmLogEvents";
+import {
+  LlmCallContent,
+  LlmMessage,
+} from "Common/Utils/Telemetry/LlmMessageParser";
+import LogEventName, {
+  LogEventNameAttributeKey,
+} from "Common/Types/Log/LogEventName";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -160,6 +171,13 @@ const SOURCES: Record<string, string> = {
   ingestionKeys: `${DASHBOARD}/Pages/Settings/TelemetryIngestionKeys.tsx`,
   tracesNavTabs: `${DASHBOARD}/Components/Traces/TracesNavTabs.tsx`,
   tracesSettingsMenu: `${DASHBOARD}/Pages/Traces/Settings/SideMenu.tsx`,
+  logsNavTabs: `${DASHBOARD}/Components/Logs/LogsNavTabs.tsx`,
+  logsSettingsMenu: `${DASHBOARD}/Pages/Logs/Settings/SideMenu.tsx`,
+  logsIngest:
+    "packages/App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts",
+  conversationService:
+    "packages/Common/Server/Services/LlmConversationService.ts",
+  logEventReader: "packages/Common/Server/Utils/Telemetry/LlmLogEventReader.ts",
   moreFieldsTitle:
     "packages/Common/UI/Components/FoldedSection/FoldedSectionTitles.ts",
   llmSpan: "packages/Common/Server/Utils/Telemetry/LlmSpan.ts",
@@ -214,7 +232,7 @@ const METRIC_FALLBACK_DIMENSION: RegExp =
 const NO_METRIC_SIGNAL_NOTE: RegExp = /noMetricSignalNote: translationKey\(/g;
 // Where a Dashboard path on these pages starts: a menu the product has.
 const PATH_START: RegExp =
-  /^(?:Products|Project Settings|Traces|Team Settings)$/;
+  /^(?:Products|Project Settings|Traces|Logs|Team Settings)$/;
 
 function source(name: string): string {
   return fs.readFileSync(path.join(REPO_DIR, SOURCES[name] as string), "utf8");
@@ -1122,6 +1140,61 @@ describe("the AI / LLM Observability page", () => {
     );
   });
 
+  it("shows what came as log events only to whoever can read the app's logs", () => {
+    const api: string = source("telemetryApi");
+    const service: string = source("conversationService");
+
+    // Both conversation routes read the reader's scope on the Log table.
+    expect(api).toContain("async function getConversationLogScope(");
+    expect(api).toContain("TelemetryReadAccess.getScope(Log, databaseProps)");
+    expect(api.split("logScope: logScope,").length - 1).toBe(2);
+    // A call's log events are read only where its service's logs may be.
+    expect(service).toContain(
+      "TelemetryReadScopeUtil.isReadable(logScope, call.serviceId)",
+    );
+    // The span panel reads them through the Log model, as the Logs page does.
+    expect(source("llmSpanPanel")).toContain("fetchSpanLogEventContent(");
+
+    expect(page).toContain(
+      "A conversation shows them only to whoever can also read that app's logs, and those readers can find them on the **Logs** page too.",
+    );
+  });
+
+  it("sends readers of log events to the logs' scrub rules and drop filters", () => {
+    const ingest: string = source("logsIngest");
+    const held: number = ingest.indexOf("LlmLogEventsUtil.holdContentAsText(");
+
+    expect(allMatches(source("logsSettingsMenu"), MENU_TITLE, 1)).toEqual(
+      expect.arrayContaining(["Drop Filters", "Scrub Rules"]),
+    );
+    expect(source("logsNavTabs")).toContain('label: "Settings",');
+    /*
+     * An inference event's messages are held as text before the logs'
+     * scrub rules run, which mask text: so the rules mask them.
+     */
+    expect(held).toBeGreaterThan(-1);
+    expect(held).toBeLessThan(ingest.indexOf("LogScrubRuleService.scrubLog("));
+
+    const attributes: Record<string, unknown> = {
+      "gen_ai.input.messages": [{ role: "user", content: "a@b.example" }],
+    };
+
+    expect(LlmLogEventsUtil.holdContentAsText(attributes)).toBe(1);
+    expect(typeof attributes["gen_ai.input.messages"]).toBe("string");
+
+    // Connect's privacy line links the logs' scrub rules beside the traces'.
+    const appsPath: string = source("appsPath");
+    expect(appsPath).toContain("RouteMap[PageMap.LOGS_SETTINGS_SCRUB_RULES]");
+    expect(appsPath).toContain("RouteMap[PageMap.TRACES_SETTINGS_SCRUB_RULES]");
+    expect(appsPath).toContain(
+      "or {{logScrubRules}} for prompts sent as log events",
+    );
+
+    expect(page).toContain(
+      "so it is the logs' **Scrub Rules** and **Drop Filters** that apply to them, under **Logs → Settings**",
+    );
+  });
+
   it("lists every attribute ingest reads, in the order it tries them", () => {
     const rows: Array<Array<string>> = rowsOf(
       page,
@@ -1347,6 +1420,7 @@ describe("the AI / LLM Observability page: what is arriving, and from where", ()
       "No app has sent an AI call",
       "An app calls an AI provider's API, and no GenAI instrumentation records it",
       "Calls arrive without prompts or answers",
+      "Prompts and answers arrive as log events",
       "The calls are just outside the time range",
       "A provider account reads no usage",
     ]);
@@ -1369,6 +1443,13 @@ describe("the AI / LLM Observability page: what is arriving, and from where", ()
     );
     expect(words).toContain(
       "Prompts and answers aren't recorded, so conversations show each call's time, tokens and cost but not what was said.",
+    );
+    expect(words).toContain(
+      "Prompts and answers arrive as log events, and conversations show them.",
+    );
+    // What arriving as logs means: their readers, and the logs' scrub rules.
+    expect(words).toContain(
+      "Anyone who can read your apps' logs can read them too. Log scrub rules mask personal data in them before it is stored.",
     );
     expect(words).toContain("Your apps' newest AI call was {{time}}.");
     expect(words).toContain(
@@ -1446,17 +1527,124 @@ describe("the AI / LLM Observability page: what is arriving, and from where", ()
     const snippets: string = source("appsSnippets");
 
     expect(page).toContain(
-      "Python's OpenTelemetry instrumentation records it there with `span_only`; the JavaScript and Java instrumentations, and Python's with `true`, send it as log events, which conversations do not read, and the **Setup check** says so.",
+      "Conversations read what is recorded on the call's span, and the log events the app sends with the call's trace and span id.",
+    );
+    expect(page).toContain(
+      "Python's OpenTelemetry instrumentation records it on the span with `span_only`; the JavaScript and Java instrumentations, and Python's with `true` or `event_only`, send it as log events, which reach OneUptime with the app's logs.",
     );
     expect(snippets).toContain("span_only instead of true");
     // Off until content capture is switched on, and then on the logs signal.
     expect(snippets).toContain(
-      "With content capture on, it sends prompts and answers as log events, which conversations do not show",
+      "With content capture on, it sends prompts and answers as log events, and conversations show them.",
     );
+    // The Java snippet and the any-language one switch it on.
+    expect(
+      snippets.split(
+        "export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true",
+      ).length - 1,
+    ).toBe(2);
+    // Conversations read the GenAI events that carry what was said.
+    expect(source("logEventReader")).toContain("LlmContentEventNames");
     expect(snippets).toContain("UseOpenTelemetry and EnableSensitiveData");
     // The check looks for GenAI events on the logs signal.
     expect(source("setupCheckReader")).toContain(
       "public static buildContentInLogsStatement(",
+    );
+    // And counts only events that say something: capture-off ones do not.
+    expect(source("setupCheckReader")).toContain(
+      "public static hasContentInLogRows(",
+    );
+  });
+
+  it("says how a call's log records are found, and that the span's own content wins", () => {
+    const call: (spanId: string, startMs: number) => LlmLogEventCall = (
+      spanId: string,
+      startMs: number,
+    ): LlmLogEventCall => {
+      return {
+        spanId: spanId,
+        traceId: "t1",
+        startMs: startMs,
+        endMs: startMs + 1000,
+        isModelCall: true,
+      };
+    };
+    const record: (spanId: string, atMs: number) => LlmLogEventRecord = (
+      spanId: string,
+      atMs: number,
+    ): LlmLogEventRecord => {
+      return {
+        traceId: "t1",
+        spanId: spanId,
+        timeUnixNano: `${atMs}000000`,
+        attributes: { [LogEventNameAttributeKey]: "gen_ai.user.message" },
+        body: JSON.stringify({ content: "Hello" }),
+      };
+    };
+
+    // By the call's span id.
+    expect(
+      LlmLogEventsUtil.assignToCalls(
+        [call("a1", 1000), call("b2", 5000)],
+        [record("b2", 1500)],
+      ).get("b2"),
+    ).toHaveLength(1);
+    // No span id: the trace's one model call...
+    expect(
+      LlmLogEventsUtil.assignToCalls(
+        [call("a1", 1000)],
+        [record("", 9000)],
+      ).get("a1"),
+    ).toHaveLength(1);
+    // ...or the one it was sent during, and none when that is not one call.
+    expect(
+      LlmLogEventsUtil.assignToCalls(
+        [call("a1", 1000), call("b2", 5000)],
+        [record("", 5500)],
+      ).get("b2"),
+    ).toHaveLength(1);
+    expect(
+      LlmLogEventsUtil.assignToCalls(
+        [call("a1", 1000), call("b2", 5000)],
+        [record("", 9000)],
+      ).size,
+    ).toBe(0);
+
+    // The record's event name field counts as its `event.name`.
+    const attributes: Record<string, unknown> = {};
+    LogEventName.stampOnAttributes(attributes, {
+      eventName: "gen_ai.choice",
+    });
+    expect(attributes[LogEventNameAttributeKey]).toBe("gen_ai.choice");
+
+    // What the span records wins; the records fill in what it leaves out.
+    const logs: LlmCallContent = LlmLogEventsUtil.readContent([
+      record("a1", 1000),
+    ]);
+    const empty: LlmCallContent = LlmLogEventsUtil.readContent([]);
+    expect(logs.input.length).toBeGreaterThan(0);
+    expect(LlmLogEventsUtil.mergeContent(empty, logs).input).toEqual(
+      logs.input,
+    );
+    const spanQuestion: LlmMessage = {
+      role: "user",
+      name: "",
+      parts: [],
+      finishReason: "",
+    };
+    expect(
+      LlmLogEventsUtil.mergeContent({ ...empty, input: [spanQuestion] }, logs)
+        .input,
+    ).toEqual([spanQuestion]);
+
+    expect(page).toContain(
+      "When a call's span holds no prompt or no answer, it is read from the log records that carry the call's trace and span id",
+    );
+    expect(page).toContain(
+      "A record with the trace's id and no span id goes to the trace's one model call, or to the call it was sent during, and is left out when that is not one call.",
+    );
+    expect(page).toContain(
+      "What the span records wins, so a call recorded both ways shows each message once.",
     );
   });
 

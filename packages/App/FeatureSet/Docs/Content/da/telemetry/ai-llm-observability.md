@@ -44,7 +44,7 @@ Alle tre ligger under **Produkter → AI / LLM → Forbind**. Brug én, to eller
 | Vej ind | Hvad du får | Hvordan |
 | --- | --- | --- |
 | **Dine apps** | Hvert AI-kald, mens det sker: samtalen, personen, prompten og svaret, tokens, omkostninger og fejl | OpenTelemetry fra din kode eller en gateway, i fem trin |
-| **Dine konti hos AI-udbydere** | Hvad hver konto hos OpenAI, Anthropic, Azure, Bedrock eller Vertex AI brugte og kostede, pr. dag | Legitimationsoplysninger, der kun læser, og ingen kode: [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts) |
+| **Dine konti hos AI-udbydere** | Hvad hver konto hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI eller Cursor brugte og kostede, pr. dag eller pr. time | Legitimationsoplysninger, der kun læser, og ingen kode: [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts) |
 | **Din virksomheds AI-værktøjer** | Hvad dine folk spørger Claude Enterprise eller Microsoft 365 Copilot om, pr. person | Legitimationsoplysninger, der kun læser, og ingen kode: [Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools) |
 
 Udbyderkonti og kodningsassistenter bringer forbrug og omkostninger, aldrig et kald: de fylder **Forbrug**, og **Samtaler** og **Kald** forbliver tomme, indtil dine apps sender deres AI-kald, eller et AI-værktøj i virksomheden er forbundet. [Tjek, hvad der kommer ind](#tjek-hvad-der-kommer-ind) viser, hvilken vej der bringer hvad.
@@ -57,7 +57,8 @@ Udbyderkonti og kodningsassistenter bringer forbrug og omkostninger, aldrig et k
 | --- | --- |
 | Ingen app har sendt et AI-kald | [Send dine AI-kald](#send-dine-ai-kald): forbundne udbyderkonti bringer forbrug og omkostninger pr. dag, aldrig et kald |
 | En app kalder en AI-udbyders API, og ingen GenAI-instrumentering registrerer det | Tilføj en til appens sprog: tjekket fandt appens HTTP-klientspans til `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` eller en anden AI-udbyders API |
-| Kald ankommer uden prompts eller svar | [Registrér, hvad der blev sagt](#registrér-hvad-der-blev-sagt), på spans: prompts og svar sendt som loghændelser vises ikke |
+| Kald ankommer uden prompts eller svar | [Registrér, hvad der blev sagt](#registrér-hvad-der-blev-sagt), på spans eller som loghændelser |
+| Prompts og svar ankommer som loghændelser | Intet: samtaler læser dem, og den, der kan læse appens logs, kan også læse dem på siden **Protokoller** |
 | Kaldene ligger lige uden for tidsrummet | Listen tilbyder det tidsrum, der rummer det nyeste |
 | En udbyderkonto læser intet forbrug | Dens linje nævner den seneste dag med forbrug eller den første læste dag; en Azure-forbindelse, der ikke finder nogen ressource, skal have Monitoring Reader der, hvor ressourcerne ligger |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Nyere OpenTelemetry-instrumenteringer tager `span_only`, `event_only` eller `span_and_event` i stedet for `true`. Uden registreret indhold viser en samtale stadig sine tider, sine omkostninger og sine problemer. Prompts kan indeholde følsomme data: [Privatliv og maskering](#privatliv-og-maskering) viser, hvordan du maskerer dem, før de gemmes.
 
-Samtaler læser det, der er registreret på kaldets span. OpenTelemetry-instrumenteringen til Python registrerer det der med `span_only`; instrumenteringerne til JavaScript og Java, og den til Python med `true`, sender det som loghændelser, som samtaler ikke læser, og **Opsætningstjek** siger det. Azures AI Inference SDK registrerer det på spannet med `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI med `EnableSensitiveData`; OpenAI-biblioteket til .NET registrerer intet.
+Samtaler læser det, der er registreret på kaldets span, og de loghændelser, appen sender med kaldets trace- og span-id. OpenTelemetry-instrumenteringen til Python registrerer det på spannet med `span_only`; instrumenteringerne til JavaScript og Java, og den til Python med `true` eller `event_only`, sender det som loghændelser, der når OneUptime med appens logs. Azures AI Inference SDK registrerer det på spannet med `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI med `EnableSensitiveData`; OpenAI-biblioteket til .NET registrerer intet.
 
 ### Saml kald i samtaler
 
@@ -240,7 +241,7 @@ En færdig advarsel opretter en advarsel, der løser sig selv, og viser monitore
 
 Fanen **Forbrug** viser kald, tokens og omkostninger for et tidsrum (de seneste 7 dage, medmindre du vælger et andet) og en tabel over de 25 største i én af fem opdelinger: **Medarbejder**, **Team**, **Model**, **Udbyder** og **Applikation / Tjeneste**. Kald, der ikke nævner nogen, tælles under **Ikke tildelt** og smides aldrig væk.
 
-Det er **Dine AI-kald**. Vælg **Udbyderkonti** i stedet for at se, hvad dine forbundne konti hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI blev faktureret: se [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts#se-forbruget). De to lægges aldrig sammen.
+Det er **Dine AI-kald**. Vælg **Udbyderkonti** i stedet for at se, hvad dine forbundne konti hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI og Cursor blev faktureret: se [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts#se-forbruget). De to lægges aldrig sammen.
 
 Personer og teams kommer fra identitetsattributter på kaldet: se [Tildeling til medarbejdere og teams](/docs/telemetry/ai-coding-assistants#tildeling-til-medarbejdere-og-teams).
 
@@ -315,6 +316,8 @@ GenAI-metrikker som `gen_ai.client.token.usage` og `gen_ai.client.operation.dura
 
 AI-kald gemmes som trace-spans, så traces' **Scrub-regler** og **Drop-filtre** gælder for dem: maskér en attribut, eller drop et span, før det gemmes. Du finder begge under **Spor → Indstillinger**. Medarbejderens e-mailkolonne maskeres sammen med den attribut, den blev læst fra, så en regel, der maskerer e-mails, dækker også den.
 
+Prompts og svar sendt som loghændelser gemmes som logs, så det er logs' **Scrub-regler** og **Drop-filtre**, der gælder for dem, under **Protokoller → Indstillinger**: en regel, der maskerer e-mails i traces, maskerer dem ikke i loghændelser. En samtale viser dem kun til den, der også kan læse appens logs, og den kan også finde dem på siden **Protokoller**.
+
 Samtaler læses med samme tilladelse som traces: den, der kan læse projektets traces, kan læse dets samtaler, og ingen andre. Samtalerne fra et af virksomhedens AI-værktøjer er undtagelsen: kun projektets ejere og administratorer kan læse dem, medmindre forbindelsen siger andet ([Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools#privatliv)).
 
 ## Attributter, som OneUptime læser
@@ -357,6 +360,8 @@ Samtalevisningen læser et kalds beskeder fra, i denne rækkefølge:
 - de indekserede attributter: OpenLLMetrys `gen_ai.prompt.N.content` og `gen_ai.completion.N.content`, OpenInferences `llm.input_messages.N.message.content` og `llm.output_messages.N.message.content`;
 - beskedarrays i `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` og `output.value`.
 
+Når et kalds span ikke rummer nogen prompt eller noget svar, læses det fra de logposter, der bærer kaldets trace- og span-id: de samme hændelser, sendt via logsignalet, navngivet i postens attribut `event.name` eller i dens felt til hændelsesnavnet. En post med tracens id, men uden span-id går til tracens eneste modelkald eller til det kald, den blev sendt under, og udelades, når det ikke er ét kald. Det, spannet registrerer, vinder, så et kald, der er registreret på begge måder, viser hver besked én gang.
+
 ## Fejlfinding
 
 :::details Udbyderkonti er forbundet, men Samtaler og Kald er tomme
@@ -364,7 +369,7 @@ En udbyderkonto bringer det, den brugte og kostede, pr. dag, aldrig et kald elle
 :::
 
 :::details Kald ankommer, men ingen samtaler viser tekst
-Din instrumentering registrerer ikke indhold. Slå det til, som [Registrér, hvad der blev sagt](#registrér-hvad-der-blev-sagt) viser; kald foretaget før det forbliver uden tekst.
+Din instrumentering registrerer ikke indhold, eller den sender det som loghændelser, og appens logs når ikke frem til OneUptime. Slå det til, som [Registrér, hvad der blev sagt](#registrér-hvad-der-blev-sagt) viser, og send logs sammen med traces; kald foretaget før det forbliver uden tekst.
 :::
 
 :::details Hvert kald i en chat vises som sin egen samtale
@@ -386,7 +391,7 @@ Monitorens rullende vindue er kortere end 15 minutter, så nogle gange finder de
 ## Næste trin
 
 :::cards
-- [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts): Forbrug og omkostninger for dine konti hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI, uden kode.
+- [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts): Forbrug og omkostninger for dine konti hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI og Cursor, uden kode.
 - [Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools): Hvad dine folk spørger Claude Enterprise og Microsoft 365 Copilot om.
 - [AI-kodeassistenter](/docs/telemetry/ai-coding-assistants): Forbrug pr. udvikler for Claude Code, Cursor, Codex, Gemini CLI og Copilot.
 - [AI-gateways](/docs/telemetry/ai-gateways): Trace alle apps' modelkald fra én LiteLLM- eller Portkey-gateway.

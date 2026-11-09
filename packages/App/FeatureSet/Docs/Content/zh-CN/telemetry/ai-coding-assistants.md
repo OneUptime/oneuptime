@@ -188,7 +188,7 @@ Codex 默认还会把它的指标发送给 OpenAI：请参阅 [OpenAI Codex](/do
 
 ## OneUptime 尚未做到的事
 
-- **没有编程工具的管理 API 连接器。** OneUptime 会读取这些工具背后的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 账户（ [AI 提供商账户](/docs/telemetry/ai-provider-accounts) ），但不会读取 Cursor 的 Admin API、GitHub 的 Copilot 计费，以及 Windsurf 或 JetBrains 的 API。
+- **除了 Cursor 的，没有编程工具的管理 API 连接器。** OneUptime 会读取这些工具背后的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 账户，以及 Cursor 团队的 Admin API（ [AI 提供商账户](/docs/telemetry/ai-provider-accounts) ），但不会读取 GitHub 的 Copilot 计费，以及 Windsurf 或 JetBrains 的 API。
 - **除非工具报告，否则成本是估算值。** 报告的成本会原样使用；否则 OneUptime 按标价为 token 计价。Cursor 的 `cursor.cost.usage` 本身就是估算值。
 - **不会读取日志记录上的身份。** Codex 只在日志上发送的 `user.email` 不会与支出关联。
 - **尚未读取 Cursor 的 `cursor.user.email`** ，因此 Cursor 用户显示为其整数 `cursor.user.id`。
@@ -201,7 +201,7 @@ Codex 默认还会把它的指标发送给 OpenAI：请参阅 [OpenAI Codex](/do
 
 1. **Gemini CLI** ，如果有人在用的话。它无需设置即可发送 `user.email`，因此能展示端到端的归属效果。也请开启它的跟踪：它不发送成本指标。
 2. **Claude Code** ：为整个团队的机器准备一个托管设置文件，免费获得 `user.email`、真实的成本指标，以及按开发者划分的接受率、提交、拉取请求和代码行数。
-3. **Cursor** ，使用 Enterprise 套餐：在 Cursor 仪表盘中设置一个页面，无需改动任何开发者机器，不过人员会以整数形式到达。
+3. **Cursor** ，使用 Enterprise 套餐：在 Cursor 仪表盘中设置一个页面，无需改动任何开发者机器，不过人员会以整数形式到达。在 Teams 套餐上，或者需要 Cursor 按人员收取的费用时，把它的管理员 API 密钥作为 [提供商账户](/docs/telemetry/ai-provider-accounts#cursor) 连接，可以搭配导出，也可以不用。
 4. **Copilot 和 Codex** ，两者都需要在每台机器上设置身份。请在配置机器时完成：没有身份就到达的调用，事后无法归属。
 5. **LiteLLM 网关** ，用于其他所有工具，每位员工一个虚拟密钥。
 

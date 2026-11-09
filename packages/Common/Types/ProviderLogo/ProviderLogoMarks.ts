@@ -51,6 +51,7 @@ export const PROVIDER_LOGO_MARK_BOXES: Readonly<
   [ProviderLogo.OpenAI]: "-0.001 0.001 256.001 259.527",
   [ProviderLogo.Anthropic]: "0 3.54 24 16.92",
   [ProviderLogo.Claude]: "0.009 0 23.982 24",
+  [ProviderLogo.Cursor]: "1.471 0 21.057 24",
   [ProviderLogo.MistralAI]: "0 3.428 24 17.144",
   [ProviderLogo.Ollama]: "2.92 -0.001 18.159 24.001",
   [ProviderLogo.GoogleCalendar]: "-0.001 -0.001 24.001 24.001",

@@ -50,7 +50,7 @@ export const LLM_CONNECT_WAYS: ReadonlyArray<LlmConnectWay> = [
     key: "providers",
     title: translationKey("Your AI provider accounts"),
     description: translationKey(
-      "What your OpenAI, Anthropic, Azure, Bedrock or Vertex AI accounts used and cost, with no code.",
+      "What your OpenAI, Anthropic, Azure, Bedrock, Vertex AI or Cursor accounts used and cost, with no code.",
     ),
     icon: IconProp.CreditCard,
   },

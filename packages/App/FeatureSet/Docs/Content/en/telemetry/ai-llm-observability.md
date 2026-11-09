@@ -44,7 +44,7 @@ All three are under **Products → AI / LLM → Connect**. Use one, two or all o
 | Way in | What you get | How |
 | --- | --- | --- |
 | **Your apps** | Every AI call as it happens: the conversation, the person, the prompt and the answer, tokens, cost and errors | OpenTelemetry from your code or a gateway, in five steps |
-| **Your AI provider accounts** | What each OpenAI, Anthropic, Azure, Bedrock or Vertex AI account used and cost, by day | A read-only credential and no code: [AI Provider Accounts](/docs/telemetry/ai-provider-accounts) |
+| **Your AI provider accounts** | What each OpenAI, Anthropic, Azure, Bedrock, Vertex AI or Cursor account used and cost, by day or by hour | A read-only credential and no code: [AI Provider Accounts](/docs/telemetry/ai-provider-accounts) |
 | **Your company's AI tools** | What your people ask Claude Enterprise or Microsoft 365 Copilot, by person | A read-only credential and no code: [Company AI Tools](/docs/telemetry/ai-company-tools) |
 
 Provider accounts and coding assistants bring usage and cost, never a call: they fill **Usage**, and **Conversations** and **Calls** stay empty until your apps send their AI calls or a company AI tool is connected. [Check what is arriving](#check-what-is-arriving) shows which way brings what.
@@ -57,7 +57,8 @@ The **Setup check** at the top of **Connect** says what each way in is bringing 
 | --- | --- |
 | No app has sent an AI call | [Send your AI calls](#send-your-ai-calls): connected provider accounts bring usage and cost by day, never a call |
 | An app calls an AI provider's API, and no GenAI instrumentation records it | Add one for the app's language: the check found the app's HTTP client spans to `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` or another AI provider's API |
-| Calls arrive without prompts or answers | [Record what was said](#record-what-was-said) on the spans: prompts and answers sent as log events do not show |
+| Calls arrive without prompts or answers | [Record what was said](#record-what-was-said), on the spans or as log events |
+| Prompts and answers arrive as log events | Nothing: conversations read them, and whoever can read the app's logs can read them on the **Logs** page too |
 | The calls are just outside the time range | The list offers the range that holds the newest one |
 | A provider account reads no usage | Its line says the last day with usage, or the first day read; an Azure connection that finds no resource needs Monitoring Reader where the resources are |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Newer OpenTelemetry instrumentations take `span_only`, `event_only` or `span_and_event` instead of `true`. Without recorded content, a conversation still shows its timing, cost and problems. Prompts can carry sensitive data: [Privacy and redaction](#privacy-and-redaction) shows how to mask it before it is stored.
 
-Conversations read what is recorded on the call's span. Python's OpenTelemetry instrumentation records it there with `span_only`; the JavaScript and Java instrumentations, and Python's with `true`, send it as log events, which conversations do not read, and the **Setup check** says so. Azure's AI Inference SDK records it on the span with `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI with `EnableSensitiveData`; the OpenAI .NET library records none.
+Conversations read what is recorded on the call's span, and the log events the app sends with the call's trace and span id. Python's OpenTelemetry instrumentation records it on the span with `span_only`; the JavaScript and Java instrumentations, and Python's with `true` or `event_only`, send it as log events, which reach OneUptime with the app's logs. Azure's AI Inference SDK records it on the span with `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI with `EnableSensitiveData`; the OpenAI .NET library records none.
 
 ### Group calls into conversations
 
@@ -240,7 +241,7 @@ A ready-made alert raises an alert that resolves itself, and shows the monitor a
 
 The **Usage** tab shows the calls, tokens and cost of a time range (the last 7 days unless you pick another), and a table of the top 25 under one of five breakdowns: **Employee**, **Team**, **Model**, **Provider** and **Application / Service**. Calls that name nobody are counted under **Unattributed**, never dropped.
 
-These are **Your AI calls**. Pick **Provider accounts** instead to see what your connected OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts were billed: see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#see-the-usage). The two are never added together.
+These are **Your AI calls**. Pick **Provider accounts** instead to see what your connected OpenAI, Anthropic, Azure, Bedrock, Vertex AI and Cursor accounts were billed: see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#see-the-usage). The two are never added together.
 
 People and teams come from identity attributes on the call: see [Employee and team attribution](/docs/telemetry/ai-coding-assistants#employee-and-team-attribution).
 
@@ -315,6 +316,8 @@ GenAI metrics such as `gen_ai.client.token.usage` and `gen_ai.client.operation.d
 
 AI calls are stored as trace spans, so the traces' **Scrub Rules** and **Drop Filters** apply to them: mask an attribute, or drop a span, before it is stored. Find both under **Traces → Settings**. The employee email column is scrubbed with the attribute it was read from, so a rule that masks emails covers it too.
 
+Prompts and answers sent as log events are stored as logs, so it is the logs' **Scrub Rules** and **Drop Filters** that apply to them, under **Logs → Settings**: a rule that masks emails on the traces does not mask them in log events. A conversation shows them only to whoever can also read that app's logs, and those readers can find them on the **Logs** page too.
+
 Conversations are read with the same permission as traces: whoever can read the project's traces can read its conversations, and nobody else. The conversations of a company AI tool are the exception: only project owners and admins can read them unless its connection says otherwise ([Company AI Tools](/docs/telemetry/ai-company-tools#privacy)).
 
 ## Attributes OneUptime reads
@@ -357,6 +360,8 @@ The conversation view reads a call's messages from, in this order:
 - the indexed attributes: OpenLLMetry's `gen_ai.prompt.N.content` and `gen_ai.completion.N.content`, OpenInference's `llm.input_messages.N.message.content` and `llm.output_messages.N.message.content`;
 - the message arrays in `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` and `output.value`.
 
+When a call's span holds no prompt or no answer, it is read from the log records that carry the call's trace and span id: the same events, sent on the logs signal, named in the record's `event.name` attribute or its event name field. A record with the trace's id and no span id goes to the trace's one model call, or to the call it was sent during, and is left out when that is not one call. What the span records wins, so a call recorded both ways shows each message once.
+
 ## Troubleshooting
 
 :::details Provider accounts are connected, but Conversations and Calls are empty
@@ -364,7 +369,7 @@ A provider account brings what it used and cost, by day, never a call or a conve
 :::
 
 :::details Calls arrive, but no conversations show any text
-Your instrumentation is not recording content. Turn it on as [Record what was said](#record-what-was-said) shows; calls made before that stay without text.
+Your instrumentation is not recording content, or it sends it as log events and the app's logs do not reach OneUptime. Turn it on as [Record what was said](#record-what-was-said) shows, and send the logs with the traces; calls made before that stay without text.
 :::
 
 :::details Every call of a chat shows as its own conversation
@@ -386,7 +391,7 @@ The monitor's rolling window is shorter than 15 minutes, so it sometimes finds n
 ## Next steps
 
 :::cards
-- [AI Provider Accounts](/docs/telemetry/ai-provider-accounts): Usage and cost of your OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts, with no code.
+- [AI Provider Accounts](/docs/telemetry/ai-provider-accounts): Usage and cost of your OpenAI, Anthropic, Azure, Bedrock, Vertex AI and Cursor accounts, with no code.
 - [Company AI Tools](/docs/telemetry/ai-company-tools): What your people ask Claude Enterprise and Microsoft 365 Copilot.
 - [AI Coding Assistants](/docs/telemetry/ai-coding-assistants): Spend by engineer for Claude Code, Cursor, Codex, Gemini CLI and Copilot.
 - [AI Gateways](/docs/telemetry/ai-gateways): Trace every app's model calls from one LiteLLM or Portkey gateway.

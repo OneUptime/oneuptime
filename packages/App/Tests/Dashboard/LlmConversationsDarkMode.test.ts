@@ -51,6 +51,8 @@ const FILES: Array<string> = [
   "Components/AI/LlmCallsTable.tsx",
   "Components/AI/LlmUsageTotals.tsx",
   "Components/AI/LlmUsageBreakdown.tsx",
+  // A trace span's LLM tab: the call, its log events and their notes.
+  "Components/Traces/LlmSpanPanel.tsx",
 ];
 
 const THEME_CSS_PATH: string = path.join(

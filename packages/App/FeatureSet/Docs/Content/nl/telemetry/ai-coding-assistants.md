@@ -188,7 +188,7 @@ Codex stuurt zijn metrieken ook standaard naar OpenAI: zie [OpenAI Codex](/docs/
 
 ## Wat OneUptime nog niet doet
 
-- **Geen beheerkoppelingen met codeertools.** OneUptime leest de accounts bij OpenAI, Anthropic, Azure, Bedrock en Vertex AI achter de tools ([Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts)), maar niet de Admin API van Cursor, de Copilot-facturatie van GitHub of de API's van Windsurf of JetBrains.
+- **Geen beheerkoppelingen met codeertools, behalve die van Cursor.** OneUptime leest de accounts bij OpenAI, Anthropic, Azure, Bedrock en Vertex AI achter de tools, en de Admin API van een Cursor-team ([Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts)), maar niet de Copilot-facturatie van GitHub of de API's van Windsurf of JetBrains.
 - **Kosten zijn een schatting, tenzij een tool ze meldt.** Gemelde kosten worden gebruikt zoals ze zijn; anders prijst OneUptime tokens tegen lijstprijzen. De `cursor.cost.usage` van Cursor is zelf een schatting.
 - **Identiteit op logrecords wordt niet gelezen.** De `user.email` van Codex, die het alleen in logs stuurt, wordt niet aan de uitgaven gekoppeld.
 - **De `cursor.user.email` van Cursor wordt nog niet gelezen**, dus gebruikers van Cursor verschijnen als hun gehele getal `cursor.user.id`.
@@ -201,7 +201,7 @@ Rol uit in deze volgorde; elke stap is op zichzelf nuttig. Gebruik een project d
 
 1. **Gemini CLI**, als iemand het gebruikt. Het stuurt `user.email` zonder instellingen, dus het laat de toewijzing van begin tot eind werken. Zet ook zijn traces aan: het stuurt geen kostenmetriek.
 2. **Claude Code**: één bestand met beheerde instellingen voor de vloot, `user.email` gratis, een echte kostenmetriek, en acceptatiegraad, commits, pull requests en regels code per ontwikkelaar.
-3. **Cursor**, met het Enterprise-abonnement: één scherm in het dashboard van Cursor, geen ontwikkelaarsmachine aangeraakt, al komen personen binnen als gehele getallen.
+3. **Cursor**, met het Enterprise-abonnement: één scherm in het dashboard van Cursor, geen ontwikkelaarsmachine aangeraakt, al komen personen binnen als gehele getallen. Met het Teams-abonnement, of voor wat Cursor per persoon in rekening bracht, koppel je zijn beheerders-API-sleutel als [provideraccount](/docs/telemetry/ai-provider-accounts#cursor), met of zonder de export.
 4. **Copilot en Codex**, die allebei een identiteit op elke machine nodig hebben. Doe het wanneer je machines inricht: aanroepen die zonder identiteit binnenkwamen, kunnen later niet worden toegewezen.
 5. **Een LiteLLM-gateway** voor al het andere, met één virtuele sleutel per medewerker.
 

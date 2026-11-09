@@ -88,6 +88,8 @@ export const LlmProviders: Array<LlmProviderDefinition> = [
   { name: "x_ai", title: "xAI", aliases: ["xai"] },
   // Sent by tools OneUptime reads, outside the conventions' list.
   { name: "github", title: "GitHub", aliases: [] },
+  // A Cursor team read with its Admin API (a provider account).
+  { name: "cursor", title: "Cursor", aliases: [] },
   { name: "microsoft.copilot", title: "Microsoft 365 Copilot", aliases: [] },
   { name: "openrouter", title: "OpenRouter", aliases: [] },
   { name: "ollama", title: "Ollama", aliases: [] },

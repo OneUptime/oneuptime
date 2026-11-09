@@ -1,0 +1,1465 @@
+{
+  "source": {
+    "instrumentation": "opentelemetry-instrumentation-openai-v2 2.4b0 with opentelemetry-util-genai 0.4b0",
+    "sdk": "opentelemetry-sdk 1.45.2",
+    "client": "openai (Python 3.12)",
+    "settings": "OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=EVENT_ONLY",
+    "protocol": "http/protobuf",
+    "calls": "Against a fake OpenAI server: a plain chat with a system prompt, a tool round trip (the model asks for get_weather, the app answers it), a request for two choices and a streamed answer; JavaScript also makes one Responses API call.",
+    "captured": "2026-11-09"
+  },
+  "logs": {
+    "resourceLogs": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "telemetry.sdk.language",
+              "value": {
+                "stringValue": "python"
+              }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": {
+                "stringValue": "opentelemetry"
+              }
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "value": {
+                "stringValue": "1.45.2"
+              }
+            },
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "py-openai-app"
+              }
+            }
+          ]
+        },
+        "scopeLogs": [
+          {
+            "scope": {
+              "name": "opentelemetry.util.genai.handler",
+              "version": "0.4b0"
+            },
+            "logRecords": [
+              {
+                "body": {},
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake36"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.input.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "system"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "You are a helpful assistant."
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "user"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "Say this is a test."
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.output.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "assistant"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "This is a test answer from the fake OpenAI server."
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "key": "finish_reason",
+                                  "value": {
+                                    "stringValue": "stop"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "DgxAcfNhDSbeaI/RhIyo7A==",
+                "spanId": "4VkCKKodXeE=",
+                "observedTimeUnixNano": "1794198736616355140",
+                "eventName": "gen_ai.client.inference.operation.details"
+              },
+              {
+                "body": {},
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "tool_calls"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake37"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.input.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "user"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "What is the weather in Paris?"
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.output.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "assistant"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "arguments",
+                                                "value": {
+                                                  "kvlistValue": {
+                                                    "values": [
+                                                      {
+                                                        "key": "city",
+                                                        "value": {
+                                                          "stringValue": "Paris"
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "key": "name",
+                                                "value": {
+                                                  "stringValue": "get_weather"
+                                                }
+                                              },
+                                              {
+                                                "key": "id",
+                                                "value": {
+                                                  "stringValue": "call_weather_paris"
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "tool_call"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "key": "finish_reason",
+                                  "value": {
+                                    "stringValue": "tool_calls"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "OwbJBSgLrttoYhvrLHhIyw==",
+                "spanId": "s8At0+H/blE=",
+                "observedTimeUnixNano": "1794198736619382420",
+                "eventName": "gen_ai.client.inference.operation.details"
+              },
+              {
+                "body": {},
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake38"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.input.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "user"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "What is the weather in Paris?"
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "assistant"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "arguments",
+                                                "value": {
+                                                  "kvlistValue": {
+                                                    "values": [
+                                                      {
+                                                        "key": "city",
+                                                        "value": {
+                                                          "stringValue": "Paris"
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "key": "name",
+                                                "value": {
+                                                  "stringValue": "get_weather"
+                                                }
+                                              },
+                                              {
+                                                "key": "id",
+                                                "value": {
+                                                  "stringValue": "call_weather_paris"
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "tool_call"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "tool"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "response",
+                                                "value": {
+                                                  "stringValue": "{\"temperature\": 18, \"sky\": \"sunny\"}"
+                                                }
+                                              },
+                                              {
+                                                "key": "id",
+                                                "value": {
+                                                  "stringValue": "call_weather_paris"
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "tool_call_response"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.output.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "assistant"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "It is 18 degrees and sunny in Paris."
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "key": "finish_reason",
+                                  "value": {
+                                    "stringValue": "stop"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "lyJ0Og+fnuPrb5cQdV7oHw==",
+                "spanId": "WWPVyx+yreM=",
+                "observedTimeUnixNano": "1794198736621638882",
+                "eventName": "gen_ai.client.inference.operation.details"
+              },
+              {
+                "body": {},
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          },
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake39"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.input.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "user"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "Write a haiku about logs."
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.output.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "assistant"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "Answer number 1: a haiku about logs."
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "key": "finish_reason",
+                                  "value": {
+                                    "stringValue": "stop"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "assistant"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "Answer number 2: a haiku about logs."
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "key": "finish_reason",
+                                  "value": {
+                                    "stringValue": "stop"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.choice.count",
+                    "value": {
+                      "intValue": "2"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "dd0Z1fBwBcGVpNAB5F4HUg==",
+                "spanId": "L213fR5VTL8=",
+                "observedTimeUnixNano": "1794198736623299693",
+                "eventName": "gen_ai.client.inference.operation.details"
+              },
+              {
+                "body": {},
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake40"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.input.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "user"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "Stream me an answer."
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.output.messages",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "kvlistValue": {
+                              "values": [
+                                {
+                                  "key": "role",
+                                  "value": {
+                                    "stringValue": "assistant"
+                                  }
+                                },
+                                {
+                                  "key": "parts",
+                                  "value": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "kvlistValue": {
+                                            "values": [
+                                              {
+                                                "key": "content",
+                                                "value": {
+                                                  "stringValue": "This is a test answer from the fake OpenAI server."
+                                                }
+                                              },
+                                              {
+                                                "key": "type",
+                                                "value": {
+                                                  "stringValue": "text"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "key": "finish_reason",
+                                  "value": {
+                                    "stringValue": "stop"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "b94YFPUg5UpO15piv5OZYA==",
+                "spanId": "/lw9mWHBKnU=",
+                "observedTimeUnixNano": "1794198736628981834",
+                "eventName": "gen_ai.client.inference.operation.details"
+              }
+            ],
+            "schemaUrl": "https://opentelemetry.io/schemas/1.37.0"
+          }
+        ]
+      }
+    ]
+  },
+  "traces": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "telemetry.sdk.language",
+              "value": {
+                "stringValue": "python"
+              }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": {
+                "stringValue": "opentelemetry"
+              }
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "value": {
+                "stringValue": "1.45.2"
+              }
+            },
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "py-openai-app"
+              }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {
+              "name": "opentelemetry.util.genai.handler",
+              "version": "0.4b0"
+            },
+            "spans": [
+              {
+                "traceId": "DgxAcfNhDSbeaI/RhIyo7A==",
+                "spanId": "4VkCKKodXeE=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198736606904130",
+                "endTimeUnixNano": "1794198736616457686",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake36"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  }
+                ],
+                "status": {},
+                "flags": 256
+              },
+              {
+                "traceId": "OwbJBSgLrttoYhvrLHhIyw==",
+                "spanId": "s8At0+H/blE=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198736616579656",
+                "endTimeUnixNano": "1794198736619455347",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "tool_calls"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake37"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  }
+                ],
+                "status": {},
+                "flags": 256
+              },
+              {
+                "traceId": "lyJ0Og+fnuPrb5cQdV7oHw==",
+                "spanId": "WWPVyx+yreM=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198736619530066",
+                "endTimeUnixNano": "1794198736621697558",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake38"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  }
+                ],
+                "status": {},
+                "flags": 256
+              },
+              {
+                "traceId": "dd0Z1fBwBcGVpNAB5F4HUg==",
+                "spanId": "L213fR5VTL8=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198736621756575",
+                "endTimeUnixNano": "1794198736623350909",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          },
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake39"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.choice.count",
+                    "value": {
+                      "intValue": "2"
+                    }
+                  }
+                ],
+                "status": {},
+                "flags": 256
+              },
+              {
+                "traceId": "b94YFPUg5UpO15piv5OZYA==",
+                "spanId": "/lw9mWHBKnU=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198736623405403",
+                "endTimeUnixNano": "1794198736629033821",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake40"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  }
+                ],
+                "status": {},
+                "flags": 256
+              }
+            ],
+            "schemaUrl": "https://opentelemetry.io/schemas/1.37.0"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1888,6 +1888,152 @@ describe("the AI / LLM conversation routes", () => {
   });
 });
 
+/*
+ * A conversation's prompts and answers an app sent as GenAI log events, and
+ * the list titles read from them, are LOGS: both conversation routes hand
+ * the reads the caller's log scope - what they may read on the Logs page -
+ * apart from the trace scope the calls themselves are read in, and none
+ * when they may read no app's logs.
+ */
+describe("the AI / LLM conversation routes read log events in the caller's log scope", () => {
+  const LIST: string = "/telemetry/llm/conversations";
+  const DETAIL: string = "/telemetry/llm/conversation";
+
+  interface LogScopes {
+    list: TelemetryReadScope | null;
+    detail: TelemetryReadScope | null;
+  }
+
+  function principalWith(permissions: Array<UserPermission>): Principal {
+    const permissionMap: JSONObject = {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: permissions,
+      },
+    } as unknown as JSONObject;
+
+    return {
+      request: {
+        userType: UserType.User,
+        tenantId: PROJECT_ID,
+        userTenantAccessPermission: permissionMap,
+        userAuthorization: { userId: USER_ID },
+      } as unknown as JSONObject,
+      props: {
+        tenantId: PROJECT_ID,
+        userId: USER_ID,
+        userType: UserType.User,
+        userTeamIds: [TEAM_ID],
+        userTenantAccessPermission: permissionMap as never,
+      },
+    };
+  }
+
+  async function logScopesOf(principal: Principal): Promise<LogScopes> {
+    currentPrincipal = principal;
+    const list: Spy = spyOn(LlmConversationService, "listConversations");
+    list.mockResolvedValue({
+      summary: null,
+      conversations: [],
+      hasMore: false,
+    });
+    const detail: Spy = spyOn(LlmConversationService, "getConversation");
+    detail.mockResolvedValue({ transcript: { steps: [] } });
+
+    const listed: CallResult = await callRoute({
+      uri: LIST,
+      principal: principal,
+      body: {},
+    });
+    const opened: CallResult = await callRoute({
+      uri: DETAIL,
+      principal: principal,
+      body: { key: "c:conv-1" },
+    });
+
+    expect(listed.thrownToNext).toBeUndefined();
+    expect(listed.errorResponse).toBeUndefined();
+    expect(opened.thrownToNext).toBeUndefined();
+    expect(opened.errorResponse).toBeUndefined();
+
+    return {
+      list: (list.mock.calls[0]![0] as { logScope: TelemetryReadScope | null })
+        .logScope,
+      detail: (
+        detail.mock.calls[0]![0] as { logScope: TelemetryReadScope | null }
+      ).logScope,
+    };
+  }
+
+  test.each(PRINCIPALS)(
+    "a %s reader's log events keep exactly the services whose logs they may read",
+    async (principalName: PrincipalName) => {
+      const scopes: LogScopes = await logScopesOf(
+        principalFor(principalName, Permission.ProjectMember),
+      );
+
+      for (const scope of [scopes.list, scopes.detail]) {
+        expect(scope).not.toBeNull();
+        expect(
+          filterOf(TelemetryReadScopeUtil.toServiceFilter(scope!)),
+        ).toEqual(EXPECTED[principalName]);
+      }
+    },
+  );
+
+  test("a reader of traces who may not read logs: no log scope, and the calls are still read", async () => {
+    const scopes: LogScopes = await logScopesOf(
+      principalWith([
+        row(Permission.ReadTelemetryServiceTraces, {
+          scope: PermissionScope.All,
+        }),
+      ]),
+    );
+
+    expect(scopes.list).toBeNull();
+    expect(scopes.detail).toBeNull();
+  });
+
+  test("traces of every app, logs of label A's: the log scope is label A's apps", async () => {
+    const scopes: LogScopes = await logScopesOf(
+      principalWith([
+        row(Permission.ReadTelemetryServiceTraces, {
+          scope: PermissionScope.All,
+        }),
+        row(Permission.ReadTelemetryServiceLog, {
+          scope: PermissionScope.Labels,
+          labelIds: [LABEL_A],
+        }),
+      ]),
+    );
+
+    for (const scope of [scopes.list, scopes.detail]) {
+      expect(TelemetryReadScopeUtil.getReadableIds(scope!)).toEqual([
+        SERVICE_A.toString().toLowerCase(),
+      ]);
+      expect(TelemetryReadScopeUtil.isReadable(scope!, SERVICE_C)).toBe(false);
+    }
+  });
+
+  test("logs granted for a label no app carries: no log scope", async () => {
+    const scopes: LogScopes = await logScopesOf(
+      principalWith([
+        row(Permission.ReadTelemetryServiceTraces, {
+          scope: PermissionScope.All,
+        }),
+        row(Permission.ReadTelemetryServiceLog, {
+          scope: PermissionScope.Labels,
+          labelIds: [ObjectID.generate()],
+        }),
+      ]),
+    );
+
+    expect(scopes.list).toBeNull();
+    expect(scopes.detail).toBeNull();
+  });
+});
+
 describe("every /telemetry/* route", () => {
   // Routes whose scope cases live outside ROUTE_CASES, and where.
   const TESTED_ON_THEIR_OWN: Record<string, string> = {

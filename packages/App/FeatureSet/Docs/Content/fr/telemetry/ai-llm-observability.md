@@ -44,7 +44,7 @@ Toutes trois se trouvent sous **Produits → IA / LLM → Connecter**. Utilisez-
 | Façon d'entrer | Ce que vous obtenez | Comment |
 | --- | --- | --- |
 | **Vos applications** | Chaque appel d'IA au moment où il a lieu : la conversation, la personne, le prompt et la réponse, les jetons, le coût et les erreurs | OpenTelemetry depuis votre code ou une passerelle, en cinq étapes |
-| **Vos comptes de fournisseurs d'IA** | Ce que chaque compte OpenAI, Anthropic, Azure, Bedrock ou Vertex AI a consommé et coûté, par jour | Un identifiant en lecture seule et aucun code : [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts) |
+| **Vos comptes de fournisseurs d'IA** | Ce que chaque compte OpenAI, Anthropic, Azure, Bedrock, Vertex AI ou Cursor a consommé et coûté, par jour ou par heure | Un identifiant en lecture seule et aucun code : [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts) |
 | **Les outils d'IA de votre entreprise** | Ce que vos équipes demandent à Claude Enterprise ou Microsoft 365 Copilot, par personne | Un identifiant en lecture seule et aucun code : [Outils d'IA de l'entreprise](/docs/telemetry/ai-company-tools) |
 
 Les comptes de fournisseurs et les assistants de code apportent l'utilisation et le coût, jamais un appel : ils remplissent **Utilisation**, et **Conversations** et **Appels** restent vides tant que vos applications n'envoient pas leurs appels d'IA ou qu'aucun outil d'IA de l'entreprise n'est connecté. [Vérifier ce qui arrive](#vérifier-ce-qui-arrive) montre quelle voie apporte quoi.
@@ -57,7 +57,8 @@ La **Vérification de la configuration** en haut de **Connecter** indique ce que
 | --- | --- |
 | Aucune application n'a envoyé d'appel d'IA | [Envoyer vos appels d'IA](#envoyer-vos-appels-dia) : les comptes de fournisseurs connectés apportent l'utilisation et le coût par jour, jamais un appel |
 | Une application appelle l'API d'un fournisseur d'IA, et aucune instrumentation GenAI ne l'enregistre | Ajoutez-en une pour le langage de l'application : la vérification a trouvé ses spans client HTTP vers `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` ou l'API d'un autre fournisseur d'IA |
-| Les appels arrivent sans prompts ni réponses | [Enregistrer ce qui a été dit](#enregistrer-ce-qui-a-été-dit) sur les spans : les prompts et les réponses envoyés comme événements de journal n'apparaissent pas |
+| Les appels arrivent sans prompts ni réponses | [Enregistrer ce qui a été dit](#enregistrer-ce-qui-a-été-dit), sur les spans ou comme événements de journal |
+| Les prompts et les réponses arrivent comme événements de journal | Rien : les conversations les lisent, et quiconque peut lire les journaux de l'application peut aussi les lire sur la page **Journaux** |
 | Les appels sont juste en dehors de la période | La liste propose la période qui contient le plus récent |
 | Un compte de fournisseur ne lit aucune utilisation | Sa ligne indique le dernier jour avec utilisation, ou le premier jour lu ; une connexion Azure qui ne trouve aucune ressource a besoin de Monitoring Reader là où se trouvent les ressources |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Les instrumentations OpenTelemetry plus récentes attendent `span_only`, `event_only` ou `span_and_event` au lieu de `true`. Sans contenu enregistré, une conversation montre quand même ses durées, son coût et ses problèmes. Les prompts peuvent contenir des données sensibles : [Confidentialité et masquage](#confidentialité-et-masquage) montre comment les masquer avant leur stockage.
 
-Les conversations lisent ce qui est enregistré sur le span de l'appel. L'instrumentation OpenTelemetry pour Python l'y enregistre avec `span_only` ; les instrumentations pour JavaScript et Java, et celle pour Python avec `true`, l'envoient comme événements de journal, que les conversations ne lisent pas, et la **Vérification de la configuration** le signale. Le SDK AI Inference d'Azure l'enregistre sur le span avec `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI avec `EnableSensitiveData` ; la bibliothèque OpenAI pour .NET n'en enregistre aucun.
+Les conversations lisent ce qui est enregistré sur le span de l'appel, et les événements de journal que l'application envoie avec les identifiants de trace et de span de l'appel. L'instrumentation OpenTelemetry pour Python l'enregistre sur le span avec `span_only` ; les instrumentations pour JavaScript et Java, et celle pour Python avec `true` ou `event_only`, l'envoient comme événements de journal, qui arrivent dans OneUptime avec les journaux de l'application. Le SDK AI Inference d'Azure l'enregistre sur le span avec `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI avec `EnableSensitiveData` ; la bibliothèque OpenAI pour .NET n'en enregistre aucun.
 
 ### Regrouper les appels en conversations
 
@@ -240,7 +241,7 @@ Une alerte prête à l'emploi déclenche une alerte qui se résout d'elle-même,
 
 L'onglet **Utilisation** montre les appels, jetons et coûts d'une période (les 7 derniers jours si vous n'en choisissez pas une autre), et un tableau des 25 premiers selon l'une de cinq ventilations : **Employé**, **Équipe**, **Modèle**, **Fournisseur** et **Application / Service**. Les appels qui ne nomment personne sont comptés sous **Non attribué**, jamais écartés.
 
-Ce sont **Vos appels d'IA**. Choisissez plutôt **Comptes fournisseurs** pour voir ce qui a été facturé à vos comptes OpenAI, Anthropic, Azure, Bedrock et Vertex AI connectés : voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#voir-lutilisation). Les deux ne sont jamais additionnés.
+Ce sont **Vos appels d'IA**. Choisissez plutôt **Comptes fournisseurs** pour voir ce qui a été facturé à vos comptes OpenAI, Anthropic, Azure, Bedrock, Vertex AI et Cursor connectés : voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#voir-lutilisation). Les deux ne sont jamais additionnés.
 
 Les personnes et les équipes viennent des attributs d'identité de l'appel : voir [Attribution aux employés et aux équipes](/docs/telemetry/ai-coding-assistants#attribution-aux-employés-et-aux-équipes).
 
@@ -315,6 +316,8 @@ Les métriques GenAI comme `gen_ai.client.token.usage` et `gen_ai.client.operati
 
 Les appels d'IA sont stockés comme spans de trace, donc les **Règles de masquage** et les **Filtres de suppression** des traces s'appliquent à eux : masquez un attribut, ou écartez un span, avant son stockage. Vous les trouvez tous deux sous **Traces → Paramètres**. La colonne de l'e-mail de l'employé est nettoyée avec l'attribut d'où elle a été lue, si bien qu'une règle qui masque les e-mails la couvre aussi.
 
+Les prompts et les réponses envoyés comme événements de journal sont stockés comme journaux, donc ce sont les **Règles de masquage** et les **Filtres de suppression** des journaux qui s'appliquent à eux, sous **Journaux → Paramètres** : une règle qui masque les e-mails dans les traces ne les masque pas dans les événements de journal. Une conversation ne les montre qu'à qui peut aussi lire les journaux de cette application, et ces lecteurs les trouvent aussi sur la page **Journaux**.
+
 Les conversations sont lues avec la même permission que les traces : quiconque peut lire les traces du projet peut lire ses conversations, et personne d'autre. Les conversations d'un outil d'IA de l'entreprise sont l'exception : seuls les propriétaires et administrateurs du projet peuvent les lire, sauf si leur connexion en décide autrement ([Outils d'IA de l'entreprise](/docs/telemetry/ai-company-tools#confidentialité)).
 
 ## Attributs lus par OneUptime
@@ -357,6 +360,8 @@ La vue de conversation lit les messages d'un appel, dans cet ordre, depuis :
 - les attributs indexés : `gen_ai.prompt.N.content` et `gen_ai.completion.N.content` d'OpenLLMetry, `llm.input_messages.N.message.content` et `llm.output_messages.N.message.content` d'OpenInference ;
 - les tableaux de messages dans `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` et `output.value`.
 
+Quand le span d'un appel ne contient pas de prompt ou pas de réponse, ils sont lus dans les enregistrements de journal qui portent les identifiants de trace et de span de l'appel : les mêmes événements, envoyés par le signal des journaux, nommés dans l'attribut `event.name` de l'enregistrement ou dans son champ de nom d'événement. Un enregistrement qui porte l'identifiant de la trace mais aucun identifiant de span va au seul appel de modèle de la trace, ou à l'appel pendant lequel il a été envoyé, et il est écarté quand ce n'est pas un seul appel. Ce que le span enregistre l'emporte, si bien qu'un appel enregistré des deux façons montre chaque message une seule fois.
+
 ## Dépannage
 
 :::details Des comptes de fournisseurs sont connectés, mais Conversations et Appels sont vides
@@ -364,7 +369,7 @@ Un compte de fournisseur apporte ce qu'il a utilisé et coûté, par jour, jamai
 :::
 
 :::details Des appels arrivent, mais aucune conversation n'affiche de texte
-Votre instrumentation n'enregistre pas le contenu. Activez-le comme le montre [Enregistrer ce qui a été dit](#enregistrer-ce-qui-a-été-dit) ; les appels antérieurs restent sans texte.
+Votre instrumentation n'enregistre pas le contenu, ou elle l'envoie comme événements de journal et les journaux de l'application n'arrivent pas dans OneUptime. Activez-le comme le montre [Enregistrer ce qui a été dit](#enregistrer-ce-qui-a-été-dit), et envoyez les journaux avec les traces ; les appels antérieurs restent sans texte.
 :::
 
 :::details Chaque appel d'un chat apparaît comme sa propre conversation
@@ -386,7 +391,7 @@ La fenêtre glissante du moniteur fait moins de 15 minutes, si bien qu'il ne tro
 ## Étapes suivantes
 
 :::cards
-- [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts): Utilisation et coût de vos comptes OpenAI, Anthropic, Azure, Bedrock et Vertex AI, sans code.
+- [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts): Utilisation et coût de vos comptes OpenAI, Anthropic, Azure, Bedrock, Vertex AI et Cursor, sans code.
 - [Outils d'IA de l'entreprise](/docs/telemetry/ai-company-tools): Ce que vos équipes demandent à Claude Enterprise et Microsoft 365 Copilot.
 - [Assistants de code IA](/docs/telemetry/ai-coding-assistants): Les dépenses par ingénieur pour Claude Code, Cursor, Codex, Gemini CLI et Copilot.
 - [Passerelles IA](/docs/telemetry/ai-gateways): Tracer les appels de modèle de chaque application depuis une passerelle LiteLLM ou Portkey.

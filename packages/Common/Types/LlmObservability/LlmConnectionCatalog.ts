@@ -52,6 +52,19 @@ export interface LlmConnectionField {
   isAdvanced?: boolean | undefined;
 }
 
+/*
+ * Another way the same product comes into OneUptime, named beside the
+ * credential so nobody picks this one not knowing of it: Cursor Enterprise
+ * sends its own OpenTelemetry. The form says it as a footnote, with its
+ * guide - something to add, not a step before the key.
+ */
+export interface LlmConnectionOtherWay {
+  // One sentence on what that way brings, said as an addition.
+  description: string;
+  // Its guide, e.g. "/docs/telemetry/cursor".
+  docsPath: string;
+}
+
 export interface LlmConnectionDefinition {
   provider: LlmConnectionProvider;
   kind: LlmConnectionKind;
@@ -91,6 +104,8 @@ export interface LlmConnectionDefinition {
    * the tokens with its price list and marks the cost as an estimate.
    */
   costIsEstimated: boolean;
+  // Another way the product comes in, shown with the credential's guide.
+  otherWay?: LlmConnectionOtherWay | undefined;
 }
 
 const MICROSOFT_CLOUD_OPTIONS: Array<LlmConnectionFieldOption> = [
@@ -312,6 +327,45 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     pullIntervalInMinutes: 15,
     backfillDays: 30,
     costIsEstimated: true,
+  },
+  {
+    provider: LlmConnectionProvider.Cursor,
+    logo: ProviderLogo.Cursor,
+    kind: LlmConnectionKind.ProviderAccount,
+    title: "Cursor",
+    description:
+      "Usage and cost of your Cursor team by person, not conversations.",
+    summary:
+      "Tokens, requests and cost by hour, person and model, and how many of your members use Cursor. Not what they asked it.",
+    hint: "A team admin creates the key in the Cursor dashboard: Settings, Cursor Admin API Keys. It comes with the Teams and Enterprise plans.",
+    icon: IconProp.Code,
+    genAiProviderName: "cursor",
+    defaultServiceName: "Cursor",
+    docsPath: "/docs/telemetry/ai-provider-accounts#cursor",
+    configFields: [],
+    secretFields: [
+      {
+        key: "apiKey",
+        title: "Admin API key",
+        description:
+          "A Cursor Admin API key. It starts with crsr_. Stored encrypted and never shown again.",
+        type: "password",
+        required: true,
+        placeholder: "crsr_...",
+      },
+    ],
+    /*
+     * Cursor adds its usage up by the hour, and asks to be read at most
+     * once an hour (its Admin API docs, "Poll at appropriate intervals").
+     */
+    pullIntervalInMinutes: 60,
+    backfillDays: 30,
+    costIsEstimated: false,
+    otherWay: {
+      description:
+        "Cursor Enterprise can also send the team's usage as it happens, with its OpenTelemetry Export.",
+      docsPath: "/docs/telemetry/cursor",
+    },
   },
   {
     provider: LlmConnectionProvider.ClaudeEnterprise,

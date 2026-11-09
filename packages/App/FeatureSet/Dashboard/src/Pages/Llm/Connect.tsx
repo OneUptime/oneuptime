@@ -69,9 +69,9 @@ import React, {
  *
  *   Your apps                 the AI calls your own code makes, sent with
  *                             OpenTelemetry (snippets, a key, a gateway);
- *   Your AI provider accounts what an OpenAI, Anthropic, Azure, Bedrock or
- *                             Vertex AI account used and cost - a key, no
- *                             code;
+ *   Your AI provider accounts what an OpenAI, Anthropic, Azure, Bedrock,
+ *                             Vertex AI or Cursor account used and cost - a
+ *                             key, no code;
  *   Your company's AI tools   what your people ask Claude Enterprise or
  *                             Microsoft 365 Copilot, by person, readable by
  *                             owners and admins unless you say otherwise.
@@ -611,7 +611,17 @@ const LlmConnectPage: FunctionComponent<PageComponentProps> = (
                   {lockedNote}
                 </div>
                 <LlmTellYourPeopleNote />
-                <LlmOtherAiTools />
+                {/*
+                 * Cursor is looked for here, and connected with the
+                 * provider accounts: its entry opens that form.
+                 */}
+                <LlmOtherAiTools
+                  canConnect={createGate.isAllowed}
+                  connectDisabledReason={createGate.disabledReason}
+                  onConnect={(provider: LlmConnectionProvider) => {
+                    setFormState({ provider });
+                  }}
+                />
               </div>
             </Card>
 

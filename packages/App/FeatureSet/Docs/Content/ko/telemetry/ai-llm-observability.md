@@ -44,7 +44,7 @@ flowchart TB
 | 연결 방법 | 얻는 것 | 방법 |
 | --- | --- | --- |
 | **내 앱** | 일어나는 즉시 모든 AI 호출: 대화, 사람, 프롬프트와 답변, 토큰, 비용, 오류 | 코드나 게이트웨이에서 보내는 OpenTelemetry, 다섯 단계로 설정 |
-| **AI 공급자 계정** | OpenAI, Anthropic, Azure, Bedrock, Vertex AI 각 계정의 일별 사용량과 비용 | 읽기 전용 자격 증명만 있으면 되고 코드는 필요 없음: [AI 공급자 계정](/docs/telemetry/ai-provider-accounts) |
+| **AI 공급자 계정** | OpenAI, Anthropic, Azure, Bedrock, Vertex AI, Cursor 각 계정의 일별 또는 시간별 사용량과 비용 | 읽기 전용 자격 증명만 있으면 되고 코드는 필요 없음: [AI 공급자 계정](/docs/telemetry/ai-provider-accounts) |
 | **회사의 AI 도구** | 직원들이 Claude Enterprise나 Microsoft 365 Copilot에 묻는 내용, 사람별 | 읽기 전용 자격 증명만 있으면 되고 코드는 필요 없음: [회사의 AI 도구](/docs/telemetry/ai-company-tools) |
 
 공급자 계정과 코딩 도우미는 사용량과 비용을 가져올 뿐 호출은 가져오지 않습니다. 이들이 채우는 곳은 **사용량**이며, **대화**와 **호출**은 앱이 AI 호출을 보내거나 회사의 AI 도구가 연결될 때까지 비어 있습니다. 어떤 방식이 무엇을 가져오는지는 [들어오는 내용 확인하기](#들어오는-내용-확인하기)에서 볼 수 있습니다.
@@ -57,7 +57,8 @@ flowchart TB
 | --- | --- |
 | 어떤 앱도 AI 호출을 보내지 않음 | [AI 호출 보내기](#ai-호출-보내기). 연결된 공급자 계정은 일별 사용량과 비용을 가져올 뿐 호출은 가져오지 않습니다 |
 | 앱이 AI 공급자의 API를 호출하지만 GenAI 계측이 기록하지 않음 | 앱의 언어에 맞는 계측을 추가하세요. 점검에서 앱의 HTTP 클라이언트 스팬이 `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` 또는 다른 AI 공급자의 API로 향하는 것을 찾았습니다 |
-| 호출은 도착하지만 프롬프트와 응답이 없음 | 스팬에 [오간 내용 기록하기](#오간-내용-기록하기). 로그 이벤트로 보낸 프롬프트와 응답은 표시되지 않습니다 |
+| 호출은 도착하지만 프롬프트와 응답이 없음 | 스팬에 또는 로그 이벤트로 [오간 내용 기록하기](#오간-내용-기록하기) |
+| 프롬프트와 응답이 로그 이벤트로 도착함 | 할 일이 없습니다. 대화가 이를 읽으며, 앱의 로그를 읽을 수 있는 사람은 **로그** 페이지에서도 읽을 수 있습니다 |
 | 호출이 기간 바로 바깥에 있음 | 목록에서 최근 호출이 포함된 기간을 제안합니다 |
 | 공급자 계정이 사용량을 읽지 못함 | 그 줄에 사용량이 있었던 마지막 날이나 처음 읽은 날이 표시됩니다. 리소스를 찾지 못하는 Azure 연결에는 리소스가 있는 곳의 Monitoring Reader가 필요합니다 |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 최신 OpenTelemetry 계측은 `true` 대신 `span_only`, `event_only`, `span_and_event`를 받습니다. 기록된 내용이 없어도 대화에는 타이밍, 비용, 문제가 표시됩니다. 프롬프트에는 민감한 데이터가 들어 있을 수 있습니다. 저장 전에 마스킹하는 방법은 [개인정보 보호와 마스킹](#개인정보-보호와-마스킹)에서 설명합니다.
 
-대화는 호출의 스팬에 기록된 내용을 읽습니다. Python용 OpenTelemetry 계측은 `span_only`로 스팬에 기록합니다. JavaScript와 Java용 계측, 그리고 `true`로 설정한 Python용 계측은 이를 로그 이벤트로 보내는데, 대화는 이를 읽지 않으며 **설정 점검**이 이를 알려 줍니다. Azure의 AI Inference SDK는 `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`로 스팬에 기록하고, Microsoft.Extensions.AI는 `EnableSensitiveData`로 기록합니다. .NET용 OpenAI 라이브러리는 아무것도 기록하지 않습니다.
+대화는 호출의 스팬에 기록된 내용과, 앱이 호출의 트레이스 ID와 스팬 ID를 붙여 보내는 로그 이벤트를 읽습니다. Python용 OpenTelemetry 계측은 `span_only`로 스팬에 기록합니다. JavaScript와 Java용 계측, 그리고 `true`나 `event_only`로 설정한 Python용 계측은 이를 로그 이벤트로 보내며, 이 이벤트는 앱의 로그와 함께 OneUptime에 도착합니다. Azure의 AI Inference SDK는 `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`로 스팬에 기록하고, Microsoft.Extensions.AI는 `EnableSensitiveData`로 기록합니다. .NET용 OpenAI 라이브러리는 아무것도 기록하지 않습니다.
 
 ### 호출을 대화로 묶기
 
@@ -240,7 +241,7 @@ trace.get_current_span().add_event(
 
 **사용량** 탭은 기간(다른 기간을 고르지 않으면 지난 7일)의 호출, 토큰, 비용과, 다섯 가지 분류( **직원** , **팀** , **모델** , **공급자** , **애플리케이션 / 서비스** ) 중 하나에 따른 상위 25개 표를 보여 줍니다. 아무도 지목하지 않는 호출은 **미지정** 으로 집계되며, 버려지지 않습니다.
 
-이것은 **내 AI 호출**입니다. 연결된 OpenAI, Anthropic, Azure, Bedrock, Vertex AI 계정에 청구된 금액을 보려면 대신 **공급자 계정**을 선택하세요. [AI 공급자 계정](/docs/telemetry/ai-provider-accounts#사용량-보기)을 참고하세요. 두 데이터는 절대 합산되지 않습니다.
+이것은 **내 AI 호출**입니다. 연결된 OpenAI, Anthropic, Azure, Bedrock, Vertex AI, Cursor 계정에 청구된 금액을 보려면 대신 **공급자 계정**을 선택하세요. [AI 공급자 계정](/docs/telemetry/ai-provider-accounts#사용량-보기)을 참고하세요. 두 데이터는 절대 합산되지 않습니다.
 
 사람과 팀은 호출의 신원 속성에서 가져옵니다. [직원 및 팀 귀속](/docs/telemetry/ai-coding-assistants#직원-및-팀-귀속)을 참조하세요.
 
@@ -315,6 +316,8 @@ flowchart TB
 
 AI 호출은 트레이스 스팬으로 저장되므로, 트레이스의 **스크럽 규칙** 과 **드롭 필터** 가 적용됩니다. 저장 전에 속성을 마스킹하거나 스팬을 버릴 수 있습니다. 둘 다 **트레이스 → 설정** 에 있습니다. 직원 이메일 열은 읽어 온 속성과 함께 스크럽되므로, 이메일을 마스킹하는 규칙이 이 열에도 적용됩니다.
 
+로그 이벤트로 보낸 프롬프트와 응답은 로그로 저장되므로, 로그의 **스크럽 규칙** 과 **드롭 필터** 가 적용되며 둘 다 **로그 → 설정** 에 있습니다. 트레이스에서 이메일을 마스킹하는 규칙은 로그 이벤트의 이메일을 마스킹하지 않습니다. 대화는 그 앱의 로그도 읽을 수 있는 사람에게만 이를 보여 주며, 그런 사람은 **로그** 페이지에서도 찾을 수 있습니다.
+
 대화는 트레이스와 같은 권한으로 읽습니다. 프로젝트의 트레이스를 읽을 수 있는 사람만 대화를 읽을 수 있습니다. 회사 AI 도구의 대화는 예외입니다. 연결에서 따로 정하지 않는 한 프로젝트 소유자와 관리자만 읽을 수 있습니다([회사의 AI 도구](/docs/telemetry/ai-company-tools#개인정보-보호)).
 
 ## OneUptime이 읽는 속성
@@ -357,6 +360,8 @@ OneUptime은 OpenTelemetry GenAI 규칙과 함께 OpenLLMetry, OpenInference, Ve
 - 인덱스가 붙은 속성: OpenLLMetry의 `gen_ai.prompt.N.content`와 `gen_ai.completion.N.content`, OpenInference의 `llm.input_messages.N.message.content`와 `llm.output_messages.N.message.content`.
 - `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value`, `output.value` 안의 메시지 배열.
 
+호출의 스팬에 프롬프트나 응답이 없으면, 호출의 트레이스 ID와 스팬 ID를 가진 로그 레코드에서 읽습니다. 로그 신호로 보낸 같은 이벤트이며, 이름은 레코드의 `event.name` 속성이나 이벤트 이름 필드에 있습니다. 트레이스 ID만 있고 스팬 ID가 없는 레코드는 트레이스의 유일한 모델 호출이나, 그 레코드를 보낸 동안의 호출에 배정되며, 하나의 호출로 정해지지 않으면 제외됩니다. 스팬의 기록이 우선하므로, 두 방식으로 모두 기록된 호출도 각 메시지를 한 번만 보여 줍니다.
+
 ## 문제 해결
 
 :::details 공급자 계정을 연결했는데 대화와 호출이 비어 있음
@@ -364,7 +369,7 @@ OneUptime은 OpenTelemetry GenAI 규칙과 함께 OpenLLMetry, OpenInference, Ve
 :::
 
 :::details 호출은 들어오지만 대화에 텍스트가 표시되지 않음
-계측이 내용을 기록하지 않고 있습니다. [오간 내용 기록하기](#오간-내용-기록하기)에 나온 대로 켜세요. 그 전에 만들어진 호출은 텍스트 없이 남습니다.
+계측이 내용을 기록하지 않거나, 로그 이벤트로 보내는데 앱의 로그가 OneUptime에 도착하지 않고 있습니다. [오간 내용 기록하기](#오간-내용-기록하기)에 나온 대로 켜고, 로그도 트레이스와 함께 보내세요. 그 전에 만들어진 호출은 텍스트 없이 남습니다.
 :::
 
 :::details 채팅의 호출이 각각 별개의 대화로 표시됨
@@ -386,7 +391,7 @@ OneUptime은 OpenTelemetry GenAI 규칙과 함께 OpenLLMetry, OpenInference, Ve
 ## 다음 단계
 
 :::cards
-- [AI 공급자 계정](/docs/telemetry/ai-provider-accounts): OpenAI, Anthropic, Azure, Bedrock, Vertex AI 계정의 사용량과 비용을 코드 없이.
+- [AI 공급자 계정](/docs/telemetry/ai-provider-accounts): OpenAI, Anthropic, Azure, Bedrock, Vertex AI, Cursor 계정의 사용량과 비용을 코드 없이.
 - [회사의 AI 도구](/docs/telemetry/ai-company-tools): 직원들이 Claude Enterprise와 Microsoft 365 Copilot에 묻는 내용.
 - [AI 코딩 어시스턴트](/docs/telemetry/ai-coding-assistants): Claude Code, Cursor, Codex, Gemini CLI, Copilot의 엔지니어별 지출.
 - [AI 게이트웨이](/docs/telemetry/ai-gateways): LiteLLM 또는 Portkey 게이트웨이 하나로 모든 앱의 모델 호출을 트레이스합니다.
