@@ -1,9 +1,13 @@
-import {
-  DiscoveryImportView,
-  isDiscoveryImportActive,
-} from "Common/Types/NetworkDevice/DiscoveryImport";
+import { DiscoveryImportView } from "Common/Types/NetworkDevice/DiscoveryImport";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  getActiveDiscoveredDeviceImports,
+  indexActiveImportsByScan,
+} from "./DiscoveryImportActive";
 import { listActiveDiscoveryImports } from "./DiscoveryImportApi";
+
+// React-free, for App's tests (DiscoveryImportActive); re-exported here.
+export { getActiveDiscoveredDeviceImports, indexActiveImportsByScan };
 
 /*
  * The project's imports that have not finished, by scan, for the scans
@@ -24,38 +28,6 @@ export interface ActiveDiscoveryImports {
   // Imports of rows of the Discovered Devices list, oldest first.
   fromDiscoveredDevices: Array<DiscoveryImportView>;
   refresh: () => void;
-}
-
-export function indexActiveImportsByScan(
-  imports: ReadonlyArray<DiscoveryImportView>,
-): Map<string, DiscoveryImportView> {
-  const byScanId: Map<string, DiscoveryImportView> = new Map<
-    string,
-    DiscoveryImportView
-  >();
-
-  // The oldest active import of a scan is the one running; later ones wait.
-  for (const view of imports) {
-    // An import from the Discovered Devices list belongs to no scan's row.
-    if (!view.scanId) {
-      continue;
-    }
-
-    if (isDiscoveryImportActive(view.status) && !byScanId.has(view.scanId)) {
-      byScanId.set(view.scanId, view);
-    }
-  }
-
-  return byScanId;
-}
-
-// The active imports of rows of the Discovered Devices list, oldest first.
-export function getActiveDiscoveredDeviceImports(
-  imports: ReadonlyArray<DiscoveryImportView>,
-): Array<DiscoveryImportView> {
-  return imports.filter((view: DiscoveryImportView): boolean => {
-    return !view.scanId && isDiscoveryImportActive(view.status);
-  });
 }
 
 export default function useActiveDiscoveryImports(): ActiveDiscoveryImports {

@@ -72,7 +72,7 @@ import {
 import {
   getActiveDiscoveredDeviceImports,
   indexActiveImportsByScan,
-} from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/useActiveDiscoveryImports";
+} from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportActive";
 
 const postMock: jest.Mock = API.post as unknown as jest.Mock;
 const getCommonHeadersMock: jest.Mock =
