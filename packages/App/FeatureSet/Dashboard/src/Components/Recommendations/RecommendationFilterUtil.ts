@@ -1,6 +1,12 @@
 import ObjectID from "Common/Types/ObjectID";
 import { MonitorRecommendation } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
+import { Translator } from "Common/Types/Translator";
+import { getAlertTemplateCategoryLabel } from "../Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
+import {
+  getAlertTemplateName,
+  getAlertTemplateSummary,
+} from "../Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 import {
   RecommendationCategoryGroup,
   RecommendationCounts,
@@ -167,6 +173,12 @@ export default class RecommendationFilterUtil {
   public static matchesSearch(data: {
     viewModel: RecommendationViewModel;
     searchText: string;
+    /*
+     * The reader's: a card is found by the words it shows (its name, its
+     * line, its heading and its severity in their language), as well as by
+     * the catalog's English, which its description and metric names keep.
+     */
+    translator?: Translator | undefined;
   }): boolean {
     const searchText: string = data.searchText.trim().toLowerCase();
 
@@ -176,16 +188,50 @@ export default class RecommendationFilterUtil {
 
     const recommendation: MonitorRecommendation = data.viewModel.recommendation;
 
-    const haystack: Array<string> = [
+    return this.getSearchTexts({
+      recommendation: recommendation,
+      translator: data.translator,
+    }).some((field: string) => {
+      return (field || "").toLowerCase().includes(searchText);
+    });
+  }
+
+  /*
+   * What a search finds a recommendation by: the catalog's English (its
+   * name, its line, its description, its category and severity) and, for
+   * a reader of another language, the words its card draws.
+   */
+  public static getSearchTexts(data: {
+    recommendation: MonitorRecommendation;
+    translator?: Translator | undefined;
+  }): Array<string> {
+    const recommendation: MonitorRecommendation = data.recommendation;
+
+    const texts: Array<string> = [
       recommendation.name,
+      recommendation.summary || "",
       recommendation.description,
       recommendation.category,
       recommendation.severity,
     ];
 
-    return haystack.some((field: string) => {
-      return (field || "").toLowerCase().includes(searchText);
-    });
+    if (data.translator) {
+      const categoryLabel: string =
+        getAlertTemplateCategoryLabel(
+          recommendation.resourceType,
+          recommendation.category,
+        ) || recommendation.category;
+
+      texts.push(
+        getAlertTemplateName(data.translator, recommendation),
+        getAlertTemplateSummary(data.translator, recommendation),
+        data.translator.translateText(categoryLabel) || categoryLabel,
+        data.translator.translateText(recommendation.severity) ||
+          recommendation.severity,
+      );
+    }
+
+    return texts;
   }
 
   public static matchesStatus(data: {
@@ -216,12 +262,15 @@ export default class RecommendationFilterUtil {
   public static filter(data: {
     viewModels: Array<RecommendationViewModel>;
     filterState: RecommendationFilterState;
+    // The reader's, so a search in their language finds what the cards say.
+    translator?: Translator | undefined;
   }): Array<RecommendationViewModel> {
     return data.viewModels.filter((viewModel: RecommendationViewModel) => {
       return (
         this.matchesSearch({
           viewModel: viewModel,
           searchText: data.filterState.searchText,
+          translator: data.translator,
         }) &&
         this.matchesStatus({
           viewModel: viewModel,

@@ -89,6 +89,10 @@ import {
   RecommendationStatusFilter,
 } from "./RecommendationViewModel";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import {
+  getAlertTemplateName,
+  getAlertTemplateSummary,
+} from "../Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 
 export interface ComponentProps {
   // The account's cloud and its id there: what its resources are read by.
@@ -500,6 +504,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
     CloudAccountRecommendationPlan.filterGroups({
       groups: groups,
       filterState: filterState,
+      translator: translator,
     });
 
   const gaps: CloudAccountRecommendationGaps =
@@ -615,7 +620,10 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
               title: "Add",
               ariaLabel: translator.translateTemplate(
                 "Add {{name}} to {{resource}}",
-                { name: row.name, resource: target.resource.resourceName },
+                {
+                  name: getAlertTemplateName(translator, row),
+                  resource: target.resource.resourceName,
+                },
               ),
               dataTestId: `cloud-account-recommendation-add-one-${row.recommendationId}-${target.resource.resourceId}`,
               buttonStyle: ButtonStyleType.OUTLINE,
@@ -666,13 +674,15 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
         <div className={`flex flex-col gap-3 ${WIDE_ROW}`}>
           <div className="min-w-0 [@container(min-width:36rem)]:flex-1">
             {/*
-             * The catalog's name and sentence are English on every page,
-             * so each reads as written - its full stop at its end - on a
-             * Persian one too (IsolatedText).
+             * The template's name and its line in the reader's language,
+             * each in an isolate that reads the way most of its letters do:
+             * a description (a row with no line) is the catalog's English,
+             * and reads as written - its full stop at its end - on a Persian
+             * page too.
              */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold text-gray-900">
-                <IsolatedText text={row.name} />
+                <IsolatedText text={getAlertTemplateName(translator, row)} />
               </span>
               <StatusBadge
                 text={row.severity}
@@ -682,7 +692,11 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
               />
             </div>
             <p className="mt-1 text-xs leading-relaxed text-gray-500">
-              <IsolatedText text={row.summary || row.description} />
+              <IsolatedText
+                text={
+                  getAlertTemplateSummary(translator, row) || row.description
+                }
+              />
             </p>
             {/*
              * How many of its resources have it, and the way to them, on
@@ -747,7 +761,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
                     "Add {{name}} to the {{count}} resources still without it",
                 },
                 available.length,
-                { name: row.name },
+                { name: getAlertTemplateName(translator, row) },
               ),
               dataTestId: `cloud-account-recommendation-add-${row.recommendationId}`,
               buttonStyle: ButtonStyleType.OUTLINE,

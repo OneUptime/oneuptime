@@ -14,6 +14,10 @@ import {
   RecommendationStatus,
   RecommendationViewModel,
 } from "./RecommendationViewModel";
+import {
+  getAlertTemplateName,
+  getAlertTemplateSummary,
+} from "../Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 
 export interface ComponentProps {
   viewModel: RecommendationViewModel;
@@ -68,15 +72,33 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
   const description: string = props.viewModel.recommendation.description || "";
 
   /*
-   * A recommendation with a one-line summary (every infrastructure template
-   * has one) shows that line; its full description - how the value is
-   * computed, which metric it reads, its caveats - waits behind Show more.
-   * Without one, the description is the card's line, clamped when long.
+   * Its name and the one line that says when it fires, in the reader's
+   * language: both are keys of the template's catalog.
    */
-  const summary: string = props.viewModel.recommendation.summary?.trim() || "";
+  const name: string = getAlertTemplateName(
+    translator,
+    props.viewModel.recommendation,
+  );
+
+  /*
+   * A recommendation with a one-line summary (every catalog's templates
+   * have one) shows that line; its full description - how the value is
+   * computed, which metric it reads, its caveats - waits behind Show more,
+   * as the catalog writes it. Without one, the description is the card's
+   * line, clamped when long.
+   */
+  const englishSummary: string =
+    props.viewModel.recommendation.summary?.trim() || "";
+
+  const summary: string = getAlertTemplateSummary(
+    translator,
+    props.viewModel.recommendation,
+  );
 
   const hasSummary: boolean =
-    summary.length > 0 && description.length > 0 && summary !== description;
+    englishSummary.length > 0 &&
+    description.length > 0 &&
+    englishSummary !== description;
 
   const isDescriptionClampable: boolean =
     !hasSummary && description.length > DESCRIPTION_CLAMP_CHARACTER_COUNT;
@@ -168,7 +190,7 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
           className="absolute inset-0 z-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
           aria-pressed={props.isSelected}
           aria-label={translator.translateTemplate("Select {{name}}", {
-            name: props.viewModel.recommendation.name,
+            name: name,
           })}
           data-testid={`recommendation-card-select-${props.viewModel.recommendation.recommendationId}`}
           onClick={toggleSelection}
@@ -216,10 +238,11 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
               }`}
             >
               {/*
-               * The catalog's words are English on every page: each reads
-               * as written, its full stop at its end, on a Persian one too.
+               * In an isolate that reads the way most of its letters do: a
+               * name a language keeps in English reads as written, its full
+               * stop at its end, on a Persian page too.
                */}
-              <IsolatedText text={props.viewModel.recommendation.name} />
+              <IsolatedText text={name} />
             </span>
             <StatusBadge
               text={props.viewModel.recommendation.severity}
@@ -317,7 +340,7 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             aria-label={translator.translateTemplate("Dismiss {{name}}", {
-              name: props.viewModel.recommendation.name,
+              name: name,
             })}
             title={translator.translateText("Dismiss this recommendation")}
             className="pointer-events-auto relative z-20 ml-2 flex-shrink-0 rounded p-1 text-gray-300 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 group-hover:opacity-100"

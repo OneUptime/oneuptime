@@ -1,5 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The alert templates of an infrastructure monitor type (Host, Docker,
@@ -13,8 +13,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export interface AlertTemplatePickerTemplate {
   id: string;
-  // Shown as written: template names are English in every language.
+  /*
+   * A key of its catalog (translationKey in Common/Types/Monitor's
+   * *AlertTemplates.ts), drawn in the reader's language - getAlertTemplateName.
+   */
   name: string;
+  // The same: getAlertTemplateSummary.
   summary: string;
   description: string;
   severity: string;
@@ -74,6 +78,31 @@ export const INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION: string =
   translationKey(
     "Start from a template, or pick a metric or build a query yourself.",
   );
+
+/*
+ * A template's name and its one line in the reader's language: the picker's
+ * rows, a resource's Recommendations cards, a cloud account's rows and the
+ * dialogs that name one. Both are keys of the template's catalog, worded in
+ * every language (App guard AlertTemplateWordsInEveryLanguage); a key a
+ * language has no words for reads as written. Only these two: a template's
+ * description (the metric it reads, its formula, its caveats), the monitor
+ * it builds and that monitor's incidents stay as the catalog writes them.
+ */
+export function getAlertTemplateName(
+  translator: Translator,
+  template: { name: string },
+): string {
+  return translator.translateText(template.name) || template.name;
+}
+
+export function getAlertTemplateSummary(
+  translator: Translator,
+  template: { summary?: string | undefined },
+): string {
+  const summary: string = (template.summary || "").trim();
+
+  return summary ? translator.translateText(summary) || summary : "";
+}
 
 /*
  * The templates in the order the picker shows them: under the categories

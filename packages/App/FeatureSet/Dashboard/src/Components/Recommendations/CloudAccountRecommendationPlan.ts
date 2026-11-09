@@ -19,7 +19,12 @@ import {
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
-import { PluralTemplate } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getAlertTemplateCategoryLabel } from "../Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
+import {
+  getAlertTemplateName,
+  getAlertTemplateSummary,
+} from "../Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
 import type { MonitorRecommendationProjectDefaults } from "./MonitorRecommendationProjectSetup";
 import RecommendationFilterUtil from "./RecommendationFilterUtil";
@@ -653,11 +658,13 @@ export default class CloudAccountRecommendationPlan {
    * row left is left out. A row is in a status when one of its resources
    * is (Not set up yet: one still to set up), and found by its name, its
    * summary, its description, its type, or the name of a resource it is
-   * offered to.
+   * offered to - in the catalog's English, and with a translator, in the
+   * words the row draws in the reader's language.
    */
   public static filterGroups(data: {
     groups: Array<CloudAccountRecommendationGroup>;
     filterState: RecommendationFilterState;
+    translator?: Translator | undefined;
   }): Array<CloudAccountRecommendationGroup> {
     const searchText: string = data.filterState.searchText.trim().toLowerCase();
 
@@ -711,6 +718,20 @@ export default class CloudAccountRecommendationPlan {
           },
         ),
       ];
+
+      if (data.translator) {
+        const categoryLabel: string =
+          getAlertTemplateCategoryLabel(
+            MonitorRecommendationResourceType.CloudResource,
+            row.category,
+          ) || row.category;
+
+        texts.push(
+          getAlertTemplateName(data.translator, row),
+          getAlertTemplateSummary(data.translator, row),
+          data.translator.translateText(categoryLabel) || categoryLabel,
+        );
+      }
 
       return texts.some((text: string): boolean => {
         return text.toLowerCase().includes(searchText);

@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -23,6 +24,8 @@ import {
   AlertTemplateGroup,
   AlertTemplatePickerTemplate,
   getAlertTemplateIdAfterKey,
+  getAlertTemplateName,
+  getAlertTemplateSummary,
   getAlertTemplateTabStopId,
   getAlertTemplatesInDrawnOrder,
   getPickedAlertTemplate,
@@ -36,7 +39,10 @@ import {
  * Quick Setup's template list, shared by every infrastructure monitor type.
  *
  * Nothing picked: one compact row per template - its name, its severity,
- * and one line that says when it fires - under the type's headings.
+ * and one line that says when it fires - under the type's headings. The
+ * name and the line are the reader's language (getAlertTemplateName,
+ * getAlertTemplateSummary); the description behind Show more, which names
+ * the metric and its formula, stays as written.
  *
  * Picked: the list folds into the picked template, the way the monitor
  * type picker on this form folds into the type. Its row stays with a Change
@@ -230,7 +236,9 @@ function AlertTemplatePicker<T extends AlertTemplatePickerTemplate>(
                   className="text-sm font-medium text-gray-900"
                   data-testid="alert-template-picked-name"
                 >
-                  {pickedTemplate.name}
+                  <IsolatedText
+                    text={getAlertTemplateName(translator, pickedTemplate)}
+                  />
                 </span>
                 {renderSeverity(
                   pickedTemplate,
@@ -241,7 +249,9 @@ function AlertTemplatePicker<T extends AlertTemplatePickerTemplate>(
                 className="mt-0.5 text-xs leading-5 text-gray-500"
                 data-testid="alert-template-picked-summary"
               >
-                {pickedTemplate.summary}
+                <IsolatedText
+                  text={getAlertTemplateSummary(translator, pickedTemplate)}
+                />
               </p>
               {hasDetails && isDescriptionShown ? (
                 <p
@@ -249,7 +259,11 @@ function AlertTemplatePicker<T extends AlertTemplatePickerTemplate>(
                   className="mt-1.5 text-xs leading-5 text-gray-500"
                   data-testid="alert-template-description"
                 >
-                  {pickedTemplate.description}
+                  {/*
+                   * As the catalog writes it, metric names and all: on a
+                   * Persian page it keeps its full stop at its end.
+                   */}
+                  <IsolatedText text={pickedTemplate.description} />
                 </p>
               ) : (
                 <></>
@@ -323,7 +337,7 @@ function AlertTemplatePicker<T extends AlertTemplatePickerTemplate>(
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-sm font-medium text-gray-900">
-              {template.name}
+              <IsolatedText text={getAlertTemplateName(translator, template)} />
             </span>
             {renderSeverity(template, `alert-template-severity-${template.id}`)}
           </div>
@@ -331,7 +345,9 @@ function AlertTemplatePicker<T extends AlertTemplatePickerTemplate>(
             className="mt-0.5 text-xs leading-5 text-gray-500"
             data-testid={`alert-template-summary-${template.id}`}
           >
-            {template.summary}
+            <IsolatedText
+              text={getAlertTemplateSummary(translator, template)}
+            />
           </p>
         </div>
         {isSelected ? (

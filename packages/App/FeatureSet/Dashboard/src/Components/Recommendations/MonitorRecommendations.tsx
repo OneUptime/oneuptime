@@ -104,6 +104,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { ActiveMonitorLimitStatus } from "Common/Types/Monitor/ActiveMonitorLimit";
 import { readActiveMonitorLimitIfReached } from "../Monitor/ActiveMonitorLimitNotice";
 import { orderAlertTemplateCategories } from "../Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
+import { getAlertTemplateName } from "../Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 
 export interface ComponentProps {
   resourceType: MonitorRecommendationResourceType;
@@ -807,6 +808,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       viewModels: RecommendationFilterUtil.filter({
         viewModels: viewModels,
         filterState: filterState,
+        translator: translator,
       }),
       categories: categories,
     });
@@ -1205,7 +1207,10 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       {dismissTarget ? (
         <ConfirmModal
           title={translator.translateTemplate('Dismiss "{{name}}"?', {
-            name: dismissTarget.recommendation.name,
+            name: getAlertTemplateName(
+              translator,
+              dismissTarget.recommendation,
+            ),
           })}
           description={
             <div className="space-y-3">

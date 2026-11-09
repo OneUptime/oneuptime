@@ -41,6 +41,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { MonitorRecommendationCreateProgress } from "./MonitorRecommendationCreateRunner";
 import { ActiveMonitorLimitStatus } from "Common/Types/Monitor/ActiveMonitorLimit";
 import { ActiveMonitorLimitAlert } from "../Monitor/ActiveMonitorLimitNotice";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import { getAlertTemplateName } from "../Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 
 export interface ComponentProps {
   selectedRecommendations: Array<MonitorRecommendation>;
@@ -617,7 +619,18 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                     className="flex items-center justify-between gap-3 px-1 py-2 text-sm text-gray-700"
                   >
                     <span className="min-w-0 break-words">
-                      {props.monitorNames?.[index] || recommendation.name}
+                      {/*
+                       * The name each monitor is saved with, when the page
+                       * knows it (a cloud account's, "web-1 - High CPU"):
+                       * the catalog's English, as every member reads it.
+                       * Otherwise what is recommended, in the reader's words.
+                       */}
+                      <IsolatedText
+                        text={
+                          props.monitorNames?.[index] ||
+                          getAlertTemplateName(translator, recommendation)
+                        }
+                      />
                     </span>
                     <span
                       className={`flex-none text-xs ${
