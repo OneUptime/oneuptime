@@ -93,10 +93,11 @@ Serviços, hosts, clusters Kubernetes, hosts Docker e Podman, clusters Docker Sw
 | Session Replays | 7 dias, salvo alteração | A política de gravação da aplicação RUM: veja [Gerenciar aplicações](/docs/rum/applications#retenção-da-reprodução-de-sessões). |
 | Registros de monitores, uma linha por verificação | 1 dia, salvo alteração | Em uma instalação de hospedagem própria, **Retenção de Registros do Monitor (Dias)** no Admin Dashboard |
 | Métricas de monitores, e as métricas que os SLOs registram | 30 dias, salvo alteração | Em uma instalação de hospedagem própria, **Retenção de Métricas do Monitor (Dias)** no Admin Dashboard |
+| [Uso de telemetria](/docs/telemetry/usage), uma contagem por recurso, sinal e dia | 120 dias, salvo alteração | Em uma instalação de hospedagem própria, **Retenção do Uso de Telemetria (Dias)** no Admin Dashboard |
 
 ## Quanto custa a retenção
 
-- **No OneUptime Cloud**, a telemetria é cobrada por GB ingerido, e o preço por GB inclui 15 dias de retenção. Uma retenção mais longa custa proporcionalmente mais: 30 dias custam o dobro por GB que 15. Uma retenção mais curta custa proporcionalmente menos, mas uma retenção de menos de 7 dias é cobrada como 7 dias. **Configurações do projeto → Cobrança e faturas → Histórico de uso** mostra, dia a dia, quanto cada serviço enviou e por quanto tempo isso é mantido.
+- **No OneUptime Cloud**, a telemetria é cobrada por GB ingerido, e o preço por GB inclui 15 dias de retenção. Uma retenção mais longa custa proporcionalmente mais: 30 dias custam o dobro por GB que 15. Uma retenção mais curta custa proporcionalmente menos, mas uma retenção de menos de 7 dias é cobrada como 7 dias. **Configurações do projeto → Telemetria e APM → Uso** mostra, dia a dia, quanto cada serviço enviou e por quanto tempo isso é mantido.
 - **Na hospedagem própria**, a telemetria fica no ClickHouse, e a retenção multiplica o disco dele. Veja [Dimensionamento](/docs/installation/sizing#a-retenção-e-como-ela-afeta-o-armazenamento).
 
 A telemetria de que você não precisa não custa nada se nunca for armazenada: os [Filtros de descarte e regras de mascaramento](/docs/telemetry/drop-filters-and-scrub-rules) a descartam quando ela chega.

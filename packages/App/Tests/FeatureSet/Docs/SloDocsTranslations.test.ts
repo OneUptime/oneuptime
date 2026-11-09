@@ -352,6 +352,8 @@ const NUMBERS: Record<string, Array<string>> = {
     "16.8",
     "84",
     "2.8",
+    // The most SLOs one bulk request of the recommended rules names.
+    "100",
   ],
   // The recommended tiers, the margins to leave a tier, and the limits.
   [ERROR_BUDGET_POLICY]: [

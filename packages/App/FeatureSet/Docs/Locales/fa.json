@@ -286,6 +286,7 @@
     "Topology": "توپولوژی",
     "Drop Filters & Scrub Rules": "فیلترهای حذف و قواعد پالایش",
     "Data Retention": "نگهداری داده",
+    "Telemetry Usage": "مصرف تله‌متری",
     "Serilog (.NET)": "Serilog (.NET)",
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",

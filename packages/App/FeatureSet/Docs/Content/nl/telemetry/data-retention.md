@@ -93,10 +93,11 @@ Services, hosts, Kubernetes-clusters, Docker- en Podman-hosts, Docker Swarm-, Pr
 | Session Replays | 7 dagen, tenzij gewijzigd | Het replaybeleid van de RUM-applicatie: zie [Applicaties beheren](/docs/rum/applications#bewaring-van-sessieherhalingen). |
 | Monitorlogboeken, één rij per controle | 1 dag, tenzij gewijzigd | Op een zelfgehoste installatie, **Logbewaring van monitor (dagen)** in het Admin Dashboard |
 | Monitormetrieken, en de metrieken die SLO's vastleggen | 30 dagen, tenzij gewijzigd | Op een zelfgehoste installatie, **Metriekbewaring van monitor (dagen)** in het Admin Dashboard |
+| [Telemetriegebruik](/docs/telemetry/usage), één telling per resource, signaal en dag | 120 dagen, tenzij gewijzigd | Op een zelfgehoste installatie, **Bewaring van telemetriegebruik (dagen)** in het Admin Dashboard |
 
 ## Wat bewaring kost
 
-- **Op OneUptime Cloud** wordt telemetrie gefactureerd per opgenomen GB, en de prijs per GB omvat 15 dagen bewaring. Langere bewaring kost naar verhouding meer: 30 dagen kost per GB twee keer zoveel als 15. Kortere bewaring kost naar verhouding minder, maar bewaring korter dan 7 dagen wordt gefactureerd als 7 dagen. **Projectinstellingen → Facturering en facturen → Gebruiksgeschiedenis** toont per dag hoeveel elke service stuurde en hoe lang dat wordt bewaard.
+- **Op OneUptime Cloud** wordt telemetrie gefactureerd per opgenomen GB, en de prijs per GB omvat 15 dagen bewaring. Langere bewaring kost naar verhouding meer: 30 dagen kost per GB twee keer zoveel als 15. Kortere bewaring kost naar verhouding minder, maar bewaring korter dan 7 dagen wordt gefactureerd als 7 dagen. **Projectinstellingen → Telemetrie & APM → Gebruik** toont per dag hoeveel elke service stuurde en hoe lang dat wordt bewaard.
 - **Bij zelf hosten** staat telemetrie in ClickHouse, en bewaring vermenigvuldigt de schijfruimte ervan. Zie [Sizing](/docs/installation/sizing#de-bewaartermijn-en-het-effect-op-opslag).
 
 Telemetrie die u niet nodig hebt, kost niets als ze nooit wordt opgeslagen: [Drop-filters en scrub-regels](/docs/telemetry/drop-filters-and-scrub-rules) gooien haar weg zodra ze binnenkomt.

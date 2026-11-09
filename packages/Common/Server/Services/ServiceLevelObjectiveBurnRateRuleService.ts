@@ -5,20 +5,32 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import {
+  SLO_RECOMMENDED_RULES_SLO_NOT_FOUND_MESSAGE,
   SloRecommendedAlertSeverities,
   SloRecommendedAlertSeverity,
   SloRecommendedBurnRateRule,
   getMissingSloRecommendedBurnRateRules,
   pickSloRecommendedAlertSeverities,
 } from "../../Utils/Slo/SloRecommendedBurnRateRules";
+import {
+  SLO_BULK_ADD_FAILED_MESSAGE,
+  SLO_BULK_NO_IDS_MESSAGE,
+  SLO_BULK_TOO_MANY_MESSAGE,
+  SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS,
+  SloBulkRecommendedRulesStatus,
+  getSloBulkResultKey,
+} from "../../Utils/Slo/SloBulkRecommendedBurnRateRules";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Exception from "../../Types/Exception/Exception";
+import ExceptionCode from "../../Types/Exception/ExceptionCode";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -75,7 +87,7 @@ export const NO_OUTPUT_ERROR_MESSAGE: string =
 
 // An SLO the caller may not read is not found either, so it says nothing about itself.
 export const SLO_NOT_FOUND_MESSAGE: string =
-  "Service Level Objective not found.";
+  SLO_RECOMMENDED_RULES_SLO_NOT_FOUND_MESSAGE;
 
 /*
  * The lock "Add recommended rules" holds per SLO, and how long a second
@@ -105,6 +117,95 @@ export interface SloAddedRecommendedRule extends SloMissingRecommendedRule {
 export interface SloAddedRecommendedRules {
   serviceLevelObjectiveId: ObjectID;
   rules: Array<SloAddedRecommendedRule>;
+}
+
+/*
+ * One SLO of a bulk question (getMissingRecommendedRulesForMany): what it is
+ * missing, that it is missing nothing, or that it is not one the caller may
+ * read - with why.
+ */
+export interface SloBulkMissingRecommendedRules {
+  serviceLevelObjectiveId: ObjectID;
+  status:
+    | SloBulkRecommendedRulesStatus.Missing
+    | SloBulkRecommendedRulesStatus.NothingMissing
+    | SloBulkRecommendedRulesStatus.Refused;
+  rules: Array<SloMissingRecommendedRule>;
+  message: string | null;
+}
+
+/*
+ * One SLO of a bulk add (addMissingRecommendedRulesToMany): what was added,
+ * that nothing was missing, that the caller may not add to it, or that it
+ * failed part of the way - with the rules added before it did.
+ */
+export interface SloBulkAddedRecommendedRules {
+  serviceLevelObjectiveId: ObjectID;
+  status:
+    | SloBulkRecommendedRulesStatus.Added
+    | SloBulkRecommendedRulesStatus.NothingMissing
+    | SloBulkRecommendedRulesStatus.Refused
+    | SloBulkRecommendedRulesStatus.Failed;
+  rules: Array<SloAddedRecommendedRule>;
+  message: string | null;
+}
+
+/*
+ * The answers that mean the caller may not - the SLO is not one they may
+ * read, or they may not create its rules, or the plan does not allow it -
+ * rather than that something broke.
+ */
+const SLO_BULK_REFUSAL_CODES: ReadonlyArray<ExceptionCode> = [
+  ExceptionCode.NotFoundException,
+  ExceptionCode.NotAuthorizedException,
+  ExceptionCode.NotAuthenticatedException,
+  ExceptionCode.ForbiddenException,
+  ExceptionCode.PaymentRequiredException,
+];
+
+export function isSloBulkRefusal(error: unknown): boolean {
+  return (
+    error instanceof Exception && SLO_BULK_REFUSAL_CODES.includes(error.code)
+  );
+}
+
+// Why an SLO was not added to, in OneUptime's own words.
+export function getSloBulkErrorMessage(error: unknown): string {
+  if (error instanceof Exception && error.message.trim()) {
+    return error.message;
+  }
+
+  return SLO_BULK_ADD_FAILED_MESSAGE;
+}
+
+/*
+ * The SLOs a bulk request names, each once, in the order first named:
+ * between one and SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS of them.
+ */
+export function getSloBulkIds(ids: ReadonlyArray<ObjectID>): Array<ObjectID> {
+  const unique: Array<ObjectID> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const id of ids) {
+    const key: string = getSloBulkResultKey(id.toString());
+
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    unique.push(id);
+  }
+
+  if (unique.length === 0) {
+    throw new BadDataException(SLO_BULK_NO_IDS_MESSAGE);
+  }
+
+  if (unique.length > SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS) {
+    throw new BadDataException(SLO_BULK_TOO_MANY_MESSAGE);
+  }
+
+  return unique;
 }
 
 /*
@@ -366,21 +467,253 @@ export class Service extends ProjectReferencesService<Model> {
     return {
       serviceLevelObjectiveId: slo.id,
       projectId: projectId,
-      rules: missing.map(
-        (
-          recommended: SloRecommendedBurnRateRule,
-        ): SloMissingRecommendedRule => {
-          return {
-            recommended: recommended,
-            alertSeverity:
-              recommended.alertSeverity ===
-              SloRecommendedAlertSeverity.LeastSevere
-                ? severities.leastSevere
-                : severities.mostSevere,
-          };
-        },
-      ),
+      rules: this.withAlertSeverities(missing, severities),
     };
+  }
+
+  // Each missing rule with the severity it raises at: the least severe for a ticket.
+  private withAlertSeverities(
+    missing: Array<SloRecommendedBurnRateRule>,
+    severities: SloRecommendedAlertSeverities<AlertSeverity>,
+  ): Array<SloMissingRecommendedRule> {
+    return missing.map(
+      (recommended: SloRecommendedBurnRateRule): SloMissingRecommendedRule => {
+        return {
+          recommended: recommended,
+          alertSeverity:
+            recommended.alertSeverity ===
+            SloRecommendedAlertSeverity.LeastSevere
+              ? severities.leastSevere
+              : severities.mostSevere,
+        };
+      },
+    );
+  }
+
+  /*
+   * "Add recommended rules" for many SLOs at once (the SLO list's Bulk
+   * Actions): what each is missing, scaled to its own window, each rule with
+   * the severity it would raise at - what the confirmation counts. Nothing
+   * is written.
+   *
+   * The answer getMissingRecommendedRules gives each SLO on its own, read
+   * for all of them at once: the SLOs AS THE CALLER, in one read - one they
+   * may not read, or of another project, is Refused as not found and says
+   * nothing about itself - then every rule of the SLOs found, as root and
+   * pinned to them and their project, for the reason the one-SLO read gives,
+   * and the project's severities once, only when something is missing.
+   */
+  @CaptureSpan()
+  public async getMissingRecommendedRulesForMany(data: {
+    serviceLevelObjectiveIds: ReadonlyArray<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SloBulkMissingRecommendedRules>> {
+    const projectId: ObjectID | undefined = data.props.tenantId;
+
+    if (!projectId) {
+      throw new BadDataException("Project ID is required.");
+    }
+
+    const ids: Array<ObjectID> = getSloBulkIds(data.serviceLevelObjectiveIds);
+
+    const slos: Array<ServiceLevelObjective> =
+      await ServiceLevelObjectiveService.findBy({
+        query: {
+          _id: QueryHelper.any(ids),
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          windowType: true,
+          windowDays: true,
+        },
+        skip: 0,
+        limit: ids.length,
+        props: data.props,
+      });
+
+    const sloByKey: Map<string, ServiceLevelObjective> = new Map();
+
+    for (const slo of slos) {
+      if (slo.id) {
+        sloByKey.set(getSloBulkResultKey(slo.id.toString()), slo);
+      }
+    }
+
+    const foundIds: Array<ObjectID> = ids.filter((id: ObjectID): boolean => {
+      return sloByKey.has(getSloBulkResultKey(id.toString()));
+    });
+
+    const rulesBySlo: Map<string, Array<Model>> = new Map();
+
+    if (foundIds.length > 0) {
+      // Every rule of them, page by page: a missing rule is judged from all.
+      const rules: Array<Model> = await this.findAllBy({
+        query: {
+          serviceLevelObjectiveId: QueryHelper.any(foundIds),
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          serviceLevelObjectiveId: true,
+          name: true,
+          longWindowInMinutes: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const rule of rules) {
+        const key: string = getSloBulkResultKey(
+          rule.serviceLevelObjectiveId?.toString() || "",
+        );
+        const ofSlo: Array<Model> = rulesBySlo.get(key) || [];
+        ofSlo.push(rule);
+        rulesBySlo.set(key, ofSlo);
+      }
+    }
+
+    const missingByKey: Map<
+      string,
+      Array<SloRecommendedBurnRateRule>
+    > = new Map();
+
+    for (const id of foundIds) {
+      const key: string = getSloBulkResultKey(id.toString());
+      const slo: ServiceLevelObjective = sloByKey.get(key)!;
+
+      missingByKey.set(
+        key,
+        getMissingSloRecommendedBurnRateRules({
+          window: {
+            windowType: slo.windowType,
+            windowDays: slo.windowDays,
+          },
+          existingRules: rulesBySlo.get(key) || [],
+        }),
+      );
+    }
+
+    const isAnythingMissing: boolean = Array.from(missingByKey.values()).some(
+      (missing: Array<SloRecommendedBurnRateRule>): boolean => {
+        return missing.length > 0;
+      },
+    );
+
+    // Nothing to add asks for no severities.
+    const severities: SloRecommendedAlertSeverities<AlertSeverity> | null =
+      isAnythingMissing
+        ? await this.getRecommendedRuleAlertSeverities(projectId)
+        : null;
+
+    return ids.map((id: ObjectID): SloBulkMissingRecommendedRules => {
+      const key: string = getSloBulkResultKey(id.toString());
+
+      if (!sloByKey.has(key)) {
+        return {
+          serviceLevelObjectiveId: id,
+          status: SloBulkRecommendedRulesStatus.Refused,
+          rules: [],
+          message: SLO_NOT_FOUND_MESSAGE,
+        };
+      }
+
+      const missing: Array<SloRecommendedBurnRateRule> =
+        missingByKey.get(key) || [];
+
+      if (missing.length === 0 || !severities) {
+        return {
+          serviceLevelObjectiveId: id,
+          status: SloBulkRecommendedRulesStatus.NothingMissing,
+          rules: [],
+          message: null,
+        };
+      }
+
+      return {
+        serviceLevelObjectiveId: id,
+        status: SloBulkRecommendedRulesStatus.Missing,
+        rules: this.withAlertSeverities(missing, severities),
+        message: null,
+      };
+    });
+  }
+
+  /*
+   * "Add recommended rules" for many SLOs at once: each SLO through
+   * addMissingRecommendedRules, one after another - its own lock, what it is
+   * missing worked out again inside it, each rule created as the caller
+   * with its feed item and audit log - exactly as the SLO's own Burn Rate
+   * Rules page adds them.
+   *
+   * Each SLO's answer is its own, and one SLO's refusal or failure never
+   * stops the next. A refusal - an SLO the caller may not read, or rules
+   * they may not create - adds nothing. A failure part of the way keeps
+   * what it added before it, reported with it. Asking again adds only what
+   * is still missing, so a retry of the same SLOs is safe.
+   */
+  @CaptureSpan()
+  public async addMissingRecommendedRulesToMany(data: {
+    serviceLevelObjectiveIds: ReadonlyArray<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SloBulkAddedRecommendedRules>> {
+    if (!data.props.tenantId) {
+      throw new BadDataException("Project ID is required.");
+    }
+
+    const ids: Array<ObjectID> = getSloBulkIds(data.serviceLevelObjectiveIds);
+    const results: Array<SloBulkAddedRecommendedRules> = [];
+
+    for (const id of ids) {
+      const addedSoFar: Array<SloAddedRecommendedRule> = [];
+
+      try {
+        const added: SloAddedRecommendedRules =
+          await this.addMissingRecommendedRules({
+            serviceLevelObjectiveId: id,
+            props: data.props,
+            onRuleAdded: (rule: SloAddedRecommendedRule): void => {
+              addedSoFar.push(rule);
+            },
+          });
+
+        results.push({
+          serviceLevelObjectiveId: id,
+          status:
+            added.rules.length > 0
+              ? SloBulkRecommendedRulesStatus.Added
+              : SloBulkRecommendedRulesStatus.NothingMissing,
+          rules: added.rules,
+          message: null,
+        });
+      } catch (err) {
+        const isRefused: boolean =
+          isSloBulkRefusal(err) && addedSoFar.length === 0;
+
+        if (!isRefused) {
+          logger.error(
+            `Could not add the recommended burn rate rules to SLO ${id.toString()}: ${err}`,
+            { projectId: data.props.tenantId.toString() } as LogAttributes,
+          );
+        }
+
+        results.push({
+          serviceLevelObjectiveId: id,
+          status: isRefused
+            ? SloBulkRecommendedRulesStatus.Refused
+            : SloBulkRecommendedRulesStatus.Failed,
+          rules: addedSoFar,
+          message: getSloBulkErrorMessage(err),
+        });
+      }
+    }
+
+    return results;
   }
 
   /*
@@ -399,12 +732,16 @@ export class Service extends ProjectReferencesService<Model> {
    * (Redis unreachable) the request still runs; only two arriving at the same
    * moment could then both add the same rule. Rules are created one at a
    * time, and the first that fails stops the request: the ones already added
-   * stay, and asking again adds only what is still missing.
+   * stay, and asking again adds only what is still missing. Each one added
+   * is told to onRuleAdded as it is, so a caller that goes on past a
+   * failure (addMissingRecommendedRulesToMany) can say what was added
+   * before it.
    */
   @CaptureSpan()
   public async addMissingRecommendedRules(data: {
     serviceLevelObjectiveId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    onRuleAdded?: ((rule: SloAddedRecommendedRule) => void) | undefined;
   }): Promise<SloAddedRecommendedRules> {
     let mutex: SemaphoreMutex | null = null;
 
@@ -424,7 +761,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     try {
       const missing: SloMissingRecommendedRules =
-        await this.getMissingRecommendedRules(data);
+        await this.getMissingRecommendedRules({
+          serviceLevelObjectiveId: data.serviceLevelObjectiveId,
+          props: data.props,
+        });
 
       const added: Array<SloAddedRecommendedRule> = [];
 
@@ -439,10 +779,13 @@ export class Service extends ProjectReferencesService<Model> {
           props: data.props,
         });
 
-        added.push({
+        const addedRule: SloAddedRecommendedRule = {
           ...rule,
           ruleId: created.id || null,
-        });
+        };
+
+        added.push(addedRule);
+        data.onRuleAdded?.(addedRule);
       }
 
       return {

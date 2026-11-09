@@ -28,6 +28,7 @@ import {
   PROJECT_INVOICE_DOWNLOAD_PERMISSIONS,
   PROJECT_INVOICE_PAY_PERMISSIONS,
   PROJECT_INVOICE_READ_PERMISSIONS,
+  PROJECT_TELEMETRY_USAGE_READ_PERMISSIONS,
   PROJECT_USAGE_READ_PERMISSIONS,
 } from "../../../../../Utils/Project/ProjectBilling";
 import {
@@ -617,15 +618,27 @@ describe("Billing Viewer, Member and Admin read every billing record", () => {
   });
 
   test("usage history: every billing role reads it, and the table's read list is the shared list", () => {
+    /*
+     * Usage is read by everyone who reads the project's telemetry, and the
+     * billing roles among them (PROJECT_TELEMETRY_USAGE_READ_PERMISSIONS):
+     * a server without billing counts it too (issue #5916). What it cost
+     * stays with the billing readers (PROJECT_USAGE_READ_PERMISSIONS).
+     */
     expect(sorted(new TelemetryUsageBilling().getReadPermissions())).toEqual(
-      sorted(PROJECT_USAGE_READ_PERMISSIONS),
+      sorted(PROJECT_TELEMETRY_USAGE_READ_PERMISSIONS),
     );
+
+    for (const permission of PROJECT_USAGE_READ_PERMISSIONS) {
+      expect(PROJECT_TELEMETRY_USAGE_READ_PERMISSIONS).toContain(permission);
+    }
 
     const readableByOwner: Array<string> = columnsFor(
       TelemetryUsageBilling,
       [Permission.ProjectOwner],
       DatabaseRequestType.Read,
     );
+
+    expect(readableByOwner).toContain("totalCostInUSD");
 
     for (const permission of BILLING_ROLES) {
       expect(
@@ -636,6 +649,47 @@ describe("Billing Viewer, Member and Admin read every billing record", () => {
         ),
       ).toEqual(readableByOwner);
     }
+  });
+
+  test("usage history: what it cost is the billing readers' alone", () => {
+    const columns: Dictionary<ColumnAccessControl> =
+      new TelemetryUsageBilling().getColumnAccessControlForAllColumns();
+
+    expect(sorted(columns["totalCostInUSD"]?.read || [])).toEqual(
+      sorted(PROJECT_USAGE_READ_PERMISSIONS),
+    );
+
+    const readableByOwner: Array<string> = columnsFor(
+      TelemetryUsageBilling,
+      [Permission.ProjectOwner],
+      DatabaseRequestType.Read,
+    );
+
+    for (const permission of [
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+    ]) {
+      expect({
+        permission,
+        columns: columnsFor(
+          TelemetryUsageBilling,
+          [permission],
+          DatabaseRequestType.Read,
+        ),
+      }).toEqual({
+        permission,
+        columns: readableByOwner.filter((column: string): boolean => {
+          return column !== "totalCostInUSD";
+        }),
+      });
+    }
+
+    // Nobody reads whether, or when, a row was reported to the payment provider.
+    expect(columns["isReportedToBillingProvider"]?.read || []).toEqual([]);
+    expect(columns["reportedToBillingProviderAt"]?.read || []).toEqual([]);
   });
 
   test("payment methods: read, as before", () => {

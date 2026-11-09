@@ -4,6 +4,7 @@ import DashboardVariable, {
 import DashboardVariableInterpolation, {
   ResolvedVariableValue,
 } from "./VariableInterpolation";
+import DashboardWidgetIds from "./DashboardWidgetIds";
 
 /*
  * Which ServiceLevelObjective a dashboard SLO widget reports on, decided in
@@ -56,8 +57,12 @@ export interface SloWidgetSource {
 }
 
 export interface ResolveSloWidgetSourceData {
-  serviceLevelObjectiveId?: string | undefined | null;
-  serviceLevelObjectiveVariableId?: string | undefined | null;
+  /*
+   * Each as stored: text, or an ObjectID - revived, or its JSON - which is
+   * read as the id it names (DashboardWidgetIds, issue #6328).
+   */
+  serviceLevelObjectiveId?: unknown;
+  serviceLevelObjectiveVariableId?: unknown;
   variables?: Array<DashboardVariable> | undefined;
 }
 
@@ -105,14 +110,27 @@ export type ResolveSloWidgetSourceFunction = (
 export const resolveSloWidgetSource: ResolveSloWidgetSourceFunction = (
   data: ResolveSloWidgetSourceData,
 ): SloWidgetSource => {
-  const pinnedId: string = (data.serviceLevelObjectiveId || "").trim();
-
   /*
    * A pinned SLO wins. An author who went into the settings panel and picked
    * one objective meant THAT objective; a variable binding left over from the
    * template must not quietly override the choice.
+   *
+   * The id is read as the id it names: text, or an ObjectID stored as its
+   * JSON, revived or not - trimming an ObjectID threw, and the widget fell
+   * into its error boundary (issue #6328). A stored id that names no id at
+   * all (a number, a list) pins the widget to no SLO: it says none is
+   * selected, as the public dashboard does, and never follows the variable
+   * in its place.
    */
-  if (pinnedId.length > 0) {
+  if (!DashboardWidgetIds.isAbsent(data.serviceLevelObjectiveId)) {
+    const pinnedId: string = (
+      DashboardWidgetIds.readId(data.serviceLevelObjectiveId) || ""
+    ).trim();
+
+    if (pinnedId.length === 0) {
+      return { state: SloWidgetSourceState.Unconfigured };
+    }
+
     return {
       state: SloWidgetSourceState.Pinned,
       serviceLevelObjectiveId: pinnedId,
@@ -120,7 +138,7 @@ export const resolveSloWidgetSource: ResolveSloWidgetSourceFunction = (
   }
 
   const variableId: string = (
-    data.serviceLevelObjectiveVariableId || ""
+    DashboardWidgetIds.readId(data.serviceLevelObjectiveVariableId) || ""
   ).trim();
 
   if (variableId.length === 0) {

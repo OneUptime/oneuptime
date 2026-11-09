@@ -1722,39 +1722,45 @@ describe("DashboardAPI public SLO", () => {
     );
 
     /*
-     * The page cannot draw an SLO widget whose SLO is stored as an ObjectID
-     * either (it trims the id it shows), so both routes refuse it - in
-     * object arguments and in arguments written as JSON text alike - rather
-     * than serve an SLO the page never shows.
+     * Issue #6328: an SLO widget whose SLO is stored as an ObjectID - in
+     * object arguments, in arguments written as JSON text, and in a widget
+     * the page draws from its stored JSON because something else in it
+     * cannot be revived - draws that SLO, signed in and on the public page
+     * alike: every board reads the id as the id it names. Both routes now
+     * serve its numbers and its history exactly as for the id stored as
+     * text. Before, the page fell into the widget's error boundary, and
+     * both routes refused it.
      */
-    it("refuses an SLO widget whose SLO is stored as an ObjectID, in either encoding, as the page cannot draw it", async () => {
-      for (const encode of [
-        (settings: JSONObject): unknown => {
-          return settings;
-        },
-        (settings: JSONObject): unknown => {
-          return JSON.stringify(settings);
-        },
-      ]) {
+    it("serves an SLO widget whose SLO is stored as an ObjectID, in every encoding, exactly as the id stored as text", async () => {
+      const servedFor: (
+        settings: JSONObject,
+        encode: (settings: JSONObject) => unknown,
+      ) => Promise<Array<unknown>> = async (
+        settings: JSONObject,
+        encode: (settings: JSONObject) => unknown,
+      ): Promise<Array<unknown>> => {
         const slo: BuiltWidget = buildSloChartWidget();
         setConfig(
           [
             {
               ...slo.widget,
               arguments: encode({
-                serviceLevelObjectiveId: serviceLevelObjectiveId.toJSON(),
+                ...settings,
                 displayType: SloWidgetDisplayType.Chart,
-              }),
+              }) as JSONObject,
             },
           ],
           [],
         );
 
+        // The page holds the id as text, in every encoding.
         expect(
           (pageDraws().components[0]?.arguments as JSONObject | undefined)?.[
             "serviceLevelObjectiveId"
           ],
-        ).toBeInstanceOf(ObjectID);
+        ).toBe(serviceLevelObjectiveId.toString());
+
+        const answers: Array<unknown> = [];
 
         for (const call of [callResourceList, callSloHistory]) {
           jest.clearAllMocks();
@@ -1763,11 +1769,58 @@ describe("DashboardAPI public SLO", () => {
             aggregateBy: buildAggregateBy(),
           });
 
-          expect((getThrownError() as Error).message).toBe(
-            PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE,
+          expect((nextFunction as jest.Mock).mock.calls).toEqual([]);
+          answers.push(
+            call === callResourceList
+              ? getFindByArgs()["query"]
+              : (getAggregateArgs()["query"] as JSONObject)["sloId"],
           );
-          expectNothingRead();
         }
+
+        return answers;
+      };
+
+      const asText: Array<unknown> = await servedFor(
+        { serviceLevelObjectiveId: serviceLevelObjectiveId.toString() },
+        (settings: JSONObject): unknown => {
+          return settings;
+        },
+      );
+
+      // Not vacuous: both routes read the widget's own SLO.
+      expect(asText).toEqual([
+        { _id: serviceLevelObjectiveId, projectId: projectId },
+        serviceLevelObjectiveId,
+      ]);
+
+      for (const [name, encode] of [
+        [
+          "object arguments",
+          (settings: JSONObject): unknown => {
+            return settings;
+          },
+        ],
+        [
+          "JSON-text arguments",
+          (settings: JSONObject): unknown => {
+            return JSON.stringify(settings);
+          },
+        ],
+        [
+          "a widget the page draws from its stored JSON",
+          (settings: JSONObject): unknown => {
+            // Includes.fromJSON cannot iterate a number.
+            return { ...settings, unrelated: { _type: "Includes", value: 5 } };
+          },
+        ],
+      ] as Array<[string, (settings: JSONObject) => unknown]>) {
+        expect([
+          name,
+          await servedFor(
+            { serviceLevelObjectiveId: serviceLevelObjectiveId.toJSON() },
+            encode,
+          ),
+        ]).toEqual([name, asText]);
       }
     });
 

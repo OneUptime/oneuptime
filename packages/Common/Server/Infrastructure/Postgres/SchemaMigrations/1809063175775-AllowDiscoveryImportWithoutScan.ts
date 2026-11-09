@@ -19,10 +19,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * scan, which the old schema cannot hold. The devices and monitors they
  * created stay.
  */
-export class AllowDiscoveryImportWithoutScan1808997600000
+export class AllowDiscoveryImportWithoutScan1809063175775
   implements MigrationInterface
 {
-  public name: string = "AllowDiscoveryImportWithoutScan1808997600000";
+  public name: string = "AllowDiscoveryImportWithoutScan1809063175775";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -63,7 +63,8 @@
     "apiKey": "Chave API",
     "more": "Mais",
     "sendEmail": "Enviar e-mail",
-    "logout": "Sair"
+    "logout": "Sair",
+    "telemetryUsage": "Uso de telemetria"
   },
   "topAlert": {
     "title": "Painel do administrador do OneUptime",
@@ -131,7 +132,8 @@
     "settingsApiIntegrations": "API e integrações",
     "settingsApiKey": "Chave API",
     "moreCommunication": "Comunicação",
-    "moreSendEmail": "Enviar e-mail"
+    "moreSendEmail": "Enviar e-mail",
+    "telemetryUsage": "Uso de telemetria"
   },
   "pages": {
     "users": {
@@ -581,7 +583,10 @@
         "logEditButton": "Editar configurações",
         "metricCardTitle": "Retenção de métricas de monitor",
         "metricCardDescription": "Configure por quanto tempo as métricas de monitor são retidas antes de serem excluídas automaticamente.",
-        "metricEditButton": "Editar configurações"
+        "metricEditButton": "Editar configurações",
+        "usageCardTitle": "Retenção do uso de telemetria",
+        "usageCardDescription": "Por quanto tempo o uso diário de telemetria de cada projeto é mantido, com a cobrança ativada ou desativada.",
+        "usageEditButton": "Editar retenção do uso de telemetria"
       },
       "apiKey": {
         "cardTitle": "Configurações da chave API mestre",
@@ -596,6 +601,13 @@
         "cardDescription": "Os provedores de LLM globais estão disponíveis para todos os projetos para recursos de IA. Configure OpenAI, Anthropic, Ollama ou outros provedores de LLM.",
         "noItems": "Nenhum provedor de LLM configurado. Adicione um provedor de LLM para habilitar recursos de IA."
       }
+    },
+    "telemetryUsage": {
+      "title": "Uso de telemetria",
+      "cardTitle": "Uso de telemetria por projeto",
+      "cardDescription": "Quanta telemetria cada projeto enviou, do maior para o menor volume. Um dia é contado quando termina em UTC.",
+      "emptyTitle": "Ainda não há uso de telemetria",
+      "emptyDescription": "Ainda não há uso contado para nenhum projeto neste período. A telemetria de um dia é contada quando o dia termina em UTC, até por volta das 08:00 UTC do dia seguinte."
     }
   },
   "Basic": "Básico",
@@ -1859,6 +1871,60 @@
   "This list has default columns for everyone in this project.": "Esta lista tem colunas padrão para todos neste projeto.",
   "Remove default": "Remover as colunas padrão",
   "Reset to project default": "Redefinir para o padrão do projeto",
+  "Telemetry Usage": "Uso de telemetria",
+  "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.": "Quanta telemetria este projeto enviou por dia, por sinal. Um dia é contado quando termina em UTC.",
+  "Usage by Resource": "Uso por recurso",
+  "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.": "Quais serviços e recursos enviaram a telemetria, do maior para o menor volume, e por quanto tempo cada um a mantém.",
+  "Resource": "Recurso",
+  "Resources": "Recursos",
+  "Total": "Total",
+  "Cost": "Custo",
+  "Retention": "Retenção",
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.": "Por quanto tempo a telemetria do recurso é mantida, conforme contado no dia mais recente do período.",
+  "Range": "Período",
+  "Last {{count}} days": "Últimos {{count}} dias",
+  "Last {{count}} days_one": "Último {{count}} dia",
+  "No telemetry usage yet": "Ainda não há uso de telemetria",
+  "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.": "A telemetria de um dia é contada quando o dia termina em UTC, até por volta das 08:00 UTC do dia seguinte. A de hoje aparece amanhã.",
+  "No telemetry usage in this range": "Nenhum uso de telemetria neste período",
+  "The newest day with usage is {{day}}. Choose a longer range to see it.": "O dia mais recente com uso é {{day}}. Escolha um período mais longo para vê-lo.",
+  "Logs": "Registros",
+  "Metrics": "Métricas",
+  "Traces": "Traços",
+  "Profiles": "Perfis",
+  "Session Replays": "Reproduções de sessões",
+  "Security Events": "Eventos de segurança",
+  "Spans, and the exceptions recorded with them.": "Spans e as exceções registradas com eles.",
+  "Profiles, and the samples recorded with them.": "Perfis e as amostras registradas com eles.",
+  "{{size}} GB": "{{size}} GB",
+  "{{size}} MB": "{{size}} MB",
+  "{{size}} KB": "{{size}} KB",
+  "{{amount}} USD": "{{amount}} USD",
+  "Session replays: {{days}}": "Reproduções de sessões: {{days}}",
+  "Service": "Serviço",
+  "RUM Application": "Aplicação RUM",
+  "Docker Host": "Host Docker",
+  "Podman Host": "Host Podman",
+  "Kubernetes Cluster": "Cluster Kubernetes",
+  "Proxmox Cluster": "Cluster Proxmox",
+  "OpenStack Cloud": "Nuvem OpenStack",
+  "Ceph Cluster": "Cluster Ceph",
+  "Storage Array": "Array de armazenamento",
+  "Docker Swarm Cluster": "Cluster do Docker Swarm",
+  "vCenter": "vCenter",
+  "IoT Fleet": "Frota IoT",
+  "Serverless Function": "Função serverless",
+  "Cloud Resource": "Recurso de nuvem",
+  "Database": "Banco de dados",
+  "Network Device": "Dispositivo de rede",
+  "Unknown Service": "Serviço desconhecido",
+  "Day": "Dia",
+  "Data Ingested (in GB)": "Dados Ingeridos (em GB)",
+  "How much telemetry each project sends, heaviest first.": "Quanta telemetria cada projeto envia, do maior para o menor volume.",
+  "Telemetry Usage Retention (Days)": "Retenção do Uso de Telemetria (Dias)",
+  "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "Por quantos dias o uso diário de telemetria de cada projeto é mantido, de 30 a 1095. Deixe vazio para 120 dias.",
+  "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Número de dias para manter o uso diário de telemetria de cada projeto. O uso mais antigo que isso é excluído.",
+  "Scheduled Maintenance": "Manutenção programada",
   "markdownCallouts": {
     "caution": "Cuidado",
     "danger": "Perigo",

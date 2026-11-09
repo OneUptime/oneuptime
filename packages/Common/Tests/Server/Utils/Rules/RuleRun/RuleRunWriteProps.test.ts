@@ -9,12 +9,14 @@ import { SeededRandom, seededRandom } from "../../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * THE PROPS A RULE'S WRITES ARE MADE WITH (issue #6300).
+ * THE PROPS A RULE'S WRITES ARE MADE WITH (issues #6300, #6323, #6324).
  *
- * An owner or privacy rule writes as root, whoever runs it. Run now names
- * who ran it, so its writes carry them and the audit log credits them; a
- * rule applied as a record is created names nobody, and its writes are
- * OneUptime's own, a system event.
+ * A rule writes as root, whoever runs it. Run now names who ran it, so its
+ * writes carry them and the audit log credits them; a rule applied as a
+ * record is created names nobody, and its writes are OneUptime's own, a
+ * system event. A write its service takes only in a project - an auto
+ * import rule's monitors - carries the rule's project as well, and nothing
+ * else of the request.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -162,6 +164,132 @@ describe("RuleRunWriteProps", () => {
         if (written[key] !== props[key]) {
           problems.push(`draw ${draw}: drops ${key}`);
         }
+      }
+    }
+
+    expect(problems).toEqual([]);
+  });
+});
+
+describe("RuleRunWriteProps.getInProject", () => {
+  const RULE_PROJECT_ID: ObjectID = new ObjectID(
+    "66666666-6666-4666-8666-666666666666",
+  );
+
+  test("the automatic path writes as OneUptime's own, in the rule's project", () => {
+    expect(RuleRunWriteProps.getInProject(undefined, RULE_PROJECT_ID)).toEqual({
+      isRoot: true,
+      tenantId: RULE_PROJECT_ID,
+    });
+  });
+
+  test("Run now writes as root in the rule's project, carrying the person and nothing they may do", () => {
+    expect(
+      RuleRunWriteProps.getInProject(
+        {
+          tenantId: PROJECT_ID,
+          userId: USER_ID,
+          userType: UserType.User,
+          userTenantAccessPermission: {},
+          isMasterAdmin: false,
+          currentPlan: PlanType.Free,
+        },
+        RULE_PROJECT_ID,
+      ),
+    ).toEqual({
+      isRoot: true,
+      userId: USER_ID,
+      userType: UserType.User,
+      tenantId: RULE_PROJECT_ID,
+    });
+  });
+
+  test("the project is the rule's, never the one the request names", () => {
+    const written: DatabaseCommonInteractionProps =
+      RuleRunWriteProps.getInProject(
+        { tenantId: PROJECT_ID, userId: USER_ID, userType: UserType.User },
+        RULE_PROJECT_ID,
+      );
+
+    expect(written.tenantId).toBe(RULE_PROJECT_ID);
+  });
+
+  test("an API key's run is the key's, in the rule's project", () => {
+    expect(
+      RuleRunWriteProps.getInProject(
+        {
+          tenantId: PROJECT_ID,
+          userType: UserType.API,
+          apiKeyId: KEY_ID,
+          apiKeyName: "Deploy bot",
+        },
+        RULE_PROJECT_ID,
+      ),
+    ).toEqual({
+      isRoot: true,
+      userType: UserType.API,
+      apiKeyId: KEY_ID,
+      apiKeyName: "Deploy bot",
+      tenantId: RULE_PROJECT_ID,
+    });
+  });
+
+  test("never changes what it was given", () => {
+    const props: DatabaseCommonInteractionProps = {
+      tenantId: PROJECT_ID,
+      userId: USER_ID,
+      userType: UserType.User,
+    };
+
+    RuleRunWriteProps.getInProject(props, RULE_PROJECT_ID);
+
+    expect(props).toEqual({
+      tenantId: PROJECT_ID,
+      userId: USER_ID,
+      userType: UserType.User,
+    });
+  });
+
+  /*
+   * Any mix of every member the props can carry: the write is exactly what
+   * get() writes, in the rule's project - root, the identity OnBehalfOfProps
+   * carries, and none of the request's permissions, plan or teams.
+   */
+  test("of 2,000 mixes of every member the props can carry, each is get() in the rule's project", () => {
+    const random: SeededRandom = seededRandom(6323);
+    const members: Array<string> = Object.keys(EVERY_MEMBER);
+    const problems: Array<string> = [];
+
+    for (let draw: number = 0; draw < 2000; draw++) {
+      const props: Record<string, unknown> = {};
+
+      for (const member of members) {
+        if (random(2) === 1) {
+          props[member] = EVERY_MEMBER[member];
+        }
+      }
+
+      const given: DatabaseCommonInteractionProps | undefined =
+        random(10) === 0
+          ? undefined
+          : (props as DatabaseCommonInteractionProps);
+
+      const written: DatabaseCommonInteractionProps =
+        RuleRunWriteProps.getInProject(given, RULE_PROJECT_ID);
+
+      const expected: DatabaseCommonInteractionProps = {
+        ...RuleRunWriteProps.get(given),
+        tenantId: RULE_PROJECT_ID,
+      };
+
+      try {
+        expect(written).toEqual(expected);
+      } catch {
+        problems.push(`draw ${draw}: ${JSON.stringify(Object.keys(written))}`);
+      }
+
+      if (written.tenantId !== RULE_PROJECT_ID) {
+        problems.push(`draw ${draw}: in another project`);
       }
     }
 

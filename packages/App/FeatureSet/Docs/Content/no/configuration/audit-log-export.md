@@ -147,6 +147,8 @@ Hver oppføring er ett JSON-objekt, med nøklene alltid i denne rekkefølgen:
 
 En fil har én oppføring per linje, komprimert med gzip, og arkiveres under timen for den første oppføringen: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Hver `oldValue` og `newValue` er feltets verdi: tekst, et tall, `true` eller `false`, eller JSON for en innstilling som består av flere deler. Et telefonnummer, en e-postadresse eller en URL er teksten sin, for eksempel `+14155550100`, og en port er nummeret sitt.
+
 Nøkler, tokener og passord forlater aldri OneUptime: De registreres som `[REDACTED]`, og felt som ingen kan lese, utelates fra alle oppføringer.
 
 ## Postversjoner

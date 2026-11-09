@@ -230,9 +230,15 @@ const BURN_RATE_RULES_READ_LIMIT: number = 25;
  * does not have, scaled to its window, as a note rather than rows: they are
  * not records of the SLO, and the model must never report one as a rule that
  * is set up. An SLO created before Slow leak existed is missing it.
+ *
+ * And where they are added: the SLO's Burn Rate Rules page, or the SLO
+ * list's Bulk Actions for many SLOs at once. Neither offers them on an
+ * archived SLO, whose rules never fire, so that one is told to unarchive
+ * the SLO first.
  */
 function getMissingRecommendedRulesNote(
   missing: Array<SloRecommendedBurnRateRule>,
+  isArchived: boolean,
 ): string {
   if (missing.length === 0) {
     return "";
@@ -249,7 +255,13 @@ function getMissingRecommendedRulesNote(
     })
     .join("; ");
 
-  return `Note: this SLO does not have ${missing.length === 1 ? "this burn-rate rule" : "these burn-rate rules"} OneUptime recommends for every SLO (Fast burn and Slow burn page someone; Slow leak is a low-severity ticket for a slow, steady burn), scaled to its window: ${rules}. ${missing.length === 1 ? "It is" : "They are"} not set up and never fire. Anyone who can create SLO burn rate rules can add ${missing.length === 1 ? "it" : "them"} on the SLO's Burn Rate Rules page with Add recommended rules.\n`;
+  const it: string = missing.length === 1 ? "it" : "them";
+
+  const where: string = isArchived
+    ? `This SLO is archived, so its rules never fire and neither its Burn Rate Rules page nor the SLO list offers ${it}: unarchive the SLO first, then add ${it} on its Burn Rate Rules page with Add recommended rules.`
+    : `Anyone who can create SLO burn rate rules can add ${it} on the SLO's Burn Rate Rules page with Add recommended rules, or add the missing recommended rules to many SLOs at once by selecting them on the SLO list and choosing Add recommended rules under Bulk Actions.`;
+
+  return `Note: this SLO does not have ${missing.length === 1 ? "this burn-rate rule" : "these burn-rate rules"} OneUptime recommends for every SLO (Fast burn and Slow burn page someone; Slow leak is a low-severity ticket for a slow, steady burn), scaled to its window: ${rules}. ${missing.length === 1 ? "It is" : "They are"} not set up and never fire. ${where}\n`;
 }
 
 /*
@@ -758,7 +770,7 @@ export const QuerySlosTool: ObservabilityTool = {
       return {
         dataForLlm:
           rows.length > 0
-            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${arePolicyTiersVisible ? "" : POLICY_TIERS_NOT_VISIBLE_NOTE}${policyTiers.length > 0 ? POLICY_TIERS_NOTE : ""}${getMissingRecommendedRulesNote(missingRecommendedRules)}${COMPLIANCE_NOTE}${serialized.text}`
+            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${arePolicyTiersVisible ? "" : POLICY_TIERS_NOT_VISIBLE_NOTE}${policyTiers.length > 0 ? POLICY_TIERS_NOTE : ""}${getMissingRecommendedRulesNote(missingRecommendedRules, slo?.isArchived === true)}${COMPLIANCE_NOTE}${serialized.text}`
             : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `SLO ${slo?.name || sloId.toString()}`,
