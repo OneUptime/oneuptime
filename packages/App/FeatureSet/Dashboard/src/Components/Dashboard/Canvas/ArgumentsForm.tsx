@@ -54,6 +54,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import EntityFilterDropdown from "./EntityFilterDropdown";
 import ProjectLabelVariableDropdown from "./ProjectLabelVariableDropdown";
 import TelemetryAttributeVariableDropdown from "./TelemetryAttributeVariableDropdown";
+import ProfiledServiceDropdown from "./ProfiledServiceDropdown";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import TraceChartQueryEditor from "./TraceChartQueryEditor";
 import LogChartQueryEditor from "./LogChartQueryEditor";
@@ -542,6 +543,22 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         return (
           <TelemetryAttributeVariableDropdown
             variables={variables}
+            value={value[arg.id as string] as string | undefined}
+            onChange={(next: string) => {
+              return componentProps.onChange?.(next);
+            }}
+          />
+        );
+      };
+    }
+    if (arg.type === ComponentInputType.ProfiledService) {
+      // eslint-disable-next-line react/display-name
+      return (
+        value: FormValues<JSONObject>,
+        componentProps: CustomElementProps,
+      ): ReactElement => {
+        return (
+          <ProfiledServiceDropdown
             value={value[arg.id as string] as string | undefined}
             onChange={(next: string) => {
               return componentProps.onChange?.(next);

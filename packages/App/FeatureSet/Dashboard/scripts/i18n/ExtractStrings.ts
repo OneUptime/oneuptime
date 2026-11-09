@@ -485,6 +485,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/CephMetricCatalog.ts",
     kind: "keys",
   },
+  /*
+   * The profile widgets' settings - whose profiles to read, what to analyze
+   * in them, how Top Functions ranks - in the Profiler's own words: the
+   * widget settings dialog draws each in the reader's language. Only the
+   * words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Utils/Dashboard/Components/DashboardProfileWidgetShared.ts",
+    kind: "keys",
+  },
 ];
 
 /*

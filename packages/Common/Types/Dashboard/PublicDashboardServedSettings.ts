@@ -32,9 +32,11 @@ import { DASHBOARD_WIDGET_SORT_ARGUMENT } from "./DashboardWidgetSort";
 
 /*
  * The widgets a public dashboard cannot draw: its API reads no logs, no
- * traces and no security events. Each says so in its place, under its
- * title ("Log charts are not available on public dashboards."), and its
- * title is all it is served. The external Data Source widgets are not
+ * traces, no profiles and no security events. Each says so in its place,
+ * under its title ("Log charts are not available on public dashboards."),
+ * and its title is all it is served. A profile names the code it ran -
+ * functions, files and lines - which a page anyone with the link can
+ * read must not. The external Data Source widgets are not
  * among them: a public dashboard leaves them out altogether, because
  * their settings are the query itself (PublicDashboardViewConfig
  * .sanitize). The page lays out both kinds as the words they are
@@ -45,6 +47,8 @@ export const PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES: ReadonlyArray<DashboardCompo
     DashboardComponentType.LogChart,
     DashboardComponentType.TraceChart,
     DashboardComponentType.TraceTable,
+    DashboardComponentType.ProfileFlameGraph,
+    DashboardComponentType.ProfileTopFunctions,
     DashboardComponentType.SecurityEventsList,
     DashboardComponentType.SecurityEventsFlow,
   ];
@@ -258,6 +262,16 @@ export const PUBLIC_DASHBOARD_WIDGET_SETTINGS: Readonly<
     "topLimit",
     "includeChildSpans",
     SORT,
+  ]),
+  [DashboardComponentType.ProfileFlameGraph]: undrawn([
+    "serviceId",
+    "profileKind",
+  ]),
+  [DashboardComponentType.ProfileTopFunctions]: undrawn([
+    "serviceId",
+    "profileKind",
+    "rankBy",
+    "maxRows",
   ]),
   [DashboardComponentType.IncidentList]: drawn([
     ...LIST,

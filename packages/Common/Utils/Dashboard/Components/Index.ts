@@ -38,6 +38,8 @@ import DashboardPodmanImageListComponentUtil from "./DashboardPodmanImageListCom
 import DashboardPodmanNetworkListComponentUtil from "./DashboardPodmanNetworkListComponent";
 import DashboardPodmanVolumeListComponentUtil from "./DashboardPodmanVolumeListComponent";
 import DashboardProxmoxGuestListComponentUtil from "./DashboardProxmoxGuestListComponent";
+import DashboardProfileFlameGraphComponentUtil from "./DashboardProfileFlameGraphComponent";
+import DashboardProfileTopFunctionsComponentUtil from "./DashboardProfileTopFunctionsComponent";
 import DashboardSecurityEventsFlowComponentUtil from "./DashboardSecurityEventsFlowComponent";
 import DashboardSecurityEventsListComponentUtil from "./DashboardSecurityEventsListComponent";
 import DashboardSloComponentUtil from "./DashboardSloComponent";
@@ -158,6 +160,18 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.TraceTable) {
       return DashboardTraceTableComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.ProfileFlameGraph) {
+      return DashboardProfileFlameGraphComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.ProfileTopFunctions) {
+      return DashboardProfileTopFunctionsComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

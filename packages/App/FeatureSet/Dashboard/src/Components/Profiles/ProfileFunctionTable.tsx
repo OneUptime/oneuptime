@@ -101,7 +101,8 @@ export function findSourceLink(
   );
 }
 
-const ORIGIN_TO_MODULE: Record<ProfileFrameOrigin, ModuleCategory> = {
+// The colour family a frame of each origin is drawn in, as the flame graph draws it.
+export const ORIGIN_TO_MODULE: Record<ProfileFrameOrigin, ModuleCategory> = {
   [ProfileFrameOrigin.Own]: "own",
   [ProfileFrameOrigin.Dependency]: "vendor",
   [ProfileFrameOrigin.Runtime]: "runtime",

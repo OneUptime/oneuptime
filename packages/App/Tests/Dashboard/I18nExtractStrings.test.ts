@@ -1536,6 +1536,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/OpenStackMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/CephMetricCatalog.ts",
+      // The profile widgets' settings: whose profiles, what to analyze, the ranking.
+      "keys packages/Common/Utils/Dashboard/Components/DashboardProfileWidgetShared.ts",
     ]);
   });
 

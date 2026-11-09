@@ -25,6 +25,8 @@ import {
   parseProfileFixSuggestion,
 } from "Common/Utils/Suggestions/ProfileFixSuggestion";
 import { ProfileFunctionRow } from "../../Utils/ProfilesView";
+// A type only: this module stays free of the React components it serves.
+import type { ServerFlamegraphNode } from "./FlamegraphView";
 
 /*
  * The Profiler's reads and writes, each one request to the server and its
@@ -190,6 +192,41 @@ export async function fetchFunctionList(data: {
     ).map(readFunctionRow),
     windowTotal: num(answer["windowTotal"]),
     windowSampleCount: num(answer["windowSampleCount"]),
+    truncated: answer["truncated"] === true,
+  };
+}
+
+export interface ProfileFlamegraphAnswer {
+  // The merged tree as the server builds it, or null when it sent none.
+  root: ServerFlamegraphNode | null;
+  // The server read only the largest stacks: the window held more.
+  truncated: boolean;
+}
+
+/*
+ * Every profile of a scope in a window, merged into one flame graph: the
+ * read the Profiler's own graph makes (AggregatedFlamegraph), for a page
+ * that draws the graph itself.
+ */
+export async function fetchFlamegraph(data: {
+  window: ProfileWindowRequest;
+  serviceIds?: Array<string> | undefined;
+  profileTypes?: Array<string> | undefined;
+}): Promise<ProfileFlamegraphAnswer> {
+  const answer: JSONObject = await post("/telemetry/profiles/flamegraph", {
+    startTime: data.window.startTime.toISOString(),
+    endTime: data.window.endTime.toISOString(),
+    ...(data.serviceIds ? { serviceIds: data.serviceIds } : {}),
+    ...(data.profileTypes ? { profileTypes: data.profileTypes } : {}),
+  });
+
+  const root: unknown = answer["flamegraph"];
+
+  return {
+    root:
+      root && typeof root === "object" && !Array.isArray(root)
+        ? (root as unknown as ServerFlamegraphNode)
+        : null,
     truncated: answer["truncated"] === true,
   };
 }

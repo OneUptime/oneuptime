@@ -25,6 +25,8 @@ import DashboardSecurityEventsFlowComponent from "./DashboardSecurityEventsFlowC
 import DashboardTraceListComponent from "./DashboardTraceListComponent";
 import DashboardTraceChartComponent from "./DashboardTraceChartComponent";
 import DashboardTraceTableComponent from "./DashboardTraceTableComponent";
+import DashboardProfileFlameGraphComponent from "./DashboardProfileFlameGraphComponent";
+import DashboardProfileTopFunctionsComponent from "./DashboardProfileTopFunctionsComponent";
 import DashboardIncidentListComponent from "./DashboardIncidentListComponent";
 import DashboardAlertListComponent from "./DashboardAlertListComponent";
 import DashboardMonitorListComponent from "./DashboardMonitorListComponent";
@@ -200,6 +202,9 @@ const WIDGET_BY_TYPE: Partial<
   [DashboardComponentType.TraceList]: DashboardTraceListComponent,
   [DashboardComponentType.TraceChart]: DashboardTraceChartComponent,
   [DashboardComponentType.TraceTable]: DashboardTraceTableComponent,
+  [DashboardComponentType.ProfileFlameGraph]: DashboardProfileFlameGraphComponent,
+  [DashboardComponentType.ProfileTopFunctions]:
+    DashboardProfileTopFunctionsComponent,
   [DashboardComponentType.IncidentList]: DashboardIncidentListComponent,
   [DashboardComponentType.AlertList]: DashboardAlertListComponent,
   [DashboardComponentType.MonitorList]: DashboardMonitorListComponent,

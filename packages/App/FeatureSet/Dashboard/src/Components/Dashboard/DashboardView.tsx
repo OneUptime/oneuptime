@@ -36,6 +36,8 @@ import DashboardSecurityEventsFlowComponentUtil from "Common/Utils/Dashboard/Com
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
 import DashboardTraceChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceChartComponent";
 import DashboardTraceTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceTableComponent";
+import DashboardProfileFlameGraphComponentUtil from "Common/Utils/Dashboard/Components/DashboardProfileFlameGraphComponent";
+import DashboardProfileTopFunctionsComponentUtil from "Common/Utils/Dashboard/Components/DashboardProfileTopFunctionsComponent";
 import DashboardIncidentListComponentUtil from "Common/Utils/Dashboard/Components/DashboardIncidentListComponent";
 import DashboardAlertListComponentUtil from "Common/Utils/Dashboard/Components/DashboardAlertListComponent";
 import DashboardMonitorListComponentUtil from "Common/Utils/Dashboard/Components/DashboardMonitorListComponent";
@@ -991,6 +993,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.TraceTable) {
             newComponent =
               DashboardTraceTableComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.ProfileFlameGraph) {
+            newComponent =
+              DashboardProfileFlameGraphComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.ProfileTopFunctions) {
+            newComponent =
+              DashboardProfileTopFunctionsComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.IncidentList) {

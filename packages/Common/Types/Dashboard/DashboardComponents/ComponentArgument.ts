@@ -24,6 +24,12 @@ export enum ComponentInputType {
    * widget that follows that variable's toolbar selection (the SLO widget).
    */
   TelemetryAttributeVariable = "TelemetryAttributeVariable",
+  /*
+   * Picks what a profile widget reads: one of the services (and hosts,
+   * clusters, ...) that sent profiles lately, as the Profiler's own
+   * service picker lists them, or every service.
+   */
+  ProfiledService = "ProfiledService",
   // Monaco code editors, one per language.
   Html = "Html",
   Css = "Css",

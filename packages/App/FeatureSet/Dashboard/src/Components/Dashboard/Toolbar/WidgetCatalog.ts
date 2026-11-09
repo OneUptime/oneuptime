@@ -319,6 +319,47 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     ],
   },
   {
+    name: "Profiles",
+    group: WidgetCategoryGroup.Observability,
+    icon: IconProp.Fire,
+    description:
+      "Where your services spend their CPU time and memory, from their profiles.",
+    items: [
+      {
+        type: DashboardComponentType.ProfileFlameGraph,
+        label: "Flame Graph",
+        icon: IconProp.Fire,
+        description:
+          "Every profile of a service in the time range, merged into one flame graph.",
+        keywords: [
+          "profile",
+          "profiler",
+          "cpu",
+          "memory",
+          "flamegraph",
+          "stack",
+          "hotspot",
+        ],
+      },
+      {
+        type: DashboardComponentType.ProfileTopFunctions,
+        label: "Top Functions",
+        icon: IconProp.List,
+        description:
+          "The functions that take the most CPU time or memory, ranked, each one click from the Profiler.",
+        keywords: [
+          "profile",
+          "profiler",
+          "cpu",
+          "memory",
+          "hot",
+          "slow",
+          "code",
+        ],
+      },
+    ],
+  },
+  {
     name: "Incidents",
     group: WidgetCategoryGroup.Observability,
     icon: IconProp.Alert,

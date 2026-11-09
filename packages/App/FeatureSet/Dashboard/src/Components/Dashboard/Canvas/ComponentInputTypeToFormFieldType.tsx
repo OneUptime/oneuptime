@@ -93,6 +93,11 @@ export default class ComponentInputTypeToFormFieldType {
       return { fieldType: FormFieldSchemaType.CustomComponent };
     }
 
+    // The profiled services, read when the settings open (ProfiledServiceDropdown).
+    if (componentInputType === ComponentInputType.ProfiledService) {
+      return { fieldType: FormFieldSchemaType.CustomComponent };
+    }
+
     if (componentInputType === ComponentInputType.EntityDropdown) {
       return {
         fieldType: FormFieldSchemaType.CustomComponent,

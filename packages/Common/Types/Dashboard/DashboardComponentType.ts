@@ -23,6 +23,13 @@ enum DashboardComponentType {
   TraceList = `TraceList`,
   TraceChart = `TraceChart`,
   TraceTable = `TraceTable`,
+  /*
+   * Where a service's CPU time or memory goes, read from its profiles over
+   * the dashboard's time range: the Profiler's flame graph and its ranked
+   * functions, as tiles. Not available on public dashboards.
+   */
+  ProfileFlameGraph = `ProfileFlameGraph`,
+  ProfileTopFunctions = `ProfileTopFunctions`,
   IncidentList = `IncidentList`,
   AlertList = `AlertList`,
   MonitorList = `MonitorList`,
