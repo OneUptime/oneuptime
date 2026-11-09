@@ -933,15 +933,18 @@ describe("a file Ask AI read only part of (issue #6330)", () => {
       ],
       "lines 1, 5-9 and 12",
     ],
-  ])("runs of lines in English: %j is %s", (runs: Array<[number, number]>, english: string) => {
-    expect(
-      describeLineRanges(
-        runs.map(([first, last]: [number, number]) => {
-          return { first, last };
-        }),
-      ),
-    ).toBe(english);
-  });
+  ])(
+    "runs of lines in English: %j is %s",
+    (runs: Array<[number, number]>, english: string) => {
+      expect(
+        describeLineRanges(
+          runs.map(([first, last]: [number, number]) => {
+            return { first, last };
+          }),
+        ),
+      ).toBe(english);
+    },
+  );
 
   test("more runs than are written out: the first twenty, and the rest counted", () => {
     const runs: Array<{ first: number; last: number }> = Array.from(
@@ -1041,11 +1044,15 @@ describe("a file Ask AI read only part of (issue #6330)", () => {
       ],
     });
 
-    expect(told).toContain("- src/b.ts changed on main after you last read it there.");
+    expect(told).toContain(
+      "- src/b.ts changed on main after you last read it there.",
+    );
     expect(told).toContain(
       "- src/a.ts has 50 lines on main, and you have not read lines 41-50 of it.",
     );
-    expect(told).toContain('Read each of these files on main with read_code_file and branchName "main"');
+    expect(told).toContain(
+      'Read each of these files on main with read_code_file and branchName "main"',
+    );
     expect(told).toContain(
       "a pull request replaces each file whole, so a line you have not read would be dropped from it.",
     );
@@ -1063,32 +1070,45 @@ describe("a file Ask AI read only part of (issue #6330)", () => {
   });
 
   test.each<[Array<CodeFileUnseen>, CodeFileUnseen]>([
-    [[CodeFileUnseen.NotChecked, CodeFileUnseen.ReadInPart], CodeFileUnseen.ReadInPart],
-    [[CodeFileUnseen.ReadInPart, CodeFileUnseen.NotRead], CodeFileUnseen.NotRead],
+    [
+      [CodeFileUnseen.NotChecked, CodeFileUnseen.ReadInPart],
+      CodeFileUnseen.ReadInPart,
+    ],
+    [
+      [CodeFileUnseen.ReadInPart, CodeFileUnseen.NotRead],
+      CodeFileUnseen.NotRead,
+    ],
     [
       [CodeFileUnseen.ReadInPart, CodeFileUnseen.ChangedSinceRead],
       CodeFileUnseen.ChangedSinceRead,
     ],
-  ])("the record of a change not made says what mattered most: %j", (kinds: Array<CodeFileUnseen>, most: CodeFileUnseen) => {
-    for (const change of Object.values(CodeChangeKind)) {
-      expect(
-        summarizeCodeFilesUnseen({
-          change,
-          findings: kinds.map((unseen: CodeFileUnseen, index: number) => {
-            return finding(`f${index}`, unseen, "main");
+  ])(
+    "the record of a change not made says what mattered most: %j",
+    (kinds: Array<CodeFileUnseen>, most: CodeFileUnseen) => {
+      for (const change of Object.values(CodeChangeKind)) {
+        expect(
+          summarizeCodeFilesUnseen({
+            change,
+            findings: kinds.map((unseen: CodeFileUnseen, index: number) => {
+              return finding(`f${index}`, unseen, "main");
+            }),
           }),
-        }),
-      ).toBe(CODE_UNSEEN_SUMMARIES[change][most]);
-    }
-    expect(
-      CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][CodeFileUnseen.ReadInPart],
-    ).toBe("Not committed: Ask AI had read only part of a file the commit replaces whole.");
-    expect(
-      CODE_UNSEEN_SUMMARIES[CodeChangeKind.PullRequest][
-        CodeFileUnseen.ReadInPart
-      ],
-    ).toBe("Not opened: Ask AI had read only part of a file the pull request replaces whole.");
-  });
+        ).toBe(CODE_UNSEEN_SUMMARIES[change][most]);
+      }
+      expect(
+        CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][CodeFileUnseen.ReadInPart],
+      ).toBe(
+        "Not committed: Ask AI had read only part of a file the commit replaces whole.",
+      );
+      expect(
+        CODE_UNSEEN_SUMMARIES[CodeChangeKind.PullRequest][
+          CodeFileUnseen.ReadInPart
+        ],
+      ).toBe(
+        "Not opened: Ask AI had read only part of a file the pull request replaces whole.",
+      );
+    },
+  );
 
   test("what the card was shown on keeps the lines never read, as a copy", () => {
     const linesNotRead: Array<{ first: number; last: number }> = [
@@ -1096,7 +1116,9 @@ describe("a file Ask AI read only part of (issue #6330)", () => {
     ];
     const proposedOn: CodeChangeProposedOn = getCodeChangeProposedOn({
       branchName: "fix/login",
-      files: [{ filePath: "src/a.ts", now: { state: "file", fingerprint: "a1" } }],
+      files: [
+        { filePath: "src/a.ts", now: { state: "file", fingerprint: "a1" } },
+      ],
       unseen: [
         {
           filePath: "src/a.ts",

@@ -116,7 +116,9 @@ const decide: DecideFunction = (data: {
     data.records,
     getLatestAIChatRecordsSeen(data.records),
   ].map(
-    (records: Array<unknown>): Omit<CodeFileUnseenFinding, "filePath"> | null => {
+    (
+      records: Array<unknown>,
+    ): Omit<CodeFileUnseenFinding, "filePath"> | null => {
       return findCodeFileUnseen({
         views: getCodeFileViews({
           records,
@@ -236,9 +238,10 @@ describe("runs of lines, added up", () => {
     expect(addLineRanges([range(401, 800), range(1, 400)])).toEqual([
       range(1, 800),
     ]);
-    expect(addLineRanges([range(1, 10), range(5, 20), range(30, 40)])).toEqual(
-      [range(1, 20), range(30, 40)],
-    );
+    expect(addLineRanges([range(1, 10), range(5, 20), range(30, 40)])).toEqual([
+      range(1, 20),
+      range(30, 40),
+    ]);
     expect(addLineRanges([range(7, 7), range(7, 7), range(8, 9)])).toEqual([
       range(7, 9),
     ]);
@@ -268,9 +271,9 @@ describe("runs of lines, added up", () => {
     expect(getLinesNotShown({ lineCount: 10, ranges: [] })).toEqual([
       range(1, 10),
     ]);
-    expect(
-      getLinesNotShown({ lineCount: 10, ranges: [range(1, 10)] }),
-    ).toEqual([]);
+    expect(getLinesNotShown({ lineCount: 10, ranges: [range(1, 10)] })).toEqual(
+      [],
+    );
     expect(
       getLinesNotShown({ lineCount: 10, ranges: [range(2, 2), range(9, 9)] }),
     ).toEqual([range(1, 1), range(3, 8), range(10, 10)]);
@@ -407,9 +410,9 @@ describe("what writing a file whole drops that Ask AI never saw (issue #6330)", 
     expect(
       decide({ records, branchName: "fix/login", now: file("v1-grown") }),
     ).toEqual({ unseen: CodeFileUnseen.ChangedSinceRead });
-    expect(decide({ records, branchName: "fix/login", now: ABSENT })).toEqual(
-      { unseen: CodeFileUnseen.ChangedSinceRead },
-    );
+    expect(decide({ records, branchName: "fix/login", now: ABSENT })).toEqual({
+      unseen: CodeFileUnseen.ChangedSinceRead,
+    });
   });
 
   test("the branch could not be read: not checked, never read in part", () => {
@@ -753,9 +756,10 @@ describe("the records a turn carries, for a file read in part", () => {
     expect(
       getLatestAIChatRecordsSeen([see("main", "src/a.ts", "v0"), whole, first]),
     ).toEqual([whole, first]);
-    expect(
-      getLatestAIChatRecordsSeen([first, whole, second]),
-    ).toEqual([whole, second]);
+    expect(getLatestAIChatRecordsSeen([first, whole, second])).toEqual([
+      whole,
+      second,
+    ]);
   });
 
   test("a read of another version there ends them", () => {
@@ -1148,9 +1152,12 @@ describe("every interleaving of reads in windows, pushes and Ask AI's own commit
 
           stoppedAt.set(where, last);
 
-          const linesShown: AIChatLinesShown | undefined = getCodeFileLinesShown(
-            { lineCount, firstLine: first, lastLine: last },
-          );
+          const linesShown: AIChatLinesShown | undefined =
+            getCodeFileLinesShown({
+              lineCount,
+              firstLine: first,
+              lastLine: last,
+            });
           const lineNumbers: Set<number> = new Set();
 
           for (let line: number = first; line <= last; line++) {

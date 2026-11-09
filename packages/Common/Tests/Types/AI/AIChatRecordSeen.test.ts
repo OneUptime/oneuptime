@@ -345,7 +345,10 @@ describe("the lines a file's record says it showed (issue #6330)", () => {
     ]);
     expect(readAIChatLineRanges([], 10)).toEqual([]);
     expect(
-      readAIChatLinesShown({ lineCount: 2000, ranges: [{ first: 340, last: 460 }] }),
+      readAIChatLinesShown({
+        lineCount: 2000,
+        ranges: [{ first: 340, last: 460 }],
+      }),
     ).toEqual({ lineCount: 2000, ranges: [{ first: 340, last: 460 }] });
   });
 

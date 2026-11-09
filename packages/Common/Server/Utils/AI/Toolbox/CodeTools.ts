@@ -1186,7 +1186,9 @@ export const ReadCodeFileTool: ObservabilityTool = {
      * when they are not all of them (issue #6330): a commit writes the
      * whole file, so a version Ask AI saw only part of says so on the card.
      */
-    const seen: (linesShown?: AIChatLinesShown | undefined) => AIChatRecordSeen | null = (
+    const seen: (
+      linesShown?: AIChatLinesShown | undefined,
+    ) => AIChatRecordSeen | null = (
       linesShown?: AIChatLinesShown | undefined,
     ): AIChatRecordSeen | null => {
       return repository.id

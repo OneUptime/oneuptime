@@ -669,9 +669,7 @@ describe("what an earlier turn showed the model, and a turn resumed after an app
     const spies: Spies = await resumeWith({
       paused: pausedStateOf(first),
       approved: ["call-other"],
-      turns: [
-        { answer: response({ toolCalls: [COMMIT_CALL(fixed(V1))] }) },
-      ],
+      turns: [{ answer: response({ toolCalls: [COMMIT_CALL(fixed(V1))] }) }],
     });
 
     expect(commitAction(spies, "call-other").status).toBe(

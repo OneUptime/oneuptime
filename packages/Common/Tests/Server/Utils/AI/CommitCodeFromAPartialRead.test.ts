@@ -274,13 +274,27 @@ const range: (first: number, last: number) => AIChatLineRange = (
 
 const PART_OF_CHARGE: string = `Ask AI read only part of this file, and its version replaces all of it: ${CHARGE}.`;
 
+const STOPPED_AT: RegExp = /stopped at line (\d+);/;
+
+// The line a read's answer says it stopped at, to read on from, or null when it showed the rest.
+const stoppedAt: (answer: string) => number | null = (
+  answer: string,
+): number | null => {
+  const stopped: RegExpExecArray | null = STOPPED_AT.exec(answer);
+
+  return stopped ? Number(stopped[1]) : null;
+};
+
 // The 2,000-line file of the issue, on main and on fix/login.
 const repositoryWithALongCharge: () => FakeGitRepository =
   (): FakeGitRepository => {
     return makeRepository({
       files: {
         main: { [CHARGE]: shortLines(2000), "README.md": "# checkout\n" },
-        "fix/login": { [CHARGE]: shortLines(2000), "README.md": "# checkout\n" },
+        "fix/login": {
+          [CHARGE]: shortLines(2000),
+          "README.md": "# checkout\n",
+        },
       },
     });
   };
@@ -361,17 +375,18 @@ describe("read_code_file keeps which of a file's lines it showed", () => {
 
   test("cut by the 12 KB byte cap rather than the line cap: the lines it showed, as its footer says", async () => {
     // 300 lines of 100 characters: about 115 of them fit 12 KB.
-    const wide: string = Array.from({ length: 300 }, (_v: unknown, i: number) => {
-      return `const row${String(i + 1).padStart(3, "0")} = "${"x".repeat(86)}";`;
-    }).join("\n");
+    const wide: string = Array.from(
+      { length: 300 },
+      (_v: unknown, i: number) => {
+        return `const row${String(i + 1).padStart(3, "0")} = "${"x".repeat(86)}";`;
+      },
+    ).join("\n");
     serveOnGitHub(makeRepository({ files: { main: { [CHARGE]: wide } } }));
 
     const result: ToolExecutionResult = await new Conversation(
       GITHUB_CONTEXT,
     ).read(CHARGE);
-    const stopped: number = Number(
-      /stopped at line (\d+);/.exec(result.dataForLlm)![1],
-    );
+    const stopped: number = stoppedAt(result.dataForLlm)!;
 
     expect(stopped).toBeGreaterThan(100);
     expect(stopped).toBeLessThan(130);
@@ -385,7 +400,9 @@ describe("read_code_file keeps which of a file's lines it showed", () => {
     // A minified bundle: one line of 80 KB, cut by the serializer's 64 KB cap.
     serveOnGitHub(
       makeRepository({
-        files: { main: { "dist/app.min.js": `var a="${"y".repeat(80_000)}";` } },
+        files: {
+          main: { "dist/app.min.js": `var a="${"y".repeat(80_000)}";` },
+        },
       }),
     );
 
@@ -413,9 +430,7 @@ describe("read_code_file keeps which of a file's lines it showed", () => {
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
     for (const filePath of ["no-newline.ts", "crlf.ts", "newline.ts"]) {
-      expect(
-        linesShownOf(await conversation.read(filePath)),
-      ).toBeUndefined();
+      expect(linesShownOf(await conversation.read(filePath))).toBeUndefined();
       expect(
         linesShownOf(
           await conversation.read(filePath, { startLine: 1, endLine: 2 }),
@@ -449,7 +464,10 @@ describe("the issue's case: lines 340 to 460 of a 2,000-line file, committed who
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    await conversation.read(CHARGE, { aroundLine: 400, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      aroundLine: 400,
+      branchName: "fix/login",
+    });
     const prepared: PreparedMutation = await conversation.propose(
       CommitCodeToBranchTool,
       commit("fix/login", [{ filePath: CHARGE, content: "v400 = 401;\n" }]),
@@ -478,7 +496,10 @@ describe("the issue's case: lines 340 to 460 of a 2,000-line file, committed who
     serveOnGitHub(repositoryWithALongCharge());
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    await conversation.read(CHARGE, { aroundLine: 400, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      aroundLine: 400,
+      branchName: "fix/login",
+    });
     const prepared: PreparedMutation = await conversation.propose(
       CommitCodeToBranchTool,
       commit("fix/login", [{ filePath: CHARGE, content: "v400 = 401;\n" }]),
@@ -500,7 +521,10 @@ describe("the issue's case: lines 340 to 460 of a 2,000-line file, committed who
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    await conversation.read(CHARGE, { aroundLine: 400, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      aroundLine: 400,
+      branchName: "fix/login",
+    });
     const prepared: PreparedMutation = await conversation.propose(
       CommitCodeToBranchTool,
       commit("fix/login", [{ filePath: CHARGE, content: "v400 = 401;\n" }]),
@@ -530,7 +554,10 @@ describe("the issue's case: lines 340 to 460 of a 2,000-line file, committed who
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    await conversation.read(CHARGE, { aroundLine: 400, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      aroundLine: 400,
+      branchName: "fix/login",
+    });
     await conversation.run(
       CommitCodeToBranchTool,
       await conversation.propose(
@@ -550,7 +577,10 @@ describe("the issue's case: lines 340 to 460 of a 2,000-line file, committed who
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    await conversation.read(CHARGE, { aroundLine: 400, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      aroundLine: 400,
+      branchName: "fix/login",
+    });
     expect(
       (
         await conversation.propose(
@@ -622,7 +652,10 @@ describe("reading all of a file, in one read or in several, adds nothing to the 
       lineCount: 800,
       ranges: [range(1, 400)],
     });
-    await conversation.read(CHARGE, { startLine: 401, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      startLine: 401,
+      branchName: "fix/login",
+    });
 
     expect(
       Object.keys(
@@ -661,8 +694,14 @@ describe("reading all of a file, in one read or in several, adds nothing to the 
     );
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    await conversation.read(CHARGE, { aroundLine: 61, branchName: "fix/login" });
-    await conversation.read(CHARGE, { aroundLine: 303, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      aroundLine: 61,
+      branchName: "fix/login",
+    });
+    await conversation.read(CHARGE, {
+      aroundLine: 303,
+      branchName: "fix/login",
+    });
     const prepared: PreparedMutation = await conversation.propose(
       CommitCodeToBranchTool,
       commit("fix/login", [{ filePath: CHARGE, content: "x\n" }]),
@@ -675,10 +714,15 @@ describe("reading all of a file, in one read or in several, adds nothing to the 
   });
 
   test("read on from where the byte cap stopped each time, to the end", async () => {
-    const wide: string = Array.from({ length: 300 }, (_v: unknown, i: number) => {
-      return `const row${i + 1} = "${"x".repeat(86)}";`;
-    }).join("\n");
-    serveOnGitHub(makeRepository({ files: { "fix/login": { [CHARGE]: wide } } }));
+    const wide: string = Array.from(
+      { length: 300 },
+      (_v: unknown, i: number) => {
+        return `const row${i + 1} = "${"x".repeat(86)}";`;
+      },
+    ).join("\n");
+    serveOnGitHub(
+      makeRepository({ files: { "fix/login": { [CHARGE]: wide } } }),
+    );
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
     let startLine: number = 1;
@@ -689,10 +733,8 @@ describe("reading all of a file, in one read or in several, adds nothing to the 
         startLine,
         branchName: "fix/login",
       });
-      const stopped: RegExpExecArray | null = /stopped at line (\d+);/.exec(
-        result.dataForLlm,
-      );
-      startLine = stopped ? Number(stopped[1]) + 1 : 301;
+      const stopped: number | null = stoppedAt(result.dataForLlm);
+      startLine = stopped ? stopped + 1 : 301;
       reads++;
     }
 
@@ -719,7 +761,10 @@ describe("reading all of a file, in one read or in several, adds nothing to the 
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
     await conversation.read(CHARGE);
-    await conversation.read(CHARGE, { startLine: 401, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      startLine: 401,
+      branchName: "fix/login",
+    });
 
     expect(
       Object.keys(
@@ -755,7 +800,10 @@ describe("what else the card says of a file read in part", () => {
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    await conversation.read(CHARGE, { aroundLine: 400, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      aroundLine: 400,
+      branchName: "fix/login",
+    });
     push(repository, "fix/login", CHARGE, shortLines(2100));
 
     const prepared: PreparedMutation = await conversation.propose(
@@ -777,7 +825,10 @@ describe("what else the card says of a file read in part", () => {
     serveOnGitHub(repositoryWithALongCharge());
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    await conversation.read(CHARGE, { aroundLine: 400, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      aroundLine: 400,
+      branchName: "fix/login",
+    });
     const written: ToolExecutionResult = await conversation.run(
       CommitCodeToBranchTool,
       await conversation.propose(
@@ -794,7 +845,9 @@ describe("what else the card says of a file read in part", () => {
       Object.keys(
         await conversation.propose(
           CommitCodeToBranchTool,
-          commit("fix/login", [{ filePath: CHARGE, content: shortLines(2002) }]),
+          commit("fix/login", [
+            { filePath: CHARGE, content: shortLines(2002) },
+          ]),
         ),
       ),
     ).toEqual(["arguments"]);
@@ -842,13 +895,19 @@ describe("what else the card says of a file read in part", () => {
   test("beside a file changed since the read: two lines, the change first, and the model told both", async () => {
     const repository: FakeGitRepository = makeRepository({
       files: {
-        "fix/login": { [CHARGE]: shortLines(2000), "src/refund.ts": "r = 1;\n" },
+        "fix/login": {
+          [CHARGE]: shortLines(2000),
+          "src/refund.ts": "r = 1;\n",
+        },
       },
     });
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
-    await conversation.read(CHARGE, { aroundLine: 400, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      aroundLine: 400,
+      branchName: "fix/login",
+    });
     await conversation.read("src/refund.ts", { branchName: "fix/login" });
     push(repository, "fix/login", "src/refund.ts", "r = 1;\nteammate = 2;\n");
 
@@ -883,7 +942,9 @@ describe("what else the card says of a file read in part", () => {
 
   test("a single line too long to show whole: the card names it however often it is read", async () => {
     const repository: FakeGitRepository = makeRepository({
-      files: { "fix/login": { "dist/app.min.js": `var a="${"y".repeat(80_000)}";` } },
+      files: {
+        "fix/login": { "dist/app.min.js": `var a="${"y".repeat(80_000)}";` },
+      },
     });
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
@@ -896,7 +957,9 @@ describe("what else the card says of a file read in part", () => {
     });
     const prepared: PreparedMutation = await conversation.propose(
       CommitCodeToBranchTool,
-      commit("fix/login", [{ filePath: "dist/app.min.js", content: "var a;\n" }]),
+      commit("fix/login", [
+        { filePath: "dist/app.min.js", content: "var a;\n" },
+      ]),
     );
 
     expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
@@ -1192,9 +1255,7 @@ describe("every read, against what the model was shown", () => {
           branchName: "fix/login",
         });
         const shown: Set<number> = shownWhole(result.dataForLlm, fileLines);
-        const stopped: RegExpExecArray | null = /stopped at line (\d+);/.exec(
-          result.dataForLlm,
-        );
+        const stopped: number | null = stoppedAt(result.dataForLlm);
 
         if (lineCount > 0 && shown.size === lineCount) {
           oneReadShowedAll = true;
@@ -1279,7 +1340,10 @@ describe("every read, against what the model was shown", () => {
         }
       } else {
         readInPart++;
-        expect({ round, line: cardOf(CommitCodeToBranchTool, prepared).line }).toEqual({
+        expect({
+          round,
+          line: cardOf(CommitCodeToBranchTool, prepared).line,
+        }).toEqual({
           round,
           line: `Ask AI read only part of this file, and its version replaces all of it: ${filePath}.`,
         });

@@ -129,7 +129,12 @@ describe("the Ask AI page on a file Ask AI read only part of (issue #6330)", () 
     expect(
       findCodeFileUnseen({
         views: [
-          { branchName: "fix/login", fingerprint: "a", order: 1, linesShown: part },
+          {
+            branchName: "fix/login",
+            fingerprint: "a",
+            order: 1,
+            linesShown: part,
+          },
         ],
         branchName: "fix/login",
         now: { state: "file", fingerprint: "a" },
