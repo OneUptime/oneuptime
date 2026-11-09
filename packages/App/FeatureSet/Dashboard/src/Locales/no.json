@@ -47140,5 +47140,16 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Ingenting sjekker denne overvåkeren før overvåkingen slås på igjen, så den åpner ingen hendelser eller varsler. Dens åpne hendelser og varsler som er satt til automatisk løsning, blir løst nå.",
   "The monitors of this group could not be read. Please try again.": "Monitorene i denne gruppen kunne ikke leses. Prøv igjen.",
   "Turn monitoring off or on for every monitor in this group at once.": "Slå overvåking av eller på for alle monitorer i denne gruppen på én gang.",
-  "Turn off monitoring for this group?": "Slå av overvåking for denne gruppen?"
+  "Turn off monitoring for this group?": "Slå av overvåking for denne gruppen?",
+  "Keep each alert episode's updates in one thread": "Samle oppdateringene for hver varselepisode i én tråd",
+  "Keep each alert's updates in one thread": "Samle oppdateringene for hvert varsel i én tråd",
+  "Keep each event's updates in one thread": "Samle oppdateringene for hver vedlikeholdshendelse i én tråd",
+  "Keep each incident episode's updates in one thread": "Samle oppdateringene for hver hendelsesepisode i én tråd",
+  "Keep each incident's updates in one thread": "Samle oppdateringene for hver hendelse i én tråd",
+  "Keeps each alert episode's updates in one thread there.": "Samler der oppdateringene for hver varselepisode i én tråd.",
+  "Keeps each alert's updates in one thread there.": "Samler der oppdateringene for hvert varsel i én tråd.",
+  "Keeps each event's updates in one thread there.": "Samler der oppdateringene for hver vedlikeholdshendelse i én tråd.",
+  "Keeps each incident episode's updates in one thread there.": "Samler der oppdateringene for hver hendelsesepisode i én tråd.",
+  "Keeps each incident's updates in one thread there.": "Samler der oppdateringene for hver hendelse i én tråd.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Den første meldingen starter en tråd. Senere oppdateringer er svar i den, og tilstandsendringer og vaktalarmer vises også i kanalen."
 }

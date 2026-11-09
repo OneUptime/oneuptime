@@ -169,6 +169,9 @@ function incidentCreatedFeed(description: string): string {
 async function sendToChannels(data: {
   messageBlocks: Array<WorkspaceMessageBlock>;
   channelIds?: Array<string> | undefined;
+  // A reply in a record's thread (WorkspaceRecordThreads).
+  threadTsByChannelId?: Record<string, string> | undefined;
+  alsoSendToChannel?: boolean | undefined;
 }): Promise<WorkspaceSendMessageResponse> {
   return await SlackUtil.sendMessage({
     workspaceMessagePayload: {
@@ -177,6 +180,8 @@ async function sendToChannels(data: {
       channelIds: data.channelIds || ["C0INCIDENTS"],
       messageBlocks: data.messageBlocks,
       workspaceType: WorkspaceType.Slack,
+      threadTsByChannelId: data.threadTsByChannelId,
+      alsoSendToChannel: data.alsoSendToChannel,
     },
     authToken: TOKEN,
     userId: "",
@@ -678,6 +683,29 @@ describe("SlackUtil.sendMessage - a screenshot in the message", () => {
       expect.stringContaining("posting it with each image as its alt text"),
       expect.anything(),
     );
+  });
+
+  test("an image Slack refuses in a record's thread: posted again in the same thread", async () => {
+    mockSlackApi({
+      postMessage: [{ ok: false, error: "invalid_blocks" }],
+    });
+    mockUpload();
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    const response: WorkspaceSendMessageResponse = await sendToChannels({
+      messageBlocks: [markdown(`Timeout\n![Login page](${DATA_URL})`)],
+      threadTsByChannelId: { C0INCIDENTS: "1760000000.000100" },
+      alsoSendToChannel: true,
+    });
+
+    expect(response.errors).toEqual([]);
+    expect(callsTo("chat.postMessage")).toHaveLength(2);
+
+    for (const post of callsTo("chat.postMessage")) {
+      expect(post.data["thread_ts"]).toBe("1760000000.000100");
+      expect(post.data["reply_broadcast"]).toBe(true);
+    }
   });
 
   test("any other refusal is reported as before, and not posted twice", async () => {

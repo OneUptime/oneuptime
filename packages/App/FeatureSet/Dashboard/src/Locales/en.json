@@ -47140,5 +47140,16 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.",
   "The monitors of this group could not be read. Please try again.": "The monitors of this group could not be read. Please try again.",
   "Turn monitoring off or on for every monitor in this group at once.": "Turn monitoring off or on for every monitor in this group at once.",
-  "Turn off monitoring for this group?": "Turn off monitoring for this group?"
+  "Turn off monitoring for this group?": "Turn off monitoring for this group?",
+  "Keep each alert episode's updates in one thread": "Keep each alert episode's updates in one thread",
+  "Keep each alert's updates in one thread": "Keep each alert's updates in one thread",
+  "Keep each event's updates in one thread": "Keep each event's updates in one thread",
+  "Keep each incident episode's updates in one thread": "Keep each incident episode's updates in one thread",
+  "Keep each incident's updates in one thread": "Keep each incident's updates in one thread",
+  "Keeps each alert episode's updates in one thread there.": "Keeps each alert episode's updates in one thread there.",
+  "Keeps each alert's updates in one thread there.": "Keeps each alert's updates in one thread there.",
+  "Keeps each event's updates in one thread there.": "Keeps each event's updates in one thread there.",
+  "Keeps each incident episode's updates in one thread there.": "Keeps each incident episode's updates in one thread there.",
+  "Keeps each incident's updates in one thread there.": "Keeps each incident's updates in one thread there.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too."
 }

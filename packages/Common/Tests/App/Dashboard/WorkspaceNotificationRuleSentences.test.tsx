@@ -326,6 +326,90 @@ describe("the sentences that say what a rule does", () => {
   });
 
   /*
+   * A Slack rule that keeps each record's updates in one thread in the
+   * channels it names says so, after the channels. Microsoft Teams posts
+   * every update as a message of its own, and a monitor or an on-call
+   * policy has no thread, so a rule that asks says nothing of it there.
+   */
+  test("a rule that keeps each incident's updates in one thread says so, in Slack only", () => {
+    const threadRule: IncidentNotificationRule = rule({
+      shouldCreateNewChannel: false,
+      shouldPostToExistingChannel: true,
+      existingChannelNames: "#ops",
+      shouldPostUpdatesInThread: true,
+    });
+
+    expect(sentences({ rule: threadRule })).toEqual([
+      "Posts updates in #ops.",
+      "Keeps each incident's updates in one thread there.",
+    ]);
+    // Off: the channels alone.
+    expect(
+      sentences({
+        rule: rule({
+          shouldCreateNewChannel: false,
+          shouldPostToExistingChannel: true,
+          existingChannelNames: "#ops",
+        }),
+      }),
+    ).toEqual(["Posts updates in #ops."]);
+    expect(
+      sentences({
+        rule: threadRule,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }),
+    ).toEqual(["Posts updates in #ops."]);
+    for (const eventType of [
+      NotificationRuleEventType.Monitor,
+      NotificationRuleEventType.OnCallDutyPolicy,
+    ]) {
+      expect(sentences({ rule: threadRule, eventType: eventType })).toEqual([
+        "Posts updates in #ops.",
+      ]);
+    }
+    // With no channel to post in, there is no thread either.
+    expect(
+      sentences({
+        rule: { ...threadRule, existingChannelNames: "" },
+      }),
+    ).toEqual([]);
+  });
+
+  test.each([
+    [
+      NotificationRuleEventType.Alert,
+      "Keeps each alert's updates in one thread there.",
+    ],
+    [
+      NotificationRuleEventType.IncidentEpisode,
+      "Keeps each incident episode's updates in one thread there.",
+    ],
+    [
+      NotificationRuleEventType.AlertEpisode,
+      "Keeps each alert episode's updates in one thread there.",
+    ],
+    [
+      NotificationRuleEventType.ScheduledMaintenance,
+      "Keeps each event's updates in one thread there.",
+    ],
+  ])(
+    "%s rules name their own records in the thread sentence",
+    (eventType: NotificationRuleEventType, inThread: string) => {
+      expect(
+        sentences({
+          eventType: eventType,
+          rule: rule({
+            shouldCreateNewChannel: false,
+            shouldPostToExistingChannel: true,
+            existingChannelNames: "#ops",
+            shouldPostUpdatesInThread: true,
+          }),
+        }),
+      ).toEqual(["Posts updates in #ops.", inThread]);
+    },
+  );
+
+  /*
    * Microsoft Teams shows a team's channels to everybody in the team, so
    * OneUptime invites nobody one by one there: the sentence says who sees
    * the channel. OneUptime cannot archive a Teams channel, so a rule that

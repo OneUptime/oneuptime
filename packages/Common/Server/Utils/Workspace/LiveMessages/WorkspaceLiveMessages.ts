@@ -19,6 +19,7 @@ import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProject
 import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceUtil from "../Workspace";
+import WorkspaceRecordThreads from "../WorkspaceRecordThreads";
 import WorkspaceBase, {
   WorkspaceSendMessageResponse,
   WorkspaceThread,
@@ -153,6 +154,8 @@ export default class WorkspaceLiveMessages {
     // What its notification shows (WorkspaceMessagePayload.text).
     text?: string | undefined;
     messageData?: WorkspaceLiveMessageData | undefined;
+    // Where it is a reply in a record's thread, shown in the channel too.
+    alsoSendToChannel?: boolean | undefined;
   }): Promise<Array<WorkspaceLiveMessage>> {
     const kept: Array<WorkspaceLiveMessage> = [];
 
@@ -189,6 +192,7 @@ export default class WorkspaceLiveMessages {
               ...destination,
               messageBlocks: data.messageBlocks,
               ...(data.text ? { text: data.text } : {}),
+              ...(data.alsoSendToChannel ? { alsoSendToChannel: true } : {}),
             },
             messageData: data.messageData,
             notificationFor: data.notificationFor,
@@ -208,6 +212,8 @@ export default class WorkspaceLiveMessages {
    * Posts the message in the one place `destination` names and keeps it.
    * Null when it could not be posted; with `notificationFor`, the post (or
    * its failure) is logged in Notification Logs as any other message is.
+   * In a channel that keeps the record's messages in one thread, it is a
+   * reply there once the thread has started (WorkspaceRecordThreads).
    */
   @CaptureSpan()
   public static async postAndKeep(data: {
@@ -217,10 +223,26 @@ export default class WorkspaceLiveMessages {
     messageData?: WorkspaceLiveMessageData | undefined;
     notificationFor?: NotificationFor | undefined;
   }): Promise<WorkspaceLiveMessage | null> {
+    const recordThreadKey: string | null =
+      data.destination.isRecordThread && data.notificationFor
+        ? WorkspaceRecordThreads.getKey(data.notificationFor)
+        : null;
+
     const responses: Array<WorkspaceSendMessageResponse> =
       await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
         projectId: data.projectId,
-        messagePayloadsByWorkspace: [data.destination],
+        messagePayloadsByWorkspace: [
+          recordThreadKey
+            ? {
+                ...data.destination,
+                threadTsByChannelId:
+                  await WorkspaceRecordThreads.getThreadTsByChannelId({
+                    projectId: data.projectId,
+                    key: recordThreadKey,
+                  }),
+              }
+            : data.destination,
+        ],
       });
 
     if (data.notificationFor) {
@@ -399,6 +421,10 @@ export default class WorkspaceLiveMessages {
         return WorkspaceLiveMessageEdit.Failed;
       }
 
+      /*
+       * Posted again as a message of its own, also where it had been a
+       * reply in a record's thread (WorkspaceRecordThreads).
+       */
       logger.debug(
         `A kept ${workspaceType} message was deleted; posting it again.`,
         logAttributes,

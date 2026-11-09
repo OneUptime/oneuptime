@@ -361,6 +361,11 @@ export default class OnCallPolicyRunMessage {
               }),
               ...(endedAs ? { endedAs: endedAs } : {}),
             },
+            /*
+             * An alarm it says is shown in the channel too, where it is a
+             * reply in a record's thread - as a raised alarm is.
+             */
+            alsoSendToChannel: alarms.length > 0,
           })),
         );
       } else {
@@ -421,6 +426,8 @@ export default class OnCallPolicyRunMessage {
             notificationText: alarm.text,
             workspaceNotification: {
               sendWorkspaceNotification: true,
+              // ... in the channel too, where it is a reply in a record's thread.
+              alsoSendToChannel: true,
             },
           },
         );

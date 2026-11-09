@@ -47140,5 +47140,16 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Niente controlla questo monitor finché il monitoraggio non viene riattivato, quindi non apre incidenti né avvisi. I suoi incidenti e avvisi aperti impostati per la risoluzione automatica vengono risolti ora.",
   "The monitors of this group could not be read. Please try again.": "Non è stato possibile leggere i monitor di questo gruppo. Riprova.",
   "Turn monitoring off or on for every monitor in this group at once.": "Disattiva o attiva il monitoraggio per tutti i monitor di questo gruppo in una volta sola.",
-  "Turn off monitoring for this group?": "Disattivare il monitoraggio per questo gruppo?"
+  "Turn off monitoring for this group?": "Disattivare il monitoraggio per questo gruppo?",
+  "Keep each alert episode's updates in one thread": "Raggruppa gli aggiornamenti di ogni episodio di avviso in un thread",
+  "Keep each alert's updates in one thread": "Raggruppa gli aggiornamenti di ogni avviso in un thread",
+  "Keep each event's updates in one thread": "Raggruppa gli aggiornamenti di ogni evento in un thread",
+  "Keep each incident episode's updates in one thread": "Raggruppa gli aggiornamenti di ogni episodio di incidente in un thread",
+  "Keep each incident's updates in one thread": "Raggruppa gli aggiornamenti di ogni incidente in un thread",
+  "Keeps each alert episode's updates in one thread there.": "Lì raggruppa gli aggiornamenti di ogni episodio di avviso in un thread.",
+  "Keeps each alert's updates in one thread there.": "Lì raggruppa gli aggiornamenti di ogni avviso in un thread.",
+  "Keeps each event's updates in one thread there.": "Lì raggruppa gli aggiornamenti di ogni evento in un thread.",
+  "Keeps each incident episode's updates in one thread there.": "Lì raggruppa gli aggiornamenti di ogni episodio di incidente in un thread.",
+  "Keeps each incident's updates in one thread there.": "Lì raggruppa gli aggiornamenti di ogni incidente in un thread.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Il primo messaggio avvia un thread. Gli aggiornamenti successivi sono risposte nel thread, e i cambi di stato e gli allarmi di reperibilità compaiono anche nel canale."
 }

@@ -47140,5 +47140,16 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Этот монитор никто не проверяет, пока мониторинг не включат снова, поэтому он не открывает инцидентов и оповещений. Его открытые инциденты и оповещения, для которых настроено автоустранение, устраняются сразу.",
   "The monitors of this group could not be read. Please try again.": "Не удалось прочитать мониторы этой группы. Попробуйте ещё раз.",
   "Turn monitoring off or on for every monitor in this group at once.": "Выключайте или включайте мониторинг сразу для всех мониторов этой группы.",
-  "Turn off monitoring for this group?": "Выключить мониторинг для этой группы?"
+  "Turn off monitoring for this group?": "Выключить мониторинг для этой группы?",
+  "Keep each alert episode's updates in one thread": "Собирать обновления каждого эпизода оповещения в один тред",
+  "Keep each alert's updates in one thread": "Собирать обновления каждого оповещения в один тред",
+  "Keep each event's updates in one thread": "Собирать обновления каждого события в один тред",
+  "Keep each incident episode's updates in one thread": "Собирать обновления каждого эпизода инцидента в один тред",
+  "Keep each incident's updates in one thread": "Собирать обновления каждого инцидента в один тред",
+  "Keeps each alert episode's updates in one thread there.": "Собирает там обновления каждого эпизода оповещения в один тред.",
+  "Keeps each alert's updates in one thread there.": "Собирает там обновления каждого оповещения в один тред.",
+  "Keeps each event's updates in one thread there.": "Собирает там обновления каждого события в один тред.",
+  "Keeps each incident episode's updates in one thread there.": "Собирает там обновления каждого эпизода инцидента в один тред.",
+  "Keeps each incident's updates in one thread there.": "Собирает там обновления каждого инцидента в один тред.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Первое сообщение начинает тред. Следующие обновления — ответы в нём, а смены состояния и тревоги дежурства видны и в канале."
 }

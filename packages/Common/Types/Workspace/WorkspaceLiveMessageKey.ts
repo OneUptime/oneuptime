@@ -24,6 +24,14 @@ export enum WorkspaceLiveMessageKind {
    * run's own key (OnCallPolicyRunMessage).
    */
   OnCallPageRequest = "OnCallPageRequest",
+  /*
+   * The first message about a record in an existing channel whose rule
+   * keeps the record's messages in one thread
+   * (BaseNotificationRule.shouldPostUpdatesInThread): every later message
+   * about the record there is a reply to it. Never edited; kept so the
+   * next message finds the thread (WorkspaceRecordThreads).
+   */
+  RecordThread = "RecordThread",
 }
 
 // How an on-call policy run's message told the run's ending, the first time.
@@ -86,5 +94,17 @@ export default class WorkspaceLiveMessageKey {
     recordId: ObjectID,
   ): string {
     return `${WorkspaceLiveMessageKind.OnCallPageRequest}:${recordType}:${recordId.toString()}`;
+  }
+
+  /*
+   * The thread of one record in the existing channels its rules keep it in
+   * one thread in: the kind of record ("Incident", "Alert",
+   * "ScheduledMaintenance", "IncidentEpisode", "AlertEpisode") and its id.
+   */
+  public static forRecordThread(
+    recordType: string,
+    recordId: ObjectID,
+  ): string {
+    return `${WorkspaceLiveMessageKind.RecordThread}:${recordType}:${recordId.toString()}`;
   }
 }

@@ -186,6 +186,8 @@ export interface RuleOptions {
   archive?: boolean | undefined;
   existingChannels?: string | undefined;
   teamToCreateChannelIn?: string | undefined;
+  // Left out: the rule does not say (saved before the switch existed).
+  postsUpdatesInThread?: boolean | undefined;
 }
 
 // A rule as the database holds it.
@@ -223,6 +225,10 @@ export function makeRule(options: RuleOptions = {}): WorkspaceNotificationRule {
     notificationRule.teamToCreateChannelIn = options.teamToCreateChannelIn;
   }
 
+  if (options.postsUpdatesInThread !== undefined) {
+    notificationRule.shouldPostUpdatesInThread = options.postsUpdatesInThread;
+  }
+
   rule.notificationRule = notificationRule as never;
   return rule;
 }
@@ -230,6 +236,8 @@ export function makeRule(options: RuleOptions = {}): WorkspaceNotificationRule {
 export interface SlackRequest {
   method: string;
   body: JSONObject;
+  // What Slack answered: a posted message's ts is in it.
+  answer?: JSONObject | undefined;
 }
 
 export interface GraphChannelCreate {
@@ -295,6 +303,8 @@ export default class WorkspaceRuleWorld {
 
   public slackRequests: Array<SlackRequest> = [];
   public slackRefusesCreate: string | null = null;
+  // Slack refuses a reply in a thread (thread_ts) with this error: its first message was deleted.
+  public slackRefusesReplies: string | null = null;
 
   // Called as each Slack request arrives, before it is answered.
   public onSlackRequest: ((request: SlackRequest) => void) | null = null;
@@ -622,6 +632,10 @@ export default class WorkspaceRuleWorld {
     }
 
     if (method === "chat.postMessage") {
+      if (this.slackRefusesReplies && body["thread_ts"]) {
+        return { ok: false, error: this.slackRefusesReplies };
+      }
+
       return {
         ok: true,
         channel: channel,
@@ -687,11 +701,13 @@ export default class WorkspaceRuleWorld {
       }
 
       const method: string = url.split("/api/")[1] || "";
-      this.slackRequests.push({ method: method, body: body });
+      const request: SlackRequest = { method: method, body: body };
+      this.slackRequests.push(request);
       this.events.push(`slack:${method}`);
       this.onSlackRequest?.({ method: method, body: body });
 
       const answer: JSONObject = this.answerSlack(method, body);
+      request.answer = answer;
 
       return {
         jsonData: answer,

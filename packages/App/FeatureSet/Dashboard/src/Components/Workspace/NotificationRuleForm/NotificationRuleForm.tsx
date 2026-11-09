@@ -83,6 +83,8 @@ import {
   POST_TO_CHATS_TITLE,
   POST_TO_EXISTING_CHANNELS_DESCRIPTION,
   POST_TO_EXISTING_CHANNELS_TITLE,
+  POST_UPDATES_IN_THREAD_DESCRIPTION,
+  POST_UPDATES_IN_THREAD_TITLES,
   RULE_SUMMARY_TITLE,
   TEAM_PLACEHOLDER,
   TEAM_TITLE,
@@ -392,6 +394,30 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
     },
   ];
+
+  /*
+   * Slack only, for the kinds of record that have a thread there
+   * (POST_UPDATES_IN_THREAD_TITLES): Microsoft Teams posts every update as a
+   * message of its own whatever the rule says, so the switch would do
+   * nothing there.
+   */
+  const postUpdatesInThreadTitle: string | undefined =
+    POST_UPDATES_IN_THREAD_TITLES[props.eventType];
+
+  if (postUpdatesInThreadTitle && !isTeams) {
+    destinationFields.push({
+      field: {
+        shouldPostUpdatesInThread: true,
+      },
+      title: postUpdatesInThreadTitle,
+      description: POST_UPDATES_IN_THREAD_DESCRIPTION,
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      showIf: (formValue: FormValues<BaseNotificationRule>): boolean => {
+        return Boolean(formValue.shouldPostToExistingChannel);
+      },
+    });
+  }
 
   // Chats are a Microsoft Teams only destination.
   if (isTeams) {

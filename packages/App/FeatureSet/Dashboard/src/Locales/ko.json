@@ -47140,5 +47140,16 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "모니터링을 다시 켤 때까지 이 모니터를 아무것도 확인하지 않으므로 인시던트나 알림을 열지 않습니다. 자동 해결로 설정된 열린 인시던트와 알림은 지금 해결됩니다.",
   "The monitors of this group could not be read. Please try again.": "이 그룹의 모니터를 읽을 수 없습니다. 다시 시도해 주세요.",
   "Turn monitoring off or on for every monitor in this group at once.": "이 그룹의 모든 모니터에 대해 모니터링을 한 번에 끄거나 켭니다.",
-  "Turn off monitoring for this group?": "이 그룹의 모니터링을 끄시겠습니까?"
+  "Turn off monitoring for this group?": "이 그룹의 모니터링을 끄시겠습니까?",
+  "Keep each alert episode's updates in one thread": "경고 에피소드마다 업데이트를 하나의 스레드로 모으기",
+  "Keep each alert's updates in one thread": "경고마다 업데이트를 하나의 스레드로 모으기",
+  "Keep each event's updates in one thread": "이벤트마다 업데이트를 하나의 스레드로 모으기",
+  "Keep each incident episode's updates in one thread": "인시던트 에피소드마다 업데이트를 하나의 스레드로 모으기",
+  "Keep each incident's updates in one thread": "인시던트마다 업데이트를 하나의 스레드로 모으기",
+  "Keeps each alert episode's updates in one thread there.": "그곳에서 경고 에피소드마다 업데이트를 하나의 스레드로 모읍니다.",
+  "Keeps each alert's updates in one thread there.": "그곳에서 경고마다 업데이트를 하나의 스레드로 모읍니다.",
+  "Keeps each event's updates in one thread there.": "그곳에서 이벤트마다 업데이트를 하나의 스레드로 모읍니다.",
+  "Keeps each incident episode's updates in one thread there.": "그곳에서 인시던트 에피소드마다 업데이트를 하나의 스레드로 모읍니다.",
+  "Keeps each incident's updates in one thread there.": "그곳에서 인시던트마다 업데이트를 하나의 스레드로 모읍니다.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "첫 메시지가 스레드를 시작합니다. 이후 업데이트는 그 스레드의 답글이 되며, 상태 변경과 온콜 알람은 채널에도 표시됩니다."
 }
