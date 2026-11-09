@@ -7,6 +7,7 @@ OneUptime erreicht Sie auf zwei Wegen. Es alarmiert Sie, wenn während Ihrer Ber
 - [Wo Sie sie finden](#wo-sie-sie-finden): Die Seiten der Benutzereinstellungen, Abschnitt für Abschnitt.
 - [Womit Sie starten](#womit-sie-starten): Die Methoden, Regeln und Einstellungen, die ein neues Mitglied erhält.
 - [Wenn keine Regel passt](#wenn-keine-regel-passt): Wie ein Alarm Sie trotzdem erreicht, und wer davon erfährt.
+- [Die Sprache Ihrer Alarme](#die-sprache-ihrer-alarme): Alarme in der Sprache, die Sie gewählt haben, und was auf Englisch bleibt.
 :::
 
 ## So funktioniert es
@@ -96,6 +97,18 @@ Ein Alarm kann Sie für eine Art und einen Schweregrad erreichen, für die Sie k
 
 Sie erhalten darüber eine E-Mail, ebenso die Eigentümer der Bereitschaftsrichtlinie, oder die Eigentümer des Projekts, wenn die Richtlinie keine hat. Ist gar nichts verifiziert, kann der Alarm nicht zugestellt werden, und die E-Mail sagt stattdessen das. Diese E-Mails werden zurückgehalten, solange weitere Alarme eintreffen, sodass ein Sturm von Alarmen kein Sturm von E-Mails wird. Wie Sie die fehlende Regel hinzufügen, steht unter [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules#wenn-ein-schweregrad-keine-regel-hat).
 
+## Die Sprache Ihrer Alarme
+
+Ihre Alarme werden in Ihrer Sprache geschrieben: der, die Sie im Sprachmenü unten auf jeder Seite wählen, oder unter **Sprache** im **Benutzerprofil**. Bis Sie eine wählen, sind sie auf Englisch.
+
+| Kanal | Sprache |
+| --- | --- |
+| E-Mail, SMS, Push-Benachrichtigungen und Telegram | Ihre Sprache |
+| Ihre eigenen Nachrichten in Slack, Microsoft Teams und Mattermost | Ihre Sprache |
+| Telefonanrufe und WhatsApp | Englisch |
+
+Was sich ändert, sind die Worte von OneUptime: Betreffzeilen, Überschriften, Schaltflächen und Sätze sowie die Namen, mit denen jedes neue Projekt startet, etwa Identifiziert und Kritischer Vorfall. Was Ihr Team geschrieben hat, bleibt, wie es geschrieben wurde: Titel, Beschreibungen, Grundursachen und die Namen von Projekten, Teams und Status, die Ihr Projekt selbst benannt hat. Eine SMS in einer Sprache mit eigener Schrift, etwa Russisch, Japanisch oder Persisch, braucht mehr Teile als eine auf Englisch.
+
 ## Fehlerbehebung
 
 :::details Ich hatte Bereitschaft, aber nichts hat mich erreicht
@@ -104,6 +117,10 @@ Sie erhalten darüber eine E-Mail, ebenso die Eigentümer der Bereitschaftsricht
 
 :::details Ich bekomme E-Mails zu Datensätzen, nach denen ich nie gefragt habe
 Sie sind Eigentümer des Datensatzes, direkt oder über ein Team, oder der Datensatz hat keine Eigentümer und Sie sind ein Projekteigentümer. Schalten Sie das Ereignis unter **Benutzereinstellungen → Benachrichtigungseinstellungen** aus, oder verringern Sie die Menge unter **Benutzereinstellungen → E-Mail-Einstellungen**.
+:::
+
+:::details Meine Alarme sind auf Englisch, das Dashboard aber nicht
+Das Dashboard folgt Ihrem Browser, bis Sie eine Sprache wählen. Wählen Sie sie im Sprachmenü unten auf jeder Seite oder unter **Sprache** im **Benutzerprofil**. Telefonanrufe und WhatsApp-Nachrichten bleiben auf Englisch.
 :::
 
 :::details Ich habe eine Telefonnummer hinzugefügt, aber sie steht nicht in meinen Regeln

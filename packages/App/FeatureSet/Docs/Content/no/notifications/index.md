@@ -7,6 +7,7 @@ OneUptime når deg på to måter. Det tilkaller deg når en hendelse eller et va
 - [Hvor du finner dem](#hvor-du-finner-dem): Sidene i brukerinnstillingene, seksjon for seksjon.
 - [Dette starter du med](#dette-starter-du-med): Metodene, reglene og innstillingene et nytt medlem får.
 - [Når ingen regel passer](#når-ingen-regel-passer): Hvordan en tilkalling likevel når deg, og hvem som får beskjed.
+- [Språket i tilkallingene dine](#språket-i-tilkallingene-dine): Tilkallinger på språket du har valgt, og hva som forblir på engelsk.
 :::
 
 ## Slik fungerer det
@@ -96,6 +97,18 @@ En tilkalling kan nå deg for en type og en alvorlighetsgrad du ikke har noen re
 
 Du får en e-post om det, og det gjør også eierne av vaktpolicyen, eller prosjektets eiere hvis policyen ikke har noen. Er ingenting verifisert, kan tilkallingen ikke leveres, og e-posten sier det i stedet. Disse e-postene holdes tilbake mens tilkallingene fortsetter å komme, slik at en storm av tilkallinger ikke blir en storm av e-poster. Hvordan du legger til den manglende regelen, står under [Personlige vaktregler](/docs/notifications/on-call-rules#når-en-alvorlighetsgrad-ikke-har-noen-regel).
 
+## Språket i tilkallingene dine
+
+Tilkallingene dine skrives på språket ditt: det du velger i språkmenyen nederst på hver side, eller under **Språk** på **Brukerprofil**. Til du velger et, er de på engelsk.
+
+| Kanal | Språk |
+| --- | --- |
+| E-post, SMS, push-varsler og Telegram | Språket ditt |
+| Dine egne meldinger i Slack, Microsoft Teams og Mattermost | Språket ditt |
+| Telefonsamtaler og WhatsApp | Engelsk |
+
+Det som endres, er OneUptimes egne ord: emnelinjer, overskrifter, knapper og setninger, og navnene hvert nye prosjekt starter med, som Identifisert og Kritisk hendelse. Det teamet ditt har skrevet, står som det ble skrevet: titler, beskrivelser, rotårsaker og navnene på prosjekter, team og statuser prosjektet ditt har gitt navn selv. En SMS på et språk med egen skrift, som russisk, japansk eller persisk, tar flere deler enn en på engelsk.
+
 ## Feilsøking
 
 :::details Jeg hadde vakt, men ingenting nådde meg
@@ -104,6 +117,10 @@ Du får en e-post om det, og det gjør også eierne av vaktpolicyen, eller prosj
 
 :::details Jeg får e-poster om ting jeg aldri har bedt om
 Du eier tingen, direkte eller gjennom et team, eller tingen har ingen eiere og du er prosjekteier. Slå av hendelsen under **Brukerinnstillinger → Varselinnstillinger**, eller skru ned mengden under **Brukerinnstillinger → E-postinnstillinger**.
+:::
+
+:::details Tilkallingene mine er på engelsk, selv om dashbordet ikke er det
+Dashbordet følger nettleseren din til du velger et språk. Velg det i språkmenyen nederst på hver side, eller under **Språk** på **Brukerprofil**. Telefonsamtaler og WhatsApp-meldinger forblir på engelsk.
 :::
 
 :::details Jeg la til et telefonnummer, men det er ikke i reglene mine

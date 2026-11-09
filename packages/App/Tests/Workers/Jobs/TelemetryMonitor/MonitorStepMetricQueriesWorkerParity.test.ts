@@ -20,6 +20,7 @@ import KubernetesFinishedPods, {
   POD_UID_ATTRIBUTE,
 } from "Common/Server/Utils/Monitor/KubernetesFinishedPods";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE DASHBOARD READS A STEP AS THE WORKER DOES (issue #5759).
@@ -635,7 +636,8 @@ describe("the dashboard reads every metric-backed step as the worker does", () =
    * neither the monitor's charts nor an event's snapshot repeat it.
    */
   test("Kubernetes: the finished pods a request read leaves out are not kept in the snapshot", async () => {
-    const finishedPods: jest.SpiedFunction<
+    // jest-mock 28's spy type, as @jest/globals' jest.spyOn returns it.
+    const finishedPods: SpyInstance<
       typeof KubernetesFinishedPods.readFinishedPodUids
     > = jest
       .spyOn(KubernetesFinishedPods, "readFinishedPodUids")

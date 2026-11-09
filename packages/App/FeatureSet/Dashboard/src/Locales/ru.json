@@ -24210,7 +24210,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "Когда вас приглашают в проект или команду, приглашение ждёт здесь, пока вы не примете или не отклоните его.",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "Прежде чем использовать эту функцию, необходимо добавить конфигурацию Twilio. Перейдите в Настройки проекта → Уведомления → Настройки уведомлений, чтобы добавить Twilio Account SID и Auth Token.",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "Ваши приложения и коллекторы отправляют этот ключ вместе со своей телеметрией, чтобы она попадала в этот проект.",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "Ваши имя и адрес электронной почты, как их видит ваша команда, и часовой пояс, в котором OneUptime показывает время.",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "Ваш зонд подключается к OneUptime с этим ID и ключом. Храните ключ в секрете.",
   "Your team's measurements, worked out for this alert.": "Измерения вашей команды для этого оповещения.",
   "Your team's measurements, worked out for this incident.": "Измерения вашей команды для этого инцидента.",
@@ -47170,5 +47169,8 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Этот монитор никто не проверяет, пока мониторинг не включат снова, поэтому он не открывает инцидентов и оповещений. Его открытые инциденты и оповещения, для которых настроено автоустранение, устраняются сразу.",
   "The monitors of this group could not be read. Please try again.": "Не удалось прочитать мониторы этой группы. Попробуйте ещё раз.",
   "Turn monitoring off or on for every monitor in this group at once.": "Выключайте или включайте мониторинг сразу для всех мониторов этой группы.",
-  "Turn off monitoring for this group?": "Выключить мониторинг для этой группы?"
+  "Turn off monitoring for this group?": "Выключить мониторинг для этой группы?",
+  "Not set (English)": "Не выбран (английский)",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Ваши имя и адрес электронной почты, как их видит ваша команда, и часовой пояс и язык, которые OneUptime использует для вас.",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "Ваши вызовы дежурства и панель используют этот язык в любом браузере."
 }

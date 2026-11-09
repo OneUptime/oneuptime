@@ -12,10 +12,18 @@ a language of their own:
   and the link to manage it;
 - the status page's uptime report (`StatusPageService.sendEmailReport`),
   its figures written in the language too (`Common/Utils/StatusPage/
-  ReportText.ts`).
+  ReportText.ts`);
+- a person's on-call pages, in the language on their account
+  (`Common/Types/UserLanguage`, read by
+  `Common/Server/Utils/Notification/UserLanguage.ts`): email, text message,
+  push notification, Telegram and their own Slack, Microsoft Teams and
+  Mattermost messages - a first page, a page again, a page a person sent
+  and an observer's page (`Common/Types/OnCallDutyPolicy/OnCallPageWords.ts`
+  and the files beside it). Calls and WhatsApp stay English.
 
-Everything else the server writes - the emails, texts, calls and pushes to a
-project's own team, every API answer, feed items - is still English.
+Everything else the server writes - the other emails, texts, calls and
+pushes to a project's own team, every API answer, feed items - is still
+English.
 
 ## Which language a message is written in
 

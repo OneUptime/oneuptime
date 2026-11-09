@@ -1686,7 +1686,7 @@ describe("Your Account", () => {
 
     expect(overview).toContain('title: "Basic Info"');
 
-    for (const field of ["Email", "Full Name", "Timezone"]) {
+    for (const field of ["Email", "Full Name", "Timezone", "Language"]) {
       expect(overview).toContain(`title: "${field}"`);
       expect(YOUR_ACCOUNT).toContain(`- **${field}**: `);
     }
@@ -1859,7 +1859,7 @@ describe("Your Account", () => {
     ).toEqual(rows);
   });
 
-  it("keeps language and theme in the browser: the browser's language first, the device's theme unless Light or Dark was picked", () => {
+  it("keeps the theme in the browser and a picked language in the account: the browser's language first, the device's theme unless Light or Dark was picked", () => {
     const i18n: string = dashboard("Utils/i18n.ts");
 
     expect(i18n).toContain('order: ["localStorage", "navigator", "htmlTag"]');
@@ -1914,8 +1914,37 @@ describe("Your Account", () => {
     }
 
     expect(DEFAULT_THEME_PREFERENCE).toBe(ThemePreference.System);
-    expect(YOUR_ACCOUNT).toContain(
+    expect(YOUR_ACCOUNT).not.toContain(
       "Both are saved in your browser, not in your account",
+    );
+    expect(YOUR_ACCOUNT).toContain(
+      "Your theme is saved in your browser, so set it again on another browser or device.",
+    );
+    /*
+     * A picked language is the account's (User.language): the language menu
+     * saves it, and every browser starts in it once the page is up
+     * (UserLanguageInit, mounted beside the time zone's).
+     */
+    expect(YOUR_ACCOUNT).toContain(
+      "Your language is saved in your account once you pick it, and every browser you sign in on starts in it.",
+    );
+    expect(
+      dashboard("Components/LanguageSwitcher/LanguageSwitcher.tsx"),
+    ).toContain(
+      "await UserLanguageUtil.saveSignedInUserLanguage(nextLanguage);",
+    );
+    expect(dashboard("App.tsx")).toContain("<UserLanguageInit />");
+
+    const languageInit: string = dashboard(
+      "Components/UserLanguage/UserLanguageInit.tsx",
+    );
+
+    expect(languageInit).toContain("await followUserLanguage(");
+    expect(languageInit).toContain(
+      "await UserLanguageUtil.readSignedInUserLanguage(),",
+    );
+    expect(YOUR_ACCOUNT).toContain(
+      "Your pick is saved to your account, as **Language** on your profile is, and OneUptime writes your on-call pages in it.",
     );
     // Signing out leaves both: the sign-in page opens next (KeptAfterSignOut.ts).
     expect(YOUR_ACCOUNT).toContain(

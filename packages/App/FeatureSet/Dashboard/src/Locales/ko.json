@@ -24210,7 +24210,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "누군가 프로젝트나 팀에 초대하면, 수락하거나 거절할 때까지 초대가 여기에서 기다립니다.",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "이 기능을 사용하기 전에 Twilio 구성을 추가해야 합니다. 프로젝트 설정 → 알림 → 알림 설정으로 이동하여 Twilio Account SID와 Auth Token을 추가하세요.",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "앱과 수집기가 텔레메트리와 함께 이 키를 보내면, 데이터가 이 프로젝트로 들어옵니다.",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "팀에 보이는 이름과 이메일, 그리고 OneUptime이 시간을 표시하는 시간대입니다.",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "프로브는 이 ID와 키로 OneUptime에 연결합니다. 키는 비밀로 유지하세요.",
   "Your team's measurements, worked out for this alert.": "이 알림에 대해 계산한 팀의 측정값입니다.",
   "Your team's measurements, worked out for this incident.": "이 인시던트에 대해 계산한 팀의 측정값입니다.",
@@ -47170,5 +47169,8 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "모니터링을 다시 켤 때까지 이 모니터를 아무것도 확인하지 않으므로 인시던트나 알림을 열지 않습니다. 자동 해결로 설정된 열린 인시던트와 알림은 지금 해결됩니다.",
   "The monitors of this group could not be read. Please try again.": "이 그룹의 모니터를 읽을 수 없습니다. 다시 시도해 주세요.",
   "Turn monitoring off or on for every monitor in this group at once.": "이 그룹의 모든 모니터에 대해 모니터링을 한 번에 끄거나 켭니다.",
-  "Turn off monitoring for this group?": "이 그룹의 모니터링을 끄시겠습니까?"
+  "Turn off monitoring for this group?": "이 그룹의 모니터링을 끄시겠습니까?",
+  "Not set (English)": "설정 안 됨 (영어)",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "팀에 보이는 이름과 이메일, 그리고 OneUptime이 사용하는 시간대와 언어입니다.",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "온콜 호출과 대시보드가 모든 브라우저에서 이 언어를 사용합니다."
 }

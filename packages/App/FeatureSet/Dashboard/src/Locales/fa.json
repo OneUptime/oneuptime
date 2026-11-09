@@ -24210,7 +24210,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "وقتی کسی شما را به یک پروژه یا تیم دعوت می‌کند، دعوت‌نامه تا وقتی آن را بپذیرید یا رد کنید اینجا می‌ماند.",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "پیش از استفاده از این قابلیت باید یک پیکربندی Twilio اضافه کنید. برای افزودن Twilio Account SID و Auth Token خود به تنظیمات پروژه ← اعلان‌ها ← تنظیمات اعلان بروید.",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "برنامه‌ها و کلکتورهای شما این کلید را همراه تله‌متری‌شان می‌فرستند تا به این پروژه برسد.",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "نام و ایمیل شما همان‌طور که تیمتان آن‌ها را می‌بیند، و منطقه زمانی‌ای که OneUptime زمان‌ها را با آن نشان می‌دهد.",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "پراب شما با این شناسه و کلید به OneUptime وصل می‌شود. کلید را محرمانه نگه دارید.",
   "Your team's measurements, worked out for this alert.": "اندازه‌گیری‌های تیم شما، محاسبه‌شده برای این هشدار.",
   "Your team's measurements, worked out for this incident.": "اندازه‌گیری‌های تیم شما، محاسبه‌شده برای این حادثه.",
@@ -47170,5 +47169,8 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "تا وقتی پایش دوباره روشن نشود، هیچ چیز این مانیتور را بررسی نمی‌کند؛ پس هیچ حادثه یا هشداری باز نمی‌کند. حادثه‌ها و هشدارهای باز آن که روی حل خودکار تنظیم شده‌اند، همین حالا برطرف می‌شوند.",
   "The monitors of this group could not be read. Please try again.": "مانیتورهای این گروه خوانده نشدند. لطفاً دوباره تلاش کنید.",
   "Turn monitoring off or on for every monitor in this group at once.": "پایش را برای همه مانیتورهای این گروه یک‌جا خاموش یا روشن کنید.",
-  "Turn off monitoring for this group?": "پایش برای این گروه خاموش شود؟"
+  "Turn off monitoring for this group?": "پایش برای این گروه خاموش شود؟",
+  "Not set (English)": "تنظیم‌نشده (انگلیسی)",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "نام و ایمیل شما همان‌طور که تیمتان آن‌ها را می‌بیند، و منطقه زمانی و زبانی که OneUptime برای شما به کار می‌برد.",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "فراخوان‌های آنکال شما و داشبورد در هر مرورگری از این زبان استفاده می‌کنند."
 }

@@ -24210,7 +24210,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "Als iemand u uitnodigt voor een project of een team, wacht de uitnodiging hier tot u die accepteert of weigert.",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "U moet een Twilio-configuratie toevoegen voordat u deze functie kunt gebruiken. Ga naar Projectinstellingen → Meldingen → Meldingsinstellingen om uw Twilio Account SID en Auth Token toe te voegen.",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "Uw apps en collectors sturen deze sleutel mee met hun telemetrie, zodat die in dit project terechtkomt.",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "Uw naam en e-mailadres zoals uw team ze ziet, en de tijdzone waarin OneUptime tijden toont.",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "Uw sonde maakt verbinding met OneUptime met deze ID en sleutel. Houd de sleutel geheim.",
   "Your team's measurements, worked out for this alert.": "De metingen van uw team, berekend voor deze waarschuwing.",
   "Your team's measurements, worked out for this incident.": "De metingen van uw team, berekend voor dit incident.",
@@ -47170,5 +47169,8 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Niets controleert deze monitor totdat de bewaking weer aan staat, dus hij opent geen incidenten of waarschuwingen. Zijn open incidenten en waarschuwingen die zijn ingesteld op automatisch oplossen, worden nu opgelost.",
   "The monitors of this group could not be read. Please try again.": "De monitoren van deze groep konden niet worden gelezen. Probeer het opnieuw.",
   "Turn monitoring off or on for every monitor in this group at once.": "Zet de bewaking in één keer uit of aan voor elke monitor in deze groep.",
-  "Turn off monitoring for this group?": "Bewaking uitzetten voor deze groep?"
+  "Turn off monitoring for this group?": "Bewaking uitzetten voor deze groep?",
+  "Not set (English)": "Niet ingesteld (Engels)",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Uw naam en e-mailadres zoals uw team ze ziet, en de tijdzone en taal die OneUptime voor u gebruikt.",
+  "Your on-call pages and the Dashboard use this language, on every browser.": "Uw oproepen voor dienst en het dashboard gebruiken deze taal, in elke browser."
 }

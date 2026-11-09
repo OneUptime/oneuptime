@@ -1,6 +1,6 @@
 # Ditt konto
 
-Ditt konto är hur OneUptime känner dig: e-postadressen och lösenordet du loggar in med, ditt namn och din tidszon, och det som skyddar din inloggning. Ett konto kan tillhöra många projekt, och de här inställningarna följer med dig in i vart och ett av dem. Hur OneUptime når dig, och när du larmas, ställer du in i varje projekt under **Användarinställningar**.
+Ditt konto är hur OneUptime känner dig: e-postadressen och lösenordet du loggar in med, ditt namn, din tidszon och ditt språk, och det som skyddar din inloggning. Ett konto kan tillhöra många projekt, och de här inställningarna följer med dig in i vart och ett av dem. Hur OneUptime når dig, och när du larmas, ställer du in i varje projekt under **Användarinställningar**.
 
 ```mermaid title="Det som hör till ditt konto, och det som varje projekt sparar åt dig"
 flowchart TB
@@ -11,7 +11,7 @@ flowchart TB
 ```
 
 :::cards
-- [Din profil](#din-profil): Ditt namn, din e-postadress, din tidszon och din bild.
+- [Din profil](#din-profil): Ditt namn, din e-postadress, din tidszon, ditt språk och din bild.
 - [Logga in säkert](#logga-in-säkert): Ditt lösenord, inloggningslänkar, passnycklar och tvåfaktorsautentisering.
 - [Dina projekt](#dina-projekt): Byt projekt, skapa ett och acceptera inbjudningar.
 - [Användarinställningar](#det-som-varje-projekt-sparar-åt-dig): Hur OneUptime når dig i varje projekt.
@@ -23,7 +23,7 @@ Klicka på din bild uppe till höger i instrumentpanelen.
 
 | Post | Vad den gör |
 | --- | --- |
-| **Profil** | Öppnar **Användarprofil**: ditt namn, din e-postadress, din tidszon, din bild och säkerheten för din inloggning. |
+| **Profil** | Öppnar **Användarprofil**: ditt namn, din e-postadress, din tidszon, ditt språk, din bild och säkerheten för din inloggning. |
 | **Admin-inställningar** | Öppnar Admin Dashboard. Bara huvudadministratörer för en självhostad installation ser den. |
 | **Tema** | Väljer instrumentpanelens tema: **Ljust**, **Mörkt** eller **System**, som är ljust eller mörkt beroende på hur din enhet är inställd. |
 | **Logga ut** | Loggar ut dig. |
@@ -35,7 +35,7 @@ Klicka på din bild uppe till höger i instrumentpanelen.
 :::steps
 ### Öppna din profil
 
-Klicka på din bild uppe till höger och välj **Profil**. Sidan **Översikt** öppnas på kortet **Grundläggande information**: ditt namn, din e-postadress och din tidszon.
+Klicka på din bild uppe till höger och välj **Profil**. Sidan **Översikt** öppnas på kortet **Grundläggande information**: ditt namn, din e-postadress, din tidszon och ditt språk.
 
 ### Redigera dina uppgifter
 
@@ -44,6 +44,7 @@ Klicka på **Redigera Användare** och ändra det du behöver:
 - **E-post**: adressen du loggar in med. Om du ändrar den verifierar du den nya adressen igen.
 - **Fullständigt namn**: namnet som ditt team ser överallt i OneUptime.
 - **Tidszon**: tidszonen som instrumentpanelen visar och läser tider i, och den som används för tiderna i aviseringar till dig.
+- **Språk**: språket i instrumentpanelen i alla webbläsare du loggar in i, och i dina jourlarm. Inte valt: dina larm är på engelska och instrumentpanelen följer din webbläsare.
 
 Klicka på **Spara ändringar**.
 
@@ -146,9 +147,9 @@ Du kan tillhöra hur många projekt som helst. Projektväljaren uppe till vänst
 
 ## Språk och tema
 
-Båda sparas i din webbläsare, inte i ditt konto, så ställ in dem igen i en annan webbläsare eller på en annan enhet. De finns kvar när du loggar ut, så på en delad dator börjar nästa person med dina inställningar.
+Ditt tema sparas i din webbläsare, så ställ in det igen i en annan webbläsare eller på en annan enhet. Ditt språk sparas i ditt konto så snart du väljer det, och alla webbläsare du loggar in i startar på det. De finns kvar när du loggar ut, så på en delad dator börjar nästa person med dina inställningar.
 
-- **Språk**: instrumentpanelen startar på webbläsarens språk. Använd språkmenyn längst ned på varje sida för att byta. Den här dokumentationen har en egen språkmeny högst upp.
+- **Språk**: instrumentpanelen startar på webbläsarens språk. Använd språkmenyn längst ned på varje sida för att byta. Ditt val sparas i ditt konto, precis som **Språk** i din profil, och OneUptime skriver dina jourlarm på det. Se [Språket i dina larm](/docs/notifications/index#språket-i-dina-larm). Den här dokumentationen har en egen språkmeny högst upp.
 - **Tema**: välj **Ljust**, **Mörkt** eller **System** i användarmenyn. **System** är ljust eller mörkt beroende på hur din enhet är inställd, och växlar med den; alla webbläsare startar med det. Inloggningssidorna använder samma tema.
 
 ## Ta bort ditt konto

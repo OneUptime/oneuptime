@@ -1,6 +1,6 @@
 # Your Account
 
-Your account is how OneUptime knows you: the email and password you sign in with, your name and time zone, and what protects your sign-in. One account can belong to many projects, and these settings follow you into each of them. How OneUptime reaches you, and when it pages you, is set in each project, under **User Settings**.
+Your account is how OneUptime knows you: the email and password you sign in with, your name, time zone and language, and what protects your sign-in. One account can belong to many projects, and these settings follow you into each of them. How OneUptime reaches you, and when it pages you, is set in each project, under **User Settings**.
 
 ```mermaid title="What belongs to your account, and what each project keeps for you"
 flowchart TB
@@ -11,7 +11,7 @@ flowchart TB
 ```
 
 :::cards
-- [Your profile](#your-profile): Your name, email, time zone and picture.
+- [Your profile](#your-profile): Your name, email, time zone, language and picture.
 - [Signing in securely](#signing-in-securely): Your password, sign-in links, passkeys and two-factor authentication.
 - [Your projects](#your-projects): Switch projects, create one and accept invitations.
 - [User Settings](#what-each-project-keeps-for-you): How OneUptime reaches you in each project.
@@ -23,7 +23,7 @@ Click your picture at the top right of the dashboard.
 
 | Item | What it does |
 | --- | --- |
-| **Profile** | Opens **User Profile**: your name, email, time zone, picture and sign-in security. |
+| **Profile** | Opens **User Profile**: your name, email, time zone, language, picture and sign-in security. |
 | **Admin Settings** | Opens the Admin Dashboard. Only master admins of a self-hosted installation see it. |
 | **Theme** | Sets the dashboard's theme: **Light**, **Dark** or **System**, which is light or dark as your device is set. |
 | **Log out** | Signs you out. |
@@ -35,7 +35,7 @@ Click your picture at the top right of the dashboard.
 :::steps
 ### Open your profile
 
-Click your picture at the top right and choose **Profile**. The **Overview** page opens on the **Basic Info** card: your name, email and time zone.
+Click your picture at the top right and choose **Profile**. The **Overview** page opens on the **Basic Info** card: your name, email, time zone and language.
 
 ### Edit your details
 
@@ -44,6 +44,7 @@ Click **Edit User** and change what you need:
 - **Email**: the address you sign in with. If you change it, you verify the new address again.
 - **Full Name**: the name your team sees across OneUptime.
 - **Timezone**: the time zone the dashboard shows and reads times in, and the one used for the times in notifications sent to you.
+- **Language**: the language of the dashboard on every browser you sign in on, and of your on-call pages. Not set, your pages are in English and the dashboard follows your browser.
 
 Click **Save Changes**.
 
@@ -146,9 +147,9 @@ You can belong to any number of projects. The project picker at the top left of 
 
 ## Language and theme
 
-Both are saved in your browser, not in your account, so set them again on another browser or device. Logging out keeps them, so on a shared computer the next person starts with yours.
+Your theme is saved in your browser, so set it again on another browser or device. Your language is saved in your account once you pick it, and every browser you sign in on starts in it. Logging out keeps them, so on a shared computer the next person starts with yours.
 
-- **Language**: the dashboard starts in your browser's language. To change it, use the language menu at the bottom of any page. These docs have a language menu of their own, at the top.
+- **Language**: the dashboard starts in your browser's language. To change it, use the language menu at the bottom of any page. Your pick is saved to your account, as **Language** on your profile is, and OneUptime writes your on-call pages in it. See [The language of your pages](/docs/notifications/index#the-language-of-your-pages). These docs have a language menu of their own, at the top.
 - **Theme**: choose **Light**, **Dark** or **System** in the user menu. **System** is light or dark as your device is set, and changes with it; every browser starts with it. The sign-in pages use the same theme.
 
 ## Deleting your account
