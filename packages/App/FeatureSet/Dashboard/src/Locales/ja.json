@@ -47247,5 +47247,20 @@
   "The key this app sends with is turned off or has expired, so everything sent with it is refused. Put another key in its place.": "このアプリが送信に使っているキーはオフになっているか期限切れのため、このキーで送信されたものはすべて拒否されます。代わりに別のキーを設定してください。",
   "Your app sends with the refused key in the x-oneuptime-token header. Put this one in its place, in OTEL_EXPORTER_OTLP_HEADERS or wherever your app sets that header in code.": "アプリは x-oneuptime-token ヘッダーに拒否されたキーを入れて送信しています。OTEL_EXPORTER_OTLP_HEADERS、またはアプリがコードでそのヘッダーを設定している場所で、このキーに置き換えてください。",
   "Your trace exporter in src/telemetry.ts sends with the refused key. Put this one in its place there, and in anything else that sends with it, such as a log exporter or Session Replay.": "src/telemetry.ts のトレースエクスポーターは拒否されたキーで送信しています。そこと、ログエクスポーターやセッションリプレイなど、そのキーで送信しているほかの場所でも、このキーに置き換えてください。",
-  "RUM replacement key": "RUM 代替キー"
+  "RUM replacement key": "RUM 代替キー",
+  "From AI calls": "AI 呼び出しから",
+  "From AI calls and usage metrics": "AI 呼び出しと使用量メトリクスから",
+  "From usage metrics": "使用量メトリクスから",
+  "Services counted from usage metrics: {{services}}": "使用量メトリクスから集計したサービス: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "使用量メトリクスは含まれていません。あなたのロールではメトリクスを読めません。",
+  "AI calls": "AI 呼び出し",
+  "No cost reported": "コストの報告なし",
+  "No tokens reported": "トークンの報告なし",
+  "Ranked by cost over the selected range.": "選択した範囲のコスト順。",
+  "Share of cost": "コストの割合",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} は、モデルが示されていない使用量です。",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} は、プロバイダーが示されていない使用量です（例：コーディングアシスタントの使用量メトリクス）。",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} は、チームが示されていない使用量です（例：{{teamId}} なしで送信されたもの）。",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} は、誰のものかが示されていない使用量です（例：{{userEmail}} なしで送信されたもの）。",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "使用量メトリクスは含まれていません。あなたのロールではメトリクスを読めません。プロジェクト管理者にアクセス権を依頼してください。"
 }

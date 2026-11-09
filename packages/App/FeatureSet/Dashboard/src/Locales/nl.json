@@ -47247,5 +47247,20 @@
   "The key this app sends with is turned off or has expired, so everything sent with it is refused. Put another key in its place.": "De sleutel waarmee deze app verzendt, is uitgeschakeld of verlopen, dus alles wat ermee wordt verzonden, wordt geweigerd. Zet een andere sleutel op zijn plaats.",
   "Your app sends with the refused key in the x-oneuptime-token header. Put this one in its place, in OTEL_EXPORTER_OTLP_HEADERS or wherever your app sets that header in code.": "Uw app verzendt met de geweigerde sleutel in de header x-oneuptime-token. Zet deze op zijn plaats, in OTEL_EXPORTER_OTLP_HEADERS of waar uw app die header in code instelt.",
   "Your trace exporter in src/telemetry.ts sends with the refused key. Put this one in its place there, and in anything else that sends with it, such as a log exporter or Session Replay.": "Uw trace-exporter in src/telemetry.ts verzendt met de geweigerde sleutel. Zet deze daar op zijn plaats, en in al het andere dat ermee verzendt, zoals een logboekexporter of Sessieherhaling.",
-  "RUM replacement key": "RUM-vervangingssleutel"
+  "RUM replacement key": "RUM-vervangingssleutel",
+  "From AI calls": "Uit AI-aanroepen",
+  "From AI calls and usage metrics": "Uit AI-aanroepen en gebruiksmetrieken",
+  "From usage metrics": "Uit gebruiksmetrieken",
+  "Services counted from usage metrics: {{services}}": "Services geteld uit gebruiksmetrieken: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "Gebruiksmetrieken zijn weggelaten: je rol kan geen metrieken lezen.",
+  "AI calls": "AI-aanroepen",
+  "No cost reported": "Geen kosten gemeld",
+  "No tokens reported": "Geen tokens gemeld",
+  "Ranked by cost over the selected range.": "Gerangschikt op kosten in de gekozen periode.",
+  "Share of cost": "Aandeel in kosten",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} is gebruik dat geen model noemt.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} is gebruik dat geen provider noemt, zoals de gebruiksmetrieken van een codeerassistent.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} is gebruik dat geen team noemt, bijvoorbeeld verzonden zonder {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} is gebruik dat niet zegt wie het veroorzaakte, bijvoorbeeld verzonden zonder {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Gebruiksmetrieken zijn weggelaten: je rol kan geen metrieken lezen. Vraag een projectbeheerder om toegang."
 }

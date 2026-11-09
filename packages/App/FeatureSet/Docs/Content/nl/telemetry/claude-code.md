@@ -64,7 +64,7 @@ De variabelen worden gelezen wanneer Claude Code start. Metrieken worden elke 60
 
 ### Controleer of de gegevens binnenkomen
 
-Open **Metrieken** en zoek naar `claude_code.token.usage`, open daarna **Producten → AI / LLM** en ga naar **Gebruik**: je kosten staan onder je e-mailadres, gemarkeerd met **uit GenAI-metrieken**.
+Open **Metrieken** en zoek naar `claude_code.token.usage`, open daarna **Producten → AI / LLM** en ga naar **Gebruik**: je kosten staan onder je e-mailadres, gemarkeerd met **Uit gebruiksmetrieken**.
 :::
 
 Om metrieken en events naar verschillende plekken te sturen, stel je in plaats daarvan `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` en `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` in, met het volledige pad (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 Op **Producten → AI / LLM → Gebruik** voedt `claude_code.cost.usage` de tabellen **Medewerker**, **Team** en **Model**, en `claude_code.token.usage` de tokentotalen. Twee regels bepalen wat je ziet:
 
-- **De metrieken vullen spans aan; ze worden er nooit bij opgeteld.** Als hetzelfde project GenAI-spans met kosten van je eigen apps ontvangt, verschijnen de uitgaven van Claude Code niet. Stuur Claude Code naar een eigen project. Zie [Spans eerst, metrieken vullen aan](/docs/telemetry/ai-llm-observability#spans-eerst-metrieken-vullen-aan).
-- **Een rij uit metrieken draagt alleen kosten.** De cellen voor aanroepen en tokens tonen `—`, en de tabellen **Provider** en **Applicatie / Service** blijven leeg: de metrieken noemen geen provider en horen bij geen enkele OneUptime-service.
+- **Claude Code wordt naast je apps geteld.** Zijn metrieken komen binnen onder zijn eigen service, dus worden zijn uitgaven opgeteld bij de AI-aanroepen die je apps naar hetzelfde project sturen. Zet je zijn traces (bèta) aan, zet ze dan voor iedereen aan: vanaf dan wordt Claude Code alleen uit zijn traces geteld, één keer. Zie [Elke service wordt geteld uit wat hij stuurt](/docs/telemetry/ai-llm-observability#elke-service-wordt-geteld-uit-wat-hij-stuurt).
+- **Een rij uit metrieken noemt geen aanroep.** Ze zegt **Uit gebruiksmetrieken** onder haar naam, haar cel voor aanroepen toont `—`, en de tabel **Provider** zet haar onder **Niet toegewezen**: de metrieken noemen geen provider.
 
 Al het andere, zoals acceptatiegraad, regels code, commits en pull requests per ontwikkelaar, of uitgaven per `query_source`, zet je in een [dashboard](/docs/dashboards/index) op basis van de metrieken hieronder, en daarop waarschuw je met een [metrics-monitor](/docs/monitor/metrics-monitor).
 

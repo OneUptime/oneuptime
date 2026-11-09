@@ -47247,5 +47247,20 @@
   "The key this app sends with is turned off or has expired, so everything sent with it is refused. Put another key in its place.": "Nøkkelen denne appen sender med, er slått av eller har utløpt, så alt som sendes med den, blir avvist. Sett inn en annen nøkkel i stedet.",
   "Your app sends with the refused key in the x-oneuptime-token header. Put this one in its place, in OTEL_EXPORTER_OTLP_HEADERS or wherever your app sets that header in code.": "Appen din sender med den avviste nøkkelen i headeren x-oneuptime-token. Sett inn denne i stedet, i OTEL_EXPORTER_OTLP_HEADERS eller der appen din setter den headeren i koden.",
   "Your trace exporter in src/telemetry.ts sends with the refused key. Put this one in its place there, and in anything else that sends with it, such as a log exporter or Session Replay.": "Sporeksportøren din i src/telemetry.ts sender med den avviste nøkkelen. Sett inn denne i stedet der, og i alt annet som sender med den, for eksempel en loggeksportør eller Øktavspilling.",
-  "RUM replacement key": "RUM-erstatningsnøkkel"
+  "RUM replacement key": "RUM-erstatningsnøkkel",
+  "From AI calls": "Fra AI-kall",
+  "From AI calls and usage metrics": "Fra AI-kall og bruksmålinger",
+  "From usage metrics": "Fra bruksmålinger",
+  "Services counted from usage metrics: {{services}}": "Tjenester telt fra bruksmålinger: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "Bruksmålinger er utelatt: rollen din kan ikke lese målinger.",
+  "AI calls": "AI-kall",
+  "No cost reported": "Ingen kostnad rapportert",
+  "No tokens reported": "Ingen tokens rapportert",
+  "Ranked by cost over the selected range.": "Sortert etter kostnad i det valgte tidsrommet.",
+  "Share of cost": "Andel av kostnad",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} er forbruk som ikke oppgir noen modell.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} er forbruk som ikke oppgir noen leverandør, som bruksmålingene til en kodeassistent.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} er forbruk som ikke oppgir noe team, for eksempel sendt uten {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} er forbruk som ikke oppgir hvem som sto bak, for eksempel sendt uten {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Bruksmålinger er utelatt: rollen din kan ikke lese målinger. Be en prosjektadministrator om tilgang."
 }

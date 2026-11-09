@@ -47247,5 +47247,20 @@
   "The key this app sends with is turned off or has expired, so everything sent with it is refused. Put another key in its place.": "此應用程式用來傳送的金鑰已關閉或已過期，因此用它傳送的所有內容都會被拒絕。請改用另一個金鑰。",
   "Your app sends with the refused key in the x-oneuptime-token header. Put this one in its place, in OTEL_EXPORTER_OTLP_HEADERS or wherever your app sets that header in code.": "你的應用程式在 x-oneuptime-token 標頭中使用被拒絕的金鑰傳送。請在 OTEL_EXPORTER_OTLP_HEADERS 中，或在應用程式程式碼中設定該標頭的地方，換成這個金鑰。",
   "Your trace exporter in src/telemetry.ts sends with the refused key. Put this one in its place there, and in anything else that sends with it, such as a log exporter or Session Replay.": "你在 src/telemetry.ts 中的追蹤匯出器使用被拒絕的金鑰傳送。請在那裡換成這個金鑰，並在其他所有用它傳送的地方也換掉，例如日誌匯出器或工作階段重播。",
-  "RUM replacement key": "RUM 替換金鑰"
+  "RUM replacement key": "RUM 替換金鑰",
+  "From AI calls": "來自 AI 呼叫",
+  "From AI calls and usage metrics": "來自 AI 呼叫和使用量指標",
+  "From usage metrics": "來自使用量指標",
+  "Services counted from usage metrics: {{services}}": "依使用量指標統計的服務：{{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "未計入使用量指標：你的角色無法讀取指標。",
+  "AI calls": "AI 呼叫",
+  "No cost reported": "未回報成本",
+  "No tokens reported": "未回報 token",
+  "Ranked by cost over the selected range.": "依所選範圍內的成本排序。",
+  "Share of cost": "成本占比",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} 是未註明模型的使用量。",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} 是未註明提供者的使用量，例如程式設計助理的使用量指標。",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} 是未註明團隊的使用量，例如傳送時沒有 {{teamId}}。",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} 是未註明使用者的使用量，例如傳送時沒有 {{userEmail}}。",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "未計入使用量指標：你的角色無法讀取指標。請向專案管理員申請存取權限。"
 }

@@ -89,14 +89,29 @@ import {
   LlmTokenUsageMetricNames,
   MICRO_USD_TO_USD,
   LlmMetricInputCacheTokenTypes,
+  LlmMetricProviderAttributeKeys,
   LlmMetricUserAttributeKeys,
   getLlmMetricTokenDirection,
   getLlmTokenDirection,
 } from "Common/Types/Telemetry/LlmMetricConventions";
+import {
+  LlmUsageDimension,
+  LlmUsageGroup,
+  LlmUsageResponse,
+  LlmUsageSource,
+} from "Common/Types/Telemetry/LlmUsageApi";
+import LlmCallCountingUtil, {
+  LlmCountedTotals,
+} from "Common/Utils/Telemetry/LlmCallCounting";
 import LlmConversationReplay, {
   IDLE_GAP_THRESHOLD_MS,
   REPLAY_SPEEDS,
 } from "Common/Utils/Telemetry/LlmConversationReplay";
+import LlmUsageUtil, {
+  LlmUsageServiceSignals,
+  LlmUsageSignal,
+} from "Common/Utils/Telemetry/LlmUsage";
+import { LlmMetricUsageRow } from "Common/Utils/Telemetry/LlmMetricUsage";
 import LlmLogEventsUtil, {
   LlmLogEventCall,
   LlmLogEventRecord,
@@ -116,9 +131,10 @@ import path from "path";
  * Docs overhaul task 24a: what the AI / LLM Observability, AI Coding
  * Assistants, Claude Code, Cursor and OpenAI Codex pages say about OneUptime,
  * held to the code that does it - the attribute and metric names ingest
- * reads, the answer checks, the replay, the alert templates, the Usage tab's
- * fallback from spans to metrics, the price list, budgets, and the
- * Dashboard's own words for its tabs, fields and buttons. The translations
+ * reads, the answer checks, the replay, the alert templates, how the Usage
+ * tab counts each service from its AI calls or its usage metrics and each
+ * model call once, the price list, budgets, and the Dashboard's own words
+ * for its tabs, fields and buttons. The translations
  * are held to these English pages by AiObservabilityDocsTranslations.
  *
  * What the coding assistants themselves do (Claude Code's variables,
@@ -153,6 +169,7 @@ const SOURCES: Record<string, string> = {
   callsTable: `${DASHBOARD}/Components/AI/LlmCallsTable.tsx`,
   usageBreakdown: `${DASHBOARD}/Components/AI/LlmUsageBreakdown.tsx`,
   usageTotals: `${DASHBOARD}/Components/AI/LlmUsageTotals.tsx`,
+  usageSourceCopy: `${DASHBOARD}/Components/AI/LlmUsageSourceCopy.ts`,
   summaryTiles: `${DASHBOARD}/Components/LlmConversations/LlmSummaryTiles.tsx`,
   replayBar: `${DASHBOARD}/Components/LlmConversations/LlmReplayBar.tsx`,
   replayKeyboard: `${DASHBOARD}/Components/LlmConversations/LlmReplayKeyboard.ts`,
@@ -201,7 +218,7 @@ const SOURCES: Record<string, string> = {
   metricUsageReader:
     "packages/Common/Server/Utils/Telemetry/LlmMetricUsageReader.ts",
   metricUsage: "packages/Common/Utils/Telemetry/LlmMetricUsage.ts",
-  metricSpend: "packages/Common/Server/Utils/Telemetry/LlmMetricSpend.ts",
+  usageReader: "packages/Common/Server/Utils/Telemetry/LlmUsageReader.ts",
 };
 
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
@@ -225,11 +242,6 @@ const MENU_TITLE: RegExp = /title: "([^"]+)"/g;
 // A provider section of the built-in price list: `// ---- Anthropic ----`.
 const CATALOG_SECTION: RegExp = /\/\/ ---- ([^-]+?)(?: \([^)]*\))? ----/g;
 const LINE_BREAK: RegExp = /\n/;
-// A breakdown of the Usage tab that the metrics can fill.
-const METRIC_FALLBACK_DIMENSION: RegExp =
-  /metricDimension: LlmMetricUsageDimension\.\w+,/g;
-// A breakdown of the Usage tab that says why the metrics cannot fill it.
-const NO_METRIC_SIGNAL_NOTE: RegExp = /noMetricSignalNote: translationKey\(/g;
 // Where a Dashboard path on these pages starts: a menu the product has.
 const PATH_START: RegExp =
   /^(?:Products|Project Settings|Traces|Logs|Team Settings)$/;
@@ -313,6 +325,57 @@ function numbersIn(text: string): Array<number> {
   return allMatches(text, NUMBER, 0).map((value: string): number => {
     return Number(value);
   });
+}
+
+// A service's totals row of the AI calls read, figures as given.
+function spanTotals(
+  service: string,
+  figures: {
+    calls: number;
+    inputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+  },
+): {
+  service: string;
+  isTotal: boolean;
+  group: string;
+  calls: number;
+  erroredCalls: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUsd: number;
+} {
+  return {
+    service: service,
+    isTotal: true,
+    group: "",
+    erroredCalls: 0,
+    totalTokens: figures.inputTokens + figures.outputTokens,
+    ...figures,
+  };
+}
+
+// A row of the usage metrics read: a service's total, or one of its groups.
+function metricRow(data: {
+  metric: string;
+  service: string;
+  value: number;
+  tokenType?: string;
+  group?: string;
+}): Array<LlmMetricUsageRow> {
+  const row: LlmMetricUsageRow = {
+    metric: data.metric,
+    service: data.service,
+    group: "",
+    tokenType: data.tokenType || "",
+    value: data.value,
+    isTotal: true,
+  };
+
+  // Each total has its group's row too, as the read answers it.
+  return [row, { ...row, isTotal: false, group: data.group || "" }];
 }
 
 function filterValue(
@@ -858,45 +921,207 @@ describe("the AI / LLM Observability page", () => {
     );
   });
 
-  it("states the fallback from spans to metrics exactly as the Usage tab applies it", () => {
-    const totals: string = source("usageTotals");
-    const usage: string = source("usageBreakdown");
+  it("counts each service from what it sends, as the page's table says", () => {
     const rows: Array<Array<string>> = rowsOf(
       page,
-      "Spans come first, metrics fill in",
+      "Each service is counted from what it sends",
     );
 
-    // Tokens fall back when both span sums are 0, cost when the span cost is.
-    expect(totals).toContain("if (spanInput === 0 && spanOutput === 0) {");
-    expect(totals).toContain("if (spanCost === 0) {");
-    // One read of the metric usage route; Codex's micro-USD scaled apart.
-    expect(totals).toContain("await fetchLlmMetricUsage({");
+    /*
+     * An app that sends its AI calls and, for the same calls, a token
+     * metric, beside Claude Code and Codex, which send only metrics: the
+     * app is counted from its calls alone, the tools from their metrics,
+     * Codex's micro-USD in USD, and the totals add them up.
+     */
+    const usage: LlmUsageResponse = LlmUsageUtil.fold({
+      spanRows: [
+        spanTotals("checkout-api", {
+          calls: 10,
+          inputTokens: 1000,
+          outputTokens: 200,
+          costUsd: 2,
+        }),
+      ],
+      metricRows: [
+        ...metricRow({
+          metric: "gen_ai.client.token.usage",
+          service: "checkout-api",
+          tokenType: "input",
+          value: 1000,
+        }),
+        ...metricRow({
+          metric: "claude_code.token.usage",
+          service: "claude-code",
+          tokenType: "input",
+          value: 3000,
+        }),
+        ...metricRow({
+          metric: "claude_code.cost.usage",
+          service: "claude-code",
+          value: 5,
+        }),
+        ...metricRow({
+          metric: "codex.turn.cost_microusd",
+          service: "codex",
+          value: 1500000,
+        }),
+      ],
+      options: { dimension: LlmUsageDimension.None },
+    });
+
+    expect(usage.totals.calls).toBe(10);
+    expect(usage.totals.inputTokens).toBe(4000);
+    expect(usage.totals.costUsd).toBeCloseTo(8.5, 6);
+    expect(usage.totals.tokenSource).toBe(LlmUsageSource.Both);
+    expect(usage.totals.costSource).toBe(LlmUsageSource.Both);
     expect(source("metricUsage")).toContain("MICRO_USD_TO_USD");
-    expect(rowNamed(rows, "Input and output tokens")[2]).toBe(
-      "The spans' token totals are both 0",
-    );
-    expect(rowNamed(rows, "Cost (USD)")[2]).toBe("The spans' cost total is 0");
 
-    // A breakdown falls back only when it found no span rows, and only three can.
-    expect(usage).toContain("if (metricDimension && allRows.length === 0) {");
-    expect(rowNamed(rows, "**Employee**, **Team**, **Model** tables")[2]).toBe(
-      "That table found no span rows",
+    expect(rowNamed(rows, "Input and output tokens").slice(1)).toEqual([
+      "Each model call's tokens, once",
+      "A service's tokens, when its AI calls report none",
+    ]);
+    expect(rowNamed(rows, "Cost (USD)").slice(1)).toEqual([
+      "Each model call's cost, once",
+      "A service's cost, when its AI calls report none, with Codex's micro-USD cost scaled to USD",
+    ]);
+    // A metric counts no calls: the calls are the AI calls' alone.
+    expect(rowNamed(rows, "AI calls")[2]).toBe(
+      "Never: a metric counts no calls",
     );
-    // Cost, and the tokens a person's metrics counted; never a call count.
-    expect(rowNamed(rows, "**Employee**, **Team**, **Model** tables")[1]).toBe(
-      "Cost, and tokens where the metrics count them; the calls cell shows `—`",
-    );
-    expect(usage.match(METRIC_FALLBACK_DIMENSION)).toHaveLength(3);
-    expect(usage.match(NO_METRIC_SIGNAL_NOTE)).toHaveLength(2);
+    // The row is named as the Usage tab's tile is.
+    expect(source("usageTotals")).toContain('label="AI calls"');
+    expect(rowNamed(rows, "Conversations")[2]).toBe("Never");
     expect(
-      rowNamed(rows, "**Provider**, **Application / Service** tables")[1],
-    ).toBe("Nothing: spans only");
-
-    expect(usage).toContain(
-      'const METRIC_SOURCE_HINT: string = translationKey("from GenAI metrics");',
+      rowNamed(
+        rows,
+        "**Employee**, **Team**, **Model**, **Provider**, **Application / Service** tables",
+      )[2],
+    ).toBe(
+      "The tokens and cost of the services counted from metrics, under the person, team, model or provider their points name",
     );
     expect(page).toContain(
-      "A figure taken from metrics is marked **from GenAI metrics**",
+      "A coding assistant that sends only metrics is then counted beside the apps that send spans, in the same project, and an app that sends both is counted once.",
+    );
+  });
+
+  it("says where each figure came from in the Usage tab's own words", () => {
+    const copy: string = source("usageSourceCopy");
+    const breakdown: string = source("usageBreakdown");
+
+    for (const words of [
+      "From AI calls",
+      "From usage metrics",
+      "From AI calls and usage metrics",
+    ]) {
+      expect(copy).toContain(`translationKey("${words}")`);
+      expect(page).toContain(`**${words}**`);
+    }
+
+    // A row with no AI call counted none: "—", never a 0.
+    expect(breakdown).toContain(
+      "return unknown ? notCounted : formatLlmCount(value);",
+    );
+    expect(breakdown).toMatch(
+      /const notCounted: ReactElement = \(\s*<span[^>]*>\s*—\s*<\/span>/,
+    );
+    expect(breakdown).toContain(
+      '"Services counted from usage metrics: {{services}}"',
+    );
+    // Not over the services' own table, whose rows say it themselves.
+    expect(breakdown).toContain(
+      "dimension.key !== LlmUsageDimension.Service ? (",
+    );
+    expect(breakdown).toContain(
+      '"Usage metrics are left out: your role cannot read metrics. Ask a project admin for access."',
+    );
+    expect(breakdown).toContain("TelemetryServiceUtil.isUnknownServiceId(");
+    expect(page).toContain(
+      "its calls cell shows `—` when it has no AI call, because a metric has no per-call detail; the table's header names the services counted from usage metrics, except in **Application / Service**, whose rows are the services.",
+    );
+    expect(page).toContain(
+      "A usage metric that names no service is counted under **Unknown Service**, one service like any other. If your role can read traces but not metrics, the usage metrics are left out, and the table says so.",
+    );
+  });
+
+  it("counts each model call once, and keeps an agent run's own figures when its calls report none", () => {
+    // An agent run, a tool it ran, and the model call the tool made.
+    const wrapped: LlmCountedTotals = LlmCallCountingUtil.countTotals([
+      {
+        traceId: "t1",
+        spanId: "run",
+        parentSpanId: "",
+        kind: LlmCallKind.Agent,
+        startMs: 0,
+        endMs: 10000,
+        inputTokens: 500,
+        outputTokens: 50,
+        costUsd: 0.5,
+      },
+      {
+        traceId: "t1",
+        spanId: "tool",
+        parentSpanId: "run",
+        kind: LlmCallKind.Tool,
+        startMs: 100,
+        endMs: 9000,
+        inputTokens: 0,
+        outputTokens: 0,
+        costUsd: 0,
+      },
+      {
+        traceId: "t1",
+        spanId: "call",
+        parentSpanId: "tool",
+        kind: LlmCallKind.Answer,
+        startMs: 200,
+        endMs: 8000,
+        inputTokens: 500,
+        outputTokens: 50,
+        costUsd: 0.5,
+      },
+    ]);
+
+    expect(wrapped).toEqual(
+      expect.objectContaining({
+        inputTokens: 500,
+        outputTokens: 50,
+        costUsd: 0.5,
+      }),
+    );
+
+    // A remote agent, whose calls are not traced here, keeps its own.
+    expect(
+      LlmCallCountingUtil.countTotals([
+        {
+          traceId: "t2",
+          spanId: "run",
+          parentSpanId: "",
+          kind: LlmCallKind.Agent,
+          startMs: 0,
+          endMs: 10000,
+          inputTokens: 700,
+          outputTokens: 70,
+          costUsd: 0.7,
+        },
+      ]),
+    ).toEqual(
+      expect.objectContaining({
+        inputTokens: 700,
+        outputTokens: 70,
+        costUsd: 0.7,
+      }),
+    );
+
+    // The database reads apply the same rule: Usage, budgets, conversations.
+    expect(source("usageReader")).toContain(
+      "sum(if(costCovered, 0, llmCost)) AS costUsd",
+    );
+    expect(source("conversationService")).toContain("LlmCountedCallsSql");
+    expect(page).toContain(
+      "a span's tokens, or its cost, are left out wherever a call inside it reports them, and an agent run keeps its own figures when no call inside it does. Budgets and the **Conversations** list count the same way, while **Calls** lists every span with its own figures.",
+    );
+    expect(page).toContain(
+      ":::details The Usage tab's cost is less than the costs in Calls add up to",
     );
   });
 
@@ -1073,12 +1298,13 @@ describe("the AI / LLM Observability page", () => {
       expect(evaluator).toContain(name);
     }
 
-    expect(evaluator).toContain("if (spanSpend > 0) {");
+    // The Usage tab's count, for the budget's scope.
+    expect(evaluator).toContain("await LlmUsageReader.read(");
     expect(evaluator).toContain(
-      "const metricSpend: number = await LlmMetricSpend.getCostInUSD(",
+      "source: SPEND_SOURCES[usage.totals.costSource]",
     );
     expect(page).toContain(
-      "Every 15 minutes OneUptime adds up the day's AI spend (from spans, or from GenAI cost metrics when no span reported any)",
+      "Every 15 minutes OneUptime adds up the day's AI spend (each service from its AI calls, or from its cost metrics when its calls report no cost)",
     );
   });
 
@@ -1698,13 +1924,22 @@ describe("the AI / LLM Observability page: what is arriving, and from where", ()
     );
   });
 
-  it("says a token or cost metric counts the way a counter counts", () => {
-    expect(source("metricUsageReader")).toContain(
-      "if(aggregationTemporality = 'Cumulative', cityHash64(mapKeys(attributes), mapValues(attributes)), 0)",
+  it("says a token or cost metric counts the way a counter counts, a restart included", () => {
+    const reader: string = source("metricUsageReader");
+
+    // Each series on its own: its attributes and its start time.
+    expect(reader).toContain(
+      "cityHash64(mapKeys(attributes), mapValues(attributes)), 0), ",
     );
-    expect(source("budgetEvaluator")).toContain("LlmMetricSpend");
+    // Each step up, and after a step down the value itself: a restart from 0.
+    expect(reader).toContain(
+      "if(current >= previous, current - previous, greatest(current, 0))",
+    );
+    // Budgets read the metrics as the Usage tab does.
+    expect(source("usageReader")).toContain("LlmMetricUsageReader.readRows(");
+    expect(source("budgetEvaluator")).toContain("LlmUsageReader.read(");
     expect(page).toContain(
-      "a cumulative counter, the OpenTelemetry SDKs' default, counts what it grew by in the time range, each series on its own, so a running total exported every minute is counted once. Budgets count GenAI metrics the same way.",
+      "a cumulative counter, the OpenTelemetry SDKs' default, counts what it grew by in the time range, each series on its own, so a running total exported every minute is counted once, and a drop is read as a restart from 0, the way Prometheus's `increase()` reads it. Budgets count GenAI metrics the same way.",
     );
   });
 
@@ -1793,10 +2028,8 @@ describe("the AI Coding Assistants page", () => {
   });
 
   it("says the Usage tab labels a person by email first, and reads identity only from AI calls", () => {
-    const usage: string = source("usageBreakdown");
-
-    expect(usage).toContain(
-      'readRowColumn(row, "llmUserEmail") || readRowColumn(row, "llmUserId")',
+    expect(source("usageReader")).toContain(
+      "if(ifNull(llmUserEmail, '') != '', ifNull(llmUserEmail, ''), ifNull(llmUserId, ''))",
     );
     expect(page).toContain(
       "**The Usage tab shows a person's email when the call has one, and the id otherwise.**",
@@ -1924,32 +2157,63 @@ describe("the AI Coding Assistants page", () => {
     }
   });
 
-  it("says which Usage breakdowns a metrics-only tool can fill", () => {
+  it("says which Usage breakdowns a metrics-only tool fills, and where", () => {
     const rows: Array<Array<string>> = rowsOf(
       page,
-      "Coding-assistant metrics are a fallback, not an addition",
+      "Coding-assistant metrics are counted beside your apps' calls",
     );
-    const usage: string = source("usageBreakdown");
 
     expect(
       rows.map((row: Array<string>): string => {
-        return `${row[0]} ${(row[1] as string).startsWith("Yes") ? "yes" : "no"}`;
+        return `${row[0]} ${(row[1] as string).split(/[:,]/)[0]}`;
       }),
     ).toEqual([
-      "**Employee** yes",
-      "**Team** yes",
-      "**Model** yes",
-      "**Provider** no",
-      "**Application / Service** no",
+      "**Employee** Yes",
+      "**Team** Yes",
+      "**Model** Yes",
+      "**Provider** Under **Unattributed**",
+      "**Application / Service** Yes",
     ]);
-    expect(usage).toContain(
-      "Coding-agent metric streams (Claude Code, Cursor, Codex) do not report a provider",
-    );
-    expect(usage).toContain(
-      "Coding-agent metric streams (Claude Code, Cursor, Codex) are not attached to a OneUptime service",
-    );
     expect(LlmMetricModelBaseAttributeKeys).toEqual(
       expect.arrayContaining(["model", "cursor.model.name"]),
+    );
+    // The provider keys an SDK's metric carries, and a coding tool's never does.
+    expect(LlmMetricProviderAttributeKeys).toEqual([
+      "gen_ai.provider.name",
+      "gen_ai.system",
+      "llm.system",
+      "llm.provider",
+    ]);
+
+    // Cursor's spend, by provider and by service.
+    const cursorCost: Array<LlmMetricUsageRow> = metricRow({
+      metric: "cursor.cost.usage",
+      service: "cursor",
+      value: 4,
+    });
+    const keysAndCost: (dimension: LlmUsageDimension) => Array<string> = (
+      dimension: LlmUsageDimension,
+    ): Array<string> => {
+      return LlmUsageUtil.fold({
+        spanRows: [],
+        metricRows: cursorCost,
+        options: { dimension: dimension },
+      }).groups.map((group: LlmUsageGroup): string => {
+        return `${group.key} ${group.costUsd} ${group.costSource}`;
+      });
+    };
+
+    expect(keysAndCost(LlmUsageDimension.Provider)).toEqual([
+      ` 4 ${LlmUsageSource.Metrics}`,
+    ]);
+    expect(keysAndCost(LlmUsageDimension.Service)).toEqual([
+      `cursor 4 ${LlmUsageSource.Metrics}`,
+    ]);
+    expect(source("metricUsageReader")).toContain(
+      "toString(primaryEntityId) AS serviceKey",
+    );
+    expect(page).toContain(
+      "A coding assistant's metrics arrive under its own service, so its spend is added to the AI calls your apps send to the same project, never put in their place",
     );
   });
 });
@@ -1964,6 +2228,49 @@ describe("the Claude Code page", () => {
     expect(LlmTokenUsageMetricNames).toContain("claude_code.token.usage");
     expect(shows).toContain(
       "`claude_code.cost.usage` feeds the **Employee**, **Team** and **Model** tables, and `claude_code.token.usage` the token totals.",
+    );
+  });
+
+  it("counts Claude Code beside the apps, and from its traces alone once they are on", () => {
+    const withTraces: LlmUsageServiceSignals = LlmUsageUtil.getServiceSignals({
+      calls: spanTotals("claude-code", {
+        calls: 4,
+        inputTokens: 900,
+        outputTokens: 100,
+        costUsd: 0.4,
+      }),
+      metrics: {
+        inputTokens: 900,
+        outputTokens: 100,
+        costUsd: 0.4,
+        hasTokens: true,
+        hasCost: true,
+      },
+    });
+    const metricsOnly: LlmUsageServiceSignals = LlmUsageUtil.getServiceSignals({
+      calls: undefined,
+      metrics: {
+        inputTokens: 900,
+        outputTokens: 100,
+        costUsd: 0.4,
+        hasTokens: true,
+        hasCost: true,
+      },
+    });
+
+    expect(withTraces).toEqual({
+      tokens: LlmUsageSignal.Calls,
+      cost: LlmUsageSignal.Calls,
+    });
+    expect(metricsOnly).toEqual({
+      tokens: LlmUsageSignal.Metrics,
+      cost: LlmUsageSignal.Metrics,
+    });
+    expect(page).toContain(
+      "If you turn on its traces (beta), turn them on for everyone: from then on Claude Code is counted from its traces alone, once.",
+    );
+    expect(page).toContain(
+      "the **Provider** table puts it under **Unattributed**: the metrics name no provider.",
     );
   });
 
@@ -2019,12 +2326,17 @@ describe("the Claude Code page", () => {
   it("says the Usage tab and budgets count a delta and a cumulative counter each the way it counts", () => {
     const reader: string = source("metricUsageReader");
 
+    // A cumulative series' points in time order; a delta series' sum.
     expect(reader).toContain(
-      "if(aggregationTemporality = 'Cumulative', greatest(max(value) - if(min(startTime) >= ",
+      `"ifNull(aggregationTemporality, '') = 'Cumulative'"`,
     );
-    expect(reader).toContain("0, min(value)), 0), sum(value)) AS increase");
+    expect(reader).toContain(
+      "arraySort(groupArrayIf((timeUnixNano, ifNull(value, 0)), ",
+    );
+    expect(reader).toContain(", sum(ifNull(value, 0))) AS seriesIncrease");
     // Budgets read the metrics through the same reader.
-    expect(source("metricSpend")).toContain("LlmMetricUsageReader");
+    expect(source("usageReader")).toContain("LlmMetricUsageReader.readRows(");
+    expect(source("budgetEvaluator")).toContain("LlmUsageReader.read(");
     expect(page).toContain(
       "OneUptime's Usage tab and budgets count both: a delta by adding its points up, a cumulative counter by what it grew in the time range.",
     );
@@ -2116,6 +2428,49 @@ describe("the Cursor page", () => {
     );
   });
 
+  it("counts Cursor under its own service, beside the apps' calls", () => {
+    const usage: LlmUsageResponse = LlmUsageUtil.fold({
+      spanRows: [
+        spanTotals("checkout-api", {
+          calls: 3,
+          inputTokens: 300,
+          outputTokens: 30,
+          costUsd: 1.25,
+        }),
+      ],
+      metricRows: [
+        ...metricRow({
+          metric: "cursor.cost.usage",
+          service: "cursor",
+          value: 4,
+        }),
+        ...metricRow({
+          metric: "cursor.token.usage",
+          service: "cursor",
+          tokenType: "input",
+          value: 2000,
+        }),
+        // Cache tokens are left out.
+        ...metricRow({
+          metric: "cursor.token.usage",
+          service: "cursor",
+          tokenType: "cache_read",
+          value: 9000,
+        }),
+      ],
+      options: { dimension: LlmUsageDimension.None },
+    });
+
+    expect(usage.totals.costUsd).toBeCloseTo(5.25, 6);
+    expect(usage.totals.inputTokens).toBe(2300);
+    expect(page).toContain(
+      "Cursor sends metrics and no GenAI spans, under its own service, `cursor`, so its spend is counted beside the AI calls your apps send to the same project, never in their place.",
+    );
+    expect(page).toContain(
+      "| **Application / Service** | Yes, under the `cursor` service |",
+    );
+  });
+
   it("leaves Cursor's cache token types out of the totals", () => {
     expect(getLlmTokenDirection("cache_read")).toBeNull();
     expect(getLlmTokenDirection("cache_creation")).toBeNull();
@@ -2149,6 +2504,52 @@ describe("the OpenAI Codex page", () => {
     ).toBeNull();
     expect(page).toContain(
       "Codex's spans name no model, so OneUptime cannot price them, and their cost is 0.",
+    );
+  });
+
+  it("counts Codex's tokens from its spans, per person, and its cost from its metric, by model", () => {
+    const codexUsage: (dimension: LlmUsageDimension) => Array<string> = (
+      dimension: LlmUsageDimension,
+    ): Array<string> => {
+      const span: ReturnType<typeof spanTotals> = spanTotals("codex", {
+        calls: 2,
+        inputTokens: 1200,
+        outputTokens: 300,
+        costUsd: 0,
+      });
+
+      return LlmUsageUtil.fold({
+        spanRows: [
+          span,
+          // The spans name the person, never the model.
+          {
+            ...span,
+            isTotal: false,
+            group: dimension === LlmUsageDimension.Employee ? "ana" : "",
+          },
+        ],
+        metricRows: metricRow({
+          metric: "codex.turn.cost_microusd",
+          service: "codex",
+          value: 2500000,
+          group: dimension === LlmUsageDimension.Model ? "gpt-5-codex" : "",
+        }),
+        options: { dimension: dimension },
+      }).groups.map((group: LlmUsageGroup): string => {
+        return `${group.key || "Unattributed"}: ${group.inputTokens} tokens, $${group.costUsd}`;
+      });
+    };
+
+    expect(codexUsage(LlmUsageDimension.Employee)).toEqual([
+      "Unattributed: 0 tokens, $2.5",
+      "ana: 1200 tokens, $0",
+    ]);
+    expect(codexUsage(LlmUsageDimension.Model)).toEqual([
+      "gpt-5-codex: 0 tokens, $2.5",
+      "Unattributed: 1200 tokens, $0",
+    ]);
+    expect(page).toContain(
+      "The **Employee** and **Team** tables show the spans' tokens per person, and Codex's cost on one **Unattributed** row, since its metrics name nobody. The **Model** table is the other way round: the cost by model, the tokens under **Unattributed**.",
     );
   });
 

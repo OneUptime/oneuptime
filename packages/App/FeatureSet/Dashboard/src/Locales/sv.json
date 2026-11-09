@@ -47247,5 +47247,20 @@
   "The key this app sends with is turned off or has expired, so everything sent with it is refused. Put another key in its place.": "Nyckeln som den här appen skickar med är avstängd eller har gått ut, så allt som skickas med den avvisas. Sätt in en annan nyckel i stället.",
   "Your app sends with the refused key in the x-oneuptime-token header. Put this one in its place, in OTEL_EXPORTER_OTLP_HEADERS or wherever your app sets that header in code.": "Din app skickar med den avvisade nyckeln i headern x-oneuptime-token. Sätt in den här i stället, i OTEL_EXPORTER_OTLP_HEADERS eller där din app sätter den headern i koden.",
   "Your trace exporter in src/telemetry.ts sends with the refused key. Put this one in its place there, and in anything else that sends with it, such as a log exporter or Session Replay.": "Din spårexportör i src/telemetry.ts skickar med den avvisade nyckeln. Sätt in den här i stället där, och i allt annat som skickar med den, till exempel en loggexportör eller Sessionsuppspelning.",
-  "RUM replacement key": "Ersättningsnyckel för RUM"
+  "RUM replacement key": "Ersättningsnyckel för RUM",
+  "From AI calls": "Från AI-anrop",
+  "From AI calls and usage metrics": "Från AI-anrop och användningsmätvärden",
+  "From usage metrics": "Från användningsmätvärden",
+  "Services counted from usage metrics: {{services}}": "Tjänster räknade från användningsmätvärden: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "Användningsmätvärden är utelämnade: din roll kan inte läsa mätvärden.",
+  "AI calls": "AI-anrop",
+  "No cost reported": "Ingen kostnad rapporterad",
+  "No tokens reported": "Inga tokens rapporterade",
+  "Ranked by cost over the selected range.": "Sorterat efter kostnad under det valda intervallet.",
+  "Share of cost": "Andel av kostnad",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} är användning som inte anger någon modell.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} är användning som inte anger någon leverantör, till exempel en kodassistents användningsmätvärden.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} är användning som inte anger något team, till exempel skickad utan {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} är användning som inte anger vem som stod för den, till exempel skickad utan {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Användningsmätvärden är utelämnade: din roll kan inte läsa mätvärden. Be en projektadministratör om åtkomst."
 }

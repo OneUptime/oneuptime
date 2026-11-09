@@ -47247,5 +47247,20 @@
   "The key this app sends with is turned off or has expired, so everything sent with it is refused. Put another key in its place.": "Ключ, с которым отправляет это приложение, выключен или его срок действия истёк, поэтому всё, что отправляется с ним, отклоняется. Поставьте вместо него другой ключ.",
   "Your app sends with the refused key in the x-oneuptime-token header. Put this one in its place, in OTEL_EXPORTER_OTLP_HEADERS or wherever your app sets that header in code.": "Ваше приложение отправляет данные с отклонённым ключом в заголовке x-oneuptime-token. Поставьте вместо него этот — в OTEL_EXPORTER_OTLP_HEADERS или там, где приложение задаёт этот заголовок в коде.",
   "Your trace exporter in src/telemetry.ts sends with the refused key. Put this one in its place there, and in anything else that sends with it, such as a log exporter or Session Replay.": "Ваш экспортер трассировок в src/telemetry.ts отправляет данные с отклонённым ключом. Поставьте вместо него этот — там и везде, где с ним идёт отправка, например в экспортере журналов или в воспроизведении сеансов.",
-  "RUM replacement key": "Заменяющий ключ RUM"
+  "RUM replacement key": "Заменяющий ключ RUM",
+  "From AI calls": "Из вызовов ИИ",
+  "From AI calls and usage metrics": "Из вызовов ИИ и метрик использования",
+  "From usage metrics": "Из метрик использования",
+  "Services counted from usage metrics: {{services}}": "Сервисы, учтённые по метрикам использования: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "Метрики использования не учтены: ваша роль не может читать метрики.",
+  "AI calls": "Вызовы ИИ",
+  "No cost reported": "Стоимость не указана",
+  "No tokens reported": "Токены не указаны",
+  "Ranked by cost over the selected range.": "Отсортировано по стоимости за выбранный период.",
+  "Share of cost": "Доля стоимости",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} — это использование, в котором не указана модель.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} — это использование, в котором не указан провайдер, например метрики использования ИИ-ассистента для программирования.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} — это использование, в котором не указана команда, например отправленное без {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} — это использование, в котором не указано, кто его сделал, например отправленное без {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Метрики использования не учтены: ваша роль не может читать метрики. Попросите доступ у администратора проекта."
 }

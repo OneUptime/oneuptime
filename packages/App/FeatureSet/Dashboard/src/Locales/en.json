@@ -47247,5 +47247,20 @@
   "The key this app sends with is turned off or has expired, so everything sent with it is refused. Put another key in its place.": "The key this app sends with is turned off or has expired, so everything sent with it is refused. Put another key in its place.",
   "Your app sends with the refused key in the x-oneuptime-token header. Put this one in its place, in OTEL_EXPORTER_OTLP_HEADERS or wherever your app sets that header in code.": "Your app sends with the refused key in the x-oneuptime-token header. Put this one in its place, in OTEL_EXPORTER_OTLP_HEADERS or wherever your app sets that header in code.",
   "Your trace exporter in src/telemetry.ts sends with the refused key. Put this one in its place there, and in anything else that sends with it, such as a log exporter or Session Replay.": "Your trace exporter in src/telemetry.ts sends with the refused key. Put this one in its place there, and in anything else that sends with it, such as a log exporter or Session Replay.",
-  "RUM replacement key": "RUM replacement key"
+  "RUM replacement key": "RUM replacement key",
+  "From AI calls": "From AI calls",
+  "From AI calls and usage metrics": "From AI calls and usage metrics",
+  "From usage metrics": "From usage metrics",
+  "Services counted from usage metrics: {{services}}": "Services counted from usage metrics: {{services}}",
+  "Usage metrics are left out: your role cannot read metrics.": "Usage metrics are left out: your role cannot read metrics.",
+  "AI calls": "AI calls",
+  "No cost reported": "No cost reported",
+  "No tokens reported": "No tokens reported",
+  "Ranked by cost over the selected range.": "Ranked by cost over the selected range.",
+  "Share of cost": "Share of cost",
+  "{{unattributed}} is usage that doesn't say which model.": "{{unattributed}} is usage that doesn't say which model.",
+  "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.": "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.",
+  "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.": "{{unattributed}} is usage that doesn't say which team, for example sent without {{teamId}}.",
+  "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.": "{{unattributed}} is usage that doesn't say who made it, for example sent without {{userEmail}}.",
+  "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.": "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access."
 }
