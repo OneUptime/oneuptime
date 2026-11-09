@@ -148,7 +148,7 @@ La lista es un orden. Donde los monitores se muestran juntos, gana el estado má
 
 | Dónde | Qué decide el estado |
 | --- | --- |
-| La lista **Monitores** | El estado actual de cada monitor. **No operativo** enumera los monitores en cualquier estado salvo el operativo, con un contador rojo al lado. |
+| La lista **Monitores** | El estado actual de cada monitor. **No operativo** enumera los monitores en cualquier estado salvo el operativo, con un contador rojo al lado. Los monitores con el monitoreo desactivado quedan fuera: nada los comprueba, y **Deshabilitado** los enumera. |
 | Páginas de estado | El color de cada fila y su disponibilidad: solo cuentan en contra los estados de **Cuenta como tiempo de inactividad** de la página. Una página de estado nueva empieza con todos los estados salvo el operativo. Consulte [Elegir qué se muestra en la página](/docs/status-pages/index#elegir-qué-se-muestra-en-la-página). |
 | Grupos de monitores | El estado del grupo: el peor de sus monitores. Consulte [Grupos de monitores](/docs/monitor/monitor-groups). |
 | SLO | El tiempo de inactividad que cuenta un SLO, según su propia lista de estados. Consulte [Qué estados cuentan como tiempo de inactividad](/docs/slo/introduction#qué-estados-cuentan-como-tiempo-de-inactividad). |

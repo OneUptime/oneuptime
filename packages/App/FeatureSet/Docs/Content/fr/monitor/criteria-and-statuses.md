@@ -148,7 +148,7 @@ La liste est un ordre. Là où des moniteurs sont affichés ensemble, le statut 
 
 | Où | Ce que le statut décide |
 | --- | --- |
-| La liste **Moniteurs** | Le statut actuel de chaque moniteur. **Non opérationnel** liste les moniteurs dans n'importe quel statut sauf l'opérationnel, avec un compteur rouge à côté. |
+| La liste **Moniteurs** | Le statut actuel de chaque moniteur. **Non opérationnel** liste les moniteurs dans n'importe quel statut sauf l'opérationnel, avec un compteur rouge à côté. Les moniteurs dont la surveillance est désactivée en sont exclus : rien ne les vérifie, et **Désactivé** les liste. |
 | Pages de statut | La couleur de chaque ligne, et sa disponibilité : seuls les statuts de **Compte comme indisponibilité** de la page comptent contre elle. Une nouvelle page de statut commence avec tous les statuts sauf l'opérationnel. Voir [Choisir ce qui s'affiche sur la page](/docs/status-pages/index#choisir-ce-qui-saffiche-sur-la-page). |
 | Groupes de moniteurs | Le statut du groupe : le pire de ses moniteurs. Voir [Groupes de moniteurs](/docs/monitor/monitor-groups). |
 | SLO | L'indisponibilité qu'un SLO compte, d'après sa propre liste de statuts. Voir [Quels statuts comptent comme indisponibilité](/docs/slo/introduction#quels-statuts-comptent-comme-indisponibilité). |

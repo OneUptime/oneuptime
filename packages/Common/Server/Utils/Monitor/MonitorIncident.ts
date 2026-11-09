@@ -1471,8 +1471,11 @@ export default class MonitorIncident {
    * against the criteria as a whole. Requiring an exact template id
    * there meant such an incident could never auto-resolve — and, because
    * it stayed open, its criteria could never raise a new one either.
+   *
+   * Turning monitoring off asks the same (MonitorTurnedOff): it resolves
+   * exactly the incidents this says the monitor would have resolved.
    */
-  private static isAutoResolveConfiguredForIncident(input: {
+  public static isAutoResolveConfiguredForIncident(input: {
     openIncident: Incident;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>

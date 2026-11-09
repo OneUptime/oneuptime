@@ -148,7 +148,7 @@ Listen er en rekkefølge. Der monitorer vises sammen, vinner statusen som står 
 
 | Hvor | Hva statusen avgjør |
 | --- | --- |
-| Listen **Monitorer** | Hver monitors gjeldende status. **Ikke operativ** viser monitorene med enhver status unntatt den driftsklare, med et rødt tall ved siden av. |
+| Listen **Monitorer** | Hver monitors gjeldende status. **Ikke operativ** viser monitorene med enhver status unntatt den driftsklare, med et rødt tall ved siden av. Monitorer med overvåking slått av er utelatt: ingenting sjekker dem, og **Deaktivert** viser dem. |
 | Statussider | Fargen på hver rad og tilgjengeligheten: bare statusene i sidens **Teller som nedetid** teller mot den. En ny statusside starter med alle statuser unntatt den driftsklare. Se [Velg hva siden viser](/docs/status-pages/index#å-velge-hva-som-vises-på-siden). |
 | Monitorgrupper | Gruppens status: den verste blant monitorene i den. Se [Monitorgrupper](/docs/monitor/monitor-groups). |
 | SLO-er | Nedetiden et SLO teller, ut fra sin egen liste over statuser. Se [Hvilke statuser som teller som nedetid](/docs/slo/introduction#hvilke-statuser-som-teller-som-nedetid). |
