@@ -11,6 +11,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import { TelemetryIngestionBudgetExplorerBanner } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 
 /*
  * Every Security Events page but a case's and a playbook's, which open on
@@ -37,6 +39,8 @@ const SecurityEventsLayout: FunctionComponent<
       })}
       sideMenu={<SecurityEventsSideMenu />}
     >
+      {/* Only while today's SecurityEvents budget is past its warning or used up. */}
+      <TelemetryIngestionBudgetExplorerBanner signal={ProductType.SecurityEvents} />
       <Outlet />
     </Page>
   );

@@ -64,7 +64,8 @@
     "more": "More",
     "sendEmail": "Send Email",
     "logout": "Logout",
-    "telemetryUsage": "Telemetry Usage"
+    "telemetryUsage": "Telemetry Usage",
+    "ingestionBudgets": "Ingestion Budgets"
   },
   "topAlert": {
     "title": "OneUptime Admin Dashboard",
@@ -133,7 +134,10 @@
     "settingsApiKey": "API Key",
     "moreCommunication": "Communication",
     "moreSendEmail": "Send Email",
-    "telemetryUsage": "Telemetry Usage"
+    "telemetryUsage": "Telemetry Usage",
+    "ingestionBudgets": "Ingestion Budgets",
+    "settingsTelemetry": "Telemetry",
+    "settingsIngestionBudgets": "Ingestion Budgets"
   },
   "pages": {
     "users": {
@@ -307,7 +311,15 @@
       "dataResidencyFieldTitle": "Data Residency",
       "dataResidencyFieldDescription": "A label for where this project's data is hosted, for example \"EU (Frankfurt)\". Leave it blank to hide it from the project's users.",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
-      "dataResidencyNotSet": "Not set"
+      "dataResidencyNotSet": "Not set",
+      "ingestionBudgets": {
+        "dailyCardTitle": "Daily Budgets for This Project",
+        "dailyCardDescription": "This project's own daily budget for each signal, in place of the instance default. Leave a signal empty for the instance default, or enter 0 for no limit. The project's admins see these but cannot change them.",
+        "dailyEditButton": "Edit Daily Budgets",
+        "rateCardTitle": "Rate Limits for This Project",
+        "rateCardDescription": "Optional. This project's own rate limit for each signal, in place of the instance default. Leave a signal empty for the instance default, or enter 0 for no limit.",
+        "rateEditButton": "Edit Rate Limits"
+      }
     },
     "projectSubscription": {
       "title": "Project Subscription",
@@ -600,6 +612,17 @@
         "cardTitle": "Global LLM Providers",
         "cardDescription": "Global LLM Providers are available to all projects for AI features. Configure OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or other LLM providers.",
         "noItems": "No LLM Providers configured. Add an LLM Provider to enable AI features."
+      },
+      "ingestionBudgets": {
+        "dailyCardTitle": "Default Daily Budgets",
+        "dailyCardDescription": "The most of each telemetry signal every project may send in a budget day, counted decompressed as it arrives. Once a budget is used up, that signal is refused until the budget resets. A project's own budget, set on its page under Projects, wins over these. Leave a signal empty for no limit.",
+        "dailyEditButton": "Edit Default Daily Budgets",
+        "resetCardTitle": "Warning and Reset",
+        "resetCardDescription": "When projects are warned that a budget is running out, and when each budget day starts again.",
+        "resetEditButton": "Edit Warning and Reset",
+        "rateCardTitle": "Default Rate Limits",
+        "rateCardDescription": "Optional. The fastest every project may send each signal, so one burst cannot use up a day's budget in minutes. Faster requests are answered 429 with Retry-After, and senders retry them. Leave a signal empty for no limit.",
+        "rateEditButton": "Edit Default Rate Limits"
       }
     },
     "telemetryUsage": {
@@ -1925,6 +1948,47 @@
   "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.",
   "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.",
   "Scheduled Maintenance": "Scheduled Maintenance",
+  "Logs (GB per day)": "Logs (GB per day)",
+  "Traces (GB per day)": "Traces (GB per day)",
+  "Metrics (GB per day)": "Metrics (GB per day)",
+  "Profiles (GB per day)": "Profiles (GB per day)",
+  "Security Events (GB per day)": "Security Events (GB per day)",
+  "Logs (MB per second)": "Logs (MB per second)",
+  "Traces (MB per second)": "Traces (MB per second)",
+  "Metrics (MB per second)": "Metrics (MB per second)",
+  "Profiles (MB per second)": "Profiles (MB per second)",
+  "Security Events (MB per second)": "Security Events (MB per second)",
+  "Instance default": "Instance default",
+  "Warning Threshold (%)": "Warning Threshold (%)",
+  "Projects are warned, and their owners emailed, when this share of a daily budget is used. From 1 to 99. Leave empty for 80.": "Projects are warned, and their owners emailed, when this share of a daily budget is used. From 1 to 99. Leave empty for 80.",
+  "Reset Time": "Reset Time",
+  "When each budget day starts again, as HH:MM on the 24-hour clock. Leave empty for 00:00.": "When each budget day starts again, as HH:MM on the 24-hour clock. Leave empty for 00:00.",
+  "Reset Time Zone": "Reset Time Zone",
+  "The time zone of the reset time. Leave empty for UTC.": "The time zone of the reset time. Leave empty for UTC.",
+  "Ingestion Budgets": "Ingestion Budgets",
+  "Telemetry counted against today's budgets as it arrives, decompressed. Once a daily budget is used up, that signal is refused until the budget resets at {{resetsAt}}.": "Telemetry counted against today's budgets as it arrives, decompressed. Once a daily budget is used up, that signal is refused until the budget resets at {{resetsAt}}.",
+  "Ingestion Key Budgets": "Ingestion Key Budgets",
+  "Ingestion keys with a budget of their own. A key's budget only subdivides the project's.": "Ingestion keys with a budget of their own. A key's budget only subdivides the project's.",
+  "No ingestion budgets": "No ingestion budgets",
+  "Every signal is accepted without a daily budget or a rate limit.": "Every signal is accepted without a daily budget or a rate limit.",
+  "Today's counts could not be read right now. Budgets are not enforced while they cannot be counted.": "Today's counts could not be read right now. Budgets are not enforced while they cannot be counted.",
+  "Ingestion Key": "Ingestion Key",
+  "Signal": "Signal",
+  "Used Today": "Used Today",
+  "Daily Budget": "Daily Budget",
+  "Rate Limit": "Rate Limit",
+  "Dropped": "Dropped",
+  "Throttled": "Throttled",
+  "{{count}} requests": "{{count}} requests",
+  "{{count}} requests_one": "{{count}} request",
+  "No daily budget": "No daily budget",
+  "Within budget": "Within budget",
+  "Past warning": "Past warning",
+  "Used up": "Used up",
+  "Unknown": "Unknown",
+  "Set for this project": "Set for this project",
+  "This key's own": "This key's own",
+  "{{size}} per second": "{{size}} per second",
   "markdownCallouts": {
     "caution": "Caution",
     "danger": "Danger",

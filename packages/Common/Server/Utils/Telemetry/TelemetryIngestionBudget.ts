@@ -21,6 +21,8 @@ import {
   isTelemetryIngestionBudgetLimited,
   resolveTelemetryIngestionBudget,
   TelemetryIngestionBudgetDay,
+  TelemetryIngestionBudgetRefusal,
+  TelemetryIngestionBudgetRefusalKind,
   TelemetryIngestionBudgetResolved,
   TelemetryIngestionBudgetResolvedScope,
   TelemetryIngestionBudgetScope,
@@ -54,24 +56,9 @@ import moment from "moment-timezone";
  * counted on arrival (reconcile).
  */
 
-export enum TelemetryIngestionBudgetRefusalKind {
-  // The daily budget is used up: not retryable before the reset.
-  DailyBudgetExhausted = "daily-budget-exhausted",
-  // Over the per-second rate: retryable after retryAfterSeconds.
-  RateLimited = "rate-limited",
-}
-
-export interface TelemetryIngestionBudgetRefusal {
-  kind: TelemetryIngestionBudgetRefusalKind;
-  scope: TelemetryIngestionBudgetScope;
-  signal: TelemetryIngestionBudgetSignal;
-  // The sentence the sender is answered with.
-  message: string;
-  // For a rate refusal: when to come back.
-  retryAfterSeconds: number | null;
-  // When the budget day resets.
-  resetsAt: Date;
-}
+// Kept with the shared types (they are what every surface answers with).
+export { TelemetryIngestionBudgetRefusalKind };
+export type { TelemetryIngestionBudgetRefusal };
 
 /*
  * What was counted for an admitted request, carried on it (and, when its

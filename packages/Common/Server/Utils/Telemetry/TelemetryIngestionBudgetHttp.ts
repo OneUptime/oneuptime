@@ -13,12 +13,12 @@ import {
   measureRawTelemetryIngestBody,
   TelemetryIngestBodySize,
 } from "./TelemetryIngestBodySize";
+import ProductType from "../../../Types/MeteredPlan/ProductType";
 import {
   TelemetryIngestionBudgetRefusal,
   TelemetryIngestionBudgetRefusalKind,
-} from "./TelemetryIngestionBudget";
-import ProductType from "../../../Types/MeteredPlan/ProductType";
-import { TelemetryIngestionBudgetSignal } from "../../../Types/Telemetry/TelemetryIngestionBudget";
+  TelemetryIngestionBudgetSignal,
+} from "../../../Types/Telemetry/TelemetryIngestionBudget";
 import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
 
 /*

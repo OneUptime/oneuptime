@@ -68,7 +68,6 @@ import TelemetryIngestionBudgetCounter, {
   TelemetryIngestionBudgetCounterRequest,
 } from "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter";
 import TelemetryIngestionBudgetSettings, {
-  getDefaultTelemetryIngestionBudgetInstanceSettings,
   TelemetryIngestionBudgetInstanceSettings,
 } from "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetSettings";
 import { TelemetryIngestBodySize } from "../../../../Server/Utils/Telemetry/TelemetryIngestBodySize";
@@ -126,7 +125,9 @@ const instance: (
   overrides: Partial<TelemetryIngestionBudgetInstanceSettings> = {},
 ): TelemetryIngestionBudgetInstanceSettings => {
   return {
-    ...getDefaultTelemetryIngestionBudgetInstanceSettings(),
+    warningPercent: 80,
+    resetTime: "00:00",
+    timezone: "UTC",
     budgets: budgets,
     ...overrides,
   };

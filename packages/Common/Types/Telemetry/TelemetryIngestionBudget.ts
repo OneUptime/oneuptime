@@ -966,6 +966,26 @@ export interface TelemetryIngestionBudgetStatus {
   ingestionKeys: Array<TelemetryIngestionBudgetScopeStatus>;
 }
 
+export enum TelemetryIngestionBudgetRefusalKind {
+  // The daily budget is used up: not retryable before the reset.
+  DailyBudgetExhausted = "daily-budget-exhausted",
+  // Over the per-second rate: retryable after retryAfterSeconds.
+  RateLimited = "rate-limited",
+}
+
+// Why a request was refused, as the ingest surfaces answer it.
+export interface TelemetryIngestionBudgetRefusal {
+  kind: TelemetryIngestionBudgetRefusalKind;
+  scope: TelemetryIngestionBudgetScope;
+  signal: TelemetryIngestionBudgetSignal;
+  // The sentence the sender is answered with.
+  message: string;
+  // For a rate refusal: when to come back.
+  retryAfterSeconds: number | null;
+  // When the budget day resets.
+  resetsAt: Date;
+}
+
 /*
  * The status reads, under the API's own path (/api): the caller's project
  * (its tenantid header), and for the instance admin any project's

@@ -82,7 +82,11 @@ describe("measureRawTelemetryIngestBody", () => {
         contentEncoding: "gzip",
       });
 
-      expect(gzipped.length).toBeLessThan(plain.length);
+      // One line is too short for gzip to shrink; a batch shrinks a lot.
+      if (lines > 1) {
+        expect(gzipped.length).toBeLessThan(plain.length);
+      }
+
       expect(size.bytes).toBe(plain.length);
       // Exact for honest gzip, but marked for the worker to confirm.
       expect(size.isExact).toBe(false);
