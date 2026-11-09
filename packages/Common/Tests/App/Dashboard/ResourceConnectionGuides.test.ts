@@ -13,6 +13,7 @@ import {
   getHostConnectionGuide,
   getIoTFleetConnectionGuide,
   getKubernetesClusterConnectionGuide,
+  getOpenStackCloudConnectionGuide,
   getPodmanHostConnectionGuide,
   getProxmoxClusterConnectionGuide,
   getRumApplicationConnectionGuide,
@@ -49,6 +50,7 @@ import {
   getHostSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
 import { getIoTSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
+import { getOpenStackSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
 import { getRumSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumSetupGuide";
 import { getServerlessSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Components/Serverless/ServerlessSetupGuide";
 
@@ -86,6 +88,21 @@ const AGENTS_DIRECTORY: string = path.join(
   "..",
   "agents",
 );
+
+// The Dashboard's English strings: every key a translation can word.
+const ENGLISH_KEYS: Record<string, string> = JSON.parse(
+  fs.readFileSync(
+    path.join(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src/Locales/en.json",
+    ),
+    "utf8",
+  ),
+) as Record<string, string>;
+
+function placeholdersOf(text: string): Array<string> {
+  return (text.match(/\{\{\w+\}\}/g) || []).sort();
+}
 
 function readAgentFile(agent: string, file: string): string {
   return fs.readFileSync(path.join(AGENTS_DIRECTORY, agent, file), "utf8");
@@ -135,7 +152,8 @@ function quotedValuesIn(code: string): Array<string> {
 
 interface GuideCase {
   build: (identifier: string) => ResourceConnectionGuide;
-  resourceNoun: string;
+  // What the card's sentences call the resource: "Connect this <noun>".
+  noun: string;
   agentName: string;
 }
 
@@ -149,7 +167,7 @@ const GUIDES: Array<[string, GuideCase]> = [
     "Kubernetes cluster",
     {
       build: getKubernetesClusterConnectionGuide,
-      resourceNoun: "cluster",
+      noun: "cluster",
       agentName: "OneUptime Kubernetes Agent",
     },
   ],
@@ -157,7 +175,7 @@ const GUIDES: Array<[string, GuideCase]> = [
     "Docker host",
     {
       build: getDockerHostConnectionGuide,
-      resourceNoun: "Docker host",
+      noun: "Docker host",
       agentName: "OneUptime Docker Agent",
     },
   ],
@@ -165,7 +183,7 @@ const GUIDES: Array<[string, GuideCase]> = [
     "Podman host",
     {
       build: getPodmanHostConnectionGuide,
-      resourceNoun: "Podman host",
+      noun: "Podman host",
       agentName: "OneUptime Podman Agent",
     },
   ],
@@ -178,7 +196,7 @@ const GUIDES: Array<[string, GuideCase]> = [
           VARS.oneuptimeUrl,
         );
       },
-      resourceNoun: "cluster",
+      noun: "cluster",
       agentName: "OneUptime Docker Swarm Agent",
     },
   ],
@@ -188,8 +206,18 @@ const GUIDES: Array<[string, GuideCase]> = [
       build: (identifier: string): ResourceConnectionGuide => {
         return getProxmoxClusterConnectionGuide(identifier, VARS.oneuptimeUrl);
       },
-      resourceNoun: "cluster",
+      noun: "cluster",
       agentName: "OneUptime Proxmox Agent",
+    },
+  ],
+  [
+    "OpenStack cloud",
+    {
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getOpenStackCloudConnectionGuide(identifier, VARS.oneuptimeUrl);
+      },
+      noun: "cloud",
+      agentName: "OneUptime OpenStack Agent",
     },
   ],
   [
@@ -198,7 +226,7 @@ const GUIDES: Array<[string, GuideCase]> = [
       build: (identifier: string): ResourceConnectionGuide => {
         return getCephClusterConnectionGuide(identifier, VARS.oneuptimeUrl);
       },
-      resourceNoun: "cluster",
+      noun: "cluster",
       agentName: "OneUptime Ceph Agent",
     },
   ],
@@ -208,7 +236,7 @@ const GUIDES: Array<[string, GuideCase]> = [
       build: (identifier: string): ResourceConnectionGuide => {
         return getVMwareVCenterConnectionGuide(identifier, VARS.oneuptimeUrl);
       },
-      resourceNoun: "vCenter",
+      noun: "vCenter",
       agentName: "OneUptime VMware Agent",
     },
   ],
@@ -218,7 +246,7 @@ const GUIDES: Array<[string, GuideCase]> = [
       build: (identifier: string): ResourceConnectionGuide => {
         return getStorageArrayConnectionGuide(identifier, VARS.oneuptimeUrl);
       },
-      resourceNoun: "storage array",
+      noun: "storage array",
       agentName: "OneUptime Storage Array Agent",
     },
   ],
@@ -226,7 +254,7 @@ const GUIDES: Array<[string, GuideCase]> = [
     "Host",
     {
       build: getHostConnectionGuide,
-      resourceNoun: "host",
+      noun: "host",
       agentName: "OpenTelemetry Collector",
     },
   ],
@@ -234,7 +262,7 @@ const GUIDES: Array<[string, GuideCase]> = [
     "IoT fleet",
     {
       build: getIoTFleetConnectionGuide,
-      resourceNoun: "fleet",
+      noun: "fleet",
       agentName: "OpenTelemetry exporter on your devices or gateway",
     },
   ],
@@ -248,7 +276,7 @@ const GUIDES: Array<[string, GuideCase]> = [
           cloudRegion: "us-east-1",
         });
       },
-      resourceNoun: "environment",
+      noun: "environment",
       agentName: "OpenTelemetry SDK or collector",
     },
   ],
@@ -256,7 +284,7 @@ const GUIDES: Array<[string, GuideCase]> = [
     "RUM application",
     {
       build: getRumApplicationConnectionGuide,
-      resourceNoun: "application",
+      noun: "application",
       agentName: "OpenTelemetry browser or mobile SDK",
     },
   ],
@@ -264,7 +292,7 @@ const GUIDES: Array<[string, GuideCase]> = [
     "Serverless function",
     {
       build: getServerlessFunctionConnectionGuide,
-      resourceNoun: "function",
+      noun: "function",
       agentName: "OpenTelemetry SDK",
     },
   ],
@@ -277,7 +305,7 @@ const GUIDES: Array<[string, GuideCase]> = [
           "azure_functions",
         );
       },
-      resourceNoun: "function",
+      noun: "function",
       agentName: "OpenTelemetry SDK",
     },
   ],
@@ -355,9 +383,101 @@ describe.each(GUIDES)("the %s guide", (_name: string, guideCase: GuideCase) => {
   const IDENTIFIER: string = "prod-east-7";
   const guide: ResourceConnectionGuide = guideCase.build(IDENTIFIER);
 
-  test("names the resource and what sends its data", () => {
-    expect(guide.resourceNoun).toBe(guideCase.resourceNoun);
+  test("names what sends its data", () => {
     expect(guide.agentName).toBe(guideCase.agentName);
+  });
+
+  /*
+   * Issue #6308: the card's sentences about the resource are whole
+   * sentences of its own kind - "Connect this cluster" - never a template
+   * with the noun put in, which no language with gendered "this" could
+   * word for every noun.
+   */
+  test("says what the card says about it in whole sentences that name its own kind", () => {
+    const noun: string = guideCase.noun;
+
+    expect(guide.setupCopy.title).toBe(`Connect this ${noun}`);
+
+    if (guide.idleCopy) {
+      // Idle when unused: the same keys as its idle sentences.
+      expect(guide.setupCopy.description).toBe(
+        guide.idleCopy.waitingDescription,
+      );
+      expect(guide.stoppedCopy).toEqual({
+        title: guide.idleCopy.title,
+        description: guide.idleCopy.description,
+      });
+      return;
+    }
+
+    expect(guide.setupCopy.description).toBe(
+      `No data has arrived from this ${noun} yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.`,
+    );
+    expect(guide.stoppedCopy).toEqual({
+      title: `This ${noun} stopped sending data`,
+      description: `OneUptime last heard from this ${noun} {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.`,
+    });
+  });
+
+  test("every sentence the card says about it is a key of its own, with only the agent and the time to fill in", () => {
+    const sentences: Array<string> = [
+      guide.setupCopy.title,
+      guide.setupCopy.description,
+      guide.stoppedCopy.title,
+      guide.stoppedCopy.description,
+    ];
+
+    for (const sentence of sentences) {
+      expect({ sentence, key: ENGLISH_KEYS[sentence] }).toEqual({
+        sentence,
+        key: sentence,
+      });
+      expect(sentence).not.toMatch(/resourceNoun/);
+    }
+
+    expect(placeholdersOf(guide.setupCopy.title)).toEqual([]);
+    expect(placeholdersOf(guide.stoppedCopy.title)).toEqual([]);
+    expect(
+      placeholdersOf(guide.setupCopy.description).filter(
+        (placeholder: string): boolean => {
+          return placeholder !== "{{agentName}}";
+        },
+      ),
+    ).toEqual([]);
+    expect(
+      placeholdersOf(guide.stoppedCopy.description).filter(
+        (placeholder: string): boolean => {
+          return placeholder !== "{{agentName}}";
+        },
+      ),
+    ).toEqual(["{{lastHeard}}"]);
+  });
+
+  test("its wait step names its kind as the card does, in one sentence with its check", () => {
+    const wait: ResourceConnectionGuideStep | undefined = guide.setupSteps.find(
+      (step: ResourceConnectionGuideStep): boolean => {
+        return step.title === "Wait for the first data";
+      },
+    );
+
+    if (!wait || guide.idleCopy) {
+      return; // a host's last step is its hostname; RUM's asks for a visit
+    }
+
+    expect(wait.description).toMatch(
+      new RegExp(
+        `^Refresh this page after a few minutes — the ${guideCase.noun} switches to Connected once its first data arrives\\.`,
+      ),
+    );
+    expect(ENGLISH_KEYS[wait.description]).toBe(wait.description);
+    // Ends on a colon exactly when its command is the check it names.
+    expect(wait.description.endsWith(":")).toBe(Boolean(wait.code));
+  });
+
+  test("no step is left with a placeholder unfilled", () => {
+    for (const step of [...guide.setupSteps, ...guide.troubleshootingSteps]) {
+      expect(stepText(step)).not.toMatch(/\{\{\s*\w+\s*\}\}/);
+    }
   });
 
   test("has three setup steps and three troubleshooting steps", () => {
@@ -486,6 +606,8 @@ describe("Kubernetes cluster guide", () => {
 
 interface ContainerHostCase {
   build: (identifier: string) => ResourceConnectionGuide;
+  // What the steps call the host: "the data lands on this <noun>".
+  noun: string;
   // The host's guide with the run command picked, which the card names.
   setupGuide: (hostName: string) => SetupGuideContent;
   agentDirectory: string;
@@ -499,6 +621,7 @@ describe.each([
     "Docker",
     {
       build: getDockerHostConnectionGuide,
+      noun: "Docker host",
       setupGuide: (hostName: string): SetupGuideContent => {
         return getDockerSetupGuide({
           ...VARS,
@@ -516,6 +639,7 @@ describe.each([
     "Podman",
     {
       build: getPodmanHostConnectionGuide,
+      noun: "Podman host",
       setupGuide: (hostName: string): SetupGuideContent => {
         return getPodmanSetupGuide({
           ...VARS,
@@ -546,6 +670,18 @@ describe.each([
       ).toContain(hostCase.variable);
     });
 
+    test("its steps name its own kind of host, each in a sentence of its own", () => {
+      expect(guide.setupSteps[1]!.description).toBe(
+        `Run the ${hostCase.cli} run command from the setup guide on this host. Set ${hostCase.variable} as below so the data lands on this ${hostCase.noun}:`,
+      );
+      expect(guide.setupSteps[2]!.description).toBe(
+        `Refresh this page after a few minutes — the ${hostCase.noun} switches to Connected once its first data arrives. If it does not, check the agent container is up:`,
+      );
+      expect(guide.troubleshootingSteps[2]!.description).toBe(
+        `The agent must still run with ${hostCase.variable}="web-01". A different name sends the data to a different ${hostCase.noun}.`,
+      );
+    });
+
     test("checks and reads the container the setup guide starts", () => {
       const psCommand: string = `${hostCase.cli} ps --filter name=${hostCase.containerName}`;
 
@@ -573,6 +709,8 @@ const COMPOSE_INSTALL_METHODS: Array<ComposeInstallMethod> = [
 
 interface ComposeCase {
   build: (identifier: string) => ResourceConnectionGuide;
+  // What the steps call the resource: "Check the <noun> name".
+  noun: string;
   // Where this OneUptime serves the agent's files: /install/<installName>.
   installName: string;
   // The resource's guide with one install method picked.
@@ -592,6 +730,7 @@ describe.each([
           VARS.oneuptimeUrl,
         );
       },
+      noun: "cluster",
       setupGuide: (
         method: ComposeInstallMethod,
         name: string,
@@ -614,6 +753,7 @@ describe.each([
       build: (identifier: string): ResourceConnectionGuide => {
         return getProxmoxClusterConnectionGuide(identifier, VARS.oneuptimeUrl);
       },
+      noun: "cluster",
       setupGuide: (
         method: ComposeInstallMethod,
         name: string,
@@ -637,6 +777,7 @@ describe.each([
       build: (identifier: string): ResourceConnectionGuide => {
         return getCephClusterConnectionGuide(identifier, VARS.oneuptimeUrl);
       },
+      noun: "cluster",
       setupGuide: (
         method: ComposeInstallMethod,
         name: string,
@@ -660,6 +801,7 @@ describe.each([
       build: (identifier: string): ResourceConnectionGuide => {
         return getVMwareVCenterConnectionGuide(identifier, VARS.oneuptimeUrl);
       },
+      noun: "vCenter",
       setupGuide: (
         method: ComposeInstallMethod,
         name: string,
@@ -683,6 +825,7 @@ describe.each([
       build: (identifier: string): ResourceConnectionGuide => {
         return getStorageArrayConnectionGuide(identifier, VARS.oneuptimeUrl);
       },
+      noun: "storage array",
       /*
        * One guide covers the install script and Docker Compose for the
        * picked platform, so both methods read the same document.
@@ -702,6 +845,30 @@ describe.each([
       installName: "storage-array-agent",
       containerName: "oneuptime-storage-array-agent",
       variable: "STORAGE_ARRAY_NAME",
+    },
+  ],
+  [
+    "OpenStack",
+    {
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getOpenStackCloudConnectionGuide(identifier, VARS.oneuptimeUrl);
+      },
+      noun: "cloud",
+      setupGuide: (
+        method: ComposeInstallMethod,
+        name: string,
+      ): SetupGuideContent => {
+        return getOpenStackSetupGuide({
+          ...VARS,
+          hasApiKey: true,
+          method: method,
+          cloudName: name,
+        });
+      },
+      agentDirectory: "OpenStackAgent",
+      installName: "openstack-agent",
+      containerName: "oneuptime-openstack-agent",
+      variable: "OPENSTACK_CLOUD_NAME",
     },
   ],
 ] as Array<[string, ComposeCase]>)(
@@ -728,6 +895,32 @@ describe.each([
             "otel-collector-config.yaml",
           ),
       ).toContain(composeCase.variable);
+    });
+
+    test("checks the name, and says what the diagnostic script checks, for this kind of resource", () => {
+      const nameCheck: ResourceConnectionGuideStep =
+        guide.troubleshootingSteps[2]!;
+
+      expect(nameCheck.title).toBe(`Check the ${composeCase.noun} name`);
+      expect(nameCheck.description).toBe(
+        `${composeCase.variable} in the agent's .env must still be "site-a". A different name sends the data to a different ${composeCase.noun}.`,
+      );
+      expect(guide.setupSteps[2]!.description).toBe(
+        `Refresh this page after a few minutes — the ${composeCase.noun} switches to Connected once its first data arrives. If it does not, check the agent container is up:`,
+      );
+
+      const second: ResourceConnectionGuideStep =
+        guide.troubleshootingSteps[1]!;
+
+      if (second.title === "Run the diagnostic script") {
+        expect(second.description).toBe(
+          `It checks the whole chain — the agent, what it scrapes, the ${composeCase.noun} name and the ingestion key — and says what is wrong.`,
+        );
+      }
+
+      for (const key of [nameCheck.title, second.description]) {
+        expect(ENGLISH_KEYS[key]).toBe(key);
+      }
     });
 
     test("the install script it points to asks for that name", () => {
