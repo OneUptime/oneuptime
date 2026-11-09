@@ -1349,6 +1349,12 @@ incidents:
 alerts:
   disableAutomaticCreation: false
 
+# Let a project owner/admin API key keep one team in step with an external
+# directory (POST /api/team-member/directory-sync). Members it adds are accepted
+# without an invitation, so leave this off unless you run such a sync.
+teamDirectorySync:
+  enabled: false
+
 # Telemetry ingestion controls
 # Set disableIngestion to true to reject all incoming OpenTelemetry traces /
 # metrics / logs / profiles (HTTP + gRPC), Fluentd logs, Syslog logs, and

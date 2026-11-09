@@ -193,6 +193,8 @@ x-common-runtime-variables: &common-runtime-variables
 
   DISABLE_TELEMETRY_INGESTION: ${DISABLE_TELEMETRY_INGESTION}
 
+  ENABLE_TEAM_DIRECTORY_SYNC: ${ENABLE_TEAM_DIRECTORY_SYNC}
+
   # Defaulted, unlike its siblings: this one gates outbound traffic, and an
   # existing config.env upgraded in place will not have the key.
   DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}

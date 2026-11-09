@@ -1398,6 +1398,9 @@ values are set. Secrets can come from an existing Kubernetes secret.
 - name: DISABLE_TELEMETRY_INGESTION
   value: {{ default false $.Values.telemetry.disableIngestion | squote }}
 
+- name: ENABLE_TEAM_DIRECTORY_SYNC
+  value: {{ default false (($.Values.teamDirectorySync).enabled) | squote }}
+
 - name: DISABLE_UPDATE_CHECK
   value: {{ default false $.Values.updateCheck.disabled | squote }}
 

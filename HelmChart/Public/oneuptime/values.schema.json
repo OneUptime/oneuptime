@@ -2153,6 +2153,15 @@
             },
             "additionalProperties": false
         },
+        "teamDirectorySync": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
         "telemetry": {
             "type": "object",
             "properties": {

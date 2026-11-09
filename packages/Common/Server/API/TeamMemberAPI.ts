@@ -6,7 +6,13 @@ import TeamMemberService, {
   TeamMemberService as TeamMemberServiceType,
 } from "../Services/TeamMemberService";
 import UserService from "../Services/UserService";
+import TeamDirectorySyncService, {
+  DirectoryMember,
+  TeamDirectorySyncResult,
+} from "../Services/TeamDirectorySyncService";
 import EditionEnforcement from "../Utils/EditionEnforcement";
+import { EnableTeamDirectorySync } from "../EnvironmentConfig";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -22,6 +28,8 @@ import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
+import { JSONObject } from "../../Types/JSON";
+import Permission from "../../Types/Permission";
 import UserType from "../../Types/UserType";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import User from "../../Models/DatabaseModels/User";
@@ -161,6 +169,87 @@ export default class TeamMemberAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             numberOfMembershipsDeleted: numberOfMembershipsDeleted,
           });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * Keeps one team of the current project in step with an external
+     * directory (see TeamDirectorySyncService). Off unless the installation
+     * sets ENABLE_TEAM_DIRECTORY_SYNC, and then only for a project owner or
+     * admin - a person or a project API key holding either - because the
+     * members it adds are accepted on their behalf. The project is the
+     * caller's: for an API key, the key's own project.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/directory-sync`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!EnableTeamDirectorySync) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Team directory sync is turned off on this installation. Set ENABLE_TEAM_DIRECTORY_SYNC=true to turn it on.",
+              ),
+            );
+          }
+
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          if (
+            !props.isMasterAdmin &&
+            !CallerPermission.holdsAnyOf(props, [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+            ])
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotAuthorizedException(
+                "Only a project owner or admin may sync a team from a directory.",
+              ),
+            );
+          }
+
+          const body: JSONObject = (req.body || {}) as JSONObject;
+
+          const teamName: unknown = body["teamName"];
+
+          if (typeof teamName !== "string" || !teamName.trim()) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("teamName is required."),
+            );
+          }
+
+          const members: Array<DirectoryMember> =
+            TeamDirectorySyncService.parseMembers(body["members"]);
+
+          const result: TeamDirectorySyncResult =
+            await TeamDirectorySyncService.sync({
+              projectId: projectId,
+              teamName: teamName,
+              members: members,
+              removeMissing: body["removeMissing"] === true,
+              dryRun: body["dryRun"] === true,
+              actingUserId: props.userId,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            result as unknown as JSONObject,
+          );
         } catch (err) {
           return next(err);
         }

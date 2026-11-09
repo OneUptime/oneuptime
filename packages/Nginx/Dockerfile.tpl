@@ -112,7 +112,9 @@ RUN npm ci --no-audit --no-fund
 
 COPY ./packages/Nginx /usr/src/app
 # Type-check the sidecar (and the part of Common it imports).
-RUN npm run compile
+# tsc over the sidecar and the Common code it reaches outgrows the default
+# ~2 GB Node heap.
+RUN NODE_OPTIONS="--max-old-space-size=6144" npm run compile
 
 # Leave in /usr/src only what the sidecar runs: the packages its imports reach
 # (see the script's header), without Common's and the sidecar's tests or the

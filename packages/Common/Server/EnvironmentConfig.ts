@@ -893,6 +893,15 @@ export const DisableTelemetryIngestion: boolean =
   process.env["DISABLE_TELEMETRY_INGESTION"] === "true";
 
 /*
+ * Lets a project API key held by a project owner or admin keep one team in
+ * step with an external directory (POST /api/team-member/directory-sync):
+ * memberships it creates are already accepted and addresses that never
+ * registered are marked verified. Off unless the installation turns it on.
+ */
+export const EnableTeamDirectorySync: boolean =
+  process.env["ENABLE_TEAM_DIRECTORY_SYNC"] === "true";
+
+/*
  * When true, this process does NOT register any BullMQ queue consumers
  * (the "api" role). Background jobs — telemetry ingestion processing, the
  * general Worker/cron jobs, Workflow runs and Runbook executions — are
