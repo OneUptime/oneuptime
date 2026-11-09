@@ -189,6 +189,22 @@ describe("getLlmProviderShownResponseTimeout", () => {
       `${new Intl.NumberFormat("fa").format(300)} (پیش‌فرض)`,
     );
     expect(persian).not.toContain("300");
+
+    // Arabic in OneUptime writes Latin digits (Locales/ARABIC.md).
+    expect(
+      getLlmProviderShownResponseTimeout({
+        requestTimeoutInSeconds: 1200,
+        llmType: LlmType.Ollama,
+        translator: dashboardTranslator("ar"),
+      }),
+    ).toBe("1,200");
+    expect(
+      getLlmProviderShownResponseTimeout({
+        requestTimeoutInSeconds: undefined,
+        llmType: LlmType.Ollama,
+        translator: dashboardTranslator("ar"),
+      }),
+    ).toBe("300 (افتراضي)");
   });
 
   test("a type this build does not know, or none, gets the common default", () => {

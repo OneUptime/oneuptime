@@ -473,6 +473,101 @@ describe("the failure's words, by language", () => {
   });
 });
 
+/*
+ * Arabic, the eighteenth language, reaches the Dashboard surface by surface
+ * (Locales/ARABIC.md), so it is not one of DASHBOARD_LANGUAGES yet. These
+ * words are in it all the same, worded by its rules: i18next reads a
+ * count's general form for 0, 2, 3-10, 11-99 and 100+, so that form is a
+ * label and its count, or a unit the same for every count; and figures are
+ * Latin digits.
+ */
+describe("the failure's words, in Arabic", () => {
+  const AR: Record<string, string> = readDashboardLocale("ar");
+  const arabic: Translator = dashboardTranslator("ar");
+
+  test("every word is worded its own way, and keeps its placeholders", () => {
+    for (const key of WORDS) {
+      expect({
+        key,
+        worded: Boolean(AR[key]?.trim()) && AR[key] !== EN[key],
+      }).toEqual({ key, worded: true });
+      expect({ key, placeholders: placeholdersOf(AR[key] || "") }).toEqual({
+        key,
+        placeholders: placeholdersOf(EN[key]!),
+      });
+    }
+  });
+
+  test("every kind of failure has its cause and its fix in Arabic", () => {
+    const english: Translator = dashboardTranslator("en");
+
+    for (const failureKind of Object.values(AIRunFailureKind)) {
+      const said: { whatHappened: string; whatToDo: string } =
+        describeAiRunFailure({ failureKind }, arabic);
+      const inEnglish: { whatHappened: string; whatToDo: string } =
+        describeAiRunFailure({ failureKind }, english);
+
+      expect({
+        failureKind,
+        sameCause: said.whatHappened === inEnglish.whatHappened,
+        sameFix: said.whatToDo === inEnglish.whatToDo,
+      }).toEqual({ failureKind, sameCause: false, sameFix: false });
+    }
+  });
+
+  test.each([2, 3, 11, 100])(
+    "%i tries: a label and its count, in Latin digits",
+    (attempts: number) => {
+      expect(
+        describeAiRunFailure(
+          { failureKind: AIRunFailureKind.ProviderUnavailable, attempts },
+          arabic,
+        ).triedTimes,
+      ).toBe(`عدد المحاولات: ${attempts}.`);
+    },
+  );
+
+  test("a timeout's seconds in the short unit Arabic writes for every count", () => {
+    expect(
+      describeAiRunFailure(
+        {
+          failureKind: AIRunFailureKind.ProviderTimeout,
+          timeoutInSeconds: 120,
+        },
+        arabic,
+      ).whatHappened,
+    ).toBe("لم يُجب موفّر الذكاء الاصطناعي خلال 120 ث.");
+  });
+
+  test("the notice's heading, its buttons and its links to the settings are Arabic too", () => {
+    for (const key of [
+      "The investigation stopped before it could report.",
+      "Try again",
+      "Details",
+      "Open LLM Providers",
+      "Open AI Features",
+      "Open AI Credits",
+    ]) {
+      expect({ key, worded: isWordedInDashboardLocale(key, "ar") }).toEqual({
+        key,
+        worded: true,
+      });
+    }
+  });
+
+  test("an attempt's end is one Arabic sentence, its cause Arabic too", () => {
+    expect(describeAttemptEnd(TIMED_OUT, arabic)).toBe(
+      fill(word(AR, "Did not finish: {{cause}} Trying again at {{time}}."), {
+        cause: fill(
+          word(AR, "The AI provider did not answer within {{count}} seconds."),
+          { count: "120" },
+        ),
+        time: "14:05",
+      }),
+    );
+  });
+});
+
 describe("a run's attempts and summary, in German", () => {
   beforeAll(async () => {
     await inLanguage("de");
