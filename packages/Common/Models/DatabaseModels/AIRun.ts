@@ -852,6 +852,36 @@ export default class AIRun extends BaseModel {
   })
   public lastHeartbeatAt?: Date = undefined;
 
+  /*
+   * When a queued run is due (issues #6437, #6438): set each time the run
+   * goes back to the queue - after a failed attempt, the wait before the
+   * next one (Server/Utils/AI/AIRunRetryPolicy); after a hand-back or a
+   * stale attempt, at once. The queue starts a run only once it is due, and
+   * its time in the queue counts from here, not from when it was created.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Retry At",
+    description:
+      "When a run that went back to the queue is due to be tried again.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public retryAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

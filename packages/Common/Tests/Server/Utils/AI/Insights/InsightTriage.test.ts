@@ -1,4 +1,5 @@
 import InsightTriage, {
+  InsightTriageNotEnqueuedReason,
   InsightTriageResult,
 } from "../../../../../Server/Utils/AI/SRE/Insights/Triage";
 import AIInvestigationQueue from "../../../../../Server/Utils/AI/SRE/InvestigationQueue";
@@ -29,7 +30,9 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  *       the triage runner) and persists triageAiRunId onto the insight;
  *   (d) a null enqueue result (the queue's budget quiet-skip) means no
  *       link is written and no id is returned;
- *   (e) enqueueInsightTriage NEVER throws.
+ *   (e) enqueueInsightTriage NEVER throws;
+ *   (f) every skip says why (notEnqueuedReason), for Try again's refusal
+ *       (issue #6438).
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -79,7 +82,9 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     const result: InsightTriageResult =
       await InsightTriage.enqueueInsightTriage({ insight: makeInsight() });
 
-    expect(result).toEqual({});
+    expect(result).toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.NotFound,
+    });
     expect(enqueue).not.toHaveBeenCalled();
   });
 
@@ -93,7 +98,9 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     const result: InsightTriageResult =
       await InsightTriage.enqueueInsightTriage({ insight: makeInsight() });
 
-    expect(result).toEqual({});
+    expect(result).toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.AiOff,
+    });
     expect(enqueue).not.toHaveBeenCalled();
   });
 
@@ -107,7 +114,9 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     const result: InsightTriageResult =
       await InsightTriage.enqueueInsightTriage({ insight: makeInsight() });
 
-    expect(result).toEqual({});
+    expect(result).toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.SwitchOff,
+    });
     expect(enqueue).not.toHaveBeenCalled();
   });
 
@@ -122,7 +131,9 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     const result: InsightTriageResult =
       await InsightTriage.enqueueInsightTriage({ insight: makeInsight() });
 
-    expect(result).toEqual({});
+    expect(result).toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.NoProvider,
+    });
     expect(enqueue).not.toHaveBeenCalled();
   });
 
@@ -138,7 +149,9 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     const result: InsightTriageResult =
       await InsightTriage.enqueueInsightTriage({ insight: makeInsight() });
 
-    expect(result).toEqual({});
+    expect(result).toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.AlreadyRunning,
+    });
     expect(enqueue).not.toHaveBeenCalled();
     // The dedupe key is the provenance column, scoped to Investigation runs.
     expect(countBy).toHaveBeenCalledWith(
@@ -195,18 +208,22 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     const result: InsightTriageResult =
       await InsightTriage.enqueueInsightTriage({ insight: makeInsight() });
 
-    expect(result).toEqual({});
+    expect(result).toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.NotQueued,
+    });
     expect(persist).not.toHaveBeenCalled();
   });
 
-  test("NEVER throws: a gate failure resolves to an empty result", async () => {
+  test("NEVER throws: a gate failure resolves to no run, failed on the way", async () => {
     jest
       .spyOn(ProjectService, "findOneById")
       .mockRejectedValue(new Error("db down"));
 
     await expect(
       InsightTriage.enqueueInsightTriage({ insight: makeInsight() }),
-    ).resolves.toEqual({});
+    ).resolves.toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.Failed,
+    });
   });
 });
 
@@ -267,7 +284,9 @@ describe("InsightTriage.enqueueInsightTriage - a telemetry lane's problem", () =
 
     await expect(
       InsightTriage.enqueueInsightTriage({ insight: slowCode() }),
-    ).resolves.toEqual({});
+    ).resolves.toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.SwitchOff,
+    });
     expect(enqueue).not.toHaveBeenCalled();
   });
 
@@ -304,7 +323,9 @@ describe("InsightTriage.enqueueInsightTriage - a telemetry lane's problem", () =
 
     await expect(
       InsightTriage.enqueueInsightTriage({ insight: slowCode() }),
-    ).resolves.toEqual({});
+    ).resolves.toEqual({
+      notEnqueuedReason: InsightTriageNotEnqueuedReason.AiOff,
+    });
     expect(enqueue).not.toHaveBeenCalled();
   });
 });
