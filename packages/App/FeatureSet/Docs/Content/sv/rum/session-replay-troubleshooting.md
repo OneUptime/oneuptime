@@ -402,11 +402,11 @@ En inspelning behåller adressen till varje bild, och till varje formatmall som 
 
 Portalinspelningar som gjordes innan OneUptime laddade de här filerna under uppspelning, de som visade offlinefältet vid varje uppspelning, spelas nu också upp med det dolt, så länge den formatmall som de nämner fortfarande levereras: det finns inget att ändra i en inspelning.
 
-## RUM-appen säger «Frånkopplad»
+## RUM-appen säger «Ingen trafik nyligen»
 
-Statusetiketten och **Senast sedd** på applikationens sida rapporterar när telemetri senast kom in för den applikationen. Sessionsuppspelning räknas: både en inspelare som hämtar sin policy och en accepterad chunk uppdaterar dem, så en applikation som bara är instrumenterad med uppspelningskodsnutten förblir Ansluten. I tidigare versioner gjorde bara RUM-telemetri från OpenTelemetry det, så en applikation med bara uppspelning visade «Frånkopplad» med ett Senast sedd från flera dagar tidigare medan dess inspelare fungerade fint.
+Statusetiketten och **Senast sedd** på applikationens sida rapporterar när telemetri senast kom in för den applikationen. Sessionsuppspelning räknas: både en inspelare som hämtar sin policy och en accepterad chunk uppdaterar dem, så en applikation som bara är instrumenterad med uppspelningskodsnutten visar **Tar emot data** medan folk använder webbplatsen. I tidigare versioner gjorde bara RUM-telemetri från OpenTelemetry det, så en applikation med bara uppspelning såg inaktiv ut, med ett Senast sedd från flera dagar tidigare, medan dess inspelare fungerade fint.
 
-Så «Ansluten» betyder att *något* rapporterar — inte att allt gör det. Sidvisningar, felfrekvens, p95-varaktighet och klienter kommer från OpenTelemetry-SDK:t för webbläsare, som installeras separat; när de står på noll medan inspelningar kommer in säger applikationens sida Översikt det rakt ut.
+Så **Tar emot data** betyder att *något* rapporterar — inte att allt gör det. Sidvisningar, felfrekvens, p95-varaktighet och klienter kommer från OpenTelemetry-SDK:t för webbläsare, som installeras separat; när de står på noll medan inspelningar kommer in säger applikationens sida Översikt det rakt ut.
 
 ## RUM-telemetri är separat
 

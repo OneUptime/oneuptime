@@ -961,6 +961,8 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
     expect(args.query).toEqual({
       subscriberNotificationStatusOnNoteUpdated:
         StatusPageSubscriberNotificationStatus.Pending,
+      // Published notes only: an edit waiting for approval tells nobody (#5720).
+      isPublished: true,
     });
     expect(args.select["subscriberNotificationStatusOnNoteCreated"]).toBe(true);
     expect(args.select["note"]).toBe(true);
@@ -1548,6 +1550,8 @@ describe("IncidentPublicNote:SendNotificationToSubscribers (created)", () => {
       subscriberNotificationStatusOnNoteCreated:
         StatusPageSubscriberNotificationStatus.Pending,
       shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+      // Published notes only: a note waiting for approval tells nobody (#5720).
+      isPublished: true,
     });
   });
 

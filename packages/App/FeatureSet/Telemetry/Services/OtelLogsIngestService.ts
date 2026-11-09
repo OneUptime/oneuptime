@@ -19,6 +19,9 @@ import {
 import Response from "Common/Server/Utils/Response";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
+import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
+import LogEventName from "Common/Types/Log/LogEventName";
+import LlmLogEventsUtil from "Common/Utils/Telemetry/LlmLogEvents";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
@@ -658,6 +661,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({
             projectId,
             attributes: resourceAttributes_raw,
+            signal: RumTelemetrySignal.Logs,
           });
 
           const serviceMetadata: TelemetryServiceMetadata =
@@ -818,6 +822,25 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }),
                     prefixedScopeAttributes,
                   );
+
+                  /*
+                   * An event sent by a newer SDK names itself in the
+                   * record's event name field rather than in the
+                   * `event.name` attribute older SDKs and most
+                   * instrumentations set: stamp it there when the record
+                   * does not set the attribute, so every event is found by
+                   * one key (the Logs page, filters, the AI conversations
+                   * read of GenAI events).
+                   */
+                  LogEventName.stampOnAttributes(attributesObject, log);
+
+                  /*
+                   * A GenAI inference event's messages, held as their JSON
+                   * text - as the Log table stores them, and as a span holds
+                   * them - so the scrub rules below mask what was said on
+                   * the logs signal as the traces' rules do on a span.
+                   */
+                  LlmLogEventsUtil.holdContentAsText(attributesObject);
 
                   /*
                    * `attributeKeys` is stored as a ClickHouse Array column

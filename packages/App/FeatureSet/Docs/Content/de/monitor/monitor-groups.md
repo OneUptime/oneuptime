@@ -28,6 +28,7 @@ flowchart TB
 
 - **Archivierte Monitore zählen nicht.** Ein archivierter Monitor wird nicht geprüft, sein Status ist also eingefroren; die Gruppe lässt ihn aus.
 - **Eine leere Gruppe ist betriebsbereit.** Eine Gruppe ohne Monitore, oder nur mit archivierten, zeigt Ihren betriebsbereiten Status. Bis Sie einen Monitor hinzufügen, zeigt das Dashboard an Stelle ihres Status **Noch keine Monitore**.
+- **Ausgeschaltete Überwachung zeigt Deaktiviert.** Ist die Überwachung für jeden Monitor einer Gruppe ausgeschaltet, prüft nichts diese Monitore, und das Dashboard zeigt an Stelle des Gruppenstatus **Deaktiviert**.
 - **Die Reihenfolge bestimmen Sie.** Welcher Status der schlimmste ist, folgt der Reihenfolge unter **Monitore → Einstellungen → Monitor-Status**. Siehe [Monitorstatus](/docs/monitor/criteria-and-statuses#monitorstatus).
 
 Eine Monitor-Gruppe ist keine Statusseitengruppe. Eine Statusseitengruppe ist eine Überschrift auf einer Statusseite, die Zeilen enthält. Eine Monitor-Gruppe ist eine Zeile, die für mehrere Monitore steht, und jede Statusseite kann sie anzeigen.
@@ -80,7 +81,7 @@ Um einen Monitor aus der Gruppe zu nehmen, klicken Sie in **Monitore in der Grup
 
 | Seite | Was sie zeigt |
 | --- | --- |
-| **Übersicht** | **Details der Überwachungsgruppe**, **Aktueller Status** und **Verfügbarkeits-Diagramm** mit der Verfügbarkeit der Gruppe in Prozent über die letzten 90 Tage. Eine Gruppe ohne Monitore bietet statt des Diagramms **Monitore hinzufügen** an. |
+| **Übersicht** | **Details der Überwachungsgruppe**, **Aktueller Status**, **Überwachung** und **Verfügbarkeits-Diagramm** mit der Verfügbarkeit der Gruppe in Prozent über die letzten 90 Tage. Eine Gruppe ohne Monitore bietet statt des Diagramms **Monitore hinzufügen** an. |
 | **Monitore** | **Monitore in der Gruppe**, mit **Monitore hinzufügen** und **Entfernen**. |
 | **Vorfälle** | Die Vorfälle auf einem beliebigen Monitor der Gruppe. |
 | **Warnungen** | Die Warnungen auf einem beliebigen Monitor der Gruppe. |
@@ -91,6 +92,17 @@ Um einen Monitor aus der Gruppe zu nehmen, klicken Sie in **Monitore in der Grup
 Die Verfügbarkeit in der **Übersicht** zählt jeden Status außer dem betriebsbereiten als Ausfallzeit. Eine Statusseite zählt nur die Status in ihrer eigenen Liste **Zählt als Ausfallzeit**: siehe [Auswählen, was auf der Seite angezeigt wird](/docs/status-pages/index#auswählen-was-auf-der-seite-erscheint).
 
 Die Liste **Monitor-Gruppen** kann Gruppen nach Eigentümer und Label filtern, Labels und Eigentümer für viele Gruppen auf einmal setzen und Gruppen als JSON exportieren oder importieren.
+
+## Überwachung für eine ganze Gruppe ausschalten
+
+Die Karte **Überwachung** in der **Übersicht** einer Gruppe schaltet die Überwachung für alle Monitore der Gruppe auf einmal aus oder wieder ein.
+
+- **Überwachung ausschalten** fragt zuerst nach. Danach prüft nichts die Monitore der Gruppe, bis die Überwachung wieder eingeschaltet wird. Sie öffnen also keine Vorfälle oder Warnungen, und die Gruppe zeigt an Stelle ihres Status **Deaktiviert**.
+- **Überwachung einschalten** speichert sofort. Die nächste Prüfung jedes Monitors setzt seinen Status wieder.
+
+Das Ausschalten der Überwachung behebt auch die offenen Vorfälle und Warnungen der Monitore, die auf automatisches Beheben eingestellt sind, so wie es jeder Monitor bei seiner Erholung getan hätte. Von Hand gemeldete Vorfälle und Warnungen, oder solche, deren Kriterien nicht automatisch beheben, bleiben offen. Die Überwachung eines einzelnen Monitors auf seiner Seite **Einstellungen** auszuschalten, bewirkt dasselbe.
+
+Die Karte ändert die Monitore, nicht die Gruppe: Die eigene Karte **Überwachung** jedes Monitors zeigt die Änderung, und ein Monitor, der später zur Gruppe hinzukommt, behält seine eigene Einstellung. Archivierte Monitore bleiben, wie sie sind. Solange die Überwachung nur bei einigen der Monitore ausgeschaltet ist, sagt die Karte, bei wie vielen, und bietet beide Schaltflächen an.
 
 ## Eine Gruppe auf einer Statusseite anzeigen
 

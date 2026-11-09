@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
@@ -107,6 +109,7 @@ class KubernetesClusterLabelRuleEngineServiceClass
       return await this.applyRules({
         kubernetesCluster: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running Kubernetes cluster label rules: ${error}`, {
@@ -122,6 +125,8 @@ class KubernetesClusterLabelRuleEngineServiceClass
   private async applyRules(data: {
     kubernetesCluster: KubernetesCluster;
     rules: Array<KubernetesClusterLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { kubernetesCluster, rules } = data;
 
@@ -212,11 +217,12 @@ class KubernetesClusterLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await KubernetesClusterService.getRepository()
-      .createQueryBuilder()
-      .relation(KubernetesCluster, "labels")
-      .of(kubernetesCluster.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: KubernetesClusterService,
+      resourceId: kubernetesCluster.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory kubernetesCluster.labels so a downstream owner-rule engine in

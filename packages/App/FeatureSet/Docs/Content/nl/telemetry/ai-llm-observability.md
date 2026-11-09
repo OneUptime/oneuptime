@@ -44,8 +44,23 @@ Alle drie staan onder **Producten → AI / LLM → Koppelen**. Gebruik er een, t
 | Manier erin | Wat je krijgt | Hoe |
 | --- | --- | --- |
 | **Je apps** | Elke AI-aanroep terwijl die gebeurt: het gesprek, de persoon, de prompt en het antwoord, tokens, kosten en fouten | OpenTelemetry uit je code of een gateway, in vijf stappen |
-| **Je accounts bij AI-providers** | Wat elk account bij OpenAI, Anthropic, Azure, Bedrock of Vertex AI verbruikte en kostte, per dag | Inloggegevens die alleen lezen en geen code: [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts) |
+| **Je accounts bij AI-providers** | Wat elk account bij OpenAI, Anthropic, Azure, Bedrock, Vertex AI of Cursor verbruikte en kostte, per dag of per uur | Inloggegevens die alleen lezen en geen code: [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts) |
 | **De AI-tools van je bedrijf** | Wat je mensen aan Claude Enterprise of Microsoft 365 Copilot vragen, per persoon | Inloggegevens die alleen lezen en geen code: [AI-tools van je bedrijf](/docs/telemetry/ai-company-tools) |
+
+Provideraccounts en codeerassistenten brengen gebruik en kosten, nooit een aanroep: ze vullen **Gebruik**, en **Gesprekken** en **Aanroepen** blijven leeg tot je apps hun AI-aanroepen sturen of er een AI-tool van je bedrijf gekoppeld is. [Controleer wat er binnenkomt](#controleer-wat-er-binnenkomt) toont welke route wat brengt.
+
+## Controleer wat er binnenkomt
+
+De **Configuratiecontrole** bovenaan **Koppelen** zegt wat elke route nu binnenbrengt, en **Opnieuw controleren** leest het opnieuw. Een lege lijst bij **Gesprekken** of **Aanroepen** begint met dezelfde bevinding, en een knop voor de volgende stap.
+
+| Wat ze vindt | Wat je doet |
+| --- | --- |
+| Geen app heeft een AI-aanroep gestuurd | [Stuur je AI-aanroepen](#stuur-je-ai-aanroepen): gekoppelde provideraccounts brengen gebruik en kosten per dag, nooit een aanroep |
+| Een app roept de API van een AI-provider aan, en geen GenAI-instrumentatie legt het vast | Voeg er een toe voor de taal van de app: de controle vond de HTTP-clientspans van de app naar `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` of de API van een andere AI-provider |
+| Aanroepen komen binnen zonder prompts of antwoorden | [Leg vast wat er gezegd is](#leg-vast-wat-er-gezegd-is), op de spans of als log-events |
+| Prompts en antwoorden komen binnen als log-events | Niets: gesprekken lezen ze, en wie de logs van de app kan lezen, kan ze ook lezen op de pagina **Logboeken** |
+| De aanroepen vallen net buiten de periode | De lijst biedt de periode aan die de nieuwste bevat |
+| Een provideraccount leest geen gebruik | Zijn regel noemt de laatste dag met gebruik, of de eerste gelezen dag; een Azure-koppeling die geen resource vindt, heeft Monitoring Reader nodig waar de resources staan |
 
 ## Voordat je begint
 
@@ -94,6 +109,25 @@ traceloop.initialize({
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
+@tab .NET
+```bash
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
+```
+
+```csharp
+// Before any OpenAI or Azure OpenAI client is created:
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource("OpenAI.*").AddOtlpExporter())
+    .WithMetrics(metrics => metrics.AddMeter("OpenAI.*").AddOtlpExporter());
+```
+@tab Java
+```bash
+curl -L -O https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+java -javaagent:opentelemetry-javaagent.jar -jar my-ai-agent.jar
+```
 @tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
@@ -102,6 +136,8 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
 :::
+
+Elk ervan traceert aanroepen naar OpenAI, Azure OpenAI en Microsoft Foundry op dezelfde manier. Zet op .NET en Java ook de variabelen van het tabblad OpenTelemetry SDK: de bibliotheken OpenAI en Azure.AI.OpenAI traceren hun aanroepen zodra hun schakelaar aan staat, en de Java-agent traceert de OpenAI Java SDK.
 
 Host je OneUptime zelf? Gebruik dan `https://YOUR-ONEUPTIME-HOST/otlp` in plaats van `https://oneuptime.com/otlp`. Roep je model één keer aan, en de aanroep verschijnt onder **Aanroepen**.
 
@@ -114,6 +150,8 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
 Nieuwere OpenTelemetry-instrumentaties accepteren `span_only`, `event_only` of `span_and_event` in plaats van `true`. Zonder vastgelegde inhoud toont een gesprek nog steeds de tijden, de kosten en de problemen. Prompts kunnen gevoelige gegevens bevatten: [Privacy en redactie](#privacy-en-redactie) laat zien hoe je ze maskeert voordat ze worden opgeslagen.
+
+Gesprekken lezen wat er op de span van de aanroep is vastgelegd, en de log-events die de app stuurt met het trace- en span-id van de aanroep. De OpenTelemetry-instrumentatie voor Python legt het op de span vast met `span_only`; de instrumentaties voor JavaScript en Java, en die voor Python met `true` of `event_only`, sturen het als log-events, die met de logs van de app bij OneUptime binnenkomen. De AI Inference SDK van Azure legt het op de span vast met `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI met `EnableSensitiveData`; de OpenAI-bibliotheek voor .NET legt niets vast.
 
 ### Groepeer aanroepen in gesprekken
 
@@ -203,7 +241,7 @@ Een kant-en-klare waarschuwing maakt een waarschuwing die zichzelf oplost, en to
 
 Het tabblad **Gebruik** toont de aanroepen, tokens en kosten van een periode (de laatste 7 dagen, tenzij je een andere kiest), en een tabel met de top 25 in een van vijf uitsplitsingen: **Medewerker**, **Team**, **Model**, **Provider** en **Applicatie / Service**. Aanroepen die niemand noemen, worden geteld onder **Niet toegewezen**, nooit weggegooid.
 
-Dit zijn **Je AI-aanroepen**. Kies in plaats daarvan **Provideraccounts** om te zien wat je gekoppelde accounts bij OpenAI, Anthropic, Azure, Bedrock en Vertex AI in rekening kregen: zie [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts#het-gebruik-bekijken). De twee worden nooit opgeteld.
+Dit zijn **Je AI-aanroepen**. Kies in plaats daarvan **Provideraccounts** om te zien wat je gekoppelde accounts bij OpenAI, Anthropic, Azure, Bedrock, Vertex AI en Cursor in rekening kregen: zie [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts#het-gebruik-bekijken). De twee worden nooit opgeteld.
 
 Personen en teams komen uit identiteitsattributen op de aanroep: zie [Toewijzing aan medewerkers en teams](/docs/telemetry/ai-coding-assistants#toewijzing-aan-medewerkers-en-teams).
 
@@ -225,11 +263,13 @@ flowchart TB
 | Invoer- en uitvoertokens | Beide totalen | De tokentotalen van de spans zijn allebei 0 |
 | Kosten (USD) | De kosten, met de micro-USD-kosten van Codex omgerekend naar USD | Het kostentotaal van de spans is 0 |
 | LLM-aanroepen | Niets: alleen spans | — |
-| Tabellen **Medewerker**, **Team**, **Model** | Alleen kosten; de cellen voor aanroepen en tokens tonen `—` | Die tabel vond geen spanrijen |
+| Tabellen **Medewerker**, **Team**, **Model** | Kosten, en tokens waar de metrieken ze tellen; de cel voor aanroepen toont `—` | Die tabel vond geen spanrijen |
 | Tabellen **Provider**, **Applicatie / Service** | Niets: alleen spans | — |
 | Gesprekken | Niets: gesprekken worden uit spans opgebouwd | — |
 
 Een getal uit metrieken is gemarkeerd met **uit GenAI-metrieken**, omdat het geen bijbehorende rijen heeft onder **Aanroepen**. Zodra je GenAI-spans dus een getal melden, verschijnt het aandeel van een tool die alleen metrieken stuurt niet. Om de uitgaven van zo'n tool apart te zien, stuur je hem naar een eigen project, waar geen GenAI-spans binnenkomen.
+
+Een token- of kostenmetriek is een teller. De punten van een deltateller worden opgeteld; een cumulatieve teller, de standaard van de OpenTelemetry-SDK's, telt hoeveel hij in de periode groeide, elke reeks apart, dus een lopend totaal dat elke minuut wordt geëxporteerd, telt één keer. Budgetten tellen GenAI-metrieken op dezelfde manier.
 
 ## Wat een aanroep kost
 
@@ -276,6 +316,8 @@ GenAI-metrieken zoals `gen_ai.client.token.usage` en `gen_ai.client.operation.du
 
 AI-aanroepen worden opgeslagen als tracespans, dus de **Scrub-regels** en **Drop-filters** van de traces gelden ook voor hen: maskeer een attribuut, of laat een span vallen, voordat het wordt opgeslagen. Je vindt beide onder **Traces → Instellingen**. De e-mailkolom van de medewerker wordt gemaskeerd samen met het attribuut waaruit hij is gelezen, dus een regel die e-mailadressen maskeert, dekt hem ook.
 
+Prompts en antwoorden die als log-events worden gestuurd, worden opgeslagen als logs, dus voor hen gelden de **Scrub-regels** en **Drop-filters** van de logs, onder **Logboeken → Instellingen**: een regel die e-mailadressen in de traces maskeert, maskeert ze niet in log-events. Een gesprek toont ze alleen aan wie ook de logs van die app kan lezen, en wie dat kan, vindt ze ook op de pagina **Logboeken**.
+
 Gesprekken worden gelezen met dezelfde machtiging als traces: wie de traces van het project kan lezen, kan de gesprekken lezen, en verder niemand. De gesprekken van een AI-tool van je bedrijf zijn de uitzondering: alleen eigenaren en beheerders van het project kunnen ze lezen, tenzij de verbinding iets anders zegt ([AI-tools van je bedrijf](/docs/telemetry/ai-company-tools#privacy)).
 
 ## Attributen die OneUptime leest
@@ -302,6 +344,8 @@ OneUptime leest de OpenTelemetry-GenAI-conventies, en de spellingen die OpenLLMe
 
 Een span telt als AI-aanroep als hij een van deze waarden draagt, of een attribuut dat begint met `gen_ai.`, `llm.` of `traceloop.`. Het totaal aantal tokens is invoer plus uitvoer als er geen totaal wordt gemeld. De sleutels `gen_ai.usage.total_tokens` en `gen_ai.usage.cost` horen niet bij de conventies, die geen van beide definiëren; OneUptime leest ze omdat gangbare instrumentaties ze sturen.
 
+De provider wordt opgeslagen onder de naam van de conventies, in welke spelling hij ook binnenkomt: `az.ai.openai` en `azure_openai` als `azure.ai.openai`, `az.ai.inference` als `azure.ai.inference`, `OpenAI` als `openai`. Een aanroep die een OpenAI-SDK `openai` noemt maar naar een endpoint van Azure OpenAI of Microsoft Foundry stuurt, herkend aan zijn `server.address` of aan `gen_ai.openai.api_base` van OpenLLMetry, wordt opgeslagen als `azure.ai.openai`. **Aanroepen** toont de provider bij naam, en de aanroep van een Azure-deployment toont de gevraagde deployment met daaronder het model dat hem bediende en zijn prijs bepaalt.
+
 Invoertokens tellen ook de gecachete mee, zoals de conventies ze tellen: als de cacheaantallen van een span groter zijn dan zijn invoeraantal, heeft het invoeraantal ze weggelaten, en telt OneUptime ze erbij op. De traces-bèta van Claude Code stuurt geen `gen_ai.usage.*`-sleutels: op een span dat zijn model noemt, leest OneUptime de `input_tokens`, `output_tokens`, `cache_read_tokens` en `cache_creation_tokens`, en telt de twee cacheaantallen op bij `input_tokens`, dat ze weglaat.
 
 De identiteitssleutels (wie de aanroep deed, en het team van die persoon) staan onder [Toewijzing aan medewerkers en teams](/docs/telemetry/ai-coding-assistants#toewijzing-aan-medewerkers-en-teams).
@@ -312,14 +356,20 @@ De gespreksweergave leest de berichten van een aanroep, in deze volgorde, uit:
 
 - het event `gen_ai.client.inference.operation.details`;
 - de attributen `gen_ai.input.messages`, `gen_ai.output.messages` en `gen_ai.system_instructions`;
-- de oudere events per rol: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` en `gen_ai.choice`;
+- de oudere events per rol: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` en `gen_ai.choice`, met het bericht in `gen_ai.event.content` als de AI Inference SDK van Azure of Semantic Kernel ze stuurde;
 - de geïndexeerde attributen: `gen_ai.prompt.N.content` en `gen_ai.completion.N.content` van OpenLLMetry, `llm.input_messages.N.message.content` en `llm.output_messages.N.message.content` van OpenInference;
 - de berichtarrays in `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` en `output.value`.
 
+Als de span van een aanroep geen prompt of geen antwoord bevat, wordt het gelezen uit de logrecords die het trace- en span-id van de aanroep dragen: dezelfde events, gestuurd via het logsignaal, met hun naam in het attribuut `event.name` van het record of in het veld voor de eventnaam. Een record met het id van de trace maar zonder span-id hoort bij de enige modelaanroep van de trace, of bij de aanroep waarin het werd gestuurd, en blijft buiten beschouwing als dat niet één aanroep is. Wat de span vastlegt gaat voor, dus een aanroep die op beide manieren is vastgelegd, toont elk bericht één keer.
+
 ## Problemen oplossen
 
+:::details Provideraccounts zijn gekoppeld, maar Gesprekken en Aanroepen zijn leeg
+Een provideraccount brengt wat het per dag gebruikte en kostte, nooit een aanroep of een gesprek: die komen uit je apps. De **Configuratiecontrole** op **Koppelen** zegt of een app AI-aanroepen stuurt; stuur ze zoals [Stuur je AI-aanroepen](#stuur-je-ai-aanroepen) laat zien.
+:::
+
 :::details Aanroepen komen binnen, maar geen enkel gesprek toont tekst
-Je instrumentatie legt de inhoud niet vast. Zet het aan zoals [Leg vast wat er gezegd is](#leg-vast-wat-er-gezegd-is) laat zien; aanroepen van daarvoor blijven zonder tekst.
+Je instrumentatie legt de inhoud niet vast, of stuurt die als log-events en de logs van de app komen niet bij OneUptime aan. Zet het aan zoals [Leg vast wat er gezegd is](#leg-vast-wat-er-gezegd-is) laat zien, en stuur de logs mee met de traces; aanroepen van daarvoor blijven zonder tekst.
 :::
 
 :::details Elke aanroep van een chat verschijnt als een eigen gesprek
@@ -327,11 +377,11 @@ De aanroepen dragen geen gespreks-id. Zet `gen_ai.conversation.id` of `session.i
 :::
 
 :::details Aanroepen tonen tokens maar kosten $0
-Het model staat niet in de ingebouwde prijslijst, of de span noemt geen model. Voeg de prijzen van het model toe op het tabblad **Prijzen**; aanroepen die daarna binnenkomen, krijgen een prijs.
+Het model staat niet in de ingebouwde prijslijst, of de span noemt geen model. Voeg de prijzen van het model toe op het tabblad **Prijzen**; aanroepen die daarna binnenkomen, krijgen een prijs. Een aanroep naar Azure OpenAI krijgt de prijs van het model dat hem bediende, `gen_ai.response.model`: noemt zijn span er geen, geef dan de naam van de deployment een prijs.
 :::
 
-:::details Het tabblad Gebruik zegt uit GenAI-metrieken en toont `—` voor aanroepen en tokens
-De getallen komen van een tool die metrieken stuurt en geen GenAI-spans, zoals een codeerassistent. Een metriek draagt kosten maar geen details per aanroep, dus die cellen blijven leeg. Zie [Spans eerst, metrieken vullen aan](#spans-eerst-metrieken-vullen-aan).
+:::details Het tabblad Gebruik zegt uit GenAI-metrieken en toont `—` voor aanroepen
+De getallen komen van een tool die metrieken stuurt en geen GenAI-spans, zoals een codeerassistent. Een metriek draagt kosten en tokens maar geen details per aanroep, dus de cellen voor aanroepen blijven leeg. Zie [Spans eerst, metrieken vullen aan](#spans-eerst-metrieken-vullen-aan).
 :::
 
 :::details Een budgetmonitor schiet heen en weer tussen twee toestanden
@@ -341,7 +391,7 @@ Het voortschrijdende venster van de monitor is korter dan 15 minuten, dus soms v
 ## Volgende stappen
 
 :::cards
-- [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts): Gebruik en kosten van je accounts bij OpenAI, Anthropic, Azure, Bedrock en Vertex AI, zonder code.
+- [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts): Gebruik en kosten van je accounts bij OpenAI, Anthropic, Azure, Bedrock, Vertex AI en Cursor, zonder code.
 - [AI-tools van je bedrijf](/docs/telemetry/ai-company-tools): Wat je mensen aan Claude Enterprise en Microsoft 365 Copilot vragen.
 - [AI-codeerassistenten](/docs/telemetry/ai-coding-assistants): Uitgaven per engineer voor Claude Code, Cursor, Codex, Gemini CLI en Copilot.
 - [AI-gateways](/docs/telemetry/ai-gateways): Trace de modelaanroepen van elke app vanuit één LiteLLM- of Portkey-gateway.

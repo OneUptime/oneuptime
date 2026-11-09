@@ -10,6 +10,12 @@ import AuditLogExportSettingsUtil, {
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AuditLogExportDestinationType from "../../Types/AuditLog/Export/AuditLogExportDestinationType";
 import { AuditLogExportDestinationDefinition } from "../../Types/AuditLog/Export/AuditLogExportDestinationCatalog";
+import {
+  AUDIT_LOG_EXPORT_SCHEMA_VERSION,
+  AUDIT_LOG_EXPORT_SCHEMA_VERSIONS,
+  AuditLogExportSchemaVersion,
+  isAuditLogExportSchemaVersion,
+} from "../../Types/AuditLog/Export/AuditLogExportRecord";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -122,6 +128,27 @@ export class Service extends DatabaseService<Model> {
     return date;
   }
 
+  /*
+   * The record version a save asks for: one of the versions this release
+   * sends (AUDIT_LOG_EXPORT_SCHEMA_VERSIONS), as a number or its text.
+   * Anything else is refused, saying which versions there are, rather than
+   * stored for the exporter to read as version 1.
+   */
+  public static readSchemaVersion(value: unknown): AuditLogExportSchemaVersion {
+    const version: unknown =
+      typeof value === "string" && value.trim() !== ""
+        ? Number(value.trim())
+        : value;
+
+    if (!isAuditLogExportSchemaVersion(version)) {
+      throw new BadDataException(
+        `Record Version must be ${AUDIT_LOG_EXPORT_SCHEMA_VERSIONS.join(" or ")}.`,
+      );
+    }
+
+    return version;
+  }
+
   private static parseConfig(value: unknown): JSONObject {
     return SecurityEventConnectionService.parseJsonObject(
       value,
@@ -216,6 +243,17 @@ export class Service extends DatabaseService<Model> {
       Service.readStartsAt(createBy.data.startsAt) ||
       OneUptimeDate.getCurrentDate();
 
+    /*
+     * The newest record version, unless the create asks for another. The
+     * column's default (1) is for the exports saved before there was a
+     * choice, never for a new one.
+     */
+    createBy.data.schemaVersion =
+      createBy.data.schemaVersion === undefined ||
+      createBy.data.schemaVersion === null
+        ? AUDIT_LOG_EXPORT_SCHEMA_VERSION
+        : Service.readSchemaVersion(createBy.data.schemaVersion);
+
     return { createBy, carryForward: null };
   }
 
@@ -266,6 +304,13 @@ export class Service extends DatabaseService<Model> {
 
     if (incoming["isEnabled"] === true) {
       reset.retryNow = true;
+    }
+
+    // Sent from the next batch on; what was delivered stays as it was sent.
+    if (incoming["schemaVersion"] !== undefined) {
+      updateBy.data.schemaVersion = Service.readSchemaVersion(
+        incoming["schemaVersion"],
+      );
     }
 
     const touchesSettings: boolean =

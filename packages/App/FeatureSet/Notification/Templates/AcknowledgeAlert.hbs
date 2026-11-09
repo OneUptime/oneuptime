@@ -2,7 +2,7 @@
 
 
 {{> Logo this}}
-{{> EmailTitle title=(concat "Alert " alertNumber ": " alertTitle) }}
+{{> EmailTitle title=(tt "Alert {{number}}: {{title}}" number=alertNumber title=alertTitle) }}
 
 {{#if pageAgainInfo}}
 {{> InfoBlock plainInfo=pageAgainInfo}}
@@ -12,37 +12,52 @@
 {{> InfoBlock plainInfo=personPageMessage}}
 {{/if}}
 {{else}}
-{{> InfoBlock plainInfo=(concat "A new alert has been created in the project - " projectName)}}
+{{> InfoBlock plainInfo=(tt "A new alert has been created in the project - {{projectName}}" projectName=projectName)}}
+{{/if}}
+{{#if observerPageInfo}}
+{{> InfoBlock plainInfo=observerPageInfo}}
 {{/if}}
 
-{{> InfoBlock info="Here are the details: "}}
+{{> InfoBlock info=(tHtml "Here are the details:")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Alert Title:" plainText=alertTitle }}
-{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
-{{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " plainText=alertSeverity color=alertSeverityColor textColor=alertSeverityTextColor }}
-{{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
-{{> DetailBoxField title="Description: " blockText=alertDescription  }}
+{{> DetailBoxField title=(t "Alert Title") plainText=alertTitle }}
+{{> DetailBoxField title=(t "Current State") plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
+{{> DetailBoxField title=(t "Resources Affected") plainText=resourcesAffected  }}
+{{> DetailBoxField title=(t "Severity") plainText=alertSeverity color=alertSeverityColor textColor=alertSeverityTextColor }}
+{{> DetailBoxField title=(t "Root Cause") blockText=rootCause  }}
+{{> DetailBoxField title=(t "Description") blockText=alertDescription  }}
 {{> DetailBoxEnd this }}
 
 
-{{> InfoBlock info="ACTION REQUIRED: Please acknowledge this alert by clicking on the button below - "}}
+{{#if observerPageInfo}}
+{{> InfoBlock info=(tHtml "Seen it? Let the people responding know. This does not acknowledge the alert.")}}
 
-{{> ButtonBlock buttonUrl=acknowledgeAlertLink buttonText="Acknowledge Alert"}}
+{{> ButtonBlock buttonUrl=acknowledgeAlertLink buttonText=(t "I've seen it")}}
 
-{{> LinkBlock linkUrl=acknowledgeAlertLink linkLabel="You can also copy and paste this link:"}}
+{{> LinkBlock linkUrl=acknowledgeAlertLink linkLabel=(t "You can also copy and paste this link:")}}
+{{else}}
+{{> InfoBlock info=(tHtml "ACTION REQUIRED: Please acknowledge this alert by clicking on the button below.")}}
+
+{{> ButtonBlock buttonUrl=acknowledgeAlertLink buttonText=(t "Acknowledge Alert")}}
+
+{{> LinkBlock linkUrl=acknowledgeAlertLink linkLabel=(t "You can also copy and paste this link:")}}
 
 {{#if passOnLink}}
-{{> InfoBlock info="Can't take it? Escalate it, and you will not be paged again for this alert."}}
+{{> InfoBlock info=(tHtml "Can't take it? Escalate it, and you will not be paged again for this alert.")}}
 
-{{> ButtonBlock buttonUrl=passOnLink buttonText="Escalate" secondary=true}}
+{{> ButtonBlock buttonUrl=passOnLink buttonText=(t "Escalate") secondary=true}}
+{{/if}}
 {{/if}}
 
-{{> InfoBlock info="You will be notified when the status of this alert changes."}}
+{{> InfoBlock info=(tHtml "You will be notified when the status of this alert changes.")}}
 
-{{> TitleBlock title="Why am I receiving this email?"}}
-{{> InfoBlock info="You are receiving this email because you are a member of the team that is responsible for this alert or you are currently on-call."}}
+{{> TitleBlock title=(tHtml "Why am I receiving this email?")}}
+{{#if observerPageWhy}}
+{{> InfoBlock plainInfo=observerPageWhy}}
+{{else}}
+{{> InfoBlock info=(tHtml "You are receiving this email because you are a member of the team that is responsible for this alert or you are currently on-call.")}}
+{{/if}}
 
 {{> Footer this }}
 

@@ -161,7 +161,7 @@ Hver metrik er en tæller og bærer standardattributterne ud over sine egne.
 
 Standardattributterne er `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` og `terminal.type` plus dine `OTEL_RESOURCE_ATTRIBUTES`. Nogle af dem kan slås fra: se [Hold metrikmængden nede](#hold-metrikmængden-nede).
 
-- Cachetokentyperne er i camelCase: `cacheRead` og `cacheCreation`. OneUptimes tokentotaler tæller kun `input` og `output`.
+- Cachetokentyperne er i camelCase: `cacheRead` og `cacheCreation`. Claude Codes `input` udelader dem, så OneUptime tæller dem også som inputtokens.
 - På omkostnings- og tokenmetrikkerne står navnene på dine egne agenter og MCP-servere, og på tredjeparts plugins og skills, som `custom` eller `third-party`, medmindre `OTEL_LOG_TOOL_DETAILS=1` er sat (Claude Code 2.1.273 eller nyere).
 
 ## Hændelser
@@ -220,7 +220,7 @@ Claude Code sender deltametrikker som standard: hvert datapunkt er stigningen si
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Lås kun `cumulative` fast, hvis hver eksportør i din organisation bruger det, og bland ikke de to i en flåde.
+Lås kun `cumulative` fast, hvis hver eksportør i din organisation bruger det, og bland ikke de to i en flåde. OneUptimes fane Forbrug og budgetter tæller begge: en delta ved at lægge dens punkter sammen, en kumulativ tæller efter, hvor meget den voksede i tidsrummet.
 
 ## Traces (beta)
 

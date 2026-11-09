@@ -6,6 +6,8 @@ enum ExceptionDetailSection {
   Logs = "logs",
   AIAssistance = "ai-assistance",
   Settings = "settings",
+  // Who resolved, archived, assigned or merged it: its audit log entries.
+  AuditLogs = "audit-logs",
 }
 
 export default ExceptionDetailSection;

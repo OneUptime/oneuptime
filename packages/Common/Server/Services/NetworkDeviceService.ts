@@ -28,6 +28,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { RuleRunWriteProps } from "../Utils/Rules/RuleRun/RuleApplication";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
@@ -2828,6 +2829,9 @@ export class Service extends ProjectReferencesService<Model> {
    *     the warning that goes with it — and it is not needed for the case the
    *     button exists for, since a device imported before the rule existed
    *     has no site at all.
+   *
+   * Each device moved is written on the behalf of whoever ran the rule
+   * (RuleRunWriteProps), so the audit log credits them, not System.
    */
   @CaptureSpan()
   @RuleEvaluation()
@@ -2835,6 +2839,8 @@ export class Service extends ProjectReferencesService<Model> {
     ruleId: ObjectID;
     projectId: ObjectID;
     reassignDevicesAlreadyInASite: boolean;
+    // Who ran it: their props, from the route.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<SiteAssignmentRuleRunResult> {
     /*
      * Every rule in the project, not just the one being run — pickRule needs
@@ -2991,9 +2997,7 @@ export class Service extends ProjectReferencesService<Model> {
             data: {
               siteId: ruleSiteId,
             },
-            props: {
-              isRoot: true,
-            },
+            props: RuleRunWriteProps.get(data.props),
           });
 
           result.devicesAssigned++;
@@ -3462,6 +3466,65 @@ export class Service extends ProjectReferencesService<Model> {
         };
       },
     );
+  }
+
+  /*
+   * The devices of a project whose network controller reading names one of
+   * these serial numbers (issue #5762): the devices a Meraki connection's
+   * Inventory found to be its devices by any of its rules - their own serial
+   * number or MAC, or, for an MX, its name with a MAC of its block or its
+   * address (NetworkControllerInventory) - so an appliance's traffic goes to
+   * the device its details already went to. Serial numbers are compared as
+   * the reading stores them, in upper case, and as given here (the traffic
+   * matcher asks for each as Meraki prints it). Live devices, archived ones
+   * as the matcher's other lookups find them, and nothing else read.
+   */
+  @CaptureSpan()
+  public async findByControllerSerials(data: {
+    projectId: ObjectID;
+    serials: Array<string>;
+    limit: number;
+  }): Promise<Array<{ id: ObjectID; controllerSerial: string }>> {
+    if (data.serials.length === 0) {
+      return [];
+    }
+
+    const rows: Array<{ _id: string; controllerSerial: string | null }> =
+      await this.getRepository().manager.query(
+        `
+      SELECT nd."_id",
+        (nd."discoveredDetails" -> 'controller' -> 'values' ->> 'serialNumber') AS "controllerSerial"
+      FROM "NetworkDevice" AS nd
+      WHERE nd."projectId" = $1
+        AND nd."deletedAt" IS NULL
+        AND upper(btrim(nd."discoveredDetails" -> 'controller' -> 'values' ->> 'serialNumber')) = ANY($2::text[])
+      ORDER BY nd."createdAt" ASC
+      LIMIT $3
+    `,
+        [
+          data.projectId.toString(),
+          data.serials.map((serial: string): string => {
+            return serial.trim().toUpperCase();
+          }),
+          Math.max(1, Math.floor(data.limit)),
+        ],
+      );
+
+    return rows
+      .filter((row: { _id: string; controllerSerial: string | null }) => {
+        return Boolean(row._id) && Boolean(row.controllerSerial);
+      })
+      .map(
+        (row: {
+          _id: string;
+          controllerSerial: string | null;
+        }): { id: ObjectID; controllerSerial: string } => {
+          return {
+            id: new ObjectID(String(row._id)),
+            controllerSerial: String(row.controllerSerial),
+          };
+        },
+      );
   }
 
   /*

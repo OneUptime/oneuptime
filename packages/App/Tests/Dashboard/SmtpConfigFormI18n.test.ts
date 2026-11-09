@@ -293,11 +293,9 @@ describe("the mail server forms' strings", () => {
       ...ADMIN_ALSO,
       ...PROVIDER_STRINGS,
       ...PROJECT_PROVIDER_STRINGS,
-    ].filter(
-      (text: string): boolean => {
-        return !BUILDER.includes(`"${text}"`);
-      },
-    );
+    ].filter((text: string): boolean => {
+      return !BUILDER.includes(`"${text}"`);
+    });
 
     expect(unused).toEqual([]);
   });

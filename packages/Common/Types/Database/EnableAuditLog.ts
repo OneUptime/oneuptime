@@ -39,6 +39,10 @@ export default (
       config.resourceNameRelation = enableAuditLogOn.resourceNameRelation;
     }
 
+    if (enableAuditLogOn.resourceNameColumns) {
+      config.resourceNameColumns = [...enableAuditLogOn.resourceNameColumns];
+    }
+
     ctr.prototype.enableAuditLogOn = config;
   };
 };

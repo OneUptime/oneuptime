@@ -8,6 +8,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import { TelemetryIngestionBudgetExplorerBanner } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 
 // Which of Traces' tabs a page is under (its AI pages: the AI tab).
 export const getActiveTracesTab: (path: string) => TracesTabKey = (
@@ -39,6 +41,8 @@ const TracesLayout: FunctionComponent<
       breadcrumbLinks={getTracesBreadcrumbs(path)}
       headerRight={<TracesNavTabs active={getActiveTracesTab(path)} />}
     >
+      {/* Only while today's Traces budget is past its warning or used up. */}
+      <TelemetryIngestionBudgetExplorerBanner signal={ProductType.Traces} />
       <Outlet />
     </Page>
   );

@@ -19,8 +19,9 @@ import LlmCostBudgetService from "../../../../Server/Services/LlmCostBudgetServi
 import MetricService from "../../../../Server/Services/MetricService";
 import SpanService from "../../../../Server/Services/SpanService";
 import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
-import { LlmMicroUsdCostMetricNames } from "../../../../Types/Telemetry/LlmMetricConventions";
 import { LlmMetricScope } from "../../../../Utils/Telemetry/LlmMetricQuery";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 /*
  * `jest` deliberately comes from the global scope, not @jest/globals — the
  * imported value would shadow the global `jest` NAMESPACE and break the
@@ -43,11 +44,13 @@ jest.mock("../../../../Server/Services/MetricService", () => {
     __esModule: true,
     default: {
       insertJsonRows: jest.fn(),
-      /*
-       * aggregateBy backs the metric-sourced spend fallback that
-       * resolveSpend reaches for when the span stream is empty.
-       */
       aggregateBy: jest.fn(),
+      /*
+       * executeQuery backs the metric-sourced spend fallback that
+       * resolveSpend reaches for when the span stream is empty: it runs
+       * LlmMetricUsageReader's statement.
+       */
+      executeQuery: jest.fn(),
     },
   };
 });
@@ -80,36 +83,42 @@ const mockedSpanService: { aggregateBy: MockedFn } = SpanService as unknown as {
 const mockedMetricService: {
   insertJsonRows: MockedFn;
   aggregateBy: MockedFn;
+  executeQuery: MockedFn;
 } = MetricService as unknown as {
   insertJsonRows: MockedFn;
   aggregateBy: MockedFn;
+  executeQuery: MockedFn;
 };
 
 /*
- * Metric-sourced cost is TWO aggregates, not one: the USD-denominated metric
- * names and the micro-USD ones (the Codex CLI reports millionths of a dollar)
- * are queried separately and scaled before being added, because a single Sum
- * over both units cannot be un-mixed afterwards. A plain mockResolvedValue
- * answers BOTH queries with the same payload, which would feed the same
- * figure in twice — once at 1e-6 — and quietly skew every expectation here.
- *
- * So the mock dispatches on the metric names the query actually selects: the
- * rows are the project's USD spend, and the micro-USD query correctly finds
- * nothing.
+ * What ClickHouse answers LlmMetricUsageReader: one row per metric, group
+ * and token type, the usage its series added in the window.
+ */
+function readerAnswer(rows: Array<JSONObject>): unknown {
+  return {
+    json: async (): Promise<{ data: Array<JSONObject> }> => {
+      return {
+        data: rows.map((row: JSONObject): JSONObject => {
+          return {
+            metric: (row["metric"] as string) || "claude_code.cost.usage",
+            groupKey: "",
+            tokenType: (row["tokenType"] as string) || "",
+            value: row["value"] as number,
+          };
+        }),
+      };
+    },
+  };
+}
+
+/*
+ * Metric-sourced cost is one read of every cost and token metric
+ * (LlmMetricUsageReader), folded with USD and Codex's micro-USD scaled
+ * apart. These rows are the project's USD spend: Claude Code's cost counter.
  */
 function mockUsdMetricRows(rows: Array<JSONObject>): void {
-  mockedMetricService.aggregateBy.mockImplementation(
-    (aggregate: { query: Record<string, unknown> }): Promise<JSONObject> => {
-      const names: Array<string> = ((
-        aggregate?.query?.["name"] as { values?: Array<string> } | undefined
-      )?.values || []) as Array<string>;
-
-      const isMicroUsd: boolean = names.some((name: string) => {
-        return LlmMicroUsdCostMetricNames.includes(name);
-      });
-
-      return Promise.resolve({ data: isMicroUsd ? [] : rows });
-    },
+  mockedMetricService.executeQuery.mockResolvedValue(
+    readerAnswer(rows) as never,
   );
 }
 
@@ -248,7 +257,12 @@ describe("LlmCostBudgetEvaluator.buildSpanQuery", () => {
       }) as Record<string, unknown>;
 
     expect(query["primaryEntityId"]).toBe(serviceId);
-    expect(query["llmSystem"]).toBe("openai");
+    // Every spelling the provider is stored under (LlmProviders).
+    expect(query["llmSystem"]).toBeInstanceOf(Includes);
+    expect((query["llmSystem"] as Includes).values).toEqual([
+      "openai",
+      "OpenAI",
+    ]);
     expect(query["llmRequestModel"]).toBe("gpt-4o");
   });
 });
@@ -366,7 +380,9 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedSpanService.aggregateBy.mockResolvedValue({ data: [] } as never);
-    mockedMetricService.aggregateBy.mockResolvedValue({ data: [] } as never);
+    mockedMetricService.executeQuery.mockResolvedValue(
+      readerAnswer([]) as never,
+    );
     mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
     mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
     mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
@@ -486,7 +502,9 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
 describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedMetricService.aggregateBy.mockResolvedValue({ data: [] } as never);
+    mockedMetricService.executeQuery.mockResolvedValue(
+      readerAnswer([]) as never,
+    );
     mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
     mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
     mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
@@ -521,7 +539,7 @@ describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () =>
     await LlmCostBudgetEvaluator.evaluateAllBudgets();
 
     expect(mockedSpanService.aggregateBy).not.toHaveBeenCalled();
-    expect(mockedMetricService.aggregateBy).not.toHaveBeenCalled();
+    expect(mockedMetricService.executeQuery).not.toHaveBeenCalled();
   });
 
   test("only enabled budgets are loaded", async () => {
@@ -615,7 +633,9 @@ describe("LlmCostBudgetEvaluator.resolveSpend — source selection", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedSpanService.aggregateBy.mockResolvedValue({ data: [] } as never);
-    mockedMetricService.aggregateBy.mockResolvedValue({ data: [] } as never);
+    mockedMetricService.executeQuery.mockResolvedValue(
+      readerAnswer([]) as never,
+    );
   });
 
   function mockSpanSpend(value: number): void {
@@ -671,7 +691,7 @@ describe("LlmCostBudgetEvaluator.resolveSpend — source selection", () => {
       now: NOW,
     });
 
-    expect(mockedMetricService.aggregateBy).not.toHaveBeenCalled();
+    expect(mockedMetricService.executeQuery).not.toHaveBeenCalled();
   });
 
   test("falls back to metrics when the span stream is empty", async () => {
@@ -727,7 +747,7 @@ describe("LlmCostBudgetEvaluator.resolveSpend — source selection", () => {
    * timeoutOverflowMode: 'throw'. evaluateAllBudgets isolates the failure.
    */
   test("propagates a metric-query failure rather than reporting zero spend", async () => {
-    mockedMetricService.aggregateBy.mockRejectedValue(
+    mockedMetricService.executeQuery.mockRejectedValue(
       new Error("clickhouse timeout") as never,
     );
 
@@ -753,7 +773,7 @@ describe("LlmCostBudgetEvaluator.resolveSpend — source selection", () => {
       }),
     ).rejects.toThrow("span boom");
 
-    expect(mockedMetricService.aggregateBy).not.toHaveBeenCalled();
+    expect(mockedMetricService.executeQuery).not.toHaveBeenCalled();
   });
 
   test("sums multiple metric buckets", async () => {
@@ -781,15 +801,18 @@ describe("LlmCostBudgetEvaluator.resolveSpend — source selection", () => {
       now: NOW,
     });
 
-    const aggregateArg: { query: Record<string, unknown> } = mockedMetricService
-      .aggregateBy.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
-    };
+    const statement: Statement = mockedMetricService.executeQuery.mock
+      .calls[0]![0] as Statement;
+    const values: Array<unknown> = Object.values(statement.query_params);
 
-    expect(aggregateArg.query["primaryEntityId"]).toBe(serviceId);
-    expect(aggregateArg.query["attributes"]).toEqual({
-      "gen_ai.system": "openai",
-    });
+    expect(statement.query).toContain("AND primaryEntityId = ");
+    expect(values).toContain(serviceId.toString());
+    // The provider under every spelling it is sent as, on either key.
+    expect(statement.query).toContain("attributes['gen_ai.system'] IN (");
+    expect(statement.query).toContain(
+      "attributes['gen_ai.provider.name'] IN (",
+    );
+    expect(values).toContainEqual(["openai", "OpenAI"]);
   });
 });
 
@@ -797,7 +820,9 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — metric-sourced spend", () =>
   beforeEach(() => {
     jest.clearAllMocks();
     mockedSpanService.aggregateBy.mockResolvedValue({ data: [] } as never);
-    mockedMetricService.aggregateBy.mockResolvedValue({ data: [] } as never);
+    mockedMetricService.executeQuery.mockResolvedValue(
+      readerAnswer([]) as never,
+    );
     mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
     mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
     mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(

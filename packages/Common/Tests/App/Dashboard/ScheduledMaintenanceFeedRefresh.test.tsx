@@ -385,6 +385,9 @@ describe("scheduled maintenance feed icons", () => {
       [ScheduledMaintenanceFeedEventType.SubscriberNotificationSent]:
         IconProp.Notification,
       [ScheduledMaintenanceFeedEventType.PublicNote]: IconProp.Announcement,
+      // A public note's approval: sent, approved or rejected (#5720).
+      [ScheduledMaintenanceFeedEventType.PublicNoteApproval]:
+        IconProp.ShieldCheck,
       [ScheduledMaintenanceFeedEventType.PrivateNote]: IconProp.Lock,
       [ScheduledMaintenanceFeedEventType.OwnerUserAdded]: IconProp.UserPlus,
       [ScheduledMaintenanceFeedEventType.OwnerTeamAdded]: IconProp.UserGroup,

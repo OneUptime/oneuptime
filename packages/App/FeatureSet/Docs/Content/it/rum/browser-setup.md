@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 Costruiscile con lo stesso oggetto `resource`. Una pipeline di log o di metriche la cui risorsa non ha `browser.*` viene archiviata come servizio backend separato.
 
+Una pipeline di log invia solo i record che il tuo codice scrive, quindi scrivine uno ovunque accada qualcosa che valga la pena sapere:
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## Riferimento degli endpoint
 
 | Segnale | Endpoint | Intestazione |

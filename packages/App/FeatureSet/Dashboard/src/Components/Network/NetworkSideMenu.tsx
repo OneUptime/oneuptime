@@ -136,10 +136,13 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
           /*
            * What is plugged into the switches and routers - learned from
            * their ARP and forwarding tables, and only when a device collects
-           * endpoints, which is off by default.
+           * endpoints, which is off by default - or reported by a network
+           * controller: every device discovery saw, and the way to add many
+           * to monitoring or take them off the map at once (issue #5775).
+           * It was called Endpoints.
            */
           link: {
-            title: "Endpoints",
+            title: "Discovered Devices",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS] as Route,
             ),

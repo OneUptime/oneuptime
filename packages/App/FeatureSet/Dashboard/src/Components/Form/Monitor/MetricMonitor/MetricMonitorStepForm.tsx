@@ -15,6 +15,8 @@ import TelemetryRulePreviewUtil, {
   TelemetryRulePreviewRange,
 } from "Common/Types/Monitor/TelemetryRulePreview";
 import OneUptimeDate from "Common/Types/Date";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import { getRollingTimeInSeconds } from "../../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleText";
 
 /*
@@ -234,6 +236,15 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
           queryConfigs: drawn.queryConfigs,
           formulaConfigs: drawn.formulaConfigs,
         }}
+        /*
+         * Charted as the monitor reads them: for the services it is limited
+         * to, which the step keeps apart from its queries (issue #6266).
+         */
+        chartQueryConfigs={MonitorStepMetricQueries.getReadQueryConfigs({
+          monitorType: MonitorType.Metrics,
+          settings: monitorStepMetricMonitor,
+          queryConfigs: drawn.queryConfigs,
+        })}
         hideCardInQueryElements={true}
         hideCardInCharts={true}
         chartCssClass="rounded-lg border border-gray-200 shadow-sm"

@@ -1,0 +1,655 @@
+import { WorkflowGraphToShow } from "./Workflow";
+import WorkflowAutosave, {
+  WorkflowAutosaveStatus,
+  WorkflowGraphRevision,
+  WorkflowSaveConflict,
+  WorkflowSavedGraphRead,
+} from "./WorkflowAutosave";
+import {
+  WorkflowCanvasGraph,
+  isAnyCardBeingDragged,
+  toWorkflowCanvasGraph,
+} from "./WorkflowCanvasGraph";
+import { WorkflowSavedElsewhereStep } from "./WorkflowSavedElsewhere";
+import {
+  WorkflowEditCause,
+  WorkflowEditHistory,
+  WorkflowHistoryDirection,
+  WorkflowHistoryStep,
+  canRedoWorkflowEdit,
+  canUndoWorkflowEdit,
+  getShownWorkflowEntry,
+  getWorkflowHistoryStep,
+  recordWorkflowEdit,
+  redoWorkflowEdit,
+  startWorkflowEditHistory,
+  undoWorkflowEdit,
+} from "./WorkflowEditHistory";
+import {
+  getWorkflowHistoryShortcut,
+  shouldWorkflowHandleHistoryShortcut,
+} from "./WorkflowHistoryShortcuts";
+import { WorkflowSaveState } from "./WorkflowStatusBar";
+import { loadComponentsAndCategories } from "./Utils";
+import { useUnsavedChanges } from "../../Utils/NewVersion/UnsavedChanges";
+import ComponentMetadata from "../../../Types/Workflow/Component";
+import { WorkflowComponentLookup } from "../../../Utils/Workflow/WorkflowGraphChanges";
+import {
+  SavedWorkflowGraph,
+  getEmptyWorkflowGraph,
+  toSavedWorkflowGraph,
+} from "../../../Utils/Workflow/WorkflowGraphSnapshot";
+import { MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
+import { Edge, Node } from "reactflow";
+
+/*
+ * EDITING A WORKFLOW IN THE BUILDER, AROUND ITS CANVAS (issue #6188): what the
+ * canvas reports is taken into the undo history (WorkflowEditHistory) and
+ * saved (WorkflowAutosave); Undo, Redo, a restored version and what Ask AI
+ * saved are handed back to the canvas to draw (graphToShow), where it is,
+ * and saved the same way. ⌘Z / Ctrl+Z and the redo shortcuts work anywhere
+ * on the page except where someone is typing (WorkflowHistoryShortcuts).
+ *
+ * While anything is not saved yet - a save on its way, or one that failed -
+ * leaving the page asks first, and OneUptime does not reload the page for a
+ * new version. Leaving the builder sends what is waiting at once.
+ *
+ * Every save says which graph it was made to (issue #6257). When someone
+ * else saved the workflow since, nothing is saved over their change: the
+ * save state is Conflict, with what they saved, until the person chooses -
+ * their changes on the canvas, as a step Undo takes back
+ * (showTheirChanges), or their own saved over them (keepMine).
+ *
+ * Nothing is taken in or saved while `isEnabled` is false: before the
+ * workflow has opened, and for someone who may only look at it.
+ */
+
+export interface UseWorkflowEditingOptions {
+  isEnabled: boolean;
+  /*
+   * Saves the graph to the workflow, made to the graph the server had at
+   * `basedOn`, and resolves with the revision the server is at then; throws
+   * when the server refuses it.
+   */
+  save: (
+    graph: SavedWorkflowGraph,
+    basedOn: WorkflowGraphRevision,
+  ) => Promise<WorkflowGraphRevision | void>;
+  // Whether a refusal says someone else saved a newer graph first.
+  isConflict?: ((error: unknown) => boolean) | undefined;
+  // What the server has now, read when that happens; null when the workflow is gone.
+  readSaved?: (() => Promise<WorkflowSavedGraphRead | null>) | undefined;
+  // Why a save failed, in the reader's words.
+  describeError: (error: unknown) => string;
+  // A failed save, said once as it fails; the status pill keeps saying it.
+  onSaveFailed?: ((message: string) => void) | undefined;
+  // A graph that could not be drawn: a version with a step OneUptime no longer has.
+  onError: (message: string) => void;
+}
+
+export interface UseWorkflowEditingResult {
+  // The workflow as it opened, at its revision, which the canvas starts from.
+  start: (graph: WorkflowCanvasGraph, revision?: WorkflowGraphRevision) => void;
+  // Everything the canvas reports, as it draws it.
+  onCanvasUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
+  // The graph the canvas is handed to draw, or null.
+  graphToShow: WorkflowGraphToShow | null;
+  undo: () => void;
+  redo: () => void;
+  // What Undo and Redo would do, or null when there is nothing to.
+  undoStep: WorkflowHistoryStep | null;
+  redoStep: WorkflowHistoryStep | null;
+  /*
+   * Puts an earlier version on the canvas, as a step Undo takes back, and
+   * saves it at once. False when the version cannot be drawn.
+   */
+  restoreVersion: (data: { versionNumber: number; graph: unknown }) => boolean;
+  // What Ask AI saved, on the canvas: a step of its own, already saved.
+  showSavedGraph: (graph: unknown, revision?: WorkflowGraphRevision) => boolean;
+  /*
+   * What was saved elsewhere, step by step - Ask AI's change, and their
+   * changes around it (WorkflowSavedElsewhere) - each a step Undo takes
+   * back, the last at `revision`, all already saved.
+   */
+  showSavedGraphs: (
+    steps: Array<WorkflowSavedElsewhereStep>,
+    revision?: WorkflowGraphRevision,
+  ) => boolean;
+  // The graph the server has, as far as this builder knows; null before it opened.
+  getKnownSaved: () => WorkflowSavedGraphRead | null;
+  /*
+   * While someone else's save stands between the canvas and the server
+   * (saveStatus.conflict): their graph on the canvas, as a step Undo takes
+   * back - Undo then saves the person's own over theirs - and nothing left
+   * to save. False when it cannot be drawn.
+   */
+  showTheirChanges: () => boolean;
+  // Or the canvas's graph saved over theirs, which stays in the version history.
+  keepMine: () => void;
+  saveStatus: WorkflowAutosaveStatus;
+  retrySave: () => void;
+  // The graph the canvas shows, as it is saved.
+  shownGraph: SavedWorkflowGraph;
+  components: Array<ComponentMetadata>;
+}
+
+const useWorkflowEditing: (
+  options: UseWorkflowEditingOptions,
+) => UseWorkflowEditingResult = (
+  options: UseWorkflowEditingOptions,
+): UseWorkflowEditingResult => {
+  // The options of the latest render, for the handlers kept across renders.
+  const optionsRef: MutableRefObject<UseWorkflowEditingOptions> =
+    useRef<UseWorkflowEditingOptions>(options);
+  optionsRef.current = options;
+
+  const components: Array<ComponentMetadata> = useMemo(() => {
+    return loadComponentsAndCategories().components;
+  }, []);
+
+  const lookup: WorkflowComponentLookup = useMemo(() => {
+    const byId: Map<string, ComponentMetadata> = new Map<
+      string,
+      ComponentMetadata
+    >(
+      components.map(
+        (component: ComponentMetadata): [string, ComponentMetadata] => {
+          return [component.id, component];
+        },
+      ),
+    );
+
+    return (componentId: string): ComponentMetadata | undefined => {
+      return byId.get(componentId);
+    };
+  }, [components]);
+
+  /*
+   * The history, in state for drawing and in a ref for the handlers that
+   * read it between renders: two reports in one frame must each see the
+   * other.
+   */
+  const [history, setHistoryState] = useState<WorkflowEditHistory | null>(null);
+  const historyRef: MutableRefObject<WorkflowEditHistory | null> =
+    useRef<WorkflowEditHistory | null>(null);
+
+  const setHistory: (next: WorkflowEditHistory) => void = (
+    next: WorkflowEditHistory,
+  ): void => {
+    historyRef.current = next;
+    setHistoryState(next);
+  };
+
+  const [graphToShow, setGraphToShow] = useState<WorkflowGraphToShow | null>(
+    null,
+  );
+  const revisionRef: MutableRefObject<number> = useRef<number>(0);
+
+  const [saveStatus, setSaveStatus] = useState<WorkflowAutosaveStatus>({
+    state: WorkflowSaveState.Idle,
+    error: "",
+    hasUnsavedChanges: false,
+    savedCount: 0,
+    conflict: null,
+  });
+
+  const autosaveRef: MutableRefObject<WorkflowAutosave | null> =
+    useRef<WorkflowAutosave | null>(null);
+
+  if (!autosaveRef.current) {
+    autosaveRef.current = new WorkflowAutosave({
+      save: (
+        graph: SavedWorkflowGraph,
+        basedOn: WorkflowGraphRevision,
+      ): Promise<WorkflowGraphRevision | void> => {
+        return optionsRef.current.save(graph, basedOn);
+      },
+      isConflict: (error: unknown): boolean => {
+        return Boolean(optionsRef.current.isConflict?.(error));
+      },
+      readSaved: async (): Promise<WorkflowSavedGraphRead | null> => {
+        const readSaved:
+          | (() => Promise<WorkflowSavedGraphRead | null>)
+          | undefined = optionsRef.current.readSaved;
+
+        if (!readSaved) {
+          throw new Error("What the workflow holds now cannot be read.");
+        }
+
+        return await readSaved();
+      },
+      describeError: (error: unknown): string => {
+        return optionsRef.current.describeError(error);
+      },
+      onStatusChange: (status: WorkflowAutosaveStatus): void => {
+        setSaveStatus(status);
+      },
+    });
+  }
+
+  const autosave: WorkflowAutosave = autosaveRef.current;
+
+  /*
+   * A save that fails is said once, as it fails - not again with every edit
+   * that fails the same way while the server is down. Once a save lands, or
+   * nothing is left unsaved, the next failure is said again; so is one that
+   * fails for another reason.
+   */
+  const toldFailureRef: MutableRefObject<string | null> = useRef<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (saveStatus.state !== WorkflowSaveState.Error) {
+      if (!saveStatus.hasUnsavedChanges) {
+        toldFailureRef.current = null;
+      }
+
+      return;
+    }
+
+    if (toldFailureRef.current === saveStatus.error) {
+      return;
+    }
+
+    toldFailureRef.current = saveStatus.error;
+    optionsRef.current.onSaveFailed?.(saveStatus.error);
+  }, [saveStatus.state, saveStatus.error, saveStatus.hasUnsavedChanges]);
+
+  // Leaving the builder sends what is waiting at once.
+  useEffect(() => {
+    return () => {
+      void autosave.flush();
+      autosave.dispose();
+    };
+  }, []);
+
+  // Leaving the page while something is not saved asks first.
+  useEffect(() => {
+    if (!saveStatus.hasUnsavedChanges) {
+      return undefined;
+    }
+
+    const warn: (event: BeforeUnloadEvent) => void = (
+      event: BeforeUnloadEvent,
+    ): void => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", warn);
+
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+    };
+  }, [saveStatus.hasUnsavedChanges]);
+
+  useUnsavedChanges(saveStatus.hasUnsavedChanges);
+
+  // Hands a graph to the canvas; false when it cannot be drawn.
+  const draw: (graph: unknown) => WorkflowCanvasGraph | null = (
+    graph: unknown,
+  ): WorkflowCanvasGraph | null => {
+    try {
+      return toWorkflowCanvasGraph({ graph, components });
+    } catch (error) {
+      optionsRef.current.onError(
+        error instanceof Error && error.message ? error.message : String(error),
+      );
+      return null;
+    }
+  };
+
+  const handToCanvas: (canvasGraph: WorkflowCanvasGraph) => void = (
+    canvasGraph: WorkflowCanvasGraph,
+  ): void => {
+    revisionRef.current++;
+    setGraphToShow({
+      revision: revisionRef.current,
+      nodes: canvasGraph.nodes,
+      edges: canvasGraph.edges,
+    });
+  };
+
+  const start: (
+    graph: WorkflowCanvasGraph,
+    revision?: WorkflowGraphRevision,
+  ) => void = (
+    graph: WorkflowCanvasGraph,
+    revision?: WorkflowGraphRevision,
+  ): void => {
+    const saved: SavedWorkflowGraph = toSavedWorkflowGraph(graph);
+
+    setHistory(startWorkflowEditHistory({ graph: saved, now: Date.now() }));
+    autosave.start(saved, revision ?? null);
+  };
+
+  const onCanvasUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void = (
+    nodes: Array<Node>,
+    edges: Array<Edge>,
+  ): void => {
+    const current: WorkflowEditHistory | null = historyRef.current;
+
+    if (!optionsRef.current.isEnabled || !current) {
+      return;
+    }
+
+    // A drag is one edit, taken in where the card is dropped.
+    if (isAnyCardBeingDragged(nodes)) {
+      return;
+    }
+
+    const saved: SavedWorkflowGraph = toSavedWorkflowGraph({ nodes, edges });
+    const next: WorkflowEditHistory = recordWorkflowEdit(current, {
+      graph: saved,
+      now: Date.now(),
+    });
+
+    if (next !== current) {
+      setHistory(next);
+    }
+
+    autosave.change(saved);
+  };
+
+  const move: (
+    step: (history: WorkflowEditHistory) => WorkflowEditHistory,
+  ) => void = (
+    step: (history: WorkflowEditHistory) => WorkflowEditHistory,
+  ): void => {
+    const current: WorkflowEditHistory | null = historyRef.current;
+
+    if (!optionsRef.current.isEnabled || !current) {
+      return;
+    }
+
+    const next: WorkflowEditHistory = step(current);
+
+    if (next === current) {
+      return;
+    }
+
+    const graph: SavedWorkflowGraph = getShownWorkflowEntry(next).graph;
+    const canvasGraph: WorkflowCanvasGraph | null = draw(graph);
+
+    if (!canvasGraph) {
+      return;
+    }
+
+    setHistory(next);
+    handToCanvas(canvasGraph);
+    autosave.change(graph);
+  };
+
+  const undo: () => void = (): void => {
+    move(undoWorkflowEdit);
+  };
+
+  const redo: () => void = (): void => {
+    move(redoWorkflowEdit);
+  };
+
+  const restoreVersion: (data: {
+    versionNumber: number;
+    graph: unknown;
+  }) => boolean = (data: {
+    versionNumber: number;
+    graph: unknown;
+  }): boolean => {
+    const current: WorkflowEditHistory | null = historyRef.current;
+
+    if (!optionsRef.current.isEnabled || !current) {
+      return false;
+    }
+
+    const canvasGraph: WorkflowCanvasGraph | null = draw(data.graph);
+
+    if (!canvasGraph) {
+      return false;
+    }
+
+    const saved: SavedWorkflowGraph = toSavedWorkflowGraph(canvasGraph);
+    const next: WorkflowEditHistory = recordWorkflowEdit(current, {
+      graph: saved,
+      now: Date.now(),
+      cause: WorkflowEditCause.Restore,
+      restoredVersionNumber: data.versionNumber,
+    });
+
+    // The canvas shows that version already: nothing to restore.
+    if (next === current) {
+      return true;
+    }
+
+    setHistory(next);
+    handToCanvas(canvasGraph);
+    autosave.change(saved);
+    void autosave.flush();
+
+    return true;
+  };
+
+  /*
+   * Graphs someone else saved, one after another, on the canvas where it
+   * is: each a step of its own (Ask AI's change, their changes), which the
+   * server has already, the last at `revision`. Nothing is drawn when one
+   * of them cannot be.
+   */
+  const showGraphsSavedElsewhere: (data: {
+    steps: Array<{ graph: unknown; cause: WorkflowEditCause }>;
+    revision: WorkflowGraphRevision;
+  }) => boolean = (data: {
+    steps: Array<{ graph: unknown; cause: WorkflowEditCause }>;
+    revision: WorkflowGraphRevision;
+  }): boolean => {
+    const drawn: Array<{
+      canvasGraph: WorkflowCanvasGraph;
+      saved: SavedWorkflowGraph;
+      cause: WorkflowEditCause;
+    }> = [];
+
+    for (const step of data.steps) {
+      const canvasGraph: WorkflowCanvasGraph | null = draw(step.graph);
+
+      if (!canvasGraph) {
+        return false;
+      }
+
+      drawn.push({
+        canvasGraph,
+        saved: toSavedWorkflowGraph(canvasGraph),
+        cause: step.cause,
+      });
+    }
+
+    const last:
+      | {
+          canvasGraph: WorkflowCanvasGraph;
+          saved: SavedWorkflowGraph;
+          cause: WorkflowEditCause;
+        }
+      | undefined = drawn[drawn.length - 1];
+
+    if (!last) {
+      return false;
+    }
+
+    const current: WorkflowEditHistory | null = historyRef.current;
+
+    if (current) {
+      let next: WorkflowEditHistory = current;
+
+      for (const step of drawn) {
+        next = recordWorkflowEdit(next, {
+          graph: step.saved,
+          now: Date.now(),
+          cause: step.cause,
+        });
+      }
+
+      if (next !== current) {
+        setHistory(next);
+      }
+    }
+
+    autosave.acceptSavedGraph(last.saved, data.revision);
+    handToCanvas(last.canvasGraph);
+
+    return true;
+  };
+
+  const showGraphSavedElsewhere: (data: {
+    graph: unknown;
+    revision: WorkflowGraphRevision;
+    cause: WorkflowEditCause;
+  }) => boolean = (data: {
+    graph: unknown;
+    revision: WorkflowGraphRevision;
+    cause: WorkflowEditCause;
+  }): boolean => {
+    return showGraphsSavedElsewhere({
+      steps: [{ graph: data.graph, cause: data.cause }],
+      revision: data.revision,
+    });
+  };
+
+  const showSavedGraph: (
+    graph: unknown,
+    revision?: WorkflowGraphRevision,
+  ) => boolean = (
+    graph: unknown,
+    revision?: WorkflowGraphRevision,
+  ): boolean => {
+    return showGraphSavedElsewhere({
+      graph,
+      revision: revision ?? null,
+      cause: WorkflowEditCause.AskAi,
+    });
+  };
+
+  const showSavedGraphs: (
+    steps: Array<WorkflowSavedElsewhereStep>,
+    revision?: WorkflowGraphRevision,
+  ) => boolean = (
+    steps: Array<WorkflowSavedElsewhereStep>,
+    revision?: WorkflowGraphRevision,
+  ): boolean => {
+    return showGraphsSavedElsewhere({ steps, revision: revision ?? null });
+  };
+
+  const showTheirChanges: () => boolean = (): boolean => {
+    const conflict: WorkflowSaveConflict | null = autosave.getStatus().conflict;
+
+    if (!optionsRef.current.isEnabled || !conflict) {
+      return false;
+    }
+
+    return showGraphSavedElsewhere({
+      graph: conflict.theirs,
+      revision: conflict.revision,
+      cause: WorkflowEditCause.TheirChanges,
+    });
+  };
+
+  const keepMine: () => void = (): void => {
+    if (!optionsRef.current.isEnabled) {
+      return;
+    }
+
+    void autosave.keepMine();
+  };
+
+  // The latest undo and redo, for the shortcut handler kept from the first render.
+  const undoRef: MutableRefObject<() => void> = useRef<() => void>(undo);
+  const redoRef: MutableRefObject<() => void> = useRef<() => void>(redo);
+  undoRef.current = undo;
+  redoRef.current = redo;
+
+  useEffect(() => {
+    const onKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (!optionsRef.current.isEnabled) {
+        return;
+      }
+
+      const direction: WorkflowHistoryDirection | null =
+        getWorkflowHistoryShortcut(event);
+
+      if (!direction) {
+        return;
+      }
+
+      if (
+        !shouldWorkflowHandleHistoryShortcut({
+          event,
+          page: typeof document === "undefined" ? null : document,
+        })
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (direction === WorkflowHistoryDirection.Undo) {
+        undoRef.current();
+      } else {
+        redoRef.current();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
+
+  const undoStep: WorkflowHistoryStep | null = useMemo(() => {
+    return history && canUndoWorkflowEdit(history)
+      ? getWorkflowHistoryStep({
+          history,
+          direction: WorkflowHistoryDirection.Undo,
+          lookup,
+        })
+      : null;
+  }, [history, lookup]);
+
+  const redoStep: WorkflowHistoryStep | null = useMemo(() => {
+    return history && canRedoWorkflowEdit(history)
+      ? getWorkflowHistoryStep({
+          history,
+          direction: WorkflowHistoryDirection.Redo,
+          lookup,
+        })
+      : null;
+  }, [history, lookup]);
+
+  return {
+    start,
+    onCanvasUpdated,
+    graphToShow,
+    undo,
+    redo,
+    undoStep,
+    redoStep,
+    restoreVersion,
+    showSavedGraph,
+    showSavedGraphs,
+    getKnownSaved: (): WorkflowSavedGraphRead | null => {
+      return autosave.getSaved();
+    },
+    showTheirChanges,
+    keepMine,
+    saveStatus,
+    retrySave: (): void => {
+      void autosave.retry();
+    },
+    shownGraph: history
+      ? getShownWorkflowEntry(history).graph
+      : getEmptyWorkflowGraph(),
+    components,
+  };
+};
+
+export default useWorkflowEditing;

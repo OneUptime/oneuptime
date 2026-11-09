@@ -36,7 +36,11 @@ import {
 } from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import {
+  RumApplicationStatusDescription,
+  describeRumApplicationStatus,
+} from "Common/Types/Rum/RumApplicationStatus";
+import { getRumApplicationStatusPillColor } from "../../Components/Rum/RumApplicationStatusColor";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -198,6 +202,8 @@ const RumApplications: FunctionComponent<
         selectMoreFields={{
           appIdentifier: true,
           clientType: true,
+          // The Status column reads it too, even with Last Seen hidden.
+          lastSeenAt: true,
         }}
         /*
          * Also what the empty list says: in plain words, not the resource
@@ -329,13 +335,23 @@ const RumApplications: FunctionComponent<
             },
             title: "Status",
             type: FieldType.Element,
+            /*
+             * What is true, not "Disconnected" in red: an application
+             * nobody has used for a while is idle, and says so in grey
+             * (RumApplicationStatus, issue #6191). Hovering says what the
+             * status means and what, if anything, to do.
+             */
             getElement: (item: RumApplication): ReactElement => {
-              const isConnected: boolean =
-                item.otelCollectorStatus === "connected";
+              const status: RumApplicationStatusDescription =
+                describeRumApplicationStatus({
+                  otelCollectorStatus: item.otelCollectorStatus,
+                  lastSeenAt: item.lastSeenAt,
+                });
               return (
                 <Pill
-                  text={isConnected ? "Connected" : "Disconnected"}
-                  color={isConnected ? Green : Red}
+                  text={status.label}
+                  color={getRumApplicationStatusPillColor(status.tone)}
+                  tooltip={status.description}
                 />
               );
             },

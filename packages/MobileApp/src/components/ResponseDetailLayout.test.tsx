@@ -175,6 +175,21 @@ describe("Response guidance", () => {
     },
   );
 
+  test("a reader paged only as an observer is at the observer stage - unless it is resolved, or they are paged again as a responder", () => {
+    expect(getResponseStage(false, false, false, true)).toBe("observer");
+    expect(getResponseStage(false, true, false, true)).toBe("observer");
+    expect(getResponseStage(true, true, false, true)).toBe("resolved");
+    expect(getResponseStage(false, true, true, true)).toBe("pagedAgain");
+  });
+
+  test("the observer stage says FYI (observer), in the server's words, as information - not a warning", () => {
+    expect(getResponseStageAppearance("observer")).toEqual({
+      tone: "info",
+      icon: "eye-outline",
+      title: "FYI (observer)",
+    });
+  });
+
   test("each stage has its own title, and none reuses a server state name", () => {
     const titles: string[] = (
       ["open", "acknowledged", "resolved"] as const

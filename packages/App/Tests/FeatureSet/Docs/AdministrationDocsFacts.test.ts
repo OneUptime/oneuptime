@@ -58,6 +58,11 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
 import {
+  AUDIT_LOG_EXEMPTION_KINDS,
+  AUDIT_LOG_EXEMPT_TABLES,
+  AuditLogExemptionKind,
+} from "Common/Types/AuditLog/AuditLogCoverage";
+import {
   ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
   SESSION_REPLAY_PRICE_IN_USD_PER_GB,
   TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
@@ -1862,32 +1867,153 @@ describe("Audit Logs", () => {
     ).toBe(false);
   });
 
-  it("lists every record the audit log covers, by the resource type it files it under", () => {
-    const rows: Array<Array<string>> = tableRows(
-      section(page, "## What is recorded"),
-      "Resource",
+  /*
+   * Every project-scoped model is audited unless it is exempt
+   * (Common/Types/AuditLog/AuditLogCoverage), so the page says so and lists
+   * what is not recorded by the kinds of record the exemptions name, in
+   * their order and with their titles.
+   */
+  it("says everything people change is recorded, and names what is not by the kinds the coverage exempts", () => {
+    const recorded: string = section(page, "## What is recorded");
+    const rows: Array<Array<string>> = tableRows(recorded, "Not recorded");
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual(
+      Object.values(AuditLogExemptionKind).map(
+        (kind: AuditLogExemptionKind): string => {
+          return AUDIT_LOG_EXEMPTION_KINDS[kind].title;
+        },
+      ),
     );
-    const documented: Array<string> = rows.flatMap(
-      (row: Array<string>): Array<string> => {
-        return inlineCodes(row[1] as string);
-      },
+
+    // Every exemption is of a kind the table names.
+    for (const kind of Object.values(AUDIT_LOG_EXEMPT_TABLES)) {
+      expect(Object.values(AuditLogExemptionKind)).toContain(kind);
+    }
+
+    expect(recorded).toContain(
+      "Everything people create, change or delete in a project is recorded:",
     );
+
+    // The resource types it gives as examples are what entries carry.
     const audited: Array<string> = auditedModels().map(
       (model: BaseModel): string => {
         return model.singularName as string;
       },
     );
+    const examples: Array<string> = inlineCodes(
+      recorded.split("\n").find((line: string): boolean => {
+        return line.startsWith("Everything people create");
+      }) as string,
+    );
 
-    expect([...documented].sort()).toEqual([...new Set(audited)].sort());
-    expect(documented.length).toBe(new Set(documented).size);
+    expect(examples).toEqual(["Monitor", "Workflow", "Queue"]);
+
+    for (const example of examples) {
+      expect(audited).toContain(example);
+    }
+
+    // Hundreds of models: the page names kinds, not each one.
+    expect(audited.length).toBeGreaterThan(400);
   });
 
-  it("says who is on a team, and a team's own permissions, are not recorded", () => {
-    expect(isAudited(TeamMember)).toBe(false);
-    expect(isAudited(TeamPermission)).toBe(false);
+  it("says who is on a team, and a team's permissions, are recorded", () => {
+    expect(isAudited(TeamMember)).toBe(true);
+    expect(isAudited(TeamPermission)).toBe(true);
     expect(isAudited(Team)).toBe(true);
     expect(section(page, "## What is recorded")).toContain(
-      "Other records are not in the audit log, such as who is on a team, or a permission added to a team on its own.",
+      "teams and who is on them",
+    );
+  });
+
+  it("says what entries leave out: what only OneUptime writes, and a workflow's typed values and canvas moves", () => {
+    const recorded: string = section(page, "## What is recorded");
+
+    expect(recorded).toContain(
+      "Fields only OneUptime writes, such as when a host was last seen, are left out of every entry",
+    );
+    expect(recorded).toContain(
+      "naming a step's settings but never what was typed into them, and moving a step on the canvas is not recorded.",
+    );
+  });
+
+  /*
+   * Issue #6276: what OneUptime writes because someone asked it to - a
+   * merge of exceptions, a webhook URL reset - is written round
+   * DatabaseService's hooks, and records its entry itself, as that person's,
+   * naming the columns the defaults otherwise leave out.
+   */
+  it("says a field OneUptime writes because someone asked it to is recorded as their change", () => {
+    expect(section(page, "## What is recorded")).toContain(
+      "When OneUptime writes one because someone asked it to, such as merging an exception into another or resetting a webhook URL, the entry records it as their change.",
+    );
+
+    for (const [source, column] of [
+      [
+        readCommonSource("Server/Utils/Telemetry/TelemetryExceptionMerge.ts"),
+        "mergedIntoTelemetryExceptionId",
+      ],
+      [
+        readPackageFile("App/FeatureSet/Runbook/API/RunbookWebhook.ts"),
+        "webhookSecretKey",
+      ],
+    ] as Array<[string, string]>) {
+      expect(source).toContain("AuditLogService.recordUpdate({");
+      expect(source).toContain(`includeColumns: ["${column}"]`);
+    }
+  });
+
+  /*
+   * Issues #6300, #6323, #6324: what a rule changes when someone runs it is
+   * their change - every rule's Run now hands who ran it to its engine, and
+   * the engine writes with RuleRunWriteProps - and what a rule does by
+   * itself is OneUptime's own. HookFreeWritesAreRecorded holds the engines
+   * to it; this holds the page to the same list of rules.
+   */
+  it("says what a rule changes when someone runs it is their change, and what a rule does by itself OneUptime's own", () => {
+    const recorded: string = section(page, "## What is recorded");
+
+    expect(recorded).toContain(
+      "- What a rule changes when someone runs it: the labels and owners it adds, the records a privacy rule makes private, the devices a site assignment rule moves, the devices and monitors an auto import rule creates, and what a status page or SLO monitor rule changes on its page or SLO.",
+    );
+    expect(recorded).toContain(
+      "What a rule does by itself is OneUptime's own change, recorded with **Store System Events** on: the labels and owners a rule adds as a record is created, and a record it makes private then; the devices and monitors an auto import rule creates from new scan results; and what a status page or SLO monitor rule changes when a rule, a monitor or a label is saved.",
+    );
+
+    // Root as the person who ran it, and OneUptime's own with nobody named.
+    expect(
+      readCommonSource("Server/Utils/Rules/RuleRun/RuleApplication.ts"),
+    ).toContain(
+      "return props ? OnBehalfOfProps.get(props) : { isRoot: true };",
+    );
+
+    // The engines the page names write a Run now's changes as that person.
+    for (const engine of [
+      "Server/Services/NetworkDeviceAutoImportRuleEngineService.ts",
+      "Server/Services/StatusPageMonitorRuleEngineService.ts",
+      "Server/Services/ServiceLevelObjectiveMonitorRuleEngineService.ts",
+      "Server/Services/NetworkDeviceService.ts",
+    ]) {
+      expect([engine, readCommonSource(engine)]).toEqual([
+        engine,
+        expect.stringContaining("RuleRunWriteProps.get(data.props)"),
+      ]);
+    }
+
+    /*
+     * And the routes and the runner hand who ran it on, every one of them
+     * (HookFreeWritesAreRecorded reads each call).
+     */
+    expect(readPackageFile("App/FeatureSet/BaseAPI/API/RuleRun.ts")).toContain(
+      "// What the run changes is theirs in the audit log.\n            props: props,",
+    );
+    expect(
+      readCommonSource("Server/Utils/Rules/RuleRun/RuleRunner.ts"),
+    ).toContain(
+      "statusPageMonitorRuleId: data.ruleId,\n        props: data.props,",
     );
   });
 

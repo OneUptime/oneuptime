@@ -93,6 +93,19 @@ flowchart TB
 
 Pour voir comment une vérification a été jugée, ouvrez la **Vue d'ensemble** du moniteur : la carte **Résumé du moniteur** montre quel critère a correspondu et ce que chacun a fait, y compris un incident ignoré parce qu'un autre était déjà ouvert.
 
+## Ce qu'un incident ou une alerte conserve de la vérification
+
+Un incident ou une alerte qu'un moniteur ouvre conserve la vérification qui l'a ouvert, pour que vous puissiez voir pourquoi bien après la disparition des journaux du moniteur. Sous sa cause racine, la section **Détails de l'évaluation** nomme le critère qui a correspondu et, pour chaque filtre qui a correspondu, ce que la vérification a trouvé. **Afficher les détails** ajoute le reste des éléments, les filtres qui n'ont pas correspondu et la vérification elle-même : la requête, quand elle a eu lieu, depuis quelle sonde et ce qui a été renvoyé. Ce qu'un filtre a trouvé peut être :
+
+- **Le champ.** L'endroit d'un corps JSON où un filtre **Corps de la réponse** a correspondu, par exemple `checks[1].status`, ou l'en-tête dans lequel un filtre **Response Header Value** a correspondu.
+- **Les valeurs.** Ce que contenait chaque valeur lue par une **JavaScript Expression** lors de son évaluation, par exemple `responseBody.status = "down"`.
+- **Un extrait.** Un court passage de la réponse autour de la correspondance, mise en évidence : jamais le corps entier.
+
+Les secrets et les données personnelles sont masqués avant que quoi que ce soit ne soit conservé : les en-têtes comme `Authorization`, `Cookie` et `Set-Cookie`, les champs dont le nom dit `password`, `token`, `key`, `session` ou `email`, et le texte qui ressemble à un jeton bearer, un JWT, un numéro de carte ou une adresse e-mail. L'URL de la requête est celle avec laquelle le moniteur a été configuré : `{{monitorSecrets.NAME}}` reste un nom, et une valeur de requête secrète est masquée. Les **Journaux de surveillance** du moniteur, et toute valeur qu'une cause racine cite, sont masqués de la même façon. Un incident ou une alerte ouverts à la main, ou avant que les détails de l'évaluation ne soient conservés, n'en ont pas.
+
+> [!TIP]
+> Lorsque les réponses d'un moniteur de site web ou d'API sont sensibles en elles-mêmes, désactivez **Conserver le contenu de la réponse** dans la carte **Contenu de la réponse** de sa page **Avancé → Paramètres**. Ses journaux de surveillance, incidents et alertes conservent alors les filtres qui ont correspondu, le code de statut et le temps de réponse, et aucune partie de la réponse. Un moniteur de requêtes entrantes a le même interrupteur pour les requêtes qu'il reçoit : **Conserver le contenu de la requête**, dans la carte **Contenu de la requête**. L'interrupteur s'applique aux vérifications exécutées, et aux incidents et alertes ouverts, après sa modification.
+
 ## Modifier les critères d'un moniteur
 
 :::steps
@@ -135,7 +148,7 @@ La liste est un ordre. Là où des moniteurs sont affichés ensemble, le statut 
 
 | Où | Ce que le statut décide |
 | --- | --- |
-| La liste **Moniteurs** | Le statut actuel de chaque moniteur. **Non opérationnel** liste les moniteurs dans n'importe quel statut sauf l'opérationnel, avec un compteur rouge à côté. |
+| La liste **Moniteurs** | Le statut actuel de chaque moniteur. **Non opérationnel** liste les moniteurs dans n'importe quel statut sauf l'opérationnel, avec un compteur rouge à côté. Les moniteurs dont la surveillance est désactivée en sont exclus : rien ne les vérifie, et **Désactivé** les liste. |
 | Pages de statut | La couleur de chaque ligne, et sa disponibilité : seuls les statuts de **Compte comme indisponibilité** de la page comptent contre elle. Une nouvelle page de statut commence avec tous les statuts sauf l'opérationnel. Voir [Choisir ce qui s'affiche sur la page](/docs/status-pages/index#choisir-ce-qui-saffiche-sur-la-page). |
 | Groupes de moniteurs | Le statut du groupe : le pire de ses moniteurs. Voir [Groupes de moniteurs](/docs/monitor/monitor-groups). |
 | SLO | L'indisponibilité qu'un SLO compte, d'après sa propre liste de statuts. Voir [Quels statuts comptent comme indisponibilité](/docs/slo/introduction#quels-statuts-comptent-comme-indisponibilité). |

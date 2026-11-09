@@ -161,6 +161,25 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Database}
         />
       </SideMenuSection>
+      {/*
+       * The daily budget and rate every project gets for each telemetry
+       * signal, and when the budget day resets. Folded like its neighbours:
+       * set once, revisited rarely.
+       */}
+      <SideMenuSection
+        title={t("sideMenu.settingsTelemetry")}
+        defaultCollapsed={true}
+      >
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.settingsIngestionBudgets"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_INGESTION_BUDGETS] as Route,
+            ),
+          }}
+          icon={IconProp.Gauge}
+        />
+      </SideMenuSection>
       <SideMenuSection title={t("sideMenu.settingsAi")} defaultCollapsed={true}>
         <SideMenuItem
           link={{

@@ -25,7 +25,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
@@ -113,6 +115,7 @@ class PodmanHostOwnerRuleEngineServiceClass
         podmanHost: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running Podman host owner rules: ${error}`, {
@@ -129,6 +132,8 @@ class PodmanHostOwnerRuleEngineServiceClass
     podmanHost: PodmanHost;
     rules: Array<PodmanHostOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { podmanHost, rules } = data;
 
@@ -257,7 +262,7 @@ class PodmanHostOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: PodmanHostOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -274,7 +279,7 @@ class PodmanHostOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: PodmanHostOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

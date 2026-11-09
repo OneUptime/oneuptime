@@ -435,6 +435,8 @@ describe("TOPOLOGY_DRAWING_STYLE: how the map is painted, in one place", () => {
       badgeFontSize: 9,
       deviceBadgeColor: "#ffffff",
       labelColor: "var(--ou-text-secondary, #374151)",
+      // The line under a name: an address, or a maker (issue #5775).
+      labelSecondaryColor: "var(--ou-text-muted, #6b7280)",
       labelHaloColor: "var(--ou-surface-primary, #ffffff)",
       labelHaloWidth: 3,
     });

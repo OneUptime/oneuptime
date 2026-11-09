@@ -15,6 +15,8 @@ enum ExceptionCode {
   PaymentRequiredException = 402,
   NotFoundException = 404,
   TimeoutException = 408,
+  // A write made to a record as it no longer is (see ConflictException).
+  ConflictException = 409,
   PayloadTooLargeException = 413,
   TenantNotFoundException = 405,
   SsoAuthorizationException = 406,

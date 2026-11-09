@@ -70,6 +70,9 @@ export const PROVIDER_LOGO_MARK_LOADERS: Readonly<
   [ProviderLogo.Claude]: () => {
     return import("../../../Types/ProviderLogo/Marks/claude");
   },
+  [ProviderLogo.Cursor]: () => {
+    return import("../../../Types/ProviderLogo/Marks/cursor");
+  },
   [ProviderLogo.MistralAI]: () => {
     return import("../../../Types/ProviderLogo/Marks/mistral-ai");
   },

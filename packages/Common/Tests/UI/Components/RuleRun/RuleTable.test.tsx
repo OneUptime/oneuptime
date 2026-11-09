@@ -384,6 +384,71 @@ describe("RuleTable", () => {
       "/dashboard/p/monitors/settings/label-rules",
     );
   });
+
+  /*
+   * A rule teams own is changed only with those teams' permissions: its
+   * row is locked by getEditDisabledReason and getDeleteDisabledReason,
+   * and its own page by what its page read of who owns it (RuleOwnership),
+   * with the Edit form opening on the teams that own it, as the row's does.
+   */
+  it("hands a rule's page who may change the rule, and its Edit form's fill", () => {
+    const ownership: Record<string, unknown> = {
+      editLock: { isAllowed: false, disabledReason: "Owned by Oversight." },
+      deleteLock: { isAllowed: false, disabledReason: "Owned by Oversight." },
+    };
+    const onEditFormItemFetched: (
+      item: IncidentOnCallRule,
+    ) => Promise<IncidentOnCallRule> = async (
+      item: IncidentOnCallRule,
+    ): Promise<IncidentOnCallRule> => {
+      return item;
+    };
+
+    render(
+      <RuleTable<IncidentOnCallRule>
+        {...(baseProps() as any)}
+        modelType={IncidentOnCallRule}
+        viewRuleId={new ObjectID(RULE_ID)}
+        ruleOwnership={ownership as any}
+        onEditFormItemFetched={onEditFormItemFetched}
+      />,
+    );
+
+    expect(mockViewProps[0]!["ownership"]).toBe(ownership);
+    expect(mockViewProps[0]!["onEditFormItemFetched"]).toBe(
+      onEditFormItemFetched,
+    );
+  });
+
+  it("keeps a rule's page as it was, and its list, where nothing is said of who owns it", () => {
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(baseProps() as any)}
+        modelType={MonitorLabelRule}
+        viewRuleId={new ObjectID(RULE_ID)}
+      />,
+    );
+
+    expect(mockViewProps[0]!["ownership"]).toBeUndefined();
+
+    cleanup();
+
+    render(
+      <RuleTable<IncidentOnCallRule>
+        {...(baseProps() as any)}
+        modelType={IncidentOnCallRule}
+        ruleOwnership={
+          {
+            editLock: { isAllowed: true },
+            deleteLock: { isAllowed: true },
+          } as any
+        }
+      />,
+    );
+
+    // The list locks rows with its own reasons; the page's prop is not the table's.
+    expect(lastTableProps()["ruleOwnership"]).toBeUndefined();
+  });
 });
 
 /*

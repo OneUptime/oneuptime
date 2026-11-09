@@ -1,13 +1,26 @@
 # Cursor
 
-Cursor exporterar sitt teams telemetri från Cursors egna servrar. En teamadministratör lägger till OneUptime som destination en gång, i Cursors dashboard, och hela teamets tokens, uppskattade kostnad och verktygsanrop kommer in: inget att installera eller ställa in på utvecklarnas datorer.
+Cursor exporterar sitt teams telemetri från Cursors egna servrar. En teamadministratör lägger till OneUptime som destination en gång, i Cursors dashboard, och hela teamets tokens, uppskattade kostnad och verktygsanrop kommer in: inget att installera eller ställa in på utvecklarnas datorer. Även med Teams-planen kan OneUptime läsa teamets användning och vad Cursor tog betalt, per person, med en administratörs-API-nyckel, i stället för exporten eller som komplement.
 
 :::cards
+- [Två vägar in](#två-vägar-in): En administratörs-API-nyckel i OneUptime, eller Cursors OpenTelemetry Export.
 - [Konfigurera det](#konfigurera-det): Skapa en nyckel i OneUptime och en destination i Cursor.
 - [Vad du får](#vad-du-får-och-vad-du-inte-får): Mätvärden och loggar; inga traces.
 - [Vem spenderade vad](#tilldelning-till-anställda): Personer kommer in som Cursor-användar-id:n.
 - [Felsökning](#felsökning): Vad du kontrollerar när inget kommer in.
 :::
+
+## Två vägar in
+
+| | Administratörs-API-nyckel | OpenTelemetry Export |
+| --- | --- | --- |
+| Cursor-plan | Teams eller Enterprise | Enterprise |
+| Konfiguration | I OneUptime, under **Produkter → AI / LLM → Anslut** | I Cursors dashboard, under **Team Settings → OpenTelemetry Export** |
+| Vad som kommer in | Tokens, förfrågningar och vad Cursor tog betalt, per timme, person och modell, och hur många medlemmar som använder Cursor | Tokens, uppskattad kostnad och verktygsanrop, och en logghändelse per förfrågan |
+| Från när | De senaste 30 dagarna, sedan varje timme | Medan det sker, från dagen du aktiverar den |
+| Visas i **Användning** under | **Leverantörskonton** | **Dina AI-anrop** |
+
+Båda ger användning och kostnad, inte konversationer. Använd den ena eller båda: de hålls isär och läggs aldrig ihop, och en budget räknar en av dem, som dess **Räkna utgifter från** anger. Hur du ansluter nyckeln står i [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts#cursor); resten av den här sidan konfigurerar OpenTelemetry Export.
 
 ## Så fungerar det
 
@@ -108,10 +121,10 @@ Varje post bär de här resursattributen:
 
 ## Tilldelning till anställda
 
-**Cursor anger en person med `cursor.user.id`, ett heltal som bara Cursor kan göra om till ett namn, och utelämnar det ofta för molnagenter.** OneUptime läser det som den anställde och `cursor.team.id` som teamet, så fliken **Användning** rangordnar personer och team utan konfiguration, men personer visas som heltal.
+**Cursor anger en person med `cursor.user.id`, ett heltal som bara Cursor kan göra om till ett namn, och utelämnar det ofta för molnagenter.** OneUptime läser `cursor.user.email` som den anställde när Cursor skickar den, annars `cursor.user.id`, och `cursor.team.id` som teamet, så fliken **Användning** rangordnar personer och team utan konfiguration; personer utan e-post visas som heltal.
 
 - Båda kommer in som resursattribut (`resource.cursor.user.id`, `resource.cursor.team.id`), som OneUptime läser.
-- Cursor kan också skicka `cursor.user.email`, men OneUptime läser den inte ännu, så den anställdes e-postkolumn förblir tom för Cursor.
+- `cursor.user.email` läses före `cursor.user.id`, så en person som Cursor anger med e-post visas med sin e-post.
 - `gen_ai.user`, `llm.user` och LiteLLMs slutanvändar-id:n läses aldrig som den anställde: de anger dina kunder, inte din personal. Se [Tilldelning till anställda och team](/docs/telemetry/ai-coding-assistants#tilldelning-till-anställda-och-team).
 
 ### Var Cursor visas på fliken Användning
@@ -120,7 +133,7 @@ Cursor skickar mätvärden och inga GenAI-spans, och mätvärdena fyller bara i 
 
 | Uppdelning | För Cursor |
 | --- | --- |
-| **Anställd** | Ja, efter `cursor.user.id` |
+| **Anställd** | Ja, efter `cursor.user.email`, annars `cursor.user.id` |
 | **Team** | Ja, efter `cursor.team.id` |
 | **Modell** | Ja, efter `cursor.model.name` |
 | **Leverantör** | Nej: Cursor säger aldrig vilken leverantör som betjänade ett anrop |
@@ -129,7 +142,7 @@ Cursor skickar mätvärden och inga GenAI-spans, och mätvärdena fyller bara i 
 En Cursor-rad bär bara kostnad: dess celler för anrop och tokens visar `—`, eftersom `cursor.cost.usage` saknar detaljer per anrop. `cursor.token.usage` matar fortfarande tokentotalerna ovanför tabellen (dess typer `input` och `output`; cachetokens utelämnas), och du kan visa det i en dashboard per `cursor.token.type`.
 
 :::details Gör om ett Cursor-användar-id till en person
-Namn och fakturerade belopp finns i Cursors Admin API, som OneUptime inte anropar: anropa det själv om du behöver det. Det finns bara för Enterprise, på `https://api.cursor.com`, och tar en administratörs-API-nyckel som användarnamn med ett tomt lösenord:
+Namn och fakturerade belopp finns i Cursors Admin API, som OneUptime läser när du ansluter dess nyckel som ett [leverantörskonto](/docs/telemetry/ai-provider-accounts#cursor): det kontot anger personer med e-post. För att själv matcha ett `cursor.user.id` anropar du API:et på `https://api.cursor.com`, med en administratörs-API-nyckel som användarnamn och ett tomt lösenord:
 
 ```bash
 curl -u YOUR_API_KEY: https://api.cursor.com/teams/members
@@ -150,7 +163,7 @@ De här reglerna ändrar vad du ser i diagram, så känn till dem innan du rappo
 
 ## Kostnaden är en uppskattning, inte en faktura
 
-Cursor dokumenterar `cursor.cost.usage` som en uppskattning efter bästa förmåga. Den skiljer inte inkluderad användning från användning som faktureras på begäran; med dina egna modellnycklar återspeglar den bara Cursors tokenpris, inte din leverantörs faktura; och en senare `cursor.api.correction` kan dra tillbaka användning som redan räknats. Läs den som en trend. För en siffra som stämmer med fakturan summerar du `chargedCents` från Cursors Admin API.
+Cursor dokumenterar `cursor.cost.usage` som en uppskattning efter bästa förmåga. Den skiljer inte inkluderad användning från användning som faktureras på begäran; med dina egna modellnycklar återspeglar den bara Cursors tokenpris, inte din leverantörs faktura; och en senare `cursor.api.correction` kan dra tillbaka användning som redan räknats. Läs den som en trend. För en siffra som stämmer med fakturan summerar du `chargedCents` från Cursors Admin API. Ett Cursor-team som är anslutet som ett [leverantörskonto](/docs/telemetry/ai-provider-accounts#cursor) gör det åt dig, timme för timme.
 
 ## Felsökning
 
@@ -167,13 +180,14 @@ Projektet tar också emot GenAI-spans med kostnad, så Cursors mätvärden läse
 :::
 
 :::details Personer visas som siffror
-Det är `cursor.user.id`: det enda person-id som OneUptime läser från Cursor i dag. Koppla det till namn med Cursors Admin API.
+Det är `cursor.user.id`, som läses när Cursor inte skickar `cursor.user.email`. Koppla det till namn med Cursors Admin API.
 :::
 
 ## Nästa steg
 
 :::cards
 - [AI-kodassistenter](/docs/telemetry/ai-coding-assistants): Så tilldelas kostnader för alla kodassistenter.
+- [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts#cursor): Läs ett Cursor-teams användning och vad Cursor tog betalt med en administratörs-API-nyckel.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): Fullständiga traces och prompter för de modellanrop som dina egna appar gör.
 - [Metrikövervakning](/docs/monitor/metrics-monitor): Varna på `cursor.cost.usage`, `cursor.token.usage` eller `cursor.tool.calls`.
 :::

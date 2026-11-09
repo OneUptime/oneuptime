@@ -53,7 +53,7 @@ Um painel público:
 
 Trate compartilhar um painel como publicar uma página na web. Todo widget nele passa a ser legível por qualquer pessoa com o link. Veja o que está na tela antes de compartilhá-lo.
 
-Cada widget publica só o que desenha, e só para os recursos para os quais foi configurado. Um widget SLO, por exemplo, publica os números principais desse SLO, mas nunca a definição dele: veja [SLO](/docs/dashboards/widgets#slo). Os widgets de **Data Source** externa são a exceção: eles são retirados por completo de um painel público em vez de renderizados, porque a configuração deles é a própria consulta. Alguns outros widgets não podem ser mostrados sem uma sessão conectada, e dizem isso no lugar deles: [Em um painel público](/docs/dashboards/widgets#em-um-painel-público) os lista.
+Cada widget publica só o que desenha, e só para os recursos para os quais foi configurado. Um widget SLO, por exemplo, publica os números principais desse SLO, mas nunca a definição dele: veja [SLO](/docs/dashboards/widgets#slo). Os widgets de **Data Source** externa são a exceção: eles são retirados por completo de um painel público em vez de renderizados, porque a configuração deles é a própria consulta. Alguns outros widgets não podem ser mostrados sem uma sessão conectada, e dizem isso no lugar deles: [Em um painel público](/docs/dashboards/widgets#em-um-painel-público) os lista. Eles publicam só o título, nunca as buscas e os filtros com que leem os dados. As variáveis também publicam só o que os seletores delas mostram: a consulta de uma variável de consulta antiga nunca é publicada.
 
 ## Compartilhar com uma senha
 

@@ -79,6 +79,7 @@ Every page is a `POST` request with a JSON body:
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ Every page is a `POST` request with a JSON body:
 | `recordType`, `record` | What the page is about: an `incident`, `alert`, `incidentEpisode` or `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | The policy and level that paged them |
 | `isPageAgain` | `true` when the record was acknowledged a while ago and is still not resolved |
+| `isObserverPage` | `true` when they are paged as an observer: kept informed while somebody else responds. Acknowledging their page only says they have seen it |
 | `actions` | The links your service calls to [act on the page](#act-on-a-page) |
 
 A page to several people is one request per person, each with that person's own links, so OneUptime knows who answered. The title, message and description together are held to 16,384 characters; a longer description is cut and ends with "… (truncated — see OneUptime for the full text)".
@@ -170,6 +172,7 @@ A notification goes to every channel that is on, as one request per channel, wit
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

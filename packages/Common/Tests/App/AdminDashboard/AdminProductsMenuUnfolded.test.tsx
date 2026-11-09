@@ -115,6 +115,8 @@ describe("the Admin Dashboard menu", () => {
     ).toEqual([
       "Users",
       "Projects",
+      // Every project's telemetry usage, with billing on or off (#5916).
+      "Telemetry Usage",
       "OneUptime Health",
       "Send Email",
       "Settings",
@@ -130,7 +132,7 @@ describe("the Admin Dashboard menu", () => {
     render(<AdminNavBar />);
     fireEvent.click(screen.getByRole("button", { name: "Menu" }));
 
-    expect(screen.getAllByRole("option")).toHaveLength(5);
+    expect(screen.getAllByRole("option")).toHaveLength(6);
   });
 
   /*
@@ -153,7 +155,7 @@ describe("the Admin Dashboard menu", () => {
     expect(within(menu).queryByRole("group", { name: /Recent/ })).toBeNull();
     expect(within(menu).queryByText("Recently visited")).toBeNull();
     // Each entry once.
-    expect(within(menu).getAllByRole("option")).toHaveLength(5);
+    expect(within(menu).getAllByRole("option")).toHaveLength(6);
   });
 
   test("remembers no page it is on, and no entry opened from it", () => {

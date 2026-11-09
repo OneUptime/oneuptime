@@ -215,8 +215,8 @@ O serviço já criado não vira uma aplicação RUM, então exclua-o em **Produt
 As linhas de clientes vêm apenas de `device.model.identifier`. Um SDK que define só `device.id` ou `device.manufacturer` arquiva o aplicativo como RUM móvel, mas não lista clientes: defina também `device.model.identifier`.
 :::
 
-:::details O status diz Desconectado enquanto as pessoas usam o aplicativo
-O status passa para **Desconectado** depois de 15 minutos sem telemetria. Se as pessoas estão usando o aplicativo:
+:::details O status diz Sem tráfego recente enquanto as pessoas usam o aplicativo
+O status passa para **Sem tráfego recente** depois de 15 minutos sem telemetria. Se as pessoas estão usando o aplicativo:
 
 - Um amostrador pode estar descartando tudo: procure um amostrador always-off ou uma taxa muito baixa.
 - O aplicativo pode enviar telemetria só para ações que ninguém fez nesse período.

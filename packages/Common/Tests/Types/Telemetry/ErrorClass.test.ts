@@ -16,6 +16,7 @@ import APIException from "../../../Types/Exception/ApiException";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import BadOperationException from "../../../Types/Exception/BadOperationException";
 import BadRequestException from "../../../Types/Exception/BadRequestException";
+import ConflictException from "../../../Types/Exception/ConflictException";
 import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotConnectedException";
 import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import MasterPasswordRequiredException from "../../../Types/Exception/MasterPasswordRequiredException";
@@ -138,6 +139,17 @@ const CLASS_TABLE: Array<{
     name: "TooManyRequestsException",
     make: (): Exception => {
       return new TooManyRequestsException("slow down");
+    },
+    expected: ErrorClass.ExpectedDenial,
+  },
+  /*
+   * A save made to a graph someone else has saved over since (issue #6257):
+   * the check that refuses it is doing its job.
+   */
+  {
+    name: "ConflictException",
+    make: (): Exception => {
+      return new ConflictException("saved by someone else first");
     },
     expected: ErrorClass.ExpectedDenial,
   },

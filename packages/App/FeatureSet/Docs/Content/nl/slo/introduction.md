@@ -84,7 +84,7 @@ Alles wat bepaalt hoe de SLO meet, begint met een standaardwaarde die u later wi
 | Downtime-statussen | Alle niet-operationele statussen van het project | **Instellingen** → **Downtimeberekening** |
 | Modus voor meerdere monitoren | **Willekeurige monitor uitgevallen** | **Instellingen** → **Downtimeberekening** |
 | Evaluatie | Aan | **Instellingen** → **Evaluatie** |
-| Regels voor verbruikssnelheid | Een regel **Fast burn** en een regel **Slow burn**, afgestemd op het venster | **Verbruikssnelheidsregels** |
+| Regels voor verbruikssnelheid | Een regel **Fast burn**, een regel **Slow burn** en een regel **Slow leak**, afgestemd op het venster | **Verbruikssnelheidsregels** |
 
 ## Waaruit een SLO bestaat
 
@@ -141,7 +141,7 @@ Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status
 De pagina **SLOs** toont elke niet-gearchiveerde SLO, met status, SLI, resterend budget, verbruikssnelheid, doel, venster, monitoren, labels en eigenaren.
 
 - De tegels boven de lijst tellen SLO's per status: **Gezond**, **Risico**, **Budget uitgeput**, **Verkeerd geconfigureerd**, **Gepauzeerd** en **Uitgeschakeld**. Ze verschijnen zodra er een SLO is die niet gearchiveerd is. Klik op een tegel om alleen die SLO's te zien, en nog eens om alle te zien.
-- Selecteer SLO's om in één keer labels en eigenaren toe te voegen of te verwijderen, ze in of uit te schakelen, ze te archiveren of ze te verwijderen.
+- Selecteer SLO's om in één keer labels en eigenaren toe te voegen of te verwijderen, ze in of uit te schakelen, ze de [aanbevolen regels voor verbruikssnelheid](/docs/slo/burn-rate-alerts#ze-aan-veel-slos-tegelijk-toevoegen) te geven die ze missen, ze te archiveren of ze te verwijderen.
 - De sectie **Instellingen** van het zijmenu bevat **Labelregels** en **Eigenaarsregels**, die nieuwe SLO's labelen en eigenaren geven: zie [Label- en eigenaarsregels](/docs/slo/label-and-owner-rules).
 - De sectie **Geavanceerd** van het zijmenu bevat **Gearchiveerd**, de lijst met gearchiveerde SLO's.
 
@@ -153,18 +153,19 @@ Open een SLO om zijn pagina's in het zijmenu te zien:
 | --- | --- |
 | **Overzicht** | De status, de kerncijfers, de verbranding van het foutbudget, recente activiteit, open waarschuwingen en incidenten en de regels voor verbruikssnelheid. |
 | **Metrieken** | De `oneuptime.slo.*`-metrics van de SLO, zijn foutbudgetgeschiedenis op lange termijn en de metrics van de incidenten en waarschuwingen die hem raken. Zie [SLO-metrics en -dashboards](/docs/slo/metrics). |
-| **Incidenten** | De incidenten die zijn regels voor verbruikssnelheid hebben gemeld. De badge telt de open incidenten. |
-| **Waarschuwingen** | De waarschuwingen die zijn regels voor verbruikssnelheid hebben gegeven. De badge telt de open waarschuwingen. |
+| **Incidenten** | De incidenten die zijn regels voor verbruikssnelheid en zijn foutbudgetbeleid hebben gemeld. De badge telt de open incidenten. |
+| **Waarschuwingen** | De waarschuwingen die zijn regels voor verbruikssnelheid en zijn foutbudgetbeleid hebben gegeven. De badge telt de open waarschuwingen. |
 | **Feed** | Wat er met de SLO is gebeurd, als tijdlijn. Zie [SLO-feed en auditlogboeken](/docs/slo/feed-and-audit-logs). |
 | **Monitoren** | De monitoren die hij meet, en of elke monitor door een persoon of een regel is gekoppeld. |
 | **Monitorregels** | De regels die overeenkomende monitoren koppelen. |
 | **Verbruikssnelheidsregels** | De regels die waarschuwingen geven en incidenten melden als het budget te snel opraakt. |
+| **Foutbudgetbeleid** | Wat het team heeft afgesproken te doen terwijl het foutbudget opraakt, en de waarschuwingen en incidenten die elk niveau van het beleid geeft. Zie [Foutbudgetbeleid](/docs/slo/error-budget-policy). |
 | **Eigenaren** | De gebruikers en teams die over zijn statuswijzigingen horen. |
 | **Instellingen** | Het doel, de complianceperiode, de downtimeberekening, de evaluatieschakelaar en de archiefkaart. |
 | **Auditlogboeken** | Wie de SLO, zijn regels en zijn eigenaren heeft gewijzigd, en wanneer. |
 | **SLO verwijderen** | Verwijdert de SLO definitief en lost de open waarschuwingen en incidenten voor verbruikssnelheid op. |
 
-**Monitoren** staat in een sectie **Configuratie**, **Monitorregels** en **Verbruikssnelheidsregels** in een sectie **Regels**, en **Eigenaren**, **Instellingen**, **Auditlogboeken** en **SLO verwijderen** in een sectie **Beheer**. Alle drie beginnen ingeklapt, net als een sectie **Ontwikkelaars** om de SLO vanuit code te beheren: klik op de titel van een sectie om hem te openen.
+**Monitoren** staat in een sectie **Configuratie**, **Monitorregels**, **Verbruikssnelheidsregels** en **Foutbudgetbeleid** in een sectie **Regels**, en **Eigenaren**, **Instellingen**, **Auditlogboeken** en **SLO verwijderen** in een sectie **Beheer**. Alle drie beginnen ingeklapt, net als een sectie **Ontwikkelaars** om de SLO vanuit code te beheren: klik op de titel van een sectie om hem te openen.
 
 Als iets een SLO verhindert te meten, zegt een banner bovenaan elk van zijn pagina's wat er mis is en linkt hij naar de pagina die het oplost: zie [Problemen oplossen](#problemen-oplossen).
 
@@ -176,13 +177,15 @@ Het **Overzicht** beantwoordt "zitten we binnen het budget?", van boven naar ben
 - **De kerncijfers**:
   - **SLI**: het deel goede tijd in het venster, en hoeveel het boven of onder het doel zit.
   - **Foutbudget over**: een percentage, een duur zoals "12m 30s left of 43m 12s" en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget exceeded** en met hoeveel.
-  - **Verbruikssnelheid**: hoe snel het budget wordt uitgegeven over de laatste 60 minuten, de periode die de standaardregel voor snel verbruik gebruikt. Wordt oranje boven 1× en rood, met **Regeldrempel bereikt**, bij de laagste drempel van de ingeschakelde regels voor verbruikssnelheid van de SLO.
+  - **Verbruikssnelheid**: hoe snel het budget wordt uitgegeven over de laatste 60 minuten, de periode die de standaardregel voor snel verbruik gebruikt. Wordt oranje boven 1× en rood, met **Regeldrempel bereikt**, bij de laagste drempel van de ingeschakelde regels voor verbruikssnelheid van de SLO die 6 uur of minder terugkijken. Een uur zegt weinig over een regel die dagen terugkijkt, zoals **Slow leak**, dus wordt ze niet met zo'n regel vergeleken.
   - **Resterende looptijd van budget**: hoelang het budget in dit tempo meegaat. Zie [Foutbudgetten](/docs/slo/error-budget#looptijd-van-het-budget).
 - **Burn-down van foutbudget**: het resterende budget over het huidige venster. Zie [Foutbudgetten](/docs/slo/error-budget#verbranding-van-het-foutbudget).
 - **Recente activiteit**: de nieuwste items in de feed van de SLO.
 - **SLO-details**: de naam, de beschrijving en de labels, de enige instellingen die op het overzicht worden bewerkt.
 - **Open waarschuwingen en incidenten**: wat de regels voor verbruikssnelheid op dit moment open hebben.
-- **Burn rate rules**: de drempel van elke ingeschakelde regel naast de huidige verbruikssnelheid, en wat de regel meldt.
+- **Burn rate rules**: de drempel van elke ingeschakelde regel naast de huidige verbruikssnelheid, voor regels die 6 uur of minder terugkijken, en wat de regel meldt.
+
+Als de SLO in een niveau van zijn foutbudgetbeleid zit, toont het **Overzicht** ook dat niveau en wat het team daarin heeft afgesproken: zie [Foutbudgetbeleid](/docs/slo/error-budget-policy).
 
 ### Instellingen
 

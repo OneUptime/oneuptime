@@ -1,6 +1,6 @@
 # Il tuo account
 
-Il tuo account è il modo in cui OneUptime ti conosce: l'e-mail e la password con cui accedi, il tuo nome e il tuo fuso orario, e ciò che protegge il tuo accesso. Un account può appartenere a molti progetti, e queste impostazioni ti seguono in ognuno di essi. Come OneUptime ti raggiunge, e quando ti avvisa, si imposta in ogni progetto, in **Impostazioni utente**.
+Il tuo account è il modo in cui OneUptime ti conosce: l'e-mail e la password con cui accedi, il tuo nome, il tuo fuso orario e la tua lingua, e ciò che protegge il tuo accesso. Un account può appartenere a molti progetti, e queste impostazioni ti seguono in ognuno di essi. Come OneUptime ti raggiunge, e quando ti avvisa, si imposta in ogni progetto, in **Impostazioni utente**.
 
 ```mermaid title="Cosa appartiene al tuo account, e cosa conserva per te ogni progetto"
 flowchart TB
@@ -11,7 +11,7 @@ flowchart TB
 ```
 
 :::cards
-- [Il tuo profilo](#il-tuo-profilo): Il tuo nome, la tua e-mail, il fuso orario e la tua foto.
+- [Il tuo profilo](#il-tuo-profilo): Il tuo nome, la tua e-mail, il fuso orario, la lingua e la tua foto.
 - [Accedere in sicurezza](#accedere-in-sicurezza): La password, i link di accesso, le passkey e l'autenticazione a due fattori.
 - [I tuoi progetti](#i-tuoi-progetti): Cambiare progetto, crearne uno e accettare inviti.
 - [Impostazioni utente](#cosa-conserva-per-te-ogni-progetto): Come OneUptime ti raggiunge in ogni progetto.
@@ -23,7 +23,7 @@ Fai clic sulla tua foto in alto a destra nella dashboard.
 
 | Voce | Cosa fa |
 | --- | --- |
-| **Profilo** | Apre **Profilo utente**: il tuo nome, la tua e-mail, il fuso orario, la foto e la sicurezza dell'accesso. |
+| **Profilo** | Apre **Profilo utente**: il tuo nome, la tua e-mail, il fuso orario, la lingua, la foto e la sicurezza dell'accesso. |
 | **Impostazioni admin** | Apre l'Admin Dashboard. La vedono solo gli amministratori principali di un'installazione self-hosted. |
 | **Tema** | Imposta il tema della dashboard: **Chiaro**, **Scuro** o **Sistema**, che è chiaro o scuro in base all'impostazione del tuo dispositivo. |
 | **Esci** | Ti disconnette. |
@@ -35,7 +35,7 @@ Fai clic sulla tua foto in alto a destra nella dashboard.
 :::steps
 ### Aprire il tuo profilo
 
-Fai clic sulla tua foto in alto a destra e scegli **Profilo**. La pagina **Panoramica** si apre sulla scheda **Informazioni di base**: il tuo nome, la tua e-mail e il tuo fuso orario.
+Fai clic sulla tua foto in alto a destra e scegli **Profilo**. La pagina **Panoramica** si apre sulla scheda **Informazioni di base**: il tuo nome, la tua e-mail, il tuo fuso orario e la tua lingua.
 
 ### Modificare i tuoi dati
 
@@ -44,6 +44,7 @@ Fai clic su **Modifica: Utente** e cambia ciò che ti serve:
 - **E-mail**: l'indirizzo con cui accedi. Se lo cambi, verifichi di nuovo il nuovo indirizzo.
 - **Nome completo**: il nome che il tuo team vede in tutto OneUptime.
 - **Fuso orario**: il fuso orario in cui la dashboard mostra e legge gli orari, e quello degli orari nelle notifiche che ti vengono inviate.
+- **Lingua**: la lingua della dashboard in ogni browser in cui accedi, e quella delle tue chiamate di reperibilità. Se non è impostata, le chiamate sono in inglese e la dashboard segue il tuo browser.
 
 Fai clic su **Salva modifiche**.
 
@@ -146,9 +147,9 @@ Le **Impostazioni utente**, a destra nella barra sotto la barra superiore, sono 
 
 ## Lingua e tema
 
-Entrambi vengono salvati nel tuo browser, non nel tuo account: impostali di nuovo su un altro browser o dispositivo. Restano anche quando esci, quindi su un computer condiviso la persona successiva parte dalle tue impostazioni.
+Il tuo tema viene salvato nel tuo browser: impostalo di nuovo su un altro browser o dispositivo. La tua lingua viene salvata nel tuo account appena la scegli, e ogni browser in cui accedi parte in quella lingua. Restano anche quando esci, quindi su un computer condiviso la persona successiva parte dalle tue impostazioni.
 
-- **Lingua**: la dashboard parte nella lingua del tuo browser. Per cambiarla, usa il menu delle lingue in fondo a ogni pagina. Questa documentazione ha un proprio menu delle lingue, in alto.
+- **Lingua**: la dashboard parte nella lingua del tuo browser. Per cambiarla, usa il menu delle lingue in fondo a ogni pagina. La tua scelta viene salvata nel tuo account, come **Lingua** nel tuo profilo, e OneUptime scrive in quella lingua le tue chiamate di reperibilità. Vedi [La lingua delle tue chiamate](/docs/notifications/index#la-lingua-delle-vostre-chiamate). Questa documentazione ha un proprio menu delle lingue, in alto.
 - **Tema**: scegli **Chiaro**, **Scuro** o **Sistema** nel menu utente. **Sistema** è chiaro o scuro in base all'impostazione del tuo dispositivo, e cambia con essa; ogni browser parte da qui. Le pagine di accesso usano lo stesso tema.
 
 ## Eliminare il tuo account

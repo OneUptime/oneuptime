@@ -235,6 +235,7 @@ flowchart TB
 | **Page About** | 呼叫是关于什么的： **A new alert**、**An incident** 或 **An alert**。确认呼叫也就确认了它。 |
 | **Title** 和 **Message** | 用于新告警。OneUptime 会用它们创建一个告警，它和其他告警一样留在你的告警列表中。 |
 | **Incident ID** 或 **Alert ID** | 用于已经存在的事件或告警，通常是启动这个工作流的那一个：`{{local.components.incident-on-create-1.returnValues.model._id}}`。 |
+| **Page As** | 用于已存在的事件或告警，位于 **更多字段** 下。 **Responders** 负责处理。 **Observers** 在其他人处理时获知进展：他们确认呼叫只表示已看到，事件或告警不会因此被确认。 |
 | **Severity** | 用于新告警，位于 **更多字段** 下。它决定每个人的哪些值班规则会呼叫他们。留空时，使用项目中最严重的级别。 |
 
 添加到由事件或告警启动的工作流中的块，已经设置为针对该记录进行呼叫，因此只需要指定呼叫谁。

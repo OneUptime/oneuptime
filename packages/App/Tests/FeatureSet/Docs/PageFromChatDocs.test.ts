@@ -15,6 +15,7 @@ import WorkspaceCommands, {
   WorkspaceCommandName,
 } from "Common/Server/Utils/Workspace/WorkspaceCommands";
 import WorkspacePage, {
+  WORKSPACE_PAGE_FORM_TEXT,
   WorkspacePageFormPrefill,
   WorkspacePageTargetKind,
 } from "Common/Server/Utils/Workspace/WorkspacePage";
@@ -27,6 +28,8 @@ import WorkspacePageTextReader, {
   WorkspacePageGroup,
   WorkspacePageText,
 } from "Common/Server/Utils/Workspace/WorkspacePageText";
+import { ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
+import OnCallPageAs from "Common/Types/OnCallDutyPolicy/OnCallPageAs";
 import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "Common/Types/JSON";
@@ -822,5 +825,144 @@ describe("what the Slack app needs from Slack, as its manifest asks for it", () 
     );
     // The scopes changed: the old promise of no reinstall is gone.
     expect(olderApps).not.toContain("needs no reinstall");
+  });
+});
+
+/*
+ * PAGING AS OBSERVERS FROM THE CHATS (OnCallObserverPage), AS THE PAGES SAY
+ * IT: `as observers` after who to page, or the form's Page them as. Read
+ * with the command's own reader, the form's own words, and the check that
+ * refuses observers anywhere but a record's own channel.
+ */
+describe("paging as observers, as each page says it", () => {
+  const OBSERVERS_LEAD: string =
+    "To keep people informed while others respond, page them as observers.";
+
+  // The paragraph of a paging section that says how to page as observers.
+  function observersParagraph(markdown: string, heading: string): string {
+    const paragraph: string | undefined = section(markdown, `## ${heading}`)
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith(OBSERVERS_LEAD);
+      });
+
+    expect({ heading, found: Boolean(paragraph) }).toEqual({
+      heading,
+      found: true,
+    });
+
+    return paragraph as string;
+  }
+
+  test("Slack: `/oneuptime page @oversight as observers Team Y is on it` pages them as observers, and the rest is the message", () => {
+    expect(observersParagraph(SLACK_PAGE, SLACK_HEADING)).toContain(
+      "type `as observers` after who to page, as in `/oneuptime page @oversight as observers Team Y is on it`",
+    );
+
+    // As Slack sends it, the person escaped.
+    expect(
+      WorkspacePageTextReader.read(
+        SlackCommandParser.getPageTokens(
+          "page <@U0OVERSEE|oversight> as observers Team Y is on it",
+        ),
+      ),
+    ).toEqual({
+      people: [{ workspaceUserId: "U0OVERSEE", name: "oversight" }],
+      groups: [],
+      unknownNames: [],
+      message: "Team Y is on it",
+      pageAs: OnCallPageAs.Observers,
+    });
+  });
+
+  test("Microsoft Teams: `@OneUptime page @Oversight as observers Team Y is on it` - the same words, typed to the bot", () => {
+    expect(observersParagraph(TEAMS_PAGE, TEAMS_HEADING)).toContain(
+      "type `as observers` after who to page, as in `@OneUptime page @Oversight as observers Team Y is on it`",
+    );
+
+    const activity: JSONObject = {
+      text: "<at>OneUptime</at> page <at>Oversight</at> as observers Team Y is on it",
+      recipient: { id: "28:oneuptime-bot" },
+      entities: [
+        {
+          type: "mention",
+          text: "<at>OneUptime</at>",
+          mentioned: { id: "28:oneuptime-bot", name: "OneUptime" },
+        },
+        {
+          type: "mention",
+          text: "<at>Oversight</at>",
+          mentioned: { id: "29:oversight", name: "Oversight" },
+        },
+      ],
+    };
+
+    expect(
+      WorkspacePageTextReader.read(MicrosoftTeamsPage.getPageTokens(activity)),
+    ).toEqual({
+      people: [{ workspaceUserId: "29:oversight", name: "Oversight" }],
+      groups: [],
+      unknownNames: [],
+      message: "Team Y is on it",
+      pageAs: OnCallPageAs.Observers,
+    });
+  });
+
+  test.each([
+    {
+      name: "Slack",
+      markdown: SLACK_PAGE,
+      heading: SLACK_HEADING,
+      where: "in the form",
+    },
+    {
+      name: "Microsoft Teams",
+      markdown: TEAMS_PAGE,
+      heading: TEAMS_HEADING,
+      where: "on the card",
+    },
+  ])(
+    "$name: the form's choice is named as the server words it",
+    (page: { markdown: string; heading: string; where: string }) => {
+      expect(observersParagraph(page.markdown, page.heading)).toContain(
+        `pick **${WORKSPACE_PAGE_FORM_TEXT.pageAsObservers}** under **${WORKSPACE_PAGE_FORM_TEXT.pageAsLabel}** ${page.where}`,
+      );
+    },
+  );
+
+  test("only in a record's own channel: anywhere else `as observers` is refused, before anybody is paged", () => {
+    for (const [markdown, heading] of [
+      [SLACK_PAGE, SLACK_HEADING],
+      [TEAMS_PAGE, TEAMS_HEADING],
+    ] as Array<[string, string]>) {
+      const paragraph: string = observersParagraph(markdown, heading);
+
+      expect(paragraph).toContain("In an incident's or an alert's own channel");
+      expect(paragraph).toContain(
+        "so anywhere else `as observers` is refused, and nobody is paged.",
+      );
+    }
+
+    const read: WorkspacePageText = WorkspacePageTextReader.read(
+      SlackCommandParser.getPageTokens(
+        "page <@U0OVERSEE|oversight> as observers The disk is full",
+      ),
+    );
+
+    for (const about of [
+      WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+      RESOLVED_INCIDENT_CHANNEL,
+    ]) {
+      expect(
+        WorkspacePage.getObserverPageRefusal({ text: read, about: about }),
+      ).toBe(ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE);
+    }
+
+    expect(
+      WorkspacePage.getObserverPageRefusal({
+        text: read,
+        about: INCIDENT_CHANNEL,
+      }),
+    ).toBeNull();
   });
 });

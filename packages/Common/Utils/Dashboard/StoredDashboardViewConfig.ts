@@ -11,6 +11,7 @@ import DefaultDashboardSize from "../../Types/Dashboard/DashboardSize";
 import { JSONObject, JSONValue, ObjectType } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
+import DashboardWidgetIds from "./DashboardWidgetIds";
 
 /*
  * Reads a dashboard's stored config, in whatever shape it was stored, into
@@ -27,7 +28,8 @@ import ObjectID from "../../Types/ObjectID";
  *   undefined (reading 'length')", and the page never opened. Widgets in
  *   the `{"_type": "DashboardComponent", "value": {...}}` envelope the same
  *   reference documented for one widget are read as the widget inside.
- * - JSON text instead of an object (a config, or a widget, encoded twice).
+ * - JSON text instead of an object (a config, a widget or a widget's
+ *   arguments, encoded twice).
  * - No widget list at all (`{}`), or a list that is not a list.
  * - Widgets without an id, two widgets with the same id, widgets without
  *   `arguments` (saved before November 2024, or written by hand), sizes
@@ -58,9 +60,37 @@ export const FALLBACK_WIDGET_WIDTH_IN_DASHBOARD_UNITS: number = 6;
 export const FALLBACK_WIDGET_HEIGHT_IN_DASHBOARD_UNITS: number = 4;
 
 /*
+ * Where a widget sits on the board and the least room it takes, as every
+ * board reads it off the stored widget (getComponentLayout).
+ */
+export type StoredComponentLayout = Pick<
+  DashboardBaseComponent,
+  | "topInDashboardUnits"
+  | "leftInDashboardUnits"
+  | "widthInDashboardUnits"
+  | "heightInDashboardUnits"
+  | "minWidthInDashboardUnits"
+  | "minHeightInDashboardUnits"
+>;
+
+/*
+ * The board's own settings - its height, its default time range and
+ * auto-refresh, and its variables - as every board reads them off the
+ * stored config (readBoardSettings).
+ */
+export type StoredBoardSettings = Pick<
+  DashboardViewConfig,
+  "heightInDashboardUnits" | "timeRange" | "refreshInterval" | "variables"
+>;
+
+/*
  * How many layers of JSON text or envelope are read through before giving
- * up. Real configs need one or two; the bound keeps a hostile value from
- * looping.
+ * up. Real configs need one or two; the bound keeps the work a hostile
+ * value asks for small. What lies past it is read alike by every reader: a
+ * config as one with no widgets, a widget as one with no type, which the
+ * board shows as "This widget could not be shown" where it can be removed.
+ * The public dashboard's sanitizer does not depend on it: it serves only
+ * what it read, as a config every board reads as it is (issue #6327).
  */
 const MAX_UNWRAP_STEPS: number = 4;
 
@@ -361,6 +391,104 @@ export default class StoredDashboardViewConfig {
   }
 
   /*
+   * A stored widget entry with its `arguments` written as JSON text (the
+   * arguments encoded twice) read as the object that text says - a copy;
+   * any other entry comes back as the same object. Text that says no
+   * object - a list, a number, text again, JSON cut short - is left as it
+   * is: no arguments. `read` deserializes what this gives, as it does a
+   * widget stored with its arguments as an object; a public route that
+   * reads one widget's settings as stored JSON reads them through this, so
+   * a widget is answered from the settings the page draws it with, in
+   * either shape (issue #6297).
+   */
+  public static withArgumentsRead(entry: JSONObject): JSONObject {
+    const storedArguments: unknown = entry["arguments"];
+
+    if (typeof storedArguments !== "string") {
+      return entry;
+    }
+
+    const textArguments: unknown = readJSONText(storedArguments);
+
+    return isPlainObject(textArguments)
+      ? { ...entry, arguments: textArguments }
+      : entry;
+  }
+
+  /*
+   * The type a board draws a stored widget entry as: its componentType when
+   * that is text, kept exactly as stored (known or not, untrimmed), and ""
+   * when it has none. `read` takes every widget's type from here, and the
+   * public dashboard's sanitizer judges every widget by it, so a widget is
+   * served as the type every board then draws it as (issue #6327).
+   */
+  public static getComponentType(entry: JSONObject): string {
+    const componentType: unknown = entry["componentType"];
+
+    return typeof componentType === "string" ? componentType : "";
+  }
+
+  /*
+   * Where a stored widget entry sits on the board and the least room it
+   * takes, as every board reads it: numbers written as text are read as
+   * numbers, and a missing or unreadable one is the fallback - the top left
+   * corner, the size most widgets are added at, and one unit at the least.
+   */
+  public static getComponentLayout(entry: JSONObject): StoredComponentLayout {
+    return {
+      topInDashboardUnits: readFiniteNumber(entry["topInDashboardUnits"]) ?? 0,
+      leftInDashboardUnits:
+        readFiniteNumber(entry["leftInDashboardUnits"]) ?? 0,
+      widthInDashboardUnits:
+        readFiniteNumber(entry["widthInDashboardUnits"]) ??
+        FALLBACK_WIDGET_WIDTH_IN_DASHBOARD_UNITS,
+      heightInDashboardUnits:
+        readFiniteNumber(entry["heightInDashboardUnits"]) ??
+        FALLBACK_WIDGET_HEIGHT_IN_DASHBOARD_UNITS,
+      minWidthInDashboardUnits:
+        readFiniteNumber(entry["minWidthInDashboardUnits"]) ?? 1,
+      minHeightInDashboardUnits:
+        readFiniteNumber(entry["minHeightInDashboardUnits"]) ?? 1,
+    };
+  }
+
+  /*
+   * The board's own settings, as the board and its toolbar read them off
+   * the object the widgets are on (unwrap): its height, the default time
+   * range and auto-refresh when they are ones a dashboard can open on, and
+   * its variables when there is a list of them. A setting the board cannot
+   * read is left out, and the board falls back as it always did.
+   */
+  public static readBoardSettings(stored: JSONObject): StoredBoardSettings {
+    const settings: StoredBoardSettings = {
+      heightInDashboardUnits: StoredDashboardViewConfig.readBoardHeight(
+        stored["heightInDashboardUnits"],
+      ),
+    };
+
+    const timeRange: unknown = stored["timeRange"];
+
+    if (isDashboardTimeRange(timeRange)) {
+      settings.timeRange = timeRange;
+    }
+
+    const refreshInterval: unknown = stored["refreshInterval"];
+
+    if (isDashboardAutoRefreshInterval(refreshInterval)) {
+      settings.refreshInterval = refreshInterval;
+    }
+
+    const variables: Array<DashboardVariable> | undefined =
+      StoredDashboardViewConfig.readVariables(stored["variables"]);
+
+    if (variables) {
+      settings.variables = variables;
+    }
+
+    return settings;
+  }
+
+  /*
    * The config the dashboard draws. Always a DashboardViewConfig with a
    * widget list; every widget has a unique ObjectID, a type (kept as stored,
    * known or not), numeric position and size, and an `arguments` object.
@@ -384,13 +512,14 @@ export default class StoredDashboardViewConfig {
       }
     });
 
+    const board: StoredBoardSettings =
+      StoredDashboardViewConfig.readBoardSettings(stored);
+
     const config: DashboardViewConfig = {
       ...(stored as unknown as DashboardViewConfig),
       _type: ObjectType.DashboardViewConfig,
       components: components,
-      heightInDashboardUnits: StoredDashboardViewConfig.readBoardHeight(
-        stored["heightInDashboardUnits"],
-      ),
+      heightInDashboardUnits: board.heightInDashboardUnits,
     };
 
     /*
@@ -398,27 +527,20 @@ export default class StoredDashboardViewConfig {
      * open on - Custom, a typo, a value from another version - is read as
      * none, so it opens on the past hour, with auto-refresh off.
      */
-    const timeRange: unknown = stored["timeRange"];
-
-    if (isDashboardTimeRange(timeRange)) {
-      config.timeRange = timeRange;
+    if (board.timeRange !== undefined) {
+      config.timeRange = board.timeRange;
     } else {
       delete config.timeRange;
     }
 
-    const refreshInterval: unknown = stored["refreshInterval"];
-
-    if (isDashboardAutoRefreshInterval(refreshInterval)) {
-      config.refreshInterval = refreshInterval;
+    if (board.refreshInterval !== undefined) {
+      config.refreshInterval = board.refreshInterval;
     } else {
       delete config.refreshInterval;
     }
 
-    const variables: Array<DashboardVariable> | undefined =
-      StoredDashboardViewConfig.readVariables(stored["variables"]);
-
-    if (variables) {
-      config.variables = variables;
+    if (board.variables !== undefined) {
+      config.variables = board.variables;
     } else {
       delete config.variables;
     }
@@ -542,48 +664,64 @@ export default class StoredDashboardViewConfig {
     id: string,
   ): DashboardBaseComponent {
     /*
+     * Arguments written as JSON text are read exactly as arguments stored
+     * as that object: deserialized with the rest of the widget, below.
+     * Parsed after it, they stayed JSON - an ObjectID's JSON instead of the
+     * id, a query operator's instead of the operator - so a chart whose
+     * arguments were text read none of the services it is saved with, and
+     * charted every service (issue #6297).
+     */
+    const widget: JSONObject =
+      StoredDashboardViewConfig.withArgumentsRead(entry);
+
+    /*
      * Each widget is deserialized on its own (ObjectIDs, dates, query
      * operators), so one that cannot be leaves the others alone - it is
      * then drawn from its stored JSON, and its own error boundary decides.
      */
-    let source: JSONObject = entry;
+    let source: JSONObject = widget;
 
     try {
       const deserialized: unknown = JSONFunctions.deserializeValue(
-        entry as JSONValue,
+        widget as JSONValue,
       );
 
       if (isPlainObject(deserialized)) {
         source = deserialized;
       }
     } catch {
-      source = entry;
+      source = widget;
     }
 
+    // Text that says no object - a list, a number, text again - is none.
     const componentArguments: unknown = readJSONText(source["arguments"]);
-    const componentType: unknown = source["componentType"];
 
     return {
       ...(source as unknown as DashboardBaseComponent),
       _type: ObjectType.DashboardComponent,
       componentId: new ObjectID(id),
-      componentType: (typeof componentType === "string"
-        ? componentType
-        : "") as DashboardComponentType,
-      topInDashboardUnits: readFiniteNumber(source["topInDashboardUnits"]) ?? 0,
-      leftInDashboardUnits:
-        readFiniteNumber(source["leftInDashboardUnits"]) ?? 0,
-      widthInDashboardUnits:
-        readFiniteNumber(source["widthInDashboardUnits"]) ??
-        FALLBACK_WIDGET_WIDTH_IN_DASHBOARD_UNITS,
-      heightInDashboardUnits:
-        readFiniteNumber(source["heightInDashboardUnits"]) ??
-        FALLBACK_WIDGET_HEIGHT_IN_DASHBOARD_UNITS,
-      minWidthInDashboardUnits:
-        readFiniteNumber(source["minWidthInDashboardUnits"]) ?? 1,
-      minHeightInDashboardUnits:
-        readFiniteNumber(source["minHeightInDashboardUnits"]) ?? 1,
-      arguments: isPlainObject(componentArguments) ? componentArguments : {},
+      /*
+       * The type and the place are read off the stored widget, with the
+       * readers the public dashboard's sanitizer judges and serves every
+       * widget by (issue #6327). Deserializing changes neither: text stays
+       * the same text, and no typed value comes back as text or a number.
+       */
+      componentType: StoredDashboardViewConfig.getComponentType(
+        widget,
+      ) as DashboardComponentType,
+      ...StoredDashboardViewConfig.getComponentLayout(widget),
+      /*
+       * Each id setting - a list's states, severities, monitors, labels,
+       * clusters and hosts, an SLO widget's SLO, the variable a widget
+       * follows - as the id it names, in text: stored as an ObjectID's JSON,
+       * it was revived into an ObjectID here (or kept as that JSON), which
+       * the widgets read as text. An SLO widget trimmed it and fell into its
+       * error boundary, and a list's state filter compared it with text and
+       * dropped every state (issue #6328).
+       */
+      arguments: isPlainObject(componentArguments)
+        ? DashboardWidgetIds.withIdsRead(componentArguments)
+        : {},
     };
   }
 

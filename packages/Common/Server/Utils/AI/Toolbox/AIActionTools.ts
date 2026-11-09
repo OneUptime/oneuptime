@@ -12,7 +12,6 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "../../../../Types/Date";
 import PublicNoteSubscriberNotificationDefault from "../../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import PrivateRecordPublicNotes, {
   PrivateRecordKind,
@@ -687,15 +686,21 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
      * (FeedMarkdown.aiWritten).
      */
     publicNote.note = FeedMarkdown.aiWritten(note).toString();
-    publicNote.postedAt = OneUptimeDate.getCurrentDate();
+    /*
+     * No time of its own: posted now - or, when the project asks for public
+     * notes to be approved, when it is approved.
+     */
     publicNote.createdByUserId = userId;
     publicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
       notifySubscribers;
 
-    await IncidentPublicNoteService.create({
+    const created: IncidentPublicNote = await IncidentPublicNoteService.create({
       data: publicNote,
       props: ctx.props,
     });
+
+    // Held for approval: nothing is published, and nobody is told, yet.
+    const isWaitingForApproval: boolean = created.isPublished === false;
 
     const incidentIdString: string = incidentId.toString();
 
@@ -707,9 +712,13 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
     ]);
 
     return {
-      dataForLlm: `Posted a public status update on incident #${incident.incidentNumber}${
-        notifySubscribers ? " and notified subscribers" : ""
-      }.\n${serialized.text}`,
+      dataForLlm: isWaitingForApproval
+        ? `Sent a public status update on incident #${incident.incidentNumber} for approval: this project asks for public notes to be approved, so it is not on status pages${
+            notifySubscribers ? " and subscribers are not told" : ""
+          } until an approver approves it.\n${serialized.text}`
+        : `Posted a public status update on incident #${incident.incidentNumber}${
+            notifySubscribers ? " and notified subscribers" : ""
+          }.\n${serialized.text}`,
       rowCount: 1,
       citationLabel: `Status update on incident #${incident.incidentNumber}`,
       citationTarget: {
@@ -719,15 +728,19 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
       redactionCount: serialized.redactionCount,
       isTruncated: false,
       widget: WidgetBuilder.actionCard({
-        title: "Status update posted",
+        title: isWaitingForApproval
+          ? "Status update sent for approval"
+          : "Status update posted",
         heading: `${getIncidentNumberText(incident)} · ${incident.title}`,
         words: {
           kind: aiActionTerm(AI_ACTION_CARD_KINDS.incident),
           line: [
             aiActionSentence(
-              notifySubscribers
-                ? AI_ACTION_CARD_LINES.statusUpdatePostedSubscribersNotified
-                : AI_ACTION_CARD_LINES.statusUpdatePostedQuietly,
+              isWaitingForApproval
+                ? AI_ACTION_CARD_LINES.statusUpdateWaitsForApproval
+                : notifySubscribers
+                  ? AI_ACTION_CARD_LINES.statusUpdatePostedSubscribersNotified
+                  : AI_ACTION_CARD_LINES.statusUpdatePostedQuietly,
             ),
           ],
           facts: [

@@ -93,6 +93,19 @@ flowchart TB
 
 For at se, hvordan en kontrol blev vurderet, skal du åbne monitorens **Oversigt**: kortet **Monitor-resumé** viser, hvilket kriterium der matchede, og hvad hvert kriterium gjorde, også en hændelse, der blev sprunget over, fordi der allerede var en åben.
 
+## Hvad en hændelse eller advarsel beholder af kontrollen
+
+En hændelse eller advarsel, som en monitor åbner, beholder den kontrol, der åbnede den, så du kan se hvorfor længe efter, at monitorens egne logfiler er væk. Under grundårsagen nævner **Evalueringsdetaljer** det kriterium, der matchede, og for hvert filter, der matchede, hvad kontrollen fandt. **Vis detaljer** tilføjer resten af beviserne, de filtre, der ikke matchede, og selve kontrollen: anmodningen, hvornår den kørte, fra hvilken sonde og hvad der kom tilbage. Det, et filter fandt, kan være:
+
+- **Feltet.** Hvor et filter **Svarets brødtekst** matchede i et JSON-indhold, fx `checks[1].status`, eller den header, hvor et filter **Response Header Value** matchede.
+- **Værdierne.** Hvad hver værdi, en **JavaScript Expression** læser, indeholdt, da den blev evalueret, fx `responseBody.status = "down"`.
+- **Et uddrag.** Et kort stykke af svaret omkring matchet, med matchet markeret: aldrig hele indholdet.
+
+Hemmeligheder og personoplysninger maskeres, før noget gemmes: headere som `Authorization`, `Cookie` og `Set-Cookie`, felter, hvis navn siger `password`, `token`, `key`, `session` eller `email`, og tekst, der ligner et bearer-token, en JWT, et kortnummer eller en e-mailadresse. Anmodningens URL er den, monitoren blev sat op med, så `{{monitorSecrets.NAME}}` forbliver et navn, og en hemmelig forespørgselsværdi maskeres. Monitorens **Overvågningslogs** og enhver værdi, som en grundårsag citerer, maskeres på samme måde. En hændelse eller advarsel, der er åbnet manuelt eller før evalueringsdetaljer blev gemt, har ingen.
+
+> [!TIP]
+> Når svarene fra en website- eller API-monitor er følsomme i sig selv, så slå **Behold svarindhold** fra på kortet **Svarindhold** på dens side **Avanceret → Indstillinger**. Dens overvågningslogs, hændelser og advarsler beholder så, hvilke filtre der matchede, statuskoden og svartiden, og ingen del af svaret. En monitor for indgående anmodninger har den samme kontakt for de anmodninger, den modtager: **Behold anmodningsindhold**, på kortet **Anmodningsindhold**. Kontakten gælder for de kontroller, der kører, og de hændelser og advarsler, der åbnes, efter du ændrer den.
+
 ## Ændr en monitors kriterier
 
 :::steps
@@ -135,7 +148,7 @@ Listen er en rækkefølge. Hvor monitorer vises sammen, vinder den status, der s
 
 | Hvor | Hvad statussen afgør |
 | --- | --- |
-| Listen **Monitorer** | Hver monitors aktuelle status. **Ikke operationel** viser monitorerne i enhver status undtagen den driftsklare, med et rødt tal ved siden af. |
+| Listen **Monitorer** | Hver monitors aktuelle status. **Ikke operationel** viser monitorerne i enhver status undtagen den driftsklare, med et rødt tal ved siden af. Monitorer med overvågning slået fra er udeladt: intet tjekker dem, og **Deaktiveret** viser dem. |
 | Statussider | Farven på hver række og dens oppetid: kun statusserne i sidens **Tæller som nedetid** tæller imod den. En ny statusside starter med alle statusser undtagen den driftsklare. Se [Vælg, hvad siden viser](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden). |
 | Monitorgrupper | Gruppens status: den værste blandt dens monitorer. Se [Monitorgrupper](/docs/monitor/monitor-groups). |
 | SLO'er | Den nedetid, et SLO tæller, ud fra dets egen liste over statusser. Se [Hvilke statusser tæller som nedetid](/docs/slo/introduction#hvilke-statusser-der-tæller-som-nedetid). |

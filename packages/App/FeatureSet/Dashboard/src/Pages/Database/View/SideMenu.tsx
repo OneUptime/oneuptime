@@ -340,6 +340,16 @@ const DatabaseServerSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DATABASE_SERVER_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
+        <SideMenuItem
+          link={{
             title: "Delete Database",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DATABASE_SERVER_VIEW_DELETE] as Route,

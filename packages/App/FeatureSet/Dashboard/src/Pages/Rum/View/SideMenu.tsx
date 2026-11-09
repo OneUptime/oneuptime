@@ -205,6 +205,16 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
+        <SideMenuItem
+          link={{
             title: "Delete Application",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.RUM_APPLICATION_VIEW_DELETE] as Route,

@@ -7,6 +7,7 @@ OneUptime vi raggiunge in due modi. Vi chiama quando un incidente o un avviso sc
 - [Dove trovarli](#dove-trovarli): Le pagine delle impostazioni utente, sezione per sezione.
 - [Con cosa partite](#con-cosa-partite): I metodi, le regole e le impostazioni che riceve un nuovo membro.
 - [Quando nessuna regola corrisponde](#quando-nessuna-regola-corrisponde): Come una chiamata vi raggiunge comunque, e chi viene informato.
+- [La lingua delle vostre chiamate](#la-lingua-delle-vostre-chiamate): Chiamate nella lingua che avete scelto, e cosa resta in inglese.
 :::
 
 ## Come funziona
@@ -96,6 +97,18 @@ Una chiamata può raggiungervi per un tipo e una gravità per cui non avete una 
 
 Ricevete un'e-mail al riguardo, e così i proprietari della politica di reperibilità, o quelli del progetto se la politica non ne ha. Se non c'è nulla di verificato, la chiamata non può essere consegnata, e l'e-mail lo dice. Queste e-mail vengono trattenute finché continuano ad arrivare chiamate, così una tempesta di chiamate non diventa una tempesta di e-mail. Per aggiungere la regola mancante, vedete [Regole di reperibilità personali](/docs/notifications/on-call-rules#quando-una-gravità-non-ha-una-regola).
 
+## La lingua delle vostre chiamate
+
+Le vostre chiamate sono scritte nella vostra lingua: quella che scegliete nel menu delle lingue in fondo a ogni pagina, o in **Lingua** in **Profilo utente**. Finché non ne scegliete una, sono in inglese.
+
+| Canale | Lingua |
+| --- | --- |
+| E-mail, SMS, notifiche push e Telegram | La vostra lingua |
+| I vostri messaggi personali su Slack, Microsoft Teams e Mattermost | La vostra lingua |
+| Telefonate e WhatsApp | Inglese |
+
+Cambiano le parole di OneUptime: oggetti, titoli, pulsanti e frasi, e i nomi con cui parte ogni nuovo progetto, come Identificato e Incidente critico. Ciò che ha scritto il vostro team resta com'è: titoli, descrizioni, cause principali e i nomi di progetti, team e stati che il vostro progetto ha nominato. Un SMS in una lingua con un proprio alfabeto, come il russo, il giapponese o il persiano, occupa più parti di uno in inglese.
+
 ## Risoluzione dei problemi
 
 :::details Ero di reperibilità, ma non mi è arrivato nulla
@@ -104,6 +117,10 @@ Aprite **Impostazioni utente → Registri di reperibilità**. Nessuna riga per l
 
 :::details Ricevo e-mail su elementi che non ho mai chiesto
 Siete proprietari dell'elemento, direttamente o tramite un team, oppure l'elemento non ha proprietari e voi siete proprietari del progetto. Disattivate l'evento in **Impostazioni utente → Impostazioni notifiche**, o riducete il volume in **Impostazioni utente → Preferenze e-mail**.
+:::
+
+:::details Le mie chiamate sono in inglese, ma la dashboard no
+La dashboard segue il vostro browser finché non scegliete una lingua. Sceglietela nel menu delle lingue in fondo a ogni pagina, o in **Lingua** in **Profilo utente**. Le telefonate e i messaggi WhatsApp restano in inglese.
 :::
 
 :::details Ho aggiunto un numero di telefono, ma non è nelle mie regole

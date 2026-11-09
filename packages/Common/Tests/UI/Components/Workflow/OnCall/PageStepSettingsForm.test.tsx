@@ -344,7 +344,7 @@ describe("a new Page Users step", () => {
     const help: HTMLElement = screen.getByText(/^What the page is about\./);
 
     expect(help.textContent).toBe(
-      "What the page is about. The people paged are told this, and acknowledging the page acknowledges it.",
+      "What the page is about. The people paged are told this, and a responder acknowledging the page acknowledges it.",
     );
     // Nor "(Optional)" beside its name.
     expect(
@@ -376,6 +376,8 @@ describe("a new Page Users step", () => {
 
     expect(fold).toHaveAttribute("aria-expanded", "false");
     expect(fold).toHaveTextContent("Severity");
+    // Observers are told about something that is there: not a new alert.
+    expect(fold).not.toHaveTextContent("Page As");
   });
 });
 
@@ -388,7 +390,9 @@ describe("choosing what the page is about", () => {
     await waitFor(() => {
       expect(settingNames()).toEqual(["Users", "Page About", "Incident ID"]);
     });
-    expect(moreFields()).toBeNull();
+    // What the people paged are asked to do waits folded: Responders until changed.
+    expect(moreFields()).toHaveTextContent("Page As");
+    expect(moreFields()).not.toHaveTextContent("Severity");
     await waitFor(() => {
       expect(lastArguments(onFormChange)[PAGE_ARGUMENT_IDS.about]).toBe(
         "incident",
@@ -421,7 +425,8 @@ describe("choosing what the page is about", () => {
     await waitFor(() => {
       expect(settingNames()).toEqual(["Users", "Page About", "Alert ID"]);
     });
-    expect(moreFields()).toBeNull();
+    expect(moreFields()).toHaveTextContent("Page As");
+    expect(moreFields()).not.toHaveTextContent("Severity");
     await waitFor(() => {
       expect(lastArguments(onFormChange)[PAGE_ARGUMENT_IDS.about]).toBe(
         "alert",

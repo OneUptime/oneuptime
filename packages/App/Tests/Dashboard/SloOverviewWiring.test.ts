@@ -125,6 +125,7 @@ describe("SLO overview page composition", () => {
     for (const component of [
       "SloNoticeBanner",
       "SloOverviewHero",
+      "SloErrorBudgetPolicyTierCard",
       "SloKpiStrip",
       "SloBudgetBurnDownCard",
       "SloFeed",
@@ -171,6 +172,8 @@ describe("SLO overview page composition", () => {
   test("lays out a two-thirds main column beside a one-third sidebar, in reading order", () => {
     const order: Array<string> = [
       "<SloOverviewHero",
+      // What the team agreed to do now, right under the verdict.
+      "<SloErrorBudgetPolicyTierCard",
       "<SloKpiStrip",
       "xl:grid-cols-3",
       "xl:col-span-2",
@@ -248,9 +251,11 @@ describe("SLO overview data flow", () => {
         "SloBudgetBar",
         "SloBudgetBurnDownCard",
         "SloBurnRateRulesSummaryCard",
+        "SloErrorBudgetPolicyTierCard",
         "SloKpiStrip",
         "SloOverviewGettingStartedCard",
         "SloOverviewHero",
+        "SloPolicyTier",
         "useSloHistorySeries",
         "useSloOverviewData",
       ]),
@@ -324,6 +329,33 @@ describe("SLO overview data flow", () => {
           "ModelAPI.getList<ServiceLevelObjectiveBurnRateRule>",
         ),
       }).toEqual({ moduleName, fetchesRules: false });
+    }
+  });
+
+  /*
+   * The tiers of the error budget policy come with the same poll as the
+   * rules: the policy card reads the tier the SLO is in from them, and the
+   * burn-down draws the enabled ones as lines.
+   */
+  test("the policy's tiers are loaded once and shared by the policy card and the burn-down", () => {
+    expect(INDEX_CODE).toContain("tiers={data.policyTiers}");
+    expect(INDEX_CODE).toContain("policyTiers={enabledPolicyTiers}");
+    expect(INDEX_CODE).toContain("return tier.isEnabled === true;");
+    expect(getModuleCode("useSloOverviewData")).toContain(
+      "ModelAPI.getList<ServiceLevelObjectiveErrorBudgetPolicyTier>",
+    );
+
+    for (const [moduleName, code] of OVERVIEW_MODULES) {
+      if (moduleName === "useSloOverviewData") {
+        continue;
+      }
+
+      expect({
+        moduleName,
+        fetchesTiers: code.includes(
+          "ModelAPI.getList<ServiceLevelObjectiveErrorBudgetPolicyTier>",
+        ),
+      }).toEqual({ moduleName, fetchesTiers: false });
     }
   });
 
@@ -415,6 +447,7 @@ describe("SLO overview links", () => {
         "SLO_VIEW_MONITORS",
         "SLO_VIEW_MONITOR_RULES",
         "SLO_VIEW_BURN_RATE_RULES",
+        "SLO_VIEW_ERROR_BUDGET_POLICY",
         "SLO_VIEW_METRICS",
         "SLO_VIEW_SETTINGS",
         "SLO_VIEW_ALERTS",

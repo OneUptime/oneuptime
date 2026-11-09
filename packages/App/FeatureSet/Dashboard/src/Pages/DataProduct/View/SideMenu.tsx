@@ -17,7 +17,7 @@ export interface ComponentProps {
 
 /*
  * One data product's pages: whether it is fresh, its settings, its
- * Developer pages and, last, deleting it.
+ * Developer pages, who changed it (Audit Logs) and, last, deleting it.
  */
 const DataProductViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -54,6 +54,15 @@ const DataProductViewSideMenu: FunctionComponent<ComponentProps> = (
       })}
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: routeOf(
+              PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS,
+            ),
+          }}
+          icon={IconProp.List}
+        />
         <SideMenuItem
           link={{
             title: "Delete Data Product",

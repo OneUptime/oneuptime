@@ -1,6 +1,6 @@
 # RUM-felsökning
 
-När en RUM-applikation saknas, är tom eller visar **Frånkopplad** går du igenom den här sidan i ordning. Varje kontroll utesluter en del av vägen mellan din app och OneUptime, i den ordning som de här problemen brukar uppstå.
+När en RUM-applikation saknas eller är tom, eller visar **Ingen trafik nyligen** medan folk använder den, går du igenom den här sidan i ordning. Varje kontroll utesluter en del av vägen mellan din app och OneUptime, i den ordning som de här problemen brukar uppstå.
 
 :::cards
 - [Kontrollera nyckeln](#kontrollera-nyckeln): Den snabbaste kontrollen, och allt annat beror på den.
@@ -109,6 +109,33 @@ Applikationen finns, men dess sidor visar ingenting.
 - **Vänta några minuter.** Intag går via en kö, och **Senast sedd** uppdateras med några minuters mellanrum i stället för vid varje batch.
 - **Kontrollera projektet.** En nyckel skriver till sitt eget projekt, så telemetri som skickas med ett annat projekts nyckel finns där och inte här.
 
+## Undantag eller loggar är tomma
+
+Sidladdningar och förfrågningar kommer in, men **Undantag** eller **Loggar** förblir tomma. OpenTelemetry-SDK:t för webbläsare skickar av sig självt spår av sidladdningar och förfrågningar, men inga undantag och inga loggar, så en applikation kan se ansluten ut medan de här två förblir tomma för gott.
+
+Det tomma diagrammet på applikationens **Översikt** säger vilket fall det är, och **Konfigurationskontroll** på dess sida **Dokumentation** visar varje sorts telemetri med när den senaste kom in:
+
+| Diagrammet säger | Vad det betyder |
+| --- | --- |
+| **Undantag är inte konfigurerade** eller **Loggar är inte konfigurerade** | Inget har någonsin kommit från den här appen. **Konfigurera undantag** eller **Konfigurera loggar** visar koden som skickar dem, med din URL och nyckel redan ifyllda. |
+| **Inga undantag i det här tidsintervallet** eller **Inga loggar i det här tidsintervallet** | Några kom tidigare, och diagrammet säger när den senaste kom. Välj det längre tidsintervall som det erbjuder. |
+| **Inget har kommit från den här appen än** | Ingen telemetri alls kommer in: börja med [Kontrollera nyckeln](#kontrollera-nyckeln). |
+| **OpenTelemetry SDK:t rapporterar inte** | Bara sessionsuppspelning rapporterar från den här appen: konfigurera SDK:t som i [Webbläsarkonfiguration](/docs/rum/browser-setup). |
+
+Undantag behöver en felhanterare, eftersom SDK:t inte fångar ohanterade fel: [Rapportera ohanterade fel](/docs/rum/browser-setup#rapportera-ohanterade-fel) har koden. Ett fel som en error boundary eller en `try`/`catch` hanterar når aldrig fönstret, så registrera det där du hanterar det, med `span.recordException`.
+
+Loggar behöver en pipeline för loggar och kod som skriver loggposter, eftersom en `LoggerProvider` ensam inte skickar något: [Lägg till loggar och mätvärden](/docs/rum/browser-setup#lägg-till-loggar-och-mätvärden) har båda. Bygg pipelinen med samma `resource` som dina spår, annars arkiveras loggarna under en backend-tjänst.
+
+När sidladdningar kommer in släpper nyckeln, dess tillåtna ursprung och din Content Security Policy igenom undantag och loggar också, så länge loggexportören använder samma nyckel och värd. En felhanterare som ännu inte har fångat något skickar ingenting, precis som en som aldrig lades till, så kasta ett testfel från webbläsarens konsol för att skilja de två åt:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Inom en minut syns det på applikationens **Översikt**, under **Undantag**.
+
 ## Sidan Klienter är tom
 
 Sidan **Klienter** listar `browser.platform` på webben och `device.model.identifier` på mobil. Två skäl till att den förblir tom även när allt annat fungerar:
@@ -120,15 +147,15 @@ Sidan **Klienter** listar `browser.platform` på webben och `device.model.identi
 
 Kortet fylls bara med de mätvärden som din app skickar, så spår ensamma fyller det aldrig. Kontrollera att du exporterar mätvärden, att deras namn är bland dem som OneUptime läser och att de visas på applikationens sida **Mätvärden**. [Kortet säger «No web vitals reported yet»](/docs/rum/web-vitals#felsökning) går igenom varje kontroll, inklusive värden som går förlorade när en besökare stänger fliken före nästa export.
 
-## Statusen säger Frånkopplad medan folk använder appen
+## Statusen säger Ingen trafik nyligen medan folk använder appen
 
-En applikation går över till **Frånkopplad** efter 15 minuter utan telemetri. Om folk använder appen:
+En applikation visar **Ingen trafik nyligen** efter 15 minuter utan telemetri. Om folk använder appen:
 
 - **En sampler kanske kastar allt.** Kontrollera att du inte har satt en sampler som alltid är av, eller ett mycket lågt förhållande.
 - **Appen skickar kanske bara telemetri vid vissa interaktioner**, och ingen använde dem under den tiden.
 - **Nyckeln kan ha återkallats eller inaktiverats** efter driftsättningen: kör [nyckelkontrollen](#kontrollera-nyckeln) igen.
 
-En intern app eller en app med lite trafik utan besökare på natten är verkligen frånkopplad. Det är inget fel.
+En intern app eller en app med lite trafik utan besökare på natten visar också **Ingen trafik nyligen**. Det är normalt, inget fel.
 
 ## Problem med sessionsuppspelning
 

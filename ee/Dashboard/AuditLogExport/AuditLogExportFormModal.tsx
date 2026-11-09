@@ -6,7 +6,10 @@ import {
   auditLogExportUpdatePayload,
   exportConfigFieldName,
   exportSecretFieldName,
+  followAuditLogExportDefaults,
+  getAuditLogExportFollowingFields,
   getAuditLogExportInitialValues,
+  getAuditLogExportSchemaVersionOptions,
   readAuditLogExportForm,
   readExportDestinationType,
 } from "./AuditLogExportForm";
@@ -14,6 +17,7 @@ import { AuditLogExportInlineTest } from "./AuditLogExportTest";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import Route from "Common/Types/API/Route";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
+import { AUDIT_LOG_EXPORT_SCHEMA_VERSION } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import {
   AuditLogExportDestinationCatalog,
   AuditLogExportDestinationDefinition,
@@ -165,8 +169,43 @@ export function getAuditLogExportConnectionFields(data: {
               },
             }
           : {}),
-        ...(field.type === "number"
-          ? { validation: { minValue: 1, maxValue: 65535 } }
+        ...(field.type === "number" &&
+        (field.minValue !== undefined || field.maxValue !== undefined)
+          ? {
+              validation: {
+                ...(field.minValue !== undefined
+                  ? { minValue: field.minValue }
+                  : {}),
+                ...(field.maxValue !== undefined
+                  ? { maxValue: field.maxValue }
+                  : {}),
+              },
+            }
+          : {}),
+        /*
+         * A field others follow (syslog's protocol, which the port follows)
+         * moves them along when it changes, unless they hold a value
+         * someone typed.
+         */
+        ...(getAuditLogExportFollowingFields(definition, field.key).length > 0
+          ? {
+              onChange: (
+                choice: JSONValue,
+                currentValues: FormValues<JSONObject>,
+                setNewFormValues: (values: FormValues<JSONObject>) => void,
+              ): void => {
+                const moved: JSONObject | null = followAuditLogExportDefaults({
+                  definition,
+                  key: field.key,
+                  choice,
+                  values: currentValues as JSONObject,
+                });
+
+                if (moved) {
+                  setNewFormValues(moved as FormValues<JSONObject>);
+                }
+              },
+            }
           : {}),
         /*
          * The catalog's default (us-east-1, SAS, TLS on 6514): the field
@@ -395,6 +434,23 @@ const AuditLogExportFormModal: FunctionComponent<ComponentProps> = (
       required: false,
       collapsibleSection: advancedSection,
     },
+    /*
+     * Which version of the record each entry is sent as. A new export
+     * starts on the newest; an export saved before there was a choice
+     * shows the version it sends, 1, set apart in the fold as a value that
+     * is not the default.
+     */
+    {
+      field: { schemaVersion: true },
+      title: AuditLogExportCopy.schemaVersionField,
+      description: AuditLogExportCopy.schemaVersionDescription,
+      stepId: EXPORT_SETTINGS_STEP_ID,
+      fieldType: FormFieldSchemaType.Dropdown,
+      required: false,
+      defaultValue: String(AUDIT_LOG_EXPORT_SCHEMA_VERSION),
+      dropdownOptions: getAuditLogExportSchemaVersionOptions(),
+      collapsibleSection: advancedSection,
+    },
   ];
 
   return (
@@ -461,6 +517,9 @@ const AuditLogExportFormModal: FunctionComponent<ComponentProps> = (
             if (submission.startsAt) {
               model.startsAt = submission.startsAt;
             }
+
+            model.schemaVersion =
+              submission.schemaVersion || AUDIT_LOG_EXPORT_SCHEMA_VERSION;
 
             await props.modelAPI.create<AuditLogExport>({
               model,

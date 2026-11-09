@@ -20,7 +20,9 @@ import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WebhookService from "./WebhookService";
 import WhatsAppService from "./WhatsAppService";
-import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
+import WorkspaceUserNotificationService, {
+  WorkspaceSentDirectMessage,
+} from "./WorkspaceUserNotificationService";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";
@@ -175,6 +177,21 @@ export const SLA_BREACH_CHANNELS: ReadonlyArray<NotificationSettingChannel> = [
   "alertByCustomChannel",
 ];
 
+/*
+ * Which of the channels a person turned on for an event one notification
+ * goes to (sendUserNotification's `channels`): every one of them, or one
+ * side alone of their chat accounts - Slack, Microsoft Teams, Mattermost -
+ * and the rest: email, SMS, call, push, WhatsApp, Telegram, webhooks and
+ * custom channels. One side alone is for a notification the other side
+ * had already: an approval request asked again in chat only, the message
+ * there having changed (PublicNoteApprovalNotifications).
+ */
+export enum UserNotificationChannels {
+  All = "All",
+  ChatOnly = "ChatOnly",
+  AllButChat = "AllButChat",
+}
+
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
     super(UserNotificationSetting);
@@ -197,6 +214,34 @@ export class Service extends DatabaseService<UserNotificationSetting> {
      */
     whatsAppMessage?: WhatsAppMessagePayload | undefined;
     telegramMessage?: TelegramMessagePayload | undefined;
+    /*
+     * Optional: the direct message the person's chat accounts get - Slack,
+     * Microsoft Teams and Mattermost, each as the person turned it on - for
+     * an event that has one of its own: a public note waiting for their
+     * approval, with Approve and Reject on it (WorkspacePublicNoteApproval).
+     * Left out, the chat message is made from the email's subject and the
+     * SMS, as for every other event.
+     */
+    workspaceMessage?:
+      | {
+          messageBlocks: Array<WorkspaceMessageBlock>;
+          // What the message's notification says.
+          notificationText: string;
+          /*
+           * Told where each copy of it landed, to keep it: an approval
+           * message is replaced once its note is decided
+           * (WorkspacePublicNoteApprovalMessages).
+           */
+          onSent?:
+            | ((sent: WorkspaceSentDirectMessage) => Promise<void>)
+            | undefined;
+        }
+      | undefined;
+    /*
+     * Optional: which of the channels the person turned on this goes to
+     * (UserNotificationChannels). Left out, every one of them.
+     */
+    channels?: UserNotificationChannels | undefined;
     /*
      * Bypasses burst coalescing for this send, before any rollup bookkeeping
      * runs: for a message that is urgent although its event type can be
@@ -266,7 +311,16 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       });
 
     if (notificationSettings) {
-      if (notificationSettings.alertByEmail) {
+      const channels: UserNotificationChannels =
+        data.channels || UserNotificationChannels.All;
+      // Their Slack, Microsoft Teams and Mattermost accounts.
+      const isSentInChat: boolean =
+        channels !== UserNotificationChannels.AllButChat;
+      // Everything else they turned on.
+      const isSentElsewhere: boolean =
+        channels !== UserNotificationChannels.ChatOnly;
+
+      if (isSentElsewhere && notificationSettings.alertByEmail) {
         // get all the emails of the user.
         const userEmails: Array<UserEmail> = await UserEmailService.findBy({
           query: {
@@ -377,7 +431,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           data.projectId,
         );
 
-      if (notificationSettings.alertBySMS) {
+      if (isSentElsewhere && notificationSettings.alertBySMS) {
         const userSmses: Array<UserSMS> = await UserSmsService.findBy({
           query: {
             userId: data.userId,
@@ -443,7 +497,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      if (notificationSettings.alertByWhatsApp) {
+      if (isSentElsewhere && notificationSettings.alertByWhatsApp) {
         const userWhatsApps: Array<UserWhatsApp> =
           await UserWhatsAppService.findBy({
             query: {
@@ -497,7 +551,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      if (notificationSettings.alertByTelegram) {
+      if (isSentElsewhere && notificationSettings.alertByTelegram) {
         const userTelegrams: Array<UserTelegram> =
           await UserTelegramService.findBy({
             query: {
@@ -604,9 +658,10 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       }
 
       if (
-        notificationSettings.alertBySlack ||
-        notificationSettings.alertByMicrosoftTeams ||
-        notificationSettings.alertByMattermost
+        isSentInChat &&
+        (notificationSettings.alertBySlack ||
+          notificationSettings.alertByMicrosoftTeams ||
+          notificationSettings.alertByMattermost)
       ) {
         /*
          * Slack, Microsoft Teams and Mattermost share one derived message:
@@ -633,7 +688,22 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           workspaceMarkdown = lines.join("\n");
         }
 
-        if (!workspaceMarkdown) {
+        // The event's own chat message, when it has one.
+        const ownMessageBlocks: Array<WorkspaceMessageBlock> =
+          data.workspaceMessage?.messageBlocks || [];
+        const notificationText: string | undefined =
+          ownMessageBlocks.length > 0
+            ? data.workspaceMessage?.notificationText || undefined
+            : undefined;
+        // Who keeps where the event's own message landed.
+        const onSent:
+          | ((sent: WorkspaceSentDirectMessage) => Promise<void>)
+          | undefined =
+          ownMessageBlocks.length > 0
+            ? data.workspaceMessage?.onSent || undefined
+            : undefined;
+
+        if (!workspaceMarkdown && ownMessageBlocks.length === 0) {
           logger.warn(
             "Skipping workspace notification because message body is empty.",
           );
@@ -642,7 +712,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             _type: "WorkspacePayloadMarkdown",
             text: workspaceMarkdown,
           };
-          const messageBlocks: Array<WorkspaceMessageBlock> = [markdownBlock];
+          const messageBlocks: Array<WorkspaceMessageBlock> =
+            ownMessageBlocks.length > 0 ? ownMessageBlocks : [markdownBlock];
 
           if (notificationSettings.alertBySlack) {
             const userSlacks: Array<UserSlack> = await UserSlackService.findBy({
@@ -671,6 +742,10 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 workspaceType: WorkspaceType.Slack,
                 workspaceUserId: userSlack.slackUserId,
                 messageBlocks: messageBlocks,
+                ...(notificationText
+                  ? { notificationText: notificationText }
+                  : {}),
+                ...(onSent ? { onSent: onSent } : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,
@@ -715,6 +790,10 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 workspaceType: WorkspaceType.MicrosoftTeams,
                 workspaceUserId: userMicrosoftTeams.microsoftTeamsUserId,
                 messageBlocks: messageBlocks,
+                ...(notificationText
+                  ? { notificationText: notificationText }
+                  : {}),
+                ...(onSent ? { onSent: onSent } : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,
@@ -759,6 +838,10 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 workspaceType: WorkspaceType.Mattermost,
                 workspaceUserId: userMattermost.mattermostUserId,
                 messageBlocks: messageBlocks,
+                ...(notificationText
+                  ? { notificationText: notificationText }
+                  : {}),
+                ...(onSent ? { onSent: onSent } : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,
@@ -777,7 +860,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      if (notificationSettings.alertByCall) {
+      if (isSentElsewhere && notificationSettings.alertByCall) {
         const userCalls: Array<UserCall> = await UserCallService.findBy({
           query: {
             userId: data.userId,
@@ -826,7 +909,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      if (notificationSettings.alertByPush) {
+      if (isSentElsewhere && notificationSettings.alertByPush) {
         logger.debug(
           `Sending push notification to user ${data.userId.toString()} for event ${data.eventType}`,
         );
@@ -851,7 +934,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         });
       }
 
-      if (notificationSettings.alertByWebhook) {
+      if (isSentElsewhere && notificationSettings.alertByWebhook) {
         const userWebhooks: Array<UserWebhook> =
           await UserWebhookService.findBy({
             query: {
@@ -944,7 +1027,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      if (notificationSettings.alertByCustomChannel) {
+      if (isSentElsewhere && notificationSettings.alertByCustomChannel) {
         logger.debug(
           `Sending custom channel notifications to user ${data.userId.toString()} for event ${data.eventType}`,
         );
@@ -1133,6 +1216,35 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addSecurityCaseNotificationSettings(userId, projectId);
     await this.addSecurityHuntNotificationSettings(userId, projectId);
     await this.addExceptionNotificationSettings(userId, projectId);
+    await this.addPublicNoteApprovalNotificationSettings(userId, projectId);
+  }
+
+  /*
+   * Public note approval (PublicNoteApprovalNotifications): a note waiting
+   * for the person's approval by email and push - it is published only once
+   * somebody approves it, and customers wait for it - and how a note they
+   * sent was decided by email. Every member gets them, as with every other
+   * event; only the approvers of a note, and whoever sent it, are ever told.
+   * Idempotent: the notifications seed these too before sending, for the
+   * members who joined before they existed.
+   */
+  @CaptureSpan()
+  public async addPublicNoteApprovalNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
+      { alertByPush: true },
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_DECIDED_NOTIFICATION,
+    );
   }
 
   /*

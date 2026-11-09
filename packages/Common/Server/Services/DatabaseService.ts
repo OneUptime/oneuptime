@@ -36,6 +36,10 @@ import RelationListPermission, {
 import UpdatePermission from "../Types/Database/Permissions/UpdatePermission";
 import UpdateScopePermission from "../Types/Database/Permissions/UpdateScopePermission";
 import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
+import RuleOwningTeams from "../Utils/Rules/RuleOwningTeams";
+import TeamOwnedRulePermission, {
+  TeamOwnedRuleColumn,
+} from "../Types/Database/Permissions/TeamOwnedRulePermission";
 import PrivateRecordPermission, {
   PrivateRecordColumn,
 } from "../Types/Database/Permissions/PrivateRecordPermission";
@@ -121,6 +125,7 @@ import { getRuleCriteriaFieldsForModel } from "../../Types/Rules/RuleCriteriaFie
 import {
   And,
   DataSource,
+  DeepPartial,
   DeleteResult,
   Driver,
   EntityManager,
@@ -546,6 +551,47 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     throw new DatabaseNotConnectedException();
+  }
+
+  /*
+   * A row's save() - the write of an update that sets a many-to-many
+   * column, which a plain UPDATE cannot make - held to the version the
+   * update's query names, as that UPDATE is held (_updateBy's
+   * expectedVersion). In one transaction, the row is locked while it still
+   * holds that version, and saved there: a write that lands meanwhile waits
+   * for the lock, then finds the version moved on (an UPDATE that names the
+   * version then writes nothing); one that landed before leaves no row at
+   * that version to lock, and nothing is saved. Nor is a row deleted since
+   * it was read, which a save() would otherwise insert again. Whether the
+   * row was saved.
+   */
+  private async saveRowAtVersion(data: {
+    row: unknown;
+    rowId: string;
+    version: number;
+  }): Promise<boolean> {
+    return await this.executeTransaction(
+      async (manager: EntityManager): Promise<boolean> => {
+        const repository: Repository<TBaseModel> =
+          manager.getRepository<TBaseModel>(this.modelType.name);
+
+        const lockedRows: Array<ObjectLiteral> = await repository
+          .createQueryBuilder("row")
+          .select("row._id")
+          .where("row._id = :rowId", { rowId: data.rowId })
+          .andWhere("row.version = :version", { version: data.version })
+          .setLock("pessimistic_write")
+          .getRawMany();
+
+        if (lockedRows.length === 0) {
+          return false;
+        }
+
+        await repository.save(data.row as DeepPartial<TBaseModel>);
+
+        return true;
+      },
+    );
   }
 
   public async executeTransaction<TResult>(
@@ -5992,6 +6038,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     });
 
     /*
+     * The teams picked on a rule's form to own it: whether the person may
+     * add owning teams at all, before anything is saved (RuleOwningTeams).
+     */
+    RuleOwningTeams.checkBeforeCreate({
+      modelType: this.modelType,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
+    /*
      * The create's one OnCreate, from here to its end: the object
      * onBeforeCreate hands back is the very one onCreatePermitted,
      * onCreateSuccess and onCreateError are handed (see create), so whatever
@@ -6183,6 +6239,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       if (!createBy.props.ignoreHooks) {
         createBy.data = await this.onCreateSuccess(onCreate, createBy.data);
+      }
+
+      // And the teams picked to own the rule, now that it exists.
+      if (createBy.data.id) {
+        await RuleOwningTeams.addAfterCreate({
+          modelType: this.modelType,
+          ruleId: createBy.data.id,
+          projectId: createBy.data.getValue<ObjectID>("projectId"),
+          miscDataProps: createBy.miscDataProps,
+          props: createBy.props,
+        });
       }
 
       /*
@@ -9460,6 +9527,36 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return plainData as UpdateBy<TBaseModel>["data"];
   }
 
+  /*
+   * The rule an update sends owning teams for (RuleOwningTeams), when it
+   * does: one rule of a kind teams can own, named by its id. Owning teams
+   * sent with an update of anything else - several rules, rules found by a
+   * query - are refused: they are set one rule at a time, or through the
+   * owning-team API. Null when the update sends none, or is no rule's.
+   */
+  private getOwningTeamsRuleId(
+    updateBy: UpdateBy<TBaseModel>,
+  ): ObjectID | null {
+    if (
+      !RuleOwningTeams.getKind(this.modelType) ||
+      RuleOwningTeams.getPickedTeamIds(updateBy.miscDataProps) === null
+    ) {
+      return null;
+    }
+
+    const id: unknown = (updateBy.query as Record<string, unknown>)["_id"];
+    const idText: string | null =
+      typeof id === "string" || id instanceof ObjectID ? id.toString() : null;
+
+    if (!idText || !ObjectID.isValidUUID(idText)) {
+      throw new BadDataException(
+        "Owning teams are set on one rule at a time: update the rule by its ID, or add and remove owning teams through their own API.",
+      );
+    }
+
+    return new ObjectID(idText);
+  }
+
   private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
     // What onBeforeUpdate handed back, for onUpdateError.
     let onUpdateOfError: OnUpdate<TBaseModel> | undefined = undefined;
@@ -9477,6 +9574,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         DatabaseRequestType.Update,
         updateBy.data,
       );
+
+      // The rule an update sends owning teams for, as it names it (see the helper).
+      const owningTeamsRuleId: ObjectID | null =
+        this.getOwningTeamsRuleId(updateBy);
 
       // Query operators are for queries, not for write payloads. See the helper.
       this.rejectQueryOperatorsInData(updateBy.data);
@@ -9571,6 +9672,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         data: updateBy.data,
         props: updateBy.props,
       });
+
+      /*
+       * The teams picked on a rule's form to own it: whether the person may
+       * make each change to them, before anything is saved
+       * (RuleOwningTeams).
+       */
+      if (owningTeamsRuleId) {
+        await RuleOwningTeams.checkBeforeUpdate({
+          modelType: this.modelType,
+          ruleId: owningTeamsRuleId,
+          miscDataProps: updateBy.miscDataProps,
+          props: updateBy.props,
+          findIdsInProject: async (data: {
+            modelType: { new (): BaseModel };
+            ids: Array<string>;
+            query: Query<BaseModel>;
+          }): Promise<Array<string>> => {
+            return await DatabaseService.findIdsInProject({
+              ...data,
+              projectId: updateBy.props.tenantId || null,
+            });
+          },
+        });
+      }
 
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
@@ -9836,8 +9961,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * a statement of its own, so the UPDATE asks again - a write landing
        * between the two would otherwise be overwritten by values computed
        * from what the row held before it. The workflow Update steps merge
-       * custom fields this way (CustomFieldsArgument). Rows written through
-       * save(), for a many-to-many column, are not guarded.
+       * custom fields this way (CustomFieldsArgument), and public note
+       * approval writes an edit of a note this way (PublicNoteApprovalEngine).
+       * A row written through save(), for a many-to-many column, is held to
+       * the version the same way, in save()'s own transaction
+       * (saveRowAtVersion).
        */
       const expectedVersion: unknown = (
         beforeUpdateBy.query as Dictionary<unknown>
@@ -9929,9 +10057,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           }
 
           // The row's write itself, in save()'s own transaction.
-          await progress.write(true, async (): Promise<unknown> => {
-            return await this.getRepository().save(savedItem);
-          });
+          const isSaved: boolean = await progress.write(
+            true,
+            async (): Promise<boolean> => {
+              if (typeof expectedVersion === "number") {
+                return await this.saveRowAtVersion({
+                  row: savedItem,
+                  rowId: item._id!,
+                  version: expectedVersion,
+                });
+              }
+
+              await this.getRepository().save(savedItem);
+              return true;
+            },
+          );
+
+          /*
+           * The row moved past the version the query named before its save
+           * could hold it there (see expectedVersion above): nothing was
+           * saved, so it is not counted, as an UPDATE that wrote no row.
+           */
+          if (!isSaved) {
+            continue;
+          }
 
           if (rowWriteSqlColumns.length > 0) {
             storedByWrite = this.readRowReturnedByWrite(
@@ -10108,6 +10257,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             updatedFields: writtenData as JSONObject,
             itemId: item.id,
             props: updateBy.props,
+            includeColumns: updateBy.auditLogIncludeColumns,
           });
         }
       }
@@ -10198,6 +10348,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             return new ObjectID(i._id!);
           }),
         );
+      }
+
+      // And the rule's owning teams, once the rule itself is changed.
+      if (
+        owningTeamsRuleId &&
+        affectedItems.some((item: TBaseModel): boolean => {
+          return (
+            item._id?.toString().toLowerCase() ===
+            owningTeamsRuleId.toString().toLowerCase()
+          );
+        })
+      ) {
+        await RuleOwningTeams.syncAfterUpdate({
+          modelType: this.modelType,
+          ruleId: owningTeamsRuleId,
+          projectId: updateBy.props.tenantId,
+          miscDataProps: updateBy.miscDataProps,
+          props: updateBy.props,
+        });
       }
 
       return affectedItems.length;
@@ -10558,6 +10727,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       },
       data: updateById.data as any,
       miscDataProps: updateById.miscDataProps,
+      auditLogIncludeColumns: updateById.auditLogIncludeColumns,
       props: updateById.props,
     });
   }
@@ -10789,12 +10959,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     if (isReadable) {
-      const privateReason: string | null =
-        await this.getPrivateRecordWriteRefusal(data);
+      const reason: string | null =
+        (await this.getPrivateRecordWriteRefusal(data)) ||
+        (await this.getTeamOwnedRuleWriteRefusal(data));
 
       return new NotAuthorizedException(
         `You do not have permission to ${data.type} this ${name.toLowerCase()}.${
-          privateReason ? ` ${privateReason}` : ""
+          reason ? ` ${reason}` : ""
         }`,
       );
     }
@@ -10887,6 +11058,107 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return null;
+  }
+
+  /*
+   * Why a change or a delete of a rule the caller may read - or of one of
+   * its owning teams - did not reach it, when the reason is that teams own
+   * the rule and none of the caller's teams that own it grants the write
+   * (TeamOwnedRulePermission). Null for any other reason.
+   */
+  private async getTeamOwnedRuleWriteRefusal(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete;
+  }): Promise<string | null> {
+    if (
+      !TeamOwnedRulePermission.narrows(this.modelType, data.props, data.type)
+    ) {
+      return null;
+    }
+
+    const column: TeamOwnedRuleColumn | null =
+      TeamOwnedRulePermission.getRuleColumn(this.modelType);
+
+    if (!column) {
+      return null;
+    }
+
+    // An owning team: the rule it belongs to, read as OneUptime.
+    let ruleId: string | null = data.id.toString();
+
+    if (!column.isRule) {
+      const owningTeam: TBaseModel | null = await this.findOneById({
+        id: data.id,
+        select: { [column.column]: true } as Select<TBaseModel>,
+        props: { isRoot: true },
+      });
+
+      const key: unknown = owningTeam?.getValue(column.column);
+      ruleId = key ? key.toString() : null;
+    }
+
+    if (!ruleId || !ObjectID.isValidUUID(ruleId)) {
+      return null;
+    }
+
+    const ruleModelType: { new (): BaseModel } | undefined = column.isRule
+      ? (this.modelType as unknown as { new (): BaseModel })
+      : (new this.modelType().getTableColumnMetadata(
+          this.getTeamOwnedRuleRelation(column),
+        )?.modelType as { new (): BaseModel } | undefined);
+
+    if (!ruleModelType) {
+      return null;
+    }
+
+    const query: Query<BaseModel> | null =
+      TeamOwnedRulePermission.getUnreachableRulesQuery({
+        modelType: this.modelType,
+        ruleModelType: ruleModelType,
+        ruleIds: [ruleId],
+        props: data.props,
+        type: data.type,
+      });
+
+    if (!query) {
+      return null;
+    }
+
+    const unreachable: Array<string> = await DatabaseService.findIdsInProject({
+      modelType: ruleModelType,
+      ids: [ruleId],
+      query: query,
+      projectId: data.props.tenantId || null,
+    });
+
+    if (unreachable.length === 0) {
+      return null;
+    }
+
+    return column.isRule
+      ? TeamOwnedRulePermission.TEAM_OWNED_WRITE_REASON
+      : TeamOwnedRulePermission.getOwnedParentWriteReason(
+          (new ruleModelType().singularName || "rule").toLowerCase(),
+        );
+  }
+
+  // The relation of an owning-team model that names its rule by `column`.
+  private getTeamOwnedRuleRelation(column: TeamOwnedRuleColumn): string {
+    const model: TBaseModel = new this.modelType();
+
+    return (
+      model.getTableColumns().columns.find((name: string): boolean => {
+        const metadata: TableColumnMetadata | undefined =
+          model.getTableColumnMetadata(name);
+
+        return Boolean(
+          metadata &&
+            metadata.type === TableColumnType.Entity &&
+            metadata.manyToOneRelationColumn === column.column,
+        );
+      }) || ""
+    );
   }
 
   @CaptureSpan()

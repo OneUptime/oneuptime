@@ -2,6 +2,8 @@
 
 **Wachtrijen** geeft elke berichtenwachtrij, elk topic en elk abonnement dat je applicaties gebruiken een eigen pagina: welke services erin publiceren en welke eruit consumeren, hoeveel berichten erdoorheen gaan, hoeveel er mislukken en hoe lang de verwerking duurt, de traces en metrics ervan en, zodra de eigen metrics van de broker OneUptime bereiken, de achterstand, de consumer-lag, dead letters en throttling. Wachtrijen hebben labels, eigenaren, label- en eigenaarregels en archivering, net als elke andere resource. Open ze via **Producten → Bronnen → Wachtrijen**.
 
+**Wachtrijen → Topologie** laat zien hoe berichten tussen je services stromen: elke wachtrij tussen de services die erin publiceren en de services die eruit consumeren. Elke lijn toont het berichtentempo, het foutpercentage en de p95-tijd, geteld zoals de kaarten **Producenten** en **Consumenten** van de wachtrij ze tellen, en zodra de metrics van een broker OneUptime bereiken, tonen de wachtrijen ervan hun consumer-lag of achterstand en hun dead letters. Doorzoek de weergave, filter die op broker of houd alleen over wat aandacht nodig heeft. Het eigen tabblad **Topologie** van een wachtrij laat zien waar de berichten vandaan komen en waar ze heen gaan.
+
 :::cards
 - [Applicaties instrumenteren](#applicaties-instrumenteren): De messaging-spans die je OpenTelemetry-instrumentatie al verstuurt.
 - [Gezondheidsmetrics van de broker](#gezondheidsmetrics-van-de-broker): Achterstand, lag en dead letters uit je broker, systeem voor systeem.
@@ -213,6 +215,10 @@ builder.Services.AddOpenTelemetry()
 Een broker weet wat geen applicatie kan zien: hoeveel berichten wachten, hoe ver elke consumergroep achterloopt, wat er in een dead-letterwachtrij is beland. Elke sectie hieronder bevat de collectorconfiguratie voor één systeem: een volledige OpenTelemetry Collector-configuratie die eindigt met de OTLP-exporter die naar OneUptime verstuurt. Zet een telemetrie-ingestiesleutel (**Projectinstellingen → Telemetrie & APM → Ingestiesleutels**) in `x-oneuptime-token`, vervang `https://oneuptime.com` door je eigen host als je zelf host, en draai haar met `otel/opentelemetry-collector-contrib` 0.161.0 of later (elke configuratie hier is gevalideerd tegen 0.161.0). Recente collectors loggen dat `otlphttp` verouderd is ten gunste van `otlp_http`; beide namen zijn dezelfde exporter. Om meerdere systemen te verzamelen, voeg je hun receivers samen in één collector.
 
 De sectie **Brokergezondheid** van elke wachtrij toont de metrics die voor haar systeem staan vermeld (een gauge als zijn waarde, een aantal per periode opgeteld per interval, een teller als snelheid per seconde) en combineert de reeksen van een wachtrij zoals elke metric dat nodig heeft (de gereedstaande en onbevestigde berichten van een RabbitMQ-wachtrij tellen op; de consumergroep die het verst achterloopt, is de lag). Alles wat de collector verstuurt, staat ook in de verkenner **Metrieken**. Zolang er voor een wachtrij geen vermelde metric is binnengekomen, toont de sectie waar de metrics van dat systeem vandaan komen, met een link naar de sectie ervan hier.
+
+Waar geen applicatie met tracing naar een wachtrij publiceert of eruit consumeert, lezen de tegels **Gepubliceerd**, **Geconsumeerd** en **Fouten** en de grafiek **Berichten** van die wachtrij in plaats daarvan de eigen tellingen van de broker (binnenkomende berichten, uitgaande berichten en de fouten opgeteld, met beperkte aanvragen apart geteld onder **Fouten**), en elk zegt dat onder zijn getal. Een wachtrij met spans houdt die, omdat ze zeggen welke service wat deed. De tegel **p95 processing time** komt alleen uit traces van consumers, omdat geen broker meet hoe lang een consumer met een bericht bezig is: zonder die traces staat er **Vereist traces van consumenten**.
+
+De kaart **Brokermetrics** bovenaan de sectie somt elke metric op die voor het systeem van de wachtrij in grafieken staat: of die in het gekozen bereik voor de wachtrij is binnengekomen, wanneer voor het laatst, en waarom elke andere niet. Een telling kan niets te melden hebben (geen beperkte aanvragen is goed nieuws); een niveau dat de broker altijd meldt en dat nooit binnenkomt, is er een waar de collector niet om vraagt, en de kaart geeft de regels die de configuratie nodig heeft; een metric kan ook ophouden binnen te komen. Voor een wachtrij van Service Bus of Event Hubs waarvan geen enkele metric binnenkomt, leest de kaart ook wat de namespace in plaats daarvan stuurt (zie [De brokergezondheid blijft leeg](#de-brokergezondheid-blijft-leeg)). Onder de samenvatting noemt de kaart wat de metrics van de wachtrij de laatste tijd las: de receiver van de collector, je cloudkoppelingen, gelinkt naar **Cloud → Koppelen**, of beide. Bij een wachtrij die alleen een [gekoppeld Azure-abonnement](/docs/telemetry/cloud-accounts) leest, is een metric die het abonnement niet leest **Alleen collector**, met de regel die hem aan de receiver toevoegt, in plaats van ontbrekend.
 
 ### Amazon SNS
 
@@ -589,7 +595,9 @@ OneUptime toont de metrics van Event Grid niet op de pagina van een wachtrij: Az
 
 ### Azure Event Hubs
 
-Lees de metrics van de namespace uit Azure Monitor met de `azure_monitor`-receiver van de collector, die ze per event hub opsplitst via de dimensie EntityName.
+Een gekoppeld Azure-abonnement leest de belangrijkste metrics van de namespace per event hub, zonder dat je iets hoeft te draaien. Draai om ze allemaal te lezen de `azure_monitor`-receiver van de collector, die ze per event hub opsplitst via de dimensie EntityName.
+
+Een [gekoppeld Azure-abonnement](/docs/telemetry/cloud-accounts) leest `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` en `azure_throttledrequests_total` voor maximaal 1.000 event hubs van een namespace, met één Azure Monitor-aanroep per namespace bij elke leesactie, hoeveel event hubs de namespace ook heeft. De andere drie leest alleen de receiver; de kaart **Brokermetrics** van een event hub markeert ze als **Alleen collector**. Waar beide een metric van een event hub lezen, blijft die van de receiver behouden en wordt die van het abonnement weggelaten, zodat niets dubbel wordt geteld.
 
 De receiver meldt zich aan via de extensie `azure_auth`. Geef de service-principal de rol **Monitoring Reader** op het abonnement:
 
@@ -617,6 +625,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -648,10 +657,13 @@ Azure Monitor heeft geen consumer-lagmetric voor Event Hubs: zijn `ConsumerLag` 
 | `azure_usererrors_total` | Gebruikersfouten | Aantal per periode |
 | `azure_quotaexceedederrors_total` | Fouten door overschreden quotum | Aantal per periode |
 | `azure_throttledrequests_total` | Beperkte aanvragen | Aantal per periode |
+| `azure_size_average` | Grootte | Gauge |
 
 ### Azure Service Bus
 
-Lees de metrics van de namespace uit Azure Monitor met de `azure_monitor`-receiver van de collector, die ze per wachtrij en topic opsplitst via de dimensie EntityName.
+Een gekoppeld Azure-abonnement leest de belangrijkste metrics van de namespace per wachtrij en topic, zonder dat je iets hoeft te draaien. Draai om ze allemaal te lezen de `azure_monitor`-receiver van de collector, die ze per wachtrij en topic opsplitst via de dimensie EntityName.
+
+Een [gekoppeld Azure-abonnement](/docs/telemetry/cloud-accounts) leest `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` en `azure_throttledrequests_total` voor maximaal 1.000 wachtrijen en topics van een namespace, met één Azure Monitor-aanroep per namespace bij elke leesactie, hoeveel wachtrijen de namespace ook heeft: bij een leesactie elke 5 minuten kost een namespace met 50 wachtrijen 12 aanroepen per uur, net zoveel als een namespace met één wachtrij. De andere zes leest alleen de receiver; de kaart **Brokermetrics** van een wachtrij markeert ze als **Alleen collector**. Waar beide een metric van een wachtrij lezen, blijft die van de receiver behouden en wordt die van het abonnement weggelaten, zodat niets dubbel wordt geteld.
 
 De receiver meldt zich aan via de extensie `azure_auth`. Geef de service-principal de rol **Monitoring Reader** op het abonnement:
 
@@ -677,6 +689,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -684,6 +698,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -706,13 +721,17 @@ service:
 - De metrics vinden hun wachtrij of topic via de namespace (`name`) en de entiteit (`EntityName`); de spans van de SDK's noemen dezelfde namespace als `<namespace>.servicebus.windows.net`. Een span op `orders/Subscriptions/billing` of `orders/$DeadLetterQueue` hoort bij `orders`, net als de metrics.
 - `maximum_number_of_records_per_resource` is het aantal reeksen dat Azure per metric en namespace teruggeeft, 10 tenzij je het verhoogt: houd het boven je aantal wachtrijen en topics (de foutmetrics splitsen elke entiteit verder op naar resultaat), anders worden de rest niet gerapporteerd.
 - Azure Monitor splitst niet op naar topicabonnement: de tellingen van een topic dekken al zijn abonnementen.
-- De lijst `metrics` verzamelt precies wat de wachtrijpagina toont, elk met de ene aggregatie die ze toont; voeg een metric toe (`ScheduledMessages`, `Size`, …) om die ook te verzamelen.
+- De lijst `metrics` verzamelt precies wat de wachtrijpagina toont, elk met de ene aggregatie die ze toont; voeg een metric toe (`IncomingRequests`, `Messages`, …) om die ook te verzamelen. Een collector met een lijst die ouder is dan `ScheduledMessages`, `Size` of `ServerSendLatency` stuurt geen van die drie: de kaart **Brokermetrics** van de wachtrij noemt de regels die erbij moeten.
+- Een [gekoppeld Azure-abonnement](/docs/telemetry/cloud-accounts) splitst zijn zes metrics net als deze receiver op naar wachtrij en topic. Een diagnostische instelling die metrics exporteert, stuurt de totalen van de namespace, zonder `EntityName`, dus geen ervan bereikt een wachtrij: de eigen pagina van de namespace onder **Cloud → Alle resources** heeft ze, en de kaart **Brokermetrics** van een wachtrij zegt waarom de eigen metrics ontbreken.
+- Geen van deze metrics hangt af van de prijscategorie van de namespace. `ServerSendLatency` wordt per verzending gemeld, dus een wachtrij waarnaar in het bereik niets is verstuurd, heeft er geen.
 - De receiver somt je namespaces één keer per dag op, dus een nieuwe namespace kan tot 24 uur nodig hebben om te verschijnen.
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
 | `azure_activemessages_average` | Actieve berichten | Gauge |
 | `azure_deadletteredmessages_average` | Berichten in dead-letter | Gauge |
+| `azure_scheduledmessages_average` | Geplande berichten | Gauge |
+| `azure_size_average` | Grootte | Gauge |
 | `azure_incomingmessages_total` | Inkomende berichten | Aantal per periode |
 | `azure_outgoingmessages_total` | Uitgaande berichten | Aantal per periode |
 | `azure_completemessage_total` | Voltooide berichten | Aantal per periode |
@@ -720,6 +739,7 @@ service:
 | `azure_servererrors_total` | Serverfouten | Aantal per periode |
 | `azure_usererrors_total` | Gebruikersfouten | Aantal per periode |
 | `azure_throttledrequests_total` | Beperkte aanvragen | Aantal per periode |
+| `azure_serversendlatency_average` | Verzendlatentie van de server | Gauge |
 
 ### BullMQ
 
@@ -1046,6 +1066,10 @@ Als haar spans haar wel noemen, maak haar dan handmatig aan met hetzelfde systee
 - De receiver rapporteert haar niet. Kafka rapporteert de lag van een consumergroep pas nadat de groep een offset heeft gecommit; RabbitMQ rapporteert alleen de wachtrijen van virtuele hosts waartoe zijn gebruiker toegang heeft, en logt geen fout voor de rest (zie [RabbitMQ](#rabbitmq)); de tellers van RabbitMQ verschijnen bij de eerste activiteit; Azure Monitor geeft per metric en namespace 10 wachtrijen terug, tenzij `maximum_number_of_records_per_resource` wordt verhoogd; Cloud Monitoring leest alleen de typen in `metrics_list`.
 - Ze is te laat. `aws_cloudwatch` wacht `delay` (10 minuten) tot CloudWatch publiceert, dus zijn punten komen 11 tot 17 minuten te laat binnen, en de metrics van Pub/Sub komen minuten te laat binnen.
 - Het systeem heeft geen metrics in grafieken: Azure Event Grid, NATS, andere JMS-brokers dan ActiveMQ en BullMQ (zie hun secties). Hun metrics staan in de verkenner **Metrieken**.
+- Open de kaart **Brokermetrics** van de wachtrij: die somt op welke metrics binnenkomen en waarom de andere niet. Voor een wachtrij van Service Bus of Event Hubs waarvan geen enkele metric binnenkomt, zegt die ook wat de namespace in plaats daarvan stuurt, een van drie dingen.
+- **Niets van de namespace**: niets leest hem, of elke leesactie mislukt. Koppel zijn Azure-abonnement onder **Cloud → Koppelen**, of draai de receiver `azure_monitor`. Geef de app van de koppeling of de service-principal van de receiver de rol **Monitoring Reader**, en bekijk de laatste leesactie van de koppeling, of zoek in de log van de collector naar `AuthorizationFailed` of `401`: een verlopen clientgeheim stopt elke leesactie.
+- **Alleen totalen**: de metrics van de namespace komen binnen voor de namespace als geheel, zonder wachtrij of topic erin. Een diagnostische instelling stuurt alleen die: koppel het abonnement van de namespace, of lees hem ook met de receiver `azure_monitor`; beide splitsen ze op naar `EntityName`. Een [gekoppeld Azure-abonnement](/docs/telemetry/cloud-accounts) stuurde alleen die voordat het elke wachtrij las, of wanneer het lezen van de wachtrijen mislukt: de laatste leesactie onder **Cloud → Koppelen** zegt waarom.
+- **Alleen andere wachtrijen**: er komen metrics binnen voor andere wachtrijen en topics van de namespace, maar niet voor deze. `maximum_number_of_records_per_resource` van de receiver (10 tenzij je het verhoogt) heeft hem weggelaten: verhoog het tot boven het aantal wachtrijen en topics in de namespace. Een gekoppeld abonnement leest er tot 1.000: lees de namespace daarboven ook met de receiver.
 
 ### Twee wachtrijen voor één bestemming
 

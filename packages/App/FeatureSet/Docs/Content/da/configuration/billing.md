@@ -106,7 +106,7 @@ Når din bank stadig behandler en betaling, siger OneUptime det: nogle banker er
 
 ## Brugshistorik
 
-**Projektindstillinger → Fakturering og fakturaer → Brugshistorik** viser den telemetri, projektet har sendt, én række pr. produkt, tjeneste og dag:
+**Projektindstillinger → Telemetri og APM → Forbrug** viser, hvor meget telemetri projektet har sendt, pr. dag, signal og ressource: se [Telemetriforbrug](/docs/telemetry/usage). På OneUptime Cloud viser dens liste **Telemetri-forbrugshistorik** også, hvad hver dag kostede, én række pr. produkt, tjeneste og dag:
 
 | Kolonne | Hvad den viser |
 | --- | --- |
@@ -117,7 +117,7 @@ Når din bank stadig behandler en betaling, siger OneUptime det: nogle banker er
 | **Dataopbevaring (i dage)** | Hvor længe den opbevares. |
 | **Samlede omkostninger** | Hvad den kostede, i amerikanske dollar. |
 
-En dags forbrug vises, når dagen er slut. Filtrér efter **Produkt**, **Dag** eller **Tjeneste** for at finde det, der er vokset.
+En dags forbrug vises, når dagen er slut, senest omkring kl. 08:00 UTC dagen efter. Filtrér efter **Produkt**, **Dag** eller **Tjeneste** for at finde det, der er vokset.
 
 ## Forudbetalte saldi
 
@@ -188,8 +188,8 @@ Et projekt med ubetalte fakturaer bliver inaktivt og slettes, hvis de forbliver 
 Projektet har endnu ingen betalingsmetode. Tilføj en, og skift så plan.
 :::
 
-:::details Brugshistorikken er tom
-Forbrug tælles pr. dag, og en dag vises, når den er slut. Et projekt, der ikke har sendt telemetri, har ingen rækker.
+:::details Telemetri-forbrugshistorik er tom
+Forbrug tælles pr. dag, og en dag vises, når den er slut, senest omkring kl. 08:00 UTC dagen efter. Et projekt, der ikke har sendt telemetri, har ingen rækker.
 :::
 
 ## Næste skridt

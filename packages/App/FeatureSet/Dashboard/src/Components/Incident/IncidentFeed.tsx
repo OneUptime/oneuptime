@@ -1,3 +1,4 @@
+import { getPageAsObserversField } from "../OnCallPolicy/ExecutePolicy/PageAsObserversField";
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -133,6 +134,8 @@ export const INCIDENT_FEED_KINDS: Record<IncidentFeedEventType, FeedEntryKind> =
       SHARED_FEED_ENTRY_KINDS.VideoCallSummary,
     [IncidentFeedEventType.ChannelMemberAdded]:
       SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
+    [IncidentFeedEventType.PublicNoteApproval]:
+      SHARED_FEED_ENTRY_KINDS.PublicNoteApproval,
   };
 
 export const INCIDENT_FEED_ICONS: Record<IncidentFeedEventType, IconProp> =
@@ -385,6 +388,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
                   required: true,
                   placeholder: "Select On-Call Policy",
                 },
+                // Kept informed rather than asked to respond (OnCallObserverPage).
+                getPageAsObserversField(),
               ],
               formType: FormType.Create,
             }}

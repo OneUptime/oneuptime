@@ -46,6 +46,7 @@ import LlmConversationTranscriptUtil, {
 } from "../../../Utils/Telemetry/LlmConversationTranscript";
 import {
   LlmConversationKeyKind,
+  LlmLogEventsRead,
   LLM_CONVERSATION_ROUTE,
 } from "../../../Types/Telemetry/LlmConversationApi";
 import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
@@ -302,6 +303,190 @@ describe("reading a conversation", () => {
     expect(
       screen.queryByTestId("llm-conversation-truncated-note"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversation-log-events-note"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Prompts and answers an app sends as GenAI log events are read with the
+ * conversation, for a reader of that app's logs. When they were not shown,
+ * the page says why - never "not recorded", which they may well be.
+ */
+describe("prompts and answers sent as log events", () => {
+  function silentTranscript(): LlmTranscript {
+    return LlmConversationTranscriptUtil.build([call({ spanId: "c1" })]);
+  }
+
+  // What the answer that has no content says, and whether it links setup.
+  function silentAnswer(): { text: string; linksSetup: boolean } {
+    const step: HTMLElement = screen
+      .getAllByTestId("llm-step")
+      .find((element: HTMLElement): boolean => {
+        return element.getAttribute("data-step-type") === "silent_answer";
+      })!;
+
+    return {
+      text: step.textContent || "",
+      linksSetup:
+        within(step).queryByText("How to record prompts and answers") !== null,
+    };
+  }
+
+  test("read from the logs: shown like any other, with no note", async () => {
+    respondWith(
+      conversationResponse(travelTranscript(), {
+        logEvents: LlmLogEventsRead.Read,
+      }),
+    );
+
+    await openConversation();
+
+    expect(
+      screen.queryByTestId("llm-conversation-log-events-note"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversation-no-content-note"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a reader who may not read the app's logs is told so, and not that nothing was recorded", async () => {
+    respondWith(
+      conversationResponse(silentTranscript(), {
+        logEvents: LlmLogEventsRead.NotAllowed,
+      }),
+    );
+
+    await openConversation();
+
+    const note: HTMLElement = screen.getByTestId(
+      "llm-conversation-log-events-note",
+    );
+
+    expect(note).toHaveAttribute("data-state", LlmLogEventsRead.NotAllowed);
+    /*
+     * Said the way the product says what a permission hides, without
+     * claiming the app sent any: the reader cannot be told whether it did.
+     */
+    expect(note).toHaveTextContent(
+      "Any prompts and answers sent as log events are hidden: you need permission to read the logs of the app that sent them.",
+    );
+    // A quiet grey note with a lock: nothing is broken.
+    expect(note.className).toContain("bg-gray-50");
+    expect(note.className).not.toContain("bg-amber-50");
+    expect(note).not.toHaveAttribute("role");
+    // Nothing to try again: asking again reads the same.
+    expect(
+      screen.queryByTestId("llm-conversation-log-events-retry"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversation-no-content-note"),
+    ).not.toBeInTheDocument();
+    expect(stepTypes()).toEqual(["silent_answer"]);
+    // The answer is not said to be unrecorded, nor sent to set recording up.
+    expect(silentAnswer().text).toContain(
+      "The AI answered. What it said isn't shown.",
+    );
+    expect(silentAnswer().text).not.toContain("not recorded");
+    expect(silentAnswer().linksSetup).toBe(false);
+  });
+
+  test("some calls' logs readable, others not: still told some are not shown", async () => {
+    respondWith(
+      conversationResponse(travelTranscript(), {
+        logEvents: LlmLogEventsRead.NotAllowed,
+      }),
+    );
+
+    await openConversation();
+
+    expect(
+      screen.getByTestId("llm-conversation-log-events-note"),
+    ).toHaveAttribute("data-state", LlmLogEventsRead.NotAllowed);
+    expect(screen.getAllByTestId("llm-step").length).toBeGreaterThan(1);
+  });
+
+  test("logs that could not be read: says so, and Try again reads the conversation again", async () => {
+    respondWith(
+      conversationResponse(silentTranscript(), {
+        logEvents: LlmLogEventsRead.Failed,
+      }),
+    );
+
+    await openConversation();
+
+    const note: HTMLElement = screen.getByTestId(
+      "llm-conversation-log-events-note",
+    );
+
+    expect(note).toHaveAttribute("data-state", LlmLogEventsRead.Failed);
+    expect(note).toHaveTextContent(
+      "The logs couldn't be read, so any prompts and answers sent as log events aren't shown.",
+    );
+    // Something went wrong: the amber note, with Try again as its one action.
+    expect(note.className).toContain("bg-amber-50");
+
+    const retry: HTMLElement = within(note).getByRole("button", {
+      name: "Try again",
+    });
+
+    expect(retry).toBe(screen.getByTestId("llm-conversation-log-events-retry"));
+    expect(retry).toHaveAttribute("type", "button");
+    // A keyboard reader sees where focus is.
+    expect(retry.className).toContain("focus-visible:ring-2");
+    expect(
+      screen.queryByTestId("llm-conversation-no-content-note"),
+    ).not.toBeInTheDocument();
+    expect(silentAnswer().text).toContain(
+      "The AI answered. What it said isn't shown.",
+    );
+    expect(silentAnswer().linksSetup).toBe(false);
+
+    respondWith(
+      conversationResponse(travelTranscript(), {
+        logEvents: LlmLogEventsRead.Read,
+      }),
+    );
+    fireEvent.click(screen.getByTestId("llm-conversation-log-events-retry"));
+
+    expect(
+      await screen.findByTestId("llm-conversation-view"),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("llm-conversation-loading"),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("llm-conversation-log-events-note"),
+    ).not.toBeInTheDocument();
+    expect(postSpy).toHaveBeenCalledTimes(2);
+    expect(stepTypes().length).toBeGreaterThan(1);
+  });
+
+  test("read, with nothing in them (content capture off): not recorded, as before", async () => {
+    respondWith(
+      conversationResponse(silentTranscript(), {
+        logEvents: LlmLogEventsRead.Read,
+      }),
+    );
+
+    await openConversation();
+
+    expect(
+      screen.getByTestId("llm-conversation-no-content-note"),
+    ).toHaveTextContent(
+      "Prompts and answers were not recorded for this conversation",
+    );
+    expect(
+      screen.queryByTestId("llm-conversation-log-events-note"),
+    ).not.toBeInTheDocument();
+    // Nothing hidden: the answer was not recorded, and says how to record it.
+    expect(silentAnswer().text).toContain(
+      "The AI answered. What it said was not recorded.",
+    );
+    expect(silentAnswer().linksSetup).toBe(true);
   });
 });
 

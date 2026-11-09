@@ -23,10 +23,20 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 
 import AuditLogExportAPI, {
   AuditLogExportTest,
+  describeTestSuccess,
 } from "../../../Server/AuditLogExport/API/AuditLogExportAPI";
 import AuditLogExportArea from "../../../Server/AuditLogExport/Index";
 import AuditLogExportDestinationRegistry from "../../../Server/AuditLogExport/Destinations/DestinationRegistry";
-import { AuditLogExportDeliveryError } from "../../../Server/AuditLogExport/Destinations/Types";
+import {
+  AuditLogExportDelivery,
+  AuditLogExportDeliveryError,
+  AuditLogExportDeliveryReceipt,
+  AuditLogExportDestination,
+} from "../../../Server/AuditLogExport/Destinations/Types";
+import {
+  AuditLogExportDestinationDefinition,
+  getAuditLogExportDestinationDefinition,
+} from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
 import { EnterpriseServerModuleShape } from "Common/Server/Enterprise/EnterpriseServerModule";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
@@ -226,6 +236,94 @@ describe("testing an audit log export", () => {
       );
     });
 
+    /*
+     * Issue #6392: over UDP nothing answers that a datagram arrived, so a
+     * test that went out says only that, and to look at the receiver.
+     */
+    test("a syslog test over UDP says it was sent, and that only the receiver can say it arrived", async () => {
+      const syslog: RecordingDestination = new RecordingDestination();
+      const unconfirmed: AuditLogExportDestination = {
+        deliver: async (
+          delivery: AuditLogExportDelivery,
+        ): Promise<AuditLogExportDeliveryReceipt> => {
+          await syslog.deliver(delivery);
+          return {
+            location: "syslog+udp://93.184.216.34:514",
+            isUnconfirmed: true,
+          };
+        },
+      };
+
+      AuditLogExportDestinationRegistry.setDestination(
+        AuditLogExportDestinationType.Syslog,
+        unconfirmed,
+      );
+
+      try {
+        const answer: JSONObject = await AuditLogExportTest.testProjectExport({
+          body: {
+            destinationType: "syslog",
+            config: { host: "93.184.216.34", protocol: "udp" },
+            secrets: {},
+          },
+          props: OWNER,
+        });
+
+        expect(answer).toEqual({
+          isSuccessful: true,
+          message:
+            "A test entry was sent to syslog+udp://93.184.216.34:514. Its action is Test. UDP does not confirm delivery, so check that it arrived.",
+        });
+        // The settings as a save keeps them: no framing a datagram has no use for.
+        expect(syslog.deliveries[0]!.settings.config).toEqual({
+          host: "93.184.216.34",
+          protocol: "udp",
+        });
+        expect(syslog.batches[0]!.records[0]!.action).toBe("Test");
+      } finally {
+        AuditLogExportDestinationRegistry.reset();
+      }
+    });
+
+    test("only an unconfirmed stream's test says to check; a file is where it says", () => {
+      const syslogDefinition: AuditLogExportDestinationDefinition =
+        getAuditLogExportDestinationDefinition(
+          AuditLogExportDestinationType.Syslog,
+        )!;
+      const s3Definition: AuditLogExportDestinationDefinition =
+        getAuditLogExportDestinationDefinition(
+          AuditLogExportDestinationType.AmazonS3,
+        )!;
+
+      expect(
+        describeTestSuccess({
+          definition: syslogDefinition,
+          receipt: { location: "syslog+tls://siem.example.com:6514" },
+        }),
+      ).toBe(
+        "A test entry was sent to syslog+tls://siem.example.com:6514. Its action is Test.",
+      );
+      expect(
+        describeTestSuccess({
+          definition: syslogDefinition,
+          receipt: {
+            location: "syslog+udp://siem.example.com:514",
+            isUnconfirmed: false,
+          },
+        }),
+      ).toBe(
+        "A test entry was sent to syslog+udp://siem.example.com:514. Its action is Test.",
+      );
+      expect(
+        describeTestSuccess({
+          definition: s3Definition,
+          receipt: { location: "s3://bucket/key", isUnconfirmed: true },
+        }),
+      ).toBe(
+        "A test file was written to s3://bucket/key. Real entries are written next to it, in folders by date.",
+      );
+    });
+
     test.each([
       ["a project member", [Permission.ProjectMember]],
       ["a settings admin", [Permission.SettingsAdmin]],
@@ -290,6 +388,61 @@ describe("testing an audit log export", () => {
       expect(webhook.deliveries[0]!.settings.secrets).toEqual({
         headerValue: "Bearer stored-token",
       });
+    });
+
+    /*
+     * Issue #6247: the test entry arrives in the record version the export
+     * sends, so a reader is tested against the shape it will get: the one
+     * the form says, else the saved export's, else the newest - what a new
+     * export sends.
+     */
+    test("a test arrives in the record version the form says, else the saved export's, else the newest", async () => {
+      await AuditLogExportTest.testProjectExport({
+        body: WEBHOOK_BODY,
+        props: OWNER,
+      });
+      await AuditLogExportTest.testProjectExport({
+        body: { ...WEBHOOK_BODY, schemaVersion: 1 },
+        props: OWNER,
+      });
+      // Saved before there was a choice: version 1.
+      await AuditLogExportTest.testProjectExport({
+        body: { exportId: PROJECT_EXPORT_ID },
+        props: OWNER,
+      });
+      // The edit form's unsaved choice, as the dropdown holds it.
+      await AuditLogExportTest.testProjectExport({
+        body: { exportId: PROJECT_EXPORT_ID, schemaVersion: "2" },
+        props: OWNER,
+      });
+
+      exports.get(PROJECT_EXPORT_ID)!["schemaVersion"] = 2;
+
+      await AuditLogExportTest.testProjectExport({
+        body: { exportId: PROJECT_EXPORT_ID },
+        props: OWNER,
+      });
+
+      expect(
+        webhook.batches.map(
+          (batch: { records: Array<{ schemaVersion: number }> }): number => {
+            return batch.records[0]!.schemaVersion;
+          },
+        ),
+      ).toEqual([2, 1, 1, 2, 2]);
+    });
+
+    test("a record version this release does not send is refused, and nothing is sent", async () => {
+      for (const schemaVersion of [0, 3, "two", 1.5]) {
+        await expect(
+          AuditLogExportTest.testProjectExport({
+            body: { ...WEBHOOK_BODY, schemaVersion },
+            props: OWNER,
+          }),
+        ).rejects.toThrow("Record Version must be 1 or 2.");
+      }
+
+      expect(webhook.attempts).toBe(0);
     });
 
     test("another project's export is never found, and nothing is sent", async () => {

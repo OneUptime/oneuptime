@@ -1817,9 +1817,12 @@ describe("parseMinimumCount", () => {
     ["5", 5],
     [" 12 ", 12],
     ["100", 100],
-  ] as Array<[unknown, number]>)("reads %j as %d", (value: unknown, count: number) => {
-    expect(parseMinimumCount(value)).toBe(count);
-  });
+  ] as Array<[unknown, number]>)(
+    "reads %j as %d",
+    (value: unknown, count: number) => {
+      expect(parseMinimumCount(value)).toBe(count);
+    },
+  );
 
   test.each([
     ["1, which waits for nothing", 1],
@@ -1834,9 +1837,12 @@ describe("parseMinimumCount", () => {
     ["null", null],
     ["undefined", undefined],
     ["NaN", NaN],
-  ] as Array<[string, unknown]>)("refuses %s", (_name: string, value: unknown) => {
-    expect(parseMinimumCount(value)).toBeNull();
-  });
+  ] as Array<[string, unknown]>)(
+    "refuses %s",
+    (_name: string, value: unknown) => {
+      expect(parseMinimumCount(value)).toBeNull();
+    },
+  );
 });
 
 describe("getMinimumCountValidationError", () => {
@@ -1853,7 +1859,11 @@ describe("getMinimumCountValidationError", () => {
   });
 
   test("on, takes any count the box takes", () => {
-    for (let count: number = MIN_MINIMUM_COUNT; count <= MAX_MINIMUM_COUNT; count++) {
+    for (
+      let count: number = MIN_MINIMUM_COUNT;
+      count <= MAX_MINIMUM_COUNT;
+      count++
+    ) {
       expect(
         getMinimumCountValidationError({
           enabled: true,
@@ -2031,39 +2041,46 @@ describe("getMinimumCountValues", () => {
 });
 
 describe("getMinimumCountFoldedValue", () => {
-  test.each(KINDS)("%s: says the count while on, in the reader's language", (kind: GroupingRuleKind) => {
-    const noun: string = kind === GroupingRuleKind.Incident ? "incidents" : "alerts";
+  test.each(KINDS)(
+    "%s: says the count while on, in the reader's language",
+    (kind: GroupingRuleKind) => {
+      const noun: string =
+        kind === GroupingRuleKind.Incident ? "incidents" : "alerts";
 
-    expect(
-      getMinimumCountFoldedValue({
-        enabled: true,
-        count: 3,
-        kind,
-        translate: english,
-      }),
-    ).toBe(`3 ${noun}`);
-    expect(
-      getMinimumCountFoldedValue({
-        enabled: true,
-        count: 12,
-        kind,
-        translate: marked,
-      }),
-    ).toBe(`«12 ${noun}»`);
-  });
-
-  test.each(KINDS)("%s: says nothing while off, or while on with a count that waits for nothing", (kind: GroupingRuleKind) => {
-    for (const setting of [
-      { enabled: false, count: 5 },
-      { enabled: undefined, count: 5 },
-      { enabled: true, count: 1 },
-      { enabled: true, count: undefined },
-    ]) {
       expect(
-        getMinimumCountFoldedValue({ ...setting, kind, translate: english }),
-      ).toBeNull();
-    }
-  });
+        getMinimumCountFoldedValue({
+          enabled: true,
+          count: 3,
+          kind,
+          translate: english,
+        }),
+      ).toBe(`3 ${noun}`);
+      expect(
+        getMinimumCountFoldedValue({
+          enabled: true,
+          count: 12,
+          kind,
+          translate: marked,
+        }),
+      ).toBe(`«12 ${noun}»`);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: says nothing while off, or while on with a count that waits for nothing",
+    (kind: GroupingRuleKind) => {
+      for (const setting of [
+        { enabled: false, count: 5 },
+        { enabled: undefined, count: 5 },
+        { enabled: true, count: 1 },
+        { enabled: true, count: undefined },
+      ]) {
+        expect(
+          getMinimumCountFoldedValue({ ...setting, kind, translate: english }),
+        ).toBeNull();
+      }
+    },
+  );
 
   test("leaves the chip its name alone while the box holds text it does not take", () => {
     expect(
@@ -2085,7 +2102,20 @@ describe("getMinimumCountFoldedValue", () => {
   });
 
   test("never disagrees with the switch the form draws", () => {
-    const counts: Array<unknown> = [undefined, null, 0, 1, 2, 3, 100, 101, "", "1", "4", "x"];
+    const counts: Array<unknown> = [
+      undefined,
+      null,
+      0,
+      1,
+      2,
+      3,
+      100,
+      101,
+      "",
+      "1",
+      "4",
+      "x",
+    ];
 
     for (const kind of KINDS) {
       for (const enabled of [true, false, undefined]) {
@@ -2107,23 +2137,38 @@ describe("getMinimumCountFoldedValue", () => {
 });
 
 describe("getEffectiveMinimumCount", () => {
-  test.each(KINDS)("%s: reads the rule's own columns as the engines do", (kind: GroupingRuleKind) => {
-    const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
+  test.each(KINDS)(
+    "%s: reads the rule's own columns as the engines do",
+    (kind: GroupingRuleKind) => {
+      const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
 
-    expect(getEffectiveMinimumCount({}, kind)).toBe(1);
-    expect(
-      getEffectiveMinimumCount({ [names.enabled]: false, [names.count]: 5 }, kind),
-    ).toBe(1);
-    expect(
-      getEffectiveMinimumCount({ [names.enabled]: true, [names.count]: 5 }, kind),
-    ).toBe(5);
-    expect(
-      getEffectiveMinimumCount({ [names.enabled]: true, [names.count]: 1 }, kind),
-    ).toBe(1);
-    expect(
-      getEffectiveMinimumCount({ [names.enabled]: true, [names.count]: 400 }, kind),
-    ).toBe(100);
-  });
+      expect(getEffectiveMinimumCount({}, kind)).toBe(1);
+      expect(
+        getEffectiveMinimumCount(
+          { [names.enabled]: false, [names.count]: 5 },
+          kind,
+        ),
+      ).toBe(1);
+      expect(
+        getEffectiveMinimumCount(
+          { [names.enabled]: true, [names.count]: 5 },
+          kind,
+        ),
+      ).toBe(5);
+      expect(
+        getEffectiveMinimumCount(
+          { [names.enabled]: true, [names.count]: 1 },
+          kind,
+        ),
+      ).toBe(1);
+      expect(
+        getEffectiveMinimumCount(
+          { [names.enabled]: true, [names.count]: 400 },
+          kind,
+        ),
+      ).toBe(100);
+    },
+  );
 
   test("reads only its own kind's columns", () => {
     expect(
@@ -2140,78 +2185,93 @@ describe("getEffectiveMinimumCount", () => {
     ).toBe(1);
   });
 
-  test.each(KINDS)("%s: a new rule and every ready-made one wait for nothing", (kind: GroupingRuleKind) => {
-    expect(
-      getEffectiveMinimumCount(
-        getNewGroupingRuleValues({ kind, translate: english }),
-        kind,
-      ),
-    ).toBe(1);
-
-    for (const template of GROUPING_RULE_TEMPLATES) {
+  test.each(KINDS)(
+    "%s: a new rule and every ready-made one wait for nothing",
+    (kind: GroupingRuleKind) => {
       expect(
         getEffectiveMinimumCount(
-          getTemplateRuleValues({ template, kind, translate: english }),
+          getNewGroupingRuleValues({ kind, translate: english }),
           kind,
         ),
       ).toBe(1);
-    }
-  });
+
+      for (const template of GROUPING_RULE_TEMPLATES) {
+        expect(
+          getEffectiveMinimumCount(
+            getTemplateRuleValues({ template, kind, translate: english }),
+            kind,
+          ),
+        ).toBe(1);
+      }
+    },
+  );
 });
 
 describe("the Grouping column of a rule that waits", () => {
-  test.each(KINDS)("%s: says first how many must be ongoing", (kind: GroupingRuleKind) => {
-    const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
-    const noun: string = kind === GroupingRuleKind.Incident ? "incidents" : "alerts";
-    const rule: GroupingRuleValues = {
-      ...getGroupByValuesForMode(GroupingMode.Everything, kind),
-      enableTimeWindow: true,
-      timeWindowMinutes: 10,
-      enableReopenWindow: true,
-      reopenWindowMinutes: 30,
-      [names.enabled]: true,
-      [names.count]: 3,
-    };
+  test.each(KINDS)(
+    "%s: says first how many must be ongoing",
+    (kind: GroupingRuleKind) => {
+      const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
+      const noun: string =
+        kind === GroupingRuleKind.Incident ? "incidents" : "alerts";
+      const rule: GroupingRuleValues = {
+        ...getGroupByValuesForMode(GroupingMode.Everything, kind),
+        enableTimeWindow: true,
+        timeWindowMinutes: 10,
+        enableReopenWindow: true,
+        reopenWindowMinutes: 30,
+        [names.enabled]: true,
+        [names.count]: 3,
+      };
 
-    const summary: GroupingRuleSummary = getGroupingRuleSummary({
-      rule,
-      kind,
-      translate: english,
-    });
-
-    expect(summary.grouping).toBe(
-      english(GROUPING_SUMMARY_COPY.everything[kind]),
-    );
-    expect(summary.details[0]).toBe(
-      `Opens an episode once 3 matching ${noun} are ongoing`,
-    );
-    expect(summary.details[1]).toBe(
-      "Reopens episodes resolved in the last 30 minutes",
-    );
-    expect(getGroupingRuleSummaryText({ rule, kind, translate: english })).toContain(
-      `New ${noun} join while they arrive within 10 minutes of the last one. Opens an episode once 3 matching ${noun} are ongoing.`,
-    );
-  });
-
-  test.each(KINDS)("%s: says nothing of waiting for a rule that does not wait", (kind: GroupingRuleKind) => {
-    const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
-
-    for (const setting of [
-      {},
-      { [names.enabled]: false, [names.count]: 5 },
-      { [names.enabled]: true, [names.count]: 1 },
-    ]) {
       const summary: GroupingRuleSummary = getGroupingRuleSummary({
-        rule: { ...getGroupByValuesForMode(GroupingMode.Monitor, kind), ...setting },
+        rule,
         kind,
         translate: english,
       });
 
-      for (const detail of summary.details) {
-        expect(detail).not.toMatch(/Opens an episode once/);
+      expect(summary.grouping).toBe(
+        english(GROUPING_SUMMARY_COPY.everything[kind]),
+      );
+      expect(summary.details[0]).toBe(
+        `Opens an episode once 3 matching ${noun} are ongoing`,
+      );
+      expect(summary.details[1]).toBe(
+        "Reopens episodes resolved in the last 30 minutes",
+      );
+      expect(
+        getGroupingRuleSummaryText({ rule, kind, translate: english }),
+      ).toContain(
+        `New ${noun} join while they arrive within 10 minutes of the last one. Opens an episode once 3 matching ${noun} are ongoing.`,
+      );
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: says nothing of waiting for a rule that does not wait",
+    (kind: GroupingRuleKind) => {
+      const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
+
+      for (const setting of [
+        {},
+        { [names.enabled]: false, [names.count]: 5 },
+        { [names.enabled]: true, [names.count]: 1 },
+      ]) {
+        const summary: GroupingRuleSummary = getGroupingRuleSummary({
+          rule: {
+            ...getGroupByValuesForMode(GroupingMode.Monitor, kind),
+            ...setting,
+          },
+          kind,
+          translate: english,
+        });
+
+        for (const detail of summary.details) {
+          expect(detail).not.toMatch(/Opens an episode once/);
+        }
       }
-    }
-  });
+    },
+  );
 
   test("says it in the reader's language", () => {
     const summary: GroupingRuleSummary = getGroupingRuleSummary({

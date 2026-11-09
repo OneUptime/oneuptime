@@ -242,6 +242,7 @@ describe("the Paging section of the Components guide", () => {
       "Message",
       "Incident ID",
       "Alert ID",
+      "Page As",
       "Severity",
     ]);
 
@@ -260,7 +261,7 @@ describe("the Paging section of the Components guide", () => {
       const rows: Array<string> = rowNames(section).slice(PAGE_STEPS.length);
 
       // One row for who to page, then a row per setting or pair of settings.
-      expect({ language, rows: rows.length }).toEqual({ language, rows: 5 });
+      expect({ language, rows: rows.length }).toEqual({ language, rows: 6 });
 
       for (const name of who) {
         expect({
@@ -275,7 +276,9 @@ describe("the Paging section of the Components guide", () => {
       expect(rows[2]).toContain("**Message**");
       expect(rows[3]).toContain("**Incident ID**");
       expect(rows[3]).toContain("**Alert ID**");
-      expect(rows[4]).toBe("**Severity**");
+      // Responders or observers (OnCallObserverPage), choices named as the setting names them.
+      expect(rows[4]).toBe("**Page As**");
+      expect(rows[5]).toBe("**Severity**");
     }
   });
 

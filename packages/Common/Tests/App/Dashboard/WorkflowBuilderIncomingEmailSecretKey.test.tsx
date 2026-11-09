@@ -261,6 +261,7 @@ describe("the builder loads the incoming email key only for those who may see it
      */
     expect(Object.keys(getItemCall().select)).toEqual([
       "graph",
+      "graphRevision",
       "name",
       "isEnabled",
       "isArchived",

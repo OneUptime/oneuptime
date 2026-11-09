@@ -953,7 +953,7 @@ type OpenRumApplicationsFunction = (data: {
   projectId: string;
 }) => Promise<void>;
 
-/* The RUM applications roster, where the Connected / Disconnected pill lives. */
+/* The RUM applications roster, where the application's Status pill lives. */
 export const openRumApplications: OpenRumApplicationsFunction = async (data: {
   page: Page;
   projectId: string;

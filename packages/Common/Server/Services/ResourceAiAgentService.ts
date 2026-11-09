@@ -68,6 +68,8 @@ import {
 } from "../../Types/CloudConnection/CloudAiAgentKey";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AiAgentResetAuditLog from "../Utils/AI/ResourceAccess/AiAgentResetAuditLog";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
@@ -3238,14 +3240,20 @@ export class Service extends DatabaseService<Model> {
    * (an agent that registered with a leaked ingestion key) is locked out
    * the same way; rotating that ingestion key keeps it out. The caller
    * checks the user may do this (see the resource AI access API).
+   *
+   * The reset is recorded on the resource, by whoever reset it
+   * (AiAgentResetAuditLog): the agent's own row is what it reports, which
+   * the audit log leaves out.
    */
   @CaptureSpan()
   public async resetAgent(data: {
     projectId: ObjectID;
     resourceType: AiResourceType;
     resourceId: ObjectID;
-    userId?: ObjectID | undefined;
+    // Who reset it: the route's props. None for OneUptime's own reset.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
+    const userId: ObjectID | undefined = data.props?.userId || undefined;
     const info: AiResourceTypeInfo | undefined = isAiResourceType(
       data.resourceType,
     )
@@ -3279,6 +3287,8 @@ export class Service extends DatabaseService<Model> {
       props: { isRoot: true },
     });
 
+    const resetAt: Date = OneUptimeDate.getCurrentDate();
+
     /*
      * A Cloud AI agent comes back only with a new key of its account's:
      * every key it had stops working, and the project's ingestion key no
@@ -3289,19 +3299,27 @@ export class Service extends DatabaseService<Model> {
     if (isCloudAgent) {
       await CloudAccountService.revokeAiAgentKeys({
         cloudAccountId: data.resourceId,
-        now: OneUptimeDate.getCurrentDate(),
+        now: resetAt,
       });
     }
 
+    // On the resource's own Audit Logs, by whoever reset it.
+    await AiAgentResetAuditLog.record({
+      service: Service.getResourceBinding(data.resourceType).getService(),
+      resourceId: data.resourceId,
+      resetAt: resetAt,
+      props: data.props,
+    });
+
     logger.info(
       `ResourceAiAgent: the ${info.agentDisplayName} of ${info.displayName} ${data.resourceId.toString()} in project ${data.projectId.toString()} was reset${
-        data.userId ? ` by user ${data.userId.toString()}` : ""
+        userId ? ` by user ${userId.toString()}` : ""
       }.`,
     );
 
-    const resetBy: MarkdownText = data.userId
+    const resetBy: MarkdownText = userId
       ? await this.getUserMarkdownForFeed({
-          userId: data.userId,
+          userId: userId,
           projectId: data.projectId,
         })
       : FeedMarkdown.empty();
@@ -3321,7 +3339,7 @@ export class Service extends DatabaseService<Model> {
           }. It reconnects on its own within a few minutes.`.toString(),
       moreInformationInMarkdown:
         mdText`**Agent**: ${info.agentDisplayName} (${agent.id.toString()})`.toString(),
-      ...(data.userId ? { userId: data.userId } : {}),
+      ...(userId ? { userId: userId } : {}),
     });
   }
 

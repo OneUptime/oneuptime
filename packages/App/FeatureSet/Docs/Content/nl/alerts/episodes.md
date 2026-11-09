@@ -177,6 +177,8 @@ Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijs
 
 **Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Op het **Overzicht** noemt de kop de **Eigenaren** van de episode, teams eerst, en de eerste tegel, **Aangemaakt**, zegt wanneer de episode werd aangemaakt — **Automatisch**, als een groeperingsregel haar opende. De kaart **Wat er gebeurde** opent de pagina — de beschrijving van de episode en haar **Hoofdoorzaak** — dan **Waarschuwingen in deze episode** en de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Episode verplaatsen naar** in het menu **⋯**.
 
+De pagina **Hoofdoorzaak** toont naast de hoofdoorzaak de metrieken achter de episode: die van de eerste waarschuwing, de vroegst aangemaakte, zoals de telemetriekaart van het **Overzicht** ze toont, rond het begin van de episode en met de momenten ervan gemarkeerd, zodat u ze over elk bereik rond de episode kunt lezen terwijl u opschrijft waarom ze gebeurde. Heeft die waarschuwing geen momentopname van een metriekcontrole bewaard (een waarschuwing die met de hand op een metriekmonitor is gemaakt, bijvoorbeeld), dan toont de pagina de metrieken van die monitor zoals de monitor ze nu leest, en zegt dat.
+
 **Waarschuwingen → Actieve episodes** toont de episodes die nog niet zijn opgelost, en de badge ernaast telt ze.
 
 ## Probleemoplossing

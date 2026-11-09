@@ -11,6 +11,7 @@ import {
   DiscoveryImportDeviceOutcome,
   DiscoveryImportHostResult,
   DiscoveryImportMonitorOutcome,
+  DiscoveryImportSource,
   DiscoveryImportStatus,
   DiscoveryImportView,
   emptyDiscoveryImportProgress,
@@ -66,6 +67,7 @@ function view(
   return {
     id: "import-1",
     scanId: "scan-1",
+    source: DiscoveryImportSource.Scan,
     status: DiscoveryImportStatus.Running,
     settings: { ...DEFAULT_DISCOVERY_IMPORT_SETTINGS },
     progress: summarizeDiscoveryImportResults(results),

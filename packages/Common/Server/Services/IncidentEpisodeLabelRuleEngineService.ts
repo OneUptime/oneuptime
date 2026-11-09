@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeLabelRule from "../../Models/DatabaseModels/IncidentEpisodeLabelRule";
@@ -118,6 +120,7 @@ class IncidentEpisodeLabelRuleEngineServiceClass
       return await this.applyRules({
         episode: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running incident episode label rules: ${error}`, {
@@ -133,6 +136,8 @@ class IncidentEpisodeLabelRuleEngineServiceClass
   private async applyRules(data: {
     episode: IncidentEpisode;
     rules: Array<IncidentEpisodeLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { episode, rules } = data;
 
@@ -205,11 +210,12 @@ class IncidentEpisodeLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await IncidentEpisodeService.getRepository()
-      .createQueryBuilder()
-      .relation(IncidentEpisode, "labels")
-      .of(episode.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: IncidentEpisodeService,
+      resourceId: episode.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     logger.debug(
       `IncidentEpisodeLabelRuleEngine attached ${newLabelIds.length} labels to episode ${episode.id}`,

@@ -79,6 +79,7 @@ Hvert tilkald er en `POST`-anmodning med en JSON-body:
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ Hvert tilkald er en `POST`-anmodning med en JSON-body:
 | `recordType`, `record` | Hvad tilkaldet handler om: en `incident`, `alert`, `incidentEpisode` eller `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | Den politik og det niveau, der tilkaldte personen |
 | `isPageAgain` | `true`, når posten blev bekræftet for et stykke tid siden og stadig ikke er løst |
+| `isObserverPage` | `true`, når personen tilkaldes som observatør: holdes orienteret, mens andre håndterer den. At kvittere for tilkaldelsen siger kun, at de har set den |
 | `actions` | De links, din tjeneste kalder for at [reagere på tilkaldet](#reager-på-et-tilkald) |
 
 Et tilkald til flere personer er én anmodning pr. person, hver med den persons egne links, så OneUptime ved, hvem der svarede. Titlen, beskeden og beskrivelsen er tilsammen begrænset til 16.384 tegn; en længere beskrivelse bliver afkortet og slutter med "… (truncated — see OneUptime for the full text)".
@@ -170,6 +172,7 @@ En notifikation går til hver kanal, der er slået til, som én anmodning pr. ka
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

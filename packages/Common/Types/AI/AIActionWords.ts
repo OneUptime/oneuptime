@@ -251,6 +251,8 @@ export const AI_ACTION_LINES: {
   workflowAddsSteps: string;
   workflowRemovesSteps: string;
   workflowChangesSteps: string;
+  workflowUndoesSavedSince: string;
+  workflowNotRead: string;
   workflowIsOn: string;
 } = {
   // A new incident's or alert's resources: "Linked to host "test01"."
@@ -280,10 +282,139 @@ export const AI_ACTION_LINES: {
   workflowAddsSteps: translationKey("Adds {{steps}}."),
   workflowRemovesSteps: translationKey("Removes {{steps}}."),
   workflowChangesSteps: translationKey("Changes {{steps}}."),
+  /*
+   * The workflow was saved after Ask AI last saw its steps, and the change
+   * would undo some of that save, by the steps it touches (issue #6291):
+   * written from what Ask AI saw, it takes their step out again or puts an
+   * old setting back.
+   */
+  workflowUndoesSavedSince: translationKey(
+    "This change undoes what was saved after Ask AI read the workflow: {{steps}}.",
+  ),
+  // Ask AI never saw the workflow's steps, and the change touches some of them.
+  workflowNotRead: translationKey(
+    "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.",
+  ),
   workflowIsOn: translationKey(
     "This workflow is on, so its next run uses the change.",
   ),
 };
+
+/*
+ * The lines that count: a code change's files Ask AI never saw as the
+ * branch has them (issue #6313). Ask AI writes each file whole, from what
+ * read_code_file showed it, so a commit - on a branch, or a pull request's
+ * - would undo what was pushed to a file since, or replace a file Ask AI
+ * read on another branch, or never read, or read only part of (issue
+ * #6330) - or write placeholders where values were hidden from Ask AI
+ * (issue #6364). Each names the files, as {{files}}: a list of
+ * AI_ACTION_CODE_FILE, the first few written out and the rest counted
+ * (moreFiles). {{count}} is how many files it names.
+ */
+export const AI_ACTION_PLURAL_LINES: {
+  codeFilesChangedSinceRead: PluralTemplate;
+  codeFilesReadOnAnotherBranch: PluralTemplate;
+  codeFilesNotRead: PluralTemplate;
+  codeFilesReadInPart: PluralTemplate;
+  codeFilesNotChecked: PluralTemplate;
+  codeFilesValuesHidden: PluralTemplate;
+  moreFiles: PluralTemplate;
+} = {
+  // Pushed to, deleted or renamed away on the branch after Ask AI read it there.
+  codeFilesChangedSinceRead: {
+    one: translationKey(
+      "This file changed on {{branch}} after Ask AI read it, and Ask AI's version undoes that change: {{files}}.",
+    ),
+    other: translationKey(
+      "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}.",
+    ),
+  },
+  /*
+   * Read on another branch only - the repository's main branch, unless Ask
+   * AI was told one - and different on the branch written to. {{readBranch}}
+   * is that branch, or "another branch" when the files were read on several.
+   */
+  codeFilesReadOnAnotherBranch: {
+    one: translationKey(
+      "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.",
+    ),
+    other: translationKey(
+      "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.",
+    ),
+  },
+  // Never read, and on the branch written to.
+  codeFilesNotRead: {
+    one: translationKey(
+      "Ask AI wrote this file without reading it, and it replaces the one on {{branch}}: {{files}}.",
+    ),
+    other: translationKey(
+      "Ask AI wrote these {{count}} files without reading them, and they replace the ones on {{branch}}: {{files}}.",
+    ),
+  },
+  /*
+   * The version on the branch is the one Ask AI read, but it read only some
+   * of its lines - read_code_file shows a file a window at a time - and
+   * the change writes all of it, dropping the lines Ask AI never saw.
+   */
+  codeFilesReadInPart: {
+    one: translationKey(
+      "Ask AI read only part of this file, and its version replaces all of it: {{files}}.",
+    ),
+    other: translationKey(
+      "Ask AI read only part of these {{count}} files, and its versions replace all of them: {{files}}.",
+    ),
+  },
+  // The branch could not be read: never said to be unchanged.
+  codeFilesNotChecked: {
+    one: translationKey(
+      "OneUptime could not check this file on {{branch}} against what Ask AI read: {{files}}.",
+    ),
+    other: translationKey(
+      "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}.",
+    ),
+  },
+  /*
+   * Ask AI is shown what looks like a secret or personal data - an IP
+   * address, an email address, a key - as a placeholder ("[redacted-ip]"),
+   * and its version of the file holds more of a placeholder than the file
+   * on the branch does: the change writes the placeholder where the value
+   * was, or where one belongs.
+   */
+  codeFilesValuesHidden: {
+    one: translationKey(
+      "Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: {{files}}.",
+    ),
+    other: translationKey(
+      "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}.",
+    ),
+  },
+  // The files a line counts rather than names, last in its list.
+  moreFiles: {
+    one: translationKey("{{count}} more file"),
+    other: translationKey("{{count}} more files"),
+  },
+};
+
+/*
+ * The lines a code change's card says which files it would write over
+ * unseen with, as they are stored (each one's "other" form). They name
+ * some of the files, never how many the change writes - so a card that
+ * shows only these still shows its "Files: 3" (issue #6331).
+ */
+export const AI_ACTION_CODE_CHANGE_LINES: ReadonlyArray<string> = [
+  AI_ACTION_PLURAL_LINES.codeFilesChangedSinceRead.other,
+  AI_ACTION_PLURAL_LINES.codeFilesReadOnAnotherBranch.other,
+  AI_ACTION_PLURAL_LINES.codeFilesNotRead.other,
+  AI_ACTION_PLURAL_LINES.codeFilesReadInPart.other,
+  AI_ACTION_PLURAL_LINES.codeFilesNotChecked.other,
+  AI_ACTION_PLURAL_LINES.codeFilesValuesHidden.other,
+];
+
+/*
+ * One file in such a list, by its path as the commit writes it. No words
+ * of its own: the path is data, in every language.
+ */
+export const AI_ACTION_CODE_FILE: string = "{{file}}";
 
 /*
  * One resource in a list: its kind, then its name in quotes - 'host
@@ -303,11 +434,14 @@ export const AI_ACTION_RESOURCE_BY_NAME: string = "{{kind}} {{name}}";
 export const AI_ACTION_TERMS: {
   untitled: string;
   aBranch: string;
+  anotherBranch: string;
 } = {
   // What an incident, alert or pull request the call gave no title is called.
   untitled: translationKey("Untitled"),
   // The branch of a commit whose call names none.
   aBranch: translationKey("a branch"),
+  // Where Ask AI read files, when it read them on more than one branch (codeFilesReadOnAnotherBranch).
+  anotherBranch: translationKey("another branch"),
 };
 
 /*
@@ -358,6 +492,7 @@ export const AI_ACTION_CARD_LINES: {
   noteAdded: string;
   statusUpdatePostedQuietly: string;
   statusUpdatePostedSubscribersNotified: string;
+  statusUpdateWaitsForApproval: string;
   pagedForIncident: string;
   runbookStarted: string;
   runbookStartedForIncident: string;
@@ -366,6 +501,7 @@ export const AI_ACTION_CARD_LINES: {
   playbookStepsWaitForApproval: string;
   workflowTurnedOff: string;
   workflowOnNextRun: string;
+  workflowSavedSinceKept: string;
 } = {
   // The severity a new record took, or the one it was changed to.
   severity: translationKey("Severity: {{severity}}"),
@@ -389,6 +525,13 @@ export const AI_ACTION_CARD_LINES: {
   statusUpdatePostedSubscribersNotified: translationKey(
     "Status update posted, subscribers notified",
   ),
+  /*
+   * The project asks for public notes to be approved: the update waits, on
+   * no status page and told to no subscriber until it is approved.
+   */
+  statusUpdateWaitsForApproval: translationKey(
+    "Status update sent for approval, not published yet",
+  ),
   // An on-call policy paged for an incident, named by its number.
   pagedForIncident: translationKey("Paged for incident {{incident}}"),
   runbookStarted: translationKey("Run started"),
@@ -403,6 +546,13 @@ export const AI_ACTION_CARD_LINES: {
   ),
   workflowTurnedOff: translationKey("Turned off until someone turns it on"),
   workflowOnNextRun: translationKey("Turned on: its next run uses this"),
+  /*
+   * The workflow was saved again between the change being proposed and
+   * approved, and the change was made on top of that save (issue #6274).
+   */
+  workflowSavedSinceKept: translationKey(
+    "Changes saved after this was proposed were kept",
+  ),
 };
 
 // The names of a card's facts.
@@ -459,10 +609,12 @@ export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
   ...Object.values(AI_ACTION_LINES),
   ...Object.values(AI_ACTION_CARD_LINES),
   AI_ACTION_RESOURCE_BY_NAME,
+  AI_ACTION_CODE_FILE,
 ];
 
 export const AI_ACTION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> = [
   ...Object.values(AI_ACTION_PLURAL_TITLES),
+  ...Object.values(AI_ACTION_PLURAL_LINES),
 ];
 
 // The kinds of resource, by the nouns the server names them by.

@@ -64,6 +64,48 @@ export interface CodeHostFileContent {
   sizeInBytes: number;
   totalLines: number;
   htmlUrl: string;
+  /*
+   * The file's git blob SHA, as the host answers it with the contents:
+   * the version read, which a commit written from it is checked against
+   * (issue #6313). Absent where the host does not say.
+   */
+  blobSha?: string | undefined;
+}
+
+/*
+ * What is at a path on a branch, as a commit would find it (issue #6313):
+ * the git blob SHA of the file there, null where there is no file - or
+ * why it could not be read. GitLab names the last commit that changed the
+ * file with it, which a commit of the file is then held to (#6331).
+ */
+export type CodeHostFileBlob =
+  | {
+      filePath: string;
+      blobSha: string | null;
+      lastCommitId?: string | undefined;
+    }
+  | { filePath: string; failure: string };
+
+/*
+ * A file's version, as its host names it: its git blob SHA, and on GitLab
+ * the last commit that changed it.
+ */
+export interface CodeHostFileVersion {
+  blobSha: string;
+  lastCommitId?: string | undefined;
+}
+
+/*
+ * What a commit holds a file it writes to (issue #6331): the version the
+ * approval read again just before it - its blob SHA, null where there was
+ * no file, and on GitLab the last commit that changed it. The commit is
+ * made only while every file it is held to is still that; otherwise the
+ * host refuses it (CodeHostFilesMovedError) and nothing is written.
+ */
+export interface CodeHostFileExpected {
+  filePath: string;
+  blobSha: string | null;
+  lastCommitId?: string | undefined;
 }
 
 // A pull (or merge) request's state, with its merge commit once merged.

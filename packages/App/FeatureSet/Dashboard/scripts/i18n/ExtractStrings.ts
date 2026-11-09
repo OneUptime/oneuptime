@@ -336,6 +336,32 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A RUM application's status - Receiving data, No recent traffic, Waiting
+   * for data - and what each means: the RUM Applications list and an
+   * application's hero say them in the reader's language. Only the words
+   * the file marks are read: OneUptime AI's tool reads the same English.
+   */
+  {
+    directory: "packages/Common/Types/Rum/RumApplicationStatus.ts",
+    kind: "keys",
+  },
+  /*
+   * A serverless function's status - Receiving data, No recent
+   * invocations, Waiting for data - and a service's - Receiving data, No
+   * recent data, Waiting for data - and what each means: the Serverless
+   * Functions list, a function's hero and a service's hero say them in the
+   * reader's language. Only the words each file marks are read, not the
+   * stored values the statuses are read from.
+   */
+  {
+    directory: "packages/Common/Types/Serverless/ServerlessFunctionStatus.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Service/ServiceTelemetryStatus.ts",
+    kind: "keys",
+  },
+  /*
    * Where a database or a queue was found ("Application traces", "Added
    * manually") and what kind of cloud resource one is ("Databases and
    * caches"): a database's and a queue's Overview, their lists and a cloud

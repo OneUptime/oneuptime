@@ -563,6 +563,8 @@ describe("UserNotificationSettingService.sendUserNotification - custom channels"
         record: null,
         onCallPolicy: null,
         escalationRule: null,
+        // A notification, not a page: nobody is paged as an observer.
+        isObserverPage: false,
         isPageAgain: false,
         actions: null,
         notificationType: EVENT_TYPE,

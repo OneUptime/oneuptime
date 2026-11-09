@@ -81,6 +81,10 @@ export function getDataObservabilityBreadcrumbs(
       ["Project", "Data Observability", "Tables", "View Table", "Settings"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_TABLE_VIEW_AUDIT_LOGS,
+      ["Project", "Data Observability", "Tables", "View Table", "Audit Logs"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE,
       ["Project", "Data Observability", "Tables", "View Table", "Delete"],
     ),
@@ -174,6 +178,16 @@ export function getDataObservabilityBreadcrumbs(
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS,
+      [
+        "Project",
+        "Data Observability",
+        "Data Products",
+        "Data Product",
+        "Audit Logs",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_DELETE,
       [
         "Project",
@@ -198,6 +212,10 @@ export function getDataObservabilityBreadcrumbs(
         "Pipeline",
         "Recommendations",
       ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS,
+      ["Project", "Data Observability", "Pipelines", "Pipeline", "Audit Logs"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_CHECKS, [
       "Project",

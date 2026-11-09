@@ -1,6 +1,9 @@
 import logger, { LogAttributes } from "../Logger";
 import LogAggregationService from "../../Services/LogAggregationService";
 import VMUtil from "../VM/VMAPI";
+import JavaScriptExpressionValues from "./JavaScriptExpressionValues";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
 import APIRequestCriteria from "./Criteria/APIRequestCriteria";
 import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
 import IncomingEmailCriteria from "./Criteria/IncomingEmailCriteria";
@@ -79,11 +82,6 @@ import ProbeApiIngestResponse, {
 } from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import RequestFailedDetails from "../../../Types/Probe/RequestFailedDetails";
-import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
-import SqlMonitorResponse from "../../../Types/Monitor/SqlMonitor/SqlMonitorResponse";
-import DatabaseMonitorResponse, {
-  DatabaseMetricGroupStatus,
-} from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../../Types/Monitor/MonitorType";
@@ -107,7 +105,6 @@ import {
   toTracesExplorerQueryParams,
 } from "../../../Utils/Telemetry/CrossSignalScope";
 import ObjectID from "../../../Types/ObjectID";
-import Typeof from "../../../Types/Typeof";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import URL from "../../../Types/API/URL";
 import IP from "../../../Types/IP/IP";
@@ -1527,103 +1524,22 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaInEffect?: CriteriaInEffect | undefined;
   }): Promise<string | null> {
     if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
-      let storageMap: JSONObject = {};
+      /*
+       * What the expression can name, per monitor type - the same map the
+       * evaluation details read its references from.
+       */
+      const storageMap: JSONObject = JavaScriptExpressionValues.getStorageMap({
+        monitorType: input.monitor.monitorType,
+        dataToProcess: input.dataToProcess,
+        projectId: input.monitor.projectId?.toString(),
+      });
 
-      if (
-        input.monitor.monitorType === MonitorType.API ||
-        input.monitor.monitorType === MonitorType.Website
-      ) {
-        let responseBody: JSONObject | null = null;
-        try {
-          responseBody = JSON.parse(
-            ((input.dataToProcess as ProbeMonitorResponse)
-              .responseBody as string) || "{}",
-          );
-        } catch (err) {
-          logger.error(err, {
-            projectId: input.monitor.projectId?.toString(),
-          });
-          responseBody = (input.dataToProcess as ProbeMonitorResponse)
-            .responseBody as JSONObject;
-        }
-
-        if (
-          typeof responseBody === Typeof.String &&
-          responseBody?.toString() === ""
-        ) {
-          responseBody = {};
-        }
-
-        storageMap = {
-          responseBody: responseBody,
-          responseHeaders: (input.dataToProcess as ProbeMonitorResponse)
-            .responseHeaders,
-          responseStatusCode: (input.dataToProcess as ProbeMonitorResponse)
-            .responseCode,
-          responseTimeInMs: (input.dataToProcess as ProbeMonitorResponse)
-            .responseTimeInMs,
-          isOnline: (input.dataToProcess as ProbeMonitorResponse).isOnline,
-        };
-      }
-
-      if (input.monitor.monitorType === MonitorType.IncomingRequest) {
-        storageMap = {
-          requestBody: (input.dataToProcess as IncomingMonitorRequest)
-            .requestBody,
-          requestHeaders: (input.dataToProcess as IncomingMonitorRequest)
-            .requestHeaders,
-        };
-      }
-
-      if (input.monitor.monitorType === MonitorType.SQLQuery) {
-        const sqlResponse: SqlMonitorResponse | undefined = (
-          input.dataToProcess as ProbeMonitorResponse
-        ).sqlQueryMonitorResponse;
-
-        storageMap = {
-          rowCount: sqlResponse?.rowCount,
-          scalarValue: sqlResponse?.scalarValue,
-          firstRow: sqlResponse?.firstRow,
-          executionTimeInMs: sqlResponse?.responseTimeInMs,
-          queryError: sqlResponse?.queryError,
-          isOnline: (input.dataToProcess as ProbeMonitorResponse).isOnline,
-        };
-      }
-
-      if (input.monitor.monitorType === MonitorType.Database) {
-        const databaseResponse: DatabaseMonitorResponse | undefined = (
-          input.dataToProcess as ProbeMonitorResponse
-        ).databaseMonitorResponse;
-
-        /*
-         * metrics is exposed raw, keyed by series name, so an expression can
-         * read any of the catalog's series without a variable per metric:
-         * {{metrics['oneuptime.monitor.database.connections.used.percent']}} > 90
-         *
-         * Connection details are deliberately absent - host, username and
-         * password never travel into an expression sandbox.
-         */
-        storageMap = {
-          isOnline: (input.dataToProcess as ProbeMonitorResponse).isOnline,
-          engineVersion: databaseResponse?.engineVersion,
-          connectionError: databaseResponse?.connectionError,
-          collectedGroups: databaseResponse?.collectedGroups,
-          unavailableGroups: (databaseResponse?.unavailableGroups || []).map(
-            (status: DatabaseMetricGroupStatus): JSONObject => {
-              return {
-                group: status.group,
-                reason: status.reason,
-                message: status.message,
-                remediation: status.remediation,
-              };
-            },
-          ),
-          metrics: databaseResponse?.metrics,
-        };
-      }
-
-      let expression: string = input.criteriaFilter.value as string;
-      expression = VMUtil.replaceValueInPlace(storageMap, expression, false);
+      const writtenExpression: string = input.criteriaFilter.value as string;
+      const expression: string = VMUtil.replaceValueInPlace(
+        storageMap,
+        writtenExpression,
+        false,
+      );
 
       const code: string = `return Boolean(${expression});`;
       let result: ReturnResult | null = null;
@@ -1654,8 +1570,20 @@ ${incomingRequestGrouping.rootCauseNote}
         return null;
       }
 
+      /*
+       * Said as it was written, with what its references held beside it:
+       * the expression with the response's values written into it could
+       * carry a whole response body into the root cause, which goes to
+       * email and chat.
+       */
       if (result && result.returnValue) {
-        return `JavaScript Expression - ${expression} - evaluated to true.`;
+        return JavaScriptExpressionValues.describeMetExpression({
+          expression: writtenExpression,
+          storageMap: storageMap,
+          includeValues: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
+        });
       }
 
       return null;
@@ -6872,23 +6800,34 @@ ${incomingRequestGrouping.rootCauseNote}
     return FeedMarkdown.join(lines, "\n");
   }
 
+  /*
+   * Where the check went, as a root cause - sent to email and chat - may say
+   * it: the step's destination as it was configured, {{monitorSecrets.*}}
+   * references as written, before the address the probe echoed back with
+   * the secrets filled in; a password or a secret query value in it masked.
+   */
   private static getMonitorDestinationString(input: {
     monitorStep: MonitorStep;
     probeResponse: ProbeMonitorResponse | null;
   }): string | null {
-    if (input.probeResponse?.monitorDestination) {
-      return MonitorCriteriaEvaluator.stringifyValue(
-        input.probeResponse.monitorDestination,
-      );
+    const destination: string | null = input.monitorStep.data
+      ?.monitorDestination
+      ? MonitorCriteriaEvaluator.stringifyValue(
+          input.monitorStep.data.monitorDestination,
+        )
+      : input.probeResponse?.monitorDestination
+        ? MonitorCriteriaEvaluator.stringifyValue(
+            input.probeResponse.monitorDestination,
+          )
+        : null;
+
+    if (!destination) {
+      return null;
     }
 
-    if (input.monitorStep.data?.monitorDestination) {
-      return MonitorCriteriaEvaluator.stringifyValue(
-        input.monitorStep.data.monitorDestination,
-      );
-    }
-
-    return null;
+    return destination.indexOf("://") === -1
+      ? destination
+      : MonitorEvidenceRedaction.redactUrl(destination);
   }
 
   // The lines an answering NTP server adds to a root cause's response snapshot.

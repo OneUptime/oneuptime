@@ -32,12 +32,12 @@ flowchart LR
 | --- | --- | --- |
 | **Básico** | **Projeto**, **Rótulos** | [Os detalhes do projeto](#os-detalhes-do-projeto), [Rótulos](#rótulos) |
 | **Espaço de trabalho** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videochamadas** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videochamadas](/docs/workspace-connections/video-calls) |
-| **Telemetria e APM** | **Chaves de ingestão**, **Retenção de dados** | [Chaves de ingestão](/docs/telemetry/ingestion-keys), [Retenção de dados](/docs/telemetry/data-retention) |
+| **Telemetria e APM** | **Chaves de ingestão**, **Retenção de dados**, **Uso** | [Chaves de ingestão](/docs/telemetry/ingestion-keys), [Retenção de dados](/docs/telemetry/data-retention), [Uso de telemetria](/docs/telemetry/usage) |
 | **Notificações** | **Configurações de notificação**, **Logs de notificação**, **Aplicativos móveis** | [Notificações](#notificações) |
 | **IA** | **Recursos de IA**, **Provedores LLM**, **Servidores MCP externos**, **Créditos de IA**, **Registros de IA**, **Servidor MCP** | [Provedores de LLM](/docs/ai/llm-provider), [Servidores MCP externos](/docs/ai/external-mcp-servers), [Servidor MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#controle-de-custos) |
 | **Avançado** | **Domínios**, **Chaves de API**, **Sinalizadores de recursos**, **Importar de outra ferramenta** | [Domínios personalizados](/docs/status-pages/branding-and-domains#domínios-personalizados), [Chaves de API](/docs/permissions/index#chaves-de-api), [Sinalizadores de recursos](#sinalizadores-de-recursos), [Migrar do Opsgenie](/docs/moving-to-oneuptime/opsgenie) e os outros guias de migração |
 | **Segurança** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
-| **Cobrança e faturas** | **Cobrança**, **Histórico de uso**, **Faturas** | [Cobrança e uso](/docs/configuration/billing) |
+| **Cobrança e faturas** | **Cobrança**, **Faturas** | [Cobrança e uso](/docs/configuration/billing) |
 | **Registros de auditoria** | **Registros de auditoria**, **Configurações**, **Exportar** | [Registros de auditoria](/docs/configuration/audit-logs), [Exportação do registro de auditoria](/docs/configuration/audit-log-export) |
 | **Zona de perigo** | **Zona de perigo** | [Excluir o projeto](#excluir-o-projeto) |
 

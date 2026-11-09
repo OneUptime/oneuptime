@@ -78,6 +78,13 @@ const RETIRED_PULL_REQUEST_SWITCHES: Array<string> = [
 const OFF_FOR_NEW_PROJECTS: Array<string> = [...FIX_SWITCHES];
 
 /*
+ * Rules on who approves what OneUptime AI proposes, never a feature to turn
+ * on: asking two people to approve a riskier fix (#6148's follow-up) starts
+ * off for every project, new ones too, and a team turns it on.
+ */
+const APPROVAL_RULES: Array<string> = ["requireTwoApprovalsForRiskierFixes"];
+
+/*
  * The twelve switches, written out so a column dropped from the list fails
  * here. Triaging new security cases is read-only, like investigating new
  * incidents, so it starts on too. Finding and fixing slow code (Profiles ->
@@ -170,6 +177,7 @@ describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
       "failedAiBalanceChargeNotificationSentToOwners",
       "notEnabledAiNotificationSentToOwners",
       ...OFF_FOR_NEW_PROJECTS,
+      ...APPROVAL_RULES,
     ];
 
     const aiBooleanColumns: Array<string> = Object.keys(project)
@@ -266,6 +274,44 @@ describe("the automatic-fix switches", () => {
       for (const retired of RETIRED_PULL_REQUEST_SWITCHES) {
         expect(description).not.toContain(retired);
       }
+    },
+  );
+});
+
+describe("the rules on who approves a fix", () => {
+  it.each(APPROVAL_RULES)(
+    "%s is a Boolean rule that defaults to off in the column, and a new project starts without it",
+    (column: string) => {
+      const project: Project = new Project();
+      const metadata: ReturnType<Project["getTableColumnMetadata"]> =
+        project.getTableColumnMetadata(column);
+
+      expect(metadata?.type).toBe(TableColumnType.Boolean);
+      expect(metadata?.defaultValue).toBe(false);
+      expect(metadata?.required).toBe(true);
+      expect(metadata?.isDefaultValueColumn).toBe(true);
+      expect(
+        NEW_PROJECT_AI_DEFAULT_COLUMNS as ReadonlyArray<string>,
+      ).not.toContain(column);
+
+      ProjectService.applyNewProjectAiDefaults(project);
+
+      expect({
+        [column]: (project as unknown as Record<string, unknown>)[column],
+      }).toEqual({ [column]: undefined });
+    },
+  );
+
+  it.each(APPROVAL_RULES)(
+    "%s is set by project owners and admins, never on create",
+    (column: string) => {
+      const access: ReturnType<Project["getColumnAccessControlFor"]> =
+        new Project().getColumnAccessControlFor(column);
+
+      expect(access?.create).toEqual([]);
+      expect([...(access?.update || [])].sort()).toEqual(
+        [Permission.ProjectAdmin, Permission.ProjectOwner].sort(),
+      );
     },
   );
 });

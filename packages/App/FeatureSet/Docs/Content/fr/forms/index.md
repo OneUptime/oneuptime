@@ -97,6 +97,7 @@ Dans **Partager**, copiez le lien et envoyez-le aux personnes qui doivent utilis
 | **Domaines personnalisés** | Les domaines propres du formulaire, comme `report.acme.com`, avec leurs enregistrements DNS et leurs certificats. Voir [Domaines personnalisés](/docs/forms/sharing-and-security#domaines-personnalisés). |
 | **Soumissions** | Chaque soumission faite par le formulaire, la plus récente en premier, avec ses réponses et ce qu'elle a créé. |
 | **Dupliquer le formulaire** | Sous **Avancé** : une copie du formulaire, nommée pour vous, avec ses questions, ses modèles, ses paramètres À la soumission, son image de marque, son message de remerciement et sa liste d'autorisation IP, et un lien qui lui est propre. La copie est d'abord désactivée et s'ouvre sur son éditeur. |
+| **Journaux d'audit** | Sous **Avancé** : chaque modification du formulaire, de ses domaines personnalisés et de ses soumissions, qui l'a faite et quand. |
 | **Supprimer le formulaire** | La suppression du formulaire, sous **Avancé**. Ses soumissions sont supprimées avec lui ; les incidents et événements qu'il a créés ne le sont pas. |
 
 La section **Développeurs** du menu du formulaire contient ses pages Terraform, API et assistant IA, comme pour toute autre ressource.

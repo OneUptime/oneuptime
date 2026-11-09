@@ -118,13 +118,17 @@ Die **Anmeldedaten**, etwa `Bearer <token>`, werden in dem Header gesendet, den 
 
 ### Syslog
 
-Jeder Eintrag ist eine Nachricht nach RFC 5424 an **Host** und **Port**, über TLS auf Port `6514`, sofern **Protokoll** nicht TCP festlegt, mit Facility 13 (log audit) und Severity 6 (informational):
+Jeder Eintrag ist eine Nachricht nach RFC 5424 an **Host** und **Port**, über TLS auf Port `6514`, sofern **Protokoll** nicht TCP oder UDP festlegt, mit Facility 13 (log audit) und Severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-Nachrichten werden per Oktettzählung (RFC 5425) getrennt, sofern **Nachrichtentrennung** nicht eine Nachricht pro Zeile festlegt. Ein Empfänger, dessen Zertifikat eine private CA signiert hat, braucht das Zertifikat dieser CA unter **CA-Zertifikat**. Beide warten unter **Weitere Felder**.
+Über TLS und TCP werden Nachrichten per Oktettzählung (RFC 5425) getrennt, sofern **Nachrichtentrennung** nicht eine Nachricht pro Zeile festlegt. Ein Empfänger, dessen Zertifikat eine private CA signiert hat, braucht das Zertifikat dieser CA unter **CA-Zertifikat**. Beide warten unter **Weitere Felder**.
+
+Über UDP beginnt **Port** bei `514`, und jede Nachricht ist ein eigenes Datagramm (RFC 5426), daher wird keine getrennt. UDP sendet das Audit-Protokoll als Klartext, und nichts bestätigt, dass eine Nachricht angekommen ist: Antwortet der Host des Empfängers, dass sein Port geschlossen ist, schlägt der Batch fehl und wird erneut versucht, aber eine unterwegs verlorene Nachricht wird nicht erneut gesendet. Prüfen Sie nach einem Test über UDP, ob der Testeintrag angekommen ist. Wenn jeder Eintrag ankommen muss, wählen Sie TLS oder TCP.
+
+Über UDP ist eine Nachricht höchstens so lang wie **Maximale Nachrichtengröße**, in Bytes: `8192`, sofern Sie den Wert nicht unter **Weitere Felder** ändern, von `1024` bis `65507`. Ein längerer Eintrag wird passend gekürzt und bleibt ein JSON-Objekt: Zuerst werden seine Werte gekürzt, wie das Audit-Protokoll sie kürzt, etwa `[… 1,234 more characters]` oder `[12.3 KB of JSON]`, dann werden die Änderungen, die noch nicht passen, in einer gezählt, etwa `[… 12 more changes]`.
 
 ## Was gesendet wird
 
@@ -132,7 +136,7 @@ Jeder Eintrag ist ein JSON-Objekt, seine Schlüssel immer in dieser Reihenfolge:
 
 | Schlüssel | Was er enthält |
 | --- | --- |
-| `schemaVersion` | `1`. Eine Änderung am Schema kommt mit einer neuen Version. |
+| `schemaVersion` | `2` für einen neuen Export, `1` für einen, der vor Version 2 gespeichert wurde. Eine Version fügt immer nur Schlüssel hinzu. |
 | `id` | Die ID des Eintrags. Derselbe Eintrag hat auch zweimal gesendet dieselbe ID. |
 | `createdAt` | Wann die Änderung erfasst wurde, in UTC. |
 | `projectId` | Das Projekt, in dem die Änderung vorgenommen wurde. |
@@ -143,11 +147,22 @@ Jeder Eintrag ist ein JSON-Objekt, seine Schlüssel immer in dieser Reihenfolge:
 | `apiKeyId`, `apiKeyName` | Der API-Schlüssel, mit dem sie vorgenommen wurde, falls vorhanden. |
 | `mcpOAuthGrantId`, `mcpClientName` | Der MCP-Client, über den sie vorgenommen wurde, falls vorhanden. |
 | `workflowId`, `workflowName` | Der Workflow, der sie vorgenommen hat, falls vorhanden. |
-| `changes` | Jedes geänderte Feld: `field`, mit `oldValue` und `newValue`. |
+| `changes` | Jedes geänderte Feld: `field`, mit `oldValue` und `newValue`, und in Version 2 `summary`. |
 
 Eine Datei enthält einen Eintrag pro Zeile, mit gzip komprimiert, und wird unter der Stunde ihres ersten Eintrags abgelegt: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Jeder `oldValue` und `newValue` ist der Wert des Felds: Text, eine Zahl, `true` oder `false` oder JSON für eine Einstellung aus mehreren Teilen. Eine Telefonnummer, eine E-Mail-Adresse oder eine URL ist ihr Text, etwa `+14155550100`, und ein Port ist seine Nummer.
+
 Schlüssel, Tokens und Passwörter gehen nie hinaus: Sie werden als `[REDACTED]` erfasst, und Felder, die niemand lesen darf, fehlen in jedem Eintrag.
+
+## Datensatzversionen
+
+| Version | Was sie sendet |
+| --- | --- |
+| `2` | Jede Änderung enthält zusätzlich `summary`: was sich geändert hat, in den Zeilen, die das Audit-Protokoll zeigt, etwa `Added "Send Email" (send-email-1)` für einen Schritt eines Workflows oder der Pfad, der sich in JSON geändert hat, sonst `null`. Die Zeilen nennen Einstellungen und Pfade, nie Werte. |
+| `1` | Der Eintrag, wie er zuerst gesendet wurde, ohne `summary`. Die Schritte eines Workflows gehen als ihre Größe davor und danach hinaus, etwa `3 steps and 2 connections`. |
+
+Ein neuer Export sendet Version 2. Ein Export, der vor Version 2 gespeichert wurde, sendet weiter Version 1, sodass das, was ihn liest, nichts ändern muss: Ist es für `summary` bereit, klicken Sie beim Export auf **Bearbeiten** und wählen Sie unter **Weitere Felder** in **Datensatzversion** Version 2. Die Version gilt für die Einträge, die ab dann gesendet werden, und jeder Eintrag nennt seine eigene in `schemaVersion`.
 
 ## Wann Einträge gesendet werden
 
@@ -177,7 +192,7 @@ Der Export eines Projekts in OneUptime Cloud kann keine private Netzwerkadresse 
 :::
 
 :::details Nichts kommt an
-Prüfen Sie, ob die Audit-Protokollierung im Projekt eingeschaltet ist und ob nach dem Speichern des Exports jemand etwas geändert hat. Ein Speicher erhält erst dann eine Datei, wenn ein Batch voll oder fünf Minuten alt ist.
+Prüfen Sie, ob die Audit-Protokollierung im Projekt eingeschaltet ist und ob nach dem Speichern des Exports jemand etwas geändert hat. Ein Speicher erhält erst dann eine Datei, wenn ein Batch voll oder fünf Minuten alt ist. Über UDP verwirft eine Firewall Nachrichten, ohne es zu melden: Prüfen Sie, ob UDP den Port des Empfängers erreichen darf.
 :::
 
 ## Nächste Schritte

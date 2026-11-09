@@ -49,6 +49,7 @@ import ChangeEpisodeState from "../../../Components/IncidentEpisode/ChangeState"
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
+import { EventMetricSubject } from "../../../Utils/EventMetricInvestigation";
 import {
   DerivedTelemetrySnapshot,
   EMPTY_TELEMETRY_SNAPSHOT,
@@ -84,15 +85,16 @@ import {
   getIncidentEpisodeMemberRow,
 } from "../../../Components/EpisodeView/EpisodeMembers";
 import {
-  FetchedEpisodeMembers,
-  fetchEpisodeMembers,
-} from "../../../Components/EpisodeView/FetchEpisodeMembers";
+  INCIDENT_EPISODE_FIRST_MEMBER,
+  fetchFirstEpisodeMember,
+} from "../../../Components/EpisodeView/EpisodeFirstMember";
 import {
   EpisodeTiming,
   getEpisodeTiming,
 } from "../../../Components/EpisodeView/EpisodeTiming";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import { EventStateTimelineDate } from "../../../Utils/EventDuration";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
@@ -162,6 +164,11 @@ const IncidentEpisodeView: FunctionComponent<
   const [telemetrySnapshot, setTelemetrySnapshot] =
     useState<DerivedTelemetrySnapshot>(EMPTY_TELEMETRY_SNAPSHOT);
 
+  // The member whose telemetry the snapshot shows: its monitor's rule is drawn.
+  const [snapshotMemberId, setSnapshotMemberId] = useState<string | undefined>(
+    undefined,
+  );
+
   const requestIdRef: MutableRefObject<number> = useRef<number>(0);
   const hasLoadedRef: MutableRefObject<boolean> = useRef<boolean>(false);
 
@@ -215,8 +222,8 @@ const IncidentEpisodeView: FunctionComponent<
     requestIdRef.current = requestId;
 
     try {
-      const [firstMembers, episodeTimelines, stateList, loaded]: [
-        FetchedEpisodeMembers<Incident> | null,
+      const [firstMember, episodeTimelines, stateList, loaded]: [
+        Incident | null,
         ListResult<IncidentEpisodeStateTimeline>,
         ListResult<IncidentState>,
         IncidentEpisode | null,
@@ -225,20 +232,17 @@ const IncidentEpisodeView: FunctionComponent<
          * The one read here the page can do without: it takes the episode's
          * membership as well as its incidents, and a reader who may not read
          * the membership (a custom role) still gets the overview, without
-         * the panel.
+         * the panel. Its first member is the one the episode's Root Cause
+         * page charts the metrics of, picked by the same rule.
          */
-        fetchEpisodeMembers<Incident, IncidentEpisodeMember>({
+        fetchFirstEpisodeMember<Incident, IncidentEpisodeMember>({
           episodeId: modelId,
-          membership: INCIDENT_EPISODE_MEMBERSHIP,
-          modelType: Incident,
+          kind: INCIDENT_EPISODE_FIRST_MEMBER,
           select: {
             _id: true,
             telemetryQuery: true,
             seriesLabels: true,
           },
-          sortField: "declaredAt",
-          sortOrder: SortOrder.Ascending,
-          limit: 1,
         }).catch((): null => {
           return null;
         }),
@@ -301,14 +305,13 @@ const IncidentEpisodeView: FunctionComponent<
         return;
       }
 
-      const firstMember: Incident | undefined = firstMembers?.members[0];
-
       setTelemetrySnapshot(
         deriveTelemetrySnapshot({
           storedTelemetryQuery: firstMember?.telemetryQuery,
           seriesLabels: firstMember?.seriesLabels as JSONObject | undefined,
         }),
       );
+      setSnapshotMemberId(firstMember?.id?.toString() || undefined);
 
       setEpisode(loaded);
       setIncidentStates(stateList.data as IncidentState[]);
@@ -417,6 +420,16 @@ const IncidentEpisodeView: FunctionComponent<
     );
   }
 
+  const episodeTimelineDates: Array<EventStateTimelineDate> =
+    episodeStateTimeline.map(
+      (timeline: IncidentEpisodeStateTimeline): EventStateTimelineDate => {
+        return {
+          stateId: timeline.incidentStateId?.toString(),
+          startsAt: timeline.startsAt,
+        };
+      },
+    );
+
   const timing: EpisodeTiming = getEpisodeTiming({
     // Older episodes predate declaredAt; they started when they were created.
     startedAt: episode?.declaredAt || episode?.createdAt || undefined,
@@ -431,14 +444,7 @@ const IncidentEpisodeView: FunctionComponent<
         isResolvedState: state.isResolvedState,
       };
     }),
-    timelines: episodeStateTimeline.map(
-      (timeline: IncidentEpisodeStateTimeline) => {
-        return {
-          stateId: timeline.incidentStateId?.toString(),
-          startsAt: timeline.startsAt,
-        };
-      },
-    ),
+    timelines: episodeTimelineDates,
   });
 
   const incidentCount: number | undefined =
@@ -707,6 +713,16 @@ const IncidentEpisodeView: FunctionComponent<
                 snapshotWindow={telemetrySnapshot.snapshotWindow}
                 seriesSummary={telemetrySnapshot.seriesSummary}
                 eventNoun="incident"
+                metricRuleEventId={snapshotMemberId}
+                /*
+                 * Anchored on the episode: a metric snapshot's investigation,
+                 * and the time ranges of a logs, traces or exceptions one.
+                 */
+                subject={EventMetricSubject.IncidentEpisode}
+                startedAt={timing.durationStartsAt}
+                endedAt={timing.durationEndsAt}
+                stateTimeline={episodeTimelineDates}
+                states={incidentStates}
               />
             </div>
           )}

@@ -50,7 +50,7 @@ Quando você entra em um projeto, estes eventos começam ativados, por e-mail. T
 | **Incidentes** | **Incidente criado**, **Estado do incidente alterado**, **Lembrete de incidente**, **SLA de incidente violado**, **Episódio de incidente criado**, **Estado do episódio de incidente alterado**, **Incidente adicionado ao episódio de incidente** | **Nota de incidente publicada**, **Adicionado como proprietário do incidente**, **Atribuído a um incidente**, **Nota de episódio de incidente publicada**, **Adicionado como proprietário do episódio de incidente** |
 | **Alertas** | **Alerta criado**, **Estado do alerta alterado**, **Lembrete de alerta**, **Episódio de alerta criado**, **Estado do episódio de alerta alterado**, **Alerta adicionado ao episódio de alerta** | **Nota do alerta publicada**, **Adicionado como proprietário do alerta**, **Nota do episódio de alerta publicada**, **Adicionado como proprietário do episódio de alerta** |
 | **Monitoramento** | **Status da sonda alterado para o seu monitor**, **O monitor não tem sondas ativas**, **Status do SLO alterado**, **Adicionado como proprietário do SLO**, **Exceção atribuída a mim**, **Status da sonda alterado**, **Adicionado como proprietário da sonda** | **Monitor criado**, **Status do monitor alterado**, **Adicionado como proprietário do monitor**, **Status do agente de IA alterado**, **Adicionado como proprietário do agente de IA** |
-| **Páginas de status** | Nenhum | **Página de status criada**, **Anúncio da página de status publicado**, **Adicionado como proprietário da página de status** |
+| **Páginas de status** | **Minha nota pública aprovada ou rejeitada**, e também por push: **Nota pública aguardando minha aprovação** | **Página de status criada**, **Anúncio da página de status publicado**, **Adicionado como proprietário da página de status** |
 | **Manutenção programada** | **Lembrete de manutenção** | **Evento de manutenção criado**, **Estado da manutenção alterado**, **Nota de manutenção publicada**, **Adicionado como proprietário da manutenção** |
 | **Plantão** | **Você entra no plantão**, **Você é o próximo no plantão**, **Você sai do plantão**, **Adicionado à política de plantão**, **Removido da política de plantão**, **Chamada perdida**, e também por push: **Antes de o meu turno de prevenção começar**, **O meu próximo turno de prevenção é reatribuído** | Nenhum |
 | **Segurança** | Também por push: **Novo caso de segurança** (casos High e Crítico), **Caso de segurança atribuído a mim**, **Etapa de playbook aguardando minha aprovação**, **Meta de resposta de caso de segurança**, **Tarefa de caso de segurança atribuída a mim**, **Uma caçada encontrou eventos de segurança** | Nenhum |
@@ -76,6 +76,15 @@ A aba **Segurança** é sobre os casos de segurança que você pode ver:
 - **Etapa de playbook aguardando minha aprovação** pede que você aprove ou rejeite uma etapa de playbook em um caso no qual você pode aprovar etapas.
 
 Veja [Casos de segurança](/docs/telemetry/security-cases#notificações).
+
+## Aprovação de notas públicas
+
+O cartão **Aprovação de notas públicas**, na aba **Páginas de status**, trata das notas públicas que aguardam aprovação antes de serem publicadas, num projeto que a exige:
+
+- **Nota pública aguardando minha aprovação** avisa você de que uma nota pública, ou a edição de uma, aguarda uma etapa que você aprova, pelo seu nome ou por meio de uma equipe. Você não é consultado sobre uma nota que enviou, nem sobre uma etapa depois de uma que aprovou. Você é consultado sobre cada etapa uma vez: quando a nota chega a ela, ou quando você passa a ser um dos aprovadores dela enquanto a nota aguarda, porque as etapas de aprovação mudaram ou você entrou em uma equipe que uma etapa nomeia. Ela começa ativada por e-mail e por push, e **Email Rollup** nunca a retém: os clientes para quem a nota é escrita estão esperando por ela.
+- **Minha nota pública aprovada ou rejeitada** avisa você de que uma nota que você enviou para aprovação foi aprovada e publicada, ou rejeitada, com o motivo. Ela começa ativada por e-mail.
+
+Veja [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas).
 
 ## Menos e-mails
 

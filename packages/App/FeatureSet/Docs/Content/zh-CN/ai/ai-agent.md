@@ -221,7 +221,7 @@ OneUptime 知道你的代码在生产环境中做了什么，因此它能用阅�
 | **GitHub** | OneUptime GitHub App，安装在它选择的存储库上。 | 本页介绍的一切，以及来自 GitHub 的命令（请参阅 [GitHub App](/docs/ai/github-app)），以及每次[生产审查](#拉取请求的生产审查)的检查。 |
 | **GitLab**，位于 GitLab.com 或你自己的 GitLab | 访问令牌：具有 `api` 和 `write_repository` 范围、且角色至少为 Developer 的个人、群组或项目令牌。 | 任务和修复，每次更改都放在合并请求中；[生产审查](#拉取请求的生产审查)；分支选择；堆栈跟踪或性能剖析经过的代码；一次部署的提交；修复是否已合并，以及发布后生产环境显示了什么。 |
 | **Forgejo 或 Gitea**，位于 Codeberg 或你自己的服务器 | 对存储库和议题具有读写权限、对用户具有读取权限的访问令牌。 | 与 GitLab 相同，每次更改都放在拉取请求中。 |
-| **任意 Git 服务器**，通过 HTTPS | 你克隆存储库所用的地址、用户名，以及能读取存储库并向其推送的密码或访问令牌。 | AI 克隆存储库，把每次更改推送到新分支，并在回复中说明是哪个分支：由你创建拉取请求。在 Bitbucket 和 Azure DevOps 上，它会链接到创建拉取请求的位置。 |
+| **任意 Git 服务器**，通过 HTTPS | 你克隆存储库所用的地址、用户名，以及能读取存储库并向其推送的密码或访问令牌。 | AI 克隆存储库，把每次更改推送到新分支，并在回复中说明是哪个分支：由你创建拉取请求。在 Bitbucket 和 Azure DevOps 上，它会链接到创建拉取请求的位置。 在 Azure DevOps（Services，或 Server 2019 及更高版本）上，OneUptime 还会用同样的凭据读取代码：堆栈跟踪或性能剖析经过的代码，以及 OneUptime AI 读取的文件。 |
 
 来自评论的命令需要 GitHub App，因此目前仅适用于 GitHub 存储库，存储库的 **设置** 也会这样说明。Git 服务器没有拉取请求，因此也没有生产审查。
 
@@ -233,7 +233,7 @@ OneUptime 使用存储库连接时所用的用户名和密码或访问令牌，�
 
 ### AI 在 Git 存储库中读取什么
 
-Git 服务器没有可用来读取存储库文件的 API，因此对于此类服务器上的存储库，OneUptime 只读取其分支，供分支选择使用。[询问 AI](/docs/ai/ask-ai) 和 [AI 调查](/docs/ai/ai-sre) 读取的是 GitHub、GitLab、Forgejo 和 Gitea 存储库的代码；被问到 Git 存储库的代码时，它们会说明无法打开。代码中的任务在 Git 存储库中仍然可用：Runner 克隆存储库，AI 在克隆中读取并修改代码，然后把更改推送到新分支。
+Git 服务器没有可用来读取存储库文件的 API，因此对于此类服务器上的存储库，OneUptime 只读取其分支，供分支选择使用。Azure DevOps 是例外：在 Azure DevOps Services 以及 Azure DevOps Server 2019 及更高版本上，OneUptime 会通过 Azure DevOps 自己的 API、用同样的凭据读取存储库的代码。[询问 AI](/docs/ai/ask-ai) 和 [AI 调查](/docs/ai/ai-sre) 读取的是 GitHub、GitLab、Forgejo、Gitea 和 Azure DevOps 存储库的代码；被问到其他 Git 存储库的代码时，它们会说明无法打开。代码中的任务在 Git 存储库中仍然可用：Runner 克隆存储库，AI 在克隆中读取并修改代码，然后把更改推送到新分支。
 
 ### 私有网络中的 Git 服务器
 

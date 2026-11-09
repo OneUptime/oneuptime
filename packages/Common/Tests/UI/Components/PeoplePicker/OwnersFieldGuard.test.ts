@@ -580,11 +580,16 @@ describe("the project's forms", () => {
    * An incident's and an alert's owner rule also list teams for the
    * creator's team: a second picker, of teams only, last in the Inherit
    * Owners fold on the same step (Dashboard Utils/Form/ResourceRuleForm).
+   * An incident's owner rule, which teams can own, ends with a third: the
+   * teams that own the rule itself - who may change it, not owners it adds
+   * (getOwnerRuleOwningTeamsFields, Components/TeamOwnedRule).
    */
   test("every owner rule form asks for its owners with one picker, on its Owners step", () => {
     const ownerRulesLabel: RegExp = / Owner Rules$/;
     const creatorTeamRulesLabel: RegExp =
       /Settings > (Incident|Alert) Owner Rules$/;
+    // The owner rules teams can own (TEAM_OWNED_RULE_KINDS).
+    const teamOwnedRulesLabel: RegExp = /Settings > Incident Owner Rules$/;
     const ownerRuleForms: Array<FormFacts> = forms.filter(
       (form: FormFacts): boolean => {
         return ownerRulesLabel.test(form.label);
@@ -597,6 +602,11 @@ describe("the project's forms", () => {
         return creatorTeamRulesLabel.test(form.label);
       }),
     ).toHaveLength(2);
+    expect(
+      ownerRuleForms.filter((form: FormFacts): boolean => {
+        return teamOwnedRulesLabel.test(form.label);
+      }),
+    ).toHaveLength(1);
 
     for (const form of ownerRuleForms) {
       const pickers: Array<FormFieldFacts> = peoplePickers([form]);
@@ -608,9 +618,15 @@ describe("the project's forms", () => {
         }),
       }).toEqual({
         form: `${form.file} ${form.label}`,
-        pickers: creatorTeamRulesLabel.test(form.label)
-          ? ["Owners on owners", "Creator's Team on owners"]
-          : ["Owners on owners"],
+        pickers: [
+          "Owners on owners",
+          ...(creatorTeamRulesLabel.test(form.label)
+            ? ["Creator's Team on owners"]
+            : []),
+          ...(teamOwnedRulesLabel.test(form.label)
+            ? ["RULE_OWNING_TEAMS_TITLE on owners"]
+            : []),
+        ],
       });
     }
   });

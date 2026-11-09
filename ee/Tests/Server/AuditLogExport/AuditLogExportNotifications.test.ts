@@ -87,6 +87,7 @@ import URL from "Common/Types/API/URL";
 import { getAuditLogExportDestinationDefinition } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -130,12 +131,41 @@ import RecordingDestination from "./Fakes/RecordingDestination";
 
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
+// 24 hours: for placing moments on the clock, never for when an entry is deleted.
 const DAY: number = 24 * HOUR;
 
 const START: Date = new Date("2026-10-24T12:00:00.000Z");
 
 const at: (offsetInMs: number) => Date = (offsetInMs: number): Date => {
   return new Date(START.getTime() + offsetInMs);
+};
+
+/*
+ * When the audit log deletes an entry recorded at `recordedAt`: once its
+ * retentionDate passes, which AuditLogRecorder stamps `retentionInDays`
+ * calendar days after it records the entry, by the server's own clock
+ * (computeRetentionDate). The export reckons with that moment too
+ * (getAuditLogExportEntriesLostAt), so every moment below that hangs on a
+ * deletion is reckoned from this, never as `recordedAt + days * DAY`: these
+ * dates cross the night of 25 October 2026, when clocks in Europe go back,
+ * and on a server in such a zone that day is 25 hours long (#6361). So the
+ * suite holds in whatever zone the machine runs in.
+ * AuditLogExportClockChanges.test.ts writes the instants out for zones whose
+ * clocks change, which CI, in UTC, would never see otherwise.
+ */
+const deletedAt: (recordedAt: Date, retentionInDays: number) => Date = (
+  recordedAt: Date,
+  retentionInDays: number,
+): Date => {
+  return OneUptimeDate.addRemoveDays(recordedAt, retentionInDays);
+};
+
+// When the "losing entries" email is due for that entry: a day (24 hours) before it is deleted.
+const losingNoticeAt: (recordedAt: Date, retentionInDays: number) => number = (
+  recordedAt: Date,
+  retentionInDays: number,
+): number => {
+  return deletedAt(recordedAt, retentionInDays).getTime() - 24 * HOUR;
 };
 
 describe("which email a failure is due", () => {
@@ -196,13 +226,11 @@ describe("which email a failure is due", () => {
       oldestUnsentAt: OLDEST,
       retentionInDays: 7,
     });
-    const losingAt: number =
-      lostAt.getTime() - AUDIT_LOG_EXPORT_LOSING_NOTICE_LEAD_IN_HOURS * HOUR;
+    const losingAt: number = losingNoticeAt(OLDEST, 7);
 
     expect(AUDIT_LOG_EXPORT_LOSING_NOTICE_LEAD_IN_HOURS).toBe(24);
-    expect(lostAt.toISOString()).toBe(
-      new Date(OLDEST.getTime() + 7 * DAY).toISOString(),
-    );
+    // Deleted 7 calendar days after it was recorded, as the recorder stamps it.
+    expect(lostAt.toISOString()).toBe(deletedAt(OLDEST, 7).toISOString());
     expect(
       getAuditLogExportLosingNoticeAt({
         failingSince: START,
@@ -233,14 +261,17 @@ describe("which email a failure is due", () => {
   test("the moment follows the oldest unsent entry, not when the failures began: an export reading from the past is told sooner", () => {
     // Export From five and a half days back, failing from its first try.
     const oldest: Date = at(-5.5 * DAY);
+    const losingAt: number = losingNoticeAt(oldest, 7);
 
+    // Within the first day of the failures, not six days in.
+    expect(losingAt).toBeLessThan(at(DAY).getTime());
     expect(
       getAuditLogExportLosingNoticeAt({
         failingSince: START,
         oldestUnsentAt: oldest,
         retentionInDays: 7,
       })!.toISOString(),
-    ).toBe(at(12 * HOUR).toISOString());
+    ).toBe(new Date(losingAt).toISOString());
     expect(
       notice({
         previousFailureAt: at(15 * MINUTE),
@@ -250,14 +281,15 @@ describe("which email a failure is due", () => {
     ).toBe(AuditLogExportFailureNotice.Failing);
     expect(
       notice({
-        previousFailureAt: at(11.5 * HOUR),
-        now: at(12.5 * HOUR),
+        previousFailureAt: new Date(losingAt - 30 * MINUTE),
+        now: new Date(losingAt + 30 * MINUTE),
         oldestUnsentAt: oldest,
       }),
     ).toBe(AuditLogExportFailureNotice.LosingEntries);
   });
 
   test("less than a day left: never sooner than 30 minutes, and then told as 'losing entries'", () => {
+    // Deleted under five hours after the failures began.
     expect(
       getAuditLogExportLosingNoticeAt({
         failingSince: START,
@@ -265,10 +297,22 @@ describe("which email a failure is due", () => {
         retentionInDays: 7,
       })!.toISOString(),
     ).toBe(at(30 * MINUTE).toISOString());
+
+    /*
+     * A day's retention, recorded two hours before the failures began: less
+     * than a day left when the first email can go, however long that day is
+     * on the server's clock. Recorded a minute before, it is not on the day
+     * Europe's clocks go back: that day keeps it 25 hours, and the first
+     * email says "failing" (AuditLogExportClockChanges.test.ts).
+     */
+    const kept: Date = at(-2 * HOUR);
+
+    expect(losingNoticeAt(kept, 1)).toBeLessThan(at(30 * MINUTE).getTime());
     expect(
       notice({
         previousFailureAt: at(15 * MINUTE),
         now: at(31 * MINUTE),
+        oldestUnsentAt: kept,
         retentionInDays: 1,
       }),
     ).toBe(AuditLogExportFailureNotice.LosingEntries);
@@ -863,13 +907,16 @@ describe("the exporter tells people as its failures go on", () => {
     });
   };
 
-  const failingExport: () => {
+  // An export that fails from START on, with one entry waiting: recorded at `oldest`.
+  const failingExport: (oldest?: Date) => {
     row: StoredExport;
     exports: InMemoryExports;
-  } = (): { row: StoredExport; exports: InMemoryExports } => {
+  } = (
+    oldest: Date = at(-5 * MINUTE),
+  ): { row: StoredExport; exports: InMemoryExports } => {
     const row: StoredExport = webhookRow();
     const exports: InMemoryExports = useInMemoryExports([row]);
-    record(at(-5 * MINUTE));
+    record(oldest);
     webhook.failNext(
       10_000,
       new AuditLogExportDeliveryError("refused the key (HTTP 401)", {
@@ -908,7 +955,7 @@ describe("the exporter tells people as its failures go on", () => {
   test("a failure that lasts: 'failing' once after 30 minutes, 'losing entries' once a day before the oldest unsent entry is deleted", async () => {
     const { row, exports } = failingExport();
     const oldest: Date = at(-5 * MINUTE);
-    const losingAt: number = oldest.getTime() + 6 * DAY;
+    const losingAt: number = losingNoticeAt(oldest, 7);
 
     await runUntil(exports, row, at(29 * MINUTE));
     expect(sent).toEqual([]);
@@ -991,11 +1038,14 @@ describe("the exporter tells people as its failures go on", () => {
 
   test("a short retention is told as 'losing entries' from the first email on", async () => {
     retentionInDays = 1;
-    const { row, exports } = failingExport();
+    // Waiting two hours: less than a day left by the first email, however long that day is.
+    const { row, exports } = failingExport(at(-2 * HOUR));
 
     await runUntil(exports, row, at(3 * HOUR));
 
     expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
+    // With the first email, at the try 31 minutes in.
+    expect(sent[0]!.at.toISOString()).toBe(at(31 * MINUTE).toISOString());
   });
 
   test("an export reading from the past is told 'losing entries' a day before its oldest entry goes, not a week after it broke", async () => {
@@ -1005,22 +1055,25 @@ describe("the exporter tells people as its failures go on", () => {
     });
     const exports: InMemoryExports = useInMemoryExports([row]);
     const oldest: Date = at(-5.5 * DAY + HOUR);
+    const losingAt: number = losingNoticeAt(oldest, 7);
     record(oldest);
     webhook.failNext(
       10_000,
       new AuditLogExportDeliveryError("refused", { retryable: false }),
     );
 
-    await runUntil(exports, row, at(14 * HOUR));
+    // Tries are an hour apart by then: the first one at or after the moment tells.
+    await runUntil(exports, row, new Date(losingAt + HOUR));
 
     expect(notices()).toEqual([
       AuditLogExportFailureNotice.Failing,
       AuditLogExportFailureNotice.LosingEntries,
     ]);
     expect(sent[1]!.oldestUnsentAt!.toISOString()).toBe(oldest.toISOString());
-    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(
-      oldest.getTime() + 6 * DAY,
-    );
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    // Within the first day of the failures, not a week after it broke.
+    expect(sent[1]!.at.getTime()).toBeLessThan(at(DAY).getTime());
   });
 
   test("a failure before any batch is read looks up the oldest unsent entry, only once an email can be due", async () => {

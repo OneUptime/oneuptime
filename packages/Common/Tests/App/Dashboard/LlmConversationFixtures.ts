@@ -17,6 +17,7 @@ import {
   LlmConversationKeyKind,
   LlmConversationListItem,
   LlmConversationSummary,
+  LlmLogEventsRead,
   emptyIssueCounts,
 } from "../../../Types/Telemetry/LlmConversationApi";
 import { JSONObject } from "../../../Types/JSON";
@@ -136,6 +137,8 @@ export function conversationResponse(
     kind?: LlmConversationKeyKind;
     conversationId?: string;
     truncated?: boolean;
+    // Left out: an answer from a server that did not read log events.
+    logEvents?: LlmLogEventsRead;
   } = {},
 ): JSONObject {
   const kind: LlmConversationKeyKind =
@@ -151,6 +154,7 @@ export function conversationResponse(
     conversationId:
       kind === LlmConversationKeyKind.Request ? "" : conversationId,
     truncated: data.truncated === true,
+    ...(data.logEvents ? { logEvents: data.logEvents } : {}),
     transcript: transcript as unknown as JSONObject,
   };
 }

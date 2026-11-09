@@ -1,3 +1,4 @@
+import { getPageAsObserversField } from "../OnCallPolicy/ExecutePolicy/PageAsObserversField";
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -285,6 +286,8 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
                   required: true,
                   placeholder: "Select On-Call Policy",
                 },
+                // Kept informed rather than asked to respond (OnCallObserverPage).
+                getPageAsObserversField(),
               ],
               formType: FormType.Create,
             }}

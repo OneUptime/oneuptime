@@ -11,19 +11,26 @@ import {
   describeAuditLogExportTarget,
   exportConfigFieldName,
   exportSecretFieldName,
+  followAuditLogExportDefaults,
   formatAuditLogExportDuration,
+  getAuditLogExportFollowingFields,
   getAuditLogExportHealth,
   getAuditLogExportInitialValues,
+  getAuditLogExportSchemaVersionOptions,
   readAuditLogExportForm,
 } from "../../../Dashboard/AuditLogExport/AuditLogExportForm";
+import { AUDIT_LOG_EXPORT_SCHEMA_VERSIONS } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
+import fs from "fs";
+import path from "path";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import {
   AuditLogExportDestinationCatalog,
   AuditLogExportDestinationDefinition,
+  getAuditLogExportDestinationDefinition,
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import HashedString from "Common/Types/HashedString";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 
 /*
@@ -98,6 +105,8 @@ describe("readAuditLogExportForm", () => {
       },
       secrets: { secretAccessKey: "wJalrXUtnFEMI/K7MDENG" },
       startsAt: null,
+      // None picked: on create the newest, on edit the saved one.
+      schemaVersion: null,
     });
   });
 
@@ -412,6 +421,338 @@ describe("the form's values for a saved export", () => {
     expect(getAuditLogExportInitialValues(undefined, undefined)).toEqual({
       name: "",
     });
+  });
+});
+
+/*
+ * Issue #6392: syslog over UDP. Picking UDP moves a port nobody typed to
+ * 514, and back to 6514 for TLS; framing and the CA certificate are TLS's
+ * and TCP's, the maximum message size UDP's own.
+ */
+describe("syslog over UDP in the form", () => {
+  const syslog: AuditLogExportDestinationDefinition =
+    getAuditLogExportDestinationDefinition(SYSLOG)!;
+  const PORT: string = exportConfigFieldName(SYSLOG, "port");
+  const PROTOCOL: string = exportConfigFieldName(SYSLOG, "protocol");
+
+  const follow: (
+    choice: JSONValue | undefined,
+    values: JSONObject,
+    key?: string,
+  ) => JSONObject | null = (
+    choice: JSONValue | undefined,
+    values: JSONObject,
+    key: string = "protocol",
+  ): JSONObject | null => {
+    return followAuditLogExportDefaults({
+      definition: syslog,
+      key,
+      choice,
+      values,
+    });
+  };
+
+  test("sends the host, the port as a number, UDP and the size; never a framing or a certificate", () => {
+    expect(
+      readAuditLogExportForm({
+        destinationType: SYSLOG,
+        [exportConfigFieldName(SYSLOG, "host")]: " siem.acme.internal ",
+        [PORT]: "514",
+        [PROTOCOL]: "udp",
+        [exportConfigFieldName(SYSLOG, "framing")]: "octet-counting",
+        [exportConfigFieldName(SYSLOG, "caCertificate")]:
+          "-----BEGIN CERTIFICATE-----\nMIIB\n",
+        [exportConfigFieldName(SYSLOG, "maxMessageSize")]: "2048",
+      }).config,
+    ).toEqual({
+      host: "siem.acme.internal",
+      port: 514,
+      protocol: "udp",
+      maxMessageSize: 2048,
+    });
+  });
+
+  test("over TLS and TCP the size is not sent, and framing is", () => {
+    for (const protocol of ["tls", "tcp"]) {
+      expect(
+        readAuditLogExportForm({
+          destinationType: SYSLOG,
+          [exportConfigFieldName(SYSLOG, "host")]: "siem.acme.internal",
+          [PORT]: "6514",
+          [PROTOCOL]: protocol,
+          [exportConfigFieldName(SYSLOG, "framing")]: "newline",
+          [exportConfigFieldName(SYSLOG, "maxMessageSize")]: "2048",
+        }).config,
+      ).toEqual({
+        host: "siem.acme.internal",
+        port: 6514,
+        protocol,
+        framing: "newline",
+      });
+    }
+  });
+
+  test("only the port follows the protocol", () => {
+    expect(
+      getAuditLogExportFollowingFields(syslog, "protocol").map(
+        (field: { key: string }): string => {
+          return field.key;
+        },
+      ),
+    ).toEqual(["port"]);
+    expect(getAuditLogExportFollowingFields(syslog, "host")).toEqual([]);
+    expect(
+      getAuditLogExportFollowingFields(
+        getAuditLogExportDestinationDefinition(S3)!,
+        "region",
+      ),
+    ).toEqual([]);
+  });
+
+  test("picking UDP moves the port nobody typed to 514, and TLS moves it back to 6514", () => {
+    const values: JSONObject = {
+      destinationType: SYSLOG,
+      [exportConfigFieldName(SYSLOG, "host")]: "siem.acme.internal",
+      [PORT]: "6514",
+      [PROTOCOL]: "tls",
+    };
+
+    const overUdp: JSONObject | null = follow("udp", values);
+
+    expect(overUdp).toEqual({ ...values, [PORT]: "514" });
+    // The values the form had are left as they were.
+    expect(values[PORT]).toBe("6514");
+
+    expect(follow("tls", { ...values, [PORT]: "514" })).toEqual({
+      ...values,
+      [PORT]: "6514",
+    });
+  });
+
+  test("TCP has no port of its own: a port that followed UDP goes back to 6514", () => {
+    expect(follow("tcp", { [PORT]: "514" })).toEqual({ [PORT]: "6514" });
+    // And a TLS port stays where it is.
+    expect(follow("tcp", { [PORT]: "6514" })).toBeNull();
+  });
+
+  test("a port someone typed stays, whatever is picked", () => {
+    for (const choice of ["udp", "tls", "tcp"]) {
+      for (const typed of ["1514", "601", "10514"]) {
+        expect([choice, typed, follow(choice, { [PORT]: typed })]).toEqual([
+          choice,
+          typed,
+          null,
+        ]);
+      }
+    }
+  });
+
+  test("an empty port, or one never touched, takes the choice's default", () => {
+    expect(follow("udp", { [PORT]: "" })).toEqual({ [PORT]: "514" });
+    expect(follow("udp", { [PORT]: "  " })).toEqual({ [PORT]: "514" });
+    expect(follow("udp", {})).toEqual({ [PORT]: "514" });
+    expect(follow("tls", {})).toEqual({ [PORT]: "6514" });
+  });
+
+  test("a pick handed over as the dropdown's option reads as its value", () => {
+    expect(follow({ label: "UDP", value: "udp" }, { [PORT]: "6514" })).toEqual({
+      [PORT]: "514",
+    });
+  });
+
+  test("nothing moves when the pick is the one the port already follows, or a field nothing follows", () => {
+    expect(follow("udp", { [PORT]: "514" })).toBeNull();
+    expect(follow("tls", { [PORT]: "6514" })).toBeNull();
+    expect(follow("newline", { [PORT]: "6514" }, "framing")).toBeNull();
+    expect(follow(undefined, { [PORT]: "514" })).toEqual({ [PORT]: "6514" });
+  });
+
+  test("an export saved over UDP without a port opens on 514, the port it sends to", () => {
+    expect(
+      getAuditLogExportInitialValues(
+        savedExport({
+          destinationType: SYSLOG,
+          config: { host: "10.20.0.15", protocol: "udp" },
+        }),
+        SYSLOG,
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        [PORT]: "514",
+        [PROTOCOL]: "udp",
+      }),
+    );
+
+    expect(
+      getAuditLogExportInitialValues(
+        savedExport({
+          destinationType: SYSLOG,
+          config: { host: "10.20.0.15", protocol: "udp", port: 1514 },
+        }),
+        SYSLOG,
+      )[PORT],
+    ).toBe("1514");
+
+    // Over TLS, as before: 6514.
+    expect(
+      getAuditLogExportInitialValues(
+        savedExport({
+          destinationType: SYSLOG,
+          config: { host: "10.20.0.15" },
+        }),
+        SYSLOG,
+      )[PORT],
+    ).toBe("6514");
+  });
+
+  test("a host is all a UDP export needs before it can be tested", () => {
+    expect(
+      auditLogExportTestDisabledReason({
+        values: {
+          destinationType: SYSLOG,
+          [exportConfigFieldName(SYSLOG, "host")]: "10.20.0.15",
+          [PROTOCOL]: "udp",
+        },
+      }),
+    ).toBeUndefined();
+  });
+});
+
+/*
+ * Issue #6247: which version of the record an export sends, under More
+ * fields. A new export starts on the newest (the field's default); an
+ * export saved before there was a choice opens on version 1, the one it
+ * sends, and an edit writes the version only when someone changed it -
+ * never the field's default over a version the form could not read.
+ */
+describe("the record version", () => {
+  function update(values: JSONObject, saved: AuditLogExport): JSONObject {
+    return auditLogExportUpdatePayload({
+      submission: readAuditLogExportForm(values, S3),
+      auditLogExport: saved,
+    });
+  }
+
+  test("the form offers every version by its name, the newest first", () => {
+    expect(getAuditLogExportSchemaVersionOptions()).toEqual([
+      { label: AuditLogExportCopy.schemaVersionNewestOption, value: "2" },
+      { label: AuditLogExportCopy.schemaVersionFirstOption, value: "1" },
+    ]);
+    expect(
+      getAuditLogExportSchemaVersionOptions()
+        .map((option: { value: string }): number => {
+          return Number(option.value);
+        })
+        .sort(),
+    ).toEqual([...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS]);
+  });
+
+  test("reads the version picked, as text or as a dropdown's option; anything else is none", () => {
+    expect(
+      readAuditLogExportForm(s3Values({ schemaVersion: "1" }), S3)
+        .schemaVersion,
+    ).toBe(1);
+    expect(
+      readAuditLogExportForm(
+        s3Values({
+          schemaVersion: { label: "Version 2 (newest)", value: "2" },
+        }),
+        S3,
+      ).schemaVersion,
+    ).toBe(2);
+
+    for (const schemaVersion of [undefined, null, "", "3", "two", "0"]) {
+      expect([
+        schemaVersion,
+        readAuditLogExportForm(
+          s3Values(
+            schemaVersion === undefined ? {} : { schemaVersion },
+          ) as JSONObject,
+          S3,
+        ).schemaVersion,
+      ]).toEqual([schemaVersion, null]);
+    }
+  });
+
+  test("a test is sent in the version picked; with none, the server goes by the saved export", () => {
+    expect(
+      auditLogExportTestBody({ values: s3Values({ schemaVersion: "1" }) })[
+        "schemaVersion"
+      ],
+    ).toBe(1);
+    expect(
+      auditLogExportTestBody({
+        values: s3Values({ schemaVersion: "2" }),
+        auditLogExport: savedExport({ destinationType: S3, schemaVersion: 1 }),
+      })["schemaVersion"],
+    ).toBe(2);
+    expect(auditLogExportTestBody({ values: s3Values() })).not.toHaveProperty(
+      "schemaVersion",
+    );
+  });
+
+  test("an edit sends the version only when it changed", () => {
+    const saved: AuditLogExport = savedExport({
+      destinationType: S3,
+      schemaVersion: 1,
+    });
+
+    expect(update(s3Values({ schemaVersion: "1" }), saved)).not.toHaveProperty(
+      "schemaVersion",
+    );
+    expect(
+      update(s3Values({ schemaVersion: "2" }), saved)["schemaVersion"],
+    ).toBe(2);
+    expect(update(s3Values(), saved)).not.toHaveProperty("schemaVersion");
+  });
+
+  test("an edit never writes the field's default over a version the form could not read", () => {
+    // The row was read without its version: the form showed the default.
+    expect(
+      update(
+        s3Values({ schemaVersion: "2" }),
+        savedExport({ destinationType: S3 }),
+      ),
+    ).not.toHaveProperty("schemaVersion");
+  });
+
+  test("a saved export opens on the version it sends; a new one on the field's default", () => {
+    for (const schemaVersion of AUDIT_LOG_EXPORT_SCHEMA_VERSIONS) {
+      expect(
+        getAuditLogExportInitialValues(
+          savedExport({ destinationType: S3, schemaVersion }),
+          S3,
+        )["schemaVersion"],
+      ).toBe(String(schemaVersion));
+    }
+
+    expect(
+      getAuditLogExportInitialValues(savedExport({ destinationType: S3 }), S3),
+    ).not.toHaveProperty("schemaVersion");
+    expect(
+      getAuditLogExportInitialValues(undefined, undefined),
+    ).not.toHaveProperty("schemaVersion");
+  });
+
+  test("the table reads each export's version, so the edit form shows and keeps it", () => {
+    const table: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Dashboard",
+        "AuditLogExport",
+        "AuditLogExportTable.tsx",
+      ),
+      "utf8",
+    );
+    const select: string = table.slice(
+      table.indexOf("selectMoreFields={{"),
+      table.indexOf("}}", table.indexOf("selectMoreFields={{")),
+    );
+
+    expect(select).toContain("schemaVersion: true");
   });
 });
 

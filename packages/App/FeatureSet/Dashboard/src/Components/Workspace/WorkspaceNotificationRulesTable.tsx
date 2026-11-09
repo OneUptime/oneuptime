@@ -13,6 +13,12 @@ import WorkspaceType, {
   getWorkspaceTypeDisplayName,
 } from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
+import WorkspaceNotificationRuleOwningTeam from "Common/Models/DatabaseModels/WorkspaceNotificationRuleOwningTeam";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import useRuleOwningTeams, {
+  RuleOwningTeamsTable,
+  getRuleOwningTeamsFormField,
+} from "../TeamOwnedRule/RuleOwningTeams";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -184,6 +190,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [onCallPolicyName, setOnCallPolicyName] = React.useState<
     string | undefined
   >(undefined);
+
+  // Who owns each rule: its row, its form field and its locks.
+  const owningTeams: RuleOwningTeamsTable<WorkspaceNotificationRule> =
+    useRuleOwningTeams<WorkspaceNotificationRule>({
+      ruleModelType: WorkspaceNotificationRule,
+      owningTeamModelType: WorkspaceNotificationRuleOwningTeam,
+    });
 
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
   const [isTestLoading, setIsTestLoading] = React.useState<boolean>(false);
@@ -738,6 +751,10 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     <Fragment>
       <ModelTable<WorkspaceNotificationRule>
         modelType={WorkspaceNotificationRule}
+        onFetchSuccess={owningTeams.onRulesFetched}
+        getEditDisabledReason={owningTeams.getEditDisabledReason}
+        getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
+        onEditFormItemFetched={owningTeams.onEditFormItemFetched}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           eventType: props.eventType,
@@ -867,6 +884,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             required: false,
             placeholder: "Notify DevOps Team when a new incident is created.",
           },
+          // Under More fields: the teams that alone may change the rule.
+          getRuleOwningTeamsFormField<WorkspaceNotificationRule>({
+            owningTeamModelType: WorkspaceNotificationRuleOwningTeam,
+            stepId: "basic",
+            collapsibleSection:
+              getAdvancedFormSection<WorkspaceNotificationRule>(),
+          }),
           {
             field: {
               notificationRule: true,
@@ -1093,29 +1117,33 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
          * When (which records), Then (what it does with them) and, when it
          * starts one, its video call.
          */
-        columns={getNotificationRuleCardColumns({
-          eventType: props.eventType,
-          canStartVideoCall: canRuleStartVideoCall(props.eventType),
-          workspaceType: props.workspaceType,
-          monitors: monitors,
-          labels: labels,
-          alertStates: alertStates,
-          alertSeverities: alertSeverities,
-          incidentSeverities: incidentSeverities,
-          incidentStates: incidentStates,
-          scheduledMaintenanceStates: scheduledMaintenanceStates,
-          securityCasePriorities: securityCasePriorities,
-          securityCaseStatuses: securityCaseStatuses,
-          monitorStatus: monitorStatus,
-          teams: teams,
-          users: users,
-          onCallSchedules: onCallSchedules,
-          microsoftTeamsTeams: microsoftTeamsTeams,
-          microsoftTeamsChats: microsoftTeamsChats,
-          videoCallConnections: videoCallConnections,
-          numberPrefixes: numberPrefixes,
-          exampleRecordName: exampleRecordName,
-        })}
+        columns={[
+          ...getNotificationRuleCardColumns({
+            eventType: props.eventType,
+            canStartVideoCall: canRuleStartVideoCall(props.eventType),
+            workspaceType: props.workspaceType,
+            monitors: monitors,
+            labels: labels,
+            alertStates: alertStates,
+            alertSeverities: alertSeverities,
+            incidentSeverities: incidentSeverities,
+            incidentStates: incidentStates,
+            scheduledMaintenanceStates: scheduledMaintenanceStates,
+            securityCasePriorities: securityCasePriorities,
+            securityCaseStatuses: securityCaseStatuses,
+            monitorStatus: monitorStatus,
+            teams: teams,
+            users: users,
+            onCallSchedules: onCallSchedules,
+            microsoftTeamsTeams: microsoftTeamsTeams,
+            microsoftTeamsChats: microsoftTeamsChats,
+            videoCallConnections: videoCallConnections,
+            numberPrefixes: numberPrefixes,
+            exampleRecordName: exampleRecordName,
+          }),
+          // On a rule's card when teams own it.
+          owningTeams.owningTeamsColumn,
+        ]}
       />
 
       {showTestModal && testNotificationRule ? (

@@ -38,6 +38,8 @@ import ServiceLevelObjectiveService, {
   SLO_DISABLED_OR_DELETED_ROOT_CAUSE,
 } from "../../../Server/Services/ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "../../../Server/Services/ServiceLevelObjectiveErrorBudgetPolicyTierService";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import FindBy from "../../../Server/Types/Database/FindBy";
 import logger from "../../../Server/Utils/Logger";
@@ -609,6 +611,11 @@ beforeEach(() => {
     .mockResolvedValue(undefined);
 
   jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+  // No SLO here has an error budget policy, unless a case gives it one.
+  jest
+    .spyOn(ServiceLevelObjectiveErrorBudgetPolicyTierService, "findBy")
+    .mockResolvedValue([] as never);
 });
 
 afterEach(() => {
@@ -922,6 +929,94 @@ describe("ServiceLevelObjectiveService.onDeleteSuccess", () => {
 
     expect(resolveSpy).toHaveBeenCalledTimes(2);
     expect(logger.error).toHaveBeenCalledTimes(1);
+  });
+
+  test("resolves what the tiers of an SLO the delete removed raised, and only those", async () => {
+    const tierResolveSpy: jest.SpyInstance = jest
+      .spyOn(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService,
+        "resolveOpenAlertsAndIncidentsForTier",
+      )
+      .mockResolvedValue(undefined);
+
+    const tierOf: (
+      tierId: ObjectID,
+      sloId: ObjectID,
+      projectId: ObjectID,
+    ) => ServiceLevelObjectiveErrorBudgetPolicyTier = (
+      tierId: ObjectID,
+      sloId: ObjectID,
+      projectId: ObjectID,
+    ): ServiceLevelObjectiveErrorBudgetPolicyTier => {
+      const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+        new ServiceLevelObjectiveErrorBudgetPolicyTier(tierId);
+      tier.serviceLevelObjectiveId = sloId;
+      tier.projectId = projectId;
+      return tier;
+    };
+
+    const onDelete: CarriedDelete = {
+      deleteBy: { props: {} },
+      carryForward: {
+        itemsToDelete: [
+          sloRow(SLO_ID, PROJECT_ID),
+          sloRow(OTHER_SLO_ID, OTHER_PROJECT_ID),
+        ],
+        burnRateRules: [],
+        policyTiers: [
+          tierOf(RULE_ID, SLO_ID, PROJECT_ID),
+          tierOf(OTHER_RULE_ID, OTHER_SLO_ID, OTHER_PROJECT_ID),
+        ],
+      },
+    };
+
+    await expect(
+      callHook(ServiceLevelObjectiveService, "onDeleteSuccess", onDelete, [
+        SLO_ID,
+      ]),
+    ).resolves.toBe(onDelete);
+
+    expect(tierResolveSpy).toHaveBeenCalledTimes(1);
+    expect(tierResolveSpy).toHaveBeenCalledWith({
+      serviceLevelObjectiveId: SLO_ID,
+      policyTierId: RULE_ID,
+      projectId: PROJECT_ID,
+      rootCause: SLO_DISABLED_OR_DELETED_ROOT_CAUSE,
+    });
+  });
+
+  test("a tier that will not resolve never fails the request", async () => {
+    jest
+      .spyOn(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService,
+        "resolveOpenAlertsAndIncidentsForTier",
+      )
+      .mockRejectedValue(new Error("tier resolve failed"));
+
+    const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+      new ServiceLevelObjectiveErrorBudgetPolicyTier(RULE_ID);
+    tier.serviceLevelObjectiveId = SLO_ID;
+    tier.projectId = PROJECT_ID;
+
+    const onDelete: CarriedDelete = {
+      deleteBy: { props: {} },
+      carryForward: {
+        itemsToDelete: [sloRow(SLO_ID, PROJECT_ID)],
+        burnRateRules: [],
+        policyTiers: [tier],
+      },
+    };
+
+    await expect(
+      callHook(ServiceLevelObjectiveService, "onDeleteSuccess", onDelete, [
+        SLO_ID,
+      ]),
+    ).resolves.toBe(onDelete);
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining("error budget policy tier"),
+      expect.anything(),
+    );
   });
 
   test("a delete that carried nothing forward resolves nothing", async () => {

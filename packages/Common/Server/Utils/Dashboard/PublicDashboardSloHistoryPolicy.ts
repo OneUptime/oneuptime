@@ -45,7 +45,8 @@ export interface BuildPublicDashboardSloHistoryPolicyData {
   /** The caller's `aggregateBy`, already JSONFunctions.deserialize'd. */
   requestedAggregateBy: unknown;
   /*
-   * The dashboard's stored variables with the viewer's selections applied
+   * The variables the public page's toolbar draws, with the viewer's
+   * selections applied
    * (PublicDashboardResourceListPolicy.resolveDashboardVariableSelections).
    * Only a widget that follows an SLO variable reads them.
    */

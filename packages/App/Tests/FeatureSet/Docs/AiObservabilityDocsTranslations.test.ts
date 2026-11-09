@@ -125,6 +125,8 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
 
 // Bold words that name a product opened from the Products menu.
 const MENU_ITEMS: Record<string, Array<string>> = {
+  // Where prompts and answers sent as log events can be read too.
+  [LLM]: ["Logs"],
   [CLAUDE_CODE]: ["Metrics"],
   [CURSOR]: ["Logs", "Metrics"],
   [CODEX]: ["Logs"],
@@ -200,7 +202,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Use LiteLLM with one virtual key per employee.",
     "A gateway sees only traffic sent through it.",
     "A gateway sees the model call, not the agent.",
-    "No coding-tool admin connectors.",
+    "No coding-tool admin connector but Cursor's.",
     "Cost is an estimate unless a tool reports it.",
     "Identity on log records is not read.",
     "Cursor's `cursor.user.email` is not read yet",

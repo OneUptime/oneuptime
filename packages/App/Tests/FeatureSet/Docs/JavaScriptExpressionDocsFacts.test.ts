@@ -70,6 +70,8 @@ const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 
 const EVALUATOR_FILE: string =
   "Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts";
+const EXPRESSION_VALUES_FILE: string =
+  "Common/Server/Utils/Monitor/JavaScriptExpressionValues.ts";
 const VM_RUNNER_FILE: string = "Common/Server/Utils/VM/VMRunner.ts";
 const CRITERIA_FILTER_FORM_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor/CriteriaFilter.tsx";
@@ -90,6 +92,7 @@ function readRepoFile(relativePath: string): string {
 
 const page: string = readPage("en", PAGE);
 const evaluator: string = readRepoFile(EVALUATOR_FILE);
+const expressionValues: string = readRepoFile(EXPRESSION_VALUES_FILE);
 
 /*
  * The source between `start` and the first `end` after it - the body of a
@@ -177,22 +180,24 @@ function tableRows(text: string): Array<Array<string>> {
 
 /*
  * The variables the evaluator fills in for each monitor type: the keys of
- * the storage map it builds before it substitutes an expression.
+ * the storage map JavaScriptExpressionValues builds for it. The evaluator
+ * substitutes an expression from that map, and an incident's evaluation
+ * details read the expression's values from the same one.
  */
 function storageMaps(): Array<{
   monitorTypes: Array<string>;
   variables: Array<string>;
 }> {
   const block: string = sourceBetween(
-    evaluator,
-    "if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {",
-    "let expression: string",
+    expressionValues,
+    "public static getStorageMap(input: {",
+    "return storageMap;",
   );
 
   return block
-    .split("if (\n        input.monitor.monitorType === ")
-    .join("if (input.monitor.monitorType === ")
-    .split("if (input.monitor.monitorType === ")
+    .split("if (\n      input.monitorType === ")
+    .join("if (input.monitorType === ")
+    .split("if (input.monitorType === ")
     .slice(1)
     .map(
       (
@@ -202,7 +207,7 @@ function storageMaps(): Array<{
         const map: string = sourceBetween(
           chunk,
           "storageMap = {",
-          "\n        };",
+          "\n      };",
         );
 
         return {
@@ -333,6 +338,16 @@ describe("the variables of each monitor type", () => {
   ];
 
   it("documents a section for every storage map the evaluator builds", () => {
+    // The evaluator fills an expression from JavaScriptExpressionValues' map.
+    expect(evaluator).toContain("JavaScriptExpressionValues.getStorageMap(");
+    expect(
+      sourceBetween(
+        evaluator,
+        "if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {",
+        "const code: string",
+      ),
+    ).not.toContain("storageMap = {");
+
     expect(
       storageMaps()
         .map((map: { monitorTypes: Array<string> }): string => {
@@ -391,9 +406,9 @@ describe("the variables of each monitor type", () => {
   });
 
   it("parses a JSON response body, and keeps any other body as a string", () => {
-    expect(evaluator).toContain("responseBody = JSON.parse(");
-    expect(evaluator).toContain(
-      "responseBody = (input.dataToProcess as ProbeMonitorResponse)\n            .responseBody as JSONObject;",
+    expect(expressionValues).toContain("responseBody = JSON.parse(");
+    expect(expressionValues).toContain(
+      "responseBody = (input.dataToProcess as ProbeMonitorResponse)\n          .responseBody as JSONObject;",
     );
     expect(page).toContain(
       "If the response body is JSON, it is parsed; otherwise, such as for HTML or XML, it is a string.",
@@ -404,7 +419,7 @@ describe("the variables of each monitor type", () => {
 describe("the examples, run the way the evaluator runs them", () => {
   it("substitutes as text and runs Boolean(expression)", () => {
     expect(evaluator).toContain(
-      "expression = VMUtil.replaceValueInPlace(storageMap, expression, false);",
+      "const expression: string = VMUtil.replaceValueInPlace(\n        storageMap,\n        writtenExpression,\n        false,\n      );",
     );
     expect(evaluator).toContain(
       "const code: string = `return Boolean(${expression});`;",

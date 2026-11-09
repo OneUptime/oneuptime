@@ -35,6 +35,8 @@ import ChangeEpisodeState from "../../../Components/AlertEpisode/ChangeState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertEpisodeMember from "Common/Models/DatabaseModels/AlertEpisodeMember";
 import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
+import { EventMetricSubject } from "../../../Utils/EventMetricInvestigation";
+import { EventStateTimelineDate } from "../../../Utils/EventDuration";
 import {
   DerivedTelemetrySnapshot,
   EMPTY_TELEMETRY_SNAPSHOT,
@@ -62,9 +64,9 @@ import {
   getAlertEpisodeMemberRow,
 } from "../../../Components/EpisodeView/EpisodeMembers";
 import {
-  FetchedEpisodeMembers,
-  fetchEpisodeMembers,
-} from "../../../Components/EpisodeView/FetchEpisodeMembers";
+  ALERT_EPISODE_FIRST_MEMBER,
+  fetchFirstEpisodeMember,
+} from "../../../Components/EpisodeView/EpisodeFirstMember";
 import {
   EpisodeTiming,
   getEpisodeTiming,
@@ -132,6 +134,11 @@ const AlertEpisodeView: FunctionComponent<
   const [telemetrySnapshot, setTelemetrySnapshot] =
     useState<DerivedTelemetrySnapshot>(EMPTY_TELEMETRY_SNAPSHOT);
 
+  // The member whose telemetry the snapshot shows: its monitor's rule is drawn.
+  const [snapshotMemberId, setSnapshotMemberId] = useState<string | undefined>(
+    undefined,
+  );
+
   const requestIdRef: MutableRefObject<number> = useRef<number>(0);
   const hasLoadedRef: MutableRefObject<boolean> = useRef<boolean>(false);
 
@@ -163,8 +170,8 @@ const AlertEpisodeView: FunctionComponent<
     requestIdRef.current = requestId;
 
     try {
-      const [firstMembers, episodeTimelines, stateList, loaded]: [
-        FetchedEpisodeMembers<Alert> | null,
+      const [firstMember, episodeTimelines, stateList, loaded]: [
+        Alert | null,
         ListResult<AlertEpisodeStateTimeline>,
         ListResult<AlertState>,
         AlertEpisode | null,
@@ -173,20 +180,17 @@ const AlertEpisodeView: FunctionComponent<
          * The one read here the page can do without: it takes the episode's
          * membership as well as its alerts, and a reader who may not read
          * the membership (a custom role) still gets the overview, without
-         * the panel.
+         * the panel. Its first member is the one the episode's Root Cause
+         * page charts the metrics of, picked by the same rule.
          */
-        fetchEpisodeMembers<Alert, AlertEpisodeMember>({
+        fetchFirstEpisodeMember<Alert, AlertEpisodeMember>({
           episodeId: modelId,
-          membership: ALERT_EPISODE_MEMBERSHIP,
-          modelType: Alert,
+          kind: ALERT_EPISODE_FIRST_MEMBER,
           select: {
             _id: true,
             telemetryQuery: true,
             seriesLabels: true,
           },
-          sortField: "createdAt",
-          sortOrder: SortOrder.Ascending,
-          limit: 1,
         }).catch((): null => {
           return null;
         }),
@@ -245,14 +249,13 @@ const AlertEpisodeView: FunctionComponent<
         return;
       }
 
-      const firstMember: Alert | undefined = firstMembers?.members[0];
-
       setTelemetrySnapshot(
         deriveTelemetrySnapshot({
           storedTelemetryQuery: firstMember?.telemetryQuery,
           seriesLabels: firstMember?.seriesLabels as JSONObject | undefined,
         }),
       );
+      setSnapshotMemberId(firstMember?.id?.toString() || undefined);
 
       setEpisode(loaded);
       setAlertStates(stateList.data as AlertState[]);
@@ -361,6 +364,16 @@ const AlertEpisodeView: FunctionComponent<
     );
   }
 
+  const episodeTimelineDates: Array<EventStateTimelineDate> =
+    episodeStateTimeline.map(
+      (timeline: AlertEpisodeStateTimeline): EventStateTimelineDate => {
+        return {
+          stateId: timeline.alertStateId?.toString(),
+          startsAt: timeline.startsAt,
+        };
+      },
+    );
+
   const timing: EpisodeTiming = getEpisodeTiming({
     // Alert episodes have no declaredAt: they start when they are created.
     startedAt: episode?.createdAt || undefined,
@@ -375,14 +388,7 @@ const AlertEpisodeView: FunctionComponent<
         isResolvedState: state.isResolvedState,
       };
     }),
-    timelines: episodeStateTimeline.map(
-      (timeline: AlertEpisodeStateTimeline) => {
-        return {
-          stateId: timeline.alertStateId?.toString(),
-          startsAt: timeline.startsAt,
-        };
-      },
-    ),
+    timelines: episodeTimelineDates,
   });
 
   const alertCount: number | undefined =
@@ -570,6 +576,16 @@ const AlertEpisodeView: FunctionComponent<
                 snapshotWindow={telemetrySnapshot.snapshotWindow}
                 seriesSummary={telemetrySnapshot.seriesSummary}
                 eventNoun="alert"
+                metricRuleEventId={snapshotMemberId}
+                /*
+                 * Anchored on the episode: a metric snapshot's investigation,
+                 * and the time ranges of a logs, traces or exceptions one.
+                 */
+                subject={EventMetricSubject.AlertEpisode}
+                startedAt={timing.durationStartsAt}
+                endedAt={timing.durationEndsAt}
+                stateTimeline={episodeTimelineDates}
+                states={alertStates}
               />
             </div>
           )}

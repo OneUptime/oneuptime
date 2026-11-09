@@ -7,9 +7,15 @@ import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper
 import SpanService from "./SpanService";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
   TelemetryServiceFilter,
 } from "../Utils/Telemetry/TelemetryReadScope";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import LlmLogEventReader, {
+  LlmLogEventReadResult,
+  LlmLogEventTitleRequest,
+} from "../Utils/Telemetry/LlmLogEventReader";
+import logger from "../Utils/Logger";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -34,6 +40,7 @@ import {
   LlmConversationSort,
   LlmConversationSummary,
   LlmIssueCounts,
+  LlmLogEventsRead,
   emptyIssueCounts,
   readNumber,
   readOptionalNumber,
@@ -47,6 +54,10 @@ import LlmConversationTranscriptUtil, {
   LlmConversationCall,
   LlmTranscript,
 } from "../../Utils/Telemetry/LlmConversationTranscript";
+import LlmLogEventsUtil, {
+  LlmLogEventCall,
+  LlmLogEventRecord,
+} from "../../Utils/Telemetry/LlmLogEvents";
 
 /*
  * AI CONVERSATIONS, READ FROM THE SPAN TABLE.
@@ -67,6 +78,14 @@ import LlmConversationTranscriptUtil, {
  * Every read is bounded below nginx's 60 s read timeout with 'throw', never
  * 'break': a grouped read cut short with 'break' answers an EMPTY body, which
  * would read as "no conversations" (see the ClickHouse query limits note).
+ *
+ * Prompts and answers an app sends as GenAI log events rather than on its
+ * spans (the OpenTelemetry instrumentations for JavaScript and Java, and
+ * Python's with `true` or `event_only`) are read from the Log table when a
+ * conversation is opened, for the answers whose spans lack them, and for
+ * the titles of list rows whose spans recorded no question
+ * (LlmLogEventReader). Those reads take the caller's LOG read scope: what
+ * they may read on the Logs page.
  */
 
 const TABLE_NAME: string = AnalyticsTableName.Span;
@@ -97,7 +116,7 @@ const NANOS_PER_MILLI: number = 1_000_000;
  * A call that produced an answer. Rows ingested before llmCallKind existed
  * read "": a model on them still says a model was called.
  */
-const IS_ANSWER_SQL: string = `(llmCallKind = '${LlmCallKind.Answer}' OR (llmCallKind = '' AND llmRequestModel != ''))`;
+export const IS_ANSWER_SQL: string = `(llmCallKind = '${LlmCallKind.Answer}' OR (llmCallKind = '' AND llmRequestModel != ''))`;
 
 // A failed call - by its status too, so rows from before llmIssues count.
 const IS_FAILED_SQL: string = `(statusCode = ${SpanStatus.Error} OR has(llmIssues, '${LlmAnswerIssue.Failed}'))`;
@@ -137,6 +156,11 @@ export interface LlmConversationListQuery extends TelemetryServiceFilter {
   limit: number;
   skip: number;
   includeSummary: boolean;
+  /*
+   * What the caller may read of logs, for the titles of rows whose spans
+   * recorded no question; null or absent: no log is read.
+   */
+  logScope?: TelemetryReadScope | null | undefined;
 }
 
 export interface LlmConversationDetailQuery extends TelemetryServiceFilter {
@@ -144,6 +168,11 @@ export interface LlmConversationDetailQuery extends TelemetryServiceFilter {
   key: LlmConversationKey;
   startTime: Date;
   endTime: Date;
+  /*
+   * What the caller may read of logs, for the prompts and answers sent as
+   * GenAI log events; null: they may read no log.
+   */
+  logScope: TelemetryReadScope | null;
 }
 
 /*
@@ -174,6 +203,8 @@ export interface LlmConversationDetail {
   transcript: LlmTranscript;
   // More calls exist than the view read (LLM_CONVERSATION_MAX_CALLS).
   truncated: boolean;
+  // Whether the prompts and answers sent as GenAI log events were read.
+  logEvents: LlmLogEventsRead;
 }
 
 function ilike(text: string): string {
@@ -215,24 +246,92 @@ export default class LlmConversationService {
 
     const hasMore: boolean = pageRows.length > query.limit;
 
+    const conversations: Array<LlmConversationListItem> = pageRows
+      .slice(0, query.limit)
+      .map((row: JSONObject): LlmConversationListItem | null => {
+        return LlmConversationService.toListItem(row);
+      })
+      .filter(
+        (
+          row: LlmConversationListItem | null,
+        ): row is LlmConversationListItem => {
+          return row !== null;
+        },
+      );
+
+    await LlmConversationService.addLogEventTitles({
+      projectId: query.projectId,
+      conversations: conversations,
+      logScope: query.logScope || null,
+    });
+
     return {
       summary: summaryRow
         ? LlmConversationService.toSummary(summaryRow[0] || {})
         : null,
-      conversations: pageRows
-        .slice(0, query.limit)
-        .map((row: JSONObject): LlmConversationListItem | null => {
-          return LlmConversationService.toListItem(row);
-        })
-        .filter(
-          (
-            row: LlmConversationListItem | null,
-          ): row is LlmConversationListItem => {
-            return row !== null;
-          },
-        ),
+      conversations: conversations,
       hasMore: hasMore,
     };
+  }
+
+  /*
+   * Titles for the page's rows whose spans recorded no question, from the
+   * GenAI log events of each conversation's first call (in place). Best
+   * effort: a caller who may read no log, or a read that fails, leaves the
+   * rows as they were - the row then names its request or conversation id.
+   */
+  public static async addLogEventTitles(data: {
+    projectId: ObjectID;
+    conversations: Array<LlmConversationListItem>;
+    logScope: TelemetryReadScope | null;
+  }): Promise<void> {
+    if (!data.logScope) {
+      return;
+    }
+
+    const logScope: TelemetryReadScope = data.logScope;
+
+    const untitled: Array<LlmConversationListItem> = data.conversations.filter(
+      (conversation: LlmConversationListItem): boolean => {
+        return (
+          !conversation.title &&
+          Boolean(conversation.traceId) &&
+          conversation.serviceIds.some((serviceId: string): boolean => {
+            return TelemetryReadScopeUtil.isReadable(logScope, serviceId);
+          })
+        );
+      },
+    );
+
+    if (untitled.length === 0) {
+      return;
+    }
+
+    try {
+      const titles: Map<string, string> = await LlmLogEventReader.readTitles({
+        projectId: data.projectId,
+        requests: untitled.map(
+          (conversation: LlmConversationListItem): LlmLogEventTitleRequest => {
+            return {
+              key: conversation.key,
+              traceId: conversation.traceId,
+              startedAtMs: new Date(conversation.startedAt).getTime(),
+            };
+          },
+        ),
+        logFilter: TelemetryReadScopeUtil.toServiceFilter(logScope),
+      });
+
+      for (const conversation of untitled) {
+        conversation.title = titles.get(conversation.key) || "";
+      }
+    } catch (err: unknown) {
+      logger.warn(
+        `Could not read conversation titles from GenAI log events: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   @CaptureSpan()
@@ -251,6 +350,13 @@ export default class LlmConversationService {
         return LlmConversationService.toCall(row);
       });
 
+    const logEvents: LlmLogEventsRead =
+      await LlmConversationService.addLogEventContent({
+        projectId: query.projectId,
+        calls: calls,
+        logScope: query.logScope,
+      });
+
     return {
       key: LlmConversationKeyUtil.encode(query.key),
       kind: query.key.kind,
@@ -260,6 +366,130 @@ export default class LlmConversationService {
           : "",
       transcript: LlmConversationTranscriptUtil.build(calls),
       truncated: truncated,
+      logEvents: logEvents,
+    };
+  }
+
+  /*
+   * The calls whose prompt or answer is not on their span: the answers
+   * (a model asked) that lack either. Tool runs and agent wrappers record
+   * theirs elsewhere, and are never read for.
+   */
+  public static getCallsLackingContent(
+    calls: ReadonlyArray<LlmConversationCall>,
+  ): Array<LlmConversationCall> {
+    return calls.filter((call: LlmConversationCall): boolean => {
+      return (
+        call.kind === LlmCallKind.Answer &&
+        Boolean(call.spanId) &&
+        LlmLogEventsUtil.lacksContent(call.content)
+      );
+    });
+  }
+
+  /*
+   * Reads the GenAI log events of the answers whose spans lack their prompt
+   * or answer, and merges what they say into those calls' content (in
+   * place): the span's own content wins, the records fill in only what it
+   * leaves out. Says what was read.
+   */
+  public static async addLogEventContent(data: {
+    projectId: ObjectID;
+    calls: Array<LlmConversationCall>;
+    logScope: TelemetryReadScope | null;
+  }): Promise<LlmLogEventsRead> {
+    const lacking: Array<LlmConversationCall> =
+      LlmConversationService.getCallsLackingContent(data.calls);
+
+    if (lacking.length === 0) {
+      return LlmLogEventsRead.NotNeeded;
+    }
+
+    if (!data.logScope) {
+      return LlmLogEventsRead.NotAllowed;
+    }
+
+    const logScope: TelemetryReadScope = data.logScope;
+
+    // A call's records come from its own app: its logs must be readable.
+    const readable: Array<LlmConversationCall> = lacking.filter(
+      (call: LlmConversationCall): boolean => {
+        return (
+          !call.serviceId ||
+          TelemetryReadScopeUtil.isReadable(logScope, call.serviceId)
+        );
+      },
+    );
+
+    const state: LlmLogEventsRead =
+      readable.length < lacking.length
+        ? LlmLogEventsRead.NotAllowed
+        : LlmLogEventsRead.Read;
+
+    if (readable.length === 0) {
+      return state;
+    }
+
+    let result: LlmLogEventReadResult;
+
+    try {
+      result = await LlmLogEventReader.readForCalls({
+        projectId: data.projectId,
+        calls: readable.map(LlmConversationService.toLogEventCall),
+        logFilter: TelemetryReadScopeUtil.toServiceFilter(logScope),
+      });
+    } catch (err: unknown) {
+      logger.warn(
+        `Could not read GenAI log events of a conversation: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+
+      return LlmLogEventsRead.Failed;
+    }
+
+    /*
+     * Every call of the conversation is a candidate for a record, so a
+     * record without a span id is only given to an answer when it is the
+     * one it happened during.
+     */
+    const assigned: Map<
+      string,
+      Array<LlmLogEventRecord>
+    > = LlmLogEventsUtil.assignToCalls(
+      data.calls.map(LlmConversationService.toLogEventCall),
+      result.records,
+    );
+
+    for (const call of readable) {
+      const records: Array<LlmLogEventRecord> | undefined = assigned.get(
+        call.spanId,
+      );
+
+      if (!records || records.length === 0) {
+        continue;
+      }
+
+      try {
+        call.content = LlmLogEventsUtil.mergeContent(
+          call.content,
+          LlmLogEventsUtil.readContent(records),
+        );
+      } catch {
+        // Records of a shape the parser cannot read say nothing.
+      }
+    }
+
+    return state;
+  }
+
+  public static toLogEventCall(call: LlmConversationCall): LlmLogEventCall {
+    return {
+      spanId: call.spanId,
+      traceId: call.traceId,
+      startMs: call.startMs,
+      endMs: call.endMs,
+      isModelCall: call.kind === LlmCallKind.Answer,
     };
   }
 

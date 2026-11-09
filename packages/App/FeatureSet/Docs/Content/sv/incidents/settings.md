@@ -19,6 +19,7 @@ Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektin
 | **Incidentallvar**           | Lägga till, byta namn på, byta färg på och ändra ordningen på allvarlighetsgraderna.         |
 | **Incidentmallar**           | Förifylla en hel incident — titel, beskrivning, resurser, jourpolicyer, ägare, etiketter.    |
 | **Anteckningsmallar**        | Återanvändbar text för offentliga och privata anteckningar.                                  |
+| **Godkännande av offentliga anteckningar** | Låt offentliga anteckningar godkännas innan de publiceras och välj vem som godkänner dem. |
 | **Postmortem-mallar**        | Återanvändbara strukturer för efteranalyser.                                                 |
 | **Efteranalysstatusar** | De statusar en efteranalys går igenom, från Inte påbörjad till Slutförd. |
 | **Anpassade fält**           | Definiera extra fält som visas på varje incident.                                            |
@@ -80,7 +81,7 @@ flowchart TB
 ```
 
 - **I instrumentpanelen** — knappen **Skapa från mall** i listan över incidenter öppnar en väljare **Välj incidentmall**, och deklarationssidan läser mallen från frågeparametern `incidentTemplateId` och förifyller sedan formuläret med mallen plus dess ägarteam och ägaranvändare. Dess steg **Detaljer** följer mallens [anpassade fält vid skapande](#anpassade-fält-vid-skapande). Ägarna blir incidentens ägare utan att meddelas, när incidentens Slack- och Microsoft Teams-kanaler finns, så att en aviseringsregel som bjuder in incidentens ägare till en ny kanal också bjuder in dem.
-- **På servern** — ett [formulär](/docs/forms/on-submit#incidentmallen) som har en **Incidentmall**, och ett arbetsflödes steg **Create One Incident** med en vald **Incident Template**, deklarerar incidenten från mallen på servern. Steget läser mallen som Project Admin för arbetsflödets projekt, så en mall från ett annat projekt, eller en som har tagits bort, avvisas, och på ett abonnemang som inte omfattar incidentmallar avvisas steget med det abonnemang som det kräver. Mallens ägare blir incidentens ägare, som i instrumentpanelen. Se [Arbetsflödeskomponenter](/docs/workflows/components).
+- **På servern** — ett [formulär](/docs/forms/on-submit#incidentmallen) som har en **Incidentmall**, och ett arbetsflödes steg **Create One Incident** med en vald **Incident Template**, deklarerar incidenten från mallen på servern. Steget läser mallen som Project Admin för arbetsflödets projekt, så en mall från ett annat projekt, eller en som har tagits bort, avvisas, och på ett abonnemang som inte omfattar incidentmallar avvisas steget med det abonnemang som det kräver. Mallens ägare blir incidentens ägare, som i instrumentpanelen. Se [Deklarera en incident från en mall](/docs/workflows/components#deklarera-en-incident-från-en-mall).
 
 En incident som deklareras på servern registrerar mallen i `createdIncidentTemplateId`. Bara OneUptime sätter den kolumnen, för ett formulär eller ett arbetsflödessteg som nämner en mall: en API-nyckel eller en inloggad användare kan inte det, och en begäran som skickar `createdIncidentTemplateId` avvisas. För att deklarera från en mall via API:t läser du den från `/api/incident-templates` och skickar dess värden i begäran.
 
@@ -162,6 +163,25 @@ Anpassade fält skrevs tidigare som `{{customFields.<key>}}`; mallar som fortfar
 Samma lista, knapp och `{{` följer med de andra mallarna som har variabler: en SLA-regels anteckningspåminnelser, en grupperingsregels för incidenter eller larm episodtitel och episodbeskrivning, en monitorregels incident- och larmbeskrivning och åtgärdsanteckningar, en SLO-förbrukningsregels mallar och en statussidas anpassade mallar för aviseringar till prenumeranter.
 
 Anteckningsmallar dyker upp där du faktiskt behöver dem: bekräftelsedialogerna **Bekräfta incident** och **Lös incident** erbjuder båda **Välj anteckningsmall** ovanför fältet **Offentlig anteckning**, hopfällt under **Lägg till en offentlig anteckning**. Se [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-feed) för hur offentliga och privata anteckningar skiljer sig åt.
+
+## Godkännande av offentliga anteckningar
+
+**Godkännande av offentliga anteckningar** låter offentliga anteckningar på incidenter och incidentepisoder godkännas innan de publiceras, för de uppdateringar som behöver ett extra par ögon innan kunderna läser dem. Det är avstängt i varje projekt tills du slår på det.
+
+:::steps
+1. Gå till **Incidenter → Inställningar → Godkännande av offentliga anteckningar** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Klicka på **Lägg till Godkännandesteg** under **Vem godkänner** och välj stegets **Godkännare**: personer, team eller båda, där vem som helst av dem kan godkänna en anteckning för steget. Ett **Namn**, som Juridik, är valfritt: anteckningar som väntar på steget visar det.
+3. Slå på **Kräv godkännande innan offentliga anteckningar publiceras**. Från och med då väntar en ny offentlig anteckning, liksom en redigering av en publicerad, tills den har godkänts.
+:::
+
+De flesta projekt behöver ett steg. Lägg till ett till när en anteckning behöver ett andra godkännande, till exempel från ert juridiska team efter er supportansvarige. Stegen godkänns i listans ordning, som du ändrar genom att dra, och en anteckning publiceras när det sista godkänner den.
+
+- **Varje steg nämner någon.** Ett steg behöver minst en person eller ett team, och godkännande kan inte slås på förrän ett steg nämner någon.
+- **Det sista steget stannar kvar medan godkännande är påslaget.** För att ta bort det stänger du först av godkännande eller lägger till ett annat steg.
+- **Ändringar gäller direkt.** Vem som får godkänna läses när någon tar ställning, och anteckningar som redan väntar följer dina ändringar. När du lägger till, tar bort eller flyttar steg, eller ändrar vem ett steg nämner, tillfrågas alla som nu kan godkänna en väntande anteckning och inte har tillfrågats om den än via sina aviseringsinställningar, och detsamma gäller den som går med i ett team som steget en anteckning väntar på nämner. Ingen tillfrågas två gånger om samma steg i en anteckning. Den som tas bort från steget, eller ur dess team, kan inte längre ta ställning till anteckningen, och deras meddelande om den i Slack, Microsoft Teams eller Mattermost säger det. En anteckning behåller de godkännanden den har.
+- **Ingen godkänner sin egen anteckning, eller två steg av en anteckning.** Den som skickade en anteckning för godkännande kan varken godkänna eller avvisa den, och den som godkände ett av dess steg kan inte godkänna ett annat.
+
+Bara projektägare och -administratörer kan ändra de här inställningarna, och alla som läser anteckningarna kan se vem som godkänner dem. **Schemalagt underhåll → Inställningar → Godkännande av offentliga anteckningar** är samma sida för schemalagda underhållshändelser, med en egen brytare och egna steg. Vad en anteckning gör medan den väntar, och hur godkännare tar ställning, står under [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar).
 
 ## Mallar för efteranalys
 
@@ -447,7 +467,7 @@ Varje incidents sida visar sina egna mätningar på ett kort **Mätningar**, dir
 
 En mätning vars start eller slut du ändrar fortsätter att visa sitt gamla värde på varje incident tills OneUptime har räknat ut den igen, liksom dess diagram. Direkt efter en tillståndsändring från incidentens rubrik visar kortet de nya värdena så snart OneUptime har räknat ut dem, oftast direkt.
 
-Larm och schemalagda underhållshändelser har samma kort på sina sidor. För en underhållshändelse visas **Inte nådd** när händelsen har avslutats. Kortet utelämnas när ingen aktiverad mätning har **Visa på incidentsidor** påslaget, och för någon som inte får läsa mätningar.
+Larm och schemalagda underhållshändelser har samma kort på sina sidor. För en underhållshändelse visas **Inte nådd** när händelsen har avslutats: när den är i det avslutade eller det slutförda tillståndet, eller i ett eget tillstånd efter det avslutade tillståndet. Dess ögonblick följer samma platser: **Underhållet startar**, **Underhållet slutar** och **Underhållet slutförs** är flyttarna till ett tillstånd där händelsen pågår, är över eller är slutförd från ett där den inte var det — så en händelse som slutförs direkt från det pågående tillståndet slutar där, en händelse som flyttas från det avslutade tillståndet direkt till ett eget tillstånd efter det slutförda tillståndet slutförs där, och att gå vidare från det slutförda tillståndet till ett sådant tillstånd slutför ingenting igen. Se [Schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser). Kortet utelämnas när ingen aktiverad mätning har **Visa på incidentsidor** påslaget, och för någon som inte får läsa mätningar.
 
 ### Påverkan började, och varför det är tomt
 
@@ -617,6 +637,8 @@ Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler
 
 **En regel kan ärva.** Under **Etiketter att lägga till** (eller **Ägare**) innehåller det hopfällda avsnittet **Ärv etiketter** (eller **Ärv ägare**) sex reglage som också för vidare etiketterna (eller ägarna) från incidentens monitorer, värdar, Kubernetes-kluster, Docker-värdar, Podman-värdar och tjänster. En regel som ärver kan lämna **Etiketter att lägga till** tomt, och får då namn efter det som den ärver från (_Inherit labels from monitors, hosts_); en ny regel som varken nämner eller ärver något kan inte sparas — varken från formuläret, API:t eller Terraform. Episodregler, på fliken **Episodregler**, har inga reglage för att ärva. På en ägarregel för incidenter eller larm slutar **Ärv ägare** med **Skaparens team**: av teamen som står där blir varje team som den som deklarerar incidenten eller skapar larmet är med i också ägare.
 
+Även en ägarregel för incidenter kan tillhöra team: **Ansvariga team** under **Fler fält** anger vem som får redigera eller ta bort regeln – bara medlemmarna i de teamen och projektadministratörer – inte vem regeln gör till ägare. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
+
 **Äldre regler som inte lägger till något** — sparade innan OneUptime frågade vad de lägger till — kan fortfarande byta namn, stängas av eller tas bort, och listan markerar var och en med **Lägger inte till något**. [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) går igenom formuläret steg för steg.
 
 ## Grupperingsregler för incidenter
@@ -639,6 +661,8 @@ Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler
 
 Allt annat som en regel kan göra är hopfällt under **Fler fält**, i slutet av steget **Gruppering**, i tre grupper: **Jour och ägarskap** (jourpolicyerna som ska köras när regeln öppnar en episod, **Episodägare** och episodens rolltilldelningar), **Episodens livscykel** (vänta på fler incidenter innan en episod öppnas — ett reglage med ett antal — sedan öppna nyligen lösta episoder igen, vänta innan en episod löses, och lös tysta episoder — vart och ett ett reglage med sina minuter) och **Detaljer** (regelns beskrivning, mallarna för episodens titel och beskrivning, visning av episoder på statussidor och episodens etiketter). Hopfällt nämner rubriken vad det innehåller, och varje inställning som en regel använder säger vad den är satt till — "On-Call Duty Policies: 2", "Reopen recently resolved episodes: 30 minutes" — så att redigera en regel aldrig döljer vad den gör. Att öppna det lägger inte till något steg: **Skapa grupperingsregel för incidenter** finns på **Vilka incidenter**, det sista steget. Formuläret för larm har inga inställningar för statussidor eller episodroller.
 
+Att öppna nyligen lösta episoder igen är det enda sättet för en episod att flytta sig tillbaka uppåt i sin lista över tillstånd. När en matchande incident kommer inom det antal minuter som inställningen anger, flyttar OneUptime tillbaka den lösta episoden till ditt skapandetillstånd och lägger till incidenten i den. Ingen annan kan det: En tillståndsändring för en episod är bunden av ordningen på dina incidenttillstånd precis som en incidents är, oavsett om den kommer från instrumentpanelen, Slack, Microsoft Teams, API:et eller Terraform (se [Ordningen är en verklig begränsning](/docs/incidents/states-and-severities#ordningen-är-en-verklig-begränsning-inte-en-visningspreferens)). Återöppnandet flyttar inte heller tillbaka episodens incidenter: De som redan är lösta förblir lösta. Grupperingsregler för larm öppnar larmepisoder igen på samma sätt.
+
 **Vänta på fler incidenter** håller en ensam incident utanför en episod. Det är avslaget tills du slår på det, och frågar då hur många: **Öppna en episod när 3 matchande incidenter pågår**, från 2 till 100. Medan det är påslaget öppnar en incident som inte hittar någon öppen episod i sin grupp att gå in i, och ingen löst episod att öppna igen, ingen episod: Den väntar ensam och larmar bara via sina egna jourpolicyer, precis som en incident som ingen regel matchar. När så många incidenter i gruppen pågår, den inkommande medräknad, öppnar regeln en enda episod med varje incident som väntade och den som kom sist. Episoden tar sin titel, monitor och allvarlighetsgrad från den första av dem och stiger till den allvarligaste, och incidenterna efter dem går in i den som vanligt. Bara incidenter som fortfarande pågår räknas, så en monitor som hela tiden fallerar och återhämtar sig öppnar aldrig en episod på egen hand, och medan **Gruppera bara incidenter som kommer tätt efter varandra** är påslaget måste de också ha kommit inom dess fönster från varandra. Kombinera det med **Allt tillsammans** för att bara öppna en episod vid ett avbrott som utlöser flera monitorer på en gång. Det fungerar med varje svar på **Gruppera incidenter efter**: Med **Titel** får ett problem en episod när det utlöses igen medan det första fortfarande är öppet. Listans kolumn **Gruppering** säger "Öppnar en episod när 3 matchande incidenter pågår". Via API:et och Terraform heter det `enableMinimumIncidentCount` och `minimumIncidentCount`, och på en grupperingsregel för larm `enableMinimumAlertCount` och `minimumAlertCount`.
 
 > [!WARNING]
@@ -654,7 +678,7 @@ Regler som sparades innan formuläret frågade efter ägare kan fortfarande ha e
 
 ## Jourregler för incidenter
 
-**Incidenter → Regler → Jourregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) är där du gör larmning automatisk. Kortet, **Incidentjourregler**, säger vad de gör: larmar automatiskt via jourpolicyer för nya incidenter som matchar. Sidan har två flikar: **Incidentregler** och **Episodregler**.
+**Incidenter → Regler → Jourregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) är där du gör larmning automatisk. Kortet, **Incidentjourregler**, säger vad de gör: larmar automatiskt via jourpolicyer för incidenter som matchar, antingen för att hantera dem eller som observatörer som hålls informerade. Sidan har två flikar: **Incidentregler** och **Episodregler**.
 
 Skapandeformuläret har två steg:
 
@@ -664,6 +688,12 @@ Skapandeformuläret har två steg:
 :::
 
 En regel larmar så snart en incident matchar den. För att låta den vänta på arbetstid i stället svarar du **Endast under arbetstid** på **När ska den här regeln larma?** under **Fler fält**. **Arbetstid** börjar som måndag till fredag, 09:00 till 17:00, i din egen tidszon: välj andra dagar, en annan **Starttid** eller **Sluttid** eller en annan **Tidszon**, så säger en mening under valet vad som händer. I listan visar regeln sin arbetstid under namnet. En incident som matchar utanför de tiderna får en körning som väntar, som **Väntar**, och inte larmar någon; när arbetstiden börjar larmar policyn sin första eskaleringsregel och eskalerar som vanligt. Bekräftas eller löses incidenten först larmas ingen. Ändras incidenten medan den väntar så att den nu matchar en regel som larmar direkt, till exempel för att dess allvarlighetsgrad höjs, börjar körningen larma genast, och incidentens flöde säger varför.
+
+En regel larmar personerna i sina policyer för att hantera incidenten: den som bekräftar larmet bekräftar incidenten. För att hålla ett team informerat medan ett annat hanterar den, till exempel ett tillsynsteam som ska få veta om varje kritisk incident, svarar du **Observatörer** på **Larma personerna i de här policyerna som** under **Fler fält**. Deras larm säger att de är observatörer, och bekräftar de det säger det bara att de har sett det: incidenten bekräftas inte, ingen annans larm stoppas, och ingen blir dess Incidentansvarig. Deras larm fortsätter tills någon av dem svarar eller incidenten är löst, och en Slack- eller Microsoft Teams-regel som bjuder in jourhavande till incidentens kanal utelämnar dem. I listan säger regeln under sitt namn att den larmar som observatörer. En policy som en matchande regel larmar för att hantera incidenten och en annan som observatörer larmar för att hantera den.
+
+Regler körs när en incident deklareras, och igen varje gång dess allvarlighetsgrad eller etiketter ändras medan den är öppen. Höjs den till en allvarlighetsgrad som en regel matchar, eller får den en etikett som en regel matchar, larmar den regelns policyer då, för att hantera incidenten eller som observatörer, och incidentens flöde säger att regeln nu matchar den, och varför. En policy som redan har larmat om incidenten larmar inte igen, om den inte larmade som observatörer och nu ska hantera den. Ingenting görs om när incidenten slutar matcha, och en ändrad titel, beskrivning eller monitor kör inte reglerna igen.
+
+En regel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåller den de team du väljer: bara deras medlemmar och projektadministratörer kan redigera eller ta bort den, och alla andra som ser regler ser den skrivskyddad. En regel som inget team äger kan ändras av alla som får redigera jourregler, och episodregler kan också tillhöra team. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
 
 ### Så avgörs matchning
 

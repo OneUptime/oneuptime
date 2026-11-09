@@ -75,6 +75,7 @@ Rekkevidden er en lineær framskrivning. I et rullerende vindu gir gammel nedeti
 Diagrammet **Nedbrenning av feilbudsjett** i **Oversikt** viser gjenværende budsjett, i prosent, over det gjeldende samsvarsvinduet:
 
 - En linje ved 0 % markerer hvor budsjettet er brukt opp, og en stiplet linje markerer risikoterskelen til SLO-et.
+- Når SLO-et har en feilbudsjettpolicy, markerer en linje med etikett også terskelen for hvert nivå: se [Feilbudsjettpolicy](/docs/slo/error-budget-policy).
 - For SLO-er med kalendermåned faller en svak linje jevnt fra et fullt budsjett ved starten av måneden til et tomt ved nullstillingen. Under den linjen bruker måneden budsjettet for fort.
 - Et punkt registreres ved hver evaluering, hvert 5. minutt, så diagrammet til et nytt SLO er tomt til den første evalueringen.
 - Dra over diagrammet for å zoome inn på en del av vinduet. Dobbeltklikk, eller klikk på **Tilbakestill zoom**, for å se hele vinduet igjen.
@@ -126,6 +127,8 @@ stateDiagram-v2
 
 Med standardterskelen på 20 % blir et truet SLO feilfritt igjen ved 25 % gjenværende budsjett, og et SLO med oppbrukt budsjett blir truet igjen ved 2 %. Hver statusendring vises i **Feed** til SLO-et, med SLI-en, budsjettet og forbruksraten som forklarer den.
 
+En status sier hvor mye budsjett som er igjen, ikke hva teamet ditt gjør med det. For å skrive det ned for hvert nivå av gjenværende budsjett, for eksempel ved risikoterskelen eller når budsjettet er brukt opp, gir du SLO-et en [feilbudsjettpolicy](/docs/slo/error-budget-policy).
+
 ## Beskjed til eiere
 
 Når et SLO går over til **I faresonen** eller **Budsjett oppbrukt**, gir OneUptime eierne beskjed:
@@ -143,6 +146,7 @@ For at et SLO nær en grense ikke skal varsle hele tiden, får eierne høyst én
 
 :::cards
 - [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts): Varsle teamet ditt når budsjettet brennes for fort.
+- [Feilbudsjettpolicy](/docs/slo/error-budget-policy): Skriv ned hva teamet gjør mens budsjettet tømmes.
 - [SLO-metrikker og -dashbord](/docs/slo/metrics): Vis budsjettet over tid i et diagram.
 - [SLO-er – Oversikt](/docs/slo/introduction): Mål, vinduer og nedetidsstatuser.
 :::

@@ -82,6 +82,24 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * The Overview's Monitoring card reads how many of the group's monitors are
+ * checked (MonitorGroupMonitoringCard has suites of its own): none here, so
+ * the card stays out of these pages.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMonitoringAPI",
+  () => {
+    return {
+      __esModule: true,
+      fetchMonitorGroupMonitoringSummary: (): Promise<unknown> => {
+        return Promise.resolve({ monitorCount: 0, monitoringOffCount: 0 });
+      },
+      setMonitorGroupMonitoring: jest.fn(),
+    };
+  },
+);
+
 let mockTableProps: MonitorTableProps | undefined;
 let mockRows: Array<Monitor> = [];
 // How many times the table was mounted: once, unless the page was swapped out.

@@ -67,6 +67,8 @@ Das Seitenmenü eines Dienstes hat fünf Abschnitte:
 | **Entwickler** | **Terraform**, **API**, **CLI** und **KI-Assistenten**: der Dienst, aus Code verwaltet. Der Abschnitt ist zunächst eingeklappt. |
 | **Erweitert** | **Einstellungen**, **Audit-Protokolle** und **Dienst löschen**. **Erweitert** ist anfangs eingeklappt: Klappen Sie es zuerst auf. |
 
+Neben seinem Namen zeigt die **Übersicht** eines Dienstes, ob seine Telemetrie eintrifft: **Empfängt Daten**, solange in den letzten 30 Minuten etwas eingetroffen ist, **Keine aktuellen Daten**, sobald nichts mehr eintrifft, und **Warten auf Daten** vor seiner ersten Telemetrie. Ein Dienst, der nur Spans sendet, während er Anfragen bearbeitet, zeigt **Keine aktuellen Daten**, sobald ihn niemand aufruft; das allein ist also kein Fehler.
+
 Eigentümer zählen auch über die Seite hinaus: Eine Rolle mit dem Bereich Owned liest die Telemetrie der Dienste, die Ihnen oder Ihren Teams gehören. Siehe [Telemetrie](/docs/permissions/index#telemetrie).
 
 ## Einen Dienst ändern
@@ -110,6 +112,10 @@ Prüfen Sie, ob seine Telemetrie einen `service.name` trägt. Telemetrie aus ein
 
 :::details Zuletzt gesehen hinkt hinterher
 **Zuletzt gesehen** wird etwa einmal pro Minute aktualisiert, nicht bei jedem Batch, und kann der laufenden Telemetrie daher um etwa eine Minute hinterherhinken.
+:::
+
+:::details Ein Dienst zeigt „Keine aktuellen Daten“
+In den letzten 30 Minuten ist nichts von ihm eingetroffen. Bei einem Dienst, der nur Telemetrie sendet, während er Anfragen bearbeitet, ist das zu erwarten, wenn ihn niemand aufruft. Sollte er Anfragen bearbeiten, prüfen Sie, ob er läuft, ob sein OpenTelemetry-Exporter OneUptime erreicht und ob er noch denselben `service.name` meldet: Ein neuer Name beginnt einen neuen Dienst.
 :::
 
 ## Nächste Schritte

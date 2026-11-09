@@ -804,7 +804,7 @@ describe("the hook: a zoom around over the explorer's very window is followed", 
     expect(read("explorer-window")).toBe(WINDOW_TEXT);
   });
 
-  test("the page's own reset (the snapshot badge's) takes the explorer back with it", () => {
+  test("the card's own reset (beside its time picker) takes the explorer back with it", () => {
     renderFollowingExplorer();
     drag(SLICE_START, SLICE_END);
 

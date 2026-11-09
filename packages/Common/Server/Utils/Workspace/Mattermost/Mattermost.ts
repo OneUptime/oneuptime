@@ -39,6 +39,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceBase, {
   WorkspaceChannel,
   WorkspaceChannelToCreate,
+  WorkspaceDirectMessageLocation,
   WorkspaceMessageLocation,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
@@ -1027,6 +1028,41 @@ export default class MattermostUtil extends WorkspaceBase {
     return Array.from(members.values()).slice(0, data.max);
   }
 
+  /*
+   * A post only `userId` sees, in `channelId`: Mattermost's ephemeral post,
+   * shown to them as "(Only visible to you)" and gone when they reload. It
+   * answers a form somebody sent - the form closes when it is done and
+   * says nothing itself - where they opened it, as a press's
+   * `ephemeral_text` answers a press. Held to what a post takes, with its
+   * mentions broken (getMessageText).
+   */
+  @CaptureSpan()
+  public static async postEphemeral(data: {
+    authToken: string;
+    userId: string;
+    channelId: string;
+    markdown: string;
+  }): Promise<void> {
+    const connection: MattermostConnectionData =
+      MattermostConnection.fromAuthToken(data.authToken);
+
+    await MattermostUtil.callServer<JSONObject>({
+      ...connection,
+      method: HTTPMethod.POST,
+      path: "/api/v4/posts/ephemeral",
+      body: {
+        user_id: MattermostConnection.assertMattermostId(data.userId, "user"),
+        post: {
+          channel_id: MattermostConnection.assertMattermostId(
+            data.channelId,
+            "channel",
+          ),
+          message: MattermostUtil.getMessageText(data.markdown),
+        },
+      },
+    });
+  }
+
   // The bot joins a public channel, so it may post there.
   @CaptureSpan()
   public static override async joinChannel(data: {
@@ -1567,13 +1603,18 @@ export default class MattermostUtil extends WorkspaceBase {
     return MattermostUtil.isNotFoundError(error);
   }
 
-  // A direct message from the bot to an account.
+  /*
+   * A direct message from the bot to an account. Its buttons are signed for
+   * its own channel (MattermostActionContext): a press in a direct message
+   * names no team. Says where it landed: the direct message channel and the
+   * post's id, what an edit of it names.
+   */
   @CaptureSpan()
   public static override async sendDirectMessageToUser(data: {
     authToken: string;
     workspaceUserId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
-  }): Promise<void> {
+  }): Promise<WorkspaceDirectMessageLocation | null> {
     const connection: MattermostConnectionData =
       MattermostConnection.fromAuthToken(data.authToken);
 
@@ -1582,7 +1623,7 @@ export default class MattermostUtil extends WorkspaceBase {
       workspaceUserId: data.workspaceUserId,
     });
 
-    await MattermostUtil.postToChannel({
+    const thread: WorkspaceThread = await MattermostUtil.postToChannel({
       connection: connection,
       channelId: channelId,
       post: MattermostUtil.toPost({
@@ -1592,8 +1633,13 @@ export default class MattermostUtil extends WorkspaceBase {
           ),
         }),
         teamId: connection.teamId,
+        directMessageChannelId: channelId,
       }),
     });
+
+    return thread.threadId
+      ? { channelId: channelId, messageId: thread.threadId }
+      : null;
   }
 
   // The direct message channel between the bot and an account, made if it has none.
@@ -1637,6 +1683,11 @@ export default class MattermostUtil extends WorkspaceBase {
     authToken: string;
     triggerId: string;
     modalBlock: WorkspaceModalBlock;
+    /*
+     * The direct message the press that opens it was made in: the form is
+     * held to its channel, as the message's buttons are.
+     */
+    directMessageChannelId?: string | undefined;
   }): Promise<void> {
     const connection: MattermostConnectionData =
       MattermostConnection.fromAuthToken(data.authToken);
@@ -1652,6 +1703,7 @@ export default class MattermostUtil extends WorkspaceBase {
     const dialog: JSONObject = MattermostUtil.getDialog({
       modalBlock: data.modalBlock,
       teamId: connection.teamId,
+      directMessageChannelId: data.directMessageChannelId,
     });
 
     await MattermostUtil.callServer<JSONObject>({
@@ -1824,6 +1876,8 @@ export default class MattermostUtil extends WorkspaceBase {
     teamId: string;
     // What a notification shows when the post has no Markdown of its own.
     text?: string | undefined;
+    // A direct message's channel: its buttons are signed for it.
+    directMessageChannelId?: string | undefined;
   }): JSONObject {
     const texts: Array<string> = [];
     const actions: Array<JSONObject> = [];
@@ -1865,6 +1919,7 @@ export default class MattermostUtil extends WorkspaceBase {
             url: integrationUrl,
             context: MattermostActionContext.toContext({
               teamId: data.teamId,
+              channelId: data.directMessageChannelId,
               actions: [{ actionId: button.actionId, value: button.value }],
             }),
           },
@@ -1896,6 +1951,7 @@ export default class MattermostUtil extends WorkspaceBase {
             url: integrationUrl,
             context: MattermostActionContext.toContext({
               teamId: data.teamId,
+              channelId: data.directMessageChannelId,
               actions: menu.map((option: MattermostButtonPiece) => {
                 return { actionId: option.actionId, value: option.value };
               }),
@@ -2104,11 +2160,16 @@ export default class MattermostUtil extends WorkspaceBase {
   public static getDialog(data: {
     modalBlock: WorkspaceModalBlock;
     teamId: string;
+    // Opened from a direct message: held to its channel.
+    directMessageChannelId?: string | undefined;
   }): JSONObject {
     return {
       ...MattermostUtil.getDialogWithoutState(data.modalBlock),
       state: MattermostActionContext.toDialogState({
         teamId: data.teamId,
+        ...(data.directMessageChannelId
+          ? { channelId: data.directMessageChannelId }
+          : {}),
         actionId: data.modalBlock.actionId,
         value: data.modalBlock.actionValue || "",
       }),

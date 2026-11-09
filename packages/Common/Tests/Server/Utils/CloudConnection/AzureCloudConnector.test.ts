@@ -730,7 +730,7 @@ describe("read", () => {
     );
 
     expect(result.warnings).toContain(
-      "Could not read the metrics of 1 resources this time.",
+      "Could not read the metrics of 1 resource this time.",
     );
     expect(
       datapoints(result).every((point: { stored: JSONObject }): boolean => {
@@ -880,6 +880,7 @@ describe("choosing metrics", () => {
         metricName: "Percentage CPU",
         unit: "Percent",
         points: [{ timeMs: Date.parse("2026-10-21T12:00:00Z"), value: 4 }],
+        dimensions: [],
       },
     ]);
   });

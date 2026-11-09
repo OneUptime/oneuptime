@@ -1,6 +1,6 @@
 # Su cuenta
 
-Tu cuenta es como OneUptime te conoce: el correo y la contraseña con los que inicias sesión, tu nombre y tu zona horaria, y lo que protege tu inicio de sesión. Una cuenta puede pertenecer a muchos proyectos, y estos ajustes te acompañan en cada uno de ellos. Cómo te localiza OneUptime, y cuándo te avisa, se configura en cada proyecto, en **Ajustes de usuario**.
+Tu cuenta es como OneUptime te conoce: el correo y la contraseña con los que inicias sesión, tu nombre, tu zona horaria y tu idioma, y lo que protege tu inicio de sesión. Una cuenta puede pertenecer a muchos proyectos, y estos ajustes te acompañan en cada uno de ellos. Cómo te localiza OneUptime, y cuándo te avisa, se configura en cada proyecto, en **Ajustes de usuario**.
 
 ```mermaid title="Lo que pertenece a tu cuenta, y lo que cada proyecto guarda para ti"
 flowchart TB
@@ -11,7 +11,7 @@ flowchart TB
 ```
 
 :::cards
-- [Tu perfil](#tu-perfil): Tu nombre, tu correo, tu zona horaria y tu foto.
+- [Tu perfil](#tu-perfil): Tu nombre, tu correo, tu zona horaria, tu idioma y tu foto.
 - [Iniciar sesión de forma segura](#iniciar-sesión-de-forma-segura): Tu contraseña, los enlaces de inicio de sesión, tus llaves de acceso y la autenticación de dos factores.
 - [Tus proyectos](#tus-proyectos): Cambiar de proyecto, crear uno y aceptar invitaciones.
 - [Ajustes de usuario](#lo-que-cada-proyecto-guarda-para-ti): Cómo te localiza OneUptime en cada proyecto.
@@ -23,7 +23,7 @@ Haz clic en tu foto, arriba a la derecha del panel.
 
 | Elemento | Qué hace |
 | --- | --- |
-| **Perfil** | Abre **Perfil de usuario**: tu nombre, tu correo, tu zona horaria, tu foto y la seguridad de tu inicio de sesión. |
+| **Perfil** | Abre **Perfil de usuario**: tu nombre, tu correo, tu zona horaria, tu idioma, tu foto y la seguridad de tu inicio de sesión. |
 | **Ajustes de admin** | Abre el Admin Dashboard. Solo lo ven los administradores principales de una instalación autoalojada. |
 | **Tema** | Define el tema del panel: **Claro**, **Oscuro** o **Sistema**, que es claro u oscuro según cómo esté configurado tu dispositivo. |
 | **Cerrar sesión** | Cierra tu sesión. |
@@ -35,7 +35,7 @@ Haz clic en tu foto, arriba a la derecha del panel.
 :::steps
 ### Abrir tu perfil
 
-Haz clic en tu foto, arriba a la derecha, y elige **Perfil**. La página **Vista general** se abre en la tarjeta **Información básica**: tu nombre, tu correo y tu zona horaria.
+Haz clic en tu foto, arriba a la derecha, y elige **Perfil**. La página **Vista general** se abre en la tarjeta **Información básica**: tu nombre, tu correo, tu zona horaria y tu idioma.
 
 ### Editar tus datos
 
@@ -44,6 +44,7 @@ Haz clic en **Editar Usuario** y cambia lo que necesites:
 - **Correo electrónico**: la dirección con la que inicias sesión. Si la cambias, vuelves a verificar la nueva dirección.
 - **Nombre completo**: el nombre que tu equipo ve en todo OneUptime.
 - **Zona horaria**: la zona horaria en la que el panel muestra y lee las horas, y la de las horas de las notificaciones que se te envían.
+- **Idioma**: el idioma del panel en cada navegador en el que inicies sesión, y el de tus avisos de guardia. Sin definir, tus avisos están en inglés y el panel sigue a tu navegador.
 
 Haz clic en **Guardar cambios**.
 
@@ -146,9 +147,9 @@ Los **Ajustes de usuario**, a la derecha de la barra bajo la barra superior, son
 
 ## Idioma y tema
 
-Ambos se guardan en tu navegador, no en tu cuenta, así que vuelve a configurarlos en otro navegador o dispositivo. Se conservan al cerrar sesión, así que en un ordenador compartido la siguiente persona empieza con los tuyos.
+Tu tema se guarda en tu navegador, así que vuelve a configurarlo en otro navegador o dispositivo. Tu idioma se guarda en tu cuenta en cuanto lo eliges, y cada navegador en el que inicias sesión empieza en él. Se conservan al cerrar sesión, así que en un ordenador compartido la siguiente persona empieza con los tuyos.
 
-- **Idioma**: el panel empieza en el idioma de tu navegador. Para cambiarlo, usa el menú de idiomas al pie de cualquier página. Esta documentación tiene su propio menú de idiomas, arriba.
+- **Idioma**: el panel empieza en el idioma de tu navegador. Para cambiarlo, usa el menú de idiomas al pie de cualquier página. Tu elección se guarda en tu cuenta, como **Idioma** en tu perfil, y OneUptime escribe tus avisos de guardia en él. Consulta [El idioma de tus avisos](/docs/notifications/index#el-idioma-de-tus-avisos). Esta documentación tiene su propio menú de idiomas, arriba.
 - **Tema**: elige **Claro**, **Oscuro** o **Sistema** en el menú de usuario. **Sistema** es claro u oscuro según cómo esté configurado tu dispositivo, y cambia con él; todos los navegadores empiezan con él. Las páginas de inicio de sesión usan el mismo tema.
 
 ## Eliminar tu cuenta

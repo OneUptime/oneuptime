@@ -320,6 +320,13 @@ describe("GUARD: every Markdown column a status page could show is classified", 
     "IncidentEpisodeStateTimeline.rootCause":
       "the page shows states, not causes",
     "StatusPageSubscriber.internalNote": "the project's note on a subscriber",
+    // Issue #5720: the page shows a published note as it was approved.
+    "IncidentPublicNote.pendingNote":
+      "an edit of a published note, waiting for approval",
+    "IncidentEpisodePublicNote.pendingNote":
+      "an edit of a published note, waiting for approval",
+    "ScheduledMaintenancePublicNote.pendingNote":
+      "an edit of a published note, waiting for approval",
   };
 
   const statusPageApi: string = fs.readFileSync(
@@ -565,18 +572,23 @@ describe("PublishedImages.getColumns / isWrittenBy", () => {
     expect(PublishedImages.getColumns("IncidentEpisode").sort()).toEqual(
       ["description", "isPrivate", "isVisibleOnStatusPage"].sort(),
     );
-    // A note's markdown, and the record it is shown under.
+    /*
+     * A note's markdown, whether it is published - a note waiting for
+     * approval, or rejected, shows nothing - and the record it is shown under.
+     */
     expect(PublishedImages.getColumns("IncidentPublicNote")).toEqual([
       "note",
+      "isPublished",
       "incidentId",
     ]);
     expect(PublishedImages.getColumns("IncidentEpisodePublicNote")).toEqual([
       "note",
+      "isPublished",
       "incidentEpisodeId",
     ]);
     expect(
       PublishedImages.getColumns("ScheduledMaintenancePublicNote"),
-    ).toEqual(["note", "scheduledMaintenanceId"]);
+    ).toEqual(["note", "isPublished", "scheduledMaintenanceId"]);
     // An announcement's text, and the time it is shown from.
     expect(PublishedImages.getColumns("StatusPageAnnouncement")).toEqual([
       "description",
@@ -1464,7 +1476,7 @@ describe("PublishedImages.readCascadedRows: what a delete takes with it", () => 
     expect(
       getCascadedRowsSql(cascadeOf("IncidentPublicNote", "incidentId")),
     ).toBe(
-      `SELECT "_id", "projectId", "note", "incidentId" FROM "IncidentPublicNote" WHERE "incidentId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
+      `SELECT "_id", "projectId", "note", "isPublished", "incidentId" FROM "IncidentPublicNote" WHERE "incidentId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
     );
     expect(getCascadedRowsSql(cascadeOf("StatusPage", "logoFileId"))).toBe(
       `SELECT "_id", "projectId", "overviewPageDescription" FROM "StatusPage" WHERE "logoFileId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
@@ -2248,15 +2260,18 @@ describe("PublishedImages: a public note shows its images only while its record 
     );
   }
 
+  // A published note, unless it waits for approval or was rejected.
   function note(data: {
     token: string;
     incidentId?: string;
     projectId?: ObjectID;
+    isPublished?: boolean;
   }): Record<string, unknown> {
     return {
       _id: "66666666-6666-4666-8666-666666666666",
       projectId: (data.projectId || PROJECT_ID).toString(),
       incidentId: data.incidentId === undefined ? INCIDENT_ID : data.incidentId,
+      isPublished: data.isPublished === undefined ? true : data.isPublished,
       note: image(data.token),
     };
   }
@@ -2298,6 +2313,23 @@ describe("PublishedImages: a public note shows its images only while its record 
           shown([[INCIDENT_ID, OTHER_PROJECT_ID]]),
         ).size,
       ).toBe(0);
+    });
+
+    // Issue #5720: a note waiting for approval, or rejected, shows nothing.
+    test("not while it waits for approval or was rejected, however its incident is shown", () => {
+      for (const isPublished of [false, null, undefined]) {
+        const row: Record<string, unknown> = note({ token: "aaa111" });
+
+        row["isPublished"] = isPublished;
+
+        expect(
+          PublishedImages.getShownTokens(
+            "IncidentPublicNote",
+            row,
+            shown([[INCIDENT_ID, PROJECT_ID]]),
+          ).size,
+        ).toBe(0);
+      }
     });
 
     test("not when it names no incident", () => {
@@ -2457,6 +2489,53 @@ describe("PublishedImages: a public note shows its images only while its record 
       expect(visibilityAsked()).toEqual(["aaa111:public"]);
     });
 
+    test("a note held for approval on a shown incident leaves them private", async () => {
+      parentsShown([[INCIDENT_ID, PROJECT_ID]]);
+
+      await PublishedImages.afterCreate({
+        tableName: "IncidentPublicNote",
+        row: note({ token: "aaa111", isPublished: false }),
+        readStored: async () => {
+          return null;
+        },
+      });
+
+      expect(visibilityAsked()).toEqual([]);
+    });
+
+    test("a note posted without saying whether it is published is read as stored", async () => {
+      parentsShown([[INCIDENT_ID, PROJECT_ID]]);
+
+      const row: Record<string, unknown> = note({ token: "aaa111" });
+
+      delete row["isPublished"];
+
+      const readStored: jest.Mock = jest.fn(async () => {
+        return { isPublished: true };
+      });
+
+      await PublishedImages.afterCreate({
+        tableName: "IncidentPublicNote",
+        row,
+        readStored,
+      });
+
+      expect(readStored).toHaveBeenCalledWith(["isPublished"]);
+      expect(visibilityAsked()).toEqual(["aaa111:public"]);
+    });
+
+    test("a note approved on a shown incident makes its images public", async () => {
+      parentsShown([[INCIDENT_ID, PROJECT_ID]]);
+
+      await PublishedImages.afterUpdate({
+        tableName: "IncidentPublicNote",
+        rowsBefore: [note({ token: "aaa111", isPublished: false })],
+        written: { isPublished: true },
+      });
+
+      expect(visibilityAsked()).toEqual(["aaa111:public"]);
+    });
+
     test("a note posted on a hidden or private incident leaves them private", async () => {
       parentsShown([]);
 
@@ -2596,6 +2675,25 @@ describe("PublishedImages: a public note shows its images only while its record 
       expect(visibilityAsked()).toEqual(["aaa111:public", "bbb222:public"]);
     });
 
+    /*
+     * Issue #5720: showing the incident publishes only the notes that are
+     * published themselves - never one waiting for approval, or rejected.
+     */
+    test("showing it leaves the images of a note waiting for approval private", async () => {
+      notesOfIncident([
+        note({ token: "aaa111" }),
+        note({ token: "bbb222", isPublished: false }),
+      ]);
+
+      await PublishedImages.afterUpdate({
+        tableName: "Incident",
+        rowsBefore: [{ ...SHOWN, isVisibleOnStatusPage: false }],
+        written: { isVisibleOnStatusPage: true },
+      });
+
+      expect(visibilityAsked()).toEqual(["aaa111:public", "bbb222:private"]);
+    });
+
     test("what its write stored decides, not what the update asked for", async () => {
       notesOfIncident([note({ token: "aaa111" })]);
 
@@ -2718,16 +2816,16 @@ describe("the SQL that reads which records notes are shown under, and their note
 
   test("getRowsShownUnderSql reads their notes that carry an image", () => {
     expect(getRowsShownUnderSql(incidentNotes)).toBe(
-      `SELECT "_id", "projectId", "incidentId", "note" FROM "IncidentPublicNote" WHERE "incidentId" = ANY($1::uuid[]) AND "deletedAt" IS NULL AND concat_ws(' ', "note"::text) LIKE '%/file/image/access-token/%'`,
+      `SELECT "_id", "projectId", "incidentId", "isPublished", "note" FROM "IncidentPublicNote" WHERE "incidentId" = ANY($1::uuid[]) AND "deletedAt" IS NULL AND concat_ws(' ', "note"::text) LIKE '%/file/image/access-token/%'`,
     );
   });
 
   test("STILL_SHOWN_SQL counts a note only while its record is shown, of its project", () => {
     expect(STILL_SHOWN_SQL).toContain(
-      `FROM "IncidentPublicNote" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM "Incident" AS "parentRecord" WHERE "parentRecord"."_id" = "IncidentPublicNote"."incidentId" AND "parentRecord"."projectId" = "IncidentPublicNote"."projectId" AND "parentRecord"."deletedAt" IS NULL AND "parentRecord"."isVisibleOnStatusPage" = true AND "parentRecord"."isPrivate" IS NOT TRUE) AND concat_ws(' ', "note"::text) LIKE ANY($2)`,
+      `FROM "IncidentPublicNote" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isPublished" = true AND EXISTS (SELECT 1 FROM "Incident" AS "parentRecord" WHERE "parentRecord"."_id" = "IncidentPublicNote"."incidentId" AND "parentRecord"."projectId" = "IncidentPublicNote"."projectId" AND "parentRecord"."deletedAt" IS NULL AND "parentRecord"."isVisibleOnStatusPage" = true AND "parentRecord"."isPrivate" IS NOT TRUE) AND concat_ws(' ', "note"::text) LIKE ANY($2)`,
     );
     expect(STILL_SHOWN_SQL).toContain(
-      `FROM "ScheduledMaintenancePublicNote" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM "ScheduledMaintenance" AS "parentRecord" WHERE "parentRecord"."_id" = "ScheduledMaintenancePublicNote"."scheduledMaintenanceId" AND "parentRecord"."projectId" = "ScheduledMaintenancePublicNote"."projectId" AND "parentRecord"."deletedAt" IS NULL AND "parentRecord"."isVisibleOnStatusPage" = true)`,
+      `FROM "ScheduledMaintenancePublicNote" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isPublished" = true AND EXISTS (SELECT 1 FROM "ScheduledMaintenance" AS "parentRecord" WHERE "parentRecord"."_id" = "ScheduledMaintenancePublicNote"."scheduledMaintenanceId" AND "parentRecord"."projectId" = "ScheduledMaintenancePublicNote"."projectId" AND "parentRecord"."deletedAt" IS NULL AND "parentRecord"."isVisibleOnStatusPage" = true)`,
     );
   });
 
@@ -2739,7 +2837,7 @@ describe("the SQL that reads which records notes are shown under, and their note
       HIDE_HIDDEN_RECORD_IMAGES_SQL,
     ]) {
       expect(sql).toContain(
-        `FROM "IncidentEpisodePublicNote" WHERE "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM "IncidentEpisode" AS "parentRecord" WHERE "parentRecord"."_id" = "IncidentEpisodePublicNote"."incidentEpisodeId"`,
+        `FROM "IncidentEpisodePublicNote" WHERE "deletedAt" IS NULL AND "isPublished" = true AND EXISTS (SELECT 1 FROM "IncidentEpisode" AS "parentRecord" WHERE "parentRecord"."_id" = "IncidentEpisodePublicNote"."incidentEpisodeId"`,
       );
     }
   });
@@ -2796,9 +2894,9 @@ describe("the SQL that reads which records notes are shown under, and their note
     expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).not.toMatch(
       /FROM "IncidentPublicNote" WHERE "deletedAt" IS NULL AND \(/,
     );
-    // Its notes count as showing an image only while it is shown.
+    // Its notes count as showing an image only while it is shown, and they are published.
     expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
-      `FROM "IncidentPublicNote" WHERE "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM "Incident" AS "parentRecord"`,
+      `FROM "IncidentPublicNote" WHERE "deletedAt" IS NULL AND "isPublished" = true AND EXISTS (SELECT 1 FROM "Incident" AS "parentRecord"`,
     );
   });
 });

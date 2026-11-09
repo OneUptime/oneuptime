@@ -29,10 +29,17 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * must zoom the WHOLE snapshot, as a drag on a metric snapshot's chart
  * does: every companion tab (Metrics, and whichever of Logs, Traces and
  * Exceptions the primary is not) queries exactly the dragged window, the
- * badge offers the one "Reset zoom", and a double-click on the histogram,
- * or that Reset zoom, returns everything to the snapshot window. It used to
- * zoom the explorer alone, with a Reset zoom of its own beside its picker,
- * while the other tabs kept showing the whole snapshot.
+ * card's time picker offers the one "Reset zoom", and a double-click on the
+ * histogram, or that Reset zoom, returns everything to the snapshot window.
+ * It used to zoom the explorer alone, with a Reset zoom of its own beside
+ * its picker, while the other tabs kept showing the whole snapshot.
+ *
+ * The card holds that zoom inside the time range it shows (issue #6251):
+ * what the monitor saw until the reader picks another range around the
+ * event, on the card's time picker on every tab, which took over from the
+ * snapshot badge (and its Reset zoom) the page used to put there. A range
+ * picked on the card moves the primary and every tab too, and is kept in
+ * the page's URL.
  *
  * TelemetrySnapshotPanel (the episode pages' snapshot) is rendered with the
  * real companion tabs and the real explorers: the Dashboard ones and the
@@ -293,6 +300,7 @@ jest.mock("recharts", () => {
 });
 
 import TelemetrySnapshotPanel from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetrySnapshotPanel";
+import { EVENT_TIME_RANGE_RESET_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/EventTimeRangeControls";
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import { getTimeRangeButtonLabel } from "../../../UI/Components/Date/TimeRangePickerDropdown";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
@@ -488,28 +496,35 @@ function resetButtons(): Array<HTMLElement> {
   return screen.queryAllByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID);
 }
 
-function badgeTitle(
-  start: Date = SNAPSHOT_START,
-  end: Date = SNAPSHOT_END,
-): string {
-  return OneUptimeDate.getInBetweenDatesAsFormattedString(
-    new InBetween<Date>(start, end),
-  );
+// The card's time picker, on the header of the open tab's card.
+function cardPicker(): HTMLElement {
+  return screen.getByTestId("metric-investigation-time-button");
 }
 
 /*
- * The snapshot badge's Reset zoom: the one right before the badge's window.
- * (The companion metric card's own Reset zoom shares a row with the badge,
- * after the card's picker.)
+ * The card's Reset zoom: the one right after the card's time picker, on
+ * the header of every tab's card. It took over from the snapshot badge's.
+ * (The companion metric card's own Reset zoom shares that row, after the
+ * companion card's own picker.)
  */
-function badgeResetButtons(): Array<HTMLElement> {
+function cardResetButtons(): Array<HTMLElement> {
   return resetButtons().filter((button: HTMLElement): boolean => {
-    const next: Element | null = button.nextElementSibling;
+    const previous: Element | null = button.previousElementSibling;
     return (
-      next !== null &&
-      within(next as HTMLElement).queryByText(badgeTitle()) !== null
+      previous !== null &&
+      within(previous as HTMLElement).queryByTestId(
+        "metric-investigation-time-button",
+      ) !== null
     );
   });
+}
+
+// What the card says it shows: the button's words, and its window's.
+function cardPickerSays(): { label: string; window: string | null } {
+  return {
+    label: (cardPicker().textContent || "").trim(),
+    window: cardPicker().getAttribute("title"),
+  };
 }
 
 interface CompanionCase {
@@ -693,14 +708,14 @@ async function backOnThePrimary(primary: PrimaryCase): Promise<void> {
 
 /*
  * A drag across the primary's volume chart, and what makes it a zoom of the
- * WHOLE snapshot: the snapshot badge offers the way back, and the primary
- * is on the dragged window.
+ * WHOLE snapshot: the card's time picker offers the way back, and the
+ * primary is on the dragged window.
  */
 async function zoomFromThePrimary(primary: PrimaryCase): Promise<void> {
   dragBars(BAR_1750, BAR_1754);
 
   await waitFor(() => {
-    expect(badgeResetButtons()).toHaveLength(1);
+    expect(cardResetButtons()).toHaveLength(1);
   });
   await expectLatest(primary.sources, SLICE_TEXT);
 }
@@ -875,7 +890,7 @@ describe.each(PRIMARIES)(
       expect(screen.getByTestId("card-picker")).toHaveTextContent(SLICE_TEXT);
     });
 
-    test("the badge offers Reset zoom, and it is the only Reset zoom on the card", async () => {
+    test("Reset zoom sits beside the card's time picker, which names the slice, and it is the only Reset zoom on the card", async () => {
       await renderPanel(primary);
 
       await zoomFromThePrimary(primary);
@@ -885,8 +900,9 @@ describe.each(PRIMARIES)(
         RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID,
       );
       expect(buttons).toHaveLength(1);
-      // Beside the badge, which keeps naming the snapshot window...
-      expect(badgeResetButtons()).toEqual(buttons);
+      // Beside the card's picker, which names the slice on screen...
+      expect(cardResetButtons()).toEqual(buttons);
+      expect(cardPickerSays().label).toBe(labelOf(SLICE_TEXT));
       expect(buttons[0]).toBeVisible();
       // ...and none beside the explorer's picker, which shows the slice.
       const picker: HTMLElement = screen.getByTestId(
@@ -900,13 +916,14 @@ describe.each(PRIMARIES)(
       expect(pickerLabel(primary)).toBe(labelOf(SLICE_TEXT));
     });
 
-    test("every companion tab's card carries the badge's Reset zoom, the only one there", async () => {
+    test("every companion tab's card carries the card's picker and its Reset zoom, the only one there", async () => {
       await renderPanel(primary);
       await zoomFromThePrimary(primary);
 
       for (const companion of primary.companions) {
         await windowsAskedForBy(companion);
-        expect(badgeResetButtons()).toHaveLength(1);
+        expect(cardPickerSays().label).toBe(labelOf(SLICE_TEXT));
+        expect(cardResetButtons()).toHaveLength(1);
         expect(resetButtons()).toHaveLength(1);
       }
     });
@@ -940,11 +957,11 @@ describe.each(PRIMARIES)(
       await expectCompanionsOn(primary, SNAPSHOT_TEXT);
     });
 
-    test("Reset zoom beside the badge returns everything to the snapshot window", async () => {
+    test("Reset zoom beside the card's picker returns everything to the snapshot window", async () => {
       await renderPanel(primary);
       await zoomFromThePrimary(primary);
 
-      fireEvent.click(badgeResetButtons()[0]!);
+      fireEvent.click(cardResetButtons()[0]!);
 
       await expectLatest(primary.sources, SNAPSHOT_TEXT);
       expect(resetButtons()).toHaveLength(0);
@@ -959,7 +976,7 @@ describe.each(PRIMARIES)(
       await windowsAskedForBy(primary.companions[0]!);
 
       await act(async () => {
-        fireEvent.click(badgeResetButtons()[0]!);
+        fireEvent.click(cardResetButtons()[0]!);
       });
       await backOnThePrimary(primary);
 
@@ -1003,7 +1020,7 @@ describe.each(PRIMARIES)(
         expect(window).toBe(SLICE_TEXT);
       }
       expect(pickerLabel(primary)).toBe(labelOf(SLICE_TEXT));
-      expect(badgeResetButtons()).toHaveLength(1);
+      expect(cardResetButtons()).toHaveLength(1);
       expect(resetButtons()).toHaveLength(1);
 
       // And a double-click on its histogram still resets the snapshot.
@@ -1015,7 +1032,7 @@ describe.each(PRIMARIES)(
       expect(resetButtons()).toHaveLength(0);
     });
 
-    test("a range picked in the primary's own picker takes it its own way; the badge's Reset zoom brings it back", async () => {
+    test("a range picked in the primary's own picker takes it its own way; the card's Reset zoom brings it back", async () => {
       await renderPanel(primary);
       await zoomFromThePrimary(primary);
 
@@ -1030,11 +1047,11 @@ describe.each(PRIMARIES)(
         expect(isPastDay(last(primary.volume()))).toBe(true);
       });
       expect(pickerLabel(primary)).toBe("Past 1 Day");
-      // The snapshot keeps its zoom: the badge still offers the way back.
-      expect(badgeResetButtons()).toHaveLength(1);
+      // The card keeps its zoom: its picker still offers the way back.
+      expect(cardResetButtons()).toHaveLength(1);
       expect(resetButtons()).toHaveLength(1);
 
-      fireEvent.click(badgeResetButtons()[0]!);
+      fireEvent.click(cardResetButtons()[0]!);
 
       // Pinned to the snapshot window again, the primary follows it there.
       await expectLatest(primary.sources, SNAPSHOT_TEXT);
@@ -1054,7 +1071,7 @@ describe.each(PRIMARIES)(
       });
     }
 
-    test("a refresh with equal values keeps the zoom: the primary stays on the slice, with the badge's way back", async () => {
+    test("a refresh with equal values keeps the zoom: the primary stays on the slice, with the card's way back", async () => {
       const rendered: RenderResult = await renderPanel(primary);
       await zoomFromThePrimary(primary);
       const counts: Array<number> = countsOf(primary.sources);
@@ -1063,7 +1080,7 @@ describe.each(PRIMARIES)(
       await refresh(rendered);
 
       expect(pickerLabel(primary)).toBe(labelOf(SLICE_TEXT));
-      expect(badgeResetButtons()).toHaveLength(1);
+      expect(cardResetButtons()).toHaveLength(1);
       expect(resetButtons()).toHaveLength(1);
       // Whatever it asked for since, it never went back to the whole window.
       for (const window of askedSince(primary.sources, counts)) {
@@ -1097,9 +1114,8 @@ describe.each(PRIMARIES)(
       await expectCompanionsOn(primary, SLICE_TEXT);
     });
 
-    test("a new snapshot window drops the zoom: the primary and every tab move to it, with nothing to reset", async () => {
+    test("an untouched card follows a new snapshot window: the primary and every tab move to it, with nothing to reset", async () => {
       const rendered: RenderResult = await renderPanel(primary);
-      await zoomFromThePrimary(primary);
 
       await act(async () => {
         rendered.rerender(panel(primary, NEXT_START, NEXT_END));
@@ -1108,9 +1124,44 @@ describe.each(PRIMARIES)(
       await expectLatest(primary.sources, NEXT_TEXT);
       expect(pickerLabel(primary)).toBe(labelOf(NEXT_TEXT));
       expect(resetButtons()).toHaveLength(0);
-      expect(screen.getByText(badgeTitle(NEXT_START, NEXT_END))).toBeVisible();
+      // Still what the monitor saw: the new window, named on the card.
+      expect(cardPickerSays()).toEqual({
+        label: "What the monitor saw",
+        window: labelOf(NEXT_TEXT),
+      });
       expect(screen.queryByText("Double-click to reset")).toBeNull();
 
+      await expectCompanionsOn(primary, NEXT_TEXT);
+    });
+
+    test("a new snapshot window keeps the reader's zoom, and its way back is the new window", async () => {
+      const rendered: RenderResult = await renderPanel(primary);
+      await zoomFromThePrimary(primary);
+      const counts: Array<number> = countsOf(primary.sources);
+
+      await act(async () => {
+        rendered.rerender(panel(primary, NEXT_START, NEXT_END));
+      });
+
+      /*
+       * The zoom is the reader's pick, not the record's, as on a metric
+       * snapshot's card: what the monitor saw moved, the reader's slice
+       * did not.
+       */
+      for (const window of askedSince(primary.sources, counts)) {
+        expect(window).toBe(SLICE_TEXT);
+      }
+      expect(cardPickerSays().label).toBe(labelOf(SLICE_TEXT));
+      expect(cardResetButtons()).toHaveLength(1);
+
+      fireEvent.click(cardResetButtons()[0]!);
+
+      await expectLatest(primary.sources, NEXT_TEXT);
+      expect(cardPickerSays()).toEqual({
+        label: "What the monitor saw",
+        window: labelOf(NEXT_TEXT),
+      });
+      expect(resetButtons()).toHaveLength(0);
       await expectCompanionsOn(primary, NEXT_TEXT);
     });
   },
@@ -1128,9 +1179,9 @@ describe.each(PRIMARIES)(
       dragBars(BAR_1750, BAR_1754);
 
       await expectLatest(companion.sources, SLICE_TEXT);
-      // Its own way back, beside its own picker; none beside the badge.
+      // Its own way back, beside its own picker; none beside the card's picker.
       expect(resetButtons()).toHaveLength(1);
-      expect(badgeResetButtons()).toHaveLength(0);
+      expect(cardResetButtons()).toHaveLength(0);
 
       // The primary is still on the whole snapshot window.
       const counts: Array<number> = countsOf(primary.sources);
@@ -1160,9 +1211,9 @@ describe.each(PRIMARIES)(
       await waitFor(() => {
         expect(last(metricChartWindows())).toBe(CARD_DRAG_TEXT);
       });
-      // The card's own way back; none beside the badge.
+      // The card's own way back; none beside the card's picker.
       expect(resetButtons()).toHaveLength(1);
-      expect(badgeResetButtons()).toHaveLength(0);
+      expect(cardResetButtons()).toHaveLength(0);
 
       await backOnThePrimary(primary);
       expect(pickerLabel(primary)).toBe(labelOf(SNAPSHOT_TEXT));
@@ -1182,13 +1233,201 @@ describe.each(PRIMARIES)(
       await expectLatest(companion.sources, NESTED_TEXT);
       // Two zooms now, two ways back: the companion's and the snapshot's.
       expect(resetButtons()).toHaveLength(2);
-      expect(badgeResetButtons()).toHaveLength(1);
+      expect(cardResetButtons()).toHaveLength(1);
 
       // The snapshot kept its slice.
       await backOnThePrimary(primary);
       await expectLatest(primary.sources, SLICE_TEXT);
       expect(pickerLabel(primary)).toBe(labelOf(SLICE_TEXT));
-      expect(badgeResetButtons()).toHaveLength(1);
+      expect(cardResetButtons()).toHaveLength(1);
+    });
+  },
+);
+
+/*
+ * Issue #6251: the card shows what the monitor saw until the reader picks
+ * another range on its time picker - the ranges around the event (here an
+ * episode, anchored on the end of what the monitor saw), then ranges
+ * relative to now - and a pick moves the primary and every tab, as a zoom
+ * does.
+ */
+describe.each(PRIMARIES)(
+  "a $name snapshot: a range picked on the card",
+  (primary: PrimaryCase) => {
+    // An hour up to the end of what the monitor saw.
+    const HOUR_BEFORE_TEXT: string =
+      "2026-09-14T17:00:00.000Z..2026-09-14T18:00:00.000Z";
+
+    async function pickOnTheCard(label: string): Promise<void> {
+      fireEvent.click(cardPicker());
+      await act(async () => {
+        fireEvent.click(
+          within(
+            screen.getByTestId("metric-investigation-time-dropdown"),
+          ).getByText(label),
+        );
+      });
+    }
+
+    function urlTime(): string | null {
+      return new URLSearchParams(window.location.search).get("telemetryTime");
+    }
+
+    test("untouched, the card names what the monitor saw, with its window, and offers the ranges around the episode", async () => {
+      await renderPanel(primary);
+
+      expect(cardPickerSays()).toEqual({
+        label: "What the monitor saw",
+        window: labelOf(SNAPSHOT_TEXT),
+      });
+      expect(window.location.search).toBe("");
+
+      fireEvent.click(cardPicker());
+      const dropdown: HTMLElement = screen.getByTestId(
+        "metric-investigation-time-dropdown",
+      );
+      expect(within(dropdown).getByText("Around this episode")).toBeVisible();
+      for (const label of [
+        "Around the start",
+        "The hour before it started",
+        "The day before it started",
+        "Start to now",
+        "What the monitor saw",
+        "Relative to now",
+        "Past 1 Hour",
+        "Custom Range...",
+      ]) {
+        expect(within(dropdown).getByText(label)).toBeVisible();
+      }
+    });
+
+    test("a range picked on the card moves the primary and every companion tab, whose cards say they show it", async () => {
+      await renderPanel(primary);
+
+      await pickOnTheCard("The hour before it started");
+
+      await expectLatest(primary.sources, HOUR_BEFORE_TEXT);
+      expect(pickerLabel(primary)).toBe(labelOf(HOUR_BEFORE_TEXT));
+      expect(cardPickerSays().label).toBe("The hour before it started");
+      // A range of the reader's, not a zoom: no Reset zoom anywhere.
+      expect(resetButtons()).toHaveLength(0);
+
+      for (const companion of primary.companions) {
+        const asked: Array<string> = await windowsAskedForBy(companion);
+        expect(asked.length).toBeGreaterThan(0);
+        for (const window of asked) {
+          expect(`${companion.tab}: ${window}`).toBe(
+            `${companion.tab}: ${HOUR_BEFORE_TEXT}`,
+          );
+        }
+        expect(
+          screen.getByText(companion.describes("the selected time range")),
+        ).toBeInTheDocument();
+        // The same picker on every tab, naming the same range.
+        expect(cardPickerSays().label).toBe("The hour before it started");
+      }
+    });
+
+    test("Reset returns the primary and every tab to what the monitor saw, and tidies the URL", async () => {
+      await renderPanel(primary);
+      await pickOnTheCard("The day before it started");
+      expect(urlTime()).toBe("day-before");
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(EVENT_TIME_RANGE_RESET_TEST_ID));
+      });
+
+      await expectLatest(primary.sources, SNAPSHOT_TEXT);
+      expect(cardPickerSays().label).toBe("What the monitor saw");
+      expect(screen.queryByTestId(EVENT_TIME_RANGE_RESET_TEST_ID)).toBeNull();
+      expect(window.location.search).toBe("");
+      await expectCompanionsOn(primary, SNAPSHOT_TEXT);
+      expect(
+        screen.getByText(
+          primary.companions[primary.companions.length - 1]!.describes(
+            "the snapshot window",
+          ),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    test("the pick is kept in the page's URL, and a reload opens on it", async () => {
+      const rendered: RenderResult = await renderPanel(primary);
+      await pickOnTheCard("The hour before it started");
+      expect(urlTime()).toBe("hour-before");
+
+      rendered.unmount();
+      postMock.mockClear();
+      analyticsGetListMock.mockClear();
+      await act(async () => {
+        render(panel(primary));
+      });
+      await volumeChartDrawn();
+
+      await expectLatest(primary.sources, HOUR_BEFORE_TEXT);
+      expect(askedSince(primary.sources, [0, 0])).not.toContain(SNAPSHOT_TEXT);
+      expect(cardPickerSays().label).toBe("The hour before it started");
+      expect(
+        screen.getByTestId(EVENT_TIME_RANGE_RESET_TEST_ID),
+      ).toBeInTheDocument();
+    });
+
+    test("a drag inside a picked range zooms it: Reset zoom goes back to that range, and Reset to what the monitor saw", async () => {
+      await renderPanel(primary);
+      await pickOnTheCard("The hour before it started");
+      await expectLatest(primary.sources, HOUR_BEFORE_TEXT);
+      await volumeChartDrawn();
+
+      dragBars(BAR_1750, BAR_1754);
+
+      /*
+       * From 17:50 to the end of the 17:54 bar, whose width is the
+       * explorer's own for an hour (a minute for logs, two for spans and
+       * exceptions).
+       */
+      await waitFor(() => {
+        const latest: Array<string | undefined> = latestOf(primary.sources);
+        expect(new Set(latest).size).toBe(1);
+        expect(latest[0]).not.toBe(HOUR_BEFORE_TEXT);
+        expect(latest[0]?.startsWith("2026-09-14T17:50:00.000Z..")).toBe(true);
+      });
+      const slice: string = last(primary.sources[0]!())!;
+      expect(cardResetButtons()).toHaveLength(1);
+      expect(cardPickerSays().label).toBe(labelOf(slice));
+      await expectCompanionsOn(primary, slice);
+      // A zoom into a range of the reader's: the selected time range still.
+      expect(
+        screen.getByText(
+          primary.companions[primary.companions.length - 1]!.describes(
+            "the selected time range",
+          ),
+        ),
+      ).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(cardResetButtons()[0]!);
+      });
+      await backOnThePrimary(primary);
+      await expectLatest(primary.sources, HOUR_BEFORE_TEXT);
+      expect(cardPickerSays().label).toBe("The hour before it started");
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(EVENT_TIME_RANGE_RESET_TEST_ID));
+      });
+      await expectLatest(primary.sources, SNAPSHOT_TEXT);
+      expect(resetButtons()).toHaveLength(0);
+    });
+
+    test("a range relative to now, picked on the card, moves the primary there", async () => {
+      await renderPanel(primary);
+
+      await pickOnTheCard("Past 1 Day");
+
+      await waitFor(() => {
+        expect(isPastDay(last(primary.volume()))).toBe(true);
+      });
+      expect(cardPickerSays().label).toBe("Past 1 Day");
+      expect(urlTime()).toBe(TimeRange.PAST_ONE_DAY);
     });
   },
 );

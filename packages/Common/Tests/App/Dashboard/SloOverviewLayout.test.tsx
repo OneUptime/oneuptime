@@ -24,8 +24,11 @@ import { UseSloOverviewDataResult } from "../../../../App/FeatureSet/Dashboard/s
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import Route from "../../../Types/API/Route";
-import { Red } from "../../../Types/BrandColors";
+import { Red, Yellow } from "../../../Types/BrandColors";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
@@ -53,6 +56,10 @@ const refreshOwnersMock: MockFunction = getJestMockFunction();
 let overviewData: UseSloOverviewDataResult;
 let storedSlo: ServiceLevelObjective;
 let permissionsForTest: Array<Permission>;
+// What the page hands the burn-down, as the stand-in below records it.
+let mockBurnDownTiers:
+  | Array<ServiceLevelObjectiveErrorBudgetPolicyTier>
+  | undefined;
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -178,8 +185,15 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => {
-        return <div data-testid="kpi-strip" />;
+      default: (props: {
+        lowestEnabledBurnRateThreshold: number | null;
+      }): React.ReactElement => {
+        return (
+          <div
+            data-testid="kpi-strip"
+            data-lowest-threshold={String(props.lowestEnabledBurnRateThreshold)}
+          />
+        );
       },
     };
   },
@@ -190,12 +204,24 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => {
+      default: (props: {
+        policyTiers?: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>;
+      }): React.ReactElement => {
+        mockBurnDownTiers = props.policyTiers;
         return <section aria-label="Budget burn-down" />;
       },
     };
   },
 );
+
+jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
+  return {
+    __esModule: true,
+    default: (props: { text: string }): React.ReactElement => {
+      return <div data-testid="markdown">{props.text}</div>;
+    },
+  };
+});
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeed",
@@ -304,6 +330,7 @@ beforeEach(() => {
   createOrUpdateMock.mockReset();
   refreshMock.mockReset();
   refreshOwnersMock.mockReset();
+  mockBurnDownTiers = undefined;
 
   const monitor: Monitor = new Monitor();
   monitor.id = new ObjectID("33333333-3333-4333-8333-333333333333");
@@ -320,6 +347,8 @@ beforeEach(() => {
     slo: storedSlo,
     burnRateRules: [],
     burnRateRulesError: "",
+    policyTiers: [],
+    policyTiersError: "",
     monitorRuleCount: 0,
     enabledMonitorRuleCount: 0,
     owners: [],
@@ -658,4 +687,350 @@ describe("SLO overview details sidebar", () => {
       expect(getItemMock).not.toHaveBeenCalled();
     },
   );
+});
+
+/*
+ * The tier of its error budget policy the SLO is in: right under the
+ * summary, its name, the budget left it applies at, since when, and what
+ * the team agreed to do there, in the tier's colour, linking to the policy.
+ * Nothing at all while the SLO is in no tier.
+ */
+describe("the tier of the error budget policy the SLO is in", () => {
+  function policyTier(data: {
+    name: string;
+    thresholdPercentage: number;
+    whatWeDo: string;
+    isEnabled?: boolean;
+  }): ServiceLevelObjectiveErrorBudgetPolicyTier {
+    const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+      new ServiceLevelObjectiveErrorBudgetPolicyTier();
+    tier._id = ObjectID.generate().toString();
+    tier.name = data.name;
+    tier.thresholdPercentage = data.thresholdPercentage;
+    tier.whatWeDo = data.whatWeDo;
+    tier.isEnabled = data.isEnabled ?? true;
+    return tier;
+  }
+
+  const CAUTION: ServiceLevelObjectiveErrorBudgetPolicyTier = policyTier({
+    name: "Caution",
+    thresholdPercentage: 50,
+    whatWeDo: "Review risky changes before they ship.",
+  });
+  const RELIABILITY_FIRST: ServiceLevelObjectiveErrorBudgetPolicyTier =
+    policyTier({
+      name: "Reliability first",
+      thresholdPercentage: 25,
+      whatWeDo: "Only **reliability** improvements and critical fixes ship.",
+    });
+  const EXHAUSTED: ServiceLevelObjectiveErrorBudgetPolicyTier = policyTier({
+    name: "Budget exhausted",
+    thresholdPercentage: 0,
+    whatWeDo: "Freeze non-critical releases.",
+  });
+  const SWITCHED_OFF: ServiceLevelObjectiveErrorBudgetPolicyTier = policyTier({
+    name: "Switched off",
+    thresholdPercentage: 75,
+    whatWeDo: "Nothing yet.",
+    isEnabled: false,
+  });
+
+  function putSloIn(
+    tier: ServiceLevelObjectiveErrorBudgetPolicyTier,
+    hoursAgo: number = 3,
+  ): void {
+    storedSlo.currentErrorBudgetPolicyTierId = new ObjectID(tier._id!);
+    storedSlo.currentErrorBudgetPolicyTierName = tier.name!;
+    storedSlo.currentErrorBudgetPolicyTierEnteredAt = new Date(
+      Date.now() - hoursAgo * 60 * 60 * 1000,
+    );
+  }
+
+  function tierCard(): HTMLElement {
+    return screen.getByTestId("slo-overview-policy-tier");
+  }
+
+  test("shows it under the summary, before the numbers: its name, budget left, since when and what the team does", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(RELIABILITY_FIRST);
+
+    renderPage();
+    await waitForDetails();
+
+    const card: HTMLElement = tierCard();
+
+    expect(card).toHaveAttribute("aria-label", "Error Budget Policy");
+    expect(within(card).getByRole("heading", { level: 2 })).toHaveTextContent(
+      "Reliability first",
+    );
+    expect(card).toHaveTextContent("Budget left ≤ 25%");
+    expect(card).toHaveTextContent("Entered 3 hours ago");
+    expect(within(card).getByTestId("markdown")).toHaveTextContent(
+      "Only **reliability** improvements and critical fixes ship.",
+    );
+
+    // Right under the hero, before the KPI strip and the grid.
+    const hero: HTMLElement = screen.getByTestId("hero");
+    const kpi: HTMLElement = screen.getByTestId("kpi-strip");
+
+    expect(
+      hero.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      card.compareDocumentPosition(kpi) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("links to the Error Budget Policy page, and is coloured as its tier", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(CAUTION);
+
+    renderPage();
+    await waitForDetails();
+
+    expect(
+      within(tierCard()).getByRole("link", { name: "Open policy" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/slos/${SLO_ID.toString()}/error-budget-policy`,
+    );
+    expect(tierCard()).toHaveAttribute("data-tier-tone", "warning");
+    expect(
+      within(tierCard()).getByTestId("slo-overview-policy-tier-color"),
+    ).toHaveStyle({ backgroundColor: Yellow.toString() });
+  });
+
+  test("the tier of an exhausted budget reads red", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(EXHAUSTED, 2);
+
+    renderPage();
+    await waitForDetails();
+
+    expect(tierCard()).toHaveAttribute("data-tier-tone", "danger");
+    expect(
+      within(tierCard()).getByTestId("slo-overview-policy-tier-color"),
+    ).toHaveStyle({ backgroundColor: Red.toString() });
+    expect(tierCard()).toHaveTextContent("Budget left ≤ 0%");
+    expect(tierCard()).toHaveTextContent("Entered 2 hours ago");
+  });
+
+  test("an SLO in no tier, or without a policy, shows nothing more", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+
+    renderPage();
+    await waitForDetails();
+
+    expect(screen.queryByTestId("slo-overview-policy-tier")).toBeNull();
+
+    cleanup();
+    overviewData.policyTiers = [];
+
+    renderPage();
+    await waitForDetails();
+
+    expect(screen.queryByTestId("slo-overview-policy-tier")).toBeNull();
+  });
+
+  test("a tier the page could not read still says which one, by the name the SLO keeps", async () => {
+    overviewData.policyTiers = [];
+    putSloIn(RELIABILITY_FIRST);
+
+    renderPage();
+    await waitForDetails();
+
+    expect(
+      within(tierCard()).getByRole("heading", { level: 2 }),
+    ).toHaveTextContent("Reliability first");
+    expect(tierCard()).not.toHaveTextContent("Budget left");
+    expect(within(tierCard()).queryByTestId("markdown")).toBeNull();
+  });
+
+  test("while the tier freezes deployments, a red badge under its name says since when", async () => {
+    const frozenAt: Date = new Date("2026-11-08T09:30:00.000Z");
+
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(EXHAUSTED, 2);
+    storedSlo.deploymentsAllowed = false;
+    storedSlo.deploymentsFrozenAt = frozenAt;
+
+    renderPage();
+    await waitForDetails();
+
+    const badge: HTMLElement = within(tierCard()).getByTestId(
+      "slo-overview-policy-tier-deployments-frozen",
+    );
+
+    expect(badge).toHaveTextContent(
+      `Deployments frozen since ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(frozenAt)}`,
+    );
+    expect(badge.querySelector("time")).toHaveAttribute(
+      "datetime",
+      frozenAt.toISOString(),
+    );
+    expect(badge.className).toContain("bg-red-50");
+    expect(badge.className).toContain("text-red-700");
+
+    // Under the tier's name, before what the team does there.
+    const heading: HTMLElement = within(tierCard()).getByRole("heading", {
+      level: 2,
+    });
+
+    expect(
+      heading.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      badge.compareDocumentPosition(
+        within(tierCard()).getByTestId("markdown"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("an answer read back as text is the same instant", async () => {
+    const frozenAt: Date = new Date("2026-11-08T09:30:00.000Z");
+
+    overviewData.policyTiers = [EXHAUSTED];
+    putSloIn(EXHAUSTED);
+    storedSlo.deploymentsAllowed = false;
+    storedSlo.deploymentsFrozenAt = frozenAt.toISOString() as unknown as Date;
+
+    renderPage();
+    await waitForDetails();
+
+    expect(
+      within(tierCard())
+        .getByTestId("slo-overview-policy-tier-deployments-frozen")
+        .querySelector("time"),
+    ).toHaveAttribute("datetime", frozenAt.toISOString());
+  });
+
+  test("frozen with no time recorded, the badge still says deployments are frozen", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(EXHAUSTED);
+    storedSlo.deploymentsAllowed = false;
+
+    renderPage();
+    await waitForDetails();
+
+    const badge: HTMLElement = within(tierCard()).getByTestId(
+      "slo-overview-policy-tier-deployments-frozen",
+    );
+
+    expect(badge).toHaveTextContent("Deployments frozen");
+    expect(badge).not.toHaveTextContent("since");
+    expect(badge.querySelector("time")).toBeNull();
+  });
+
+  test("no badge while deployments are allowed - in a tier that does not freeze them, or before the worker has answered", async () => {
+    overviewData.policyTiers = [CAUTION, RELIABILITY_FIRST, EXHAUSTED];
+    putSloIn(RELIABILITY_FIRST);
+    storedSlo.deploymentsAllowed = true;
+
+    renderPage();
+    await waitForDetails();
+
+    expect(
+      within(tierCard()).queryByTestId(
+        "slo-overview-policy-tier-deployments-frozen",
+      ),
+    ).toBeNull();
+
+    /*
+     * The badge says what pipelines are told now, not what the tier's switch
+     * says: a switch flipped a moment ago moves the answer on the next
+     * evaluation.
+     */
+    cleanup();
+    const freezing: ServiceLevelObjectiveErrorBudgetPolicyTier = policyTier({
+      name: "Budget exhausted",
+      thresholdPercentage: 0,
+      whatWeDo: "Freeze non-critical releases.",
+    });
+    freezing.freezesDeployments = true;
+    overviewData.policyTiers = [freezing];
+    putSloIn(freezing);
+    delete storedSlo.deploymentsAllowed;
+
+    renderPage();
+    await waitForDetails();
+
+    expect(
+      within(tierCard()).queryByTestId(
+        "slo-overview-policy-tier-deployments-frozen",
+      ),
+    ).toBeNull();
+  });
+
+  test("hands the burn-down the enabled tiers, for its lines", async () => {
+    overviewData.policyTiers = [SWITCHED_OFF, CAUTION, EXHAUSTED];
+
+    renderPage();
+    await waitForDetails();
+
+    expect(mockBurnDownTiers).toEqual([CAUTION, EXHAUSTED]);
+  });
+});
+
+/*
+ * The burn rate tile is an hour's reading, and turns red at the lowest
+ * threshold among the rules that hour can speak for: those that look back 6
+ * hours or less, like Fast burn and Slow burn. The default slow-leak rule
+ * fires at 1x over 3 days; compared with an hour, it would turn the tile red
+ * for any hour that burned at all.
+ */
+describe("the burn rate tile's rule threshold", () => {
+  function burnRule(
+    name: string,
+    threshold: number,
+    longWindowInMinutes: number | undefined,
+    isEnabled: boolean = true,
+  ): ServiceLevelObjectiveBurnRateRule {
+    const rule: ServiceLevelObjectiveBurnRateRule =
+      new ServiceLevelObjectiveBurnRateRule();
+    rule._id = ObjectID.generate().toString();
+    rule.name = name;
+    rule.burnRateThreshold = threshold;
+    rule.isEnabled = isEnabled;
+
+    if (longWindowInMinutes !== undefined) {
+      rule.longWindowInMinutes = longWindowInMinutes;
+    }
+
+    return rule;
+  }
+
+  async function tileThreshold(): Promise<string | null> {
+    renderPage();
+    await waitForDetails();
+
+    return screen
+      .getByTestId("kpi-strip")
+      .getAttribute("data-lowest-threshold");
+  }
+
+  test("is the lowest among the enabled rules that look back 6 hours or less - never Slow leak's 1x", async () => {
+    overviewData.burnRateRules = [
+      burnRule("Fast burn", 14.4, 60),
+      burnRule("Slow burn", 6, 360),
+      burnRule("Slow leak", 1, 4320),
+      burnRule("Switched off", 0.5, 60, false),
+    ];
+
+    expect(await tileThreshold()).toBe("6");
+  });
+
+  test("with only a slow leak enabled, the tile has no rule threshold to reach", async () => {
+    overviewData.burnRateRules = [burnRule("Slow leak", 1, 4320)];
+
+    expect(await tileThreshold()).toBe("null");
+  });
+
+  test("a rule whose long window is unknown is compared, as every rule was", async () => {
+    overviewData.burnRateRules = [
+      burnRule("Slow burn", 6, 360),
+      burnRule("Imported", 2, undefined),
+    ];
+
+    expect(await tileThreshold()).toBe("2");
+  });
 });

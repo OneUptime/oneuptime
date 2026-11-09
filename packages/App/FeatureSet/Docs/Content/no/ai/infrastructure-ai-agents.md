@@ -342,6 +342,8 @@ En hendelse eller et varsel får ett KI-rettelsesspor. Når det er koblet til en
 
 Noen mer risikable endringer **trenger alltid et menneske** i alle moduser, også Hopp over godkjenning, og ingen oppføring på listen over tillatte kommandoer endrer det; de er merket som det i tabellene nedenfor.
 
+Et prosjekt kan også be om at to personer godkjenner en retting som inneholder en mer risikabel endring: se [To personer godkjenner en mer risikabel retting](/docs/ai/ai-sre#to-personer-godkjenner-en-mer-risikabel-retting).
+
 ### Rettelser på Docker- og Podman-verter
 
 | | Kommandoer |

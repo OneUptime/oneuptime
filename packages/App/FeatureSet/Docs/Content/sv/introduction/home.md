@@ -48,7 +48,7 @@ Varje siffra räknar något, säger om det behöver dig och öppnar listan bakom
 | --- | --- | --- |
 | **Aktiva incidenter** | Incidenter som inte är lösta | **Allt är i sin ordning** |
 | **Aktiva larm** | Larm som inte är lösta | **Allt är i sin ordning** |
-| **Icke-operativa monitorer** | Monitorer vars status inte är en fungerande status. Arkiverade monitorer räknas inte. | **Alla fungerar** |
+| **Icke-operativa monitorer** | Monitorer vars status inte är en fungerande status. Arkiverade monitorer, och monitorer med avstängd övervakning, räknas inte. | **Alla fungerar** |
 | **Pågående underhåll** | Schemalagda underhåll som pågår | **Inget pågår** |
 | **SLO:er i riskzonen** | Påslagna SLO:er som är i riskzonen eller har förbrukat sin felbudget | **Budgetarna är friska** |
 

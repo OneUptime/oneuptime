@@ -13,8 +13,7 @@ const HostAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Host Audit Logs"
       description="All changes made to this host."
-      resourceType="Host"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

@@ -234,6 +234,8 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
           config: true,
           isEnabled: true,
           startsAt: true,
+          // The edit form shows the version the export sends, and keeps it.
+          schemaVersion: true,
           lastAttemptAt: true,
           lastExportedAt: true,
           lastError: true,

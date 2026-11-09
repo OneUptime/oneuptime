@@ -52,6 +52,12 @@ export function getFormsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Form",
       "Duplicate Form",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.FORM_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Forms",
+      "View Form",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.FORM_VIEW_DELETE, [
       "Project",
       "Forms",

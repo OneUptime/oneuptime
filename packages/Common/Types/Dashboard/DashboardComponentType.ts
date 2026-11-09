@@ -84,6 +84,32 @@ export function isDataSourceComponentType(
 }
 
 /*
+ * Every widget type that charts OneUptime's own metrics: the widgets whose
+ * reads go through MetricUtil.fetchResults to the metric store - and, on a
+ * public dashboard, to its public metric routes. Those routes allow only
+ * what these widgets, as the public page draws them, can ask for (issue
+ * #6297), so a widget type that starts charting metrics is added here too.
+ */
+export const MetricComponentTypes: ReadonlyArray<DashboardComponentType> = [
+  DashboardComponentType.Chart,
+  DashboardComponentType.Value,
+  DashboardComponentType.Gauge,
+  DashboardComponentType.Table,
+];
+
+/*
+ * Whether a stored widget type is one that charts metrics. Matched exactly,
+ * like isDashboardComponentType: " Chart ", "chart" and a type this version
+ * does not draw chart nothing.
+ */
+export function isMetricComponentType(componentType: unknown): boolean {
+  return (
+    typeof componentType === "string" &&
+    (MetricComponentTypes as ReadonlyArray<string>).includes(componentType)
+  );
+}
+
+/*
  * Whether a stored widget type is one this version can draw. A dashboard's
  * config is JSON anyone can write - the API, Terraform, a workflow - so a
  * widget can name a type that was removed (HostMetricChart), comes from a

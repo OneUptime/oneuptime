@@ -370,6 +370,11 @@ export interface OnCallPolicyRun {
    * resolved. Unset for every other run.
    */
   pageAgainNumber?: number | undefined;
+  /*
+   * An observer's page (OnCallObserverPage): its people are kept informed,
+   * and answering it only says they have seen it.
+   */
+  isObserverPage?: boolean | undefined;
   acknowledgedByName?: string | undefined;
   ruleCount: number;
   // The escalation rule the run is on (or ended on).
@@ -598,6 +603,7 @@ export default class OnCallPolicyRunMessageView {
       ...run.paged.map((person: OnCallPolicyRunPagedPerson): MarkdownText => {
         return this.getPagedPersonLine(person, {
           isTeamSaid: isTeamSaidOnce,
+          isObserverPage: run.isObserverPage,
         });
       }),
       ...run.notPaged.map((entry: OnCallPolicyRunNotPaged): MarkdownText => {
@@ -677,6 +683,19 @@ export default class OnCallPolicyRunMessageView {
     // A direct page of one team: whom it pages (see the header).
     const team: string | null = this.getPagedTeamName(run);
 
+    // An observer's page says so, and its answer is having seen it.
+    if (run.isObserverPage) {
+      const observerLine: string | null = this.getObserverPlainTextLine(run, {
+        pagerName: pagerName,
+        pagerNameInSentence: pagerNameInSentence,
+        team: team,
+      });
+
+      if (observerLine) {
+        return observerLine;
+      }
+    }
+
     switch (run.outcome) {
       case OnCallPolicyRunOutcome.Waiting:
         return `${pagerName} is waiting to page for ${run.recordLabel}`;
@@ -745,6 +764,15 @@ export default class OnCallPolicyRunMessageView {
    */
   public static getAlarms(run: OnCallPolicyRun): Array<OnCallPolicyRunAlarm> {
     const alarms: Array<OnCallPolicyRunAlarm> = [];
+
+    /*
+     * An observer's page (OnCallObserverPage) is not the record's response:
+     * however it ends, nobody needs to take the record because of it. Its
+     * message says how it went.
+     */
+    if (run.isObserverPage) {
+      return alarms;
+    }
 
     const record: MarkdownText = mdText`**[${run.recordLabel}](${run.recordUrl})**`;
     // The policy, or who started a direct page.
@@ -927,6 +955,24 @@ export default class OnCallPolicyRunMessageView {
      */
     const team: MarkdownText | null = this.getPagedTeam(run);
 
+    // An observer's page says so, and its answer is having seen it.
+    if (run.isObserverPage) {
+      const observerHeadline: MarkdownText | null = this.getObserverHeadline(
+        run,
+        {
+          record: record,
+          policy: policy,
+          policyInSentence: policyInSentence,
+          soPagingStopped: soPagingStopped,
+          team: team,
+        },
+      );
+
+      if (observerHeadline) {
+        return observerHeadline;
+      }
+    }
+
     switch (run.outcome) {
       case OnCallPolicyRunOutcome.Waiting:
         return mdText`⏳ ${policy} is waiting to page for ${record}`;
@@ -1101,7 +1147,11 @@ export default class OnCallPolicyRunMessageView {
    */
   private static getPagedPersonLine(
     person: OnCallPolicyRunPagedPerson,
-    options: { isTeamSaid: boolean },
+    options: {
+      isTeamSaid: boolean;
+      // An observer's page (OnCallObserverPage): answering is having seen it.
+      isObserverPage?: boolean | undefined;
+    },
   ): MarkdownText {
     const why: Array<MarkdownText> = [];
 
@@ -1127,7 +1177,9 @@ export default class OnCallPolicyRunMessageView {
     const facts: Array<MarkdownText> = [];
 
     if (person.acknowledged) {
-      facts.push(mdText`acknowledged`);
+      facts.push(
+        options.isObserverPage ? mdText`has seen it` : mdText`acknowledged`,
+      );
     } else if (person.passedOn) {
       facts.push(mdText`escalated`);
     }
@@ -1244,6 +1296,92 @@ export default class OnCallPolicyRunMessageView {
    * policy, a workflow or the product: its ending is then told as the
    * paging ending ("so paging stopped"), never as the person stopping it.
    */
+  /*
+   * The headline of an observer's page (OnCallObserverPage) where it reads
+   * differently from a responder's: it pages AS OBSERVERS, and is answered by
+   * somebody having seen it - the record is not acknowledged by that. Null
+   * where it reads the same: its record handled, the policy archived, a
+   * failure.
+   */
+  private static getObserverHeadline(
+    run: OnCallPolicyRun,
+    words: {
+      record: MarkdownText;
+      policy: MarkdownText;
+      policyInSentence: MarkdownText;
+      soPagingStopped: MarkdownText;
+      team: MarkdownText | null;
+    },
+  ): MarkdownText | null {
+    switch (run.outcome) {
+      case OnCallPolicyRunOutcome.Waiting:
+        return mdText`⏳ ${words.policy} is waiting to page as observers for ${words.record}`;
+      case OnCallPolicyRunOutcome.Paging:
+        return words.team
+          ? mdText`👀 ${words.policy} is paging ${words.team} as observers for ${words.record}`
+          : mdText`👀 ${words.policy} is paging as observers for ${words.record}`;
+      case OnCallPolicyRunOutcome.Acknowledged:
+        return mdText`👀 **${run.acknowledgedByName || "Someone"}** has seen the page for ${words.record}, ${words.soPagingStopped}. Paged as an observer: the ${OnCallPolicyRunMessageView.getRecordNoun(run)} is not acknowledged by this.`;
+      case OnCallPolicyRunOutcome.NobodyAcknowledged:
+      case OnCallPolicyRunOutcome.NobodyAnswered:
+        return words.team
+          ? mdText`ℹ️ Nobody in ${words.team} answered the observer page from ${words.policyInSentence} for ${words.record}`
+          : mdText`ℹ️ Nobody answered the observer page from ${words.policyInSentence} for ${words.record}`;
+      default:
+        return null;
+    }
+  }
+
+  // The same, as the message's one line of plain text (getPlainTextLine).
+  private static getObserverPlainTextLine(
+    run: OnCallPolicyRun,
+    words: {
+      pagerName: string;
+      pagerNameInSentence: string;
+      team: string | null;
+    },
+  ): string | null {
+    switch (run.outcome) {
+      case OnCallPolicyRunOutcome.Waiting:
+        return `${words.pagerName} is waiting to page as observers for ${run.recordLabel}`;
+      case OnCallPolicyRunOutcome.Paging:
+        return words.team
+          ? `${words.pagerName} is paging ${words.team} as observers for ${run.recordLabel}`
+          : `${words.pagerName} is paging as observers for ${run.recordLabel}`;
+      case OnCallPolicyRunOutcome.Acknowledged:
+        return `${run.acknowledgedByName || "Someone"} has seen the page for ${run.recordLabel}`;
+      case OnCallPolicyRunOutcome.NobodyAcknowledged:
+      case OnCallPolicyRunOutcome.NobodyAnswered:
+        return words.team
+          ? `Nobody in ${words.team} answered the observer page from ${words.pagerNameInSentence} for ${run.recordLabel}`
+          : `Nobody answered the observer page from ${words.pagerNameInSentence} for ${run.recordLabel}`;
+      default:
+        return null;
+    }
+  }
+
+  /*
+   * The record's kind, as a sentence names it: "incident", "alert",
+   * "incident episode", "alert episode" - read off its label ("Incident
+   * INC-42").
+   */
+  private static getRecordNoun(run: OnCallPolicyRun): string {
+    const label: string = run.recordLabel.toLowerCase();
+
+    for (const noun of [
+      "incident episode",
+      "alert episode",
+      "incident",
+      "alert",
+    ]) {
+      if (label.startsWith(noun)) {
+        return noun;
+      }
+    }
+
+    return "record";
+  }
+
   private static isStartedByPerson(run: OnCallPolicyRun): boolean {
     if (!run.directPage) {
       return false;

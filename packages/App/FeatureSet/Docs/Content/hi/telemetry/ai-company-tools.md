@@ -108,6 +108,10 @@ Microsoft Entra ID में एक ऐप रजिस्टर करें �
 
 इन टूल के पास ऐसा कोई API नहीं है जिससे OneUptime लोगों की चैट पढ़ सके, या उन्हें दूसरा रास्ता चाहिए।
 
+### Cursor
+
+Cursor का Admin API व्यक्ति के हिसाब से उपयोग और लागत देता है, बातचीत नहीं, इसलिए Cursor टीम अपनी एडमिन API कुंजी से एक [प्रदाता खाते](/docs/telemetry/ai-provider-accounts#cursor) के रूप में कनेक्ट होती है। Enterprise प्लान पर, उसका OpenTelemetry Export उपयोग होते ही भी भेजता है: [Cursor](/docs/telemetry/cursor) देखें।
+
 ### ChatGPT Enterprise
 
 OpenAI अपना Compliance API किसी वर्कस्पेस के लिए सिर्फ़ अनुरोध पर खोलता है और यह प्रकाशित नहीं करता कि उसके रिकॉर्ड में क्या होता है, इसलिए OneUptime अभी ChatGPT Enterprise की चैट नहीं पढ़ सकता। अपने OpenAI संगठन को [प्रदाता खाते](/docs/telemetry/ai-provider-accounts#openai) के रूप में कनेक्ट करने से उसका API उपयोग और लागत दिखती है, जिसमें ChatGPT शामिल नहीं है।
@@ -146,7 +150,7 @@ Copilot के लिए ऐप की Graph अनुमतियों पर 
 
 :::cards
 - [AI / LLM ऑब्ज़र्वेबिलिटी](/docs/telemetry/ai-llm-observability): बातचीत पढ़ें और दोबारा चलाएँ, और जानें कि जवाब कब गलत होते हैं।
-- [AI प्रदाता खाते](/docs/telemetry/ai-provider-accounts): आपके OpenAI, Anthropic, Azure, Bedrock और Vertex AI खातों का उपयोग और लागत।
+- [AI प्रदाता खाते](/docs/telemetry/ai-provider-accounts): आपके OpenAI, Anthropic, Azure, Bedrock, Vertex AI और Cursor खातों का उपयोग और लागत।
 - [AI कोडिंग असिस्टेंट](/docs/telemetry/ai-coding-assistants): कोडिंग टूल पर हर इंजीनियर का खर्च।
 - [डेटा प्रतिधारण](/docs/telemetry/data-retention): बातचीत कितने समय तक रखी जाती है।
 :::
