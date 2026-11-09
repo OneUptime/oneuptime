@@ -14,6 +14,7 @@ import SyntheticMonitorResponse from "../../../../Types/Monitor/SyntheticMonitor
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -257,6 +258,96 @@ describe("a synthetic monitor's screenshot, from the probe to the incident email
     expect(email.html).toContain("Timeout 30000ms exceeded");
     expect(email.html).not.toContain("<img");
     expect(email.html.toLowerCase()).not.toContain("src=");
+  });
+});
+
+/*
+ * ISSUE #6010: THE DASHBOARD SHOWED THE SAME DESCRIPTION'S SCREENSHOT AS TEXT.
+ *
+ * Its viewer read a real screenshot - tens of kilobytes of base64 - as
+ * Markdown too costly to read, and showed the description as text; past
+ * 64 KB of a line it drew an empty image. The email was right all along:
+ * it holds a screenshot's data back from marked, which the viewer now does
+ * as well, with the same code (Utils/Markdown/Base64Data). These keep the
+ * email right at every size the viewer got wrong, through the template of
+ * the issue.
+ */
+describe("a screenshot of any size, from the probe to the incident email (#6010)", () => {
+  const KB: number = 1024;
+  const JPEG_SIGNATURE: ReadonlyArray<number> = [0xff, 0xd8, 0xff, 0xe0];
+  const TEMPLATE: string =
+    "Monitor is down - {{syntheticResponses.0.scriptError}}\n![](data:image/jpeg;base64,{{syntheticResponses.0.screenshots.home}})";
+
+  // A JPEG of `byteCount` bytes as the probe reports it: its pixels random.
+  const screenshot: (byteCount: number) => string = (
+    byteCount: number,
+  ): string => {
+    const random: SeededRandom = seededRandom(byteCount);
+    const bytes: Buffer = Buffer.alloc(byteCount);
+
+    Buffer.from(JPEG_SIGNATURE).copy(bytes);
+
+    for (
+      let index: number = JPEG_SIGNATURE.length;
+      index < byteCount;
+      index++
+    ) {
+      bytes[index] = random(256);
+    }
+
+    return bytes.toString("base64");
+  };
+
+  const SIZES: Array<[string, number]> = [
+    ["8 KB, which the dashboard drew", 8 * KB],
+    ["12 KB, which the dashboard showed as text", 12 * KB],
+    ["30 KB, the issue's", 30 * KB],
+    ["47 KB, a line just under 64 KB", 47 * KB],
+    ["49 KB, a line over it", 49 * KB],
+    ["100 KB", 100 * KB],
+    ["1 MB", 1024 * KB],
+  ];
+
+  for (const [label, byteCount] of SIZES) {
+    test(`a JPEG of ${label}: the error, and the screenshot attached whole`, async () => {
+      const shot: string = screenshot(byteCount);
+      const description: string = describeIncident(TEMPLATE, [
+        run({ screenshots: { home: shot } }),
+      ]);
+
+      expect(
+        description ===
+          `Monitor is down - Timeout 30000ms exceeded\n![](data:image/jpeg;base64,${shot})`,
+      ).toBe(true);
+
+      const email: EmailHtmlWithInlineImages = await emailFor(description);
+
+      expect(email.inlineImages).toHaveLength(1);
+      expect(email.inlineImages[0]).toMatchObject({
+        fileName: "image-1.jpg",
+        mimeType: "image/jpeg",
+      });
+      // Compared whole, not printed: it is up to a megabyte long.
+      expect(email.inlineImages[0]!.base64.length).toBe(shot.length);
+      expect(email.inlineImages[0]!.base64 === shot).toBe(true);
+      expect(email.html).toBe(
+        `<p>Monitor is down - Timeout 30000ms exceeded\n<img src="cid:${email.inlineImages[0]!.contentId}" alt="" style="max-width:100%;height:auto;"></p>\n`,
+      );
+    });
+  }
+
+  test("the issue's description holds no base64 in its email's HTML, at any size", async () => {
+    for (const [, byteCount] of SIZES) {
+      const email: EmailHtmlWithInlineImages = await emailFor(
+        describeIncident(TEMPLATE, [
+          run({ screenshots: { home: screenshot(byteCount) } }),
+        ]),
+      );
+
+      // The HTML around the attachment's reference is the same few bytes.
+      expect(email.html.length).toBeLessThan(200);
+      expect(email.html).not.toContain(";base64,");
+    }
   });
 });
 
