@@ -1405,8 +1405,7 @@ const generate: (random: SeededRandom, round: number) => Generated = (
           id: `their-edge-${round}-${save}`,
           source: from.id,
           target: node.id,
-          sourceHandle:
-            from.data.metadataId === "branch" ? "no" : "success",
+          sourceHandle: from.data.metadataId === "branch" ? "no" : "success",
           targetHandle: "in",
         });
       }

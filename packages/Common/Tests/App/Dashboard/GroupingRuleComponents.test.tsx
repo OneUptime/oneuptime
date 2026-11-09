@@ -604,7 +604,9 @@ describe.each([GroupingRuleKind.Incident, GroupingRuleKind.Alert])(
       const error: HTMLElement = screen.getByRole("alert");
       const input: HTMLElement = screen.getByRole("spinbutton");
 
-      expect(error).toHaveTextContent("Enter a whole number between 2 and 100.");
+      expect(error).toHaveTextContent(
+        "Enter a whole number between 2 and 100.",
+      );
       expect(input).toHaveAttribute("aria-invalid", "true");
       expect(input).toHaveAttribute("aria-describedby", error.id);
     });
