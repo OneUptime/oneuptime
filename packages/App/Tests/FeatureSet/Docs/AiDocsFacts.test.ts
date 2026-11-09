@@ -905,9 +905,9 @@ describe("Code", () => {
     expect(dashboardSource("Components/Code/CodeTaskStatusCopy.ts")).toContain(
       'label: translationKey("Retrying"),',
     );
-    expect(
-      dashboardSource("Components/Code/CodeTaskStateBadge.tsx"),
-    ).toContain("CODE_TASK_STAGE_COPY[CodeTaskStage.Retrying]");
+    expect(dashboardSource("Components/Code/CodeTaskStateBadge.tsx")).toContain(
+      "CODE_TASK_STAGE_COPY[CodeTaskStage.Retrying]",
+    );
 
     expect(
       states.map((row: Array<string>): string => {
