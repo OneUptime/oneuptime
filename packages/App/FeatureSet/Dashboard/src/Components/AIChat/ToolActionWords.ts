@@ -1,4 +1,5 @@
 import {
+  AI_ACTION_CODE_CHANGE_LINES,
   AIActionSentence,
   AIActionWords,
   describeAIActionSentence,
@@ -134,6 +135,32 @@ export function getToolActionDescription(
   }
 
   return drawn;
+}
+
+/*
+ * Whether the action's line names what its lists stand for, so that the
+ * card's line of arguments leaves them out (leaveOutLists): the resources
+ * a new incident links, a workflow's steps. A code change's lines say
+ * which of its files it would write over unseen (issues #6313, #6330),
+ * never how many files it writes, so a pull request's card keeps its
+ * "Files: 3" beside them (issue #6331) - the commit's title counts them
+ * too. An action saved before its words leaves its lists out whenever it
+ * has a line, as it always did.
+ */
+export function getToolActionLeavesOutLists(
+  action: AIChatToolAction,
+): boolean {
+  const words: AIActionWords | null = getKnownWords(action);
+
+  if (!words) {
+    return Boolean(action.description);
+  }
+
+  return (words.description || []).some(
+    (sentence: AIActionSentence): boolean => {
+      return !AI_ACTION_CODE_CHANGE_LINES.includes(sentence.template);
+    },
+  );
 }
 
 /*

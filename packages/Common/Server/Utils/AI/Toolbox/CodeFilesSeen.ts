@@ -31,6 +31,7 @@ import {
 import {
   CodeHostFileBlob,
   CodeHostFileContent,
+  CodeHostFileExpected,
   CodeHostFileWrite,
 } from "../../CodeRepository/CodeHost/CodeHostTypes";
 import { CodeHostWriter } from "../../CodeRepository/CodeHost/CodeHostWriter";
@@ -53,7 +54,8 @@ import { CodeHostWriter } from "../../CodeRepository/CodeHost/CodeHostWriter";
  *                     Auto-run, where nobody approves, the change is not
  *                     made: the model is told to read the files again;
  *   their executes    hold the approved change to the files the card was
- *                     shown on (CodeChangeProposedOn).
+ *                     shown on (CodeChangeProposedOn), and the commit to
+ *                     the files as that read them again (issue #6331).
  *
  * A fingerprint is never the content, nor the host's blob SHA itself: a
  * conversation is kept, and a short secret file's SHA could be worked back
@@ -199,6 +201,17 @@ export interface CodeFileNow {
   now: CodeFileOnBranch;
 }
 
+/*
+ * The files at some paths as a read just now found them: what each is, by
+ * fingerprint, and - for a commit made right after - each version as its
+ * host names it, which the commit is held to (issue #6331). The versions
+ * are the host's blob SHAs: never kept with the conversation, never shown.
+ */
+export interface CodeFilesReadNow {
+  files: Array<CodeFileNow>;
+  versions: Array<CodeHostFileExpected>;
+}
+
 type ReadFilesNowFunction = (data: {
   writer: CodeHostWriter;
   branchName: string;
@@ -218,16 +231,40 @@ export const readCodeFilesNow: ReadFilesNowFunction = async (data: {
   filePaths: Array<string>;
   deadlineInMs?: number | undefined;
 }): Promise<Array<CodeFileNow>> => {
-  const unreadable: (reason: string) => Array<CodeFileNow> = (
+  return (await readCodeFileVersionsNow(data)).files;
+};
+
+type ReadFileVersionsNowFunction = (data: {
+  writer: CodeHostWriter;
+  branchName: string;
+  filePaths: Array<string>;
+  deadlineInMs?: number | undefined;
+}) => Promise<CodeFilesReadNow>;
+
+/*
+ * readCodeFilesNow, with each version the host named, for the commit that
+ * follows to be held to: one read of each file, never two (issue #6331).
+ * A file that could not be read has no version, and holds nothing.
+ */
+export const readCodeFileVersionsNow: ReadFileVersionsNowFunction = async (data: {
+  writer: CodeHostWriter;
+  branchName: string;
+  filePaths: Array<string>;
+  deadlineInMs?: number | undefined;
+}): Promise<CodeFilesReadNow> => {
+  const unreadable: (reason: string) => CodeFilesReadNow = (
     reason: string,
-  ): Array<CodeFileNow> => {
-    return data.filePaths.map((filePath: string): CodeFileNow => {
-      return { filePath, now: { state: "unreadable", reason } };
-    });
+  ): CodeFilesReadNow => {
+    return {
+      files: data.filePaths.map((filePath: string): CodeFileNow => {
+        return { filePath, now: { state: "unreadable", reason } };
+      }),
+      versions: [],
+    };
   };
 
   if (data.filePaths.length === 0) {
-    return [];
+    return { files: [], versions: [] };
   }
 
   const clock: { timer?: ReturnType<typeof setTimeout> | undefined } = {};
@@ -259,38 +296,53 @@ export const readCodeFilesNow: ReadFilesNowFunction = async (data: {
     return unreadable(DEADLINE_PASSED);
   }
 
-  return data.filePaths.map((filePath: string): CodeFileNow => {
-    const blob: CodeHostFileBlob | undefined = blobs!.find(
-      (candidate: CodeHostFileBlob): boolean => {
-        return candidate.filePath === filePath;
-      },
-    );
+  const versions: Array<CodeHostFileExpected> = [];
 
-    if (!blob) {
+  const files: Array<CodeFileNow> = data.filePaths.map(
+    (filePath: string): CodeFileNow => {
+      const blob: CodeHostFileBlob | undefined = blobs!.find(
+        (candidate: CodeHostFileBlob): boolean => {
+          return candidate.filePath === filePath;
+        },
+      );
+
+      if (!blob) {
+        return {
+          filePath,
+          now: {
+            state: "unreadable",
+            reason: "The code host said nothing of it.",
+          },
+        };
+      }
+
+      if ("failure" in blob) {
+        return {
+          filePath,
+          now: { state: "unreadable", reason: blob.failure },
+        };
+      }
+
+      versions.push({
+        filePath,
+        blobSha: blob.blobSha,
+        ...(blob.lastCommitId ? { lastCommitId: blob.lastCommitId } : {}),
+      });
+
       return {
         filePath,
-        now: {
-          state: "unreadable",
-          reason: "The code host said nothing of it.",
-        },
+        now:
+          blob.blobSha === null
+            ? { state: "absent" }
+            : {
+                state: "file",
+                fingerprint: fingerprintCodeFileVersion(blob.blobSha),
+              },
       };
-    }
+    },
+  );
 
-    if ("failure" in blob) {
-      return { filePath, now: { state: "unreadable", reason: blob.failure } };
-    }
-
-    return {
-      filePath,
-      now:
-        blob.blobSha === null
-          ? { state: "absent" }
-          : {
-              state: "file",
-              fingerprint: fingerprintCodeFileVersion(blob.blobSha),
-            },
-    };
-  });
+  return { files, versions };
 };
 
 type ProposedOnFunction = (data: {

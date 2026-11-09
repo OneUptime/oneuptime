@@ -26,6 +26,8 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import ArrayUtil from "../../../../Utils/Array";
 import * as crypto from "crypto";
+import { CodeHostFileExpected } from "../CodeHost/CodeHostTypes";
+import CodeHostFilesMovedError from "../CodeHost/CodeHostFilesMovedError";
 
 /**
  * Error thrown when a GitHub App installation is no longer valid (e.g., uninstalled from GitHub)
@@ -102,6 +104,19 @@ export interface GitHubBranchInfo {
 export interface GitHubFileChange {
   filePath: string;
   content: string;
+}
+
+// One entry of a git tree: its mode, its type ("blob", "tree", "commit") and its object's SHA.
+interface GitHubTreeEntry {
+  mode: string;
+  type: string;
+  sha: string;
+}
+
+interface GitHubTreeEntries {
+  entries: Map<string, GitHubTreeEntry>;
+  // GitHub left some entries out: the tree has more than it lists at once.
+  isTruncated: boolean;
 }
 
 export interface GitHubCommitResult {
@@ -1818,6 +1833,14 @@ export default class GitHubUtil extends HostedCodeRepository {
    * This deliberately does NOT decide what may be written to: enforcing the
    * default/protected-branch refusal is the caller's job, because only the
    * caller knows the trust context of the change.
+   *
+   * Held to the files as they were read (expected, issue #6331): the head's
+   * tree, which step 3 reads anyway, must still have each of them as read -
+   * a push that landed since is refused before anything is written, never
+   * built on and written over (CodeHostFilesMovedError). And the branch only
+   * moves as a fast-forward, so a push while the commit is made refuses it
+   * too; one to other files only is no reason to - the commit is built once
+   * more on the branch's new head, its files held again.
    */
   @CaptureSpan()
   public static async commitFilesToBranch(data: {
@@ -1827,6 +1850,7 @@ export default class GitHubUtil extends HostedCodeRepository {
     branchName: string;
     changes: Array<GitHubFileChange>;
     commitMessage: string;
+    expected?: ReadonlyArray<CodeHostFileExpected> | undefined;
   }): Promise<GitHubCommitResult> {
     if (data.changes.length === 0) {
       throw new BadDataException("No file changes were provided to commit.");
@@ -1839,6 +1863,54 @@ export default class GitHubUtil extends HostedCodeRepository {
 
     const headers: Headers = GitHubUtil.buildApiHeaders(tokenData.token);
     const repoApiUrl: string = `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}`;
+
+    // A blob per changed file, made once, whichever head the commit is built on.
+    const blobShas: Map<string, string> = new Map<string, string>();
+
+    for (let attempt: number = 1; ; attempt++) {
+      const made: GitHubCommitResult | "moved" =
+        await GitHubUtil.commitOnBranchHead({
+          ...data,
+          headers,
+          repoApiUrl,
+          blobShas,
+        });
+
+      if (made !== "moved") {
+        return made;
+      }
+
+      // Moved while it was made: once more on its new head, held again - then refused.
+      if (!data.expected || attempt >= 2) {
+        throw new CodeHostFilesMovedError({
+          filePaths: data.changes.map((change: GitHubFileChange): string => {
+            return change.filePath;
+          }),
+          reason:
+            "GitHub did not move the branch: it changed while the commit was being made.",
+        });
+      }
+    }
+  }
+
+  /*
+   * One commit built on the branch's head as it is now, and the branch moved
+   * to it as a fast-forward (commitFilesToBranch): the commit, or "moved"
+   * when the branch moved meanwhile and GitHub refused to move it.
+   */
+  private static async commitOnBranchHead(data: {
+    branchName: string;
+    changes: Array<GitHubFileChange>;
+    commitMessage: string;
+    expected?: ReadonlyArray<CodeHostFileExpected> | undefined;
+    organizationName: string;
+    repositoryName: string;
+    headers: Headers;
+    repoApiUrl: string;
+    blobShas: Map<string, string>;
+  }): Promise<GitHubCommitResult | "moved"> {
+    const headers: Headers = data.headers;
+    const repoApiUrl: string = data.repoApiUrl;
 
     // 1. Where the branch currently points.
     const refResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -1882,29 +1954,80 @@ export default class GitHubUtil extends HostedCodeRepository {
      * that reviewers skim past, so it must be right here rather than caught in
      * review.
      */
-    const existingModes: Map<string, string> =
-      await GitHubUtil.getTreeEntryModes({
-        repoApiUrl,
-        headers,
-        treeSha: baseTreeSha,
+    const baseTree: GitHubTreeEntries = await GitHubUtil.getTreeEntries({
+      repoApiUrl,
+      headers,
+      treeSha: baseTreeSha,
+    });
+    const existingModes: Map<string, string> = new Map<string, string>();
+
+    for (const [path, entry] of baseTree.entries.entries()) {
+      existingModes.set(path, entry.mode);
+    }
+
+    /*
+     * Each file it is held to, as this head has it (issue #6331): a file
+     * that is not as it was read changed after the read - refused here,
+     * before anything is written. A path a tree too large for GitHub to
+     * list whole leaves out cannot be held: it is written as GitHub has it,
+     * as it always was, and the fast-forward below still refuses a push
+     * that lands while the commit is made.
+     */
+    const moved: Array<string> = [];
+
+    for (const expected of data.expected || []) {
+      const isWritten: boolean = data.changes.some(
+        (change: GitHubFileChange): boolean => {
+          return change.filePath === expected.filePath;
+        },
+      );
+      const entry: GitHubTreeEntry | undefined = baseTree.entries.get(
+        expected.filePath,
+      );
+
+      if (!isWritten || (!entry && baseTree.isTruncated)) {
+        continue;
+      }
+
+      const blobThere: string | null =
+        entry && entry.type === "blob" ? entry.sha : null;
+
+      if (blobThere !== expected.blobSha) {
+        moved.push(expected.filePath);
+      }
+    }
+
+    if (moved.length > 0) {
+      throw new CodeHostFilesMovedError({
+        filePaths: moved,
+        reason:
+          "GitHub has a file the commit writes otherwise than it was read.",
       });
+    }
 
     // 4. A blob per changed file, carrying the path's existing mode forward.
     const treeEntries: JSONArray = [];
 
     for (const change of data.changes) {
-      const blobResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.post({
-          url: URL.fromString(`${repoApiUrl}/git/blobs`),
-          data: {
-            content: Buffer.from(change.content, "utf8").toString("base64"),
-            encoding: "base64",
-          },
-          headers: headers,
-        });
+      let blobSha: string | undefined = data.blobShas.get(change.filePath);
 
-      if (blobResult instanceof HTTPErrorResponse) {
-        throw blobResult;
+      if (!blobSha) {
+        const blobResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.post({
+            url: URL.fromString(`${repoApiUrl}/git/blobs`),
+            data: {
+              content: Buffer.from(change.content, "utf8").toString("base64"),
+              encoding: "base64",
+            },
+            headers: headers,
+          });
+
+        if (blobResult instanceof HTTPErrorResponse) {
+          throw blobResult;
+        }
+
+        blobSha = blobResult.data["sha"] as string;
+        data.blobShas.set(change.filePath, blobSha);
       }
 
       const existingMode: string | undefined = existingModes.get(
@@ -1927,7 +2050,7 @@ export default class GitHubUtil extends HostedCodeRepository {
         // New files default to a regular non-executable file.
         mode: existingMode || "100644",
         type: "blob",
-        sha: blobResult.data["sha"] as string,
+        sha: blobSha,
       });
     }
 
@@ -1982,6 +2105,14 @@ export default class GitHubUtil extends HostedCodeRepository {
       });
 
     if (updateResult instanceof HTTPErrorResponse) {
+      // The branch moved while the commit was made: GitHub kept the push.
+      if (
+        updateResult.statusCode === 422 &&
+        updateResult.message.toLowerCase().includes("fast forward")
+      ) {
+        return "moved";
+      }
+
       throw updateResult;
     }
 
@@ -2171,12 +2302,20 @@ export default class GitHubUtil extends HostedCodeRepository {
    * a path we cannot see its mode for simply falls back to the 100644 default,
    * which is the same behaviour as treating it as a new file.
    */
-  private static async getTreeEntryModes(data: {
+  /*
+   * Every entry of a tree, by its path: its mode, its type and its object's
+   * SHA - and whether GitHub listed it whole, which it does not for a tree
+   * of more entries than it answers at once.
+   */
+  private static async getTreeEntries(data: {
     repoApiUrl: string;
     headers: Headers;
     treeSha: string;
-  }): Promise<Map<string, string>> {
-    const modes: Map<string, string> = new Map<string, string>();
+  }): Promise<GitHubTreeEntries> {
+    const entries: Map<string, GitHubTreeEntry> = new Map<
+      string,
+      GitHubTreeEntry
+    >();
 
     const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
       url: URL.fromString(
@@ -2197,11 +2336,15 @@ export default class GitHubUtil extends HostedCodeRepository {
       const mode: string = entryData["mode"] as string;
 
       if (path && mode) {
-        modes.set(path, mode);
+        entries.set(path, {
+          mode,
+          type: (entryData["type"] as string) || "",
+          sha: (entryData["sha"] as string) || "",
+        });
       }
     }
 
-    return modes;
+    return { entries, isTruncated: result.data["truncated"] === true };
   }
 
   private static buildApiHeaders(token: string): Headers {
