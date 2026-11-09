@@ -1296,7 +1296,7 @@ describe("open_code_pull_request, against the default branch it starts from", ()
         "---",
         "_Proposed by OneUptime AI from a chat conversation. Review carefully before merging: this change was written by an agent that reads production telemetry._",
         "",
-        "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace changes it did not read:",
+        "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:",
         `- \`${CHARGE}\`: changed on \`main\` after AI read it.`,
       ].join("\n"),
     );

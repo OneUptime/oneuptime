@@ -3,9 +3,12 @@ import {
   AIChatRecordKnown,
   AIChatRecordSeen,
   AIChatRecordSeenType,
+  MAX_LINE_RANGES,
   MAX_RECORD_PARTS_SEEN,
   getAIChatRecordKnown,
   getLatestAIChatRecordsSeen,
+  readAIChatLineRanges,
+  readAIChatLinesShown,
   readAIChatRecordSeen,
 } from "../../../Types/AI/AIChatRecordSeen";
 
@@ -323,5 +326,67 @@ describe("the records a turn carries", () => {
         known(records, recordId),
       );
     }
+  });
+});
+
+describe("the lines a file's record says it showed (issue #6330)", () => {
+  test("runs within the file, first to last, read back as they were written", () => {
+    expect(
+      readAIChatLineRanges(
+        [
+          { first: 1, last: 1 },
+          { first: 3, last: 10 },
+        ],
+        10,
+      ),
+    ).toEqual([
+      { first: 1, last: 1 },
+      { first: 3, last: 10 },
+    ]);
+    expect(readAIChatLineRanges([], 10)).toEqual([]);
+    expect(
+      readAIChatLinesShown({
+        lineCount: 2000,
+        ranges: [{ first: 340, last: 460 }],
+      }),
+    ).toEqual({ lineCount: 2000, ranges: [{ first: 340, last: 460 }] });
+  });
+
+  test.each<[string, unknown, number]>([
+    ["no list", { first: 1, last: 2 }, 10],
+    ["a run past the end", [{ first: 1, last: 11 }], 10],
+    ["a run before the start", [{ first: 0, last: 2 }], 10],
+    ["a run backwards", [{ first: 3, last: 2 }], 10],
+    ["a run of text", [{ first: "1", last: "2" }], 10],
+    ["a run that is no object", [[1, 2]], 10],
+    [
+      "more runs than a record may name",
+      Array.from({ length: MAX_LINE_RANGES + 1 }, () => {
+        return { first: 1, last: 1 };
+      }),
+      10,
+    ],
+  ])("%s is no runs", (_name: string, value: unknown, lineCount: number) => {
+    expect(readAIChatLineRanges(value, lineCount)).toBeNull();
+  });
+
+  test.each<[string, unknown]>([
+    ["nothing", undefined],
+    ["a list", []],
+    ["no line count", { ranges: [] }],
+    ["a line count of none", { lineCount: 0, ranges: [] }],
+    ["runs not well formed", { lineCount: 5, ranges: [{ first: 6, last: 6 }] }],
+  ])("%s is no lines shown", (_name: string, value: unknown) => {
+    expect(readAIChatLinesShown(value)).toBeNull();
+  });
+
+  test("a workflow's records are kept as they always were: their parts, not lines, say what they showed", () => {
+    const records: Array<unknown> = [
+      whole(1, [["step:a", "f1"]]),
+      whole(2, [["step:a", "f1"]]),
+    ];
+
+    // The same parts twice: the last whole one says it all, as before.
+    expect(getLatestAIChatRecordsSeen(records)).toEqual([records[1]]);
   });
 });
