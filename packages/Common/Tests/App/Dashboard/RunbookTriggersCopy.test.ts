@@ -655,7 +655,7 @@ describe("in every language", () => {
   ];
 
   test("every sentence is a key of every locale", () => {
-    expect(LANGUAGES).toHaveLength(17);
+    expect(LANGUAGES).toHaveLength(18);
 
     for (const language of LANGUAGES) {
       const table: Record<string, unknown> = readLocale(language);

@@ -1,6 +1,7 @@
 import {
   LlmCostMetricNames,
   LlmMetricModelAttributeKeys,
+  LlmMetricProviderAttributeKeys,
   LlmMetricTeamAttributeKeys,
   LlmMetricUserAttributeKeys,
   LlmMicroUsdCostMetricNames,
@@ -16,16 +17,19 @@ import {
   LlmMetricUsageResponse,
   emptyLlmMetricUsageFigures,
 } from "../../Types/Telemetry/LlmMetricUsageApi";
+import { normalizeLlmProvider } from "../../Types/Telemetry/LlmProviders";
 
 /*
  * WHAT THE GENAI METRICS OF A RANGE ADD UP TO.
  *
- * LlmMetricUsageReader (the server) reads one row per metric, group and
- * token type: the usage its series added inside the range. This module folds
- * those rows into the figures the Usage tab and the cost budgets read - the
- * input and output tokens and the cost, in total and per group - and is
- * isomorphic, so the reader, the budget evaluator and the tests share one
- * definition of "what the metrics say":
+ * LlmMetricUsageReader (the server) reads one row per metric, service,
+ * group and token type: the usage its series added inside the range, with
+ * each service's total rows apart from its group rows, so a total is exact
+ * even when the group rows are cut short. This module folds those rows into
+ * the figures the Usage tab and the cost budgets read - the input and
+ * output tokens and the cost, in total, per service and per group - and is
+ * isomorphic, so the readers (LlmMetricUsageReader, LlmUsageReader) and the
+ * tests share one definition of "what the metrics say":
  *
  *   - cost comes in two units: USD (LlmCostMetricNames) and millionths of
  *     a USD (LlmMicroUsdCostMetricNames, Codex), scaled here, per row,
@@ -50,6 +54,24 @@ export interface LlmMetricUsageRow {
   tokenType: string;
   // What the series added inside the range (a delta sum, a counter's growth).
   value: number;
+  /*
+   * The service (primaryEntityId) the points belong to - the OneUptime
+   * service their resource's service.name named, or the project's id for
+   * points that named none ("Unknown Service"). "" when not read.
+   */
+  service?: string | undefined;
+  /*
+   * true on a service's total row, false on a group's row. A row that says
+   * neither (a fold of rows built by hand) is both.
+   */
+  isTotal?: boolean | undefined;
+  /*
+   * The attribute key the group's value was read from (user.email,
+   * cursor.user.id, ...); "" when none or nothing is grouped. A reader that
+   * names people at read time (a Cursor team's member ids) finds the rows
+   * to rename by it.
+   */
+  groupAttribute?: string | undefined;
 }
 
 export type LlmMetricUsageKind = "usd" | "microusd" | "tokens";
@@ -113,10 +135,74 @@ export default class LlmMetricUsageUtil {
         return [...LlmMetricTeamAttributeKeys];
       case LlmMetricUsageDimension.Model:
         return [...LlmMetricModelAttributeKeys];
+      case LlmMetricUsageDimension.Provider:
+        return [...LlmMetricProviderAttributeKeys];
+      /*
+       * A service is not an attribute: it is the points' primaryEntityId,
+       * which every row carries (LlmMetricUsageRow.service).
+       */
+      case LlmMetricUsageDimension.Service:
       case LlmMetricUsageDimension.None:
       default:
         return [];
     }
+  }
+
+  /*
+   * A group's value as the Usage tab names it: trimmed, and a provider
+   * named the way ingest names a span's (azure.ai.openai, never
+   * az.ai.openai or OpenAI), so a provider's metrics and its calls are one
+   * row.
+   */
+  public static normalizeGroup(
+    dimension: LlmMetricUsageDimension,
+    value: string,
+  ): string {
+    const trimmed: string = (value || "").trim();
+
+    if (dimension === LlmMetricUsageDimension.Provider && trimmed) {
+      return normalizeLlmProvider({ reported: trimmed });
+    }
+
+    return trimmed;
+  }
+
+  // Whether a row counts toward a service's or the read's totals.
+  public static isTotalRow(row: LlmMetricUsageRow): boolean {
+    return row.isTotal !== false;
+  }
+
+  // Whether a row counts toward a group.
+  public static isGroupRow(row: LlmMetricUsageRow): boolean {
+    return row.isTotal !== true;
+  }
+
+  /*
+   * Each service's figures, from its total rows. Rows of no service fold
+   * under "".
+   */
+  public static foldByService(
+    rows: Array<LlmMetricUsageRow>,
+  ): Map<string, LlmMetricUsageFigures> {
+    const services: Map<string, LlmMetricUsageFigures> = new Map<
+      string,
+      LlmMetricUsageFigures
+    >();
+
+    for (const row of rows || []) {
+      if (!row || !LlmMetricUsageUtil.isTotalRow(row)) {
+        continue;
+      }
+
+      const service: string = (row.service || "").trim();
+      const figures: LlmMetricUsageFigures =
+        services.get(service) || emptyLlmMetricUsageFigures();
+
+      LlmMetricUsageUtil.addRow(figures, row);
+      services.set(service, figures);
+    }
+
+    return services;
   }
 
   /*
@@ -172,7 +258,9 @@ export default class LlmMetricUsageUtil {
   public static fold(
     rows: Array<LlmMetricUsageRow>,
     options?: {
+      // Group by `dimension`; with no dimension, by the rows' group values.
       grouped?: boolean | undefined;
+      dimension?: LlmMetricUsageDimension | undefined;
       truncated?: boolean | undefined;
     },
   ): LlmMetricUsageResponse {
@@ -181,19 +269,39 @@ export default class LlmMetricUsageUtil {
       string,
       LlmMetricUsageGroup
     >();
+    const dimension: LlmMetricUsageDimension | undefined = options?.dimension;
+    const grouped: boolean = dimension
+      ? dimension !== LlmMetricUsageDimension.None
+      : Boolean(options?.grouped);
+    const byService: boolean = dimension === LlmMetricUsageDimension.Service;
 
     for (const row of rows || []) {
       if (!row) {
         continue;
       }
 
-      LlmMetricUsageUtil.addRow(totals, row);
+      if (LlmMetricUsageUtil.isTotalRow(row)) {
+        LlmMetricUsageUtil.addRow(totals, row);
+      }
 
-      if (!options?.grouped) {
+      /*
+       * By service, a group is a service's total; by anything else, a
+       * group's row.
+       */
+      if (
+        !grouped ||
+        (byService
+          ? !LlmMetricUsageUtil.isTotalRow(row)
+          : !LlmMetricUsageUtil.isGroupRow(row))
+      ) {
         continue;
       }
 
-      const key: string = (row.group || "").trim();
+      const key: string = byService
+        ? (row.service || "").trim()
+        : dimension
+          ? LlmMetricUsageUtil.normalizeGroup(dimension, row.group)
+          : (row.group || "").trim();
       const group: LlmMetricUsageGroup = groups.get(key) || {
         ...emptyLlmMetricUsageFigures(),
         key: key,

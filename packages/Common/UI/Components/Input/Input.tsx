@@ -220,6 +220,21 @@ const Input: FunctionComponent<ComponentProps> = (
   }
 
   /*
+   * A phone number and an address on the web are written left to right in
+   * every language. On a page read right to left their placeholders came
+   * out back to front - "11234567890+" for "+11234567890",
+   * ".../https://hooks.slack.com/services" for
+   * "https://hooks.slack.com/services/..." - and a number typed in with
+   * spaces or brackets started at the far end from its placeholder. So such
+   * a field reads left to right, its error icon (at the end of the box
+   * around it) on the right with it, whatever the page's language.
+   */
+  const readsLeftToRight: boolean =
+    props.inputMode === "tel" ||
+    props.inputMode === "url" ||
+    props.type === InputType.URL;
+
+  /*
    * A password field that is not the person's own holds a secret the product
    * stores for something else: an SMTP or SNMP password, an API token, the
    * password an admin sets for a private status page user. To a password
@@ -339,11 +354,13 @@ const Input: FunctionComponent<ComponentProps> = (
           props.outerDivClassName ||
           `relative mt-2 mb-1 rounded-md shadow-sm w-full`
         }
+        dir={readsLeftToRight ? "ltr" : undefined}
       >
         <input
           autoFocus={props.autoFocus}
           ref={ref}
           id={props.id}
+          dir={readsLeftToRight ? "ltr" : undefined}
           onFocus={props.onFocus}
           onClick={props.onClick}
           data-testid={props.dataTestId}

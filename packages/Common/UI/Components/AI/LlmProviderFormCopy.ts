@@ -2,6 +2,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import LlmType from "../../../Types/LLM/LlmType";
 import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 import LlmProviderEndpoint from "../../../Utils/LLM/LlmProviderEndpoint";
+import { getLlmProviderDefaultResponseTimeoutInSeconds } from "../../../Utils/LLM/LlmProviderResponseTimeout";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 
 /*
@@ -345,6 +346,31 @@ export function getLlmProviderShownValue(data: {
 }
 
 /*
+ * A provider's Response Timeout (Seconds) as its page shows it: the seconds
+ * set, or - left empty - the default the server waits
+ * (LlmProviderResponseTimeout: "120 (default)", 300 for Ollama), in the
+ * reader's digits. A failed run's notice sends its reader here to raise it.
+ */
+export function getLlmProviderShownResponseTimeout(data: {
+  requestTimeoutInSeconds: number | undefined | null;
+  llmType: unknown;
+  translator: Translator;
+}): string {
+  const seconds: number | undefined | null = data.requestTimeoutInSeconds;
+
+  return getLlmProviderShownValue({
+    value:
+      typeof seconds === "number" && seconds > 0
+        ? data.translator.formatNumber(seconds)
+        : undefined,
+    defaultValue: data.translator.formatNumber(
+      getLlmProviderDefaultResponseTimeoutInSeconds(readLlmType(data.llmType)),
+    ),
+    translator: data.translator,
+  });
+}
+
+/*
  * A provider's Model Name as its page and its list show it: what was typed,
  * or - left blank - the model the server asks for ("gpt-5.1 (default)"),
  * or what it does instead where no model can be named in advance ("First
@@ -388,6 +414,7 @@ export const LlmProviderFormCopy: {
   readonly baseUrlNoKeys: string;
   readonly defaultDescription: string;
   readonly additionalParametersDescription: string;
+  readonly responseTimeoutDescription: string;
 } = {
   providerStepTitle: translationKey("Provider"),
   connectionStepTitle: translationKey("Connection"),
@@ -415,5 +442,13 @@ export const LlmProviderFormCopy: {
   ),
   additionalParametersDescription: translationKey(
     'Extra JSON parameters sent to the provider with every request, such as {"temperature": 0.2}. Leave empty unless your model needs them.',
+  ),
+  /*
+   * Under Response Timeout (issue #6438): a slow or self-hosted model can
+   * take longer than the default to answer an investigation's long
+   * requests, and every request then runs out of time.
+   */
+  responseTimeoutDescription: translationKey(
+    "Seconds to wait for the provider to answer one request. Leave empty for 120 (300 for Ollama). Raise it for a slow or self-hosted model.",
   ),
 };

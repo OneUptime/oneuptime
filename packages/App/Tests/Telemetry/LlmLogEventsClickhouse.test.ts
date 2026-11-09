@@ -55,7 +55,9 @@ import {
  * (Common/Tests/Fixtures/GenAiLogEvents), stored as log ingest stores it,
  * comes back into the right call of the right conversation: by span id, at
  * the time a record carried or - when it carried none (Java, Python on a
- * newer SDK) - the time it arrived.
+ * newer SDK) - the time its SDK observed it (#6395). Rows stored before
+ * that, at the time they arrived, are read too while they arrived within a
+ * minute of their call.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -117,59 +119,85 @@ const THE_QUESTIONS: Array<string> = [
 
 /*
  * One captured app, stored under a conversation id of its own. A record
- * that sent no time of its own is stored at the time it arrived: its
- * observed time plus `arrivalDelayMs` (the export batch and the queue).
+ * that sent no time of its own is stored at its observed time, as ingest
+ * stores it since #6395; with `storedAtArrival`, at the time it arrived, as
+ * ingest stored it before: its observed time plus `arrivalDelayMs` (the
+ * export batch and the queue). `idShift` gives the capture trace and span
+ * ids of its own, so the same capture can be stored twice.
  */
 interface CapturedApp {
   fixture: GenAiLogEventFixture;
   conversationId: string;
   projectId?: ObjectID;
-  arrivalDelayMs: number;
+  storedAtArrival?: boolean;
+  arrivalDelayMs?: number;
+  idShift?: number;
 }
 
 const APPS: Array<CapturedApp> = [
   {
     fixture: GenAiLogEventFixture.JavaScriptContent,
     conversationId: "conv-javascript",
-    arrivalDelayMs: 0,
   },
   {
     fixture: GenAiLogEventFixture.JavaContent,
     conversationId: "conv-java",
-    arrivalDelayMs: 5000,
   },
   {
     fixture: GenAiLogEventFixture.PythonOpenAiV2True,
     conversationId: "conv-python-true",
-    arrivalDelayMs: 5000,
   },
   {
     fixture: GenAiLogEventFixture.PythonOpenAiV2EventOnly,
     conversationId: "conv-python-event-only",
-    arrivalDelayMs: 5000,
   },
   {
     fixture: GenAiLogEventFixture.PythonOpenAiV2SpanAndEvent,
     conversationId: "conv-python-span-and-event",
-    arrivalDelayMs: 5000,
   },
   {
     fixture: GenAiLogEventFixture.JavaNoContent,
     conversationId: "conv-java-no-content",
-    arrivalDelayMs: 5000,
   },
   // The same Java capture in another project: never read into this one.
   {
     fixture: GenAiLogEventFixture.JavaContent,
     conversationId: "conv-java",
     projectId: otherProjectId,
-    arrivalDelayMs: 5000,
+  },
+  // Stored before #6395, 50 seconds after it was sent: still read.
+  {
+    fixture: GenAiLogEventFixture.JavaContent,
+    conversationId: "conv-java-stored-before",
+    storedAtArrival: true,
+    arrivalDelayMs: 50 * 1000,
+    idShift: 2,
+  },
+  // Stored before #6395, two minutes after it was sent: no longer read.
+  {
+    fixture: GenAiLogEventFixture.PythonOpenAiV2True,
+    conversationId: "conv-python-stored-before-late",
+    storedAtArrival: true,
+    arrivalDelayMs: 2 * 60 * 1000,
+    idShift: 3,
   },
 ];
 
-// The JavaScript capture's records, stored again 11 minutes late.
+/*
+ * The JavaScript capture's records, stored again two minutes late: past
+ * the minute after a call its records are looked for in (ten before #6395).
+ */
 const LATE_CONVERSATION_ID: string = "conv-javascript-late";
-const LATE_DELAY_MS: number = 11 * 60 * 1000;
+const LATE_DELAY_MS: number = 2 * 60 * 1000;
+
+// Another trace or span id: its first hex digit changed by `shift`.
+function shiftId(id: string, shift: number | undefined): string {
+  if (!id || !shift) {
+    return id;
+  }
+
+  return `${(parseInt(id[0]!, 16) ^ shift).toString(16)}${id.substring(1)}`;
+}
 
 let windowStart: Date = new Date();
 let windowEnd: Date = new Date();
@@ -225,7 +253,7 @@ function logRow(
   record: LlmLogEventRecord,
   data: { projectId: ObjectID; arrivalDelayMs: number; sentinel: string },
 ): JSONObject {
-  // A record that sent no time is stored at the time it arrived.
+  // A record stored before #6395 at the time it arrived.
   const timeNano: bigint =
     String(record.timeUnixNano) === data.sentinel
       ? BigInt(String(record.observedTimeUnixNano)) +
@@ -264,32 +292,47 @@ function rowsOf(app: CapturedApp): {
 
   return {
     spans: toStoredSpans(file).map((span: StoredGenAiSpan): JSONObject => {
-      return spanRow(span, app);
+      return spanRow(
+        {
+          ...span,
+          traceId: shiftId(span.traceId, app.idShift),
+          spanId: shiftId(span.spanId, app.idShift),
+          parentSpanId: shiftId(span.parentSpanId, app.idShift),
+        },
+        app,
+      );
     }),
-    logs: toStoredLogRecords(file, { arrivedAtNano: NO_TIME_SENTINEL }).map(
-      (record: LlmLogEventRecord): JSONObject => {
-        return logRow(record, {
+    logs: toStoredLogRecords(file, {
+      arrivedAtNano: NO_TIME_SENTINEL,
+      storedAtArrival: app.storedAtArrival,
+    }).map((record: LlmLogEventRecord): JSONObject => {
+      return logRow(
+        {
+          ...record,
+          traceId: shiftId(record.traceId || "", app.idShift),
+          spanId: shiftId(record.spanId || "", app.idShift),
+        },
+        {
           projectId: app.projectId || projectId,
-          arrivalDelayMs: app.arrivalDelayMs,
+          arrivalDelayMs: app.arrivalDelayMs || 0,
           sentinel: NO_TIME_SENTINEL,
-        });
-      },
-    ),
+        },
+      );
+    }),
   };
 }
 
 /*
  * The JavaScript capture under new trace and span ids, its records stored
- * LATE_DELAY_MS after they were sent: past the ten minutes a call's
- * records are looked for in.
+ * LATE_DELAY_MS after they were sent: past the minute after its call that
+ * a call's records are looked for in.
  */
 function lateRows(): { spans: Array<JSONObject>; logs: Array<JSONObject> } {
   const file: GenAiLogEventFixtureFile = loadGenAiLogEventFixture(
     GenAiLogEventFixture.JavaScriptContent,
   );
-  // Another id: the first digit changed.
   const renamed: (id: string) => string = (id: string): string => {
-    return id ? `${id.startsWith("f") ? "e" : "f"}${id.substring(1)}` : id;
+    return shiftId(id, 1);
   };
 
   return {
@@ -488,6 +531,7 @@ integration(
       ["conv-java"],
       ["conv-python-true"],
       ["conv-python-event-only"],
+      ["conv-java-stored-before"],
     ])(
       "%s: every call's prompt and answer, read from its log events",
       async (conversationId: string) => {
@@ -583,11 +627,26 @@ integration(
       );
     });
 
-    test("records stored more than ten minutes after their call are not looked for", async () => {
+    test("records stored more than a minute after their call are not looked for (ten minutes before #6395)", async () => {
       const detail: LlmConversationDetail = await open(LATE_CONVERSATION_ID);
 
       expect(detail.logEvents).toBe(LlmLogEventsRead.Read);
       expect(stepTexts(detail, LlmTranscriptStepType.UserMessage)).toEqual([]);
+    });
+
+    test("rows stored before #6395 at the time they arrived: read when they arrived within a minute of their call, not two minutes after", async () => {
+      const within: LlmConversationDetail = await open(
+        "conv-java-stored-before",
+      );
+      const late: LlmConversationDetail = await open(
+        "conv-python-stored-before-late",
+      );
+
+      expect(
+        stepTexts(within, LlmTranscriptStepType.UserMessage).slice(0, 4),
+      ).toEqual(THE_QUESTIONS);
+      expect(late.logEvents).toBe(LlmLogEventsRead.Read);
+      expect(stepTexts(late, LlmTranscriptStepType.UserMessage)).toEqual([]);
     });
 
     test("a list row whose spans recorded no question is titled from its log events", async () => {
@@ -614,6 +673,11 @@ integration(
       expect(titles["conv-python-true"]).toBe("Say this is a test.");
       expect(titles["conv-python-event-only"]).toBe("Say this is a test.");
       expect(titles["conv-java-no-content"]).toBe("");
+      // A title is still looked for ten minutes past the conversation's start.
+      expect(titles["conv-java-stored-before"]).toBe("Say this is a test.");
+      expect(titles["conv-python-stored-before-late"]).toBe(
+        "Say this is a test.",
+      );
 
       // Without the logs, no title from them.
       const unread: LlmConversationListResponse =

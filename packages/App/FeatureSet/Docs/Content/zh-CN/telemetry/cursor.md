@@ -129,17 +129,17 @@ Cursor 只使用基于 HTTP 的二进制 protobuf 格式的 OTLP（不支持 gRP
 
 ### Cursor 在用量标签页上的显示位置
 
-Cursor 发送指标而不发送 GenAI span，而指标只用于补充 span： **如果同一个项目接收带成本的 GenAI span，Cursor 的支出就不会显示。** 请把 Cursor 发送到单独的项目。请参阅 [span 优先，指标补充](/docs/telemetry/ai-llm-observability#span-优先指标补充)。
+Cursor 发送指标而不发送 GenAI span，归在它自己的服务 `cursor` 下，因此它的支出会与你的应用发送到同一个项目的 AI 调用一起计数，而不会取代它们。请参阅 [每个服务按其发送的数据计数](/docs/telemetry/ai-llm-observability#每个服务按其发送的数据计数)。
 
 | 细分 | 对 Cursor 而言 |
 | --- | --- |
 | **员工** | 是，按 `cursor.user.email`，否则按 `cursor.user.id` |
 | **团队** | 是，按 `cursor.team.id` |
 | **模型** | 是，按 `cursor.model.name` |
-| **提供商** | 否：Cursor 从不说明是哪个提供商处理了调用 |
-| **应用 / 服务** | 否：Cursor 的指标不属于任何 OneUptime 服务 |
+| **提供商** | 归入 **未归属** ：Cursor 从不说明是哪个提供商处理了调用 |
+| **应用 / 服务** | 是，归入 `cursor` 服务 |
 
-Cursor 的行只携带成本：其调用和 token 单元格显示 `—`，因为 `cursor.cost.usage` 没有逐次调用的细节。`cursor.token.usage` 仍会为表格上方的 token 总数提供数据（它的 `input` 和 `output` 类型；不计缓存 token），你也可以在仪表盘上按 `cursor.token.type` 绘制它。
+Cursor 的行会在其名称下方注明 **来自用量指标** ，其调用单元格显示 `—`，因为计数器没有逐次调用的细节。它的成本来自 `cursor.cost.usage`，token 来自 `cursor.token.usage`（它的 `input` 和 `output` 类型；不计缓存 token），你也可以在仪表盘上按 `cursor.token.type` 绘制它。
 
 :::details 把 Cursor 用户 ID 转换成人员
 姓名和计费金额位于 Cursor 的 Admin API 中，当你把它的密钥作为 [提供商账户](/docs/telemetry/ai-provider-accounts#cursor) 连接时，OneUptime 会读取它：该账户按电子邮件标识人员。要自行匹配 `cursor.user.id`，请调用 `https://api.cursor.com` 上的 API，使用管理员 API 密钥作为用户名、密码留空：
@@ -176,7 +176,7 @@ Cursor 从自己的服务器发起连接：你的 OTLP 端点必须能通过公�
 :::
 
 :::details 日志到达了，但用量标签页没有显示 Cursor 的支出
-该项目还接收带成本的 GenAI span，因此不会读取 Cursor 的指标。请把 Cursor 发送到单独的项目，并使用它自己的摄取密钥。
+Cursor 的支出来自它的指标，而不是日志：请检查 Cursor 的指标信号已开启，并在 **指标** 中查找 `cursor.cost.usage`。如果你的角色不能读取指标，用量标签页会排除它们并注明这一点。
 :::
 
 :::details 人员显示为数字

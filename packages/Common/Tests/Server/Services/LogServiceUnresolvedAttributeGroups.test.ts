@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Dictionary from "../../../Types/Dictionary";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import { decodedQueryParams } from "../../Helpers/StatementEcho";
 
 /*
  * Contract under test - the grouped count behind a Logs monitor whose
@@ -94,7 +95,7 @@ function statementFor(
 }
 
 function paramValues(statement: Statement): Array<unknown> {
-  return Object.values(statement.query_params);
+  return Object.values(decodedQueryParams(statement));
 }
 
 // The statement with every parameter placeholder made anonymous.

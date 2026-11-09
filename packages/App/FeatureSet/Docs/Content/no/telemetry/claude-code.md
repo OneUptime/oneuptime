@@ -64,7 +64,7 @@ Variablene leses når Claude Code starter. Målinger sendes hvert 60. sekund og 
 
 ### Sjekk at data kommer inn
 
-Åpne **Målinger**, og søk etter `claude_code.token.usage`, åpne deretter **Produkter → AI / LLM**, og gå til **Forbruk**: kostnaden din vises under e-posten din, merket med **fra GenAI-målinger**.
+Åpne **Målinger**, og søk etter `claude_code.token.usage`, åpne deretter **Produkter → AI / LLM**, og gå til **Forbruk**: kostnaden din vises under e-posten din, merket med **Fra bruksmålinger**.
 :::
 
 For å sende målinger og hendelser til forskjellige steder setter du i stedet `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` og `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, med full sti (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 På **Produkter → AI / LLM → Forbruk** fyller `claude_code.cost.usage` tabellene **Ansatt**, **Team** og **Modell**, og `claude_code.token.usage` tokentotalene. To regler avgjør hva du ser:
 
-- **Målingene fyller hullene i spans; de legges aldri oppå dem.** Hvis det samme prosjektet mottar GenAI-spans med kostnad fra dine egne apper, vises ikke Claude Codes forbruk. Send Claude Code til et eget prosjekt. Se [Spans kommer først, målinger fyller hullene](/docs/telemetry/ai-llm-observability#spans-kommer-først-målinger-fyller-hullene).
-- **En rad fra målinger bærer bare kostnad.** Cellene for kall og tokens viser `—`, og tabellene **Leverandør** og **Applikasjon / Tjeneste** forblir tomme: målingene nevner ingen leverandør og hører ikke til noen OneUptime-tjeneste.
+- **Claude Code telles ved siden av appene dine.** Målingene kommer inn under Claude Codes egen tjeneste, så forbruket legges til AI-kallene appene dine sender til samme prosjekt. Hvis du slår på traces (beta), slå dem på for alle: fra da av telles Claude Code bare fra sine traces, én gang. Se [Hver tjeneste telles ut fra det den sender](/docs/telemetry/ai-llm-observability#hver-tjeneste-telles-ut-fra-det-den-sender).
+- **En rad fra målinger nevner ingen kall.** Den sier **Fra bruksmålinger** under navnet sitt, cellen for kall viser `—`, og tabellen **Leverandør** plasserer den under **Ikke tilordnet**: målingene nevner ingen leverandør.
 
 Alt annet, som godkjenningsrate, kodelinjer, commits og pull requests per utvikler, eller forbruk per `query_source`, viser du i et [dashboard](/docs/dashboards/index) ut fra målingene nedenfor, og varsler på med en [metrikk-overvåking](/docs/monitor/metrics-monitor).
 

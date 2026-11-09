@@ -84,6 +84,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 
 let language: string = "en";
 
@@ -538,6 +539,69 @@ describe("the card", () => {
     await switchTo(0, OTHER_PROJECT_ID);
 
     expect(screen.queryByTestId("home-upcoming-maintenance")).toBeNull();
+  });
+});
+
+/*
+ * A title cut short in a line read right to left lost its start: on an
+ * Arabic page "Kubernetes 1.31 upgrade" ended in "...1.31 upgrade". A title
+ * that reads the other way from the page gets a line of its own direction,
+ * cut at its own end and standing where the page's lines start
+ * (LineDirection). A title that reads as the page does is drawn as before.
+ */
+describe("a title that reads the other way from the page", () => {
+  const ARABIC_TITLE: string = "ترقية قاعدة البيانات";
+
+  async function titles(): Promise<{
+    english: HTMLElement;
+    arabic: HTMLElement;
+  }> {
+    events = [
+      event(1, "Kubernetes 1.31 upgrade", new Date(NOW.getTime() + 2 * DAY)),
+      event(2, ARABIC_TITLE, new Date(NOW.getTime() + 6 * DAY)),
+    ];
+    await renderCard();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("home-upcoming-row")).toHaveLength(2);
+    });
+
+    return {
+      english: screen.getByText("Kubernetes 1.31 upgrade"),
+      arabic: screen.getByText(ARABIC_TITLE),
+    };
+  }
+
+  test("on an Arabic page an English title reads left to right, standing where the page's lines start", async () => {
+    language = "ar";
+    const { english, arabic } = await titles();
+
+    expect(english).toHaveAttribute("dir", "ltr");
+    expect(english).toHaveClass(
+      "block",
+      "truncate",
+      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+    );
+    expect(arabic).not.toHaveAttribute("dir");
+    expect(arabic).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+
+  test("on an English page an English title is drawn as it always was, and an Arabic one reads right to left", async () => {
+    const { english, arabic } = await titles();
+
+    expect(english).not.toHaveAttribute("dir");
+    expect(english).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(english).toHaveClass("block", "truncate");
+    expect(arabic).toHaveAttribute("dir", "rtl");
+    expect(arabic).toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+
+  test("on a Persian page, read right to left too, an English title reads left to right", async () => {
+    language = "fa";
+    const { english, arabic } = await titles();
+
+    expect(english).toHaveAttribute("dir", "ltr");
+    expect(arabic).not.toHaveAttribute("dir");
   });
 });
 

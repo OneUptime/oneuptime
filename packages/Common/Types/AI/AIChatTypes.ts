@@ -5,6 +5,7 @@ import { AIActionCardWords, AIActionWords } from "./AIActionWords";
 import { AIChatRecordSeen } from "./AIChatRecordSeen";
 import { AiContextActivity } from "./AiContext";
 import { LlmProviderActivity } from "./LlmProviderChoice";
+import { AIRunAttemptEnd } from "./AIRunAttempt";
 
 /*
  * Shared types for the AI observability chat feature. These shapes are
@@ -309,6 +310,13 @@ export function isAIToolRefusal(value: unknown): value is AIToolRefusal {
 }
 
 export interface AIRunEventResultSummary {
+  /*
+   * AttemptEnded and RunFailed events of a durable run: how its attempt
+   * ended, the kind of failure the dashboard words in the reader's
+   * language, and when the next attempt is due (Types/AI/AIRunAttempt,
+   * read with parseAIRunAttemptEnd).
+   */
+  attemptEnd?: AIRunAttemptEnd | undefined;
   rowCount?: number | undefined;
   durationInMs?: number | undefined;
   isTruncated?: boolean | undefined;

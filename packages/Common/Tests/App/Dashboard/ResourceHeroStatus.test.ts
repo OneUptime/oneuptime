@@ -304,8 +304,8 @@ describe("every Dashboard language words the pills", () => {
     "Health Critical",
   ];
 
-  test("there are sixteen of them", () => {
-    expect(LOCALES).toHaveLength(16);
+  test("there are seventeen of them", () => {
+    expect(LOCALES).toHaveLength(17);
   });
 
   test.each(LOCALES)("%s has its own word for each", (code: string) => {
