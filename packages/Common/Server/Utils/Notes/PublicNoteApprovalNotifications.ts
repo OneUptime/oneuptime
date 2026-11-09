@@ -20,7 +20,11 @@ import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
 import PushNotificationUtil from "../PushNotificationUtil";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import type { WorkspaceDirectMessage } from "../Workspace/WorkspacePublicNoteApproval";
+import type { WorkspaceSentDirectMessage } from "../../Services/WorkspaceUserNotificationService";
+import type {
+  PublicNoteApprovalButtonValue,
+  WorkspaceDirectMessage,
+} from "../Workspace/WorkspacePublicNoteApproval";
 import type { PublicNoteApprovalWaitingFor } from "./PublicNoteApprovalFeed";
 import type { PublicNoteKind } from "./PublicNoteApprovalEngine";
 
@@ -50,7 +54,10 @@ import type { PublicNoteKind } from "./PublicNoteApprovalEngine";
  * In chat, an approver is asked with the note itself and Approve and Reject
  * on it (WorkspacePublicNoteApproval): they decide where they are asked,
  * as the member their chat account is connected to, with the Dashboard's
- * rules (WorkspacePublicNoteApprovalActions).
+ * rules (WorkspacePublicNoteApprovalActions). Each copy of that message is
+ * kept as it is sent, and replaced by what happened once the note is
+ * decided, changed or deleted (WorkspacePublicNoteApprovalMessages,
+ * replaceChatMessages).
  *
  * A notification never fails, or holds back, the decision it follows: it
  * is sent after the decision is written, and a failure is logged.
@@ -240,6 +247,11 @@ export default class PublicNoteApprovalNotifications {
         chat: data.chat,
         sentBy: data.sentByUserId ? sentBy : null,
       });
+    // What its buttons carry, for the copies kept as they are sent.
+    const buttonValue: PublicNoteApprovalButtonValue | undefined =
+      workspaceMessage && data.chat
+        ? this.getChatButtonValue({ facts: data.facts, chat: data.chat })
+        : undefined;
 
     for (const userIdText of data.userIds) {
       try {
@@ -270,7 +282,14 @@ export default class PublicNoteApprovalNotifications {
             stepLabel: data.stepLabel,
             isTeam: !data.namedUserIds.includes(userIdText),
           }),
-          workspaceMessage: workspaceMessage,
+          workspaceMessage:
+            workspaceMessage && buttonValue
+              ? this.keptAsSent({
+                  message: workspaceMessage,
+                  value: buttonValue,
+                  userId: userId,
+                })
+              : workspaceMessage,
         });
 
         asked.push(userId);
@@ -425,19 +444,7 @@ export default class PublicNoteApprovalNotifications {
         isEdit: data.facts.isEdit,
         sentBy: data.sentBy,
         waitingFor: data.chat.waitingFor,
-        value: {
-          kind: data.chat.kind,
-          projectId: data.facts.projectId,
-          recordId: data.chat.recordId,
-          noteId: data.chat.noteId,
-          submittedAt: data.chat.submittedAt,
-          stepId: data.chat.stepId,
-          isFinal: data.chat.isFinal,
-          isEdit: data.facts.isEdit,
-          textDigest: WorkspacePublicNoteApproval.getTextDigest(
-            data.facts.note,
-          ),
-        },
+        value: this.getChatButtonValue({ facts: data.facts, chat: data.chat }),
       });
     } catch (error) {
       logger.error(
@@ -446,6 +453,88 @@ export default class PublicNoteApprovalNotifications {
       logger.error(error);
       return undefined;
     }
+  }
+
+  /*
+   * What the chat message's Approve and Reject carry: the note and its
+   * record, the round and the step it asks about, whether approving that
+   * step publishes the note, and a digest of the text it shows.
+   */
+  public static getChatButtonValue(data: {
+    facts: PublicNoteApprovalMessageFacts;
+    chat: PublicNoteApprovalChatAsk;
+  }): PublicNoteApprovalButtonValue {
+    // Required here, not imported: see getChatMessage.
+    const WorkspacePublicNoteApproval: typeof import("../Workspace/WorkspacePublicNoteApproval").default =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../Workspace/WorkspacePublicNoteApproval").default;
+
+    return {
+      kind: data.chat.kind,
+      projectId: data.facts.projectId,
+      recordId: data.chat.recordId,
+      noteId: data.chat.noteId,
+      submittedAt: data.chat.submittedAt,
+      stepId: data.chat.stepId,
+      isFinal: data.chat.isFinal,
+      isEdit: data.facts.isEdit,
+      textDigest: WorkspacePublicNoteApproval.getTextDigest(data.facts.note),
+    };
+  }
+
+  /*
+   * The chat message as one approver gets it: each copy of it is kept as it
+   * is sent (WorkspacePublicNoteApprovalMessages.keep), so it can be
+   * replaced once the note is decided.
+   */
+  public static keptAsSent(data: {
+    message: WorkspaceDirectMessage;
+    value: PublicNoteApprovalButtonValue;
+    userId: ObjectID;
+  }): WorkspaceDirectMessage {
+    return {
+      ...data.message,
+      onSent: async (sent: WorkspaceSentDirectMessage): Promise<void> => {
+        await this.getChatMessages().keep({
+          value: data.value,
+          userId: data.userId,
+          sent: sent,
+        });
+      },
+    };
+  }
+
+  /*
+   * Once a decision, a resubmission, an edit or a withdrawal of a note is
+   * written - or the note is gone - the chat copies of its approval message
+   * that no longer ask what is true are replaced by what happened
+   * (WorkspacePublicNoteApprovalMessages), in the background: this returns
+   * at once, and nothing of it ever fails, or holds back, what was written.
+   */
+  public static replaceChatMessages(data: {
+    kind: PublicNoteKind;
+    projectId: ObjectID;
+    noteId: ObjectID;
+  }): void {
+    try {
+      this.getChatMessages().replaceWhenOver(data);
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not start replacing the chat messages of a public note.",
+      );
+      logger.error(error);
+    }
+  }
+
+  /*
+   * What keeps the chat copies of approval messages and replaces them
+   * (WorkspacePublicNoteApprovalMessages) - for the notes' services too,
+   * which read a note's copies before a delete takes them with it.
+   */
+  public static getChatMessages(): typeof import("../Workspace/WorkspacePublicNoteApprovalMessages").default {
+    // Required here, not imported: see getChatMessage.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("../Workspace/WorkspacePublicNoteApprovalMessages").default;
   }
 
   /*

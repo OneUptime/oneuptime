@@ -32,12 +32,12 @@ flowchart LR
 | --- | --- | --- |
 | **Basic** | **Project**, **Labels** | [The project's details](#the-projects-details), [Labels](#labels) |
 | **Workspace** | **Slack**, **Microsoft Teams**, **Mattermost**, **Video Calls** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Video Calls](/docs/workspace-connections/video-calls) |
-| **Telemetry & APM** | **Ingestion Keys**, **Data Retention** | [Ingestion Keys](/docs/telemetry/ingestion-keys), [Data Retention](/docs/telemetry/data-retention) |
+| **Telemetry & APM** | **Ingestion Keys**, **Data Retention**, **Usage** | [Ingestion Keys](/docs/telemetry/ingestion-keys), [Data Retention](/docs/telemetry/data-retention), [Telemetry Usage](/docs/telemetry/usage) |
 | **Notifications** | **Notification Settings**, **Notification Logs**, **Mobile Apps** | [Notifications](#notifications) |
 | **AI** | **AI Features**, **LLM Providers**, **External MCP Servers**, **AI Credits**, **AI Logs**, **MCP Server** | [LLM Providers](/docs/ai/llm-provider), [External MCP Servers](/docs/ai/external-mcp-servers), [MCP Server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#cost-controls) |
 | **Advanced** | **Domains**, **API Keys**, **Feature Flags**, **Import from another tool** | [Custom domains](/docs/status-pages/branding-and-domains#custom-domains), [API keys](/docs/permissions/index#api-keys), [Feature flags](#feature-flags), [Moving from Opsgenie](/docs/moving-to-oneuptime/opsgenie) and the other moving guides |
 | **Security** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
-| **Billing and Invoices** | **Billing**, **Usage History**, **Invoices** | [Billing & Usage](/docs/configuration/billing) |
+| **Billing and Invoices** | **Billing**, **Invoices** | [Billing & Usage](/docs/configuration/billing) |
 | **Audit Logs** | **Audit Logs**, **Settings**, **Export** | [Audit Logs](/docs/configuration/audit-logs), [Audit Log Export](/docs/configuration/audit-log-export) |
 | **Danger Zone** | **Danger Zone** | [Delete the project](#delete-the-project) |
 

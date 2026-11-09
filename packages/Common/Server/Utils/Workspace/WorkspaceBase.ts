@@ -73,6 +73,27 @@ export interface WorkspaceMessageLocation {
   teamId?: string | undefined;
   // A Microsoft Teams group or personal chat, rather than a channel.
   isChat?: boolean | undefined;
+  /*
+   * Microsoft Teams only: the Bot Framework service a personal chat is at,
+   * for one the bot opened itself and never captured
+   * (sendDirectMessageToUserAsBot) - checked to be Microsoft's before it is
+   * used (MicrosoftTeamsServiceUrl).
+   */
+  serviceUrl?: string | undefined;
+}
+
+/*
+ * Where a direct message OneUptime sent landed, as an edit of it names it
+ * (updateMessage): the direct message - a Slack direct message channel
+ * (D..., which chat.update needs rather than the member's id), a Microsoft
+ * Teams personal chat, a Mattermost direct message channel - the id the chat
+ * gave the message, and for Microsoft Teams the Bot Framework service the
+ * chat is at.
+ */
+export interface WorkspaceDirectMessageLocation {
+  channelId: string;
+  messageId: string;
+  serviceUrl?: string | undefined;
 }
 
 export default class WorkspaceBase {
@@ -200,12 +221,16 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  /*
+   * Sends a direct message from the app to one account, and says where it
+   * landed - or null when the chat did not say - so it can be edited later.
+   */
   @CaptureSpan()
   public static sendDirectMessageToUser(_data: {
     authToken: string;
     workspaceUserId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
-  }): Promise<void> {
+  }): Promise<WorkspaceDirectMessageLocation | null | void> {
     throw new NotImplementedException();
   }
 

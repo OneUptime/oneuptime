@@ -93,10 +93,11 @@ Los servicios, los hosts, los clústeres de Kubernetes, los hosts de Docker y Po
 | Session Replays | 7 días, salvo que lo cambie | La política de grabación de la aplicación RUM: consulte [Gestionar aplicaciones](/docs/rum/applications#retención-de-la-reproducción-de-sesiones). |
 | Registros de monitores, una fila por comprobación | 1 día, salvo que lo cambie | En una instalación autoalojada, **Retención de registros del monitor (días)** en el Admin Dashboard |
 | Métricas de monitores, y las métricas que registran los SLO | 30 días, salvo que lo cambie | En una instalación autoalojada, **Retención de métricas del monitor (días)** en el Admin Dashboard |
+| [Uso de telemetría](/docs/telemetry/usage), un recuento por recurso, señal y día | 120 días, salvo que lo cambie | En una instalación autoalojada, **Retención del uso de telemetría (días)** en el Admin Dashboard |
 
 ## Lo que cuesta la retención
 
-- **En OneUptime Cloud**, la telemetría se factura por GB ingerido, y el precio por GB incluye 15 días de retención. Una retención más larga cuesta proporcionalmente más: 30 días cuestan el doble por GB que 15. Una retención más corta cuesta proporcionalmente menos, pero una retención de menos de 7 días se factura como 7 días. **Ajustes del proyecto → Facturación y facturas → Historial de uso** muestra, día a día, cuánto envió cada servicio y cuánto tiempo se conserva.
+- **En OneUptime Cloud**, la telemetría se factura por GB ingerido, y el precio por GB incluye 15 días de retención. Una retención más larga cuesta proporcionalmente más: 30 días cuestan el doble por GB que 15. Una retención más corta cuesta proporcionalmente menos, pero una retención de menos de 7 días se factura como 7 días. **Ajustes del proyecto → Telemetría y APM → Uso** muestra, día a día, cuánto envió cada servicio y cuánto tiempo se conserva.
 - **Si usa autoalojamiento**, la telemetría vive en ClickHouse, y la retención multiplica su disco. Consulte [Dimensionamiento](/docs/installation/sizing#la-retención-y-cómo-afecta-al-almacenamiento).
 
 La telemetría que no necesita no cuesta nada si nunca se guarda: los [Filtros de descarte y reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules) la descartan al llegar.

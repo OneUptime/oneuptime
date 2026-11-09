@@ -93,10 +93,11 @@ Tjenester, værter, Kubernetes-klynger, Docker- og Podman-værter, Docker Swarm-
 | Session Replays | 7 dage, medmindre det ændres | RUM-applikationens replaypolitik: se [Administrer applikationer](/docs/rum/applications#opbevaring-af-sessionsafspilninger). |
 | Monitorprotokoller, én række pr. tjek | 1 dag, medmindre det ændres | På en selvhostet installation, **Opbevaring af overvågningslogfiler (dage)** i Admin Dashboard |
 | Monitormetrikker, og de metrikker, SLO'er registrerer | 30 dage, medmindre det ændres | På en selvhostet installation, **Opbevaring af overvågningsmålinger (dage)** i Admin Dashboard |
+| [Telemetriforbrug](/docs/telemetry/usage), én optælling pr. ressource, signal og dag | 120 dage, medmindre det ændres | På en selvhostet installation, **Opbevaring af telemetriforbrug (dage)** i Admin Dashboard |
 
 ## Hvad opbevaring koster
 
-- **På OneUptime Cloud** faktureres telemetri pr. indtaget GB, og prisen pr. GB omfatter 15 dages opbevaring. Længere opbevaring koster forholdsmæssigt mere: 30 dage koster dobbelt så meget pr. GB som 15. Kortere opbevaring koster forholdsmæssigt mindre, men opbevaring under 7 dage faktureres som 7 dage. **Projektindstillinger → Fakturering og fakturaer → Brugshistorik** viser dag for dag, hvor meget hver tjeneste sendte, og hvor længe det opbevares.
+- **På OneUptime Cloud** faktureres telemetri pr. indtaget GB, og prisen pr. GB omfatter 15 dages opbevaring. Længere opbevaring koster forholdsmæssigt mere: 30 dage koster dobbelt så meget pr. GB som 15. Kortere opbevaring koster forholdsmæssigt mindre, men opbevaring under 7 dage faktureres som 7 dage. **Projektindstillinger → Telemetri og APM → Forbrug** viser dag for dag, hvor meget hver tjeneste sendte, og hvor længe det opbevares.
 - **Ved selvhosting** ligger telemetrien i ClickHouse, og opbevaringen ganger dens diskforbrug. Se [Dimensionering](/docs/installation/sizing#opbevaring-og-hvordan-den-påvirker-lageret).
 
 Telemetri, du ikke har brug for, koster intet, hvis den aldrig gemmes: [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules) kasserer den, når den ankommer.

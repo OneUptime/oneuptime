@@ -88,6 +88,35 @@ Slow leak 一律表示「在其長時間窗內消耗 10% 的預算」。在 30 �
 
 如果 SLO 已有一條同名的規則，或一條長時間窗相同的規則，無論其處於開啟還是關閉狀態，該規則都算已存在。因此，您重新命名或調整過的預設規則永遠不會被重複新增。如果不想要某條預設規則，又不希望提示繼續推薦它，請保留該規則並將其停用，而不是刪除。您需要建立 SLO 消耗率規則的權限。它新增的每條規則都會發布到 SLO 的動態中，並記錄在其稽核日誌中，就像您自己建立的規則一樣。
 
+### 一次為多個 SLO 新增推薦規則
+
+若要為多個 SLO 新增推薦規則，請從 SLO 清單著手，而不是逐一開啟每個 SLO 自己的頁面。
+
+:::steps
+#### 選取 SLO
+
+開啟 **SLOs**，選取要更新的 SLO。若要選取篩選器顯示的所有 SLO，請先選取整頁，再選取清單提供的全部相符項目。
+
+#### 選擇新增推薦規則
+
+開啟 **批次動作**，選擇 **新增推薦規則**。
+
+#### 檢查要新增的內容並確認
+
+在新增任何內容之前，確認對話方塊會統計所選 SLO 中有多少個會取得每條規則，這些規則已依各 SLO 自己的時間窗調整。如果時間窗不同的 SLO 取得的同一條規則形式不同，例如 7 天和 30 天 SLO 上的 Slow leak，確認對話方塊會列出每種形式及其臨界值、時間窗，以及取得該形式的 SLO。它也會說明有多少個 SLO 已擁有全部推薦規則，以及有多少個無法讀取。按一下 **新增推薦規則** 即可新增。
+:::
+
+每個 SLO 只會取得它缺少的規則，與它自己的 **消耗速率規則** 頁面新增時完全相同：以同樣的方式判斷規則是否已存在，並為每條規則發布一則動態、記錄一筆稽核日誌。結果會針對每個 SLO 說明是新增了規則、它已擁有全部推薦規則，還是未被變更以及原因，例如您無權變更的 SLO。某個 SLO 未被變更絕不會妨礙其他 SLO，對相同的 SLO 再次執行也不會新增任何內容。已封存的 SLO 不在清單中，也永遠不會被推薦這些規則，因為它們不會被評估：請先取消封存該 SLO。
+
+指令碼也可以使用專案的 [API 金鑰](/docs/api-reference/api-reference) 透過 API 完成同樣的操作。針對單一 SLO 的要求接收 `{ "serviceLevelObjectiveId": "..." }`，並在 `rules` 中傳回規則。批次要求接收 `{ "serviceLevelObjectiveIds": ["..."] }`，每個要求最多 100 個 SLO，並在 `results` 中依要求的順序為每個 SLO 傳回一個項目：
+
+| 要求 | 作用 |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | 列出 SLO 缺少的推薦規則。不寫入任何內容。 |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | 新增這些規則，並列出新增的內容。再次要求不會新增任何內容。 |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | 說明每個 SLO 缺少什麼：`Missing` 及缺少的規則、`NothingMissing`，或對您無權讀取的 SLO 傳回 `Refused`。不寫入任何內容。 |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | 逐一為每個 SLO 新增它缺少的規則：`Added` 及新增的規則、`NothingMissing`、`Refused`，或 `Failed` 及失敗前已新增的規則。再次要求只會新增仍然缺少的內容。 |
+
 ## 建立或編輯規則
 
 您需要建立 SLO 消耗率規則的權限。

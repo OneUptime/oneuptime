@@ -93,10 +93,11 @@ Servizi, host, cluster Kubernetes, host Docker e Podman, cluster Docker Swarm, P
 | Session Replay | 7 giorni, salvo modifiche | La policy di registrazione dell'applicazione RUM: vedete [Gestire le applicazioni](/docs/rum/applications#conservazione-della-riproduzione-delle-sessioni). |
 | Log dei monitor, una riga per controllo | 1 giorno, salvo modifiche | Su un'installazione self-hosted, **Conservazione dei log del monitor (giorni)** nell'Admin Dashboard |
 | Metriche dei monitor, e le metriche che registrano gli SLO | 30 giorni, salvo modifiche | Su un'installazione self-hosted, **Conservazione delle metriche del monitor (giorni)** nell'Admin Dashboard |
+| [Utilizzo della telemetria](/docs/telemetry/usage), un conteggio per risorsa, segnale e giorno | 120 giorni, salvo modifiche | Su un'installazione self-hosted, **Conservazione dell'utilizzo della telemetria (giorni)** nell'Admin Dashboard |
 
 ## Quanto costa la conservazione
 
-- **Su OneUptime Cloud**, la telemetria si paga per GB acquisito, e il prezzo per GB include 15 giorni di conservazione. Una conservazione più lunga costa proporzionalmente di più: 30 giorni costano il doppio per GB rispetto a 15. Una conservazione più breve costa proporzionalmente di meno, ma una conservazione inferiore a 7 giorni si paga come 7 giorni. **Impostazioni del progetto → Fatturazione e fatture → Cronologia utilizzo** mostra, giorno per giorno, quanto ha inviato ogni servizio e per quanto tempo viene conservato.
+- **Su OneUptime Cloud**, la telemetria si paga per GB acquisito, e il prezzo per GB include 15 giorni di conservazione. Una conservazione più lunga costa proporzionalmente di più: 30 giorni costano il doppio per GB rispetto a 15. Una conservazione più breve costa proporzionalmente di meno, ma una conservazione inferiore a 7 giorni si paga come 7 giorni. **Impostazioni del progetto → Telemetria e APM → Utilizzo** mostra, giorno per giorno, quanto ha inviato ogni servizio e per quanto tempo viene conservato.
 - **In self-hosting**, la telemetria vive in ClickHouse, e la conservazione moltiplica il suo disco. Vedete [Dimensionamento](/docs/installation/sizing#la-conservazione-e-il-suo-effetto-sullo-storage).
 
 La telemetria che non vi serve non costa nulla se non viene mai salvata: i [Filtri di scarto e regole di mascheramento](/docs/telemetry/drop-filters-and-scrub-rules) la scartano all'arrivo.

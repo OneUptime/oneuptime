@@ -21,7 +21,9 @@ import PublicNoteApprovalFeed, {
   PublicNoteApprovalWaitingFor,
 } from "../Notes/PublicNoteApprovalFeed";
 import TokenSigningKey from "../TokenSigningKey";
+import type { WorkspaceSentDirectMessage } from "../../Services/WorkspaceUserNotificationService";
 import SlackActionType from "./Slack/Actions/ActionTypes";
+import type { WorkspaceAnswer } from "./WorkspaceActionAnswers";
 import {
   WorkspaceConnectRequestAgainKind,
   WorkspacePendingActionKind,
@@ -155,6 +157,21 @@ export interface PublicNoteApprovalAsk {
 export interface WorkspaceDirectMessage {
   messageBlocks: Array<WorkspaceMessageBlock>;
   notificationText: string;
+  /*
+   * Told where each copy landed, to keep it until the note is decided
+   * (WorkspacePublicNoteApprovalMessages): one approver's own.
+   */
+  onSent?: ((sent: WorkspaceSentDirectMessage) => Promise<void>) | undefined;
+}
+
+/*
+ * What an approval message says in its place once the note is no longer
+ * what it asked about (WorkspacePublicNoteApprovalActions.getReplacement):
+ * what happened, and the note's record in OneUptime when it can be named.
+ */
+export interface PublicNoteApprovalReplacement {
+  answer: WorkspaceAnswer;
+  notesUrl?: string | undefined;
 }
 
 export default class WorkspacePublicNoteApproval {
@@ -497,6 +514,57 @@ export default class WorkspacePublicNoteApproval {
     messageBlocks.push(onApprove, buttonsBlock);
 
     return { messageBlocks: messageBlocks, notificationText: subject };
+  }
+
+  /*
+   * An approval message, replaced once its note is no longer what it asked
+   * about (WorkspacePublicNoteApprovalMessages): what happened, in the words
+   * a late press gets, and View in OneUptime - no Approve, no Reject:
+   *
+   *   ✅ This public note on [Incident INC-42](...) was approved by **Bob**
+   *   at 10:42. It is published on status pages.
+   *
+   *   [View in OneUptime]
+   *
+   * Each chat holds it to what it takes as it does every message: Slack at
+   * SlackUtil.MARKDOWN_MAX_LENGTH, a Teams card by its budget
+   * (MicrosoftTeamsMessageSize), a Mattermost post at its longest.
+   */
+  public static getReplacementMessage(
+    replacement: PublicNoteApprovalReplacement,
+  ): WorkspaceDirectMessage {
+    const said: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: replacement.answer.markdown,
+    };
+
+    const messageBlocks: Array<WorkspaceMessageBlock> = [said];
+
+    const notesUrl: URL | null = WorkspacePublicNoteApproval.toUrl(
+      replacement.notesUrl || "",
+    );
+
+    if (notesUrl) {
+      const buttons: WorkspacePayloadButtons = {
+        _type: "WorkspacePayloadButtons",
+        buttons: [
+          {
+            _type: "WorkspaceMessagePayloadButton",
+            title: getViewInProductTitle(),
+            value: "",
+            actionId: SlackActionType.OpenInOneUptime,
+            url: notesUrl,
+          },
+        ],
+      };
+
+      messageBlocks.push(buttons);
+    }
+
+    return {
+      messageBlocks: messageBlocks,
+      notificationText: replacement.answer.text,
+    };
   }
 
   // "Approval needed: public note on Incident INC-42 - Checkout is down".

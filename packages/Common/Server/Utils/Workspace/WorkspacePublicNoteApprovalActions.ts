@@ -49,6 +49,7 @@ import WorkspaceMessageTime from "./WorkspaceMessageTime";
 import WorkspacePublicNoteApproval, {
   PUBLIC_NOTE_APPROVAL_CHAT_WORDS,
   PublicNoteApprovalButtonValue,
+  PublicNoteApprovalReplacement,
 } from "./WorkspacePublicNoteApproval";
 
 /*
@@ -109,6 +110,17 @@ export enum PublicNoteApprovalPressOutcome {
 export interface PublicNoteApprovalPressAnswer {
   outcome: PublicNoteApprovalPressOutcome;
   answer: WorkspaceAnswer;
+}
+
+// Whom news of a note is said to.
+export enum PublicNoteApprovalNewsFor {
+  // A press that came too late: it decided nothing, and is told so.
+  Press = "Press",
+  /*
+   * The message that asked, replaced once the note is decided
+   * (WorkspacePublicNoteApprovalMessages): what happened, the same words.
+   */
+  Message = "Message",
 }
 
 // What Reject opens: the form, or the answer instead of it.
@@ -436,6 +448,52 @@ export default class WorkspacePublicNoteApprovalActions {
   }
 
   /*
+   * What a message that asked about a note (its buttons' value) says in its
+   * place now - what happened, in the words a late press gets
+   * (getLateAnswer, said for the message), and the note's record in
+   * OneUptime - or null while the message still asks: the note waits, in
+   * the round and for the step it asked about, with the text it showed. A
+   * note that is gone was deleted, on its own or with its record.
+   */
+  @CaptureSpan()
+  public static async getReplacement(
+    value: PublicNoteApprovalButtonValue,
+  ): Promise<PublicNoteApprovalReplacement | null> {
+    const pressed: PressedNote | null =
+      await WorkspacePublicNoteApprovalActions.readNote(value);
+    const record: PublicNoteApprovalRecordInfo | null =
+      await WorkspacePublicNoteApprovalActions.readRecord({
+        value: value,
+        pressed: pressed,
+      });
+
+    if (!pressed) {
+      // Deleted on its own - its record still names it - or with its record.
+      const deleted: MarkdownText = record?.label
+        ? mdText`🗑️ This public note on ${WorkspacePublicNoteApprovalActions.getRecordLink(record)} was deleted.`
+        : mdText`🗑️ This public note was deleted.`;
+
+      return {
+        answer: {
+          markdown: deleted.toString(),
+          text: "This public note was deleted",
+        },
+        notesUrl: record?.notesUrl,
+      };
+    }
+
+    const answer: WorkspaceAnswer | null =
+      await WorkspacePublicNoteApprovalActions.getLateAnswer({
+        value: value,
+        pressed: pressed,
+        newsFor: PublicNoteApprovalNewsFor.Message,
+        record: record,
+      });
+
+    return answer ? { answer: answer, notesUrl: record?.notesUrl } : null;
+  }
+
+  /*
    * The press, in the project's workspace logs: "approve_public_note",
    * "reject_public_note", with the record the note is on. Best effort.
    */
@@ -534,10 +592,15 @@ export default class WorkspacePublicNoteApprovalActions {
   // The note's record, as answers name and link it; null when it cannot be read.
   private static async readRecord(data: {
     value: PublicNoteApprovalButtonValue;
-    pressed: PressedNote;
+    // The note as it is now; without it, the record is read by its kind's host.
+    pressed?: PressedNote | null | undefined;
   }): Promise<PublicNoteApprovalRecordInfo | null> {
     try {
-      return await data.pressed.host.getRecord({
+      const host: PublicNoteApprovalHost<BaseModel> =
+        data.pressed?.host ||
+        WorkspacePublicNoteApprovalActions.getHost(data.value.kind);
+
+      return await host.getRecord({
         projectId: data.value.projectId,
         parentId: data.value.recordId,
       });
@@ -583,6 +646,7 @@ export default class WorkspacePublicNoteApprovalActions {
       await WorkspacePublicNoteApprovalActions.getLateAnswer({
         value: data.value,
         pressed: data.pressed,
+        newsFor: PublicNoteApprovalNewsFor.Press,
       });
 
     return late ? WorkspacePublicNoteApprovalActions.news(late) : null;
@@ -638,14 +702,25 @@ export default class WorkspacePublicNoteApprovalActions {
    * says, as news - or null while it still is: waiting, in the same round
    * of approval, for the same step, which still publishes it or still does
    * not, with the same text.
+   *
+   * The same news, said for a message rather than a press
+   * (PublicNoteApprovalNewsFor.Message), is what the message that asked
+   * says in its place once the note is decided (getReplacement): the same
+   * words, but nothing a press is told - it was "already" decided, "so
+   * nothing was decided" - and, when the note was changed or sent again,
+   * who it waits for now instead of "read it before you decide".
    */
   private static async getLateAnswer(data: {
     value: PublicNoteApprovalButtonValue;
     pressed: PressedNote;
+    newsFor: PublicNoteApprovalNewsFor;
+    // The note's record, when it was read already; read here when not.
+    record?: PublicNoteApprovalRecordInfo | null | undefined;
   }): Promise<WorkspaceAnswer | null> {
     const { value, pressed } = data;
     const round: PublicNoteApprovalRound | null = pressed.round;
     const isSameRound: boolean = round?.submittedAt === value.submittedAt;
+    const isPress: boolean = data.newsFor === PublicNoteApprovalNewsFor.Press;
     // What the message asked about: an edit of a published note, or a new note.
     const isEdit: boolean = value.isEdit;
     const record: MarkdownText =
@@ -653,6 +728,14 @@ export default class WorkspacePublicNoteApprovalActions {
     const subject: MarkdownText = isEdit
       ? mdText`The edit of this public note on ${record}`
       : mdText`This public note on ${record}`;
+    // What only a press is told: it came after the decision, and made none.
+    const already: MarkdownText = isPress
+      ? mdText` already`
+      : FeedMarkdown.empty();
+    const alreadyText: string = isPress ? " already" : "";
+    const nothingDecided: MarkdownText = isPress
+      ? mdText`, so nothing was decided`
+      : FeedMarkdown.empty();
 
     if (!PublicNoteApproval.isWaiting(pressed.state)) {
       // Approved by its last step, in the round the message asked about.
@@ -666,7 +749,7 @@ export default class WorkspacePublicNoteApprovalActions {
 
         return {
           markdown:
-            mdText`✅ ${subject} was already approved${await WorkspacePublicNoteApprovalActions.getByAndWhen(
+            mdText`✅ ${subject} was${already} approved${await WorkspacePublicNoteApprovalActions.getByAndWhen(
               {
                 userId: lastApproval?.userId,
                 at: lastApproval?.at || round.publishedAt,
@@ -676,7 +759,7 @@ export default class WorkspacePublicNoteApprovalActions {
                 ? mdText`Status pages show the edited note.`
                 : mdText`It is published on status pages.`
             }`.toString(),
-          text: "This public note was already approved",
+          text: `This public note was${alreadyText} approved`,
         };
       }
 
@@ -687,7 +770,7 @@ export default class WorkspacePublicNoteApprovalActions {
       ) {
         return {
           markdown:
-            mdText`↩️ ${subject} was already rejected${await WorkspacePublicNoteApprovalActions.getByAndWhen(
+            mdText`↩️ ${subject} was${already} rejected${await WorkspacePublicNoteApprovalActions.getByAndWhen(
               {
                 userId: round.rejection.userId,
                 at: round.rejection.at,
@@ -697,31 +780,54 @@ export default class WorkspacePublicNoteApprovalActions {
                 ? mdText`Status pages keep showing the note as it was approved.`
                 : mdText`It is not published.`
             }`.toString(),
-          text: "This public note was already rejected",
+          text: `This public note was${alreadyText} rejected`,
         };
       }
 
-      // Published without approval, its edit withdrawn, or sent again and decided.
+      /*
+       * Published by a person once approval was turned off: no round is left
+       * on it - and for an edit, the text it shows is the edit's.
+       */
+      if (
+        pressed.state === PublicNoteApprovalState.Published &&
+        !round &&
+        (!isEdit || WorkspacePublicNoteApprovalActions.isSameText(data))
+      ) {
+        return {
+          markdown:
+            mdText`📄 ${subject} was published without approval${nothingDecided}: public notes no longer need approval.`.toString(),
+          text: "This public note was published without approval",
+        };
+      }
+
+      // Its edit withdrawn, or sent again and decided.
       return {
         markdown:
-          mdText`${subject} no longer waits for approval, so nothing was decided.`.toString(),
+          mdText`${subject} no longer waits for approval${nothingDecided}.`.toString(),
         text: "This public note no longer waits for approval",
       };
     }
 
-    const readAgain: MarkdownText = mdText`Read it as it is now in ${ProductBrandingText.getProductName()} before you decide.`;
+    /*
+     * After a change: a press is asked to read the note before it decides; a
+     * message says who the note waits for now - maybe its reader, in a new
+     * message.
+     */
+    const afterChange: MarkdownText = isPress
+      ? mdText`Read it as it is now in ${ProductBrandingText.getProductName()} before you decide.`
+      : await WorkspacePublicNoteApprovalActions.getWaitingForMarkdown(pressed);
 
     // Sent for approval again since: edited, or rejected and sent as it was.
     if (!isSameRound) {
       return WorkspacePublicNoteApprovalActions.isSameText(data)
         ? {
             markdown:
-              mdText`📝 ${subject} was sent for approval again after you were asked about it, so nothing was decided. ${readAgain}`.toString(),
+              mdText`📝 ${subject} was sent for approval again after you were asked about it${nothingDecided}. ${afterChange}`.toString(),
             text: "This public note was sent for approval again",
           }
         : {
             markdown:
-              mdText`📝 ${subject} changed after you were asked about it, so nothing was decided. ${readAgain}`.toString(),
+              mdText`📝 ${subject} changed after you were asked about it${nothingDecided}. ${afterChange}`.toString(),
             text: "This public note changed after you were asked about it",
           };
     }
@@ -747,7 +853,7 @@ export default class WorkspacePublicNoteApprovalActions {
 
       return {
         markdown:
-          mdText`📝 ${subject} changed after you were asked about it, so nothing was decided. ${readAgain}`.toString(),
+          mdText`📝 ${subject} changed after you were asked about it${nothingDecided}. ${afterChange}`.toString(),
         text: "This public note changed after you were asked about it",
       };
     }
@@ -779,13 +885,13 @@ export default class WorkspacePublicNoteApprovalActions {
 
       return {
         markdown:
-          mdText`✅ ${subject} was already approved for ${stepName}${await WorkspacePublicNoteApprovalActions.getByAndWhen(
+          mdText`✅ ${subject} was${already} approved for ${stepName}${await WorkspacePublicNoteApprovalActions.getByAndWhen(
             {
               userId: approvedStep.userId,
               at: approvedStep.at,
             },
           )}. ${waitingFor}`.toString(),
-        text: "This public note was already approved for this step",
+        text: `This public note was${alreadyText} approved for this step`,
       };
     }
 
@@ -794,7 +900,7 @@ export default class WorkspacePublicNoteApprovalActions {
         isEdit
           ? mdText`The approval steps of the edit of this public note on ${record}`
           : mdText`The approval steps of this public note on ${record}`
-      } changed after you were asked about it, so nothing was decided. ${waitingFor}`.toString(),
+      } changed after you were asked about it${nothingDecided}. ${waitingFor}`.toString(),
       text: "The approval steps of this public note changed",
     };
   }
@@ -980,6 +1086,7 @@ export default class WorkspacePublicNoteApprovalActions {
         await WorkspacePublicNoteApprovalActions.getLateAnswer({
           value: data.value,
           pressed: pressed,
+          newsFor: PublicNoteApprovalNewsFor.Press,
         });
 
       return late
@@ -1032,21 +1139,30 @@ export default class WorkspacePublicNoteApprovalActions {
   private static async getRecordMarkdown(data: {
     value: PublicNoteApprovalButtonValue;
     pressed: PressedNote;
+    // The record, when it was read already.
+    record?: PublicNoteApprovalRecordInfo | null | undefined;
   }): Promise<MarkdownText> {
     const record: PublicNoteApprovalRecordInfo | null =
-      await WorkspacePublicNoteApprovalActions.readRecord(data);
-
-    if (record?.label && record.notesUrl) {
-      return FeedMarkdown.link(record.label, record.notesUrl);
-    }
+      data.record !== undefined
+        ? data.record
+        : await WorkspacePublicNoteApprovalActions.readRecord(data);
 
     if (record?.label) {
-      return mdText`${record.label}`;
+      return WorkspacePublicNoteApprovalActions.getRecordLink(record);
     }
 
     return mdText`the ${WorkspaceMemberActions.getNoun(
       WorkspacePublicNoteApproval.getEventType(data.value.kind),
     )}`;
+  }
+
+  // "[Incident INC-42](its public notes)", or its name when it has no link.
+  private static getRecordLink(
+    record: PublicNoteApprovalRecordInfo,
+  ): MarkdownText {
+    return record.notesUrl
+      ? FeedMarkdown.link(record.label, record.notesUrl)
+      : mdText`${record.label}`;
   }
 
   // "It waits for step 2 of 2 (Legal): Carol." - the feed's words.

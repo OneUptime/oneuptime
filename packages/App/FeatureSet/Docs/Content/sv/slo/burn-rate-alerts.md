@@ -88,6 +88,35 @@ SLO:er som skapades innan Slow leak fanns har bara Fast burn och Slow burn: en u
 
 En regel anses redan finnas när SLO:et har en regel med samma namn, eller en med samma långa fönster, oavsett om den är påslagen eller avstängd. En standardregel som du har bytt namn på eller justerat läggs alltså aldrig till två gånger. Vill du inte ha en av standardreglerna, behåll då regeln och inaktivera den i stället för att ta bort den, så erbjuder notisen den inte längre. Du behöver behörighet att skapa SLO-regler för förbrukningstakt. Varje regel som den lägger till publiceras i SLO:ets flöde och registreras i dess granskningsloggar, precis som en regel som du skapar själv.
 
+### Lägg till dem i många SLO:er på en gång
+
+Vill du ge många SLO:er de rekommenderade reglerna utgår du från SLO-listan i stället för från varje SLO:s egen sida.
+
+:::steps
+#### Markera SLO:erna
+
+Öppna **SLOs** och markera de SLO:er som ska uppdateras. Vill du ta med varje SLO som ett filter visar markerar du hela sidan och sedan alla träffar som listan erbjuder.
+
+#### Välj Lägg till rekommenderade regler
+
+Öppna **Massåtgärder** och välj **Lägg till rekommenderade regler**.
+
+#### Kontrollera vad som läggs till och bekräfta
+
+Innan något läggs till visar bekräftelsen hur många av de markerade SLO:erna som får varje regel, anpassad till deras egna fönster. När SLO:er med olika fönster får en regel i olika varianter, till exempel Slow leak på ett SLO med ett fönster på 7 dagar och på ett med 30 dagar, listar den varje variant med dess tröskel, dess fönster och de SLO:er som får den. Den anger också hur många som redan har alla rekommenderade regler och hur många som inte kunde läsas. Klicka på **Lägg till rekommenderade regler** för att lägga till dem.
+:::
+
+Varje SLO får bara de regler som det saknar, precis som dess egen sida **Förbrukningstaktsregler** skulle lägga till dem: med samma kontroll av vad som anses redan finnas, och med en post i flödet och en post i granskningsloggarna för varje regel. Resultatet visar för varje SLO om regler lades till, om det redan hade alla rekommenderade regler eller om det inte ändrades och i så fall varför, till exempel för att det är ett SLO som du inte får ändra. Ett SLO som inte ändras stoppar aldrig de andra, och kör du åtgärden igen på samma SLO:er läggs inget till. Arkiverade SLO:er finns inte i listan och erbjuds aldrig reglerna, eftersom de inte utvärderas: avarkivera ett SLO först.
+
+Skript kan göra samma sak via API:et, med en [API-nyckel](/docs/api-reference/api-reference) för projektet. Förfrågningarna för ett enskilt SLO tar `{ "serviceLevelObjectiveId": "..." }` och svarar med reglerna i `rules`. Massförfrågningarna tar `{ "serviceLevelObjectiveIds": ["..."] }`, högst 100 SLO:er per förfrågan, och svarar med en post för varje SLO i `results`, i den ordning de efterfrågades:
+
+| Förfrågan | Vad den gör |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | Listar de rekommenderade regler som SLO:et saknar. Den skriver ingenting. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | Lägger till dem och listar vad den lade till. Frågar du igen läggs inget till. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | Anger vad varje SLO saknar: `Missing` med reglerna, `NothingMissing`, eller `Refused` för ett SLO som du inte får läsa. Den skriver ingenting. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | Lägger till det som varje SLO saknar, ett SLO i taget: `Added` med reglerna, `NothingMissing`, `Refused`, eller `Failed` med de regler som lades till innan det misslyckades. Frågar du igen läggs bara det till som fortfarande saknas. |
+
 ## Skapa eller redigera en regel
 
 Du behöver behörighet att skapa SLO-regler för förbrukningstakt.

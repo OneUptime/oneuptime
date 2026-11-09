@@ -8,6 +8,10 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import {
+  TELEMETRY_USAGE_MAX_RETENTION_IN_DAYS,
+  TELEMETRY_USAGE_MIN_RETENTION_IN_DAYS,
+} from "Common/Types/Telemetry/TelemetryUsage";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -122,6 +126,60 @@ const Settings: FunctionComponent = (): ReactElement => {
               placeholder: "30 (default)",
               description:
                 "Number of days to retain monitor metrics, SLO metrics and session replay budget metrics. Metrics older than this will be automatically deleted.",
+            },
+          ],
+          modelId: ObjectID.getZeroObjectID(),
+        }}
+      />
+
+      {/*
+       * How long every project's daily telemetry usage is kept (Project
+       * Settings > Telemetry & APM > Usage, and Telemetry Usage here), with
+       * billing on or off. Never below 30 days: metering counts the last
+       * week's days that have no usage yet, so a day deleted inside that
+       * week would be counted again (getTelemetryUsageRetentionInDays).
+       */}
+      <CardModelDetail
+        name="Telemetry Usage Retention Settings"
+        cardProps={{
+          title: t("pages.settings.dataRetention.usageCardTitle"),
+          description: t("pages.settings.dataRetention.usageCardDescription"),
+        }}
+        isEditable={true}
+        editButtonText={t("pages.settings.dataRetention.usageEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.dataRetention.usageEditButton")}
+        formFields={[
+          {
+            field: {
+              telemetryUsageRetentionInDays: true,
+            },
+            title: "Telemetry Usage Retention (Days)",
+            fieldType: FormFieldSchemaType.PositiveNumber,
+            required: false,
+            // The bounds and the default of getTelemetryUsageRetentionInDays.
+            description:
+              "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.",
+            validation: {
+              minValue: TELEMETRY_USAGE_MIN_RETENTION_IN_DAYS,
+              maxValue: TELEMETRY_USAGE_MAX_RETENTION_IN_DAYS,
+            },
+            placeholder: "120",
+          },
+        ]}
+        modelDetailProps={{
+          modelType: GlobalConfig,
+          id: "model-detail-global-config-telemetry-usage-retention",
+          fields: [
+            {
+              field: {
+                telemetryUsageRetentionInDays: true,
+              },
+              fieldType: FieldType.Number,
+              title: "Telemetry Usage Retention (Days)",
+              placeholder: "120 (default)",
+              description:
+                "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.",
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

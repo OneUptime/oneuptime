@@ -63,7 +63,8 @@
     "apiKey": "کلید API",
     "more": "بیشتر",
     "sendEmail": "ارسال ایمیل",
-    "logout": "خروج"
+    "logout": "خروج",
+    "telemetryUsage": "مصرف تله‌متری"
   },
   "topAlert": {
     "title": "داشبورد مدیریت OneUptime",
@@ -131,7 +132,8 @@
     "settingsApiIntegrations": "API و یکپارچه‌سازی‌ها",
     "settingsApiKey": "کلید API",
     "moreCommunication": "ارتباطات",
-    "moreSendEmail": "ارسال ایمیل"
+    "moreSendEmail": "ارسال ایمیل",
+    "telemetryUsage": "مصرف تله‌متری"
   },
   "pages": {
     "users": {
@@ -581,7 +583,10 @@
         "logEditButton": "ویرایش تنظیمات",
         "metricCardTitle": "نگهداری متریک مانیتور",
         "metricCardDescription": "تعیین کنید متریک‌های مانیتور پیش از حذف خودکار چه مدت نگهداری شوند.",
-        "metricEditButton": "ویرایش تنظیمات"
+        "metricEditButton": "ویرایش تنظیمات",
+        "usageCardTitle": "نگهداری مصرف تله‌متری",
+        "usageCardDescription": "مصرف روزانه تله‌متری هر پروژه چه مدت نگه داشته می‌شود، چه صورت‌حساب فعال باشد چه نباشد.",
+        "usageEditButton": "ویرایش نگهداری مصرف تله‌متری"
       },
       "apiKey": {
         "cardTitle": "تنظیمات کلید API ارشد",
@@ -596,6 +601,13 @@
         "cardDescription": "ارائه‌دهندگان LLM سراسری برای قابلیت‌های هوش مصنوعی در دسترس همه پروژه‌ها هستند. OpenAI، Azure OpenAI، Anthropic، Groq، Mistral، Ollama یا سایر ارائه‌دهندگان LLM را پیکربندی کنید.",
         "noItems": "هیچ ارائه‌دهنده LLM پیکربندی نشده است. برای فعال کردن قابلیت‌های هوش مصنوعی یک ارائه‌دهنده LLM اضافه کنید."
       }
+    },
+    "telemetryUsage": {
+      "title": "مصرف تله‌متری",
+      "cardTitle": "مصرف تله‌متری بر اساس پروژه",
+      "cardDescription": "هر پروژه چه مقدار تله‌متری فرستاده، پرمصرف‌ترین‌ها اول. هر روز پس از پایانش به وقت UTC شمرده می‌شود.",
+      "emptyTitle": "هنوز مصرف تله‌متری‌ای نیست",
+      "emptyDescription": "در این بازه هنوز مصرف هیچ پروژه‌ای شمرده نشده است. تله‌متری هر روز پس از پایان آن روز به وقت UTC شمرده می‌شود، تا حدود 08:00 UTC روز بعد."
     }
   },
   "Basic": "پایه",
@@ -1859,6 +1871,60 @@
   "This list has default columns for everyone in this project.": "این فهرست برای همه در این پروژه ستون‌های پیش‌فرض دارد.",
   "Remove default": "حذف پیش‌فرض",
   "Reset to project default": "بازنشانی به پیش‌فرض پروژه",
+  "Telemetry Usage": "مصرف تله‌متری",
+  "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.": "این پروژه هر روز چه مقدار تله‌متری فرستاده، بر اساس سیگنال. هر روز پس از پایانش به وقت UTC شمرده می‌شود.",
+  "Usage by Resource": "مصرف بر اساس منبع",
+  "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.": "کدام سرویس‌ها و منابع تله‌متری را فرستاده‌اند، پرمصرف‌ترین‌ها اول، و هر کدام آن را چه مدت نگه می‌دارد.",
+  "Resource": "منبع",
+  "Resources": "منابع",
+  "Total": "کل",
+  "Cost": "هزینه",
+  "Retention": "نگهداری",
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.": "تله‌متری این منبع چه مدت نگه داشته می‌شود، آن‌طور که در تازه‌ترین روز بازه شمرده شده است.",
+  "Range": "بازه زمانی",
+  "Last {{count}} days": "{{count}} روز گذشته",
+  "Last {{count}} days_one": "{{count}} روز گذشته",
+  "No telemetry usage yet": "هنوز مصرف تله‌متری‌ای نیست",
+  "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.": "تله‌متری هر روز پس از پایان آن روز به وقت UTC شمرده می‌شود، تا حدود 08:00 UTC روز بعد. مصرف امروز فردا نمایش داده می‌شود.",
+  "No telemetry usage in this range": "در این بازه مصرف تله‌متری‌ای نیست",
+  "The newest day with usage is {{day}}. Choose a longer range to see it.": "تازه‌ترین روزی که مصرف دارد {{day}} است. برای دیدنش بازه طولانی‌تری انتخاب کنید.",
+  "Logs": "لاگ‌ها",
+  "Metrics": "متریک‌ها",
+  "Traces": "ترِیس‌ها",
+  "Profiles": "پروفایل‌ها",
+  "Session Replays": "بازپخش‌های نشست",
+  "Security Events": "رویدادهای امنیتی",
+  "Spans, and the exceptions recorded with them.": "اسپن‌ها، و استثناهایی که همراهشان ثبت شده‌اند.",
+  "Profiles, and the samples recorded with them.": "پروفایل‌ها، و نمونه‌هایی که همراهشان ثبت شده‌اند.",
+  "{{size}} GB": "{{size}} GB",
+  "{{size}} MB": "{{size}} MB",
+  "{{size}} KB": "{{size}} KB",
+  "{{amount}} USD": "{{amount}} USD",
+  "Session replays: {{days}}": "بازپخش نشست‌ها: {{days}}",
+  "Service": "سرویس",
+  "RUM Application": "برنامه RUM",
+  "Docker Host": "میزبان Docker",
+  "Podman Host": "میزبان Podman",
+  "Kubernetes Cluster": "خوشه Kubernetes",
+  "Proxmox Cluster": "خوشه Proxmox",
+  "OpenStack Cloud": "ابر OpenStack",
+  "Ceph Cluster": "خوشه Ceph",
+  "Storage Array": "آرایه ذخیره‌سازی",
+  "Docker Swarm Cluster": "خوشه Docker Swarm",
+  "vCenter": "vCenter",
+  "IoT Fleet": "ناوگان IoT",
+  "Serverless Function": "تابع بدون سرور",
+  "Cloud Resource": "منبع ابری",
+  "Database": "پایگاه داده",
+  "Network Device": "دستگاه شبکه",
+  "Unknown Service": "سرویس ناشناخته",
+  "Day": "روز",
+  "Data Ingested (in GB)": "داده دریافت‌شده (به گیگابایت)",
+  "How much telemetry each project sends, heaviest first.": "هر پروژه چه مقدار تله‌متری می‌فرستد، پرمصرف‌ترین‌ها اول.",
+  "Telemetry Usage Retention (Days)": "نگهداری مصرف تله‌متری (روز)",
+  "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "تعداد روزهایی که مصرف روزانه تله‌متری هر پروژه نگه داشته می‌شود، از 30 تا 1095. برای 120 روز خالی بگذارید.",
+  "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "تعداد روزهای نگهداری مصرف روزانه تله‌متری هر پروژه. مصرف قدیمی‌تر از این حذف می‌شود.",
+  "Scheduled Maintenance": "تعمیر و نگهداری زمان‌بندی‌شده",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",
