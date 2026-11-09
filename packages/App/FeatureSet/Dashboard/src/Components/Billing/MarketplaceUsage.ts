@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
 import CloudMarketplace, {
   CloudMarketplaceUtil,
@@ -104,7 +105,7 @@ export const formatMonth: (
   }
 
   try {
-    return new Intl.DateTimeFormat(locale, {
+    return new Intl.DateTimeFormat(getNumberLocale(locale), {
       month: "long",
       year: "numeric",
       timeZone: "UTC",

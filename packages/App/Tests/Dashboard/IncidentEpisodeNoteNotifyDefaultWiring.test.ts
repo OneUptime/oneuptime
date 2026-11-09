@@ -358,7 +358,7 @@ describe("the episode notify checkbox descriptions are translated", () => {
 
   test("covers every dashboard locale", () => {
     expect(localeFiles).toContain("en.json");
-    expect(localeFiles.length).toBe(17);
+    expect(localeFiles.length).toBe(18);
   });
 
   test("the episode description is its own text, not the incident's", () => {

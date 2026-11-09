@@ -451,8 +451,8 @@ describe("the empty states' words are translated everywhere", () => {
     "Read the setup guide",
   ];
 
-  test("there are seventeen locales", () => {
-    expect(Object.keys(locales)).toHaveLength(17);
+  test("there are eighteen locales", () => {
+    expect(Object.keys(locales)).toHaveLength(18);
   });
 
   test.each(KEYS)("%s", (key: string) => {

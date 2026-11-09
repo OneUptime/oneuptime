@@ -554,8 +554,8 @@ function getUsedKeys(): Array<string> {
 }
 
 describe("the verification copy exists in every Accounts locale", () => {
-  test("all seventeen locales are checked", () => {
-    expect(localeCodes).toHaveLength(17);
+  test("all eighteen locales are checked", () => {
+    expect(localeCodes).toHaveLength(18);
     expect(localeCodes).toContain("en");
   });
 

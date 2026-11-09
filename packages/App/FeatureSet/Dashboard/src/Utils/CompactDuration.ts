@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { EventDurationPart } from "./EventDuration";
 import { formatDurationInMinutes } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
 
@@ -63,14 +64,14 @@ export function formatCompactDurationInMinutes(
     const words: Array<string> = [];
 
     for (const part of getCompactDurationParts(minutes)) {
-      const word: string = new Intl.NumberFormat(language, {
+      const word: string = new Intl.NumberFormat(getNumberLocale(language), {
         style: "unit",
         unit: part.unit,
         unitDisplay: "short",
       } as Intl.NumberFormatOptions).format(part.count);
 
       // An engine without the unit style writes the bare number.
-      if (word === part.count.toLocaleString(language)) {
+      if (word === part.count.toLocaleString(getNumberLocale(language))) {
         return english;
       }
 

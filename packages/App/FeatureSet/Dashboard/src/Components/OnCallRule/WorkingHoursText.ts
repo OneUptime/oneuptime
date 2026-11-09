@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import WorkingHours, {
   WorkingHoursSpan,
@@ -143,12 +144,15 @@ export const formatClock: (
   }
 
   try {
-    return new Intl.DateTimeFormat(options.translator.language || "en", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "UTC",
-    }).format(
+    return new Intl.DateTimeFormat(
+      getNumberLocale(options.translator.language || "en"),
+      {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "UTC",
+      },
+    ).format(
       new Date(
         Date.UTC(2024, 0, 1, Math.floor(minuteOfDay / 60), minuteOfDay % 60),
       ),

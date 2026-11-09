@@ -17,6 +17,7 @@ import {
   getDateDisplayLanguage,
   getDateLocale,
   getDateTimeFormat,
+  getNumberLocale,
   isEnglishDateLanguage,
   writeDigitsInLocale,
   writeInDateDisplayLanguage,
@@ -213,7 +214,7 @@ export default class OneUptimeDate {
       ...TimezoneAlias.getLegacyNamesOf(timezone),
     ]) {
       try {
-        return date.toLocaleString(locale, {
+        return date.toLocaleString(getNumberLocale(locale), {
           month: "short",
           timeZone: name.toString(),
         });

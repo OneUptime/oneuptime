@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { formatNameList } from "../AiAccess/AiAccessModes";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -986,11 +987,14 @@ export function formatToolImportDate(value: string, language: string): string {
   }
 
   try {
-    return new Date(time).toLocaleDateString(language || "en", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return new Date(time).toLocaleDateString(
+      getNumberLocale(language || "en"),
+      {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      },
+    );
   } catch {
     return new Date(time).toISOString().slice(0, 10);
   }
@@ -1008,7 +1012,7 @@ export function formatToolImportDateTime(
   }
 
   try {
-    return new Date(time).toLocaleString(language || "en", {
+    return new Date(time).toLocaleString(getNumberLocale(language || "en"), {
       year: "numeric",
       month: "short",
       day: "numeric",
