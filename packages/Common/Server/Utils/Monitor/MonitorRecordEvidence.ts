@@ -2,15 +2,14 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
-import { MonitorEvaluationDetailsLimits } from "../../../Types/Monitor/MonitorEvaluationDetails";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { toStorableJson } from "../Database/PostgresStorableValue";
 import DataToProcess from "./DataToProcess";
-import JsonTextScanner, { JsonTextScan } from "./JsonTextScanner";
 import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
 import { redactForPersistence } from "./MonitorPayloadRedaction";
 
@@ -27,7 +26,9 @@ import { redactForPersistence } from "./MonitorPayloadRedaction";
  *     see MonitorProbeService);
  *   - an incident or an alert: its evaluation details, the monitor summary
  *     (the card the monitor page shows, frozen) and the raw check
- *     (createdStateLog, and the state timeline's log).
+ *     (createdStateLog, and the state timeline's log);
+ *   - a Test Monitor run's result (MonitorTest.monitorStepProbeResponse),
+ *     kept two days.
  *
  * The evaluation details are cut by MonitorEvidenceRedaction's rules; every
  * other copy is cut here, by the same rules:
@@ -52,7 +53,9 @@ import { redactForPersistence } from "./MonitorPayloadRedaction";
  *   - a monitor set not to keep response content (Monitor.keepResponseContent)
  *     keeps no body and no headers of the response - or of the request, on
  *     an Incoming Request monitor - and the copy says it left them out
- *     (isResponseContentOmitted).
+ *     (isResponseContentOmitted). A test's result keeps them, masked:
+ *     seeing the response is what a test is run for, and the switch is
+ *     about the monitor's logs, incidents and alerts.
  *
  * Left as they are: screenshots, which no text rule can read, and an
  * incoming email - its addresses, subject, body and headers. Incoming Email
@@ -231,6 +234,30 @@ export default class MonitorRecordEvidence {
   }
 
   /*
+   * A Test Monitor run's result as the test keeps it, step by step
+   * (MonitorTest.monitorStepProbeResponse): read by everyone who can read
+   * the project's monitors until the test is cleared, so cut as the
+   * monitor's logs are, its content kept. The probe ran the test with the
+   * monitor secrets filled in and echoes the destination it used: the one
+   * kept is the step's as the test was written, {{monitorSecrets.*}} by
+   * name.
+   */
+  public static toStoredTestResult(input: {
+    probeResponse: ProbeMonitorResponse;
+    // The test's steps, as it was written.
+    monitorSteps: MonitorSteps | undefined;
+  }): JSONObject {
+    return MonitorRecordEvidence.toStoredCheck({
+      dataToProcess: input.probeResponse,
+      keepResponseContent: true,
+      monitorStep: MonitorRecordEvidence.findCheckStep({
+        monitor: { monitorSteps: input.monitorSteps },
+        check: input.probeResponse,
+      }),
+    });
+  }
+
+  /*
    * The monitor summary an incident or an alert keeps: a copy, so the
    * capture the creators share is never changed under them. Its check is
    * cut as the stored check is, without the logger's name walk: a summary
@@ -389,11 +416,16 @@ export default class MonitorRecordEvidence {
     return result;
   }
 
-  // A body: JSON by the name and text rules, any other text by the text rules.
+  /*
+   * A body: JSON by the name and text rules - a JSON text, as an API
+   * monitor's response is kept, loses its named fields where they sit in it
+   * (MonitorEvidenceRedaction.maskSensitiveJsonTextValues) - any other text
+   * by the text rules.
+   */
   private static redactBody(value: JSONValue): JSONValue {
     if (typeof value === "string") {
       return MonitorEvidenceRedaction.redactText(
-        MonitorRecordEvidence.maskNamedJsonValues(value),
+        MonitorEvidenceRedaction.maskSensitiveJsonTextValues(value),
       );
     }
 
@@ -402,54 +434,6 @@ export default class MonitorRecordEvidence {
     }
 
     return MonitorEvidenceRedaction.redactJson(value);
-  }
-
-  /*
-   * A body that came as JSON text - an API monitor's response is kept as
-   * one - with the values of the fields whose names say credential or
-   * personal data masked where they sit in the text, as an incident's
-   * excerpt finds them (JsonTextScanner, ResponseExcerpt.readText). Each
-   * becomes the JSON string "[REDACTED]", so the rest is kept as written and
-   * the text still parses. A text that is not one whole JSON object or
-   * array, or is longer than MonitorEvaluationDetailsLimits.scannedBodyChars,
-   * is returned as it is, for the text rules alone - as the excerpt reads it.
-   */
-  private static maskNamedJsonValues(text: string): string {
-    if (
-      !text ||
-      text.length > MonitorEvaluationDetailsLimits.scannedBodyChars
-    ) {
-      return text;
-    }
-
-    const firstCharacter: string = text.trimStart().charAt(0);
-
-    if (firstCharacter !== "{" && firstCharacter !== "[") {
-      return text;
-    }
-
-    const scan: JsonTextScan | null = JsonTextScanner.scan({
-      text: text,
-      isSensitiveName: (name: string): boolean => {
-        return MonitorEvidenceRedaction.isSensitiveName(name);
-      },
-    });
-
-    if (!scan || scan.sensitiveSpans.length === 0) {
-      return text;
-    }
-
-    const masked: string = JSON.stringify(MonitorEvidenceRedaction.REDACTED);
-    let result: string = "";
-    let cursor: number = 0;
-
-    // In text order and never overlapping.
-    for (const span of scan.sensitiveSpans) {
-      result += text.slice(cursor, span.start) + masked;
-      cursor = span.end;
-    }
-
-    return result + text.slice(cursor);
   }
 
   // A script's run: its result read as a JSON body, the rest as text.
@@ -545,9 +529,12 @@ export default class MonitorRecordEvidence {
     return result;
   }
 
-  // The step of the monitor a check ran, by the id a probe check carries.
+  /*
+   * The step of the monitor - or of the monitor test - a check ran, by the
+   * id a probe check carries.
+   */
   public static findCheckStep(input: {
-    monitor: Monitor | undefined;
+    monitor: { monitorSteps?: MonitorSteps | undefined } | undefined;
     check: DataToProcess | JSONValue | undefined;
   }): MonitorStep | undefined {
     const stepId: unknown = (input.check as JSONObject | undefined)?.[

@@ -11,13 +11,16 @@
  *   - the log of a status change (MonitorStatusTimeline.statusChangeLog);
  *   - the check an incident or an alert keeps (createdStateLog);
  *   - a probe's latest check, as a reader gets it
- *     (MonitorProbe.lastMonitoringLog, MonitorProbeService.onFindSuccess).
+ *     (MonitorProbe.lastMonitoringLog, MonitorProbeService.onFindSuccess);
+ *   - a Test Monitor run's result (MonitorTest.monitorStepProbeResponse),
+ *     which the probe ran with the monitor secrets filled in.
  *
  * Each rule runs here on each of them, with payloads shaped as the probes,
  * the agents and the senders send them: a JSON API, an HTML page, a plain
  * text error, headers, a script's run, a server's report, an incoming
  * request and an incoming email - and the monitor's Keep response content
- * switch on and off.
+ * switch on and off. A test's result keeps the content either way: seeing
+ * the response is what a test is run for.
  *
  * The monitor's logs flush through MonitorLogUtil's own shutdown handler,
  * as in MonitorLogUtilRedaction.test.ts.
@@ -92,6 +95,7 @@ import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
+import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { OnFind } from "../../../../Server/Types/Database/Hooks";
 import {
   afterEach,
@@ -254,6 +258,8 @@ interface CheckCopy {
   holdsProbeChecksOnly: boolean;
   // Is the check still being evaluated while the copy is made?
   copiesALiveCheck: boolean;
+  // Does the monitor's Keep response content switch decide what it keeps?
+  followsTheSwitch: boolean;
   copy: (input: CopyInput) => Promise<JSONObject>;
 }
 
@@ -264,6 +270,7 @@ const CHECK_COPIES: Array<CheckCopy> = [
     name: "a row of the monitor's logs (MonitorLog.logBody)",
     holdsProbeChecksOnly: false,
     copiesALiveCheck: true,
+    followsTheSwitch: true,
     copy: async (input: CopyInput): Promise<JSONObject> => {
       insertJsonRows.mockClear();
 
@@ -297,6 +304,7 @@ const CHECK_COPIES: Array<CheckCopy> = [
     name: "a status change's log (MonitorStatusTimeline.statusChangeLog)",
     holdsProbeChecksOnly: false,
     copiesALiveCheck: true,
+    followsTheSwitch: true,
     copy: async (input: CopyInput): Promise<JSONObject> => {
       createdTimelines = [];
 
@@ -323,6 +331,7 @@ const CHECK_COPIES: Array<CheckCopy> = [
     name: "the check an incident or an alert keeps (createdStateLog)",
     holdsProbeChecksOnly: false,
     copiesALiveCheck: true,
+    followsTheSwitch: true,
     copy: async (input: CopyInput): Promise<JSONObject> => {
       // As MonitorIncident and MonitorAlert keep it.
       return MonitorRecordEvidence.toStoredCheck({
@@ -341,6 +350,7 @@ const CHECK_COPIES: Array<CheckCopy> = [
     name: "a probe's latest check, as a reader gets it (MonitorProbe.lastMonitoringLog)",
     holdsProbeChecksOnly: true,
     copiesALiveCheck: false,
+    followsTheSwitch: true,
     copy: async (input: CopyInput): Promise<JSONObject> => {
       jest.spyOn(MonitorService, "findBy").mockResolvedValue([input.monitor]);
 
@@ -380,6 +390,19 @@ const CHECK_COPIES: Array<CheckCopy> = [
       ] as JSONObject;
     },
   },
+  {
+    name: "a Test Monitor run's result (MonitorTest.monitorStepProbeResponse)",
+    holdsProbeChecksOnly: true,
+    copiesALiveCheck: false,
+    followsTheSwitch: false,
+    copy: async (input: CopyInput): Promise<JSONObject> => {
+      // As the probe ingest job keeps it, by the steps the test was written with.
+      return MonitorRecordEvidence.toStoredTestResult({
+        probeResponse: input.check as unknown as ProbeMonitorResponse,
+        monitorSteps: input.monitor.monitorSteps,
+      });
+    },
+  },
 ];
 
 const ALL_COPIES: Array<[string, CheckCopy]> = CHECK_COPIES.map(
@@ -387,6 +410,11 @@ const ALL_COPIES: Array<[string, CheckCopy]> = CHECK_COPIES.map(
     return [copy.name, copy];
   },
 );
+
+const COPIES_THAT_FOLLOW_THE_SWITCH: Array<[string, CheckCopy]> =
+  ALL_COPIES.filter(([, copy]: [string, CheckCopy]): boolean => {
+    return copy.followsTheSwitch;
+  });
 
 const COPIES_OF_ANY_CHECK: Array<[string, CheckCopy]> = ALL_COPIES.filter(
   ([, copy]: [string, CheckCopy]): boolean => {
@@ -660,32 +688,6 @@ describe.each(ALL_COPIES)("%s", (_name: string, path: CheckCopy) => {
     });
   });
 
-  test("a monitor that keeps no response content keeps no body and no headers, and the copy says so", async () => {
-    const step: MonitorStep = stepTo(CONFIGURED_DESTINATION);
-
-    const stored: JSONObject = await path.copy({
-      check: probeCheck({
-        step,
-        responseBody: { status: "down", owner: "Jane Doe" },
-        responseHeaders: { "content-type": "application/json" },
-        failureCause: "upstream said password=hunter2",
-      }),
-      monitor: monitorOf({ step, keepResponseContent: false }),
-      step,
-    });
-
-    expect(stored["responseBody"]).toBeUndefined();
-    expect(stored["responseHeaders"]).toBeUndefined();
-    expect(stored["isResponseContentOmitted"]).toBe(true);
-
-    // Which filters matched still reads: the code, the time, the failure.
-    expect(stored["responseCode"]).toBe(500);
-    expect(stored["responseTimeInMs"]).toBe(182);
-    expect(stored["isOnline"]).toBe(false);
-    expect(stored["failureCause"]).toBe(`upstream said password=${REDACTED}`);
-    expect(stored["monitorDestination"]).toBe(SHOWN_DESTINATION);
-  });
-
   test("with the switch on, the copy does not say content was left out", async () => {
     const step: MonitorStep = stepTo(CONFIGURED_DESTINATION);
 
@@ -768,6 +770,101 @@ describe.each(ALL_COPIES)("%s", (_name: string, path: CheckCopy) => {
         executionTimeInMS: 3400,
       },
     ]);
+  });
+});
+
+describe.each(COPIES_THAT_FOLLOW_THE_SWITCH)(
+  "%s",
+  (_name: string, path: CheckCopy) => {
+    test("a monitor that keeps no response content keeps no body and no headers, and the copy says so", async () => {
+      const step: MonitorStep = stepTo(CONFIGURED_DESTINATION);
+
+      const stored: JSONObject = await path.copy({
+        check: probeCheck({
+          step,
+          responseBody: { status: "down", owner: "Jane Doe" },
+          responseHeaders: { "content-type": "application/json" },
+          failureCause: "upstream said password=hunter2",
+        }),
+        monitor: monitorOf({ step, keepResponseContent: false }),
+        step,
+      });
+
+      expect(stored["responseBody"]).toBeUndefined();
+      expect(stored["responseHeaders"]).toBeUndefined();
+      expect(stored["isResponseContentOmitted"]).toBe(true);
+
+      // Which filters matched still reads: the code, the time, the failure.
+      expect(stored["responseCode"]).toBe(500);
+      expect(stored["responseTimeInMs"]).toBe(182);
+      expect(stored["isOnline"]).toBe(false);
+      expect(stored["failureCause"]).toBe(`upstream said password=${REDACTED}`);
+      expect(stored["monitorDestination"]).toBe(SHOWN_DESTINATION);
+    });
+  },
+);
+
+describe("a Test Monitor run's result", () => {
+  /*
+   * The person who runs a test reads the response to write the monitor's
+   * filters. The switch is about what the monitor's logs, incidents and
+   * alerts keep, and a test can be run before the monitor exists.
+   */
+  test("keeps the response, masked, whatever the monitor's switch says", async () => {
+    const step: MonitorStep = stepTo(CONFIGURED_DESTINATION);
+
+    const stored: JSONObject = MonitorRecordEvidence.toStoredTestResult({
+      probeResponse: probeCheck({
+        step,
+        responseBody: API_BODY,
+        responseHeaders: {
+          "content-type": "application/json",
+          authorization: `Bearer ${JWT}`,
+        },
+      }) as unknown as ProbeMonitorResponse,
+      monitorSteps: monitorOf({ step, keepResponseContent: false })
+        .monitorSteps,
+    });
+
+    expect(stored["responseBody"]).toEqual(API_BODY_KEPT);
+    expect(stored["responseHeaders"]).toEqual({
+      "content-type": "application/json",
+      authorization: REDACTED,
+    });
+    expect(stored["isResponseContentOmitted"]).toBeUndefined();
+  });
+
+  test("a step the test does not have shows the destination the probe echoed, its password and secret query values masked", async () => {
+    const step: MonitorStep = stepTo(CONFIGURED_DESTINATION);
+    const echoed: JSONObject = probeCheck({ step });
+    echoed["monitorDestination"] = URL.fromString(
+      "https://monitor:pw-9911@api.acme.example/v1/health?api_key=k-77&page=2",
+    ) as unknown as JSONObject;
+
+    const stored: JSONObject = MonitorRecordEvidence.toStoredTestResult({
+      probeResponse: echoed as unknown as ProbeMonitorResponse,
+      monitorSteps: undefined,
+    });
+
+    expect(stored["monitorDestination"]).toBe(
+      `https://monitor:${REDACTED}@api.acme.example/v1/health?api_key=${REDACTED}&page=2`,
+    );
+    expect(JSON.stringify(stored)).not.toContain("pw-9911");
+    expect(JSON.stringify(stored)).not.toContain("k-77");
+  });
+
+  test("is storable: a NUL in the body becomes U+FFFD, so Postgres takes the jsonb merge", async () => {
+    const step: MonitorStep = stepTo(CONFIGURED_DESTINATION);
+
+    const stored: JSONObject = MonitorRecordEvidence.toStoredTestResult({
+      probeResponse: probeCheck({
+        step,
+        responseBody: "PK\u0003\u0004\u0000\u0000 owner jane@acme.example",
+      }) as unknown as ProbeMonitorResponse,
+      monitorSteps: monitorOf({ step }).monitorSteps,
+    });
+
+    expect(stored["responseBody"]).toBe(`PK\u0003\u0004�� owner ${REDACTED}`);
   });
 });
 

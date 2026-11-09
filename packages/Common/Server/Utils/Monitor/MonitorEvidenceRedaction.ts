@@ -1,11 +1,13 @@
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { MonitorEvaluationDetailsLimits } from "../../../Types/Monitor/MonitorEvaluationDetails";
 import {
   REDACTED,
   isSensitiveLogKey,
   normalizeLogKey,
   redactLogString,
 } from "../LogRedaction";
+import JsonTextScanner, { JsonTextScan } from "./JsonTextScanner";
 
 /*
  * WHAT AN INCIDENT OR AN ALERT MAY KEEP OF THE CHECK THAT OPENED IT.
@@ -387,6 +389,56 @@ export default class MonitorEvidenceRedaction {
     }
 
     return result;
+  }
+
+  /*
+   * A JSON text - a body kept as text, as an API monitor's is, or a script's
+   * result returned as one - with the values of the fields whose names say
+   * credential or personal data masked where they sit in the text, as an
+   * incident's excerpt finds them (JsonTextScanner, ResponseExcerpt.readText).
+   * Each becomes the JSON string "[REDACTED]", so the rest is kept as written
+   * and the text still parses. A text that is not one whole JSON object or
+   * array, or is longer than MonitorEvaluationDetailsLimits.scannedBodyChars,
+   * is returned as it is, for the text rules alone - as the excerpt reads it.
+   * Linear in the text's length.
+   */
+  public static maskSensitiveJsonTextValues(text: string): string {
+    if (
+      typeof text !== "string" ||
+      !text ||
+      text.length > MonitorEvaluationDetailsLimits.scannedBodyChars
+    ) {
+      return text;
+    }
+
+    const firstCharacter: string = text.trimStart().charAt(0);
+
+    if (firstCharacter !== "{" && firstCharacter !== "[") {
+      return text;
+    }
+
+    const scan: JsonTextScan | null = JsonTextScanner.scan({
+      text: text,
+      isSensitiveName: (name: string): boolean => {
+        return MonitorEvidenceRedaction.isSensitiveName(name);
+      },
+    });
+
+    if (!scan || scan.sensitiveSpans.length === 0) {
+      return text;
+    }
+
+    const masked: string = JSON.stringify(REDACTED);
+    let result: string = "";
+    let cursor: number = 0;
+
+    // In text order and never overlapping.
+    for (const span of scan.sensitiveSpans) {
+      result += text.slice(cursor, span.start) + masked;
+      cursor = span.end;
+    }
+
+    return result + text.slice(cursor);
   }
 
   /*

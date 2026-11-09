@@ -65,6 +65,45 @@ describe("what a quote keeps of a value", () => {
     );
   });
 
+  /*
+   * A script that returns JSON.stringify(...), a query cell or an email body
+   * holding JSON: the text loses the same fields a parsed value does, as an
+   * incident's excerpt masks a JSON response kept as text.
+   */
+  test("a JSON text loses the same fields as a parsed value, and keeps its layout", () => {
+    expect(
+      MonitorQuotedValue.quote(
+        '{"status":"down","owner":{"phone":"+1 555 0100","dateOfBirth":"1990-04-12","name":"Jane"},"pin":4921}',
+      ),
+    ).toBe(
+      `{"status":"down","owner":{"phone":"${REDACTED}","dateOfBirth":"${REDACTED}","name":"Jane"},"pin":"${REDACTED}"}`,
+    );
+    expect(
+      MonitorQuotedValue.quote(
+        '[\n  {"id": 1, "iban": "GB33BUKB20201555555555"}\n]',
+      ),
+    ).toBe(`[ {"id": 1, "iban": "${REDACTED}"} ]`);
+  });
+
+  test("a JSON text past the cut is masked before it is cut: a field near the end of what is kept is never half shown", () => {
+    const quote: string = MonitorQuotedValue.quote(
+      `{"note":"${"x".repeat(270)}","phone":"+1 555 0100 extension 7","more":"${"y".repeat(400)}"}`,
+    );
+
+    expect(quote.startsWith(`{"note":"${"x".repeat(270)}","phone":"[RED`)).toBe(
+      true,
+    );
+    expect(quote).not.toContain("555");
+  });
+
+  test("a text that only starts like JSON is read by the text rules", () => {
+    expect(
+      MonitorQuotedValue.quote(
+        '{"phone":"+1 555 0100","token":"tok_live_9f8e"',
+      ),
+    ).toBe(`{"phone":"+1 555 0100","token":"${REDACTED}"`);
+  });
+
   test("a value is quoted on one line", () => {
     expect(
       MonitorQuotedValue.quote(
@@ -136,6 +175,8 @@ describe("a quote takes time in line with what it quotes", () => {
     ["white space", " \n\t".repeat(133334)],
     ["addresses", "jane@acme.example ".repeat(22223)],
     ["tokens", "Bearer abc.def.ghi ".repeat(21053)],
+    ["a JSON text", `[${'{"id":1,"phone":"+1 555 0100"},'.repeat(13000)}1]`],
+    ["a JSON text nested deep", `${"[".repeat(200000)}${"]".repeat(200000)}`],
   ])("%s", (_label: string, text: string) => {
     const timed: FastestRun<string> = fastestRun({
       run: (): string => {

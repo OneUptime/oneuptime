@@ -13,9 +13,10 @@ import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
  * timeline, so a quote is:
  *
  *   - redacted by the rules an incident's evidence is cut by
- *     (MonitorEvidenceRedaction): a JSON value loses the values of fields
- *     whose names say credential or personal data, and every text is read
- *     for a token, a key, a password, an email address, a card number;
+ *     (MonitorEvidenceRedaction): a JSON value - parsed, or a JSON text such
+ *     as a script that returned JSON.stringify(...) - loses the values of
+ *     fields whose names say credential or personal data, and every text is
+ *     read for a token, a key, a password, an email address, a card number;
  *   - one line: a stack trace or an email's paragraphs would break the
  *     Markdown list the root cause puts each finding in;
  *   - at most as long as the incident's evaluation details keep one value
@@ -23,8 +24,10 @@ import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
  *     lines of the ~416px email card, three of a Slack message. The rest of
  *     the evidence is on the incident, under Evaluation details.
  *
- * A long text is read from its start only, far past what is kept, so a
- * quote costs the same whatever the size of what it quotes.
+ * A long text is read by the text rules from its start only, far past what
+ * is kept; a JSON text is scanned once for its named fields first, in time
+ * in line with its length, up to the size an incident's evidence scans
+ * (MonitorEvaluationDetailsLimits.scannedBodyChars).
  */
 
 /*
@@ -69,7 +72,12 @@ export default class MonitorQuotedValue {
     }
 
     if (typeof value === "string") {
-      return MonitorEvidenceRedaction.redactText(value.slice(0, READ_CHARS));
+      return MonitorEvidenceRedaction.redactText(
+        MonitorEvidenceRedaction.maskSensitiveJsonTextValues(value).slice(
+          0,
+          READ_CHARS,
+        ),
+      );
     }
 
     if (typeof value === "number" || typeof value === "boolean") {
