@@ -558,6 +558,8 @@ describe("what is not an Event is left alone", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]!["severityNumber"]).toBe(9);
     expect(rows[1]!["severityNumber"]).toBe(5);
+    // A pulled spec says no time: the time the receiver read it (#6395).
+    expect(rows[0]!["timeUnixNano"]).toBe(OBSERVED_TIME_NANO);
     expect(rows[1]!["timeUnixNano"]).toBe(appTime);
     for (const row of rows) {
       for (const key of Object.keys(attributesOf(row))) {
@@ -583,6 +585,8 @@ describe("what is not an Event is left alone", () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0]!["severityNumber"]).toBe(9);
+    // No Event to date it by: the time the receiver read it (#6395).
+    expect(rows[0]!["timeUnixNano"]).toBe(OBSERVED_TIME_NANO);
     expect(
       attributesOf(rows[0]!)[KubernetesEventAttribute.Reason],
     ).toBeUndefined();
