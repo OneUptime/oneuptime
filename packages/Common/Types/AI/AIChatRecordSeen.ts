@@ -30,6 +30,12 @@
  * a keyed fingerprint of its version (Types/CodeRepository/CodeFileSeen) -
  * and each commit of Ask AI's own keeps every file it wrote. One result can
  * keep several (a commit's files): its citation then holds a list of them.
+ *
+ * And a read keeps which of the file's lines it showed, when it showed only
+ * some (issue #6330): read_code_file shows a file a window at a time, but a
+ * commit writes it whole, so a version Ask AI saw only part of is one it
+ * cannot write whole without dropping the lines it never saw. Reads of one
+ * version add up.
  */
 
 // The kinds of record a result can show the model, as the tool that changes them names them.
@@ -39,7 +45,8 @@ export enum AIChatRecordSeenType {
    * One file of a connected repository on one branch: what read_code_file
    * showed the model, or what a commit of Ask AI's own wrote there
    * (Types/CodeRepository/CodeFileSeen). Always whole: a file is written
-   * whole, so its one part is its version.
+   * whole, so its one part is its version - and which of its lines were
+   * shown, when only some were, is said beside it (linesShown).
    */
   CodeFile = "CodeFile",
 }
@@ -48,6 +55,23 @@ export enum AIChatRecordSeenType {
 export interface AIChatRecordPartSeen {
   id: string;
   fingerprint: string | null;
+}
+
+// A run of a file's lines, first to last, counted from 1 as read_code_file numbers them.
+export interface AIChatLineRange {
+  first: number;
+  last: number;
+}
+
+// The lines of a file a result showed, when it showed only some (issue #6330).
+export interface AIChatLinesShown {
+  // How many lines the file has, as read_code_file numbers them.
+  lineCount: number;
+  /*
+   * The lines shown, in runs: one for a read, or none when a read showed
+   * no line whole (a single line longer than a result may carry).
+   */
+  ranges: Array<AIChatLineRange>;
 }
 
 export interface AIChatRecordSeen {
@@ -62,6 +86,14 @@ export interface AIChatRecordSeen {
    * saved them, and every other part as it saw it before (update_workflow).
    */
   isPartial?: boolean | undefined;
+  /*
+   * A file's record only (CodeFile): the lines of the file the result
+   * showed, when it showed only some of them (issue #6330). Left out, it
+   * showed the file whole: a read of all of it, a commit of Ask AI's own,
+   * which wrote all of it, or a citation from before OneUptime kept lines,
+   * which reads as it always did.
+   */
+  linesShown?: AIChatLinesShown | undefined;
 }
 
 // What Ask AI knows of a record: its revision, and each part as last seen.
@@ -96,6 +128,13 @@ export const MAX_RECORDS_SEEN_PER_RESULT: number = 100;
 const MAX_PART_ID_LENGTH: number = 1000;
 const MAX_FINGERPRINT_LENGTH: number = 128;
 
+/*
+ * The most runs of lines a stored record or finding may name: a read
+ * shows one, and a file read a window at a time leaves one gap more than
+ * it has windows.
+ */
+export const MAX_LINE_RANGES: number = 1000;
+
 type IsPlainObjectFunction = (
   value: unknown,
 ) => value is Record<string, unknown>;
@@ -104,6 +143,90 @@ const isPlainObject: IsPlainObjectFunction = (
   value: unknown,
 ): value is Record<string, unknown> => {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+};
+
+type IsLineNumberFunction = (value: unknown, lineCount: number) => boolean;
+
+const isLineNumber: IsLineNumberFunction = (
+  value: unknown,
+  lineCount: number,
+): boolean => {
+  return (
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= 1 &&
+    value <= lineCount
+  );
+};
+
+type ReadLineRangesFunction = (
+  value: unknown,
+  lineCount: number,
+) => Array<AIChatLineRange> | null;
+
+/*
+ * Runs of a file's lines, as stored, or null for anything not well formed:
+ * each a first and a last line of the file, the first no later than the
+ * last.
+ */
+export const readAIChatLineRanges: ReadLineRangesFunction = (
+  value: unknown,
+  lineCount: number,
+): Array<AIChatLineRange> | null => {
+  if (!Array.isArray(value) || value.length > MAX_LINE_RANGES) {
+    return null;
+  }
+
+  const ranges: Array<AIChatLineRange> = [];
+
+  for (const range of value) {
+    if (!isPlainObject(range)) {
+      return null;
+    }
+
+    const first: unknown = range["first"];
+    const last: unknown = range["last"];
+
+    if (
+      !isLineNumber(first, lineCount) ||
+      !isLineNumber(last, lineCount) ||
+      (first as number) > (last as number)
+    ) {
+      return null;
+    }
+
+    ranges.push({ first: first as number, last: last as number });
+  }
+
+  return ranges;
+};
+
+type ReadLinesShownFunction = (value: unknown) => AIChatLinesShown | null;
+
+// The lines a result showed, as stored, or null for anything not well formed.
+export const readAIChatLinesShown: ReadLinesShownFunction = (
+  value: unknown,
+): AIChatLinesShown | null => {
+  if (!isPlainObject(value)) {
+    return null;
+  }
+
+  const lineCount: unknown = value["lineCount"];
+
+  if (
+    typeof lineCount !== "number" ||
+    !Number.isSafeInteger(lineCount) ||
+    lineCount < 1
+  ) {
+    return null;
+  }
+
+  const ranges: Array<AIChatLineRange> | null = readAIChatLineRanges(
+    value["ranges"],
+    lineCount,
+  );
+
+  return ranges ? { lineCount: lineCount, ranges: ranges } : null;
 };
 
 type ReadRecordSeenFunction = (value: unknown) => AIChatRecordSeen | null;
@@ -126,6 +249,7 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
   const revision: unknown = value["revision"];
   const parts: unknown = value["parts"];
   const isPartial: unknown = value["isPartial"];
+  const linesShown: unknown = value["linesShown"];
 
   if (
     !Object.values(AIChatRecordSeenType).includes(
@@ -143,6 +267,23 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
     (isPartial !== undefined && typeof isPartial !== "boolean")
   ) {
     return null;
+  }
+
+  /*
+   * Only a file's record says which lines it showed; anything else that
+   * says so is not well formed.
+   */
+  let lines: AIChatLinesShown | null = null;
+
+  if (linesShown !== undefined) {
+    lines =
+      recordType === AIChatRecordSeenType.CodeFile
+        ? readAIChatLinesShown(linesShown)
+        : null;
+
+    if (!lines) {
+      return null;
+    }
   }
 
   const read: Array<AIChatRecordPartSeen> = [];
@@ -184,6 +325,7 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
     revision: revision,
     parts: read,
     ...(isPartial === true ? { isPartial: true } : {}),
+    ...(lines ? { linesShown: lines } : {}),
   };
 };
 
@@ -302,6 +444,28 @@ export const getAIChatRecordKnown: GetRecordKnownFunction = (data: {
   return { revision: revision, parts: parts };
 };
 
+type ShowsTheSameFunction = (
+  record: AIChatRecordSeen,
+  other: AIChatRecordSeen,
+) => boolean;
+
+// Whether two records of one record show it the same: every part, as seen.
+const showsTheSame: ShowsTheSameFunction = (
+  record: AIChatRecordSeen,
+  other: AIChatRecordSeen,
+): boolean => {
+  return (
+    record.parts.length === other.parts.length &&
+    record.parts.every((part: AIChatRecordPartSeen): boolean => {
+      return other.parts.some((otherPart: AIChatRecordPartSeen): boolean => {
+        return (
+          otherPart.id === part.id && otherPart.fingerprint === part.fingerprint
+        );
+      });
+    })
+  );
+};
+
 type LatestRecordsSeenFunction = (
   records: ReadonlyArray<unknown> | null | undefined,
 ) => Array<AIChatRecordSeen>;
@@ -311,6 +475,13 @@ type LatestRecordsSeenFunction = (
  * for each record its last whole one and its own changes after that - what
  * getAIChatRecordKnown reads. Anything older says nothing more, so a turn
  * carries no more than it needs.
+ *
+ * But a file's last record that showed only some of its lines (linesShown,
+ * issue #6330) keeps the reads of the same version before it: those add up
+ * - lines 1 to 400, then 401 to 800, are all of an 800-line file - back to
+ * the last that showed all of it, or to where Ask AI last saw another
+ * version of the file there. A file always read whole keeps one record, as
+ * it always did.
  */
 export const getLatestAIChatRecordsSeen: LatestRecordsSeenFunction = (
   records: ReadonlyArray<unknown> | null | undefined,
@@ -340,10 +511,37 @@ export const getLatestAIChatRecordsSeen: LatestRecordsSeenFunction = (
     }
   });
 
+  // Where each record's kept records start: its last whole one, or an earlier read of the same version.
+  const keptFrom: Map<string, number> = new Map<string, number>();
+
+  for (const [key, last] of lastWhole.entries()) {
+    let from: number = last;
+
+    for (
+      let index: number = last - 1;
+      index >= 0 && read[from]!.linesShown;
+      index--
+    ) {
+      const earlier: AIChatRecordSeen = read[index]!;
+
+      if (keyOf(earlier) !== key) {
+        continue;
+      }
+
+      if (earlier.isPartial || !showsTheSame(earlier, read[last]!)) {
+        break;
+      }
+
+      from = index;
+    }
+
+    keptFrom.set(key, from);
+  }
+
   return read.filter((record: AIChatRecordSeen, index: number): boolean => {
-    const whole: number | undefined = lastWhole.get(keyOf(record));
+    const from: number | undefined = keptFrom.get(keyOf(record));
 
     // A change of Ask AI's own with nothing whole before it says nothing on its own.
-    return whole !== undefined && index >= whole;
+    return from !== undefined && index >= from;
   });
 };

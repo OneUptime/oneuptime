@@ -1,7 +1,12 @@
 import crypto from "crypto";
 import TokenSigningKey from "../../TokenSigningKey";
 import logger from "../../Logger";
-import { AIChatRecordSeen } from "../../../../Types/AI/AIChatRecordSeen";
+import {
+  AIChatLineRange,
+  AIChatLinesShown,
+  AIChatRecordSeen,
+  MAX_LINE_RANGES,
+} from "../../../../Types/AI/AIChatRecordSeen";
 import {
   AI_ACTION_CODE_FILE,
   AI_ACTION_PLURAL_LINES,
@@ -36,7 +41,9 @@ import { CodeHostWriter } from "../../CodeRepository/CodeHost/CodeHostWriter";
  * Types/CodeRepository/CodeFileSeen, which the code tools share:
  *
  *   read_code_file    keeps the file it showed: the branch it read, the
- *                     path, and a keyed fingerprint of the host's blob;
+ *                     path, and a keyed fingerprint of the host's blob -
+ *                     and which of its lines, when it showed only some
+ *                     (issue #6330);
  *   a commit          keeps every file it wrote, as it wrote it - on a
  *                     branch (commit_code_to_branch) or a pull request's
  *                     (open_code_pull_request);
@@ -114,18 +121,22 @@ type SeenFromReadFunction = (data: {
   branchName: string;
   filePath: string;
   file: CodeHostFileContent;
+  // The lines it showed, when only some (getCodeFileLinesShown); left out, all of them.
+  linesShown?: AIChatLinesShown | undefined;
 }) => AIChatRecordSeen | null;
 
 /*
  * What read_code_file showed the model of a file: its version on the
  * branch read - the host's blob SHA, or, from a host that does not say,
- * the SHA of the text it served - whichever lines it showed of it.
+ * the SHA of the text it served - and the lines it showed of it, when it
+ * showed only some (issue #6330).
  */
 export const getCodeFileSeenFromRead: SeenFromReadFunction = (data: {
   repositoryId: string;
   branchName: string;
   filePath: string;
   file: CodeHostFileContent;
+  linesShown?: AIChatLinesShown | undefined;
 }): AIChatRecordSeen | null => {
   const blobSha: string = data.file.blobSha || getGitBlobSha(data.file.content);
 
@@ -134,6 +145,7 @@ export const getCodeFileSeenFromRead: SeenFromReadFunction = (data: {
     branchName: data.branchName,
     filePath: normalizeCodeFilePath(data.filePath),
     fingerprint: fingerprintCodeFileVersion(blobSha),
+    linesShown: data.linesShown,
   });
 };
 
@@ -321,6 +333,17 @@ export const getCodeChangeProposedOn: ProposedOnFunction = (data: {
           ...(finding.readOnBranch !== undefined
             ? { readOnBranch: finding.readOnBranch }
             : {}),
+          // A file read in part: the lines Ask AI never saw, for the pull request's reviewer.
+          ...(finding.lineCount !== undefined && finding.linesNotRead
+            ? {
+                lineCount: finding.lineCount,
+                linesNotRead: finding.linesNotRead
+                  .slice(0, MAX_LINE_RANGES)
+                  .map((range: AIChatLineRange): AIChatLineRange => {
+                    return { first: range.first, last: range.last };
+                  }),
+              }
+            : {}),
         };
       },
     ),
@@ -412,7 +435,8 @@ type LinesForPersonFunction = (data: {
 /*
  * The card's lines, one for each kind of file the change would write over
  * unseen, in the order a person reads what matters most first: undone
- * since the read, read on another branch, never read, not checked.
+ * since the read, read on another branch, never read, read only in part,
+ * not checked.
  */
 export const describeCodeFilesUnseenForPerson: LinesForPersonFunction = (data: {
   branchName: string;
@@ -479,6 +503,21 @@ export const describeCodeFilesUnseenForPerson: LinesForPersonFunction = (data: {
     );
   }
 
+  const inPart: Array<CodeFileUnseenFinding> = ofKind(
+    data.findings,
+    CodeFileUnseen.ReadInPart,
+  );
+
+  if (inPart.length > 0) {
+    lines.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.codeFilesReadInPart,
+        inPart.length,
+        { files: listFilesOnCard(pathsOf(inPart)) },
+      ),
+    );
+  }
+
   const notChecked: Array<CodeFileUnseenFinding> = ofKind(
     data.findings,
     CodeFileUnseen.NotChecked,
@@ -518,6 +557,8 @@ export const CODE_UNSEEN_SUMMARIES: Record<
       "Not committed: Ask AI read a file on another branch, and it is different on this one.",
     [CodeFileUnseen.NotRead]:
       "Not committed: Ask AI had not read a file the commit replaces.",
+    [CodeFileUnseen.ReadInPart]:
+      "Not committed: Ask AI had read only part of a file the commit replaces whole.",
     [CodeFileUnseen.NotChecked]:
       "Not committed: OneUptime could not check a file against what Ask AI read.",
   },
@@ -528,6 +569,8 @@ export const CODE_UNSEEN_SUMMARIES: Record<
       "Not opened: Ask AI read a file on another branch, and it is different on the default branch.",
     [CodeFileUnseen.NotRead]:
       "Not opened: Ask AI had not read a file the pull request replaces.",
+    [CodeFileUnseen.ReadInPart]:
+      "Not opened: Ask AI had read only part of a file the pull request replaces whole.",
     [CodeFileUnseen.NotChecked]:
       "Not opened: OneUptime could not check a file against what Ask AI read.",
   },
@@ -537,8 +580,61 @@ const ORDER_OF_IMPORTANCE: ReadonlyArray<CodeFileUnseen> = [
   CodeFileUnseen.ChangedSinceRead,
   CodeFileUnseen.ReadOnAnotherBranch,
   CodeFileUnseen.NotRead,
+  CodeFileUnseen.ReadInPart,
   CodeFileUnseen.NotChecked,
 ];
+
+// The most runs of lines a message to the model or a reviewer writes out; the rest it counts.
+export const MAX_LINE_RANGES_WRITTEN: number = 20;
+
+type EnglishListFunction = (items: ReadonlyArray<string>) => string;
+
+// "a", "a and b", "a, b and c".
+const englishList: EnglishListFunction = (
+  items: ReadonlyArray<string>,
+): string => {
+  if (items.length <= 1) {
+    return items[0] || "";
+  }
+
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+};
+
+type LineRangesFunction = (ranges: ReadonlyArray<AIChatLineRange>) => string;
+
+/*
+ * Runs of a file's lines in English, for the model and a pull request's
+ * reviewer: "line 7", "lines 1-339 and 461-2000", the first few written
+ * out and the rest counted.
+ */
+export const describeLineRanges: LineRangesFunction = (
+  ranges: ReadonlyArray<AIChatLineRange>,
+): string => {
+  const written: Array<string> = ranges
+    .slice(0, MAX_LINE_RANGES_WRITTEN)
+    .map((range: AIChatLineRange): string => {
+      return range.first === range.last
+        ? `${range.first}`
+        : `${range.first}-${range.last}`;
+    });
+  const rest: number = ranges.length - written.length;
+
+  if (rest > 0) {
+    written.push(`${rest} more ${rest === 1 ? "run" : "runs"} of lines`);
+  }
+
+  const one: boolean =
+    ranges.length === 1 && ranges[0]!.first === ranges[0]!.last;
+
+  return `${one ? "line" : "lines"} ${englishList(written)}`;
+};
+
+type LineCountFunction = (lineCount: number) => string;
+
+// "1 line", "2000 lines".
+const describeLineCount: LineCountFunction = (lineCount: number): string => {
+  return `${lineCount} ${lineCount === 1 ? "line" : "lines"}`;
+};
 
 type ForModelFunction = (data: {
   change: CodeChangeKind;
@@ -585,6 +681,13 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
           `- ${finding.filePath} is on ${branch}, and you have not read it.`,
         );
         break;
+      case CodeFileUnseen.ReadInPart:
+        lines.push(
+          finding.lineCount !== undefined && finding.linesNotRead
+            ? `- ${finding.filePath} has ${describeLineCount(finding.lineCount)} on ${branch}, and you have not read ${describeLineRanges(finding.linesNotRead)} of it.`
+            : `- ${finding.filePath}: you have read only part of it on ${branch}.`,
+        );
+        break;
       case CodeFileUnseen.NotChecked:
         lines.push(
           `- ${finding.filePath} could not be checked on ${branch}: ${data.reasons?.get(finding.filePath) || "the code host could not be read."}`,
@@ -593,15 +696,29 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
     }
   }
 
-  const checkable: boolean = data.findings.some(
+  const toReadAgain: boolean = data.findings.some(
     (finding: CodeFileUnseenFinding): boolean => {
-      return finding.unseen !== CodeFileUnseen.NotChecked;
+      return (
+        finding.unseen !== CodeFileUnseen.NotChecked &&
+        finding.unseen !== CodeFileUnseen.ReadInPart
+      );
     },
   );
 
-  if (checkable) {
+  if (toReadAgain) {
     lines.push(
       `Read each of these files on ${branch} with read_code_file and branchName "${branch}", tell the user it changed since you read it or that you had not read it there, and write your change on each file as it is now.`,
+    );
+  }
+
+  // Read in part (issue #6330): the rest is to read, a window at a time.
+  if (
+    data.findings.some((finding: CodeFileUnseenFinding): boolean => {
+      return finding.unseen === CodeFileUnseen.ReadInPart;
+    })
+  ) {
+    lines.push(
+      `Read the lines you have not read of each file you read only part of, on ${branch} with read_code_file, branchName "${branch}", startLine and endLine, and only then write the whole file: ${isCommit ? "a commit" : "a pull request"} replaces each file whole, so a line you have not read would be dropped from it.`,
     );
   }
 
