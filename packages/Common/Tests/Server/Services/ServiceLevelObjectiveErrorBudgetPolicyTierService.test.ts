@@ -388,6 +388,62 @@ describe("onBeforeCreate: what a tier must be", () => {
   });
 });
 
+describe("onBeforeCreate: whether a tier freezes deployments", () => {
+  it("freezes nothing by default: the switch is written back as false", async () => {
+    const createBy: CreateBy<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+      makeCreateBy();
+
+    await callHook("onBeforeCreate", createBy);
+
+    expect(createBy.data.freezesDeployments).toBe(false);
+  });
+
+  it("the default is the model's own column default", () => {
+    expect(
+      new ServiceLevelObjectiveErrorBudgetPolicyTier().getTableColumnMetadata(
+        "freezesDeployments",
+      ).defaultValue,
+    ).toBe(false);
+  });
+
+  it("keeps it switched on, whether it comes as a boolean or as the text a form or the API sends", async () => {
+    for (const value of [true, "true", "on", 1]) {
+      const createBy: CreateBy<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+        makeCreateBy({ freezesDeployments: value });
+
+      await callHook("onBeforeCreate", createBy);
+
+      expect({ value, stored: createBy.data.freezesDeployments }).toEqual({
+        value,
+        stored: true,
+      });
+    }
+  });
+
+  it("reads off, and a null or absent switch, as off", async () => {
+    for (const value of [false, "false", 0, null, undefined]) {
+      const createBy: CreateBy<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+        makeCreateBy({ freezesDeployments: value });
+
+      await callHook("onBeforeCreate", createBy);
+
+      expect({ value, stored: createBy.data.freezesDeployments }).toEqual({
+        value,
+        stored: false,
+      });
+    }
+  });
+
+  it("a tier that freezes deployments and raises nothing is a whole tier", async () => {
+    const createBy: CreateBy<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+      makeCreateBy({ freezesDeployments: true });
+
+    await expect(callHook("onBeforeCreate", createBy)).resolves.toBeDefined();
+    expect(createBy.data.shouldCreateAlert).toBe(false);
+    expect(createBy.data.shouldCreateIncident).toBe(false);
+  });
+});
+
 describe("onBeforeCreate: what a tier raises", () => {
   it("raises nothing by default: both outputs are written back as false", async () => {
     const createBy: CreateBy<ServiceLevelObjectiveErrorBudgetPolicyTier> =
@@ -620,6 +676,26 @@ describe("onBeforeUpdate", () => {
       name: "Caution",
     });
   });
+
+  it("writes Freeze Deployments back as a real boolean, and only when the update carries it", async () => {
+    const on: UpdateBy<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+      makeUpdateBy({ freezesDeployments: "true" });
+
+    await callHook("onBeforeUpdate", on);
+    expect(on.data).toEqual({ freezesDeployments: true });
+
+    const off: UpdateBy<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+      makeUpdateBy({ freezesDeployments: "false" });
+
+    await callHook("onBeforeUpdate", off);
+    expect(off.data).toEqual({ freezesDeployments: false });
+
+    const untouched: UpdateBy<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+      makeUpdateBy({ name: "Freeze" });
+
+    await callHook("onBeforeUpdate", untouched);
+    expect(untouched.data).not.toHaveProperty("freezesDeployments");
+  });
 });
 
 describe("onCreateSuccess", () => {
@@ -765,6 +841,46 @@ describe("onUpdateSuccess: a tier that stops raising something", () => {
     expect(resolveAlertsSpy).not.toHaveBeenCalled();
     expect(resolveIncidentsSpy).not.toHaveBeenCalled();
     expect(requestEvaluationSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("Freeze Deployments switched on or off resolves nothing, and asks for an evaluation - the worker moves the gate", async () => {
+    for (const freezesDeployments of [true, false]) {
+      requestEvaluationSpy.mockClear();
+
+      await callHook(
+        "onUpdateSuccess",
+        makeOnUpdate({ freezesDeployments: freezesDeployments }),
+        [TIER_ID],
+      );
+      await flushPromises();
+
+      expect(resolveAlertsSpy).not.toHaveBeenCalled();
+      expect(resolveIncidentsSpy).not.toHaveBeenCalled();
+      expect(clearSpy).not.toHaveBeenCalled();
+      expect(requestEvaluationSpy).toHaveBeenCalledTimes(1);
+      expect(requestEvaluationSpy).toHaveBeenCalledWith({
+        id: SLO_ID,
+        data: { nextEvaluationAt: NOW },
+      });
+    }
+  });
+
+  it("never writes the SLO's deploy gate itself: only the worker does", async () => {
+    await callHook(
+      "onUpdateSuccess",
+      makeOnUpdate({ freezesDeployments: true }),
+      [TIER_ID],
+    );
+    await flushPromises();
+
+    for (const call of requestEvaluationSpy.mock.calls) {
+      const data: Record<string, unknown> = (
+        call[0] as { data: Record<string, unknown> }
+      ).data;
+
+      expect(data).not.toHaveProperty("deploymentsAllowed");
+      expect(data).not.toHaveProperty("deploymentsFrozenAt");
+    }
   });
 
   it("the worker's own lifecycle stamps do nothing at all", async () => {
@@ -1177,6 +1293,44 @@ describe("Use the recommended policy", () => {
       // The outputs keep their column defaults: nothing is raised.
       expect(createBy.data.shouldCreateAlert).toBeUndefined();
       expect(createBy.data.shouldCreateIncident).toBeUndefined();
+    }
+
+    // Budget exhausted, and only it, freezes deployments.
+    expect(
+      createSpy.mock.calls.map((call: Array<unknown>): [string, unknown] => {
+        const data: ServiceLevelObjectiveErrorBudgetPolicyTier = (
+          call[0] as CreateBy<ServiceLevelObjectiveErrorBudgetPolicyTier>
+        ).data;
+
+        return [data.name as string, data.freezesDeployments];
+      }),
+    ).toEqual([
+      ["Caution", false],
+      ["Reliability first", false],
+      ["Budget exhausted", true],
+    ]);
+    expect(
+      added.tiers.map((tier: { freezesDeployments: boolean }): boolean => {
+        return tier.freezesDeployments;
+      }),
+    ).toEqual([false, false, true]);
+  });
+
+  it("builds each recommended tier with the freeze its definition says", () => {
+    for (const recommended of SLO_RECOMMENDED_POLICY_TIERS) {
+      const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+        ServiceLevelObjectiveErrorBudgetPolicyTierService.buildRecommendedTier(
+          {
+            projectId: PROJECT_ID,
+            serviceLevelObjectiveId: SLO_ID,
+            recommended: recommended,
+          },
+        );
+
+      expect({ name: tier.name, freezes: tier.freezesDeployments }).toEqual({
+        name: recommended.name,
+        freezes: recommended.freezesDeployments,
+      });
     }
   });
 

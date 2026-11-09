@@ -6491,6 +6491,7 @@ describe("Slo:EvaluateSlos worker", () => {
       isEnabled?: boolean | undefined;
       name?: string | undefined;
       thresholdPercentage?: number | undefined;
+      freezesDeployments?: boolean | undefined;
       shouldCreateAlert?: boolean | undefined;
       shouldCreateIncident?: boolean | undefined;
       autoResolveAlert?: boolean | undefined;
@@ -6516,6 +6517,7 @@ describe("Slo:EvaluateSlos worker", () => {
       tier.thresholdPercentage =
         overrides.thresholdPercentage ?? thresholdPercentage;
       tier.whatWeDo = `${name}: what the team agreed to do.`;
+      tier.freezesDeployments = overrides.freezesDeployments ?? false;
       tier.isEnabled = overrides.isEnabled ?? true;
       tier.alertSeverityId = SEVERITY_ID;
       tier.incidentSeverityId = INCIDENT_SEVERITY_ID;
@@ -7401,6 +7403,457 @@ describe("Slo:EvaluateSlos worker", () => {
         ).toEqual([]);
         expect(tierChangeItems()).toEqual([]);
         expect(alertService.create).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("the deploy gate", () => {
+      const FROZEN_SINCE: Date = daysAgo(1);
+
+      // 848 of the 864-second budget down: 1.85% left, below the 2% exit.
+      const BUDGET_1_85_PERCENT_SECONDS: number = 848;
+
+      // The recommended policy as it is added now: Budget exhausted freezes.
+      function freezingPolicy(
+        overrides: {
+          caution?: TierOverrides;
+          reliabilityFirst?: TierOverrides;
+          exhausted?: TierOverrides;
+        } = {},
+      ): Array<ServiceLevelObjectiveErrorBudgetPolicyTier> {
+        return recommendedPolicy({
+          ...overrides,
+          exhausted: { freezesDeployments: true, ...overrides.exhausted },
+        });
+      }
+
+      // The SLO as the last evaluation left it: in this tier, deployments frozen.
+      function frozenSloInTier(
+        tierId: ObjectID,
+        tierName: string,
+        overrides: SloOverrides = {},
+      ): ServiceLevelObjective {
+        const slo: ServiceLevelObjective = sloInTier(
+          tierId,
+          tierName,
+          overrides,
+        );
+        slo.deploymentsAllowed = false;
+        slo.deploymentsFrozenAt = FROZEN_SINCE;
+        return slo;
+      }
+
+      function gateItems(): Array<FeedCall> {
+        return [
+          ...feedItemsOfType(
+            ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+          ),
+          ...feedItemsOfType(
+            ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed,
+          ),
+        ];
+      }
+
+      test("reads whether each tier freezes deployments", async () => {
+        await evaluate(sloInTier(null, null), freezingPolicy(), 0);
+
+        const args: { select: Record<string, unknown> } = tierService.findBy
+          .mock.calls[0]![0] as { select: Record<string, unknown> };
+
+        expect(args.select["freezesDeployments"]).toBe(true);
+      });
+
+      test("entering a tier that freezes deployments shuts the gate, in the one hooked state write that enters it", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state["currentErrorBudgetPolicyTierId"]).toEqual(EXHAUSTED_ID);
+        expect(state["deploymentsAllowed"]).toBe(false);
+        expect((state["deploymentsFrozenAt"] as Date).getTime()).toBe(
+          NOW.getTime(),
+        );
+        // Never through the hookless path: CI and workflows follow it.
+        expect(
+          payloadsContaining(
+            sloHooklessUpdatePayloads(),
+            "deploymentsAllowed",
+          ),
+        ).toEqual([]);
+      });
+
+      test("the tier change item says deployments are frozen - and is the only item", async () => {
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const items: Array<FeedCall> = tierChangeItems();
+
+        expect(items).toHaveLength(1);
+        expect(items[0]!.feedInfoInMarkdown).toBe(
+          "📉 [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) entered the **Budget exhausted** tier of its error budget policy (was **Caution**). Deployments are frozen.",
+        );
+        expect(items[0]!.moreInformationInMarkdown).toContain(
+          "**Deployments**: allowed → frozen",
+        );
+        expect(gateItems()).toEqual([]);
+      });
+
+      test("staying in the tier writes neither gate column and posts nothing", async () => {
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state).not.toHaveProperty("deploymentsAllowed");
+        expect(state).not.toHaveProperty("deploymentsFrozenAt");
+        expect(tierChangeItems()).toEqual([]);
+        expect(gateItems()).toEqual([]);
+      });
+
+      test("hysteresis: still frozen with 1.85% back, below the tier's 2% exit", async () => {
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          freezingPolicy(),
+          BUDGET_1_85_PERCENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state).not.toHaveProperty("currentErrorBudgetPolicyTierId");
+        expect(state).not.toHaveProperty("deploymentsAllowed");
+        expect(gateItems()).toEqual([]);
+      });
+
+      test("leaving the tier allows deployments again, in the item that says the SLO recovered", async () => {
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          freezingPolicy(),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state["currentErrorBudgetPolicyTierId"]).toEqual(
+          RELIABILITY_FIRST_ID,
+        );
+        expect(state["deploymentsAllowed"]).toBe(true);
+        expect(state["deploymentsFrozenAt"]).toBeNull();
+
+        const items: Array<FeedCall> = tierChangeItems();
+
+        expect(items).toHaveLength(1);
+        expect(items[0]!.feedInfoInMarkdown).toBe(
+          "📈 [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) recovered to the **Reliability first** tier of its error budget policy (was **Budget exhausted**). Deployments are allowed again.",
+        );
+        expect(items[0]!.moreInformationInMarkdown).toContain(
+          "**Deployments**: frozen → allowed",
+        );
+        expect(gateItems()).toEqual([]);
+      });
+
+      test("leaving every tier from it allows deployments again too", async () => {
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          freezingPolicy(),
+          0,
+        );
+
+        expect(persistedStateUpdate()["deploymentsAllowed"]).toBe(true);
+        expect(tierChangeItems()[0]!.feedInfoInMarkdown).toBe(
+          "✅ [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) left the **Budget exhausted** tier of its error budget policy: its error budget is above every tier again. Deployments are allowed again.",
+        );
+      });
+
+      test("between two tiers that both freeze, deployments stay frozen, since the first", async () => {
+        await evaluate(
+          frozenSloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+          freezingPolicy({ reliabilityFirst: { freezesDeployments: true } }),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state["currentErrorBudgetPolicyTierId"]).toEqual(EXHAUSTED_ID);
+        expect(state).not.toHaveProperty("deploymentsAllowed");
+        expect(state).not.toHaveProperty("deploymentsFrozenAt");
+
+        const item: FeedCall = tierChangeItems()[0]!;
+
+        expect(item.feedInfoInMarkdown).not.toContain("Deployments are");
+        expect(item.moreInformationInMarkdown).toContain(
+          "**Deployments**: still frozen",
+        );
+      });
+
+      test("a tier change that leaves deployments allowed says nothing about them", async () => {
+        await evaluate(
+          sloInTier(null, null),
+          freezingPolicy(),
+          BUDGET_37_PERCENT_SECONDS,
+        );
+
+        const item: FeedCall = tierChangeItems()[0]!;
+
+        expect(item.feedInfoInMarkdown).not.toContain("Deployments");
+        expect(item.moreInformationInMarkdown).not.toContain("Deployments");
+        expect(persistedStateUpdate()).not.toHaveProperty("deploymentsAllowed");
+      });
+
+      test("the freezing tier switched off while the SLO is in it allows deployments on the next evaluation", async () => {
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          freezingPolicy({ exhausted: { isEnabled: false } }),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        // A disabled tier holds nothing: the budget puts it in Reliability first.
+        expect(state["currentErrorBudgetPolicyTierId"]).toEqual(
+          RELIABILITY_FIRST_ID,
+        );
+        expect(state["deploymentsAllowed"]).toBe(true);
+        expect(tierChangeItems()[0]!.feedInfoInMarkdown).toContain(
+          "Deployments are allowed again.",
+        );
+      });
+
+      test("the freezing tier deleted while the SLO is in it: the budget decides, and the gate opens", async () => {
+        await evaluate(
+          frozenSloInTier(new ObjectID("tier-deleted"), "Freeze"),
+          freezingPolicy(),
+          BUDGET_23_PERCENT_SECONDS,
+        );
+
+        expect(persistedStateUpdate()["deploymentsAllowed"]).toBe(true);
+        expect(tierChangeItems()[0]!.feedInfoInMarkdown).toBe(
+          "📉 [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) entered the **Reliability first** tier of its error budget policy (was **Freeze**). Deployments are allowed again.",
+        );
+      });
+
+      test("Freeze Deployments switched on for the tier the SLO is in freezes them, with an item of its own", async () => {
+        await evaluate(
+          sloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state).not.toHaveProperty("currentErrorBudgetPolicyTierId");
+        expect(state["deploymentsAllowed"]).toBe(false);
+        expect((state["deploymentsFrozenAt"] as Date).getTime()).toBe(
+          NOW.getTime(),
+        );
+        expect(tierChangeItems()).toEqual([]);
+
+        const items: Array<FeedCall> = feedItemsOfType(
+          ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+        );
+
+        expect(items).toHaveLength(1);
+        expect(items[0]!.feedInfoInMarkdown).toBe(
+          "🔒 Deployments of [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) are frozen: its **Budget exhausted** tier now freezes deployments.",
+        );
+        expect(items[0]!.moreInformationInMarkdown).toContain(
+          "**Deployments**: allowed → frozen",
+        );
+        expect(items[0]!.moreInformationInMarkdown).toContain(
+          "**Error budget policy tier**: Budget exhausted",
+        );
+        expect(items[0]!.moreInformationInMarkdown).toContain("over budget by");
+        expect(items[0]!.displayColor).toEqual(Red);
+        expect(items[0]!.postedAt?.getTime()).toBe(NOW.getTime());
+        expect(gateItems()).toHaveLength(1);
+      });
+
+      test("switched off again, they are allowed again, with an item of its own", async () => {
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          recommendedPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state["deploymentsAllowed"]).toBe(true);
+        expect(state["deploymentsFrozenAt"]).toBeNull();
+        expect(tierChangeItems()).toEqual([]);
+
+        const items: Array<FeedCall> = feedItemsOfType(
+          ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed,
+        );
+
+        expect(items).toHaveLength(1);
+        expect(items[0]!.feedInfoInMarkdown).toBe(
+          "🔓 Deployments of [SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1) are allowed again: its **Budget exhausted** tier no longer freezes deployments.",
+        );
+        expect(items[0]!.moreInformationInMarkdown).toContain(
+          "**Deployments**: frozen → allowed",
+        );
+        expect(items[0]!.displayColor).toEqual(Green);
+        expect(gateItems()).toHaveLength(1);
+      });
+
+      test("a renamed tier whose switch moved too posts the gate item under its new name", async () => {
+        await evaluate(
+          sloInTier(EXHAUSTED_ID, "Out of budget"),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state["currentErrorBudgetPolicyTierName"]).toBe(
+          "Budget exhausted",
+        );
+        expect(state["deploymentsAllowed"]).toBe(false);
+        expect(tierChangeItems()).toEqual([]);
+        expect(gateItems()[0]!.feedInfoInMarkdown).toContain(
+          "its **Budget exhausted** tier now freezes deployments.",
+        );
+      });
+
+      test("an SLO with no policy is always allowed: no gate column, no gate item", async () => {
+        await evaluate(sloInTier(null, null), [], BUDGET_OVERSPENT_SECONDS);
+
+        expect(persistedStateUpdate()).not.toHaveProperty("deploymentsAllowed");
+        expect(gateItems()).toEqual([]);
+        expect(tierChangeItems()).toEqual([]);
+      });
+
+      test("an SLO left frozen by a policy since deleted is allowed again", async () => {
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          [],
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state["currentErrorBudgetPolicyTierId"]).toBeNull();
+        expect(state["deploymentsAllowed"]).toBe(true);
+        expect(state["deploymentsFrozenAt"]).toBeNull();
+        expect(tierChangeItems()[0]!.feedInfoInMarkdown).toContain(
+          "Deployments are allowed again.",
+        );
+      });
+
+      test("a freeze time left over on an allowed SLO is cleared quietly", async () => {
+        const slo: ServiceLevelObjective = sloInTier(null, null);
+        slo.deploymentsAllowed = true;
+        slo.deploymentsFrozenAt = FROZEN_SINCE;
+
+        await evaluate(slo, freezingPolicy(), 0);
+
+        const state: Record<string, unknown> = persistedStateUpdate();
+
+        expect(state).not.toHaveProperty("deploymentsAllowed");
+        expect(state["deploymentsFrozenAt"]).toBeNull();
+        expect(gateItems()).toEqual([]);
+      });
+
+      test("a gate item that fails to post is logged and costs nothing else", async () => {
+        feedService.createServiceLevelObjectiveFeedItem.mockRejectedValue(
+          new Error("feed is down"),
+        );
+
+        await evaluate(
+          sloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          freezingPolicy({ exhausted: { shouldCreateAlert: true } }),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        expect(mockedLogger.error).toHaveBeenCalledWith(
+          expect.stringContaining("Error posting the deploy gate feed item"),
+          expect.anything(),
+        );
+        expect(persistedStateUpdate()["deploymentsAllowed"]).toBe(false);
+        expect(alertService.create).toHaveBeenCalledTimes(1);
+      });
+
+      test("a Paused SLO keeps its answer: the gate is not written, and nothing is posted", async () => {
+        const paused: Monitor = enabledMonitor(MONITOR_A_ID);
+        paused.disableActiveMonitoring = true;
+        monitorService.findBy.mockResolvedValue([paused]);
+
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted"),
+          recommendedPolicy(),
+          0,
+        );
+
+        expect(
+          payloadsContaining(sloUpdatePayloads(), "deploymentsAllowed"),
+        ).toEqual([]);
+        expect(
+          payloadsContaining(sloUpdatePayloads(), "deploymentsFrozenAt"),
+        ).toEqual([]);
+        expect(gateItems()).toEqual([]);
+        expect(tierChangeItems()).toEqual([]);
+      });
+
+      test("an SLO that is Paused before it ever froze is not frozen by it either", async () => {
+        const paused: Monitor = enabledMonitor(MONITOR_A_ID);
+        paused.disableActiveMonitoring = true;
+        monitorService.findBy.mockResolvedValue([paused]);
+
+        await evaluate(
+          sloInTier(null, null),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        expect(
+          payloadsContaining(sloUpdatePayloads(), "deploymentsAllowed"),
+        ).toEqual([]);
+      });
+
+      test("a Misconfigured SLO keeps its answer too", async () => {
+        await evaluate(
+          frozenSloInTier(EXHAUSTED_ID, "Budget exhausted", { monitors: [] }),
+          recommendedPolicy(),
+          0,
+        );
+
+        expect(
+          payloadsContaining(sloUpdatePayloads(), "deploymentsAllowed"),
+        ).toEqual([]);
+        expect(gateItems()).toEqual([]);
+      });
+
+      test("an SLO disabled after the sweep started does not move the gate", async () => {
+        sloService.findOneById.mockImplementation(
+          (): Promise<ServiceLevelObjective> => {
+            const current: ServiceLevelObjective = new ServiceLevelObjective(
+              SLO_ID,
+            );
+            current.isEnabled = false;
+            current.isArchived = false;
+            return Promise.resolve(current);
+          },
+        );
+
+        await evaluate(
+          sloInTier(null, null),
+          freezingPolicy(),
+          BUDGET_OVERSPENT_SECONDS,
+        );
+
+        expect(
+          payloadsContaining(sloUpdatePayloads(), "deploymentsAllowed"),
+        ).toEqual([]);
+        expect(gateItems()).toEqual([]);
+        expect(tierChangeItems()).toEqual([]);
       });
     });
 
