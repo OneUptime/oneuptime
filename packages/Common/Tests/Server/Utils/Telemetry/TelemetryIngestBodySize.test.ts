@@ -116,7 +116,10 @@ describe("measureRawTelemetryIngestBody", () => {
 
     expect(readZstdDeclaredSize(compressed)).toBe(plain.length);
     expect(
-      measureRawTelemetryIngestBody({ body: compressed, contentEncoding: "zstd" }),
+      measureRawTelemetryIngestBody({
+        body: compressed,
+        contentEncoding: "zstd",
+      }),
     ).toEqual({ bytes: plain.length, isExact: false });
   });
 
@@ -128,14 +131,20 @@ describe("measureRawTelemetryIngestBody", () => {
 
     expect(readZstdDeclaredSize(compressed)).toBe(null);
     expect(
-      measureRawTelemetryIngestBody({ body: compressed, contentEncoding: "zstd" }),
+      measureRawTelemetryIngestBody({
+        body: compressed,
+        contentEncoding: "zstd",
+      }),
     ).toEqual({ bytes: compressed.length, isExact: false });
   });
 
   test("counts a deflate body - which records no size - at its compressed size", () => {
     const plain: Buffer = telemetryLike(400, 5);
 
-    for (const compressed of [zlib.deflateSync(plain), zlib.deflateRawSync(plain)]) {
+    for (const compressed of [
+      zlib.deflateSync(plain),
+      zlib.deflateRawSync(plain),
+    ]) {
       expect(
         measureRawTelemetryIngestBody({
           body: compressed,

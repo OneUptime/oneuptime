@@ -107,7 +107,10 @@ const toBuffer: (body: Buffer | Uint8Array) => Buffer = (
 };
 
 const capped: (bytes: number) => number = (bytes: number): number => {
-  return Math.min(Math.max(0, Math.floor(bytes)), MAX_COUNTED_INGEST_BODY_BYTES);
+  return Math.min(
+    Math.max(0, Math.floor(bytes)),
+    MAX_COUNTED_INGEST_BODY_BYTES,
+  );
 };
 
 /*

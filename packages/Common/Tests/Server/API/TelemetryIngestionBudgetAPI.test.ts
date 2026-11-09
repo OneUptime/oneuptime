@@ -146,18 +146,23 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-const call: (uri: string, params?: Record<string, string>) => Promise<unknown> =
-  async (uri: string, params?: Record<string, string>): Promise<unknown> => {
-    const next: jest.Mock = jest.fn();
+const call: (
+  uri: string,
+  params?: Record<string, string>,
+) => Promise<unknown> = async (
+  uri: string,
+  params?: Record<string, string>,
+): Promise<unknown> => {
+  const next: jest.Mock = jest.fn();
 
-    await routeFor(uri).handlerFunction(
-      { query: {}, params: params || {}, headers: {} },
-      {},
-      next as unknown as NextFunction,
-    );
+  await routeFor(uri).handlerFunction(
+    { query: {}, params: params || {}, headers: {} },
+    {},
+    next as unknown as NextFunction,
+  );
 
-    return next.mock.calls[0]?.[0];
-  };
+  return next.mock.calls[0]?.[0];
+};
 
 describe("the routes", () => {
   test("are one bare router: the project's read, and the admin's", () => {
@@ -165,9 +170,12 @@ describe("the routes", () => {
     expect(TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE).toBe(
       "/telemetry-ingestion-budget/project",
     );
-    expect(routeFor(TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE).middlewares).toEqual(
-      [UserMiddleware.getUserMiddleware, UserMiddleware.requireUserAuthentication],
-    );
+    expect(
+      routeFor(TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE).middlewares,
+    ).toEqual([
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+    ]);
     expect(routeFor(ADMIN_PROJECT_ROUTE).middlewares).toEqual([
       MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
     ]);
@@ -184,20 +192,27 @@ describe("GET /telemetry-ingestion-budget/project", () => {
     Permission.TelemetryMember,
     Permission.TelemetryViewer,
     Permission.BillingAdmin,
-  ])("is read by %s, for the caller's own project", async (permission: Permission) => {
-    props = memberProps([row(permission)]);
+  ])(
+    "is read by %s, for the caller's own project",
+    async (permission: Permission) => {
+      props = memberProps([row(permission)]);
 
-    expect(await call(TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE)).toBeUndefined();
-    expect(getProjectStatus).toHaveBeenCalledWith({ projectId: PROJECT_ID });
-    expect(sendJson).toHaveBeenCalledTimes(1);
-  });
+      expect(
+        await call(TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE),
+      ).toBeUndefined();
+      expect(getProjectStatus).toHaveBeenCalledWith({ projectId: PROJECT_ID });
+      expect(sendJson).toHaveBeenCalledTimes(1);
+    },
+  );
 
   test.each([Permission.IncidentMember, Permission.StatusPageAdmin])(
     "is refused to %s, which reads none of the project's telemetry usage",
     async (permission: Permission) => {
       props = memberProps([row(permission)]);
 
-      const thrown: unknown = await call(TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE);
+      const thrown: unknown = await call(
+        TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE,
+      );
 
       expect(thrown).toBeInstanceOf(NotAuthorizedException);
       expect((thrown as Error).message).toBe(
@@ -239,7 +254,9 @@ describe("GET /telemetry-ingestion-budget/project", () => {
   test("answers a master admin for the project its tenant header names", async () => {
     props = { tenantId: PROJECT_ID, isMasterAdmin: true, userId: USER_ID };
 
-    expect(await call(TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE)).toBeUndefined();
+    expect(
+      await call(TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE),
+    ).toBeUndefined();
     expect(getProjectStatus).toHaveBeenCalledWith({ projectId: PROJECT_ID });
   });
 });

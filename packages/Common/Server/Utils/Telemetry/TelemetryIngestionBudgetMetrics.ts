@@ -161,7 +161,9 @@ export default class TelemetryIngestionBudgetMetrics {
         data.scope.member.scope,
     };
 
-    if (data.scope.member.scope === TelemetryIngestionBudgetScope.IngestionKey) {
+    if (
+      data.scope.member.scope === TelemetryIngestionBudgetScope.IngestionKey
+    ) {
       attributes[TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_ID_ATTRIBUTE] =
         data.scope.member.scopeId;
 
@@ -275,8 +277,7 @@ export default class TelemetryIngestionBudgetMetrics {
     warningPercent: number;
     resetsAt: Date;
   }): { subject: string; html: string } | null {
-    const dailyBudgetBytes: number | null =
-      data.scope.limits.dailyBudget.bytes;
+    const dailyBudgetBytes: number | null = data.scope.limits.dailyBudget.bytes;
 
     if (dailyBudgetBytes === null) {
       return null;
@@ -319,7 +320,7 @@ export default class TelemetryIngestionBudgetMetrics {
       SafeHtml.escape(
         isKey
           ? "Anyone who can edit the ingestion key can change its budget, up to the project's own."
-          : "Only the instance admin can change the project's budget. Find what is sending the most on the Usage page, and drop what you do not need with drop filters.",
+          : "Only the instance admin can change the project's budget. Find what is sending the most on the Usage page, and send less of it: drop filters do not help here, as they remove telemetry after it is counted.",
       ),
     ];
 
@@ -674,7 +675,8 @@ export default class TelemetryIngestionBudgetMetrics {
       }
 
       const exhaustedDue: boolean =
-        counters.exhaustedAt !== null && counters.exhaustedNoticeSentAt === null;
+        counters.exhaustedAt !== null &&
+        counters.exhaustedNoticeSentAt === null;
       const warningDue: boolean =
         counters.warningCrossedAt !== null &&
         counters.warningNoticeSentAt === null;
@@ -740,8 +742,8 @@ export default class TelemetryIngestionBudgetMetrics {
           projectNames.set(projectId, project?.name || null);
         }
 
-        const notice: { subject: string; html: string } | null =
-          this.getNotice({
+        const notice: { subject: string; html: string } | null = this.getNotice(
+          {
             kind: kind,
             projectId: projectId,
             projectName: projectNames.get(projectId) || null,
@@ -749,7 +751,8 @@ export default class TelemetryIngestionBudgetMetrics {
             counters: counters,
             warningPercent: data.instance.warningPercent,
             resetsAt: data.day.resetsAt,
-          });
+          },
+        );
 
         if (!notice) {
           continue;

@@ -16,7 +16,10 @@ import {
   RAW_BODY_SURFACES,
   sendTelemetryIngestionBudgetRefusal,
 } from "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetHttp";
-import { ExpressRequest, ExpressResponse } from "../../../../Server/Utils/Express";
+import {
+  ExpressRequest,
+  ExpressResponse,
+} from "../../../../Server/Utils/Express";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import {
   TelemetryIngestionBudgetRefusal,
@@ -134,12 +137,20 @@ const fakeResponse: (headersSent?: boolean) => {
   return { res: res as unknown as ExpressResponse, state: state };
 };
 
-const request: (headers?: Record<string, string>, body?: unknown, rawBody?: string) => ExpressRequest = (
+const request: (
+  headers?: Record<string, string>,
+  body?: unknown,
+  rawBody?: string,
+) => ExpressRequest = (
   headers: Record<string, string> = {},
   body?: unknown,
   rawBody?: string,
 ): ExpressRequest => {
-  return { headers: headers, body: body, rawBody: rawBody } as unknown as ExpressRequest;
+  return {
+    headers: headers,
+    body: body,
+    rawBody: rawBody,
+  } as unknown as ExpressRequest;
 };
 
 const daily: TelemetryIngestionBudgetRefusal = {
@@ -170,7 +181,9 @@ describe("which surfaces are budgeted", () => {
       ),
     ).toBe(ProductType.Traces);
     expect(
-      getTelemetryIngestionBudgetSignalForSurface(TelemetryIngestSurface.OtelLogs),
+      getTelemetryIngestionBudgetSignalForSurface(
+        TelemetryIngestSurface.OtelLogs,
+      ),
     ).toBe(ProductType.Logs);
     expect(
       getTelemetryIngestionBudgetSignalForSurface(
@@ -194,7 +207,9 @@ describe("which surfaces are budgeted", () => {
     }
 
     expect(
-      getTelemetryIngestionBudgetSignalForSurface(TelemetryIngestSurface.Pyroscope),
+      getTelemetryIngestionBudgetSignalForSurface(
+        TelemetryIngestSurface.Pyroscope,
+      ),
     ).toBe(ProductType.Profiles);
     expect(
       getTelemetryIngestionBudgetSignalForSurface(
@@ -443,10 +458,9 @@ describe("google.rpc.Status encoding", () => {
     expect(status.details![0]!.type_url).toBe(RETRY_INFO_TYPE_URL);
 
     const retryInfo: { retry_delay: { seconds: number } } =
-      RetryInfoType.toObject(
-        RetryInfoType.decode(status.details![0]!.value),
-        { longs: Number },
-      ) as unknown as { retry_delay: { seconds: number } };
+      RetryInfoType.toObject(RetryInfoType.decode(status.details![0]!.value), {
+        longs: Number,
+      }) as unknown as { retry_delay: { seconds: number } };
 
     expect(retryInfo.retry_delay.seconds).toBe(7);
   });

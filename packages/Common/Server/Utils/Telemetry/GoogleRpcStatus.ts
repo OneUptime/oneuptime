@@ -29,7 +29,7 @@ const encodeVarint: (value: number) => Buffer = (value: number): Buffer => {
   let remaining: number = Math.max(0, Math.floor(value));
 
   while (remaining >= 0x80) {
-    bytes.push((remaining % 0x80) | 0x80);
+    bytes.push(remaining % 0x80 | 0x80);
     remaining = Math.floor(remaining / 0x80);
   }
 

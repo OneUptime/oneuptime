@@ -161,8 +161,9 @@ export default class TelemetryIngestionBudgetSettings {
       return cached;
     }
 
-    let load: Promise<TelemetryIngestionBudgetStoredSettings | null> | undefined =
-      this.projectLoads.get(key);
+    let load:
+      | Promise<TelemetryIngestionBudgetStoredSettings | null>
+      | undefined = this.projectLoads.get(key);
 
     if (!load) {
       load = this.loadProjectOverrides(projectId).finally(() => {

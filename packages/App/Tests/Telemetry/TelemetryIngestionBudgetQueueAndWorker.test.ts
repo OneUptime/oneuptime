@@ -106,9 +106,10 @@ jest.mock("Common/Server/Utils/Telemetry/TelemetryIngestionBudget", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "Common/Server/Utils/Telemetry/TelemetryIngestionBudget",
   ) as Record<string, unknown>;
-  const actualDefault: Record<string, unknown> = actual[
-    "default"
-  ] as Record<string, unknown>;
+  const actualDefault: Record<string, unknown> = actual["default"] as Record<
+    string,
+    unknown
+  >;
 
   return {
     __esModule: true,
@@ -220,22 +221,24 @@ const request: (data: {
   return req as unknown as TelemetryRequest;
 };
 
-const enqueuedJob: () => TelemetryIngestJobData | undefined =
-  (): TelemetryIngestJobData | undefined => {
-    const calls: Array<Array<unknown>> = (Queue.addJob as unknown as jest.Mock)
-      .mock.calls;
-    return calls.length > 0
-      ? (calls[calls.length - 1]![3] as TelemetryIngestJobData)
-      : undefined;
-  };
-
-const lastMeasure: () => TelemetryIngestBodySize = (): TelemetryIngestBodySize => {
-  const call: Record<string, unknown> = admit.mock.calls[
-    admit.mock.calls.length - 1
-  ]![0] as Record<string, unknown>;
-
-  return (call["measure"] as () => TelemetryIngestBodySize)();
+const enqueuedJob: () => TelemetryIngestJobData | undefined = ():
+  | TelemetryIngestJobData
+  | undefined => {
+  const calls: Array<Array<unknown>> = (Queue.addJob as unknown as jest.Mock)
+    .mock.calls;
+  return calls.length > 0
+    ? (calls[calls.length - 1]![3] as TelemetryIngestJobData)
+    : undefined;
 };
+
+const lastMeasure: () => TelemetryIngestBodySize =
+  (): TelemetryIngestBodySize => {
+    const call: Record<string, unknown> = admit.mock.calls[
+      admit.mock.calls.length - 1
+    ]![0] as Record<string, unknown>;
+
+    return (call["measure"] as () => TelemetryIngestBodySize)();
+  };
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -404,7 +407,10 @@ describe("the enqueue counts a batch once", () => {
       async (data: { measure: () => TelemetryIngestBodySize }) => {
         return {
           refusal: null,
-          charge: charge({ ...data.measure(), countedBytes: data.measure().bytes }),
+          charge: charge({
+            ...data.measure(),
+            countedBytes: data.measure().bytes,
+          }),
         };
       },
     );
@@ -439,7 +445,9 @@ describe("the enqueue counts a batch once", () => {
 describe("the worker settles a compressed body's real size", () => {
   const plain: Buffer = Buffer.from(
     JSON.stringify({
-      resourceLogs: [{ scopeLogs: [{ logRecords: [{ body: "x".repeat(4000) }] }] }],
+      resourceLogs: [
+        { scopeLogs: [{ logRecords: [{ body: "x".repeat(4000) }] }] },
+      ],
     }),
   );
 
@@ -551,6 +559,8 @@ describe("OtelPayloadDecoder.decodeFromQueueMeasured", () => {
   });
 
   test("never counts a body past what the worker would inflate", () => {
-    expect(MAX_COUNTED_INGEST_BODY_BYTES).toBe(MAX_DECOMPRESSED_OTLP_BODY_BYTES);
+    expect(MAX_COUNTED_INGEST_BODY_BYTES).toBe(
+      MAX_DECOMPRESSED_OTLP_BODY_BYTES,
+    );
   });
 });

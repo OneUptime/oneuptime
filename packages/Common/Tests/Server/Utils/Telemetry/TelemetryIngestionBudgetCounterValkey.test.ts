@@ -53,7 +53,6 @@ const NOW: number = Date.parse("2026-11-09T12:00:00Z");
 const TTL_SECONDS: number = 3600;
 
 const pods: Array<RedisClient> = [];
-let defaultClient: ClientType | null = null;
 const writtenPatterns: Array<string> = [];
 
 const newScope: (
@@ -148,7 +147,6 @@ const dayKey: (
 
 beforeAll(async () => {
   await Redis.connect();
-  defaultClient = Redis.getClient();
 
   for (let index: number = 0; index < 3; index++) {
     const pod: RedisClient = new RedisClient(Redis.getRedisOptions());
@@ -165,10 +163,7 @@ afterAll(async () => {
   const client: ClientType | null = Redis.getClient();
 
   if (client) {
-    for (const pattern of [
-      ...writtenPatterns,
-      `*${DAY_ID}*`,
-    ]) {
+    for (const pattern of [...writtenPatterns, `*${DAY_ID}*`]) {
       const keys: Array<string> = await client.keys(pattern);
 
       if (keys.length > 0) {
@@ -191,9 +186,9 @@ describe("the daily budget", () => {
     });
 
     // 999 used: one byte below the budget, so the next request is admitted.
-    expect(
-      (await consume({ scopes: [scope], bytes: 999 })).outcome,
-    ).toBe(TelemetryIngestionBudgetCounterOutcome.Admitted);
+    expect((await consume({ scopes: [scope], bytes: 999 })).outcome).toBe(
+      TelemetryIngestionBudgetCounterOutcome.Admitted,
+    );
 
     const crossing: TelemetryIngestionBudgetCounterDecision = await consume({
       scopes: [scope],
@@ -371,15 +366,15 @@ describe("the per-second rate", () => {
     });
 
     // A second of the rate is the burst: two half-megabyte requests fit...
-    expect(
-      (await consume({ scopes: [scope], bytes: MB / 2 })).outcome,
-    ).toBe(TelemetryIngestionBudgetCounterOutcome.Admitted);
-    expect(
-      (await consume({ scopes: [scope], bytes: MB / 2 })).outcome,
-    ).toBe(TelemetryIngestionBudgetCounterOutcome.Admitted);
-    expect(
-      (await consume({ scopes: [scope], bytes: MB })).outcome,
-    ).toBe(TelemetryIngestionBudgetCounterOutcome.Admitted);
+    expect((await consume({ scopes: [scope], bytes: MB / 2 })).outcome).toBe(
+      TelemetryIngestionBudgetCounterOutcome.Admitted,
+    );
+    expect((await consume({ scopes: [scope], bytes: MB / 2 })).outcome).toBe(
+      TelemetryIngestionBudgetCounterOutcome.Admitted,
+    );
+    expect((await consume({ scopes: [scope], bytes: MB })).outcome).toBe(
+      TelemetryIngestionBudgetCounterOutcome.Admitted,
+    );
 
     // ...and with two seconds owed, the next one waits a second.
     const refused: TelemetryIngestionBudgetCounterDecision = await consume({
@@ -405,9 +400,9 @@ describe("the per-second rate", () => {
       rateLimitBytesPerSecond: MB,
     });
 
-    expect(
-      (await consume({ scopes: [scope], bytes: 10 * MB })).outcome,
-    ).toBe(TelemetryIngestionBudgetCounterOutcome.Admitted);
+    expect((await consume({ scopes: [scope], bytes: 10 * MB })).outcome).toBe(
+      TelemetryIngestionBudgetCounterOutcome.Admitted,
+    );
 
     const refused: TelemetryIngestionBudgetCounterDecision = await consume({
       scopes: [scope],
@@ -416,7 +411,8 @@ describe("the per-second rate", () => {
     });
 
     expect(refused.outcome).toBe(
-      TelemetryIngestionBudgetCounterOutcome.RateLimited);
+      TelemetryIngestionBudgetCounterOutcome.RateLimited,
+    );
     // Ten seconds owed, one already passed, one second of burst: eight to wait.
     expect(refused.retryAfterSeconds).toBe(8);
 
@@ -569,9 +565,9 @@ describe("modes", () => {
     }
 
     // The rate was never charged: a sender that can retry still has a full bucket.
-    expect(
-      (await consume({ scopes: [scope], bytes: 10 })).outcome,
-    ).toBe(TelemetryIngestionBudgetCounterOutcome.Admitted);
+    expect((await consume({ scopes: [scope], bytes: 10 })).outcome).toBe(
+      TelemetryIngestionBudgetCounterOutcome.Admitted,
+    );
 
     await consume({
       scopes: [scope],
@@ -667,7 +663,11 @@ describe("settling a compressed body (reconcile)", () => {
         dayId: DAY_ID,
         signalSlug: "logs",
         scopes: [
-          { scope: project.scope, scopeId: project.scopeId, warningBytes: null },
+          {
+            scope: project.scope,
+            scopeId: project.scopeId,
+            warningBytes: null,
+          },
           { scope: key.scope, scopeId: key.scopeId, warningBytes: 1000 },
         ],
         deltaBytes: 900,
@@ -719,7 +719,9 @@ describe("settling a compressed body (reconcile)", () => {
     await TelemetryIngestionBudgetCounter.reconcile({
       dayId: DAY_ID,
       signalSlug: "logs",
-      scopes: [{ scope: scope.scope, scopeId: scope.scopeId, warningBytes: null }],
+      scopes: [
+        { scope: scope.scope, scopeId: scope.scopeId, warningBytes: null },
+      ],
       deltaBytes: 1400,
       nowMs: NOW,
     });
@@ -844,12 +846,19 @@ describe("notices, reads and failures", () => {
     expect((await consume({ scopes: [scope] })).outcome).toBe(
       TelemetryIngestionBudgetCounterOutcome.CounterUnavailable,
     );
-    expect(await TelemetryIngestionBudgetCounter.readDayCounters([
-      { dayId: DAY_ID, scope: scope.scope, scopeId: scope.scopeId, signalSlug: "logs" },
-    ])).toBe(null);
-    expect(await TelemetryIngestionBudgetCounter.listActiveMembers(DAY_ID)).toBe(
-      null,
-    );
+    expect(
+      await TelemetryIngestionBudgetCounter.readDayCounters([
+        {
+          dayId: DAY_ID,
+          scope: scope.scope,
+          scopeId: scope.scopeId,
+          signalSlug: "logs",
+        },
+      ]),
+    ).toBe(null);
+    expect(
+      await TelemetryIngestionBudgetCounter.listActiveMembers(DAY_ID),
+    ).toBe(null);
     jest.restoreAllMocks();
 
     jest.spyOn(Redis, "isConnected").mockReturnValue(false);
@@ -860,7 +869,9 @@ describe("notices, reads and failures", () => {
 
     const failing: Record<string, unknown> = {
       evalsha: async (): Promise<never> => {
-        throw new Error("READONLY You can't write against a read only replica.");
+        throw new Error(
+          "READONLY You can't write against a read only replica.",
+        );
       },
     };
 
@@ -900,12 +911,12 @@ describe("notices, reads and failures", () => {
     expect(
       TelemetryIngestionBudgetCounter.parseActiveMember("p|team|t|logs"),
     ).toBe(null);
-    expect(TelemetryIngestionBudgetCounter.parseActiveMember("p|project|p")).toBe(
+    expect(
+      TelemetryIngestionBudgetCounter.parseActiveMember("p|project|p"),
+    ).toBe(null);
+    expect(TelemetryIngestionBudgetCounter.parseActiveMember("p||p|logs")).toBe(
       null,
     );
-    expect(
-      TelemetryIngestionBudgetCounter.parseActiveMember("p||p|logs"),
-    ).toBe(null);
   });
 
   test("keeps the active set and the day keys a reader can find", () => {

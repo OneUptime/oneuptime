@@ -7,22 +7,28 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  * 0 standing in for a counter that could not be read.
  */
 
-jest.mock("../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetSettings", () => {
-  return {
-    __esModule: true,
-    default: {
-      getInstanceSettings: jest.fn(),
-      getProjectOverrides: jest.fn(),
-    },
-  };
-});
+jest.mock(
+  "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetSettings",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getInstanceSettings: jest.fn(),
+        getProjectOverrides: jest.fn(),
+      },
+    };
+  },
+);
 
-jest.mock("../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter", () => {
-  return {
-    __esModule: true,
-    default: { readDayCounters: jest.fn() },
-  };
-});
+jest.mock(
+  "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter",
+  () => {
+    return {
+      __esModule: true,
+      default: { readDayCounters: jest.fn() },
+    };
+  },
+);
 
 jest.mock("../../../../Server/Services/TelemetryIngestionKeyService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
@@ -31,7 +37,12 @@ jest.mock("../../../../Server/Services/TelemetryIngestionKeyService", () => {
 jest.mock("../../../../Server/Utils/Logger", () => {
   return {
     __esModule: true,
-    default: { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+    default: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
   };
 });
 
@@ -63,7 +74,9 @@ type MockFn = jest.Mock;
 
 const GB: number = TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB;
 const MB: number = TELEMETRY_INGESTION_BUDGET_BYTES_PER_MB;
-const PROJECT_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111191");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111191",
+);
 const KEY_ID: string = "11111111-1111-4111-8111-111111111192";
 const OTHER_KEY_ID: string = "11111111-1111-4111-8111-111111111193";
 const NOW: Date = new Date("2026-11-09T12:00:00Z");
@@ -104,25 +117,31 @@ const withLogs: (
 
 beforeEach(() => {
   jest.clearAllMocks();
-  (TelemetryIngestionBudgetSettings.getInstanceSettings as unknown as MockFn).mockResolvedValue({
+  (
+    TelemetryIngestionBudgetSettings.getInstanceSettings as unknown as MockFn
+  ).mockResolvedValue({
     budgets: withLogs(10, 5),
     warningPercent: 80,
     resetTime: "00:00",
     timezone: "UTC",
   } as never);
-  (TelemetryIngestionBudgetSettings.getProjectOverrides as unknown as MockFn).mockResolvedValue(
-    null as never,
+  (
+    TelemetryIngestionBudgetSettings.getProjectOverrides as unknown as MockFn
+  ).mockResolvedValue(null as never);
+  (TelemetryIngestionKeyService.findBy as unknown as MockFn).mockResolvedValue(
+    [] as never,
   );
-  (TelemetryIngestionKeyService.findBy as unknown as MockFn).mockResolvedValue([] as never);
-  (TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn).mockImplementation(
-    (async (days: Array<TelemetryIngestionBudgetDayKeyParts>) => {
-      return days.map((day: TelemetryIngestionBudgetDayKeyParts) => {
-        return day.signalSlug === "logs" && day.scope === "project"
-          ? counters({ usedBytes: 9 * GB, droppedBytes: 3, droppedRequests: 1 })
-          : counters();
-      });
-    }) as never,
-  );
+  (
+    TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+  ).mockImplementation((async (
+    days: Array<TelemetryIngestionBudgetDayKeyParts>,
+  ) => {
+    return days.map((day: TelemetryIngestionBudgetDayKeyParts) => {
+      return day.signalSlug === "logs" && day.scope === "project"
+        ? counters({ usedBytes: 9 * GB, droppedBytes: 3, droppedRequests: 1 })
+        : counters();
+    });
+  }) as never);
 });
 
 describe("buildTelemetryIngestionBudgetSignalStatus", () => {
@@ -230,8 +249,9 @@ describe("TelemetryIngestionBudgetStatusReader.getProjectStatus", () => {
   });
 
   test("falls back to the cache when a fresh read fails", async () => {
-    (TelemetryIngestionBudgetSettings.getInstanceSettings as unknown as MockFn)
-      .mockRejectedValueOnce(new Error("Postgres is down") as never);
+    (
+      TelemetryIngestionBudgetSettings.getInstanceSettings as unknown as MockFn
+    ).mockRejectedValueOnce(new Error("Postgres is down") as never);
 
     const status: TelemetryIngestionBudgetStatus =
       await TelemetryIngestionBudgetStatusReader.getProjectStatus({
@@ -246,10 +266,23 @@ describe("TelemetryIngestionBudgetStatusReader.getProjectStatus", () => {
   });
 
   test("lists the keys with budgets of their own, by name, each held to the project's", async () => {
-    (TelemetryIngestionKeyService.findBy as unknown as MockFn).mockResolvedValue([
-      { id: new ObjectID(OTHER_KEY_ID), name: "zeta", logsDailyIngestionBudgetInGB: 1 },
-      { id: new ObjectID(KEY_ID), name: "alpha", logsDailyIngestionBudgetInGB: 50 },
-      { id: new ObjectID("11111111-1111-4111-8111-111111111194"), name: "plain" },
+    (
+      TelemetryIngestionKeyService.findBy as unknown as MockFn
+    ).mockResolvedValue([
+      {
+        id: new ObjectID(OTHER_KEY_ID),
+        name: "zeta",
+        logsDailyIngestionBudgetInGB: 1,
+      },
+      {
+        id: new ObjectID(KEY_ID),
+        name: "alpha",
+        logsDailyIngestionBudgetInGB: 50,
+      },
+      {
+        id: new ObjectID("11111111-1111-4111-8111-111111111194"),
+        name: "plain",
+      },
     ] as never);
 
     const status: TelemetryIngestionBudgetStatus =
@@ -277,8 +310,14 @@ describe("TelemetryIngestionBudgetStatusReader.getProjectStatus", () => {
   });
 
   test("reads every scope's counters for today in one batch, project first", async () => {
-    (TelemetryIngestionKeyService.findBy as unknown as MockFn).mockResolvedValue([
-      { id: new ObjectID(KEY_ID), name: "k", tracesDailyIngestionBudgetInGB: 2 },
+    (
+      TelemetryIngestionKeyService.findBy as unknown as MockFn
+    ).mockResolvedValue([
+      {
+        id: new ObjectID(KEY_ID),
+        name: "k",
+        tracesDailyIngestionBudgetInGB: 2,
+      },
     ] as never);
 
     await TelemetryIngestionBudgetStatusReader.getProjectStatus({
@@ -302,9 +341,9 @@ describe("TelemetryIngestionBudgetStatusReader.getProjectStatus", () => {
   });
 
   test("says the counters could not be read, rather than showing zeros", async () => {
-    (TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn).mockResolvedValue(
-      null as never,
-    );
+    (
+      TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+    ).mockResolvedValue(null as never);
 
     const status: TelemetryIngestionBudgetStatus =
       await TelemetryIngestionBudgetStatusReader.getProjectStatus({

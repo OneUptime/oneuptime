@@ -61,13 +61,13 @@ export const KEY_BUDGETS_CARD_TITLE: string = translationKey(
 export const KEY_BUDGETS_CARD_DESCRIPTION: string = translationKey(
   "Ingestion keys with a budget of their own. A key's budget only subdivides the project's.",
 );
-export const THIS_KEY_CARD_TITLE: string = translationKey("Today's Budget Usage");
+export const THIS_KEY_CARD_TITLE: string = translationKey(
+  "Today's Budget Usage",
+);
 export const THIS_KEY_CARD_DESCRIPTION: string = translationKey(
   "What this key sent today against its own budgets. The budget day resets at {{resetsAt}}.",
 );
-export const NO_BUDGETS_TITLE: string = translationKey(
-  "No ingestion budgets",
-);
+export const NO_BUDGETS_TITLE: string = translationKey("No ingestion budgets");
 export const NO_BUDGETS_DESCRIPTION: string = translationKey(
   "Every signal is accepted without a daily budget or a rate limit.",
 );
@@ -168,7 +168,8 @@ export const SignalRows: FunctionComponent<{
                         translator,
                       )}
                 </div>
-                {signal.dailyBudgetSource && signal.dailyBudgetBytes !== null ? (
+                {signal.dailyBudgetSource &&
+                signal.dailyBudgetBytes !== null ? (
                   <div className="text-xs text-gray-500">
                     {translator.translateText(
                       TELEMETRY_INGESTION_BUDGET_SOURCE_LABELS[

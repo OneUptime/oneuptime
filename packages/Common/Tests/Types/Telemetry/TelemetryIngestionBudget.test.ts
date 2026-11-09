@@ -78,7 +78,9 @@ const settings: (
   const stored: TelemetryIngestionBudgetStoredSettings =
     getEmptyTelemetryIngestionBudgetStoredSettings();
 
-  for (const signal of Object.keys(values) as Array<TelemetryIngestionBudgetSignal>) {
+  for (const signal of Object.keys(
+    values,
+  ) as Array<TelemetryIngestionBudgetSignal>) {
     stored[signal] = {
       dailyBudgetInGB: values[signal]?.daily ?? null,
       rateLimitInMBPerSecond: values[signal]?.rate ?? null,
@@ -88,7 +90,11 @@ const settings: (
   return stored;
 };
 
-const day: (now: string, resetTime?: string, timezone?: string) => TelemetryIngestionBudgetDay = (
+const day: (
+  now: string,
+  resetTime?: string,
+  timezone?: string,
+) => TelemetryIngestionBudgetDay = (
   now: string,
   resetTime?: string,
   timezone?: string,
@@ -152,9 +158,9 @@ describe("TelemetryIngestionBudget signals", () => {
     expect(getTelemetryIngestionBudgetSignalFromSlug("session-replay")).toBe(
       null,
     );
-    expect(getTelemetryIngestionBudgetSignalWords(ProductType.SecurityEvents)).toBe(
-      "security events",
-    );
+    expect(
+      getTelemetryIngestionBudgetSignalWords(ProductType.SecurityEvents),
+    ).toBe("security events");
   });
 
   test("names the same two columns per signal on every level, ten in all", () => {
@@ -362,7 +368,7 @@ describe("resolveTelemetryIngestionBudget", () => {
       bytes: 4 * GB,
       source: TelemetryIngestionBudgetLimitSource.Project,
     });
-    expect(resolved.ingestionKey!.rateLimit.bytes).toBe(1 * MB);
+    expect(resolved.ingestionKey!.rateLimit.bytes).toBe(MB);
   });
 
   test("an equal key budget is the key's own, not clamped", () => {
@@ -443,16 +449,16 @@ describe("getTelemetryIngestionBudgetValueProblem", () => {
     expect(problem(0, TelemetryIngestionBudgetValueKind.RateLimit)).toMatch(
       /more than 0 MB per second/,
     );
-    expect(problem(0, TelemetryIngestionBudgetValueKind.DailyBudget, true)).toBe(
-      null,
-    );
+    expect(
+      problem(0, TelemetryIngestionBudgetValueKind.DailyBudget, true),
+    ).toBe(null);
   });
 
   test("refuses negatives, text that is not a number, and values past the bound", () => {
     expect(problem(-1)).toMatch(/more than 0/);
-    expect(problem(-1, TelemetryIngestionBudgetValueKind.DailyBudget, true)).toMatch(
-      /0 or more GB per day/,
-    );
+    expect(
+      problem(-1, TelemetryIngestionBudgetValueKind.DailyBudget, true),
+    ).toMatch(/0 or more GB per day/);
     expect(problem("ten")).toMatch(/must be a number of GB per day/);
     expect(problem("  ")).toMatch(/must be a number/);
     expect(problem(Infinity)).toMatch(/must be a number/);
@@ -578,7 +584,11 @@ describe("getTelemetryIngestionBudgetDay", () => {
     expect(kolkata.resetsAt.toISOString()).toBe("2026-11-10T18:30:00.000Z");
 
     expect(
-      day("2026-11-09T18:29:59Z", "00:00", "Asia/Kolkata").startsAt.toISOString(),
+      day(
+        "2026-11-09T18:29:59Z",
+        "00:00",
+        "Asia/Kolkata",
+      ).startsAt.toISOString(),
     ).toBe("2026-11-08T18:30:00.000Z");
   });
 
@@ -677,7 +687,11 @@ describe("getTelemetryIngestionBudgetDay", () => {
   test("gives every period its own id, so changing the reset never resumes another day's counters", () => {
     const utc: string = day("2026-11-09T12:00:00Z").id;
     const evening: string = day("2026-11-09T12:00:00Z", "18:00").id;
-    const berlin: string = day("2026-11-09T12:00:00Z", "00:00", "Europe/Berlin").id;
+    const berlin: string = day(
+      "2026-11-09T12:00:00Z",
+      "00:00",
+      "Europe/Berlin",
+    ).id;
 
     expect(new Set([utc, evening, berlin]).size).toBe(3);
     expect(evening).toBe("20261108T1800Z");

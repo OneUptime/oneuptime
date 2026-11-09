@@ -258,9 +258,7 @@ export default class TelemetryIngestionBudget {
         nowMs: now.getTime(),
       });
 
-    if (
-      decision.outcome !== TelemetryIngestionBudgetCounterOutcome.Admitted
-    ) {
+    if (decision.outcome !== TelemetryIngestionBudgetCounterOutcome.Admitted) {
       return null;
     }
 

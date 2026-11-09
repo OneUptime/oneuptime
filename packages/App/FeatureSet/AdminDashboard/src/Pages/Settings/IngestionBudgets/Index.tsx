@@ -69,7 +69,9 @@ const Settings: FunctionComponent = (): ReactElement => {
         name="Default Daily Ingestion Budgets"
         cardProps={{
           title: t("pages.settings.ingestionBudgets.dailyCardTitle"),
-          description: t("pages.settings.ingestionBudgets.dailyCardDescription"),
+          description: t(
+            "pages.settings.ingestionBudgets.dailyCardDescription",
+          ),
         }}
         isEditable={true}
         editButtonText={t("pages.settings.ingestionBudgets.dailyEditButton")}
@@ -92,7 +94,9 @@ const Settings: FunctionComponent = (): ReactElement => {
         name="Ingestion Budget Warning and Reset"
         cardProps={{
           title: t("pages.settings.ingestionBudgets.resetCardTitle"),
-          description: t("pages.settings.ingestionBudgets.resetCardDescription"),
+          description: t(
+            "pages.settings.ingestionBudgets.resetCardDescription",
+          ),
         }}
         isEditable={true}
         editButtonText={t("pages.settings.ingestionBudgets.resetEditButton")}
@@ -134,7 +138,8 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
             required: false,
-            description: "The time zone of the reset time. Leave empty for UTC.",
+            description:
+              "The time zone of the reset time. Leave empty for UTC.",
             placeholder: TELEMETRY_INGESTION_BUDGET_DEFAULT_TIMEZONE,
           },
         ]}

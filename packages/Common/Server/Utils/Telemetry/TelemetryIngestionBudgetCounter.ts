@@ -320,7 +320,9 @@ const toCount: (value: unknown) => number = (value: unknown): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const toDate: (value: unknown) => Date | null = (value: unknown): Date | null => {
+const toDate: (value: unknown) => Date | null = (
+  value: unknown,
+): Date | null => {
   if (value === null || value === undefined || value === "") {
     return null;
   }
@@ -368,9 +370,12 @@ export default class TelemetryIngestionBudgetCounter {
   ): TelemetryIngestionBudgetActiveMember | null {
     const parts: Array<string> = String(member).split("|");
 
-    if (parts.length !== 4 || parts.some((part: string) => {
-      return !part;
-    })) {
+    if (
+      parts.length !== 4 ||
+      parts.some((part: string) => {
+        return !part;
+      })
+    ) {
       return null;
     }
 

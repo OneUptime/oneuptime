@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import zlib from "zlib";
 
 /*
@@ -36,19 +43,22 @@ jest.mock("../../../Server/Utils/Telemetry/TelemetryIngestionBudget", () => {
   };
 });
 
-jest.mock("../../../Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter",
-  ) as Record<string, unknown>;
+jest.mock(
+  "../../../Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter",
+    ) as Record<string, unknown>;
 
-  return {
-    __esModule: true,
-    ...actual,
-    default: {
-      consume: jest.fn(),
-    },
-  };
-});
+    return {
+      __esModule: true,
+      ...actual,
+      default: {
+        consume: jest.fn(),
+      },
+    };
+  },
+);
 
 import TelemetryIngest, {
   TelemetryRequest,
@@ -153,7 +163,7 @@ const run: (
       return res;
     },
   };
-  const next: MockFn = jest.fn();
+  const next: MockFn = jest.fn() as unknown as MockFn;
 
   await TelemetryIngest.forSurface(surface)(
     req,
@@ -182,9 +192,9 @@ const refusal: (
 
 beforeEach(() => {
   jest.clearAllMocks();
-  (TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn).mockResolvedValue(
-    policy as never,
-  );
+  (
+    TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn
+  ).mockResolvedValue(policy as never);
   (TelemetryIngestionKeyService.markUsed as MockFn).mockResolvedValue(
     undefined as never,
   );
@@ -233,9 +243,9 @@ describe("which surfaces the budget gate runs on", () => {
   test("Pyroscope reads its upload after the key check, so it is checked now and counted at the enqueue", async () => {
     await run(TelemetryIngestSurface.Pyroscope);
 
-    expect(
-      (admit.mock.calls[0]![0] as Record<string, unknown>)["mode"],
-    ).toBe(TelemetryIngestionBudgetAdmissionMode.Check);
+    expect((admit.mock.calls[0]![0] as Record<string, unknown>)["mode"]).toBe(
+      TelemetryIngestionBudgetAdmissionMode.Check,
+    );
   });
 
   test.each([
@@ -247,23 +257,24 @@ describe("which surfaces the budget gate runs on", () => {
     TelemetryIngestSurface.DbtArtifacts,
     TelemetryIngestSurface.SyncWebhooks,
     TelemetryIngestSurface.HostCollectorManagement,
-  ])("%s is not budgeted: it is not a telemetry signal, or has budgets of its own", async (
-    surface: TelemetryIngestSurface,
-  ) => {
-    const result: RunResult = await run(surface);
+  ])(
+    "%s is not budgeted: it is not a telemetry signal, or has budgets of its own",
+    async (surface: TelemetryIngestSurface) => {
+      const result: RunResult = await run(surface);
 
-    expect(admit).not.toHaveBeenCalled();
-    expect(result.next).toHaveBeenCalledWith();
-    expect(
-      (result.req as TelemetryRequest).telemetryIngestionBudgetCharge,
-    ).toBeUndefined();
-  });
+      expect(admit).not.toHaveBeenCalled();
+      expect(result.next).toHaveBeenCalledWith();
+      expect(
+        (result.req as TelemetryRequest).telemetryIngestionBudgetCharge,
+      ).toBeUndefined();
+    },
+  );
 
   test("the legacy unnamed surface is not budgeted either", async () => {
     const req: ExpressRequest = {
       headers: { "x-oneuptime-token": TOKEN },
     } as unknown as ExpressRequest;
-    const next: MockFn = jest.fn();
+    const next: MockFn = jest.fn() as unknown as MockFn;
 
     await TelemetryIngest.isAuthorizedServiceMiddleware(
       req,
@@ -320,9 +331,9 @@ describe("what the gate is handed and leaves behind", () => {
       outcome: TelemetryIngestionKeyLimitOutcome.RateLimited,
       retryAfterSeconds: 9,
     } as never);
-    (TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn).mockResolvedValue(
-      { ...policy, requestsPerMinuteLimit: 1 } as never,
-    );
+    (
+      TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn
+    ).mockResolvedValue({ ...policy, requestsPerMinuteLimit: 1 } as never);
 
     await run(TelemetryIngestSurface.OtelLogs, { body: Buffer.alloc(1) });
 
@@ -333,7 +344,9 @@ describe("what the gate is handed and leaves behind", () => {
 describe("what a refused sender is answered", () => {
   test("a used-up budget on an OTLP route: 403 with a protobuf Status, and the handler never runs", async () => {
     admit.mockResolvedValue({
-      refusal: refusal(TelemetryIngestionBudgetRefusalKind.DailyBudgetExhausted),
+      refusal: refusal(
+        TelemetryIngestionBudgetRefusalKind.DailyBudgetExhausted,
+      ),
       charge: null,
     } as never);
 

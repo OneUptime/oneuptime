@@ -19,14 +19,16 @@ import {
  * lists them, each titled as written here so the Admin locales can word it.
  */
 
-export const DAILY_BUDGET_TITLES: Record<TelemetryIngestionBudgetSignal, string> =
-  {
-    [ProductType.Logs]: "Logs (GB per day)",
-    [ProductType.Traces]: "Traces (GB per day)",
-    [ProductType.Metrics]: "Metrics (GB per day)",
-    [ProductType.Profiles]: "Profiles (GB per day)",
-    [ProductType.SecurityEvents]: "Security Events (GB per day)",
-  };
+export const DAILY_BUDGET_TITLES: Record<
+  TelemetryIngestionBudgetSignal,
+  string
+> = {
+  [ProductType.Logs]: "Logs (GB per day)",
+  [ProductType.Traces]: "Traces (GB per day)",
+  [ProductType.Metrics]: "Metrics (GB per day)",
+  [ProductType.Profiles]: "Profiles (GB per day)",
+  [ProductType.SecurityEvents]: "Security Events (GB per day)",
+};
 
 export const RATE_LIMIT_TITLES: Record<TelemetryIngestionBudgetSignal, string> =
   {

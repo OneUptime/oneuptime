@@ -9,31 +9,37 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  * tested against a real Valkey on its own.
  */
 
-jest.mock("../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter",
-  ) as Record<string, unknown>;
+jest.mock(
+  "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter",
+    ) as Record<string, unknown>;
 
-  return {
-    __esModule: true,
-    ...actual,
-    default: {
-      listActiveMembers: jest.fn(),
-      readDayCounters: jest.fn(),
-      claimNotice: jest.fn(),
-    },
-  };
-});
+    return {
+      __esModule: true,
+      ...actual,
+      default: {
+        listActiveMembers: jest.fn(),
+        readDayCounters: jest.fn(),
+        claimNotice: jest.fn(),
+      },
+    };
+  },
+);
 
-jest.mock("../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetSettings", () => {
-  return {
-    __esModule: true,
-    default: {
-      getInstanceSettings: jest.fn(),
-      getProjectOverrides: jest.fn(),
-    },
-  };
-});
+jest.mock(
+  "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetSettings",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getInstanceSettings: jest.fn(),
+        getProjectOverrides: jest.fn(),
+      },
+    };
+  },
+);
 
 jest.mock("../../../../Server/Services/TelemetryIngestionKeyService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
@@ -55,7 +61,9 @@ jest.mock("../../../../Server/Utils/Telemetry/Telemetry", () => {
     __esModule: true,
     default: {
       indexMetricNameServiceNameMap: jest.fn(),
-      getAttributeKeys: (attributes: Record<string, unknown>): Array<string> => {
+      getAttributeKeys: (
+        attributes: Record<string, unknown>,
+      ): Array<string> => {
         return Object.keys(attributes);
       },
     },
@@ -64,7 +72,12 @@ jest.mock("../../../../Server/Utils/Telemetry/Telemetry", () => {
 jest.mock("../../../../Server/Utils/Logger", () => {
   return {
     __esModule: true,
-    default: { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+    default: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
   };
 });
 
@@ -153,21 +166,26 @@ const logsBudget: (daily: number) => TelemetryIngestionBudgetStoredSettings = (
 ): TelemetryIngestionBudgetStoredSettings => {
   const stored: TelemetryIngestionBudgetStoredSettings =
     getEmptyTelemetryIngestionBudgetStoredSettings();
-  stored[ProductType.Logs] = { dailyBudgetInGB: daily, rateLimitInMBPerSecond: null };
+  stored[ProductType.Logs] = {
+    dailyBudgetInGB: daily,
+    rateLimitInMBPerSecond: null,
+  };
   return stored;
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
-  (TelemetryIngestionBudgetSettings.getInstanceSettings as unknown as MockFn).mockResolvedValue({
+  (
+    TelemetryIngestionBudgetSettings.getInstanceSettings as unknown as MockFn
+  ).mockResolvedValue({
     budgets: logsBudget(10),
     warningPercent: 80,
     resetTime: "00:00",
     timezone: "UTC",
   } as never);
-  (TelemetryIngestionBudgetSettings.getProjectOverrides as unknown as MockFn).mockResolvedValue(
-    null as never,
-  );
+  (
+    TelemetryIngestionBudgetSettings.getProjectOverrides as unknown as MockFn
+  ).mockResolvedValue(null as never);
   (TelemetryIngestionKeyService.findBy as unknown as MockFn).mockResolvedValue([
     {
       id: new ObjectID(KEY_ID),
@@ -175,40 +193,44 @@ beforeEach(() => {
       logsDailyIngestionBudgetInGB: 1,
     },
   ] as never);
-  (TelemetryIngestionBudgetCounter.listActiveMembers as unknown as MockFn).mockResolvedValue([
-    projectMember,
-    keyMember,
-  ] as never);
-  (TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn).mockResolvedValue([
+  (
+    TelemetryIngestionBudgetCounter.listActiveMembers as unknown as MockFn
+  ).mockResolvedValue([projectMember, keyMember] as never);
+  (
+    TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+  ).mockResolvedValue([
     counters({ usedBytes: 9 * GB, warningCrossedAt: NOW }),
     counters({ usedBytes: GB, droppedBytes: 500, exhaustedAt: NOW }),
   ] as never);
-  (TelemetryIngestionBudgetCounter.claimNotice as unknown as MockFn).mockResolvedValue(
-    true as never,
-  );
+  (
+    TelemetryIngestionBudgetCounter.claimNotice as unknown as MockFn
+  ).mockResolvedValue(true as never);
   (GlobalConfigService.findOneById as unknown as MockFn).mockResolvedValue({
     monitorMetricRetentionInDays: 14,
   } as never);
   (ProjectService.findOneById as unknown as MockFn).mockResolvedValue({
     name: "Acme <Production>",
   } as never);
-  (MetricService.insertJsonRows as unknown as MockFn).mockResolvedValue(undefined as never);
-  (TelemetryUtil.indexMetricNameServiceNameMap as unknown as MockFn).mockResolvedValue(
+  (MetricService.insertJsonRows as unknown as MockFn).mockResolvedValue(
     undefined as never,
   );
-  (ProjectService.sendEmailToProjectOwners as unknown as MockFn).mockResolvedValue(
-    undefined as never,
-  );
+  (
+    TelemetryUtil.indexMetricNameServiceNameMap as unknown as MockFn
+  ).mockResolvedValue(undefined as never);
+  (
+    ProjectService.sendEmailToProjectOwners as unknown as MockFn
+  ).mockResolvedValue(undefined as never);
 });
 
 describe("buildScopeRows", () => {
   test("posts the day's bytes and percent for a scope with a daily budget, keyed to the project", () => {
-    const rows: Array<JSONObject> = TelemetryIngestionBudgetMetrics.buildScopeRows({
-      scope: projectScope,
-      counters: counters({ usedBytes: 9 * GB }),
-      ingestionDate: NOW,
-      retentionDate: NOW,
-    });
+    const rows: Array<JSONObject> =
+      TelemetryIngestionBudgetMetrics.buildScopeRows({
+        scope: projectScope,
+        counters: counters({ usedBytes: 9 * GB }),
+        ingestionDate: NOW,
+        retentionDate: NOW,
+      });
 
     expect(
       rows.map((row: JSONObject) => {
@@ -229,12 +251,17 @@ describe("buildScopeRows", () => {
   });
 
   test("posts the dropped bytes and throttled requests only while above zero", () => {
-    const rows: Array<JSONObject> = TelemetryIngestionBudgetMetrics.buildScopeRows({
-      scope: projectScope,
-      counters: counters({ usedBytes: 10 * GB, droppedBytes: 7, throttledRequests: 3 }),
-      ingestionDate: NOW,
-      retentionDate: NOW,
-    });
+    const rows: Array<JSONObject> =
+      TelemetryIngestionBudgetMetrics.buildScopeRows({
+        scope: projectScope,
+        counters: counters({
+          usedBytes: 10 * GB,
+          droppedBytes: 7,
+          throttledRequests: 3,
+        }),
+        ingestionDate: NOW,
+        retentionDate: NOW,
+      });
 
     expect(
       rows.map((row: JSONObject) => {
@@ -253,7 +280,10 @@ describe("buildScopeRows", () => {
       ...projectScope,
       limits: {
         dailyBudget: { bytes: null, source: null },
-        rateLimit: { bytes: 1024, source: TelemetryIngestionBudgetLimitSource.Instance },
+        rateLimit: {
+          bytes: 1024,
+          source: TelemetryIngestionBudgetLimitSource.Instance,
+        },
       },
     };
 
@@ -279,12 +309,17 @@ describe("buildScopeRows", () => {
   });
 
   test("names the key on a key's rows", () => {
-    const rows: Array<JSONObject> = TelemetryIngestionBudgetMetrics.buildScopeRows({
-      scope: { ...projectScope, member: keyMember, ingestionKeyName: "collector-prod" },
-      counters: counters({ usedBytes: 5 }),
-      ingestionDate: NOW,
-      retentionDate: NOW,
-    });
+    const rows: Array<JSONObject> =
+      TelemetryIngestionBudgetMetrics.buildScopeRows({
+        scope: {
+          ...projectScope,
+          member: keyMember,
+          ingestionKeyName: "collector-prod",
+        },
+        counters: counters({ usedBytes: 5 }),
+        ingestionDate: NOW,
+        retentionDate: NOW,
+      });
 
     expect(rows[0]!["attributes"]).toEqual({
       projectId: PROJECT_ID,
@@ -323,7 +358,11 @@ describe("getNotice", () => {
         kind: TelemetryIngestionBudgetNoticeKind.Exhausted,
         projectId: PROJECT_ID,
         projectName: "Acme",
-        scope: { ...projectScope, member: keyMember, ingestionKeyName: "collector-prod" },
+        scope: {
+          ...projectScope,
+          member: keyMember,
+          ingestionKeyName: "collector-prod",
+        },
         counters: counters({ usedBytes: 10 * GB }),
         warningPercent: 80,
         resetsAt: new Date("2026-11-10T00:00:00Z"),
@@ -383,8 +422,9 @@ describe("publishAll", () => {
     expect(summary.scopesScanned).toBe(2);
     expect(MetricService.insertJsonRows).toHaveBeenCalledTimes(1);
 
-    const rows: Array<JSONObject> = (MetricService.insertJsonRows as unknown as MockFn)
-      .mock.calls[0]![0] as Array<JSONObject>;
+    const rows: Array<JSONObject> = (
+      MetricService.insertJsonRows as unknown as MockFn
+    ).mock.calls[0]![0] as Array<JSONObject>;
 
     // Project: bytes and 90%. Key (1 GB of its own): bytes, 100% and dropped.
     expect(rows).toHaveLength(5);
@@ -398,14 +438,17 @@ describe("publishAll", () => {
           return row["value"];
         }),
     ).toEqual([90, 100]);
-    expect(TelemetryUtil.indexMetricNameServiceNameMap).toHaveBeenCalledTimes(1);
+    expect(TelemetryUtil.indexMetricNameServiceNameMap).toHaveBeenCalledTimes(
+      1,
+    );
   });
 
   test("keeps the rows as long as monitor metrics", async () => {
     await TelemetryIngestionBudgetMetrics.publishAll({ now: NOW });
 
-    const rows: Array<JSONObject> = (MetricService.insertJsonRows as unknown as MockFn)
-      .mock.calls[0]![0] as Array<JSONObject>;
+    const rows: Array<JSONObject> = (
+      MetricService.insertJsonRows as unknown as MockFn
+    ).mock.calls[0]![0] as Array<JSONObject>;
 
     expect(String(rows[0]!["retentionDate"])).toContain("2026-11-23");
   });
@@ -432,10 +475,12 @@ describe("publishAll", () => {
   });
 
   test("sends only the used-up email for a budget that crossed both since the last sweep", async () => {
-    (TelemetryIngestionBudgetCounter.listActiveMembers as unknown as MockFn).mockResolvedValue([
-      projectMember,
-    ] as never);
-    (TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn).mockResolvedValue([
+    (
+      TelemetryIngestionBudgetCounter.listActiveMembers as unknown as MockFn
+    ).mockResolvedValue([projectMember] as never);
+    (
+      TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+    ).mockResolvedValue([
       counters({ usedBytes: 10 * GB, warningCrossedAt: NOW, exhaustedAt: NOW }),
     ] as never);
 
@@ -443,7 +488,8 @@ describe("publishAll", () => {
 
     expect(ProjectService.sendEmailToProjectOwners).toHaveBeenCalledTimes(1);
     expect(
-      (ProjectService.sendEmailToProjectOwners as unknown as MockFn).mock.calls[0]![1],
+      (ProjectService.sendEmailToProjectOwners as unknown as MockFn).mock
+        .calls[0]![1],
     ).toContain("used up");
 
     const kinds: Array<TelemetryIngestionBudgetNoticeKind> = (
@@ -460,57 +506,69 @@ describe("publishAll", () => {
   });
 
   test("sends nothing another server already claimed, or already sent", async () => {
-    (TelemetryIngestionBudgetCounter.claimNotice as unknown as MockFn).mockResolvedValue(
-      false as never,
-    );
+    (
+      TelemetryIngestionBudgetCounter.claimNotice as unknown as MockFn
+    ).mockResolvedValue(false as never);
 
     await TelemetryIngestionBudgetMetrics.publishAll({ now: NOW });
     expect(ProjectService.sendEmailToProjectOwners).not.toHaveBeenCalled();
 
-    (TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn).mockResolvedValue([
-      counters({ usedBytes: 9 * GB, warningCrossedAt: NOW, warningNoticeSentAt: NOW }),
+    (
+      TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+    ).mockResolvedValue([
+      counters({
+        usedBytes: 9 * GB,
+        warningCrossedAt: NOW,
+        warningNoticeSentAt: NOW,
+      }),
       counters({ usedBytes: GB, exhaustedAt: NOW, exhaustedNoticeSentAt: NOW }),
     ] as never);
-    (TelemetryIngestionBudgetCounter.claimNotice as unknown as MockFn).mockClear();
+    (
+      TelemetryIngestionBudgetCounter.claimNotice as unknown as MockFn
+    ).mockClear();
 
     await TelemetryIngestionBudgetMetrics.publishAll({ now: NOW });
     expect(TelemetryIngestionBudgetCounter.claimNotice).not.toHaveBeenCalled();
   });
 
   test("skips a key deleted since it counted", async () => {
-    (TelemetryIngestionKeyService.findBy as unknown as MockFn).mockResolvedValue([] as never);
-    (TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn).mockResolvedValue([
-      counters({ usedBytes: GB }),
-    ] as never);
+    (
+      TelemetryIngestionKeyService.findBy as unknown as MockFn
+    ).mockResolvedValue([] as never);
+    (
+      TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+    ).mockResolvedValue([counters({ usedBytes: GB })] as never);
 
     const summary: TelemetryIngestionBudgetSweepSummary =
       await TelemetryIngestionBudgetMetrics.publishAll({ now: NOW });
 
     expect(summary.rowsWritten).toBe(2);
     expect(
-      (TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn).mock
-        .calls[0]![0],
+      (TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn)
+        .mock.calls[0]![0],
     ).toHaveLength(1);
   });
 
   test("stops without posting anything when the counters cannot be read", async () => {
-    (TelemetryIngestionBudgetCounter.listActiveMembers as unknown as MockFn).mockResolvedValue(
-      null as never,
-    );
+    (
+      TelemetryIngestionBudgetCounter.listActiveMembers as unknown as MockFn
+    ).mockResolvedValue(null as never);
 
     expect(
-      (await TelemetryIngestionBudgetMetrics.publishAll({ now: NOW })).stopReason,
+      (await TelemetryIngestionBudgetMetrics.publishAll({ now: NOW }))
+        .stopReason,
     ).toBe("counters-unavailable");
 
-    (TelemetryIngestionBudgetCounter.listActiveMembers as unknown as MockFn).mockResolvedValue([
-      projectMember,
-    ] as never);
-    (TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn).mockResolvedValue(
-      null as never,
-    );
+    (
+      TelemetryIngestionBudgetCounter.listActiveMembers as unknown as MockFn
+    ).mockResolvedValue([projectMember] as never);
+    (
+      TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+    ).mockResolvedValue(null as never);
 
     expect(
-      (await TelemetryIngestionBudgetMetrics.publishAll({ now: NOW })).stopReason,
+      (await TelemetryIngestionBudgetMetrics.publishAll({ now: NOW }))
+        .stopReason,
     ).toBe("counters-unavailable");
     expect(MetricService.insertJsonRows).not.toHaveBeenCalled();
   });

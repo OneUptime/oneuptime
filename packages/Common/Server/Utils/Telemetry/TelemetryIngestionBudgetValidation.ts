@@ -85,11 +85,16 @@ export default class TelemetryIngestionBudgetValidation {
     options: { allowZero: boolean },
   ): void {
     for (const signal of TELEMETRY_INGESTION_BUDGET_SIGNALS) {
-      const columns: { dailyBudgetInGB: string; rateLimitInMBPerSecond: string } =
-        TELEMETRY_INGESTION_BUDGET_COLUMNS[signal];
+      const columns: {
+        dailyBudgetInGB: string;
+        rateLimitInMBPerSecond: string;
+      } = TELEMETRY_INGESTION_BUDGET_COLUMNS[signal];
 
       const pairs: Array<[string, TelemetryIngestionBudgetValueKind]> = [
-        [columns.dailyBudgetInGB, TelemetryIngestionBudgetValueKind.DailyBudget],
+        [
+          columns.dailyBudgetInGB,
+          TelemetryIngestionBudgetValueKind.DailyBudget,
+        ],
         [
           columns.rateLimitInMBPerSecond,
           TelemetryIngestionBudgetValueKind.RateLimit,
@@ -101,13 +106,11 @@ export default class TelemetryIngestionBudgetValidation {
           continue;
         }
 
-        const problem: string | null = getTelemetryIngestionBudgetValueProblem(
-          {
-            value: data[column],
-            kind: kind,
-            allowZero: options.allowZero,
-          },
-        );
+        const problem: string | null = getTelemetryIngestionBudgetValueProblem({
+          value: data[column],
+          kind: kind,
+          allowZero: options.allowZero,
+        });
 
         if (problem) {
           throw new BadDataException(
@@ -195,8 +198,10 @@ export default class TelemetryIngestionBudgetValidation {
           project: project,
           ingestionKey: null,
         });
-      const columns: { dailyBudgetInGB: string; rateLimitInMBPerSecond: string } =
-        TELEMETRY_INGESTION_BUDGET_COLUMNS[signal];
+      const columns: {
+        dailyBudgetInGB: string;
+        rateLimitInMBPerSecond: string;
+      } = TELEMETRY_INGESTION_BUDGET_COLUMNS[signal];
 
       const daily: unknown = data.patch[columns.dailyBudgetInGB];
 

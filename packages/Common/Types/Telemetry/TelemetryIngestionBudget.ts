@@ -174,7 +174,8 @@ export const TELEMETRY_INGESTION_BUDGET_RESET_TIMEZONE_COLUMN: string =
  * figure and the budget it is measured against are in the same unit. "MB"
  * likewise is MiB.
  */
-export const TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB: number = 1024 * 1024 * 1024;
+export const TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB: number =
+  1024 * 1024 * 1024;
 export const TELEMETRY_INGESTION_BUDGET_BYTES_PER_MB: number = 1024 * 1024;
 
 /*
@@ -183,18 +184,19 @@ export const TELEMETRY_INGESTION_BUDGET_BYTES_PER_MB: number = 1024 * 1024;
  * typo from turning into a number that is not one.
  */
 export const TELEMETRY_INGESTION_BUDGET_MAX_DAILY_GB: number = 1_000_000;
-export const TELEMETRY_INGESTION_BUDGET_MAX_RATE_MB_PER_SECOND: number =
-  1_000_000;
+export const TELEMETRY_INGESTION_BUDGET_MAX_RATE_MB_PER_SECOND: number = 1_000_000;
 
-export const telemetryIngestionBudgetGBToBytes: (gigabytes: number) => number =
-  (gigabytes: number): number => {
-    return Math.floor(gigabytes * TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB);
-  };
+export const telemetryIngestionBudgetGBToBytes: (
+  gigabytes: number,
+) => number = (gigabytes: number): number => {
+  return Math.floor(gigabytes * TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB);
+};
 
-export const telemetryIngestionBudgetMBToBytes: (megabytes: number) => number =
-  (megabytes: number): number => {
-    return Math.floor(megabytes * TELEMETRY_INGESTION_BUDGET_BYTES_PER_MB);
-  };
+export const telemetryIngestionBudgetMBToBytes: (
+  megabytes: number,
+) => number = (megabytes: number): number => {
+  return Math.floor(megabytes * TELEMETRY_INGESTION_BUDGET_BYTES_PER_MB);
+};
 
 /*
  * One signal's limits as a row stores them. null is "not set": the instance
@@ -217,7 +219,10 @@ export const getEmptyTelemetryIngestionBudgetStoredSettings: () => TelemetryInge
     const settings: Partial<TelemetryIngestionBudgetStoredSettings> = {};
 
     for (const signal of TELEMETRY_INGESTION_BUDGET_SIGNALS) {
-      settings[signal] = { dailyBudgetInGB: null, rateLimitInMBPerSecond: null };
+      settings[signal] = {
+        dailyBudgetInGB: null,
+        rateLimitInMBPerSecond: null,
+      };
     }
 
     return settings as TelemetryIngestionBudgetStoredSettings;

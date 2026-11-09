@@ -22,7 +22,8 @@ export const TELEMETRY_INGESTION_BUDGET_METRIC_PROJECT_ID_ATTRIBUTE: string =
   "projectId";
 export const TELEMETRY_INGESTION_BUDGET_METRIC_SIGNAL_ATTRIBUTE: string =
   "signal";
-export const TELEMETRY_INGESTION_BUDGET_METRIC_SCOPE_ATTRIBUTE: string = "scope";
+export const TELEMETRY_INGESTION_BUDGET_METRIC_SCOPE_ATTRIBUTE: string =
+  "scope";
 export const TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_ID_ATTRIBUTE: string =
   "ingestionKeyId";
 export const TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_NAME_ATTRIBUTE: string =
@@ -124,7 +125,9 @@ class TelemetryIngestionBudgetMetricTypeUtil {
    * spelling of bytes, which the chart formatter scales into KB/MB/GB; the
    * percent series uses "%" (not "1"), so nothing multiplies it by 100.
    */
-  public static getUnit(metricType: TelemetryIngestionBudgetMetricType): string {
+  public static getUnit(
+    metricType: TelemetryIngestionBudgetMetricType,
+  ): string {
     switch (metricType) {
       case TelemetryIngestionBudgetMetricType.UsedBytes:
       case TelemetryIngestionBudgetMetricType.DroppedBytes:

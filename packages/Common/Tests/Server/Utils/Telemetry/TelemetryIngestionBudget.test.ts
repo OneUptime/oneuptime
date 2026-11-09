@@ -18,30 +18,36 @@ import {
  * TelemetryIngestionBudgetCounterValkey.test.ts.
  */
 
-jest.mock("../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetSettings", () => {
-  return {
-    __esModule: true,
-    default: {
-      getInstanceSettings: jest.fn(),
-      getProjectOverrides: jest.fn(),
-    },
-  };
-});
+jest.mock(
+  "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetSettings",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getInstanceSettings: jest.fn(),
+        getProjectOverrides: jest.fn(),
+      },
+    };
+  },
+);
 
-jest.mock("../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter",
-  ) as Record<string, unknown>;
+jest.mock(
+  "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter",
+    ) as Record<string, unknown>;
 
-  return {
-    __esModule: true,
-    ...actual,
-    default: {
-      consume: jest.fn(),
-      reconcile: jest.fn(),
-    },
-  };
-});
+    return {
+      __esModule: true,
+      ...actual,
+      default: {
+        consume: jest.fn(),
+        reconcile: jest.fn(),
+      },
+    };
+  },
+);
 
 jest.mock("../../../../Server/Utils/Logger", () => {
   return {
@@ -88,7 +94,9 @@ type MockFn = jest.Mock;
 
 const GB: number = TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB;
 const MB: number = TELEMETRY_INGESTION_BUDGET_BYTES_PER_MB;
-const PROJECT_ID: ObjectID = new ObjectID("5d3b0f1a-0000-4000-8000-000000000051");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "5d3b0f1a-0000-4000-8000-000000000051",
+);
 const KEY_ID: ObjectID = new ObjectID("5d3b0f1a-0000-4000-8000-000000000052");
 const NOW: Date = new Date("2026-11-09T12:00:00Z");
 
@@ -151,7 +159,7 @@ const policy: (
   };
 };
 
-const measure: MockFn = jest.fn();
+const measure: MockFn = jest.fn() as unknown as MockFn;
 
 const admit: (data?: {
   mode?: TelemetryIngestionBudgetAdmissionMode;
@@ -174,7 +182,9 @@ const admit: (data?: {
 
 const lastCounterRequest: () => TelemetryIngestionBudgetCounterRequest =
   (): TelemetryIngestionBudgetCounterRequest => {
-    return consume.mock.calls[consume.mock.calls.length - 1]![0] as TelemetryIngestionBudgetCounterRequest;
+    return consume.mock.calls[
+      consume.mock.calls.length - 1
+    ]![0] as TelemetryIngestionBudgetCounterRequest;
   };
 
 beforeEach(() => {
@@ -313,14 +323,15 @@ describe("TelemetryIngestionBudget.admit with a budget", () => {
       warningBytes: null,
       rateLimitBytesPerSecond: null,
     });
-    expect(scopes[1]!.dailyBudgetBytes).toBe(1 * GB);
+    expect(scopes[1]!.dailyBudgetBytes).toBe(GB);
   });
 
   test("marks a size that is not exact, for the worker to settle", async () => {
     getInstanceSettings.mockResolvedValue(instance(logs(10)) as never);
     measure.mockReturnValue({ bytes: 90_000, isExact: false });
 
-    const charge: TelemetryIngestionBudgetCharge | null = (await admit()).charge;
+    const charge: TelemetryIngestionBudgetCharge | null = (await admit())
+      .charge;
 
     expect(charge?.isExact).toBe(false);
     expect(charge?.countedBytes).toBe(90_000);
@@ -461,7 +472,9 @@ describe("TelemetryIngestionBudget.admit fails open", () => {
   });
 
   test("admits uncounted when the settings cannot be read", async () => {
-    getInstanceSettings.mockRejectedValue(new Error("Postgres is down") as never);
+    getInstanceSettings.mockRejectedValue(
+      new Error("Postgres is down") as never,
+    );
 
     expect(await admit()).toEqual({ refusal: null, charge: null });
     expect(consume).not.toHaveBeenCalled();

@@ -20,7 +20,11 @@ jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
   return { __esModule: true, default: { getPolicyFromSecretKey: jest.fn() } };
 });
 jest.mock("Common/Server/Infrastructure/Queue", () => {
-  return { __esModule: true, default: {}, QueueName: { Telemetry: "Telemetry" } };
+  return {
+    __esModule: true,
+    default: {},
+    QueueName: { Telemetry: "Telemetry" },
+  };
 });
 
 const admit: jest.Mock = jest.fn();
@@ -234,7 +238,12 @@ describe("handleExport with ingestion budgets", () => {
     const queueFn: jest.Mock = jest.fn().mockResolvedValue(undefined);
     const callback: jest.Mock = jest.fn();
 
-    await handleExport(exportCall(request), callback, ProductType.Traces, queueFn);
+    await handleExport(
+      exportCall(request),
+      callback,
+      ProductType.Traces,
+      queueFn,
+    );
 
     expect(admit).toHaveBeenCalledTimes(1);
     const call: Record<string, unknown> = admit.mock.calls[0]![0];
@@ -293,7 +302,9 @@ describe("handleExport with ingestion budgets", () => {
 
   test("refuses a used-up budget without queueing the export", async () => {
     admit.mockResolvedValue({
-      refusal: refusal(TelemetryIngestionBudgetRefusalKind.DailyBudgetExhausted),
+      refusal: refusal(
+        TelemetryIngestionBudgetRefusalKind.DailyBudgetExhausted,
+      ),
       charge: null,
     });
     const queueFn: jest.Mock = jest.fn().mockResolvedValue(undefined);

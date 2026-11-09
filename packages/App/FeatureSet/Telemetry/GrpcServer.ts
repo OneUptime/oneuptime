@@ -102,15 +102,15 @@ export type GrpcPolicyAuthenticationResult =
  * on the decoded object rather than a property on it: everything on the
  * request object is serialized into the queue job.
  */
-const exportMessageSizes: WeakMap<object, number> = new WeakMap<
-  object,
+const exportMessageSizes: WeakMap<
+  Record<string, unknown>,
   number
->();
+> = new WeakMap<Record<string, unknown>, number>();
 
 // Exported for tests.
 export function getExportMessageSize(request: unknown): number | undefined {
   return request && typeof request === "object"
-    ? exportMessageSizes.get(request as object)
+    ? exportMessageSizes.get(request as Record<string, unknown>)
     : undefined;
 }
 
@@ -131,7 +131,10 @@ export function recordMessageSizes(
       const decoded: unknown = deserialize(bytes);
 
       if (decoded && typeof decoded === "object") {
-        exportMessageSizes.set(decoded as object, bytes.length);
+        exportMessageSizes.set(
+          decoded as Record<string, unknown>,
+          bytes.length,
+        );
       }
 
       return decoded;
@@ -472,9 +475,7 @@ export async function handleExport(
           ingestionKeyPolicy: authentication.policy,
           mode: TelemetryIngestionBudgetAdmissionMode.Refuse,
           measure: () => {
-            const size: number | undefined = getExportMessageSize(
-              call.request,
-            );
+            const size: number | undefined = getExportMessageSize(call.request);
 
             return {
               bytes:

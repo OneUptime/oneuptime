@@ -99,7 +99,9 @@ const ProjectIngestionBudgets: FunctionComponent = (): ReactElement => {
             ),
           }}
           isEditable={true}
-          editButtonText={t("pages.projectView.ingestionBudgets.dailyEditButton")}
+          editButtonText={t(
+            "pages.projectView.ingestionBudgets.dailyEditButton",
+          )}
           editModalTitle={t(
             "pages.projectView.ingestionBudgets.dailyEditButton",
           )}
@@ -131,8 +133,12 @@ const ProjectIngestionBudgets: FunctionComponent = (): ReactElement => {
             ),
           }}
           isEditable={true}
-          editButtonText={t("pages.projectView.ingestionBudgets.rateEditButton")}
-          editModalTitle={t("pages.projectView.ingestionBudgets.rateEditButton")}
+          editButtonText={t(
+            "pages.projectView.ingestionBudgets.rateEditButton",
+          )}
+          editModalTitle={t(
+            "pages.projectView.ingestionBudgets.rateEditButton",
+          )}
           onSaveSuccess={() => {
             setRefreshToken(refreshToken + 1);
           }}

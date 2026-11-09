@@ -146,16 +146,17 @@ const isProtobufRequest: (req: ExpressRequest) => boolean = (
  * Reached through a runtime check, as TelemetryIngest's own Retry-After is:
  * unit tests hand the middleware a bare response object.
  */
-const setHeader: (res: ExpressResponse, name: string, value: string) => void =
-  (res: ExpressResponse, name: string, value: string): void => {
-    const set: unknown = (res as unknown as Record<string, unknown>)[
-      "setHeader"
-    ];
+const setHeader: (res: ExpressResponse, name: string, value: string) => void = (
+  res: ExpressResponse,
+  name: string,
+  value: string,
+): void => {
+  const set: unknown = (res as unknown as Record<string, unknown>)["setHeader"];
 
-    if (typeof set === "function") {
-      (set as (name: string, value: string) => void).call(res, name, value);
-    }
-  };
+  if (typeof set === "function") {
+    (set as (name: string, value: string) => void).call(res, name, value);
+  }
+};
 
 export const getTelemetryIngestionBudgetHttpStatus: (
   refusal: TelemetryIngestionBudgetRefusal,

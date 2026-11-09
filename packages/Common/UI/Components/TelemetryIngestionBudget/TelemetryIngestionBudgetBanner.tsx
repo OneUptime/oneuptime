@@ -136,10 +136,14 @@ export const getTelemetryIngestionBudgetBannerNotice: (data: {
   if (exhaustedKeys > 0) {
     return {
       type: AlertType.WARNING,
-      text: data.translator.translatePlural(KEY_BUDGETS_USED_UP, exhaustedKeys, {
-        signal: signalTitle,
-        resetsAt: resetsAt,
-      }),
+      text: data.translator.translatePlural(
+        KEY_BUDGETS_USED_UP,
+        exhaustedKeys,
+        {
+          signal: signalTitle,
+          resetsAt: resetsAt,
+        },
+      ),
     };
   }
 
@@ -196,7 +200,10 @@ const TelemetryIngestionBudgetBanner: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="mb-4" data-testid={TELEMETRY_INGESTION_BUDGET_BANNER_TEST_ID}>
+    <div
+      className="mb-4"
+      data-testid={TELEMETRY_INGESTION_BUDGET_BANNER_TEST_ID}
+    >
       <Alert
         type={notice.type}
         title={
