@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import {
   describeClusterToolOutcome,
   ClusterToolOutcome,
@@ -765,14 +766,14 @@ export function formatStepDuration(
   }
 
   try {
-    const said: string = new Intl.NumberFormat(language, {
+    const said: string = new Intl.NumberFormat(getNumberLocale(language), {
       style: "unit",
       unit: "second",
       unitDisplay: "narrow",
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     } as Intl.NumberFormatOptions).format(seconds);
-    const bare: string = seconds.toLocaleString(language, {
+    const bare: string = seconds.toLocaleString(getNumberLocale(language), {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     });

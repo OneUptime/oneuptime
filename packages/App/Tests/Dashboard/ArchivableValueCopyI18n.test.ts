@@ -152,8 +152,8 @@ const NO_ONE_FORM: Array<string> = [
 ];
 
 describe("the archive strings of the value settings pages", () => {
-  test("seventeen locales are checked", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("eighteen locales are checked", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
     expect(LOCALE_FILES).toContain("en.json");
   });
 

@@ -182,8 +182,8 @@ const CODE: string = [...listSources(DASHBOARD_SRC), ...listSources(COMMON_UI)]
   .join("\n");
 
 describe("the owners picker's strings", () => {
-  test("seventeen locales are checked", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("eighteen locales are checked", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
     expect(LOCALE_FILES).toContain("en.json");
   });
 

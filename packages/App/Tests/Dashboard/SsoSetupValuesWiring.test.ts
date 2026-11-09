@@ -245,8 +245,8 @@ describe("the copy buttons' name in every Dashboard language", () => {
     return String(locale[KEY]);
   }
 
-  test("reads all sixteen languages", () => {
-    expect(LANGUAGES).toHaveLength(16);
+  test("reads all seventeen languages", () => {
+    expect(LANGUAGES).toHaveLength(17);
     expect(codeOf(LIST)).toContain(`translateTemplate("${KEY}"`);
   });
 

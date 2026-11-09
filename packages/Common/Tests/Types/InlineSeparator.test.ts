@@ -88,8 +88,14 @@ describe("writesZeroAsADot and getInlineSeparator", () => {
   test("the separators: a middle dot, and a bullet where a zero is a dot", () => {
     expect(INLINE_SEPARATOR).toBe(" \u{00B7} ");
     expect(DOT_ZERO_INLINE_SEPARATOR).toBe(" \u{2022} ");
-    // Arabic-Indic digits write their zero as a dot too.
-    expect(writesZeroAsADot("ar-EG")).toBe(true);
+    /*
+     * Arabic writes Latin digits in OneUptime, in every region, so its zero
+     * is a "0" and takes the middle dot. Arabic-Indic digits, asked for by
+     * name, write their zero as a dot ("٠") and take the bullet.
+     */
+    expect(writesZeroAsADot("ar-EG")).toBe(false);
+    expect(writesZeroAsADot("ar-SA")).toBe(false);
+    expect(writesZeroAsADot("ar-EG-u-nu-arab")).toBe(true);
     expect(writesZeroAsADot("fa-IR")).toBe(true);
     // A tag Intl cannot read, and none: the middle dot.
     expect(getInlineSeparator("not a language tag!")).toBe(INLINE_SEPARATOR);

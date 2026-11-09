@@ -1,3 +1,4 @@
+import { getNumberLocale } from "../../../Types/DateLanguage";
 import {
   FeedClock,
   formatFeedDay,
@@ -51,7 +52,7 @@ const getFormat: (data: {
   let format: Intl.DateTimeFormat | null = null;
 
   try {
-    format = new Intl.DateTimeFormat(locale, {
+    format = new Intl.DateTimeFormat(getNumberLocale(locale), {
       ...data.options,
       timeZone: data.clock.timezone,
     });

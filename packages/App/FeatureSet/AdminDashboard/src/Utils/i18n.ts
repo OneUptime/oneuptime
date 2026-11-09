@@ -30,6 +30,7 @@ import zhCN from "../Locales/zh-CN.json";
 import zhTW from "../Locales/zh-TW.json";
 import hi from "../Locales/hi.json";
 import fa from "../Locales/fa.json";
+import ar from "../Locales/ar.json";
 
 export type SupportedLanguage = AdminDashboardLanguage;
 
@@ -92,6 +93,7 @@ i18n
       "zh-TW": { translation: zhTW },
       hi: { translation: hi },
       fa: { translation: fa },
+      ar: { translation: ar },
     },
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_ADMIN_DASHBOARD_LANGUAGE_CODES,
@@ -112,7 +114,7 @@ followLanguageForDates(i18n);
 
 /*
  * <html lang> and <html dir> follow the reader's language: a screen reader
- * reads the page in it, and a Persian page reads right to left.
+ * reads the page in it, and a Persian or Arabic page reads right to left.
  */
 followLanguageForPage(i18n);
 

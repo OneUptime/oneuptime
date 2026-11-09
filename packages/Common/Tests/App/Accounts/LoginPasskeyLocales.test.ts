@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
 
 /*
  * The sign-in page's passkey copy, in all 17 Accounts languages.
@@ -72,6 +73,7 @@ const LANGUAGES: Array<string> = [
   "zh-TW",
   "hi",
   "fa",
+  "ar",
 ];
 
 // How each language's sign-in copy names a password, and a passkey.
@@ -93,6 +95,7 @@ const PASSWORD_WORD: Record<string, string> = {
   "zh-TW": "密碼",
   hi: "पासवर्ड",
   fa: "رمز عبور",
+  ar: "كلمة المرور",
 };
 
 const PASSKEY_WORD: Record<string, string> = {
@@ -113,6 +116,7 @@ const PASSKEY_WORD: Record<string, string> = {
   "zh-TW": "通行密鑰",
   hi: "पासकी",
   fa: "کلید عبور",
+  ar: "مفتاح المرور",
 };
 
 /*
@@ -246,9 +250,9 @@ const drawnDashboardLabel: (language: string, english: string) => string = (
     : english;
 };
 
-// Persian copy writes a path right to left, with the arrow that points left.
+// Persian and Arabic copy write a path right to left, with the arrow that points left.
 const menuPath: (language: string) => string = (language: string): string => {
-  const arrow: string = language === "fa" ? " ← " : " → ";
+  const arrow: string = isRightToLeftLanguage(language) ? " ← " : " → ";
 
   return ["User Profile", "Security", "Passkeys"]
     .map((label: string) => {
@@ -339,7 +343,7 @@ describe("Sign-in passkey copy in every Accounts language", () => {
       const locale: Json = accounts(language);
       const help: string = valueAt(locale, "login.passkey.help");
       const setup: string = valueAt(locale, "mobilePasskey.setup");
-      const arrow: string = language === "fa" ? "←" : "→";
+      const arrow: string = isRightToLeftLanguage(language) ? "←" : "→";
 
       expect(valueAt(locale, "login.passkey.helpTitle")).not.toBe("");
       expect(help).toContain(menuPath(language));
