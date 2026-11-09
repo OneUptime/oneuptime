@@ -83,6 +83,23 @@ import {
   BurnRateDeclares,
   getBurnRateDeclares,
 } from "../../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateDeclares";
+import {
+  APPLIES_TO_ALL_ANSWERS,
+  APPLIES_TO_MATCHING_ANSWERS,
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+  NOTIFICATION_RULE_DESTINATION_TITLES,
+  RULE_SINGULAR_NAMES,
+} from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
+import { canRuleCreateChannel } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleOwnChannel";
+import { SLO_ERROR_BUDGET_POLICY_CHANGES } from "Common/Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import {
+  getSloFeedChatMarkdown,
+  getSloPolicyTierChangedFeedParts,
+} from "Common/Utils/Slo/SloFeedMarkdown";
+import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -125,6 +142,9 @@ const SOURCES: Record<string, string> = {
   notificationSettingService:
     "Common/Server/Services/UserNotificationSettingService.ts",
   worker: "App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
+  sloListSideMenu: `${DASHBOARD}/Pages/Slo/SideMenu.tsx`,
+  sloWorkspaceNotifications:
+    "Common/Server/Utils/Slo/SloWorkspaceNotifications.ts",
   sloHistory: "Common/Models/AnalyticsModels/SloHistory.ts",
   projectModel: "Common/Models/DatabaseModels/Project.ts",
   dashboardTemplates: "Common/Types/Dashboard/DashboardTemplates.ts",
@@ -3080,6 +3100,118 @@ describe("Deployment gate, against the policy, the worker and the API", () => {
     expect(later).not.toContain("a deployment gate");
     expect(later).toContain(
       "OneUptime does not stop a release by itself: a pipeline that checks `deploymentsAllowed` does",
+    );
+  });
+});
+
+describe("Error Budget Policy in Slack, Microsoft Teams and Mattermost, against the rules and the worker", () => {
+  const page: string = englishPage(ERROR_BUDGET_POLICY);
+  const posting: string = section(
+    page,
+    "Post to Slack, Microsoft Teams and Mattermost",
+  );
+  const SLO: NotificationRuleEventType =
+    NotificationRuleEventType.ServiceLevelObjective;
+
+  it("opens the SLOs' own Workspace section, as the SLO list's menu holds it", () => {
+    const menu: string = readSource("sloListSideMenu");
+
+    expect(menu).toContain("useWorkspaceSideMenuSection(");
+    expect(menu).toContain("slack: PageMap.SLOS_WORKSPACE_CONNECTION_SLACK");
+    expect(posting).toContain(
+      "Go to **SLOs** → **Workspace** → **Slack**, or **Microsoft Teams**, or **Mattermost**.",
+    );
+  });
+
+  it("names the rule's create button, its Conditions step and its Destination step as the rule form draws them", () => {
+    expect(posting).toContain(`**Create ${RULE_SINGULAR_NAMES[SLO]}**`);
+    expect(posting).toContain(
+      `Under **${NOTIFICATION_RULE_CONDITIONS_TITLES[SLO]}**, keep **${APPLIES_TO_ALL_ANSWERS[SLO]}**, or pick **${APPLIES_TO_MATCHING_ANSWERS[SLO]}**`,
+    );
+    expect(posting).toContain(
+      `Under **${NOTIFICATION_RULE_DESTINATION_TITLES[WorkspaceType.Slack]}**, name the channels`,
+    );
+  });
+
+  it("lists the conditions an SLO rule offers, in the order the Filter Type lists them", () => {
+    expect(firstCells(section(page, "What a rule matches"))).toEqual(
+      NotificationRuleConditionUtil.getCheckOnByEventType(SLO).map(
+        (checkOn: string): string => {
+          return `**${checkOn}**`;
+        },
+      ),
+    );
+  });
+
+  it("names every change a rule can pick, in the order its dropdown lists them", () => {
+    expect(section(page, "What a rule matches")).toContain(
+      `What changed: ${SLO_ERROR_BUDGET_POLICY_CHANGES.slice(0, -1)
+        .map((change: string): string => {
+          return `**${change}**`;
+        })
+        .join(", ")} or **${
+        SLO_ERROR_BUDGET_POLICY_CHANGES[
+          SLO_ERROR_BUDGET_POLICY_CHANGES.length - 1
+        ]
+      }**.`,
+    );
+  });
+
+  it("says an SLO rule only posts, to channels and chats that exist", () => {
+    expect(canRuleCreateChannel(SLO)).toBe(false);
+    expect(posting).toContain(
+      "An SLO gets no channel of its own, so a rule posts only to channels and chats you already have.",
+    );
+  });
+
+  it("says a mention in the agreement notifies nobody, as the message breaks it", () => {
+    const message: string = getSloFeedChatMarkdown(
+      getSloPolicyTierChangedFeedParts({
+        sloMarkdownLink: FeedMarkdown.asMarkdown("[SLO Checkout](https://x)"),
+        previousTierName: null,
+        newTier: {
+          name: "Budget exhausted",
+          thresholdPercentage: 0,
+          whatWeDo: "Page <!channel> now.",
+        },
+        isEscalation: true,
+        errorBudgetRemainingPercentage: 0,
+        errorBudgetRemainingSeconds: 0,
+      }),
+    ).toString();
+
+    expect(message).not.toContain("<!channel>");
+    expect(posting).toContain(
+      "A mention in that agreement, such as `<!channel>`, is posted as text and notifies nobody.",
+    );
+  });
+
+  it("says a change is posted once, after it is saved, from the worker's one place", () => {
+    const worker: string = readSource("worker");
+
+    expect(worker).toContain("SloWorkspaceNotifications.postPolicyChange(");
+    // After the one hooked state write, as the feed item is.
+    expect(worker.indexOf("await postPolicyChange({")).toBeGreaterThan(
+      worker.indexOf("await ServiceLevelObjectiveService.updateOneById({"),
+    );
+    expect(readSource("sloWorkspaceNotifications")).toContain(
+      "sendWorkspaceMarkdownNotification",
+    );
+    expect(posting).toContain(
+      "A change is posted once, after the evaluation that made it is saved.",
+    );
+    expect(posting).toContain(
+      "Switching **Freeze Deployments** on or off for the tier the SLO is in posts a message of its own.",
+    );
+  });
+
+  it("names the channels as one of the places the tier shows, and no longer lists them as not available", () => {
+    expect(section(page, "Where the tier shows")).toContain(
+      "The Slack, Microsoft Teams and Mattermost channels your rules name get the same post",
+    );
+    expect(section(page, "Not available yet")).not.toContain("Slack");
+    expect(section(page, "Not available yet")).not.toContain(
+      "Microsoft Teams",
     );
   });
 });

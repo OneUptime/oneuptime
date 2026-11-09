@@ -89,6 +89,7 @@ A notification rule says which events post to Microsoft Teams, and where. Each p
 | **Scheduled Maintenance** | One list of rules |
 | **Monitors** | One list of rules |
 | **On-Call Duty** | One list of rules |
+| **SLOs** | One list of rules |
 
 Creating a rule walks four steps:
 
@@ -98,6 +99,8 @@ Creating a rule walks four steps:
 | **Conditions** | Which events the rule is for, by severity, state, label, monitor or words in the title, for example. They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged. A new rule is for every event, such as **All incidents**. To narrow it down, pick **Only incidents that match conditions** and add the conditions. With two or more, **Match Condition** says whether all of them must match, or any one. |
 | **Destination** | Where it posts: an existing channel of a team you pick, the chats you pick, a channel for each incident (or alert, episode, event, monitor or on-call policy) created in a team you pick, or any of these together. Under the step, **What this rule does** says it in sentences, as the rule's card does. |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
+
+An SLO's rule posts the changes of its error budget policy: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again. It posts only to existing channels and chats, as an SLO gets no channel of its own. See [Post to Slack, Microsoft Teams and Mattermost](/docs/slo/error-budget-policy#post-to-slack-microsoft-teams-and-mattermost).
 
 A channel the rule creates is named after its record: incident INC-42 gets `inc-42`, alert ALT-7 gets `alt-7`, and in a project without number prefixes, incident 42 gets `incident-42`. Text in **Channel Name Prefix** goes in front, so `prod-` makes `prod-inc-42`, and the form shows the name as you type. For a scheduled maintenance event, the prefix takes the place of its number prefix: SM-5 gets `sm-5`, and `maint-` makes `maint-5`. OneUptime keeps letters, numbers, spaces, `-` and `_`, up to the 50 characters Microsoft Teams takes. If the team already has a channel by that name, such as another project's or one deleted in the last 30 days, OneUptime adds `-2`, `-3` and so on.
 
