@@ -33,7 +33,7 @@ import {
   CodeAgentTask,
 } from "../../CodeAgents/CodeAgentInterface";
 import SecretRedactor from "../../Utils/SecretRedactor";
-import { LLMToolCall } from "Common/Server/Utils/LLM/LLMService";
+import { LLMMessage, LLMToolCall } from "Common/Server/Utils/LLM/LLMService";
 import { execFileSync } from "child_process";
 import fs from "fs";
 import os from "os";
@@ -183,6 +183,24 @@ async function runAgent(workspace: string): Promise<CodeAgentResult> {
   return result;
 }
 
+// The tool results the model was shown on its last call, oldest first.
+function toolResultsShownLast(): Array<string> {
+  const calls: Array<Array<unknown>> = llmCompletionMock.mock.calls;
+  const request: { messages: Array<LLMMessage> } = calls[
+    calls.length - 1
+  ]![0] as {
+    messages: Array<LLMMessage>;
+  };
+
+  return request.messages
+    .filter((message: LLMMessage) => {
+      return message.role === "tool";
+    })
+    .map((message: LLMMessage) => {
+      return message.content;
+    });
+}
+
 // Reap a grandchild a test deliberately left running.
 function reapGrandchild(workspace: string): void {
   const pidFile: string = path.join(workspace, "grandchild.pid");
@@ -226,6 +244,7 @@ describe("write_file", () => {
     const workspace: string = makeWorkspace();
 
     scriptToolsThenSummary([
+      toolCall("read_file", { path: "src/checkout.ts" }),
       toolCall("write_file", {
         path: "src/checkout.ts",
         content: "export function checkout(): number {\n  return 2;\n}\n",
@@ -239,6 +258,37 @@ describe("write_file", () => {
     expect(
       fs.readFileSync(path.join(workspace, "src", "checkout.ts"), "utf-8"),
     ).toContain("return 2;");
+  });
+
+  /*
+   * write_file replaces a whole file. A model that never read the file it
+   * replaces writes it from a guess and throws away whatever it did not
+   * guess - so an existing file is replaced only once it has been read in
+   * this task, and edit_file is how a part of it is changed.
+   */
+  test("replacing a file not read in this task is refused, and the file is untouched", async () => {
+    const workspace: string = makeWorkspace();
+    const before: string = fs.readFileSync(
+      path.join(workspace, "src", "checkout.ts"),
+      "utf-8",
+    );
+
+    scriptToolsThenSummary([
+      toolCall("write_file", {
+        path: "src/checkout.ts",
+        content: "export function checkout(): number {\n  return 2;\n}\n",
+      }),
+    ]);
+
+    const result: CodeAgentResult = await runAgent(workspace);
+
+    expect(
+      fs.readFileSync(path.join(workspace, "src", "checkout.ts"), "utf-8"),
+    ).toBe(before);
+    expect(result.filesModified).toEqual([]);
+    expect(toolResultsShownLast()).toEqual([
+      "Error: src/checkout.ts already exists, and you have not read it in this task. write_file replaces a whole file: read it first with read_file, and change it with edit_file, which replaces only the text you name.",
+    ]);
   });
 
   /*
@@ -371,6 +421,7 @@ describe("run_command and the git guard", () => {
     const workspace: string = makeWorkspace();
 
     scriptToolsThenSummary([
+      toolCall("read_file", { path: "src/checkout.ts" }),
       toolCall("write_file", {
         path: "src/checkout.ts",
         content: "export function checkout(): number {\n  return 7;\n}\n",
@@ -396,6 +447,7 @@ describe("run_command and the git guard", () => {
     const workspace: string = makeWorkspace();
 
     scriptToolsThenSummary([
+      toolCall("read_file", { path: "src/checkout.ts" }),
       toolCall("write_file", {
         path: "src/checkout.ts",
         content: "export function checkout(): number {\n  return 9;\n}\n",
@@ -452,6 +504,7 @@ describe("what counts as the agent's change", () => {
     const workspace: string = makeWorkspace();
 
     scriptToolsThenSummary([
+      toolCall("read_file", { path: "src/checkout.ts" }),
       toolCall("write_file", {
         path: "src/checkout.ts",
         content: "export function checkout(): number {\n  return 3;\n}\n",
@@ -503,6 +556,7 @@ describe("what counts as the agent's change", () => {
     const workspace: string = makeWorkspace();
 
     scriptToolsThenSummary([
+      toolCall("read_file", { path: "src/checkout.ts" }),
       toolCall("write_file", {
         path: "src/checkout.ts",
         content: "export function checkout(): number {\n  return 4;\n}\n",
@@ -645,8 +699,8 @@ describe("command lifetime", () => {
    * process group and the timeout kills the GROUP.
    *
    * The observable half here is that a backgrounded grandchild holding the
-   * stdio pipes open does not hang the tool call: settling on "exit" rather
-   * than "close" is what makes that true.
+   * stdio pipes open does not hang the tool call: once the command has
+   * exited, its output is waited for only briefly, never for "close".
    */
   test("a backgrounded grandchild holding stdout open does not hang the tool call", async () => {
     const workspace: string = makeWorkspace();
@@ -679,6 +733,62 @@ describe("command lifetime", () => {
       reapGrandchild(workspace);
     }
   }, 30_000);
+
+  /*
+   * The end of a long test run - its failures and its summary - is what the
+   * model needs most. The output is read until the command's pipes close
+   * (or briefly past its exit, while a program it left running holds them),
+   * and a long one is shown as its start and its end.
+   */
+  test("a command that prints a lot and exits at once is read to its end", async () => {
+    const workspace: string = makeWorkspace();
+
+    scriptToolsThenSummary([
+      toolCall("run_command", {
+        command:
+          "node -e \"for (let i = 1; i <= 20000; i++) { console.log('test ' + i + ' passed'); } console.log('20000 tests, 1 failed: checkout rounds down'); process.exitCode = 3;\"",
+      }),
+    ]);
+
+    const result: CodeAgentResult = await runAgent(workspace);
+    const shown: string = toolResultsShownLast()[0]!;
+
+    expect(result.success).toBe(true);
+    expect(
+      shown.startsWith("Exit code: 3\ntest 1 passed\ntest 2 passed\n"),
+    ).toBe(true);
+    expect(
+      shown.endsWith(
+        "test 20000 passed\n20000 tests, 1 failed: checkout rounds down",
+      ),
+    ).toBe(true);
+    // The middle is left out, and says how to read it.
+    expect(shown).toMatch(
+      /are left out here\. read_tool_output with output_id "out-1" reads them/,
+    );
+  });
+
+  /*
+   * Output still arriving just after the command exits - from the pipes it
+   * left to a program that is finishing - is read until the pipes close.
+   */
+  test("output that arrives just after the command exits is kept", async () => {
+    const workspace: string = makeWorkspace();
+
+    scriptToolsThenSummary([
+      toolCall("run_command", {
+        command:
+          "(sleep 0.3; echo the-last-line) & echo the-first-line; exit 4",
+      }),
+    ]);
+
+    const result: CodeAgentResult = await runAgent(workspace);
+
+    expect(result.success).toBe(true);
+    expect(toolResultsShownLast()[0]).toBe(
+      "Exit code: 4\nthe-first-line\nthe-last-line",
+    );
+  });
 
   test("a failing command is reported, not thrown — the model must be able to react", async () => {
     const workspace: string = makeWorkspace();

@@ -355,6 +355,82 @@ describe("what counts as the same call", () => {
   });
 });
 
+describe("after the conversation left results out", () => {
+  /*
+   * The code agent drops the oldest tool results to stay inside the
+   * model's context window (issue #6441). A file read again after that is
+   * the model getting back what it lost, not a circle.
+   */
+  test("a call made again to get a dropped result back is progress", () => {
+    const detector: AgentLoopDetector = new AgentLoopDetector();
+    const read: AgentLoopToolCall = call(
+      "read_file",
+      { path: "src/cart.ts" },
+      "export const cart = 2;",
+    );
+
+    detector.recordRound([read]);
+    expect(detector.recordRound([read])).toBe(AgentLoopVerdict.Continue);
+    expect(detector.getRoundsWithoutProgress()).toBe(1);
+
+    detector.forgetSeenResults();
+
+    expect(detector.getRoundsWithoutProgress()).toBe(0);
+    expect(detector.recordRound([read])).toBe(AgentLoopVerdict.Continue);
+    expect(detector.getRoundsWithoutProgress()).toBe(0);
+  });
+
+  test("rounds without progress start counting again, nudge included", () => {
+    const detector: AgentLoopDetector = new AgentLoopDetector();
+    const idle: AgentLoopToolCall = call(
+      "list_directory",
+      { path: "." },
+      "src/",
+    );
+
+    detector.recordRound([idle]);
+
+    for (
+      let round: number = 1;
+      round < NO_PROGRESS_ROUNDS_BEFORE_NUDGE;
+      round++
+    ) {
+      detector.recordRound([idle]);
+    }
+
+    expect(detector.recordRound([idle])).toBe(AgentLoopVerdict.Nudge);
+
+    detector.forgetSeenResults();
+    detector.recordRound([idle]);
+
+    for (
+      let round: number = 1;
+      round < NO_PROGRESS_ROUNDS_BEFORE_NUDGE;
+      round++
+    ) {
+      expect(detector.recordRound([idle])).toBe(AgentLoopVerdict.Continue);
+    }
+
+    expect(detector.recordRound([idle])).toBe(AgentLoopVerdict.Nudge);
+  });
+
+  test("a call that keeps failing the same way is still stopped", () => {
+    const detector: AgentLoopDetector = new AgentLoopDetector();
+    const failing: AgentLoopToolCall = call(
+      "run_command",
+      { command: "npm run build" },
+      "Error: missing script",
+      true,
+    );
+
+    detector.recordRound([failing]);
+    detector.recordRound([failing]);
+    detector.forgetSeenResults();
+
+    expect(detector.recordRound([failing])).toBe(AgentLoopVerdict.Stop);
+  });
+});
+
 describe("fingerprintText", () => {
   test("is stable", () => {
     expect(fingerprintText("hello")).toBe(fingerprintText("hello"));

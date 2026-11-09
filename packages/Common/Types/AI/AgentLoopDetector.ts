@@ -193,6 +193,19 @@ export default class AgentLoopDetector {
     return this.roundsWithoutProgress;
   }
 
+  /*
+   * Forget what the calls returned, once the run's conversation has left
+   * results out to stay inside the model's context window (the code
+   * agent's CodeAgentContext): the model no longer has them, so a call made
+   * again to get one back is progress, not a circle. The failures counted
+   * stay counted - a call that keeps failing the same way is still stuck.
+   */
+  public forgetSeenResults(): void {
+    this.seenResults.clear();
+    this.roundsWithoutProgress = 0;
+    this.nudgedThisStreak = false;
+  }
+
   // What the model is told when it should change course.
   public getNudgeInstruction(): string {
     return `Your last ${this.roundsWithoutProgress} rounds of tool calls returned only results you had already seen. Do not repeat them: try a different approach, or answer with what you have.`;

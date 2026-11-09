@@ -18,6 +18,7 @@ import BackendAPI, {
 } from "../Utils/BackendAPI";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "../Utils/GitPorcelain";
 import {
+  AGENT_COMMAND_OUTPUT_DRAIN_GRACE_MS,
   AGENT_COMMAND_TIMEOUT_ARGUMENT,
   DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS,
   MAX_AGENT_COMMAND_TIMEOUT_SECONDS,
@@ -28,21 +29,19 @@ import {
 import RepositoryInstructions, {
   RepositoryInstructionsFile,
 } from "../Utils/RepositoryInstructions";
+import RepositoryProfile from "../Utils/RepositoryProfile";
 import SecretRedactor from "../Utils/SecretRedactor";
-import WorkspaceFileAccess, {
-  WorkspaceTarget,
-} from "../Utils/WorkspaceFileAccess";
 import CodeAgentWorkspaceGuard, {
   CommandGuardDecision,
-  MAX_WRITE_FILE_CHARS,
 } from "Common/Server/Utils/AI/CodeFix/CodeAgentWorkspaceGuard";
+import { measureContextChars } from "Common/Server/Utils/AI/Chat/AgentContextCompactor";
+import { AIRunRetryDecision } from "Common/Server/Utils/AI/AIRunRetryPolicy";
 import {
   LLMMessage,
   LLMToolCall,
   LLMToolDefinition,
 } from "Common/Server/Utils/LLM/LLMService";
 import Execute from "Common/Server/Utils/Execute";
-import LocalFile from "Common/Server/Utils/LocalFile";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import { JSONObject } from "Common/Types/JSON";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
@@ -59,20 +58,45 @@ import AgentLoopDetector, {
 import CodeAgentRunLimitsUtil, {
   CodeAgentRunLimits,
 } from "Common/Types/AI/CodeAgentRunLimits";
+import CodeAgentContext, {
+  CodeAgentCompaction,
+  CodeAgentContextSize,
+  CodeAgentContextState,
+  DEFAULT_CODE_AGENT_CONTEXT_SIZE,
+  shrinkContextSize,
+} from "./CodeAgentContext";
+import CodeAgentCompletionRetry from "./CodeAgentCompletionRetry";
+import AgentPlan, { UPDATE_PLAN_TOOL_NAME } from "./Tools/AgentPlan";
+import {
+  COMMAND_OUTPUT_KEEP_END_CHARS,
+  COMMAND_OUTPUT_KEEP_START_CHARS,
+} from "./Tools/CodeAgentToolLimits";
+import {
+  buildRunCommandToolDefinition,
+  buildWorkspaceToolDefinitions,
+  RUNNER_TOOL_NAMES,
+} from "./Tools/CodeAgentToolDefinitions";
+import {
+  CodeAgentChangeSet,
+  CodeAgentToolContext,
+  ToolExecution,
+} from "./Tools/CodeAgentToolTypes";
+import FileChangeTools, {
+  DELETE_FILE_TOOL_NAME,
+  MOVE_FILE_TOOL_NAME,
+} from "./Tools/FileChangeTools";
+import FileEditTool, { EDIT_FILE_TOOL_NAME } from "./Tools/FileEditTool";
+import FileReadTool from "./Tools/FileReadTool";
+import GitTool, { GIT_TOOL_NAME } from "./Tools/GitTool";
+import RepositorySearchTools, {
+  FIND_FILES_TOOL_NAME,
+} from "./Tools/RepositorySearchTools";
+import ToolOutputStore, {
+  LongOutputShape,
+  READ_TOOL_OUTPUT_TOOL_NAME,
+} from "./Tools/ToolOutputStore";
 import path from "path";
 import { ChildProcess, spawn } from "child_process";
-
-/*
- * One tool execution: the one-line narration for the activity feed, and the
- * verbatim output the model saw. Both are shipped to the run's trail — the
- * narration as the event message, the output onto the transcript the Logs
- * page reads — so a bad run can be debugged from what the model was actually
- * told, not just from a summary of it.
- */
-interface ToolExecution {
-  narration: string;
-  output: string;
-}
 
 /*
  * The tool that ends a turn with a question for the person who asked
@@ -84,11 +108,7 @@ const MAX_QUESTION_LENGTH: number = 4000;
 
 // The tools that run here, on the Runner: a server tool never takes a name of these.
 const WORKSPACE_TOOL_NAMES: ReadonlyArray<string> = [
-  "read_file",
-  "write_file",
-  "list_directory",
-  "search_files",
-  CODE_AGENT_COMMAND_TOOL_NAME,
+  ...RUNNER_TOOL_NAMES,
   ASK_QUESTION_TOOL_NAME,
 ];
 
@@ -141,6 +161,19 @@ const CODE_AGENT_ANSWER_NOW: string =
 const MILLISECONDS_IN_A_MINUTE: number = 60 * 1000;
 
 /*
+ * The least time a model call is given to answer: one asked for in the
+ * task's last moments still gets its answer.
+ */
+const MIN_COMPLETION_TIMEOUT_MS: number = 2 * MILLISECONDS_IN_A_MINUTE;
+
+// The output a command printed, as kept: its start, and its end.
+interface CommandOutput {
+  exitCode: number | null;
+  output: string;
+  timedOut: boolean;
+}
+
+/*
  * The in-house code agent (B4 Tier 0, Docs/Internal/Roadmap/
  * CodeFixSandboxDesign.md): a tool loop whose every LLM completion is
  * server-mediated via POST /ai-agent-data/llm-completion — metered, logged
@@ -158,17 +191,27 @@ const MILLISECONDS_IN_A_MINUTE: number = 60 * 1000;
  * summary, and the summary ends with a sentence that says which limit
  * stopped it and where it is changed.
  *
- * Tool surface: read_file / write_file / list_directory / search_files
- * (all path-guarded to the workspace) and run_command (workspace cwd,
- * 2 minutes unless the model asks for up to 10, the run kept alive while
- * it runs, output truncated: Utils/AgentCommandLimits) - and, for a task
- * that asks
- * (CodeAgentTask.productionTelemetry), the server's read-only production
- * telemetry tools, which run on the server, held to the run's repository
- * and the services it serves (CodeAgentTelemetry). Every tool call is
- * narrated to the run's glass-box trail as a ToolCallCompleted event via
- * the TaskLogger, carrying the verbatim arguments and output for the Logs
- * page.
+ * Tools (issue #6441), all path-guarded to the workspace: read_file (a
+ * file of any length, in numbered line windows), edit_file (exact-text
+ * replacements), write_file, delete_file, move_file, list_directory (as
+ * deep as asked), find_files, search_files (regular expressions, globs,
+ * context lines), git (read-only: status, diff, log, show, blame),
+ * read_tool_output (the rest of a long output), update_plan - and
+ * run_command (workspace cwd, 2 minutes unless the model asks for up to
+ * 10, the run kept alive while it runs, a long output shown as its start
+ * and end: Utils/AgentCommandLimits) on a Runner of the project's own.
+ * For a task that asks (CodeAgentTask.productionTelemetry), the server's
+ * read-only production telemetry tools too, which run on the server, held
+ * to the run's repository and the services it serves (CodeAgentTelemetry).
+ *
+ * A long task stays inside the model's context window: past a size, the
+ * oldest tool results and rounds are left out, the model told what they
+ * were (CodeAgentContext). A model call that fails is made again when a
+ * repeat can help (CodeAgentCompletionRetry), and never runs a tool twice.
+ *
+ * Every tool call is narrated to the run's glass-box trail as a
+ * ToolCallCompleted event via the TaskLogger, carrying the verbatim
+ * arguments and output for the Logs page.
  */
 export default class InHouseCodeAgent implements CodeAgent {
   public readonly name: string = "InHouse";
@@ -186,6 +229,12 @@ export default class InHouseCodeAgent implements CodeAgent {
   private allowQuestions: boolean = false;
   private currentProcess: ChildProcess | null = null;
   private aborted: boolean = false;
+
+  /*
+   * Gives up what the task is waiting on when it is aborted: a model call
+   * in flight, or the wait before one is made again.
+   */
+  private abortController: AbortController = new AbortController();
 
   /*
    * When THIS task's time is up (Date.now() milliseconds): the sooner of the
@@ -220,24 +269,29 @@ export default class InHouseCodeAgent implements CodeAgent {
   private lastCallTokens: number = 0;
 
   /*
-   * Paths the model wrote with write_file during THIS task. These are the
-   * agent's authored edits, and they are always reported as modified even
-   * when a later command also touched them.
+   * What THIS task changed. The paths the model changed with the file tools
+   * are its authored edits, always reported as modified even when a later
+   * command also touched them. The paths that first appeared in the working
+   * tree while a run_command was running, and that the model never wrote
+   * itself — build output, caches, lockfile churn, coverage reports — are
+   * left out of the reported file list, because that list is the pathspec
+   * the pipeline stages: without this, an agent that runs `npm install` or
+   * a build to check its work puts every non-ignored artifact of that
+   * command into the customer's pull request as part of "the fix".
    */
-  private writtenPaths: Set<string> = new Set<string>();
+  private changes: CodeAgentChangeSet = new CodeAgentChangeSet();
+
+  // The long tool outputs of THIS task, for read_tool_output.
+  private outputs: ToolOutputStore = new ToolOutputStore();
+
+  // The plan of THIS task (update_plan).
+  private plan: AgentPlan = new AgentPlan();
 
   /*
-   * Paths that first appeared in the working tree while a run_command was
-   * running and that the model never wrote itself — build output, caches,
-   * lockfile churn, coverage reports.
-   *
-   * These are excluded from the reported file list, because that list is
-   * the pathspec the pipeline stages: without this, an agent that runs
-   * `npm install` or a build to check its work puts every non-ignored
-   * artifact of that command into the customer's pull request as part of
-   * "the fix".
+   * The size THIS task's conversation is kept under: the default, or less
+   * once the model server has said a conversation was too long for it.
    */
-  private commandArtifactPaths: Set<string> = new Set<string>();
+  private contextSize: CodeAgentContextSize = DEFAULT_CODE_AGENT_CONTEXT_SIZE;
 
   // The production telemetry tools of THIS task, when it asked and was offered some.
   private productionTelemetry: ProductionTelemetry | null = null;
@@ -301,13 +355,16 @@ export default class InHouseCodeAgent implements CodeAgent {
     }
 
     this.aborted = false;
+    this.abortController = new AbortController();
     /*
      * Per-task, not per-agent: verifyWithRepairs reuses this same agent
      * instance for its repair passes, and a repair pass must report the
      * files IT changed.
      */
-    this.writtenPaths = new Set<string>();
-    this.commandArtifactPaths = new Set<string>();
+    this.changes = new CodeAgentChangeSet();
+    this.outputs = new ToolOutputStore();
+    this.plan = new AgentPlan();
+    this.contextSize = DEFAULT_CODE_AGENT_CONTEXT_SIZE;
     this.allowQuestions = Boolean(task.allowQuestions);
     this.telemetryCallsSinceCompletion = 0;
     this.toolCallsMade = 0;
@@ -343,10 +400,14 @@ export default class InHouseCodeAgent implements CodeAgent {
       );
     }
 
-    const messages: Array<LLMMessage> = [
+    // What the repository is, so the model starts on the task (RepositoryProfile).
+    const profile: string =
+      await RepositoryProfile.buildPromptSection(workspaceRoot);
+
+    let messages: Array<LLMMessage> = [
       {
         role: "system",
-        content: this.buildSystemPrompt(task, instructions),
+        content: this.buildSystemPrompt(task, instructions, profile),
       },
       {
         role: "user",
@@ -371,6 +432,11 @@ export default class InHouseCodeAgent implements CodeAgent {
 
       let forceFinalAnswer: boolean = false;
       const loopDetector: AgentLoopDetector = new AgentLoopDetector();
+      const toolContext: CodeAgentToolContext = {
+        workspaceRoot,
+        changes: this.changes,
+        outputs: this.outputs,
+      };
 
       while (true) {
         if (this.aborted) {
@@ -418,12 +484,24 @@ export default class InHouseCodeAgent implements CodeAgent {
           });
         }
 
-        const completion: LlmCompletionResult =
-          await this.backendAPI.llmCompletion({
-            taskId,
-            messages,
-            ...(forceFinalAnswer ? {} : { tools: this.getToolDefinitions() }),
-          });
+        // A long task stays inside the model's context window.
+        messages = await this.keepWithinContext({
+          messages,
+          loopDetector,
+          force: false,
+        });
+
+        const answered: {
+          completion: LlmCompletionResult;
+          messages: Array<LLMMessage>;
+        } = await this.requestCompletion({
+          taskId,
+          messages,
+          withTools: !forceFinalAnswer,
+          loopDetector,
+        });
+        const completion: LlmCompletionResult = answered.completion;
+        messages = answered.messages;
 
         completionCalls++;
         this.telemetryCallsSinceCompletion = 0;
@@ -490,7 +568,7 @@ export default class InHouseCodeAgent implements CodeAgent {
           const refusal: string | null = this.getToolCallRefusal();
 
           const toolResult: string =
-            refusal ?? (await this.executeToolCall(workspaceRoot, toolCall));
+            refusal ?? (await this.executeToolCall(toolContext, toolCall));
 
           if (!refusal) {
             this.toolCallsMade++;
@@ -562,6 +640,10 @@ export default class InHouseCodeAgent implements CodeAgent {
         ...(needsInput ? { needsInput: true } : {}),
       };
     } catch (error) {
+      if (this.aborted) {
+        return this.createErrorResult("Task was aborted", logs);
+      }
+
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);
 
@@ -583,6 +665,7 @@ export default class InHouseCodeAgent implements CodeAgent {
 
   public async abort(): Promise<void> {
     this.aborted = true;
+    this.abortController.abort();
 
     if (this.currentProcess) {
       this.currentProcess.kill("SIGTERM");
@@ -602,6 +685,181 @@ export default class InHouseCodeAgent implements CodeAgent {
     this.backendAPI = null;
     this.progressCallback = null;
     this.productionTelemetry = null;
+    this.outputs = new ToolOutputStore();
+  }
+
+  /*
+   * One model call, made again when a repeat can help (issue #6441): the
+   * conversation it was made with, possibly cut to fit, comes back with its
+   * answer.
+   *
+   *   - A conversation too long for the model's context window is cut to
+   *     half the size (CodeAgentContext) and asked again at once - and the
+   *     smaller size kept for the rest of the task. When nothing more can
+   *     be cut, the task fails with the server's words.
+   *   - A provider down, overloaded or slow, or a server that could not be
+   *     reached, is waited out (a minute, then five) with the run kept
+   *     alive, never past the task's time; any other failure a repeat
+   *     could fix gets one more try; one no repeat gets past fails the
+   *     task at once (CodeAgentCompletionRetry).
+   */
+  private async requestCompletion(data: {
+    taskId: string;
+    messages: Array<LLMMessage>;
+    withTools: boolean;
+    loopDetector: AgentLoopDetector;
+  }): Promise<{
+    completion: LlmCompletionResult;
+    messages: Array<LLMMessage>;
+  }> {
+    let messages: Array<LLMMessage> = data.messages;
+    let attempt: number = 1;
+
+    while (true) {
+      if (!this.backendAPI) {
+        throw new Error("The code agent was cleaned up while it was working.");
+      }
+
+      try {
+        const completion: LlmCompletionResult =
+          await this.backendAPI.llmCompletion({
+            taskId: data.taskId,
+            messages,
+            ...(data.withTools ? { tools: this.getToolDefinitions() } : {}),
+            timeoutInMs: this.getCompletionTimeoutMs(),
+            signal: this.abortController.signal,
+          });
+
+        return { completion, messages };
+      } catch (error) {
+        if (this.aborted) {
+          throw error;
+        }
+
+        if (CodeAgentCompletionRetry.isContextWindowError(error)) {
+          const smaller: CodeAgentContextSize | null = shrinkContextSize(
+            this.contextSize,
+            measureContextChars(messages),
+          );
+
+          if (smaller) {
+            const before: Array<LLMMessage> = messages;
+            this.contextSize = smaller;
+            messages = await this.keepWithinContext({
+              messages,
+              loopDetector: data.loopDetector,
+              force: true,
+            });
+
+            if (messages !== before) {
+              await this.log(
+                "The model said the conversation was too long for its context window; trying again with less of it.",
+              );
+              continue;
+            }
+          }
+
+          throw error;
+        }
+
+        const decision: AIRunRetryDecision = CodeAgentCompletionRetry.decide({
+          error,
+          attempt,
+        });
+
+        if (
+          !decision.shouldRetry ||
+          Date.now() + decision.delayInMs >=
+            this.deadlineAtMs + InHouseCodeAgent.ANSWER_GRACE_MS
+        ) {
+          throw error;
+        }
+
+        await this.log(
+          `The model call failed (${CodeAgentCompletionRetry.describeError(
+            error,
+          )}). Trying again in ${Math.round(
+            decision.delayInMs / 1000,
+          )} seconds (attempt ${attempt + 1} of ${decision.maxAttempts}).`,
+        );
+
+        await this.waitKeepingRunAlive(decision.delayInMs);
+
+        if (this.aborted) {
+          throw error;
+        }
+
+        attempt++;
+      }
+    }
+  }
+
+  /*
+   * How long a model call may take before it is given up: until the task's
+   * last call would be late (its deadline and the grace for the answer),
+   * never less than MIN_COMPLETION_TIMEOUT_MS.
+   */
+  private getCompletionTimeoutMs(): number {
+    return Math.max(
+      MIN_COMPLETION_TIMEOUT_MS,
+      this.deadlineAtMs + InHouseCodeAgent.ANSWER_GRACE_MS - Date.now(),
+    );
+  }
+
+  /*
+   * Wait before a model call is made again, telling the server the run is
+   * still working meanwhile - at once, and every two minutes - so the
+   * stale-run sweeper does not fail it; given up when the task is aborted.
+   */
+  private async waitKeepingRunAlive(delayInMs: number): Promise<void> {
+    await this.keepRunAlive();
+
+    const stopKeepingAlive: () => void = startAgentCommandKeepAlive({
+      beat: (): Promise<void> => {
+        return this.keepRunAlive();
+      },
+    });
+
+    try {
+      await CodeAgentCompletionRetry.sleep(
+        delayInMs,
+        this.abortController.signal,
+      );
+    } finally {
+      stopKeepingAlive();
+    }
+  }
+
+  /*
+   * The conversation inside the size this task keeps it under (or cut to it
+   * now, with `force`): see CodeAgentContext. What the model no longer has,
+   * reading again is progress, so the loop detector forgets what it saw.
+   */
+  private async keepWithinContext(data: {
+    messages: Array<LLMMessage>;
+    loopDetector: AgentLoopDetector;
+    force: boolean;
+  }): Promise<Array<LLMMessage>> {
+    const state: CodeAgentContextState = {
+      plan: this.plan.hasSteps() ? this.plan.describe() : null,
+      changedFiles: Array.from(this.changes.writtenPaths).sort(),
+    };
+
+    const outcome: CodeAgentCompaction = CodeAgentContext.compact({
+      messages: data.messages,
+      size: this.contextSize,
+      state,
+      force: data.force,
+    });
+
+    if (!outcome.changed) {
+      return data.messages;
+    }
+
+    data.loopDetector.forgetSeenResults();
+    await this.log(CodeAgentContext.describe(outcome));
+
+    return outcome.messages;
   }
 
   // The run's limits as the agent loops' (the defaults until the server says).
@@ -950,12 +1208,13 @@ export default class InHouseCodeAgent implements CodeAgent {
   /*
    * System prompt = the recipe prompt (built by the task handler) + the
    * repository's own instructions for coding agents, and for a change on a
-   * Runner that runs commands, to build and test it that way + the tool-use
-   * contract.
+   * Runner that runs commands, to build and test it that way + the
+   * repository at a glance + how to work with the tools.
    */
   private buildSystemPrompt(
     task: CodeAgentTask,
     instructions: RepositoryInstructionsFile | null,
+    profile: string,
   ): string {
     let recipePrompt: string = task.prompt;
 
@@ -968,11 +1227,25 @@ export default class InHouseCodeAgent implements CodeAgent {
     }
 
     const toolInstructions: string = [
-      "You are working inside a cloned git repository. Use the provided tools to",
-      "explore and modify it:",
-      "- read_file / write_file / list_directory / search_files operate on paths",
-      "  relative to the repository root and cannot leave it (links included);",
-      "  write_file cannot change the .git directory.",
+      "You are working inside a cloned git repository. Work like a careful",
+      "software engineer: understand the code before you change it, change only",
+      "what the task needs, and check that the change works. Use the tools:",
+      "- Explore first. find_files finds files by name, search_files finds the",
+      "  code that matters (a regular expression, or literal text), and",
+      "  list_directory shows how the repository is laid out. read_file reads a",
+      "  file in numbered line windows: for a long file, search for what you",
+      "  need, then read the lines around it (start_line, end_line).",
+      "- For a task of several steps, keep a plan with update_plan, and keep it",
+      "  current as you go.",
+      "- Change an existing file with edit_file: the exact text to replace (as",
+      "  read_file shows it, without the line numbers) and what it becomes. Make",
+      "  each edit small, with enough of the lines around it to match one place.",
+      "  write_file creates a new file, or replaces a whole file you have read;",
+      "  delete_file and move_file delete and move files.",
+      "- All file tools take paths relative to the repository root and cannot",
+      "  leave it (links included); none can change the .git directory.",
+      "- git reads the repository's state and history (status, diff, log, show,",
+      "  blame). Look over your whole change with git diff before you finish.",
       ...(runsProjectAuthoredCommands()
         ? [
             "- run_command runs a shell command in the repository root. Use it to",
@@ -987,8 +1260,11 @@ export default class InHouseCodeAgent implements CodeAgent {
             "  reviewer build and test it after the pull request opens.",
           ]),
       ...this.buildProductionTelemetryInstructions(),
-      "- Tool outputs are truncated; read specific files rather than dumping",
-      "  large ones.",
+      "- A long tool output is shortened and says so: read_tool_output reads the",
+      "  part you were not shown, or finds the lines that hold a text.",
+      "- In a long task, the oldest tool results are left out of the",
+      "  conversation to keep it within the model's context window. A note says",
+      "  what they were; run the tool again to get one back.",
       ...(task.allowQuestions
         ? [
             "- ask_question asks the person who made the request one question and",
@@ -997,10 +1273,13 @@ export default class InHouseCodeAgent implements CodeAgent {
             "  something you can find out from the repository.",
           ]
         : []),
-      "Make focused, minimal changes. Do NOT run git commands to commit, branch",
-      "or push — the surrounding pipeline commits your changes and opens the",
-      "pull request. When you are done, stop calling tools and reply with a",
-      "plain-text summary of what you changed and why.",
+      "Make focused, minimal changes in the style of the code around them: do",
+      "not reformat or rewrite code the task does not need changed, and never",
+      "weaken, skip or delete a test to make it pass. Do NOT run git commands to",
+      "commit, branch or push — the surrounding pipeline commits your changes and",
+      "opens the pull request. When you are done, stop calling tools and reply",
+      "with a plain-text summary of what you changed and why, the checks you ran",
+      "and how they went, and anything left undone.",
     ].join("\n");
 
     const repositorySection: string = RepositoryInstructions.buildPromptSection(
@@ -1011,7 +1290,7 @@ export default class InHouseCodeAgent implements CodeAgent {
       },
     );
 
-    return [recipePrompt, repositorySection, toolInstructions]
+    return [recipePrompt, repositorySection, profile, toolInstructions]
       .filter((part: string): boolean => {
         return part.length > 0;
       })
@@ -1028,95 +1307,10 @@ export default class InHouseCodeAgent implements CodeAgent {
      * toolRunCommand refuses it when it is not offered, so an unadvertised
      * call never spawns a process.
      */
-    const runCommandTool: LLMToolDefinition = {
-      name: CODE_AGENT_COMMAND_TOOL_NAME,
-      description: `Run a shell command in the repository root. It stops after ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} seconds unless ${AGENT_COMMAND_TIMEOUT_ARGUMENT} gives it longer. Returns the exit code and combined output (truncated).`,
-      inputSchema: {
-        type: "object",
-        properties: {
-          command: {
-            type: "string",
-            description: "The shell command to run",
-          },
-          [AGENT_COMMAND_TIMEOUT_ARGUMENT]: {
-            type: "integer",
-            description: `How long the command may run, in seconds: ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} when left out, at most ${MAX_AGENT_COMMAND_TIMEOUT_SECONDS}. Give more only to a slow install, build or test suite.`,
-          },
-        },
-        required: ["command"],
-      },
-    };
+    const runCommandTool: LLMToolDefinition = buildRunCommandToolDefinition();
 
     return [
-      {
-        name: "read_file",
-        description:
-          "Read a file from the repository. Returns its content (truncated when very large).",
-        inputSchema: {
-          type: "object",
-          properties: {
-            path: {
-              type: "string",
-              description: "File path relative to the repository root",
-            },
-          },
-          required: ["path"],
-        },
-      },
-      {
-        name: "write_file",
-        description:
-          "Write a file in the repository, creating it (and parent directories) if needed. Overwrites existing content entirely.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            path: {
-              type: "string",
-              description: "File path relative to the repository root",
-            },
-            content: {
-              type: "string",
-              description: "The full new content of the file",
-            },
-          },
-          required: ["path", "content"],
-        },
-      },
-      {
-        name: "list_directory",
-        description:
-          "List the entries of a directory in the repository. Directories are suffixed with '/'.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            path: {
-              type: "string",
-              description:
-                "Directory path relative to the repository root (defaults to the root)",
-            },
-          },
-        },
-      },
-      {
-        name: "search_files",
-        description:
-          "Search tracked file contents for a pattern (git grep, line numbers included). Optionally restrict to a path.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            pattern: {
-              type: "string",
-              description: "The text or regular expression to search for",
-            },
-            path: {
-              type: "string",
-              description:
-                "Optional file or directory (relative to the repository root) to restrict the search to",
-            },
-          },
-          required: ["pattern"],
-        },
-      },
+      ...buildWorkspaceToolDefinitions(),
       ...(runsProjectAuthoredCommands() ? [runCommandTool] : []),
       /*
        * Offered while the run may make them - an older server refuses one
@@ -1179,13 +1373,13 @@ export default class InHouseCodeAgent implements CodeAgent {
    * trail.
    */
   private async executeToolCall(
-    workspaceRoot: string,
+    context: CodeAgentToolContext,
     toolCall: LLMToolCall,
   ): Promise<string> {
     const args: JSONObject = toolCall.arguments || {};
 
     const execution: ToolExecution = await this.runTool(
-      workspaceRoot,
+      context,
       toolCall,
       args,
     );
@@ -1201,7 +1395,7 @@ export default class InHouseCodeAgent implements CodeAgent {
   }
 
   private async runTool(
-    workspaceRoot: string,
+    context: CodeAgentToolContext,
     toolCall: LLMToolCall,
     args: JSONObject,
   ): Promise<ToolExecution> {
@@ -1212,22 +1406,36 @@ export default class InHouseCodeAgent implements CodeAgent {
     if (toolCall.argumentsParseError) {
       return {
         narration: `refused ${toolCall.name}: malformed tool arguments`,
-        output: `Error: ${toolCall.argumentsParseError} Retry the tool call with valid JSON arguments.`,
+        output: `Error: ${toolCall.argumentsParseError} Retry the tool call with valid JSON arguments. If the call was cut off because it was very long, make the change in smaller parts (several edit_file calls rather than one large write_file).`,
       };
     }
 
     try {
       switch (toolCall.name) {
         case "read_file":
-          return await this.toolReadFile(workspaceRoot, args);
+          return await FileReadTool.read(context, args);
+        case EDIT_FILE_TOOL_NAME:
+          return await FileEditTool.edit(context, args);
         case "write_file":
-          return await this.toolWriteFile(workspaceRoot, args);
+          return await FileChangeTools.writeFile(context, args);
+        case DELETE_FILE_TOOL_NAME:
+          return await FileChangeTools.deleteFile(context, args);
+        case MOVE_FILE_TOOL_NAME:
+          return await FileChangeTools.moveFile(context, args);
         case "list_directory":
-          return await this.toolListDirectory(workspaceRoot, args);
+          return await RepositorySearchTools.listDirectory(context, args);
+        case FIND_FILES_TOOL_NAME:
+          return await RepositorySearchTools.findFiles(context, args);
         case "search_files":
-          return await this.toolSearchFiles(workspaceRoot, args);
+          return await RepositorySearchTools.searchFiles(context, args);
+        case GIT_TOOL_NAME:
+          return await GitTool.run(context, args);
+        case READ_TOOL_OUTPUT_TOOL_NAME:
+          return this.outputs.read(args);
+        case UPDATE_PLAN_TOOL_NAME:
+          return this.plan.update(args);
         case CODE_AGENT_COMMAND_TOOL_NAME:
-          return await this.toolRunCommand(workspaceRoot, args);
+          return await this.toolRunCommand(context, args);
         default:
           if (this.productionTelemetry?.names.has(toolCall.name)) {
             return await this.toolProductionTelemetry(toolCall.name, args);
@@ -1235,17 +1443,61 @@ export default class InHouseCodeAgent implements CodeAgent {
 
           return {
             narration: `refused unknown tool ${toolCall.name}`,
-            output: `Error: unknown tool "${toolCall.name}".`,
+            output: `Error: unknown tool "${toolCall.name}". The tools you have are: ${this.getToolDefinitions()
+              .map((tool: LLMToolDefinition): string => {
+                return tool.name;
+              })
+              .join(", ")}.`,
           };
       }
     } catch (error) {
-      const errorMessage: string =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage: string = InHouseCodeAgent.describeToolError(
+        error,
+        context.workspaceRoot,
+      );
       return {
         narration: `${toolCall.name} failed: ${errorMessage}`,
         output: `Error: ${errorMessage}`,
       };
     }
+  }
+
+  /*
+   * A tool's failure in words the model can act on: the workspace's own
+   * location (a Runner's path) never in it, and the file system's codes
+   * said plainly.
+   */
+  private static describeToolError(
+    error: unknown,
+    workspaceRoot: string,
+  ): string {
+    const code: string | undefined = (error as NodeJS.ErrnoException)?.code;
+    let message: string =
+      error instanceof Error ? error.message : String(error);
+
+    switch (code) {
+      case "ENOENT":
+        message = `no such file or directory (${message})`;
+        break;
+      case "EACCES":
+      case "EPERM":
+        message = `permission denied (${message})`;
+        break;
+      case "EISDIR":
+        message = `that is a directory, not a file (${message})`;
+        break;
+      case "ENOTDIR":
+        message = `a part of that path is a file, not a directory (${message})`;
+        break;
+      default:
+        break;
+    }
+
+    return message
+      .split(`${workspaceRoot}/`)
+      .join("")
+      .split(workspaceRoot)
+      .join(".");
   }
 
   /*
@@ -1297,195 +1549,11 @@ export default class InHouseCodeAgent implements CodeAgent {
     };
   }
 
-  private async toolReadFile(
-    workspaceRoot: string,
-    args: JSONObject,
-  ): Promise<ToolExecution> {
-    const requestedPath: string = (args["path"] as string) || "";
-    /*
-     * Resolved where the path really leads, links included: a link the
-     * repository carries never reads anything outside the workspace.
-     */
-    const target: WorkspaceTarget = await WorkspaceFileAccess.resolveForRead(
-      workspaceRoot,
-      requestedPath,
-    );
-    const relativePath: string = target.relativePath;
-
-    const content: string = await LocalFile.read(target.absolutePath);
-
-    return {
-      narration: `read ${relativePath}`,
-      output: CodeAgentWorkspaceGuard.truncateToolOutput(content),
-    };
-  }
-
-  private async toolWriteFile(
-    workspaceRoot: string,
-    args: JSONObject,
-  ): Promise<ToolExecution> {
-    const requestedPath: string = (args["path"] as string) || "";
-
-    /*
-     * An absent or non-string `content` must NOT be coerced to "". A model
-     * that drops the argument — or emits it as null, or as an object it
-     * meant to stringify — would otherwise truncate a real source file to
-     * zero bytes and be told the write succeeded. The empty file then flows
-     * through as a legitimate edit: staged, committed, and opened as a pull
-     * request that deletes the contents of a file nobody asked it to touch.
-     *
-     * Writing a genuinely empty file is still possible — pass "" explicitly.
-     */
-    if (typeof args["content"] !== "string") {
-      return {
-        narration: `refused write_file ${requestedPath || "(no path)"}: no content argument`,
-        output:
-          "Error: write_file requires a `content` string. Pass the full new " +
-          "content of the file. (To empty a file deliberately, pass an empty string.)",
-      };
-    }
-
-    const content: string = args["content"];
-    /*
-     * Writes land in the working tree only: never outside the workspace
-     * (links included) and never in the repository's git metadata (the
-     * pipeline owns the repository's git state).
-     */
-    const target: WorkspaceTarget = await WorkspaceFileAccess.resolveForWrite(
-      workspaceRoot,
-      requestedPath,
-    );
-    const relativePath: string = target.relativePath;
-
-    /*
-     * A model that loops on a generation bug can otherwise fill the
-     * Runner's disk from inside a tool call, taking every other capability
-     * on the host down with it. No source file a fix needs to write is
-     * anywhere near this size.
-     */
-    if (content.length > MAX_WRITE_FILE_CHARS) {
-      return {
-        narration: `refused write_file ${relativePath}: ${content.length} chars exceeds the limit`,
-        output:
-          `Error: refusing to write ${content.length.toLocaleString()} characters to ` +
-          `${relativePath} — the per-file limit is ${MAX_WRITE_FILE_CHARS.toLocaleString()} ` +
-          `characters. Write a smaller, focused change.`,
-      };
-    }
-
-    await WorkspaceFileAccess.writeFile(target, content);
-
-    /*
-     * Remember what the model authored. This survives a later run_command
-     * touching the same path, so a file the agent deliberately wrote is
-     * never mistaken for build output and dropped from the commit.
-     */
-    this.writtenPaths.add(relativePath);
-    this.commandArtifactPaths.delete(relativePath);
-
-    return {
-      narration: `wrote ${relativePath} (${content.length} chars)`,
-      output: `Wrote ${content.length} characters to ${relativePath}.`,
-    };
-  }
-
-  private async toolListDirectory(
-    workspaceRoot: string,
-    args: JSONObject,
-  ): Promise<ToolExecution> {
-    const requestedPath: string = (args["path"] as string) || ".";
-    const target: WorkspaceTarget = await WorkspaceFileAccess.resolveForRead(
-      workspaceRoot,
-      requestedPath,
-    );
-    const relativePath: string = target.relativePath;
-
-    const entries: Array<{ name: string; isDirectory(): boolean }> =
-      await LocalFile.readDirectory(target.absolutePath);
-
-    if (entries.length === 0) {
-      return {
-        narration: `listed ${relativePath}`,
-        output: "(empty directory)",
-      };
-    }
-
-    return {
-      narration: `listed ${relativePath}`,
-      output: CodeAgentWorkspaceGuard.truncateToolOutput(
-        entries
-          .map((entry: { name: string; isDirectory(): boolean }) => {
-            return entry.isDirectory() ? `${entry.name}/` : entry.name;
-          })
-          .sort()
-          .join("\n"),
-      ),
-    };
-  }
-
-  private async toolSearchFiles(
-    workspaceRoot: string,
-    args: JSONObject,
-  ): Promise<ToolExecution> {
-    const pattern: string = (args["pattern"] as string) || "";
-
-    if (!pattern) {
-      return {
-        narration: "refused search_files: no pattern given",
-        output: "Error: a search pattern is required.",
-      };
-    }
-
-    /*
-     * Restrict-to-path goes through the same escape guard, then back to a
-     * workspace-relative pathspec for git grep.
-     */
-    const gitArgs: Array<string> = ["grep", "-I", "-n", "-e", pattern];
-
-    if (args["path"]) {
-      const absolutePath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
-        workspaceRoot,
-        args["path"] as string,
-      );
-      gitArgs.push(
-        "--",
-        CodeAgentWorkspaceGuard.toWorkspaceRelativePath(
-          workspaceRoot,
-          absolutePath,
-        ),
-      );
-    }
-
-    const narration: string = `searched files for "${pattern}"`;
-
-    try {
-      const output: string = await Execute.executeCommandFile({
-        command: "git",
-        args: gitArgs,
-        cwd: workspaceRoot,
-        maxBuffer: 10 * 1024 * 1024,
-        timeoutInMS: 30 * 1000,
-      });
-
-      return {
-        narration,
-        output: CodeAgentWorkspaceGuard.truncateToolOutput(
-          output.trim() || "No matches found.",
-        ),
-      };
-    } catch {
-      // git grep exits non-zero on no matches (and on invalid patterns).
-      return {
-        narration,
-        output: "No matches found (or the pattern was invalid).",
-      };
-    }
-  }
-
   private async toolRunCommand(
-    workspaceRoot: string,
+    context: CodeAgentToolContext,
     args: JSONObject,
   ): Promise<ToolExecution> {
+    const workspaceRoot: string = context.workspaceRoot;
     const command: string = (args["command"] as string) || "";
 
     /*
@@ -1499,7 +1567,7 @@ export default class InHouseCodeAgent implements CodeAgent {
       return {
         narration: `refused run_command on a global Runner: ${command.substring(0, 120)}`,
         output:
-          "Error: run_command is not available on this Runner. Make the change with read_file, write_file, list_directory and search_files; the repository's own CI and the reviewer build and test it after the pull request opens.",
+          "Error: run_command is not available on this Runner. Make the change with the file tools (read_file, edit_file, write_file, search_files and the others); the repository's own CI and the reviewer build and test it after the pull request opens.",
       };
     }
 
@@ -1535,7 +1603,7 @@ export default class InHouseCodeAgent implements CodeAgent {
     );
 
     /*
-     * What the model asked for (two minutes when it asked for nothing, ten
+     * What the model asked for (two minutes when it asked for nothing, 30
      * at most), never past the time this task has left.
      */
     const timeoutMs: number = getAgentCommandTimeoutMs({
@@ -1545,15 +1613,15 @@ export default class InHouseCodeAgent implements CodeAgent {
         : undefined,
     });
 
-    const result: {
-      exitCode: number | null;
-      output: string;
-      timedOut: boolean;
-    } = await this.runShellCommand(workspaceRoot, command, timeoutMs);
+    const result: CommandOutput = await this.runShellCommand(
+      workspaceRoot,
+      command,
+      timeoutMs,
+    );
 
     for (const dirtyPath of await this.listDirtyPaths(workspaceRoot)) {
-      if (!dirtyBefore.has(dirtyPath) && !this.writtenPaths.has(dirtyPath)) {
-        this.commandArtifactPaths.add(dirtyPath);
+      if (!dirtyBefore.has(dirtyPath)) {
+        this.changes.markCommandArtifact(dirtyPath);
       }
     }
 
@@ -1561,13 +1629,22 @@ export default class InHouseCodeAgent implements CodeAgent {
       ? describeAgentCommandTimedOut(timeoutMs)
       : `Exit code: ${result.exitCode ?? "unknown"}`;
 
+    /*
+     * A long output is shown as its start and its end - a build's errors
+     * and a test run's failures and summary are at its end - and the
+     * middle is kept for read_tool_output.
+     */
+    const shown: string = this.outputs.present({
+      label: `run_command ${command.substring(0, 80)}`,
+      text: result.output.trim(),
+      shape: LongOutputShape.StartAndEnd,
+    });
+
     return {
       narration: `ran ${command.substring(0, 200)} (${
         result.timedOut ? "timed out" : `exit ${result.exitCode ?? "unknown"}`
       })`,
-      output: CodeAgentWorkspaceGuard.truncateToolOutput(
-        `${header}\n${result.output}`.trim(),
-      ),
+      output: `${header}\n${shown}`.trim(),
     };
   }
 
@@ -1576,13 +1653,19 @@ export default class InHouseCodeAgent implements CodeAgent {
    * combined stdout+stderr regardless of exit code (a failing test run's
    * output is exactly what the model needs to see).
    *
-   * Three details are load-bearing, and match BuildVerification.runCommand
+   * Four details are load-bearing, and match BuildVerification.runCommand
    * because the failure modes are identical:
    *   - detached: the command gets its own process group and the timeout
    *     kills the GROUP. `npm test` does the real work in grandchildren, so
    *     signalling only the direct child leaves them running — on a Runner
    *     that processes fix after fix, those accumulate until the host dies.
-   *   - the output is redacted at capture. It is fed back to the model AND
+   *   - "exit" starts a short wait for the output rather than settling
+   *     outright: the end of a long test run can still be in the pipe when
+   *     the command exits, and "close" means it has all been read. But a
+   *     surviving grandchild inherits the pipes, so "close" may never fire,
+   *     and one stray daemon must not hang the whole fix run.
+   *   - the output is redacted at capture, and once more as a whole (a
+   *     secret split between two chunks). It is fed back to the model AND
    *     shipped to the server as the run's transcript, so a command that
    *     echoes the environment (`env`, `set -x`, a failing curl) would
    *     otherwise publish this Runner's credentials into stored logs.
@@ -1590,102 +1673,161 @@ export default class InHouseCodeAgent implements CodeAgent {
    *     fast instead of burning the whole timeout on a prompt nobody will
    *     ever answer.
    *
+   * The output kept is its first COMMAND_OUTPUT_KEEP_START_CHARS and its
+   * last COMMAND_OUTPUT_KEEP_END_CHARS - a command that prints more loses
+   * its middle, and says how much - so the end, where a build or test run
+   * says what failed, is never lost.
+   *
    * While it runs, the run is kept alive (keepRunAlive): a command makes no
-   * LLM call and posts no log, and one given up to ten minutes would
+   * LLM call and posts no log, and one given up to thirty minutes would
    * otherwise let the stale-run sweeper fail the run underneath it.
    */
   private runShellCommand(
     workspaceRoot: string,
     command: string,
     timeoutMs: number,
-  ): Promise<{ exitCode: number | null; output: string; timedOut: boolean }> {
-    return new Promise(
-      (
-        resolve: (result: {
-          exitCode: number | null;
-          output: string;
-          timedOut: boolean;
-        }) => void,
-      ) => {
-        const child: ChildProcess = spawn("bash", ["-c", command], {
-          cwd: workspaceRoot,
-          detached: true,
-          stdio: ["ignore", "pipe", "pipe"],
-          env: InHouseCodeAgent.buildCommandEnvironment(),
-        });
+  ): Promise<CommandOutput> {
+    return new Promise((resolve: (result: CommandOutput) => void) => {
+      const child: ChildProcess = spawn("bash", ["-c", command], {
+        cwd: workspaceRoot,
+        detached: true,
+        stdio: ["ignore", "pipe", "pipe"],
+        env: InHouseCodeAgent.buildCommandEnvironment(),
+      });
 
-        this.currentProcess = child;
+      this.currentProcess = child;
 
-        let output: string = "";
-        let timedOut: boolean = false;
-        let settled: boolean = false;
+      let start: string = "";
+      const end: Array<string> = [];
+      let endChars: number = 0;
+      let leftOutChars: number = 0;
+      let timedOut: boolean = false;
+      let settled: boolean = false;
 
-        const killProcessGroup: () => void = (): void => {
-          if (child.pid === undefined) {
-            return;
-          }
+      const killProcessGroup: () => void = (): void => {
+        if (child.pid === undefined) {
+          return;
+        }
 
+        try {
+          // Negative pid targets the whole group (detached above).
+          process.kill(-child.pid, "SIGKILL");
+        } catch {
           try {
-            // Negative pid targets the whole group (detached above).
-            process.kill(-child.pid, "SIGKILL");
+            child.kill("SIGKILL");
           } catch {
-            try {
-              child.kill("SIGKILL");
-            } catch {
-              // Already gone.
-            }
+            // Already gone.
           }
-        };
+        }
+      };
 
-        const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
-          timedOut = true;
-          killProcessGroup();
-        }, timeoutMs);
+      const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+        timedOut = true;
+        killProcessGroup();
+      }, timeoutMs);
 
-        const stopKeepingAlive: () => void = startAgentCommandKeepAlive({
-          beat: (): Promise<void> => {
-            return this.keepRunAlive();
-          },
+      const stopKeepingAlive: () => void = startAgentCommandKeepAlive({
+        beat: (): Promise<void> => {
+          return this.keepRunAlive();
+        },
+      });
+
+      const appendOutput: (data: string) => void = (data: string): void => {
+        if (settled) {
+          // A program the command left running, still printing: not kept.
+          return;
+        }
+
+        let text: string = SecretRedactor.redact(data);
+
+        if (start.length < COMMAND_OUTPUT_KEEP_START_CHARS) {
+          const room: number = COMMAND_OUTPUT_KEEP_START_CHARS - start.length;
+          start += text.substring(0, room);
+          text = text.substring(room);
+        }
+
+        if (!text) {
+          return;
+        }
+
+        end.push(text);
+        endChars += text.length;
+
+        while (endChars > COMMAND_OUTPUT_KEEP_END_CHARS && end.length > 1) {
+          const dropped: string = end.shift() as string;
+          endChars -= dropped.length;
+          leftOutChars += dropped.length;
+        }
+
+        if (endChars > COMMAND_OUTPUT_KEEP_END_CHARS) {
+          const only: string = end[0] as string;
+          const cut: number = only.length - COMMAND_OUTPUT_KEEP_END_CHARS;
+          end[0] = only.substring(cut);
+          endChars -= cut;
+          leftOutChars += cut;
+        }
+      };
+
+      child.stdout?.setEncoding("utf8");
+      child.stderr?.setEncoding("utf8");
+      child.stdout?.on("data", appendOutput);
+      child.stderr?.on("data", appendOutput);
+
+      // Set once the command has exited and its output is still arriving.
+      let drainTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+      const settle: (exitCode: number | null) => void = (
+        exitCode: number | null,
+      ): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeout);
+        if (drainTimer) {
+          clearTimeout(drainTimer);
+        }
+        stopKeepingAlive();
+        this.currentProcess = null;
+
+        const output: string =
+          leftOutChars > 0
+            ? `${start}\n... [${leftOutChars.toLocaleString(
+                "en-US",
+              )} characters of output left out here: the command printed more than is kept] ...\n${end.join("")}`
+            : `${start}${end.join("")}`;
+
+        resolve({
+          exitCode,
+          // Once more as a whole: a secret split between two chunks.
+          output: SecretRedactor.redact(output),
+          timedOut,
         });
+      };
 
-        const appendOutput: (data: Buffer) => void = (data: Buffer): void => {
-          // Cap in-memory growth well above the tool-output truncation.
-          if (output.length < 1024 * 1024) {
-            output += SecretRedactor.redact(data.toString());
-          }
-        };
+      /*
+       * "close" comes once the command has exited and all of its output
+       * has been read; "exit" can come before the last of it - the end of
+       * a test run, its failures and its summary - has been read. But a
+       * surviving grandchild inherits the pipes, so "close" may never
+       * fire: once the command has exited, its output is waited for only
+       * briefly, and one stray daemon never hangs the whole fix run.
+       */
+      child.on("close", (code: number | null) => {
+        settle(code);
+      });
 
-        child.stdout?.on("data", appendOutput);
-        child.stderr?.on("data", appendOutput);
-
-        const settle: (exitCode: number | null) => void = (
-          exitCode: number | null,
-        ): void => {
-          if (settled) {
-            return;
-          }
-          settled = true;
-          clearTimeout(timeout);
-          stopKeepingAlive();
-          this.currentProcess = null;
-          resolve({ exitCode, output, timedOut });
-        };
-
-        /*
-         * "exit" rather than "close": a surviving grandchild inherits the
-         * stdio pipes, so "close" may never fire and one stray daemon would
-         * hang the whole fix run.
-         */
-        child.on("exit", (code: number | null) => {
+      child.on("exit", (code: number | null) => {
+        drainTimer = setTimeout(() => {
           settle(code);
-        });
+        }, AGENT_COMMAND_OUTPUT_DRAIN_GRACE_MS);
+      });
 
-        child.on("error", (error: Error) => {
-          output += `\n${SecretRedactor.redact(error.message)}`;
-          settle(null);
-        });
-      },
-    );
+      child.on("error", (error: Error) => {
+        appendOutput(`\n${error.message}`);
+        settle(null);
+      });
+    });
   }
 
   /*
@@ -1788,8 +1930,8 @@ export default class InHouseCodeAgent implements CodeAgent {
    *
    * The caller stages exactly this list, so the subtraction is what keeps
    * `npm install` output and build artifacts out of the customer's pull
-   * request. Anything the model wrote with write_file is always kept, even
-   * if a command touched it afterwards.
+   * request. Anything the model changed with the file tools is always
+   * kept, even if a command touched it afterwards.
    */
   private async getModifiedFiles(
     workingDirectory: string,
@@ -1799,8 +1941,8 @@ export default class InHouseCodeAgent implements CodeAgent {
 
     const modified: Array<string> = dirtyPaths.filter((dirtyPath: string) => {
       return (
-        this.writtenPaths.has(dirtyPath) ||
-        !this.commandArtifactPaths.has(dirtyPath)
+        this.changes.writtenPaths.has(dirtyPath) ||
+        !this.changes.commandArtifactPaths.has(dirtyPath)
       );
     });
 
