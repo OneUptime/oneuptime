@@ -15,7 +15,6 @@ import CloudLiveRead, {
 } from "../../CloudConnection/CloudLiveRead";
 import {
   DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS,
-  MAX_RESOURCE_COMMANDS_PER_INVESTIGATION,
   MAX_RESOURCE_COMMAND_TIMEOUT_MS,
   ResourceAiAccessStatus,
   ResourceCommandTier,
@@ -87,8 +86,10 @@ export interface InfrastructureInvestigationToolkitOptions {
   aiRunId: ObjectID;
   resources: Array<ResourceAiAccessStatus>;
   /*
-   * Commands one run may send. Defaults to the runaway guard: an
-   * investigation runs as many commands as it needs.
+   * Commands one run may send, when its caller sets a cap. None by default:
+   * an investigation runs as many commands as it needs, held only to the
+   * run's own limits (the project's tool calls per run, loop detection and
+   * the time limit: Types/AI/AIAgentRunLimits).
    */
   maxCommands?: number | undefined;
   /*
@@ -299,14 +300,13 @@ export default class InfrastructureInvestigationToolkit {
   }
 
   private buildRunCommandTool(): ObservabilityAssistantExtraTool {
-    const maxCommands: number =
-      this.options.maxCommands ?? MAX_RESOURCE_COMMANDS_PER_INVESTIGATION;
+    const maxCommands: number | undefined = this.options.maxCommands;
 
     return {
       definition: {
         name: RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
         description: `Run ONE read-only command on a linked infrastructure resource through its AI agent and get its output. The resources you may inspect:\n${this.describeReadyResources()}\n\nWhat each kind of resource accepts:\n\n${this.describeReadCommandGuides()}\n\nOne command per call, written as the program followed by its arguments — never a shell line: pipes, redirects, ;, &&, $( ) and sudo are refused. Anything that changes a resource is refused here — this is an investigation — and so is anything that would read credentials; credential-looking values (passwords, tokens, keys, connection strings) are redacted from every output before you see it, so do not spend commands on them. Output is never cut off: a long output shows its first page and tells you how to read the rest with ${READ_TOOL_OUTPUT_TOOL_NAME}. Run as many commands as the investigation needs.${
-          maxCommands < MAX_RESOURCE_COMMANDS_PER_INVESTIGATION
+          maxCommands !== undefined
             ? ` At most ${maxCommands} commands in this run.`
             : ""
         }`,
@@ -347,9 +347,9 @@ export default class InfrastructureInvestigationToolkit {
 
   private async runCommand(
     args: JSONObject,
-    maxCommands: number,
+    maxCommands: number | undefined,
   ): Promise<ToolCallOutcome> {
-    if (this.commandsRun >= maxCommands) {
+    if (maxCommands !== undefined && this.commandsRun >= maxCommands) {
       return this.failure(
         `This run has already sent ${maxCommands} infrastructure commands, the most one run may send. Finish your analysis with what you have.`,
       );

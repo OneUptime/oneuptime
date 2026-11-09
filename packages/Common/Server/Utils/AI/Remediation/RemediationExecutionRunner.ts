@@ -1,9 +1,9 @@
 import ToolOutputPager from "../Chat/ToolOutputPager";
 import CommandAllowlist from "../../AutoRemediation/CommandAllowlist";
-import {
-  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
-  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+import AIAgentRunLimitsHelper, {
+  AIAgentRunLimits,
 } from "../../../../Types/AI/AIAgentRunLimits";
+import AIRunLimitsReader from "../AIRunLimitsReader";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import QueryHelper from "../../../Types/Database/QueryHelper";
@@ -203,13 +203,13 @@ const MAX_SIGNAL_DESCRIPTION_CHARS: number = 4000;
 const MAX_POSTED_ANALYSIS_CHARS: number = 6000;
 
 /*
- * Budgets. Like an investigation, a remediation run is not rationed: no
- * wall clock, and step counts that only guard against a runaway loop. What
- * it may CHANGE is bounded separately (MAX_AUTO_EXECUTED_COMMANDS_PER_RUN,
- * the command policy and the operator's Fixes mode).
+ * Like an investigation, a remediation run is not rationed: it is held only
+ * to the project's limits per run (none by default), loop detection and its
+ * time limit (Types/AI/AIAgentRunLimits). What it may CHANGE is bounded
+ * separately (MAX_AUTO_EXECUTED_COMMANDS_PER_RUN, the command policy and
+ * the operator's Fixes mode) - a limit on what it does to a system, not on
+ * how much it thinks.
  */
-const MAX_LLM_CALLS: number = AI_AGENT_RUNAWAY_MAX_LLM_CALLS;
-const MAX_TOOL_CALLS: number = AI_AGENT_RUNAWAY_MAX_TOOL_CALLS;
 const MAX_OUTPUT_TOKENS: number = 4096;
 
 const MAX_RATIONALE_CHARS: number = 10000;
@@ -895,11 +895,17 @@ export default class RemediationExecutionRunner {
     let downgradeNote: string | null = null;
 
     /*
-     * The read toolkits' absolute deadline. A remediation run has no time
-     * limit, so there is none: every diagnostic command is bounded only by
-     * its own timeout, exactly as an investigation's are by default.
+     * How far the run may go, and the read toolkits' absolute deadline: the
+     * project's time limit per run (the default unless it set one), so the
+     * loop and every diagnostic command wait agree on one number.
      */
-    const runDeadlineAtMs: number | undefined = undefined;
+    const runLimits: AIAgentRunLimits = await AIRunLimitsReader.read({
+      projectId,
+    });
+    const runDeadlineAtMs: number = AIAgentRunLimitsHelper.getDeadlineAtMs(
+      runLimits,
+      Date.now(),
+    );
 
     // One pager for the run, so read_tool_output reads every read toolkit's output.
     const outputPager: ToolOutputPager = new ToolOutputPager();
@@ -1544,10 +1550,7 @@ export default class RemediationExecutionRunner {
               ? "A new signal has been declared and FullAuto remediation is enabled for it. Diagnose and remediate now."
               : "A new signal has been declared. Diagnose it and compose a command plan for human approval.",
         extraTools,
-        maxLlmCalls: MAX_LLM_CALLS,
-        maxToolCalls: MAX_TOOL_CALLS,
-        // No time limit (see the budgets above).
-        maxWallClockMs: undefined,
+        runLimits,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         postAnalysis: async (postData: {
           analysisMarkdown: string;

@@ -216,29 +216,62 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Per-run LLM usage for the server-mediated code-fix agent loop budgets
-   * (B4 Tier 0): how many completion calls a run has made and how many
-   * output tokens they produced. One SQL aggregate over the run's LlmLog
-   * rows — executeWithLogging writes exactly one row per call (success,
-   * error, or budget rejection), so the count is the honest call count and
-   * errored calls conservatively consume a slot. Runs are bounded to ~30
-   * minutes, far inside the 3-day cloud LlmLog retention.
+   * What one run of the server-mediated code agent has used (B4 Tier 0),
+   * for its limits (issue #6440: none unless the project set them): how many
+   * model calls it made, the output tokens they produced, and all their
+   * tokens as OneUptime counts them (AiTokenCount, each model's at its own
+   * weights) - the count the project's limit of tokens per run is held to.
+   * One SQL aggregate over the run's LlmLog rows - executeWithLogging writes
+   * exactly one row per call (success, error, or a refusal), so the count is
+   * the honest call count and an errored call counts as one. A run's time
+   * limit is at most a day, inside the 3-day cloud LlmLog retention.
    */
   @CaptureSpan()
-  public async getRunCompletionUsage(data: {
-    aiRunId: ObjectID;
-  }): Promise<{ completionCalls: number; outputTokens: number }> {
-    const rows: Array<{
-      calls: string | number | null;
-      outputTokens: string | number | null;
-    }> = await this.getRepository().manager.query(
-      `SELECT COUNT(*) AS "calls", COALESCE(SUM("completionTokens"), 0) AS "outputTokens" FROM "LlmLog" WHERE "aiRunId" = $1 AND "deletedAt" IS NULL`,
+  public async getRunCompletionUsage(data: { aiRunId: ObjectID }): Promise<{
+    completionCalls: number;
+    outputTokens: number;
+    totalTokens: number;
+  }> {
+    const rows: Array<
+      SummedTokensOfAModel & {
+        calls: string | number | null;
+        outputTokens: string | number | null;
+      }
+    > = await this.getRepository().manager.query(
+      `SELECT ${MODEL_OF_THE_SUMS}, COUNT(*) AS "calls", COALESCE(SUM("log"."completionTokens"), 0) AS "outputTokens", COALESCE(SUM("log"."totalTokens"), 0) AS "total", ${CACHE_TOKEN_SUMS} FROM "LlmLog" AS "log" WHERE "log"."aiRunId" = $1 AND "log"."deletedAt" IS NULL ${GROUP_BY_MODEL}`,
       [data.aiRunId.toString()],
     );
 
+    const sum: (
+      read: (row: { calls: SummedTokens; outputTokens: SummedTokens }) => SummedTokens,
+    ) => number = (
+      read: (row: { calls: SummedTokens; outputTokens: SummedTokens }) => SummedTokens,
+    ): number => {
+      return (rows || []).reduce(
+        (
+          total: number,
+          row: { calls: SummedTokens; outputTokens: SummedTokens },
+        ): number => {
+          const value: number = Number(read(row) || 0);
+
+          return total + (Number.isFinite(value) ? value : 0);
+        },
+        0,
+      );
+    };
+
     return {
-      completionCalls: Number(rows[0]?.calls || 0),
-      outputTokens: Number(rows[0]?.outputTokens || 0),
+      completionCalls: sum(
+        (row: { calls: SummedTokens; outputTokens: SummedTokens }): SummedTokens => {
+          return row.calls;
+        },
+      ),
+      outputTokens: sum(
+        (row: { calls: SummedTokens; outputTokens: SummedTokens }): SummedTokens => {
+          return row.outputTokens;
+        },
+      ),
+      totalTokens: countSummedTokens(rows || []),
     };
   }
 }
