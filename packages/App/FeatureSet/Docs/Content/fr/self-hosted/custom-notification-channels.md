@@ -79,6 +79,7 @@ Chaque alerte est une requête `POST` avec un corps JSON :
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ Chaque alerte est une requête `POST` avec un corps JSON :
 | `recordType`, `record` | L'objet de l'alerte : un `incident`, `alert`, `incidentEpisode` ou `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | La politique et le niveau qui l'ont alertée |
 | `isPageAgain` | `true` quand l'élément a été pris en compte il y a un moment et n'est toujours pas résolu |
+| `isObserverPage` | `true` lorsque la personne est appelée en tant qu'observateur : tenue informée pendant que d'autres répondent. Accuser réception de son appel indique seulement qu'elle l'a vu |
 | `actions` | Les liens que votre service appelle pour [agir sur l'alerte](#agir-sur-une-alerte) |
 
 Une alerte destinée à plusieurs personnes donne une requête par personne, chacune avec ses propres liens, pour que OneUptime sache qui a répondu. Le titre, le message et la description réunis sont limités à 16 384 caractères ; une description plus longue est coupée et se termine par « … (truncated — see OneUptime for the full text) ».
@@ -170,6 +172,7 @@ Une notification part vers chaque canal activé, en une requête par canal, avec
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

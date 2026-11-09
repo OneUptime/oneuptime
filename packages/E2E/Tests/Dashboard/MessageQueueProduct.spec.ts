@@ -550,8 +550,10 @@ const closeAddedQueueGuide: (data: {
 /*
  * The Overview's Broker health section once every telemetry read of the
  * page has settled (one Promise.all loads the tiles, the cards and the broker
- * metrics): its charts, the guidance card or the "no metrics in this range"
- * card — never the loader. A ready signal that holds with or without data.
+ * metrics): its charts, or — with nothing in the range — the Broker metrics
+ * card alone under the section's header (the no-data wrapper), or the
+ * guidance card of a queue the card is not drawn for; never the loader. A
+ * ready signal that holds with or without data.
  */
 const brokerHealthSettled: (page: Page) => Locator = (page: Page): Locator => {
   return page
@@ -930,12 +932,16 @@ test.describe.skip("Queues Product", () => {
 
     /*
      * No broker metric yet: Broker health says where Kafka's come from and
-     * links to the system's section of the Queues guide.
+     * links to the system's section of the Queues guide — inside the Broker
+     * metrics card, its one card, in place of the card's summary.
      */
-    const guidance: Locator = page.getByTestId(
-      "message-queue-broker-health-guidance",
-    );
+    const guidance: Locator = page
+      .getByTestId("message-queue-broker-metrics-status")
+      .getByTestId("message-queue-broker-health-guidance");
     await expect(guidance).toBeVisible({ timeout: 60000 });
+    await expect(
+      page.getByTestId("message-queue-broker-health-guidance"),
+    ).toHaveCount(1);
     await expect(guidance).toContainText("kafka_metrics");
     await expect(
       guidance.getByRole("link", {
@@ -1079,13 +1085,18 @@ test.describe.skip("Queues Product", () => {
     test.setTimeout(420000);
     const page: Page = ctx.page;
 
-    // The tile names the metric it reads; nothing else on the page does.
+    /*
+     * The tile names the metric it reads. The Broker metrics card's list
+     * names every metric too, folded (hidden) from the first load on, so
+     * the wait looks in the tile: the first match on the page is hidden.
+     */
     await waitForTelemetryText({
       page,
       projectId: ctx.projectId,
       url: urlFor(queuePath(ctx.projectId, ctx.kafkaQueueId)),
       ready: brokerHealthSettled(page),
       text: KAFKA_LAG_METRIC,
+      target: brokerMetricTile(page, KAFKA_LAG_METRIC_ID),
     });
 
     const brokerHealth: Locator = page.getByTestId(
@@ -1322,28 +1333,54 @@ test.describe.skip("Queues Product", () => {
       page.getByText(`Namespace: ${SERVICE_BUS_NAMESPACE}`, { exact: true }),
     ).toBeVisible({ timeout: 60000 });
 
-    // No broker metric yet: the guidance card points at Azure Monitor.
-    const guidance: Locator = page.getByTestId(
-      "message-queue-broker-health-guidance",
+    /*
+     * No broker metric yet, and none from its namespace either: the Broker
+     * metrics card says nothing reads the namespace's metrics, in place of
+     * the setup guidance, and links the queue's collector configuration
+     * and the guide's troubleshooting.
+     */
+    const serviceBusPath: string = queuePath(
+      ctx.projectId,
+      ctx.serviceBusQueueId,
     );
-    await expect(guidance).toBeVisible({ timeout: 60000 });
+    const finding: Locator = page.getByTestId(
+      "message-queue-broker-metrics-finding",
+    );
+    await expect(finding).toBeVisible({ timeout: 60000 });
+    await expect(finding).toHaveAttribute("data-kind", "nothingFromNamespace");
+    await expect(finding).toContainText(
+      `Nothing from namespace ${SERVICE_BUS_NAMESPACE} reaches OneUptime`,
+    );
     await expect(
-      guidance.getByRole("link", {
-        name: "Azure Service Bus broker metrics in the Queues guide",
+      finding.getByRole("link", {
+        name: "Collector configuration for this queue",
       }),
-    ).toHaveAttribute("href", "/docs/telemetry/queues#azure-service-bus");
+    ).toHaveAttribute("href", `${serviceBusPath}/documentation`);
+    await expect(
+      finding.getByRole("link", {
+        name: "Troubleshooting in the Queues guide",
+      }),
+    ).toHaveAttribute(
+      "href",
+      "/docs/telemetry/queues#broker-health-stays-empty",
+    );
+    await expect(
+      page.getByTestId("message-queue-broker-health-guidance"),
+    ).toHaveCount(0);
 
     await postServiceBusActiveMessages({
       page,
       ingestionKey: ctx.ingestionKey,
     });
 
+    // In the tile, as for Kafka's lag: the Broker metrics card names it too.
     await waitForTelemetryText({
       page,
       projectId: ctx.projectId,
       url: urlFor(queuePath(ctx.projectId, ctx.serviceBusQueueId)),
       ready: brokerHealthSettled(page),
       text: SERVICE_BUS_ACTIVE_METRIC,
+      target: brokerMetricTile(page, SERVICE_BUS_ACTIVE_METRIC_ID),
     });
 
     const activeTile: Locator = brokerMetricTile(

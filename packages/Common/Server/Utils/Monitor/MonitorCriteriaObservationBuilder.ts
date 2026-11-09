@@ -69,9 +69,27 @@ import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import ExceptionLearnedBaselineUtil from "./ExceptionLearnedBaseline";
 import { isExceptionCountAnomaly } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import PerEntityCriteriaFanOut from "./PerEntityCriteriaFanOut";
+import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
+import MonitorQuotedValue from "./MonitorQuotedValue";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import Dictionary from "../../../Types/Dictionary";
 
 // A sentence's closing period, dropped where it is quoted mid-sentence.
 const TRAILING_PERIOD: RegExp = /\.$/;
+
+/*
+ * How much of a body a sentence's sample is read from: the sample quotes a
+ * short start of it, redacted first (MonitorEvidenceRedaction), so a secret
+ * that runs past the sample's end is seen whole by the rules.
+ */
+const SAMPLED_BODY_CHARS: number = 2000;
+
+/*
+ * How much of a script's result, or of one of its log lines, a sentence
+ * quotes; and of its error, whose first words say what went wrong.
+ */
+const SCRIPT_RESULT_CHARS: number = 120;
+const SCRIPT_ERROR_CHARS: number = 80;
 
 export default class MonitorCriteriaObservationBuilder {
   public static describeFilterObservation(input: {
@@ -537,6 +555,7 @@ export default class MonitorCriteriaObservationBuilder {
   }
 
   private static describeResponseHeaderValueObservation(input: {
+    monitor: Monitor;
     dataToProcess: DataToProcess;
   }): string | null {
     const probeResponse: ProbeMonitorResponse | null =
@@ -546,20 +565,62 @@ export default class MonitorCriteriaObservationBuilder {
       return null;
     }
 
-    const headerValues: Array<string> = Object.values(
-      probeResponse.responseHeaders || {},
-    ).map((value: string) => {
-      return value.toLowerCase();
-    });
+    const headerValues: Array<string> =
+      MonitorCriteriaObservationBuilder.getQuotableHeaderValues(
+        probeResponse.responseHeaders,
+      );
 
     if (!headerValues.length) {
       return "Response header values were empty.";
     }
 
+    // A monitor that keeps no response content quotes none of it.
+    if (!MonitorRecordEvidence.keepsResponseContent(input.monitor)) {
+      return null;
+    }
+
     return `Response header values: ${MonitorCriteriaMessageFormatter.formatList(headerValues)}.`;
   }
 
+  /*
+   * Header values as a sentence may quote them, lowercased as the filter
+   * compares them: a credential header's value masked, any other swept for
+   * credential-shaped text.
+   */
+  private static getQuotableHeaderValues(
+    headers: Dictionary<string> | undefined,
+  ): Array<string> {
+    const redacted: Dictionary<string> =
+      MonitorEvidenceRedaction.redactHeaders(headers) || {};
+
+    return Object.values(redacted).map((value: string) => {
+      return value === MonitorEvidenceRedaction.REDACTED
+        ? value
+        : String(value).toLowerCase();
+    });
+  }
+
+  /*
+   * The start of a body as a sentence may quote it: redacted, and nothing
+   * for a monitor that keeps no response content.
+   */
+  private static getQuotableBodySample(input: {
+    monitor: Monitor;
+    body: string;
+  }): string | null {
+    if (!MonitorRecordEvidence.keepsResponseContent(input.monitor)) {
+      return null;
+    }
+
+    return MonitorCriteriaMessageFormatter.formatSnippet(
+      MonitorEvidenceRedaction.redactText(
+        input.body.slice(0, SAMPLED_BODY_CHARS),
+      ),
+    );
+  }
+
   private static describeResponseBodyObservation(input: {
+    monitor: Monitor;
     dataToProcess: DataToProcess;
   }): string | null {
     const probeResponse: ProbeMonitorResponse | null =
@@ -586,7 +647,13 @@ export default class MonitorCriteriaObservationBuilder {
       bodyAsString = probeResponse.responseBody as string;
     }
 
-    return `Response body sample: ${MonitorCriteriaMessageFormatter.formatSnippet(bodyAsString)}.`;
+    const sample: string | null =
+      MonitorCriteriaObservationBuilder.getQuotableBodySample({
+        monitor: input.monitor,
+        body: bodyAsString,
+      });
+
+    return sample ? `Response body sample: ${sample}.` : null;
   }
 
   private static describeIsOnlineObservation(input: {
@@ -679,6 +746,7 @@ export default class MonitorCriteriaObservationBuilder {
   }
 
   private static describeRequestBodyObservation(input: {
+    monitor: Monitor;
     dataToProcess: DataToProcess;
   }): string | null {
     const incomingRequest: IncomingMonitorRequest | null =
@@ -710,7 +778,13 @@ export default class MonitorCriteriaObservationBuilder {
       requestBodyAsString = requestBody as string;
     }
 
-    return `Request body sample: ${MonitorCriteriaMessageFormatter.formatSnippet(requestBodyAsString)}.`;
+    const sample: string | null =
+      MonitorCriteriaObservationBuilder.getQuotableBodySample({
+        monitor: input.monitor,
+        body: requestBodyAsString,
+      });
+
+    return sample ? `Request body sample: ${sample}.` : null;
   }
 
   private static describeRequestHeaderObservation(input: {
@@ -739,6 +813,7 @@ export default class MonitorCriteriaObservationBuilder {
   }
 
   private static describeRequestHeaderValueObservation(input: {
+    monitor: Monitor;
     dataToProcess: DataToProcess;
   }): string | null {
     const incomingRequest: IncomingMonitorRequest | null =
@@ -750,14 +825,18 @@ export default class MonitorCriteriaObservationBuilder {
       return null;
     }
 
-    const headerValues: Array<string> = Object.values(
-      incomingRequest.requestHeaders || {},
-    ).map((value: string) => {
-      return value.toLowerCase();
-    });
+    const headerValues: Array<string> =
+      MonitorCriteriaObservationBuilder.getQuotableHeaderValues(
+        incomingRequest.requestHeaders,
+      );
 
     if (!headerValues.length) {
       return "Request header values were empty.";
+    }
+
+    // A monitor that keeps no request content quotes none of it.
+    if (!MonitorRecordEvidence.keepsResponseContent(input.monitor)) {
+      return null;
     }
 
     return `Request header values: ${MonitorCriteriaMessageFormatter.formatList(headerValues)}.`;
@@ -1323,14 +1402,16 @@ export default class MonitorCriteriaObservationBuilder {
         input.dataToProcess,
       );
 
+    /*
+     * What a script returned, printed or threw is quoted as a root cause
+     * may quote it: redacted, on one line and bounded (MonitorQuotedValue).
+     */
     const resultValues: Array<string> = syntheticResponses
-      .map((response: SyntheticMonitorResponse) => {
-        return MonitorCriteriaMessageFormatter.formatResultValue(
-          response.result,
-        );
+      .filter((response: SyntheticMonitorResponse) => {
+        return response.result !== undefined && response.result !== null;
       })
-      .filter((value: string) => {
-        return value !== "undefined";
+      .map((response: SyntheticMonitorResponse) => {
+        return MonitorCriteriaObservationBuilder.quoteResult(response.result);
       });
 
     if (resultValues.length > 0) {
@@ -1345,15 +1426,17 @@ export default class MonitorCriteriaObservationBuilder {
       );
 
     if (customCodeResponse && customCodeResponse.result !== undefined) {
-      const formatted: string =
-        MonitorCriteriaMessageFormatter.formatResultValue(
-          customCodeResponse.result,
-        );
-
-      return `Result Value was ${MonitorCriteriaMessageFormatter.formatSnippet(formatted)}.`;
+      return `Result Value was ${MonitorCriteriaObservationBuilder.quoteResult(customCodeResponse.result)}.`;
     }
 
     return "Result value was unavailable.";
+  }
+
+  // A script's result, quoted: a result of null reads as null.
+  private static quoteResult(result: unknown): string {
+    return result === null
+      ? "null"
+      : MonitorQuotedValue.quote(result, SCRIPT_RESULT_CHARS);
   }
 
   private static describeErrorObservation(input: {
@@ -1372,7 +1455,7 @@ export default class MonitorCriteriaObservationBuilder {
         return Boolean(value);
       })
       .map((error: string) => {
-        return MonitorCriteriaMessageFormatter.formatSnippet(error, 80);
+        return MonitorQuotedValue.quote(error, SCRIPT_ERROR_CHARS);
       });
 
     if (errors.length > 0) {
@@ -1385,11 +1468,17 @@ export default class MonitorCriteriaObservationBuilder {
       );
 
     if (customCodeResponse?.scriptError) {
-      return `Script error: ${MonitorCriteriaMessageFormatter.formatSnippet(customCodeResponse.scriptError, 80)}.`;
+      return `Script error: ${MonitorQuotedValue.quote(customCodeResponse.scriptError, SCRIPT_ERROR_CHARS)}.`;
     }
 
     if (customCodeResponse?.logMessages?.length) {
-      return `Script log messages: ${MonitorCriteriaMessageFormatter.formatList(customCodeResponse.logMessages)}.`;
+      const logMessages: Array<string> = customCodeResponse.logMessages.map(
+        (message: string) => {
+          return MonitorQuotedValue.quote(message, SCRIPT_RESULT_CHARS);
+        },
+      );
+
+      return `Script log messages: ${MonitorCriteriaMessageFormatter.formatList(logMessages)}.`;
     }
 
     return "No script errors were reported.";

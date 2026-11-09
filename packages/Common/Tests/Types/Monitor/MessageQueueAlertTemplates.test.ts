@@ -1171,22 +1171,46 @@ describe("MessageQueueAlertTemplates — every template reads a catalog gauge, n
 
     /*
      * Every signal the catalog uses is either thresholdable or one of the
-     * three deliberately left out — a new signal fails here and has to be
+     * six deliberately left out — a new signal fails here and has to be
      * decided.
      */
+    const leftOut: Array<string> = [
+      "published",
+      "consumed",
+      "consumers",
+      "scheduled",
+      "size",
+      "latency",
+    ];
     for (const descriptor of MESSAGE_QUEUE_METRICS) {
-      expect([
-        ...MESSAGE_QUEUE_THRESHOLDABLE_SIGNALS,
-        "published",
-        "consumed",
-        "consumers",
-      ]).toContain(descriptor.signal);
+      expect([...MESSAGE_QUEUE_THRESHOLDABLE_SIGNALS, ...leftOut]).toContain(
+        descriptor.signal,
+      );
     }
 
     for (const template of ALL_TEMPLATES) {
-      expect(["published", "consumed", "consumers"]).not.toContain(
-        template.signal,
-      );
+      expect(leftOut).not.toContain(template.signal);
+    }
+
+    /*
+     * Scheduled messages, a queue's size and the broker's send latency get
+     * no template, but each is a gauge, so its chart still offers "Create
+     * monitor" with a threshold the reader picks.
+     */
+    for (const metricName of [
+      "azure_scheduledmessages_average",
+      "azure_size_average",
+      "azure_serversendlatency_average",
+    ]) {
+      const descriptors: ReadonlyArray<MessageQueueMetricDescriptor> =
+        getMessageQueueMetricDescriptorsByName(metricName);
+      expect(descriptors.length).toBeGreaterThan(0);
+      for (const descriptor of descriptors) {
+        expect(
+          getMessageQueueAlertTemplateForMetric(descriptor),
+        ).toBeUndefined();
+        expect(isMessageQueueMetricMonitorable(descriptor)).toBe(true);
+      }
     }
 
     for (const metricName of [

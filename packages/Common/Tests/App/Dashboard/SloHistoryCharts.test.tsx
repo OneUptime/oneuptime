@@ -156,11 +156,13 @@ import SloHistoryCharts from "../../../../App/FeatureSet/Dashboard/src/Component
 import SloHistory from "../../../Models/AnalyticsModels/SloHistory";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import { DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE } from "../../../Utils/Slo/SloHealth";
+import { POLICY_TIER_LINE_COLOR } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloPolicyTier";
 
 interface AggregateCall {
   modelType: unknown;
@@ -182,6 +184,7 @@ interface ReferenceLine {
   value: number;
   label?: string;
   color: string;
+  strokeDasharray?: string;
 }
 
 interface LineChartProps {
@@ -222,6 +225,36 @@ function makeRule(
   }
 
   return rule;
+}
+
+function makeTier(
+  name: string,
+  thresholdPercentage: number,
+  isEnabled: boolean = true,
+): ServiceLevelObjectiveErrorBudgetPolicyTier {
+  const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+    new ServiceLevelObjectiveErrorBudgetPolicyTier();
+  tier.name = name;
+  tier.thresholdPercentage = thresholdPercentage;
+  tier.isEnabled = isEnabled;
+  return tier;
+}
+
+interface ListCall {
+  modelType: unknown;
+  query: Record<string, unknown>;
+  select: Record<string, unknown>;
+  sort: Record<string, unknown>;
+}
+
+function listCallsFor(modelType: unknown): Array<ListCall> {
+  return getListMock.mock.calls
+    .map((args: Array<unknown>): ListCall => {
+      return args[0] as ListCall;
+    })
+    .filter((call: ListCall): boolean => {
+      return call.modelType === modelType;
+    });
 }
 
 function stubHistory(
@@ -450,6 +483,125 @@ describe("SloHistoryCharts", () => {
       error.compareDocumentPosition(screen.getAllByTestId("card")[0]!) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  describe("the tiers of the SLO's error budget policy", () => {
+    function stubLists(
+      tiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> | Error,
+    ): void {
+      getListMock.mockImplementation((args: unknown) => {
+        const call: ListCall = args as ListCall;
+
+        if (call.modelType === ServiceLevelObjectiveErrorBudgetPolicyTier) {
+          return tiers instanceof Error
+            ? Promise.reject(tiers)
+            : Promise.resolve({
+                data: tiers,
+                count: tiers.length,
+                skip: 0,
+                limit: 10000,
+              });
+        }
+
+        return Promise.resolve({
+          data: [makeRule("Fast burn", 14.4)],
+          count: 1,
+          skip: 0,
+          limit: 10000,
+        });
+      });
+    }
+
+    test("are read with the rules, enabled ones only, for the SLO it is given", async () => {
+      stubLists([]);
+
+      await renderCharts();
+
+      const calls: Array<ListCall> = listCallsFor(
+        ServiceLevelObjectiveErrorBudgetPolicyTier,
+      );
+
+      expect(calls).toHaveLength(1);
+      expect(
+        (calls[0]!.query["serviceLevelObjectiveId"] as ObjectID).toString(),
+      ).toBe(SLO_ID_STRING);
+      expect(calls[0]!.query["isEnabled"]).toBe(true);
+      expect(calls[0]!.select).toEqual(
+        expect.objectContaining({ name: true, thresholdPercentage: true }),
+      );
+      // The rules are still the first list asked for.
+      expect((getListMock.mock.calls[0]![0] as ListCall).modelType).toBe(
+        ServiceLevelObjectiveBurnRateRule,
+      );
+    });
+
+    test("each draws a line named for it at its threshold, beside the at-risk and exhausted lines", async () => {
+      stubLists([
+        makeTier("Caution", 50),
+        makeTier("Change freeze", 10),
+        makeTier("Reliability first", 30),
+      ]);
+
+      await renderCharts();
+
+      const lines: Array<ReferenceLine> =
+        lastChartProps("Budget Remaining %").referenceLines || [];
+
+      expect(
+        lines.map((line: ReferenceLine): [number, string | undefined] => {
+          return [line.value, line.label];
+        }),
+      ).toEqual([
+        [0, "Budget exhausted"],
+        [25, "At risk"],
+        // Highest first: the order the budget reaches them.
+        [50, "Caution 50%"],
+        [30, "Reliability first 30%"],
+        [10, "Change freeze 10%"],
+      ]);
+
+      for (const line of lines.slice(2)) {
+        expect(line.color).toBe(POLICY_TIER_LINE_COLOR);
+        expect(line.strokeDasharray).toBeTruthy();
+      }
+
+      // Only the budget chart: the SLI and burn rate charts are not in percent of budget.
+      expect(lastChartProps("SLI %").referenceLines).toHaveLength(1);
+      expect(lastChartProps("Burn Rate").referenceLines).toHaveLength(1);
+    });
+
+    test("a tier at a line already drawn is said on that line, not drawn over it", async () => {
+      stubLists([makeTier("Budget exhausted", 0), makeTier("Slowdown", 25)]);
+
+      await renderCharts();
+
+      expect(
+        (lastChartProps("Budget Remaining %").referenceLines || []).map(
+          (line: ReferenceLine): [number, string | undefined] => {
+            return [line.value, line.label];
+          },
+        ),
+      ).toEqual([
+        // Named like the line: said once.
+        [0, "Budget exhausted 0%"],
+        [25, "At risk · Slowdown 25%"],
+      ]);
+    });
+
+    test("a tier list that cannot be read leaves the tier lines out, not the charts", async () => {
+      stubLists(new Error("You may not read these tiers."));
+
+      await renderCharts();
+
+      expect(screen.queryByTestId("error-message")).not.toBeInTheDocument();
+      expect(
+        (lastChartProps("Budget Remaining %").referenceLines || []).map(
+          (line: ReferenceLine): number => {
+            return line.value;
+          },
+        ),
+      ).toEqual([0, 25]);
+    });
   });
 
   test("a parent re-rendering with a fresh ObjectID for the same SLO does not refetch", async () => {

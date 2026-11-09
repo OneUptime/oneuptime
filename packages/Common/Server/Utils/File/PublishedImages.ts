@@ -28,7 +28,11 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  *     incident, never while it is private);
  *   - a public note of an incident, an episode or a scheduled maintenance
  *     event while that record is shown on status pages - a note is shown on
- *     its record's page, never without it (shownUnder);
+ *     its record's page, never without it (shownUnder) - and only once it is
+ *     published: a note waiting for approval, or rejected, shows nothing
+ *     (isPublished, Types/StatusPage/PublicNoteApproval), and neither does an
+ *     edit of a published note while it waits (pendingNote is none of the
+ *     markdown a note shows);
  *   - an announcement's description from the time it is shown from (Start
  *     Showing Announcement At) on, ended or not - the page lists an ended
  *     one under its past announcements, and its own link keeps working - but
@@ -210,7 +214,8 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
   {
     tableName: "IncidentPublicNote",
     markdownColumns: ["note"],
-    shownWhen: [],
+    // Published: a note waiting for approval shows nothing (PublicNoteApproval).
+    shownWhen: ["isPublished"],
     shownUnder: { ...INCIDENT_PARENT, foreignKey: "incidentId" },
     shownOn: "statusPage",
   },
@@ -224,7 +229,8 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
   {
     tableName: "IncidentEpisodePublicNote",
     markdownColumns: ["note"],
-    shownWhen: [],
+    // Published: a note waiting for approval shows nothing (PublicNoteApproval).
+    shownWhen: ["isPublished"],
     shownUnder: { ...EPISODE_PARENT, foreignKey: "incidentEpisodeId" },
     shownOn: "statusPage",
   },
@@ -237,7 +243,8 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
   {
     tableName: "ScheduledMaintenancePublicNote",
     markdownColumns: ["note"],
-    shownWhen: [],
+    // Published: a note waiting for approval shows nothing (PublicNoteApproval).
+    shownWhen: ["isPublished"],
     shownUnder: {
       ...SCHEDULED_MAINTENANCE_PARENT,
       foreignKey: "scheduledMaintenanceId",
@@ -861,14 +868,26 @@ export const getShownParentsSql: (parent: PublishedParent) => string = (
 
 /*
  * The rows of a source shown under other records (shownUnder) that carry an
- * image, of those records: $1 is their ids.
+ * image, of those records: $1 is their ids. With the rows' own switches, so
+ * a record shown again publishes only what its rows show themselves: a note
+ * waiting for approval, or rejected, shows nothing (isPublished).
  */
 export const getRowsShownUnderSql: (source: PublishedMarkdown) => string = (
   source: PublishedMarkdown,
 ): string => {
   const foreignKey: string = source.shownUnder?.foreignKey || "";
 
-  return `SELECT ${["_id", "projectId", foreignKey, ...source.markdownColumns]
+  return `SELECT ${Array.from(
+    new Set([
+      "_id",
+      "projectId",
+      foreignKey,
+      ...source.shownWhen,
+      ...(source.hiddenWhen || []),
+      ...(source.shownFrom ? [source.shownFrom] : []),
+      ...source.markdownColumns,
+    ]),
+  )
     .map((column: string): string => {
       return quote(column);
     })
@@ -1415,9 +1434,15 @@ export default class PublishedImages {
           normalizeFileId(record[parent.foreignKey]),
         );
         const tokens: Array<string> = this.getTokensOf(source, record);
+        // Shown under a record shown now, of its project - and by its own switches.
         const isShown: boolean =
           Boolean(shownProjectId) &&
-          shownProjectId === normalizeFileId(record["projectId"]);
+          shownProjectId === normalizeFileId(record["projectId"]) &&
+          this.areSwitchesShowing(
+            { shownWhen: source.shownWhen, hiddenWhen: source.hiddenWhen },
+            record,
+          ) &&
+          this.hasTimeCome(source, record);
 
         this.addChanges(data.changes, record["projectId"], {
           publish: isShown ? tokens : [],

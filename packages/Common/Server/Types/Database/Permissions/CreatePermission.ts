@@ -5,6 +5,7 @@ import ColumnPermissions from "./ColumnPermission";
 import EditionPermissions from "./EditionPermission";
 import OwnedScopePermission from "./OwnedScopePermission";
 import PrivateRecordPermission from "./PrivateRecordPermission";
+import TeamOwnedRulePermission from "./TeamOwnedRulePermission";
 import PublicPermission from "./PublicPermission";
 import ReadPermission from "./ReadPermission";
 import TablePermission from "./TablePermission";
@@ -762,6 +763,11 @@ export default class CreatePermission {
         );
       }
 
+      await CreatePermission.checkTeamOwnedParents({
+        ...data,
+        isHeld: isHeld,
+      });
+
       return;
     }
 
@@ -887,6 +893,65 @@ export default class CreatePermission {
         );
       }
     }
+
+    await CreatePermission.checkTeamOwnedParents({
+      ...data,
+      ids: foundIds,
+      isHeld: isHeld,
+    });
+  }
+
+  /*
+   * AN OWNING TEAM GOES ON A RULE SOME TEAMS OWN ONLY THROUGH THOSE TEAMS.
+   * Of the rules a write names (`ids`: parents already found, or held to
+   * the project by the write's own reference check), the ones teams own and
+   * the caller's permission for the write does not reach - granted by none
+   * of the teams that own it (TeamOwnedRulePermission) - are refused: in so
+   * many words to a caller who reads rules of the kind, who sees who owns
+   * it anyway, and like a rule they may not read to one who does not. A rule
+   * no team owns takes an owning team from whoever may add one. Nothing to
+   * ask of a parent of no rule kind, or of a caller who changes every rule.
+   */
+  private static async checkTeamOwnedParents(data: {
+    modelType: DatabaseBaseModelType;
+    parent: CreateParent;
+    ids: Array<string>;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Create | DatabaseRequestType.Update;
+    findParentIdsInProject: RecordIdsFinder;
+    isHeld: boolean;
+  }): Promise<void> {
+    const unreachableIds: Array<string> =
+      await TeamOwnedRulePermission.getUnreachableParentIds({
+        modelType: data.modelType,
+        parentModelType: data.parent.parentModelType,
+        parentIds: data.ids,
+        props: data.props,
+        type: data.type,
+        findIdsInProject: data.findParentIdsInProject,
+      });
+
+    if (unreachableIds.length === 0) {
+      return;
+    }
+
+    if (!data.isHeld) {
+      throw CreatePermission.getMissingParentRefusal(
+        data.modelType,
+        data.parent,
+        unreachableIds,
+      );
+    }
+
+    throw new NotAuthorizedException(
+      `You do not have permission to ${data.type} ${
+        new data.modelType().singularName || "this record"
+      }. ${TeamOwnedRulePermission.getOwnedParentWriteReason(
+        (
+          new data.parent.parentModelType().singularName || "rule"
+        ).toLowerCase(),
+      )}`,
+    );
   }
 
   /*

@@ -340,6 +340,14 @@ Um registro assim só é alterado com as permissões das equipes que são suas p
 
 Uma equipe proprietária de registros privados, mas sem permissões, usada só para agrupar pessoas, deixa seus membros vê-los e não alterar nenhum. Na página de um registro privado, uma alteração que as equipes proprietárias da pessoa não podem fazer aparece bloqueada e diz por quê. Para que ela possa fazê-la, dê a permissão a uma equipe proprietária, torne proprietária uma equipe que tenha a permissão ou torne a pessoa proprietária.
 
+### Regras que pertencem a equipes
+
+Uma regra de plantão de incidente ou de alerta, uma regra de plantão de episódio, uma regra de proprietários de incidente e uma regra de notificação do Slack ou do Microsoft Teams podem pertencer a equipes. Uma regra que não pertence a nenhuma equipe é do projeto: todos cujas permissões deixam alterar regras desse tipo podem alterá-la. Uma regra que pertence a equipes só é alterada e excluída com as permissões das equipes a que pertence, e pelos proprietários e administradores do projeto. Todos que podem ler regras continuam a lê-la e veem a quais equipes ela pertence.
+
+Escolha as equipes no formulário da regra, em **Equipes responsáveis** sob **Mais campos**. Escolhê-las exige a permissão sobre as equipes do tipo de regra, como `CreateIncidentOnCallRuleOwningTeam`, que os proprietários e administradores do projeto têm. Adicionar ou remover equipes de uma regra altera a regra; assim, quando uma regra pertence a equipes, só essas equipes e os proprietários e administradores do projeto mudam a quem ela pertence. Em uma lista de regras, uma regra que pertence só a outras equipes é somente leitura para você: suas ações de editar e excluir ficam bloqueadas e nomeiam as equipes a que ela pertence.
+
+A permissão de cada equipe alcança as regras que pertencem a essa equipe. Quem está em duas equipes, uma que pode editar regras de plantão e outra que só pode lê-las, edita toda regra que não pertence a nenhuma equipe e as regras da primeira equipe, e só lê as regras que pertencem apenas à segunda. Uma chave de API só altera uma regra que pertence a equipes com `ProjectOwner` ou `ProjectAdmin`; uma etapa de workflow age como administrador do projeto. Pela API e pelo Terraform, as equipes responsáveis de uma regra são registros próprios, como `oneuptime_incident_on_call_rule_owning_team`.
+
 ## Receitas
 
 **Uma equipe que só observa.** Crie a equipe com **Visualizador** em **Acesso**. Para só algumas áreas, escolha **Escolher as permissões depois** e adicione as funções `*Viewer` por área que ela deve ver.

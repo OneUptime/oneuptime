@@ -284,6 +284,8 @@ Le chiamate di OneUptime vengono addebitate al tuo account cloud, ai prezzi del 
 | Google Cloud | Le prime 1.000.000 serie temporali lette al mese sono gratuite, poi $0.50 per milione |
 | Costi Google Cloud | BigQuery addebita la query della tua esportazione della fatturazione: il primo 1 TiB al mese è gratuito, poi $6.25 per TiB |
 
+Le metriche chiave di un namespace di Service Bus o Event Hubs vengono lette per ciascuna delle sue code, dei suoi topic e dei suoi event hub, suddivise per la dimensione `EntityName`, nella stessa unica chiamata per namespace e lettura: con una lettura ogni 5 minuti, un namespace di 50 code costa 12 chiamate all'ora, quanto uno di una sola coda. Una lettura ne prende fino a 1.000 per namespace, e lo segnala quando ce ne sono di più. Le metriche di ciascuno compaiono nella sua pagina in [Code](/docs/telemetry/queues#azure-service-bus), assegnate come le assegna il receiver `azure_monitor` del collector, e quando quel receiver legge anche una metrica di una coda, si tengono i suoi valori e si lasciano fuori quelli della connessione, quindi nulla viene contato due volte.
+
 ## Cosa vedi in OneUptime
 
 - **La pagina di un account.** In **Cloud → Account**, la panoramica di un account ne conta le risorse per tipo e regione e dice quando una connessione l'ha letto l'ultima volta. Le sue **Risorse** le elencano, le sue **Modifiche** elencano cosa vi è cambiato, prima le più recenti, e la sua **Topologia** disegna le sue regioni, le reti che contengono e cosa gira in ciascuna, con gli incidenti e gli avvisi aperti sulle risorse a cui sono collegati. In **Modifiche**, una modifica fatta da OneUptime AI riporta **OneUptime AI**, con l'incidente o l'avviso che ha corretto, chi l'ha approvata o che è stata applicata da sola, e un link alla sua voce nei **Registri IA** dell'account. Il suo **Feed** registra come l'account è arrivato in OneUptime, quando il suo agente IA cloud si è connesso o è stato reimpostato, e chi ha cambiato ciò che OneUptime AI può farvi.
@@ -334,6 +336,10 @@ La prima lettura elenca ogni risorsa dell'account, che segnali metriche o no. Se
 
 :::details Mancano alcuni account dell'organizzazione
 Una connessione legge fino a 50 account, sottoscrizioni o progetti, e ogni lettura lo dice quando ce ne sono di più. Collega gli altri con una connessione a parte.
+:::
+
+:::details Una lettura ha degli avvisi
+Una lettura che funziona può comunque tralasciare qualcosa, come una metrica che il cloud non ha restituito per alcune risorse, o le code di un namespace oltre le prime 1.000. In **Cloud → Collega**, lo stato della connessione indica allora quanti avvisi ha avuto la sua ultima lettura: selezionali per leggerli uno per uno.
 :::
 
 ## Prossimi passi

@@ -254,7 +254,7 @@ describe("Network Traffic: Add devices, held to the code", () => {
       "a device whose serial number, MAC address or address another network device here already has is left out, and so is one you archived.",
     );
     expect(nothingTwice).toContain(
-      "A security appliance (MX or Z) lists no address in Meraki, so add it by hand at the address your probe reaches it at, and Meraki fills in the rest.",
+      "A security appliance (MX or Z) lists no address in Meraki, so add it by hand at the address your probe reaches it at, then link it to its appliance from its Traffic page: Meraki fills in the rest.",
     );
     expect(nothingTwice).toContain(
       "The dialog says how many it leaves out, and why.",

@@ -1,3 +1,4 @@
+import OnCallPageAs from "../../../../../Types/OnCallDutyPolicy/OnCallPageAs";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -90,6 +91,8 @@ import SlackActionAuthorization from "./Authorization";
 // The fields of the Page someone form.
 export const PAGE_FORM_WHO_FIELD: string = "pageTargets";
 export const PAGE_FORM_MESSAGE_FIELD: string = "pageMessage";
+// What they are paged as (OnCallPageAs), on a form about a record.
+export const PAGE_FORM_PAGE_AS_FIELD: string = "pageAs";
 
 // The longest a modal's text input takes.
 const MAX_MESSAGE_LENGTH: number = 3000;
@@ -168,6 +171,19 @@ export default class SlackPageActions {
       return;
     }
 
+    // "as observers" about something new: refused before anything is paged.
+    const observerRefusal: string | null = WorkspacePage.getObserverPageRefusal(
+      { text: text, about: about },
+    );
+
+    if (observerRefusal) {
+      await SlackActionAuthorization.sendRefusal({
+        requester: slackRequest,
+        message: observerRefusal,
+      });
+      return;
+    }
+
     // ... and do all a page about it asks of them.
     if (
       !(await SlackPageActions.mayPage({
@@ -243,6 +259,8 @@ export default class SlackPageActions {
       targets: WorkspacePage.getTargets({ people: people, groups: groups }),
       message: text.message,
       about: about,
+      // "as observers" typed after who to page (OnCallObserverPage).
+      pageAs: text.pageAs,
       channelName:
         typeof (data.req.body as JSONObject | undefined)?.["channel_name"] ===
         "string"
@@ -395,6 +413,8 @@ export default class SlackPageActions {
       targets: WorkspacePage.readTargets(picked),
       message: message,
       about: about,
+      // Only a form about a record offers it (getFormModal).
+      pageAs: WorkspacePage.readPageAs(values[PAGE_FORM_PAGE_AS_FIELD]),
     });
   }
 
@@ -491,6 +511,8 @@ export default class SlackPageActions {
     targets: OnCallPageTargets;
     message: string;
     about: WorkspacePageSubject;
+    // Responders when left out (OnCallPageAs).
+    pageAs?: OnCallPageAs | undefined;
     channelName?: string | undefined;
   }): Promise<void> {
     const { slackRequest } = data;
@@ -507,6 +529,7 @@ export default class SlackPageActions {
             targets: data.targets,
             message: data.message.substring(0, MAX_MESSAGE_LENGTH),
             about: data.about,
+            pageAs: data.pageAs,
             place: SlackPageActions.getPlace(slackRequest, data.channelName),
           });
         },
@@ -668,6 +691,19 @@ export default class SlackPageActions {
     };
 
     blocks.push(who);
+
+    /*
+     * About an incident or an alert, who is paged may be kept informed
+     * rather than asked to respond (OnCallObserverPage): "Page them as".
+     */
+    if (record) {
+      blocks.push(
+        WorkspacePage.getPageAsDropdown({
+          blockId: PAGE_FORM_PAGE_AS_FIELD,
+          initialValue: data.prefill.pageAs,
+        }),
+      );
+    }
 
     const message: WorkspaceTextAreaBlock = {
       _type: "WorkspaceTextAreaBlock",

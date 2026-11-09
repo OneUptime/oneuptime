@@ -4,6 +4,7 @@ import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjec
 import { ServiceLevelObjectiveFeedEventType } from "../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import ServiceLevelObjectiveMonitorRule from "../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import { Gray500, Green500 } from "../../Types/BrandColors";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import ObjectID from "../../Types/ObjectID";
@@ -25,6 +26,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import logger, { LogAttributes } from "../Utils/Logger";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleRunWriteProps } from "../Utils/Rules/RuleRun/RuleApplication";
 import SloLegacyMonitorLabelAdoption from "../Utils/Slo/SloLegacyMonitorLabelAdoption";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MonitorService from "./MonitorService";
@@ -150,17 +152,30 @@ const MAX_MONITORS_LISTED_IN_FEED_DETAILS: number = 50;
  * archived SLO is skipped by the evaluation worker, not by this engine, so
  * re-enabling or unarchiving one starts from the right monitor set instead of
  * whatever it held when it was switched off.
+ *
+ * Who the SLO's changes are by (issue #6324). The write is root - who may
+ * run a rule is asked at its route (RuleRunPermission) - and a sync that
+ * follows a save names nobody: OneUptime's own, a system event. A rule's Run
+ * now names who ran it, and the SLO's monitors are written on their behalf
+ * (RuleRunWriteProps), so the audit log records the change as theirs. The
+ * SLO's feed says which rules changed it, as every rule's feed item does,
+ * and names no person. HookFreeWritesAreRecorded.test.ts holds every write
+ * Run now reaches to this.
  */
 export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
   /**
    * Re-evaluates every enabled rule of one SLO against every monitor in its
    * project. Use when a rule changed - it is the authoritative, self-healing
    * path and repairs any drift it finds.
+   *
+   * `props` is who ran a rule of the SLO, for its Run now: what the sync
+   * writes is theirs in the audit log. A sync after a save passes none.
    */
   @CaptureSpan()
   @RuleEvaluation()
   public async syncMonitorsForSlo(data: {
     serviceLevelObjectiveId: ObjectID;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<SloMonitorSyncResult> {
     const slo: ServiceLevelObjective | null =
       await ServiceLevelObjectiveService.findOneById({
@@ -211,6 +226,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
       autoAddedMonitorIds: toIdSet(slo.autoAddedMonitors),
       matchedMonitorIds: toIdSet(matchedMonitors),
       knownMonitors: matchedMonitors,
+      props: data.props,
     });
   }
 
@@ -830,6 +846,9 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
    *
    * `knownMonitors` are monitors the caller already read, so the feed item
    * can name them without another lookup.
+   *
+   * `props` is who ran a rule of the SLO (Run now): the write is on their
+   * behalf.
    */
   private async writeMembership(data: {
     slo: ServiceLevelObjective;
@@ -837,6 +856,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
     autoAddedMonitorIds: Set<string>;
     matchedMonitorIds: Set<string>;
     knownMonitors?: Array<Monitor> | undefined;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<SloMonitorSyncResult> {
     const { slo, attachedMonitorIds, autoAddedMonitorIds, matchedMonitorIds } =
       data;
@@ -902,7 +922,10 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
      *
      * Written as root on purpose: rules are server-side configuration, and
      * the manual-add guard in ServiceLevelObjectiveService lets root writes
-     * through precisely so this one is never refused.
+     * through precisely so this one is never refused. A Run now's write is
+     * still root, carrying only who ran the rule (RuleRunWriteProps), so the
+     * guard - and the SLO feed's own detection of hand-made attaches, which
+     * a root write skips - treat it the same.
      */
     const updateData: PartialEntity<ServiceLevelObjective> = {
       monitors: toMonitors(nextAttachedMonitorIds),
@@ -912,9 +935,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
     await ServiceLevelObjectiveService.updateOneById({
       id: slo.id,
       data: updateData,
-      props: {
-        isRoot: true,
-      },
+      props: RuleRunWriteProps.get(data.props),
     });
 
     logger.debug(
@@ -944,10 +965,11 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
 
   /*
    * Tells the SLO's feed which monitors the rules just attached or detached.
-   * Posted without a user: nobody clicked anything, a rule reacted to a
-   * change. Manual attaches from the Monitors page are posted by the SLO
-   * service instead, and this engine writes as root with no user, which is
-   * how the two never double-post.
+   * Posted without a user, as every rule's feed item is: the item says what
+   * the rules did, and the audit log says who ran them (a Run now's write
+   * is theirs). Manual attaches from the Monitors page are posted by the
+   * SLO service instead, and this engine writes as root, which is how the
+   * two never double-post.
    *
    * Never throws. The membership is already saved; a feed item that could
    * not be written must not turn a successful sync into a failed one.

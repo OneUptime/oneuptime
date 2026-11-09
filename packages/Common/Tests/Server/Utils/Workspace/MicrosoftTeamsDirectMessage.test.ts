@@ -70,6 +70,7 @@ import {
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import type { ConversationParameters, TurnContext } from "botbuilder";
+import { JSONObject } from "../../../../Types/JSON";
 
 const MOCK_APP_CLIENT_ID: string = "11111111-2222-3333-4444-555555555555";
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -556,5 +557,243 @@ describe("MicrosoftTeamsUtil.sendDirectMessageToUserAsBot", () => {
         }),
       ).rejects.toThrow(BadDataException);
     });
+  });
+});
+
+/*
+ * WHERE THE CARD LANDED, AND EDITING IT THERE (#6317). A public note's
+ * approval card is kept as it is sent - the personal chat, the activity's
+ * id and the service the chat is at - and replaced once the note is
+ * decided. A personal chat the bot opened itself (createConversation) is
+ * never captured, so the edit addresses it at the service it was opened at,
+ * held to Microsoft's hosts like every send.
+ */
+describe("MicrosoftTeamsUtil.sendDirectMessageToUserAsBot - where the card landed", () => {
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "debug").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("through a captured personal chat: that chat, the activity, and the chat's service", async () => {
+    mockProjectAuth({
+      availableChats: { [PERSONAL_CHAT_ID]: personalChat() },
+    });
+    installFakeCreateAdapter();
+    jest.spyOn(MicrosoftTeamsUtil, "sendAdaptiveCardToChat").mockResolvedValue({
+      channel: {
+        id: PERSONAL_CHAT_ID,
+        name: "Alice Example",
+        workspaceType: "MicrosoftTeams",
+      },
+      threadId: "msg-1",
+    } as never);
+
+    expect(
+      await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
+        projectId: PROJECT_ID,
+        workspaceUserId: ENTRA_OBJECT_ID,
+        messageBlocks: markdownBlocks(),
+      }),
+    ).toEqual({
+      channelId: PERSONAL_CHAT_ID,
+      messageId: "msg-1",
+      serviceUrl: REGIONAL_SERVICE_URL,
+    });
+  });
+
+  test("through a chat the bot opened: the conversation Teams made, the activity, and the service it is at", async () => {
+    mockProjectAuth();
+
+    jest.spyOn(MicrosoftTeamsUtil as any, "getBotAdapter").mockReturnValue({
+      createConversationAsync: async (
+        _appId: string,
+        _channelId: string,
+        serviceUrl: string,
+        _audience: string,
+        _parameters: unknown,
+        logic: (context: TurnContext) => Promise<void>,
+      ): Promise<void> => {
+        await logic({
+          activity: {
+            conversation: { id: "a:1conversation-teams-made" },
+            serviceUrl: serviceUrl,
+          },
+          sendActivity: async (): Promise<unknown> => {
+            return { id: "1:activity-sent" };
+          },
+        } as unknown as TurnContext);
+      },
+    });
+
+    expect(
+      await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
+        projectId: PROJECT_ID,
+        workspaceUserId: ENTRA_OBJECT_ID,
+        messageBlocks: markdownBlocks(),
+      }),
+    ).toEqual({
+      channelId: "a:1conversation-teams-made",
+      messageId: "1:activity-sent",
+      serviceUrl: DEFAULT_SERVICE_URL,
+    });
+  });
+
+  test("Teams naming no conversation or no activity: nowhere to say", async () => {
+    mockProjectAuth();
+    installFakeCreateAdapter();
+
+    expect(
+      await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
+        projectId: PROJECT_ID,
+        workspaceUserId: ENTRA_OBJECT_ID,
+        messageBlocks: markdownBlocks(),
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("MicrosoftTeamsUtil.updateMessage of a personal chat", () => {
+  interface Continued {
+    reference: {
+      conversation: JSONObject;
+      serviceUrl: string;
+    };
+    updates: Array<JSONObject>;
+  }
+
+  function installContinueAdapter(): Continued {
+    const continued: Continued = {
+      reference: { conversation: {}, serviceUrl: "" },
+      updates: [],
+    };
+
+    jest.spyOn(MicrosoftTeamsUtil as any, "getBotAdapter").mockReturnValue({
+      continueConversationAsync: async (
+        _appId: string,
+        reference: { conversation: JSONObject; serviceUrl: string },
+        logic: (context: TurnContext) => Promise<void>,
+      ): Promise<void> => {
+        continued.reference = reference;
+        await logic({
+          updateActivity: async (activity: JSONObject): Promise<void> => {
+            continued.updates.push(activity);
+          },
+        } as unknown as TurnContext);
+      },
+    });
+
+    return continued;
+  }
+
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "debug").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("one the bot opened and never captured is edited at the service it was opened at", async () => {
+    mockProjectAuth();
+    const continued: Continued = installContinueAdapter();
+
+    await MicrosoftTeamsUtil.updateMessage({
+      authToken: "unused",
+      projectId: PROJECT_ID,
+      location: {
+        channelId: "a:1conversation-teams-made",
+        isChat: true,
+        serviceUrl: REGIONAL_SERVICE_URL,
+      },
+      messageId: "1:activity-sent",
+      messageBlocks: markdownBlocks(),
+      text: "This public note was approved",
+    });
+
+    expect(continued.reference.serviceUrl).toBe(REGIONAL_SERVICE_URL);
+    expect(continued.reference.conversation).toMatchObject({
+      id: "a:1conversation-teams-made",
+      isGroup: false,
+      conversationType: "personal",
+      tenantId: TENANT_ID,
+    });
+    expect(continued.updates).toHaveLength(1);
+    expect(continued.updates[0]!["id"]).toBe("1:activity-sent");
+    expect(continued.updates[0]!["summary"]).toBe(
+      "This public note was approved",
+    );
+  });
+
+  test("a captured chat is edited at the service it was captured with, whatever the location says", async () => {
+    mockProjectAuth({
+      availableChats: { [PERSONAL_CHAT_ID]: personalChat() },
+    });
+    const continued: Continued = installContinueAdapter();
+
+    await MicrosoftTeamsUtil.updateMessage({
+      authToken: "unused",
+      projectId: PROJECT_ID,
+      location: {
+        channelId: PERSONAL_CHAT_ID,
+        isChat: true,
+        serviceUrl: DEFAULT_SERVICE_URL,
+      },
+      messageId: "msg-1",
+      messageBlocks: markdownBlocks(),
+    });
+
+    expect(continued.reference.serviceUrl).toBe(REGIONAL_SERVICE_URL);
+    expect(continued.reference.conversation["id"]).toBe(PERSONAL_CHAT_ID);
+  });
+
+  test("a stored service that is not Microsoft's is refused, and nothing is sent to it", async () => {
+    mockProjectAuth();
+    const continued: Continued = installContinueAdapter();
+
+    await expect(
+      MicrosoftTeamsUtil.updateMessage({
+        authToken: "unused",
+        projectId: PROJECT_ID,
+        location: {
+          channelId: "a:1conversation-teams-made",
+          isChat: true,
+          serviceUrl: "https://attacker.example/teams/",
+        },
+        messageId: "1:activity-sent",
+        messageBlocks: markdownBlocks(),
+      }),
+    ).rejects.toThrow(BadDataException);
+
+    expect(continued.updates).toEqual([]);
+  });
+
+  test("a chat neither captured nor named with its service is refused, as before", async () => {
+    mockProjectAuth();
+    const continued: Continued = installContinueAdapter();
+
+    await expect(
+      MicrosoftTeamsUtil.updateMessage({
+        authToken: "unused",
+        projectId: PROJECT_ID,
+        location: { channelId: "a:1unknown", isChat: true },
+        messageId: "1:activity-sent",
+        messageBlocks: markdownBlocks(),
+      }),
+    ).rejects.toThrow("This chat is not connected to OneUptime");
+
+    expect(continued.updates).toEqual([]);
   });
 });

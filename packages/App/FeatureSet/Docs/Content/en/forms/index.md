@@ -97,6 +97,7 @@ On **Share**, copy the link and send it to the people who should use the form. S
 | **Custom Domains** | The form's own domains, such as `report.acme.com`, with their DNS records and certificates. See [Custom domains](/docs/forms/sharing-and-security#custom-domains). |
 | **Submissions** | Every submission made through the form, newest first, with its answers and what it created. |
 | **Duplicate Form** | Under **Advanced**: a copy of the form, named for you, with its questions, templates, On Submit settings, branding, thank-you message and IP allowlist, and a link of its own. The copy starts turned off, and opens on its builder. |
+| **Audit Logs** | Under **Advanced**: every change made to the form, its custom domains and its submissions, who made it and when. |
 | **Delete Form** | Deleting the form, under **Advanced**. Its submissions are deleted with it; the incidents and events it created are not. |
 
 The **Developer** section of the form's menu holds its Terraform, API and AI assistant pages, like every other resource.

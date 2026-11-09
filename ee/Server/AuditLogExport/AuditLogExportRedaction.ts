@@ -20,6 +20,10 @@ import { getColumnAccessControlForAllColumns } from "Common/Types/Database/Acces
  * way out, by its resource type: the model's redacted columns (listed,
  * encrypted and hashed) and the columns nobody may read. A field is still
  * named, so the entry says it changed; only its values become the marker.
+ *
+ * A change's summary lines (schema version 2) pass through as they are:
+ * they name settings and paths - a workflow's steps, the keys of JSON that
+ * changed - never a value, and the recorder writes none for a secret.
  */
 
 type ModelType = { new (): BaseModel };
@@ -112,6 +116,10 @@ export function redactAuditLogExportRecord(
         redacted.newValue = redactAuditLogValue(change.newValue) as
           | string
           | null;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(change, "summary")) {
+        redacted.summary = change.summary ?? null;
       }
 
       return redacted;

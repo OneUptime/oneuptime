@@ -44,8 +44,23 @@ flowchart TB
 | 接入方式 | 你会得到什么 | 方法 |
 | --- | --- | --- |
 | **你的应用** | 实时记录每次 AI 调用：对话、人员、提示词和回答、token、成本和错误 | 来自代码或网关的 OpenTelemetry，分五步完成 |
-| **你的 AI 提供商账户** | 每个 OpenAI、Anthropic、Azure、Bedrock 或 Vertex AI 账户每天的用量和成本 | 只需一个只读凭据，无需代码： [AI 提供商账户](/docs/telemetry/ai-provider-accounts) |
+| **你的 AI 提供商账户** | 每个 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 或 Cursor 账户每天或每小时的用量和成本 | 只需一个只读凭据，无需代码： [AI 提供商账户](/docs/telemetry/ai-provider-accounts) |
 | **公司的 AI 工具** | 员工向 Claude Enterprise 或 Microsoft 365 Copilot 提的问题，按人员划分 | 只需一个只读凭据，无需代码： [公司的 AI 工具](/docs/telemetry/ai-company-tools) |
+
+提供商账户和编程助手带来的是用量和成本，从不带来调用：它们填充的是 **用量** ，而 **对话** 和 **调用** 会一直为空，直到你的应用发送 AI 调用，或连接了公司的 AI 工具。[检查正在到达的内容](#检查正在到达的内容) 会说明哪种方式带来什么。
+
+## 检查正在到达的内容
+
+**连接** 顶部的 **设置检查** 会说明每种方式现在带来了什么， **重新检查** 会重新读取。 **对话** 或 **调用** 列表为空时，也会以同样的发现和下一步的按钮开头。
+
+| 发现的情况 | 该怎么做 |
+| --- | --- |
+| 没有应用发送过 AI 调用 | [发送你的 AI 调用](#发送你的-ai-调用)：已连接的提供商账户按天带来用量和成本，从不带来调用 |
+| 应用调用了 AI 提供商的 API，但没有 GenAI 插桩记录 | 为该应用的语言添加一个：检查发现了该应用发往 `api.openai.com`、`*.openai.azure.com`、`*.services.ai.azure.com` 或其他 AI 提供商 API 的 HTTP 客户端 span |
+| 调用到达了，但没有提示词或回答 | 在 span 上或以日志事件 [记录说了什么](#记录说了什么) |
+| 提示词和回答以日志事件到达 | 无需操作：对话会读取它们，能读取该应用日志的人也能在 **日志** 页面上读到它们 |
+| 调用刚好在时间范围之外 | 列表会提供包含最新一次调用的时间范围 |
+| 提供商账户读不到用量 | 它的那一行会写出最后一次有用量的日期，或首次读取的日期；找不到资源的 Azure 连接需要在资源所在位置拥有 Monitoring Reader |
 
 ## 开始之前
 
@@ -94,6 +109,25 @@ traceloop.initialize({
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
+@tab .NET
+```bash
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
+```
+
+```csharp
+// Before any OpenAI or Azure OpenAI client is created:
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource("OpenAI.*").AddOtlpExporter())
+    .WithMetrics(metrics => metrics.AddMeter("OpenAI.*").AddOtlpExporter());
+```
+@tab Java
+```bash
+curl -L -O https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+java -javaagent:opentelemetry-javaagent.jar -jar my-ai-agent.jar
+```
 @tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
@@ -102,6 +136,8 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
 :::
+
+它们都会以同样的方式追踪对 OpenAI、Azure OpenAI 和 Microsoft Foundry 的调用。在 .NET 和 Java 上，还要设置 OpenTelemetry SDK 标签页中的变量：OpenAI 和 Azure.AI.OpenAI 库在打开开关后会追踪其调用，Java 代理会追踪 OpenAI Java SDK。
 
 自托管 OneUptime？请用 `https://YOUR-ONEUPTIME-HOST/otlp` 代替 `https://oneuptime.com/otlp`。调用一次模型，这次调用就会出现在 **调用** 中。
 
@@ -114,6 +150,8 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
 较新的 OpenTelemetry 插桩接受 `span_only`、`event_only` 或 `span_and_event`，而不是 `true`。即使没有记录内容，对话仍会显示其耗时、成本和问题。提示词可能包含敏感数据： [隐私与脱敏](#隐私与脱敏) 说明了如何在存储前将其屏蔽。
+
+对话读取的是记录在调用的 span 上的内容，以及应用带着调用的跟踪 ID 和 span ID 发送的日志事件。Python 的 OpenTelemetry 插桩用 `span_only` 把它记录在 span 上；JavaScript 和 Java 的插桩，以及设置为 `true` 或 `event_only` 的 Python 插桩，会把它作为日志事件发送，这些事件随应用的日志一起到达 OneUptime。Azure 的 AI Inference SDK 用 `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` 把它记录在 span 上，Microsoft.Extensions.AI 用 `EnableSensitiveData`；.NET 的 OpenAI 库什么也不记录。
 
 ### 把调用归入对话
 
@@ -203,7 +241,7 @@ trace.get_current_span().add_event(
 
 **用量** 标签页显示某个时间范围（除非你另选，否则为最近 7 天）内的调用、token 和成本，以及按五种细分之一列出的前 25 名表格： **员工** 、 **团队** 、 **模型** 、 **提供商** 和 **应用 / 服务** 。没有指明任何人的调用计入 **未归属** ，从不丢弃。
 
-这些是 **你的 AI 调用** 。如果想查看已连接的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 账户的账单金额，请改选 **提供商账户** ：参见 [AI 提供商账户](/docs/telemetry/ai-provider-accounts#查看用量)。两者永远不会相加。
+这些是 **你的 AI 调用** 。如果想查看已连接的 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 和 Cursor 账户的账单金额，请改选 **提供商账户** ：参见 [AI 提供商账户](/docs/telemetry/ai-provider-accounts#查看用量)。两者永远不会相加。
 
 人员和团队来自调用上的身份属性：请参阅 [员工和团队归属](/docs/telemetry/ai-coding-assistants#员工和团队归属)。
 
@@ -225,11 +263,13 @@ flowchart TB
 | 输入和输出 token | 两个总数 | span 的 token 总数都为 0 |
 | 成本（USD） | 成本，Codex 以微美元计的成本会换算为 USD | span 的成本总数为 0 |
 | LLM 调用 | 无：仅限 span | — |
-| **员工** 、 **团队** 、 **模型** 表 | 仅成本；调用和 token 单元格显示 `—` | 该表没有找到 span 行 |
+| **员工** 、 **团队** 、 **模型** 表 | 成本，以及指标计数的 token；调用单元格显示 `—` | 该表没有找到 span 行 |
 | **提供商** 、 **应用 / 服务** 表 | 无：仅限 span | — |
 | 对话 | 无：对话由 span 构建 | — |
 
 取自指标的数字会标注 **来自 GenAI 指标** ，因为它在 **调用** 中没有对应的行。所以，一旦你的 GenAI span 报告了某个数字，只发送指标的工具所占的那部分就不会显示。若要单独查看这类工具的支出，请把它发送到一个没有 GenAI span 到达的专用项目。
+
+token 或成本指标是计数器。delta 计数器的数据点会相加；累积计数器（OpenTelemetry SDK 的默认方式）按时间范围内增长了多少来计数，每个序列单独计算，因此每分钟导出一次的累计值只会计一次。预算也以同样的方式计算 GenAI 指标。
 
 ## 一次调用的成本
 
@@ -276,6 +316,8 @@ span 报告为从提供商的提示缓存读取或写入其中的 token，按提
 
 AI 调用以跟踪 span 的形式存储，因此跟踪的 **清理规则** 和 **丢弃过滤器** 也适用于它们：在存储之前屏蔽某个属性或丢弃某个 span。两者都在 **跟踪 → 设置** 下。员工邮箱列会与其来源属性一起被清理，因此屏蔽邮箱的规则也会覆盖这一列。
 
+以日志事件发送的提示词和回答以日志的形式存储，因此适用于它们的是日志的 **清理规则** 和 **丢弃过滤器**，两者都在 **日志 → 设置** 下：在跟踪中屏蔽邮箱的规则不会屏蔽日志事件中的邮箱。对话只向也能读取该应用日志的人显示它们，这些人也能在 **日志** 页面上找到它们。
+
 读取对话所需的权限与跟踪相同：能读取项目跟踪的人才能读取其对话，其他人都不能。公司 AI 工具的对话是例外：除非其连接另有设置，否则只有项目所有者和管理员可以阅读（ [公司的 AI 工具](/docs/telemetry/ai-company-tools#隐私) ）。
 
 ## OneUptime 读取的属性
@@ -302,6 +344,8 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 
 当 span 带有其中任意一个值，或任何以 `gen_ai.`、`llm.` 或 `traceloop.` 开头的属性时，它就算作一次 AI 调用。没有报告总数时，总 token 为输入加输出。`gen_ai.usage.total_tokens` 和 `gen_ai.usage.cost` 这两个键不属于约定，约定对两者都没有定义；OneUptime 读取它们是因为常见的插桩会发送它们。
 
+提供商会以约定中的名称保存，无论传来的是哪种写法：`az.ai.openai` 和 `azure_openai` 存为 `azure.ai.openai`，`az.ai.inference` 存为 `azure.ai.inference`，`OpenAI` 存为 `openai`。OpenAI SDK 命名为 `openai`、但发往 Azure OpenAI 或 Microsoft Foundry 端点的调用，会根据其 `server.address` 或 OpenLLMetry 的 `gen_ai.openai.api_base` 存为 `azure.ai.openai`。 **调用** 按名称显示提供商，Azure 部署的调用会显示它请求的部署，并在下方显示处理该调用并为其定价的模型。
+
 按照约定的计法，输入 token 也包括缓存 token：如果 span 的缓存计数大于其输入计数，说明输入计数没有包括它们，OneUptime 会把它们加上。Claude Code 的测试版跟踪不发送 `gen_ai.usage.*` 键：在指明模型的 span 上，OneUptime 读取其 `input_tokens`、`output_tokens`、`cache_read_tokens` 和 `cache_creation_tokens`，并把两个缓存计数加到不包括它们的 `input_tokens` 上。
 
 身份键（谁发起了调用，以及其团队）列在 [员工和团队归属](/docs/telemetry/ai-coding-assistants#员工和团队归属) 中。
@@ -312,14 +356,20 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 
 - `gen_ai.client.inference.operation.details` 事件；
 - `gen_ai.input.messages`、`gen_ai.output.messages` 和 `gen_ai.system_instructions` 属性；
-- 旧的按角色划分的事件：`gen_ai.system.message`、`gen_ai.user.message`、`gen_ai.assistant.message`、`gen_ai.tool.message` 和 `gen_ai.choice`；
+- 旧的按角色划分的事件：`gen_ai.system.message`、`gen_ai.user.message`、`gen_ai.assistant.message`、`gen_ai.tool.message` 和 `gen_ai.choice`，当 Azure 的 AI Inference SDK 或 Semantic Kernel 发送它们时，消息位于 `gen_ai.event.content` 中；
 - 带索引的属性：OpenLLMetry 的 `gen_ai.prompt.N.content` 和 `gen_ai.completion.N.content`，OpenInference 的 `llm.input_messages.N.message.content` 和 `llm.output_messages.N.message.content`；
 - `gen_ai.prompt`、`gen_ai.completion`、`ai.prompt.messages`、`ai.response.text`、`input.value` 和 `output.value` 中的消息数组。
 
+当调用的 span 中没有提示词或没有回答时，会从带有该调用的跟踪 ID 和 span ID 的日志记录中读取：同样的事件，通过日志信号发送，名称位于记录的 `event.name` 属性或其事件名称字段中。带有跟踪 ID 但没有 span ID 的记录归入该跟踪唯一的模型调用，或归入发送它时正在进行的调用；如果这不是唯一一次调用，则不予采用。span 记录的内容优先，因此两种方式都记录了的调用，每条消息只显示一次。
+
 ## 故障排除
 
+:::details 已连接提供商账户，但对话和调用为空
+提供商账户按天带来它的用量和成本，从不带来调用或对话：这些来自你的应用。 **连接** 上的 **设置检查** 会说明是否有应用在发送 AI 调用；请按照 [发送你的 AI 调用](#发送你的-ai-调用) 的说明发送。
+:::
+
 :::details 调用已到达，但没有任何对话显示文本
-你的插桩没有记录内容。请按 [记录说了什么](#记录说了什么) 中的说明开启；在那之前的调用仍然没有文本。
+你的插桩没有记录内容，或者它以日志事件发送内容，而应用的日志没有到达 OneUptime。请按 [记录说了什么](#记录说了什么) 中的说明开启，并把日志和跟踪一起发送；在那之前的调用仍然没有文本。
 :::
 
 :::details 一个聊天的每次调用都显示为单独的对话
@@ -327,11 +377,11 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 :::
 
 :::details 调用显示了 token，但成本为 $0
-模型不在内置价目表中，或者 span 没有指明模型。请在 **定价** 标签页上添加该模型的价格；此后到达的调用会被定价。
+模型不在内置价目表中，或者 span 没有指明模型。请在 **定价** 标签页上添加该模型的价格；此后到达的调用会被定价。Azure OpenAI 调用按处理它的模型 `gen_ai.response.model` 定价：如果 span 没有指明模型，请为部署名称定价。
 :::
 
-:::details 用量标签页显示“来自 GenAI 指标”，调用和 token 显示 `—`
-这些数字来自只发送指标、不发送 GenAI span 的工具，例如编程助手。指标携带成本，但没有逐次调用的细节，因此这些单元格保持为空。请参阅 [span 优先，指标补充](#span-优先指标补充)。
+:::details 用量标签页显示“来自 GenAI 指标”，调用显示 `—`
+这些数字来自只发送指标、不发送 GenAI span 的工具，例如编程助手。指标携带成本和 token，但没有逐次调用的细节，因此调用单元格保持为空。请参阅 [span 优先，指标补充](#span-优先指标补充)。
 :::
 
 :::details 预算监视器在两种状态之间来回切换
@@ -341,7 +391,7 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 ## 后续步骤
 
 :::cards
-- [AI 提供商账户](/docs/telemetry/ai-provider-accounts): 无需代码，查看你的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 账户的用量和成本。
+- [AI 提供商账户](/docs/telemetry/ai-provider-accounts): 无需代码，查看你的 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 和 Cursor 账户的用量和成本。
 - [公司的 AI 工具](/docs/telemetry/ai-company-tools): 你的员工向 Claude Enterprise 和 Microsoft 365 Copilot 提了什么问题。
 - [AI 编程助手](/docs/telemetry/ai-coding-assistants): Claude Code、Cursor、Codex、Gemini CLI 和 Copilot 按工程师划分的支出。
 - [AI 网关](/docs/telemetry/ai-gateways): 通过一个 LiteLLM 或 Portkey 网关跟踪每个应用的模型调用。

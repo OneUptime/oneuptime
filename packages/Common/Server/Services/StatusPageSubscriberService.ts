@@ -17,6 +17,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectReferencesService from "./ProjectReferencesService";
+import AuditLogService from "./AuditLogService";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
@@ -2091,8 +2092,12 @@ export class Service extends ProjectReferencesService<Model> {
    *
    * Written as raw SQL because no DatabaseService write both takes that
    * predicate and reports what it matched. That skips the update hooks, so
-   * the "on update" workflow trigger and the realtime event a DatabaseService
-   * update fires are fired here, by hand, with the two columns this wrote.
+   * the "on update" workflow trigger, the realtime event and the audit log
+   * entry a DatabaseService update makes are made here, by hand, with the
+   * two columns this wrote. The entry is the subscriber's own change, as a
+   * change made on the manage page is (updateFromManageSubscriptionPage): no
+   * person of the project made it, so it is a system event, recorded when
+   * the project stores them.
    */
   @CaptureSpan()
   public async unsubscribe(data: {
@@ -2110,7 +2115,7 @@ export class Service extends ProjectReferencesService<Model> {
           WHERE "_id" = $2
             AND "isUnsubscribed" = false
             AND "deletedAt" IS NULL
-      RETURNING "_id", "projectId"`,
+      RETURNING "_id", "projectId", "statusPageId"`,
         [unsubscribedAt, data.subscriberId.toString()],
       ),
     );
@@ -2145,6 +2150,23 @@ export class Service extends ProjectReferencesService<Model> {
         projectId,
         ModelEventType.Update,
       );
+
+      // The row as it was: subscribed, on its status page (its entry's root).
+      const before: Model = new Model(data.subscriberId);
+      before.projectId = projectId;
+      before.isUnsubscribed = false;
+
+      if (row["statusPageId"]) {
+        before.statusPageId = new ObjectID(row["statusPageId"].toString());
+      }
+
+      await AuditLogService.recordUpdate({
+        model: new Model(),
+        before,
+        updatedFields: { isUnsubscribed: true },
+        itemId: data.subscriberId,
+        props: { isRoot: true, tenantId: projectId },
+      });
     }
 
     /*

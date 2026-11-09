@@ -454,8 +454,35 @@ describe("AzureOpenAIConnector", () => {
     expect(api.requests).toHaveLength(0);
   });
 
-  test("the test counts the resources with usage", async () => {
+  test("the test counts the model resources it read", async () => {
     const api: FakeProviderApi = createFakeProviderApi(routes());
+
+    const result: LlmConnectionTestResult =
+      await new AzureOpenAIConnector().testConnection(SETTINGS, {
+        transport: api.transport,
+        now: (): Date => {
+          return new Date("2026-10-19T08:00:00Z");
+        },
+      });
+
+    expect(result.status).toBe("pass");
+    // Foundry and the older Azure OpenAI resource; not the Speech one.
+    expect(result.counts?.resources).toBe(2);
+  });
+
+  /*
+   * #5776: the test counted only the resources that had used tokens, so a
+   * new resource read 0 - which the form then said meant "found nothing to
+   * read". Every resource read counts, used or not.
+   */
+  test("a resource with no usage yet is still a resource read", async () => {
+    const api: FakeProviderApi = createFakeProviderApi(
+      routes({
+        newMetrics: (): ReturnType<FakeRoute["respond"]> => {
+          return json({ value: [metric("InputTokens", [])] });
+        },
+      }),
+    );
 
     const result: LlmConnectionTestResult =
       await new AzureOpenAIConnector().testConnection(SETTINGS, {
@@ -468,6 +495,80 @@ describe("AzureOpenAIConnector", () => {
     expect(result.status).toBe("pass");
     expect(result.counts?.resources).toBe(2);
   });
+
+  test("a read says how many resources it read", async () => {
+    const api: FakeProviderApi = createFakeProviderApi(routes());
+
+    const result: LlmUsageFetchResult =
+      await new AzureOpenAIConnector().fetchUsage(SETTINGS, WINDOW, {
+        transport: api.transport,
+      });
+
+    expect(result.resources).toBe(2);
+    expect(
+      result.warnings.some((warning: string): boolean => {
+        return warning.includes("Monitoring Reader");
+      }),
+    ).toBe(false);
+  });
+
+  /*
+   * Listing a subscription's resources succeeds, with none, when the app
+   * registration has no role where the resources are: that read must not
+   * look like an account nobody used.
+   */
+  test.each([
+    ["no resources at all", []],
+    [
+      "only resources that are not Azure OpenAI or Foundry",
+      [
+        {
+          id: `/subscriptions/${SUBSCRIPTION}/resourceGroups/ai/providers/Microsoft.CognitiveServices/accounts/speech`,
+          name: "speech",
+          kind: "SpeechServices",
+          location: "eastus",
+        },
+      ],
+    ],
+  ])(
+    "a subscription with %s reads 0 resources and says which role finds them",
+    async (_name: string, accounts: Array<JSONObject>) => {
+      const api: FakeProviderApi = createFakeProviderApi(
+        routes({
+          accounts: (): ReturnType<FakeRoute["respond"]> => {
+            return json({ value: accounts });
+          },
+        }),
+      );
+
+      const result: LlmUsageFetchResult =
+        await new AzureOpenAIConnector().fetchUsage(SETTINGS, WINDOW, {
+          transport: api.transport,
+        });
+
+      expect(result.records).toEqual([]);
+      expect(result.resources).toBe(0);
+      expect(result.warnings).toEqual([
+        "No Azure OpenAI or Foundry resource was found in the subscription. Give the app registration the Monitoring Reader role on the subscription, or on the resource groups, that hold them.",
+      ]);
+
+      const test: LlmConnectionTestResult =
+        await new AzureOpenAIConnector().testConnection(SETTINGS, {
+          transport: api.transport,
+          now: (): Date => {
+            return new Date("2026-10-19T08:00:00Z");
+          },
+        });
+
+      /*
+       * A warning with 0 resources, which the form words as "found no
+       * resource" and the role to give (LlmConnectionTestWords), not as an
+       * account with no usage yet.
+       */
+      expect(test.status).toBe("warn");
+      expect(test.counts?.resources).toBe(0);
+    },
+  );
 
   test("a resource id that could leave its path is refused", () => {
     expect(() => {

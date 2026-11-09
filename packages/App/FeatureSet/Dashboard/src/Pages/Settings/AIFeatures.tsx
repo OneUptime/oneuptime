@@ -20,6 +20,13 @@ import {
 import useProjectAiDailyLimits, {
   ProjectAiDailyLimitsSection,
 } from "../../Components/AISettings/useProjectAiDailyLimits";
+import {
+  FIX_APPROVALS_CARD_KEY,
+  FIX_APPROVALS_SWITCH_TEST_ID,
+  FixApprovalsCopy,
+  getFixApprovalsFoldedItem,
+  TWO_APPROVALS_COLUMN,
+} from "../../Components/AISettings/FixApprovalsCopy";
 import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -38,7 +45,7 @@ import { BILLING_ENABLED } from "Common/UI/Config";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * The project's AI switch, Enable AI, on a page every install shows. It used
@@ -71,11 +78,23 @@ import React, { FunctionComponent, ReactElement } from "react";
  * ProjectAiDailyLimits). Folded, it says what applies and what AI used
  * today. The card writes the limit columns alone, and like Enable AI they
  * take Project Owner or Manage Billing, so its Edit is gated on them.
+ *
+ * Beside them under More settings, Fix approvals (#6148's follow-up): one
+ * switch, off by default, that asks two people to approve a fix OneUptime
+ * AI proposes when it holds a riskier change (FixApprovalsCopy). Folded,
+ * the header says "Fix approvals: Two people" while it is on.
  */
 const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const translator: Translator = useTranslator();
   const dailyLimits: ProjectAiDailyLimitsSection = useProjectAiDailyLimits();
+  /*
+   * Whether two people approve a riskier fix, as the switch last said: the
+   * folded header names the card, and says "Two people" while it is on.
+   */
+  const [isTwoApprovalsOn, setIsTwoApprovalsOn] = useState<boolean | null>(
+    null,
+  );
 
   if (!projectId) {
     return <></>;
@@ -193,7 +212,10 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       <AdvancedPageSection
         description={ProjectAiDailyLimitsCopy.sectionDescription}
-        items={dailyLimits.items}
+        items={[
+          ...dailyLimits.items,
+          getFixApprovalsFoldedItem(isTwoApprovalsOn),
+        ]}
         summary={dailyLimits.summary}
         dataTestId={PROJECT_AI_ADVANCED_SECTION_TEST_ID}
       >
@@ -221,6 +243,29 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fields: detailFields,
             modelId: projectId,
           }}
+        />
+
+        {/*
+         * Two people approve a riskier fix: one switch that saves the
+         * moment it is flipped. It takes Project Owner or Project Admin
+         * (the column's update list); anyone else sees it locked, with the
+         * permission it needs.
+         */}
+        <ModelSwitchCard<Project>
+          modelType={Project}
+          modelId={projectId}
+          column={TWO_APPROVALS_COLUMN}
+          cardTitle={FixApprovalsCopy.cardTitle}
+          cardDescription={FixApprovalsCopy.cardDescription}
+          title={FixApprovalsCopy.switchTitle}
+          getDescription={(): string => {
+            return FixApprovalsCopy.switchDescription;
+          }}
+          onChange={(isOn: boolean): void => {
+            setIsTwoApprovalsOn(isOn);
+          }}
+          dataTestId={FIX_APPROVALS_SWITCH_TEST_ID}
+          cardId={FIX_APPROVALS_CARD_KEY}
         />
       </AdvancedPageSection>
     </>

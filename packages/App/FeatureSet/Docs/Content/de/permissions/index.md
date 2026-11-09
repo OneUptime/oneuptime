@@ -340,6 +340,14 @@ Ein solcher Datensatz wird nur mit den Berechtigungen der Teams geändert, denen
 
 Ein Team, dem private Datensätze gehören, das aber keine Berechtigungen hat — eines, das nur Personen gruppiert —, lässt seine Mitglieder sie sehen und keinen davon ändern. Auf der Seite eines privaten Datensatzes ist eine Änderung, die die Teams der Person, denen er gehört, nicht vornehmen dürfen, gesperrt und sagt, warum. Damit die Person sie vornehmen kann, geben Sie einem Team, dem er gehört, die Berechtigung, machen Sie ein Team mit der Berechtigung zum Eigentümer oder machen Sie die Person zum Eigentümer.
 
+### Regeln, die Teams gehören
+
+Eine Bereitschaftsregel für Vorfälle oder Warnungen, eine Bereitschaftsregel für Episoden, eine Eigentümerregel für Vorfälle und eine Benachrichtigungsregel für Slack oder Microsoft Teams können Teams gehören. Eine Regel, die keinem Team gehört, gehört dem Projekt: Alle, deren Berechtigungen das Ändern von Regeln dieser Art erlauben, können sie ändern. Eine Regel, die Teams gehört, wird nur mit den Berechtigungen der Teams, denen sie gehört, sowie von den Eigentümern und Administratoren des Projekts geändert und gelöscht. Alle, die Regeln lesen dürfen, lesen sie weiterhin und sehen, welchen Teams sie gehört.
+
+Wählen Sie die Teams im Formular der Regel in **Zuständige Teams** unter **Weitere Felder** aus. Dafür ist die Teams-Berechtigung der jeweiligen Regelart nötig, etwa `CreateIncidentOnCallRuleOwningTeam`, die Projekteigentümer und -administratoren haben. Teams einer Regel hinzuzufügen oder zu entfernen ändert die Regel; sobald Teams eine Regel gehört, ändern nur diese Teams sowie Projekteigentümer und -administratoren, wem sie gehört. In einer Regelliste ist eine Regel, die nur anderen Teams gehört, für Sie schreibgeschützt: Ihre Aktionen zum Bearbeiten und Löschen sind gesperrt und nennen die Teams, denen sie gehört.
+
+Die Berechtigung eines Teams reicht bis zu den Regeln, die diesem Team gehören. Wer in zwei Teams ist, von denen eines Bereitschaftsregeln bearbeiten und das andere sie nur lesen darf, bearbeitet jede Regel, die keinem Team gehört, sowie die Regeln des ersten Teams und liest die Regeln, die nur dem zweiten Team gehören, nur. Ein API-Schlüssel ändert eine Regel, die Teams gehört, nur mit `ProjectOwner` oder `ProjectAdmin`; ein Workflow-Schritt handelt als Projektadministrator. Über die API und Terraform sind die zuständigen Teams einer Regel eigene Datensätze, etwa `oneuptime_incident_on_call_rule_owning_team`.
+
 ## Rezepte
 
 **Ein Team, das nur zuschaut.** Legen Sie das Team mit **Betrachter** unter **Zugriff** an. Nur für einige Bereiche wählen Sie **Berechtigungen später wählen** und fügen die bereichsbezogenen `*Viewer`-Rollen hinzu, die es sehen soll.

@@ -71,49 +71,39 @@ En ändring av de här inställningarna träder i kraft inom en minut.
 
 Filtrera efter **Resurstyp**, **Resursnamn**, **Åtgärd**, **Användares e-post** eller **Tid**. En ändring visar bara de fält som ändrades, före och efter, och en sparning som inte ändrar något lägger inte till någon post.
 
+En resurs utan eget namn får namn efter det som namnger den i OneUptime: ett undantag efter sin typ och början av sitt meddelande, med id:n, adresser och allt som liknar en hemlighet maskerat, en körning av en runbook efter sin runbook, telefonnumret till en policy för inkommande samtal efter numret, och en mall eller en domän efter sitt eget namn.
+
 Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har också en egen sida **Granskningsloggar** i ett hopfällt avsnitt av sin sidomeny, som **Avancerad**. Den visar bara den resursens poster, tillsammans med posterna för det som hör till den: ett SLO:s sida visar också dess regler och ägare.
 
 ## Vad som registreras
 
-| Resurs | **Resurstyp** i loggen |
+Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: övervakare, incidenter, larm, statussidor, arbetsflöden och deras steg, köer, instrumentpaneler, jourpolicyer, team och vilka som är med i dem, API-nycklar och varje inställning. **Resurstyp** säger vad en post gäller, till exempel `Monitor`, `Workflow` eller `Queue`.
+
+| Registreras inte | Varför |
 | --- | --- |
-| Monitorer | `Monitor` |
-| Incidenter | `Incident` |
-| Larm | `Alert` |
-| Statussidor | `Status Page` |
-| Schemalagda underhållshändelser | `Scheduled Maintenance Event` |
-| Jourpolicyer | `On-Call Policy` |
-| SLO:er | `Service Level Objective` |
-| Ett SLO:s regler och ägare | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Team | `Team` |
-| Anpassade roller, och de team och API-nycklar som får en | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Etiketter | `Label` |
-| Incidentstatusar och allvarlighetsgrader | `Incident State`, `Incident Severity` |
-| Larmstatusar och allvarlighetsgrader | `Alert State`, `Alert Severity` |
-| Monitorstatusar | `Monitor Status` |
-| Statusar för schemalagt underhåll | `Scheduled Maintenance State` |
-| Incidentroller | `Incident Role` |
-| Efteranalysstatusar | `Postmortem Status` |
-| API-nycklar | `API Key` |
-| MCP-klienter som personer ansluter | `MCP Client Authorization` |
-| Inventarieobjekt | `Inventory Item` |
-| Insamlarkonfigurationer | `Collector Config` |
-| vCenter-servrar | `vCenter` |
-| OpenStack-moln och kontrollerna som körs mot dem | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Paketinspelningar och nedladdningarna av dem | `Packet Capture` |
-| Säkerhetsärenden och deras prioriteter och statusar, playbooks och deras körningar, skyddade entiteter, entitetskritikalitet samt en entitets risk när någon återställer den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Regelundantag | `Rule Exception` |
-| Bevakningslistor | `Watchlist` |
-| Bevakningslistvärden | `Watchlist Value` |
-| Hunts | `Hunt` |
-| Uppgifter och bevis i säkerhetsärenden | `Security Case Task`, `Security Case Evidence` |
-| Datalager och deras fynd, samt Datasäkerhets problem, inställningar, kontrollinställningar, anpassade datatyper och hemvistregler | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Inställningar för Dataobserverbarhet | `Data Observability Setting` |
-| Exporter av granskningsloggen | `Audit Log Export` |
+| Loggar över meddelanden | Var och en är redan registreringen av ett e-postmeddelande, sms, samtal, en pushavisering eller ett chattmeddelande som OneUptime har skickat eller tagit emot. |
+| Registreringar av körningar | Var och en är redan registreringen av en körning av ett arbetsflöde, en joureskalering, en skanning, en import eller en AI-körning. |
+| Det som agenter och telemetri rapporterar | Upptäckta resurser, mätvärden och användning ändras med varje rapport, inte för att någon har ändrat dem. |
+| Aktivitetsflöden | Ett flöde visar ändringar som granskningsloggen redan registrerar. |
+| OneUptimes arbetstillstånd | Sessioner, köade jobb och annat tillstånd som OneUptime håller medan det arbetar. |
+| En persons egen aviseringskonfiguration | Varje persons adresser, nummer och personliga jourregler tillhör bara dem. |
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.
 
-Andra data finns inte i granskningsloggen, som vem som är med i ett team, eller en behörighet som har lagts till ett team för sig. Fält som ingen får läsa utelämnas från alla poster, och nycklar, tokens och lösenord registreras som `[REDACTED]`: posten visar att de har ändrats, aldrig deras värde.
+Fält som bara OneUptime skriver, till exempel när en värd senast sågs, utelämnas från alla poster, och det gör även fält som ingen får läsa. När OneUptime skriver ett av dem för att någon bad om det, till exempel när ett undantag slås ihop med ett annat eller en webhook-URL återställs, registrerar posten det som den personens ändring. Nycklar, tokens och lösenord registreras som `[REDACTED]`: posten visar att de har ändrats, aldrig deras värde. Ett arbetsflödes steg registreras som det som ändrades, med namnen på ett stegs inställningar men aldrig det som skrevs i dem, och att flytta ett steg på arbetsytan registreras inte.
+
+Det OneUptime gör för att någon bad om det registreras också som deras ändring, oavsett om projektet lagrar systemhändelser eller inte:
+
+- Att starta, godkänna, slutföra, hoppa över och avbryta en körning av en runbook. Dess steg registreras som det som gjordes med vart och ett, till exempel `Approved "Restart the API" (step 3)`, aldrig med det ett steg skrev ut.
+- Det en regel ändrar när någon kör den: de etiketter och ägare som den lägger till, de poster som en sekretessregel gör privata, de enheter som en regel för platstilldelning flyttar, de enheter och monitorer som en regel för automatisk import skapar, och det en monitorregel på en statussida eller en SLO ändrar på sidan eller SLO:n.
+- Att köpa, koppla och frisläppa telefonnumret till en policy för inkommande samtal.
+- Att lösa ett datalarm som någon markerar som väntat eller som inget problem.
+- Att återställa länken till ett kalenderflöde.
+- De team som någon går med i när de loggar in med SSO.
+
+Det en regel gör av sig själv är OneUptimes egen ändring och registreras när **Lagra systemhändelser** är på: etiketter och ägare som en regel lägger till när en post skapas, och en post som den då gör privat; de enheter och monitorer som en regel för automatisk import skapar från nya skanningsresultat; och det en monitorregel på en statussida eller en SLO ändrar när en regel, en monitor eller en etikett sparas.
+
+Att återställa AI-agenten för en värd, ett kluster eller ett molnkonto registreras på resursens egen sida **Granskningsloggar**, som ändringen av `aiAgentResetAt` gjord av den som återställde den: vem, och när. Detsamma gäller att skapa en nyckel för ett molnkontos AI-agent: nycklarna visas som ändrade, aldrig med en nyckel eller en hash. Det en agent rapporterar när den ansluter och hör av sig lämnas utanför, som tidigare.
 
 ## Hur länge poster behålls
 

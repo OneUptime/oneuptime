@@ -29,9 +29,10 @@ import { formatUserFlowCount, formatUserFlowDuration } from "./UserFlowFormat";
  * a page already seen and a page with a problem are marked where they
  * happened, and a session with footage links to it.
  *
- * Rows are drawn a page at a time: a person is usually a handful of sessions,
- * but a shared browser or a kiosk can be thousands, and the map and the tables
- * sit under this list.
+ * The page puts the list under the map, which it reads with, and above the
+ * tables (UserFlowPageSections.ts). Rows are drawn a page at a time: a person
+ * is usually a handful of sessions, but a shared browser or a kiosk can be
+ * thousands, and the tables sit under this list.
  */
 
 export const USER_FLOW_JOURNEYS_PAGE_SIZE: number = 10;

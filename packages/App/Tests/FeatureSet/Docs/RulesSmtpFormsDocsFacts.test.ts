@@ -1240,7 +1240,7 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
 describe("Forms Overview, against the form's menus and routes", () => {
   const page: string = english(FORMS);
 
-  it("lists a form's pages in the order its menu shows them, Duplicate and Delete under Advanced", () => {
+  it("lists a form's pages in the order its menu shows them, Duplicate, Audit Logs and Delete under Advanced", () => {
     const sections: Array<MenuSection> = jsxMenuSections(
       readSource("formViewSideMenu"),
     );
@@ -1251,8 +1251,13 @@ describe("Forms Overview, against the form's menus and routes", () => {
       ...form.items,
       ...advanced.items,
     ]);
-    expect(advanced.items).toEqual(["Duplicate Form", "Delete Form"]);
+    expect(advanced.items).toEqual([
+      "Duplicate Form",
+      "Audit Logs",
+      "Delete Form",
+    ]);
     expect(page).toContain("| **Duplicate Form** | Under **Advanced**:");
+    expect(page).toContain("| **Audit Logs** | Under **Advanced**:");
     expect(page).toContain(
       "| **Delete Form** | Deleting the form, under **Advanced**.",
     );

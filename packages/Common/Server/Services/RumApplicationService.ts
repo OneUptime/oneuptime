@@ -22,6 +22,12 @@ import DiscoveredResourceCreate, {
 } from "../Utils/Telemetry/DiscoveredResourceCreate";
 import RumApplicationLabelRuleEngineService from "./RumApplicationLabelRuleEngineService";
 import RumApplicationOwnerRuleEngineService from "./RumApplicationOwnerRuleEngineService";
+import { RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES } from "../../Types/Rum/RumApplicationStatus";
+import {
+  RUM_TELEMETRY_SIGNAL_COLUMNS,
+  RumTelemetrySignal,
+  RumTelemetrySignalColumn,
+} from "../../Types/Rum/RumTelemetrySignal";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "rum-application-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -403,6 +409,41 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * A batch of traces, logs or metrics arrived from this application: its
+   * <signal>LastReceivedAt column says so (RumTelemetrySignal, issue #5770).
+   *
+   * The OpenTelemetry ingest path calls this behind its per-signal
+   * maintenance fence (OtelIngestBaseService), so it runs at most once per
+   * signal per application per fence window however many batches arrive -
+   * no throttle of its own here. Hook-free and without an updatedAt
+   * refresh for the reason the replay markers above are: a passive
+   * timestamp must not churn configEpoch, which every live recorder
+   * watches. It throws on failure, so the caller can release its fence and
+   * let the next batch try again.
+   */
+  @CaptureSpan()
+  public async markTelemetrySignalReceived(data: {
+    rumApplicationId: ObjectID;
+    signal: RumTelemetrySignal;
+  }): Promise<void> {
+    const column: RumTelemetrySignalColumn | undefined =
+      RUM_TELEMETRY_SIGNAL_COLUMNS[data.signal];
+
+    if (!column) {
+      return;
+    }
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: data.rumApplicationId,
+      data: {
+        [column]: OneUptimeDate.getCurrentDate(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      skipUpdateDateColumn: true,
+    });
+  }
+
   @CaptureSpan()
   public async markSessionReplayBudgetExceeded(
     rumApplicationId: ObjectID,
@@ -536,6 +577,12 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * "disconnected" is the stored value; the Dashboard says "No recent
+   * traffic", in grey (RumApplicationStatus, issue #6191). A RUM
+   * application's data comes from the people using the app, so fifteen
+   * minutes with nothing is usually nobody using it, not a broken link.
+   */
   @CaptureSpan()
   public async markDisconnectedApplications(): Promise<void> {
     /*
@@ -544,7 +591,8 @@ export class Service extends ProjectReferencesService<Model> {
      * OtelIngestBaseService) — lastSeenAt is legitimately up to
      * ~5 minutes stale during continuous telemetry, so a threshold
      * equal to the fence TTL flaps healthy resources. 15 minutes
-     * gives 3x headroom.
+     * gives 3x headroom. The status's words say the same number, so
+     * both read it from RumApplicationStatus.
      */
     /*
      * Measured in time OneUptime was receiving: a stretch when OneUptime
@@ -553,7 +601,7 @@ export class Service extends ProjectReferencesService<Model> {
      * stretch this is exactly 15 minutes ago.
      */
     const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
-      silenceInMinutes: 15,
+      silenceInMinutes: RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES,
     });
 
     const connectedApps: Array<Model> = await this.findBy({

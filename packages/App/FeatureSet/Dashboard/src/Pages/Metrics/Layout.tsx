@@ -8,6 +8,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import { TelemetryIngestionBudgetExplorerBanner } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 
 // Which of Metrics' tabs a page is under (its AI pages: the AI tab).
 export const getActiveMetricsTab: (path: string) => MetricsTabKey = (
@@ -39,6 +41,8 @@ const MetricsLayout: FunctionComponent<
       breadcrumbLinks={getMetricsBreadcrumbs(path)}
       headerRight={<MetricsNavTabs active={getActiveMetricsTab(path)} />}
     >
+      {/* Only while today's Metrics budget is past its warning or used up. */}
+      <TelemetryIngestionBudgetExplorerBanner signal={ProductType.Metrics} />
       <Outlet />
     </Page>
   );

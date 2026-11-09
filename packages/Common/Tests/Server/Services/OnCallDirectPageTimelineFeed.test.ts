@@ -194,6 +194,8 @@ describe("a direct page's timeline line in the record's feed", () => {
     expect(select["onCallDutyPolicyExecutionLog"]).toEqual({
       triggeredByWorkflowName: true,
       triggeredByUserId: true,
+      // An observer's answer reads as having seen it (OnCallObserverPage).
+      isObserverPage: true,
     });
   });
 

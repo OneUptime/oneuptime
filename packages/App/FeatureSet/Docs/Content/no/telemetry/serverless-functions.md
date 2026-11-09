@@ -189,6 +189,8 @@ Så snart funksjonen sender et span, en logg eller en metrikk, vises den under *
 - **Instanser**: en direkteliste over `faas.instance`-verdiene funksjonen rapporterer.
 - Fullstendige sider **Logger**, **Spor** og **Målinger**, avgrenset til denne funksjonen.
 
+En funksjon viser **Mottar data** mens telemetrien dens kommer, og **Ingen nylige anrop** etter 15 minutter uten telemetri, noe som er normalt mellom kjøringene: en funksjon sender bare telemetri mens den kjører. En funksjon som er lagt til via API-et, viser **Venter på data** til den første telemetrien kommer.
+
 ## Merk funksjoner, og tildel eiere
 
 Et ressursattributt som starter med `oneuptime.label.`, blir en prosjektetikett på funksjonen: `oneuptime.label.team=payments` legger til etiketten `team:payments`. Legg til attributtene i `OTEL_RESOURCE_ATTRIBUTES`:
@@ -215,8 +217,8 @@ Kontroller i denne rekkefølgen:
 Funksjonens **Oversikt**, **Logger**, **Spor** og **Målinger** viser telemetri der `faas.name` er nøyaktig lik funksjonens navn, også store og små bokstaver. En funksjon som har fått navn via en FaaS-`cloud.platform` og sitt `service.name`, trenger ikke sitt eget `faas.name`: OneUptime skriver `service.name` inn i telemetrien som `faas.name` når den kommer inn. Telemetri som ble lagret før OneUptime begynte å fylle inn `faas.name`, oppdateres ikke og holdes utenfor sidene: kall funksjonen for å sende ny telemetri. Sjekk også tidsrommet øverst på siden.
 :::
 
-:::details Funksjonen vises som frakoblet
-En funksjon blir frakoblet når OneUptime ikke har mottatt noe fra den på 15 minutter; OneUptime sjekker hvert 5. minutt, og tid da OneUptime selv ikke mottok data, teller ikke. En funksjon som bare kjører nå og da, er frakoblet mellom kjøringene: den blir tilkoblet igjen med neste telemetri.
+:::details Funksjonen viser «Ingen nylige anrop»
+En funksjon viser **Ingen nylige anrop** når OneUptime ikke har mottatt noe fra den på 15 minutter; OneUptime sjekker hvert 5. minutt, og tid da OneUptime selv ikke mottok data, teller ikke. Det er normalt for en funksjon som bare kjører nå og da: med neste telemetri viser den **Mottar data** igjen. Hvis funksjonen blir kalt, gå gjennom sjekkene for en funksjon som ikke vises, ovenfor.
 :::
 
 ## Neste trinn

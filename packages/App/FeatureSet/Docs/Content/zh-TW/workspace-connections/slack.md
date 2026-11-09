@@ -103,6 +103,8 @@ flowchart TB
 
 **專案設定** > **工作區** > **Slack** 列出 OneUptime 看得到的頻道，每個頻道旁邊都有 **傳送測試**。OneUptime 第一次在公開頻道發布時會自行加入。私人頻道只有在 Slack 中邀請 OneUptime 應用程式加入後，才會被列出並可以發布訊息。
 
+通知規則可以屬於團隊。**更多欄位** 下的 **負責團隊** 將規則限定給你選擇的團隊：只有這些團隊的成員與專案管理員可以編輯或刪除它，其他能看到規則的人只能以唯讀方式檢視。請參閱 [屬於團隊的規則](/docs/permissions/index#屬於團隊的規則)。
+
 ## 紀錄頻道中的成員
 
 擁有專屬 Slack 頻道的事件、警示、片段或排定維護事件，在其 OneUptime 頁面上有一張 **Slack 頻道** 卡片。卡片顯示該頻道（一個在 Slack 中開啟它的連結）、它是否為私人頻道，以及頻道中有誰，您排在最前面。無需 Slack 管理員，即可在卡片上：
@@ -156,7 +158,7 @@ flowchart TB
 | 回應 | 儲存為 |
 | --- | --- |
 | 📌 圖釘表情符號，或 Slack 內建的 **Pin to channel** | 僅您的團隊可見的私人備註 |
-| 📢 擴音器或喇叭表情符號 | 顯示在狀態頁面上的公開備註。僅限事件和排定維護活動。在私人事件上為私人備註，確認訊息會說明原因。 |
+| 📢 擴音器或喇叭表情符號 | 顯示在狀態頁面上的公開備註。僅限事件和排定維護活動。在私人事件上為私人備註，確認訊息會說明原因。如果專案的公開備註需要核准，它會在核准後才顯示，確認訊息會說明它在等待誰：請參閱 [公開備註核准](/docs/incidents/notes-owners-and-feed#公開備註核准)。 |
 
 備註會保留訊息在 Slack 中的樣子：格式、連結和程式碼，以名字顯示的被提及的人和頻道，以及指向其檔案和圖片的連結。公開備註會去掉檔案和圖片，因為它們只對您的團隊開放。
 
@@ -229,6 +231,8 @@ OneUptime 只回答傳給它的內容。
 - **顯示位置。** 頻道會以一則持續更新的訊息顯示這次呼叫：呼叫了誰、如何呼叫，每個團隊以其名稱顯示、後面跟著其成員，您的訊息，以及誰已確認。在 OneUptime 無法張貼的地方，例如未邀請它加入的私人頻道，一則只有您看得到的訊息會告訴您呼叫了誰，並附上事件或警示的連結。
 - **誰可以呼叫。** 在事件或警示的專屬頻道中，能執行待命策略（ **專案擁有者**、 **專案管理員**、 **專案成員**、 **待命管理員** 和 **待命成員**，或自訂角色中的 **Execute On-Call Duty Policy** ）並能讀取該事件或警示的人。在其他任何地方，呼叫會建立一則警示，因此還需要建立警示的權限： **專案擁有者**、 **專案管理員** 和 **專案成員**，或同時擁有 **待命成員** 和 **警示成員** 的人（自訂角色中的 **Execute On-Call Duty Policy** 和 **Create Alert** ）。不經待命策略直接呼叫人員、團隊或待命排程，還需要存取專案中所有待命策略的權限。其他任何人都會在執行命令的地方收到告知，並且不會呼叫任何人。在 OneUptime Cloud 上，呼叫需要 Growth 方案：低於此方案時，OneUptime 會說明所需的方案，並且不會呼叫任何人。
 
+若要在別人回應時讓一些人隨時知情，請以觀察者身分呼叫他們。在事件或警示的專屬頻道中，在要呼叫的人後面輸入 `as observers`，例如 `/oneuptime page @oversight as observers Team Y is on it`，或在表單的 **Page them as** 中選擇 **Observers: keep them informed**。他們收到的呼叫會說明他們是觀察者，確認呼叫只表示他們已經看到：事件或警示不會被確認，其他人的呼叫不會停止，顯示這次呼叫的地方也會說明他們是以觀察者身分被呼叫的。關於新情況的呼叫需要有人回應，所以在其他地方，`as observers` 會被拒絕，不會呼叫任何人。
+
 ## 待命使用者群組
 
 讓 Slack 使用者群組（例如 `@payments-oncall`）與一個或多個待命排程中目前正在待命的人保持一致，讓任何人都能 @提及它來聯絡待命人員。OneUptime 會在每次交接和覆寫時變更該群組的成員，並每 15 分鐘檢查一次。
@@ -275,7 +279,7 @@ OneUptime 的 Slack 訊息上的按鈕同樣以您的身分執行：也就是以
 
 - **誰可以使用。** 能在 OneUptime 中做出同樣變更的人。確認、解決事件或變更其狀態需要變更其狀態的權限： **專案擁有者**、 **專案管理員**、 **專案成員**、 **事件管理員** 和 **事件成員**，或自訂角色中的 **Create Incident State Timeline**。警示、片段或排定維護活動需要其自身類型的同等權限（例如 **Create Alert State Timeline** ），備註需要發布該類備註的權限。其他任何人都會收到告知，並且不會有任何變更。
 - **哪些紀錄。** 與在 OneUptime 中一樣，是您可以讀取的紀錄：如果角色僅限於某些標籤，則為帶有這些標籤的事件、警示、片段和活動。任何其他紀錄上的按鈕都會說明原因，並且不會有任何變更：對於您的角色無法觸及的事件，回覆 "your access in this project does not include this incident. Ask a project admin for access to it."；對於您不是負責人的私人事件，回覆 "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."；對於之後已刪除的事件，回覆 "the incident was not found. It may have been deleted." 在 OneUptime Cloud 上，專案方案不包含的變更會被拒絕，並說明所需的方案。
-- **Change State 提供什麼。** 依專案的順序，提供您可以讀取、紀錄接下來可以轉入的狀態：不會提供早於其目前狀態的狀態，片段與事件、警示或排定維護活動一樣，因為狀態變更永遠不會讓紀錄在其清單中回退（請參閱 [順序是真正的限制，而不是顯示偏好](/docs/incidents/states-and-severities#順序是真正的限制而不是顯示偏好) ）。如果您一個都無法讀取，會收到 "No incident states are available to you in this project. Ask a project admin for access to them."；如果紀錄處於它能到達的最後一個狀態，會收到 "There is no later state to move this incident to."。這兩種情況都不會開啟空白表單。
+- **Change State 提供什麼。** 依專案的順序，提供您可以讀取、紀錄接下來可以轉入的狀態：不會提供早於其目前狀態的狀態，片段也與事件、警示或排定維護活動一樣，因為狀態變更永遠不會讓紀錄在其清單中倒退（請參閱 [順序是真正的限制](/docs/incidents/states-and-severities#順序是真正的限制而不是顯示偏好)）。如果您一個都無法讀取，會收到 "No incident states are available to you in this project. Ask a project admin for access to them."；如果紀錄處於它能到達的最後一個狀態，會收到 "There is no later state to move this incident to." 這兩種情況都不會開啟空白表單。
 - **私人事件或片段上的 Add Note。** 私人事件或片段不能新增公開備註，因此它的表單不會詢問備註類型，而是新增一則私人備註。在它設為私人之前開啟的表單也會新增私人備註，並說明這一點。請參閱[私人事件只能新增私人備註](/docs/incidents/notes-owners-and-feed#私人事件只能新增私人備註)。
 - **在哪裡收到回覆。** 在帶有按鈕的訊息下方，以只有您看得到的訊息回覆；只有當 Slack 拒絕時，才會改用私人訊息。按得太晚的按鈕會說明誰先操作了、何時操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **如果您的 Slack 帳戶未連接。** 回覆會請您連接它，並附上一個 **Connect Slack account** 按鈕。該按鈕會開啟您在 OneUptime 中自己的 Slack 設定，並在您視需要登入 OneUptime 後一步連接您的帳戶。隨後 OneUptime 會以您的身分完成您按下的操作，並在同一則訊息下方回覆；對於開啟表單的按鈕或命令，它會請您再按一次或再執行一次。該按鈕只能使用一次，有效 30 分鐘，並且只對按下它的 Slack 帳戶有效：以其他人的身分登入 Slack 時，它不會連接任何帳戶。
@@ -283,6 +287,10 @@ OneUptime 的 Slack 訊息上的按鈕同樣以您的身分執行：也就是以
 ## 核准 OneUptime AI 提出的修正
 
 OneUptime AI 提出待核准的修正時，會將其變更連同三個按鈕發布到事件或警示的頻道中。 **Review and approve** 會開啟修正要執行的全部內容，並附有 **Approve and run**，它會以您的身分準確執行這些內容。 **Dismiss** 會駁回修正， **View in OneUptime** 會開啟事件或警示。與 OneUptime 的 Slack 訊息上的每個按鈕一樣，它們以您的身分執行：核准需要在專案中核准修正的權限，對於叢集或資源的修正，還需要編輯它的權限。在訊息發布後發生了變化的修正會被拒絕，什麼都不會執行。請參閱 [從 Slack 或 Microsoft Teams 核准或駁回修正](/docs/ai/ai-sre#從-slack-或-microsoft-teams-核准或駁回修正)。
+
+## 核准公開備註
+
+當專案的公開備註需要核准，且您在通知設定中為 **公開備註核准** 開啟了 Slack 時，每則等待您所核准步驟的公開備註都會送到您與 OneUptime 的私人訊息中：誰傳送了它、它在等待哪一步、備註內容，以及三個按鈕。 **Approve** 會為該步驟核准它；在最後一步，它會顯示為 **Approve and publish** ，備註會立即發布。 **Reject** 會開啟一個表單，詢問 **Why are you rejecting it?** ：理由為必填，備註的作者會看到它。 **View in OneUptime** 會開啟該備註。這些按鈕以您的身分、依照與 OneUptime 相同的規則運作：您必須列在該步驟中，可以是直接列出或透過團隊，且不能對自己傳送的備註做決定，也不能核准同一則備註的兩個步驟。回覆會以只有您看得到的訊息送出。在別人已做決定之後，或在備註或其步驟變更之後按下按鈕，不會做出任何決定，並會說明發生了什麼事。備註一經決定，每位核准者關於它的訊息（包括您的）都會改為說明發生了什麼事：已就其步驟核准以及它現在在等待誰、已發布、已拒絕、已變更或已重新送出核准、未經核准即已發布，或已刪除。訊息保留 **View in OneUptime** ，而 **Approve** 和 **Reject** 會消失。如果您的 Slack 帳號尚未連結，回覆會請您連結它，連結完成後 OneUptime 會代您核准該備註；若是 **Reject** ，請再按一次。核准步驟在備註等待期間有所變更時，如果備註不再等待你的步驟，或不再詢問你，你關於它的訊息也會隨之改變，而它現在等待的人會收到屬於自己的訊息。請參閱 [公開備註核准](/docs/incidents/notes-owners-and-feed#公開備註核准)。
 
 ## 中斷連接
 

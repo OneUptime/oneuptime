@@ -17,8 +17,10 @@ export interface ComponentProps {
 
 /*
  * One queue's tabs: its Overview (traffic, producers and consumers, broker
- * health), its Traces and Metrics, who owns it, its settings and setup
- * guide, and — last, marked dangerous — Delete.
+ * health), its Topology (where its messages come from and go), its Traces
+ * and Metrics, who owns it, its settings and setup guide, and under
+ * Advanced who changed it (Audit Logs) and — last, marked dangerous —
+ * Delete.
  */
 const MessageQueueSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -35,6 +37,16 @@ const MessageQueueSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Info}
+        />
+        <SideMenuItem
+          link={{
+            title: "Topology",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.FlowDiagram}
         />
       </SideMenuSection>
 
@@ -101,6 +113,16 @@ const MessageQueueSideMenu: FunctionComponent<ComponentProps> = (
       })}
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
         <SideMenuItem
           link={{
             title: "Delete Queue",

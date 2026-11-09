@@ -93,6 +93,19 @@ flowchart TB
 
 För att se hur en kontroll bedömdes öppnar du monitorns **Översikt**: kortet **Monitor-sammanfattning** visar vilket kriterium som matchade och vad varje kriterium gjorde, även en incident som hoppades över eftersom en redan var öppen.
 
+## Vad en incident eller ett larm behåller av kontrollen
+
+En incident eller ett larm som en monitor öppnar behåller kontrollen som öppnade den, så att du kan se varför långt efter att monitorns egna loggar är borta. Under rotorsaken nämner **Utvärderingsdetaljer** kriteriet som matchade och, för varje filter som matchade, vad kontrollen hittade. **Visa detaljer** lägger till resten av bevisen, filtren som inte matchade och själva kontrollen: förfrågan, när den kördes, från vilken sond och vad som kom tillbaka. Det ett filter hittade kan vara:
+
+- **Fältet.** Var ett filter **Svarstext** matchade i ett JSON-innehåll, till exempel `checks[1].status`, eller headern där ett filter **Response Header Value** matchade.
+- **Värdena.** Vad varje värde som en **JavaScript Expression** läser innehöll när det utvärderades, till exempel `responseBody.status = "down"`.
+- **Ett utdrag.** En kort bit av svaret runt träffen, med träffen markerad: aldrig hela innehållet.
+
+Hemligheter och personuppgifter maskeras innan något sparas: headers som `Authorization`, `Cookie` och `Set-Cookie`, fält vars namn säger `password`, `token`, `key`, `session` eller `email`, och text som ser ut som en bearer-token, en JWT, ett kortnummer eller en e-postadress. Förfrågans URL är den som monitorn konfigurerades med, så `{{monitorSecrets.NAME}}` förblir ett namn, och ett hemligt frågevärde maskeras. Monitorns **Övervakningsloggar**, och varje värde som en rotorsak citerar, maskeras på samma sätt. En incident eller ett larm som öppnades för hand, eller innan utvärderingsdetaljer sparades, har inga.
+
+> [!TIP]
+> När svaren från en webbplats- eller API-monitor är känsliga i sig själva stänger du av **Behåll svarsinnehåll** på kortet **Svarsinnehåll** på dess sida **Avancerad → Inställningar**. Dess övervakningsloggar, incidenter och larm behåller då vilka filter som matchade, statuskoden och svarstiden, och ingen del av svaret. En monitor för inkommande förfrågningar har samma reglage för förfrågningarna den tar emot: **Behåll förfrågans innehåll**, på kortet **Förfrågans innehåll**. Reglaget gäller de kontroller som körs, och de incidenter och larm som öppnas, efter att du ändrar det.
+
 ## Ändra en monitors kriterier
 
 :::steps
@@ -135,7 +148,7 @@ Listan är en ordning. Där monitorer visas tillsammans vinner den status som st
 
 | Var | Vad statusen avgör |
 | --- | --- |
-| Listan **Monitorer** | Varje monitors aktuella status. **Ej operativ** listar monitorerna med vilken status som helst utom den fungerande, med en röd siffra bredvid. |
+| Listan **Monitorer** | Varje monitors aktuella status. **Ej operativ** listar monitorerna med vilken status som helst utom den fungerande, med en röd siffra bredvid. Monitorer med avstängd övervakning är utelämnade: ingenting kontrollerar dem, och **Inaktiverad** listar dem. |
 | Statussidor | Färgen på varje rad och dess tillgänglighet: bara statusarna i sidans **Räknas som driftstopp** räknas mot den. En ny statussida börjar med alla statusar utom den fungerande. Se [Välj vad sidan visar](/docs/status-pages/index#välja-vad-som-visas-på-sidan). |
 | Monitorgrupper | Gruppens status: den värsta bland dess monitorer. Se [Monitorgrupper](/docs/monitor/monitor-groups). |
 | SLO:er | Det driftstopp ett SLO räknar, utifrån dess egen lista över statusar. Se [Vilka statusar som räknas som driftstopp](/docs/slo/introduction#vilka-statusar-som-räknas-som-driftstopp). |

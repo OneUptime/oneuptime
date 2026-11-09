@@ -16,6 +16,8 @@ import ProbeService from "Common/Server/Services/ProbeService";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
+import ObjectID from "Common/Types/ObjectID";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LatencyMatrix from "Common/Types/Monitor/LatencyMatrix";
 import LatencyMatrixUtil, {
   LatencyMatrixMonitorInput,
@@ -67,9 +69,9 @@ export default class NetworkLatencyMatrixAPI {
                 projectId: props.tenantId,
               },
               select: {
+                _id: true,
                 monitorId: true,
                 probeId: true,
-                lastMonitoringLog: true,
                 monitor: {
                   _id: true,
                   name: true,
@@ -79,6 +81,51 @@ export default class NetworkLatencyMatrixAPI {
               skip: 0,
               props: props,
             });
+
+          /*
+           * The latency, state and time of each pair's last check, read for
+           * the pairs the request may read. Read as OneUptime reads it:
+           * only those three numbers leave this endpoint, so the check need
+           * not be redacted for a reader first (MonitorProbeService).
+           */
+          const lastMonitoringLogById: Map<string, JSONObject | undefined> =
+            new Map();
+
+          const monitorProbeIds: Array<ObjectID> = monitorProbes
+            .map((monitorProbe: MonitorProbe): ObjectID | null => {
+              return monitorProbe.id || null;
+            })
+            .filter((id: ObjectID | null): id is ObjectID => {
+              return id !== null;
+            });
+
+          if (monitorProbeIds.length > 0) {
+            const lastChecks: Array<MonitorProbe> =
+              await MonitorProbeService.findBy({
+                query: {
+                  _id: QueryHelper.any(monitorProbeIds),
+                  projectId: props.tenantId,
+                },
+                select: {
+                  _id: true,
+                  lastMonitoringLog: true,
+                },
+                limit: monitorProbeIds.length,
+                skip: 0,
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            for (const lastCheck of lastChecks) {
+              if (lastCheck.id) {
+                lastMonitoringLogById.set(
+                  lastCheck.id.toString(),
+                  lastCheck.lastMonitoringLog as JSONObject | undefined,
+                );
+              }
+            }
+          }
 
           // Distinct monitors, preserving name, ordered by first appearance.
           const monitorMap: Map<string, LatencyMatrixMonitorInput> = new Map();
@@ -106,9 +153,9 @@ export default class NetworkLatencyMatrixAPI {
             results.push({
               monitorId: monitorId,
               probeId: probeId,
-              lastMonitoringLog: monitorProbe.lastMonitoringLog as
-                | JSONObject
-                | undefined,
+              lastMonitoringLog: monitorProbe.id
+                ? lastMonitoringLogById.get(monitorProbe.id.toString())
+                : undefined,
             });
           }
 

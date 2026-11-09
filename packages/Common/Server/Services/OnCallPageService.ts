@@ -1,4 +1,9 @@
 import Alert from "../../Models/DatabaseModels/Alert";
+import OnCallPageAs from "../../Types/OnCallDutyPolicy/OnCallPageAs";
+import {
+  ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE,
+  isPageAsObservers,
+} from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -155,6 +160,14 @@ export interface OnCallPageRequest {
   targets: OnCallPageTargets;
   about: OnCallPageAbout;
   /*
+   * What the people paged are asked to do (OnCallPageAs): respond, as every
+   * page always has, or only be kept informed - paged as observers
+   * (OnCallObserverPage), whose answer acknowledges nothing. Observers are
+   * paged about an incident or an alert that is there already: something
+   * new needs somebody to respond to it.
+   */
+  pageAs?: OnCallPageAs | undefined;
+  /*
    * Who asks, as any request of theirs is made: a person's props, an API
    * key's, a workflow step's (WorkflowPrincipal). Root for OneUptime itself.
    */
@@ -220,6 +233,11 @@ export interface OnCallPageResult {
   isAnyonePaged: boolean;
   // The direct page's run, when people, teams or schedules were named.
   directPageExecutionLogId: ObjectID | null;
+  /*
+   * Whether it paged its people as observers (OnCallObserverPage). Left
+   * out, it paged them to respond, as every page did before.
+   */
+  isObserverPage?: boolean | undefined;
   // The whole of it in a few sentences, ready to show or to post.
   summary: string;
 }
@@ -363,6 +381,13 @@ export class Service {
       ? ""
       : toOnCallPersonPageMessage(request.about.message);
 
+    /*
+     * Observers are kept informed about the record (OnCallObserverPage):
+     * every run the page starts pages its people as observers.
+     */
+    const isObserverPage: boolean =
+      !record.isNew && isPageAsObservers(request.pageAs);
+
     if (record.isNew) {
       // Named on the new alert, which starts them as it starts its own.
       for (const policy of targets.policies) {
@@ -380,6 +405,7 @@ export class Service {
             record: record,
             props: props,
             pageMessage: pageMessage,
+            isObserverPage: isObserverPage,
           });
 
           startedPolicies.push({
@@ -424,6 +450,7 @@ export class Service {
             workflowName: props.workflowName,
           },
           ...(pageMessage ? { pageMessage: pageMessage } : {}),
+          ...(isObserverPage ? { isObserverPage: true } : {}),
         });
 
       directPageExecutionLogId = run.executionLogId;
@@ -451,11 +478,13 @@ export class Service {
       notPaged: notPaged,
       isAnyonePaged: isAnyonePaged,
       directPageExecutionLogId: directPageExecutionLogId,
+      isObserverPage: isObserverPage,
       summary: this.getSummary({
         record: record,
         paged: paged,
         startedPolicies: startedPolicies,
         notPaged: notPaged,
+        isObserverPage: isObserverPage,
       }),
     };
   }
@@ -518,6 +547,11 @@ export class Service {
       throw new BadDataException(
         "A page about something new says what it is about in its alert's title. Leave the message out.",
       );
+    }
+
+    // Somebody has to respond to something new (OnCallObserverPage).
+    if (about.newAlert && isPageAsObservers(request.pageAs)) {
+      throw new BadDataException(ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE);
     }
   }
 
@@ -1241,12 +1275,18 @@ export class Service {
     props: DatabaseCommonInteractionProps;
     // What the person who paged wrote, kept on the run. Empty for none.
     pageMessage?: string | undefined;
+    // Pages its people as observers (OnCallObserverPage).
+    isObserverPage?: boolean | undefined;
   }): Promise<void> {
     const executionLog: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();
 
     executionLog.projectId = data.projectId;
     executionLog.onCallDutyPolicyId = data.policy.id;
+
+    if (data.isObserverPage) {
+      executionLog.isObserverPage = true;
+    }
 
     if (data.record.type === OnCallPageRecordType.Incident) {
       executionLog.triggeredByIncidentId = data.record.id;
@@ -1442,8 +1482,11 @@ export class Service {
     paged: Array<OnCallPagedPerson>;
     startedPolicies: Array<OnCallPageStartedPolicy>;
     notPaged: Array<string>;
+    // Paged as observers (OnCallObserverPage): kept informed.
+    isObserverPage?: boolean | undefined;
   }): string {
     const sentences: Array<string> = [];
+    const asObservers: string = data.isObserverPage ? " as observers" : "";
 
     if (data.paged.length > 0) {
       sentences.push(
@@ -1451,7 +1494,7 @@ export class Service {
           data.paged.map((person: OnCallPagedPerson): string => {
             return this.describePagedPerson(person);
           }),
-        )} about ${data.record.label}.`,
+        )}${asObservers} about ${data.record.label}.`,
       );
     }
 
@@ -1463,7 +1506,7 @@ export class Service {
               return policy.name;
             },
           ),
-        )} for ${data.record.label}.`,
+        )}${asObservers} for ${data.record.label}.`,
       );
     }
 

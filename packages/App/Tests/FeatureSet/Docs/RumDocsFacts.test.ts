@@ -131,6 +131,7 @@ const SOURCES: Record<string, string> = {
     "packages/Common/UI/Components/SideMenu/SideMenuSectionState.ts",
   rumApplicationService:
     "packages/Common/Server/Services/RumApplicationService.ts",
+  rumApplicationStatus: "packages/Common/Types/Rum/RumApplicationStatus.ts",
   ingestMiddleware: "packages/Common/Server/Middleware/TelemetryIngest.ts",
   corsOptions: "packages/Common/Server/Utils/CorsOptions.ts",
   startServer: "packages/Common/Server/Utils/StartServer.ts",
@@ -712,22 +713,55 @@ describe("RUM Overview: what you get", () => {
     );
   });
 
-  it("turns Disconnected after 15 minutes of silence, counted only while OneUptime was receiving", () => {
+  /*
+   * Issue #6191: an application nobody uses for a while is idle, not
+   * broken, so the status says No recent traffic - never Disconnected - and
+   * the pages say so in the Dashboard's own words.
+   */
+  it("says Receiving data, then No recent traffic after 15 minutes of silence counted only while OneUptime was receiving, and Waiting for data before the first", () => {
     const service: string = source("rumApplicationService");
+    const status: string = source("rumApplicationStatus");
     const list: string = source("rumApplications");
 
     expect(service).toContain(
-      "await ReceivingCoverage.getSilenceCutoff({\n      silenceInMinutes: 15,\n    });",
+      "await ReceivingCoverage.getSilenceCutoff({\n      silenceInMinutes: RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES,\n    });",
     );
-    expect(list).toContain('text={isConnected ? "Connected" : "Disconnected"}');
+    expect(status).toContain(
+      "export const RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES: number = 15;",
+    );
+    for (const label of [
+      "Receiving data",
+      "No recent traffic",
+      "Waiting for data",
+    ]) {
+      expect(status).toContain(`translationKey("${label}")`);
+    }
+    // The list draws the status's words, never the stored value.
+    expect(list).toContain("describeRumApplicationStatus({");
+    expect(list).toContain("text={status.label}");
+    expect(list).not.toMatch(/text=\{[^}]*"(?:Connected|Disconnected)"/);
     expect(what).toContain(
-      "An application shows **Connected** while telemetry arrives and **Disconnected** after 15 minutes without any.",
+      "An application shows **Receiving data** while telemetry arrives and **No recent traffic** after 15 minutes without any, which is normal while nobody uses the app. One added by hand shows **Waiting for data** until its first data arrives.",
     );
 
     for (const page of [MOBILE_SETUP]) {
       expect(englishPage(page)).toContain(
-        "**Disconnected** after 15 minutes without telemetry",
+        "The status turns to **No recent traffic** after 15 minutes without telemetry",
       );
+    }
+  });
+
+  it("no RUM page calls an application Connected or Disconnected", () => {
+    const connectionWord: RegExp = /\bdisconnected\b|\*\*Connected\*\*/i;
+
+    for (const page of [RUM_INDEX, BROWSER_SETUP, MOBILE_SETUP, WEB_VITALS]) {
+      expect({
+        page,
+        says: connectionWord.test(englishPage(page)),
+      }).toEqual({
+        page,
+        says: false,
+      });
     }
   });
 });

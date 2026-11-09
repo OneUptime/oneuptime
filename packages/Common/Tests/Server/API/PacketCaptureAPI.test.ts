@@ -234,11 +234,20 @@ describe("POST /packet-capture/:id/stop", () => {
       expect(next).not.toHaveBeenCalled();
       expect(stop).toHaveBeenCalledTimes(1);
 
-      const call: { packetCaptureId: ObjectID; projectId: ObjectID } = stop.mock
-        .calls[0]![0] as { packetCaptureId: ObjectID; projectId: ObjectID };
+      const call: {
+        packetCaptureId: ObjectID;
+        projectId: ObjectID;
+        props: DatabaseCommonInteractionProps;
+      } = stop.mock.calls[0]![0] as {
+        packetCaptureId: ObjectID;
+        projectId: ObjectID;
+        props: DatabaseCommonInteractionProps;
+      };
 
       expect(call.packetCaptureId.toString()).toBe(CAPTURE_ID.toString());
       expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+      // Who stopped it: the audit log's entry names them (issue #6276).
+      expect(call.props).toBe(props);
       expect(sentBody()).toEqual({ result: "ok" });
     },
   );

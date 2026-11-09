@@ -40,6 +40,11 @@ export interface AuditLogExportDelivery {
 // Where a delivery went, in words a person reads: "s3://bucket/key".
 export interface AuditLogExportDeliveryReceipt {
   location: string;
+  /*
+   * Sent, with nothing to say it arrived: syslog over UDP, where a datagram
+   * lost on the way is lost without a word. A test says to look for it.
+   */
+  isUnconfirmed?: boolean | undefined;
 }
 
 /*

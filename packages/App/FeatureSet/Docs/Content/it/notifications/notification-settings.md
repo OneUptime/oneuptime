@@ -50,7 +50,7 @@ Quando entrate in un progetto, questi eventi partono attivi, via e-mail. Tutto i
 | **Incidenti** | **Incidente creato**, **Stato dell'incidente modificato**, **Promemoria incidente**, **SLA dell'incidente violato**, **Episodio dell'incidente creato**, **Stato dell'episodio dell'incidente modificato**, **Incidente aggiunto all'episodio dell'incidente** | **Nota dell'incidente pubblicata**, **Aggiunto come proprietario dell'incidente**, **Assegnato a un incidente**, **Nota dell'episodio dell'incidente pubblicata**, **Aggiunto come proprietario dell'episodio di incidente** |
 | **Avvisi** | **Avviso creato**, **Stato dell'avviso modificato**, **Promemoria avviso**, **Episodio di avviso creato**, **Stato dell'episodio di avviso modificato**, **Avviso aggiunto all'episodio di avviso** | **Nota dell'avviso pubblicata**, **Aggiunto come proprietario dell'avviso**, **Nota dell'episodio di avviso pubblicata**, **Aggiunto come proprietario dell'episodio di avviso** |
 | **Monitoraggio** | **Stato della sonda modificato per il tuo monitor**, **Il monitor non ha sonde attive**, **Stato dell'SLO modificato**, **Aggiunto come proprietario dell'SLO**, **Eccezione assegnata a me**, **Stato della sonda modificato**, **Aggiunto come proprietario della sonda** | **Monitor creato**, **Stato del monitor modificato**, **Aggiunto come proprietario del monitor**, **Stato dell'agente IA modificato**, **Aggiunto come proprietario dell'agente IA** |
-| **Pagine di stato** | Nessuno | **Pagina di stato creata**, **Annuncio della pagina di stato pubblicato**, **Aggiunto come proprietario della pagina di stato** |
+| **Pagine di stato** | **La mia nota pubblica approvata o rifiutata**, e anche via push: **Nota pubblica in attesa della mia approvazione** | **Pagina di stato creata**, **Annuncio della pagina di stato pubblicato**, **Aggiunto come proprietario della pagina di stato** |
 | **Manutenzione programmata** | **Promemoria manutenzione** | **Evento di manutenzione creato**, **Stato della manutenzione modificato**, **Nota di manutenzione pubblicata**, **Aggiunto come proprietario della manutenzione** |
 | **Reperibilità** | **Inizi la reperibilità**, **Sei il prossimo in reperibilità**, **Termini la reperibilità**, **Aggiunto al criterio di reperibilità**, **Rimosso dal criterio di reperibilità**, **Chiamata persa**, e anche via push: **Prima dell'inizio del mio turno di reperibilità**, **Il mio prossimo turno di reperibilità viene riassegnato** | Nessuno |
 | **Sicurezza** | Anche via push: **Nuovo caso di sicurezza** (casi con priorità Alta e Critica), **Caso di sicurezza assegnato a me**, **Passaggio di playbook in attesa della mia approvazione**, **Obiettivo di risposta di un caso di sicurezza**, **Attività di un caso di sicurezza assegnata a me**, **Una caccia ha trovato eventi di sicurezza** | Nessuno |
@@ -76,6 +76,15 @@ La scheda **Sicurezza** riguarda i casi di sicurezza che potete vedere:
 - **Passaggio di playbook in attesa della mia approvazione** vi chiede di approvare o rifiutare un passo di playbook su un caso in cui potete approvare.
 
 Vedete [Casi di sicurezza](/docs/telemetry/security-cases#notifiche).
+
+## Approvazione delle note pubbliche
+
+Il riquadro **Approvazione delle note pubbliche**, nella scheda **Pagine di stato**, riguarda le note pubbliche che attendono un'approvazione prima di essere pubblicate, in un progetto che la richiede:
+
+- **Nota pubblica in attesa della mia approvazione** vi dice che una nota pubblica, o una sua modifica, attende un passaggio che approvate, per nome o tramite un team. Non vi viene chiesto di una nota che avete inviato, né di un passaggio successivo a uno che avete approvato. Per ogni passaggio vi viene chiesto una volta: quando la nota lo raggiunge, o quando diventate uno dei suoi approvatori mentre la nota attende, perché i passaggi di approvazione sono cambiati o siete entrati in un team che un passaggio nomina. È attiva all'inizio via email e via push, e **Email Rollup** non la trattiene mai: i clienti per cui la nota è scritta la stanno aspettando.
+- **La mia nota pubblica approvata o rifiutata** vi dice che una nota che avete inviato per l'approvazione è stata approvata e pubblicata, oppure rifiutata, con il motivo. È attiva all'inizio via email.
+
+Vedete [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche).
 
 ## Meno e-mail
 

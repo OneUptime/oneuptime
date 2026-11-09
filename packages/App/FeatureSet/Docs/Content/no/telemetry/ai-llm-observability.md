@@ -44,8 +44,23 @@ Alle tre ligger under **Produkter → AI / LLM → Koble til**. Bruk én, to ell
 | Vei inn | Hva du får | Hvordan |
 | --- | --- | --- |
 | **Appene dine** | Hvert AI-kall mens det skjer: samtalen, personen, prompten og svaret, tokens, kostnad og feil | OpenTelemetry fra koden din eller en gateway, i fem steg |
-| **Kontoene dine hos AI-leverandører** | Hva hver konto hos OpenAI, Anthropic, Azure, Bedrock eller Vertex AI brukte og kostet, per dag | Påloggingsinformasjon som bare leser, og ingen kode: [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts) |
+| **Kontoene dine hos AI-leverandører** | Hva hver konto hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI eller Cursor brukte og kostet, per dag eller per time | Påloggingsinformasjon som bare leser, og ingen kode: [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts) |
 | **Virksomhetens AI-verktøy** | Hva folkene dine spør Claude Enterprise eller Microsoft 365 Copilot om, per person | Påloggingsinformasjon som bare leser, og ingen kode: [Virksomhetens AI-verktøy](/docs/telemetry/ai-company-tools) |
+
+Leverandørkontoer og kodeassistenter henter forbruk og kostnad, aldri et kall: de fyller **Forbruk**, og **Samtaler** og **Kall** forblir tomme til appene dine sender AI-kallene sine eller et AI-verktøy i virksomheten er koblet til. [Sjekk hva som kommer inn](#sjekk-hva-som-kommer-inn) viser hvilken vei som henter hva.
+
+## Sjekk hva som kommer inn
+
+**Oppsettsjekk** øverst på **Koble til** sier hva hver vei inn henter akkurat nå, og **Sjekk igjen** leser den på nytt. En tom liste under **Samtaler** eller **Kall** starter med det samme funnet og en knapp for neste steg.
+
+| Hva den finner | Hva du gjør |
+| --- | --- |
+| Ingen app har sendt et AI-kall | [Send AI-kallene dine](#send-ai-kallene-dine): tilkoblede leverandørkontoer henter forbruk og kostnad per dag, aldri et kall |
+| En app kaller API-et til en AI-leverandør, og ingen GenAI-instrumentering registrerer det | Legg til en for appens språk: sjekken fant appens HTTP-klientspenn til `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` eller API-et til en annen AI-leverandør |
+| Kall kommer uten prompter eller svar | [Registrer hva som ble sagt](#registrer-hva-som-ble-sagt), på spennene eller som logghendelser |
+| Prompter og svar kommer som logghendelser | Ingenting: samtaler leser dem, og den som kan lese appens logger, kan også lese dem på siden **Logger** |
+| Kallene ligger rett utenfor tidsrommet | Listen tilbyr tidsrommet som inneholder det nyeste |
+| En leverandørkonto leser ingen bruk | Linjen dens nevner den siste dagen med bruk, eller den første leste dagen; en Azure-tilkobling som ikke finner noen ressurs, trenger Monitoring Reader der ressursene ligger |
 
 ## Før du begynner
 
@@ -94,6 +109,25 @@ traceloop.initialize({
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
+@tab .NET
+```bash
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
+```
+
+```csharp
+// Before any OpenAI or Azure OpenAI client is created:
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource("OpenAI.*").AddOtlpExporter())
+    .WithMetrics(metrics => metrics.AddMeter("OpenAI.*").AddOtlpExporter());
+```
+@tab Java
+```bash
+curl -L -O https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+java -javaagent:opentelemetry-javaagent.jar -jar my-ai-agent.jar
+```
 @tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
@@ -102,6 +136,8 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
 :::
+
+Hver av dem sporer kall til OpenAI, Azure OpenAI og Microsoft Foundry på samme måte. På .NET og Java setter du også variablene fra fanen OpenTelemetry SDK: bibliotekene OpenAI og Azure.AI.OpenAI sporer kallene sine når bryteren deres er på, og Java-agenten sporer OpenAI Java SDK.
 
 Drifter du OneUptime selv? Bruk `https://YOUR-ONEUPTIME-HOST/otlp` i stedet for `https://oneuptime.com/otlp`. Kall modellen din én gang, så dukker kallet opp under **Kall**.
 
@@ -114,6 +150,8 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
 Nyere OpenTelemetry-instrumenteringer tar `span_only`, `event_only` eller `span_and_event` i stedet for `true`. Uten registrert innhold viser en samtale fortsatt tidene, kostnaden og problemene sine. Prompter kan inneholde sensitive data: [Personvern og maskering](#personvern-og-maskering) viser hvordan du maskerer dem før de lagres.
+
+Samtaler leser det som er registrert på kallets spenn, og logghendelsene appen sender med kallets trace- og span-id. OpenTelemetry-instrumenteringen for Python registrerer det på spennet med `span_only`; instrumenteringene for JavaScript og Java, og den for Python med `true` eller `event_only`, sender det som logghendelser, som når OneUptime sammen med appens logger. Azures AI Inference SDK registrerer det på spennet med `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI med `EnableSensitiveData`; OpenAI-biblioteket for .NET registrerer ingenting.
 
 ### Samle kall i samtaler
 
@@ -203,7 +241,7 @@ Et ferdig varsel oppretter et varsel som løser seg selv, og viser monitoren som
 
 Fanen **Forbruk** viser kall, tokens og kostnad for et tidsrom (de siste 7 dagene, med mindre du velger et annet) og en tabell over de 25 største i én av fem inndelinger: **Ansatt**, **Team**, **Modell**, **Leverandør** og **Applikasjon / Tjeneste**. Kall som ikke nevner noen, telles under **Ikke tilordnet** og kastes aldri.
 
-Dette er **AI-kallene dine**. Velg **Leverandørkontoer** i stedet for å se hva de tilkoblede kontoene dine hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI ble fakturert: se [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts#se-forbruket). De to legges aldri sammen.
+Dette er **AI-kallene dine**. Velg **Leverandørkontoer** i stedet for å se hva de tilkoblede kontoene dine hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI og Cursor ble fakturert: se [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts#se-forbruket). De to legges aldri sammen.
 
 Personer og team kommer fra identitetsattributter på kallet: se [Tilordning til ansatte og team](/docs/telemetry/ai-coding-assistants#tilordning-til-ansatte-og-team).
 
@@ -225,11 +263,13 @@ flowchart TB
 | Input- og outputtokens | Begge totalene | Spans' tokentotaler er begge 0 |
 | Kostnad (USD) | Kostnaden, med Codex' kostnad i mikro-USD regnet om til USD | Spans' kostnadstotal er 0 |
 | LLM-kall | Ingenting: bare spans | — |
-| Tabellene **Ansatt**, **Team**, **Modell** | Bare kostnad; cellene for kall og tokens viser `—` | Den tabellen fant ingen rader fra spans |
+| Tabellene **Ansatt**, **Team**, **Modell** | Kostnad, og tokens der målingene teller dem; cellen for kall viser `—` | Den tabellen fant ingen rader fra spans |
 | Tabellene **Leverandør**, **Applikasjon / Tjeneste** | Ingenting: bare spans | — |
 | Samtaler | Ingenting: samtaler bygges fra spans | — |
 
 Et tall fra målinger er merket med **fra GenAI-målinger**, fordi det ikke har tilsvarende rader under **Kall**. Så snart GenAI-spansene dine rapporterer et tall, vises altså ikke andelen til et verktøy som bare sender målinger. For å se forbruket til et slikt verktøy for seg sender du det til et eget prosjekt, der det ikke kommer inn GenAI-spans.
+
+En token- eller kostnadsmåling er en teller. Punktene til en deltateller legges sammen; en kumulativ teller, standarden i OpenTelemetry-SDK-ene, teller hvor mye den vokste i tidsrommet, hver serie for seg, så en løpende total som eksporteres hvert minutt, telles én gang. Budsjetter teller GenAI-målinger på samme måte.
 
 ## Hva et kall koster
 
@@ -276,6 +316,8 @@ GenAI-målinger som `gen_ai.client.token.usage` og `gen_ai.client.operation.dura
 
 AI-kall lagres som trace-spans, så traces' **Scrub-regler** og **Drop-filtre** gjelder for dem: masker et attributt, eller dropp et span, før det lagres. Du finner begge under **Spor → Innstillinger**. Den ansattes e-postkolonne maskeres sammen med attributtet den ble lest fra, så en regel som maskerer e-poster, dekker den også.
 
+Prompter og svar sendt som logghendelser lagres som logger, så det er loggenes **Scrub-regler** og **Drop-filtre** som gjelder for dem, under **Logger → Innstillinger**: en regel som maskerer e-poster i traces, maskerer dem ikke i logghendelser. En samtale viser dem bare til den som også kan lese appens logger, og den kan også finne dem på siden **Logger**.
+
 Samtaler leses med samme tillatelse som traces: den som kan lese prosjektets traces, kan lese samtalene, og ingen andre. Samtalene fra et av virksomhetens AI-verktøy er unntaket: bare prosjektets eiere og administratorer kan lese dem, med mindre tilkoblingen sier noe annet ([Virksomhetens AI-verktøy](/docs/telemetry/ai-company-tools#personvern)).
 
 ## Attributter OneUptime leser
@@ -302,6 +344,8 @@ OneUptime leser OpenTelemetrys GenAI-konvensjoner og skrivemåtene OpenLLMetry, 
 
 Et span teller som et AI-kall når det bærer en av disse verdiene, eller et attributt som begynner med `gen_ai.`, `llm.` eller `traceloop.`. Tokens totalt er input pluss output når ingen total rapporteres. Nøklene `gen_ai.usage.total_tokens` og `gen_ai.usage.cost` er ikke en del av konvensjonene, som ikke definerer noen av dem; OneUptime leser dem fordi vanlige instrumenteringer sender dem.
 
+Leverandøren lagres under navnet fra konvensjonene, uansett hvilken stavemåte som kommer: `az.ai.openai` og `azure_openai` som `azure.ai.openai`, `az.ai.inference` som `azure.ai.inference`, `OpenAI` som `openai`. Et kall som et OpenAI-SDK kaller `openai`, men sender til et endepunkt hos Azure OpenAI eller Microsoft Foundry, kjent på sin `server.address` eller OpenLLMetrys `gen_ai.openai.api_base`, lagres som `azure.ai.openai`. **Kall** viser leverandøren ved navn, og et kall til en Azure-deployment viser deploymenten det ba om, med modellen som betjente det og priser det, under.
+
 Inputtokens teller også de bufrede, slik konvensjonene teller dem: når et spans cachetall er større enn inputtallet, har inputtallet utelatt dem, og OneUptime legger dem til. Traces-betaen til Claude Code sender ingen `gen_ai.usage.*`-nøkler: på et span som navngir modellen sin, leser OneUptime `input_tokens`, `output_tokens`, `cache_read_tokens` og `cache_creation_tokens` og legger de to cachetallene til `input_tokens`, som utelater dem.
 
 Identitetsnøklene (hvem som gjorde kallet, og teamet deres) står under [Tilordning til ansatte og team](/docs/telemetry/ai-coding-assistants#tilordning-til-ansatte-og-team).
@@ -312,14 +356,20 @@ Samtalevisningen leser meldingene til et kall fra, i denne rekkefølgen:
 
 - hendelsen `gen_ai.client.inference.operation.details`;
 - attributtene `gen_ai.input.messages`, `gen_ai.output.messages` og `gen_ai.system_instructions`;
-- de eldre hendelsene per rolle: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` og `gen_ai.choice`;
+- de eldre hendelsene per rolle: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` og `gen_ai.choice`, med meldingen i `gen_ai.event.content` når Azures AI Inference SDK eller Semantic Kernel sendte dem;
 - de indekserte attributtene: OpenLLMetrys `gen_ai.prompt.N.content` og `gen_ai.completion.N.content`, OpenInferences `llm.input_messages.N.message.content` og `llm.output_messages.N.message.content`;
 - meldingsmatrisene i `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` og `output.value`.
 
+Når et kalls spenn ikke har noen prompt eller noe svar, leses det fra loggpostene som bærer kallets trace- og span-id: de samme hendelsene, sendt via loggsignalet, navngitt i postens attributt `event.name` eller i feltet for hendelsesnavnet. En post med tracens id, men uten span-id hører til tracens eneste modellkall, eller til kallet den ble sendt under, og utelates når det ikke er ett kall. Det spennet registrerer, vinner, så et kall som er registrert på begge måter, viser hver melding én gang.
+
 ## Feilsøking
 
+:::details Leverandørkontoer er koblet til, men Samtaler og Kall er tomme
+En leverandørkonto henter det den brukte og kostet, per dag, aldri et kall eller en samtale: de kommer fra appene dine. **Oppsettsjekk** på **Koble til** sier om en app sender AI-kall; send dem slik [Send AI-kallene dine](#send-ai-kallene-dine) viser.
+:::
+
 :::details Kall kommer inn, men ingen samtaler viser tekst
-Instrumenteringen din registrerer ikke innhold. Slå det på slik [Registrer hva som ble sagt](#registrer-hva-som-ble-sagt) viser; kall som ble gjort før det, forblir uten tekst.
+Instrumenteringen din registrerer ikke innhold, eller den sender det som logghendelser og appens logger når ikke fram til OneUptime. Slå det på slik [Registrer hva som ble sagt](#registrer-hva-som-ble-sagt) viser, og send loggene sammen med traces; kall som ble gjort før det, forblir uten tekst.
 :::
 
 :::details Hvert kall i en chat vises som en egen samtale
@@ -327,11 +377,11 @@ Kallene bærer ingen samtale-id. Sett `gen_ai.conversation.id` eller `session.id
 :::
 
 :::details Kall viser tokens, men koster $0
-Modellen står ikke i den innebygde prislisten, eller spannet nevner ingen modell. Legg til modellens priser på fanen **Priser**; kall som kommer inn etter det, blir priset.
+Modellen står ikke i den innebygde prislisten, eller spannet nevner ingen modell. Legg til modellens priser på fanen **Priser**; kall som kommer inn etter det, blir priset. Et Azure OpenAI-kall prises etter modellen som betjente det, `gen_ai.response.model`: når spennet nevner ingen, priser du navnet på deploymenten.
 :::
 
-:::details Fanen Forbruk sier fra GenAI-målinger og viser `—` for kall og tokens
-Tallene kommer fra et verktøy som sender målinger og ingen GenAI-spans, som en kodeassistent. En måling bærer kostnad, men ingen detaljer per kall, så de cellene forblir tomme. Se [Spans kommer først, målinger fyller hullene](#spans-kommer-først-målinger-fyller-hullene).
+:::details Fanen Forbruk sier fra GenAI-målinger og viser `—` for kall
+Tallene kommer fra et verktøy som sender målinger og ingen GenAI-spans, som en kodeassistent. En måling bærer kostnad og tokens, men ingen detaljer per kall, så cellene for kall forblir tomme. Se [Spans kommer først, målinger fyller hullene](#spans-kommer-først-målinger-fyller-hullene).
 :::
 
 :::details En budsjettmonitor veksler mellom to tilstander
@@ -341,7 +391,7 @@ Monitorens rullerende vindu er kortere enn 15 minutter, så noen ganger finner d
 ## Neste steg
 
 :::cards
-- [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts): Forbruk og kostnad for kontoene dine hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI, uten kode.
+- [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts): Forbruk og kostnad for kontoene dine hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI og Cursor, uten kode.
 - [Virksomhetens AI-verktøy](/docs/telemetry/ai-company-tools): Hva folkene dine spør Claude Enterprise og Microsoft 365 Copilot om.
 - [AI-kodeassistenter](/docs/telemetry/ai-coding-assistants): Forbruk per utvikler for Claude Code, Cursor, Codex, Gemini CLI og Copilot.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): Trace modellkallene til alle apper fra én LiteLLM- eller Portkey-gateway.

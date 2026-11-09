@@ -1,6 +1,10 @@
 import OneUptimeDate from "Common/Types/Date";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "Common/Types/ObjectID";
+import UserType from "Common/Types/UserType";
+import AuditLogService from "Common/Server/Services/AuditLogService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import OnBehalfOfProps from "Common/Server/Utils/AuditLog/OnBehalfOfProps";
 import PeopleLimitRefusal from "Common/Server/Utils/TeamMember/PeopleLimitRefusal";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
@@ -27,6 +31,14 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
  * on the mobile app's deep link) - the refusal's own words are for whoever
  * invites. An instance-wide provider leaves that project out and signs them
  * in to the rest, so one full project never locks anyone out of the others.
+ *
+ * Each team they join is in the project's audit log, on the team's Audit
+ * Logs, as a Create entry by the person who signed in (issue #6285): the
+ * create skips its hooks, and DatabaseService records no create that does,
+ * so the join records its own entry once it is written. It is theirs - their
+ * sign-in added them - and recorded whether or not the project stores system
+ * events, like an invitation they accept; a team's members, and so what each
+ * may do, are what its Audit Logs promise to show.
  * ---------------------------------------------------------------------------
  */
 
@@ -65,7 +77,7 @@ export default class SsoTeamMembership {
         teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
         teamMember.teamId = team.id!;
 
-        await TeamMemberService.create({
+        const joined: TeamMember = await TeamMemberService.create({
           data: teamMember,
           props: {
             isRoot: true,
@@ -74,6 +86,12 @@ export default class SsoTeamMembership {
         });
 
         teamsJoined++;
+
+        await AuditLogService.recordCreate({
+          model: new TeamMember(),
+          createdItem: joined,
+          props: SsoTeamMembership.getJoinProps(data.userId),
+        });
       }
     } catch (error) {
       /*
@@ -89,5 +107,10 @@ export default class SsoTeamMembership {
     }
 
     return SsoTeamMembershipOutcome.Added;
+  }
+
+  // Whose a join is in the audit log: the person who signed in.
+  public static getJoinProps(userId: ObjectID): DatabaseCommonInteractionProps {
+    return OnBehalfOfProps.get({ userId, userType: UserType.User });
   }
 }

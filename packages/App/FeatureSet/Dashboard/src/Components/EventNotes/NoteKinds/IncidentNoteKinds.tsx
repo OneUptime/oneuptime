@@ -143,6 +143,9 @@ export function getIncidentPublicNoteKind(data: {
     // A private incident's page points here only for a reader who may write one.
     siblingModelType: IncidentInternalNote,
     isPrivateEvent: data.isPrivate === true,
+    approval: {
+      apiPath: "/incident-public-note",
+    },
   };
 }
 

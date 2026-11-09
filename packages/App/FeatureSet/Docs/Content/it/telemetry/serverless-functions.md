@@ -189,6 +189,8 @@ Appena la funzione invia uno span, un log o una metrica, compare in **Funzioni s
 - **Istanze**: un elenco in tempo reale dei valori di `faas.instance` che la funzione riporta.
 - Pagine **Registri**, **Tracce** e **Metriche** complete, limitate a questa funzione.
 
+Una funzione mostra **Riceve dati** finché arriva la sua telemetria, e **Nessuna invocazione recente** dopo 15 minuti senza telemetria, il che è normale tra un'esecuzione e l'altra: una funzione invia telemetria solo mentre è in esecuzione. Una funzione aggiunta tramite l'API mostra **In attesa di dati** finché non arriva la sua prima telemetria.
+
 ## Etichettare le funzioni e assegnare i proprietari
 
 Un attributo di risorsa che inizia con `oneuptime.label.` diventa un'etichetta di progetto sulla funzione: `oneuptime.label.team=payments` aggiunge l'etichetta `team:payments`. Aggiungi gli attributi a `OTEL_RESOURCE_ATTRIBUTES`:
@@ -215,8 +217,8 @@ Controlla, in quest'ordine:
 **Panoramica**, **Registri**, **Tracce** e **Metriche** della funzione mostrano la telemetria il cui `faas.name` è esattamente uguale al nome della funzione, maiuscole comprese. Una funzione identificata da una `cloud.platform` FaaS e dal suo `service.name` non ha bisogno di un proprio `faas.name`: OneUptime scrive il `service.name` sulla telemetria come `faas.name` man mano che arriva. La telemetria memorizzata prima che OneUptime iniziasse a compilare `faas.name` non viene aggiornata e resta fuori dalle pagine: invoca la funzione per inviare nuova telemetria. Controlla anche l'intervallo di tempo in cima alla pagina.
 :::
 
-:::details La funzione risulta disconnessa
-Una funzione risulta disconnessa quando OneUptime non ha ricevuto nulla da essa per 15 minuti; OneUptime controlla ogni 5 minuti, e il tempo in cui era OneUptime stesso a non ricevere dati non conta. Una funzione che viene eseguita solo di tanto in tanto è disconnessa tra un'esecuzione e l'altra: torna connessa con la sua telemetria successiva.
+:::details La funzione mostra "Nessuna invocazione recente"
+Una funzione mostra **Nessuna invocazione recente** quando OneUptime non ha ricevuto nulla da essa per 15 minuti; OneUptime controlla ogni 5 minuti, e il tempo in cui era OneUptime stesso a non ricevere dati non conta. È normale per una funzione che viene eseguita solo di tanto in tanto: con la sua telemetria successiva torna a mostrare **Riceve dati**. Se la funzione viene invocata, segui i controlli per una funzione che non compare, più sopra.
 :::
 
 ## Passaggi successivi

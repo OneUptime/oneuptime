@@ -2,6 +2,7 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import { decodeHtmlEntities } from "Common/Tests/Helpers/HtmlText";
 
 /*
  * Registers the product's real `concat` / `ifCond` helpers as an import
@@ -253,11 +254,12 @@ describe("the acknowledge emails show every row their template asks for", () => 
       );
 
       expect(withRow).toContain("<strong>Filter Conditions Met</strong>");
-      expect(withRow).toContain("Root Cause:");
+      // Labels read as on every other card: no colon (since fu-i18n-larger).
+      expect(withRow).toContain(">Root Cause</p>");
       expect(withoutRow).not.toContain(
         "<strong>Filter Conditions Met</strong>",
       );
-      expect(withoutRow).not.toContain("Root Cause:");
+      expect(withoutRow).not.toContain(">Root Cause</p>");
     });
 
     test(`${template.file} ends its card with the root cause when there is no description`, () => {
@@ -266,10 +268,10 @@ describe("the acknowledge emails show every row their template asks for", () => 
         varsFor(template, { [template.descriptionVar]: "" }),
       );
 
-      expect(html).toContain("Root Cause:");
-      expect(html).not.toContain("Description:");
+      expect(html).toContain(">Root Cause</p>");
+      expect(html).not.toContain(">Description</p>");
       expect(html.indexOf("Filter Conditions Met")).toBeGreaterThan(
-        html.indexOf("Severity:"),
+        html.indexOf(">Severity</p>"),
       );
     });
 
@@ -314,7 +316,8 @@ describe("the acknowledge emails offer escalating the page", () => {
         varsFor(template, { passOnLink: PASS_ON_LINK }),
       );
 
-      expect(html).toContain(
+      // Worded through tHtml (its apostrophe an entity mail clients read back).
+      expect(decodeHtmlEntities(html)).toContain(
         `Can't take it? Escalate it, and you will not be paged again for this ${NOUNS[template.file]}.`,
       );
       // Handlebars writes the link's "=" as &#x3D;, which mail clients read back.
@@ -334,14 +337,15 @@ describe("the acknowledge emails offer escalating the page", () => {
       const html: string = render(template.file, varsFor(template));
 
       expect(html).not.toContain(">Escalate</a>");
-      expect(html).not.toContain("Can't take it?");
+      expect(decodeHtmlEntities(html)).not.toContain("Can't take it?");
     });
 
     test(`${template.file} draws Escalate as the secondary button`, () => {
       const source: string = templateSource(template.file);
 
+      // Worded in the person's language (Notification/Utils/EmailLanguage).
       expect(source).toContain(
-        '{{> ButtonBlock buttonUrl=passOnLink buttonText="Escalate" secondary=true}}',
+        '{{> ButtonBlock buttonUrl=passOnLink buttonText=(t "Escalate") secondary=true}}',
       );
     });
   }

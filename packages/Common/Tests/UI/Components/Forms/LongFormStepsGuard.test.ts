@@ -318,6 +318,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "The edit dialog of a shared calendar link's settings card, one page as the personal link's is: two switches and two day counts that the card lists, plus the minimum gap, which shows only while coverage gaps are switched on. Someone who opens Edit came to change one of them; as three steps (one of them a single switch) they first had to find which.",
   },
+  {
+    file: `${DASHBOARD}/Pages/Global/UserProfile/Index.tsx`,
+    form: "CardModelDetail: User Profile > Basic Info",
+    reason:
+      "The edit dialog of a person's own Basic Info card, one page: the email, the name, the time zone and the language the card lists - four short fields, two of them pickers. Someone who opens Edit User came to change one of them; as steps they would first have to find which, and the time zone and the language, read together on the card, would sit apart.",
+  },
 ];
 
 /*
@@ -384,6 +390,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
     form: "CardModelDetail: SLO Objective",
     reason:
       "Picks the create form's target and at-risk threshold fields by column (pickSloFormFields): two fields.",
+  },
+  {
+    file: `${DASHBOARD}/Pages/Slo/View/ErrorBudgetPolicy.tsx`,
+    form: "ModelTable: SLO > Error Budget Policy",
+    reason:
+      "A tier's own fields - Name, Budget Left Threshold (%), What We Do and the Freeze Deployments switch, with Enabled on the Edit form - then one folded Alerts and incidents card for everything else. The card's fields come from the SLO record output helpers the burn rate rule form uses too (SloRecordOutputForm), which place each field by an argument, so they are not counted here. A tier is written in one sitting, and the card only opens to make the tier page someone: both of its switches start off. App's SloErrorBudgetPolicyTierForm test pins the shape.",
   },
   {
     file: `${DASHBOARD}/Pages/Slo/View/Settings.tsx`,

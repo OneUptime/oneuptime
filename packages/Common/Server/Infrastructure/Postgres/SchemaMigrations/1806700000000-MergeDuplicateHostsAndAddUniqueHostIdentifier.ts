@@ -37,7 +37,13 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *      recommendations, inventory links, exceptions and usage rows - refers
  *      to the kept host instead; where the kept host already has the twin of
  *      a row (the same container, label, owner or incident), the kept one
- *      stays and the twin's own references are handed to it. The kept host
+ *      stays and the twin's own references are handed to it. An exception
+ *      both copies had stays one exception that counts both copies'
+ *      occurrences: the kept one takes in the twin's count, first and last
+ *      seen with their releases and its triage before the twin goes, as an
+ *      exception merged into another is taken in (ExceptionTwinMerge). The
+ *      occurrences the copy recorded keep its id in ClickHouse, which no
+ *      migration rewrites, and age out with the host's retention. The kept host
  *      takes the last-seen time, status and what the agent reports from the
  *      duplicate the agent wrote to last, and a description or retention it
  *      lacks from the others. It stays archived only if every copy was: a

@@ -1,7 +1,14 @@
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import AlertEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertEpisodeOnCallRuleOwningTeam";
+import AlertOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertOnCallRuleOwningTeam";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRuleOwningTeam";
+import IncidentOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOnCallRuleOwningTeam";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import OneUptimeDate from "Common/Types/Date";
 import OnCallRuleWhenToPage from "Common/Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
+import OnCallPageAs from "Common/Types/OnCallDutyPolicy/OnCallPageAs";
+import { isPageAsObservers } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
 import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import WorkingHours, {
   WORKING_HOURS_DAILY_WINDOW_EMPTY_MESSAGE,
@@ -36,6 +43,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
 import WorkingHoursPicker from "../../Components/OnCallRule/WorkingHoursPicker";
+import { getRuleOwningTeamsFormField } from "../../Components/TeamOwnedRule/RuleOwningTeams";
 import WorkingHoursSummary from "../../Components/OnCallRule/WorkingHoursSummary";
 import AiFirstResponderSummary, {
   ComponentProps as AiFirstResponderSummaryProps,
@@ -303,6 +311,55 @@ export const ON_CALL_RULE_POLICIES_DESCRIPTION: string = translationKey(
 export const ON_CALL_RULE_NAME_DESCRIPTION: string = translationKey(
   "Named after the policies it pages until you type a name of your own.",
 );
+
+// ---- What an on-call rule pages as -----------------------------------------
+
+/*
+ * WHAT ARE THE PEOPLE PAGED ASKED TO DO? (OnCallPageAs): respond, as rules
+ * always have, or only be kept informed - paged as observers
+ * (OnCallObserverPage): an oversight team told about every critical
+ * incident another team owns. Most rules page responders, so the question
+ * waits under More fields, and only a rule that pages observers is named on
+ * its folded line.
+ */
+export const PAGE_AS_TITLE: string = translationKey(
+  "Page the people of these policies as",
+);
+
+export const PAGE_AS_TITLES: Record<OnCallPageAs, string> = {
+  [OnCallPageAs.Responders]: translationKey("Responders"),
+  [OnCallPageAs.Observers]: translationKey("Observers"),
+};
+
+export const PAGE_AS_DESCRIPTIONS: Record<OnCallPageAs, string> = {
+  [OnCallPageAs.Responders]: translationKey(
+    "They take it on. Acknowledging the page acknowledges it and stops every other page about it.",
+  ),
+  [OnCallPageAs.Observers]: translationKey(
+    "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.",
+  ),
+};
+
+// "Page as: Observers" on the folded line; responders, the default, are not named.
+export const isObserverRule: (values: unknown) => boolean = (
+  values: unknown,
+): boolean => {
+  return isPageAsObservers(asRecord(values)["pageAs"]);
+};
+
+export const getPageAsFoldedValue: (values: unknown) => string | null = (
+  values: unknown,
+): string | null => {
+  if (!isObserverRule(values)) {
+    return null;
+  }
+
+  return (
+    getGlobalTranslator().translateText(
+      PAGE_AS_TITLES[OnCallPageAs.Observers],
+    ) || PAGE_AS_TITLES[OnCallPageAs.Observers]
+  );
+};
 
 // ---- When an on-call rule pages ------------------------------------------
 
@@ -683,6 +740,19 @@ const isNeverListedWhileFolded: () => boolean = (): boolean => {
  * pages for: the sentence under the choice names it ("Alerts that match
  * this rule ...").
  */
+/*
+ * The table of the teams that own an on-call rule of each kind: every
+ * on-call rule can belong to teams (TEAM_OWNED_RULE_KINDS).
+ */
+export const ON_CALL_RULE_OWNING_TEAMS: Readonly<
+  Record<OnCallRuleRecord, { new (): BaseModel }>
+> = {
+  [OnCallRuleRecord.Incident]: IncidentOnCallRuleOwningTeam,
+  [OnCallRuleRecord.IncidentEpisode]: IncidentEpisodeOnCallRuleOwningTeam,
+  [OnCallRuleRecord.Alert]: AlertOnCallRuleOwningTeam,
+  [OnCallRuleRecord.AlertEpisode]: AlertEpisodeOnCallRuleOwningTeam,
+};
+
 export const getOnCallRuleActionFields: <TEntity>(
   record: OnCallRuleRecord,
 ) => Array<Field<TEntity>> = <TEntity>(
@@ -739,6 +809,33 @@ export const getOnCallRuleActionFields: <TEntity>(
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       collapsibleSection: moreFields,
+    },
+    {
+      field: { pageAs: true } as unknown as SelectFormFields<TEntity>,
+      title: PAGE_AS_TITLE,
+      stepId: "on-call",
+      fieldType: FormFieldSchemaType.RadioButton,
+      // The column starts on Responders: there is always an answer.
+      required: true,
+      // Each answer says what it means: the column's sentence would repeat it.
+      hideColumnDescription: true,
+      dataTestId: "on-call-rule-page-as",
+      radioButtonOptions: [
+        {
+          title: PAGE_AS_TITLES[OnCallPageAs.Responders],
+          description: PAGE_AS_DESCRIPTIONS[OnCallPageAs.Responders],
+          value: OnCallPageAs.Responders,
+        },
+        {
+          title: PAGE_AS_TITLES[OnCallPageAs.Observers],
+          description: PAGE_AS_DESCRIPTIONS[OnCallPageAs.Observers],
+          value: OnCallPageAs.Observers,
+        },
+      ],
+      collapsibleSection: moreFields,
+      // "Page the people of these policies as: Observers" while folded.
+      isListedWhileFolded: isObserverRule,
+      getFoldedValue: getPageAsFoldedValue,
     },
     {
       field: { whenToPage: true } as unknown as SelectFormFields<TEntity>,
@@ -869,6 +966,12 @@ export const getOnCallRuleActionFields: <TEntity>(
       isListedWhileFolded: isNeverListedWhileFolded,
       onChange: keepWorkingHoursOnTheClock,
     },
+    // Last under More fields: the teams that alone may change the rule.
+    getRuleOwningTeamsFormField<TEntity>({
+      owningTeamModelType: ON_CALL_RULE_OWNING_TEAMS[record],
+      stepId: "on-call",
+      collapsibleSection: moreFields,
+    }),
   ];
 };
 

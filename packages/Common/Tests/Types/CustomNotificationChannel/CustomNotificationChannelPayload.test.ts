@@ -212,6 +212,7 @@ describe("buildCustomChannelPagePayload", () => {
       onCallPolicy: { id: "policy-id", name: "Primary" },
       escalationRule: { id: "rule-id", name: "Level 1" },
       isPageAgain: false,
+      isObserverPage: false,
       actions: {
         acknowledge: "https://x/acknowledge",
         escalate: "https://x/escalate",
@@ -240,6 +241,21 @@ describe("buildCustomChannelPagePayload", () => {
         "isPageAgain"
       ],
     ).toBe(true);
+  });
+
+  /*
+   * An observer's page (OnCallObserverPage) says so: the person is kept
+   * informed, and acknowledging only says they have seen it.
+   */
+  test("an observer's page says so, and every other page says it is not one", () => {
+    expect(
+      buildCustomChannelPagePayload(pageInput({ isObserverPage: true }))[
+        "isObserverPage"
+      ],
+    ).toBe(true);
+    expect(buildCustomChannelPagePayload(pageInput())["isObserverPage"]).toBe(
+      false,
+    );
   });
 
   test.each(Object.values(CustomChannelRecordType))(
@@ -379,6 +395,7 @@ describe("buildCustomChannelTestPayload", () => {
     expect(payload["onCallPolicy"]).toBeNull();
     expect(payload["escalationRule"]).toBeNull();
     expect(payload["isPageAgain"]).toBe(false);
+    expect(payload["isObserverPage"]).toBe(false);
     expect(payload["user"]).toEqual(user);
     expect(payload["channel"]).toEqual({ id: "channel-id", name: "CorpoApp" });
     expect(payload["sentAt"]).toBe("2026-10-27T03:14:15.000Z");

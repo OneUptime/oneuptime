@@ -340,6 +340,14 @@ Un record di questo tipo si modifica solo con le autorizzazioni dei team che ne 
 
 Un team proprietario di record privati ma senza autorizzazioni, usato solo per raggruppare persone, permette ai suoi membri di vederli e di non modificarne nessuno. Nella pagina di un record privato, una modifica che i team proprietari della persona non possono fare è bloccata e dice perché. Per permettergliela, date l'autorizzazione a un team proprietario, rendete proprietario un team che la detiene o rendete proprietaria la persona.
 
+### Regole che appartengono a dei team
+
+Una regola di reperibilità per incidenti o avvisi, una regola di reperibilità per episodi, una regola dei proprietari degli incidenti e una regola di notifica di Slack o Microsoft Teams possono appartenere a dei team. Una regola che non appartiene a nessun team è del progetto: la modificano tutti coloro i cui permessi consentono di modificare le regole di quel tipo. Una regola che appartiene a dei team viene modificata ed eliminata solo con i permessi dei team a cui appartiene, e dai proprietari e dagli amministratori del progetto. Chiunque possa leggere le regole continua a leggerla e vede a quali team appartiene.
+
+Scegli i team nel modulo della regola, in **Team responsabili** sotto **Altri campi**. Sceglierli richiede il permesso sui team del tipo di regola, ad esempio `CreateIncidentOnCallRuleOwningTeam`, che hanno i proprietari e gli amministratori del progetto. Aggiungere o togliere i team di una regola modifica la regola: una volta che una regola appartiene a dei team, solo quei team e i proprietari e gli amministratori del progetto cambiano a chi appartiene. In un elenco di regole, una regola che appartiene solo ad altri team è per te di sola lettura: le sue azioni di modifica ed eliminazione sono bloccate e indicano i team a cui appartiene.
+
+Il permesso di ogni team raggiunge le regole che appartengono a quel team. Chi fa parte di due team, uno che può modificare le regole di reperibilità e uno che può solo leggerle, modifica ogni regola che non appartiene a nessun team e le regole del primo team, e legge soltanto le regole che appartengono solo al secondo. Una chiave API modifica una regola che appartiene a dei team solo con `ProjectOwner` o `ProjectAdmin`; un passaggio di un workflow agisce come amministratore del progetto. Tramite l'API e Terraform, i team responsabili di una regola sono record a sé, ad esempio `oneuptime_incident_on_call_rule_owning_team`.
+
 ## Ricette
 
 **Un team che si limita a osservare.** Create il team con **Visualizzatore** sotto **Accesso**. Solo per alcune aree, scegliete **Scegli le autorizzazioni più tardi** e aggiungete i ruoli `*Viewer` per area che deve vedere.

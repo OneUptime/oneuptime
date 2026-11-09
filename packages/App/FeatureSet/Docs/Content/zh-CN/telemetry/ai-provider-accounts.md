@@ -1,6 +1,6 @@
 # AI 提供商账户
 
-无需修改应用，即可查看你的 AI 提供商账户用了多少、花了多少。用只能读取的凭据连接 OpenAI、Anthropic、Azure OpenAI 和 Microsoft Foundry、Amazon Bedrock 或 Google Vertex AI 账户，OneUptime 就会每 15 分钟读取一次它的用量，写入 **用量** 、 **预算** 以及可以设置警报的指标。
+无需修改应用，即可查看你的 AI 提供商账户用了多少、花了多少。用只能读取的凭据连接 OpenAI、Anthropic、Azure OpenAI 和 Microsoft Foundry、Amazon Bedrock 或 Google Vertex AI 账户，OneUptime 就会每 15 分钟读取一次它的用量，写入 **用量** 、 **预算** 以及可以设置警报的指标。Cursor 团队也以同样的方式连接，使用它的管理员 API 密钥，每小时读取一次。
 
 :::cards
 - [连接账户](#连接账户): 选择提供商，粘贴凭据，测试后连接。
@@ -11,7 +11,7 @@
 
 ## 工作原理
 
-OneUptime 每 15 分钟向每个已连接的账户请求按 UTC 日统计的用量，并把它保存为该连接专属服务的三个指标。每次读取都会获取上次读取以来的日期，并重新读取包括今天在内的最近 3 天，因为提供商会不断补充今天的数据，并修正刚过去的几天。
+OneUptime 每 15 分钟向每个已连接的账户请求按 UTC 日统计的用量，并把它保存为该连接专属服务的三个指标。每次读取都会获取上次读取以来的日期，并重新读取包括今天在内的最近 3 天，因为提供商会不断补充今天的数据，并修正刚过去的几天。Cursor 团队则改为每小时读取一次，按小时记录：参见 [Cursor](#cursor)。
 
 ```mermaid title="从提供商账户到用量和预算"
 flowchart TB
@@ -49,7 +49,7 @@ flowchart TB
 点击 **连接** 。第一次读取会在一分钟内开始，并导入最近 30 天的数据。
 :::
 
-已连接的账户会列在磁贴下方，并显示 **状态** 和 **上次读取** 。 **立即读取** 会立即读取， **测试** 会重新检查已保存的设置， **关闭** 会停止读取并保留已读取的数据， **编辑** 会修改设置：留空的密钥会保留已存储的值。 **查看错误** 会显示读取失败的原因，其中不含任何密钥。
+已连接的账户会列在磁贴下方，并显示 **状态** 和 **上次读取** 。 **立即读取** 会立即读取， **测试** 会重新检查已保存的设置， **关闭** 会停止读取并保留已读取的数据， **编辑** 会修改设置：留空的密钥会保留已存储的值。 **查看错误** 会显示读取失败的原因，其中不含任何密钥。正常工作的账户的状态会写出最后一次有用量的日期，或者在读取没有找到用量时写出首次读取的日期；找不到资源的 Azure 连接会说明这一点。
 
 ## 每个提供商提供什么
 
@@ -60,10 +60,11 @@ flowchart TB
 | Azure OpenAI 和 Microsoft Foundry | 根据 token 估算 | 资源和模型 | 拥有 Monitoring Reader 的应用 |
 | Amazon Bedrock | 根据 token 估算 | 区域和模型 | 可读取 CloudWatch 的访问密钥 |
 | Google Vertex AI | 根据 token 估算 | 区域和模型 | 拥有 Monitoring Viewer 的服务账户 |
+| Cursor | Cursor 报告的金额 | 人员、模型和服务账户，按小时 | 团队的管理员 API 密钥 |
 
 除 Anthropic 外，每个提供商还会统计请求数：Anthropic 的用量报告没有请求数。估算成本使用 [一次调用的成本](/docs/telemetry/ai-llm-observability#一次调用的成本) 中的价目表和你在 **定价** 中设置的价格，并标记为估算值。价目表不认识的模型没有成本，直到你在那里为它定价。
 
-这些凭据都不能调用模型：每一种都只读取用量、成本或指标。
+这些凭据都不能调用模型：每一种都只读取用量、成本或指标。Cursor 的管理员 API 密钥是例外：它还能更改一些团队设置，例如支出上限，而 OneUptime 只用它读取。
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ OneUptime 读取 Vertex AI 为其模型（Gemini 以及 Claude 等合作伙伴�
 填写 **项目 ID** ，并把整个密钥文件粘贴到 **服务账户密钥（JSON）** 中。
 :::
 
+## Cursor
+
+OneUptime 使用管理员 API 密钥读取你的 Cursor 团队：成员的每个请求，连同其模型、token 和 Cursor 为它收取的费用，按小时、人员、模型和服务账户汇总，以及过去 7 天内有多少成员使用了 Cursor。用服务账户发出的请求会以该账户的名称作为其 API 密钥显示。其中没有提示词、代码或回答：Cursor 的 Admin API 没有这些内容。
+
+:::steps
+### 创建 Cursor 管理员 API 密钥
+
+在 Cursor 仪表盘中，打开 Settings, Cursor Admin API Keys，然后创建一个密钥。只有团队管理员可以创建，该密钥随 Teams 和 Enterprise 套餐提供。它以 `crsr_` 开头。
+
+### 连接 Cursor
+
+把密钥粘贴到 **管理员 API 密钥** 中。测试还会显示团队的 **成员** ，并在 **人员** 中显示其中有多少人使用了 Cursor。
+:::
+
+Cursor 按小时汇总用量，并要求每小时最多读取一次，因此 OneUptime 每小时读取一次 Cursor 团队，并按小时保存其用量。每次读取会取上次读取以来的小时，并重新读取之前的 3 个小时，因为 Cursor 会延迟添加请求；当下一天过去 6 个小时后，还会完整地重新读取前一天。第一次读取回溯 30 天，从最新的开始，一次一天：用量大的团队需要读取几次，每次间隔一分钟，在完成之前，它所在的行会显示 **仍在读取更早的用量** 。
+
+在 Enterprise 套餐中，Cursor 还可以通过它的 OpenTelemetry Export 实时发送用量：参见 [Cursor](/docs/telemetry/cursor)。两者分开保存：这个账户显示在 **提供商账户** 下，导出显示在 **你的 AI 调用** 下，二者永远不会相加，一个预算只统计其中之一。
+
 ## 查看用量
 
 打开 **用量** 并选择 **提供商账户** 。这里会显示你的账户在该时间范围内报告的成本、token 和请求，并按 **模型** 、 **人员** 、 **提供商** 、 **项目或资源** 、 **API 密钥** 或 **连接** 排名。由于提供商按整天报告，时间范围从第一天的 UTC 零点开始。
@@ -157,7 +176,7 @@ OneUptime 读取 Vertex AI 为其模型（Gemini 以及 Claude 等合作伙伴�
 | `oneuptime.llm.provider.tokens` | 一天的 token 数，按 `gen_ai.token.type` 区分：`input`（包含缓存的 token）、`output`、`cache_read` 和 `cache_write` |
 | `oneuptime.llm.provider.requests` | 一天的请求数 |
 
-每个数据点的时间戳都是其 UTC 日的开始。它带有 `oneuptime.llm.connection.id` 和 `oneuptime.llm.connection.name`，以及提供商给出的 `gen_ai.provider.name`、`gen_ai.request.model`、`user.email`、`oneuptime.llm.provider.project` 和 `oneuptime.llm.provider.api_key`。估算成本带有 `oneuptime.llm.cost.estimated`。
+每个数据点的时间戳都是其 UTC 日的开始。它带有 `oneuptime.llm.connection.id` 和 `oneuptime.llm.connection.name`，以及提供商给出的 `gen_ai.provider.name`、`gen_ai.request.model`、`user.email`、`oneuptime.llm.provider.project` 和 `oneuptime.llm.provider.api_key`。估算成本带有 `oneuptime.llm.cost.estimated`。Cursor 团队的每个数据点保存一小时的用量，时间戳为其 UTC 小时的开始。
 
 ## 何时读取
 
@@ -168,6 +187,9 @@ OneUptime 读取 Vertex AI 为其模型（Gemini 以及 Claude 等合作伙伴�
 | 密钥或权限被拒绝之后 | 60 分钟后 |
 | 其他任何失败之后 | 15 分钟后 |
 | 已关闭 | 重新开启前不读取 |
+| Cursor 团队之后的读取 | 每小时 |
+| 中途停止的 Cursor 读取 | 一分钟后 |
+| Cursor 团队任何失败之后 | 60 分钟后 |
 
 没有遥测功能的套餐不会读取任何内容。删除连接会停止它的读取，并保留它读取过的内容，直到服务的保留期将其删除。
 
@@ -185,8 +207,24 @@ OneUptime 读取你的账户；它从不位于你的应用和提供商之间。�
 为它授予本页为该提供商列出的角色：Azure 订阅上的 Monitoring Reader、AWS 上的两个 CloudWatch 操作、Google Cloud 项目上的 Monitoring Viewer。
 :::
 
+:::details Cursor 接受了密钥，但它无权读取团队的用量
+使用 Teams 或 Enterprise 套餐团队的管理员 API 密钥：团队管理员在 Cursor 仪表盘的 Settings, Cursor Admin API Keys 下创建它。然后再测试一次。
+:::
+
+:::details Cursor 要求 OneUptime 放慢速度
+Cursor 的 Admin API 每分钟接受一个团队的 20 个请求，用量事件为 60 个，由读取它的所有工具共享。OneUptime 会等一分钟再继续，只等一次。如果 Cursor 仍然拒绝，这次读取会保留已完整读取的内容，并在一分钟后继续；什么都没读到的读取会在一小时后重试。
+:::
+
 :::details 测试通过，但今天没有任何数据
 提供商会在几分钟到几小时后报告一天的用量，并在之后一两天内修正。后续读取会把它导入。
+:::
+
+:::details 账户正常工作，但状态显示没有用量
+自所写日期以来，它的读取没有找到用量。OpenAI 的报告统计用该组织的密钥发起的 API 调用，不包括 Azure OpenAI 或 ChatGPT。Azure 连接只读取其应用能看到的资源：请在这些资源所在的位置为应用授予 Monitoring Reader。
+:::
+
+:::details 已连接账户，但对话和调用为空
+账户按天带来用量和成本，从不带来调用或对话：这些来自你的应用。请参阅 [检查正在到达的内容](/docs/telemetry/ai-llm-observability#检查正在到达的内容)。
 :::
 
 :::details 成本与发票不同

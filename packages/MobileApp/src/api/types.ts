@@ -469,6 +469,12 @@ export interface OnCallPageItem {
    * step. It has no policy to name, and nothing about it is missing.
    */
   isDirectPage?: boolean;
+  /*
+   * An observer's page (oncall/observerPage.ts): this person was paged to be
+   * kept informed while others respond. Answering it only said they had seen
+   * it, so its acknowledgedAt is when they did.
+   */
+  isObserverPage?: boolean;
   triggeredByIncident: { _id?: string; title?: string } | null;
   triggeredByAlert: { _id?: string; title?: string } | null;
   triggeredByIncidentEpisode: { _id?: string; title?: string } | null;

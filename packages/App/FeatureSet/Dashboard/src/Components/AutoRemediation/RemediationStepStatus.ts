@@ -4,6 +4,10 @@ import {
   RemediationDecisionLine,
   RemediationSwitchesNow,
 } from "./RemediationDecisionLines";
+import {
+  getRemediationFixApprovals,
+  RemediationFixApprovals,
+} from "./RemediationFixSteps";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import {
   AiRemediationCommandPlan,
@@ -72,6 +76,7 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   waiting: string;
   needsApproval: string;
   needsSomeonesApproval: string;
+  needsSecondApproval: string;
   fixing: string;
   fixed: string;
   fixApplied: string;
@@ -91,6 +96,11 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   needsApproval: translationKey("Needs your approval"),
   // The same, to a reader who may not approve it (RemediationFixActGate).
   needsSomeonesApproval: translationKey("Needs approval"),
+  /*
+   * To the reader who gave a riskier fix its first approval, where two
+   * people must approve it: theirs is in, and someone else's runs it.
+   */
+  needsSecondApproval: translationKey("Needs a second approval"),
   fixing: translationKey("Fixing…"),
   fixed: translationKey("Fixed"),
   fixApplied: translationKey("Fix applied"),
@@ -128,6 +138,12 @@ export interface RemediationFixFacts {
   hasFailed: boolean;
   // The record recovered once it ran.
   isVerified: boolean;
+  /*
+   * A riskier fix two people must approve (RemediationFixSteps
+   * .getRemediationFixApprovals): its first approval is in, and the
+   * reader gave it - their own press would do nothing more.
+   */
+  isFirstApprovedByReader: boolean;
 }
 
 export function getRemediationFixFacts(
@@ -139,8 +155,19 @@ export function getRemediationFixFacts(
     | "mcpToolCallPlan"
     | "verificationStatus"
     | "runbookExecutionId"
+    | "firstApprovedByUserId"
   >,
+  // The project's two-approvals rule as read, and who is reading.
+  reader?: {
+    isTwoApprovalsRuleOn?: boolean | undefined;
+    readerUserId?: string | undefined;
+  },
 ): RemediationFixFacts {
+  const approvals: RemediationFixApprovals = getRemediationFixApprovals({
+    suggestion,
+    isTwoApprovalsRuleOn: reader?.isTwoApprovalsRuleOn,
+    readerUserId: reader?.readerUserId,
+  });
   const status: AutoRemediationSuggestionStatus =
     (suggestion.status as AutoRemediationSuggestionStatus) ||
     AutoRemediationSuggestionStatus.Planning;
@@ -199,6 +226,7 @@ export function getRemediationFixFacts(
     hasRun: isStarted && !isInProgress,
     hasFailed,
     isVerified: verification === AutoRemediationVerificationStatus.Verified,
+    isFirstApprovedByReader: approvals.isFirstApprovedByReader,
   };
 }
 
@@ -265,20 +293,30 @@ export function getRemediationStepStatus(
 
   /*
    * What needs the reader comes first: a fix waits for their approval -
-   * or, to someone who may not give it, for someone's.
+   * or, to someone who may not give it, for someone's. A riskier fix the
+   * reader approved first waits for someone else's: when every fix that
+   * waits is one of those, nothing waits for them.
    */
-  if (
-    input.fixes.some((fix: RemediationFixFacts): boolean => {
+  const waitingFixes: Array<RemediationFixFacts> = input.fixes.filter(
+    (fix: RemediationFixFacts): boolean => {
       return (
         fix.status === AutoRemediationSuggestionStatus.Suggested &&
         !fix.isUnapprovable
       );
-    })
-  ) {
+    },
+  );
+
+  if (waitingFixes.length > 0) {
+    if (input.mayApprove === false) {
+      return status("attention", TEXT.needsSomeonesApproval);
+    }
+
     return status(
       "attention",
-      input.mayApprove === false
-        ? TEXT.needsSomeonesApproval
+      waitingFixes.every((fix: RemediationFixFacts): boolean => {
+        return fix.isFirstApprovedByReader;
+      })
+        ? TEXT.needsSecondApproval
         : TEXT.needsApproval,
     );
   }

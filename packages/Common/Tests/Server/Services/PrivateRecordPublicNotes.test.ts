@@ -30,6 +30,7 @@ import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import { stubPrivateRecords } from "../TestingUtils/PrivateRecords";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubReadableParents } from "../TestingUtils/ReadableParents";
 import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
@@ -138,6 +139,8 @@ async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
 }
 
 beforeEach(() => {
+  // Public note approval off: every note is published as it is posted.
+  stubPublicNoteApproval({});
   stubProjectDirectory({});
   stubReadableParents();
 });

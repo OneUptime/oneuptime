@@ -730,6 +730,32 @@ export default class CloudAccount extends BaseModel {
   public aiAccessConfiguredAt?: Date = undefined;
 
   /*
+   * When someone last reset this account's AI agent (Reset agent, on its AI
+   * agent page): every key of its Cloud AI agent stopped working at once,
+   * and the agent stays disconnected until its setup command runs again with
+   * a new one. Only the server writes it, as the reset is made, and the
+   * reset's audit log entry names it (issue #6302): the agent's own row is
+   * what the agent reports, which the audit log leaves out.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Agent Reset At",
+    description:
+      "When this account's Cloud AI agent was last reset: every key it had stopped working, and it stays disconnected until its setup command runs again. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAgentResetAt?: Date = undefined;
+
+  /*
    * The SHA-256 of the keys this account's Cloud AI agent may connect with
    * (Types/CloudConnection/CloudAiAgentKey): the agent's own, the ones made
    * for a setup command that has not connected yet, and whether the

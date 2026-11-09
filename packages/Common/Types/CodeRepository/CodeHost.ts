@@ -20,7 +20,9 @@ import CodeRepositoryType from "./CodeRepositoryType";
  *   Git      a username and a password or token, over HTTPS: AI pushes a
  *            branch, and the person opens the pull request on their Git
  *            server. Branches are read with Git's own protocol; there is
- *            nothing else to read.
+ *            nothing else to read - but on Azure DevOps (Services, or a
+ *            Server of the person's own), whose file API takes the same
+ *            credentials, the code is read too (canReadRepositoryCode).
  *
  * React-free and server-free, so the server, the Runner, the Dashboard and
  * the docs' facts suites read one table.
@@ -223,6 +225,28 @@ export class CodeHost {
     return CodeHost.getFacts(type).capabilities.includes(capability);
   }
 
+  /*
+   * Whether OneUptime reads one repository's files where it reaches it: on
+   * a host whose API it reads them through (ReadCode: GitHub, GitLab,
+   * Forgejo), and in a Git repository on Azure DevOps, whose file API takes
+   * the credentials Git signs in with (AzureDevOpsApi). Any other Git
+   * repository is read for its branches only.
+   */
+  public static canReadRepositoryCode(data: {
+    type: CodeRepositoryType | string | null | undefined;
+    // The repository's address: a Git repository's is what it is cloned by.
+    repositoryUrl: string | null | undefined;
+  }): boolean {
+    if (CodeHost.can(data.type, CodeHostCapability.ReadCode)) {
+      return true;
+    }
+
+    return (
+      CodeHost.readType(data.type) === CodeRepositoryType.Git &&
+      CodeHostUrl.readAzureDevOpsRepository(data.repositoryUrl) !== null
+    );
+  }
+
   // Whether repositories on the host are connected with an access token.
   public static usesAccessToken(
     type: CodeRepositoryType | string | null | undefined,
@@ -291,7 +315,7 @@ export class CodeHost {
       case CodeHostWebFlavor.Bitbucket:
         return `${web}/src/${branch}/${path}${line ? `#lines-${line}` : ""}`;
       case CodeHostWebFlavor.AzureDevOps:
-        return `${web}?path=${encodeURIComponent(`/${data.path}`)}&version=${encodeURIComponent(`GB${data.branchName}`)}${line ? `&line=${line}` : ""}`;
+        return `${CodeHostUrl.getAzureDevOpsWebUrl(web)}?path=${encodeURIComponent(`/${data.path}`)}&version=${encodeURIComponent(`GB${data.branchName}`)}${line ? `&line=${line}` : ""}`;
       default:
         return null;
     }
@@ -323,7 +347,7 @@ export class CodeHost {
       case CodeHostWebFlavor.Bitbucket:
         return `${web}/branch/${branch}`;
       case CodeHostWebFlavor.AzureDevOps:
-        return `${web}?version=${encodeURIComponent(`GB${data.branchName}`)}`;
+        return `${CodeHostUrl.getAzureDevOpsWebUrl(web)}?version=${encodeURIComponent(`GB${data.branchName}`)}`;
       default:
         return null;
     }
@@ -378,7 +402,7 @@ export class CodeHost {
           data.branchName,
         )}${data.baseBranchName ? `&dest=${encodeURIComponent(data.baseBranchName)}` : ""}`;
       case CodeHostWebFlavor.AzureDevOps:
-        return `${web}/pullrequestcreate?sourceRef=${encodeURIComponent(
+        return `${CodeHostUrl.getAzureDevOpsWebUrl(web)}/pullrequestcreate?sourceRef=${encodeURIComponent(
           data.branchName,
         )}${data.baseBranchName ? `&targetRef=${encodeURIComponent(data.baseBranchName)}` : ""}`;
       default:
@@ -389,7 +413,8 @@ export class CodeHost {
   /*
    * Whose web pages a repository's address follows: the host's own for
    * GitHub, GitLab and Forgejo; for a Git repository, the pages of the few
-   * public Git services OneUptime knows by name, and none for the rest.
+   * public Git services OneUptime knows by name, or of an Azure DevOps
+   * Server it knows by its address, and none for the rest.
    */
   public static getWebFlavor(
     type: CodeRepositoryType | string | null | undefined,
@@ -444,6 +469,66 @@ export interface GitRemoteAddress {
   repositoryName: string;
   // A username the address named, which belongs in the username field.
   username: string | null;
+}
+
+/*
+ * A Git repository on Azure DevOps, read from the address it is cloned by
+ * (CodeHostUrl.readAzureDevOpsRepository): where its file API is, and its
+ * page. Azure DevOps names a repository in its address the same way
+ * everywhere - its collection, its project, then _git and its name:
+ *
+ *   https://dev.azure.com/<organization>/<project>/_git/<repository>
+ *   https://<organization>.visualstudio.com[/DefaultCollection]/<project>/_git/<repository>
+ *   https://<server>[/tfs]/<collection>/<project>/_git/<repository>   (Azure DevOps Server, TFS)
+ *
+ * and leaves the project out of the address of a repository named as its
+ * project is (<collection>/_git/<repository>).
+ */
+export interface AzureDevOpsRepositoryAddress {
+  // Azure DevOps Services, rather than an Azure DevOps Server (TFS).
+  isServices: boolean;
+  // The project, as the address names it (or as the repository is named).
+  projectName: string;
+  repositoryName: string;
+  /*
+   * The repository's Git API: everything before _git, the project added
+   * where the address leaves it out, then _apis/git/repositories/<name>.
+   */
+  apiUrl: string;
+  // The repository's page: the address without .git or a clone option.
+  webUrl: string;
+}
+
+// Azure DevOps Services' addresses: dev.azure.com, and its older <org>.visualstudio.com.
+const AZURE_DEVOPS_HOST: string = "dev.azure.com";
+const AZURE_DEVOPS_LEGACY_HOST_SUFFIX: string = ".visualstudio.com";
+
+// Where a repository's name follows in an Azure DevOps address.
+const AZURE_DEVOPS_GIT_SEGMENT: string = "_git";
+
+/*
+ * What may stand between _git and a repository's name: a clone that skips
+ * Azure DevOps' limited refs (_full), or opts in to them (_optimized).
+ */
+const AZURE_DEVOPS_CLONE_OPTIONS: ReadonlyArray<string> = [
+  "_full",
+  "_optimized",
+];
+
+// An Azure DevOps Server's virtual directory: TFS installed under /tfs.
+const AZURE_DEVOPS_SERVER_VIRTUAL_DIRECTORY: string = "tfs";
+
+// The collection <org>.visualstudio.com addresses may still name.
+const AZURE_DEVOPS_LEGACY_COLLECTION: string = "defaultcollection";
+
+/*
+ * Where an address puts a repository on Azure DevOps: the path of its
+ * collection (an organization's, on Azure DevOps Services), and its
+ * project - null where the address leaves the project out.
+ */
+interface AzureDevOpsPlace {
+  collection: Array<string>;
+  projectName: string | null;
 }
 
 export class CodeHostUrlError extends Error {}
@@ -633,11 +718,210 @@ export class CodeHostUrl {
     }
 
     // Azure DevOps' older addresses: <organization>.visualstudio.com.
-    if (host.endsWith(".visualstudio.com")) {
+    if (host.endsWith(AZURE_DEVOPS_LEGACY_HOST_SUFFIX)) {
+      return CodeHostWebFlavor.AzureDevOps;
+    }
+
+    // An Azure DevOps Server's: a repository's address names it after /_git/.
+    if (CodeHostUrl.readAzureDevOpsRepository(webUrl)) {
       return CodeHostWebFlavor.AzureDevOps;
     }
 
     return null;
+  }
+
+  /*
+   * A Git repository's address on Azure DevOps (AzureDevOpsRepositoryAddress)
+   * - Azure DevOps Services by its host, an Azure DevOps Server by the _git
+   * its addresses name a repository after - or null for any other address,
+   * or one Azure DevOps does not give a repository. Read a segment at a
+   * time, never with a pattern: a person typed it.
+   */
+  public static readAzureDevOpsRepository(
+    address: string | null | undefined,
+  ): AzureDevOpsRepositoryAddress | null {
+    let url: URL;
+
+    try {
+      url = new URL((address || "").trim());
+    } catch {
+      return null;
+    }
+
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return null;
+    }
+
+    const segments: Array<string> = [];
+
+    for (const raw of url.pathname.split("/")) {
+      if (!raw) {
+        continue;
+      }
+
+      let segment: string;
+
+      try {
+        segment = decodeURIComponent(raw);
+      } catch {
+        return null;
+      }
+
+      if (segment === "." || segment === ".." || segment.includes("/")) {
+        return null;
+      }
+
+      segments.push(segment);
+    }
+
+    const gitIndex: number = segments.findIndex((segment: string): boolean => {
+      return segment.toLowerCase() === AZURE_DEVOPS_GIT_SEGMENT;
+    });
+
+    if (gitIndex < 0) {
+      return null;
+    }
+
+    // After _git: the repository's name, with a clone option before it or not.
+    let after: Array<string> = segments.slice(gitIndex + 1);
+
+    if (
+      after.length === 2 &&
+      AZURE_DEVOPS_CLONE_OPTIONS.includes(after[0]!.toLowerCase())
+    ) {
+      after = after.slice(1);
+    }
+
+    if (after.length !== 1) {
+      return null;
+    }
+
+    const lastSegment: string = after[0]!;
+    const repositoryName: string = lastSegment.toLowerCase().endsWith(".git")
+      ? lastSegment.substring(0, lastSegment.length - 4)
+      : lastSegment;
+
+    if (!repositoryName) {
+      return null;
+    }
+
+    const host: string = url.hostname.toLowerCase();
+    const isServices: boolean =
+      host === AZURE_DEVOPS_HOST ||
+      host.endsWith(AZURE_DEVOPS_LEGACY_HOST_SUFFIX);
+    const before: Array<string> = segments.slice(0, gitIndex);
+    const place: AzureDevOpsPlace | null = isServices
+      ? CodeHostUrl.readAzureDevOpsServicesPlace(host, before)
+      : CodeHostUrl.readAzureDevOpsServerPlace(before);
+
+    if (!place) {
+      return null;
+    }
+
+    const origin: string = `${url.protocol}//${url.host.toLowerCase()}`;
+    const projectName: string = place.projectName ?? repositoryName;
+    const path: (parts: Array<string>) => string = (
+      parts: Array<string>,
+    ): string => {
+      return parts
+        .map((part: string): string => {
+          return `/${encodeURIComponent(part)}`;
+        })
+        .join("");
+    };
+
+    return {
+      isServices,
+      projectName,
+      repositoryName,
+      apiUrl: `${origin}${path([...place.collection, projectName])}/_apis/git/repositories/${encodeURIComponent(repositoryName)}`,
+      webUrl: `${origin}${path([
+        ...place.collection,
+        ...(place.projectName === null ? [] : [place.projectName]),
+        AZURE_DEVOPS_GIT_SEGMENT,
+        repositoryName,
+      ])}`,
+    };
+  }
+
+  /*
+   * An Azure DevOps repository's page, for its links: its address without a
+   * clone option or .git - or the address as it is, where it is not one.
+   */
+  public static getAzureDevOpsWebUrl(webUrl: string): string {
+    return CodeHostUrl.readAzureDevOpsRepository(webUrl)?.webUrl || webUrl;
+  }
+
+  /*
+   * Azure DevOps Services' collection and project, before _git:
+   * dev.azure.com/<organization>[/<project>], or
+   * <organization>.visualstudio.com[/DefaultCollection][/<project>].
+   */
+  private static readAzureDevOpsServicesPlace(
+    host: string,
+    before: Array<string>,
+  ): AzureDevOpsPlace | null {
+    if (host === AZURE_DEVOPS_HOST) {
+      if (before.length === 1) {
+        return { collection: before, projectName: null };
+      }
+
+      if (before.length === 2) {
+        return { collection: [before[0]!], projectName: before[1]! };
+      }
+
+      return null;
+    }
+
+    const collection: Array<string> =
+      before.length > 0 &&
+      before[0]!.toLowerCase() === AZURE_DEVOPS_LEGACY_COLLECTION
+        ? [before[0]!]
+        : [];
+    const rest: Array<string> = before.slice(collection.length);
+
+    if (rest.length === 0) {
+      return { collection, projectName: null };
+    }
+
+    if (rest.length === 1) {
+      return { collection, projectName: rest[0]! };
+    }
+
+    return null;
+  }
+
+  /*
+   * An Azure DevOps Server's collection and project, before _git. It always
+   * names its collection, under the /tfs virtual directory or not: one
+   * segment is the collection (the project left out); two are /tfs and the
+   * collection, or the collection and the project; more are a virtual
+   * directory and the collection, then the project.
+   */
+  private static readAzureDevOpsServerPlace(
+    before: Array<string>,
+  ): AzureDevOpsPlace | null {
+    if (before.length === 0) {
+      return null;
+    }
+
+    const startsWithVirtualDirectory: boolean =
+      before[0]!.toLowerCase() === AZURE_DEVOPS_SERVER_VIRTUAL_DIRECTORY;
+
+    if (before.length === 1) {
+      return startsWithVirtualDirectory
+        ? null
+        : { collection: before, projectName: null };
+    }
+
+    if (before.length === 2 && startsWithVirtualDirectory) {
+      return { collection: before, projectName: null };
+    }
+
+    return {
+      collection: before.slice(0, before.length - 1),
+      projectName: before[before.length - 1]!,
+    };
   }
 
   // A path for an address: each segment encoded, the slashes kept.

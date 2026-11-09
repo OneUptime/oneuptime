@@ -21,6 +21,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
@@ -144,6 +145,8 @@ function memberProps(
 }
 
 beforeEach(() => {
+  // Public note approval off: every note is published as it is posted.
+  stubPublicNoteApproval({});
   stubProjectDirectory({});
 
   /*

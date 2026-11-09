@@ -125,9 +125,15 @@ const restrictedColumnAccess: {
 @EnableMCP()
 /*
  * A person's verdict on a finding is kept; OneUptime's own writes would bury
- * the log.
+ * the log. The verdict is part of its store's history: it rolls up to the
+ * store, and shows on the store's Audit Logs page.
  */
-@EnableAuditLog({ create: false, update: true, delete: true })
+@EnableAuditLog({
+  create: false,
+  update: true,
+  delete: true,
+  rootResource: { resourceType: "Data Store", column: "dataStoreId" },
+})
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,

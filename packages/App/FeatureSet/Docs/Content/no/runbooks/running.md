@@ -89,6 +89,8 @@ Mens kjøringen har pause, kan du også hoppe over et senere automatisert trinn 
 
 Å fullføre, godkjenne, hoppe over og avbryte krever de samme rollene som å starte en kjøring, eller tillatelsen **Edit Runbook Execution**.
 
+Runbookens side **Revisjonslogger** viser hvem som startet hver kjøring, hvem som godkjente, fullførte eller hoppet over hvert av trinnene, og hvem som avbrøt den. Et trinn står som det som ble gjort med det, for eksempel `Approved "Restart the API" (step 3)`, aldri med det trinnet skrev ut eller notatet som ble lagt igjen med det.
+
 ## Flett manuelle og automatiserte trinn
 
 Det klassiske forløpet:

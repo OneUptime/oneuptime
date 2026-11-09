@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 用同一个 `resource` 对象来构建它们。资源中缺少 `browser.*` 的日志或指标管道会被归为一个单独的后端服务。
 
+日志管道只发送你的代码写入的记录，所以在每个值得了解的事情发生的地方写一条：
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## 端点参考
 
 | 信号 | 端点 | 请求头 |

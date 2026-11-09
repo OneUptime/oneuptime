@@ -46,6 +46,13 @@ import WorkspaceMemberActions, {
   WorkspaceEventStanding,
   WorkspaceEventType,
 } from "./WorkspaceMemberActions";
+import WorkspacePublicNoteApproval, {
+  PublicNoteApprovalButtonValue,
+} from "./WorkspacePublicNoteApproval";
+import WorkspacePublicNoteApprovalActions, {
+  PublicNoteApprovalPressAnswer,
+  PublicNoteApprovalPressOutcome,
+} from "./WorkspacePublicNoteApprovalActions";
 
 /*
  * FINISHING A PRESS ONCE THE ACCOUNT IS CONNECTED.
@@ -208,6 +215,11 @@ export default class WorkspaceConnectCompletion {
       return await WorkspaceConnectCompletion.finishNoteSave(data);
     }
 
+    // A public note's Approve, decided as the press would have decided it.
+    if (pendingAction.kind === WorkspacePendingActionKind.ApprovePublicNote) {
+      return await WorkspaceConnectCompletion.finishPublicNoteApproval(data);
+    }
+
     try {
       const props: DatabaseCommonInteractionProps =
         await WorkspaceActionAuthorization.getProjectMemberProps({
@@ -350,6 +362,9 @@ export default class WorkspaceConnectCompletion {
       case WorkspacePendingActionKind.SavePrivateNote:
       case WorkspacePendingActionKind.SavePublicNote:
         return false;
+      // A public note is decided once by the engine (finishPublicNoteApproval).
+      case WorkspacePendingActionKind.ApprovePublicNote:
+        return false;
     }
   }
 
@@ -373,6 +388,73 @@ export default class WorkspaceConnectCompletion {
         return `save_${record}_private_note`;
       case WorkspacePendingActionKind.SavePublicNote:
         return `save_${record}_public_note`;
+      case WorkspacePendingActionKind.ApprovePublicNote:
+        return "approve_public_note";
+    }
+  }
+
+  /*
+   * Approve on a public note's approval message, pressed before the account
+   * was connected: decided now as the member it was connected to, exactly
+   * as the press would have been (WorkspacePublicNoteApprovalActions) - with
+   * the Dashboard's rules, and only while the note is still what the message
+   * showed. A note somebody decided meanwhile, or that changed since, is
+   * answered with what became of it; a refusal with its reason.
+   */
+  private static async finishPublicNoteApproval(data: {
+    request: WorkspaceConnectRequestRecord;
+    pendingAction: WorkspacePendingAction;
+    userId: ObjectID;
+  }): Promise<PendingActionResult> {
+    const { request, pendingAction } = data;
+
+    try {
+      const result: PublicNoteApprovalPressAnswer =
+        await WorkspacePublicNoteApprovalActions.approveOnceConnected({
+          value: pendingAction.publicNoteApproval || "",
+          projectId: request.projectId,
+          userId: data.userId,
+        });
+
+      const isDone: boolean =
+        result.outcome === PublicNoteApprovalPressOutcome.Decided;
+
+      if (isDone) {
+        const value: PublicNoteApprovalButtonValue | null =
+          WorkspacePublicNoteApproval.readValue(
+            pendingAction.publicNoteApproval,
+          );
+
+        if (value) {
+          await WorkspacePublicNoteApprovalActions.logPress({
+            value: value,
+            workspaceType: request.workspaceType,
+            userId: data.userId,
+            buttonAction: "approve_public_note",
+            channelId:
+              request.slack?.channelId || request.teams?.conversationId,
+          });
+        }
+      }
+
+      return { answer: result.answer, isDone: isDone };
+    } catch (err) {
+      logger.error(
+        "Could not approve a public note once its chat account was connected.",
+        { projectId: request.projectId.toString() },
+      );
+      logger.error(err, { projectId: request.projectId.toString() });
+
+      const productName: string = ProductBrandingText.getProductName();
+
+      return {
+        answer: {
+          markdown:
+            mdText`${productName} could not ${request.purpose} just now. Please press the button again.`.toString(),
+          text: `${productName} could not ${request.purpose} just now`,
+        },
+        isDone: false,
+      };
     }
   }
 

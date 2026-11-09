@@ -97,6 +97,7 @@ In **Condividi**, copia il link e invialo alle persone che devono usare il modul
 | **Domini personalizzati** | I domini propri del modulo, come `report.acme.com`, con i loro record DNS e certificati. Vedi [Domini personalizzati](/docs/forms/sharing-and-security#domini-personalizzati). |
 | **Invii** | Ogni invio fatto tramite il modulo, il più recente per primo, con le sue risposte e ciò che ha creato. |
 | **Duplica modulo** | In **Avanzato**: una copia del modulo, con un nome scelto per te, con le sue domande, i modelli, le impostazioni All'invio, il branding, il messaggio di ringraziamento e la lista degli IP consentiti, e un link proprio. La copia parte disattivata e si apre nel suo editor. |
+| **Registri di audit** | In **Avanzato**: ogni modifica fatta al modulo, ai suoi domini personalizzati e ai suoi invii, chi l'ha fatta e quando. |
 | **Elimina modulo** | L'eliminazione del modulo, in **Avanzato**. I suoi invii vengono eliminati con lui; gli incidenti e gli eventi che ha creato no. |
 
 La sezione **Sviluppatori** del menu del modulo contiene le sue pagine Terraform, API e assistente AI, come per ogni altra risorsa.

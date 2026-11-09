@@ -115,6 +115,8 @@ Channels and chats stay readable: each event is posted once, and a record's firs
 
 **Project Settings** > **Workspace** > **Microsoft Teams** lists the channels OneUptime can see in your teams, and the chats it was added to, with **Send Test** beside each one. A chat appears once the OneUptime app is added to it in Microsoft Teams; **Refresh Chats** picks up new chats and their current names.
 
+A notification rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and project admins can edit or delete it, and everyone else who can see the rules sees it read-only. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
+
 ## Testing a rule
 
 **Test Rule** on a rule's row posts a test message for that rule to the channels it names, so you can see it arrive. If the rule creates a channel for each event, the test creates one too and invites the rule's people to it.
@@ -154,7 +156,7 @@ React to a message, or a reply, in the channel OneUptime created for an incident
 | Reaction | Saved as |
 | --- | --- |
 | 📌 or 📍 | A private note, seen only by your team |
-| 📣 or 📢 | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. |
+| 📣 or 📢 | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. When the project's public notes need approval, it is shown once approved, and the confirmation says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval). |
 
 The note keeps the message as Microsoft Teams showed it: its formatting, links and code, the people it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
 
@@ -216,6 +218,8 @@ In a channel or a group chat, `@OneUptime page @Nawaz Dhandala The checkout API 
 - **Where it shows.** The conversation shows the page as one card, kept up to date: who was paged and how, each team by its name with its people after it, your message, and who acknowledged. Where the bot cannot post it, its reply says who was paged, with a link to the incident or alert.
 - **Who may page.** In an incident's or an alert's own channel, anyone who may execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Duty Policy** in a custom role) and read that incident or alert. Anywhere else the page creates an alert, so it also takes permission to create one: **Project Owner**, **Project Admin** and **Project Member**, or **On-Call Member** with **Alert Member** (**Execute On-Call Duty Policy** and **Create Alert** in a custom role). Paging people, a team or a schedule directly, with no on-call policy behind the page, also takes access to every on-call policy of the project. Anyone else is told so in a reply, and nobody is paged. On OneUptime Cloud, paging needs the Growth plan: below it, OneUptime says which plan it needs, and nobody is paged.
 
+To keep people informed while others respond, page them as observers. In an incident's or an alert's own channel, type `as observers` after who to page, as in `@OneUptime page @Oversight as observers Team Y is on it`, or pick **Observers: keep them informed** under **Page them as** on the card. Their page says they are observers, and acknowledging it only says they have seen it: the incident or alert is not acknowledged, nobody else's page stops, and where the page shows, it says they are paged as observers. A page about something new needs somebody to respond, so anywhere else `as observers` is refused, and nobody is paged.
+
 ## On-call tags
 
 Keep a Microsoft Teams tag, such as `@Payments on-call`, equal to whoever is on call in one or more on-call schedules, so anyone in its team can @mention it to reach them. OneUptime changes the tag's people at every hand-off and override, and checks it every 15 minutes.
@@ -271,6 +275,10 @@ The buttons on OneUptime's cards act as the person who presses them, in a person
 ## Approving a fix OneUptime AI proposes
 
 A fix OneUptime AI proposes for approval is posted to the incident's or alert's channels as a card with its changes and three buttons. **Review and approve** replies with a card of everything the fix runs and **Approve and run**, which runs exactly that, as the person who presses it; once it is approved, that card is removed and they are told the fix is being made. **Dismiss** dismisses the fix, and **View in OneUptime** opens the incident or alert. They act as the person who presses them, like every button on OneUptime's cards: approving needs permission to approve fixes in the project and, for a fix to a cluster or resource, to edit it. A fix that changed after its card was posted is refused, and nothing runs. See [Approve or dismiss a fix from Slack or Microsoft Teams](/docs/ai/ai-sre#approve-or-dismiss-a-fix-from-slack-or-microsoft-teams).
+
+## Approving a public note
+
+When your project's public notes need approval and you turn on Microsoft Teams for **Public Note Approval** in your notification settings, each public note that waits for a step you approve comes to your personal chat with the OneUptime bot as a card: who sent it, the step it waits for, the note, and three buttons. **Approve** approves it for that step; on the last step it reads **Approve and publish**, and the note is published at once. **Reject** replies with a card that asks **Why are you rejecting it?**: a reason is required, and the note's author sees it; once the note is rejected, that card is removed. **View in OneUptime** opens the note. The buttons act as you, by the same rules as in OneUptime: you must be named on the step, yourself or through a team, and you cannot decide on a note you sent or approve two steps of the same note. The bot answers in the same chat. A press after somebody else decided, or after the note or its steps changed, decides nothing and says what happened. Once the note is decided, every approver's card about it, yours included, changes to say what happened: approved for its step and who it waits for now, published, rejected, changed or sent for approval again, published without approval, or deleted. It keeps **View in OneUptime**, and **Approve** and **Reject** are gone. If your Microsoft Teams account is not connected, the reply asks you to connect it, and OneUptime approves the note for you once you have; for **Reject**, press it again. When the approval steps change while a note waits, your message about it changes too if the note no longer waits for your step or you are no longer asked, and whoever it waits for now gets a message of their own. See [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
 
 ## Disconnecting
 

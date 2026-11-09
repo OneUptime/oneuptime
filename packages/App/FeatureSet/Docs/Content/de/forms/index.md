@@ -97,6 +97,7 @@ Kopieren Sie unter **Teilen** den Link und senden Sie ihn an die Personen, die d
 | **Benutzerdefinierte Domains** | Die eigenen Domains des Formulars, etwa `report.acme.com`, mit ihren DNS-Einträgen und Zertifikaten. Siehe [Eigene Domains](/docs/forms/sharing-and-security#eigene-domains). |
 | **Einreichungen** | Jede Einreichung über das Formular, die neueste zuerst, mit ihren Antworten und dem, was sie angelegt hat. |
 | **Formular duplizieren** | Unter **Erweitert**: eine Kopie des Formulars, für Sie benannt, mit seinen Fragen, Vorlagen, Einstellungen unter Beim Absenden, Branding, Dankesmeldung und IP-Zulassungsliste und einem eigenen Link. Die Kopie ist zunächst ausgeschaltet und öffnet sich in ihrem Editor. |
+| **Audit-Protokolle** | Unter **Erweitert**: jede Änderung am Formular, an seinen benutzerdefinierten Domains und seinen Einreichungen, wer sie vorgenommen hat und wann. |
 | **Formular löschen** | Das Löschen des Formulars, unter **Erweitert**. Seine Einreichungen werden mit ihm gelöscht; die Vorfälle und Ereignisse, die es angelegt hat, nicht. |
 
 Der Abschnitt **Entwickler** im Menü des Formulars enthält seine Seiten für Terraform, die API und KI-Assistenten, wie bei jeder anderen Ressource.

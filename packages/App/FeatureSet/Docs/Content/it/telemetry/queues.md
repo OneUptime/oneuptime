@@ -2,6 +2,8 @@
 
 **Code** dà a ogni coda di messaggi, topic e sottoscrizione che le tue applicazioni usano una pagina propria: quali servizi vi pubblicano e quali ne consumano, quanti messaggi passano, quanti falliscono e quanto dura l'elaborazione, le sue tracce e metriche e, non appena le metriche del broker raggiungono OneUptime, il suo arretrato, il lag dei consumer, i dead letter e la limitazione. Le code hanno etichette, proprietari, regole di etichette e di proprietari e archiviazione, come ogni altra risorsa. Aprile da **Prodotti → Risorse → Code**.
 
+**Code → Topologia** mostra come scorrono i messaggi tra i tuoi servizi: ogni coda tra i servizi che vi pubblicano e quelli che ne consumano. Ogni linea indica il suo tasso di messaggi, il suo tasso di errori e il suo tempo p95, contati come li contano i riquadri **Produttori** e **Consumatori** della coda, e non appena le metriche di un broker raggiungono OneUptime, le sue code mostrano il lag dei consumer o il loro arretrato, e i loro dead letter. Cerca nella mappa, filtrala per broker o tieni solo ciò che richiede attenzione. La scheda **Topologia** di ogni coda mostra da dove arrivano i suoi messaggi e dove vanno.
+
 :::cards
 - [Strumentare le applicazioni](#strumentare-le-applicazioni): Gli span di messaggistica che la tua strumentazione OpenTelemetry invia già.
 - [Metriche di salute del broker](#metriche-di-salute-del-broker): Arretrato, lag e dead letter dal tuo broker, sistema per sistema.
@@ -213,6 +215,10 @@ builder.Services.AddOpenTelemetry()
 Un broker sa ciò che nessuna applicazione può vedere: quanti messaggi sono in attesa, quanto è indietro ogni gruppo di consumer, cosa è finito in una coda di dead letter. Ogni sezione qui sotto contiene la configurazione del collector per un sistema: una configurazione completa di OpenTelemetry Collector che termina con l'exporter OTLP che invia a OneUptime. Inserisci una chiave di acquisizione della telemetria (**Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**) in `x-oneuptime-token`, sostituisci `https://oneuptime.com` con il tuo host se usi il self-hosting, ed eseguila con `otel/opentelemetry-collector-contrib` 0.161.0 o successivo (ogni configurazione qui è convalidata con 0.161.0). I collector recenti registrano nel log che `otlphttp` è deprecato a favore di `otlp_http`; entrambi i nomi indicano lo stesso exporter. Per raccogliere più sistemi, unisci i loro receiver in un unico collector.
 
 La sezione **Salute del broker** di ogni coda mostra le metriche elencate per il suo sistema (un gauge come valore, un conteggio per periodo sommato per intervallo, un contatore come frequenza al secondo) combinando le serie di una coda come richiede ogni metrica (i messaggi pronti e non confermati di una coda RabbitMQ si sommano; il gruppo di consumer più indietro è il lag). Tutto ciò che il collector invia è anche nell'esploratore **Metriche**. Finché per una coda non è arrivata nessuna metrica elencata, la sezione mostra da dove arrivano le metriche di quel sistema, con un link alla sua sezione qui.
+
+Dove nessuna applicazione tracciata pubblica in una coda o consuma da essa, i suoi riquadri **Pubblicati**, **Consumati** ed **Errori** e il suo grafico **Messaggi** leggono invece i conteggi del broker stesso (messaggi in entrata, messaggi in uscita e i suoi errori sommati, con le richieste limitate contate a parte sotto **Errori**), e ognuno lo dice sotto il suo numero. Una coda con span li mantiene, perché dicono quale servizio ha fatto cosa. Il riquadro **p95 processing time** si basa solo sulle tracce dei consumer, perché nessun broker misura quanto tempo un consumer impiega per un messaggio: senza di esse mostra **Richiede tracce dei consumatori**.
+
+La scheda **Metriche del broker** in cima alla sezione elenca ogni metrica mostrata per il sistema della coda: se è arrivata per la coda nell'intervallo selezionato, quando è arrivata l'ultima volta e perché ciascuna delle altre non è arrivata. Un conteggio può non avere nulla da segnalare (nessuna richiesta limitata è una buona notizia); un livello che il broker segnala sempre e che non arriva mai è uno che il collector non chiede, e la scheda indica le righe che servono alla sua configurazione; una metrica può anche smettere di arrivare. Per una coda di Service Bus o Event Hubs di cui non arriva nessuna metrica, la scheda legge anche cosa invia invece il suo namespace (vedi [La salute del broker resta vuota](#la-salute-del-broker-resta-vuota)). Sotto il riepilogo, la scheda indica cosa ha letto di recente le metriche della coda: il receiver del collector, le tue connessioni cloud, collegate a **Cloud → Collega**, o entrambi. Su una coda che legge solo una [sottoscrizione Azure connessa](/docs/telemetry/cloud-accounts), una metrica che la sottoscrizione non legge è **Solo collector**, con la riga che la aggiunge al receiver, invece che mancante.
 
 ### Amazon SNS
 
@@ -589,7 +595,9 @@ OneUptime non mostra le metriche di Event Grid nella pagina di una coda: Azure M
 
 ### Azure Event Hubs
 
-Leggi le metriche del namespace da Azure Monitor con il receiver `azure_monitor` del collector, che le suddivide per event hub in base alla dimensione EntityName.
+Una sottoscrizione Azure connessa legge le metriche chiave del namespace per ogni event hub, senza nulla da eseguire. Per leggerle tutte, esegui il receiver `azure_monitor` del collector, che le suddivide per event hub in base alla dimensione EntityName.
+
+Una [sottoscrizione Azure connessa](/docs/telemetry/cloud-accounts) legge `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` e `azure_throttledrequests_total` per un massimo di 1.000 event hub di un namespace, con una sola chiamata ad Azure Monitor per namespace a ogni lettura, quanti che siano gli event hub. Le altre tre le legge solo il receiver, e la scheda **Metriche del broker** di un event hub le segna come **Solo collector**. Quando entrambi leggono una metrica di un event hub, si tiene quella del receiver e si lascia fuori quella della sottoscrizione, quindi nulla viene contato due volte.
 
 Il receiver accede tramite l'estensione `azure_auth`. Assegna all'entità servizio il ruolo **Monitoring Reader** sulla sottoscrizione:
 
@@ -617,6 +625,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -648,10 +657,13 @@ Azure Monitor non ha una metrica di lag dei consumer per Event Hubs: il suo `Con
 | `azure_usererrors_total` | Errori utente | Conteggio per periodo |
 | `azure_quotaexceedederrors_total` | Errori di quota superata | Conteggio per periodo |
 | `azure_throttledrequests_total` | Richieste limitate | Conteggio per periodo |
+| `azure_size_average` | Dimensione | Gauge |
 
 ### Azure Service Bus
 
-Leggi le metriche del namespace da Azure Monitor con il receiver `azure_monitor` del collector, che le suddivide per coda e topic in base alla dimensione EntityName.
+Una sottoscrizione Azure connessa legge le metriche chiave del namespace per ogni coda e topic, senza nulla da eseguire. Per leggerle tutte, esegui il receiver `azure_monitor` del collector, che le suddivide per coda e topic in base alla dimensione EntityName.
+
+Una [sottoscrizione Azure connessa](/docs/telemetry/cloud-accounts) legge `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` e `azure_throttledrequests_total` per un massimo di 1.000 code e topic di un namespace, con una sola chiamata ad Azure Monitor per namespace a ogni lettura, quante che siano le code: con una lettura ogni 5 minuti, un namespace di 50 code costa 12 chiamate all'ora, quanto uno di una sola coda. Le altre sei le legge solo il receiver, e la scheda **Metriche del broker** di una coda le segna come **Solo collector**. Quando entrambi leggono una metrica di una coda, si tiene quella del receiver e si lascia fuori quella della sottoscrizione, quindi nulla viene contato due volte.
 
 Il receiver accede tramite l'estensione `azure_auth`. Assegna all'entità servizio il ruolo **Monitoring Reader** sulla sottoscrizione:
 
@@ -677,6 +689,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -684,6 +698,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -706,13 +721,17 @@ service:
 - Le metriche trovano la loro coda o il loro topic tramite il namespace (`name`) e l'entità (`EntityName`); gli span degli SDK indicano lo stesso namespace come `<namespace>.servicebus.windows.net`. Uno span su `orders/Subscriptions/billing` o `orders/$DeadLetterQueue` appartiene a `orders`, come le metriche.
 - `maximum_number_of_records_per_resource` è il numero di serie che Azure restituisce per metrica e namespace, 10 a meno che tu non lo aumenti: tienilo sopra il numero delle tue code e dei tuoi topic (le metriche di errore suddividono ulteriormente ogni entità per risultato), altrimenti gli altri non vengono segnalati.
 - Azure Monitor non suddivide per sottoscrizione del topic: i conteggi di un topic coprono tutte le sue sottoscrizioni.
-- L'elenco `metrics` raccoglie esattamente ciò che la pagina della coda mostra, ciascuna con l'unica aggregazione che mostra; aggiungi una metrica (`ScheduledMessages`, `Size`, …) per raccoglierla anch'essa.
+- L'elenco `metrics` raccoglie esattamente ciò che la pagina della coda mostra, ciascuna con l'unica aggregazione che mostra; aggiungi una metrica (`IncomingRequests`, `Messages`, …) per raccoglierla anch'essa. Un collector il cui elenco è precedente a `ScheduledMessages`, `Size` o `ServerSendLatency` non ne invia nessuna: la scheda **Metriche del broker** della coda indica le righe da aggiungere.
+- Una [sottoscrizione Azure connessa](/docs/telemetry/cloud-accounts) suddivide le sue sei metriche per coda e topic come questo receiver. Un'impostazione di diagnostica che esporta le metriche invia i totali del namespace, senza `EntityName`, quindi nessuno raggiunge una coda: la pagina del namespace stesso in **Cloud → Tutte le risorse** li ha, e la scheda **Metriche del broker** di una coda dice perché mancano le sue.
+- Nessuna di queste metriche dipende dal livello del namespace. `ServerSendLatency` viene segnalata a ogni invio, quindi una coda a cui non è stato inviato nulla nell'intervallo non ne ha.
 - Il receiver elenca i tuoi namespace una volta al giorno, quindi un nuovo namespace può impiegare fino a 24 ore per comparire.
 
 | Metrica | Mostrata come | Tipo |
 | --- | --- | --- |
 | `azure_activemessages_average` | Messaggi attivi | Gauge |
 | `azure_deadletteredmessages_average` | Messaggi in dead-letter | Gauge |
+| `azure_scheduledmessages_average` | Messaggi pianificati | Gauge |
+| `azure_size_average` | Dimensione | Gauge |
 | `azure_incomingmessages_total` | Messaggi in arrivo | Conteggio per periodo |
 | `azure_outgoingmessages_total` | Messaggi in uscita | Conteggio per periodo |
 | `azure_completemessage_total` | Messaggi completati | Conteggio per periodo |
@@ -720,6 +739,7 @@ service:
 | `azure_servererrors_total` | Errori del server | Conteggio per periodo |
 | `azure_usererrors_total` | Errori utente | Conteggio per periodo |
 | `azure_throttledrequests_total` | Richieste limitate | Conteggio per periodo |
+| `azure_serversendlatency_average` | Latenza di invio del server | Gauge |
 
 ### BullMQ
 
@@ -1046,6 +1066,10 @@ Quando i suoi span la indicano davvero, creala a mano con lo stesso sistema e la
 - Il receiver non la segnala. Kafka segnala il lag di un gruppo di consumer solo dopo che il gruppo ha confermato un offset; RabbitMQ segnala solo le code degli host virtuali a cui il suo utente ha accesso, e non registra alcun errore per il resto (vedi [RabbitMQ](#rabbitmq)); i contatori di RabbitMQ compaiono con la prima attività; Azure Monitor restituisce 10 code per metrica e namespace a meno che `maximum_number_of_records_per_resource` non venga aumentato; Cloud Monitoring legge solo i tipi in `metrics_list`.
 - È in ritardo. `aws_cloudwatch` attende `delay` (10 minuti) che CloudWatch pubblichi, quindi i suoi punti arrivano con 11-17 minuti di ritardo, e le metriche di Pub/Sub arrivano con minuti di ritardo.
 - Il sistema non ha metriche mostrate: Azure Event Grid, NATS, broker JMS diversi da ActiveMQ e BullMQ (vedi le loro sezioni). Le loro metriche sono nell'esploratore **Metriche**.
+- Apri la scheda **Metriche del broker** della coda: elenca quali metriche arrivano e perché le altre no. Per una coda di Service Bus o Event Hubs di cui non arriva nessuna metrica, dice anche cosa invia invece il namespace, una di tre cose.
+- **Niente dal namespace**: niente lo legge, oppure ogni lettura fallisce. Collega la sua sottoscrizione Azure in **Cloud → Collega**, oppure esegui il receiver `azure_monitor`. Assegna all'app della connessione o all'entità servizio del receiver il ruolo **Monitoring Reader**, e guarda l'ultima lettura della connessione, oppure cerca `AuthorizationFailed` o `401` nel log del collector: un segreto client scaduto blocca ogni lettura.
+- **Solo totali**: le metriche del namespace arrivano per il namespace nel suo insieme, senza alcuna coda o topic. Un'impostazione di diagnostica invia solo questi totali: collega la sottoscrizione del namespace, oppure leggilo anche con il receiver `azure_monitor`; entrambi le suddividono per `EntityName`. Una [sottoscrizione Azure connessa](/docs/telemetry/cloud-accounts) ha inviato solo questi totali prima di leggere ogni coda, o quando le sue letture delle code falliscono: la sua ultima lettura in **Cloud → Collega** dice perché.
+- **Solo altre code**: arrivano metriche per altre code e altri topic del namespace, ma non per questa. `maximum_number_of_records_per_resource` del receiver (10 a meno che tu non lo aumenti) l'ha lasciata fuori: aumentalo oltre il numero di code e topic del namespace. Una sottoscrizione connessa ne legge fino a 1.000: oltre, leggi il namespace anche con il receiver.
 
 ### Due code per un'unica destinazione
 

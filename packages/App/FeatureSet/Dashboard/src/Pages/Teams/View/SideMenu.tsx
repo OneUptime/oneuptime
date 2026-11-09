@@ -132,6 +132,17 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
         icon: IconProp.TableCells,
       },
       {
+        // Who joined or left the team, and what it may do, and who changed it.
+        link: {
+          title: "Audit Logs",
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.TEAM_VIEW_AUDIT_LOGS] as Route,
+            { modelId: props.modelId },
+          ),
+        },
+        icon: IconProp.List,
+      },
+      {
         link: {
           title: "Delete Team",
           to: RouteUtil.populateRouteParams(

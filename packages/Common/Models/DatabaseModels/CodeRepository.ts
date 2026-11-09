@@ -332,6 +332,15 @@ export default class CodeRepository extends BaseModel {
   })
   public repositoryHostedAt?: CodeRepositoryType = undefined;
 
+  /*
+   * The owner, as the host names it. It is part of the repository's
+   * address, so it is stored whole: an owner cut to fit is another group.
+   * VeryLongText (text) holds any GitLab group's full path - a group sits
+   * under at most 20 others and each path is at most 255 characters, so
+   * 5,375 in all - and the path of any Git address OneUptime takes
+   * (MAX_CODE_HOST_URL_LENGTH). At ShortText's 100 a repository in a deeply
+   * nested group could not be connected.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -355,7 +364,7 @@ export default class CodeRepository extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     title: "Organization Name",
     description:
@@ -364,8 +373,7 @@ export default class CodeRepository extends BaseModel {
   })
   @Column({
     nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
   })
   public organizationName?: string = undefined;
 

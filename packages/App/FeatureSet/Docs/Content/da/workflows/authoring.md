@@ -13,7 +13,7 @@ Klik på en skabelon for at se, hvad den gør: dens trigger, de blokke, den best
 
 Workflows oprettes slået fra, så deres trigger ikke starter dem, før du slår dem til. Et nyt workflow åbner i **Bygger**, lærredet hvor du designer det.
 
-Du kan også beskrive et workflow for Ask AI og lade det bygge det for dig. Det finder triggeren og trinnene, sætter dem op og forbinder dem og beder dig godkende workflowet, før det gemmes. Et nyt workflow starter slået fra: læs det i Builder, udfyld adgangskoder, tokens eller webhook-URL'er, det har ladet stå til dig, for Ask AI spørger aldrig om dem i samtalen, og slå det derefter selv til. Ask AI kan ændre et workflow på samme måde. På et workflows side betyder "dette workflow" netop det. Det gemmer som dig, så det kan kun gøre det, du kan gøre i Builder, og Builder viser ændringerne, så snart de er gemt.
+Du kan også beskrive et workflow for Ask AI og lade det bygge det for dig. Det finder triggeren og trinnene, sætter dem op og forbinder dem og beder dig godkende workflowet, før det gemmes. Et nyt workflow starter slået fra: læs det i Builder, udfyld adgangskoder, tokens eller webhook-URL'er, det har ladet stå til dig, for Ask AI spørger aldrig om dem i samtalen, og slå det derefter selv til. Ask AI kan ændre et workflow på samme måde. På et workflows side betyder "dette workflow" netop det. Det gemmer som dig, så det kan kun gøre det, du kan gøre i Builder, og Builder viser ændringerne, så snart de er gemt. Hvis workflowet bliver gemt, mens en ændring fra Ask AI venter på din godkendelse, af dig i Builder eller af en anden, bevarer godkendelsen det, der blev gemt. Når de to ændringer gælder forskellige trin, laver Ask AI sin ændring oven på det, der blev gemt, og siger det. Når de rører det samme trin, ændres intet: Ask AI siger, at workflowet er ændret, og foreslår sin ændring igen til workflowet, som det er nu. Ask AI skriver en ændring ud fra workflowet, som det sidst læste det. Hvis workflowet er blevet gemt siden, og ændringen ville fortryde noget af det, der blev gemt, siger kortet det, før du godkender, og nævner trinene, for eksempel "Denne ændring fortryder det, der blev gemt, efter at AI læste workflowet: Send Message to Slack." Vil du bevare det, der blev gemt, så spring ændringen over og bed Ask AI om at læse workflowet igen. Flyttede kort tæller aldrig med, og det gør en ændret indstilling på et trin, som ændringen fra Ask AI lader være, som det er, heller ikke. Har Ask AI aldrig læst workflowets trin, siger kortet også det. I Kør automatisk, hvor ingen godkender handlinger, laver Ask AI ikke en sådan ændring: det læser workflowet igen og laver sin ændring på workflowet, som det er nu.
 
 ## Lærredet
 
@@ -21,7 +21,9 @@ Et workflow fra bunden åbner med en enkelt stiplet blok med teksten **Vælg, hv
 
 Hvert workflow har præcis én **trigger** øverst. Alt andet er en **komponent**, der gør noget. For at skifte triggeren sletter du den: den stiplede pladsholder kommer tilbage på dens plads, og et klik på den lader dig vælge en anden. Når du sletter en blok, slettes dens linjer også, så forbind den nye trigger til den første blok igen.
 
-Ændringer gemmes automatisk. En pille i værktøjslinjen holder øje med det: **Gemmer…**, mens ændringen er på vej, derefter **Gemt**, eller **Kunne ikke gemme**, hvis det ikke lykkedes. Lærredet har ingen gem-knap og intet separat udgivelsestrin.
+Ændringer gemmes automatisk, et øjeblik efter at du har lavet dem. En pille i værktøjslinjen holder øje med det: **Gemmer…**, mens ændringen er på vej, derefter **Gemt**. Hvis en ændring ikke kunne gemmes, står der **Kunne ikke gemme** på pillen, med årsagen, når du holder musen over den, og **Prøv igen** ved siden af. Dine ændringer bliver imens på lærredet, og den næste ændring, du laver, prøver igen. Forlader du siden, før en ændring er gemt, bliver du spurgt først. Lærredet har ingen gem-knap og intet separat udgivelsestrin. En fejl bliver også gemt, og derfor husker Bygger hver ændring, så du kan tage den tilbage: se [Fortryd, gentag og versionshistorik](#fortryd-gentag-og-versionshistorik).
+
+To personer kan have den samme arbejdsgang åben. Hvis en anden gemmer den, efter du åbnede den, i en anden Bygger eller gennem API'et, gemmer Bygger ikke din ændring oven i deres: pillen viser **Ikke gemt**, og en dialog viser, hvad de har ændret. **Vis deres ændringer** sætter deres version på lærredet, og **Fortryd** henter din tilbage. **Behold min** gemmer din version, og deres bliver i versionshistorikken. Intet går tabt, uanset hvad du vælger.
 
 ## Tilføj blokke
 
@@ -169,6 +171,26 @@ For at sætte et workflow på pause uden at slette det slår du **Aktiveret** fr
 - For at slette en blok klikker du på den og bruger **Slet** nederst i dens indstillingsdialog. At markere en blok eller en linje og trykke på Backspace fjerner den også.
 - Der er ingen måde at duplikere en enkelt blok på. **Duplikér Arbejdsgang** på workflowets side **Indstillinger** kopierer det hele. Kopiens navn er udfyldt, nummereret forbi projektets workflows ("Nightly Sync" kopieres som "Nightly Sync 2"), og kopien åbner, deaktiveret.
 - Stil blokkene oppefra og ned, så de læses i den retning, de kører — input er på den øverste kant, output på den nederste, så flowet naturligt går nedad.
+
+## Fortryd, gentag og versionshistorik
+
+Hver ændring, du laver på lærredet, kan tages tilbage, selvom den blev gemt med det samme.
+
+- **Fortryd** og **Gentag** sidder forrest i værktøjslinjen. Hold musen over en af dem for at se, hvad den ville tage tilbage eller gøre igen, og hvilken blok det drejer sig om. Hver ændring er ét skridt: at tilføje, slette eller flytte en blok, at forbinde to blokke eller fjerne forbindelsen mellem dem og at gemme en bloks indstillinger. At trække en blok er ét skridt, uanset hvor langt du trækker den.
+- Tastaturet virker også: ⌘Z på en Mac, eller Ctrl+Z, fortryder, og ⇧⌘Z, Ctrl+Shift+Z eller Ctrl+Y gentager. Mens du skriver i et felt eller en kodeeditor, fortryder de samme taster i stedet det, du har skrevet.
+- Det, du fortryder, gemmes som enhver anden ændring. Fortryd rækker kun tilbage til det, du har gjort, siden du åbnede Bygger; versionshistorikken går længere tilbage.
+
+**Versionshistorik**, i værktøjslinjen, viser hver gemt version af workflowet, med den nyeste først: hvem der gemte den, hvornår, og hvad den ændrede, som `Added "Send Email" (send-email-1)`. De ændringer, du gemmer inden for 10 minutter af hinanden, udgør én version, så en version er et stykke arbejde frem for hvert eneste klik. Ændringer via API'et er også versioner, og hver ændring, som Ask AI laver, er en version for sig, der siger, at Ask AI lavede den for dig. Gendanner du versionen før den, tager du præcis det tilbage, som Ask AI gjorde. Når Ask AI's ændring blev lavet oven på en ændring, du endnu ikke havde set, viser Builder dem som to trin: Fortryd tager kun Ask AI's ændring tilbage, og ændringen, der blev gemt før den, er trinnet før.
+
+For at gå tilbage til en tidligere version:
+
+:::steps
+1. Klik på **Versionshistorik** i værktøjslinjen.
+2. Klik på **Forhåndsvisning** ved versionen. Forhåndsvisningen viser, hvad en gendannelse ville ændre, og viser versionen på sit eget lærred. Klik på en blok dér for at læse dens indstillinger.
+3. Klik på **Gendan denne version**. Versionen kommer tilbage på lærredet og gemmes med det samme.
+:::
+
+En gendannelse er en ændring som enhver anden. Den gemmes som en ny version, der siger, hvilken version den gendannede, så du kan fortryde den eller gendanne den version, du havde før. Alle, der kan åbne workflowet, kan se dets historik; kun personer, der må redigere workflowet, kan gendanne en version. De 100 nyeste versioner af hvert workflow bevares.
 
 ## Næste trin
 

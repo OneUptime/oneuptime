@@ -469,14 +469,18 @@ describe("POST /auto-remediation/approve — resource rounds and the resource AI
       });
     });
 
-    test("the project is read for Enable AI alone — never for a retired switch", async () => {
+    test("the project is read for Enable AI and the two-approvals rule alone — never for a retired switch", async () => {
       await callApprove();
 
       expect(projectFindSpy).toHaveBeenCalledTimes(1);
       expect(projectFindSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           id: PROJECT_ID,
-          select: { _id: true, enableAi: true },
+          select: {
+            _id: true,
+            enableAi: true,
+            requireTwoApprovalsForRiskierFixes: true,
+          },
           props: expect.objectContaining({ isRoot: true }),
         }),
       );

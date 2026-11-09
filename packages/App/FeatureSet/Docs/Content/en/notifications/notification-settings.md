@@ -50,7 +50,7 @@ When you join a project, these events start on, by email. Everything else starts
 | **Incidents** | **Incident created**, **Incident state changed**, **Incident reminder**, **Incident SLA breached**, **Incident episode created**, **Incident episode state changed**, **Incident added to incident episode** | **Incident note posted**, **Added as incident owner**, **Assigned to an incident**, **Incident episode note posted**, **Added as incident episode owner** |
 | **Alerts** | **Alert created**, **Alert state changed**, **Alert reminder**, **Alert episode created**, **Alert episode state changed**, **Alert added to alert episode** | **Alert note posted**, **Added as alert owner**, **Alert episode note posted**, **Added as alert episode owner** |
 | **Monitoring** | **Probe status changed for your monitor**, **Monitor has no active probes**, **SLO status changed**, **Added as SLO owner**, **Exception assigned to me**, **Probe status changed**, **Added as probe owner** | **Monitor created**, **Monitor status changed**, **Added as monitor owner**, **AI agent status changed**, **Added as AI agent owner** |
-| **Status Pages** | None | **Status page created**, **Status page announcement posted**, **Added as status page owner** |
+| **Status Pages** | **My public note approved or rejected**, and by push too: **Public note waiting for my approval** | **Status page created**, **Status page announcement posted**, **Added as status page owner** |
 | **Scheduled Maintenance** | **Maintenance reminder** | **Maintenance event created**, **Maintenance state changed**, **Maintenance note posted**, **Added as maintenance owner** |
 | **On-Call** | **You go on-call**, **You are up next on-call**, **You go off-call**, **Added to on-call policy**, **Removed from on-call policy**, **Missed call**, and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned** | None |
 | **Security** | By push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Hunt found security events** | None |
@@ -76,6 +76,15 @@ The **Security** tab is about the security cases you can see:
 - **Playbook step waiting for my approval** asks you to approve or reject a playbook step on a case you can approve.
 
 See [Security Cases](/docs/telemetry/security-cases#notifications).
+
+## Public note approval
+
+The **Public Note Approval** card, on the **Status Pages** tab, is about public notes that wait for approval before they are published, in a project that asks for it:
+
+- **Public note waiting for my approval** tells you that a public note, or an edit of one, waits for a step you approve, by name or through a team. You are not asked about a note you sent, or about a step after one you approved. You are asked about each step once: when the note reaches it, or when you become one of its approvers while the note waits, because the approval steps changed or you joined a team a step names. It starts on by email and by push, and **Email Rollup** never holds it back: the customers the note is written for are waiting for it.
+- **My public note approved or rejected** tells you that a note you sent for approval was approved and published, or rejected, with the reason. It starts on by email.
+
+See [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
 
 ## Fewer emails
 

@@ -84,7 +84,7 @@ Alles, was bestimmt, wie das SLO misst, startet mit einem Standardwert, den Sie 
 | Ausfall-Status | Jedem nicht betriebsbereiten Status des Projekts | **Einstellungen** → **Berechnung der Ausfallzeit** |
 | Multi-Monitor-Modus | **Beliebiger Monitor ausgefallen** | **Einstellungen** → **Berechnung der Ausfallzeit** |
 | Auswertung | Ein | **Einstellungen** → **Auswertung** |
-| Burn-Rate-Regeln | Einer Regel **Fast burn** und einer Regel **Slow burn**, an das Zeitfenster angepasst | **Burn-Rate-Regeln** |
+| Burn-Rate-Regeln | Einer Regel **Fast burn**, einer Regel **Slow burn** und einer Regel **Slow leak**, an das Zeitfenster angepasst | **Burn-Rate-Regeln** |
 
 ## Woraus ein SLO besteht
 
@@ -141,7 +141,7 @@ Ein abgeschaltetes oder archiviertes SLO wird nicht ausgewertet, sein Status ble
 Die Seite **SLOs** listet jedes nicht archivierte SLO mit Status, SLI, verbleibendem Budget, Burn-Rate, Ziel, Zeitfenster, Monitoren, Beschriftungen und Eigentümern.
 
 - Die Kacheln über der Liste zählen SLOs nach Status: **Fehlerfrei**, **Gefährdet**, **Budget ausgeschöpft**, **Falsch konfiguriert**, **Pausiert** und **Deaktiviert**. Sie erscheinen, sobald es ein SLO gibt, das nicht archiviert ist. Klicken Sie auf eine Kachel, um nur diese SLOs anzuzeigen, und erneut, um wieder alle zu sehen.
-- Wählen Sie SLOs aus, um auf einmal Beschriftungen und Eigentümer hinzuzufügen oder zu entfernen, sie zu aktivieren oder zu deaktivieren, sie zu archivieren oder zu löschen.
+- Wählen Sie SLOs aus, um auf einmal Beschriftungen und Eigentümer hinzuzufügen oder zu entfernen, sie zu aktivieren oder zu deaktivieren, ihnen die [empfohlenen Burn-Rate-Regeln](/docs/slo/burn-rate-alerts#die-regeln-zu-vielen-slos-auf-einmal-hinzufügen) zu geben, die ihnen fehlen, sie zu archivieren oder zu löschen.
 - Der Bereich **Einstellungen** des Seitenmenüs enthält **Beschriftungsregeln** und **Eigentümerregeln**, die neue SLOs beschriften und ihnen Eigentümer geben: siehe [Beschriftungs- und Eigentümerregeln](/docs/slo/label-and-owner-rules).
 - Der Bereich **Erweitert** des Seitenmenüs enthält **Archiviert**, die Liste der archivierten SLOs.
 
@@ -153,18 +153,19 @@ Die Seite **SLOs** listet jedes nicht archivierte SLO mit Status, SLI, verbleibe
 | --- | --- |
 | **Übersicht** | Den Status, die wichtigsten Kennzahlen, das Fehlerbudget-Burn-down, die neueste Aktivität, offene Warnungen und Vorfälle sowie die Burn-Rate-Regeln. |
 | **Metriken** | Die `oneuptime.slo.*`-Metriken des SLO, seinen langfristigen Fehlerbudget-Verlauf und Metriken der Vorfälle und Warnungen, die es betreffen. Siehe [SLO-Metriken und -Dashboards](/docs/slo/metrics). |
-| **Vorfälle** | Die Vorfälle, die seine Burn-Rate-Regeln gemeldet haben. Das Badge zählt die offenen. |
-| **Warnungen** | Die Warnungen, die seine Burn-Rate-Regeln ausgelöst haben. Das Badge zählt die offenen. |
+| **Vorfälle** | Die Vorfälle, die seine Burn-Rate-Regeln und seine Fehlerbudget-Richtlinie gemeldet haben. Das Badge zählt die offenen. |
+| **Warnungen** | Die Warnungen, die seine Burn-Rate-Regeln und seine Fehlerbudget-Richtlinie ausgelöst haben. Das Badge zählt die offenen. |
 | **Feed** | Was mit dem SLO passiert ist, als Zeitleiste. Siehe [SLO-Feed und Audit-Protokolle](/docs/slo/feed-and-audit-logs). |
 | **Monitore** | Die Monitore, die es misst, und ob eine Person oder eine Regel jeden davon zugeordnet hat. |
 | **Monitor-Regeln** | Die Regeln, die passende Monitore zuordnen. |
 | **Burn-Rate-Regeln** | Die Regeln, die Warnungen auslösen und Vorfälle melden, wenn das Budget zu schnell verbrennt. |
+| **Fehlerbudget-Richtlinie** | Was das Team vereinbart hat zu tun, während das Fehlerbudget schrumpft, und die Warnungen und Vorfälle, die jede Stufe der Richtlinie auslöst. Siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy). |
 | **Eigentümer** | Die Benutzer und Teams, die von seinen Statusänderungen erfahren. |
 | **Einstellungen** | Das Ziel, den Compliance-Zeitraum, die Berechnung der Ausfallzeit, den Schalter für die Auswertung und die Archivkarte. |
 | **Audit-Protokolle** | Wer das SLO, seine Regeln und seine Eigentümer geändert hat, und wann. |
 | **SLO löschen** | Löscht das SLO endgültig und löst die Burn-Rate-Warnungen und -Vorfälle auf, die es offen hatte. |
 
-**Monitore** stehen im Bereich **Konfiguration**, **Monitor-Regeln** und **Burn-Rate-Regeln** im Bereich **Regeln**, **Eigentümer**, **Einstellungen**, **Audit-Protokolle** und **SLO löschen** im Bereich **Verwaltung**. Alle drei sind anfangs eingeklappt, ebenso ein Bereich **Entwickler**, um das SLO per Code zu verwalten: Klicken Sie auf den Titel eines Bereichs, um ihn zu öffnen.
+**Monitore** stehen im Bereich **Konfiguration**, **Monitor-Regeln**, **Burn-Rate-Regeln** und **Fehlerbudget-Richtlinie** im Bereich **Regeln**, **Eigentümer**, **Einstellungen**, **Audit-Protokolle** und **SLO löschen** im Bereich **Verwaltung**. Alle drei sind anfangs eingeklappt, ebenso ein Bereich **Entwickler**, um das SLO per Code zu verwalten: Klicken Sie auf den Titel eines Bereichs, um ihn zu öffnen.
 
 Wenn etwas ein SLO am Messen hindert, sagt ein Banner oben auf jeder seiner Seiten, was nicht stimmt, und verlinkt die Seite, auf der Sie es beheben: siehe [Fehlerbehebung](#fehlerbehebung).
 
@@ -176,13 +177,15 @@ Die **Übersicht** beantwortet „Sind wir im Budget?“, von oben nach unten:
 - **Die wichtigsten Kennzahlen**:
   - **SLI**: der Anteil guter Zeit im Zeitfenster und wie weit er über oder unter dem Ziel liegt.
   - **Verbleibendes Fehlerbudget**: ein Prozentsatz, eine Dauer wie "12m 30s left of 43m 12s" und ein Balken mit einer Markierung an der Risikoschwelle. Ist das Budget überzogen, zeigt die Kachel **Budget exceeded** und um wie viel.
-  - **Burn-Rate**: wie schnell das Budget in den letzten 60 Minuten verbraucht wird, dem Rückblick, den die standardmäßige Fast-Burn-Regel verwendet. Sie wird über 1× gelb und rot, mit **Regelschwellenwert erreicht**, beim niedrigsten Schwellenwert der aktivierten Burn-Rate-Regeln des SLO.
+  - **Burn-Rate**: wie schnell das Budget in den letzten 60 Minuten verbraucht wird, dem Rückblick, den die standardmäßige Fast-Burn-Regel verwendet. Sie wird über 1× gelb und rot, mit **Regelschwellenwert erreicht**, beim niedrigsten Schwellenwert der aktivierten Burn-Rate-Regeln des SLO, die 6 Stunden oder weniger zurückblicken. Eine Stunde sagt wenig über eine Regel aus, die Tage zurückblickt, etwa **Slow leak**, deshalb wird sie nicht mit einer solchen Regel verglichen.
   - **Budget-Reichweite**: wie lange das Budget bei diesem Tempo reicht. Siehe [Fehlerbudgets](/docs/slo/error-budget#budget-reichweite).
 - **Fehlerbudget-Burn-down**: das verbleibende Budget über das aktuelle Zeitfenster. Siehe [Fehlerbudgets](/docs/slo/error-budget#fehlerbudget-burn-down).
 - **Neueste Aktivität**: die letzten Einträge im Feed des SLO.
 - **SLO-Details**: Name, Beschreibung und Beschriftungen, die einzigen Einstellungen, die auf der Übersicht bearbeitet werden.
 - **Offene Warnungen & Vorfälle**: was die Burn-Rate-Regeln gerade offen haben.
-- **Burn-Rate-Regeln**: der Schwellenwert jeder aktivierten Regel neben der aktuellen Burn-Rate und was die Regel meldet.
+- **Burn-Rate-Regeln**: der Schwellenwert jeder aktivierten Regel neben der aktuellen Burn-Rate, für Regeln, die 6 Stunden oder weniger zurückblicken, und was die Regel meldet.
+
+Ist das SLO in einer Stufe seiner Fehlerbudget-Richtlinie, zeigt die **Übersicht** auch diese Stufe und was das Team in ihr vereinbart hat: siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy).
 
 ### Einstellungen
 

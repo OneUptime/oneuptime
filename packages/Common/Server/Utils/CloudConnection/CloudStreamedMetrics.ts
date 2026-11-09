@@ -1,5 +1,6 @@
 import {
   AWS_KEY_METRICS,
+  AZURE_DIMENSION_ATTRIBUTE_PREFIX,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
   DAILY_PERIOD_SECONDS,
@@ -31,10 +32,21 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
  * minute at a time (timegrain PT1M), which the stream writes in its place
  * (AzureDiagnosticRecords). A metric read at a coarser grain - an hourly
  * storage capacity - is never the stream's, and the read keeps writing it.
+ *
+ * Nor is a queue's or topic's own series of a Service Bus or Event Hubs
+ * namespace (split by EntityName, metadata_entityname): diagnostic
+ * settings export a metric with dimensions "flattened ... and aggregated
+ * across dimension values" (Azure Monitor documentation), so the stream
+ * writes the namespace's totals only. The read keeps writing each queue's
+ * series, which files it on its queue, without the namespace's resource id:
+ * the namespace's own charts, monitors and readings then read its totals
+ * once, the stream's.
  */
 
 // Azure: the subscription on the read's resources, and the grain a stream writes.
 const AZURE_SUBSCRIPTION_ATTRIBUTE: string = "azuremonitor.subscription_id";
+// The attribute that files an Azure datapoint on its resource.
+const AZURE_RESOURCE_ID_ATTRIBUTE: string = "azuremonitor.resource_id";
 export const AZURE_STREAMED_TIME_GRAIN: string = "PT1M";
 
 const DAILY_KEY_METRICS: ReadonlySet<string> = new Set<string>(
@@ -75,6 +87,18 @@ function readStringAttribute(attributes: JSONArray, key: string): string {
   }
 
   return "";
+}
+
+// A datapoint without the attribute that files it on its Azure resource.
+function withoutResourceId(point: JSONObject): JSONObject {
+  return {
+    ...point,
+    attributes: readArray(point["attributes"]).filter(
+      (raw: unknown): boolean => {
+        return readObject(raw)["key"] !== AZURE_RESOURCE_ID_ATTRIBUTE;
+      },
+    ),
+  };
 }
 
 /*
@@ -148,6 +172,25 @@ export function withoutStreamedMetrics(data: {
       );
     };
 
+    // A queue's or topic's own series: split by a dimension, never streamed.
+    const isSplitSeries: (point: unknown) => boolean = (
+      point: unknown,
+    ): boolean => {
+      if (!subscriptionId) {
+        return false;
+      }
+
+      return readArray(readObject(point)["attributes"]).some(
+        (raw: unknown): boolean => {
+          const key: unknown = readObject(raw)["key"];
+          return (
+            typeof key === "string" &&
+            key.startsWith(AZURE_DIMENSION_ATTRIBUTE_PREFIX)
+          );
+        },
+      );
+    };
+
     const keptScopes: Array<JSONObject> = [];
 
     for (const rawScope of readArray(resourceMetrics["scopeMetrics"])) {
@@ -171,11 +214,15 @@ export function withoutStreamedMetrics(data: {
 
         const series: JSONObject = readObject(metric[shape]);
         const points: JSONArray = readArray(series["dataPoints"]);
-        const keptPoints: JSONArray = points.filter(
-          (point: unknown): boolean => {
-            return !isStreamed(point);
-          },
-        );
+        const keptPoints: JSONArray = [];
+
+        for (const point of points) {
+          if (!isStreamed(point)) {
+            keptPoints.push(point);
+          } else if (isSplitSeries(point)) {
+            keptPoints.push(withoutResourceId(readObject(point)));
+          }
+        }
 
         leftOut += points.length - keptPoints.length;
 

@@ -71,49 +71,39 @@ Eine Änderung dieser Einstellungen gilt innerhalb einer Minute.
 
 Filtern Sie nach **Ressourcentyp**, **Ressourcenname**, **Aktion**, **Benutzer-E-Mail** oder **Zeit**. Eine Änderung listet nur die geänderten Felder, vorher und nachher, und ein Speichern, das nichts ändert, erzeugt keinen Eintrag.
 
+Eine Ressource ohne eigenen Namen wird nach dem benannt, was sie in OneUptime benennt: eine Ausnahme nach ihrem Typ und dem Anfang ihrer Meldung, wobei IDs, Adressen und alles, was wie ein Geheimnis aussieht, maskiert werden, ein Runbook-Lauf nach seinem Runbook, die Telefonnummer einer Richtlinie für eingehende Anrufe nach der Nummer und eine Vorlage oder eine Domain nach ihrem eigenen Namen.
+
 Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen haben auch eine eigene Seite **Audit-Protokolle**, in einem eingeklappten Abschnitt ihres Seitenmenüs wie **Erweitert**. Sie listet nur die Einträge dieser Ressource, mit denen dessen, was zu ihr gehört: Die Seite eines SLO zeigt auch seine Regeln und Owners.
 
 ## Was erfasst wird
 
-| Ressource | **Ressourcentyp** im Protokoll |
+Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfasst: Monitore, Vorfälle, Alarme, Statusseiten, Workflows und ihre Schritte, Warteschlangen, Dashboards, Bereitschaftsrichtlinien, Teams und wer darin ist, API-Schlüssel und jede Einstellung. **Ressourcentyp** sagt, worum es in einem Eintrag geht, zum Beispiel `Monitor`, `Workflow` oder `Queue`.
+
+| Nicht erfasst | Warum |
 | --- | --- |
-| Monitore | `Monitor` |
-| Vorfälle | `Incident` |
-| Alarme | `Alert` |
-| Statusseiten | `Status Page` |
-| Geplante Wartungsereignisse | `Scheduled Maintenance Event` |
-| Bereitschaftsrichtlinien | `On-Call Policy` |
-| SLOs | `Service Level Objective` |
-| Die Regeln und Owners eines SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Teams | `Team` |
-| Benutzerdefinierte Rollen, und die Teams und API-Schlüssel, die eine erhalten | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Beschriftungen | `Label` |
-| Vorfallsstatus und -schweregrade | `Incident State`, `Incident Severity` |
-| Warnungsstatus und -schweregrade | `Alert State`, `Alert Severity` |
-| Monitor-Status | `Monitor Status` |
-| Status geplanter Wartungen | `Scheduled Maintenance State` |
-| Vorfallsrollen | `Incident Role` |
-| Postmortem-Status | `Postmortem Status` |
-| API-Schlüssel | `API Key` |
-| MCP-Clients, die Personen verbinden | `MCP Client Authorization` |
-| Inventareinträge | `Inventory Item` |
-| Collector-Konfigurationen | `Collector Config` |
-| vCenter | `vCenter` |
-| OpenStack-Clouds und die Prüfungen, die gegen sie laufen | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Paketmitschnitte, und ihre Downloads | `Packet Capture` |
-| Sicherheitsfälle mit ihren Prioritäten und Status, Playbooks und ihre Ausführungen, geschützte Entitäten, die Entitätskritikalität sowie das Risiko einer Entität, wenn es jemand zurücksetzt | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Regelausnahmen | `Rule Exception` |
-| Beobachtungslisten | `Watchlist` |
-| Beobachtungslistenwerte | `Watchlist Value` |
-| Bedrohungssuchen | `Hunt` |
-| Aufgaben und Belege von Sicherheitsfällen | `Security Case Task`, `Security Case Evidence` |
-| Datenspeicher und ihre Funde sowie die Probleme, Einstellungen, Prüfungseinstellungen, benutzerdefinierten Datentypen und Residenzregeln der Datensicherheit | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Einstellungen von Data Observability | `Data Observability Setting` |
-| Audit-Protokoll-Exporte | `Audit Log Export` |
+| Protokolle von Nachrichten | Jedes ist bereits der Nachweis einer E-Mail, SMS, eines Anrufs, einer Push-Benachrichtigung oder Chatnachricht, die OneUptime gesendet oder empfangen hat. |
+| Aufzeichnungen von Ausführungen | Jede ist bereits der Nachweis einer Workflow-Ausführung, einer Bereitschaftseskalation, eines Scans, eines Imports oder eines KI-Laufs. |
+| Was Agenten und Telemetrie melden | Gefundene Ressourcen, Messwerte und Nutzung ändern sich mit jeder Meldung, nicht weil jemand sie geändert hat. |
+| Aktivitätsfeeds | Ein Feed zeigt Änderungen, die das Audit-Protokoll bereits erfasst. |
+| Arbeitszustand von OneUptime | Sitzungen, wartende Jobs und anderer Zustand, den OneUptime während seiner Arbeit hält. |
+| Die eigene Benachrichtigungseinrichtung einer Person | Die Adressen, Nummern und persönlichen Bereitschaftsregeln jeder Person gehören nur ihr. |
 
 Fügt ein Administrator eine Benachrichtigungsmethode oder eine persönliche Bereitschaftsregel zum Konto einer anderen Person hinzu oder entfernt sie, wird das ebenfalls erfasst, ohne die Adresse oder Nummer selbst.
 
-Andere Datensätze stehen nicht im Audit-Protokoll, etwa wer in einem Team ist oder eine Berechtigung, die einem Team einzeln hinzugefügt wurde. Felder, die niemand lesen darf, fehlen in jedem Eintrag, und Schlüssel, Tokens und Passwörter werden als `[REDACTED]` erfasst: Der Eintrag zeigt, dass sie sich geändert haben, nie ihren Wert.
+Felder, die nur OneUptime schreibt, etwa wann ein Host zuletzt gesehen wurde, fehlen in jedem Eintrag, ebenso Felder, die niemand lesen darf. Schreibt OneUptime eines davon, weil jemand darum gebeten hat, etwa wenn eine Ausnahme mit einer anderen zusammengeführt oder eine Webhook-URL zurückgesetzt wird, erfasst der Eintrag es als Änderung dieser Person. Schlüssel, Tokens und Passwörter werden als `[REDACTED]` erfasst: Der Eintrag zeigt, dass sie sich geändert haben, nie ihren Wert. Die Schritte eines Workflows werden als das erfasst, was sich geändert hat, mit den Namen der Einstellungen eines Schritts, aber nie dem, was in sie eingegeben wurde, und das Verschieben eines Schritts auf der Arbeitsfläche wird nicht erfasst.
+
+Was OneUptime tut, weil jemand darum gebeten hat, wird ebenfalls als dessen Änderung erfasst, ob das Projekt Systemereignisse speichert oder nicht:
+
+- Das Starten, Genehmigen, Abschließen, Überspringen und Abbrechen eines Runbook-Laufs. Seine Schritte werden als das erfasst, was mit jedem getan wurde, etwa `Approved "Restart the API" (step 3)`, nie mit dem, was ein Schritt ausgegeben hat.
+- Was eine Regel ändert, wenn jemand sie ausführt: die Labels und Eigentümer, die sie hinzufügt, die Datensätze, die eine Datenschutzregel privat macht, die Geräte, die eine Regel zur Standortzuweisung verschiebt, die Geräte und Monitore, die eine Regel für automatischen Import anlegt, und was eine Monitor-Regel einer Statusseite oder eines SLOs an ihrer Seite oder ihrem SLO ändert.
+- Das Kaufen, Zuordnen und Freigeben der Telefonnummer einer Richtlinie für eingehende Anrufe.
+- Das Auflösen eines Datenalarms, den jemand als erwartet oder als kein Problem markiert.
+- Das Zurücksetzen des Links eines Kalender-Feeds.
+- Die Teams, denen jemand bei der Anmeldung mit SSO beitritt.
+
+Was eine Regel von sich aus tut, ist eine Änderung von OneUptime selbst und wird erfasst, wenn **Systemereignisse speichern** eingeschaltet ist: die Labels und Eigentümer, die eine Regel beim Anlegen eines Datensatzes hinzufügt, und ein Datensatz, den sie dabei privat macht; die Geräte und Monitore, die eine Regel für automatischen Import aus neuen Scan-Ergebnissen anlegt; und was eine Monitor-Regel einer Statusseite oder eines SLOs ändert, wenn eine Regel, ein Monitor oder ein Label gespeichert wird.
+
+Das Zurücksetzen des KI-Agenten eines Hosts, eines Clusters oder eines Cloud-Kontos wird auf der eigenen Seite **Audit-Protokolle** dieser Ressource als Änderung von `aiAgentResetAt` durch die Person erfasst, die ihn zurückgesetzt hat: wer, und wann. Ebenso das Erstellen eines Schlüssels für den KI-Agenten eines Cloud-Kontos: Die Schlüssel erscheinen als geändert, nie mit einem Schlüssel oder einem Hash. Was ein Agent beim Verbinden und bei seinen Meldungen berichtet, bleibt wie bisher außen vor.
 
 ## Wie lange Einträge bleiben
 

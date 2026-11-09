@@ -22,7 +22,8 @@ export interface ComponentProps {
  * and how it is doing (Overview), what is inside it, who can reach it, what
  * to fix (Issues, with how many are open), where its data goes, the scans
  * that read it, and its Timeline. Its owners and settings are set up once,
- * so they fold; Delete closes the menu under Advanced.
+ * so they fold; under Advanced, who changed it (Audit Logs), and Delete
+ * closes the menu.
  */
 const DataStoreViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -114,6 +115,13 @@ const DataStoreViewSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: routeOf(PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS),
+          }}
+          icon={IconProp.List}
+        />
         <SideMenuItem
           link={{
             title: "Delete Data Store",

@@ -342,6 +342,8 @@ Un incidente o una alerta recibe un único carril de corrección de IA. Cuando e
 
 Algunos cambios más arriesgados **siempre necesitan a una persona** en todos los modos, incluido Omitir aprobación, y ninguna entrada de la lista de permitidos cambia eso; en las tablas de abajo aparecen marcados como tales.
 
+Un proyecto también puede pedir que dos personas aprueben una corrección que contiene un cambio más arriesgado: consulta [Dos personas aprueban una corrección más arriesgada](/docs/ai/ai-sre#dos-personas-aprueban-una-corrección-más-arriesgada).
+
 ### Correcciones en hosts de Docker y Podman
 
 | | Comandos |

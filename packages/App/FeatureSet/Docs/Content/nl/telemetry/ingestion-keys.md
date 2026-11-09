@@ -26,6 +26,7 @@ flowchart TB
 
 - **De sleutel bepaalt het project.** U stuurt nooit een project-ID mee: gegevens die met een sleutel worden verzonden, komen terecht in het project waar de sleutel bij hoort.
 - **Wijzigingen bereiken elke server binnen een minuut.** Een sleutel uitschakelen, zijn geheim opnieuw instellen of zijn origins, vervaldatum of limiet wijzigen werkt binnen ongeveer een minuut.
+- **Een sleutel kan eigen budgetten hebben.** Een dagbudget en een snelheid per seconde voor elk signaal, binnen die van zijn project: zie [Ingestiebudgetten](/docs/telemetry/ingestion-budgets).
 - **Een serversleutel is een wachtwoord.** Iedereen die hem heeft, kan telemetrie naar uw project sturen. Bewaar hem in de geheimen van uw servers, nooit in versiebeheer of op een webpagina.
 
 ## Server of Browser
@@ -155,4 +156,5 @@ Er zijn met deze sleutel geen gegevens verzonden sinds OneUptime het gebruik erv
 - [Servicecatalogus](/docs/telemetry/services): Bekijk de services waaronder uw telemetrie staat.
 - [Gegevensbewaring](/docs/telemetry/data-retention): Bepaal hoe lang de gegevens worden bewaard.
 - [Drop-filters en scrub-regels](/docs/telemetry/drop-filters-and-scrub-rules): Verwijder of maskeer gegevens voordat ze worden opgeslagen.
+- [Ingestiebudgetten](/docs/telemetry/ingestion-budgets): Begrens hoeveel elke sleutel per dag mag versturen.
 :::

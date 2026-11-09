@@ -1,6 +1,7 @@
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
+import { formatSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
 
 /*
  * The words of the SLO feed.
@@ -927,8 +928,8 @@ export const getSloCreatedFeedMarkdown: GetSloCreatedFeedMarkdownFunction =
     }
 
     /*
-     * The two default rules are part of what "creating an SLO" means, so they
-     * are described here rather than as two more items that would bury the
+     * The default rules are part of what "creating an SLO" means, so they
+     * are described here rather than as more items that would bury the
      * creation under its own bookkeeping.
      */
     const rules: Array<MarkdownText> = data.defaultBurnRateRules.map(
@@ -1542,5 +1543,215 @@ export const getBurnRateRuleRemovedFeedMarkdown: GetBurnRateRuleRemovedFeedMarkd
         ],
         "\n\n",
       ).toString(),
+    };
+  };
+
+/*
+ * ---------------------------------------------------------------------------
+ * Error budget policy
+ * ---------------------------------------------------------------------------
+ */
+
+// A tier of the SLO's error budget policy, as the feed shows it.
+export interface SloFeedPolicyTier {
+  name: string | undefined | null;
+  thresholdPercentage: number | string | undefined | null;
+  whatWeDo?: string | undefined | null;
+}
+
+/*
+ * What an evaluation did to the SLO's deploy gate, as the feed says it:
+ * whether deployments are allowed after it, and whether that flipped.
+ */
+export interface SloFeedDeploymentGate {
+  isAllowed: boolean;
+  hasChanged: boolean;
+}
+
+// The deploy gate's line of an item's details, for each way it can move.
+const DEPLOYMENTS_FROZEN_DETAIL: MarkdownText = mdText`**Deployments**: allowed → frozen`;
+const DEPLOYMENTS_ALLOWED_DETAIL: MarkdownText = mdText`**Deployments**: frozen → allowed`;
+const DEPLOYMENTS_STILL_FROZEN_DETAIL: MarkdownText = mdText`**Deployments**: still frozen`;
+
+/*
+ * The deploy gate's line of a tier change's details: how it moved, or that
+ * it stayed frozen. Nothing while deployments stay allowed: a team that does
+ * not gate deployments reads nothing about them.
+ */
+const getDeploymentGateDetail: (
+  deployments: SloFeedDeploymentGate | undefined,
+) => MarkdownText | null = (
+  deployments: SloFeedDeploymentGate | undefined,
+): MarkdownText | null => {
+  if (!deployments) {
+    return null;
+  }
+
+  if (deployments.hasChanged) {
+    return deployments.isAllowed
+      ? DEPLOYMENTS_ALLOWED_DETAIL
+      : DEPLOYMENTS_FROZEN_DETAIL;
+  }
+
+  return deployments.isAllowed ? null : DEPLOYMENTS_STILL_FROZEN_DETAIL;
+};
+
+export type GetSloPolicyTierChangedFeedMarkdownFunction = (data: {
+  sloMarkdownLink: MarkdownText;
+  // The tier the SLO was in, by the name it was recorded under; unset for none.
+  previousTierName: string | undefined | null;
+  // The tier it is in now; null for none.
+  newTier: SloFeedPolicyTier | null;
+  // True when the new tier is more severe than the one it was in.
+  isEscalation: boolean;
+  errorBudgetRemainingPercentage: number;
+  errorBudgetRemainingSeconds: number;
+  // The deploy gate after the change; unset when it plays no part.
+  deployments?: SloFeedDeploymentGate | undefined;
+}) => SloFeedMarkdown;
+
+/*
+ * ErrorBudgetPolicyTierChanged: the SLO entered a tier, moved between tiers
+ * or left the last one. The new tier's "what we do" goes in as the Markdown
+ * the team wrote (FeedMarkdown.asMarkdown), so the agreement is right there
+ * in the feed when the tier changes. When the change froze deployments, or
+ * allowed them again, the item's first line says so, and its details say
+ * how the gate moved - or that it stayed frozen, between two tiers that
+ * both freeze.
+ */
+export const getSloPolicyTierChangedFeedMarkdown: GetSloPolicyTierChangedFeedMarkdownFunction =
+  (data: {
+    sloMarkdownLink: MarkdownText;
+    previousTierName: string | undefined | null;
+    newTier: SloFeedPolicyTier | null;
+    isEscalation: boolean;
+    errorBudgetRemainingPercentage: number;
+    errorBudgetRemainingSeconds: number;
+    deployments?: SloFeedDeploymentGate | undefined;
+  }): SloFeedMarkdown => {
+    const previousTierName: string = data.previousTierName?.trim() || "";
+    const newTierName: string = data.newTier?.name?.trim() || "";
+
+    let feedInfo: MarkdownText;
+
+    if (!data.newTier) {
+      feedInfo = previousTierName
+        ? mdText`✅ ${data.sloMarkdownLink} left the **${previousTierName}** tier of its error budget policy: its error budget is above every tier again.`
+        : mdText`✅ ${data.sloMarkdownLink} is in no tier of its error budget policy.`;
+    } else {
+      const was: MarkdownText = previousTierName
+        ? mdText` (was **${previousTierName}**)`
+        : FeedMarkdown.empty();
+
+      feedInfo = data.isEscalation
+        ? mdText`📉 ${data.sloMarkdownLink} entered the **${newTierName}** tier of its error budget policy${was}.`
+        : mdText`📈 ${data.sloMarkdownLink} recovered to the **${newTierName}** tier of its error budget policy${was}.`;
+    }
+
+    if (data.deployments?.hasChanged) {
+      feedInfo = data.deployments.isAllowed
+        ? mdText`${feedInfo} Deployments are allowed again.`
+        : mdText`${feedInfo} Deployments are frozen.`;
+    }
+
+    const details: Array<MarkdownText> = [
+      mdText`**Error budget policy tier**: ${previousTierName || "none"} → ${newTierName || "none"}`,
+    ];
+
+    const deploymentGate: MarkdownText | null = getDeploymentGateDetail(
+      data.deployments,
+    );
+
+    if (deploymentGate) {
+      details.push(deploymentGate);
+    }
+
+    const budgetDuration: string = formatSloFeedDuration(
+      data.errorBudgetRemainingSeconds,
+    );
+
+    details.push(
+      data.errorBudgetRemainingSeconds < 0
+        ? mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
+        : mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (${budgetDuration})`,
+    );
+
+    if (data.newTier) {
+      const threshold: string = formatSloPolicyTierThreshold(
+        data.newTier.thresholdPercentage,
+      );
+
+      if (threshold) {
+        details.push(
+          mdText`**Tier applies while**: the error budget left is at or below ${threshold}`,
+        );
+      }
+
+      if (data.newTier.whatWeDo?.trim()) {
+        details.push(mdText`**What we do**:`);
+        details.push(FeedMarkdown.asMarkdown(data.newTier.whatWeDo));
+      }
+    }
+
+    return {
+      feedInfoInMarkdown: feedInfo.toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(details, "\n\n").toString(),
+    };
+  };
+
+export type GetSloDeploymentGateChangedFeedMarkdownFunction = (data: {
+  sloMarkdownLink: MarkdownText;
+  // The tier the SLO is in, by name; unset or empty for none.
+  tierName: string | undefined | null;
+  // Whether deployments are allowed now: the item says how they flipped.
+  isAllowed: boolean;
+  errorBudgetRemainingPercentage: number;
+  errorBudgetRemainingSeconds: number;
+}) => SloFeedMarkdown;
+
+/*
+ * ErrorBudgetPolicyDeploymentsFrozen / ...DeploymentsAllowed: deployments
+ * were frozen or allowed again while the SLO stayed in its tier - someone
+ * switched Freeze Deployments on or off for the tier it is in. (A tier
+ * change that moves the gate says so in its own item instead.) No "what we
+ * do": the agreement did not change, only whether CI/CD holds releases back.
+ */
+export const getSloDeploymentGateChangedFeedMarkdown: GetSloDeploymentGateChangedFeedMarkdownFunction =
+  (data: {
+    sloMarkdownLink: MarkdownText;
+    tierName: string | undefined | null;
+    isAllowed: boolean;
+    errorBudgetRemainingPercentage: number;
+    errorBudgetRemainingSeconds: number;
+  }): SloFeedMarkdown => {
+    const tierName: string = data.tierName?.trim() || "";
+
+    let feedInfo: MarkdownText;
+
+    if (data.isAllowed) {
+      feedInfo = tierName
+        ? mdText`🔓 Deployments of ${data.sloMarkdownLink} are allowed again: its **${tierName}** tier no longer freezes deployments.`
+        : mdText`🔓 Deployments of ${data.sloMarkdownLink} are allowed again: it is in no tier that freezes deployments.`;
+    } else {
+      feedInfo = tierName
+        ? mdText`🔒 Deployments of ${data.sloMarkdownLink} are frozen: its **${tierName}** tier now freezes deployments.`
+        : mdText`🔒 Deployments of ${data.sloMarkdownLink} are frozen.`;
+    }
+
+    const budgetDuration: string = formatSloFeedDuration(
+      data.errorBudgetRemainingSeconds,
+    );
+
+    const details: Array<MarkdownText> = [
+      data.isAllowed ? DEPLOYMENTS_ALLOWED_DETAIL : DEPLOYMENTS_FROZEN_DETAIL,
+      mdText`**Error budget policy tier**: ${tierName || "none"}`,
+      data.errorBudgetRemainingSeconds < 0
+        ? mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
+        : mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (${budgetDuration})`,
+    ];
+
+    return {
+      feedInfoInMarkdown: feedInfo.toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(details, "\n\n").toString(),
     };
   };

@@ -177,6 +177,8 @@ Un episodio creato da voi non ha una regola di raggruppamento, quindi l'elenco m
 
 **Sviluppatori** e **Avanzato** partono compresse. Nella **Panoramica**, l'intestazione indica i **Proprietari** dell'episodio, prima i team, e il primo riquadro, **Creato**, dice quando è stato creato l'episodio — **Automaticamente**, quando l'ha aperto una regola di raggruppamento. La scheda **Cosa è successo** apre la pagina — la descrizione dell'episodio e la sua **Causa principale** — poi **Avvisi in questo episodio** e il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Sposta l'episodio in** nel menu **⋯**.
 
+La pagina **Causa principale** traccia le metriche dietro l'episodio accanto alla sua causa principale: quelle del suo primo avviso, il primo creato, come le traccia la scheda della telemetria della sua **Panoramica**, attorno all'inizio dell'episodio e con i suoi momenti segnati, così potete leggerle su qualsiasi intervallo attorno all'episodio mentre scrivete perché è successo. Quando quell'avviso non ha conservato un'istantanea di un controllo delle metriche (uno creato a mano su un monitor di metriche, per esempio), la pagina traccia le metriche di quel monitor come il monitor le legge ora, e lo dice.
+
 **Avvisi → Episodi attivi** elenca gli episodi non ancora risolti, e il badge accanto li conta.
 
 ## Risoluzione dei problemi

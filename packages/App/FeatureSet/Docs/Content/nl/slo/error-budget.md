@@ -75,6 +75,7 @@ De looptijd is een rechtlijnige projectie. In een voortschrijdend venster geeft 
 De grafiek **Burn-down van foutbudget** op het **Overzicht** zet het resterende budget, als percentage, uit over het huidige compliancevenster:
 
 - Een lijn op 0% geeft aan waar het budget op is, en een stippellijn geeft de risicodrempel van de SLO aan.
+- Als de SLO een foutbudgetbeleid heeft, markeert een lijn met label ook de drempel van elk niveau: zie [Foutbudgetbeleid](/docs/slo/error-budget-policy).
 - Voor SLO's met een kalendermaand loopt een vage lijn gelijkmatig af van een vol budget aan het begin van de maand tot een leeg budget bij het terugzetten. Onder die lijn geeft de maand haar budget te snel uit.
 - Bij elke evaluatie, elke 5 minuten, wordt een punt vastgelegd, dus de grafiek van een nieuwe SLO blijft leeg tot zijn eerste evaluatie.
 - Sleep over de grafiek om in te zoomen op een deel van het venster. Dubbelklik, of klik op **Zoom herstellen**, om weer het hele venster te zien.
@@ -126,6 +127,8 @@ stateDiagram-v2
 
 Met de standaarddrempel van 20% wordt een SLO in gevaar weer gezond bij 25% resterend budget, en gaat een SLO met een uitgeput budget terug naar in gevaar bij 2%. Elke statuswijziging verschijnt in de **Feed** van de SLO, met de SLI, het budget en de verbruikssnelheid die haar verklaren.
 
+Een status zegt hoeveel budget er over is, niet wat uw team eraan doet. Om dat voor elk niveau van resterend budget vast te leggen, bijvoorbeeld bij de risicodrempel of zodra het budget op is, geeft u de SLO een [foutbudgetbeleid](/docs/slo/error-budget-policy).
+
 ## Meldingen aan eigenaren
 
 Als een SLO naar **Risico** of **Budget uitgeput** gaat, informeert OneUptime zijn eigenaren:
@@ -143,6 +146,7 @@ Zodat een SLO vlak bij een grens niet blijft melden, krijgen zijn eigenaren hoog
 
 :::cards
 - [Waarschuwingen en incidenten voor verbruikssnelheid](/docs/slo/burn-rate-alerts): Waarschuw uw team als het budget te snel opraakt.
+- [Foutbudgetbeleid](/docs/slo/error-budget-policy): Leg vast wat het team doet terwijl het budget opraakt.
 - [SLO-metrics en -dashboards](/docs/slo/metrics): Zet het budget in een grafiek over de tijd.
 - [SLO's – Overzicht](/docs/slo/introduction): Doelen, vensters en downtime-statussen.
 :::

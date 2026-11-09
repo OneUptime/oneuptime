@@ -102,7 +102,9 @@ const DELETE_PERMISSIONS: Array<Permission> = [
 /*
  * Starting a capture and deleting one are recorded. Updates are not: after
  * creation only the probe and the server write to a capture, and those
- * writes go round the hooks.
+ * writes go round the hooks. The two a person asks for are recorded where
+ * they are made: a Stop (PacketCaptureService.requestStop) and a download
+ * of its file (PacketCaptureAPI).
  */
 @EnableAuditLog({
   create: true,

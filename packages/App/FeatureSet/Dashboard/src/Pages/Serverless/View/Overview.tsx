@@ -3,6 +3,10 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getServerlessFunctionConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import {
+  ServerlessFunctionStatusDescription,
+  describeServerlessFunctionStatus,
+} from "Common/Types/Serverless/ServerlessFunctionStatus";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -252,6 +256,12 @@ const ServerlessFunctionOverview: FunctionComponent<
   }
 
   const fn: ServerlessFunction = serverlessFunction;
+  // The hero's pill, read as the connection card under it reads the record.
+  const status: ServerlessFunctionStatusDescription =
+    describeServerlessFunctionStatus({
+      otelCollectorStatus: fn.otelCollectorStatus,
+      lastSeenAt: fn.lastSeenAt,
+    });
   const m: SpanMetrics | null = metrics;
   const runtime: string = [fn.runtimeName, fn.runtimeVersion]
     .filter((s: string | undefined): boolean => {
@@ -395,6 +405,14 @@ const ServerlessFunctionOverview: FunctionComponent<
         identifier={(fn.functionIdentifier as string) || ""}
         identifierLabel="faas.name"
         status={fn.otelCollectorStatus}
+        /*
+         * Receiving data, No recent invocations or Waiting for data -
+         * never "Disconnected": a function nothing has invoked for a while
+         * is idle, not broken (ServerlessFunctionStatus, issue #6269).
+         */
+        statusLabel={status.label}
+        statusTone={status.tone}
+        statusDescription={status.description}
         lastSeenAt={fn.lastSeenAt}
         connectionGuide={
           <ResourceConnectionGuideCard

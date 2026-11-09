@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
@@ -104,6 +106,7 @@ class ProxmoxClusterLabelRuleEngineServiceClass
       return await this.applyRules({
         proxmoxCluster: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running Proxmox cluster label rules: ${error}`, {
@@ -119,6 +122,8 @@ class ProxmoxClusterLabelRuleEngineServiceClass
   private async applyRules(data: {
     proxmoxCluster: ProxmoxCluster;
     rules: Array<ProxmoxClusterLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { proxmoxCluster, rules } = data;
 
@@ -205,11 +210,12 @@ class ProxmoxClusterLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await ProxmoxClusterService.getRepository()
-      .createQueryBuilder()
-      .relation(ProxmoxCluster, "labels")
-      .of(proxmoxCluster.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: ProxmoxClusterService,
+      resourceId: proxmoxCluster.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory proxmoxCluster.labels so a downstream owner-rule engine in

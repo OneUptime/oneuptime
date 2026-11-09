@@ -135,6 +135,8 @@ export default class RuleRunAPI {
             projectId: projectId,
             cursor: readCursor(body),
             allowOwnerNotification: readBooleanFlag(body, "notifyOwners"),
+            // What the run changes is theirs in the audit log.
+            props: props,
           });
 
           return Response.sendJsonObjectResponse(

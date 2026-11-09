@@ -342,6 +342,8 @@ Um incidente ou alerta recebe uma única faixa de correção de IA. Quando ele e
 
 Algumas mudanças mais arriscadas **sempre precisam de uma pessoa** em todos os modos, incluindo Ignorar aprovação, e nenhuma entrada da lista de permitidos muda isso; elas estão marcadas como tal nas tabelas abaixo.
 
+Um projeto também pode pedir que duas pessoas aprovem uma correção que contém uma alteração mais arriscada: veja [Duas pessoas aprovam uma correção mais arriscada](/docs/ai/ai-sre#duas-pessoas-aprovam-uma-correção-mais-arriscada).
+
 ### Correções em hosts Docker e Podman
 
 | | Comandos |

@@ -336,12 +336,19 @@ jobs:
           # Trace Detail (2.5) joined it from group 3 the same day, when
           # Meraki Traffic grew there: about 20.2. Postmortems (0.8) came from
           # group 9 the same day, to make room there for Cloud Spend: about 21.
+          # EvaluationDetails.spec.ts joined Event Overview on 2026-11-08 (19
+          # tests after its UI review, 1.1 minutes locally with its bundle:
+          # an incident's and an alert's Evaluation details under the root
+          # cause, folded and open, a failed check, a Logs check, long values
+          # at four widths, dark, German and Persian). Its file sorts first,
+          # so this half runs it and hands about 10 of Event Overview's tests
+          # to group 10's half: about 0.5 minutes more here, 22 in all, so
+          # Postmortems (0.8) moved on to group 10: about 21.3.
           - group: 1
             event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
               test-trace-detail-ui
-              test-postmortems-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -485,6 +492,12 @@ jobs:
           # Host Collectors (1.2) joined it from group 8 on 2026-11-06, when
           # the Azure and Google Cloud streaming tests grew Cloud Connect:
           # about 21.4.
+          # Meraki Traffic grew to about 5.7 on 2026-11-08 with #5762's tests
+          # (a page opening on Meraki, an estate of 150 networks opened whole,
+          # searched, sorted and paged, a router linked to its MX and
+          # unlinked, a member, German and dark: about 50 seconds locally),
+          # which would have taken this group to 22.3: Host Collectors (1.2)
+          # moved to group 13. About 21.1.
           - group: 3
             monitor_overview_shard: 1/2
             suites: >-
@@ -493,7 +506,6 @@ jobs:
               test-label-rule-transfer-ui
               test-meraki-traffic-ui
               test-security-events-empty-states-ui
-              test-host-collectors-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
           # group past them. Its two projects, a laptop and a phone, are both
@@ -1148,10 +1160,15 @@ jobs:
           # English, German and Persian, and the fixes of a member who may not
           # act on them, with no buttons):
           # 22.2 here, past the budget, to 19.7.
+          # This half of Event Overview took about 10 more of its tests on
+          # 2026-11-08, when EvaluationDetails.spec.ts joined the suite in
+          # group 1's half, and Postmortems (0.8) came from group 1 to make
+          # room there: about 21.1.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
+              test-postmortems-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
@@ -1328,6 +1345,9 @@ jobs:
           # two-factor and Add to Project runs and a status page's Add in
           # Bulk, watched while they go on): its 1.1 minutes planned as 1.8,
           # this group's sum 22.0. Group 16 has the most room (18.9).
+          # Host Collectors (1.2) joined it from group 3 on 2026-11-08, when
+          # #5762 grew Meraki Traffic there; Reading Direction had left it
+          # for group 20 (17.6): about 18.8.
           - group: 13
             suites: >-
               test-logs-ai-ui
@@ -1338,6 +1358,7 @@ jobs:
               test-status-page-search-ui
               test-accounts-theme-ui
               test-data-security-ui
+              test-host-collectors-ui
           # Added on 2026-10-29, when group 3's run step reached its 28 minutes
           # on two of master's runs (#5393 grew Monitor Overview from 209 tests
           # to 222) and took 24.6 on the next, and groups 5 and 9 took 25.3 and
@@ -1468,6 +1489,17 @@ jobs:
           # that group past 22: 20.1.
           # Archivable Values (1.8) came from group 9 the same day, when Cloud
           # Spend grew there: about 21.9.
+          # ResponseContentSettings.spec.ts joined Monitor Overview on
+          # 2026-11-08 (8 tests, 0.5 minutes locally: a monitor's Settings
+          # page and its Response content card, about half of them in each
+          # half), which took this group to 22.1: Archivable Values (1.8)
+          # moved on to group 19, the group with the most room: about 20.3.
+          # DiscoveredDevices.spec.ts joined Discovery on 2026-11-09 with
+          # #5775's tests (8 tests, about a minute locally: the Discovered
+          # Devices list, its search, Add to monitoring, Hide from map and Show
+          # on map, 320 devices selected at once, a phone, and the list at four
+          # widths, dark, German and Persian), which took Discovery from 5.5 to
+          # about 6.6 and this group to about 21.4.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
@@ -1476,7 +1508,6 @@ jobs:
               test-discovery-ui
               test-suite-helpers-ui
               test-resource-onboarding-ui
-              test-archivable-values-ui
           # Added on 2026-11-03, when the sixteen groups' run steps added up to
           # 367.1 and 364.4 minutes on the last two runs with these suites
           # (master's of 2026-11-02 23:47, 41541694087, and 14.0.102's first
@@ -1502,6 +1533,14 @@ jobs:
           # routers at once, the OIDs compared, Collect on every device that
           # answers, the CSV, the walk read back, at 1280 and 390 pixels, dark
           # and German) joined it beside SNMP Walk on 2026-11-03: 21.6.
+          # SLO Burn Rate grew by the SLO list's Add recommended rules (3
+          # tests, about 0.2 minutes locally: the confirmation, the add and a
+          # second run, and a phone's width) on 2026-11-08: 1.9, so 21.8.
+          # It grew again by the deploy gate (2 tests, about 0.1 minutes
+          # locally: an SLO whose tier freezes deployments, its Overview's
+          # "Deployments frozen since" badge at 1280 and 390 pixels, and an
+          # SLO in a tier that freezes nothing, with no badge) on 2026-11-09:
+          # 2.0, so 21.9.
           - group: 17
             suites: >-
               test-snmp-walk-ui
@@ -1552,6 +1591,9 @@ jobs:
           # Dashboard Widget Sort (1.1, Chromium only) joined it from group 8
           # the same day, when Cloud's All Resources grew Cloud Connect there:
           # about 16.2.
+          # Archivable Values (1.8, Chromium only) came from group 16 on
+          # 2026-11-08, when Monitor Overview's second half grew there: about
+          # 18.0 with Dashboard Widget Sort.
           - group: 19
             openstack_pages_shard: 1/2
             suites: >-
@@ -1559,6 +1601,7 @@ jobs:
               test-ai-insights-ui
               test-global-runners-ui
               test-dashboard-widget-sort-ui
+              test-archivable-values-ui
           # Dashboard Templates (2.5) from group 10 on 2026-11-06, the group with
           # the most room, when Event Overview's second half grew past that
           # group's budget: about 14.1.

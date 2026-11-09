@@ -619,4 +619,48 @@ describe("POST /ai-agent-data/record-pull-request", () => {
       "baseRefName length cannot be more than 500 characters",
     );
   });
+
+  /*
+   * A repository's owner is copied to the pull request whole. A GitLab
+   * group's full path runs to 5,375 characters - 21 groups, each path up to
+   * 255 - and a cut one is another group; past 100, the old width, the
+   * pull request was never recorded.
+   */
+  test("records the owner of a repository in a group as deeply nested as GitLab allows, whole", async () => {
+    const groupPath: string = Array.from(
+      { length: 21 },
+      (_: unknown, index: number): string => {
+        return String.fromCharCode(97 + index).repeat(255);
+      },
+    ).join("/");
+
+    expect(groupPath).toHaveLength(5375);
+
+    const deep: CodeRepository = repository(
+      checkoutRepositoryId,
+      projectId,
+      "checkout",
+    );
+    deep.organizationName = groupPath;
+    findRepositorySpy.mockImplementation(
+      async (): Promise<CodeRepository | null> => {
+        return deep;
+      },
+    );
+
+    await record(
+      recordBody({
+        pullRequestUrl: `https://gitlab.example.com/${groupPath}/checkout/-/merge_requests/77`,
+      }),
+    );
+
+    expect(refusal()).toBeUndefined();
+    expect(next).not.toHaveBeenCalled();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.repoOrganizationName).toBe(groupPath);
+    expect(rows[0]!.repoName).toBe("checkout");
+    expect(answers()).toEqual([
+      { success: true, pullRequestId: rows[0]!.id!.toString() },
+    ]);
+  });
 });

@@ -10,14 +10,32 @@ import path from "path";
  * rendered for real in Common/Tests/App/Dashboard:
  *
  *   MonitorMetricsTabsTimeRangeZoom.test.tsx      (monitor Metrics page)
- *   MonitorOverviewChartsTimeRangeZoom.test.tsx   (response time, preview)
+ *   MonitorOverviewChartsTimeRangeZoom.test.tsx   (response time, metrics card)
  *   MonitorStepPreviewsTimeRangeZoom.test.tsx     (10 step forms, Criteria)
- *   IncidentRootCauseTimeRangeZoom.test.tsx       (Root Cause page)
+ *   IncidentRootCauseTimeRangeZoom.test.tsx       (Root Cause page: the
+ *                                                  incident's investigation,
+ *                                                  issue #6249)
+ *   AlertRootCauseTimeRangeZoom.test.tsx          (an alert's Root Cause
+ *                                                  page, the same card,
+ *                                                  issue #6304)
+ *   EpisodeRootCauseTimeRangeZoom.test.tsx        (an incident episode's and
+ *                                                  an alert episode's Root
+ *                                                  Cause pages, the same
+ *                                                  card, issue #6320)
  *   EventOverviewTelemetrySnapshotZoom.test.tsx   (incident / alert pages)
  *   EventOverviewSnapshotZoomAcrossTabs.test.tsx  (their snapshot's tabs)
  *   TelemetrySnapshotPanelTimeRangeZoom.test.tsx  (episodes, companion tabs)
  *   TelemetrySnapshotZoomAcrossTabs.test.tsx      (a snapshot's zoom, every tab)
- *   TelemetrySnapshotZoom.test.tsx                (the hosts' snapshot zoom)
+ *   SnapshotExplorerPrimaryZoom.test.tsx          (a logs, traces or
+ *                                                  exceptions card's zoom and
+ *                                                  time range, issue #6251)
+ *   EventOverviewSnapshotExplorerZoom.test.tsx    (the same on the pages)
+ *   UseInvestigationTimeRange.test.tsx            (that card's time range)
+ *   EventTimeRangeControls.test.tsx               (its picker, every tab)
+ *   EventMetricInvestigationPanel.test.tsx        (a metric snapshot, issue
+ *                                                  #5954: its time range,
+ *                                                  zoom and every tab)
+ *   MetricInvestigation.test.tsx                  (the investigation card)
  *   UptimeStripsExcludedFromZoom.test.tsx         (uptime day strips)
  */
 
@@ -192,64 +210,131 @@ describe("monitor step forms zoom their preview only", () => {
 
 describe("the telemetry snapshot zooms as one, every tab of it", () => {
   test.each(SNAPSHOT_HOSTS)(
-    "%s: its metric chart zooms the snapshot the host holds",
+    "%s: a metrics monitor's snapshot is its metric investigation, not a chart of the host's",
     (_name: string, file: string) => {
       const source: string = readSquashed(file);
-      const views: Array<string> = metricViewElements(source);
 
-      expect(views).toHaveLength(1);
-      const view: string = views[0]!;
-      // The chart shows the window the snapshot shows (a zoom included)...
-      expect(view).toContain("data={snapshotZoom.metricViewData}");
-      // ...and a drag or a double-click on it zooms or resets the snapshot.
-      expect(view).toContain(
-        "onTimeRangeSelect={snapshotZoom.onTimeRangeSelect}",
-      );
-      expect(view).toContain(
-        "onTimeRangeReset={snapshotZoom.onTimeRangeReset}",
-      );
       /*
-       * Reached only when the hook hands no drag handler: a snapshot that
-       * stored no window, whose chart still zooms itself alone.
+       * Issue #5954: the metric snapshot is the metric investigation
+       * (EventMetricInvestigationPanel), which holds its own time range and
+       * zoom above the tabs. The host draws no metric chart of its own, and
+       * its snapshot zoom takes no metric data.
        */
-      expect(view).toContain("localChartZoom={true}");
-      expect(view).not.toContain("disableChartZoom");
+      expect(metricViewElements(source)).toHaveLength(0);
+      expect(source).toContain("<EventMetricInvestigationPanel");
+      expect(source).not.toContain("snapshotZoom.metricViewData");
+      expect(source).not.toContain("snapshotZoom.onTimeRangeSelect");
       // The snapshot window is a record, not a range the page owns.
       expect(source).not.toContain("TimeRangeZoomScope");
-      expect(source).toContain("useTelemetrySnapshotZoom({");
-    },
-  );
-
-  test.each(SNAPSHOT_HOSTS)(
-    "%s: the other tabs are handed the window the snapshot shows",
-    (_name: string, file: string) => {
-      const source: string = readSquashed(file);
-
-      expect(source).toContain("snapshotWindow={snapshotZoom.window}");
-      // So their copy names the zoomed part of the window, not all of it.
-      expect(source).toContain("isSnapshotZoomed={snapshotZoom.isZoomed}");
-    },
-  );
-
-  test.each(SNAPSHOT_HOSTS)(
-    "%s: every card's badge carries the snapshot's Reset zoom",
-    (_name: string, file: string) => {
-      const source: string = readSquashed(file);
-
-      expect(source).toMatch(
-        /const snapshotWindowAlert: ReactElement \| undefined = (telemetrySnapshotWindow|snapshotWindow) \? \( <TelemetrySnapshotBadge window=\{(telemetrySnapshotWindow|snapshotWindow)\} zoom=\{snapshotZoom.zoom\} \/> \) : undefined;/,
-      );
-      // Named by the snapshot window itself, never by the zoomed slice.
-      expect(source).not.toContain(
-        "<TelemetrySnapshotBadge window={snapshotZoom.window}",
-      );
+      /*
+       * Issue #6251: no host holds a snapshot zoom of its own any more. A
+       * logs, traces or exceptions snapshot's card holds its time range,
+       * zoom included (TelemetrySnapshotPanel), as a metric snapshot's does.
+       */
+      expect(source).not.toContain("useTelemetrySnapshotZoom");
+      expect(source).not.toContain("TelemetrySnapshotBadge");
     },
   );
 
   test.each(SNAPSHOT_HOSTS.slice(0, 2))(
-    "%s: the zoom belongs to the event on screen (the page outlives a move to another one)",
+    "%s: the investigation is handed the window the monitor evaluated, the event's moments and its id",
     (_name: string, file: string) => {
-      expect(readSquashed(file)).toContain("subjectKey: modelIdString,");
+      const source: string = readSquashed(file);
+      const panel: string = sliceBetween(
+        source,
+        "<EventMetricInvestigationPanel",
+        "/>",
+      );
+
+      expect(source).toContain(
+        "const isMetricSnapshot: boolean = telemetryQuery?.telemetryType === TelemetryType.Metric;",
+      );
+      expect(source).toContain("{isMetricSnapshot && telemetryQuery ? (");
+      expect(panel).toContain("telemetryQuery={telemetryQuery}");
+      expect(panel).toContain("evaluationWindow={telemetrySnapshotWindow}");
+      expect(panel).toContain("seriesSummary={seriesSummary}");
+      expect(panel).toContain("eventId={modelIdString}");
+      expect(panel).toContain("startedAt={responseTimes.startedAt}");
+      expect(panel).toContain("endedAt={durationEndDate}");
+      expect(panel).toContain("stateTimeline={timelineDates}");
+
+      /*
+       * Every other kind of snapshot is the logs, traces or exceptions card
+       * (issue #6251), the one the episode pages show, anchored on the
+       * event: it picks its own time range around it.
+       */
+      const card: string = sliceBetween(
+        source,
+        "{telemetryQuery && !isMetricSnapshot && (",
+        "/>",
+      );
+      expect(card).toContain("<TelemetrySnapshotPanel");
+      expect(card).toContain("telemetryQuery={telemetryQuery}");
+      expect(card).toContain("snapshotWindow={telemetrySnapshotWindow}");
+      expect(card).toContain("startedAt={responseTimes.startedAt}");
+      expect(card).toContain("endedAt={durationEndDate}");
+      expect(card).toMatch(
+        /eventNoun="(incident|alert)" subject=\{EventMetricSubject\.(Incident|Alert)\}/,
+      );
+      expect(source).not.toContain("<TelemetryCompanionSignalTabs");
+    },
+  );
+
+  test("the episode panel hands a metric snapshot to the investigation, anchored on the episode", () => {
+    const source: string = readSquashed(SNAPSHOT_HOSTS[2]![1]);
+
+    expect(source).toContain(
+      "if (props.telemetryQuery.telemetryType === TelemetryType.Metric) { return ( <EventMetricInvestigationPanel",
+    );
+    expect(
+      sliceBetween(source, "<EventMetricInvestigationPanel", "/>"),
+    ).toContain("evaluationWindow={props.snapshotWindow}");
+  });
+
+  test("the other tabs are handed the window the card shows, and what that window is", () => {
+    const tabs: string = sliceBetween(
+      readSquashed(SNAPSHOT_HOSTS[2]![1]),
+      "<TelemetryCompanionSignalTabs",
+      "primarySignalElement=",
+    );
+
+    expect(tabs).toContain(
+      "snapshotWindow={hasWindow ? time.window : props.snapshotWindow}",
+    );
+    // So their copy names the zoomed part of the window, or the range picked.
+    expect(tabs).toContain(
+      "companionWindow={hasWindow ? getSnapshotCompanionWindow(time) : undefined}",
+    );
+  });
+
+  test("every card of the snapshot carries its time range, Reset zoom and all, and none without a window", () => {
+    const source: string = readSquashed(SNAPSHOT_HOSTS[2]![1]);
+
+    expect(source).toContain(
+      "const timeRangeControls: ReactElement | undefined = hasWindow ? ( <EventTimeRangeControls time={time}",
+    );
+    expect(source).toContain("snapshotWindowAlert={timeRangeControls}");
+    // The Logs, Spans and Exceptions cards the primary can be.
+    expect(source.split("rightElement={timeRangeControls}").length - 1).toBe(3);
+    // The picker offers the card's own Reset zoom, wherever it sits.
+    expect(
+      readSquashed(
+        `${DASHBOARD}/Components/Telemetry/EventTimeRangeControls.tsx`,
+      ),
+    ).toContain("<MetricInvestigationTimePicker investigation={time}");
+  });
+
+  test.each(SNAPSHOT_HOSTS.slice(0, 2))(
+    "%s: a card's range and zoom belong to the event on screen (the page outlives a move to another one)",
+    (_name: string, file: string) => {
+      /*
+       * The page shows its skeleton while it loads another event, which
+       * unmounts the card: the next event starts from what its monitor
+       * saw. (The page-level zoom it replaced was keyed on the event.)
+       */
+      expect(readSquashed(file)).toMatch(
+        /if \(loadedModelId !== modelIdString\) \{ return \(? ?<EventOverviewSkeleton/,
+      );
     },
   );
 });
@@ -269,48 +354,62 @@ describe("a Logs, Traces or Exceptions snapshot's primary explorer follows the s
     ["ExceptionsViewer", "ExceptionInstance"],
   ];
 
-  test.each(SNAPSHOT_HOSTS)(
-    "%s: each explorer primary sits inside the snapshot's zoom",
+  const PANEL_SOURCE: string = SNAPSHOT_HOSTS[2]![1];
+
+  test("each explorer primary sits inside the card's zoom", () => {
+    const source: string = readSquashed(PANEL_SOURCE);
+
+    for (const [explorer] of EXPLORERS) {
+      expect(source).toContain(
+        `<TimeRangeZoomProvider zoom={explorerZoom}> <${explorer}`,
+      );
+    }
+    expect(
+      source.split("<TimeRangeZoomProvider zoom={explorerZoom}>").length - 1,
+    ).toBe(EXPLORERS.length);
+    // Offered over the window the card shows, and none without a window.
+    expect(source).toContain(
+      "return hasWindow ? getExplorerZoom(time.zoom, time.window) : null;",
+    );
+  });
+
+  test("each explorer primary is pinned to the window the card shows", () => {
+    const source: string = readSquashed(PANEL_SOURCE);
+
+    for (const [, model] of EXPLORERS) {
+      expect(source).toContain(`explorerQuery as Query<${model}>`);
+    }
+    // Never the stored window alone: a pick or a zoom would not reach it.
+    expect(source).not.toContain("telemetryQuery.telemetryQuery as Query<");
+    expect(source).toContain(
+      "return getSnapshotExplorerQuery({ telemetryType: telemetryQuery.telemetryType, storedQuery: telemetryQuery.telemetryQuery,",
+    );
+  });
+
+  test("the card holds its time range: what the monitor saw first, the ranges around the event, kept in the URL", () => {
+    const source: string = readSquashed(PANEL_SOURCE);
+    const hook: string = sliceBetween(
+      source,
+      "useInvestigationTimeRange({",
+      "});",
+    );
+
+    expect(hook).toContain("defaultSelection: EVENT_EVALUATED_SELECTION,");
+    expect(hook).toContain("return getEventTimePresets(");
+    expect(hook).toContain(
+      "urlParamPrefix: snapshotWindow ? EVENT_TELEMETRY_TIME_URL_PREFIX : undefined,",
+    );
+  });
+
+  test.each(SNAPSHOT_HOSTS.slice(0, 2))(
+    "%s: renders no explorer of its own: the card does",
     (_name: string, file: string) => {
       const source: string = readSquashed(file);
 
       for (const [explorer] of EXPLORERS) {
-        expect(source).toContain(
-          `<TimeRangeZoomProvider zoom={snapshotZoom.zoom}> <${explorer}`,
-        );
+        expect(source).not.toContain(`<${explorer}`);
       }
-      // The metric chart keeps its explicit handlers instead.
-      expect(
-        source.split("<TimeRangeZoomProvider zoom={snapshotZoom.zoom}>")
-          .length - 1,
-      ).toBe(EXPLORERS.length);
-      expect(source).not.toContain(
-        "<TimeRangeZoomProvider zoom={snapshotZoom.zoom}> <MetricView",
-      );
-    },
-  );
-
-  test.each(SNAPSHOT_HOSTS)(
-    "%s: each explorer primary is pinned to the window the snapshot shows",
-    (_name: string, file: string) => {
-      const source: string = readSquashed(file);
-
-      for (const [, model] of EXPLORERS) {
-        expect(source).toContain(
-          `snapshotZoom.explorerQuery as Query<${model}>`,
-        );
-      }
-      // Never the stored window alone: a zoom would not reach the primary.
-      expect(source).not.toContain("telemetryQuery.telemetryQuery as Query<");
-    },
-  );
-
-  test.each(SNAPSHOT_HOSTS)(
-    "%s: the snapshot's zoom is handed the stored query to pin",
-    (_name: string, file: string) => {
-      expect(readSquashed(file)).toMatch(
-        /useTelemetrySnapshotZoom\(\{ snapshotWindow: (telemetrySnapshotWindow|snapshotWindow), metricViewData: telemetryQuery\??\.metricViewData, telemetryType: telemetryQuery\??\.telemetryType, explorerQuery: telemetryQuery\??\.telemetryQuery,/,
-      );
+      expect(source).not.toContain("TimeRangeZoomProvider");
     },
   );
 });
@@ -345,53 +444,158 @@ describe("the snapshot card's companion tabs keep their own windows", () => {
   });
 });
 
-describe("charts whose host round-trips the window zoom through MetricView's own zoom", () => {
+describe("a metric snapshot's investigation zooms as one, every tab of it (issue #5954)", () => {
+  const PANEL: string = `${DASHBOARD}/Components/Telemetry/EventMetricInvestigationPanel.tsx`;
+  const CARD: string = `${DASHBOARD}/Components/Metrics/Investigation/MetricInvestigation.tsx`;
+  const PICKER: string = `${DASHBOARD}/Components/Metrics/Investigation/MetricInvestigationTimePicker.tsx`;
+
+  test("the other tabs are handed the investigation's window, and its picker on every card", () => {
+    const tabs: string = sliceBetween(
+      readSquashed(PANEL),
+      "<TelemetryCompanionSignalTabs",
+      "primarySignalElement=",
+    );
+
+    expect(tabs).toContain("snapshotWindow={investigation.window}");
+    expect(tabs).toContain('companionWindow="selected"');
+    expect(tabs).toContain("snapshotWindowAlert={timePicker}");
+  });
+
+  test("the investigation's chart zooms the investigation, and resets only while zoomed", () => {
+    const views: Array<string> = metricViewElements(readSquashed(CARD));
+
+    expect(views).toHaveLength(1);
+    const view: string = views[0]!;
+    expect(view).toContain("data={investigation.metricViewData}");
+    expect(view).toContain(
+      "onTimeRangeSelect={investigation.zoom.zoomToTimeRange}",
+    );
+    expect(view).toContain(
+      "onTimeRangeReset={ investigation.isZoomed ? investigation.zoom.resetZoom : undefined }",
+    );
+    expect(view).not.toContain("localChartZoom");
+    expect(view).not.toContain("disableChartZoom");
+  });
+
+  test("the picker offers the investigation's own Reset zoom, wherever it sits", () => {
+    expect(readSquashed(PICKER)).toContain(
+      "<TimeRangeZoomProvider zoom={investigation.zoom}> <ResetTimeRangeZoomButton /> </TimeRangeZoomProvider>",
+    );
+  });
+
+  test("a metric monitor's own card zooms through the same investigation (issue #5759)", () => {
+    const card: string = readSquashed(
+      `${DASHBOARD}/Components/Monitor/MetricMonitor/MonitorMetricsCard.tsx`,
+    );
+
+    // No chart of its own: the investigation draws them, zoom and all.
+    expect(metricViewElements(card)).toHaveLength(0);
+    expect(card).toContain(
+      "<MetricInvestigation investigation={investigation}",
+    );
+  });
+});
+
+describe("the Root Cause cards zoom through the event's investigation (issues #6249, #6304 and #6320)", () => {
+  const CARD: string = `${DASHBOARD}/Components/Telemetry/EventRootCauseMetricChart.tsx`;
+  const INCIDENT_CARD: string = `${DASHBOARD}/Components/Incident/IncidentRootCauseMetricChart.tsx`;
+  const ALERT_CARD: string = `${DASHBOARD}/Components/Alert/AlertRootCauseMetricChart.tsx`;
+  const INCIDENT_EPISODE_CARD: string = `${DASHBOARD}/Components/IncidentEpisode/IncidentEpisodeRootCauseMetricChart.tsx`;
+  const ALERT_EPISODE_CARD: string = `${DASHBOARD}/Components/AlertEpisode/AlertEpisodeRootCauseMetricChart.tsx`;
+
+  test("no chart of its own: the investigation draws it, zoom and way back included", () => {
+    const source: string = readSquashed(CARD);
+
+    expect(metricViewElements(source)).toHaveLength(0);
+    expect(source).not.toContain("TimeRangeZoom");
+
+    const panel: string = sliceBetween(
+      source,
+      "<EventMetricInvestigationPanel",
+      "/>",
+    );
+    // The record it reads: the incident, the alert, or an episode of either.
+    expect(panel).toContain("subject={reader.subject}");
+    /*
+     * An incident's or an alert's own id, so it is not marked twice; an
+     * episode's members are all marked, and its first member's rule drawn.
+     */
+    expect(panel).toContain(
+      "eventId={ ROOT_CAUSE_SUBJECT_IS_ONE_EVENT[reader.subject] ? eventId : undefined }",
+    );
+    expect(panel).toContain("ruleEventId={card.ruleEventId}");
+    expect(source).toContain(
+      "[EventMetricSubject.Incident]: true, [EventMetricSubject.Alert]: true, [EventMetricSubject.IncidentEpisode]: false, [EventMetricSubject.AlertEpisode]: false,",
+    );
+    // The metrics alone, beside the root cause: the Overview has the tabs.
+    expect(panel).toContain("showsCompanionTabs={false}");
+    // Names of its own in the URL: never the Overview card's.
+    expect(panel).toContain("urlParamPrefix={ROOT_CAUSE_METRICS_URL_PREFIX}");
+    expect(source).toContain(
+      'export const ROOT_CAUSE_METRICS_URL_PREFIX: string = "rootCauseMetrics";',
+    );
+  });
+
   test.each([
     [
-      "the metric monitor preview",
-      `${DASHBOARD}/Components/Monitor/MetricMonitor/MetricMonitorPreview.tsx`,
+      "the incident's",
+      INCIDENT_CARD,
+      "EventMetricSubject.Incident",
+      "INCIDENT_ROOT_CAUSE_READER",
     ],
     [
-      "the incident Root Cause chart",
-      `${DASHBOARD}/Components/Incident/IncidentRootCauseMetricChart.tsx`,
+      "the alert's",
+      ALERT_CARD,
+      "EventMetricSubject.Alert",
+      "ALERT_ROOT_CAUSE_READER",
+    ],
+    [
+      "the incident episode's",
+      INCIDENT_EPISODE_CARD,
+      "EventMetricSubject.IncidentEpisode",
+      "INCIDENT_EPISODE_ROOT_CAUSE_READER",
+    ],
+    [
+      "the alert episode's",
+      ALERT_EPISODE_CARD,
+      "EventMetricSubject.AlertEpisode",
+      "ALERT_EPISODE_ROOT_CAUSE_READER",
     ],
   ])(
-    "%s: its onChange keeps the zoomed window, so a reset has one to undo",
-    (_name: string, file: string) => {
-      const views: Array<string> = metricViewElements(readSquashed(file));
+    "%s Root Cause page shows that one card, reading its own event",
+    (_name: string, file: string, subject: string, reader: string) => {
+      const source: string = readSquashed(file);
 
-      expect(views).toHaveLength(1);
-      const view: string = views[0]!;
-      expect(view).toContain("data={metricViewData}");
-      expect(view).toContain("setMetricViewData(data);");
-      expect(view).not.toContain("disableChartZoom");
-      expect(view).not.toContain("localChartZoom");
-      expect(view).not.toContain("onTimeRangeSelect");
+      // Nothing of its own to draw, zoom or keep in the URL: the card's.
+      expect(metricViewElements(source)).toHaveLength(0);
+      expect(source).not.toContain("TimeRangeZoom");
+      expect(source).not.toContain("<EventMetricInvestigationPanel");
+      expect(source).not.toContain("urlParamPrefix");
+
+      expect(source).toContain(`subject: ${subject},`);
+      expect(
+        sliceBetween(source, "<EventRootCauseMetricChart", "/>"),
+      ).toContain(`reader={${reader}}`);
     },
   );
 
-  test("the metric monitor preview's header names a zoom, and picking a range ends it", () => {
-    const source: string = readSquashed(
-      `${DASHBOARD}/Components/Monitor/MetricMonitor/MetricMonitorPreview.tsx`,
-    );
-
-    expect(source).toContain(
-      "setZoomedWindow( getZoomedWindow({ shownWindow: data.startAndEndDate, rollingWindow: startAndEndDate, }), );",
-    );
-    expect(source).toContain(
-      "zoomedWindow ? getZoomedWindowLabel(zoomedWindow) : `${rollingTime}`",
-    );
-    expect(source).toContain(
-      "if (zoomedWindow && modalTempRollingTime === rollingTime) { setStartAndEndDate(",
-    );
-    // A freshly resolved rolling window is never a zoom.
+  test("each Root Cause page shows its card beside the root cause", () => {
     expect(
-      sliceBetween(
-        source,
-        "useEffect(() => { setMetricViewData({",
-        "}, [startAndEndDate]);",
-      ),
-    ).toContain("setZoomedWindow(null);");
+      readSquashed(`${DASHBOARD}/Pages/Incidents/View/RootCause.tsx`),
+    ).toContain("<IncidentRootCauseMetricChart incidentId={modelId} />");
+    expect(
+      readSquashed(`${DASHBOARD}/Pages/Alerts/View/RootCause.tsx`),
+    ).toContain("<AlertRootCauseMetricChart alertId={modelId} />");
+    expect(
+      readSquashed(`${DASHBOARD}/Pages/Incidents/EpisodeView/RootCause.tsx`),
+    ).toContain(
+      "<IncidentEpisodeRootCauseMetricChart incidentEpisodeId={modelId} />",
+    );
+    expect(
+      readSquashed(`${DASHBOARD}/Pages/Alerts/EpisodeView/RootCause.tsx`),
+    ).toContain(
+      "<AlertEpisodeRootCauseMetricChart alertEpisodeId={modelId} />",
+    );
   });
 });
 

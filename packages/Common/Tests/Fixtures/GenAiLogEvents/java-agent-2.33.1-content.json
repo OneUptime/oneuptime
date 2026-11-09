@@ -1,0 +1,1327 @@
+{
+  "source": {
+    "instrumentation": "OpenTelemetry Java agent 2.33.1 (openai-java-1.1)",
+    "sdk": "opentelemetry-java 1.67.0",
+    "client": "openai-java 4.101.0 (Java 21)",
+    "settings": "-Dotel.instrumentation.genai.capture-message-content=true",
+    "protocol": "http/protobuf",
+    "calls": "Against a fake OpenAI server: a plain chat with a system prompt, a tool round trip (the model asks for get_weather, the app answers it), a request for two choices and a streamed answer; JavaScript also makes one Responses API call.",
+    "captured": "2026-11-09"
+  },
+  "logs": {
+    "resourceLogs": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "java-openai-app"
+              }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": {
+                "stringValue": "opentelemetry-java-instrumentation"
+              }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": {
+                "stringValue": "2.33.1"
+              }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": {
+                "stringValue": "java"
+              }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": {
+                "stringValue": "opentelemetry"
+              }
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "value": {
+                "stringValue": "1.67.0"
+              }
+            }
+          ]
+        },
+        "scopeLogs": [
+          {
+            "scope": {
+              "name": "io.opentelemetry.openai-java-1.1"
+            },
+            "logRecords": [
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "content",
+                        "value": {
+                          "stringValue": "You are a helpful assistant."
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.system.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "zZHcfThSMDB7EfsgtqY8hQ==",
+                "spanId": "VObhHWdhrbo=",
+                "observedTimeUnixNano": "1794198916975520695"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "content",
+                        "value": {
+                          "stringValue": "Say this is a test."
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.user.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "zZHcfThSMDB7EfsgtqY8hQ==",
+                "spanId": "VObhHWdhrbo=",
+                "observedTimeUnixNano": "1794198916977158296"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "java-openai-app"
+              }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": {
+                "stringValue": "opentelemetry-java-instrumentation"
+              }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": {
+                "stringValue": "2.33.1"
+              }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": {
+                "stringValue": "java"
+              }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": {
+                "stringValue": "opentelemetry"
+              }
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "value": {
+                "stringValue": "1.67.0"
+              }
+            }
+          ]
+        },
+        "scopeLogs": [
+          {
+            "scope": {
+              "name": "io.opentelemetry.openai-java-1.1"
+            },
+            "logRecords": [
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "stop"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "0"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "content",
+                                "value": {
+                                  "stringValue": "This is a test answer from the fake OpenAI server."
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "zZHcfThSMDB7EfsgtqY8hQ==",
+                "spanId": "VObhHWdhrbo=",
+                "observedTimeUnixNano": "1794198917647133611"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "content",
+                        "value": {
+                          "stringValue": "What is the weather in Paris?"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.user.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "IoLLyh8G7RzzNkLuWQr0AA==",
+                "spanId": "1FzSGJHBsTQ=",
+                "observedTimeUnixNano": "1794198917656035502"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "java-openai-app"
+              }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": {
+                "stringValue": "opentelemetry-java-instrumentation"
+              }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": {
+                "stringValue": "2.33.1"
+              }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": {
+                "stringValue": "java"
+              }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": {
+                "stringValue": "opentelemetry"
+              }
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "value": {
+                "stringValue": "1.67.0"
+              }
+            }
+          ]
+        },
+        "scopeLogs": [
+          {
+            "scope": {
+              "name": "io.opentelemetry.openai-java-1.1"
+            },
+            "logRecords": [
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "tool_calls"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "0"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "tool_calls",
+                                "value": {
+                                  "arrayValue": {
+                                    "values": [
+                                      {
+                                        "kvlistValue": {
+                                          "values": [
+                                            {
+                                              "key": "function",
+                                              "value": {
+                                                "kvlistValue": {
+                                                  "values": [
+                                                    {
+                                                      "key": "name",
+                                                      "value": {
+                                                        "stringValue": "get_weather"
+                                                      }
+                                                    },
+                                                    {
+                                                      "key": "arguments",
+                                                      "value": {
+                                                        "stringValue": "{\"city\":\"Paris\"}"
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "key": "id",
+                                              "value": {
+                                                "stringValue": "call_weather_paris"
+                                              }
+                                            },
+                                            {
+                                              "key": "type",
+                                              "value": {
+                                                "stringValue": "function"
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "IoLLyh8G7RzzNkLuWQr0AA==",
+                "spanId": "1FzSGJHBsTQ=",
+                "observedTimeUnixNano": "1794198917697160998"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "content",
+                        "value": {
+                          "stringValue": "What is the weather in Paris?"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.user.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "QASm1/bh9hkcVcNcz/tmIw==",
+                "spanId": "NwxWLNCXQR4=",
+                "observedTimeUnixNano": "1794198917701148907"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "tool_calls",
+                        "value": {
+                          "arrayValue": {
+                            "values": [
+                              {
+                                "kvlistValue": {
+                                  "values": [
+                                    {
+                                      "key": "function",
+                                      "value": {
+                                        "kvlistValue": {
+                                          "values": [
+                                            {
+                                              "key": "name",
+                                              "value": {
+                                                "stringValue": "get_weather"
+                                              }
+                                            },
+                                            {
+                                              "key": "arguments",
+                                              "value": {
+                                                "stringValue": "{\"city\":\"Paris\"}"
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "key": "id",
+                                      "value": {
+                                        "stringValue": "call_weather_paris"
+                                      }
+                                    },
+                                    {
+                                      "key": "type",
+                                      "value": {
+                                        "stringValue": "function"
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.assistant.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "QASm1/bh9hkcVcNcz/tmIw==",
+                "spanId": "NwxWLNCXQR4=",
+                "observedTimeUnixNano": "1794198917702474679"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "id",
+                        "value": {
+                          "stringValue": "call_weather_paris"
+                        }
+                      },
+                      {
+                        "key": "content",
+                        "value": {
+                          "stringValue": "{\"temperature\": 18, \"sky\": \"sunny\"}"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.tool.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "QASm1/bh9hkcVcNcz/tmIw==",
+                "spanId": "NwxWLNCXQR4=",
+                "observedTimeUnixNano": "1794198917702536372"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "stop"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "0"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "content",
+                                "value": {
+                                  "stringValue": "It is 18 degrees and sunny in Paris."
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "QASm1/bh9hkcVcNcz/tmIw==",
+                "spanId": "NwxWLNCXQR4=",
+                "observedTimeUnixNano": "1794198917730782910"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "content",
+                        "value": {
+                          "stringValue": "Write a haiku about logs."
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.user.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "Cpnp4GasJMr4YZXPWQjLjQ==",
+                "spanId": "cUnwwzMIMJg=",
+                "observedTimeUnixNano": "1794198917731184432"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "stop"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "0"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "content",
+                                "value": {
+                                  "stringValue": "Answer number 1: a haiku about logs."
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "Cpnp4GasJMr4YZXPWQjLjQ==",
+                "spanId": "cUnwwzMIMJg=",
+                "observedTimeUnixNano": "1794198917741443745"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "stop"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "1"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "content",
+                                "value": {
+                                  "stringValue": "Answer number 2: a haiku about logs."
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "Cpnp4GasJMr4YZXPWQjLjQ==",
+                "spanId": "cUnwwzMIMJg=",
+                "observedTimeUnixNano": "1794198917741490085"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "content",
+                        "value": {
+                          "stringValue": "Stream me an answer."
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.user.message"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "yUaw4HtQmZeZQUH+uuOQQA==",
+                "spanId": "JmmMnyDg01k=",
+                "observedTimeUnixNano": "1794198917741944636"
+              },
+              {
+                "body": {
+                  "kvlistValue": {
+                    "values": [
+                      {
+                        "key": "finish_reason",
+                        "value": {
+                          "stringValue": "stop"
+                        }
+                      },
+                      {
+                        "key": "index",
+                        "value": {
+                          "intValue": "0"
+                        }
+                      },
+                      {
+                        "key": "message",
+                        "value": {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "content",
+                                "value": {
+                                  "stringValue": "This is a test answer from the fake OpenAI server."
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "attributes": [
+                  {
+                    "key": "event.name",
+                    "value": {
+                      "stringValue": "gen_ai.choice"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  }
+                ],
+                "flags": 3,
+                "traceId": "yUaw4HtQmZeZQUH+uuOQQA==",
+                "spanId": "JmmMnyDg01k=",
+                "observedTimeUnixNano": "1794198917814715349"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "traces": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "java-openai-app"
+              }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": {
+                "stringValue": "opentelemetry-java-instrumentation"
+              }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": {
+                "stringValue": "2.33.1"
+              }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": {
+                "stringValue": "java"
+              }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": {
+                "stringValue": "opentelemetry"
+              }
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "value": {
+                "stringValue": "1.67.0"
+              }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {
+              "name": "io.opentelemetry.openai-java-1.1",
+              "version": "2.33.1-alpha"
+            },
+            "spans": [
+              {
+                "traceId": "zZHcfThSMDB7EfsgtqY8hQ==",
+                "spanId": "VObhHWdhrbo=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198916972316570",
+                "endTimeUnixNano": "1794198917648516294",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "thread.id",
+                    "value": {
+                      "intValue": "1"
+                    }
+                  },
+                  {
+                    "key": "thread.name",
+                    "value": {
+                      "stringValue": "main"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake124"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  }
+                ],
+                "status": {},
+                "flags": 259
+              },
+              {
+                "traceId": "IoLLyh8G7RzzNkLuWQr0AA==",
+                "spanId": "1FzSGJHBsTQ=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198917655923239",
+                "endTimeUnixNano": "1794198917697353290",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "thread.id",
+                    "value": {
+                      "intValue": "1"
+                    }
+                  },
+                  {
+                    "key": "thread.name",
+                    "value": {
+                      "stringValue": "main"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake126"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "tool_calls"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  }
+                ],
+                "status": {},
+                "flags": 259
+              },
+              {
+                "traceId": "QASm1/bh9hkcVcNcz/tmIw==",
+                "spanId": "NwxWLNCXQR4=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198917701044577",
+                "endTimeUnixNano": "1794198917730893611",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "thread.id",
+                    "value": {
+                      "intValue": "1"
+                    }
+                  },
+                  {
+                    "key": "thread.name",
+                    "value": {
+                      "stringValue": "main"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake128"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  }
+                ],
+                "status": {},
+                "flags": 259
+              },
+              {
+                "traceId": "Cpnp4GasJMr4YZXPWQjLjQ==",
+                "spanId": "cUnwwzMIMJg=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198917731143612",
+                "endTimeUnixNano": "1794198917741590945",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "thread.id",
+                    "value": {
+                      "intValue": "1"
+                    }
+                  },
+                  {
+                    "key": "thread.name",
+                    "value": {
+                      "stringValue": "main"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake129"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.input_tokens",
+                    "value": {
+                      "intValue": "31"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.usage.output_tokens",
+                    "value": {
+                      "intValue": "12"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          },
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  }
+                ],
+                "status": {},
+                "flags": 259
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "java-openai-app"
+              }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": {
+                "stringValue": "opentelemetry-java-instrumentation"
+              }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": {
+                "stringValue": "2.33.1"
+              }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": {
+                "stringValue": "java"
+              }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": {
+                "stringValue": "opentelemetry"
+              }
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "value": {
+                "stringValue": "1.67.0"
+              }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {
+              "name": "io.opentelemetry.openai-java-1.1",
+              "version": "2.33.1-alpha"
+            },
+            "spans": [
+              {
+                "traceId": "yUaw4HtQmZeZQUH+uuOQQA==",
+                "spanId": "JmmMnyDg01k=",
+                "name": "chat gpt-4o-mini",
+                "kind": "SPAN_KIND_CLIENT",
+                "startTimeUnixNano": "1794198917741883189",
+                "endTimeUnixNano": "1794198917816964308",
+                "attributes": [
+                  {
+                    "key": "gen_ai.operation.name",
+                    "value": {
+                      "stringValue": "chat"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.request.stream",
+                    "value": {
+                      "boolValue": true
+                    }
+                  },
+                  {
+                    "key": "gen_ai.provider.name",
+                    "value": {
+                      "stringValue": "openai"
+                    }
+                  },
+                  {
+                    "key": "thread.id",
+                    "value": {
+                      "intValue": "1"
+                    }
+                  },
+                  {
+                    "key": "thread.name",
+                    "value": {
+                      "stringValue": "main"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.id",
+                    "value": {
+                      "stringValue": "chatcmpl-fake130"
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.finish_reasons",
+                    "value": {
+                      "arrayValue": {
+                        "values": [
+                          {
+                            "stringValue": "stop"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "gen_ai.response.model",
+                    "value": {
+                      "stringValue": "gpt-4o-mini-2024-07-18"
+                    }
+                  }
+                ],
+                "status": {},
+                "flags": 259
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

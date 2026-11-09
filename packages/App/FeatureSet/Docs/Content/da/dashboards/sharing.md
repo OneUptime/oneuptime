@@ -53,7 +53,7 @@ Et offentligt dashboard:
 
 Behandl deling af et dashboard som udgivelse af en webside. Alle widgets på det bliver læsbare for alle med linket. Se, hvad der er på lærredet, før du deler det.
 
-Hver widget offentliggør kun det, den tegner, og kun for de ressourcer, den er peget mod. En SLO-widget offentliggør for eksempel det SLO's nøgletal, men aldrig dets definition: se [SLO](/docs/dashboards/widgets#slo). Widgets med en ekstern **Data Source** er undtagelsen: de fjernes helt fra et offentligt dashboard i stedet for at blive gengivet, fordi deres konfiguration er selve forespørgslen. Nogle få andre widgets kan ikke vises uden en indlogget session og skriver det på deres plads: [På et offentligt dashboard](/docs/dashboards/widgets#på-et-offentligt-dashboard) viser hvilke.
+Hver widget offentliggør kun det, den tegner, og kun for de ressourcer, den er peget mod. En SLO-widget offentliggør for eksempel det SLO's nøgletal, men aldrig dets definition: se [SLO](/docs/dashboards/widgets#slo). Widgets med en ekstern **Data Source** er undtagelsen: de fjernes helt fra et offentligt dashboard i stedet for at blive gengivet, fordi deres konfiguration er selve forespørgslen. Nogle få andre widgets kan ikke vises uden en indlogget session og skriver det på deres plads: [På et offentligt dashboard](/docs/dashboards/widgets#på-et-offentligt-dashboard) viser hvilke. De offentliggør kun deres titel, aldrig de søgninger og filtre, de læser deres data med. Variabler offentliggør også kun det, deres vælgere viser: en ældre forespørgselsvariabels forespørgsel offentliggøres aldrig.
 
 ## Deling med en adgangskode
 

@@ -284,6 +284,8 @@ Die Aufrufe von OneUptime werden Ihrem Cloud-Konto zu den Preisen Ihrer Cloud be
 | Google Cloud | Die ersten 1.000.000 gelesenen Zeitreihen pro Monat sind kostenlos, danach $0.50 pro Million |
 | Google-Cloud-Kosten | BigQuery berechnet die Abfrage Ihres Abrechnungsexports: die ersten 1 TiB pro Monat sind kostenlos, danach $6.25 pro TiB |
 
+Die wichtigsten Metriken eines Service-Bus- oder Event-Hubs-Namespace werden für jede seiner Warteschlangen, Topics und Event Hubs gelesen, aufgeteilt nach der Dimension `EntityName`, im selben einen Aufruf pro Namespace und Lesevorgang: Bei einem Lesevorgang alle 5 Minuten kostet ein Namespace mit 50 Warteschlangen 12 Aufrufe pro Stunde, so viel wie einer mit einer einzigen. Ein Lesevorgang liest bis zu 1.000 davon pro Namespace und meldet, wenn es mehr gibt. Die Metriken jeder einzelnen erscheinen auf ihrer Seite unter [Warteschlangen](/docs/telemetry/queues#azure-service-bus), so zugeordnet wie vom `azure_monitor`-Receiver des Collectors, und wo dieser Receiver eine Metrik einer Warteschlange ebenfalls liest, bleiben seine Werte erhalten und die der Verbindung werden ausgelassen, sodass nichts doppelt gezählt wird.
+
 ## Was Sie in OneUptime sehen
 
 - **Die Seite eines Kontos.** Unter **Cloud → Konten** zählt die Übersicht eines Kontos seine Ressourcen nach Typ und Region und sagt, wann eine Verbindung es zuletzt gelesen hat. Seine **Ressourcen** listet sie auf, seine **Änderungen** listet auf, was sich darin geändert hat, das Neueste zuerst, und seine **Topologie** zeichnet seine Regionen, die Netzwerke darin und was in jedem läuft, mit den offenen Vorfällen und Warnungen an den Ressourcen, mit denen sie verknüpft sind. Auf **Änderungen** steht bei einer Änderung, die OneUptime AI vorgenommen hat, **OneUptime AI**, mit dem Vorfall oder der Warnung, die sie behoben hat, wer sie genehmigt hat oder dass sie selbstständig lief, und einem Link zu ihrem Eintrag auf der Seite **KI-Protokolle** des Kontos. Sein **Feed** hält fest, wie das Konto zu OneUptime kam, wann sich sein Cloud-KI-Agent verbunden hat oder zurückgesetzt wurde, und wer geändert hat, was OneUptime AI darin tun darf.
@@ -334,6 +336,10 @@ Der erste Lesevorgang listet jede Ressource des Kontos auf, ob sie Metriken meld
 
 :::details Einige Konten der Organisation fehlen
 Eine Verbindung liest bis zu 50 Konten, Abonnements oder Projekte, und jeder Lesevorgang sagt es, wenn es mehr gibt. Verbinden Sie die anderen mit einer eigenen Verbindung.
+:::
+
+:::details Ein Lesevorgang hat Warnungen
+Ein Lesevorgang, der funktioniert, kann trotzdem etwas auslassen, etwa eine Metrik, die die Cloud für einige Ressourcen nicht geliefert hat, oder die Warteschlangen eines Namespace über die ersten 1.000 hinaus. Unter **Cloud → Verbinden** nennt der Status der Verbindung dann, wie viele Warnungen ihr letzter Lesevorgang hatte: Wählen Sie sie aus, um jede einzelne zu lesen.
 :::
 
 ## Nächste Schritte

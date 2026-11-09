@@ -87,11 +87,26 @@ export interface ChartCardProps {
   // What the chart plots, shown in an (i) tooltip beside the title.
   description?: string | undefined;
   /*
+   * What the empty box says instead of "No data in this time range" when
+   * the page knows why the chart is empty ("Needs consumer traces"): an
+   * English literal the card draws in the reader's language.
+   */
+  emptyMessage?: string | undefined;
+  // A link or a line drawn under it: where to read what fills the chart.
+  emptyAction?: ReactElement | undefined;
+  /*
    * Moments to mark on the chart - an app's deploys - as the metric charts
    * mark incidents and changes: a hairline through the plot, its words in
    * the chip above it.
    */
   timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
+  /*
+   * What the card says when nothing is in the range, in place of "No data
+   * in this time range": why, and what to do (a RUM application's
+   * Exceptions and Logs say whether the signal is set up, issue #5770).
+   * Drawn in the same grey box, which grows to hold it.
+   */
+  emptyContent?: ReactElement | undefined;
 }
 
 const ChartCard: FunctionComponent<ChartCardProps> = (
@@ -177,6 +192,10 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
   }
 
   if (!hasData) {
+    const emptyMessage: string = props.emptyMessage
+      ? translator.translateText(props.emptyMessage) || props.emptyMessage
+      : translator.translateText("No data in this time range") ||
+        "No data in this time range";
     /*
      * A zoom into a quiet stretch lands here, with no chart to
      * double-click. The empty plot area takes the double-click instead, so
@@ -186,6 +205,27 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
      * a reset starts (and for good if the page's own range is quiet too),
      * so the word stayed highlighted.
      */
+    /*
+     * The box fills the card: beside a card whose message is longer, in
+     * the same row, both grey boxes end on one line.
+     */
+    if (props.emptyContent) {
+      return (
+        <div className="group/zoomhint flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          {header}
+          <div
+            className={`flex min-h-44 flex-1 flex-col rounded-md bg-gray-50${
+              emptyStateReset ? " select-none" : ""
+            }`}
+            onDoubleClick={emptyStateReset}
+            data-testid="chart-card-empty-content"
+          >
+            {props.emptyContent}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
@@ -195,8 +235,20 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
           }`}
           onDoubleClick={emptyStateReset}
         >
-          {/* Every page's empty chart, in the reader's language. */}
-          {translator.translateText("No data in this time range")}
+          {/*
+           * Every page's empty chart, in the reader's language - or what the
+           * page says fills it, with where to read how. Balanced, so a label
+           * that needs two lines splits evenly and never leaves its arrow on
+           * a line of its own.
+           */}
+          {props.emptyAction ? (
+            <div className="flex flex-col items-center gap-2 px-4 text-center text-balance">
+              <span>{emptyMessage}</span>
+              {props.emptyAction}
+            </div>
+          ) : (
+            emptyMessage
+          )}
         </div>
       </div>
     );

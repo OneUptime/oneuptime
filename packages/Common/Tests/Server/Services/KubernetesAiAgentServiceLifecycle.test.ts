@@ -22,6 +22,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import { KubernetesAiRemediationMode } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../../Types/ObjectID";
+import UserType from "../../../Types/UserType";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AiAgentResetAuditLog from "../../../Server/Utils/AI/ResourceAccess/AiAgentResetAuditLog";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import {
   afterEach,
@@ -809,15 +812,26 @@ describe("markDisconnected", () => {
 describe("resetAgent", () => {
   const USER_MARKDOWN: string = `[Jane Doe](https://oneuptime.example/dashboard/${PROJECT_ID.toString()}/users/${USER_ID.toString()})`;
 
+  // Who reset it: the route's props.
+  const PERSON: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: USER_ID,
+    userType: UserType.User,
+  };
+
   interface ResetHarness {
     find: SpyCalls;
     update: SpyCalls;
     feed: SpyCalls;
     userName: SpyCalls;
+    recorded: SpyCalls;
   }
 
   function setUp(row: KubernetesAiAgent | null = makeAgent()): ResetHarness {
     return {
+      recorded: jest
+        .spyOn(AiAgentResetAuditLog, "record")
+        .mockResolvedValue(undefined) as unknown as SpyCalls,
       find: jest
         .spyOn(KubernetesAiAgentService, "findForCluster")
         .mockResolvedValue(row) as unknown as SpyCalls,
@@ -850,7 +864,7 @@ describe("resetAgent", () => {
     await KubernetesAiAgentService.resetAgent({
       projectId: PROJECT_ID,
       kubernetesClusterId: CLUSTER_ID,
-      userId: USER_ID,
+      props: PERSON,
     });
 
     expect(harness.find.mock.calls[0]![0]).toEqual({
@@ -882,7 +896,7 @@ describe("resetAgent", () => {
     await KubernetesAiAgentService.resetAgent({
       projectId: PROJECT_ID,
       kubernetesClusterId: CLUSTER_ID,
-      userId: USER_ID,
+      props: PERSON,
     });
 
     const item: Record<string, unknown> = harness.feed.mock
@@ -901,7 +915,7 @@ describe("resetAgent", () => {
     await KubernetesAiAgentService.resetAgent({
       projectId: PROJECT_ID,
       kubernetesClusterId: CLUSTER_ID,
-      userId: USER_ID,
+      props: PERSON,
     });
 
     expect(harness.userName.mock.calls).toEqual([
@@ -935,7 +949,7 @@ describe("resetAgent", () => {
     await KubernetesAiAgentService.resetAgent({
       projectId: PROJECT_ID,
       kubernetesClusterId: CLUSTER_ID,
-      userId: USER_ID,
+      props: PERSON,
     });
 
     expect(feedText(harness)).toBe(
@@ -959,7 +973,7 @@ describe("resetAgent", () => {
       KubernetesAiAgentService.resetAgent({
         projectId: PROJECT_ID,
         kubernetesClusterId: CLUSTER_ID,
-        userId: USER_ID,
+        props: PERSON,
       }),
     ).resolves.toBeUndefined();
 
@@ -984,6 +998,65 @@ describe("resetAgent", () => {
 
     expect(harness.update.mock.calls).toHaveLength(0);
     expect(harness.feed.mock.calls).toHaveLength(0);
+  });
+
+  /*
+   * The agent's own row is what it reports, which the audit log leaves out:
+   * the reset is recorded on the cluster, by whoever reset it (issue #6302).
+   */
+  test("records the reset on the cluster's own Audit Logs, by whoever reset it, once the key is cleared", async () => {
+    const harness: ResetHarness = setUp();
+
+    await KubernetesAiAgentService.resetAgent({
+      projectId: PROJECT_ID,
+      kubernetesClusterId: CLUSTER_ID,
+      props: PERSON,
+    });
+
+    expect(harness.recorded.mock.calls).toHaveLength(1);
+
+    const recorded: Record<string, unknown> = harness.recorded.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(recorded["service"]).toBe(KubernetesClusterService);
+    expect(recorded["resourceId"]).toBe(CLUSTER_ID);
+    expect(recorded["resetAt"]).toBeInstanceOf(Date);
+    expect(recorded["props"]).toBe(PERSON);
+    // After the key is gone: an entry never says a reset that did not happen.
+    expect(
+      (harness.update as unknown as jest.SpyInstance).mock
+        .invocationCallOrder[0],
+    ).toBeLessThan(
+      (harness.recorded as unknown as jest.SpyInstance).mock
+        .invocationCallOrder[0]!,
+    );
+  });
+
+  test("without anyone named, the reset is recorded as OneUptime's own", async () => {
+    const harness: ResetHarness = setUp();
+
+    await KubernetesAiAgentService.resetAgent({
+      projectId: PROJECT_ID,
+      kubernetesClusterId: CLUSTER_ID,
+    });
+
+    expect(
+      (harness.recorded.mock.calls[0]![0] as Record<string, unknown>)["props"],
+    ).toBeUndefined();
+  });
+
+  test("a cluster without an agent records no reset", async () => {
+    const harness: ResetHarness = setUp(null);
+
+    await expect(
+      KubernetesAiAgentService.resetAgent({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+        props: PERSON,
+      }),
+    ).rejects.toThrow("This cluster has no Kubernetes AI agent to reset.");
+
+    expect(harness.recorded.mock.calls).toHaveLength(0);
   });
 
   /*

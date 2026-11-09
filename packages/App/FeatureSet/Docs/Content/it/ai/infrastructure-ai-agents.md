@@ -342,6 +342,8 @@ Un incidente o un avviso ha una sola corsia di correzione IA. Quando è collegat
 
 Alcune modifiche più rischiose **richiedono sempre una persona** in ogni modalità, Salta l'approvazione compresa, e nessuna voce dell'elenco dei consentiti cambia questo: sono indicate come tali nelle tabelle qui sotto.
 
+Un progetto può anche chiedere che due persone approvino una correzione che contiene una modifica più rischiosa: vedi [Due persone approvano una correzione più rischiosa](/docs/ai/ai-sre#due-persone-approvano-una-correzione-più-rischiosa).
+
 ### Correzioni sugli host Docker e Podman
 
 | | Comandi |

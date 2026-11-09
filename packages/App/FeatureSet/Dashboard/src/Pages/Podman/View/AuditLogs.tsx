@@ -13,8 +13,7 @@ const PodmanHostAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Podman Host Audit Logs"
       description="All changes made to this Podman host."
-      resourceType="Podman Host"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

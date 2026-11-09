@@ -19,6 +19,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Hændelsesalvor**           | Tilføje, omdøbe, give nye farver og ændre rækkefølgen på alvorsgraderne.                     |
 | **Hændelsesskabeloner**      | Udfylde en hel hændelse på forhånd — titel, beskrivelse, ressourcer, vagtpolitikker, ejere, etiketter. |
 | **Noteskabeloner**           | Genbrugelig tekst til offentlige og private noter.                                           |
+| **Godkendelse af offentlige noter** | Lad offentlige noter blive godkendt, før de offentliggøres, og vælg, hvem der godkender dem. |
 | **Postmortem-skabeloner**    | Genbrugelige strukturer til postmortems.                                                     |
 | **Postmortem-statusser** | De statusser, en postmortem bevæger sig igennem, fra Ikke startet til Fuldført. |
 | **Brugerdefinerede felter**  | Definere ekstra felter, der vises på hver hændelse.                                          |
@@ -80,7 +81,7 @@ flowchart TB
 ```
 
 - **I dashboardet** — knappen **Opret fra skabelon** i listen over hændelser åbner en vælger **Vælg hændelsesskabelon**, og erklæringssiden læser skabelonen fra forespørgselsparameteren `incidentTemplateId` og udfylder derefter formularen med skabelonen plus dens ejerteams og ejerbrugere. Dens trin **Detaljer** følger skabelonens [brugerdefinerede felter ved oprettelse](#brugerdefinerede-felter-ved-oprettelse). Ejerne bliver hændelsens ejere uden at få besked, når hændelsens Slack- og Microsoft Teams-kanaler findes, så en notifikationsregel, der inviterer hændelsens ejere til en ny kanal, også inviterer dem.
-- **På serveren** — en [formular](/docs/forms/on-submit#hændelsesskabelonen), der har en **Hændelsesskabelon**, og et workflows trin **Create One Incident** med en valgt **Incident Template** erklærer hændelsen fra skabelonen på serveren. Trinnet læser skabelonen som Project Admin for workflowets projekt, så en skabelon fra et andet projekt, eller en, der er slettet, afvises, og på et abonnement, der ikke omfatter hændelsesskabeloner, afvises trinnet med det abonnement, det kræver. Skabelonens ejere bliver hændelsens ejere, som i dashboardet. Se [Workflow-komponenter](/docs/workflows/components).
+- **På serveren** — en [formular](/docs/forms/on-submit#hændelsesskabelonen), der har en **Hændelsesskabelon**, og et workflows trin **Create One Incident** med en valgt **Incident Template** erklærer hændelsen fra skabelonen på serveren. Trinnet læser skabelonen som Project Admin for workflowets projekt, så en skabelon fra et andet projekt, eller en, der er slettet, afvises, og på et abonnement, der ikke omfatter hændelsesskabeloner, afvises trinnet med det abonnement, det kræver. Skabelonens ejere bliver hændelsens ejere, som i dashboardet. Se [Erklær en hændelse ud fra en skabelon](/docs/workflows/components#erklær-en-hændelse-ud-fra-en-skabelon).
 
 En hændelse, der erklæres på serveren, registrerer skabelonen i `createdIncidentTemplateId`. Kun OneUptime sætter den kolonne, for en formular eller et workflow-trin, der nævner en skabelon: en API-nøgle eller en indlogget bruger kan ikke, og en anmodning, der sender `createdIncidentTemplateId`, afvises. For at erklære fra en skabelon via API'et læser du den fra `/api/incident-templates` og sender dens værdier i anmodningen.
 
@@ -162,6 +163,25 @@ Brugerdefinerede felter blev tidligere skrevet `{{customFields.<key>}}`; skabelo
 Den samme liste, knap og `{{` følger med de andre skabeloner, der har variabler: en SLA-regels notepåmindelser, en grupperingsregel for hændelser eller advarsler og dens episodetitel og -beskrivelse, en monitorregels hændelses- og advarselsbeskrivelse og afhjælpningsnoter, en SLO-forbrugsrateregels skabeloner og en statussides brugerdefinerede skabeloner til abonnentnotifikationer.
 
 Noteskabeloner dukker op, hvor du faktisk har brug for dem: bekræftelsesdialogerne **Bekræft hændelse** og **Løs hændelse** tilbyder begge **Vælg noteskabelon** over feltet **Offentlig note**, foldet sammen under **Tilføj en offentlig note**. Se [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed) for, hvordan offentlige og private noter adskiller sig.
+
+## Godkendelse af offentlige noter
+
+**Godkendelse af offentlige noter** får offentlige noter på hændelser og hændelsesepisoder godkendt, før de offentliggøres, til de opdateringer, der har brug for et ekstra sæt øjne, før kunderne læser dem. Den er slået fra i alle projekter, indtil du slår den til.
+
+:::steps
+1. Gå til **Hændelser → Indstillinger → Godkendelse af offentlige noter** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Klik under **Hvem godkender** på **Tilføj Godkendelsestrin**, og vælg trinnets **Godkendere**: personer, teams eller begge, hvoraf enhver kan godkende en note for trinnet. Et **Navn**, som Juridisk, er valgfrit: noter, der venter på trinnet, viser det.
+3. Slå **Kræv godkendelse, før offentlige noter offentliggøres** til. Fra da af venter en ny offentlig note, ligesom en redigering af en offentliggjort, indtil den er godkendt.
+:::
+
+De fleste projekter har brug for ét trin. Tilføj endnu et, når en note har brug for en ekstra godkendelse, for eksempel fra jeres juridiske team efter jeres supportleder. Trinnene godkendes i listens rækkefølge, som du ændrer ved at trække, og en note offentliggøres, når det sidste godkender den.
+
+- **Hvert trin nævner nogen.** Et trin skal have mindst én person eller ét team, og godkendelse kan ikke slås til, før et trin nævner nogen.
+- **Det sidste trin bliver, mens godkendelse er slået til.** For at slette det skal du først slå godkendelse fra eller tilføje et andet trin.
+- **Ændringer gælder med det samme.** Hvem der må godkende, læses, når nogen tager stilling, og noter, der allerede venter, følger dine ændringer. Når du tilføjer, sletter eller flytter trin, eller ændrer, hvem et trin nævner, bliver alle, der nu kan godkende en ventende note og endnu ikke er blevet spurgt om den, spurgt gennem deres notifikationsindstillinger, og det samme gælder den, der kommer med i et team, som det trin, en note venter på, nævner. Ingen bliver spurgt to gange om det samme trin af en note. Den, der fjernes fra trinnet eller fra dets team, kan ikke længere tage stilling til noten, og vedkommendes besked om den i Slack, Microsoft Teams eller Mattermost siger det. En note beholder de godkendelser, den har.
+- **Ingen godkender deres egen note eller to trin af én note.** Den, der sendte en note til godkendelse, kan hverken godkende eller afvise den, og den, der godkendte et af dens trin, kan ikke godkende et andet.
+
+Kun projektejere og -administratorer kan ændre disse indstillinger, og alle, der læser noterne, kan se, hvem der godkender dem. **Planlagt vedligeholdelse → Indstillinger → Godkendelse af offentlige noter** er den samme side for planlagte vedligeholdelsesbegivenheder, med sin egen kontakt og sine egne trin. Hvad en note gør, mens den venter, og hvordan godkendere tager stilling, står under [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter).
 
 ## Postmortem-skabeloner
 
@@ -447,7 +467,7 @@ Hver hændelses side viser sine egne målinger på et kort **Målinger** lige un
 
 En måling, hvis start eller slutning du ændrer, bliver ved med at vise sin gamle værdi på hver hændelse, indtil OneUptime har beregnet den igen, ligesom dens diagram. Lige efter en tilstandsændring fra hændelsens hoved viser kortet de nye værdier, så snart OneUptime har beregnet dem, som regel med det samme.
 
-Advarsler og planlagte vedligeholdelseshændelser har det samme kort på deres sider. For en vedligeholdelseshændelse kommer **Ikke nået**, når hændelsen er afsluttet. Kortet udelades, når ingen aktiveret måling har **Vis på hændelsessider** slået til, og for en, der ikke må læse målinger.
+Advarsler og planlagte vedligeholdelseshændelser har det samme kort på deres sider. For en vedligeholdelseshændelse kommer **Ikke nået**, når hændelsen er afsluttet: når den er i den afsluttede eller den fuldførte tilstand eller i en af dine egne tilstande efter den afsluttede tilstand. Dens øjeblikke følger de samme placeringer: **Vedligeholdelsen starter**, **Vedligeholdelsen slutter** og **Vedligeholdelsen bliver fuldført** er skiftene til en tilstand, hvor hændelsen står på, er overstået eller er fuldført, fra en, hvor den ikke var det — så en hændelse, der fuldføres direkte fra den igangværende tilstand, slutter dér, en hændelse, der flyttes fra den afsluttede tilstand direkte til en af dine egne tilstande efter den fuldførte tilstand, bliver fuldført dér, og at gå videre fra den fuldførte tilstand til sådan en tilstand fuldfører intet igen. Se [Planlagte vedligeholdelsesbegivenheder](/docs/status-pages/subscribers#planlagte-vedligeholdelsesbegivenheder). Kortet udelades, når ingen aktiveret måling har **Vis på hændelsessider** slået til, og for en, der ikke må læse målinger.
 
 ### Påvirkning startede, og hvorfor det er tomt
 
@@ -617,6 +637,8 @@ Ejer-, etiket- og privatlivsregler virker kun på hændelser og episoder, der op
 
 **En regel kan nedarve.** Under **Etiketter at tilføje** (eller **Ejere**) rummer det sammenfoldede afsnit **Nedarv etiketter** (eller **Nedarv ejere**) seks kontakter, der også giver etiketterne (eller ejerne) videre fra hændelsens monitorer, værter, Kubernetes-klynger, Docker-værter, Podman-værter og tjenester. En regel, der nedarver, kan lade **Etiketter at tilføje** stå tomt og navngives så efter det, den nedarver fra (_Inherit labels from monitors, hosts_); en ny regel, der hverken nævner eller nedarver noget, kan ikke gemmes — hverken fra formularen, API'et eller Terraform. Episoderegler på fanen **Episoderegler** har ingen kontakter til at nedarve. På en ejerregel for hændelser eller advarsler slutter **Nedarv ejere** med **Opretterens team**: af de teams, der står der, bliver hvert team, som personen, der erklærer hændelsen eller opretter advarslen, er med i, også ejer.
 
+En ejerregel for hændelser kan også tilhøre teams: **Ansvarlige teams** under **Flere felter** angiver, hvem der må redigere eller slette reglen – kun medlemmerne af de teams og projektadministratorer – ikke hvem reglen gør til ejere. Se [Regler, der tilhører teams](/docs/permissions/index#regler-der-tilhører-teams).
+
 **Ældre regler, der ikke tilføjer noget** — gemt, før OneUptime spurgte, hvad de tilføjer — kan stadig omdøbes, slås fra eller slettes, og listen markerer hver med **Tilføjer intet**. [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules) gennemgår formularen trin for trin.
 
 ## Grupperingsregler for hændelser
@@ -639,6 +661,8 @@ Ejer-, etiket- og privatlivsregler virker kun på hændelser og episoder, der op
 
 Alt andet, en regel kan gøre, er foldet sammen under **Flere felter** i slutningen af trinnet **Gruppering**, i tre grupper: **Vagt og ejerskab** (de vagtpolitikker, der køres, når reglen åbner en episode, **Episodeejere** og episodens rolletildelinger), **Episodens livscyklus** (vent på flere hændelser, før en episode åbnes — en kontakt med et antal — derefter genåbn nyligt løste episoder, vent før en episode løses, og løs stille episoder — hver en kontakt med sine minutter) og **Detaljer** (reglens beskrivelse, skabelonerne til episodens titel og beskrivelse, visning af episoder på statussider og episodens etiketter). Sammenfoldet nævner overskriften, hvad det rummer, og hver indstilling, en regel bruger, siger, hvad den er sat til — "On-Call Duty Policies: 2", "Reopen recently resolved episodes: 30 minutes" — så at redigere en regel skjuler aldrig, hvad den gør. At åbne det tilføjer intet trin: **Opret grupperingsregel for hændelser** står på **Hvilke hændelser**, det sidste trin. Advarselsformularen har ingen indstillinger for statussider eller episoderoller.
 
+At genåbne nyligt løste episoder er den eneste måde, hvorpå en episode kan rykke tilbage op på sin liste over tilstande. Når en matchende hændelse kommer inden for det antal minutter, indstillingen er sat til, flytter OneUptime den løste episode tilbage til din oprettelsestilstand og føjer hændelsen til den. Ingen andre kan det: En tilstandsændring for en episode er bundet af rækkefølgen af dine hændelsestilstande, præcis som en hændelses er, hvad enten den kommer fra dashboardet, Slack, Microsoft Teams, API'et eller Terraform (se [Rækkefølgen er en reel begrænsning](/docs/incidents/states-and-severities#rækkefølgen-er-en-reel-begrænsning-ikke-en-visningspræference)). Genåbningen flytter heller ikke episodens hændelser tilbage: De, der allerede er løst, forbliver løst. Grupperingsregler for advarsler genåbner advarselsepisoder på samme måde.
+
 **Vent på flere hændelser** holder en enkelt hændelse ude af en episode. Det er slået fra, indtil du slår det til, og spørger så, hvor mange: **Åbn en episode, når 3 matchende hændelser er i gang**, fra 2 til 100. Mens det er slået til, åbner en hændelse, der ikke finder nogen åben episode fra sin gruppe at gå ind i og ingen løst episode at genåbne, ikke en episode: Den venter alene og tilkalder kun via sine egne vagtpolitikker, ligesom en hændelse, som ingen regel matcher. Når så mange hændelser fra gruppen er i gang, den ankommende medregnet, åbner reglen én episode med hver hændelse, der ventede, og den, der kom sidst. Episoden tager sin titel, monitor og alvorsgrad fra den første af dem og stiger til den mest alvorlige, og hændelserne efter dem går ind i den som normalt. Kun hændelser, der stadig er i gang, tæller, så en monitor, der bliver ved med at fejle og komme sig, åbner aldrig en episode af sig selv, og mens **Gruppér kun hændelser, der kommer tæt efter hinanden** er slået til, skal de også være kommet inden for dets vindue fra hinanden. Kombinér det med **Alt samlet** for kun at åbne en episode ved et nedbrud, der udløser flere monitorer på én gang. Det virker med hvert svar på **Gruppér hændelser efter**: Med **Titel** får et problem en episode, når det udløses igen, mens det første stadig er åbent. Listens kolonne **Gruppering** siger "Åbner en episode, når 3 matchende hændelser er i gang". Via API'et og Terraform hedder det `enableMinimumIncidentCount` og `minimumIncidentCount`, og på en grupperingsregel for advarsler `enableMinimumAlertCount` og `minimumAlertCount`.
 
 > [!WARNING]
@@ -654,7 +678,7 @@ Regler, der blev gemt, før formularen spurgte om ejere, kan stadig have et stan
 
 ## Vagtregler for hændelser
 
-**Hændelser → Regler → Vagtregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er dér, du gør tilkaldelse automatisk. Kortet, **Hændelsesvagtregler**, siger, hvad de gør: tilkalder automatisk via vagtpolitikker for nye hændelser, der matcher. Siden har to faner: **Hændelsesregler** og **Episoderegler**.
+**Hændelser → Regler → Vagtregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er dér, du gør tilkaldelse automatisk. Kortet, **Hændelsesvagtregler**, siger, hvad de gør: tilkalder automatisk via vagtpolitikker for hændelser, der matcher, enten til at håndtere dem eller som observatører, der holdes orienteret. Siden har to faner: **Hændelsesregler** og **Episoderegler**.
 
 Oprettelsesformularen har to trin:
 
@@ -664,6 +688,12 @@ Oprettelsesformularen har to trin:
 :::
 
 En regel tilkalder, så snart en hændelse matcher den. For at lade den vente på arbejdstiden i stedet, svarer du **Kun i arbejdstiden** på **Hvornår skal denne regel tilkalde?** under **Flere felter**. **Arbejdstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidszone: vælg andre dage, et andet **Starttidspunkt** eller **Sluttidspunkt** eller en anden **Tidszone**, og en sætning under valget fortæller, hvad der sker. På listen viser reglen sin arbejdstid under navnet. En hændelse, der matcher uden for de tider, får en kørsel, der venter, som **Venter**, og ikke tilkalder nogen; når arbejdstiden begynder, tilkalder politikken sin første eskaleringsregel og eskalerer som normalt. Bliver hændelsen bekræftet eller løst først, bliver ingen tilkaldt. Ændrer hændelsen sig, mens den venter, så den nu matcher en regel, der tilkalder med det samme, for eksempel fordi dens alvorlighed hæves, begynder kørslen at tilkalde straks, og hændelsens feed fortæller hvorfor.
+
+En regel tilkalder sine politikkers personer for at håndtere hændelsen: Den, der bekræfter tilkaldelsen, bekræfter hændelsen. For at holde et team orienteret, mens et andet håndterer den, for eksempel et tilsynsteam, der skal høre om hver kritisk hændelse, svarer du **Observatører** på **Tilkald personerne i disse politikker som** under **Flere felter**. Deres tilkaldelse siger, at de er observatører, og bekræfter de den, siger det kun, at de har set den: Hændelsen bliver ikke bekræftet, ingen andres tilkaldelse stopper, og ingen bliver dens Hændelsesleder. Deres tilkaldelse fortsætter, indtil en af dem svarer, eller hændelsen er løst, og en Slack- eller Microsoft Teams-regel, der inviterer vagthavende til hændelsens kanal, udelader dem. På listen siger reglen under sit navn, at den tilkalder som observatører. En politik, som én matchende regel tilkalder til at håndtere hændelsen og en anden som observatører, tilkalder til at håndtere den.
+
+Regler kører, når en hændelse oprettes, og igen, hver gang dens alvorlighed eller etiketter ændres, mens den er åben. Hæves den til en alvorlighed, som en regel matcher, eller får den en etiket, som en regel matcher, tilkalder den regels politikker med det samme, til at håndtere hændelsen eller som observatører, og hændelsens feed fortæller, at reglen nu matcher den, og hvorfor. En politik, der allerede har tilkaldt om hændelsen, tilkalder ikke igen, medmindre den tilkaldte som observatører og nu skal håndtere den. Intet bliver gjort om, når hændelsen ikke længere matcher, og en ændret titel, beskrivelse eller monitor kører ikke reglerne igen.
+
+En regel kan tilhøre teams. **Ansvarlige teams** under **Flere felter** forbeholder den de teams, du vælger: kun deres medlemmer og projektadministratorer kan redigere eller slette den, og alle andre, der kan se regler, ser den skrivebeskyttet. En regel, som intet team ejer, kan ændres af alle, der må redigere vagtregler, og episoderegler kan også tilhøre teams. Se [Regler, der tilhører teams](/docs/permissions/index#regler-der-tilhører-teams).
 
 ### Sådan afgøres matchning
 

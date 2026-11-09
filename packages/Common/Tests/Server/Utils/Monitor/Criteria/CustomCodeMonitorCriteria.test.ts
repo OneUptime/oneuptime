@@ -413,7 +413,7 @@ describe("CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet", () =
       ).toBeNull();
     });
 
-    test("IsNotEmpty truncates a very long error to 500 chars plus an ellipsis", async () => {
+    test("IsNotEmpty quotes a very long error cut at 300 characters, as a root cause quotes any value", async () => {
       const longError: string = "e".repeat(600);
 
       const result: string | null = await evaluate(
@@ -425,8 +425,8 @@ describe("CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet", () =
         },
       );
 
-      expect(result).toBeTruthy();
-      expect(result!.endsWith("...")).toBe(true);
+      // MonitorQuotedValue: redacted, on one line, bounded (#6341).
+      expect(result).toBe(`Error is not empty. Value: ${"e".repeat(300)}…`);
       /* The full 600-char body must not be echoed verbatim. */
       expect(result).not.toContain(longError);
     });

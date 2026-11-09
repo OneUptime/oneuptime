@@ -46,6 +46,7 @@ import WorkspaceMemberActions, {
 } from "../../WorkspaceMemberActions";
 import OnCallPersonPageAnswer from "../../../OnCall/OnCallPersonPageAnswer";
 import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
+import WorkspaceHeldPublicNote from "../../WorkspaceHeldPublicNote";
 import WorkspaceActionAnswers, {
   WorkspaceAnswer,
   WorkspaceLatePress,
@@ -1688,19 +1689,20 @@ export default class SlackIncidentActions {
     }
 
     // Posted by the member, as the dashboard posts it for them.
-    const isAdded: boolean | null =
+    const added: { publicNote: IncidentPublicNote | null } | null =
       await SlackActionAuthorization.runForRequester({
         requester: data.slackRequest,
         action: "add the note",
-        run: async (): Promise<boolean> => {
+        run: async (): Promise<{ publicNote: IncidentPublicNote | null }> => {
           if (isPublic) {
-            await IncidentPublicNoteService.addNote({
-              incidentId: incidentId,
-              note: note,
-              projectId: data.slackRequest.projectId!,
-              props: props,
-            });
-            return true;
+            return {
+              publicNote: await IncidentPublicNoteService.addNote({
+                incidentId: incidentId,
+                note: note,
+                projectId: data.slackRequest.projectId!,
+                props: props,
+              }),
+            };
           }
 
           await IncidentInternalNoteService.addNote({
@@ -1709,11 +1711,11 @@ export default class SlackIncidentActions {
             projectId: data.slackRequest.projectId!,
             props: props,
           });
-          return true;
+          return { publicNote: null };
         },
       });
 
-    if (!isAdded) {
+    if (!added) {
       return;
     }
 
@@ -1735,6 +1737,30 @@ export default class SlackIncidentActions {
             props: props,
           }),
         });
+      }
+
+      return;
+    }
+
+    /*
+     * Held for approval: posted to no channel until it is approved, so told
+     * here - where they opened the form, to them alone - that it waits, and
+     * for whom (WorkspaceHeldPublicNote).
+     */
+    const heldAnswer: WorkspaceAnswer | null =
+      await WorkspaceHeldPublicNote.getAnswerForAddedNote({
+        event: { type: WorkspaceEventType.Incident, id: incidentId },
+        note: added.publicNote,
+        props: props,
+      });
+
+    if (heldAnswer) {
+      const place: SlackAnswerPlace | null = SlackActionAnswer.getPlace(
+        data.slackRequest,
+      );
+
+      if (place) {
+        await SlackActionAnswer.answer({ place: place, answer: heldAnswer });
       }
 
       return;
@@ -1791,6 +1817,11 @@ export default class SlackIncidentActions {
               projectId: data.slackRequest.projectId,
             })
           : false,
+        isPublicNoteApprovalRequired:
+          await WorkspaceHeldPublicNote.isApprovalRequired({
+            type: WorkspaceEventType.Incident,
+            projectId: data.slackRequest.projectId,
+          }),
       });
 
     const modalBlock: WorkspaceModalBlock = {

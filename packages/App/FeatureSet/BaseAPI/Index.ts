@@ -146,6 +146,7 @@ import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
 import InventoryOverviewAPI from "./API/InventoryOverview";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
+import MessageQueueTopologyAPI from "./API/MessageQueueTopology";
 import ReceivingGapsAPI from "./API/ReceivingGaps";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import TopologyAPI from "./API/Topology";
@@ -340,6 +341,24 @@ import AlertEpisodeLabelRuleService, {
 import IncidentOnCallRuleService, {
   Service as IncidentOnCallRuleServiceType,
 } from "Common/Server/Services/IncidentOnCallRuleService";
+import IncidentOnCallRuleOwningTeamService, {
+  Service as IncidentOnCallRuleOwningTeamServiceType,
+} from "Common/Server/Services/IncidentOnCallRuleOwningTeamService";
+import IncidentOwnerRuleOwningTeamService, {
+  Service as IncidentOwnerRuleOwningTeamServiceType,
+} from "Common/Server/Services/IncidentOwnerRuleOwningTeamService";
+import WorkspaceNotificationRuleOwningTeamService, {
+  Service as WorkspaceNotificationRuleOwningTeamServiceType,
+} from "Common/Server/Services/WorkspaceNotificationRuleOwningTeamService";
+import AlertOnCallRuleOwningTeamService, {
+  Service as AlertOnCallRuleOwningTeamServiceType,
+} from "Common/Server/Services/AlertOnCallRuleOwningTeamService";
+import IncidentEpisodeOnCallRuleOwningTeamService, {
+  Service as IncidentEpisodeOnCallRuleOwningTeamServiceType,
+} from "Common/Server/Services/IncidentEpisodeOnCallRuleOwningTeamService";
+import AlertEpisodeOnCallRuleOwningTeamService, {
+  Service as AlertEpisodeOnCallRuleOwningTeamServiceType,
+} from "Common/Server/Services/AlertEpisodeOnCallRuleOwningTeamService";
 
 import IncidentOwnerRuleService, {
   Service as IncidentOwnerRuleServiceType,
@@ -537,9 +556,6 @@ import ScheduledMaintenanceMeasurementValueService, {
 import ServiceLevelObjectiveService, {
   Service as ServiceLevelObjectiveServiceType,
 } from "Common/Server/Services/ServiceLevelObjectiveService";
-import ServiceLevelObjectiveBurnRateRuleService, {
-  Service as ServiceLevelObjectiveBurnRateRuleServiceType,
-} from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
 import LlmCostBudgetService, {
   Service as LlmCostBudgetServiceType,
 } from "Common/Server/Services/LlmCostBudgetService";
@@ -571,6 +587,9 @@ import SloHistoryService, {
 import IncidentReminderRuleService, {
   Service as IncidentReminderRuleServiceType,
 } from "Common/Server/Services/IncidentReminderRuleService";
+import PublicNoteApprovalStepService, {
+  Service as PublicNoteApprovalStepServiceType,
+} from "Common/Server/Services/PublicNoteApprovalStepService";
 
 import AlertReminderRuleService, {
   Service as AlertReminderRuleServiceType,
@@ -614,6 +633,8 @@ import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
+import ServiceLevelObjectiveBurnRateRuleAPI from "Common/Server/API/ServiceLevelObjectiveBurnRateRuleAPI";
+import ServiceLevelObjectiveErrorBudgetPolicyTierAPI from "Common/Server/API/ServiceLevelObjectiveErrorBudgetPolicyTierAPI";
 import SecurityWatchlistAPI from "Common/Server/API/SecurityWatchlistAPI";
 import SecurityWatchlistItem from "Common/Models/DatabaseModels/SecurityWatchlistItem";
 import SecurityWatchlistItemService, {
@@ -1410,6 +1431,9 @@ import UserOnCallLogService, {
 import WorkflowLogService, {
   Service as WorkflowLogServiceType,
 } from "Common/Server/Services/WorkflowLogService";
+import WorkflowVersionService, {
+  Service as WorkflowVersionServiceType,
+} from "Common/Server/Services/WorkflowVersionService";
 import WorkflowService, {
   Service as WorkflowServiceType,
 } from "Common/Server/Services/WorkflowService";
@@ -1543,6 +1567,12 @@ import AlertEpisodePrivacyRule from "Common/Models/DatabaseModels/AlertEpisodePr
 import AlertEpisodeLabelRule from "Common/Models/DatabaseModels/AlertEpisodeLabelRule";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
+import IncidentOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOnCallRuleOwningTeam";
+import IncidentOwnerRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOwnerRuleOwningTeam";
+import WorkspaceNotificationRuleOwningTeam from "Common/Models/DatabaseModels/WorkspaceNotificationRuleOwningTeam";
+import AlertOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertOnCallRuleOwningTeam";
+import IncidentEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRuleOwningTeam";
+import AlertEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertEpisodeOnCallRuleOwningTeam";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
 import IncidentPrivacyRule from "Common/Models/DatabaseModels/IncidentPrivacyRule";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
@@ -1597,7 +1627,6 @@ import AlertMeasurementValue from "Common/Models/DatabaseModels/AlertMeasurement
 import ScheduledMaintenanceMeasurement from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurement";
 import ScheduledMaintenanceMeasurementValue from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurementValue";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import LlmModelPrice from "Common/Models/DatabaseModels/LlmModelPrice";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
@@ -1608,6 +1637,7 @@ import ServiceLevelObjectiveOwnerRule from "Common/Models/DatabaseModels/Service
 import ServiceLevelObjectiveLabelRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
+import PublicNoteApprovalStep from "Common/Models/DatabaseModels/PublicNoteApprovalStep";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 
@@ -1807,6 +1837,7 @@ import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationR
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
+import WorkflowVersion from "Common/Models/DatabaseModels/WorkflowVersion";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
@@ -2033,8 +2064,11 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
+import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
@@ -3055,6 +3089,76 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * The teams that own a rule: only they, and the project's owners and
+     * admins, change or delete a rule that has any (TeamOwnedRulePermission).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentOnCallRuleOwningTeam,
+        IncidentOnCallRuleOwningTeamServiceType
+      >(
+        IncidentOnCallRuleOwningTeam,
+        IncidentOnCallRuleOwningTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentOwnerRuleOwningTeam,
+        IncidentOwnerRuleOwningTeamServiceType
+      >(
+        IncidentOwnerRuleOwningTeam,
+        IncidentOwnerRuleOwningTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        WorkspaceNotificationRuleOwningTeam,
+        WorkspaceNotificationRuleOwningTeamServiceType
+      >(
+        WorkspaceNotificationRuleOwningTeam,
+        WorkspaceNotificationRuleOwningTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        AlertOnCallRuleOwningTeam,
+        AlertOnCallRuleOwningTeamServiceType
+      >(
+        AlertOnCallRuleOwningTeam,
+        AlertOnCallRuleOwningTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeOnCallRuleOwningTeam,
+        IncidentEpisodeOnCallRuleOwningTeamServiceType
+      >(
+        IncidentEpisodeOnCallRuleOwningTeam,
+        IncidentEpisodeOnCallRuleOwningTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        AlertEpisodeOnCallRuleOwningTeam,
+        AlertEpisodeOnCallRuleOwningTeamServiceType
+      >(
+        AlertEpisodeOnCallRuleOwningTeam,
+        AlertEpisodeOnCallRuleOwningTeamService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<AlertOwnerRule, AlertOwnerRuleServiceType>(
@@ -3606,16 +3710,16 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // ServiceLevelObjectiveBurnRateRule
+    // ServiceLevelObjectiveBurnRateRule, and "Add recommended rules"
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ServiceLevelObjectiveBurnRateRule,
-        ServiceLevelObjectiveBurnRateRuleServiceType
-      >(
-        ServiceLevelObjectiveBurnRateRule,
-        ServiceLevelObjectiveBurnRateRuleService,
-      ).getRouter(),
+      new ServiceLevelObjectiveBurnRateRuleAPI().getRouter(),
+    );
+
+    // ServiceLevelObjectiveErrorBudgetPolicyTier, and "Use the recommended policy"
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ServiceLevelObjectiveErrorBudgetPolicyTierAPI().getRouter(),
     );
 
     // LlmCostBudget
@@ -3780,6 +3884,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentReminderRule, IncidentReminderRuleServiceType>(
         IncidentReminderRule,
         IncidentReminderRuleService,
+      ).getRouter(),
+    );
+
+    // PublicNoteApprovalStep: who approves public notes before they are published.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PublicNoteApprovalStep, PublicNoteApprovalStepServiceType>(
+        PublicNoteApprovalStep,
+        PublicNoteApprovalStepService,
       ).getRouter(),
     );
 
@@ -5023,6 +5136,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<WorkflowLog, WorkflowLogServiceType>(
         WorkflowLog,
         WorkflowLogService,
+      ).getRouter(),
+    );
+
+    // A workflow's versions: read only, written by WorkflowService's saves.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<WorkflowVersion, WorkflowVersionServiceType>(
+        WorkflowVersion,
+        WorkflowVersionService,
       ).getRouter(),
     );
 
@@ -6351,6 +6473,21 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
 
     /*
+     * Telemetry usage (Project Settings > Telemetry & APM > Usage, and the
+     * Admin Dashboard's Telemetry Usage): read from the staged usage rows,
+     * with billing on or off. A bare router for the same reason as
+     * OnCallReadinessAPI: TelemetryUsageBilling's CRUD routes are mounted on
+     * their own, with the other models'.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryUsageAPI);
+
+    /*
+     * Telemetry ingestion budgets, read: a project's for the Usage page and
+     * the explorers' banner, any project's for the Admin Dashboard.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryIngestionBudgetAPI);
+
+    /*
      * Import from another tool (Project Settings > Advanced > Import from
      * another tool). A bare router for the same reason as OnCallReadinessAPI: its
      * runs are internal rows with no CRUD API, so the router's own checks
@@ -6369,6 +6506,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
     );
+
+    /*
+     * The Discovered Devices list (Network > Discovered Devices): every
+     * device switches and controllers saw, searched and paged in the
+     * database, hidden from the map and shown on it again in bulk. A bare
+     * router: the list reads three tables at once, so there is no one
+     * model's CRUD API to extend, and its own checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkDiscoveredDeviceAPI);
 
     /*
      * Refresh: a network device read again now - by its probe, and by the
@@ -7462,6 +7608,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceDependencyTimeseriesAPI().getRouter(),
+    );
+    /*
+     * The Queues topology: how messages flow between services and queues,
+     * read from spans (POST /telemetry/message-queues/topology, which no
+     * CRUD router claims).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new MessageQueueTopologyAPI().getRouter(),
     );
     /*
      * When OneUptime itself was not receiving data, for the availability

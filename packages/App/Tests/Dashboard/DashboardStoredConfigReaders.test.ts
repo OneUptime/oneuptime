@@ -92,11 +92,11 @@ const KNOWN_FILES: Record<string, KnownFile> = {
   },
   "Common/Server/API/DashboardAPI.ts": {
     role: "reader",
-    why: "every public dashboard route reads the stored config",
+    why: "every public dashboard route reads the stored config: /view-config through the sanitizer, and every route that serves what the page draws - the metric routes and the routes that select one list or SLO widget - as the public page draws it",
   },
   "Common/Server/Utils/Dashboard/PublicDashboardViewConfig.ts": {
     role: "reader",
-    why: "strips Data Source widgets from what anonymous visitors get",
+    why: "strips Data Source widgets from what anonymous visitors get, and reads the config their page then draws",
   },
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx": {
     role: "handed-a-read-config",
@@ -117,17 +117,14 @@ const KNOWN_FILES: Record<string, KnownFile> = {
       role: "handed-a-read-config",
       why: "the board's toolbar, handed DashboardView's config",
     },
-  "Common/Server/Utils/Dashboard/PublicDashboardResourceListPolicy.ts": {
-    role: "handed-a-read-config",
-    why: "handed DashboardAPI.getStoredViewConfig's located config",
-  },
+
   "Common/Utils/Dashboard/DashboardViewConfig.ts": {
     role: "handed-a-read-config",
     why: "layout utilities over a config already read",
   },
   "Common/Utils/Dashboard/DashboardWidgetSorts.ts": {
     role: "handed-a-read-config",
-    why: "checks each widget's sort in the config DashboardService's write check read, through StoredDashboardViewConfig.getComponentEntries",
+    why: "checks each widget's sort in the config DashboardService's write check read, through StoredDashboardViewConfig.getComponentEntries and withArgumentsRead",
   },
   "Common/Models/DatabaseModels/Dashboard.ts": {
     role: "other",
@@ -282,12 +279,13 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
         "StoredDashboardViewConfig.read(createBy.data.dashboardViewConfig)",
       ],
       [DASHBOARD_API]: [
-        "StoredDashboardViewConfig.unwrap(dashboard.dashboardViewConfig)",
-        "StoredDashboardViewConfig.withComponentIds(",
+        "PublicDashboardViewConfig.sanitize(dashboard.dashboardViewConfig)",
+        "PublicDashboardViewConfig.getDrawnConfig(dashboard.dashboardViewConfig",
       ],
       [PUBLIC_SANITIZER]: [
         "StoredDashboardViewConfig.unwrap(dashboardViewConfig)",
         "StoredDashboardViewConfig.getComponentEntries(storedConfig)",
+        "StoredDashboardViewConfig.read(PublicDashboardViewConfig.sanitize(",
       ],
     };
 
@@ -333,22 +331,37 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
     }
   });
 
-  test("the public routes read the stored config only through getStoredViewConfig or the sanitizer", () => {
+  test("the public routes read the stored config only through the sanitizer, or what the public page draws", () => {
     const code: string = codeOf(DASHBOARD_API)
       .split(
         "PublicDashboardViewConfig.sanitize(dashboard.dashboardViewConfig)",
       )
       .join("")
-      .split("StoredDashboardViewConfig.unwrap(dashboard.dashboardViewConfig)")
+      .split(
+        "PublicDashboardViewConfig.getDrawnConfig(dashboard.dashboardViewConfig",
+      )
       .join("");
 
     expect(code.includes("dashboard.dashboardViewConfig")).toBe(false);
 
-    // And they do use it: one place reads the stored config for all of them.
+    /*
+     * And every route that serves what the page draws reads the config the
+     * page draws (getDrawnViewConfig): the routes that serve what its metric
+     * widgets and toolbar ask for (overview, attribute-values, metric-types,
+     * metrics-aggregate; issue #6297), and the routes that serve one list or
+     * SLO widget (resource-list, SLO history; issue #6315). None reads the
+     * stored config on its own any more - read as stored, a list or SLO
+     * widget refused its variables and its settings in shapes the page
+     * draws.
+     */
     expect(
-      codeOf(DASHBOARD_API).split("DashboardAPI.getStoredViewConfig(dashboard)")
+      codeOf(DASHBOARD_API).split("DashboardAPI.getDrawnViewConfig(dashboard)")
         .length - 1,
-    ).toBeGreaterThanOrEqual(8);
+    ).toBeGreaterThanOrEqual(6);
+    expect(codeOf(DASHBOARD_API)).not.toContain("getStoredViewConfig");
+    expect(codeOf(DASHBOARD_API)).not.toContain(
+      "StoredDashboardViewConfig.unwrap(dashboard.dashboardViewConfig)",
+    );
   });
 });
 

@@ -170,6 +170,7 @@ function renderOverview(analysis: UserFlowAnalysis = ANALYSIS): void {
     <UserFlowOverview
       summary={analysis.summary}
       insights={analysis.insights}
+      sessionsRead={FIXTURE.sessions.length}
       sessionsInWindow={FIXTURE.sessionsInWindow}
       isSampled={false}
       onFocusPage={(): void => {

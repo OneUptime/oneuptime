@@ -113,6 +113,10 @@ enum EmailTemplateType {
   // A scheduled hunt found security events (SecurityHuntNotifications).
   SecurityHuntFound = "SecurityHuntFound.hbs",
 
+  // Public note approval (Server/Utils/Notes/PublicNoteApprovalNotifications.ts).
+  PublicNoteApprovalRequested = "PublicNoteApprovalRequested.hbs",
+  PublicNoteApprovalDecided = "PublicNoteApprovalDecided.hbs",
+
   ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
   Invoice = "Invoice.hbs",
 

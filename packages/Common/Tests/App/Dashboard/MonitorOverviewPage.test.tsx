@@ -112,9 +112,9 @@ jest.mock(
   },
 );
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MetricMonitor/MetricMonitorPreview",
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MetricMonitor/MonitorMetricsCard",
   () => {
-    return stubModule("MetricMonitorPreview");
+    return stubModule("MonitorMetricsCard");
   },
 );
 jest.mock(
@@ -1109,6 +1109,76 @@ describe("Monitor overview page: layout", () => {
     );
   });
 
+  /*
+   * Issue #5759: a metric monitor's readers came for its metrics and found
+   * them below the summary, or, on an infrastructure monitor, nowhere.
+   */
+  test("a metric monitor's metrics come first in the main column, and Refresh reads them again", async () => {
+    setUpServer({
+      id: MONITOR_A,
+      type: MonitorType.Metrics,
+      statusId: OPERATIONAL_ID,
+      stepData: {
+        metricMonitor: {
+          rollingTime: "Past 5 Minutes",
+          metricViewConfig: {
+            queryConfigs: [
+              {
+                metricAliasData: { metricVariable: "a" },
+                metricQueryData: {
+                  filterData: { metricName: "system.cpu.utilization" },
+                },
+              },
+            ],
+            formulaConfigs: [],
+          },
+        },
+      },
+      overrides: {
+        telemetryMonitorLastMonitorAt: secondsAgo(30),
+        telemetryMonitorNextMonitorAt: secondsAgo(-30),
+      },
+    });
+    server.probes = [];
+
+    await renderPage();
+
+    const card: HTMLElement = screen.getByTestId("stub-MonitorMetricsCard");
+
+    expect(isInMainColumn(card)).toBe(true);
+    expectDocumentOrder([
+      card,
+      heading("Uptime history"),
+      screen.getByTestId("stub-Summary"),
+      screen.getByTestId("stub-MonitorFeed"),
+    ]);
+    // The preview below the summary is not drawn as well.
+    expect(screen.queryByTestId("stub-MetricMonitorPreview")).toBeNull();
+
+    const props: {
+      monitorType: MonitorType;
+      monitorSteps: { data?: unknown } | undefined;
+      refreshToken: number;
+    } = latestProps("MonitorMetricsCard");
+
+    expect(props.monitorType).toBe(MonitorType.Metrics);
+    expect(props.monitorSteps?.data).toBeDefined();
+    expect(props.refreshToken).toBe(0);
+
+    const mountsBefore: Record<string, number> = { ...mountCounts };
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("monitor-overview-refresh"));
+    });
+    await flush();
+
+    // Read again in place: a new token, the same card.
+    expect(
+      latestProps<{ refreshToken: number }>("MonitorMetricsCard").refreshToken,
+    ).toBe(1);
+    expect(mountCounts).toEqual(mountsBefore);
+  });
+
   test("the stat bar sits between the hero and the grid", async () => {
     await renderPage();
 
@@ -1388,6 +1458,7 @@ const FAMILY_CASES: Array<FamilyCase> = [
     extraStub: "LogMonitorPreview",
   },
   {
+    // Issue #5759: it charts the metrics it checks, which it used not to.
     name: "an infrastructure monitor",
     monitor: {
       id: MONITOR_A,
@@ -1406,7 +1477,7 @@ const FAMILY_CASES: Array<FamilyCase> = [
     hasResponseTime: false,
     sideCard: null,
     setup: null,
-    extraStub: null,
+    extraStub: "MonitorMetricsCard",
   },
   {
     name: "a network device monitor",
@@ -1507,6 +1578,11 @@ describe.each(FAMILY_CASES)(
           isInMainColumn(screen.getByTestId(`stub-${familyCase.extraStub}`)),
         ).toBe(true);
       }
+
+      // Only a metric-backed monitor charts its metrics.
+      expect(screen.queryByTestId("stub-MonitorMetricsCard") !== null).toBe(
+        familyCase.extraStub === "MonitorMetricsCard",
+      );
 
       // Every family gets the feed, open work, recent changes and details.
       expect(screen.getByTestId("stub-MonitorFeed")).toBeInTheDocument();

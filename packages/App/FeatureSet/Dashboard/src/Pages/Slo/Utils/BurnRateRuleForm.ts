@@ -1,24 +1,14 @@
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
-import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
-import Label from "Common/Models/DatabaseModels/Label";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
-  SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
   SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
   SLO_BURN_RATE_TEMPLATE_VARIABLES,
-  SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
   SloBurnRateTemplateVariableDefinition,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
-import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import {
@@ -32,10 +22,18 @@ import {
   getValuesForBurnRateDeclares,
   isBurnRateDeclares,
 } from "./BurnRateDeclares";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
-  translateTemplate,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+  SloRecordOutputCopy,
+  SloRecordOutputFieldPlacement,
+  SloRecordOutputSections,
+  describeSloRecordOutputOptions,
+  describeSloRecordOutputs,
+  getSloAlertOutputFormFields,
+  getSloAlertOutputSections,
+  getSloIncidentOutputFormFields,
+  getSloIncidentOutputSections,
+} from "./SloRecordOutputForm";
 
 /*
  * The burn rate rule form's pure half, split out of BurnRateRules.tsx so it
@@ -54,6 +52,12 @@ import {
  * The same constraint is why nothing here fetches anything. The owners
  * pickers are plain data too (getOwnersFormField): the people picker the form
  * draws them with does its own searching.
+ *
+ * The alert and incident fields themselves are built by SloRecordOutputForm,
+ * which a tier of the SLO's error budget policy asks them from too: this
+ * module says what is particular to a rule - its template variables and
+ * defaults, the help that says "this rule", and the steps and folded
+ * sections each output's fields go on.
  *
  * BurnRateRules.tsx re-exports these names, so existing importers are
  * unchanged.
@@ -170,23 +174,11 @@ export type DescribeBurnRateOutputsFunction = (
 export const describeBurnRateOutputs: DescribeBurnRateOutputsFunction = (
   rule: ServiceLevelObjectiveBurnRateRule,
 ): string => {
-  const createsAlert: boolean = willCreateAlert(rule);
-  const createsIncident: boolean = willDeclareIncident(rule);
-
   // English; the page translates the label it shows.
-  if (createsAlert && createsIncident) {
-    return translationKey("Alert + Incident");
-  }
-
-  if (createsIncident) {
-    return translationKey("Incident");
-  }
-
-  if (createsAlert) {
-    return translationKey("Alert");
-  }
-
-  return translationKey("Nothing");
+  return describeSloRecordOutputs({
+    createsAlert: willCreateAlert(rule),
+    createsIncident: willDeclareIncident(rule),
+  });
 };
 
 /*
@@ -210,82 +202,13 @@ export type DescribeBurnRateOutputOptionsFunction = (
   rule: BurnRateRuleOptionFlags,
 ) => Array<string>;
 
-/*
- * Each line whole, so a translation never has to glue "Alert" to a list of
- * options: the page translates the English line it is given.
- */
-interface OutputOptionLines {
-  resolvedByHand: string;
-  isPrivate: string;
-  both: string;
-}
-
-const ALERT_OPTION_LINES: OutputOptionLines = {
-  resolvedByHand: translationKey("Alert: resolved by hand"),
-  isPrivate: translationKey("Alert: private"),
-  both: translationKey("Alert: resolved by hand, private"),
-};
-
-const INCIDENT_OPTION_LINES: OutputOptionLines = {
-  resolvedByHand: translationKey("Incident: resolved by hand"),
-  isPrivate: translationKey("Incident: private"),
-  both: translationKey("Incident: resolved by hand, private"),
-};
-
 export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunction =
   (rule: BurnRateRuleOptionFlags): Array<string> => {
-    const lines: Array<string> = [];
-
-    type DescribeOutputFunction = (data: {
-      lines: OutputOptionLines;
-      isPrivate: boolean | undefined;
-      autoResolve: boolean | undefined;
-    }) => void;
-
-    const describeOutput: DescribeOutputFunction = (data: {
-      lines: OutputOptionLines;
-      isPrivate: boolean | undefined;
-      autoResolve: boolean | undefined;
-    }): void => {
-      const resolvedByHand: boolean = data.autoResolve === false;
-      const isPrivate: boolean = data.isPrivate === true;
-
-      if (resolvedByHand && isPrivate) {
-        lines.push(data.lines.both);
-      } else if (resolvedByHand) {
-        lines.push(data.lines.resolvedByHand);
-      } else if (isPrivate) {
-        lines.push(data.lines.isPrivate);
-      }
-    };
-
-    const createsAlert: boolean = willCreateAlert(rule);
-    const createsIncident: boolean = willDeclareIncident(rule);
-
-    if (createsAlert) {
-      describeOutput({
-        lines: ALERT_OPTION_LINES,
-        isPrivate: rule.isAlertPrivate,
-        autoResolve: rule.autoResolveAlert,
-      });
-    }
-
-    if (createsIncident) {
-      describeOutput({
-        lines: INCIDENT_OPTION_LINES,
-        isPrivate: rule.isIncidentPrivate,
-        autoResolve: rule.autoResolveIncident,
-      });
-    }
-
-    if (
-      rule.addSloOwnersAsOwners === true &&
-      (createsAlert || createsIncident)
-    ) {
-      lines.push(translationKey("SLO owners added as owners"));
-    }
-
-    return lines;
+    // Each line whole, in English: the page translates the line it is given.
+    return describeSloRecordOutputOptions(rule, {
+      createsAlert: willCreateAlert(rule),
+      createsIncident: willDeclareIncident(rule),
+    });
   };
 
 /*
@@ -365,131 +288,71 @@ export const BURN_RATE_RULE_FORM_STEPS: Array<
   },
 ];
 
-const alertDescriptionSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  {
-    id: "alert-description",
-    title: "Description",
-    description: "Optional alert description",
-    isConfigured: (
-      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-    ): boolean => {
-      return Boolean(value.alertDescriptionTemplate);
-    },
-  };
+/*
+ * What the help under each output's fields says of a rule: what raises the
+ * record, and what its default title and description say.
+ */
+const BURN_RATE_ALERT_COPY: SloRecordOutputCopy = {
+  titleDescription: translationKey(
+    "Title of the alert this rule raises. Leave empty to use the default: {{defaultTitle}}",
+  ),
+  severityDescription: translationKey(
+    "Severity of the alert this rule creates. Defaults to the project's most severe.",
+  ),
+  descriptionDescription: translationKey(
+    "Description of the alert, in Markdown. Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.",
+  ),
+  onCallDescription: translationKey(
+    "On-call policies to execute when this rule creates an alert.",
+  ),
+  autoResolveDescription: translationKey(
+    "Resolve the alert when the long window's burn rate drops below the threshold.",
+  ),
+};
 
-const alertOwnershipSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  {
-    id: "alert-ownership",
-    title: "Ownership & Labels",
-    description: "Assign owners and labels to the alert",
-    isConfigured: (
-      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-    ): boolean => {
-      return [
-        value.alertOwnerTeams,
-        value.alertOwnerUsers,
-        value.alertLabels,
-      ].some((selection: unknown): boolean => {
-        return Array.isArray(selection) && selection.length > 0;
-      });
-    },
-  };
+const BURN_RATE_INCIDENT_COPY: SloRecordOutputCopy = {
+  titleDescription: translationKey(
+    "Title of the incident this rule declares. Leave empty to use the default: {{defaultTitle}}",
+  ),
+  severityDescription: translationKey(
+    "Severity of the incident this rule declares. Defaults to the project's most severe.",
+  ),
+  descriptionDescription: translationKey(
+    "Description of the incident, in Markdown. Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.",
+  ),
+  onCallDescription: translationKey(
+    "On-call policies to execute when this rule declares an incident. Kept separate from the alert policies so the two can escalate differently.",
+  ),
+  autoResolveDescription: translationKey(
+    "Resolve the incident when the long window's burn rate drops below the threshold.",
+  ),
+};
 
-const alertOnCallSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  {
-    id: "alert-on-call",
-    title: "On-Call",
-    description: "Configure on-call policy escalation",
-    isConfigured: (
-      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-    ): boolean => {
-      return (
-        Array.isArray(value.onCallDutyPolicies) &&
-        value.onCallDutyPolicies.length > 0
-      );
-    },
-  };
+type GetBurnRateOutputPlacementFunction = (
+  stepId: string,
+  sections: SloRecordOutputSections<ServiceLevelObjectiveBurnRateRule>,
+) => SloRecordOutputFieldPlacement<ServiceLevelObjectiveBurnRateRule>;
 
 /*
- * Auto-resolve, privacy and remediation notes: More fields, as on every form
- * - folded on create and edit, its header naming the three and showing the
- * ones chosen. A true auto-resolve is what a new rule starts with, so only
- * turning it off counts.
+ * Each output has one step, matching the monitor form: title and severity
+ * stay visible, with optional settings grouped into expandable sections -
+ * the description, ownership and labels, on-call, and More fields for
+ * auto-resolve, privacy and remediation notes.
  */
-const alertAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  getAdvancedFormSection<ServiceLevelObjectiveBurnRateRule>({
-    id: "alert-advanced",
-    description: "Auto-resolve, privacy and remediation settings",
-    isConfigured: (
-      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-    ): boolean => {
-      return (
-        value.autoResolveAlert === false ||
-        value.isAlertPrivate === true ||
-        Boolean(value.alertRemediationNotes)
-      );
-    },
-  });
-
-const incidentDescriptionSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  {
-    id: "incident-description",
-    title: "Description",
-    description: "Optional incident description",
-    isConfigured: (
-      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-    ): boolean => {
-      return Boolean(value.incidentDescriptionTemplate);
+const getBurnRateOutputPlacement: GetBurnRateOutputPlacementFunction = (
+  stepId: string,
+  sections: SloRecordOutputSections<ServiceLevelObjectiveBurnRateRule>,
+): SloRecordOutputFieldPlacement<ServiceLevelObjectiveBurnRateRule> => {
+  return {
+    stepId: stepId,
+    sections: {
+      description: sections.description,
+      ownership: sections.ownership,
+      onCall: sections.onCall,
+      advanced: sections.advanced,
     },
   };
-
-const incidentOwnershipSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  {
-    id: "incident-ownership",
-    title: "Ownership & Labels",
-    description: "Assign owners and labels to the incident",
-    isConfigured: (
-      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-    ): boolean => {
-      return [
-        value.incidentOwnerTeams,
-        value.incidentOwnerUsers,
-        value.incidentLabels,
-      ].some((selection: unknown): boolean => {
-        return Array.isArray(selection) && selection.length > 0;
-      });
-    },
-  };
-
-const incidentOnCallSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  {
-    id: "incident-on-call",
-    title: "On-Call",
-    description: "Configure on-call policy escalation",
-    isConfigured: (
-      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-    ): boolean => {
-      return (
-        Array.isArray(value.incidentOnCallDutyPolicies) &&
-        value.incidentOnCallDutyPolicies.length > 0
-      );
-    },
-  };
-
-const incidentAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  getAdvancedFormSection<ServiceLevelObjectiveBurnRateRule>({
-    id: "incident-advanced",
-    description: "Auto-resolve, privacy and remediation settings",
-    isConfigured: (
-      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
-    ): boolean => {
-      return (
-        value.autoResolveIncident === false ||
-        value.isIncidentPrivate === true ||
-        Boolean(value.incidentRemediationNotes)
-      );
-    },
-  });
+};
 
 /*
  * Hoisted out of the JSX so the wiring is assertable: every field has to
@@ -688,309 +551,26 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     required: false,
     stepId: "declares",
   },
-  {
-    field: {
-      alertTitleTemplate: true,
-    },
-    title: "Alert Title",
-    // A getter, so the form reads it in the language of the moment.
-    get description(): string {
-      return translateTemplate(
-        "Title of the alert this rule raises. Leave empty to use the default: {{defaultTitle}}",
-        { defaultTitle: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE },
-      );
-    },
-    fieldType: FormFieldSchemaType.Text,
+  ...getSloAlertOutputFormFields<ServiceLevelObjectiveBurnRateRule>({
     templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
     templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
-    required: false,
-    placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
-    defaultValue: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
-    validation: {
-      maxLength: SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
-    },
-    stepId: "alert-details",
-  },
-  {
-    field: {
-      alertSeverity: true,
-    },
-    title: "Alert Severity",
-    description:
-      "Severity of the alert this rule creates. Defaults to the project's most severe.",
-    fieldType: FormFieldSchemaType.Dropdown,
-    dropdownModal: {
-      type: AlertSeverity,
-      labelField: "name",
-      valueField: "_id",
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    },
-    required: false,
-    placeholder: "Select Alert Severity",
-    stepId: "alert-details",
-  },
-  {
-    field: {
-      alertDescriptionTemplate: true,
-    },
-    title: "Alert Description",
-    description:
-      "Description of the alert, in Markdown. Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.",
-    fieldType: FormFieldSchemaType.Markdown,
-    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
-    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
-    defaultValue: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
-    required: false,
-    validation: {
-      maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
-    },
-    collapsibleSection: alertDescriptionSection,
-    stepId: "alert-details",
-  },
-  /*
-   * People and teams in one picker, saved to the rule's alertOwnerUsers and
-   * alertOwnerTeams columns.
-   */
-  getOwnersFormField<ServiceLevelObjectiveBurnRateRule>({
-    fieldKey: "alertOwners",
-    usersKey: "alertOwnerUsers",
-    teamsKey: "alertOwnerTeams",
-    title: "Alert Owners",
-    description:
-      "People and teams added as owners of the alert. Owners are notified when the alert is created.",
-    collapsibleSection: alertOwnershipSection,
-    stepId: "alert-details",
+    defaultTitleTemplate: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+    defaultDescriptionTemplate: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+    copy: BURN_RATE_ALERT_COPY,
+    placement: getBurnRateOutputPlacement(
+      "alert-details",
+      getSloAlertOutputSections<ServiceLevelObjectiveBurnRateRule>(),
+    ),
   }),
-  {
-    field: {
-      alertLabels: true,
-    },
-    title: "Alert Labels",
-    description:
-      "Labels added to the alert, so alert filters, owner rules and workspace notification rules can match it.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: Label,
-      labelField: "name",
-      valueField: "_id",
-    },
-    required: false,
-    placeholder: "Select Labels",
-    collapsibleSection: alertOwnershipSection,
-    stepId: "alert-details",
-  },
-  {
-    field: {
-      onCallDutyPolicies: true,
-    },
-    title: "Alert On-Call Duty Policies",
-    description: "On-call policies to execute when this rule creates an alert.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: OnCallDutyPolicy,
-      labelField: "name",
-      valueField: "_id",
-    },
-    required: false,
-    placeholder: "Select On-Call Policies",
-    collapsibleSection: alertOnCallSection,
-    stepId: "alert-details",
-  },
-  {
-    field: {
-      autoResolveAlert: true,
-    },
-    title: "Auto Resolve Alert",
-    description:
-      "Resolve the alert when the long window's burn rate drops below the threshold.",
-    fieldType: FormFieldSchemaType.Toggle,
-    required: false,
-    /*
-     * The column default is TRUE, so the toggle has to say so: without it a
-     * create form would show auto-resolve off while the row is written on.
-     */
-    defaultValue: true,
-    collapsibleSection: alertAdvancedSection,
-    stepId: "alert-details",
-  },
-  {
-    field: {
-      isAlertPrivate: true,
-    },
-    title: "Private Alert",
-    description:
-      "Only the alert's owners, project admins and project owners can see it.",
-    fieldType: FormFieldSchemaType.Toggle,
-    required: false,
-    collapsibleSection: alertAdvancedSection,
-    stepId: "alert-details",
-  },
-  {
-    field: {
-      alertRemediationNotes: true,
-    },
-    title: "Alert Remediation Notes",
-    description: "Steps for whoever picks the alert up, in Markdown.",
-    fieldType: FormFieldSchemaType.Markdown,
+  ...getSloIncidentOutputFormFields<ServiceLevelObjectiveBurnRateRule>({
     templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
     templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
-    required: false,
-    validation: {
-      maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
-    },
-    collapsibleSection: alertAdvancedSection,
-    stepId: "alert-details",
-  },
-  {
-    field: {
-      incidentTitleTemplate: true,
-    },
-    title: "Incident Title",
-    // A getter, so the form reads it in the language of the moment.
-    get description(): string {
-      return translateTemplate(
-        "Title of the incident this rule declares. Leave empty to use the default: {{defaultTitle}}",
-        { defaultTitle: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE },
-      );
-    },
-    fieldType: FormFieldSchemaType.Text,
-    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
-    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
-    required: false,
-    placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
-    defaultValue: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
-    validation: {
-      maxLength: SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
-    },
-    stepId: "incident-details",
-  },
-  {
-    field: {
-      incidentSeverity: true,
-    },
-    title: "Incident Severity",
-    description:
-      "Severity of the incident this rule declares. Defaults to the project's most severe.",
-    fieldType: FormFieldSchemaType.Dropdown,
-    dropdownModal: {
-      type: IncidentSeverity,
-      labelField: "name",
-      valueField: "_id",
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    },
-    required: false,
-    placeholder: "Select Incident Severity",
-    stepId: "incident-details",
-  },
-  {
-    field: {
-      incidentDescriptionTemplate: true,
-    },
-    title: "Incident Description",
-    description:
-      "Description of the incident, in Markdown. Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.",
-    fieldType: FormFieldSchemaType.Markdown,
-    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
-    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
-    defaultValue: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
-    required: false,
-    validation: {
-      maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
-    },
-    collapsibleSection: incidentDescriptionSection,
-    stepId: "incident-details",
-  },
-  // Saved to the rule's incidentOwnerUsers and incidentOwnerTeams columns.
-  getOwnersFormField<ServiceLevelObjectiveBurnRateRule>({
-    fieldKey: "incidentOwners",
-    usersKey: "incidentOwnerUsers",
-    teamsKey: "incidentOwnerTeams",
-    title: "Incident Owners",
-    description:
-      "People and teams added as owners of the incident. Owners are notified when the incident is declared.",
-    collapsibleSection: incidentOwnershipSection,
-    stepId: "incident-details",
+    defaultTitleTemplate: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+    defaultDescriptionTemplate: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+    copy: BURN_RATE_INCIDENT_COPY,
+    placement: getBurnRateOutputPlacement(
+      "incident-details",
+      getSloIncidentOutputSections<ServiceLevelObjectiveBurnRateRule>(),
+    ),
   }),
-  {
-    field: {
-      incidentLabels: true,
-    },
-    title: "Incident Labels",
-    description:
-      "Labels added to the incident, so incident filters, owner rules and workspace notification rules can match it.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: Label,
-      labelField: "name",
-      valueField: "_id",
-    },
-    required: false,
-    placeholder: "Select Labels",
-    collapsibleSection: incidentOwnershipSection,
-    stepId: "incident-details",
-  },
-  {
-    field: {
-      incidentOnCallDutyPolicies: true,
-    },
-    title: "Incident On-Call Duty Policies",
-    description:
-      "On-call policies to execute when this rule declares an incident. Kept separate from the alert policies so the two can escalate differently.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: OnCallDutyPolicy,
-      labelField: "name",
-      valueField: "_id",
-    },
-    required: false,
-    placeholder: "Select On-Call Policies",
-    collapsibleSection: incidentOnCallSection,
-    stepId: "incident-details",
-  },
-  {
-    field: {
-      autoResolveIncident: true,
-    },
-    title: "Auto Resolve Incident",
-    description:
-      "Resolve the incident when the long window's burn rate drops below the threshold.",
-    fieldType: FormFieldSchemaType.Toggle,
-    required: false,
-    // TRUE, as on the alert toggle above.
-    defaultValue: true,
-    collapsibleSection: incidentAdvancedSection,
-    stepId: "incident-details",
-  },
-  {
-    field: {
-      isIncidentPrivate: true,
-    },
-    title: "Private Incident",
-    description:
-      "Only the incident's owners, project admins and project owners can see it.",
-    fieldType: FormFieldSchemaType.Toggle,
-    required: false,
-    collapsibleSection: incidentAdvancedSection,
-    stepId: "incident-details",
-  },
-  {
-    field: {
-      incidentRemediationNotes: true,
-    },
-    title: "Incident Remediation Notes",
-    description: "Steps for whoever picks the incident up, in Markdown.",
-    fieldType: FormFieldSchemaType.Markdown,
-    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
-    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
-    required: false,
-    validation: {
-      maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
-    },
-    collapsibleSection: incidentAdvancedSection,
-    stepId: "incident-details",
-  },
 ];

@@ -56,6 +56,17 @@ import {
   MESSAGING_CLIENT_METRIC_NAMES,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
 import {
+  CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE,
+  doesCloudConnectionReadQueueMetric,
+  isCloudConnectionPerQueueSystem,
+} from "Common/Types/MessageQueue/MessageQueueCloudConnectionMetrics";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import {
+  CloudConnectionDefinition,
+  getCloudConnectionDefinition,
+} from "Common/Types/CloudConnection/CloudConnectionCatalog";
+import { getMessageQueueBrokerMetricStateLabel } from "../../../FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueBrokerMetricsStatus";
+import {
   buildMessageQueueMetricMonitorQuery,
   buildMessageQueueMetricMonitorViewConfig,
   getMessageQueueAlertTemplateForMetric,
@@ -132,6 +143,20 @@ const PAGE_URL: string = `/docs/${PAGE}`;
 const PAGE_TITLE: string = "Queues";
 
 const BROKER_METRICS_HEADING: string = "## Broker health metrics";
+
+// A count of metrics as the page writes it in a sentence.
+const COUNT_WORDS: ReadonlyArray<string> = [
+  "no",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+];
 const SUPPORTED_SYSTEMS_HEADING: string = "## Supported messaging systems";
 
 /* What every collector config on the page exports to, and how. */
@@ -1176,6 +1201,142 @@ describe("Queues docs", (): void => {
           firstParagraph: catalogNote(descriptor.brokerMetrics),
         });
       }
+    });
+
+    /*
+     * A connected Azure subscription reads a Service Bus or Event Hubs
+     * namespace's key metrics for each of its queues, topics and event hubs
+     * (MessageQueueCloudConnectionMetrics), in the one Azure Monitor call a
+     * read makes of the namespace. The paragraph after each section's note
+     * names exactly the catalog metrics it reads, how many queues a read
+     * takes, what that costs and what the Broker metrics card calls the
+     * metrics only the receiver reads.
+     */
+    it("says which metrics a connected Azure subscription reads of each queue, of how many, at what cost, and what the card calls the rest", (): void => {
+      const minutes: number = (
+        getCloudConnectionDefinition(
+          CloudProvider.Azure,
+        ) as CloudConnectionDefinition
+      ).defaultReadIntervalInMinutes;
+      const paragraphs: Record<string, string> = {};
+
+      for (const system of ["servicebus", "eventhubs"]) {
+        const descriptor: MessagingSystemDescriptor =
+          getMessagingSystemDescriptor(system) as MessagingSystemDescriptor;
+        const paragraph: string = (
+          systemSection(descriptor)
+            .trim()
+            .split(/\n\s*\n/)[1] as string
+        ).trim();
+        const metrics: ReadonlyArray<MessageQueueMetricDescriptor> =
+          getMessageQueueMetricsForSystem(system);
+        const read: Array<string> = metrics
+          .filter((metric: MessageQueueMetricDescriptor): boolean => {
+            return doesCloudConnectionReadQueueMetric(metric) === true;
+          })
+          .map((metric: MessageQueueMetricDescriptor): string => {
+            return metric.metricName;
+          });
+        const receiverOnly: number = metrics.filter(
+          (metric: MessageQueueMetricDescriptor): boolean => {
+            return doesCloudConnectionReadQueueMetric(metric) === false;
+          },
+        ).length;
+
+        paragraphs[system] = paragraph;
+
+        expect(isCloudConnectionPerQueueSystem(system)).toBe(true);
+        expect(read.length).toBeGreaterThan(0);
+        expect(receiverOnly).toBeGreaterThan(0);
+        expect({
+          system,
+          named: Array.from(paragraph.matchAll(/`([^`]+)`/g))
+            .map((match: RegExpMatchArray): string => {
+              return match[1] as string;
+            })
+            .sort(),
+        }).toEqual({ system, named: [...read].sort() });
+        expect(paragraph).toMatch(
+          /^A \[connected Azure subscription\]\(\/docs\/telemetry\/cloud-accounts\) reads /,
+        );
+        expect(paragraph).toContain(
+          `for up to ${CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE.toLocaleString("en-US")} `,
+        );
+        expect(paragraph).toContain(
+          "with one Azure Monitor call per namespace each time it reads",
+        );
+        expect(paragraph).toContain(
+          `Only the receiver reads the other ${COUNT_WORDS[receiverOnly]}, which`,
+        );
+        expect(paragraph).toContain(
+          `**Broker metrics** card marks **${getMessageQueueBrokerMetricStateLabel("collectorOnly")}**`,
+        );
+        expect(paragraph).toContain(
+          "the receiver's is kept and the subscription's left out, so nothing is counted twice",
+        );
+      }
+
+      // Azure bills a call, not a series: 50 queues cost what one does.
+      expect(60 % minutes).toBe(0);
+      expect(paragraphs["servicebus"]).toContain(
+        `read every ${minutes} minutes, a namespace of 50 queues costs ${60 / minutes} calls an hour, as a namespace of one does`,
+      );
+
+      // The receiver's own notes say the subscription splits what it reads too.
+      const serviceBusRead: number = getMessageQueueMetricsForSystem(
+        "servicebus",
+      ).filter((metric: MessageQueueMetricDescriptor): boolean => {
+        return doesCloudConnectionReadQueueMetric(metric) === true;
+      }).length;
+
+      expect(
+        lineWith(
+          systemSection(
+            getMessagingSystemDescriptor(
+              "servicebus",
+            ) as MessagingSystemDescriptor,
+          ),
+          "- A [connected Azure subscription](/docs/telemetry/cloud-accounts) splits",
+        ),
+      ).toContain(
+        `splits its ${COUNT_WORDS[serviceBusRead]} metrics by queue and topic as this receiver does`,
+      );
+      expect(isCloudConnectionPerQueueSystem("rabbitmq")).toBe(false);
+    });
+
+    /*
+     * The three things a namespace can send instead of a queue's metrics,
+     * as the Broker metrics card tells them apart, each with the fix for a
+     * connected subscription as well as for the receiver.
+     */
+    it("names the cloud connection's way in and its limits in the namespace findings", (): void => {
+      const troubleshooting: string = section(
+        readPage(),
+        "### Broker health stays empty",
+      );
+      const nothing: string = lineWith(
+        troubleshooting,
+        "- **Nothing from the namespace**:",
+      );
+      const totals: string = lineWith(troubleshooting, "- **Totals only**:");
+      const others: string = lineWith(
+        troubleshooting,
+        "- **Other queues only**:",
+      );
+
+      expect(nothing).toContain(
+        "Connect its Azure subscription on **Cloud → Connect**, or run the `azure_monitor` receiver.",
+      );
+      expect(nothing).toContain(
+        "Give the connection's app or the receiver's service principal the **Monitoring Reader** role",
+      );
+      expect(totals).toContain(
+        "connect the namespace's subscription, or read it with the `azure_monitor` receiver as well, either of which splits them by `EntityName`",
+      );
+      expect(totals).toContain("its last read on **Cloud → Connect** says why");
+      expect(others).toContain(
+        `A connected subscription reads up to ${CLOUD_CONNECTION_MAX_QUEUES_PER_NAMESPACE.toLocaleString("en-US")} of them: past that, read the namespace with the receiver too.`,
+      );
     });
 
     /*
@@ -3303,6 +3464,9 @@ describe("Queues docs", (): void => {
         published: "published",
         consumed: "consumed",
         consumers: "consumers",
+        scheduled: "scheduled messages",
+        size: "size",
+        latency: "send latency",
       };
       const listed: RegExpMatchArray | null = paragraph.match(
         /obvious bad direction — ([^.]+)\./,

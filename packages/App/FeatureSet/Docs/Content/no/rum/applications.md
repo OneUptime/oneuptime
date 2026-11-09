@@ -23,7 +23,7 @@ flowchart TB
 ```
 
 - `service.name` er applikasjonens identitet og sammenlignes uten forskjell på store og små bokstaver: `Storefront-Web` og `storefront-web` er én applikasjon.
-- Et nytt `service.name` starter en ny applikasjon. Den gamle beholder historikken sin og går over til **Frakoblet**, den nye starter tom, og de to slås aldri sammen.
+- Et nytt `service.name` starter en ny applikasjon. Den gamle beholder historikken sin og viser **Ingen nylig trafikk** når dataene stopper, den nye starter tom, og de to slås aldri sammen.
 - Bruk ett `service.name` per app, ikke ett per miljø. Skill mellom miljøer med en etikett som `oneuptime.label.env=production`, slik at de deler én applikasjon og én historikk.
 
 ### Gi nytt navn til en applikasjon
@@ -52,13 +52,19 @@ Deretter åpnes oppsettveiledningen for applikasjonen av seg selv, med app-navne
 
 Hvis prosjektet allerede har en applikasjon med det `service.name`, oppdaget, lagt til tidligere eller arkivert, sier skjemaet fra i stedet for å opprette en til.
 
-## Tilkoblingsstatus
+## Status
 
-En applikasjon viser **Tilkoblet** mens telemetri kommer inn, og **Frakoblet** etter 15 minutter uten. Både OpenTelemetry-telemetri og trafikk fra øktavspilling teller med.
+En applikasjons **Status** sier om dataene dens kommer inn, og når du holder musepekeren over den, hva den betyr. Både OpenTelemetry-telemetri og trafikk fra øktavspilling teller med.
+
+| Status | Hva det betyr |
+| --- | --- |
+| **Mottar data** | Det har kommet telemetri de siste 15 minuttene. |
+| **Ingen nylig trafikk** | Det har kommet telemetri før, men ingen de siste 15 minuttene. En app sender bare data mens folk bruker den, så dette er normalt når ingen gjør det, for eksempel om natten. |
+| **Venter på data** | Ingenting har kommet ennå: applikasjonen ble lagt til for hånd, og appen har ikke sendt noe. **Oversikt** for den viser hvordan du setter den opp. |
 
 **Sist sett** oppdateres med noen minutters mellomrom i stedet for ved hver batch, så den kan ligge opptil rundt fem minutter etter den faktiske trafikken, og de 15 minuttene gir rom for det. Tid da OneUptime selv var nede eller holdt på å ta igjen inntakskøen sin, teller ikke.
 
-**Frakoblet** er ikke en feil i seg selv: et internt verktøy uten besøkende om natten er virkelig frakoblet. Hvis folk bruker appen, kan du se [RUM-feilsøking](/docs/rum/troubleshooting).
+**Ingen nylig trafikk** er ikke en feil. Hvis folk bruker appen akkurat nå, viser applikasjonens **Oversikt** hva du bør sjekke, og [RUM-feilsøking](/docs/rum/troubleshooting) går gjennom hver sjekk.
 
 ## Etiketter
 
@@ -180,5 +186,5 @@ Avgrens overvåkingen du lager, til applikasjonen, slik at en backend-tjeneste m
 - [Øktavspilling](/docs/telemetry/session-replay): Ta opp det brukerne så, med egen retningslinje og oppbevaring.
 - [Etikett- og eierregler](/docs/configuration/label-and-owner-rules): De to regelskjemaene, trinn for trinn.
 - [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now): Bruk en ny regel på applikasjonene du allerede har.
-- [RUM-feilsøking](/docs/rum/troubleshooting): Når en applikasjon mangler, er tom eller viser Frakoblet.
+- [RUM-feilsøking](/docs/rum/troubleshooting): Når en applikasjon mangler eller er tom, eller ikke har nylig trafikk mens folk bruker den.
 :::

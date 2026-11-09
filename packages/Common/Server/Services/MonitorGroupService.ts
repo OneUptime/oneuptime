@@ -18,6 +18,12 @@ import { OnDelete } from "../Types/Database/Hooks";
 import StatusPageResourceService from "./StatusPageResourceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import MonitorService from "./MonitorService";
+import MonitorGroupMonitoring, {
+  MonitorGroupMonitoringChange,
+  MonitorGroupMonitoringSummary,
+} from "../../Utils/Monitor/MonitorGroupMonitoring";
 
 export class Service extends ProjectReferencesService<MonitorGroup> {
   public constructor() {
@@ -243,6 +249,168 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
     }
 
     return currentStatus;
+  }
+
+  /*
+   * MONITORING FOR EVERY MONITOR IN THE GROUP (issue #6401;
+   * Utils/Monitor/MonitorGroupMonitoring).
+   *
+   * How many of the group's monitors are checked, and of those how many have
+   * their monitoring turned off. Archived monitors are left out, as from the
+   * group's status. The group is read as the caller, so only someone who may
+   * see it is answered; its monitors are read as OneUptime, as for its status.
+   */
+  @CaptureSpan()
+  public async getMonitoringSummary(
+    monitorGroupId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<MonitorGroupMonitoringSummary> {
+    const monitorGroup: MonitorGroup = await this.findGroupForMonitoring(
+      monitorGroupId,
+      props,
+    );
+
+    return MonitorGroupMonitoring.getSummary(
+      await this.getMonitorsToSwitch(monitorGroup),
+    );
+  }
+
+  /*
+   * Turns monitoring off, or on, for every monitor in the group that is not
+   * archived: one update of those monitors, made as the caller. So it
+   * changes only the monitors they may edit, and does what the monitor's own
+   * switch does - turning monitoring on passes the pay-as-you-go gate, and
+   * turning it off resolves the incidents and alerts each monitor would have
+   * resolved itself (MonitorService.onUpdateSuccess, MonitorTurnedOff). A
+   * monitor already as asked is left alone. Answers how many it turned, and
+   * the group's monitors as they are now.
+   */
+  @CaptureSpan()
+  public async setMonitoringForMonitorsInGroup(data: {
+    monitorGroupId: ObjectID;
+    isMonitoringOn: boolean;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<MonitorGroupMonitoringChange> {
+    const monitorGroup: MonitorGroup = await this.findGroupForMonitoring(
+      data.monitorGroupId,
+      data.props,
+    );
+
+    // The switch is stored the other way round: on is disableActiveMonitoring false.
+    const disableActiveMonitoring: boolean = !data.isMonitoringOn;
+
+    const monitorIdsToTurn: Array<ObjectID> = (
+      await this.getMonitorsToSwitch(monitorGroup)
+    )
+      .filter((monitor: Monitor): boolean => {
+        return (
+          Boolean(monitor.id) &&
+          (monitor.disableActiveMonitoring === true) !== disableActiveMonitoring
+        );
+      })
+      .map((monitor: Monitor): ObjectID => {
+        return monitor.id!;
+      });
+
+    let changedCount: number = 0;
+
+    if (monitorIdsToTurn.length > 0) {
+      changedCount = await MonitorService.updateBy({
+        query: {
+          _id: QueryHelper.any(monitorIdsToTurn),
+          projectId: monitorGroup.projectId!,
+          isArchived: false,
+          disableActiveMonitoring: !disableActiveMonitoring,
+        },
+        data: {
+          disableActiveMonitoring: disableActiveMonitoring,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: data.props,
+      });
+    }
+
+    return {
+      ...MonitorGroupMonitoring.getSummary(
+        await this.getMonitorsToSwitch(monitorGroup),
+      ),
+      changedCount: changedCount,
+    };
+  }
+
+  // The group, read as the caller: only someone who may see it goes on.
+  private async findGroupForMonitoring(
+    monitorGroupId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<MonitorGroup> {
+    const monitorGroup: MonitorGroup | null = await this.findOneById({
+      id: monitorGroupId,
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      props: props,
+    });
+
+    if (!monitorGroup || !monitorGroup.id || !monitorGroup.projectId) {
+      throw new BadDataException("Monitor group not found.");
+    }
+
+    return monitorGroup;
+  }
+
+  // The group's monitors that are not archived, each with its switch.
+  private async getMonitorsToSwitch(
+    monitorGroup: MonitorGroup,
+  ): Promise<Array<Monitor>> {
+    const monitorGroupResources: Array<MonitorGroupResource> =
+      ArchivedMonitorResources.withoutArchivedMonitors(
+        await MonitorGroupResourceService.findBy({
+          query: {
+            monitorGroupId: monitorGroup.id!,
+            projectId: monitorGroup.projectId!,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            monitorId: true,
+            monitor: {
+              _id: true,
+              isArchived: true,
+              disableActiveMonitoring: true,
+            },
+          },
+          props: {
+            isRoot: true,
+          },
+        }),
+      );
+
+    const monitors: Array<Monitor> = [];
+    const monitorIdsSeen: Set<string> = new Set<string>();
+
+    for (const monitorGroupResource of monitorGroupResources) {
+      const monitor: Monitor | undefined = monitorGroupResource.monitor;
+      const monitorId: string | undefined = (
+        monitor?.id || monitorGroupResource.monitorId
+      )?.toString();
+
+      // A row whose monitor is gone, or a monitor listed twice, counts once at most.
+      if (!monitor || !monitorId || monitorIdsSeen.has(monitorId)) {
+        continue;
+      }
+
+      monitorIdsSeen.add(monitorId);
+
+      if (!monitor.id) {
+        monitor.id = new ObjectID(monitorId);
+      }
+
+      monitors.push(monitor);
+    }
+
+    return monitors;
   }
 
   /*

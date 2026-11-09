@@ -456,7 +456,7 @@ describe("query_alerts — originating monitor", () => {
 });
 
 describe("query_monitors — problemsOnly filter", () => {
-  test("problemsOnly=true filters on isOperationalState=false at the DB level", async () => {
+  test("problemsOnly=true filters on isOperationalState=false at the DB level, among monitors whose monitoring is on", async () => {
     const downStatus: MonitorStatus = buildMonitorStatus({
       name: "Offline",
       priority: 3,
@@ -478,9 +478,15 @@ describe("query_monitors — problemsOnly filter", () => {
     );
 
     const callArgs: JSONObject = findBySpy.mock.calls[0]?.[0] as JSONObject;
-    // Archived monitors are never listed: they are not monitored.
+    /*
+     * Archived monitors are never listed: they are not monitored. Nor, for
+     * what is down now, are monitors whose monitoring is turned off: nothing
+     * checks them, so their status is stale - the Not Operational list's
+     * rule (NotOperationalMonitorQuery, issue #6400).
+     */
     expect(callArgs["query"]).toEqual({
       isArchived: false,
+      disableActiveMonitoring: false,
       currentMonitorStatus: { isOperationalState: false },
     });
     expect(callArgs["props"]).toBe(ctx.props);

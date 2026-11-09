@@ -342,6 +342,8 @@ En incident eller ett larm får ett enda AI-åtgärdsspår. När den är länkad
 
 Vissa mer riskfyllda ändringar **behöver alltid en människa** i alla lägen, även Hoppa över godkännande, och ingen post i listan över tillåtna kommandon ändrar det; de är markerade som sådana i tabellerna nedan.
 
+Ett projekt kan också begära att två personer godkänner en åtgärd som innehåller en riskablare ändring: se [Två personer godkänner en riskablare åtgärd](/docs/ai/ai-sre#två-personer-godkänner-en-riskablare-åtgärd).
+
 ### Åtgärder på Docker- och Podman-värdar
 
 | | Kommandon |

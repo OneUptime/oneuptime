@@ -679,6 +679,71 @@ describe("the episode page's menu table is the episode's own menu", () => {
 });
 
 /*
+ * An episode's Root Cause page charts the metrics behind it (issue #6320):
+ * those of its first alert, as its Overview charts them, around the episode.
+ */
+describe("the episode's Root Cause page charts its first alert's metrics, as its Overview does", () => {
+  const table: string = section(
+    english(ALERT_EPISODES),
+    "## What each page of an episode shows",
+  );
+
+  it("says so, in the words the code holds it to", () => {
+    expect(table).toContain(
+      "The **Root Cause** page charts the metrics behind the episode beside its root cause: those of its first alert, the earliest created, as the telemetry card on its **Overview** charts them, around when the episode started and with its moments marked, so you can read them over any time range around it while you write down why it happened. When that alert kept no snapshot of a metric check (one created by hand on a metrics monitor, say), the page charts that monitor's metrics as the monitor reads them now, and says so.",
+    );
+
+    // The page shows the Root Cause card an alert's page shows...
+    expect(
+      readDashboardSource("Pages/Alerts/EpisodeView/RootCause.tsx"),
+    ).toContain(
+      "<AlertEpisodeRootCauseMetricChart alertEpisodeId={modelId} />",
+    );
+    const reader: string = readDashboardSource(
+      "Components/AlertEpisode/AlertEpisodeRootCauseMetricChart.tsx",
+    );
+    expect(reader).toContain("<EventRootCauseMetricChart");
+    expect(reader).toContain("subject: EventMetricSubject.AlertEpisode,");
+
+    // ...of its first alert, the earliest created, the one its Overview charts...
+    expect(reader).toContain("kind: ALERT_EPISODE_FIRST_MEMBER,");
+    expect(readDashboardSource("Pages/Alerts/EpisodeView/Index.tsx")).toContain(
+      "kind: ALERT_EPISODE_FIRST_MEMBER,",
+    );
+    expect(
+      readDashboardSource("Components/EpisodeView/EpisodeFirstMember.ts"),
+    ).toContain('startedAtField: "createdAt",');
+
+    // ...around when the episode started, with its own moments...
+    const metrics: string = readDashboardSource(
+      "Utils/EventRootCauseMetrics.ts",
+    );
+    expect(metrics).toContain("startedAt: asDate(input.episode?.createdAt),");
+    expect(
+      readDashboardSource("Components/Telemetry/EventRootCauseMetricChart.tsx"),
+    ).toContain("moments.times ||");
+
+    // ...and, with no snapshot, the monitor as it reads now, which it says.
+    expect(metrics).toContain("chartedFromMonitorNow: {");
+  });
+
+  it("names the pages as the episode's menu does", () => {
+    const pages: Array<string> = episodeViewMenu().flatMap(
+      (menuSection: MenuSection): Array<string> => {
+        return menuSection.items;
+      },
+    );
+
+    for (const page of ["Root Cause", "Overview"]) {
+      expect({ page, inMenu: pages.includes(page) }).toEqual({
+        page,
+        inMenu: true,
+      });
+    }
+  });
+});
+
+/*
  * Every bold menu path on the alert pages ("**Alerts → Rules → On-Call
  * Rules**") is a section and page of the menu it starts from. A path names a
  * section and then one of its pages, or a page straight away.
@@ -1480,6 +1545,53 @@ describe("responding to an alert", () => {
     expect(section(page, "## Private alerts")).toContain(
       "which asks **Make this alert private?** before it hides the alert.",
     );
+  });
+
+  it("says the Root Cause page charts the metrics behind the alert, with the card an incident's Root Cause page shows", () => {
+    const pages: string = section(page, "## What each page of an alert shows");
+
+    expect(pages).toContain(
+      "- **Description**, **Root Cause**, **Remediation** — three markdown pages. The Root Cause page also charts the metrics behind the alert, as the Overview's telemetry card does, so you can read them over any time range around it while you write down why it happened. When the alert kept no snapshot of a metric check (one created by hand on a metrics monitor, say), it charts that monitor's metrics as the monitor reads them now, and says so.",
+    );
+
+    // Three Markdown pages, as each draws its field.
+    for (const file of [
+      "Description.tsx",
+      "RootCause.tsx",
+      "Remediation.tsx",
+    ]) {
+      expect(readDashboardSource(`Pages/Alerts/View/${file}`)).toContain(
+        "fieldType: FieldType.Markdown,",
+      );
+    }
+
+    // The card an incident's Root Cause page shows, reading the alert...
+    expect(readDashboardSource("Pages/Alerts/View/RootCause.tsx")).toContain(
+      "<AlertRootCauseMetricChart alertId={modelId} />",
+    );
+    for (const card of [
+      "Components/Alert/AlertRootCauseMetricChart.tsx",
+      "Components/Incident/IncidentRootCauseMetricChart.tsx",
+    ]) {
+      expect(readDashboardSource(card)).toContain("<EventRootCauseMetricChart");
+    }
+
+    // ...which is the Overview's metric investigation, metrics only...
+    const rootCauseCard: string = readDashboardSource(
+      "Components/Telemetry/EventRootCauseMetricChart.tsx",
+    );
+    expect(rootCauseCard).toContain("<EventMetricInvestigationPanel");
+    expect(rootCauseCard).toContain("showsCompanionTabs={false}");
+
+    // ...and, with no snapshot, the monitor as it reads now, which it says.
+    expect(readDashboardSource("Utils/EventRootCauseMetrics.ts")).toContain(
+      "chartedFromMonitorNow: {",
+    );
+    expect(
+      readDashboardSource(
+        "Components/Telemetry/EventMetricInvestigationPanel.tsx",
+      ),
+    ).toContain('"Charted for what this monitor checks now."');
   });
 
   it("says who a private alert is seen by, in the product's words", () => {

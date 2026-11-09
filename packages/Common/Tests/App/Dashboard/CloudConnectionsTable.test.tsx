@@ -528,6 +528,113 @@ describe("a row", () => {
       ),
     ).toHaveTextContent("Every hour");
   });
+
+  test("a read that worked but left something out: how many warnings, under when it was read, opening what they say", async () => {
+    renderTable();
+    const warnings: Array<string> = [
+      "Azure Monitor could not read ThrottledRequests of 2 resources: Metric is not available.",
+      "sb-orders has 1,000 or more queues, topics or event hubs: a read takes the metrics of 1,000 of them. The collector's azure_monitor receiver can read the rest.",
+    ];
+
+    const cell: HTMLElement = drawCell(
+      "Status",
+      connection({
+        name: "Contoso production",
+        provider: CloudProvider.Azure,
+        lastPulledAt: READ_AT,
+        lastSuccessfulPullAt: READ_AT,
+        lastPullResult: readResult({ status: "partial", warnings }),
+      }),
+    );
+
+    // Still working: the read did not fail.
+    expect(cell).toHaveTextContent("Working");
+    const button: HTMLElement = within(cell).getByTestId(
+      "cloud-connection-warnings",
+    );
+    expect(button.tagName).toBe("BUTTON");
+    expect(button).toHaveAttribute("type", "button");
+    expect(button).toHaveAttribute("aria-haspopup", "dialog");
+    expect(button).toHaveTextContent("2 warnings");
+    expect(
+      within(cell)
+        .getByTestId("cloud-connection-last-read")
+        .compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await act(async () => {
+      button.click();
+    });
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent("Warnings");
+    expect(
+      screen.getByText(
+        "What the last read of Contoso production could not read, or left for the next one. It read the rest.",
+      ),
+    ).toBeInTheDocument();
+    const items: Array<HTMLElement> = screen.getAllByTestId(
+      "cloud-connection-warning",
+    );
+    expect(
+      items.map((item: HTMLElement): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual(warnings);
+    // English, from the read: each starts where an English sentence does.
+    for (const item of items) {
+      expect(item).toHaveAttribute("dir", "auto");
+    }
+  });
+
+  test("one warning says so; none, or a read that failed, says nothing of warnings", () => {
+    renderTable();
+
+    expect(
+      within(
+        drawCell(
+          "Status",
+          connection({
+            lastPulledAt: READ_AT,
+            lastSuccessfulPullAt: READ_AT,
+            lastPullResult: readResult({
+              warnings: ["Could not read the metrics of 1 resource this time."],
+            }),
+          }),
+        ),
+      ).getByTestId("cloud-connection-warnings"),
+    ).toHaveTextContent("1 warning");
+
+    expect(
+      within(
+        drawCell(
+          "Status",
+          connection({
+            lastPulledAt: READ_AT,
+            lastSuccessfulPullAt: READ_AT,
+            lastPullResult: readResult({}),
+          }),
+        ),
+      ).queryByTestId("cloud-connection-warnings"),
+    ).toBeNull();
+
+    // Not working: View error says why its last read failed.
+    expect(
+      within(
+        drawCell(
+          "Status",
+          connection({
+            lastError: "AccessDenied",
+            lastPulledAt: READ_AGAIN_AT,
+            lastSuccessfulPullAt: READ_AT,
+            lastPullResult: readResult({
+              status: "failed",
+              warnings: ["Could not read the metrics of 1 resource this time."],
+            }),
+          }),
+        ),
+      ).queryByTestId("cloud-connection-warnings"),
+    ).toBeNull();
+  });
 });
 
 describe("its actions", () => {

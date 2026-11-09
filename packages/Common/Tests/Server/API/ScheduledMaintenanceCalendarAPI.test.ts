@@ -1120,6 +1120,14 @@ describe("POST /rotate", () => {
       rotateSpy.mock.invocationCallOrder[0]!,
     );
 
+    // The reset is recorded in the audit log as this caller's.
+    const rotated: Record<string, any> = rotateSpy.mock.calls[0]![0] as Record<
+      string,
+      any
+    >;
+
+    expect(rotated["props"]).toEqual(memberProps());
+
     const status: Record<string, any> = json(result);
 
     expect(status["urls"]["https"]).toContain(ROTATED_TOKEN);

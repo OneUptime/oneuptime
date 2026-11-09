@@ -3077,6 +3077,42 @@ export default class Incident extends BaseModel {
   })
   public monitorSummary?: JSONObject = undefined;
 
+  /*
+   * Why the monitor opened this incident: the criteria that matched, each
+   * filter's condition with what the check found, and a short excerpt of
+   * the response around the match - redacted and bounded when it was
+   * captured (Common/Types/Monitor/MonitorEvaluationDetails). Absent for
+   * incidents opened by hand, and for those from before it was kept.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    isDefaultValueColumn: false,
+    computed: true,
+    title: "Evaluation Details",
+    description:
+      "Why the monitor opened this incident: the criteria and filters that matched, what the check found, and a redacted excerpt of the response.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public evaluationDetails?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

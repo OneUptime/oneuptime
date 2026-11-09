@@ -26,7 +26,13 @@ import {
  *   - the p95 tile is ONE percentile over the window (AggregationInterval
  *     .Total), the chart one per interval — and each says which;
  *   - the count chart draws whole intervals only;
- *   - each text sits beside the tile, chart or card it explains.
+ *   - each text sits beside the tile, chart or card it explains — a tile
+ *     that reads the broker's counts instead of spans
+ *     (MessageQueueOverviewFigures) says which metrics it reads, and the
+ *     Messages chart then has a text of its own: messagesChartBroker beside
+ *     a line of spans, where a line marked broker metrics is the broker's,
+ *     and messagesChartBrokerOnly when every line is the broker's, which
+ *     the lines' names then do not say.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -60,10 +66,37 @@ const QUERIES: string = readSquashed(
   "MessageQueue",
   "MessageQueueTelemetryQueries.ts",
 );
+/*
+ * Which spans are publishes and consumes, and how a service's spans make
+ * its card row, are defined once in Common (MessageQueueSpanPopulation) for
+ * the Overview and the Queues topology alike: the texts are held to them
+ * there.
+ */
+const POPULATIONS: string = fs
+  .readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Types",
+      "MessageQueue",
+      "MessageQueueSpanPopulation.ts",
+    ),
+    "utf8",
+  )
+  .replace(/\/\*[\s\S]*?\*\//g, " ")
+  .replace(/(^|[^:])\/\/[^\n]*/g, "$1")
+  .replace(/\s+/g, " ");
 const BROKER_HEALTH: string = readSquashed(
   "Components",
   "MessageQueue",
   "MessageQueueBrokerHealthSection.tsx",
+);
+const FIGURES: string = readSquashed(
+  "Components",
+  "MessageQueue",
+  "MessageQueueOverviewFigures.ts",
 );
 
 const TEXT: Record<MessageQueueMetric, string> =
@@ -122,16 +155,33 @@ describe("the queue Overview's descriptions", () => {
       const start: number = tiles.indexOf(`title: "${title}",`);
       const next: number = tiles.indexOf("title:", start + 1);
       const tile: string = tiles.slice(start, next === -1 ? undefined : next);
+      if (key === "p95Processing") {
+        // No broker measures it: its text is always the spans' one.
+        expect(tile).toContain(
+          `description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.${key},`,
+        );
+        continue;
+      }
+      /*
+       * The spans' text, or — when the tile reads the broker's counts —
+       * the words naming the metrics it reads.
+       */
+      expect(tile).toContain(`: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.${key},`);
       expect(tile).toContain(
-        `description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.${key},`,
+        "? getMessageQueueBrokerFigureDescription( figures.",
       );
     }
   });
 
   test("each chart and card carries its own text", () => {
     expect(between(OVERVIEW, 'title="Messages"', "/>")).toContain(
-      "description={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChart}",
+      'description={ messagesChart.sources === "broker" ? MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChartBrokerOnly : messagesChart.sources === "mixed" ? MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChartBroker : MESSAGE_QUEUE_METRIC_DESCRIPTIONS.messagesChart }',
     );
+    // The lines and their names come from where the text is picked.
+    expect(between(OVERVIEW, 'title="Messages"', "/>")).toContain(
+      "series={messagesChart.lines as Array<SeriesPoint>}",
+    );
+    expect(OVERVIEW).toContain("= getMessageQueueMessagesChart(figures);");
     expect(between(OVERVIEW, 'title="p95 processing time"', "/>")).toContain(
       "description={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.p95ProcessingChart}",
     );
@@ -153,10 +203,10 @@ describe("the queue Overview's descriptions", () => {
     expect(TEXT.published).toContain("client spans");
     expect(TEXT.consumed).toContain("client spans");
 
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       "MESSAGE_QUEUE_PUBLISH_SPAN_KIND: SpanKind = SpanKind.Producer",
     );
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       "MESSAGE_QUEUE_CONSUME_SPAN_KIND: SpanKind = SpanKind.Consumer",
     );
 
@@ -169,7 +219,7 @@ describe("the queue Overview's descriptions", () => {
     expect(TEXT.consumed).toContain(
       "Receives that returned nothing are left out",
     );
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       '[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new IncludesNone(["0"]),',
     );
     // SQS's receive calls: a batch at most, never a processing time.
@@ -188,19 +238,19 @@ describe("the queue Overview's descriptions", () => {
    */
   test("the Consumers card says what a row counts, as the card combines a service's spans", () => {
     const combine: string = between(
-      QUERIES,
+      POPULATIONS,
       "export function combineMessageQueueConsumerServices(",
       "return sortedServiceRows(",
     );
 
     // A receive that returned nothing is in no part of a row, the count too.
     expect(TEXT.consumers).toContain("messages taken");
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       '[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new IncludesNone(["0"]),',
     );
 
     // An SQS receive that returned messages is counted, once per batch...
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       "[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new GreaterThan<number>(0),",
     );
     expect(QUERIES).toContain(
@@ -224,7 +274,7 @@ describe("the queue Overview's descriptions", () => {
     expect(QUERIES).toContain(
       'const errorQuery: Record<string, unknown> = queryOf("all", true)!;',
     );
-    expect(QUERIES).toContain("default: return {};");
+    expect(POPULATIONS).toContain("default: return {};");
   });
 
   test("the p95 tile is one percentile over the range, the chart one per interval", () => {
@@ -238,6 +288,12 @@ describe("the queue Overview's descriptions", () => {
 
   test("the count chart draws whole intervals only, and says so", () => {
     expect(TEXT.messagesChart).toContain("Only whole intervals are drawn");
+    expect(TEXT.messagesChartBroker).toContain(
+      "Only whole intervals are drawn",
+    );
+    expect(TEXT.messagesChartBrokerOnly).toContain(
+      "Only whole intervals are drawn",
+    );
     expect(QUERIES).toContain(
       "publishedSeries: getCompleteBucketSeries(publishedSeries, window)",
     );
@@ -246,6 +302,44 @@ describe("the queue Overview's descriptions", () => {
     );
     expect(QUERIES).toContain(
       "errorSeries: getCompleteBucketSeries(tiles.errorSeries, window)",
+    );
+  });
+
+  test("a tile that reads the broker's counts says so, and which it reads", () => {
+    // The chart's text, beside a line the broker draws.
+    expect(TEXT.messagesChartBroker).toContain(
+      "A line marked broker metrics is the broker's own count",
+    );
+    expect(FIGURES).toContain(
+      'broker: translationKey("Published (broker metrics)"),',
+    );
+    /*
+     * Every line the broker's: its names are plain, so the text says whose
+     * counts they all are — and that no traced application is why.
+     */
+    expect(TEXT.messagesChartBrokerOnly).toContain(
+      "all from the broker's own counts",
+    );
+    expect(TEXT.messagesChartBrokerOnly).toContain(
+      "no traced application publishes to it or consumes from it",
+    );
+    expect(TEXT.messagesChartBrokerOnly).not.toContain("marked");
+    expect(FIGURES).toContain(
+      "seriesName: isMixed ? line.names[line.figure.source] : line.names.spans,",
+    );
+    // Published reads messages in, Consumed messages out, Errors failures.
+    expect(FIGURES).toContain(
+      "Messages {{system}} counted coming in to this queue in the selected range ({{metrics}}).",
+    );
+    expect(FIGURES).toContain(
+      "Messages {{system}} counted going out of this queue in the selected range ({{metrics}}).",
+    );
+    expect(FIGURES).toContain(
+      "Failures {{system}} counted on this queue in the selected range, added up ({{metrics}}).",
+    );
+    // Spans win: a figure is the broker's only when its side has none.
+    expect(FIGURES).toContain(
+      "if (spanCount > 0) { return spanFigure(spanCount, spanSeries); }",
     );
   });
 

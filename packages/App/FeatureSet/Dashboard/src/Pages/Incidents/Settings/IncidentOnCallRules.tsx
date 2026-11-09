@@ -9,6 +9,11 @@ import Tabs from "Common/UI/Components/Tabs/Tabs";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
 import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
+import IncidentOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOnCallRuleOwningTeam";
+import IncidentEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRuleOwningTeam";
+import useRuleOwningTeams, {
+  RuleOwningTeamsTable,
+} from "../../../Components/TeamOwnedRule/RuleOwningTeams";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -43,9 +48,21 @@ The conditions a new incident must meet.
 
 When a rule matches, each of its on-call policies pages its people for the incident. A policy already on the incident is not run twice.
 
+### Responders or Observers
+
+A rule pages its policies' people as **responders** - they take the incident on, and acknowledging the page acknowledges it - or, under More fields, as **observers**: kept informed while the people responding stay on it. An observer's answer only says they've seen the page: the incident is not acknowledged, nobody else's page stops, and they don't become its Incident Commander. Use it to tell an oversight team about every critical incident another team owns.
+
+### When the Severity or Labels Change
+
+Rules run when an incident is declared, and again whenever its severity or labels change while it is open: raised to a severity a rule pages for, or labelled org-wide, the incident pages that rule's policies then. Nothing is undone when it stops matching.
+
 ### Several Matching Rules
 
-Every rule that matches runs: there is no order and no first match. Their policies are added to any added by hand or by a template, and each policy runs once.
+Every rule that matches runs: there is no order and no first match. Their policies are added to any added by hand or by a template, and each policy runs once. A policy that one rule pages as responders and another as observers pages responders.
+
+### Rules That Belong to Teams
+
+Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and project admins can edit or delete it. Everyone else who can see rules still sees it, read-only. A rule with no owning teams can be changed by everyone who can edit rules.
 `;
 
 const incidentEpisodeOnCallDocumentation: string = `
@@ -63,9 +80,20 @@ When a rule matches, each of its on-call policies pages its people for the episo
 `;
 
 const IncidentRulesTable: FunctionComponent = (): ReactElement => {
+  // Who owns each rule: its column, its form field and its row locks.
+  const owningTeams: RuleOwningTeamsTable<IncidentOnCallRule> =
+    useRuleOwningTeams<IncidentOnCallRule>({
+      ruleModelType: IncidentOnCallRule,
+      owningTeamModelType: IncidentOnCallRuleOwningTeam,
+    });
+
   return (
     <ModelTable<IncidentOnCallRule>
       modelType={IncidentOnCallRule}
+      onFetchSuccess={owningTeams.onRulesFetched}
+      getEditDisabledReason={owningTeams.getEditDisabledReason}
+      getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
+      onEditFormItemFetched={owningTeams.onEditFormItemFetched}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{ column: "isEnabled" }}
       id="incident-on-call-rules-table"
@@ -81,7 +109,7 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       cardProps={{
         title: "Incident On-Call Rules",
         description:
-          "Page on-call policies automatically for new incidents that match.",
+          "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.",
       }}
       helpContent={{
         title: "How Incident On-Call Rules Work",
@@ -95,6 +123,7 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
         whenToPage: true,
         workingHours: true,
         workingHoursTimezone: true,
+        pageAs: true,
       }}
       filters={[
         {
@@ -133,6 +162,7 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
             return <Pill color={Red} text="Disabled" />;
           },
         },
+        owningTeams.owningTeamsColumn,
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={getOnCallRuleFormSteps<IncidentOnCallRule>()}
@@ -241,9 +271,20 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
 };
 
 const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
+  // Who owns each rule: its column, its form field and its row locks.
+  const owningTeams: RuleOwningTeamsTable<IncidentEpisodeOnCallRule> =
+    useRuleOwningTeams<IncidentEpisodeOnCallRule>({
+      ruleModelType: IncidentEpisodeOnCallRule,
+      owningTeamModelType: IncidentEpisodeOnCallRuleOwningTeam,
+    });
+
   return (
     <ModelTable<IncidentEpisodeOnCallRule>
       modelType={IncidentEpisodeOnCallRule}
+      onFetchSuccess={owningTeams.onRulesFetched}
+      getEditDisabledReason={owningTeams.getEditDisabledReason}
+      getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
+      onEditFormItemFetched={owningTeams.onEditFormItemFetched}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{ column: "isEnabled" }}
       id="incident-episode-on-call-rules-table"
@@ -273,6 +314,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         whenToPage: true,
         workingHours: true,
         workingHoursTimezone: true,
+        pageAs: true,
       }}
       filters={[
         { field: { name: true }, title: "Name", type: FieldType.Text },
@@ -308,6 +350,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
             );
           },
         },
+        owningTeams.owningTeamsColumn,
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={getOnCallRuleFormSteps<IncidentEpisodeOnCallRule>()}
