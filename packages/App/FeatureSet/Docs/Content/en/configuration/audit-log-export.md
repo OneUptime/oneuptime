@@ -118,13 +118,17 @@ The **Credential**, such as `Bearer <token>`, is sent in the **Header name** you
 
 ### Syslog
 
-Each entry is one RFC 5424 message to the **Host** and **Port**, over TLS on port `6514` unless **Protocol** says TCP, with facility 13 (log audit) and severity 6 (informational):
+Each entry is one RFC 5424 message to the **Host** and **Port**, over TLS on port `6514` unless **Protocol** says TCP or UDP, with facility 13 (log audit) and severity 6 (informational):
 
 ```text
 <110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-Messages are framed by octet counting (RFC 5425) unless **Framing** says one message per line. A receiver whose certificate a private CA signed needs that CA's certificate in **CA certificate**. Both wait under **More fields**.
+Over TLS and TCP, messages are framed by octet counting (RFC 5425) unless **Framing** says one message per line. A receiver whose certificate a private CA signed needs that CA's certificate in **CA certificate**. Both wait under **More fields**.
+
+Over UDP, **Port** starts on `514`, and each message is a datagram of its own (RFC 5426), so none is framed. UDP sends the audit log as plain text, and nothing confirms that a message arrived: when the receiver's host answers that its port is closed, the batch fails and is tried again, but a message lost on the way is not sent again. After a test over UDP, check that the test entry arrived. When every entry must arrive, choose TLS or TCP.
+
+Each message over UDP is at most **Maximum message size** bytes: `8192` unless you change it under **More fields**, from `1024` to `65507`. A longer entry is shortened to fit and stays one JSON object: its values are cut first, as the audit log cuts them, such as `[… 1,234 more characters]` or `[12.3 KB of JSON]`, then the changes that still do not fit are counted in one, such as `[… 12 more changes]`.
 
 ## What is sent
 
@@ -188,7 +192,7 @@ A project's export on OneUptime Cloud cannot reach a private network address. Wh
 :::
 
 :::details Nothing arrives
-Check that audit logging is on in the project, and that someone changed something after the export was saved. Storage receives a file only once a batch is full or five minutes old.
+Check that audit logging is on in the project, and that someone changed something after the export was saved. Storage receives a file only once a batch is full or five minutes old. Over UDP, a firewall drops messages without saying so: check that UDP may reach the receiver's port.
 :::
 
 ## Next steps

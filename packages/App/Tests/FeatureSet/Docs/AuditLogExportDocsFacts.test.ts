@@ -20,8 +20,12 @@ import { AUDIT_LOG_REDACTED_VALUE } from "Common/Types/AuditLog/AuditLogRedactio
 import {
   AUDIT_LOG_EXPORT_DEFAULT_FOLDER,
   AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT,
+  AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE,
   AUDIT_LOG_EXPORT_DEFAULT_WEBHOOK_HEADER,
   AUDIT_LOG_EXPORT_DOCS_PATH,
+  AUDIT_LOG_EXPORT_MAX_SYSLOG_UDP_MESSAGE_SIZE,
+  AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE,
+  AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT,
   AuditLogExportDestinationCatalog,
   AuditLogExportDestinationDefinition,
   AuditLogExportDestinationField,
@@ -29,6 +33,7 @@ import {
   AuditLogExportSyslogFraming,
   AuditLogExportSyslogProtocol,
   AuditLogExportWebhookBodyFormat,
+  getAuditLogExportFieldDefault,
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import {
@@ -42,6 +47,10 @@ import {
 import Permission from "Common/Types/Permission";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { readAuditLogValue } from "Common/Utils/AuditLog/AuditLogTypedValues";
+import {
+  describeLargeJson,
+  limitText,
+} from "Common/Utils/AuditLog/AuditLogValues";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -403,10 +412,68 @@ describe("the Audit Log Export page's destinations", () => {
       AuditLogExportSyslogFraming.OctetCounting,
     );
     expect(syslog).toContain(
-      `over TLS on port \`${AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT}\` unless **Protocol** says TCP`,
+      `over TLS on port \`${AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT}\` unless **Protocol** says TCP or UDP`,
     );
     expect(syslog).toContain(
-      "Messages are framed by octet counting (RFC 5425) unless **Framing** says one message per line.",
+      "Over TLS and TCP, messages are framed by octet counting (RFC 5425) unless **Framing** says one message per line.",
+    );
+  });
+
+  it("says where syslog over UDP starts, what it frames and how long a message may be, as the catalog sets them", () => {
+    const syslog: string = destinationSection(
+      AuditLogExportDestinationType.Syslog,
+    );
+    const field: (key: string) => AuditLogExportDestinationField = (
+      key: string,
+    ): AuditLogExportDestinationField => {
+      return catalogEntry(
+        AuditLogExportDestinationType.Syslog,
+      ).configFields.find((candidate: AuditLogExportDestinationField) => {
+        return candidate.key === key;
+      }) as AuditLogExportDestinationField;
+    };
+    const port: (protocol: AuditLogExportSyslogProtocol) => unknown = (
+      protocol: AuditLogExportSyslogProtocol,
+    ): unknown => {
+      return getAuditLogExportFieldDefault({ protocol }, field("port"));
+    };
+
+    // The port follows the protocol: UDP's own, and TLS's for TCP, which has none.
+    expect(port(AuditLogExportSyslogProtocol.Udp)).toBe(
+      AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT,
+    );
+    expect(port(AuditLogExportSyslogProtocol.Tls)).toBe(
+      AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT,
+    );
+    expect(port(AuditLogExportSyslogProtocol.Tcp)).toBe(
+      AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_PORT,
+    );
+    expect(syslog).toContain(
+      `Over UDP, **Port** starts on \`${AUDIT_LOG_EXPORT_SYSLOG_UDP_PORT}\`, and each message is a datagram of its own (RFC 5426), so none is framed.`,
+    );
+
+    // Framing is TLS's and TCP's alone, and the size UDP's.
+    expect(field("framing").showWhen?.values).toEqual([
+      AuditLogExportSyslogProtocol.Tls,
+      AuditLogExportSyslogProtocol.Tcp,
+    ]);
+    expect(field("maxMessageSize").showWhen?.values).toEqual([
+      AuditLogExportSyslogProtocol.Udp,
+    ]);
+
+    // An export that names no size sends the default; the form takes the range.
+    expect(field("maxMessageSize").defaultValue).toBeUndefined();
+    expect(field("maxMessageSize").placeholder).toBe(
+      String(AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE),
+    );
+    expect(field("maxMessageSize").minValue).toBe(
+      AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE,
+    );
+    expect(field("maxMessageSize").maxValue).toBe(
+      AUDIT_LOG_EXPORT_MAX_SYSLOG_UDP_MESSAGE_SIZE,
+    );
+    expect(syslog).toContain(
+      `Each message over UDP is at most **Maximum message size** bytes: \`${AUDIT_LOG_EXPORT_DEFAULT_SYSLOG_UDP_MESSAGE_SIZE}\` unless you change it under **More fields**, from \`${AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE}\` to \`${AUDIT_LOG_EXPORT_MAX_SYSLOG_UDP_MESSAGE_SIZE}\`.`,
     );
   });
 
@@ -556,9 +623,9 @@ describe("the Audit Log Export page's entries", () => {
     expect(readAuditLogValue({ _type: "Email", value: "a@example.com" })).toBe(
       "a@example.com",
     );
-    expect(readAuditLogValue({ _type: "URL", value: "https://a.example" })).toBe(
-      "https://a.example",
-    );
+    expect(
+      readAuditLogValue({ _type: "URL", value: "https://a.example" }),
+    ).toBe("https://a.example");
     expect(readAuditLogValue({ _type: "Port", value: 587 })).toBe(587);
     // No version was added for it: a version only ever adds keys.
     expect(AUDIT_LOG_EXPORT_SCHEMA_VERSION).toBe(2);
@@ -655,7 +722,9 @@ describeWhenEnterprisePresent(
         "readAuditLogExportTypedValues(\n        redactAuditLogExportRecord(read),\n      )",
       );
       // Read whatever version the export sends: not inside toAuditLogExportRecord's versions.
-      expect(toBatch.slice(0, toBatch.indexOf("readAuditLogExportTypedValues"))).toContain(
+      expect(
+        toBatch.slice(0, toBatch.indexOf("readAuditLogExportTypedValues")),
+      ).toContain(
         "toAuditLogExportRecord(\n        row,\n        data.schemaVersion,\n      )",
       );
     });
@@ -907,6 +976,58 @@ describeWhenEnterprisePresent(
           `{"schemaVersion":${AUDIT_LOG_EXPORT_SCHEMA_VERSION},"id":`,
         ),
       ).toBe(true);
+    });
+
+    it("names the marks a shortened UDP message carries, and what a test over UDP tells, as the syslog destination writes them", () => {
+      const syslog: string = readEe(
+        "Server/AuditLogExport/Destinations/SyslogDestination.ts",
+      );
+      const api: string = readEe(
+        "Server/AuditLogExport/API/AuditLogExportAPI.ts",
+      );
+      const page: string = destinationSection(
+        AuditLogExportDestinationType.Syslog,
+      );
+      const marks: Array<string> = codeSpans(page).filter(
+        (span: string): boolean => {
+          return span.startsWith("[");
+        },
+      );
+
+      expect(marks).toHaveLength(3);
+
+      // A value is cut as the audit log cuts one: text keeps its start, JSON says its size.
+      expect(syslog).toContain("return limitText(value, limit);");
+      expect(syslog).toContain(
+        "return length > limit ? describeLargeJson(length) : value;",
+      );
+      expect(limitText("a".repeat(1000 + 1234), 1000)).toBe(
+        `${"a".repeat(1000)} ${marks[0]}`,
+      );
+      expect(describeLargeJson(12595)).toBe(marks[1]);
+
+      // The changes left out are counted in one change of their own.
+      expect(syslog).toContain(
+        'const noun: string = data.count === 1 ? "change" : "changes";',
+      );
+      expect(syslog).toContain(
+        'field: `[… ${formatCount(data.count)} ${data.isAfterKept ? "more " : ""}${noun}]`,',
+      );
+      expect(marks[2]).toBe("[… 12 more changes]");
+
+      // A closed port fails the batch, which is tried again; a test that passes asks for a look.
+      expect(syslog).toContain(
+        "its host answered that the port is closed (ECONNREFUSED). Check the host, the port and the protocol. It is retried automatically.`,\n        { retryable: true },",
+      );
+      expect(page).toContain(
+        "when the receiver's host answers that its port is closed, the batch fails and is tried again, but a message lost on the way is not sent again.",
+      );
+      expect(api).toContain(
+        "UDP does not confirm delivery, so check that it arrived.",
+      );
+      expect(page).toContain(
+        "After a test over UDP, check that the test entry arrived.",
+      );
     });
 
     it("names the files as a file destination writes them", () => {
