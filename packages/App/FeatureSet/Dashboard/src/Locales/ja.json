@@ -46070,7 +46070,7 @@
   "Response activity": "対応",
   "Affects {{products}}.": "{{products}} に影響します。",
   "Azure caused it.": "Azure が原因です。",
-  "Azure published a health advisory.": "Azure が正常性に関する勧告を公開しました。",
+  "Azure published a health advisory.": "Azure がヘルスに関する勧告を公開しました。",
   "Azure published a security advisory.": "Azure がセキュリティ勧告を公開しました。",
   "Azure published an advisory that needs your action.": "Azure が対応を求める勧告を公開しました。",
   "Azure published an incident.": "Azure がインシデントを公開しました。",
