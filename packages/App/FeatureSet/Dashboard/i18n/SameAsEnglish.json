@@ -212,5 +212,9 @@
   "whsec_…",
   "{ \"Authorization\": \"Bearer ...\" }",
   "{ \"client_email\": \"...\", \"private_key\": \"...\" }",
-  "{ \"message\": \"...\" }"
+  "{ \"message\": \"...\" }",
+  "{{amount}} USD",
+  "{{size}} GB",
+  "{{size}} KB",
+  "{{size}} MB"
 ]

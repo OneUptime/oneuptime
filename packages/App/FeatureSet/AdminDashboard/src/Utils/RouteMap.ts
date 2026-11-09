@@ -23,12 +23,17 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS]: new Route(`/admin/settings/host`),
 
   [PageMap.PROJECTS]: new Route(`/admin/projects`),
+  // Every project's telemetry usage, heaviest first.
+  [PageMap.TELEMETRY_USAGE]: new Route(`/admin/telemetry-usage`),
   [PageMap.PROJECT_VIEW]: new Route(`/admin/projects/${RouteParams.ModelID}`),
   [PageMap.PROJECT_SUBSCRIPTION]: new Route(
     `/admin/projects/${RouteParams.ModelID}/subscription`,
   ),
   [PageMap.PROJECT_SUPPORT]: new Route(
     `/admin/projects/${RouteParams.ModelID}/support`,
+  ),
+  [PageMap.PROJECT_TELEMETRY_USAGE]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/telemetry-usage`,
   ),
   [PageMap.PROJECT_DELETE]: new Route(
     `/admin/projects/${RouteParams.ModelID}/delete`,

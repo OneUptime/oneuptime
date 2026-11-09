@@ -4,6 +4,7 @@ import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
 import JSONFunctions from "../../../Types/JSONFunctions";
+import ObjectID from "../../../Types/ObjectID";
 import DashboardLabelVariable from "../../../Utils/Dashboard/LabelVariable";
 
 const UNIT_660: string = "06600000-0000-4000-8000-000000000000";
@@ -253,5 +254,60 @@ describe("dashboard title display interpolation", () => {
         text,
       ]),
     ).toBe("0660 / <b>prod</b> / 0660");
+  });
+});
+
+/*
+ * Issue #6328: a list's labels, and the label variable it follows, can be
+ * stored as an ObjectID's JSON, which every board revives into an ObjectID.
+ * Compared as stored, a variable named by an ObjectID matched no variable,
+ * and the list said its variable was missing - signed in and public alike.
+ */
+describe("label filters read their ids in every encoding (issue #6328)", () => {
+  test.each([
+    ["a revived ObjectID", new ObjectID(UNIT_660)],
+    ["an ObjectID's JSON", { _type: "ObjectID", value: UNIT_660 }],
+  ])(
+    "follows the variable it names as %s",
+    (_name: string, labelVariableId: unknown) => {
+      const asText: ReturnType<typeof DashboardLabelVariable.getFilter> =
+        DashboardLabelVariable.getFilter({
+          labelVariableId: UNIT_660,
+          variables: [variable({ id: UNIT_660, defaultValue: UNIT_661 })],
+        });
+
+      // Not vacuous: the variable's default filters the list.
+      expect(asText).toEqual(new Includes([UNIT_661]));
+
+      expect(
+        DashboardLabelVariable.getFilter({
+          labelVariableId: labelVariableId as string,
+          variables: [variable({ id: UNIT_660, defaultValue: UNIT_661 })],
+        }),
+      ).toEqual(asText);
+    },
+  );
+
+  test("still says the variable is missing for an id that names none", () => {
+    for (const labelVariableId of [42, ["unit"], { id: "unit" }]) {
+      expect(() => {
+        return DashboardLabelVariable.getFilter({
+          labelVariableId: labelVariableId as unknown as string,
+          variables: [variable()],
+        });
+      }).toThrow("label variable is missing");
+    }
+  });
+
+  test("reads the labels it is fixed to as text, the same label once", () => {
+    expect(
+      DashboardLabelVariable.getFilter({
+        labelIds: [
+          UNIT_660,
+          new ObjectID(UNIT_660),
+          { _type: "ObjectID", value: UNIT_661 },
+        ] as unknown as Array<string>,
+      }),
+    ).toEqual(new Includes([UNIT_660, UNIT_661]));
   });
 });

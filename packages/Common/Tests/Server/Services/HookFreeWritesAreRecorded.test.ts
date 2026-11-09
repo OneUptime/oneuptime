@@ -7,6 +7,17 @@ import {
   HookFreeWriteForm,
   HookFreeWriteScanner,
 } from "../../Helpers/HookFreeWriteScan";
+import { listTypeScriptFiles } from "../../Helpers/ReferenceNameScan";
+import {
+  RunNowReading,
+  propertyText,
+  readRunNow,
+} from "../../Helpers/RunNowWriteScan";
+import {
+  RuleRunAction,
+  RuleRunType,
+  RuleRunTypeUtil,
+} from "../../../Types/Rules/RuleRun";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import EnableAuditLogOn from "../../../Types/BaseDatabase/EnableAuditLogOn";
@@ -1159,4 +1170,416 @@ describe("owner and privacy rule engines", () => {
       });
     },
   );
+});
+
+/*
+ * EVERY RULE'S RUN NOW, WHATEVER IT DOES (issues #6300, #6323, #6324).
+ *
+ * What a Run now changes is the person's in the audit log only if every
+ * write it makes carries who ran it. The label, owner and privacy engines
+ * are held to that above. Here is the rest - a status page or SLO monitor
+ * rule's sync, and the network rules' runs - from the route that knows who
+ * ran it, through the runner, to every write their engines reach
+ * (RunNowWriteScan). Every kind of rule a Run now runs is held by one of
+ * these blocks, so a new kind of rule, a new network route, or a sync that
+ * forgets to hand on who ran it fails here until it does. The paths nobody
+ * runs by hand - a sync after a save, a monitor's own change, the automatic
+ * import of new scan results - hand on nobody, and stay OneUptime's own.
+ */
+describe("every rule's Run now", () => {
+  const SERVICES: string = "packages/Common/Server/Services";
+  const RUNNER: string =
+    "packages/Common/Server/Utils/Rules/RuleRun/RuleRunner.ts";
+  const RULE_RUN_ROUTE: string =
+    "packages/App/FeatureSet/BaseAPI/API/RuleRun.ts";
+  const NETWORK_RUN_ROUTES: string =
+    "packages/App/FeatureSet/BaseAPI/API/NetworkRuleRun.ts";
+
+  interface RunNowEntry {
+    // The engine's file, from the repository's root.
+    file: string;
+    // The service the route or the runner calls it on.
+    service: string;
+    // The method that is the Run now.
+    entry: string;
+  }
+
+  // The rule run route's syncs, by the kind of rule they run.
+  const SYNCS: Record<string, RunNowEntry> = {
+    [RuleRunAction.SyncStatusPageMonitors]: {
+      file: `${SERVICES}/StatusPageMonitorRuleEngineService.ts`,
+      service: "StatusPageMonitorRuleEngineService",
+      entry: "syncResourcesForRule",
+    },
+    [RuleRunAction.SyncSloMonitors]: {
+      file: `${SERVICES}/ServiceLevelObjectiveMonitorRuleEngineService.ts`,
+      service: "ServiceLevelObjectiveMonitorRuleEngineService",
+      entry: "syncMonitorsForSlo",
+    },
+  };
+
+  // The network rules' Run now, by route.
+  const NETWORK_RUNS: Record<string, RunNowEntry> = {
+    "/network-site-assignment-rule/:ruleId/run": {
+      file: `${SERVICES}/NetworkDeviceService.ts`,
+      service: "NetworkDeviceService",
+      entry: "applySiteAssignmentRuleToExistingDevices",
+    },
+    "/network-device-label-rule/:ruleId/run": {
+      file: `${SERVICES}/NetworkDeviceLabelRuleEngineService.ts`,
+      service: "NetworkDeviceLabelRuleEngineService",
+      entry: "applyRuleToExistingNetworkDevices",
+    },
+    "/network-device-auto-import-rule/:ruleId/run": {
+      file: `${SERVICES}/NetworkDeviceAutoImportRuleEngineService.ts`,
+      service: "NetworkDeviceAutoImportRuleEngineService",
+      entry: "applyRuleToCompletedScans",
+    },
+  };
+
+  // What holds each kind of rule the rule run route runs.
+  const HELD_BY: Record<string, string> = {
+    [RuleRunAction.AddLabels]: "label rule engines",
+    [RuleRunAction.AddOwners]: "owner and privacy rule engines",
+    [RuleRunAction.MarkPrivate]: "owner and privacy rule engines",
+    [RuleRunAction.SyncStatusPageMonitors]: "every rule's Run now",
+    [RuleRunAction.SyncSloMonitors]: "every rule's Run now",
+  };
+
+  const ENTRIES: Array<[string, RunNowEntry]> = [
+    ...Object.entries(SYNCS),
+    ...Object.entries(NETWORK_RUNS),
+  ];
+
+  function sourceOf(relative: string): ts.SourceFile {
+    return ts.createSourceFile(
+      relative,
+      fs.readFileSync(path.join(REPOSITORY_ROOT, relative), "utf8"),
+      ts.ScriptTarget.Latest,
+      true,
+    );
+  }
+
+  // Every call in a node, with the text of its callee.
+  function callsIn(
+    node: ts.Node,
+  ): Array<{ callee: string; call: ts.CallExpression }> {
+    const found: Array<{ callee: string; call: ts.CallExpression }> = [];
+    const source: ts.SourceFile = node.getSourceFile();
+
+    const visit: (child: ts.Node) => void = (child: ts.Node): void => {
+      if (ts.isCallExpression(child)) {
+        found.push({ callee: child.expression.getText(source), call: child });
+      }
+
+      ts.forEachChild(child, visit);
+    };
+
+    visit(node);
+
+    return found;
+  }
+
+  // The text of the `props` a call's object hands on, or null.
+  function propsHandedOn(call: ts.CallExpression): string | null {
+    const argument: ts.Expression | undefined = call.arguments[0];
+
+    return argument && ts.isObjectLiteralExpression(argument)
+      ? propertyText(argument, "props", call.getSourceFile())
+      : null;
+  }
+
+  test("every kind of rule a Run now runs is held to writing with who ran it", () => {
+    const actions: Array<string> = Object.values(RuleRunAction).sort();
+
+    // A new kind of rule fails here until a block holds its Run now.
+    expect(Object.keys(HELD_BY).sort()).toEqual(actions);
+
+    for (const [action, block] of Object.entries(HELD_BY)) {
+      if (block === "every rule's Run now") {
+        expect([action, Boolean(SYNCS[action])]).toEqual([action, true]);
+      }
+    }
+
+    /*
+     * Every rule type of the registry: a sync this block reads, or an engine
+     * of the files the label, owner and privacy blocks read.
+     */
+    const engineFiles: Set<string> = new Set<string>(
+      fs.readdirSync(path.join(REPOSITORY_ROOT, SERVICES)),
+    );
+
+    for (const ruleType of Object.values(RuleRunType)) {
+      const action: RuleRunAction = RuleRunTypeUtil.getAction(ruleType);
+
+      if (SYNCS[action]) {
+        continue;
+      }
+
+      const engine: string = `${ruleType}EngineService.ts`;
+      const suffix: string =
+        action === RuleRunAction.AddLabels
+          ? "LabelRuleEngineService.ts"
+          : action === RuleRunAction.AddOwners
+            ? "OwnerRuleEngineService.ts"
+            : "PrivacyRuleEngineService.ts";
+
+      expect([
+        ruleType,
+        engineFiles.has(engine),
+        engine.endsWith(suffix),
+      ]).toEqual([ruleType, true, true]);
+    }
+  });
+
+  test("the rule run route hands who ran it to the runner", () => {
+    const runs: Array<{ callee: string; call: ts.CallExpression }> = callsIn(
+      sourceOf(RULE_RUN_ROUTE),
+    ).filter((found: { callee: string }): boolean => {
+      return found.callee === "RuleRunner.runPass";
+    });
+
+    expect(runs).toHaveLength(1);
+    expect(propsHandedOn(runs[0]!.call)).toBe("props");
+  });
+
+  test("the runner hands who ran it to every engine it runs", () => {
+    const ENGINE_CALL: RegExp = /(EngineService|definition\.engine)\.\w+$/;
+    const engineCalls: Array<{ callee: string; call: ts.CallExpression }> =
+      callsIn(sourceOf(RUNNER)).filter((found: { callee: string }): boolean => {
+        return ENGINE_CALL.test(found.callee);
+      });
+
+    // A new engine the runner runs fails here until this block reads it.
+    expect(
+      engineCalls
+        .map((found: { callee: string }): string => {
+          return found.callee;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        "definition.engine.applyRulesToExistingResource",
+        ...Object.values(SYNCS).map((sync: RunNowEntry): string => {
+          return `${sync.service}.${sync.entry}`;
+        }),
+      ].sort(),
+    );
+
+    for (const found of engineCalls) {
+      expect([found.callee, propsHandedOn(found.call)]).toEqual([
+        found.callee,
+        "data.props",
+      ]);
+    }
+  });
+
+  test("every network rule's Run now route is held, and hands its engine who ran it", () => {
+    const source: ts.SourceFile = sourceOf(NETWORK_RUN_ROUTES);
+    const routes: Map<string, ts.CallExpression> = new Map<
+      string,
+      ts.CallExpression
+    >();
+
+    for (const found of callsIn(source)) {
+      const first: ts.Expression | undefined = found.call.arguments[0];
+
+      if (
+        found.callee === "router.post" &&
+        first &&
+        ts.isStringLiteral(first)
+      ) {
+        routes.set(first.text, found.call);
+      }
+    }
+
+    // A new network rule's Run now fails here until this block reads it.
+    expect(Array.from(routes.keys()).sort()).toEqual(
+      Object.keys(NETWORK_RUNS).sort(),
+    );
+
+    for (const [route, run] of Object.entries(NETWORK_RUNS)) {
+      const handler: ts.CallExpression = routes.get(route)!;
+      const engineCalls: Array<{ callee: string; call: ts.CallExpression }> =
+        callsIn(handler).filter((found: { callee: string }): boolean => {
+          return found.callee === `${run.service}.${run.entry}`;
+        });
+
+      expect([route, engineCalls.length]).toEqual([route, 1]);
+      expect([route, propsHandedOn(engineCalls[0]!.call)]).toEqual([
+        route,
+        "props",
+      ]);
+    }
+  });
+
+  test.each(ENTRIES)(
+    "%s's Run now writes everything it reaches with who ran it",
+    (_kind: string, run: RunNowEntry) => {
+      const reading: RunNowReading = readRunNow({
+        file: path.join(REPOSITORY_ROOT, run.file),
+        entry: run.entry,
+      });
+
+      expect(reading.hasEntry).toBe(true);
+      // It writes, or records, something: not a vacuous pass.
+      expect(reading.writes.length + reading.recorders.length).toBeGreaterThan(
+        0,
+      );
+      expect({
+        entry: run.entry,
+        writesWithoutWhoRanIt: reading.writesWithoutWhoRanIt,
+        recordersWithoutWhoRanIt: reading.recordersWithoutWhoRanIt,
+        callsDroppingProps: reading.callsDroppingProps,
+      }).toEqual({
+        entry: run.entry,
+        writesWithoutWhoRanIt: [],
+        recordersWithoutWhoRanIt: [],
+        callsDroppingProps: [],
+      });
+
+      /*
+       * Nothing it reaches writes what the audit log tracks round the
+       * hooks, unless it records that write itself.
+       */
+      expect(
+        sites
+          .filter((site: Site): boolean => {
+            const method: string = site.inFunction.split(".").pop() || "";
+
+            return (
+              site.file === run.file &&
+              site.isTracked &&
+              reading.reached.includes(method) &&
+              decisionOf(site) !== Why.Recorded
+            );
+          })
+          .map((site: Site): string => {
+            return `${site.file}:${site.line} ${site.key}`;
+          }),
+      ).toEqual([]);
+    },
+  );
+
+  /*
+   * The automatic import of new scan results names nobody: what it creates
+   * is OneUptime's own, as a rule applied to a new record is.
+   */
+  test("the automatic import hands nobody's props to the import it shares with Run Now", () => {
+    const file: string =
+      NETWORK_RUNS["/network-device-auto-import-rule/:ruleId/run"]!.file;
+    const reading: RunNowReading = readRunNow({
+      file: path.join(REPOSITORY_ROOT, file),
+      entry: "processCompletedScan",
+    });
+
+    expect(reading.reached).toEqual(
+      expect.arrayContaining(["processCompletedScan", "importHostsFromScan"]),
+    );
+
+    // The sweep's own method, and every import it starts: no props at all.
+    let sweep: ts.MethodDeclaration | null = null;
+
+    const find: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isMethodDeclaration(node) &&
+        node.name.getText() === "processCompletedScan"
+      ) {
+        sweep = node;
+      }
+
+      ts.forEachChild(node, find);
+    };
+
+    find(sourceOf(file));
+
+    const imports: Array<{ callee: string; call: ts.CallExpression }> = callsIn(
+      sweep!,
+    ).filter((found: { callee: string }): boolean => {
+      return found.callee === "this.importHostsFromScan";
+    });
+
+    expect(imports).toHaveLength(1);
+    expect(propsHandedOn(imports[0]!.call)).toBeNull();
+  });
+
+  /*
+   * A sync after a rule or a monitor is saved, a label's change re-syncing
+   * the rules that name it: every caller of a Run now's engine but its own
+   * route or runner hands on no props, so what it changes stays OneUptime's
+   * own.
+   */
+  test("nothing but a Run now's route or runner hands these engines anybody's props", () => {
+    const ENTRY_NAMES: ReadonlySet<string> = new Set<string>([
+      ...ENTRIES.map(([, run]: [string, RunNowEntry]): string => {
+        return run.entry;
+      }),
+      // The monitor side of the status page sync, which a Run now reaches too.
+      "syncRulesForMonitor",
+    ]);
+    const RUN_NOW_CALLERS: ReadonlySet<string> = new Set<string>([
+      RUNNER,
+      NETWORK_RUN_ROUTES,
+      ...ENTRIES.map(([, run]: [string, RunNowEntry]): string => {
+        return run.file;
+      }),
+    ]);
+    const callers: Array<string> = [];
+    const handingProps: Array<string> = [];
+
+    for (const root of SCAN_ROOTS) {
+      for (const file of listTypeScriptFiles(root)) {
+        const relative: string = path
+          .relative(REPOSITORY_ROOT, file)
+          .split(path.sep)
+          .join("/");
+
+        if (relative.includes("/Tests/") || RUN_NOW_CALLERS.has(relative)) {
+          continue;
+        }
+
+        const text: string = fs.readFileSync(file, "utf8");
+
+        if (
+          !Array.from(ENTRY_NAMES).some((entry: string): boolean => {
+            return text.includes(`.${entry}(`);
+          })
+        ) {
+          continue;
+        }
+
+        const source: ts.SourceFile = ts.createSourceFile(
+          relative,
+          text,
+          ts.ScriptTarget.Latest,
+          true,
+        );
+
+        for (const found of callsIn(source)) {
+          const callee: ts.Expression = found.call.expression;
+
+          if (
+            !ts.isPropertyAccessExpression(callee) ||
+            !ENTRY_NAMES.has(callee.name.text)
+          ) {
+            continue;
+          }
+
+          const line: number =
+            source.getLineAndCharacterOfPosition(found.call.getStart()).line +
+            1;
+
+          callers.push(`${relative}:${line}`);
+
+          if (propsHandedOn(found.call) !== null) {
+            handingProps.push(`${relative}:${line} ${found.callee}`);
+          }
+        }
+      }
+    }
+
+    // The saves that sync: rules, monitors, labels, SLOs.
+    expect(callers.length).toBeGreaterThanOrEqual(5);
+    expect(handingProps).toEqual([]);
+  });
 });

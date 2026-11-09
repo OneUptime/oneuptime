@@ -106,7 +106,7 @@ När din bank fortfarande behandlar en betalning säger OneUptime det: vissa ban
 
 ## Användningshistorik
 
-**Projektinställningar → Fakturering och fakturor → Användningshistorik** visar den telemetri som projektet har skickat, en rad per produkt, tjänst och dag:
+**Projektinställningar → Telemetri och APM → Användning** visar hur mycket telemetri projektet har skickat, per dag, signal och resurs: se [Telemetrianvändning](/docs/telemetry/usage). På OneUptime Cloud visar dess lista **Användningshistorik för telemetri** också vad varje dag kostade, en rad per produkt, tjänst och dag:
 
 | Kolumn | Vad den visar |
 | --- | --- |
@@ -117,7 +117,7 @@ När din bank fortfarande behandlar en betalning säger OneUptime det: vissa ban
 | **Datalagring (i dagar)** | Hur länge den lagras. |
 | **Total kostnad** | Vad den kostade, i amerikanska dollar. |
 
-En dags användning visas när dagen är slut. Filtrera efter **Produkt**, **Dag** eller **Tjänst** för att hitta det som har växt.
+En dags användning visas när dagen är slut, senast omkring 08:00 UTC nästa dag. Filtrera efter **Produkt**, **Dag** eller **Tjänst** för att hitta det som har växt.
 
 ## Förbetalda saldon
 
@@ -188,8 +188,8 @@ Ett projekt med obetalda fakturor blir inaktivt och tas bort om de förblir obet
 Projektet har ingen betalningsmetod ännu. Lägg till en och byt sedan plan.
 :::
 
-:::details Användningshistoriken är tom
-Användning räknas per dag, och en dag visas när den är slut. Ett projekt som inte har skickat telemetri har inga rader.
+:::details Listan Användningshistorik för telemetri är tom
+Användning räknas per dag, och en dag visas när den är slut, senast omkring 08:00 UTC nästa dag. Ett projekt som inte har skickat telemetri har inga rader.
 :::
 
 ## Nästa steg

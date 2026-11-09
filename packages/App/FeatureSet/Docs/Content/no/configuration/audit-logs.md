@@ -92,7 +92,16 @@ Det registreres også når en administrator legger til eller fjerner en varsling
 
 Felt som bare OneUptime skriver, for eksempel når en vert sist ble sett, utelates fra alle oppføringer, og det samme gjør felt som ingen kan lese. Når OneUptime skriver et av dem fordi noen ba om det, for eksempel når et unntak slås sammen med et annet eller en webhook-URL tilbakestilles, registrerer oppføringen det som den personens endring. Nøkler, tokener og passord registreres som `[REDACTED]`: oppføringen viser at de er endret, aldri verdien deres. Trinnene i en arbeidsflyt registreres som det som endret seg, med navnene på et trinns innstillinger, men aldri det som ble skrevet inn i dem, og å flytte et trinn på lerretet registreres ikke.
 
-Det OneUptime gjør fordi noen ba om det, registreres også som deres endring, enten prosjektet lagrer systemhendelser eller ikke: å starte, godkjenne, fullføre, hoppe over og avbryte en kjøring av en runbook; etikettene og eierne en regel legger til, postene en personvernregel gjør private og enhetene en regel for stedstildeling flytter når noen kjører regelen på postene som allerede finnes; å kjøpe, knytte til og frigi telefonnummeret til en policy for innkommende anrop; å løse et datavarsel som noen markerer som forventet eller som ikke et problem; å tilbakestille lenken til en kalenderfeed; og teamene noen blir med i når de logger på med SSO. Trinnene i en runbook-kjøring registreres som det som ble gjort med hvert av dem, for eksempel `Approved "Restart the API" (step 3)`, aldri med det et trinn skrev ut. Etiketter og eiere en regel legger til når en post opprettes, og en post den da gjør privat, er OneUptimes egen endring og registreres når **Lagre systemhendelser** er slått på.
+Det OneUptime gjør fordi noen ba om det, registreres også som deres endring, enten prosjektet lagrer systemhendelser eller ikke:
+
+- Å starte, godkjenne, fullføre, hoppe over og avbryte en kjøring av en runbook. Trinnene registreres som det som ble gjort med hvert av dem, for eksempel `Approved "Restart the API" (step 3)`, aldri med det et trinn skrev ut.
+- Det en regel endrer når noen kjører den: etikettene og eierne den legger til, postene en personvernregel gjør private, enhetene en regel for stedstildeling flytter, enhetene og monitorene en regel for automatisk import oppretter, og det en monitorregel på en statusside eller en SLO endrer på siden eller SLO-en.
+- Å kjøpe, knytte til og frigi telefonnummeret til en policy for innkommende anrop.
+- Å løse et datavarsel som noen markerer som forventet eller som ikke et problem.
+- Å tilbakestille lenken til en kalenderfeed.
+- Teamene noen blir med i når de logger på med SSO.
+
+Det en regel gjør av seg selv, er OneUptimes egen endring og registreres når **Lagre systemhendelser** er slått på: etiketter og eiere en regel legger til når en post opprettes, og en post den da gjør privat; enhetene og monitorene en regel for automatisk import oppretter fra nye skanneresultater; og det en monitorregel på en statusside eller en SLO endrer når en regel, en monitor eller en etikett lagres.
 
 Å tilbakestille AI-agenten til en vert, en klynge eller en skykonto registreres på ressursens egen side **Revisjonslogger**, som endringen av `aiAgentResetAt` gjort av den som tilbakestilte den: hvem, og når. Det samme gjelder å lage en nøkkel til AI-agenten for en skykonto: nøklene vises som endret, aldri med en nøkkel eller en hash. Det en agent rapporterer når den kobler til og melder seg, holdes utenfor, som før.
 

@@ -2064,6 +2064,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
@@ -6468,6 +6469,15 @@ const BaseAPIFeatureSet: FeatureSet = {
      * code.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
+
+    /*
+     * Telemetry usage (Project Settings > Telemetry & APM > Usage, and the
+     * Admin Dashboard's Telemetry Usage): read from the staged usage rows,
+     * with billing on or off. A bare router for the same reason as
+     * OnCallReadinessAPI: TelemetryUsageBilling's CRUD routes are mounted on
+     * their own, with the other models'.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryUsageAPI);
 
     /*
      * Import from another tool (Project Settings > Advanced > Import from

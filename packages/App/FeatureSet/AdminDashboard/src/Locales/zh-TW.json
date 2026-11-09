@@ -63,7 +63,8 @@
     "apiKey": "API 金鑰",
     "more": "更多",
     "sendEmail": "傳送電子郵件",
-    "logout": "登出"
+    "logout": "登出",
+    "telemetryUsage": "遙測使用量"
   },
   "topAlert": {
     "title": "OneUptime 管理員儀表板",
@@ -131,7 +132,8 @@
     "settingsApiIntegrations": "API 與整合",
     "settingsApiKey": "API 金鑰",
     "moreCommunication": "通訊",
-    "moreSendEmail": "傳送電子郵件"
+    "moreSendEmail": "傳送電子郵件",
+    "telemetryUsage": "遙測使用量"
   },
   "pages": {
     "users": {
@@ -581,7 +583,10 @@
         "logEditButton": "編輯設定",
         "metricCardTitle": "監視器指標保留",
         "metricCardDescription": "設定監視器指標在自動刪除之前保留的時間。",
-        "metricEditButton": "編輯設定"
+        "metricEditButton": "編輯設定",
+        "usageCardTitle": "遙測使用量保留",
+        "usageCardDescription": "每個專案的每日遙測使用量保留多長時間，無論是否啟用計費。",
+        "usageEditButton": "編輯遙測使用量保留"
       },
       "apiKey": {
         "cardTitle": "主要 API 金鑰設定",
@@ -596,6 +601,13 @@
         "cardDescription": "全域 LLM 供應商可用於所有專案的 AI 功能。設定 OpenAI、Anthropic、Ollama 或其他 LLM 供應商。",
         "noItems": "未設定 LLM 供應商。新增 LLM 供應商以啟用 AI 功能。"
       }
+    },
+    "telemetryUsage": {
+      "title": "遙測使用量",
+      "cardTitle": "依專案統計的遙測使用量",
+      "cardDescription": "每個專案傳送了多少遙測資料，用量最大的排在最前。一天按 UTC 結束後才會統計。",
+      "emptyTitle": "尚無遙測使用量",
+      "emptyDescription": "此時間範圍內還沒有專案統計到使用量。一天的遙測資料在該天按 UTC 結束後統計，約在隔天 08:00 UTC 前完成。"
     }
   },
   "Basic": "基礎",
@@ -1859,6 +1871,60 @@
   "This list has default columns for everyone in this project.": "此清單為此專案中的所有人設定了預設欄位。",
   "Remove default": "移除預設設定",
   "Reset to project default": "重設為專案預設值",
+  "Telemetry Usage": "遙測使用量",
+  "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.": "此專案每天傳送的遙測資料量，依訊號劃分。一天按 UTC 結束後才會統計。",
+  "Usage by Resource": "依資源統計的使用量",
+  "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.": "傳送這些遙測資料的服務和資源（用量最大的排在最前），以及各自的保留時間。",
+  "Resource": "資源",
+  "Resources": "資源",
+  "Total": "總計",
+  "Cost": "成本",
+  "Retention": "保留期",
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.": "該資源的遙測資料保留多長時間，以該時間範圍內最近一天的統計為準。",
+  "Range": "時間範圍",
+  "Last {{count}} days": "過去 {{count}} 天",
+  "Last {{count}} days_one": "過去 {{count}} 天",
+  "No telemetry usage yet": "尚無遙測使用量",
+  "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.": "一天的遙測資料在該天按 UTC 結束後統計，約在隔天 08:00 UTC 前完成。今天的使用量明天才會顯示。",
+  "No telemetry usage in this range": "此時間範圍內沒有遙測使用量",
+  "The newest day with usage is {{day}}. Choose a longer range to see it.": "有使用量的最近一天是 {{day}}。請選擇更長的時間範圍來查看。",
+  "Logs": "日誌",
+  "Metrics": "指標",
+  "Traces": "追蹤",
+  "Profiles": "設定檔",
+  "Session Replays": "工作階段重播",
+  "Security Events": "安全事件",
+  "Spans, and the exceptions recorded with them.": "跨度，以及隨之記錄的例外。",
+  "Profiles, and the samples recorded with them.": "效能剖析資料，以及隨之記錄的樣本。",
+  "{{size}} GB": "{{size}} GB",
+  "{{size}} MB": "{{size}} MB",
+  "{{size}} KB": "{{size}} KB",
+  "{{amount}} USD": "{{amount}} USD",
+  "Session replays: {{days}}": "工作階段重播：{{days}}",
+  "Service": "服務",
+  "RUM Application": "RUM 應用程式",
+  "Docker Host": "Docker主機",
+  "Podman Host": "Podman 主機",
+  "Kubernetes Cluster": "Kubernetes叢集",
+  "Proxmox Cluster": "Proxmox 叢集",
+  "OpenStack Cloud": "OpenStack 雲端",
+  "Ceph Cluster": "Ceph 叢集",
+  "Storage Array": "儲存陣列",
+  "Docker Swarm Cluster": "Docker Swarm 叢集",
+  "vCenter": "vCenter",
+  "IoT Fleet": "IoT 裝置群",
+  "Serverless Function": "無伺服器函式",
+  "Cloud Resource": "雲端資源",
+  "Database": "資料庫",
+  "Network Device": "網路裝置",
+  "Unknown Service": "未知服務",
+  "Day": "天",
+  "Data Ingested (in GB)": "已擷取資料（GB）",
+  "How much telemetry each project sends, heaviest first.": "每個專案傳送了多少遙測資料，用量最大的排在最前。",
+  "Telemetry Usage Retention (Days)": "遙測使用量保留期（天）",
+  "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "每個專案每日遙測使用量的保留天數，30 到 1095。留空則為 120 天。",
+  "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "保留每個專案每日遙測使用量的天數。超過此天數的使用量會被刪除。",
+  "Scheduled Maintenance": "排定維護",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

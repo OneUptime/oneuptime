@@ -1,5 +1,6 @@
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ObjectID from "../../../../Types/ObjectID";
 import Select from "../../../Types/Database/Select";
 import OnBehalfOfProps from "../../AuditLog/OnBehalfOfProps";
 
@@ -91,27 +92,49 @@ export class RuleApplicationResultUtil {
 }
 
 /*
- * THE PROPS A RULE'S WRITES ARE MADE WITH (issue #6300).
+ * THE PROPS A RULE'S WRITES ARE MADE WITH (issues #6300, #6323, #6324).
  *
  * A rule writes as OneUptime, root: who may run it is asked once, at the
- * route (RuleRunPermission), and a rule applied as a record is created asks
- * nothing. Plain root, though, is OneUptime's own change in the audit log:
- * the owners an owner rule's Run now added, and the records a privacy
- * rule's Run now made private, read as System's, kept only when the
- * project stores system events, and said nobody ran the rule.
+ * route (RuleRunPermission, and the network rules' own checks), and a rule
+ * applied as a record is created asks nothing. Plain root, though, is
+ * OneUptime's own change in the audit log: the owners an owner rule's Run
+ * now added, the records a privacy rule's Run now made private, the devices
+ * and monitors an auto import rule's Run now created and the monitors a
+ * status page or SLO monitor rule's Run now put on its page or SLO read as
+ * System's, kept only when the project stores system events, and said
+ * nobody ran the rule.
  *
  * So the writes of a run carry who ran it (OnBehalfOfProps: still root,
  * with no project on the request, and the person's identity - their user,
  * the API key or MCP client they acted through - and none of their
  * permissions), and the entries are theirs. With nobody named - a rule
- * applied as a record is created or changed - they stay OneUptime's own, a
- * system event. HookFreeWritesAreRecorded.test.ts holds every owner and
- * privacy rule engine to writing with these.
+ * applied as a record is created or changed, a rule's sync after it is
+ * saved, the automatic import of new scan results - they stay OneUptime's
+ * own, a system event. HookFreeWritesAreRecorded.test.ts holds every rule
+ * engine's Run now to writing with these.
  */
 export class RuleRunWriteProps {
   public static get(
     props?: DatabaseCommonInteractionProps | undefined,
   ): DatabaseCommonInteractionProps {
     return props ? OnBehalfOfProps.get(props) : { isRoot: true };
+  }
+
+  /*
+   * The same, for a write its service takes only inside a project:
+   * MonitorService creates a monitor in the project on the request, and
+   * refuses one with none. The project is the rule's own, never the
+   * request's, and it grants nothing - a root write in a project is still
+   * root. It does make the write one made in that project, which drops any
+   * other person the record names (UserAttribution); the person on these
+   * props is still its creator, as DatabaseService stamps them. So use it
+   * only where the service needs the project, for records that name nobody
+   * else.
+   */
+  public static getInProject(
+    props: DatabaseCommonInteractionProps | undefined,
+    projectId: ObjectID,
+  ): DatabaseCommonInteractionProps {
+    return { ...RuleRunWriteProps.get(props), tenantId: projectId };
   }
 }

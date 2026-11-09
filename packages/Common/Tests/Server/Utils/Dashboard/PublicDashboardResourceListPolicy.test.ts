@@ -3241,18 +3241,12 @@ describe("PublicDashboardResourceListPolicy", () => {
               drawnWidget(stored)["arguments"] as JSONObject
             )[testCase.key] as Array<unknown>;
 
-            // The page holds the ObjectIDs it revived, or their JSON when it could not revive the widget.
-            expect([encoding, held.map(String)]).toEqual([
-              encoding,
-              isRevived(encoding)
-                ? ids
-                : ["[object Object]", "[object Object]"],
-            ]);
-            expect(
-              held.every((value: unknown): boolean => {
-                return value instanceof ObjectID;
-              }),
-            ).toBe(isRevived(encoding));
+            /*
+             * The page holds them as the ids they name, in text, whether it
+             * revived the widget or draws it from its stored JSON - as every
+             * board reads them (DashboardWidgetIds, issue #6328).
+             */
+            expect([encoding, held]).toEqual([encoding, ids]);
 
             expect([encoding, buildDrawn({ storedWidget: stored })]).toEqual([
               encoding,
@@ -3289,6 +3283,17 @@ describe("PublicDashboardResourceListPolicy", () => {
         ["a search", SEARCH],
         ["a date", DATE],
       ];
+
+      /*
+       * An id setting reads an ObjectID as the id it names, as every board
+       * does (issue #6328, pinned below); every other typed value names no
+       * id, and is refused as before.
+       */
+      const NO_ID_TYPED_VALUES: Array<[string, unknown]> = TYPED_VALUES.filter(
+        ([name]: [string, unknown]): boolean => {
+          return name !== "an ObjectID";
+        },
+      );
 
       const TYPED_VALUE_CASES: Array<TypedValueCase> = [
         {
@@ -3344,11 +3349,10 @@ describe("PublicDashboardResourceListPolicy", () => {
           outcome: "refused: Dashboard widget bodyContains must be a string.",
         },
         {
-          // The page cannot match an ObjectID to a variable's id either.
           reader: "the label variable a list follows",
           componentType: DashboardComponentType.MonitorList,
           key: "labelVariableId",
-          values: TYPED_VALUES,
+          values: NO_ID_TYPED_VALUES,
           outcome:
             "refused: Dashboard widget labelVariableId must be a string.",
         },
@@ -3389,18 +3393,17 @@ describe("PublicDashboardResourceListPolicy", () => {
           outcome: "as unset",
         },
         {
-          // The page cannot draw it either: it trims the id it shows.
           reader: "the SLO a widget pins",
           componentType: DashboardComponentType.Slo,
           key: "serviceLevelObjectiveId",
-          values: TYPED_VALUES,
+          values: NO_ID_TYPED_VALUES,
           outcome: `refused: ${PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE}`,
         },
         {
           reader: "the variable an SLO widget follows",
           componentType: DashboardComponentType.Slo,
           key: "serviceLevelObjectiveVariableId",
-          values: TYPED_VALUES,
+          values: NO_ID_TYPED_VALUES,
           outcome:
             "refused: Dashboard widget serviceLevelObjectiveVariableId is invalid.",
         },
@@ -3547,6 +3550,171 @@ describe("PublicDashboardResourceListPolicy", () => {
               }),
             }).query,
           ]).toEqual([encoding, { _id: SLO_ID }]);
+        }
+      });
+
+      /*
+       * Issue #6328: an SLO, or the variable a widget follows, stored as an
+       * ObjectID is read as the id it names. The page now draws that SLO,
+       * signed in and public alike, so the policy reads it as it reads the
+       * same id stored as text - whether the page revived it or draws the
+       * widget from its stored JSON.
+       */
+      it("pins an SLO widget's SLO stored as an ObjectID exactly as stored as text, in every encoding", () => {
+        for (const encoding of ENCODINGS) {
+          expect([
+            encoding,
+            buildDrawn({
+              storedWidget: storedIn(encoding, DashboardComponentType.Slo, {
+                serviceLevelObjectiveId: idJSON(SLO_ID.toString()),
+              }),
+            }).query,
+          ]).toEqual([encoding, { _id: SLO_ID }]);
+
+          // Called with the stored settings themselves, revived or not.
+          for (const storedId of [
+            SLO_ID,
+            idJSON(SLO_ID.toString()),
+            ` ${SLO_ID.toString()} `,
+          ]) {
+            expect([
+              encoding,
+              String(storedId),
+              PublicDashboardResourceListPolicy.build({
+                widget: {
+                  componentType: DashboardComponentType.Slo,
+                  arguments: {
+                    serviceLevelObjectiveId: storedId as unknown as JSONObject,
+                  },
+                },
+                variables: [],
+                requestedVariables: [],
+                requestedQuery: {},
+              }).query,
+            ]).toEqual([encoding, String(storedId), { _id: SLO_ID }]);
+          }
+        }
+      });
+
+      it("follows the label variable a list names by an ObjectID exactly as by its id in text, in every encoding", () => {
+        const labelId: string = ObjectID.generate().toString();
+        const labelVariable: JSONObject = {
+          id: "unit",
+          name: "unit",
+          type: DashboardVariableType.ProjectLabel,
+          labelOptions: [{ label: "Payments", value: labelId }],
+          defaultValue: labelId,
+        };
+
+        for (const componentType of [
+          DashboardComponentType.MonitorList,
+          DashboardComponentType.SloList,
+        ]) {
+          const asText: PublicDashboardResourceListPolicyResult = build({
+            componentType,
+            argumentsObject: { labelVariableId: "unit" },
+            storedVariables: [labelVariable],
+          });
+
+          // Not vacuous: the variable's pick filters the list.
+          expect(JSON.stringify(asText.query)).toContain(labelId);
+
+          for (const encoding of ENCODINGS) {
+            expect([
+              componentType,
+              encoding,
+              buildDrawn({
+                storedWidget: storedIn(encoding, componentType, {
+                  labelVariableId: { _type: "ObjectID", value: "unit" },
+                }),
+                storedVariables: [labelVariable],
+              }),
+            ]).toEqual([componentType, encoding, asText]);
+          }
+
+          // Called with the stored settings themselves, revived or not.
+          for (const storedId of [
+            new ObjectID("unit"),
+            { _type: "ObjectID", value: "unit" },
+          ]) {
+            expect([
+              componentType,
+              String(storedId),
+              PublicDashboardResourceListPolicy.build({
+                widget: {
+                  componentType,
+                  arguments: {
+                    labelVariableId: storedId as unknown as JSONObject,
+                  },
+                },
+                variables: drawnVariables([labelVariable]),
+                requestedVariables: [],
+                requestedQuery: {},
+              }),
+            ]).toEqual([componentType, String(storedId), asText]);
+          }
+        }
+      });
+
+      it("follows the variable an SLO widget names by an ObjectID exactly as by its id in text, in every encoding", () => {
+        const sloVariable: JSONObject = {
+          id: "slo",
+          name: "slo",
+          type: DashboardVariableType.TelemetryAttribute,
+          attributeKey: "sloName",
+          defaultValue: "Checkout",
+        };
+
+        const asText: string = outcomeOf(() => {
+          return build({
+            componentType: DashboardComponentType.Slo,
+            argumentsObject: { serviceLevelObjectiveVariableId: "slo" },
+            storedVariables: [sloVariable],
+          });
+        });
+
+        // Not vacuous: the widget follows the variable's pick.
+        expect(asText).toBe("lists slo");
+
+        for (const encoding of ENCODINGS) {
+          expect([
+            encoding,
+            outcomeOf(() => {
+              return buildDrawn({
+                storedWidget: storedIn(encoding, DashboardComponentType.Slo, {
+                  serviceLevelObjectiveVariableId: {
+                    _type: "ObjectID",
+                    value: "slo",
+                  },
+                }),
+                storedVariables: [sloVariable],
+              });
+            }),
+          ]).toEqual([encoding, asText]);
+        }
+
+        // Called with the stored settings themselves, revived or not.
+        for (const storedId of [
+          new ObjectID("slo"),
+          { _type: "ObjectID", value: "slo" },
+        ]) {
+          expect([
+            String(storedId),
+            outcomeOf(() => {
+              return PublicDashboardResourceListPolicy.build({
+                widget: {
+                  componentType: DashboardComponentType.Slo,
+                  arguments: {
+                    serviceLevelObjectiveVariableId:
+                      storedId as unknown as JSONObject,
+                  },
+                },
+                variables: drawnVariables([sloVariable]),
+                requestedVariables: [],
+                requestedQuery: {},
+              });
+            }),
+          ]).toEqual([String(storedId), asText]);
         }
       });
     });
