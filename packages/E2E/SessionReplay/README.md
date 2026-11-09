@@ -139,6 +139,25 @@ replay's own `connect-src 'none'` can refuse a fetch to it. The Dashboard
 sends no such header itself, but a reverse proxy in front of a self-hosted
 install can add one, and it then constrains playback in the same way.
 
+The Frustration Signals page (#6443) is served at
+`session-replay-frustration-signals`. The fixture keeps what a save sends
+and reads it back, as the server does, and `FrustrationSignals.spec.ts`
+holds what the page sends to what the person did:
+
+- **`?frustration=custom`** stores a changed rage-click rule, dead clicks
+  switched off and two signals of the application's own, one that counts
+  as frustration and one marker.
+- **`?frustration=fail-read`** and **`?frustration=fail-save`** fail the
+  page's first read and its first save, once each.
+- **`?signals=custom`** gives two rows of the session list signals of the
+  application's own: names that counted as frustration and a marker.
+- **`?lang=<language>`** draws any page in a Dashboard language, from its
+  locale file (`/locales/<language>.json`), with `<html lang>` and `dir`
+  set as the Dashboard sets them: `?lang=fa` reads right to left. With
+  `?theme=dark` it is what the page's screenshots under
+  `frustration-signals/` are for: 1280, 1024, 768 and 390 pixels wide,
+  light and dark, German and Persian, and a failed read.
+
 Screenshots are written to `output/playwright/session-replay-ui/`. They are
 production UI screenshots with synthetic data, not screenshots of a separate
 mockup. Failure traces and screenshots are under its `test-results` directory.
