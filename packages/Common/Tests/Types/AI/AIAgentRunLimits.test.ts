@@ -4,6 +4,7 @@ import AIAgentRunLimitsHelper, {
   AIRunStopDecision,
   AIRunStopReason,
   AIRunTimeLimitSource,
+  AI_RUN_STOP_NOTE_OPENINGS,
   ALERT_AI_INVESTIGATION_LIMITS_LOCATION,
   CHAT_APP_ANSWER_TIME_LIMIT_IN_MINUTES,
   DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
@@ -987,7 +988,7 @@ describe("AIAgentRunLimitsHelper.getStopNote", () => {
         limits: AIAgentRunLimitsHelper.getDefault(),
       }),
     ).toBe(
-      `_This run stopped at the time limit of 120 minutes per run, the default. Change it in ${PROJECT_AI_RUN_LIMITS_LOCATION}._`,
+      `_This run stopped at the default time limit of 120 minutes per run. Change it in ${PROJECT_AI_RUN_LIMITS_LOCATION}._`,
     );
     expect(
       AIAgentRunLimitsHelper.getStopNote({
@@ -1078,6 +1079,191 @@ describe("AIAgentRunLimitsHelper.getStopNote", () => {
         limits: limitsWith({ maxTokens: 12_500_000 }),
       }),
     ).toContain("12,500,000 tokens");
+  });
+});
+
+/*
+ * Every way a run can stop, each with the limits that name it: the notes
+ * below are checked against all of them, so a new reason or source has a
+ * case here or fails the count.
+ */
+const EVERY_STOP: Array<{
+  name: string;
+  reason: AIRunStopReason;
+  limits: AIAgentRunLimits;
+}> = [
+  { name: "model calls", reason: AIRunStopReason.ModelCalls, limits: CAPPED },
+  { name: "tool calls", reason: AIRunStopReason.ToolCalls, limits: CAPPED },
+  { name: "tokens", reason: AIRunStopReason.Tokens, limits: CAPPED },
+  { name: "loop", reason: AIRunStopReason.Loop, limits: CAPPED },
+  {
+    name: "the default time limit",
+    reason: AIRunStopReason.TimeLimit,
+    limits: limitsWith({ timeLimitSource: AIRunTimeLimitSource.Default }),
+  },
+  {
+    name: "the project's time limit",
+    reason: AIRunStopReason.TimeLimit,
+    limits: CAPPED,
+  },
+  {
+    name: "an incident investigation's time limit",
+    reason: AIRunStopReason.TimeLimit,
+    limits: limitsWith({
+      maxWallClockMs: 20 * MINUTE_MS,
+      timeLimitSource: AIRunTimeLimitSource.IncidentInvestigation,
+    }),
+  },
+  {
+    name: "an alert investigation's time limit",
+    reason: AIRunStopReason.TimeLimit,
+    limits: limitsWith({
+      maxWallClockMs: 20 * MINUTE_MS,
+      timeLimitSource: AIRunTimeLimitSource.AlertInvestigation,
+    }),
+  },
+  {
+    name: "a chat answer's window",
+    reason: AIRunStopReason.TimeLimit,
+    limits: limitsWith({
+      maxWallClockMs: CHAT_APP_ANSWER_TIME_LIMIT_IN_MINUTES * MINUTE_MS,
+      timeLimitSource: AIRunTimeLimitSource.ChatApp,
+    }),
+  },
+];
+
+describe("every stop is covered", () => {
+  test("one case per reason, and one per time limit source", () => {
+    const reasons: Set<string> = new Set(
+      EVERY_STOP.map((stop: { reason: AIRunStopReason }): string => {
+        return stop.reason;
+      }),
+    );
+    const sources: Set<string> = new Set(
+      EVERY_STOP.filter((stop: { reason: AIRunStopReason }): boolean => {
+        return stop.reason === AIRunStopReason.TimeLimit;
+      }).map((stop: { limits: AIAgentRunLimits }): string => {
+        return stop.limits.timeLimitSource;
+      }),
+    );
+
+    expect([...reasons].sort()).toEqual(
+      Object.values(AIRunStopReason).sort(),
+    );
+    expect([...sources].sort()).toEqual(
+      Object.values(AIRunTimeLimitSource).sort(),
+    );
+  });
+});
+
+/*
+ * The openings the investigation report's reader knows a stop note by
+ * (Common/Utils/AI/InvestigationReport.ts): every note opens with one, so
+ * the AI card can draw it apart from the analysis above it.
+ */
+describe("AI_RUN_STOP_NOTE_OPENINGS", () => {
+  test.each(EVERY_STOP)(
+    "the note of a run stopped by $name opens with one",
+    (stop: { reason: AIRunStopReason; limits: AIAgentRunLimits }) => {
+      const sentence: string = AIAgentRunLimitsHelper.getStopSentence(
+        stop.reason,
+        stop.limits,
+      );
+
+      expect(
+        AI_RUN_STOP_NOTE_OPENINGS.some((opening: string): boolean => {
+          return sentence.startsWith(opening);
+        }),
+      ).toBe(true);
+      expect(
+        AIAgentRunLimitsHelper.getStopNote({
+          reason: stop.reason,
+          limits: stop.limits,
+          settingsUrl: "https://oneuptime.example.com/dashboard/p1/x#y",
+        }).startsWith(`_${sentence}`),
+      ).toBe(true);
+    },
+  );
+
+  test("each opening is what stopped, then 'stopped' and a space", () => {
+    expect(AI_RUN_STOP_NOTE_OPENINGS.length).toBeGreaterThan(0);
+
+    for (const opening of AI_RUN_STOP_NOTE_OPENINGS) {
+      expect(opening).toMatch(/^This [a-z]+ stopped $/);
+    }
+  });
+});
+
+/*
+ * The note as text, for a line of the run's activity, which the Dashboard
+ * draws as text: written there as Markdown, it read "_This run stopped ...
+ * Change it in [Project Settings → ...](https://...)._".
+ */
+describe("AIAgentRunLimitsHelper.getStopNoteText", () => {
+  test.each(EVERY_STOP)(
+    "a run stopped by $name: the note's words, without its marks or link",
+    (stop: { reason: AIRunStopReason; limits: AIAgentRunLimits }) => {
+      const text: string = AIAgentRunLimitsHelper.getStopNoteText({
+        reason: stop.reason,
+        limits: stop.limits,
+      });
+      const unlinked: string = AIAgentRunLimitsHelper.getStopNote({
+        reason: stop.reason,
+        limits: stop.limits,
+      });
+
+      // The Markdown note with no address is the text in italics.
+      expect(unlinked).toBe(`_${text}_`);
+      expect(text).not.toMatch(/^_|_$/);
+      expect(text).not.toContain("](");
+      expect(text).not.toContain("http");
+      expect(text).toMatch(/\.$/);
+    },
+  );
+
+  test("a cap names the setting's place in words", () => {
+    expect(
+      AIAgentRunLimitsHelper.getStopNoteText({
+        reason: AIRunStopReason.Tokens,
+        limits: limitsWith({ maxTokens: 12_500_000 }),
+      }),
+    ).toBe(
+      `This run stopped at this project's limit of 12,500,000 tokens per run. Change it in ${PROJECT_AI_RUN_LIMITS_LOCATION}.`,
+    );
+  });
+
+  test("an investigation's time limit names its lane's settings", () => {
+    expect(
+      AIAgentRunLimitsHelper.getStopNoteText({
+        reason: AIRunStopReason.TimeLimit,
+        limits: limitsWith({
+          maxWallClockMs: 1 * MINUTE_MS,
+          timeLimitSource: AIRunTimeLimitSource.AlertInvestigation,
+        }),
+      }),
+    ).toBe(
+      `This investigation stopped at the alert investigation time limit of 1 minute. Change it in ${ALERT_AI_INVESTIGATION_LIMITS_LOCATION}.`,
+    );
+  });
+
+  test("loop detection and a chat answer's window name no place: they are no setting", () => {
+    expect(
+      AIAgentRunLimitsHelper.getStopNoteText({
+        reason: AIRunStopReason.Loop,
+        limits: CAPPED,
+      }),
+    ).toBe(
+      "This run stopped early: it kept repeating calls that showed it nothing new.",
+    );
+    expect(
+      AIAgentRunLimitsHelper.getStopNoteText({
+        reason: AIRunStopReason.TimeLimit,
+        limits: limitsWith({
+          maxWallClockMs: CHAT_APP_ANSWER_TIME_LIMIT_IN_MINUTES * MINUTE_MS,
+          timeLimitSource: AIRunTimeLimitSource.ChatApp,
+        }),
+      }),
+    ).not.toContain("Change it in");
   });
 });
 

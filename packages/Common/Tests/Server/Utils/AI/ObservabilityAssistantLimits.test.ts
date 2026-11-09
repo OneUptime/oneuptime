@@ -393,6 +393,7 @@ describe("ObservabilityAssistant — no limit by default", () => {
     expect(result.contentInMarkdown).toBe("Final answer.");
     expect(result.stopReason).toBeUndefined();
     expect(result.stopNoteInMarkdown).toBeUndefined();
+    expect(result.stopNoteText).toBeUndefined();
 
     const sent: string = lastCall(calls)
       .messages.map((message: LLMMessage): string => {
@@ -505,7 +506,14 @@ describe("ObservabilityAssistant — time limit", () => {
 
     expect(result.stopReason).toBe(AIRunStopReason.TimeLimit);
     expect(result.stopNoteInMarkdown).toBe(
-      `_This run stopped at the time limit of 120 minutes per run, the default. Change it in ${SETTINGS_LINK}._`,
+      `_This run stopped at the default time limit of 120 minutes per run. Change it in ${SETTINGS_LINK}._`,
+    );
+    /*
+     * And as text, for the run's activity, which draws a line as text: the
+     * same words, the place named but not linked.
+     */
+    expect(result.stopNoteText).toBe(
+      `This run stopped at the default time limit of 120 minutes per run. Change it in ${PROJECT_AI_RUN_LIMITS_LOCATION}.`,
     );
     // The note is OneUptime's to place, never part of the model's answer.
     expect(result.contentInMarkdown).toBe("Final answer.");
@@ -655,6 +663,9 @@ describe("ObservabilityAssistant — the project's limits per run", () => {
     expect(result.stopReason).toBe(AIRunStopReason.ToolCalls);
     expect(result.stopNoteInMarkdown).toBe(
       `_This run stopped at this project's limit of 2 tool calls per run. Change it in ${SETTINGS_LINK}._`,
+    );
+    expect(result.stopNoteText).toBe(
+      `This run stopped at this project's limit of 2 tool calls per run. Change it in ${PROJECT_AI_RUN_LIMITS_LOCATION}.`,
     );
     expect(result.contentInMarkdown).toBe("Final answer.");
   });
@@ -931,6 +942,9 @@ describe("ObservabilityAssistant — loop detection", () => {
     expect(result.stopNoteInMarkdown).toBe(
       "_This run stopped early: it kept repeating calls that showed it nothing new._",
     );
+    expect(result.stopNoteText).toBe(
+      "This run stopped early: it kept repeating calls that showed it nothing new.",
+    );
   });
 
   test(`the same call failing the same way ${REPEATED_FAILURE_LIMIT} times stops the run`, async () => {
@@ -1037,6 +1051,9 @@ describe("ObservabilityAssistant — where a run's limits come from", () => {
     // The chat app's window is no setting: nothing to change, and Ask AI goes on longer.
     expect(result.stopNoteInMarkdown).toBe(
       "_This answer stopped after 25 minutes, the longest a chat answer may take. Ask AI in the Dashboard can take longer._",
+    );
+    expect(result.stopNoteText).toBe(
+      "This answer stopped after 25 minutes, the longest a chat answer may take. Ask AI in the Dashboard can take longer.",
     );
   });
 

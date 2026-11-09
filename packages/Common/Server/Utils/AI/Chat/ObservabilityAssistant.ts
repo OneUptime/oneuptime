@@ -217,6 +217,12 @@ export interface ObservabilityAssistantResult {
    */
   stopReason?: AIRunStopReason | undefined;
   stopNoteInMarkdown?: string | undefined;
+  /*
+   * The same note as plain text, without the link, for a line of the run's
+   * activity, which the Dashboard draws as text
+   * (AIAgentRunLimitsHelper.getStopNoteText).
+   */
+  stopNoteText?: string | undefined;
 }
 
 const MAX_HISTORY_TURNS: number = 8;
@@ -698,6 +704,10 @@ export default class ObservabilityAssistant {
             stopReason,
             stopNoteInMarkdown: AIRunLimitsReader.getStopNote({
               projectId: request.projectId,
+              reason: stopReason,
+              limits: runLimits,
+            }),
+            stopNoteText: AIAgentRunLimitsHelper.getStopNoteText({
               reason: stopReason,
               limits: runLimits,
             }),

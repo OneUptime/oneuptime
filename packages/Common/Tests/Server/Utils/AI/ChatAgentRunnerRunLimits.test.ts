@@ -17,6 +17,8 @@ import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
 import { PROJECT_AI_RUN_LIMITS_LOCATION } from "../../../../Types/AI/AIAgentRunLimits";
 import AIChatMessageStatus from "../../../../Types/AI/AIChatMessageStatus";
+import AIRunEventType from "../../../../Types/AI/AIRunEventType";
+import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import { JSONObject } from "../../../../Types/JSON";
@@ -505,7 +507,7 @@ describe("Ask AI and the time limit", () => {
       /^This run has reached its time limit of 120 minutes\. Answer now/,
     );
     expect(finalContent(fake)).toBe(
-      `What I found in time.\n\n_This run stopped at the time limit of 120 minutes per run, the default. Change it in ${SETTINGS_LINK}._`,
+      `What I found in time.\n\n_This run stopped at the default time limit of 120 minutes per run. Change it in ${SETTINGS_LINK}._`,
     );
   });
 
@@ -620,5 +622,120 @@ describe("Ask AI and loop detection", () => {
     expect(fake.toolboxExecute).toHaveBeenCalledTimes(30);
     expect(finalContent(fake)).toBe("It kept changing.");
     expect(everythingSent(fake)).not.toContain("rounds of tool calls");
+  });
+});
+
+/*
+ * The turn's activity (the steps under an Ask AI answer) gets a line that
+ * the turn stopped. The activity draws a line as text, not Markdown: given
+ * the note under the answer, it showed "_This run stopped ... Change it in
+ * [Project Settings → ...](https://...)._", marks and address and all. So
+ * the line is the note in plain words - which limit, and where to change it
+ * - and a warning, drawn amber: the answer is what the run found before it
+ * stopped.
+ */
+describe("Ask AI: the activity line of a turn a limit stopped", () => {
+  function stopLines(): Array<JSONObject> {
+    const create: SpyInstance = jest.spyOn(AIRunEventService, "create");
+
+    return create.mock.calls
+      .map((call: Array<unknown>) => {
+        return (call[0] as { data: AIRunEvent }).data;
+      })
+      .filter((event: AIRunEvent) => {
+        return event.eventType === AIRunEventType.ProgressLog;
+      })
+      .map((event: AIRunEvent) => {
+        return (event.resultSummary || {}) as JSONObject;
+      })
+      .filter((summary: JSONObject) => {
+        return String(summary["message"] || "").includes("stopped");
+      });
+  }
+
+  test("a cap: the line says which limit and where it is changed, as text and a warning", async () => {
+    installFake(
+      (index: number) => {
+        return index < 2
+          ? toolUse([queryCall(index)])
+          : answer("Three calls in.");
+      },
+      { aiRunMaxModelCalls: 3 },
+    );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    expect(stopLines()).toEqual([
+      {
+        message: `This run stopped at this project's limit of 3 model calls per run. Change it in ${PROJECT_AI_RUN_LIMITS_LOCATION}.`,
+        severity: "Warning",
+      },
+    ]);
+  });
+
+  test("the time limit: the same words as the note under the answer, without its marks or link", async () => {
+    let now: number = 1_700_000_000_000;
+    jest.spyOn(Date, "now").mockImplementation(() => {
+      return now;
+    });
+    const fake: Fake = installFake((index: number) => {
+      if (index === 0) {
+        now += 121 * MINUTE_MS;
+        return toolUse([queryCall(1)]);
+      }
+
+      return answer("What I found in time.");
+    });
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    const lines: Array<JSONObject> = stopLines();
+
+    expect(lines).toHaveLength(1);
+
+    const line: string = String(lines[0]!["message"]);
+
+    expect(line).toBe(
+      `This run stopped at the default time limit of 120 minutes per run. Change it in ${PROJECT_AI_RUN_LIMITS_LOCATION}.`,
+    );
+    // No Markdown: no italics, no link, no address.
+    expect(line).not.toMatch(/^_|_$/);
+    expect(line).not.toContain("](");
+    expect(line).not.toContain("https://");
+    // The answer keeps its note, linked.
+    expect(finalContent(fake)).toContain(
+      `_This run stopped at the default time limit of 120 minutes per run. Change it in ${SETTINGS_LINK}._`,
+    );
+  });
+
+  test("loop detection, which is no setting: the line says why, and names no place", async () => {
+    installFake((index: number) => {
+      return index < 3
+        ? toolUse([queryCall(index, { sevrity: "high" })])
+        : answer("I could not query that.");
+    }).toolboxExecute.mockResolvedValue({
+      success: false,
+      textForLlm: "Error: unknown field 'sevrity'.",
+    } as never);
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    expect(stopLines()).toEqual([
+      {
+        message:
+          "This run stopped early: it kept repeating calls that showed it nothing new.",
+        severity: "Warning",
+      },
+    ]);
+  });
+
+  test("a turn no limit stopped has no such line", async () => {
+    installFake((index: number) => {
+      return index < 3 ? toolUse([queryCall(index)]) : answer("Done.");
+    });
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    expect(stopLines()).toEqual([]);
   });
 });

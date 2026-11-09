@@ -12,6 +12,7 @@ import {
   PROJECT_AI_RUN_LIMITS_CARD_KEY,
   ProjectAiRunLimitsCopy,
 } from "../../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import { getRunLimitSettingRoute } from "../../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationStopNote";
 import PageMap from "../../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import {
@@ -21,6 +22,7 @@ import {
 } from "../../../../Types/AI/AIAgentRunLimits";
 import Route from "../../../../Types/API/Route";
 import { escapeRegExp } from "../../../../Utils/RegExpEscape";
+import { RUN_LIMIT_SETTING_LOCATIONS } from "../../../../Utils/AI/InvestigationReport";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -91,5 +93,45 @@ describe("the place in words names the card as the page titles it", () => {
         "i",
       ),
     );
+  });
+});
+
+/*
+ * The investigation card draws a stop note's place as a link of its own
+ * (InvestigationStopNote): the report is drawn in safe mode, and the note's
+ * address is never read there. That link lands where the server's does.
+ */
+describe("the card's link from a stop note lands where the server's does", () => {
+  test.each([
+    [
+      PROJECT_AI_RUN_LIMITS_LOCATION,
+      PROJECT_AI_RUN_LIMITS_SETTINGS_PATH,
+      PROJECT_AI_RUN_LIMITS_CARD_ANCHOR,
+    ],
+    [
+      INCIDENT_AI_INVESTIGATION_LIMITS_LOCATION,
+      INCIDENT_AI_SETTINGS_PATH,
+      AI_LANE_INVESTIGATION_LIMITS_CARD_ANCHOR,
+    ],
+    [
+      ALERT_AI_INVESTIGATION_LIMITS_LOCATION,
+      ALERT_AI_SETTINGS_PATH,
+      AI_LANE_INVESTIGATION_LIMITS_CARD_ANCHOR,
+    ],
+  ])("%s", (location: string, path: string, anchor: string) => {
+    const route: Route | null = getRunLimitSettingRoute(location);
+
+    expect(route?.toString()).toMatch(
+      new RegExp(`/${escapeRegExp(path)}#${escapeRegExp(anchor)}$`),
+    );
+  });
+
+  test("every place a note can name has a link, and nothing else does", () => {
+    for (const location of RUN_LIMIT_SETTING_LOCATIONS) {
+      expect(getRunLimitSettingRoute(location)).not.toBeNull();
+    }
+
+    expect(getRunLimitSettingRoute(null)).toBeNull();
+    expect(getRunLimitSettingRoute("Project Settings → AI")).toBeNull();
   });
 });

@@ -45,8 +45,8 @@ const ENGLISH: Record<string, unknown> = readLocale("en");
 // The incident and alert AI pages, written on the pages themselves.
 const LANE_WORDS: ReadonlyArray<string> = [
   "Investigations start right away and run until they are done, within the project's time limit per run, unless you set a limit here.",
-  "Stop an incident investigation after this many minutes and report what it found. Leave empty for the project's time limit per run, 120 minutes unless it set its own.",
-  "Stop an alert investigation after this many minutes and report what it found. Leave empty for the project's time limit per run, 120 minutes unless it set its own.",
+  "Stop an incident investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
+  "Stop an alert investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
   "The project's time limit",
 ];
 
@@ -80,6 +80,12 @@ const RETIRED: ReadonlyArray<string> = [
   "Stop an incident investigation after this many minutes and report what it found. Leave empty for no limit.",
   "Stop an alert investigation after this many minutes and report what it found. Leave empty for no limit.",
   "No time limit",
+  /*
+   * The lane pages' first wording of their empty time limit, whose "it"
+   * could be read as the investigation: "the project set its own" now.
+   */
+  "Stop an incident investigation after this many minutes and report what it found. Leave empty for the project's time limit per run, 120 minutes unless it set its own.",
+  "Stop an alert investigation after this many minutes and report what it found. Leave empty for the project's time limit per run, 120 minutes unless it set its own.",
 ];
 
 const PLACEHOLDER: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;

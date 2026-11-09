@@ -3,16 +3,25 @@
  *
  * The investigation engine posts one markdown blob: a branded heading, the
  * model's own "Summary / Most likely root cause / Evidence / Suggested next
- * steps" note, a server-authored "Evidence checked" list and a footer
+ * steps" note, OneUptime's line that a limit stopped the run (only when one
+ * did), a server-authored "Evidence checked" list and a footer
  * (AIInvestigationEngine.buildBrandedMarkdown). The dashboard wants to lay
  * those parts out separately, and the server wants the evidence labels and
  * the incident/alert numbers the note mentions.
  *
- * Everything here is text-only and dependency-free so it loads the same in
+ * Everything here is text-only and free of React and server code (it reads
+ * only the stop note's openings, from Types) so it loads the same in
  * the dashboard bundle, the API server and Common jest. None of it turns
  * model-authored text into links or HTML: callers get plain strings and
  * numbers, and resolve anything clickable from their own database rows.
  */
+
+import {
+  AI_RUN_STOP_NOTE_OPENINGS,
+  ALERT_AI_INVESTIGATION_LIMITS_LOCATION,
+  INCIDENT_AI_INVESTIGATION_LIMITS_LOCATION,
+  PROJECT_AI_RUN_LIMITS_LOCATION,
+} from "../../Types/AI/AIAgentRunLimits";
 
 export const AI_ROOT_CAUSE_HEADING_TEXT: string =
   "AI — Automated Root Cause Analysis";
@@ -189,8 +198,20 @@ export interface ParsedInvestigationReport {
   evidenceChecked: Array<InvestigationEvidenceCheckedEntry>;
   footer?: InvestigationReportFooter | undefined;
   /*
-   * The whole report with the brand heading, a follow-up check's lead, the
-   * Evidence checked block and the footer removed.
+   * OneUptime's note that a limit stopped the run, as written - "_This
+   * investigation stopped at the incident investigation time limit of 20
+   * minutes. Change it in [Incidents → AI → ...](...)._"
+   * (AIAgentRunLimitsHelper.getStopNote). The server puts it under the
+   * analysis, right before the Evidence checked list (or the footer), as a
+   * paragraph of its own; read there, it is never part of the last section,
+   * the preamble or bodyMarkdown, so the card draws it apart instead of
+   * under Suggested next steps or inside the last cause ruled out.
+   * Undefined on a report no limit stopped.
+   */
+  stopNote?: string | undefined;
+  /*
+   * The whole report with the brand heading, a follow-up check's lead, a
+   * stop note, the Evidence checked block and the footer removed.
    */
   bodyMarkdown: string;
 }
@@ -1457,6 +1478,139 @@ function takeFollowUpLead(data: {
   return lead;
 }
 
+/*
+ * Whether a line is a stop note as OneUptime writes one: in italics, from
+ * its first character to its last, opening with what stopped (one of
+ * AI_RUN_STOP_NOTE_OPENINGS). String checks only: linear in the line.
+ */
+export function isRunStopNoteLine(line: string): boolean {
+  const trimmed: string = line.trim();
+
+  if (
+    trimmed.length < 3 ||
+    !trimmed.startsWith("_") ||
+    !trimmed.endsWith("_") ||
+    trimmed.startsWith("__")
+  ) {
+    return false;
+  }
+
+  const inner: string = trimmed.slice(1);
+
+  return AI_RUN_STOP_NOTE_OPENINGS.some((opening: string): boolean => {
+    return inner.startsWith(opening);
+  });
+}
+
+/*
+ * The places a stop note can name for changing the limit that stopped the
+ * run (AIAgentRunLimitsHelper.getSettingLocation).
+ */
+export const RUN_LIMIT_SETTING_LOCATIONS: ReadonlyArray<string> = [
+  PROJECT_AI_RUN_LIMITS_LOCATION,
+  INCIDENT_AI_INVESTIGATION_LIMITS_LOCATION,
+  ALERT_AI_INVESTIGATION_LIMITS_LOCATION,
+];
+
+/*
+ * A stop note's words around the place it names, for a card to draw as
+ * text with that place as a link of the card's own: "This investigation
+ * stopped at the incident investigation time limit of 20 minutes. Change
+ * it in " + "Incidents → AI → Settings → More settings → Investigation
+ * limits" + ".". The report is drawn in safe mode, where a link is only
+ * dotted text, and a note that reads like the server's could have been
+ * written by the model - so the note's own address is never read: its
+ * link markup and its italics are dropped, and the card links the place
+ * it knows. A note that names no place (loop detection) is all `before`.
+ */
+export interface RunStopNoteParts {
+  before: string;
+  // One of RUN_LIMIT_SETTING_LOCATIONS, or null.
+  location: string | null;
+  after: string;
+}
+
+export function readRunStopNote(note: string): RunStopNoteParts {
+  let text: string = note.trim();
+
+  if (text.length >= 2 && text.startsWith("_") && text.endsWith("_")) {
+    text = text.slice(1, -1);
+  }
+
+  for (const location of RUN_LIMIT_SETTING_LOCATIONS) {
+    const linkStart: string = `[${location}](`;
+    const linkedAt: number = text.indexOf(linkStart);
+
+    if (linkedAt >= 0) {
+      const linkEnd: number = text.indexOf(")", linkedAt + linkStart.length);
+
+      if (linkEnd >= 0) {
+        return {
+          before: text.slice(0, linkedAt),
+          location,
+          after: text.slice(linkEnd + 1),
+        };
+      }
+    }
+
+    const plainAt: number = text.indexOf(location);
+
+    if (plainAt >= 0) {
+      return {
+        before: text.slice(0, plainAt),
+        location,
+        after: text.slice(plainAt + location.length),
+      };
+    }
+  }
+
+  return { before: text, location: null, after: "" };
+}
+
+/*
+ * The stop note that ends lines [0, end): the last line with text there,
+ * when it is a stop note and a paragraph of its own - which is marked as no
+ * longer kept, and returned trimmed. Undefined (and nothing marked)
+ * otherwise: a line the model wrote inside its own paragraph, list or code
+ * stays its text.
+ */
+function takeStopNote(data: {
+  lines: Array<string>;
+  fenced: Array<boolean>;
+  kept: Array<boolean>;
+  end: number;
+}): string | undefined {
+  let index: number = data.end - 1;
+
+  while (index >= 0 && (data.lines[index] || "").trim() === "") {
+    index--;
+  }
+
+  if (
+    index < 0 ||
+    !data.kept[index] ||
+    data.fenced[index] ||
+    !isRunStopNoteLine(data.lines[index] || "")
+  ) {
+    return undefined;
+  }
+
+  // Its own paragraph: nothing kept with text right above it.
+  const above: number = index - 1;
+
+  if (
+    above >= 0 &&
+    data.kept[above] &&
+    (data.lines[above] || "").trim() !== ""
+  ) {
+    return undefined;
+  }
+
+  data.kept[index] = false;
+
+  return (data.lines[index] || "").trim();
+}
+
 function createEmptyReport(): ParsedInvestigationReport {
   return {
     isStructured: false,
@@ -1828,6 +1982,8 @@ export function parseInvestigationReport(
    */
   let evidenceChecked: Array<InvestigationEvidenceCheckedEntry> = [];
   let evidenceCheckedIndex: number = -1;
+  // Where the server's Evidence checked block starts, when there is one.
+  let serverEvidenceCheckedIndex: number = -1;
 
   for (const candidate of candidates) {
     if (candidate.match.kind === "EvidenceChecked" && candidate.match.isBare) {
@@ -1857,6 +2013,7 @@ export function parseInvestigationReport(
     );
 
     if (isServerBlock) {
+      serverEvidenceCheckedIndex = evidenceCheckedIndex;
       evidenceChecked = entries.map(
         (
           parsed: ParsedEvidenceCheckedEntry,
@@ -1874,6 +2031,19 @@ export function parseInvestigationReport(
       }
     }
   }
+
+  /*
+   * 4b. A run a limit stopped: OneUptime's note, the last paragraph before
+   * the server's Evidence checked block, or before the footer when the run
+   * cited nothing.
+   */
+  const stopNote: string | undefined = takeStopNote({
+    lines,
+    fenced,
+    kept,
+    end:
+      serverEvidenceCheckedIndex >= 0 ? serverEvidenceCheckedIndex : contentEnd,
+  });
 
   // 5. Resolve candidates into section starts.
   const starts: Array<SectionStart> = resolveSectionStarts(
@@ -1944,6 +2114,7 @@ export function parseInvestigationReport(
     nextSteps: firstOfKind(InvestigationReportSectionKind.NextSteps),
     evidenceChecked,
     footer: footerMatch?.footer,
+    stopNote,
     bodyMarkdown: joinKeptLines(lines, kept, 0, lines.length).trim(),
   };
 }

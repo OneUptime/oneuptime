@@ -534,7 +534,7 @@ describe("the run's time limit", () => {
     );
     expect(result.success).toBe(true);
     expect(result.summary).toBe(
-      `Out of time; changed nothing.\n\n_This run stopped at the time limit of 120 minutes per run, the default. Change it in ${LIMITS_LOCATION}._`,
+      `Out of time; changed nothing.\n\n_This run stopped at the default time limit of 120 minutes per run. Change it in ${LIMITS_LOCATION}._`,
     );
   });
 

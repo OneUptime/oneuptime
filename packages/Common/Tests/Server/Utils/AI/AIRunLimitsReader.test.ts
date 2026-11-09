@@ -408,7 +408,7 @@ describe("AIRunLimitsReader.getStopNote", () => {
         limits: AIAgentRunLimitsHelper.getDefault(),
       }),
     ).toBe(
-      `_This run stopped at the time limit of 120 minutes per run, the default. Change it in ${PROJECT_AI_RUN_LIMITS_LOCATION}._`,
+      `_This run stopped at the default time limit of 120 minutes per run. Change it in ${PROJECT_AI_RUN_LIMITS_LOCATION}._`,
     );
   });
 });

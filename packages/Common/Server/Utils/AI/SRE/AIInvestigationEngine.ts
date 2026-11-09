@@ -14,6 +14,7 @@ import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecomme
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
 import { AIAgentRunLimits } from "../../../../Types/AI/AIAgentRunLimits";
+import LogSeverity from "../../../../Types/Log/LogSeverity";
 import AIRunLimitsReader from "../AIRunLimitsReader";
 import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
@@ -906,15 +907,19 @@ export default class AIInvestigationEngine {
       /*
        * A run a limit stopped says so in its activity - which limit, and
        * where to change it - whatever it went on to write (the report says
-       * it too, under the analysis: buildBrandedMarkdown).
+       * it too, under the analysis: buildBrandedMarkdown). The activity
+       * draws a line as text, so it gets the note as text, as a warning.
        */
-      if (result.stopNoteInMarkdown) {
+      if (result.stopNoteText) {
         await this.emitEvent({
           projectId,
           aiRunId,
           sequence: sequence++,
           eventType: AIRunEventType.ProgressLog,
-          resultSummary: { message: result.stopNoteInMarkdown },
+          resultSummary: {
+            message: result.stopNoteText,
+            severity: LogSeverity.Warning,
+          },
         });
       }
 

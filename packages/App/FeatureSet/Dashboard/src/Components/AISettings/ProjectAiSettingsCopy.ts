@@ -1617,6 +1617,45 @@ export const getProjectAiRunLimitsFoldedItem: (
   });
 };
 
+// How the card writes a time limit: "45 minutes", in the reader's language.
+export const PROJECT_AI_RUN_TIME_LIMIT_VALUE: PluralTemplate = {
+  one: "{{count}} minute",
+  other: "{{count}} minutes",
+};
+
+/*
+ * A limit per run as the card shows it: a count written the reader's way
+ * ("2,000,000"; "۲٬۰۰۰٬۰۰۰" on a Persian page), and the time limit with its
+ * unit ("45 minutes") - the number alone sat beside the default's "120
+ * minutes (the default)". "" for one not set (or not a limit the server
+ * would keep), so the card shows the field's placeholder: "No limit", or
+ * the default time limit.
+ */
+export const getProjectAiRunLimitValueText: (data: {
+  column: ProjectAiRunLimitColumn;
+  value: unknown;
+  translator: Translator;
+}) => string = (data: {
+  column: ProjectAiRunLimitColumn;
+  value: unknown;
+  translator: Translator;
+}): string => {
+  const limit: number | null = ProjectAiRunLimits.getLimit(data.value);
+
+  if (limit === null) {
+    return "";
+  }
+
+  if (data.column === PROJECT_AI_RUN_TIME_LIMIT_COLUMN) {
+    return data.translator.translatePlural(
+      PROJECT_AI_RUN_TIME_LIMIT_VALUE,
+      limit,
+    );
+  }
+
+  return data.translator.formatNumber(limit);
+};
+
 /*
  * Why a value typed into a limit per run cannot be saved, translated, or
  * null when it can: empty (no limit, or for the time the default), or a

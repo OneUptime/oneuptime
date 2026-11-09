@@ -67,6 +67,7 @@ import AIAgentRunLimitsHelper, {
   AIRunStopDecision,
   AIRunStopReason,
 } from "../../../../Types/AI/AIAgentRunLimits";
+import LogSeverity from "../../../../Types/Log/LogSeverity";
 import AgentLoopDetector, {
   AgentLoopToolCall,
   AgentLoopVerdict,
@@ -1389,9 +1390,20 @@ export default class ChatAgentRunner {
         ? `${finalContent}\n\n${stopNote}`
         : stopNote;
 
+      /*
+       * The activity draws a line as text, not Markdown, so it gets the
+       * note without its marks and link - and as a warning, since the
+       * answer above it is what the run found before it stopped.
+       */
       await this.emitEvent(request, state, {
         eventType: AIRunEventType.ProgressLog,
-        resultSummary: { message: stopNote },
+        resultSummary: {
+          message: AIAgentRunLimitsHelper.getStopNoteText({
+            reason: stopReason,
+            limits: runLimits,
+          }),
+          severity: LogSeverity.Warning,
+        },
       });
     }
 

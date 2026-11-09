@@ -15,6 +15,7 @@ import {
   getProjectAiRunLimitFieldError,
   getProjectAiRunLimitsFoldedItem,
   getProjectAiRunLimitsFromItem,
+  getProjectAiRunLimitValueText,
   PROJECT_AI_ADVANCED_SECTION_TEST_ID,
   PROJECT_AI_DAILY_LIMITS_CARD_KEY,
   PROJECT_AI_RUN_LIMIT_FIELDS,
@@ -52,6 +53,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import Field from "Common/UI/Components/ModelDetail/Field";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -164,13 +166,30 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
   ) as Fields<Project>;
 
+  /*
+   * Each limit written the reader's way - "2,000,000", "45 minutes" - or,
+   * unset, its placeholder: "No limit", or the default time limit.
+   */
   const runLimitDetailFields: Array<Field<Project>> =
     PROJECT_AI_RUN_LIMIT_FIELDS.map((limit: ProjectAiRunLimitField) => {
       return {
         field: { [limit.column]: true },
         title: limit.title,
         placeholder: limit.placeholder,
-        fieldType: FieldType.Number,
+        fieldType: FieldType.Element,
+        getElement: (item: Project): ReactElement => {
+          const text: string = getProjectAiRunLimitValueText({
+            column: limit.column,
+            value: (item as unknown as Record<string, unknown>)[limit.column],
+            translator,
+          });
+
+          return text ? (
+            <span className="tabular-nums">{text}</span>
+          ) : (
+            <EmptyValue placeholder={limit.placeholder} />
+          );
+        },
       };
     }) as Array<Field<Project>>;
 
@@ -341,6 +360,11 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelDetailProps={{
             modelType: Project,
             id: "model-detail-project-ai-run-limits",
+            /*
+             * Two limits a row: four short values down one column left
+             * the card mostly empty, and the calls sit beside each other.
+             */
+            showDetailsInNumberOfColumns: 2,
             onItemLoaded: (item: Project): void => {
               setRunLimits(
                 getProjectAiRunLimitsFromItem(

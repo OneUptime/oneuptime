@@ -24,6 +24,7 @@ import {
   ENABLE_AI_SWITCH_TEST_ID,
   getProjectAiRunLimitFieldError,
   getProjectAiRunLimitsFoldedItem,
+  getProjectAiRunLimitValueText,
   PROJECT_AI_ADVANCED_SECTION_TEST_ID,
   PROJECT_AI_RUN_LIMIT_FIELDS,
   PROJECT_AI_RUN_LIMITS_CARD_KEY,
@@ -54,7 +55,10 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
-import { Translator } from "../../../UI/Utils/TranslateTemplate";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 import User from "../../../UI/Utils/User";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import {
@@ -451,11 +455,16 @@ describe("the Limits per run card", () => {
     expect(card).not.toHaveTextContent(/budget/i);
   });
 
+  /*
+   * Written the reader's way: a count with its separators, the time limit
+   * with its unit - "45" sat beside the default's "120 minutes (the
+   * default)".
+   */
   test("shows the limits a project set", async () => {
     stored = {
       ...stored,
       aiRunMaxModelCalls: 60,
-      aiRunMaxToolCalls: 250,
+      aiRunMaxToolCalls: 2500,
       aiRunTimeLimitInMinutes: 45,
     };
 
@@ -468,9 +477,53 @@ describe("the Limits per run card", () => {
       },
       { timeout: WAIT_TIMEOUT },
     );
-    expect(detailValue(card, TOOL_CALLS_TITLE)).toBe("250");
+    expect(detailValue(card, TOOL_CALLS_TITLE)).toBe("2,500");
     expect(detailValue(card, TOKENS_TITLE)).toBe("No limit");
-    expect(detailValue(card, TIME_TITLE)).toBe("45");
+    expect(detailValue(card, TIME_TITLE)).toBe("45 minutes");
+  });
+
+  test("a large token cap and a one-minute time limit read as words", async () => {
+    stored = {
+      ...stored,
+      aiRunMaxTokens: 2_000_000,
+      aiRunTimeLimitInMinutes: 1,
+    };
+
+    openAiFeaturesPage();
+    const card: HTMLElement = await openRunLimitsCard();
+
+    await waitFor(
+      () => {
+        expect(detailValue(card, TOKENS_TITLE)).toBe("2,000,000");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(detailValue(card, TIME_TITLE)).toBe("1 minute");
+    expect(detailValue(card, MODEL_CALLS_TITLE)).toBe("No limit");
+  });
+
+  /*
+   * Two limits a row (sm and up): the calls side by side, then the tokens
+   * and the time limit. One column left four short values down a wide,
+   * mostly empty card.
+   */
+  test("lays the four limits out two to a row", async () => {
+    openAiFeaturesPage();
+    const card: HTMLElement = await openRunLimitsCard();
+
+    await waitFor(
+      () => {
+        expect(detailValue(card, MODEL_CALLS_TITLE)).toBe("No limit");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    const grid: HTMLElement | null = within(card)
+      .getAllByTestId("detail-field")[0]!
+      .parentElement as HTMLElement | null;
+
+    expect(grid?.className).toMatch(/(^|\s)sm:grid-cols-2(\s|$)/);
+    expect(within(card).getAllByTestId("detail-field")).toHaveLength(4);
   });
 
   /*
@@ -891,6 +944,105 @@ describe("the card's copy", () => {
             translator,
           }),
         ).toBeNull();
+      }
+    }
+  });
+
+  /*
+   * A limit as the card shows it, through the Dashboard's own translator:
+   * the reader's digits and separators, and the time limit's unit in the
+   * reader's language.
+   */
+  test("a limit is written the reader's way, its time with its unit", () => {
+    const english: Translator = createTranslator((text: string) => {
+      return text;
+    }, "en");
+
+    expect(
+      getProjectAiRunLimitValueText({
+        column: "aiRunMaxTokens",
+        value: 2_000_000,
+        translator: english,
+      }),
+    ).toBe("2,000,000");
+    expect(
+      getProjectAiRunLimitValueText({
+        column: "aiRunMaxModelCalls",
+        value: "40",
+        translator: english,
+      }),
+    ).toBe("40");
+    expect(
+      getProjectAiRunLimitValueText({
+        column: "aiRunTimeLimitInMinutes",
+        value: 45,
+        translator: english,
+      }),
+    ).toBe("45 minutes");
+    expect(
+      getProjectAiRunLimitValueText({
+        column: "aiRunTimeLimitInMinutes",
+        value: 1,
+        translator: english,
+      }),
+    ).toBe("1 minute");
+  });
+
+  test("in Persian and German, the digits and the unit are theirs", () => {
+    const persianWords: Record<string, string> = {
+      "{{count}} minutes": "{{count}} دقیقه",
+    };
+    const persian: Translator = createTranslator((text: string) => {
+      return persianWords[text] ?? text;
+    }, "fa");
+    const germanWords: Record<string, string> = {
+      "{{count}} minutes": "{{count}} Minuten",
+      "{{count}} minutes_one": "{{count}} Minute",
+    };
+    const german: Translator = createTranslator((text: string) => {
+      return germanWords[text] ?? text;
+    }, "de");
+
+    expect(
+      getProjectAiRunLimitValueText({
+        column: "aiRunMaxTokens",
+        value: 2_000_000,
+        translator: persian,
+      }),
+    ).toBe((2_000_000).toLocaleString("fa"));
+    expect(
+      getProjectAiRunLimitValueText({
+        column: "aiRunTimeLimitInMinutes",
+        value: 45,
+        translator: persian,
+      }),
+    ).toBe(`${(45).toLocaleString("fa")} دقیقه`);
+    expect(
+      getProjectAiRunLimitValueText({
+        column: "aiRunMaxTokens",
+        value: 2_000_000,
+        translator: german,
+      }),
+    ).toBe("2.000.000");
+    expect(
+      getProjectAiRunLimitValueText({
+        column: "aiRunTimeLimitInMinutes",
+        value: 90,
+        translator: german,
+      }),
+    ).toBe("90 Minuten");
+  });
+
+  test("a limit not set, or not one the server would keep, is empty: the card shows the placeholder", () => {
+    const english: Translator = createTranslator((text: string) => {
+      return text;
+    }, "en");
+
+    for (const column of PROJECT_AI_RUN_LIMIT_COLUMNS) {
+      for (const value of [null, undefined, "", "  ", 0, -5, "abc"]) {
+        expect(
+          getProjectAiRunLimitValueText({ column, value, translator: english }),
+        ).toBe("");
       }
     }
   });

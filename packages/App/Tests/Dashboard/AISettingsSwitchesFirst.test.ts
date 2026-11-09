@@ -1310,8 +1310,8 @@ describe("translations", () => {
        * run (issue #6440), no longer "No time limit".
        */
       "The project's time limit",
-      "Stop an incident investigation after this many minutes and report what it found. Leave empty for the project's time limit per run, 120 minutes unless it set its own.",
-      "Stop an alert investigation after this many minutes and report what it found. Leave empty for the project's time limit per run, 120 minutes unless it set its own.",
+      "Stop an incident investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
+      "Stop an alert investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
     ]),
   );
 

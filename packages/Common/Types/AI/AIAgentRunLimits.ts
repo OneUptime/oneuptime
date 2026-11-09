@@ -77,6 +77,19 @@ export const INCIDENT_AI_INVESTIGATION_LIMITS_LOCATION: string =
 export const ALERT_AI_INVESTIGATION_LIMITS_LOCATION: string =
   "Alerts → AI → Settings → More settings → Investigation limits";
 
+/*
+ * How every stop note OneUptime writes opens (getStopNote): what stopped -
+ * a run, an investigation, an answer. The investigation report's reader
+ * knows the note by them (Common/Utils/AI/InvestigationReport.ts), so it
+ * can draw the note apart from the analysis above it, and a test holds
+ * every note to one of them.
+ */
+export const AI_RUN_STOP_NOTE_OPENINGS: ReadonlyArray<string> = [
+  "This run stopped ",
+  "This investigation stopped ",
+  "This answer stopped ",
+];
+
 // What set a run's time limit, so the sentence that it stopped names it.
 export enum AIRunTimeLimitSource {
   // DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES: nothing else set one.
@@ -572,11 +585,55 @@ export default class AIAgentRunLimitsHelper {
     // The setting's page in the Dashboard, when it has one.
     settingsUrl?: string | null | undefined;
   }): string {
-    const limits: AIAgentRunLimits = data.limits;
+    const sentence: string = this.getStopSentence(data.reason, data.limits);
+    const location: string | null = this.getSettingLocation(
+      data.reason,
+      data.limits,
+    );
+
+    if (!location) {
+      return `_${sentence}_`;
+    }
+
+    const where: string = data.settingsUrl
+      ? `[${location}](${data.settingsUrl})`
+      : location;
+
+    return `_${sentence} Change it in ${where}._`;
+  }
+
+  /*
+   * The same note as plain text, for a line of the run's activity, which
+   * the Dashboard draws as text, not Markdown: written as Markdown there, a
+   * note read "_This run stopped ... Change it in [Project Settings → ...]
+   * (https://...)._", marks and address and all. It names where the
+   * setting is, without a link.
+   */
+  public static getStopNoteText(data: {
+    reason: AIRunStopReason;
+    limits: AIAgentRunLimits;
+  }): string {
+    const sentence: string = this.getStopSentence(data.reason, data.limits);
+    const location: string | null = this.getSettingLocation(
+      data.reason,
+      data.limits,
+    );
+
+    return location ? `${sentence} Change it in ${location}.` : sentence;
+  }
+
+  /*
+   * Which limit stopped a run, in one sentence that opens with one of
+   * AI_RUN_STOP_NOTE_OPENINGS: the start of its stop note.
+   */
+  public static getStopSentence(
+    reason: AIRunStopReason,
+    limits: AIAgentRunLimits,
+  ): string {
     const minutes: number = this.getTimeLimitInMinutes(limits);
     let sentence: string;
 
-    switch (data.reason) {
+    switch (reason) {
       case AIRunStopReason.ModelCalls:
         sentence = `This run stopped at this project's limit of ${plural(limits.maxLlmCalls || 0, "model call", "model calls")} per run.`;
         break;
@@ -593,7 +650,7 @@ export default class AIAgentRunLimitsHelper {
       case AIRunStopReason.TimeLimit:
         switch (limits.timeLimitSource) {
           case AIRunTimeLimitSource.Default:
-            sentence = `This run stopped at the time limit of ${plural(minutes, "minute", "minutes")} per run, the default.`;
+            sentence = `This run stopped at the default time limit of ${plural(minutes, "minute", "minutes")} per run.`;
             break;
           case AIRunTimeLimitSource.Project:
             sentence = `This run stopped at this project's time limit of ${plural(minutes, "minute", "minutes")} per run.`;
@@ -611,20 +668,7 @@ export default class AIAgentRunLimitsHelper {
         break;
     }
 
-    const location: string | null = this.getSettingLocation(
-      data.reason,
-      limits,
-    );
-
-    if (!location) {
-      return `_${sentence}_`;
-    }
-
-    const where: string = data.settingsUrl
-      ? `[${location}](${data.settingsUrl})`
-      : location;
-
-    return `_${sentence} Change it in ${where}._`;
+    return sentence;
   }
 
   // A lane's time limit, in words, for its settings page and run details.

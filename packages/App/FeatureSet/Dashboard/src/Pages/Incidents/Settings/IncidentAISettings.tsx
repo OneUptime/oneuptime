@@ -245,7 +245,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Incident Investigation Time Limit (Minutes)",
               description:
-                "Stop an incident investigation after this many minutes and report what it found. Leave empty for the project's time limit per run, 120 minutes unless it set its own.",
+                "Stop an incident investigation after this many minutes and report what it found. Leave empty to use the project's time limit per run: 120 minutes, unless the project set its own.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "The project's time limit",
