@@ -47266,13 +47266,11 @@
   "A call to the AI model provider timed out.": "AI मॉडल प्रदाता को किया गया कॉल टाइम आउट हो गया।",
   "Attempt {{attempt}} of {{max}}": "{{max}} में से प्रयास {{attempt}}",
   "Automatic Retries": "स्वचालित पुनः प्रयास",
-  "Failed after {{count}} attempts.": "{{count}} प्रयासों के बाद विफल।",
   "Filter tasks": "कार्य फ़िल्टर करें",
   "Fix merged": "सुधार मर्ज हुआ",
   "Fix task": "सुधार कार्य",
   "No change made": "कोई बदलाव नहीं किया गया",
   "No tasks match.": "कोई कार्य मेल नहीं खाता।",
-  "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.": "OneUptime AI कोड में इस इनसाइट के सुधार पर काम कर रहा है। इसके पुल रिक्वेस्ट की समीक्षा हमेशा कोई व्यक्ति करता है — कुछ भी अपने-आप मर्ज नहीं होता।",
   "Pull request closed": "पुल रिक्वेस्ट बंद",
   "Pull request open": "पुल रिक्वेस्ट खुला",
   "Retry Reason": "पुनः प्रयास का कारण",
@@ -47293,5 +47291,8 @@
   "Trying {{count}} tasks again.": "{{count}} कार्य फिर से आज़माए जा रहे हैं।",
   "Trying {{count}} tasks again._one": "{{count}} कार्य फिर से आज़माया जा रहा है।",
   "{{count}} tasks could not be tried again: {{reason}}": "{{count}} कार्य फिर से नहीं आज़माए जा सके: {{reason}}",
-  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} कार्य फिर से नहीं आज़माया जा सका: {{reason}}"
+  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} कार्य फिर से नहीं आज़माया जा सका: {{reason}}",
+  "AI could not finish after {{count}} attempts.": "AI {{count}} प्रयासों के बाद भी पूरा नहीं कर सका।",
+  "AI opens a pull request for a person to review. Nothing merges by itself.": "AI किसी व्यक्ति की समीक्षा के लिए पुल रिक्वेस्ट खोलता है। कुछ भी अपने-आप मर्ज नहीं होता।",
+  "Failed after {{count}} attempts": "{{count}} प्रयासों के बाद विफल"
 }

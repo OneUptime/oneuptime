@@ -47266,13 +47266,11 @@
   "A call to the AI model provider timed out.": "A call to the AI model provider timed out.",
   "Attempt {{attempt}} of {{max}}": "Attempt {{attempt}} of {{max}}",
   "Automatic Retries": "Automatic Retries",
-  "Failed after {{count}} attempts.": "Failed after {{count}} attempts.",
   "Filter tasks": "Filter tasks",
   "Fix merged": "Fix merged",
   "Fix task": "Fix task",
   "No change made": "No change made",
   "No tasks match.": "No tasks match.",
-  "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.": "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.",
   "Pull request closed": "Pull request closed",
   "Pull request open": "Pull request open",
   "Retry Reason": "Retry Reason",
@@ -47293,5 +47291,8 @@
   "Trying {{count}} tasks again.": "Trying {{count}} tasks again.",
   "Trying {{count}} tasks again._one": "Trying {{count}} task again.",
   "{{count}} tasks could not be tried again: {{reason}}": "{{count}} tasks could not be tried again: {{reason}}",
-  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} task could not be tried again: {{reason}}"
+  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} task could not be tried again: {{reason}}",
+  "AI could not finish after {{count}} attempts.": "AI could not finish after {{count}} attempts.",
+  "AI opens a pull request for a person to review. Nothing merges by itself.": "AI opens a pull request for a person to review. Nothing merges by itself.",
+  "Failed after {{count}} attempts": "Failed after {{count}} attempts"
 }

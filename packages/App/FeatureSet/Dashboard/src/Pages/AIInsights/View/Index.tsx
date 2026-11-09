@@ -3,6 +3,7 @@ import InsightFixTask from "../../../Components/AIInsights/InsightFixTask";
 import useInsightFixTasks, {
   InsightFixTasks,
 } from "../../../Components/AIInsights/UseInsightFixTasks";
+import { INSIGHT_FIX_TASK_DESCRIPTION } from "../../../Components/Code/CodeTaskStatusCopy";
 import { CodeTaskSummaryJSON } from "Common/Types/AI/CodeTask";
 import {
   getHumanVerdictElement,
@@ -1209,15 +1210,15 @@ const AIInsightViewPage: FunctionComponent<
             <></>
           )}
 
-          <InsightPanel title="Details" icon={IconProp.List}>
-            <InsightFactsList facts={facts} />
-          </InsightPanel>
-
+          {/*
+           * The fix task first: it moves, and may want the reader (Try
+           * again, Retry now, its pull request) - the facts under it do not.
+           */}
           {insight.fixAiRunId ? (
             <InsightPanel
               title="Fix Task"
               icon={IconProp.Code}
-              description="OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself."
+              description={INSIGHT_FIX_TASK_DESCRIPTION}
             >
               <InsightFixTask
                 taskId={insight.fixAiRunId.toString()}
@@ -1240,6 +1241,10 @@ const AIInsightViewPage: FunctionComponent<
           ) : (
             <></>
           )}
+
+          <InsightPanel title="Details" icon={IconProp.List}>
+            <InsightFactsList facts={facts} />
+          </InsightPanel>
         </div>
       </div>
     </div>

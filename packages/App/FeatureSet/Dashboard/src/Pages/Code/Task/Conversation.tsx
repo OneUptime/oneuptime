@@ -529,6 +529,11 @@ const CodeTaskConversation: FunctionComponent<
               <CodeTaskStateBadge
                 state={data.task.state}
                 isQueued={data.task.isQueued}
+                isRetrying={Boolean(
+                  data.task.isQueued &&
+                    latestTurn?.state === CodeTaskState.Working &&
+                    latestTurn.retry?.nextAttemptAt,
+                )}
               />
               {/* AI tries the latest turn again by itself: which attempt. */}
               {latestTurn?.state === CodeTaskState.Working &&
@@ -660,7 +665,7 @@ const CodeTaskConversation: FunctionComponent<
             <></>
           )}
           {/* How long AI has worked on it, over all its turns. */}
-          <CodeTaskWorkTime turns={turns} />
+          <CodeTaskWorkTime turns={turns} hasClock={true} />
           {pullRequest &&
           (pullRequest.state === "merged" || pullRequest.state === "closed") ? (
             <span

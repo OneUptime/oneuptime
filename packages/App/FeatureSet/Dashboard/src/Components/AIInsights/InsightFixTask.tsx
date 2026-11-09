@@ -1,11 +1,18 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import CodeApi from "../Code/CodeApi";
 import CodeDiffStat from "../Code/CodeDiffStat";
-import { CODE_TURN_FAILED } from "../Code/CodeTaskCopy";
 import { GitPullRequestMark } from "../Code/CodeMarks";
-import CodeTaskRetryNote from "../Code/CodeTaskRetryNote";
+import CodeMetaList from "../Code/CodeMetaList";
+import CodeTaskRetryNote, {
+  RETRY_NOTE_CONTAINER_CLASS_NAME,
+  WIDE_NOTE_ROW_CLASS_NAME,
+} from "../Code/CodeTaskRetryNote";
 import CodeTaskStageBadge from "../Code/CodeTaskStageBadge";
-import { CODE_TASK_FAILED_AFTER_ATTEMPTS } from "../Code/CodeTaskStatusCopy";
+import {
+  getFailedTurnTitle,
+  INSIGHT_FIX_TASK_VIEW,
+} from "../Code/CodeTaskStatusCopy";
+import { CodeTaskTurnDuration } from "../Code/CodeTaskWorkTime";
 import CodeTimeAgo from "../Code/CodeTimeAgo";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -38,11 +45,12 @@ export interface ComponentProps {
 /*
  * An insight's fix task, where the insight is read: where it stands in
  * words from its real state ("Task in progress" until there is a pull
- * request, "Task failed" when there will be none), its title, what AI
- * last said, its pull request and its state, how much it changed - and,
- * when it failed, why, with Try again; when AI tries it again by itself,
- * which attempt it is on and when the next starts. A task the reader may
- * not read still links to it.
+ * request, "Task failed" when there will be none) with how long AI has
+ * worked on it, its title, what AI last said, its pull request and how
+ * much it changed - and, when it failed, why and after how many attempts,
+ * with Try again; when AI tries it again by itself, which attempt it is
+ * on and when the next starts, with Retry now. A task the reader may not
+ * read still links to it.
  */
 const InsightFixTask: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -69,32 +77,71 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
     setIsRetrying(false);
   };
 
+  // The server asks again only what someone asked in Code.
   const isRequest: boolean = task?.recipe === CodeFixTaskType.CodeRequest;
+  const isFailed: boolean = task?.state === CodeTaskState.Failed;
   const canTryAgain: boolean = Boolean(
-    task &&
-      isRequest &&
-      (task.state === CodeTaskState.Failed ||
-        task.state === CodeTaskState.Stopped),
+    task && isRequest && (isFailed || task.state === CodeTaskState.Stopped),
   );
+
+  const tryAgainButton: ReactElement = (
+    <button
+      type="button"
+      data-testid="ai-insight-fix-try-again"
+      disabled={isRetrying}
+      onClick={() => {
+        void retry();
+      }}
+      className={`flex-shrink-0 rounded-md bg-white px-2.5 py-1 text-xs font-medium shadow-sm ring-1 ring-inset ${
+        isFailed ? "text-red-700 ring-red-200" : "text-gray-700 ring-gray-300"
+      } ${getHandDrawnButtonStateClassName({
+        isBusy: isRetrying,
+        hoverClassName: isFailed ? "hover:bg-red-50" : "hover:bg-gray-50",
+      })}`}
+    >
+      {translator.translateText("Try again")}
+    </button>
+  );
+
+  // Its number, when anything last happened, and how long AI worked on it.
+  const facts: Array<ReactElement> = [];
+
+  if (task?.taskNumber) {
+    facts.push(<span key="number">#{task.taskNumber}</span>);
+  }
+
+  if (task) {
+    facts.push(<CodeTimeAgo key="time" date={task.lastActivityAt} />);
+  }
+
+  if (task?.startedAt) {
+    facts.push(
+      <CodeTaskTurnDuration
+        key="duration"
+        startedAt={task.startedAt}
+        completedAt={task.completedAt}
+        dataTestId="ai-insight-fix-duration"
+      />,
+    );
+  }
 
   return (
     <div data-testid="ai-insight-fix-task" className="space-y-3">
       {task ? (
         <>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <CodeTaskStageBadge
-              stage={stage}
-              dataTestId="ai-insight-fix-stage"
-            />
-            {task.taskNumber ? (
-              <span className="text-xs text-gray-500">#{task.taskNumber}</span>
-            ) : (
-              <></>
-            )}
-            <span className="text-xs text-gray-500">
-              <CodeTimeAgo date={task.lastActivityAt} />
-            </span>
-          </div>
+          <CodeMetaList
+            dataTestId="ai-insight-fix-facts"
+            className="text-xs text-gray-500"
+            leading={
+              <span className="ml-3 inline-flex max-w-full">
+                <CodeTaskStageBadge
+                  stage={stage}
+                  dataTestId="ai-insight-fix-stage"
+                />
+              </span>
+            }
+            items={facts}
+          />
 
           {task.title ? (
             <p
@@ -120,32 +167,31 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          {task.state === CodeTaskState.Failed ? (
+          {isFailed ? (
             <div
               data-testid="ai-insight-fix-failed"
-              className="flex flex-wrap items-start gap-x-3 gap-y-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800"
+              className={RETRY_NOTE_CONTAINER_CLASS_NAME}
             >
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">
-                  {translator.translateText(CODE_TURN_FAILED)}
-                </p>
-                {task.errorMessage ? (
-                  <p className="mt-0.5 break-words text-red-700">
-                    <IsolatedText text={task.errorMessage} />
+              <div
+                className={`flex flex-col items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ${WIDE_NOTE_ROW_CLASS_NAME}`}
+              >
+                <div className="min-w-0 max-w-full flex-1">
+                  {/* After how many attempts, when AI tried it again by itself. */}
+                  <p
+                    data-testid="ai-insight-fix-failed-title"
+                    className="font-medium"
+                  >
+                    {getFailedTurnTitle({ retry: task.retry, translator })}
                   </p>
-                ) : (
-                  <></>
-                )}
-                {task.retry && task.retry.attempt > 1 ? (
-                  <p className="mt-0.5 text-red-700">
-                    {translator.translateTemplate(
-                      CODE_TASK_FAILED_AFTER_ATTEMPTS,
-                      { count: translator.formatNumber(task.retry.attempt) },
-                    )}
-                  </p>
-                ) : (
-                  <></>
-                )}
+                  {task.errorMessage ? (
+                    <p className="mt-0.5 break-words text-red-700">
+                      <IsolatedText text={task.errorMessage} />
+                    </p>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+                {canTryAgain ? tryAgainButton : <></>}
               </div>
             </div>
           ) : (
@@ -226,40 +272,22 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        {canTryAgain ? (
-          <button
-            type="button"
-            data-testid="ai-insight-fix-try-again"
-            disabled={isRetrying}
-            onClick={() => {
-              void retry();
-            }}
-            className={`rounded-md bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 ${getHandDrawnButtonStateClassName(
-              {
-                isBusy: isRetrying,
-                hoverClassName: "hover:bg-gray-50",
-              },
-            )}`}
-          >
-            {translator.translateText("Try again")}
-          </button>
-        ) : (
-          <></>
-        )}
+        {/* A failed task's Try again is beside why it failed, above. */}
+        {canTryAgain && !isFailed ? tryAgainButton : <></>}
         {/*
          * A real anchor (not a Button) so cmd/ctrl-click, middle-click and
-         * "open in new tab" work — Link always sets href.
+         * "open in new tab" work — Link always sets href. Its pull request
+         * has a link of its own, above.
          */}
         <Link
           to={RouteUtil.populateRouteParams(
             RouteMap[PageMap.CODE_TASK_VIEW] as Route,
             { modelId: new ObjectID(props.taskId) },
           )}
+          dataTestId="ai-insight-fix-view-task"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500"
         >
-          <span>
-            {translator.translateText("View the fix task and pull request")}
-          </span>
+          <span>{translator.translateText(INSIGHT_FIX_TASK_VIEW)}</span>
           <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
         </Link>
       </div>

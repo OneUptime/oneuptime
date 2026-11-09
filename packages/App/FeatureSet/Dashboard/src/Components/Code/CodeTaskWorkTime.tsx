@@ -1,5 +1,7 @@
 import { getTurnDurationText } from "./CodeTaskTurn";
 import { CodeTaskTurnJSON } from "Common/Types/AI/CodeTask";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useClockTick from "Common/UI/Utils/UseClockTick";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -8,6 +10,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   turns: Array<CodeTaskTurnJSON>;
   className?: string | undefined;
+  /*
+   * A clock before the words, beside facts that each have their mark (a
+   * task page's repository and branch).
+   */
+  hasClock?: boolean | undefined;
 }
 
 /*
@@ -68,11 +75,55 @@ const CodeTaskWorkTime: FunctionComponent<ComponentProps> = (
   return (
     <span
       data-testid="code-task-work-time"
-      className={`whitespace-nowrap ${props.className || ""}`}
+      className={`whitespace-nowrap ${
+        props.hasClock ? "inline-flex items-center gap-1" : ""
+      } ${props.className || ""}`}
     >
+      {props.hasClock ? (
+        <Icon
+          icon={IconProp.Clock}
+          className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+        />
+      ) : (
+        <></>
+      )}
       {isWorking
         ? translator.translateTemplate("{{duration}} so far", { duration })
         : translator.translateTemplate("worked {{duration}}", { duration })}
+    </span>
+  );
+};
+
+export interface CodeTaskTurnDurationProps {
+  startedAt: string;
+  completedAt?: string | undefined;
+  dataTestId?: string | undefined;
+}
+
+/*
+ * How long a task's latest turn took - "worked 4 minutes" - or, while AI
+ * is at it, has so far, on its own clock: a list row's, and an insight's
+ * Fix task card's.
+ */
+export const CodeTaskTurnDuration: FunctionComponent<
+  CodeTaskTurnDurationProps
+> = (props: CodeTaskTurnDurationProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const now: Date = useClockTick(false, { isEnabled: !props.completedAt });
+  const start: Date = new Date(props.startedAt);
+  const end: Date = props.completedAt ? new Date(props.completedAt) : now;
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return <></>;
+  }
+
+  const duration: string = getTurnDurationText({ start, end, translator });
+
+  return (
+    <span data-testid={props.dataTestId || "code-task-row-duration"}>
+      {props.completedAt
+        ? translator.translateTemplate("worked {{duration}}", { duration })
+        : translator.translateTemplate("{{duration}} so far", { duration })}
     </span>
   );
 };

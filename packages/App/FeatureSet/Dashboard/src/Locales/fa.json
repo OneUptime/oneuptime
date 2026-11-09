@@ -31336,7 +31336,7 @@
   "Vercel Project Name": "نام پروژه Vercel",
   "Vercel projects connected to a OneUptime resource from Vercel Marketplace, and the monitor that watches each one's production domain.": "پروژه‌های Vercel که از Vercel Marketplace به یک منبع OneUptime وصل شده‌اند، و مانیتوری که دامنه تولید هر کدام را می‌پاید.",
   "Vercel teams that installed OneUptime from Vercel Marketplace, and the access token OneUptime calls Vercel with for them.": "تیم‌های Vercel که OneUptime را از Vercel Marketplace نصب کرده‌اند، و توکن دسترسی‌ای که OneUptime با آن از طرف آن‌ها Vercel را فرا می‌خواند.",
-  "View the task": "دیدن کار",
+  "View the task": "مشاهده وظیفه",
   "Waiting for the first read": "در انتظار نخستین خواندن",
   "We will read the profiles sent within this time window.": "پروفایل‌هایی را که در این بازهٔ زمانی ارسال شده‌اند می‌خوانیم.",
   "What allocates memory": "چه چیزی حافظه تخصیص می‌دهد",
@@ -47266,13 +47266,11 @@
   "A call to the AI model provider timed out.": "زمان فراخوانی ارائه‌دهنده مدل هوش مصنوعی به پایان رسید.",
   "Attempt {{attempt}} of {{max}}": "تلاش {{attempt}} از {{max}}",
   "Automatic Retries": "تلاش‌های مجدد خودکار",
-  "Failed after {{count}} attempts.": "پس از {{count}} تلاش ناموفق بود.",
   "Filter tasks": "فیلتر وظایف",
   "Fix merged": "اصلاح ادغام شد",
   "Fix task": "وظیفه اصلاح",
   "No change made": "تغییری ایجاد نشد",
   "No tasks match.": "هیچ وظیفه‌ای مطابقت ندارد.",
-  "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.": "OneUptime AI در کد روی اصلاحی برای این بینش کار می‌کند. Pull Request آن همیشه توسط یک انسان بازبینی می‌شود — هیچ چیز خودبه‌خود ادغام نمی‌شود.",
   "Pull request closed": "Pull Request بسته شد",
   "Pull request open": "Pull Request باز است",
   "Retry Reason": "دلیل تلاش مجدد",
@@ -47293,5 +47291,8 @@
   "Trying {{count}} tasks again.": "تلاش مجدد برای {{count}} وظیفه.",
   "Trying {{count}} tasks again._one": "تلاش مجدد برای {{count}} وظیفه.",
   "{{count}} tasks could not be tried again: {{reason}}": "{{count}} وظیفه را نمی‌توان دوباره امتحان کرد: {{reason}}",
-  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} وظیفه را نمی‌توان دوباره امتحان کرد: {{reason}}"
+  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} وظیفه را نمی‌توان دوباره امتحان کرد: {{reason}}",
+  "AI could not finish after {{count}} attempts.": "هوش مصنوعی پس از {{count}} تلاش نتوانست کار را تمام کند.",
+  "AI opens a pull request for a person to review. Nothing merges by itself.": "هوش مصنوعی یک Pull Request باز می‌کند تا یک انسان آن را بازبینی کند. هیچ چیز خودبه‌خود ادغام نمی‌شود.",
+  "Failed after {{count}} attempts": "ناموفق پس از {{count}} تلاش"
 }

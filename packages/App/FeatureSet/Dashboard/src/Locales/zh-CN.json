@@ -47266,13 +47266,11 @@
   "A call to the AI model provider timed out.": "调用 AI 模型提供商超时。",
   "Attempt {{attempt}} of {{max}}": "第 {{attempt}} 次尝试，共 {{max}} 次",
   "Automatic Retries": "自动重试",
-  "Failed after {{count}} attempts.": "尝试 {{count}} 次后失败。",
   "Filter tasks": "筛选任务",
   "Fix merged": "修复已合并",
   "Fix task": "修复任务",
   "No change made": "未做更改",
   "No tasks match.": "没有匹配的任务。",
-  "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.": "OneUptime AI 正在代码中为此洞察进行修复。其拉取请求始终由人工审阅——不会自动合并任何内容。",
   "Pull request closed": "拉取请求已关闭",
   "Pull request open": "拉取请求已打开",
   "Retry Reason": "重试原因",
@@ -47293,5 +47291,8 @@
   "Trying {{count}} tasks again.": "正在重试 {{count}} 个任务。",
   "Trying {{count}} tasks again._one": "正在重试 {{count}} 个任务。",
   "{{count}} tasks could not be tried again: {{reason}}": "{{count}} 个任务无法重试：{{reason}}",
-  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} 个任务无法重试：{{reason}}"
+  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} 个任务无法重试：{{reason}}",
+  "AI could not finish after {{count}} attempts.": "AI 尝试 {{count}} 次后仍未能完成。",
+  "AI opens a pull request for a person to review. Nothing merges by itself.": "AI 会打开一个拉取请求供人工审阅。不会自动合并任何内容。",
+  "Failed after {{count}} attempts": "尝试 {{count}} 次后失败"
 }

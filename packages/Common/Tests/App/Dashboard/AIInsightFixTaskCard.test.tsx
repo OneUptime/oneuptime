@@ -259,9 +259,10 @@ describe("an insight's fix task, where the insight is read", () => {
   test("always a link to the task itself", () => {
     drawCard({ task: task() });
 
-    expect(
-      screen.getByRole("link", { name: "View the fix task and pull request" }),
-    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}`);
+    expect(screen.getByRole("link", { name: "View the task" })).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}`,
+    );
   });
 
   test("while it is read: Loading; a task that cannot be read: its link, and nothing more", () => {
@@ -277,7 +278,7 @@ describe("an insight's fix task, where the insight is read", () => {
     expect(screen.queryByTestId("ai-insight-fix-loading")).toBeNull();
     expect(screen.queryByTestId("ai-insight-fix-stage")).toBeNull();
     expect(
-      screen.getByRole("link", { name: "View the fix task and pull request" }),
+      screen.getByRole("link", { name: "View the task" }),
     ).toBeInTheDocument();
   });
 
@@ -338,10 +339,17 @@ describe("a fix task that fails, or that AI tries again", () => {
     });
 
     const failed: HTMLElement = screen.getByTestId("ai-insight-fix-failed");
+    // One title over the reason, as the task's own page says it.
+    expect(
+      within(failed).getByTestId("ai-insight-fix-failed-title"),
+    ).toHaveTextContent(/^AI could not finish after 3 attempts\.$/);
     expect(failed).toHaveTextContent("LLM completion request failed");
-    expect(failed).toHaveTextContent("Failed after 3 attempts.");
+    // Its Try again is in the box, beside why it failed.
+    const tryAgain: HTMLElement = within(failed).getByTestId(
+      "ai-insight-fix-try-again",
+    );
 
-    fireEvent.click(screen.getByTestId("ai-insight-fix-try-again"));
+    fireEvent.click(tryAgain);
 
     await waitFor(() => {
       expect(onChanged).toHaveBeenCalled();
@@ -349,10 +357,93 @@ describe("a fix task that fails, or that AI tries again", () => {
     expect(retryMock).toHaveBeenCalledWith(TASK_ID);
   });
 
+  test("a failure on its one attempt says only that AI could not finish", () => {
+    drawCard({
+      task: task({
+        state: CodeTaskState.Failed,
+        errorMessage: "The repository could not be cloned.",
+      }),
+    });
+
+    expect(screen.getByTestId("ai-insight-fix-failed-title")).toHaveTextContent(
+      /^AI could not finish\.$/,
+    );
+  });
+
+  test("a note with a button stacks in the card's narrow column: its button under its words, beside them only from 28rem", () => {
+    drawCard({
+      task: task({
+        state: CodeTaskState.Failed,
+        errorMessage: "LLM completion request failed",
+        retry: { attempt: 3, maxAttempts: 3 },
+      }),
+    });
+
+    const failed: HTMLElement = screen.getByTestId("ai-insight-fix-failed");
+    expect(failed).toHaveClass("[container-type:inline-size]");
+    expect(
+      within(failed).getByTestId("ai-insight-fix-try-again").parentElement,
+    ).toHaveClass("flex-col", "[@container(min-width:28rem)]:flex-row");
+    cleanup();
+
+    drawCard({
+      task: task({
+        state: CodeTaskState.Working,
+        isQueued: true,
+        retry: {
+          attempt: 2,
+          maxAttempts: 3,
+          nextAttemptAt: new Date(Date.now() + 4 * 60_000).toISOString(),
+        },
+      }),
+    });
+    const note: HTMLElement = screen.getByTestId("ai-insight-fix-retry");
+    expect(note).toHaveClass("[container-type:inline-size]");
+    expect(
+      within(note).getByTestId("code-task-retry-now").parentElement,
+    ).toHaveClass("flex-col", "[@container(min-width:28rem)]:flex-row");
+  });
+
+  test("how long AI has worked on it: so far while it works, in all once it ended", () => {
+    drawCard({
+      task: task({
+        state: CodeTaskState.Working,
+        startedAt: new Date(Date.now() - 3 * 60_000).toISOString(),
+      }),
+    });
+    expect(screen.getByTestId("ai-insight-fix-duration")).toHaveTextContent(
+      /^3 minutes so far$/,
+    );
+    // Among the card's facts, after its number and when it last moved.
+    expect(
+      within(screen.getByTestId("ai-insight-fix-facts")).getByTestId(
+        "ai-insight-fix-duration",
+      ),
+    ).toBeInTheDocument();
+    cleanup();
+
+    drawCard({
+      task: task({
+        startedAt: "2026-11-09T10:00:00.000Z",
+        completedAt: "2026-11-09T10:09:00.000Z",
+      }),
+    });
+    expect(screen.getByTestId("ai-insight-fix-duration")).toHaveTextContent(
+      /^worked 9 minutes$/,
+    );
+    cleanup();
+
+    // Not started: nothing said.
+    drawCard({ task: task({ state: CodeTaskState.Working, isQueued: true }) });
+    expect(screen.queryByTestId("ai-insight-fix-duration")).toBeNull();
+  });
+
   test("a stopped request can be tried again too", () => {
     drawCard({ task: task({ state: CodeTaskState.Stopped }) });
 
     expect(screen.getByTestId("ai-insight-fix-try-again")).toBeEnabled();
+    // Nothing failed: its Try again stands with the task's link.
+    expect(screen.queryByTestId("ai-insight-fix-failed")).toBeNull();
   });
 
   test("a Try again the server refuses says why", async () => {

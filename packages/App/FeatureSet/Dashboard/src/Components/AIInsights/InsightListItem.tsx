@@ -268,7 +268,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
          * its own unit for assistive technology, which the narrow layout gets
          * from the meta line above.
          */}
-        <div className="max-xl:hidden w-40 flex-shrink-0 xl:block">
+        <div className="max-xl:hidden w-52 flex-shrink-0 xl:block">
           {getStatusElement(insight.status, props.fixTask)}
         </div>
         <div className="max-xl:hidden w-24 flex-shrink-0 text-right text-sm tabular-nums text-gray-700 xl:block">

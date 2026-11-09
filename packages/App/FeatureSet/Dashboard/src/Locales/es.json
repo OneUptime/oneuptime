@@ -47266,13 +47266,11 @@
   "A call to the AI model provider timed out.": "Una llamada al proveedor del modelo de IA superó el tiempo de espera.",
   "Attempt {{attempt}} of {{max}}": "Intento {{attempt}} de {{max}}",
   "Automatic Retries": "Reintentos automáticos",
-  "Failed after {{count}} attempts.": "Falló tras {{count}} intentos.",
   "Filter tasks": "Filtrar tareas",
   "Fix merged": "Corrección fusionada",
   "Fix task": "Tarea de corrección",
   "No change made": "Sin cambios",
   "No tasks match.": "Ninguna tarea coincide.",
-  "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.": "La IA de OneUptime trabaja en una corrección para este hallazgo en Código. Su pull request siempre la revisa una persona: nada se fusiona por sí solo.",
   "Pull request closed": "Pull request cerrada",
   "Pull request open": "Pull request abierta",
   "Retry Reason": "Motivo del reintento",
@@ -47293,5 +47291,8 @@
   "Trying {{count}} tasks again.": "Reintentando {{count}} tareas.",
   "Trying {{count}} tasks again._one": "Reintentando {{count}} tarea.",
   "{{count}} tasks could not be tried again: {{reason}}": "No se pudieron reintentar {{count}} tareas: {{reason}}",
-  "{{count}} tasks could not be tried again: {{reason}}_one": "No se pudo reintentar {{count}} tarea: {{reason}}"
+  "{{count}} tasks could not be tried again: {{reason}}_one": "No se pudo reintentar {{count}} tarea: {{reason}}",
+  "AI could not finish after {{count}} attempts.": "La IA no pudo terminar tras {{count}} intentos.",
+  "AI opens a pull request for a person to review. Nothing merges by itself.": "La IA abre una pull request para que una persona la revise. Nada se fusiona por sí solo.",
+  "Failed after {{count}} attempts": "Falló tras {{count}} intentos"
 }

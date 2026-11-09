@@ -314,6 +314,102 @@ describe("a task list's filters and search", () => {
     expect(lastListCall()["search"]).toBe("");
   });
 
+  test("a search that matches nothing leaves the page's count alone, so the page keeps its list and its search", async () => {
+    listTasksMock.mockResolvedValue(answer([task(), FAILED]) as never);
+
+    const { onCount } = drawList();
+    await screen.findByTestId("code-task-list-toolbar");
+    expect(onCount).toHaveBeenLastCalledWith(9);
+    const countsBefore: number = onCount.mock.calls.length;
+
+    // The server counts what the search matches: nothing, in every filter.
+    listTasksMock.mockResolvedValue(
+      answer([], {
+        [CodeTaskListFilter.All]: 0,
+        [CodeTaskListFilter.InProgress]: 0,
+        [CodeTaskListFilter.WaitingForYou]: 0,
+        [CodeTaskListFilter.PullRequestOpen]: 0,
+        [CodeTaskListFilter.Failed]: 0,
+        [CodeTaskListFilter.Done]: 0,
+      }) as never,
+    );
+    fireEvent.change(screen.getByTestId("code-task-list-search"), {
+      target: { value: "nothing like this" },
+    });
+
+    await waitFor(() => {
+      expect(lastListCall()["search"]).toBe("nothing like this");
+    });
+    expect(await screen.findByText("No tasks match.")).toBeInTheDocument();
+    /*
+     * Told nothing: the Code page and a repository's page hide their list
+     * when told there is no task at all, and the search went with it.
+     */
+    expect(onCount.mock.calls.length).toBe(countsBefore);
+    expect(screen.getByTestId("code-task-list-search")).toHaveValue(
+      "nothing like this",
+    );
+
+    // Emptied, the search counts every task again.
+    listTasksMock.mockResolvedValue(answer([task(), FAILED]) as never);
+    fireEvent.click(screen.getByTestId("code-task-list-search-clear"));
+    await waitFor(() => {
+      expect(screen.getAllByTestId("code-task-row")).toHaveLength(2);
+    });
+    expect(onCount).toHaveBeenLastCalledWith(9);
+  });
+
+  test("a filter read without counts tells the page nothing; with no filter, how many it shows", async () => {
+    // An answer with no counts (an older server): only how many it shows.
+    const uncounted: (
+      tasks: Array<CodeTaskSummaryJSON>,
+    ) => Record<string, unknown> = (
+      tasks: Array<CodeTaskSummaryJSON>,
+    ): Record<string, unknown> => {
+      return { tasks, count: tasks.length, skip: 0, limit: 20 };
+    };
+    listTasksMock.mockResolvedValue(uncounted([task(), FAILED]) as never);
+
+    const { onCount } = drawList();
+    await screen.findAllByTestId("code-task-row");
+    // No counts: every task, as the list reads them.
+    expect(onCount).toHaveBeenLastCalledWith(2);
+
+    listTasksMock.mockResolvedValue(uncounted([FAILED]) as never);
+    fireEvent.click(screen.getByTestId("code-task-filter-failed"));
+    await waitFor(() => {
+      expect(screen.getAllByTestId("code-task-row")).toHaveLength(1);
+    });
+    // One failed task is not one task in all.
+    expect(onCount).toHaveBeenLastCalledWith(2);
+  });
+
+  test("the search box has a magnifier and an x that empties it; Escape empties it too", async () => {
+    listTasksMock.mockResolvedValue(answer([task(), FAILED]) as never);
+
+    drawList();
+    await screen.findByTestId("code-task-list-toolbar");
+
+    const box: HTMLElement = screen.getByTestId("code-task-list-search-box");
+    const input: HTMLElement = screen.getByTestId("code-task-list-search");
+    // Nothing typed: nothing to empty.
+    expect(screen.queryByTestId("code-task-list-search-clear")).toBeNull();
+    // It takes the rest of the filters' line, never less than 12rem.
+    expect(box).toHaveClass("flex-1", "min-w-[12rem]");
+
+    fireEvent.change(input, { target: { value: "gateway" } });
+    const clear: HTMLElement = screen.getByTestId(
+      "code-task-list-search-clear",
+    );
+    expect(clear).toHaveAttribute("aria-label", "Clear Search");
+    fireEvent.click(clear);
+    expect(input).toHaveValue("");
+
+    fireEvent.change(input, { target: { value: "gateway" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(input).toHaveValue("");
+  });
+
   test("no task at all: the empty page, not filters over nothing", async () => {
     listTasksMock.mockResolvedValue(
       answer([], {
@@ -362,14 +458,18 @@ describe("a task list's filters and search", () => {
 });
 
 describe("a task list's rows", () => {
-  test("a failed task says why on its row, after how many attempts - and its row is still one link", async () => {
+  test("a failed task says after how many attempts as its state, and why under its facts - and its row is still one link", async () => {
     listTasksMock.mockResolvedValue(answer([FAILED]) as never);
 
     drawList();
 
     const row: HTMLElement = await screen.findByTestId("code-task-row");
+    expect(within(row).getByTestId("code-task-row-state")).toHaveTextContent(
+      /^Failed after 3 attempts$/,
+    );
+    // The reason as it was written, said once: not after the attempts again.
     expect(within(row).getByTestId("code-task-row-error")).toHaveTextContent(
-      "Failed after 3 attempts. The AI could not finish: LLM completion request failed",
+      /^The AI could not finish: LLM completion request failed$/,
     );
     expect(within(row).getAllByRole("link")).toHaveLength(1);
     expect(within(row).getByRole("link")).toHaveAttribute(
@@ -464,7 +564,9 @@ describe("a task list's rows", () => {
 
       const row: HTMLElement = await screen.findByTestId("code-task-row");
       const error: HTMLElement = within(row).getByTestId("code-task-row-error");
-      expect(error).toHaveTextContent("پس از ۳ تلاش ناموفق بود.");
+      expect(within(row).getByTestId("code-task-row-state")).toHaveTextContent(
+        "ناموفق پس از ۳ تلاش",
+      );
       // The error and the title as they were written: their stops at their ends.
       expect(
         within(error).getByText(
@@ -611,8 +713,110 @@ describe("trying failed tasks again from the list", () => {
 
     expect(screen.queryByTestId("code-task-row-retry-button")).toBeNull();
     expect(screen.queryByTestId("code-task-row-select")).toBeNull();
+    // No box anywhere: no row keeps a place for one.
+    expect(screen.queryByTestId("code-task-row-select-space")).toBeNull();
     // The reason is still said.
     expect(screen.getByTestId("code-task-row-error")).toBeInTheDocument();
+    // A stopped task with nothing to do about it is not said in words.
+    expect(
+      within(rowOf("Log the card brand on declined charges")).queryByTestId(
+        "code-task-row-state",
+      ),
+    ).toBeNull();
+  });
+
+  test("a stopped row that offers Try again says it stopped, so the button has its reason", async () => {
+    listTasksMock.mockResolvedValue(answer([STOPPED]) as never);
+
+    drawList();
+
+    const row: HTMLElement = await screen.findByTestId("code-task-row");
+    expect(within(row).getByTestId("code-task-row-state")).toHaveTextContent(
+      /^Stopped$/,
+    );
+    expect(
+      within(row).getByTestId("code-task-row-retry-button"),
+    ).toBeInTheDocument();
+  });
+
+  test("a row with no box keeps the box's place, so every row's mark and title start in one column", async () => {
+    listTasksMock.mockResolvedValue(answer([FAILED, task()]) as never);
+
+    drawList();
+    await screen.findAllByTestId("code-task-row");
+
+    const done: HTMLElement = rowOf("Retry charges when the gateway times out");
+    const failed: HTMLElement = rowOf(
+      "Add a retry budget to the payment client",
+    );
+    expect(within(done).queryByTestId("code-task-row-select")).toBeNull();
+    const space: HTMLElement = within(done).getByTestId(
+      "code-task-row-select-space",
+    );
+    expect(space).toHaveAttribute("aria-hidden", "true");
+
+    // The place is the box's own size and margin, and both links start alike.
+    const box: HTMLElement = within(failed).getByTestId("code-task-row-select");
+    for (const name of ["ml-4", "h-4", "w-4", "sm:ml-5"]) {
+      expect(box).toHaveClass(name);
+      expect(space).toHaveClass(name);
+    }
+    expect(within(done).getByRole("link")).toHaveClass("pl-3");
+    expect(within(failed).getByRole("link")).toHaveClass("pl-3");
+    expect(within(done).getByRole("link")).not.toHaveClass("pl-4");
+  });
+
+  test("on a phone, a row's Try again goes under its words, where its title starts", async () => {
+    listTasksMock.mockResolvedValue(answer([FAILED]) as never);
+
+    drawList();
+
+    const row: HTMLElement = await screen.findByTestId("code-task-row");
+    // The row wraps only on a phone.
+    expect(row).toHaveClass("flex-wrap", "sm:flex-nowrap");
+    const tryAgain: HTMLElement = within(row).getByTestId(
+      "code-task-row-try-again",
+    );
+    /*
+     * A line of its own, starting where the title does: the box's column
+     * (1rem + 1rem), the link's start (0.75rem), the mark (1.25rem) and the
+     * gap after it (0.75rem). Beside the words from sm up.
+     */
+    expect(tryAgain).toHaveClass(
+      "max-sm:basis-full",
+      "max-sm:pl-[4.75rem]",
+      "sm:mt-2.5",
+      "sm:mr-5",
+    );
+    expect(
+      within(tryAgain).getByTestId("code-task-row-retry-button"),
+    ).toHaveTextContent("Try again");
+  });
+
+  test("the bar's live region is its words: the count, then what trying again did - not its buttons", async () => {
+    listTasksMock.mockResolvedValue(answer([FAILED, STOPPED]) as never);
+    retryManyMock.mockResolvedValue({ retried: 2, failed: [] } as never);
+
+    drawList();
+    await screen.findAllByTestId("code-task-row");
+
+    fireEvent.click(screen.getAllByTestId("code-task-row-select")[0]!);
+    const bulk: HTMLElement = screen.getByTestId("code-task-list-bulk");
+    expect(bulk).not.toHaveAttribute("role");
+    const status: HTMLElement = within(bulk).getByRole("status");
+    expect(status).toHaveTextContent(/^1 selected$/);
+    expect(
+      within(status).queryByTestId("code-task-list-retry-selected"),
+    ).toBeNull();
+
+    fireEvent.click(within(bulk).getByTestId("code-task-list-select-all"));
+    fireEvent.click(within(bulk).getByTestId("code-task-list-retry-selected"));
+
+    // The same region says the result: a screen reader hears it change.
+    await waitFor(() => {
+      expect(status).toHaveTextContent(/^Trying 2 tasks again\.$/);
+    });
+    expect(screen.getByTestId("code-task-list-bulk")).toContainElement(status);
   });
 
   test("a task OneUptime started is not tried again from the list", async () => {

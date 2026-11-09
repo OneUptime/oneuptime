@@ -47266,13 +47266,11 @@
   "A call to the AI model provider timed out.": "Ein Aufruf beim KI-Modellanbieter hat das Zeitlimit überschritten.",
   "Attempt {{attempt}} of {{max}}": "Versuch {{attempt}} von {{max}}",
   "Automatic Retries": "Automatische Wiederholungen",
-  "Failed after {{count}} attempts.": "Nach {{count}} Versuchen fehlgeschlagen.",
   "Filter tasks": "Aufgaben filtern",
   "Fix merged": "Korrektur gemergt",
   "Fix task": "Korrekturaufgabe",
   "No change made": "Keine Änderung vorgenommen",
   "No tasks match.": "Keine passenden Aufgaben.",
-  "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.": "OneUptime AI arbeitet in Code an einer Korrektur für diesen Einblick. Ihr Pull Request wird immer von einer Person geprüft — nichts wird von selbst gemergt.",
   "Pull request closed": "Pull Request geschlossen",
   "Pull request open": "Pull Request offen",
   "Retry Reason": "Grund für die Wiederholung",
@@ -47293,5 +47291,8 @@
   "Trying {{count}} tasks again.": "{{count}} Aufgaben werden erneut versucht.",
   "Trying {{count}} tasks again._one": "{{count}} Aufgabe wird erneut versucht.",
   "{{count}} tasks could not be tried again: {{reason}}": "{{count}} Aufgaben konnten nicht erneut versucht werden: {{reason}}",
-  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} Aufgabe konnte nicht erneut versucht werden: {{reason}}"
+  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} Aufgabe konnte nicht erneut versucht werden: {{reason}}",
+  "AI could not finish after {{count}} attempts.": "Die KI konnte das nach {{count}} Versuchen nicht abschließen.",
+  "AI opens a pull request for a person to review. Nothing merges by itself.": "Die KI öffnet einen Pull Request, den eine Person prüft. Nichts wird von selbst gemergt.",
+  "Failed after {{count}} attempts": "Nach {{count}} Versuchen fehlgeschlagen"
 }

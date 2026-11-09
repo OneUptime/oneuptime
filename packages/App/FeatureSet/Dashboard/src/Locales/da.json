@@ -47266,13 +47266,11 @@
   "A call to the AI model provider timed out.": "Et kald til AI-modeludbyderen fik timeout.",
   "Attempt {{attempt}} of {{max}}": "Forsøg {{attempt}} af {{max}}",
   "Automatic Retries": "Automatiske genforsøg",
-  "Failed after {{count}} attempts.": "Mislykkedes efter {{count}} forsøg.",
   "Filter tasks": "Filtrér opgaver",
   "Fix merged": "Rettelse merget",
   "Fix task": "Rettelsesopgave",
   "No change made": "Ingen ændring foretaget",
   "No tasks match.": "Ingen opgaver matcher.",
-  "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.": "OneUptime AI arbejder på en rettelse til denne indsigt i Kode. Dens pull request gennemgås altid af en person — intet merges af sig selv.",
   "Pull request closed": "Pull request lukket",
   "Pull request open": "Pull request åben",
   "Retry Reason": "Årsag til genforsøg",
@@ -47293,5 +47291,8 @@
   "Trying {{count}} tasks again.": "Prøver {{count}} opgaver igen.",
   "Trying {{count}} tasks again._one": "Prøver {{count}} opgave igen.",
   "{{count}} tasks could not be tried again: {{reason}}": "{{count}} opgaver kunne ikke prøves igen: {{reason}}",
-  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} opgave kunne ikke prøves igen: {{reason}}"
+  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} opgave kunne ikke prøves igen: {{reason}}",
+  "AI could not finish after {{count}} attempts.": "AI kunne ikke gøre det færdigt efter {{count}} forsøg.",
+  "AI opens a pull request for a person to review. Nothing merges by itself.": "AI åbner en pull request, som en person gennemgår. Intet merges af sig selv.",
+  "Failed after {{count}} attempts": "Mislykkedes efter {{count}} forsøg"
 }

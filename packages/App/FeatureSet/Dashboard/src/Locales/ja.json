@@ -47266,13 +47266,11 @@
   "A call to the AI model provider timed out.": "AI モデルプロバイダーへの呼び出しがタイムアウトしました。",
   "Attempt {{attempt}} of {{max}}": "{{max}} 回中 {{attempt}} 回目",
   "Automatic Retries": "自動再試行",
-  "Failed after {{count}} attempts.": "{{count}} 回試行して失敗しました。",
   "Filter tasks": "タスクを絞り込む",
   "Fix merged": "修正をマージ済み",
   "Fix task": "修正タスク",
   "No change made": "変更なし",
   "No tasks match.": "一致するタスクはありません。",
-  "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.": "OneUptime AI が コード でこのインサイトの修正に取り組んでいます。そのプルリクエストは常に人がレビューします — 自動的にマージされることはありません。",
   "Pull request closed": "プルリクエストはクローズ済み",
   "Pull request open": "プルリクエストはオープン",
   "Retry Reason": "再試行の理由",
@@ -47293,5 +47291,8 @@
   "Trying {{count}} tasks again.": "{{count}} 件のタスクを再試行しています。",
   "Trying {{count}} tasks again._one": "{{count}} 件のタスクを再試行しています。",
   "{{count}} tasks could not be tried again: {{reason}}": "{{count}} 件のタスクを再試行できませんでした: {{reason}}",
-  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} 件のタスクを再試行できませんでした: {{reason}}"
+  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} 件のタスクを再試行できませんでした: {{reason}}",
+  "AI could not finish after {{count}} attempts.": "AI は {{count}} 回試行しても完了できませんでした。",
+  "AI opens a pull request for a person to review. Nothing merges by itself.": "AI は人がレビューするプルリクエストを作成します。自動的にマージされることはありません。",
+  "Failed after {{count}} attempts": "{{count}} 回試行して失敗"
 }

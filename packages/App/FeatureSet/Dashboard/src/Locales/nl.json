@@ -47266,13 +47266,11 @@
   "A call to the AI model provider timed out.": "Een aanroep naar de AI-modelaanbieder is verlopen.",
   "Attempt {{attempt}} of {{max}}": "Poging {{attempt}} van {{max}}",
   "Automatic Retries": "Automatische nieuwe pogingen",
-  "Failed after {{count}} attempts.": "Mislukt na {{count}} pogingen.",
   "Filter tasks": "Taken filteren",
   "Fix merged": "Fix samengevoegd",
   "Fix task": "Fix-taak",
   "No change made": "Geen wijziging gemaakt",
   "No tasks match.": "Geen taken gevonden.",
-  "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.": "OneUptime AI werkt in Code aan een fix voor dit inzicht. De pull request wordt altijd door een persoon beoordeeld — niets wordt vanzelf samengevoegd.",
   "Pull request closed": "Pull request gesloten",
   "Pull request open": "Pull request staat open",
   "Retry Reason": "Reden voor nieuwe poging",
@@ -47293,5 +47291,8 @@
   "Trying {{count}} tasks again.": "{{count}} taken worden opnieuw geprobeerd.",
   "Trying {{count}} tasks again._one": "{{count}} taak wordt opnieuw geprobeerd.",
   "{{count}} tasks could not be tried again: {{reason}}": "{{count}} taken konden niet opnieuw worden geprobeerd: {{reason}}",
-  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} taak kon niet opnieuw worden geprobeerd: {{reason}}"
+  "{{count}} tasks could not be tried again: {{reason}}_one": "{{count}} taak kon niet opnieuw worden geprobeerd: {{reason}}",
+  "AI could not finish after {{count}} attempts.": "AI kon dit na {{count}} pogingen niet afmaken.",
+  "AI opens a pull request for a person to review. Nothing merges by itself.": "AI opent een pull request die een persoon beoordeelt. Niets wordt vanzelf samengevoegd.",
+  "Failed after {{count}} attempts": "Mislukt na {{count}} pogingen"
 }

@@ -17,6 +17,18 @@ import useClockTick from "Common/UI/Utils/UseClockTick";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
+/*
+ * A note with a button in it (Retry now, Try again) measures itself, not
+ * the screen: its button sits beside its words only from 28rem wide, and
+ * under them in a narrower note - an insight's side column at a laptop's
+ * width, a phone, a long language.
+ */
+export const RETRY_NOTE_CONTAINER_CLASS_NAME: string =
+  "[container-type:inline-size]";
+
+export const WIDE_NOTE_ROW_CLASS_NAME: string =
+  "[@container(min-width:28rem)]:flex-row [@container(min-width:28rem)]:gap-3";
+
 export interface ComponentProps {
   retry: CodeTaskRetryJSON;
   // Start the next attempt now, for those who may.
@@ -108,45 +120,54 @@ const CodeTaskRetryNote: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * Retry now beside the words where the note is wide (a task's page), and
+   * under them where it is not (an insight's side column, a phone, a long
+   * language): beside them there, it squeezed the words to a word a line.
+   */
   return (
     <div
       role="status"
       data-testid={props.dataTestId || "code-task-retry-note"}
-      className="flex flex-wrap items-start gap-x-3 gap-y-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"
+      className={RETRY_NOTE_CONTAINER_CLASS_NAME}
     >
-      <div className="min-w-0 flex-1">
-        <p className="font-medium">
-          {countdown ? `${attempt} · ${countdown}` : attempt}
-        </p>
-        {reason ? (
-          <p
-            data-testid="code-task-retry-reason"
-            className="mt-0.5 break-words text-amber-800"
-          >
-            {reason}
+      <div
+        className={`flex flex-col items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 ${WIDE_NOTE_ROW_CLASS_NAME}`}
+      >
+        <div className="min-w-0 max-w-full flex-1">
+          <p className="font-medium">
+            {countdown ? `${attempt} · ${countdown}` : attempt}
           </p>
+          {reason ? (
+            <p
+              data-testid="code-task-retry-reason"
+              className="mt-0.5 break-words text-amber-800"
+            >
+              {reason}
+            </p>
+          ) : (
+            <></>
+          )}
+        </div>
+        {isWaiting && props.onRetryNow ? (
+          <button
+            type="button"
+            data-testid="code-task-retry-now"
+            disabled={props.isRetryingNow}
+            onClick={props.onRetryNow}
+            className={`flex-shrink-0 rounded-md bg-white px-2.5 py-1 text-xs font-medium text-amber-800 shadow-sm ring-1 ring-inset ring-amber-200 ${getHandDrawnButtonStateClassName(
+              {
+                isBusy: props.isRetryingNow,
+                hoverClassName: "hover:bg-amber-100",
+              },
+            )}`}
+          >
+            {translator.translateText(CODE_TASK_RETRY_NOW)}
+          </button>
         ) : (
           <></>
         )}
       </div>
-      {isWaiting && props.onRetryNow ? (
-        <button
-          type="button"
-          data-testid="code-task-retry-now"
-          disabled={props.isRetryingNow}
-          onClick={props.onRetryNow}
-          className={`flex-shrink-0 rounded-md bg-white px-2.5 py-1 text-xs font-medium text-amber-800 shadow-sm ring-1 ring-inset ring-amber-200 ${getHandDrawnButtonStateClassName(
-            {
-              isBusy: props.isRetryingNow,
-              hoverClassName: "hover:bg-amber-100",
-            },
-          )}`}
-        >
-          {translator.translateText(CODE_TASK_RETRY_NOW)}
-        </button>
-      ) : (
-        <></>
-      )}
     </div>
   );
 };

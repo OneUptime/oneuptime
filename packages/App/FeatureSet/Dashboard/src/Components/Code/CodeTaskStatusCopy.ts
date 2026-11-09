@@ -1,8 +1,9 @@
+import { CODE_TURN_FAILED } from "./CodeTaskCopy";
 import { CodeTaskListFilter } from "Common/Types/AI/CodeTask";
 import { CodeTaskRetryJSON } from "Common/Types/AI/CodeTaskRetry";
 import { CodeTaskStage } from "Common/Types/AI/CodeTaskStage";
 import { TransientAIFailureKind } from "Common/Types/AI/TransientAIFailure";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Where a task stands, in words a page beside Code can say (an insight's
@@ -138,10 +139,47 @@ export const CODE_TASK_RETRYING_NOW: string =
 
 export const CODE_TASK_RETRY_NOW: string = translationKey("Retry now");
 
-// A turn that failed after AI tried it again by itself.
-export const CODE_TASK_FAILED_AFTER_ATTEMPTS: string = translationKey(
-  "Failed after {{count}} attempts.",
+/*
+ * A turn that failed after AI tried it again by itself. A list row says
+ * it as its state, "Failed after 3 attempts", with the reason on the line
+ * under it; the turn and an insight's Fix task card say it as the title
+ * over the reason.
+ */
+export const CODE_TASK_ROW_FAILED_AFTER_ATTEMPTS: string = translationKey(
+  "Failed after {{count}} attempts",
 );
+
+export const CODE_TURN_FAILED_AFTER_ATTEMPTS: string = translationKey(
+  "AI could not finish after {{count}} attempts.",
+);
+
+/*
+ * The title over a failed turn's reason: how many attempts it took, when
+ * AI tried it again by itself; "AI could not finish." otherwise.
+ */
+export function getFailedTurnTitle(data: {
+  retry: CodeTaskRetryJSON | undefined;
+  translator: Translator;
+}): string {
+  if (data.retry && data.retry.attempt > 1) {
+    return data.translator.translateTemplate(CODE_TURN_FAILED_AFTER_ATTEMPTS, {
+      count: data.translator.formatNumber(data.retry.attempt),
+    });
+  }
+
+  return data.translator.translateText(CODE_TURN_FAILED) || CODE_TURN_FAILED;
+}
+
+/*
+ * What an insight's Fix task card says under its title: true whatever the
+ * task's state - what AI does with a fix, and that a person merges it.
+ */
+export const INSIGHT_FIX_TASK_DESCRIPTION: string = translationKey(
+  "AI opens a pull request for a person to review. Nothing merges by itself.",
+);
+
+// The card's link to the task's conversation (its pull request has its own).
+export const INSIGHT_FIX_TASK_VIEW: string = translationKey("View the task");
 
 // The filters a task list offers, in order, with their labels.
 export const CODE_TASK_LIST_FILTERS: ReadonlyArray<{

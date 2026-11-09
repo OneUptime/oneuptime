@@ -566,7 +566,7 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
     return (
       <div className="max-xl:hidden items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400 xl:flex">
         <span className="flex-1">{translator.translateText("Insight")}</span>
-        <span className="w-40 flex-shrink-0">
+        <span className="w-52 flex-shrink-0">
           {translator.translateText("Status")}
         </span>
         <span className="w-24 flex-shrink-0 text-right">

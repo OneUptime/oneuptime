@@ -17,10 +17,12 @@ import {
   CODE_TASK_CONTEXT_RECORD_PAGES,
   CODE_TASK_ORIGIN_SENTENCES,
   CODE_TASK_PROFILE_CHIP_LABEL,
-  CODE_TURN_FAILED,
 } from "./CodeTaskCopy";
-import CodeTaskRetryNote from "./CodeTaskRetryNote";
-import { CODE_TASK_FAILED_AFTER_ATTEMPTS } from "./CodeTaskStatusCopy";
+import CodeTaskRetryNote, {
+  RETRY_NOTE_CONTAINER_CLASS_NAME,
+  WIDE_NOTE_ROW_CLASS_NAME,
+} from "./CodeTaskRetryNote";
+import { getFailedTurnTitle } from "./CodeTaskStatusCopy";
 import CodeTaskStateBadge from "./CodeTaskStateBadge";
 import CodeTaskSteps, { ARRIVED_STEP_CLASS_NAME } from "./CodeTaskSteps";
 import CodeTimeAgo from "./CodeTimeAgo";
@@ -808,7 +810,11 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
           {turn.state === CodeTaskState.Done ? (
             <></>
           ) : (
-            <CodeTaskStateBadge state={turn.state} isQueued={isQueued} />
+            <CodeTaskStateBadge
+              state={turn.state}
+              isQueued={isQueued}
+              isRetrying={Boolean(isQueued && turn.retry?.nextAttemptAt)}
+            />
           )}
           {/*
             How long it took and its Log go together: on a phone they wrap
@@ -964,59 +970,67 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
           )}
 
           {turn.state === CodeTaskState.Failed ? (
+            /*
+             * Try again beside the reason where the turn is wide, under it
+             * on a phone: beside it there, a long reason ran a word a line.
+             */
             <div
               data-testid="code-turn-failed"
-              className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800"
+              className={RETRY_NOTE_CONTAINER_CLASS_NAME}
             >
-              <Icon
-                icon={IconProp.ExclaimationCircle}
-                className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">
-                  {translator.translateText(CODE_TURN_FAILED)}
-                </p>
-                {turn.errorMessage ? (
-                  <p className="mt-0.5 break-words text-red-700">
-                    {/* As it was written: its full stop at its end. */}
-                    <IsolatedText text={turn.errorMessage} />
-                  </p>
-                ) : (
-                  <></>
-                )}
-                {/* AI tried it again by itself before it failed. */}
-                {turn.retry && turn.retry.attempt > 1 ? (
-                  <p
-                    data-testid="code-turn-failed-attempts"
-                    className="mt-0.5 text-red-700"
-                  >
-                    {translator.translateTemplate(
-                      CODE_TASK_FAILED_AFTER_ATTEMPTS,
-                      { count: translator.formatNumber(turn.retry.attempt) },
-                    )}
-                  </p>
-                ) : (
-                  <></>
-                )}
-              </div>
-              {props.isLatest && props.onRetry ? (
-                <button
-                  type="button"
-                  data-testid="code-turn-retry"
-                  disabled={props.isRetrying}
-                  onClick={props.onRetry}
-                  className={`flex-shrink-0 rounded-md bg-white px-2.5 py-1 text-xs font-medium text-red-700 shadow-sm ring-1 ring-inset ring-red-200 ${getHandDrawnButtonStateClassName(
-                    {
-                      isBusy: props.isRetrying,
-                      hoverClassName: "hover:bg-red-50",
-                    },
-                  )}`}
+              <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+                <Icon
+                  icon={IconProp.ExclaimationCircle}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600"
+                />
+                <div
+                  className={`flex min-w-0 flex-1 flex-col items-start gap-2 ${WIDE_NOTE_ROW_CLASS_NAME}`}
                 >
-                  {translator.translateText("Try again")}
-                </button>
-              ) : (
-                <></>
-              )}
+                  <div className="min-w-0 max-w-full flex-1">
+                    {/*
+                     * After how many attempts, when AI tried it again by
+                     * itself: "AI could not finish after 3 attempts."
+                     */}
+                    <p
+                      data-testid="code-turn-failed-title"
+                      data-attempts={
+                        turn.retry && turn.retry.attempt > 1
+                          ? turn.retry.attempt
+                          : undefined
+                      }
+                      className="font-medium"
+                    >
+                      {getFailedTurnTitle({ retry: turn.retry, translator })}
+                    </p>
+                    {turn.errorMessage ? (
+                      <p className="mt-0.5 break-words text-red-700">
+                        {/* As it was written: its full stop at its end. */}
+                        <IsolatedText text={turn.errorMessage} />
+                      </p>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+                  {props.isLatest && props.onRetry ? (
+                    <button
+                      type="button"
+                      data-testid="code-turn-retry"
+                      disabled={props.isRetrying}
+                      onClick={props.onRetry}
+                      className={`flex-shrink-0 rounded-md bg-white px-2.5 py-1 text-xs font-medium text-red-700 shadow-sm ring-1 ring-inset ring-red-200 ${getHandDrawnButtonStateClassName(
+                        {
+                          isBusy: props.isRetrying,
+                          hoverClassName: "hover:bg-red-50",
+                        },
+                      )}`}
+                    >
+                      {translator.translateText("Try again")}
+                    </button>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <></>

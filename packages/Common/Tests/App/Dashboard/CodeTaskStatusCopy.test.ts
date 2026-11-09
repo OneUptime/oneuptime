@@ -6,7 +6,11 @@ import { CodeTaskStage } from "../../../Types/AI/CodeTaskStage";
 import { TransientAIFailureKind } from "../../../Types/AI/TransientAIFailure";
 import {
   CODE_TASK_ATTEMPT,
-  CODE_TASK_FAILED_AFTER_ATTEMPTS,
+  CODE_TASK_ROW_FAILED_AFTER_ATTEMPTS,
+  CODE_TURN_FAILED_AFTER_ATTEMPTS,
+  INSIGHT_FIX_TASK_DESCRIPTION,
+  INSIGHT_FIX_TASK_VIEW,
+  getFailedTurnTitle,
   CODE_TASK_LIST_FILTERS,
   CODE_TASK_RETRY_NOW,
   CODE_TASK_RETRYING_IN,
@@ -18,6 +22,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskStatusCopy";
 import { STATUS_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/AIInsights/InsightPresentation";
 import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * Where a code task stands, in one word, wherever a page beside Code says
@@ -85,7 +93,12 @@ const SENTENCES: Array<string> = Array.from(
     CODE_TASK_RETRYING_IN,
     CODE_TASK_RETRYING_NOW,
     CODE_TASK_RETRY_NOW,
-    CODE_TASK_FAILED_AFTER_ATTEMPTS,
+    CODE_TASK_ROW_FAILED_AFTER_ATTEMPTS,
+    CODE_TURN_FAILED_AFTER_ATTEMPTS,
+    INSIGHT_FIX_TASK_DESCRIPTION,
+    INSIGHT_FIX_TASK_VIEW,
+    "AI could not finish.",
+    "Clear Search",
     ...CODE_TASK_LIST_FILTERS.map((entry: { label: string }): string => {
       return entry.label;
     }),
@@ -106,9 +119,46 @@ const SENTENCES: Array<string> = Array.from(
     "{{count}} files changed_one",
     "worked {{duration}}",
     "{{duration}} so far",
-    "OneUptime AI works on a fix for this insight in Code. Its pull request is always reviewed by a person — nothing merges by itself.",
   ]),
 ).sort();
+
+// A translator with no locale: each key as written, for the words a helper picks.
+const AS_WRITTEN: Translator = createTranslator(undefined, "en");
+
+describe("a failed turn's title", () => {
+  test("says after how many attempts, when AI tried it again by itself", () => {
+    expect(
+      getFailedTurnTitle({
+        retry: { attempt: 3, maxAttempts: 3 },
+        translator: AS_WRITTEN,
+      }),
+    ).toBe("AI could not finish after 3 attempts.");
+  });
+
+  test("says only that AI could not finish, after one attempt or none counted", () => {
+    expect(
+      getFailedTurnTitle({ retry: undefined, translator: AS_WRITTEN }),
+    ).toBe("AI could not finish.");
+    expect(
+      getFailedTurnTitle({
+        retry: { attempt: 1, maxAttempts: 3 },
+        translator: AS_WRITTEN,
+      }),
+    ).toBe("AI could not finish.");
+  });
+
+  test("an insight's Fix Task card names its link and what AI does, true in any state", () => {
+    expect(INSIGHT_FIX_TASK_VIEW).toBe("View the task");
+    expect(INSIGHT_FIX_TASK_DESCRIPTION).toBe(
+      "AI opens a pull request for a person to review. Nothing merges by itself.",
+    );
+    // A row's state word carries no stop: it sits between the row's facts.
+    expect(CODE_TASK_ROW_FAILED_AFTER_ATTEMPTS).toBe(
+      "Failed after {{count}} attempts",
+    );
+    expect(CODE_TURN_FAILED_AFTER_ATTEMPTS).toMatch(/\.$/);
+  });
+});
 
 describe("a task's stage in words is complete", () => {
   test("every stage has a label, a badge and a dot; only the moving ones pulse", () => {
