@@ -635,6 +635,8 @@ Um recurso de uma [conta conectada](/docs/telemetry/cloud-accounts) recebe, na a
 3. Clique em **Criar monitor a partir desta visualização**: o monitor observa essa métrica para esse recurso.
 :::
 
+Em um namespace do Service Bus ou do Event Hubs, cujas métricas chegam uma vez por fila, tópico e event hub, uma linha que mostra **total das séries** é o total delas, que um monitor criado a partir dela também lê; uma latência, e as mensagens em espera e as outras quantidades retidas do namespace em um intervalo de mais de 3 horas, mostram **média das séries**: a fila média.
+
 > [!IMPORTANT]
 > O monitoramento da nuvem publica cada número minutos depois do momento que ele mede: de 10 a 20 minutos para o CloudWatch consultado como acima, poucos minutos para o Azure Monitor e o Cloud Monitoring. Ele é armazenado no momento que mede. Dê a um monitor sobre essas métricas uma janela maior que esse atraso (30 minutos para o CloudWatch, 15 para os outros), ou ele não vê dados e nunca dispara.
 

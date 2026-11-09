@@ -4,12 +4,32 @@ import {
   ONEUPTIME_LABEL_ATTRIBUTE_PREFIX,
   extractOneuptimeLabelNames,
 } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
+import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import { getAzureStoredMetricName } from "Common/Types/Cloud/CloudKeyMetrics";
 import {
   CLOUD_PLATFORM_ALIASES,
+  CloudProvider,
   FaasCloudPlatform,
   ManagedCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
+import {
+  AZURE_RESOURCE_TYPES,
+  CloudResourceTypeDescriptor,
+} from "Common/Types/Cloud/CloudResourceCatalog";
+import {
+  getCloudResourceMetricAggregation,
+  hasCloudResourceSummedMetrics,
+} from "Common/Types/Cloud/CloudResourceMetricAggregation";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import RollingTime from "Common/Types/RollingTime/RollingTime";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import MetricQueryCloudAggregation from "Common/Utils/Metrics/MetricQueryCloudAggregation";
+import {
+  CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
+  CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
+} from "../../../FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
 import {
   CLOUD_ACCOUNTS,
   CLOUD_AWS_ECS,
@@ -26,6 +46,7 @@ import {
 import {
   DocsFence,
   DocsHeading,
+  TRANSLATED_LANGUAGES,
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
@@ -35,7 +56,7 @@ import {
   boldPaths,
   tabLabels,
 } from "./DocsPageShape";
-import { prose } from "./DocsTranslationChecks";
+import { prose, toLatinDigits } from "./DocsTranslationChecks";
 import { afterEach, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -965,6 +986,202 @@ describe("cloud resources", () => {
       .pop();
 
     expect(parent?.text).toBe("How a resource is identified");
+  });
+});
+
+/*
+ * "Alerting on a resource" says what a Service Bus or Event Hubs
+ * namespace's metric rows, and the monitors created from them, read: its
+ * queues' total where a row says "total of series", the average queue where
+ * it says "average of series". The rows read so by the catalog
+ * (CloudResourceMetricAggregation, through CloudMonitoredResourceScope), and
+ * a monitor created from the explorer by MetricQueryCloudAggregation.
+ */
+describe("a namespace's totals", () => {
+  const SENTENCE_START: string =
+    "On a Service Bus or Event Hubs namespace, whose metrics arrive once per queue, topic and event hub,";
+  const HOUR_MS: number = 60 * 60 * 1000;
+  const SERVICE_BUS: string = "Microsoft.ServiceBus/namespaces";
+  const RESOURCE_ID: string =
+    "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.ServiceBus/namespaces/shop";
+
+  function sentence(): string {
+    const lines: Array<string> = pageProse(RESOURCES)
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith(SENTENCE_START);
+      });
+
+    expect(lines).toHaveLength(1);
+
+    return lines[0] as string;
+  }
+
+  // The intervals a range this many hours long is read in.
+  function intervalOver(hours: number): AggregationInterval {
+    return AggregationIntervalUtil.getAggregationIntervalForWindow({
+      startDate: new Date(0),
+      endDate: new Date(hours * HOUR_MS),
+    });
+  }
+
+  function serviceBusRead(
+    metric: string,
+    aggregation: string,
+    hours: number,
+  ): AggregationType | undefined {
+    return getCloudResourceMetricAggregation({
+      provider: CloudProvider.Azure,
+      type: SERVICE_BUS,
+      metricName: getAzureStoredMetricName(metric, aggregation),
+      aggregationInterval: intervalOver(hours),
+    });
+  }
+
+  it("sits under Alerting on a resource, after its steps", () => {
+    const page: string = englishPage(RESOURCES);
+    const lines: Array<string> = page.split("\n");
+    const at: number = lines.findIndex((line: string): boolean => {
+      return line.startsWith(SENTENCE_START);
+    });
+    const section: DocsHeading | undefined = scanMarkdown(page)
+      .headings.filter((heading: DocsHeading): boolean => {
+        return heading.level === 2 && heading.line <= at + 1;
+      })
+      .pop();
+
+    expect(section?.text).toBe("Alerting on a resource");
+    expect(lines[at - 2]).toBe(":::");
+  });
+
+  it("names the rows' captions as the namespace's Metrics tab draws them", () => {
+    expect(boldLabels(sentence())).toEqual([
+      CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
+      CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
+    ]);
+  });
+
+  it("names the only resource types whose rows add up", () => {
+    const summed: Array<string> = AZURE_RESOURCE_TYPES.filter(
+      (descriptor: CloudResourceTypeDescriptor): boolean => {
+        return hasCloudResourceSummedMetrics(descriptor);
+      },
+    ).map((descriptor: CloudResourceTypeDescriptor): string => {
+      return descriptor.label;
+    });
+
+    expect(summed).toEqual(["Service Bus Namespace", "Event Hubs Namespace"]);
+  });
+
+  it("totals a count over any range, an amount held up to 3 hours, and never a latency", () => {
+    expect(sentence()).toContain(
+      "a latency, and messages waiting and the namespace's other amounts held over a range longer than 3 hours, read",
+    );
+
+    // A count: the total over any range.
+    for (const hours of [1, 3, 6, 24, 24 * 7, 24 * 30]) {
+      expect(serviceBusRead("IncomingMessages", "total", hours)).toBe(
+        AggregationType.Sum,
+      );
+    }
+
+    // Messages waiting: the total up to 3 hours, the average queue past it.
+    expect(intervalOver(3)).toBe(AggregationInterval.Minute);
+    expect(serviceBusRead("ActiveMessages", "average", 3)).toBe(
+      AggregationType.Sum,
+    );
+    expect(serviceBusRead("ActiveMessages", "average", 3 + 1 / 60)).toBe(
+      undefined,
+    );
+    expect(serviceBusRead("ActiveMessages", "average", 24)).toBe(undefined);
+
+    // A latency: the average queue at any range.
+    expect(serviceBusRead("ServerSendLatency", "average", 1)).toBe(undefined);
+  });
+
+  /*
+   * Every translation says it where the English page does, with the row
+   * captions as that language's Dashboard draws them and the same 3 hours
+   * (CloudDocsTranslations holds the rest of each page to the English one,
+   * but finds a number anywhere on the page).
+   */
+  it("says the same in every language, in its Dashboard's captions and with its 3 hours", () => {
+    for (const language of TRANSLATED_LANGUAGES) {
+      const locale: Record<string, string> = JSON.parse(
+        readSource(`${DASHBOARD}/Locales/${language}.json`),
+      ) as Record<string, string>;
+      const summed: string = locale[CLOUD_RESOURCE_SUMMED_ROW_CAPTION] || "";
+      const averaged: string =
+        locale[CLOUD_RESOURCE_AVERAGED_ROW_CAPTION] || "";
+      const lines: Array<string> = readPage(language, RESOURCES)
+        .split("\n")
+        .filter((line: string): boolean => {
+          return Boolean(summed) && line.includes(`**${summed}**`);
+        });
+
+      expect(`${language}: ${lines.length}`).toBe(`${language}: 1`);
+
+      const line: string = lines[0] || "";
+
+      expect(`${language}: ${boldLabels(line).join(" | ")}`).toBe(
+        `${language}: ${summed} | ${averaged}`,
+      );
+      // Japanese says "once" with a 1 too: "1 回ずつ".
+      expect(
+        `${language}: ${(toLatinDigits(line).match(/\d+/g) || [])
+          .filter((number: string): boolean => {
+            return number !== "1";
+          })
+          .join(" ")}`,
+      ).toBe(`${language}: 3`);
+      const serviceBus: RegExp = /Service.?Bus/;
+      const eventHubs: RegExp = /Event.?Hubs/;
+
+      expect(`${language}: ${serviceBus.test(line)}`).toBe(`${language}: true`);
+      expect(`${language}: ${eventHubs.test(line)}`).toBe(`${language}: true`);
+    }
+  });
+
+  it("creates a monitor that reads a summed row's total too", () => {
+    expect(
+      readSource(`${DASHBOARD}/Pages/Monitor/Create.tsx`).includes(
+        "queryConfigs: getMetricViewMonitorQueryConfigs({",
+      ),
+    ).toBe(true);
+
+    /*
+     * An hour of the explorer is read by the minute, and so is the monitor
+     * created from it, whose window is the view's: an amount held the view
+     * summed stays summed.
+     */
+    const queryConfig: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "a",
+        title: undefined,
+        description: undefined,
+        legend: undefined,
+        legendUnit: undefined,
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: getAzureStoredMetricName("ActiveMessages", "average"),
+          attributes: { "azuremonitor.resource_id": RESOURCE_ID },
+          aggegationType: AggregationType.Sum,
+        },
+      },
+    } as MetricQueryConfigData;
+    const monitorQueries: Array<MetricQueryConfigData> =
+      MetricQueryCloudAggregation.withQueriesFollowingInterval({
+        queryConfigs: [queryConfig],
+        from: intervalOver(1),
+        to: MetricQueryCloudAggregation.getMetricMonitorReadInterval({
+          rollingTime: RollingTime.Past1Hour,
+        }),
+      });
+
+    expect(monitorQueries[0]?.metricQueryData.filterData.aggegationType).toBe(
+      AggregationType.Sum,
+    );
   });
 });
 

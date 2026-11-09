@@ -635,6 +635,8 @@ A resource of a [connected account](/docs/telemetry/cloud-accounts) is offered t
 3. Click **Create monitor from this view**: the monitor watches that metric for that resource.
 :::
 
+On a Service Bus or Event Hubs namespace, whose metrics arrive once per queue, topic and event hub, a row that reads **total of series** is their total, which a monitor created from it reads too; a latency, and messages waiting and the namespace's other amounts held over a range longer than 3 hours, read **average of series**: the average queue.
+
 > [!IMPORTANT]
 > Cloud monitoring publishes each number minutes after the time it measures: 10 to 20 minutes for CloudWatch polled as above, a few minutes for Azure Monitor and Cloud Monitoring. It is stored under the time it measures. Give a monitor over these metrics a window longer than that (30 minutes for CloudWatch, 15 for the others), or it sees no data and never fires.
 

@@ -635,6 +635,8 @@ Een resource van een [gekoppeld account](/docs/telemetry/cloud-accounts) krijgt 
 3. Klik op **Monitor maken vanuit deze weergave**: de monitor bewaakt die metriek voor die resource.
 :::
 
+Bij een Service Bus- of Event Hubs-namespace, waarvan de metrieken eenmaal per wachtrij, topic en event hub binnenkomen, is een rij die **totaal van reeksen** toont hun totaal, dat ook een monitor leest die ervan is gemaakt; een latentie, en wachtende berichten en de andere aangehouden hoeveelheden van de namespace over een bereik van meer dan 3 uur, tonen **gemiddelde van reeksen**: de gemiddelde wachtrij.
+
 > [!IMPORTANT]
 > Cloudmonitoring publiceert elk getal minuten na het tijdstip dat het meet: 10 tot 20 minuten voor CloudWatch dat zoals hierboven wordt gepold, een paar minuten voor Azure Monitor en Cloud Monitoring. Het wordt opgeslagen onder het tijdstip dat het meet. Geef een monitor op deze metrieken een venster dat langer is dan die vertraging (30 minuten voor CloudWatch, 15 voor de andere), anders ziet hij geen gegevens en gaat hij nooit af.
 

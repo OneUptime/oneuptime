@@ -635,6 +635,8 @@ A un recurso de una [cuenta conectada](/docs/telemetry/cloud-accounts) se le ofr
 3. Haga clic en **Crear monitor a partir de esta vista**: el monitor vigila esa métrica para ese recurso.
 :::
 
+En un espacio de nombres de Service Bus o Event Hubs, cuyas métricas llegan una vez por cola, tema y event hub, una fila que muestra **total de las series** es su total, que también lee un monitor creado a partir de ella; una latencia, y los mensajes en espera y las demás cantidades retenidas del espacio de nombres en un rango de más de 3 horas, muestran **promedio de las series**: la cola promedio.
+
 > [!IMPORTANT]
 > La supervisión de la nube publica cada valor unos minutos después del momento que mide: de 10 a 20 minutos para CloudWatch consultado como arriba, unos minutos para Azure Monitor y Cloud Monitoring. Se guarda en el momento que mide. Dé a un monitor sobre estas métricas una ventana más larga que eso (30 minutos para CloudWatch, 15 para los demás), o no verá datos y nunca se disparará.
 

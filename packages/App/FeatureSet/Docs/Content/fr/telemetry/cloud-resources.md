@@ -635,6 +635,8 @@ Une ressource d'un [compte connecté](/docs/telemetry/cloud-accounts) se voit pr
 3. Cliquez sur **Créer un moniteur à partir de cette vue** : le moniteur surveille cette métrique pour cette ressource.
 :::
 
+Sur un espace de noms Service Bus ou Event Hubs, dont les métriques arrivent une fois par file d'attente, sujet et event hub, une ligne qui affiche **total des séries** est leur total, que lit aussi un moniteur créé à partir d'elle ; une latence, ainsi que les messages en attente et les autres quantités détenues par l'espace de noms sur une plage de plus de 3 heures, affichent **moyenne des séries** : la file moyenne.
+
 > [!IMPORTANT]
 > La surveillance cloud publie chaque valeur quelques minutes après l'instant qu'elle mesure : 10 à 20 minutes pour CloudWatch interrogé comme ci-dessus, quelques minutes pour Azure Monitor et Cloud Monitoring. Elle est stockée à l'instant qu'elle mesure. Donnez à un moniteur sur ces métriques une fenêtre plus longue que ce délai (30 minutes pour CloudWatch, 15 pour les autres), sinon il ne voit aucune donnée et ne se déclenche jamais.
 
