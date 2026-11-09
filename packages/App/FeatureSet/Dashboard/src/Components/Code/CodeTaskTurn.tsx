@@ -19,6 +19,8 @@ import {
   CODE_TASK_PROFILE_CHIP_LABEL,
   CODE_TURN_FAILED,
 } from "./CodeTaskCopy";
+import CodeTaskRetryNote from "./CodeTaskRetryNote";
+import { CODE_TASK_FAILED_AFTER_ATTEMPTS } from "./CodeTaskStatusCopy";
 import CodeTaskStateBadge from "./CodeTaskStateBadge";
 import CodeTaskSteps, { ARRIVED_STEP_CLASS_NAME } from "./CodeTaskSteps";
 import CodeTimeAgo from "./CodeTimeAgo";
@@ -53,6 +55,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -131,6 +134,11 @@ export interface ComponentProps {
   // Show "Try again" on a failed or stopped latest request.
   onRetry?: (() => void) | undefined;
   isRetrying?: boolean | undefined;
+  /*
+   * Start the next attempt of a latest turn AI tries again by itself now,
+   * instead of after its wait (Retry now).
+   */
+  onRetryNow?: (() => void) | undefined;
   // Link to this turn's full log.
   logRoute?: Route | undefined;
   /*
@@ -830,7 +838,24 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
             hasEndedInView ? ` ${ARRIVED_STEP_CLASS_NAME}` : ""
           }`}
         >
-          {isWorking && (isQueued || turn.steps.length === 0) ? (
+          {/*
+            A turn AI tries again by itself: its attempt, why the one before
+            failed, and while it waits, when the next starts.
+          */}
+          {isWorking && turn.retry ? (
+            <CodeTaskRetryNote
+              retry={turn.retry}
+              onRetryNow={props.isLatest ? props.onRetryNow : undefined}
+              isRetryingNow={props.isRetrying}
+              dataTestId="code-turn-retry-note"
+            />
+          ) : (
+            <></>
+          )}
+
+          {isWorking &&
+          !turn.retry?.nextAttemptAt &&
+          (isQueued || turn.steps.length === 0) ? (
             <div
               role="status"
               data-testid="code-turn-working"
@@ -953,7 +978,22 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                 </p>
                 {turn.errorMessage ? (
                   <p className="mt-0.5 break-words text-red-700">
-                    {turn.errorMessage}
+                    {/* As it was written: its full stop at its end. */}
+                    <IsolatedText text={turn.errorMessage} />
+                  </p>
+                ) : (
+                  <></>
+                )}
+                {/* AI tried it again by itself before it failed. */}
+                {turn.retry && turn.retry.attempt > 1 ? (
+                  <p
+                    data-testid="code-turn-failed-attempts"
+                    className="mt-0.5 text-red-700"
+                  >
+                    {translator.translateTemplate(
+                      CODE_TASK_FAILED_AFTER_ATTEMPTS,
+                      { count: translator.formatNumber(turn.retry.attempt) },
+                    )}
                   </p>
                 ) : (
                   <></>

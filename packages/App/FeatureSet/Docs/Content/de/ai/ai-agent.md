@@ -22,7 +22,7 @@ Code ist der Ort, an dem Sie OneUptime AI bitten, in Ihren Repositorys zu arbeit
 :::steps
 ### Code öffnen
 
-Öffnen Sie **Produkte → Code**. Code öffnet sich mit **Was soll die KI tun?**: dem Feld, in dem Sie fragen, mit allen Aufgaben darunter, die neueste zuerst. Gibt es noch kein Repository, bietet Code stattdessen **GitHub verbinden** an, darunter GitLab, Forgejo oder Gitea und jeden Git-Server (siehe [Ein Repository verbinden](#ein-repository-verbinden)). **Repositorys** im Seitenmenü listet die Repositorys auf, in denen die KI arbeiten kann, und fasst die, die OneUptime nicht mehr erreicht, unter **Nicht verbunden** zusammen. Die Seite jedes Repositorys hat dasselbe Feld für dieses Repository.
+Öffnen Sie **Produkte → Code**. Code öffnet sich mit **Was soll die KI tun?**: dem Feld, in dem Sie fragen, mit allen Aufgaben darunter, die neueste zuerst; filtern Sie sie danach, wie sie stehen, jeder Filter mit seiner Anzahl, oder suchen Sie sie nach Titel oder Nummer. Gibt es noch kein Repository, bietet Code stattdessen **GitHub verbinden** an, darunter GitLab, Forgejo oder Gitea und jeden Git-Server (siehe [Ein Repository verbinden](#ein-repository-verbinden)). **Repositorys** im Seitenmenü listet die Repositorys auf, in denen die KI arbeiten kann, und fasst die, die OneUptime nicht mehr erreicht, unter **Nicht verbunden** zusammen. Die Seite jedes Repositorys hat dasselbe Feld für dieses Repository, und dort können Sie Anfragen, die fehlgeschlagen sind oder gestoppt wurden, ankreuzen und mit **Ausgewählte erneut versuchen** alle noch einmal versuchen.
 
 ### Repository und Branch auswählen
 
@@ -57,15 +57,15 @@ Eine Anfrage trägt höchstens 10 Kontextelemente. Token, Schlüssel, Passwörte
 
 ## Die Unterhaltung einer Aufgabe
 
-Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kontext hinzugefügt wurde, dann der Zug der KI – die Schritte, während sie sie ausführt (die Dateien, die sie gelesen und bearbeitet hat, wonach sie gesucht hat, die Befehle, die sie ausgeführt hat), ihre Antwort, die geänderten Dateien mit ihrem Diff und der Pull Request. Oben auf der Seite steht, wo die Aufgabe arbeitet (ihr Repository und der Branch, von dem sie ausging), wie viele Zeilen sie geändert hat, mit einer Schaltfläche zu ihrem Pull Request, und wie es um die Aufgabe steht:
+Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kontext hinzugefügt wurde, dann der Zug der KI – die Schritte, während sie sie ausführt (die Dateien, die sie gelesen und bearbeitet hat, wonach sie gesucht hat, die Befehle, die sie ausgeführt hat), ihre Antwort, die geänderten Dateien mit ihrem Diff und der Pull Request. Oben auf der Seite steht, wo die Aufgabe arbeitet (ihr Repository und der Branch, von dem sie ausging), wie viele Dateien und Zeilen sie geändert hat, wie lange die KI daran gearbeitet hat, mit einer Schaltfläche zu ihrem Pull Request, und wie es um die Aufgabe steht:
 
 | Status | Was er bedeutet |
 | --- | --- |
-| **In der Warteschlange** | Sie wartet darauf, dass ein Runner sie übernimmt. |
+| **In der Warteschlange** | Sie wartet darauf, dass ein Runner sie übernimmt. Ein Durchgang, den die KI von selbst erneut versucht, sagt, welcher Versuch als Nächstes kommt und wann; **Jetzt erneut versuchen** startet ihn sofort. |
 | **Wird bearbeitet…** | Die KI arbeitet daran. **Stoppen** stoppt sie; was sie gepusht hat, bleibt im Branch. |
 | **Wartet auf Sie** | Die KI hat eine Frage gestellt. Beantworten Sie sie im Feld unten. |
 | **Fertig** | Die KI ist fertig: ihre Antwort und der Pull Request, wenn sie Code geändert hat. |
-| **Fehlgeschlagen** | Der Durchgang konnte nicht abgeschlossen werden und sagt, warum. **Erneut versuchen** fragt dasselbe noch einmal. |
+| **Fehlgeschlagen** | Der Durchgang konnte nicht abgeschlossen werden und sagt, warum, und nach wie vielen Versuchen, wenn die KI ihn von selbst erneut versucht hat. **Erneut versuchen** fragt dasselbe noch einmal. |
 | **Gestoppt** | Jemand hat sie gestoppt. **Erneut versuchen** fragt dasselbe noch einmal. |
 
 Um nachzufassen, schreiben Sie in das Feld unten, das sichtbar bleibt, während die Unterhaltung scrollt: Antworten Sie der KI, fügen Sie Kontext hinzu oder bitten Sie um Änderungen. Jede Antwort ist der nächste Durchgang derselben Aufgabe: Sie arbeitet im selben Branch und pusht in denselben Pull Request, solange er offen ist. Eine Aufgabe hat immer nur einen Durchgang zur Zeit, deshalb wartet das Feld, während die KI arbeitet. Das **Protokoll** jedes Durchgangs ist die wörtliche Aufzeichnung dessen, was er getan hat. Bei einer Aufgabe mit mehr als einem Durchgang wechselt eine Auswahl oben auf der Seite **Protokoll** zwischen ihren Durchgängen.
@@ -328,11 +328,11 @@ Alles andere entspricht der Schaltfläche:
 ## Wenn eine Korrektur fehlschlägt
 
 :::details Der Lauf schlägt fehl
-Die Korrektur ließ sich nicht anwenden, das Repository oder der Branch, von dem eine Anfrage ausging, war nicht erreichbar, oder der LLM-Aufruf schlug fehl. Die Unterhaltung der Aufgabe und die Seite, auf der sie gestartet wurde, zeigen den Grund und bieten einen neuen Versuch an. Das **Protokoll** des Durchgangs enthält das vollständige Laufprotokoll.
+Die Korrektur ließ sich nicht anwenden, das Repository oder der Branch, von dem eine Anfrage ausging, war nicht erreichbar, oder der LLM-Aufruf schlug fehl. Ein Fehler, der vorübergehen kann – der KI-Modellanbieter ausgelastet oder nicht erreichbar, ein Aufruf mit Zeitüberschreitung, das Netzwerk –, wird von selbst erneut versucht, bis zu 3 Versuche insgesamt, der zweite nach 1 Minute und der dritte nach 4, es sei denn, der Lauf hat womöglich schon einen Branch gepusht oder einen Pull Request geöffnet. Ein Fehler, der wieder auftreten würde, etwa ein Schlüssel, den der Anbieter ablehnt, oder kein Guthaben mehr, wird nicht erneut versucht. Schlägt ein Durchgang endgültig fehl, zeigen die Unterhaltung der Aufgabe und die Seite, auf der sie gestartet wurde, den Grund und bieten einen neuen Versuch an. Das **Protokoll** des Durchgangs enthält das vollständige Laufprotokoll.
 :::
 
 :::details Der Runner bleibt mitten im Lauf stehen
-Ein Lauf, dessen Heartbeat länger als 12 Minuten ausbleibt, wird mit einem Fehler beendet. Er wird nie von selbst erneut eingereiht, weil der Runner bereits einen Teil eines Korrektur-Branches gepusht haben kann; starten Sie ihn dort neu, wo Sie ihn gestartet haben. Ein Befehl, den der Code-Agent ausführt, hält den Heartbeat am Laufen, solange er läuft, sodass ein langer Build oder eine lange Testsuite nicht für einen angehaltenen Runner gehalten wird.
+Ein Lauf, dessen Heartbeat länger als 12 Minuten ausbleibt, wird auf dieselbe Weise von selbst erneut versucht, wenn er nichts gepusht hat, seine Aufgabe keinen Pull Request hat und ihm Versuche bleiben. Sonst wird er mit einem Fehler beendet, weil der Runner bereits einen Teil eines Korrektur-Branches gepusht haben kann; starten Sie ihn dort neu, wo Sie ihn gestartet haben. Ein Befehl, den der Code-Agent ausführt, hält den Heartbeat am Laufen, solange er läuft, sodass ein langer Build oder eine lange Testsuite nicht für einen angehaltenen Runner gehalten wird.
 :::
 
 :::details Kein Runner übernimmt die Aufgabe

@@ -22,7 +22,7 @@ Codice è il posto in cui chiedi a OneUptime AI di lavorare nei tuoi repository,
 :::steps
 ### Apri Codice
 
-Apri **Prodotti → Codice**. Si apre su **Cosa deve fare l'IA?**: la casella in cui chiedi, con tutte le attività sotto, le più recenti per prime. Se non c'è ancora nessun repository, offre invece **Connetti GitHub**, con sotto GitLab, Forgejo o Gitea e qualsiasi server Git (vedi [Collegare un repository](#collegare-un-repository)). **Repository**, nel suo menu laterale, elenca i repository in cui l'IA può lavorare, e raccoglie sotto **Non connesso** quelli che OneUptime non raggiunge più. La pagina di ogni repository ha la stessa casella per quel repository.
+Apri **Prodotti → Codice**. Si apre su **Cosa deve fare l'IA?**: la casella in cui chiedi, con tutte le attività sotto, le più recenti per prime; filtrale in base a come stanno, ogni filtro con il suo conteggio, o cercale per titolo o numero. Se non c'è ancora nessun repository, offre invece **Connetti GitHub**, con sotto GitLab, Forgejo o Gitea e qualsiasi server Git (vedi [Collegare un repository](#collegare-un-repository)). **Repository**, nel suo menu laterale, elenca i repository in cui l'IA può lavorare, e raccoglie sotto **Non connesso** quelli che OneUptime non raggiunge più. La pagina di ogni repository ha la stessa casella per quel repository, e lì puoi spuntare le richieste non riuscite o fermate e riprovarle tutte con **Riprova selezionate**.
 
 ### Scegli il repository e il branch
 
@@ -57,15 +57,15 @@ Una richiesta porta al massimo 10 elementi di contesto. Token, chiavi, password 
 
 ## La conversazione di un'attività
 
-La pagina di un'attività è una conversazione: cosa è stato chiesto e il contesto aggiunto, poi il turno dell'IA – i passi che compie mentre li compie (i file che ha letto e modificato, cosa ha cercato, i comandi che ha eseguito), la sua risposta, i file che ha modificato con il loro diff, e la pull request. In cima alla pagina si vede dove lavora l'attività (il suo repository e il branch da cui è partita), quante righe ha modificato, con un pulsante per la sua pull request, e a che punto è l'attività:
+La pagina di un'attività è una conversazione: cosa è stato chiesto e il contesto aggiunto, poi il turno dell'IA – i passi che compie mentre li compie (i file che ha letto e modificato, cosa ha cercato, i comandi che ha eseguito), la sua risposta, i file che ha modificato con il loro diff, e la pull request. In cima alla pagina si vede dove lavora l'attività (il suo repository e il branch da cui è partita), quanti file e righe ha modificato, per quanto tempo l'IA ci ha lavorato, con un pulsante per la sua pull request, e a che punto è l'attività:
 
 | Stato | Cosa significa |
 | --- | --- |
-| **In coda** | Aspetta che un Runner la prenda. |
+| **In coda** | Aspetta che un Runner la prenda. Un turno che l'IA riprova da sola dice quale tentativo viene dopo e quando; **Riprova ora** lo avvia subito. |
 | **In corso…** | L'IA ci sta lavorando. **Ferma** la ferma; ciò che ha già inviato con il push resta sul branch. |
 | **In attesa di te** | L'IA ha fatto una domanda. Rispondi nella casella qui sotto. |
 | **Fatto** | L'IA ha finito: la sua risposta, e la pull request se ha modificato il codice. |
-| **Non riuscito** | Il turno non è riuscito a finire, e dice perché. **Riprova** chiede di nuovo la stessa cosa. |
+| **Non riuscito** | Il turno non è riuscito a finire, e dice perché, e dopo quanti tentativi quando l'IA lo ha riprovato da sola. **Riprova** chiede di nuovo la stessa cosa. |
 | **Arrestato** | Qualcuno l'ha fermata. **Riprova** chiede di nuovo la stessa cosa. |
 
 Per continuare, scrivi nella casella in fondo, che resta visibile mentre la conversazione scorre: rispondi all'IA, aggiungi contesto o chiedi modifiche. Ogni risposta è il turno successivo della stessa attività: lavora sullo stesso branch e fa il push nella stessa pull request finché è aperta. Un'attività fa un turno alla volta, quindi la casella aspetta mentre l'IA lavora. Il **Registro** di ogni turno è la registrazione fedele di ciò che ha fatto. In un'attività con più di un turno, un selettore in cima alla pagina **Registro** passa da un turno all'altro.
@@ -328,11 +328,11 @@ Tutto il resto è come il pulsante:
 ## Quando una correzione non riesce
 
 :::details L'esecuzione va in errore
-La correzione non si è potuta applicare, il repository o il branch da cui partiva una richiesta non era raggiungibile, o la chiamata al LLM è fallita. La conversazione dell'attività, e la pagina da cui è stata avviata, mostrano il motivo e offrono di riprovare. Il **Registro** del turno contiene il log completo dell'esecuzione.
+La correzione non si è potuta applicare, il repository o il branch da cui partiva una richiesta non era raggiungibile, o la chiamata al LLM è fallita. Un errore passeggero (il fornitore del modello di IA occupato o non disponibile, una chiamata scaduta, la rete) viene riprovato da solo, fino a 3 tentativi in tutto, il secondo dopo 1 minuto e il terzo dopo 4, a meno che l'esecuzione non possa aver già fatto il push di un branch o aperto una pull request. Un errore che si ripeterebbe, come una chiave che il fornitore rifiuta o i crediti esauriti, non viene riprovato. Quando un turno fallisce del tutto, la conversazione dell'attività, e la pagina da cui è stata avviata, mostrano il motivo e offrono di riprovare. Il **Registro** del turno contiene il log completo dell'esecuzione.
 :::
 
 :::details Il Runner si ferma a metà di un'esecuzione
-Un'esecuzione il cui heartbeat tace da più di 12 minuti viene chiusa con un errore. Non viene mai rimessa in coda da sola, perché il Runner potrebbe aver già fatto il push di una parte di un branch di correzione; riavviala da dove l'avevi avviata. Un comando eseguito dall'agente di codice tiene vivo l'heartbeat mentre è in esecuzione, così una build o una suite di test lunga non viene scambiata per un Runner fermo.
+Un'esecuzione il cui heartbeat tace da più di 12 minuti viene riprovata da sola allo stesso modo se non ha fatto il push di nulla, la sua attività non ha una pull request e le restano tentativi. Altrimenti viene chiusa con un errore, perché il Runner potrebbe aver già fatto il push di una parte di un branch di correzione; riavviala da dove l'avevi avviata. Un comando eseguito dall'agente di codice tiene vivo l'heartbeat mentre è in esecuzione, così una build o una suite di test lunga non viene scambiata per un Runner fermo.
 :::
 
 :::details Nessun Runner prende l'attività

@@ -26,11 +26,13 @@ import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import {
   CodeTaskBlockerType,
+  CodeTaskListFilter,
   CodeTaskOriginType,
   CodeTaskState,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
 } from "../../../Types/AI/CodeTask";
+import { TransientAIFailureKind } from "../../../Types/AI/TransientAIFailure";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -48,6 +50,7 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
 import { MemoryRouter, Route as RouterRoute, Routes } from "react-router-dom";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import GitHubMark from "../../../Types/ProviderLogo/Marks/github";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
@@ -259,7 +262,10 @@ beforeAll(async () => {
   await translation.use(initReactI18next).init({
     lng: "en",
     fallbackLng: "en",
-    resources: { en: { translation: englishLocale } },
+    resources: {
+      en: { translation: englishLocale },
+      fa: { translation: persianLocale },
+    },
     interpolation: { escapeValue: false },
   });
 });
@@ -553,10 +559,14 @@ describe("Code's first page: the question, one box, and every task", () => {
         return within(row).getByTestId("code-task-row-repository").textContent;
       }),
     ).toEqual(["checkout-api", "storefront-web"]);
+    // With the list's filters: every task, and how many each filter shows.
     expect(listTasksMock).toHaveBeenCalledWith({
       scope: { allRepositories: true },
       skip: 0,
       limit: 20,
+      filter: CodeTaskListFilter.All,
+      search: "",
+      withCounts: true,
     });
     expect(screen.getByTestId("code-tasks-count")).toHaveTextContent("2");
     // Something has been asked: no examples.
@@ -1999,6 +2009,9 @@ describe("a repository's page: ask AI", () => {
       scope: { repositoryId: REPOSITORY_ID },
       skip: 0,
       limit: 20,
+      filter: CodeTaskListFilter.All,
+      search: "",
+      withCounts: true,
     });
   });
 
@@ -2340,6 +2353,270 @@ describe("a task's conversation", () => {
       "Lines added: 27, lines removed: 1",
     );
     expect(screen.getByTestId("code-task-facts")).toContainElement(stat);
+    // And in how many files.
+    expect(screen.getByTestId("code-task-files-changed")).toHaveTextContent(
+      "3 files changed",
+    );
+    expect(screen.getByTestId("code-task-files-changed")).toContainElement(
+      stat,
+    );
+  });
+
+  test("one file changed is said as one", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({ changes: { files: 1, additions: 2, deletions: 0 } }),
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    expect(
+      await screen.findByTestId("code-task-files-changed"),
+    ).toHaveTextContent("1 file changed");
+  });
+
+  test("how long AI worked on it is said at the top, over all its turns - and counted on while it works", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        turns: [
+          turn({
+            startedAt: "2026-10-19T10:00:00.000Z",
+            completedAt: "2026-10-19T10:09:00.000Z",
+          }),
+          turn({
+            runId: NEW_TASK_ID,
+            createdAt: "2026-10-19T11:00:00.000Z",
+            startedAt: "2026-10-19T11:00:00.000Z",
+            completedAt: "2026-10-19T11:05:00.000Z",
+          }),
+        ],
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const workTime: HTMLElement = await screen.findByTestId(
+      "code-task-work-time",
+    );
+    expect(workTime).toHaveTextContent("worked 14 minutes");
+    expect(screen.getByTestId("code-task-facts")).toContainElement(workTime);
+
+    cleanup();
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({ state: CodeTaskState.Working }),
+        turns: [
+          turn({
+            status: AIRunStatus.Running,
+            state: CodeTaskState.Working,
+            startedAt: new Date(Date.now() - 3 * 60_000).toISOString(),
+            completedAt: undefined,
+          }),
+        ],
+      }) as never,
+    );
+    getTurnProgressMock.mockResolvedValue({
+      runId: TASK_ID,
+      status: AIRunStatus.Running,
+      state: CodeTaskState.Working,
+      isQueued: false,
+      steps: [],
+      hasMore: false,
+    } as never);
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    expect(await screen.findByTestId("code-task-work-time")).toHaveTextContent(
+      "3 minutes so far",
+    );
+  });
+
+  test("a task AI has not started yet says nothing of how long it worked", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({ state: CodeTaskState.Working, isQueued: true }),
+        turns: [
+          turn({
+            status: AIRunStatus.Queued,
+            state: CodeTaskState.Working,
+            startedAt: undefined,
+            completedAt: undefined,
+          }),
+        ],
+      }) as never,
+    );
+    getTurnProgressMock.mockResolvedValue({
+      runId: TASK_ID,
+      status: AIRunStatus.Queued,
+      state: CodeTaskState.Working,
+      isQueued: true,
+      steps: [],
+      hasMore: false,
+    } as never);
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    await screen.findByTestId("code-task-header");
+    expect(screen.queryByTestId("code-task-work-time")).toBeNull();
+  });
+
+  test("a turn AI tries again by itself says which attempt, why the one before failed and when the next starts - and Retry now starts it", async () => {
+    const retry: CodeTaskTurnJSON["retry"] = {
+      attempt: 2,
+      maxAttempts: 3,
+      nextAttemptAt: new Date(Date.now() + 4 * 60_000).toISOString(),
+      kind: TransientAIFailureKind.RateLimited,
+      reason: "429 Too Many Requests",
+    };
+
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({
+          state: CodeTaskState.Working,
+          isQueued: true,
+          retry,
+        }),
+        turns: [
+          turn({
+            status: AIRunStatus.Queued,
+            state: CodeTaskState.Working,
+            completedAt: undefined,
+            retry,
+          }),
+        ],
+      }) as never,
+    );
+    getTurnProgressMock.mockResolvedValue({
+      runId: TASK_ID,
+      status: AIRunStatus.Queued,
+      state: CodeTaskState.Working,
+      isQueued: true,
+      steps: [],
+      hasMore: false,
+      retry,
+    } as never);
+    retryMock.mockResolvedValue(undefined as never);
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    // At the top, in a word.
+    const headerNote: HTMLElement = await screen.findByTestId(
+      "code-task-header-retry",
+    );
+    expect(headerNote).toHaveTextContent("Attempt 2 of 3");
+    expect(headerNote).toHaveTextContent(/Trying again in (3|4) minutes/);
+    // The size of the header's other facts, not the page's.
+    expect(headerNote).toHaveClass("text-sm");
+
+    // In the turn, in full - instead of "Waiting for a Runner".
+    const note: HTMLElement = screen.getByTestId("code-turn-retry-note");
+    expect(note).toHaveTextContent("Attempt 2 of 3");
+    expect(
+      within(note).getByTestId("code-task-retry-reason"),
+    ).toHaveTextContent("The AI model provider was busy (rate limited).");
+    expect(screen.queryByTestId("code-turn-working")).toBeNull();
+
+    await userEvent.click(within(note).getByTestId("code-task-retry-now"));
+    expect(retryMock).toHaveBeenCalledWith(TASK_ID);
+  });
+
+  test("a reader who may only read is told of the next attempt, with no Retry now", async () => {
+    const retry: CodeTaskTurnJSON["retry"] = {
+      attempt: 2,
+      maxAttempts: 3,
+      nextAttemptAt: new Date(Date.now() + 60_000).toISOString(),
+      kind: TransientAIFailureKind.NetworkError,
+    };
+
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        canAsk: false,
+        task: summary({ state: CodeTaskState.Working, isQueued: true }),
+        turns: [
+          turn({
+            status: AIRunStatus.Queued,
+            state: CodeTaskState.Working,
+            completedAt: undefined,
+            retry,
+          }),
+        ],
+      }) as never,
+    );
+    getTurnProgressMock.mockResolvedValue({
+      runId: TASK_ID,
+      status: AIRunStatus.Queued,
+      state: CodeTaskState.Working,
+      isQueued: true,
+      steps: [],
+      hasMore: false,
+      retry,
+    } as never);
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const note: HTMLElement = await screen.findByTestId("code-turn-retry-note");
+    expect(note).toHaveTextContent(
+      "The connection to the AI model provider dropped.",
+    );
+    expect(within(note).queryByTestId("code-task-retry-now")).toBeNull();
+  });
+
+  test("a turn that failed after AI tried it again by itself says after how many attempts", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({ state: CodeTaskState.Failed }),
+        turns: [
+          turn({
+            status: AIRunStatus.Error,
+            state: CodeTaskState.Failed,
+            errorMessage: "LLM completion request failed",
+            retry: { attempt: 3, maxAttempts: 3 },
+          }),
+        ],
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    expect(
+      await screen.findByTestId("code-turn-failed-attempts"),
+    ).toHaveTextContent("Failed after 3 attempts.");
+    expect(screen.queryByTestId("code-turn-retry-note")).toBeNull();
+    expect(screen.queryByTestId("code-task-header-retry")).toBeNull();
+  });
+
+  test("in Persian, a turn says after how many attempts in Persian digits", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({ state: CodeTaskState.Failed }),
+        turns: [
+          turn({
+            status: AIRunStatus.Error,
+            state: CodeTaskState.Failed,
+            errorMessage: "LLM completion request failed",
+            retry: { attempt: 3, maxAttempts: 3 },
+          }),
+        ],
+      }) as never,
+    );
+    await translation.changeLanguage("fa");
+
+    try {
+      draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+      expect(
+        await screen.findByTestId("code-turn-failed-attempts"),
+      ).toHaveTextContent("پس از ۳ تلاش ناموفق بود.");
+      // The error as it was written, in its own isolate.
+      const error: HTMLElement = within(
+        screen.getByTestId("code-turn-failed"),
+      ).getByText("LLM completion request failed");
+      expect(error.tagName).toBe("BDI");
+      expect(error).toHaveAttribute("dir", "ltr");
+    } finally {
+      await translation.changeLanguage("en");
+    }
   });
 
   test("a task started from a branch the person picked works from that branch, and says so", async () => {

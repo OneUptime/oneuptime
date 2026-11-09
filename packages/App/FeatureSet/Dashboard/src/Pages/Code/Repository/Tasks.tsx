@@ -43,6 +43,9 @@ import React, {
  * with no box, and reads the tasks. A repository with no task yet suggests
  * what to ask. Sending opens the new task's conversation.
  */
+// A repository's task list: wider than the request box above it.
+export const CODE_TASKS_WIDE_CLASS_NAME: string = "mx-auto w-full max-w-5xl";
+
 const CodeRepositoryTasks: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -99,8 +102,8 @@ const CodeRepositoryTasks: FunctionComponent<
   const showTaskList: boolean = !(repository.canAsk && hasNoTasks);
 
   return (
-    <div className={`${CODE_COLUMN_CLASS_NAME} space-y-8 pb-10`}>
-      <div className="space-y-4">
+    <div className="space-y-8 pb-10">
+      <div className={`${CODE_COLUMN_CLASS_NAME} space-y-4`}>
         <div
           data-testid="code-repository-header"
           className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500"
@@ -166,8 +169,16 @@ const CodeRepositoryTasks: FunctionComponent<
         <CodeAskBox repository={repository} showExamples={hasNoTasks} />
       </div>
 
+      {/*
+        The tasks take the page's width: a row has room for its state, its
+        pull request, how long it took and why it failed.
+      */}
       {showTaskList ? (
-        <section data-testid="code-tasks" aria-labelledby="code-tasks-heading">
+        <section
+          data-testid="code-tasks"
+          aria-labelledby="code-tasks-heading"
+          className={CODE_TASKS_WIDE_CLASS_NAME}
+        >
           <h2
             id="code-tasks-heading"
             className="flex items-baseline gap-2 px-1 text-sm font-semibold text-gray-900"
@@ -194,6 +205,8 @@ const CodeRepositoryTasks: FunctionComponent<
               onCount={(count: number) => {
                 setTaskCount(count);
               }}
+              showFilters={true}
+              canRetry={repository.canAsk && !repository.blocker}
               emptyState={
                 <div
                   data-testid="code-tasks-empty"

@@ -938,6 +938,7 @@ import { AddTelemetryIngestionBudgets1809063245917 } from "./1809063245917-AddTe
 import { AllowDiscoveryImportWithoutScan1809063255775 } from "./1809063255775-AllowDiscoveryImportWithoutScan";
 import { AddUserLanguage1809063412000 } from "./1809063412000-AddUserLanguage";
 import { AddTelemetryIngestionKeyRefusals1809071100000 } from "./1809071100000-AddTelemetryIngestionKeyRefusals";
+import { AddCodeFixRunAutoRetry1809080300000 } from "./1809080300000-AddCodeFixRunAutoRetry";
 
 export default [
   InitialMigration,
@@ -1880,4 +1881,5 @@ export default [
   AllowDiscoveryImportWithoutScan1809063255775,
   AddUserLanguage1809063412000,
   AddTelemetryIngestionKeyRefusals1809071100000,
+  AddCodeFixRunAutoRetry1809080300000,
 ];

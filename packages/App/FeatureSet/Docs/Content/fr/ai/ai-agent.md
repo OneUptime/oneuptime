@@ -22,7 +22,7 @@ Code est l'endroit où vous demandez à OneUptime AI de travailler dans vos dép
 :::steps
 ### Ouvrir Code
 
-Ouvrez **Produits → Code**. Code s'ouvre sur **Que doit faire l'IA ?** : la zone où vous demandez, avec toutes les tâches en dessous, les plus récentes d'abord. S'il n'y a encore aucun dépôt, Code propose plutôt **Connecter GitHub**, avec GitLab, Forgejo ou Gitea et tout serveur Git en dessous (voir [Connecter un dépôt](#connecter-un-dépôt)). **Dépôts**, dans son menu latéral, liste les dépôts où l'IA peut travailler, et regroupe sous **Non connecté** ceux que OneUptime n'atteint plus. La page de chaque dépôt a la même zone pour ce dépôt.
+Ouvrez **Produits → Code**. Code s'ouvre sur **Que doit faire l'IA ?** : la zone où vous demandez, avec toutes les tâches en dessous, les plus récentes d'abord ; filtrez-les selon où elles en sont, chaque filtre avec son nombre, ou cherchez-les par titre ou par numéro. S'il n'y a encore aucun dépôt, Code propose plutôt **Connecter GitHub**, avec GitLab, Forgejo ou Gitea et tout serveur Git en dessous (voir [Connecter un dépôt](#connecter-un-dépôt)). **Dépôts**, dans son menu latéral, liste les dépôts où l'IA peut travailler, et regroupe sous **Non connecté** ceux que OneUptime n'atteint plus. La page de chaque dépôt a la même zone pour ce dépôt, et vous pouvez y cocher les demandes en échec ou arrêtées et les réessayer toutes avec **Réessayer la sélection**.
 
 ### Choisir le dépôt et la branche
 
@@ -57,15 +57,15 @@ Une demande porte au plus 10 éléments de contexte. Les jetons, clés, mots de 
 
 ## La conversation d'une tâche
 
-La page d'une tâche est une conversation : ce qui a été demandé et le contexte ajouté, puis le tour de l'IA – ses étapes, affichées au fur et à mesure (les fichiers qu'elle a lus et modifiés, ce qu'elle a cherché, les commandes qu'elle a exécutées), sa réponse, les fichiers qu'elle a modifiés avec leur diff, et la pull request. Le haut de la page indique où travaille la tâche (son dépôt et la branche d'où elle est partie), combien de lignes elle a modifiées, avec un bouton vers sa pull request, et où en est la tâche :
+La page d'une tâche est une conversation : ce qui a été demandé et le contexte ajouté, puis le tour de l'IA – ses étapes, affichées au fur et à mesure (les fichiers qu'elle a lus et modifiés, ce qu'elle a cherché, les commandes qu'elle a exécutées), sa réponse, les fichiers qu'elle a modifiés avec leur diff, et la pull request. Le haut de la page indique où travaille la tâche (son dépôt et la branche d'où elle est partie), combien de fichiers et de lignes elle a modifiés, combien de temps l'IA y a travaillé, avec un bouton vers sa pull request, et où en est la tâche :
 
 | État | Ce que cela signifie |
 | --- | --- |
-| **En file d'attente** | Elle attend qu'un Runner la prenne. |
+| **En file d'attente** | Elle attend qu'un Runner la prenne. Un tour que l'IA réessaie d'elle-même indique quelle tentative vient ensuite et quand ; **Réessayer maintenant** la lance tout de suite. |
 | **En cours…** | L'IA y travaille. **Arrêter** l'arrête ; ce qu'elle a poussé reste sur la branche. |
 | **En attente de votre part** | L'IA a posé une question. Répondez-y dans la zone en dessous. |
 | **Terminé** | L'IA a fini : sa réponse, et la pull request si elle a modifié du code. |
-| **Échec** | Le tour n'a pas pu aboutir, et dit pourquoi. **Réessayer** redemande la même chose. |
+| **Échec** | Le tour n'a pas pu aboutir, et dit pourquoi, et après combien de tentatives quand l'IA l'a réessayé d'elle-même. **Réessayer** redemande la même chose. |
 | **Arrêté** | Quelqu'un l'a arrêtée. **Réessayer** redemande la même chose. |
 
 Pour donner suite, écrivez dans la zone en bas, qui reste visible pendant que la conversation défile : répondez à l'IA, ajoutez du contexte ou demandez des modifications. Chaque réponse est le tour suivant de la même tâche : elle travaille sur la même branche et pousse vers la même pull request tant que celle-ci est ouverte. Une tâche ne fait qu'un tour à la fois, donc la zone attend pendant que l'IA travaille. Le **Journal** de chaque tour est le relevé exact de ce qu'il a fait. Sur une tâche de plus d'un tour, un sélecteur en haut de la page **Journal** passe d'un tour à l'autre.
@@ -328,11 +328,11 @@ Tout le reste correspond au bouton :
 ## Quand une correction échoue
 
 :::details L'exécution échoue
-La correction n'a pas pu être appliquée, le dépôt ou la branche d'où partait une demande n'a pas pu être joint, ou l'appel au LLM a échoué. La conversation de la tâche, et la page d'où elle a été lancée, affichent la raison et proposent de réessayer. Le **Journal** du tour contient le journal complet de l'exécution.
+La correction n'a pas pu être appliquée, le dépôt ou la branche d'où partait une demande n'a pas pu être joint, ou l'appel au LLM a échoué. Un échec passager (le fournisseur du modèle d'IA surchargé ou indisponible, un appel qui a expiré, le réseau) est réessayé automatiquement, jusqu'à 3 tentatives en tout, la deuxième après 1 minute et la troisième après 4, sauf si l'exécution a peut-être déjà poussé une branche ou ouvert une pull request. Un échec qui se reproduirait, comme une clé que le fournisseur refuse ou plus aucun crédit, n'est pas réessayé. Quand un tour échoue pour de bon, la conversation de la tâche, et la page d'où elle a été lancée, affichent la raison et proposent de réessayer. Le **Journal** du tour contient le journal complet de l'exécution.
 :::
 
 :::details Le Runner s'arrête au milieu d'une exécution
-Une exécution dont le heartbeat est silencieux depuis plus de 12 minutes est mise en échec avec une erreur. Elle n'est jamais remise en file d'elle-même, car le Runner peut déjà avoir poussé une partie d'une branche de correction ; relancez-la depuis l'endroit où vous l'aviez lancée. Une commande lancée par l'agent de code entretient le heartbeat tant qu'elle tourne, si bien qu'un build ou une suite de tests longs n'est pas pris pour un Runner arrêté.
+Une exécution dont le heartbeat est silencieux depuis plus de 12 minutes est réessayée d'elle-même de la même façon si elle n'a rien poussé, si sa tâche n'a pas de pull request et s'il lui reste des tentatives. Sinon, elle est mise en échec avec une erreur, car le Runner peut déjà avoir poussé une partie d'une branche de correction ; relancez-la depuis l'endroit où vous l'aviez lancée. Une commande lancée par l'agent de code entretient le heartbeat tant qu'elle tourne, si bien qu'un build ou une suite de tests longs n'est pas pris pour un Runner arrêté.
 :::
 
 :::details Aucun Runner ne prend la tâche

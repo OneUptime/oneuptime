@@ -73,6 +73,14 @@ export interface AIRunTransitionSet {
   taskOutcome?: CodeTaskOutcome | undefined;
   codeChanges?: CodeTaskChanges | undefined;
   needsUserInput?: boolean | undefined;
+  /*
+   * A code task's turn tried again by itself (CodeFixAutoRetry): how many
+   * times it was, when the next attempt may start (null once a worker has
+   * it) and what the attempt before failed with.
+   */
+  autoRetryCount?: number | undefined;
+  nextAttemptAt?: Date | null | undefined;
+  retryReason?: string | undefined;
 }
 
 export class Service extends DatabaseService<Model> {
@@ -356,6 +364,8 @@ export class Service extends DatabaseService<Model> {
           lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
           attemptCount: (run.attemptCount || 0) + 1,
           aiAgentId: data.aiAgentId.toString(),
+          // A turn tried again by itself waits for nothing once it is taken.
+          nextAttemptAt: null,
         },
       });
 

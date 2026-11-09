@@ -22,7 +22,7 @@ Kode er stedet, hvor du beder OneUptime AI om at arbejde i dine repositorier, s�
 :::steps
 ### Åbn Kode
 
-Åbn **Produkter → Kode**. Kode åbner på **Hvad skal AI gøre?**: feltet, hvor du spørger, med alle opgaver under det, de nyeste først. Er der endnu intet repositorie, tilbyder Kode i stedet **Forbind GitHub** med GitLab, Forgejo eller Gitea og enhver Git-server nedenunder (se [Forbind et repositorie](#forbind-et-repositorie)). **Repositorier** i sidemenuen viser de repositorier, AI kan arbejde i, og samler dem, som OneUptime ikke længere når, under **Ikke forbundet**. Hvert repositories side har det samme felt til det repositorie.
+Åbn **Produkter → Kode**. Kode åbner på **Hvad skal AI gøre?**: feltet, hvor du spørger, med alle opgaver under det, de nyeste først; filtrer dem efter, hvordan det går med dem, hvert filter med sit antal, eller søg efter dem på titel eller nummer. Er der endnu intet repositorie, tilbyder Kode i stedet **Forbind GitHub** med GitLab, Forgejo eller Gitea og enhver Git-server nedenunder (se [Forbind et repositorie](#forbind-et-repositorie)). **Repositorier** i sidemenuen viser de repositorier, AI kan arbejde i, og samler dem, som OneUptime ikke længere når, under **Ikke forbundet**. Hvert repositories side har det samme felt til det repositorie, og der kan du markere anmodninger, der mislykkedes eller blev standset, og prøve dem alle igen med **Prøv valgte igen**.
 
 ### Vælg repositoriet og branchen
 
@@ -57,15 +57,15 @@ En anmodning bærer højst 10 stykker kontekst. Tokens, nøgler, adgangskoder og
 
 ## En opgaves samtale
 
-En opgaves side er en samtale: hvad der blev spurgt om, og den tilføjede kontekst, derefter AI's tur – de trin, den tager, mens den tager dem (filerne, den læste og redigerede, hvad den søgte efter, kommandoerne, den kørte), dens svar, filerne, den ændrede, med deres diff, og pull requesten. Øverst på siden står, hvor opgaven arbejder (dens repositorie og den branch, den startede fra), hvor mange linjer den ændrede, med en knap til dens pull request, og hvordan det går med opgaven:
+En opgaves side er en samtale: hvad der blev spurgt om, og den tilføjede kontekst, derefter AI's tur – de trin, den tager, mens den tager dem (filerne, den læste og redigerede, hvad den søgte efter, kommandoerne, den kørte), dens svar, filerne, den ændrede, med deres diff, og pull requesten. Øverst på siden står, hvor opgaven arbejder (dens repositorie og den branch, den startede fra), hvor mange filer og linjer den ændrede, hvor længe AI har arbejdet på den, med en knap til dens pull request, og hvordan det går med opgaven:
 
 | Tilstand | Hvad det betyder |
 | --- | --- |
-| **I kø** | Den venter på, at en Runner tager den. |
+| **I kø** | Den venter på, at en Runner tager den. En tur, som AI prøver igen af sig selv, siger, hvilket forsøg der kommer næste gang, og hvornår; **Prøv igen nu** starter den med det samme. |
 | **Arbejder…** | AI arbejder på den. **Stands** stopper den; det, den har pushet, bliver på branchen. |
 | **Venter på dig** | AI har stillet et spørgsmål. Svar på det i feltet nedenfor. |
 | **Færdig** | AI er færdig: dens svar og pull requesten, når den ændrede kode. |
-| **Mislykkedes** | Turen kunne ikke gøres færdig og siger hvorfor. **Prøv igen** beder om det samme igen. |
+| **Mislykkedes** | Turen kunne ikke gøres færdig og siger hvorfor, og efter hvor mange forsøg, når AI prøvede den igen af sig selv. **Prøv igen** beder om det samme igen. |
 | **Stoppet** | Nogen stoppede den. **Prøv igen** beder om det samme igen. |
 
 For at følge op skriver du i feltet nederst, som bliver synligt, mens samtalen ruller: svar AI, tilføj kontekst, eller bed om ændringer. Hvert svar er den næste tur i samme opgave: den arbejder på samme branch og pusher til samme pull request, så længe den er åben. En opgave tager én tur ad gangen, så feltet venter, mens AI arbejder. Hver turs **Log** er den ordrette optegnelse af, hvad den gjorde. På en opgave med mere end én tur skifter en vælger øverst på siden **Log** mellem dens ture.
@@ -328,11 +328,11 @@ Alt andet svarer til knappen:
 ## Når en rettelse mislykkes
 
 :::details Kørslen fejler
-Rettelsen kunne ikke anvendes, repositoriet eller den branch, en anmodning startede fra, kunne ikke nås, eller LLM-kaldet mislykkedes. Opgavens samtale og siden, den blev startet fra, viser årsagen og tilbyder at prøve igen. Turens **Log** har hele kørselsloggen.
+Rettelsen kunne ikke anvendes, repositoriet eller den branch, en anmodning startede fra, kunne ikke nås, eller LLM-kaldet mislykkedes. En fejl, der kan gå over (udbyderen af AI-modellen overbelastet eller nede, et kald, der fik timeout, netværket), prøves igen af sig selv, op til 3 forsøg i alt, det andet efter 1 minut og det tredje efter 4, medmindre kørslen måske allerede har pushet en branch eller åbnet en pull request. En fejl, der ville ske igen, som en nøgle, udbyderen afviser, eller ingen kreditter tilbage, prøves ikke igen. Når en tur mislykkes endegyldigt, viser opgavens samtale og siden, den blev startet fra, årsagen og tilbyder at prøve igen. Turens **Log** har hele kørselsloggen.
 :::
 
 :::details Runneren stopper midt i en kørsel
-En kørsel, hvis heartbeat har været tavs i mere end 12 minutter, afsluttes med en fejl. Den sættes aldrig i kø igen af sig selv, fordi Runneren allerede kan have pushet en del af en rettelsesbranch; start den igen dér, hvor du startede den. En kommando, kodeagenten kører, holder heartbeatet i gang, mens den kører, så et langt build eller en lang testsuite ikke tages for en stoppet Runner.
+En kørsel, hvis heartbeat har været tavs i mere end 12 minutter, prøves igen af sig selv på samme måde, når den ikke har pushet noget, dens opgave ikke har nogen pull request, og den har forsøg tilbage. Ellers afsluttes den med en fejl, fordi Runneren allerede kan have pushet en del af en rettelsesbranch; start den igen dér, hvor du startede den. En kommando, kodeagenten kører, holder heartbeatet i gang, mens den kører, så et langt build eller en lang testsuite ikke tages for en stoppet Runner.
 :::
 
 :::details Ingen Runner tager opgaven

@@ -337,7 +337,7 @@ describe("AI insight detail — human actions", () => {
     await click("Reopen");
 
     await waitFor(() => {
-      return expect(screen.getByText("Fix Opened")).toBeInTheDocument();
+      return expect(screen.getByText("Fix task")).toBeInTheDocument();
     });
     expect(row.status).toBe(AIInsightStatus.FixOpened);
   });

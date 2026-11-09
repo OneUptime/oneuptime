@@ -41,6 +41,10 @@ import {
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "Common/Types/AI/CodeFixTaskType";
+import {
+  CODE_TASK_MAX_ATTEMPTS,
+  CODE_TASK_RETRY_DELAYS_IN_MINUTES,
+} from "Common/Types/AI/CodeTaskRetry";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
   CodeHost,
@@ -1252,7 +1256,7 @@ describe("Code", () => {
     );
   });
 
-  it("fails a run that stops reporting after 12 minutes, and a task no Runner takes after 30", () => {
+  it("tries a run that stops reporting after 12 minutes again only when it pushed nothing, and fails a task no Runner takes after 30", () => {
     const stuck: string = readRepoFile(
       "App/FeatureSet/Workers/Jobs/AIChat/TimeoutStuckRuns.ts",
     );
@@ -1266,8 +1270,11 @@ describe("Code", () => {
     expect(numberConstant(stuck, "RUN_HEARTBEAT_TIMEOUT_MINUTES")).toBe(12);
     expect(stuck).toContain("CodeFixRunQueue.markStaleRunAsError");
     expect(numberConstant(queue, "ORPHANED_QUEUED_TIMEOUT_MINUTES")).toBe(30);
+    // The sweeper asks CodeFixAutoRetry first, as a Runner that went away.
+    expect(queue).toContain("CodeFixAutoRetry.tryAgainLater({");
+    expect(queue).toContain("kind: TransientAIFailureKind.RunnerWentAway,");
     expect(fails).toContain(
-      "A run whose heartbeat has been silent for more than 12 minutes is failed with an error. It is never queued again on its own",
+      "A run whose heartbeat has been silent for more than 12 minutes is tried again by itself in the same way when it has pushed nothing, its task has no pull request, and it has attempts left. Otherwise it fails with an error, because the Runner may already have pushed part of a fix branch",
     );
     expect(fails).toContain(
       "A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, the project's default Runner for a repository that picks none, or a global Runner - fails, with a message that says which",
@@ -1297,6 +1304,62 @@ describe("Code", () => {
     );
     expect(flat(englishSection(CODE_PAGE, "## When a fix fails"))).toContain(
       "A command the code agent runs keeps the heartbeat going while it runs, so a long build or test suite is not taken for a stopped Runner.",
+    );
+  });
+
+  it("tries a failure that may pass again by itself, as many times and after the waits Types/AI/CodeTaskRetry sets, and says so on the task", () => {
+    const fails: string = flat(
+      englishSection(CODE_PAGE, "## When a fix fails"),
+    );
+    const conversation: string = flat(
+      englishSection(CODE_PAGE, "## A task's conversation"),
+    );
+    const ask: string = flat(
+      englishSection(CODE_PAGE, "## Ask AI in a repository"),
+    );
+    const retry: string = readRepoFile(
+      "Common/Server/Utils/AI/CodeFix/CodeFixAutoRetry.ts",
+    );
+
+    // One wait before each attempt after the first.
+    expect(CODE_TASK_RETRY_DELAYS_IN_MINUTES).toHaveLength(
+      CODE_TASK_MAX_ATTEMPTS - 1,
+    );
+    expect(fails).toContain(
+      `is tried again by itself, up to ${CODE_TASK_MAX_ATTEMPTS} attempts in all, the second after ${CODE_TASK_RETRY_DELAYS_IN_MINUTES[0]} minute and the third after ${CODE_TASK_RETRY_DELAYS_IN_MINUTES[1]}, unless the run may already have pushed a branch or opened a pull request.`,
+    );
+    // Never a second push or pull request: what it may have written stops it.
+    expect(retry).toContain("CodeFixAutoRetry.mayHaveWritten({");
+    // What may pass, and what would happen again, is the shared classifier's.
+    expect(retry).toContain("TransientAIFailure.classify(data.failure)");
+
+    // A queued turn says which attempt comes next, and may start now.
+    expect(conversation).toContain(
+      `A turn AI tries again by itself says which attempt comes next and when; ${bold("Retry now")} starts it at once.`,
+    );
+    expect(dashboardSource("Components/Code/CodeTaskStatusCopy.ts")).toContain(
+      'CODE_TASK_RETRY_NOW: string = translationKey("Retry now")',
+    );
+    expect(conversation).toContain(
+      "and after how many attempts when AI tried it again by itself.",
+    );
+
+    // The list's filters, its search and Retry selected on a repository's page.
+    expect(ask).toContain(
+      "filter them by how they stand, each filter with its count, or search them by title or number.",
+    );
+    expect(ask).toContain(
+      `and there you can tick the requests that failed or were stopped and try them all again with ${bold("Retry selected")}.`,
+    );
+    expect(dashboardSource("Components/Code/CodeTaskList.tsx")).toContain(
+      'translator.translateText("Retry selected")',
+    );
+    expect(dashboardSource("Pages/Code/Repository/Tasks.tsx")).toContain(
+      "canRetry={repository.canAsk && !repository.blocker}",
+    );
+    // The task's header: its files and lines, and how long AI worked on it.
+    expect(conversation).toContain(
+      "how many files and lines it changed, how long AI has worked on it,",
     );
   });
 

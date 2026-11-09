@@ -2,6 +2,8 @@ import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import { TransientAIFailureKind } from "../../../../Types/AI/TransientAIFailure";
+import CodeFixAutoRetry from "./CodeFixAutoRetry";
 import { CodeFixTaskTypeHelper } from "../../../../Types/AI/CodeFixTaskType";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
@@ -23,10 +25,10 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * Two failure modes need sweeping:
  *
  *   1. A Running run whose heartbeat went silent: the agent container died
- *      mid-fix. Unlike investigations these are NOT requeued — the agent
- *      may already have pushed a partial fix branch or opened a PR, so
- *      re-running the fix from the top is not safe to do automatically.
- *      The run is finalized as Error and the user retries explicitly.
+ *      mid-fix. It is tried again by itself, in place, only when nothing
+ *      says it may already have pushed a branch or opened a pull request
+ *      and it has attempts left (CodeFixAutoRetry); otherwise it is
+ *      finalized as Error and the person tries again from the task.
  *
  *   2. A Queued run no Runner ever picked up because none is online to do
  *      it - the Runner its repository picks (its Runner setting in Code),
@@ -38,29 +40,53 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 // How long a Queued run may wait for an agent before it is failed.
 export const ORPHANED_QUEUED_TIMEOUT_MINUTES: number = 30;
 
+// What an attempt whose Runner went away failed with, when it is tried again.
+export const STALE_RUN_FAILURE: string =
+  "The Runner working on it stopped reporting progress (it may have restarted).";
+
+/*
+ * What a stale run that is not tried again fails with: it may already have
+ * pushed, or it used every attempt.
+ */
+export const STALE_RUN_ERROR_MESSAGE: string =
+  "The AI agent working on this fix stopped reporting progress — its container may have crashed or been terminated. It was not tried again automatically: it may already have pushed a partial branch, or it had no attempts left. Check the agent container, then try again.";
+
 // How many runs one sweep will look at.
 const SWEEP_BATCH_SIZE: number = 100;
 
 export default class CodeFixRunQueue {
   /*
-   * Finalize a heartbeat-stale Running code-fix run as Error. CAS-guarded
-   * on Running, so a run that completed between the sweeper's read and this
-   * write is never clobbered. Deliberately never requeues — see above.
+   * Finalize a heartbeat-stale Running code-fix run as Error - unless it
+   * may be tried again by itself (CodeFixAutoRetry: nothing pushed, nothing
+   * opened, attempts left), when it goes back to the queue instead and this
+   * answers true. CAS-guarded on Running, so a run that completed between
+   * the sweeper's read and this write is never clobbered.
    */
   @CaptureSpan()
   public static async markStaleRunAsError(run: {
     id: ObjectID;
-  }): Promise<void> {
+  }): Promise<boolean> {
+    if (
+      await CodeFixAutoRetry.tryAgainLater({
+        runId: run.id,
+        failure: STALE_RUN_FAILURE,
+        kind: TransientAIFailureKind.RunnerWentAway,
+      })
+    ) {
+      return true;
+    }
+
     await AIRunService.attemptStatusTransition({
       aiRunId: run.id,
       fromStatus: AIRunStatus.Running,
       set: {
         status: AIRunStatus.Error,
         completedAt: OneUptimeDate.getCurrentDate(),
-        errorMessage:
-          "The AI agent working on this fix stopped reporting progress — its container may have crashed or been terminated. The fix was not retried automatically because the agent may already have pushed a partial branch. Check the agent container, then retry the fix from the exception page.",
+        errorMessage: STALE_RUN_ERROR_MESSAGE,
       },
     });
+
+    return false;
   }
 
   /*
@@ -95,6 +121,7 @@ export default class CodeFixRunQueue {
         _id: true,
         projectId: true,
         codeRepositoryId: true,
+        nextAttemptAt: true,
       },
       limit: SWEEP_BATCH_SIZE,
       skip: 0,
@@ -116,6 +143,17 @@ export default class CodeFixRunQueue {
 
     for (const run of waitingRuns) {
       if (!run.projectId) {
+        continue;
+      }
+
+      /*
+       * A turn queued again by itself (CodeFixAutoRetry) has waited only
+       * since its next attempt was due, not since it was first queued.
+       */
+      if (
+        run.nextAttemptAt &&
+        new Date(run.nextAttemptAt).getTime() > waitThreshold.getTime()
+      ) {
         continue;
       }
 

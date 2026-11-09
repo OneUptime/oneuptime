@@ -22,7 +22,7 @@ Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skul
 :::steps
 ### Öppna Kod
 
-Öppna **Produkter → Kod**. Kod öppnas på **Vad ska AI göra?**: rutan där du ber om saker, med alla uppgifter under den, de senaste först. Finns det inget repositorium ännu erbjuder Kod i stället **Anslut GitHub**, med GitLab, Forgejo eller Gitea och valfri Git-server under (se [Ansluta ett repositorium](#ansluta-ett-repositorium)). **Arkiv** i sidomenyn listar de repositorier som AI kan arbeta i, och samlar dem som OneUptime inte längre når under **Inte ansluten**. Varje repositoriums sida har samma ruta för det repositoriet.
+Öppna **Produkter → Kod**. Kod öppnas på **Vad ska AI göra?**: rutan där du ber om saker, med alla uppgifter under den, de senaste först; filtrera dem efter hur det går för dem, varje filter med sitt antal, eller sök efter dem på titel eller nummer. Finns det inget repositorium ännu erbjuder Kod i stället **Anslut GitHub**, med GitLab, Forgejo eller Gitea och valfri Git-server under (se [Ansluta ett repositorium](#ansluta-ett-repositorium)). **Arkiv** i sidomenyn listar de repositorier som AI kan arbeta i, och samlar dem som OneUptime inte längre når under **Inte ansluten**. Varje repositoriums sida har samma ruta för det repositoriet, och där kan du markera begäranden som misslyckades eller stoppades och försöka igen med alla med **Försök igen med markerade**.
 
 ### Välj repositoriet och branchen
 
@@ -57,15 +57,15 @@ En begäran bär högst 10 kontextdelar. Token, nycklar, lösenord och e-postadr
 
 ## En uppgifts konversation
 
-En uppgifts sida är en konversation: vad som efterfrågades och kontexten som lades till, sedan AI:s tur – stegen den tar medan den tar dem (filerna den läste och redigerade, vad den sökte efter, kommandona den körde), dess svar, filerna den ändrade med deras diff, och pull requesten. Överst på sidan står var uppgiften arbetar (dess repositorium och den branch den utgick från), hur många rader den ändrade, med en knapp till dess pull request, och hur det går för uppgiften:
+En uppgifts sida är en konversation: vad som efterfrågades och kontexten som lades till, sedan AI:s tur – stegen den tar medan den tar dem (filerna den läste och redigerade, vad den sökte efter, kommandona den körde), dess svar, filerna den ändrade med deras diff, och pull requesten. Överst på sidan står var uppgiften arbetar (dess repositorium och den branch den utgick från), hur många filer och rader den ändrade, hur länge AI har arbetat med den, med en knapp till dess pull request, och hur det går för uppgiften:
 
 | Tillstånd | Vad det betyder |
 | --- | --- |
-| **I kö** | Den väntar på att en Runner ska ta den. |
+| **I kö** | Den väntar på att en Runner ska ta den. En tur som AI själv försöker igen med säger vilket försök som är nästa och när; **Försök igen nu** startar den direkt. |
 | **Arbetar…** | AI arbetar med den. **Stoppa** stoppar den; det den har pushat ligger kvar på branchen. |
 | **Väntar på dig** | AI har ställt en fråga. Svara på den i rutan nedanför. |
 | **Klar** | AI är klar: dess svar, och pull requesten när den ändrade kod. |
-| **Misslyckades** | Turen kunde inte slutföras, och säger varför. **Försök igen** ber om samma sak igen. |
+| **Misslyckades** | Turen kunde inte slutföras, och säger varför, och efter hur många försök när AI själv försökte igen med den. **Försök igen** ber om samma sak igen. |
 | **Stoppad** | Någon stoppade den. **Försök igen** ber om samma sak igen. |
 
 För att följa upp skriver du i rutan längst ned, som syns medan konversationen rullar: svara AI, lägg till kontext eller be om ändringar. Varje svar är nästa tur i samma uppgift: den arbetar på samma branch och pushar till samma pull request så länge den är öppen. En uppgift tar en tur i taget, så rutan väntar medan AI arbetar. Varje turs **Logg** är den ordagranna redogörelsen för vad den gjorde. I en uppgift med mer än en tur växlar en väljare överst på sidan **Logg** mellan dess turer.
@@ -328,11 +328,11 @@ Allt annat är som med knappen:
 ## När en åtgärd misslyckas
 
 :::details Körningen fallerar
-Åtgärden kunde inte tillämpas, repositoriet eller den branch som en begäran utgick från kunde inte nås, eller LLM-anropet misslyckades. Uppgiftens konversation, och sidan som den startades från, visar orsaken och erbjuder att försöka igen. Turens **Logg** har hela körningsloggen.
+Åtgärden kunde inte tillämpas, repositoriet eller den branch som en begäran utgick från kunde inte nås, eller LLM-anropet misslyckades. Ett fel som kan gå över (leverantören av AI-modellen överbelastad eller nere, ett anrop som fick timeout, nätverket) försöks igen av sig självt, upp till 3 försök totalt, det andra efter 1 minut och det tredje efter 4, om inte körningen redan kan ha pushat en branch eller öppnat en pull request. Ett fel som skulle hända igen, som en nyckel som leverantören avvisar eller slut på krediter, försöks inte igen. När en tur misslyckas för gott visar uppgiftens konversation, och sidan som den startades från, orsaken och erbjuder att försöka igen. Turens **Logg** har hela körningsloggen.
 :::
 
 :::details Runnern stannar mitt i en körning
-En körning vars heartbeat har varit tyst i mer än 12 minuter avslutas med ett fel. Den ställs aldrig i kö igen av sig själv, eftersom Runnern redan kan ha pushat en del av en åtgärdsbranch; starta den igen där du startade den. Ett kommando som kodagenten kör håller heartbeat igång medan det körs, så ett långt bygge eller en lång testsvit tas inte för en stoppad Runner.
+En körning vars heartbeat har varit tyst i mer än 12 minuter försöks igen av sig själv på samma sätt när den inte har pushat något, dess uppgift inte har någon pull request och den har försök kvar. Annars avslutas den med ett fel, eftersom Runnern redan kan ha pushat en del av en åtgärdsbranch; starta den igen där du startade den. Ett kommando som kodagenten kör håller heartbeat igång medan det körs, så ett långt bygge eller en lång testsvit tas inte för en stoppad Runner.
 :::
 
 :::details Ingen Runner plockar upp uppgiften
