@@ -83,7 +83,7 @@ Copilot सिर्फ़ अपनी एजेंट सुविधाओं
 
 | कॉलम | कुंजियाँ, पसंदीदा पहले |
 | --- | --- |
-| कर्मचारी | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| कर्मचारी | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | टीम / कॉस्ट सेंटर | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | मॉडल | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime टोकन `gen_ai.client.token.usage`, `gen_ai.client.token.count`,
 आंकड़े पढ़ने से पहले दो बातें जान लें:
 
 - **`gemini_cli.token.usage` जानबूझकर छोड़ दिया जाता है।** Gemini CLI अपने टोकन दो बार भेजता है, अपने मेट्रिक के रूप में और `gen_ai.client.token.usage` के रूप में, और दोनों पढ़ने से वे दोगुने हो जाएँगे। इसके टोकन `gen_ai.client.token.usage` के ज़रिए एक बार गिने जाते हैं। Gemini CLI कोई लागत मेट्रिक नहीं भेजता: हर कॉल की कीमत लगवाने के लिए इसके ट्रेस चालू करें।
-- **सिर्फ़ इनपुट और आउटपुट टोकन गिने जाते हैं।** टोकन का प्रकार `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` या `token_type` से पढ़ा जाता है, और सिर्फ़ `input` और `output` (या पुराने `prompt` और `completion`) गिने जाते हैं। कैश रीड और राइट, Codex का `total` (जो बाकी को दोहराता है) और `reasoning_output` (`output` का हिस्सा) छोड़ दिए जाते हैं, इसलिए मेट्रिक्स से आया कुल, किसी टूल के भेजे सब कुछ के जोड़ से छोटा होता है।
+- **सिर्फ़ इनपुट और आउटपुट टोकन गिने जाते हैं।** टोकन का प्रकार `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` या `token_type` से पढ़ा जाता है, और सिर्फ़ `input` और `output` (या पुराने `prompt` और `completion`) गिने जाते हैं, साथ में Claude Code के `cacheRead` और `cacheCreation` इनपुट के रूप में, क्योंकि उसका `input` इन्हें छोड़ देता है। बाकी कैश रीड और राइट, Codex का `total` (जो बाकी को दोहराता है) और `reasoning_output` (`output` का हिस्सा) छोड़ दिए जाते हैं, इसलिए मेट्रिक्स से आया कुल, किसी टूल के भेजे सब कुछ के जोड़ से छोटा होता है।
 
 ## उपयोग टैब
 
@@ -188,7 +188,7 @@ Codex डिफ़ॉल्ट रूप से अपने मेट्रि�
 
 ## OneUptime अभी क्या नहीं करता
 
-- **कोडिंग टूल के लिए कोई एडमिन कनेक्टर नहीं।** OneUptime टूल के पीछे के OpenAI, Anthropic, Azure, Bedrock और Vertex AI खाते पढ़ता है ([AI प्रदाता खाते](/docs/telemetry/ai-provider-accounts)), पर Cursor का Admin API, GitHub की Copilot बिलिंग, या Windsurf या JetBrains के API नहीं।
+- **Cursor के सिवा कोडिंग टूल के लिए कोई एडमिन कनेक्टर नहीं।** OneUptime टूल के पीछे के OpenAI, Anthropic, Azure, Bedrock और Vertex AI खाते, और किसी Cursor टीम का Admin API पढ़ता है ([AI प्रदाता खाते](/docs/telemetry/ai-provider-accounts)), पर GitHub की Copilot बिलिंग, या Windsurf या JetBrains के API नहीं।
 - **लागत एक अनुमान है, जब तक कोई टूल उसे खुद न बताए।** बताई गई लागत जैसी है वैसी इस्तेमाल होती है; वरना OneUptime टोकन की कीमत सूची-मूल्यों पर लगाता है। Cursor का `cursor.cost.usage` खुद एक अनुमान है।
 - **लॉग रिकॉर्ड पर मौजूद पहचान नहीं पढ़ी जाती।** Codex का `user.email`, जिसे वह सिर्फ़ लॉग पर भेजता है, खर्च से नहीं जुड़ता।
 - **Cursor का `cursor.user.email` अभी नहीं पढ़ा जाता**, इसलिए Cursor उपयोगकर्ता अपने `cursor.user.id` पूर्णांक के रूप में दिखते हैं।
@@ -201,7 +201,7 @@ Codex डिफ़ॉल्ट रूप से अपने मेट्रि�
 
 1. **Gemini CLI**, अगर कोई इसे इस्तेमाल करता है। यह बिना सेटअप के `user.email` भेजता है, इसलिए यह शुरू से अंत तक एट्रिब्यूशन काम करता दिखाता है। इसके ट्रेस भी चालू करें: यह कोई लागत मेट्रिक नहीं भेजता।
 2. **Claude Code**: बेड़े के लिए एक मैनेज्ड सेटिंग्स फ़ाइल, मुफ़्त में `user.email`, एक असली लागत मेट्रिक, और प्रति डेवलपर स्वीकृति दर, कमिट, पुल रिक्वेस्ट और कोड की पंक्तियाँ।
-3. **Cursor**, Enterprise प्लान पर: Cursor के डैशबोर्ड में एक स्क्रीन, किसी डेवलपर मशीन को छुए बिना, हालाँकि लोग पूर्णांकों के रूप में आते हैं।
+3. **Cursor**, Enterprise प्लान पर: Cursor के डैशबोर्ड में एक स्क्रीन, किसी डेवलपर मशीन को छुए बिना, हालाँकि लोग पूर्णांकों के रूप में आते हैं। Teams प्लान पर, या Cursor ने व्यक्ति के हिसाब से जितना चार्ज किया उसके लिए, उसकी एडमिन API कुंजी को [प्रदाता खाते](/docs/telemetry/ai-provider-accounts#cursor) के रूप में कनेक्ट करें, एक्सपोर्ट के साथ या उसके बिना।
 4. **Copilot और Codex**, जिन दोनों को हर मशीन पर पहचान सेट करने की ज़रूरत है। यह मशीनें तैयार करते समय करें: जो कॉल बिना पहचान के आईं, उन्हें बाद में एट्रिब्यूट नहीं किया जा सकता।
 5. **एक LiteLLM गेटवे** बाकी सब के लिए, हर कर्मचारी के लिए एक वर्चुअल कुंजी के साथ।
 

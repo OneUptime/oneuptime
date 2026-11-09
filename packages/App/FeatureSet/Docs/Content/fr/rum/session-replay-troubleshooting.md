@@ -402,11 +402,11 @@ Ouvrez les outils de développement de votre navigateur sur l'onglet du tableau 
 
 Les enregistrements d'un portail faits avant que OneUptime ne charge ces fichiers pendant la lecture, ceux qui affichaient la barre hors ligne à chaque relecture, se lisent désormais eux aussi avec la barre masquée, tant que la feuille de style qu'ils nomment est encore servie : rien dans un enregistrement n'a à changer.
 
-## L'application RUM indique « Déconnecté »
+## L'application RUM indique « Aucun trafic récent »
 
-La pastille d'état et **Dernière fois vu** sur la page de l'application indiquent quand de la télémétrie est arrivée pour la dernière fois pour cette application. La relecture de session compte : un enregistreur qui récupère sa politique comme un fragment accepté les actualisent, si bien qu'une application instrumentée avec le seul extrait de relecture reste Connecté. Dans les anciennes versions, seule la télémétrie RUM OpenTelemetry le faisait, si bien qu'une application avec la seule relecture affichait « Déconnecté » avec un Dernière fois vu vieux de plusieurs jours alors que ses enregistreurs fonctionnaient parfaitement.
+La pastille d'état et **Dernière fois vu** sur la page de l'application indiquent quand de la télémétrie est arrivée pour la dernière fois pour cette application. La relecture de session compte : un enregistreur qui récupère sa politique comme un fragment accepté les actualisent, si bien qu'une application instrumentée avec le seul extrait de relecture affiche **Reçoit des données** tant que des personnes utilisent le site. Dans les anciennes versions, seule la télémétrie RUM OpenTelemetry le faisait, si bien qu'une application avec la seule relecture semblait inactive, avec un Dernière fois vu vieux de plusieurs jours, alors que ses enregistreurs fonctionnaient parfaitement.
 
-« Connecté » signifie donc que *quelque chose* rend compte — pas que tout le fait. Les pages vues, le taux d'erreurs, la durée p95 et les clients viennent du SDK navigateur OpenTelemetry, qui s'installe à part ; quand ils sont à zéro alors que des enregistrements arrivent, la page Vue d'ensemble de l'application le dit directement.
+**Reçoit des données** signifie donc que *quelque chose* rend compte — pas que tout le fait. Les pages vues, le taux d'erreurs, la durée p95 et les clients viennent du SDK navigateur OpenTelemetry, qui s'installe à part ; quand ils sont à zéro alors que des enregistrements arrivent, la page Vue d'ensemble de l'application le dit directement.
 
 ## La télémétrie RUM est à part
 

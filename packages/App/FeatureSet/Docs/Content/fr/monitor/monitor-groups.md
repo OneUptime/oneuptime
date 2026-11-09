@@ -28,6 +28,7 @@ flowchart TB
 
 - **Les moniteurs archivés ne comptent pas.** Un moniteur archivé n'est pas vérifié, son statut est donc figé ; le groupe l'écarte.
 - **Un groupe vide est opérationnel.** Un groupe sans moniteur, ou avec seulement des moniteurs archivés, affiche votre statut opérationnel. Tant que vous n'ajoutez pas de moniteur, le tableau de bord affiche **Aucun moniteur pour l'instant** à la place de son statut.
+- **Une surveillance désactivée affiche Désactivé.** Quand la surveillance est désactivée pour tous les moniteurs d'un groupe, rien ne les vérifie, et le tableau de bord affiche **Désactivé** à la place du statut du groupe.
 - **L'ordre est le vôtre.** Le pire statut suit l'ordre de **Moniteurs → Paramètres → Statut du moniteur**. Voir [Statuts de moniteur](/docs/monitor/criteria-and-statuses#statuts-de-moniteur).
 
 Un groupe de moniteurs n'est pas un groupe de page de statut. Un groupe de page de statut est un titre sur une page de statut qui contient des lignes. Un groupe de moniteurs est une ligne qui représente plusieurs moniteurs, et n'importe quelle page de statut peut l'afficher.
@@ -80,7 +81,7 @@ Ouvrez un groupe pour voir ses pages dans le menu latéral :
 
 | Page | Ce qu'elle montre |
 | --- | --- |
-| **Vue d'ensemble** | **Détails du groupe de moniteurs**, **État actuel** et **Graphique de disponibilité** avec le pourcentage de disponibilité du groupe sur les 90 derniers jours. Un groupe sans moniteur propose **Ajouter des moniteurs** à la place du graphique. |
+| **Vue d'ensemble** | **Détails du groupe de moniteurs**, **État actuel**, **Surveillance** et **Graphique de disponibilité** avec le pourcentage de disponibilité du groupe sur les 90 derniers jours. Un groupe sans moniteur propose **Ajouter des moniteurs** à la place du graphique. |
 | **Moniteurs** | **Moniteurs dans le groupe**, avec **Ajouter des moniteurs** et **Supprimer**. |
 | **Incidents** | Les incidents sur n'importe quel moniteur du groupe. |
 | **Alertes** | Les alertes sur n'importe quel moniteur du groupe. |
@@ -91,6 +92,17 @@ Ouvrez un groupe pour voir ses pages dans le menu latéral :
 La disponibilité de la **Vue d'ensemble** compte tout statut autre que l'opérationnel comme indisponibilité. Une page de statut ne compte que les statuts de sa propre liste **Compte comme indisponibilité** : voir [Choisir ce qui s'affiche sur la page](/docs/status-pages/index#choisir-ce-qui-saffiche-sur-la-page).
 
 La liste **Groupes de moniteurs** peut filtrer les groupes par propriétaire et par libellé, définir les libellés et les propriétaires de nombreux groupes à la fois, et exporter ou importer des groupes en JSON.
+
+## Désactiver la surveillance de tout un groupe
+
+La carte **Surveillance** de la **Vue d'ensemble** d'un groupe désactive la surveillance, ou la réactive, pour tous les moniteurs du groupe en une seule fois.
+
+- **Désactiver la surveillance** demande d'abord confirmation. Rien ne vérifie ensuite les moniteurs du groupe tant que la surveillance n'est pas réactivée : ils n'ouvrent donc ni incident ni alerte, et le groupe affiche **Désactivé** à la place de son statut.
+- **Activer la surveillance** enregistre aussitôt. La prochaine vérification de chaque moniteur fixe de nouveau son statut.
+
+Désactiver la surveillance résout aussi les incidents et alertes ouverts des moniteurs qui sont configurés pour se résoudre automatiquement, comme chaque moniteur l'aurait fait à son rétablissement. Les incidents et alertes déclarés à la main, ou dont les critères ne se résolvent pas automatiquement, restent ouverts. Désactiver la surveillance d'un seul moniteur, sur sa page **Paramètres**, fait de même.
+
+La carte modifie les moniteurs, pas le groupe : la carte **Surveillance** de chaque moniteur montre le changement, et un moniteur ajouté au groupe plus tard garde son propre réglage. Les moniteurs archivés restent tels quels. Tant que la surveillance n'est désactivée que pour certains moniteurs, la carte indique combien et propose les deux boutons.
 
 ## Afficher un groupe sur une page de statut
 

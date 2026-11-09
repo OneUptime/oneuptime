@@ -1572,7 +1572,12 @@ describe("NetworkTopologyUtil.buildTopology", () => {
       expect(edge!.fromPort).toBe("Gi0/7");
     });
 
-    it("names endpoints by classification, then vendor, then IP, then MAC", () => {
+    /*
+     * Never by the maker (issue #5775): every register in a store shares
+     * one, so the map drew a row of identical "Axis" boxes. The maker is
+     * the line under an unnamed device's address instead (TopologyFootprint).
+     */
+    it("names endpoints by classification, then hostname, then IP, then MAC - never by vendor", () => {
       const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
         [makeDevice("d1", "edge-1")],
         now,
@@ -1600,9 +1605,63 @@ describe("NetworkTopologyUtil.buildTopology", () => {
       );
 
       expect(nodeById(result, "endpoint:ep-1")!.name).toBe("Camera");
-      expect(nodeById(result, "endpoint:ep-2")!.name).toBe("Axis");
+      expect(nodeById(result, "endpoint:ep-2")!.name).toBe("10.0.0.2");
+      expect(nodeById(result, "endpoint:ep-2")!.vendor).toBe("Axis");
       expect(nodeById(result, "endpoint:ep-3")!.name).toBe("10.0.0.3");
       expect(nodeById(result, "endpoint:ep-4")!.name).toBe("aa:00:00:00:00:04");
+    });
+
+    it("names an endpoint with only a MAC and a maker by its MAC, not its maker", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeDevice("d1", "edge-1")],
+        now,
+        [],
+        [
+          makeEndpoint("ep-1", "aa:00:00:00:00:01", {
+            attachedNetworkDeviceId: "d1",
+            vendor: "Axis",
+          }),
+          makeEndpoint("ep-2", "aa:00:00:00:00:02", {
+            attachedNetworkDeviceId: "d1",
+            vendor: "Axis",
+            hostname: "lobby-camera",
+            ipAddress: "10.0.0.2",
+          }),
+          makeEndpoint("ep-3", "aa:00:00:00:00:03", {
+            attachedNetworkDeviceId: "d1",
+            vendor: "Axis",
+            classification: "   ",
+            hostname: "  ",
+            ipAddress: " 10.0.0.3 ",
+          }),
+        ],
+      );
+
+      expect(nodeById(result, "endpoint:ep-1")!.name).toBe("aa:00:00:00:00:01");
+      expect(nodeById(result, "endpoint:ep-2")!.name).toBe("lobby-camera");
+      // Blank names are no names: the address, trimmed, names it.
+      expect(nodeById(result, "endpoint:ep-3")!.name).toBe("10.0.0.3");
+      for (const node of result.nodes) {
+        expect(node.name).not.toBe("Axis");
+      }
+    });
+
+    it("gives a managed device the IP it is polled at, for the line under its name", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          { ...makeDevice("d1", "core-1"), hostname: "10.20.0.1" },
+          { ...makeDevice("d2", "core-2"), hostname: "core-2.example.com" },
+          { ...makeDevice("d3", "core-3"), hostname: "2001:db8::3" },
+          { ...makeDevice("d4", "core-4"), hostname: "  10.20.0.4 " },
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "d1")!.ipAddress).toBe("10.20.0.1");
+      // A DNS name is not an address to draw.
+      expect(nodeById(result, "d2")!.ipAddress).toBeUndefined();
+      expect(nodeById(result, "d3")!.ipAddress).toBe("2001:db8::3");
+      expect(nodeById(result, "d4")!.ipAddress).toBe("10.20.0.4");
     });
 
     /*

@@ -82,6 +82,7 @@ Sidens sidemenu samler det, du gør med en undtagelse:
 | **Protokoller** | De protokoller, der blev skrevet omkring den seneste forekomst. |
 | **AI-hjælp** | AI-opgaver, der retter undtagelsen eller tester den. |
 | **Indstillinger** | Løs eller arkivér undtagelsen. Den ligger under **Administrer**, som er foldet sammen fra start. |
+| **Auditlogs** | Hvem der løste, arkiverede, tildelte eller flettede undtagelsen, og hvornår. Den ligger også under **Administrer**. |
 
 ## Løs, genåbn og arkivér
 
@@ -137,7 +138,7 @@ ID'er, e-mail- og IP-adresser samt tokens fjernes fra alt, hvad der sendes, og a
 
 Under kortene viser **Lignende undtagelser** op til fem andre undtagelser, der ligner denne: den **Samme meddelelse**, når værdierne er taget ud, det **Samme sted i koden** i din kode, eller en **Lignende meddelelse** med de fleste af de samme ord. Én årsag kan havne i flere undtagelser, så **Tjek med OneUptime AI** siger om hver, om det er **Sandsynligvis den samme fejl**, **En relateret fejl** eller **En anden fejl**, og hvorfor. Tjekket bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Svaret gemmes til næste forekomst.
 
-Flet en, som OneUptime AI kalder **Sandsynligvis den samme fejl**, og som hører til samme tjeneste, ind i denne undtagelse med **Flet** ved siden af: dens forekomster, de hidtidige og hver ny, tælles fra da af på denne undtagelse og vises på dens side, og den forsvinder fra listen. **Flettet ind i denne undtagelse** nedenfor viser, hvad der er flettet ind, og **Fjern fletning** ved siden af hver, eller på en flettet undtagelses egen side, giver den sin egen plads i listen tilbage, med dens forekomster siden. At flette og fjerne fletning kræver tilladelse til at redigere undtagelser.
+Flet en, som OneUptime AI kalder **Sandsynligvis den samme fejl**, og som hører til samme tjeneste, ind i denne undtagelse med **Flet** ved siden af: dens forekomster, de hidtidige og hver ny, tælles fra da af på denne undtagelse og vises på dens side, og den forsvinder fra listen. **Flettet ind i denne undtagelse** nedenfor viser, hvad der er flettet ind, og **Fjern fletning** ved siden af hver, eller på en flettet undtagelses egen side, giver den sin egen plads i listen tilbage, med dens forekomster siden. At flette og fjerne fletning kræver tilladelse til at redigere undtagelser. Hvem der flettede en undtagelse, og hvem der fjernede fletningen igen, står på dens side **Auditlogs**; undtagelsen, den blev flettet ind i, får ingen post, for intet, nogen har indstillet på den, er ændret.
 
 ## Ret den med AI
 

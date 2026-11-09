@@ -1,5 +1,9 @@
 import Text from "../../Types/Text";
 import {
+  ON_CALL_OBSERVER_PAGE_SMS_ACTION,
+  ON_CALL_OBSERVER_PAGE_SMS_LEAD,
+} from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
+import {
   isGsm7OutsideLinks,
   toGsm7Text,
   toOneLine,
@@ -197,6 +201,14 @@ export interface OnCallPageSmsLanguage {
   }) => string;
   // The words before the link: "Ack or escalate:".
   action: string;
+  /*
+   * An observer's page (OnCallObserverPage): what the text says after the
+   * product when no person's page says who paged them - "FYI (observer)" -
+   * and the words before its link, which only marks the page seen: "Mark
+   * seen:".
+   */
+  observerLead: string;
+  observerAction: string;
 }
 
 export interface OnCallPageSmsInput {
@@ -225,6 +237,13 @@ export interface OnCallPageSmsInput {
    * about. Never cut.
    */
   lead?: string | null | undefined;
+  /*
+   * An observer's page (OnCallObserverPage): the text says it is for their
+   * information - "FYI (observer)" after the product, unless a person's page
+   * says who paged them as an observer - and its link marks the page seen
+   * ("Mark seen:") rather than acknowledging or escalating it. Never cut.
+   */
+  isObserverPage?: boolean | undefined;
   // What the send path does to the text before the provider gets it.
   sentAs?: ((text: string) => string) | undefined;
   /*
@@ -259,6 +278,8 @@ interface PageParts {
   isPageAgain: boolean;
   // Who paged whom, for a page a person asked for. Empty for none.
   lead: string;
+  // An observer's page: for their information, and its link marks it seen.
+  isObserverPage: boolean;
   // The words of a language other than English, or none for English.
   language: OnCallPageSmsLanguage | undefined;
   /*
@@ -335,7 +356,9 @@ const compose: (
 
   let head: string = parts.lead
     ? `${parts.productName}: ${parts.lead} about ${parts.what}`
-    : `${parts.productName}: ${parts.what}`;
+    : parts.isObserverPage
+      ? `${parts.productName} ${ON_CALL_OBSERVER_PAGE_SMS_LEAD}: ${parts.what}`
+      : `${parts.productName}: ${parts.what}`;
 
   if (parts.number) {
     head += ` ${parts.number}`;
@@ -361,7 +384,11 @@ const compose: (
     sentence += ".";
   }
 
-  return `${sentence} ${ON_CALL_PAGE_SMS_ACTION} ${parts.link}`;
+  return `${sentence} ${
+    parts.isObserverPage
+      ? ON_CALL_OBSERVER_PAGE_SMS_ACTION
+      : ON_CALL_PAGE_SMS_ACTION
+  } ${parts.link}`;
 };
 
 /*
@@ -391,7 +418,17 @@ const composeInLanguage: (
     }),
   );
 
-  let sentence: string = `${parts.productName}: ${words(
+  /*
+   * An observer's page says it is for their information after the
+   * product, as an English one does - unless a person's page says who
+   * paged them as an observer.
+   */
+  const product: string =
+    parts.isObserverPage && !parts.lead
+      ? `${parts.productName} ${words(language.observerLead)}`
+      : parts.productName;
+
+  let sentence: string = `${product}: ${words(
     language.head({
       record: record,
       projectName: options.withProject ? parts.projectName : "",
@@ -410,7 +447,9 @@ const composeInLanguage: (
     sentence += ".";
   }
 
-  return `${sentence} ${words(language.action)} ${parts.link}`;
+  return `${sentence} ${words(
+    parts.isObserverPage ? language.observerAction : language.action,
+  )} ${parts.link}`;
 };
 
 /*
@@ -495,7 +534,12 @@ export const buildOnCallPageSms: (
    * as a status page's subscriber texts do (SubscriberSms).
    */
   const isWrittenInUcs2: boolean = Boolean(
-    input.language && !isGsm7OutsideLinks(input.language.action),
+    input.language &&
+      !isGsm7OutsideLinks(
+        input.isObserverPage === true
+          ? input.language.observerAction
+          : input.language.action,
+      ),
   );
 
   const toValue: (value: string | null | undefined) => string = (
@@ -520,6 +564,7 @@ export const buildOnCallPageSms: (
     link: input.link.trim(),
     isPageAgain: input.isPageAgain === true,
     lead: toValue(input.lead),
+    isObserverPage: input.isObserverPage === true,
     language: input.language,
     writesWordsInGsm7: Boolean(input.language) && !isWrittenInUcs2,
   };

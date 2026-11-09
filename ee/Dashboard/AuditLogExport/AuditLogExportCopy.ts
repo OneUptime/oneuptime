@@ -70,6 +70,11 @@ export const AuditLogExportCopy: {
   startsAtField: string;
   startsAtCreateDescription: string;
   startsAtEditDescription: string;
+  // Which version of the record each entry is sent as (AuditLogExportRecord).
+  schemaVersionField: string;
+  schemaVersionDescription: string;
+  schemaVersionNewestOption: string;
+  schemaVersionFirstOption: string;
   unchangedPlaceholder: string;
   // The test.
   testFilesButton: string;
@@ -141,6 +146,12 @@ export const AuditLogExportCopy: {
   startsAtEditDescription: translationKey(
     "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.",
   ),
+  schemaVersionField: translationKey("Record version"),
+  schemaVersionDescription: translationKey(
+    "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.",
+  ),
+  schemaVersionNewestOption: translationKey("Version 2 (newest)"),
+  schemaVersionFirstOption: translationKey("Version 1 (original)"),
   unchangedPlaceholder: translationKey("Unchanged"),
   testFilesButton: translationKey("Write a test file"),
   testStreamButton: translationKey("Send a test entry"),

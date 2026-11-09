@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
@@ -104,6 +106,7 @@ class VMwareVCenterLabelRuleEngineServiceClass
       return await this.applyRules({
         vmwareVCenter: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running vCenter label rules: ${error}`, {
@@ -119,6 +122,8 @@ class VMwareVCenterLabelRuleEngineServiceClass
   private async applyRules(data: {
     vmwareVCenter: VMwareVCenter;
     rules: Array<VMwareVCenterLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { vmwareVCenter, rules } = data;
 
@@ -205,11 +210,12 @@ class VMwareVCenterLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await VMwareVCenterService.getRepository()
-      .createQueryBuilder()
-      .relation(VMwareVCenter, "labels")
-      .of(vmwareVCenter.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: VMwareVCenterService,
+      resourceId: vmwareVCenter.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory vmwareVCenter.labels so a downstream owner-rule engine

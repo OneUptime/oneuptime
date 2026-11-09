@@ -334,6 +334,7 @@ const SLO_SECTION_LINKS: Array<ExpectedLink> = [
   { title: "Monitors", page: PageMap.SLO_VIEW_MONITORS },
   { title: "Monitor Rules", page: PageMap.SLO_VIEW_MONITOR_RULES },
   { title: "Burn Rate Rules", page: PageMap.SLO_VIEW_BURN_RATE_RULES },
+  { title: "Error Budget Policy", page: PageMap.SLO_VIEW_ERROR_BUDGET_POLICY },
 ];
 
 describe("SLO resource menu", () => {

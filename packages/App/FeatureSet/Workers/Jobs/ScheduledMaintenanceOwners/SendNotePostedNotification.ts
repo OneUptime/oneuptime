@@ -37,6 +37,11 @@ RunCron(
       await ScheduledMaintenancePublicNoteService.findAllBy({
         query: {
           isOwnerNotified: false,
+          /*
+           * Published notes only: a note waiting for approval was not
+           * posted, so its owners hear of it once it is published.
+           */
+          isPublished: true,
         },
         props: {
           isRoot: true,

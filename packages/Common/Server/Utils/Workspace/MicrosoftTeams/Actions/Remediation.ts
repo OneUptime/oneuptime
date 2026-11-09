@@ -93,6 +93,29 @@ export default class MicrosoftTeamsRemediationActions {
       return;
     }
 
+    /*
+     * The person who gave a riskier fix its first approval is told why
+     * approving again does nothing, before a card opens on a press that
+     * would be refused.
+     */
+    if (
+      data.actionType !== MicrosoftTeamsRemediationActionType.DismissRemediation
+    ) {
+      const alreadyApproved: WorkspaceAnswer | null =
+        await WorkspaceRemediationActions.getAlreadyApprovedAnswer({
+          suggestion,
+          userId: data.oneUptimeUserId,
+        });
+
+      if (alreadyApproved) {
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: data.turnContext,
+          answer: alreadyApproved,
+        });
+        return;
+      }
+    }
+
     if (
       data.actionType ===
       MicrosoftTeamsRemediationActionType.ViewApproveRemediation

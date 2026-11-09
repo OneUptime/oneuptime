@@ -161,7 +161,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 मानक विशेषताएँ `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` और `terminal.type` हैं, साथ में आपके `OTEL_RESOURCE_ATTRIBUTES`। इनमें से कुछ बंद की जा सकती हैं: [मेट्रिक की मात्रा कम रखें](#मेट्रिक-की-मात्रा-कम-रखें) देखें।
 
-- कैश टोकन के प्रकार camelCase में हैं: `cacheRead` और `cacheCreation`। OneUptime के टोकन कुल सिर्फ़ `input` और `output` गिनते हैं।
+- कैश टोकन के प्रकार camelCase में हैं: `cacheRead` और `cacheCreation`। Claude Code का `input` इन्हें छोड़ देता है, इसलिए OneUptime इन्हें भी इनपुट टोकन के रूप में गिनता है।
 - लागत और टोकन मेट्रिक्स पर आपके अपने एजेंट और MCP सर्वर, और तृतीय-पक्ष प्लगइन और स्किल के नाम `custom` या `third-party` दिखते हैं, जब तक `OTEL_LOG_TOOL_DETAILS=1` सेट न हो (Claude Code 2.1.273 या बाद का)।
 
 ## इवेंट
@@ -220,7 +220,7 @@ Claude Code डिफ़ॉल्ट रूप से डेल्टा मे�
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-`cumulative` सिर्फ़ तभी तय करें जब आपके संगठन का हर एक्सपोर्टर इसे इस्तेमाल करता हो, और किसी बेड़े में दोनों को न मिलाएँ।
+`cumulative` सिर्फ़ तभी तय करें जब आपके संगठन का हर एक्सपोर्टर इसे इस्तेमाल करता हो, और किसी बेड़े में दोनों को न मिलाएँ। OneUptime का उपयोग टैब और बजट दोनों को गिनते हैं: डेल्टा को उसके पॉइंट जोड़कर, क्यूम्युलेटिव काउंटर को इससे कि समय सीमा में वह कितना बढ़ा।
 
 ## ट्रेस (बीटा)
 

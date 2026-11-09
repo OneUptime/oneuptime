@@ -2,6 +2,8 @@
 
 **Køer** giver hver beskedkø, hvert topic og hvert abonnement, som dine applikationer bruger, sin egen side: hvilke tjenester der publicerer til den, og hvilke der forbruger fra den, hvor mange beskeder der går igennem, hvor mange der fejler, og hvor lang tid behandlingen tager, dens traces og metrikker og, så snart brokerens egne metrikker når OneUptime, dens efterslæb, consumer-lag, dead letters og begrænsning. Køer har labels, ejere, label- og ejerregler og arkivering, ligesom alle andre ressourcer. Åbn dem under **Produkter → Ressourcer → Køer**.
 
+**Køer → Topologi** viser, hvordan beskeder flyder mellem dine tjenester: hver kø mellem de tjenester, der publicerer til den, og dem, der forbruger fra den. Hver linje viser sin beskedrate, sin fejlrate og sin p95-tid, talt som køens kort **Producenter** og **Forbrugere** tæller dem, og så snart en brokers metrikker når OneUptime, viser dens køer deres consumer-lag eller efterslæb og deres dead letters. Søg i visningen, filtrer den efter broker, eller behold kun det, der kræver opmærksomhed. En køs egen fane **Topologi** viser, hvor dens beskeder kommer fra, og hvor de går hen.
+
 :::cards
 - [Instrumentering af applikationer](#instrumentering-af-applikationer): De messaging-spans, som din OpenTelemetry-instrumentering allerede sender.
 - [Brokerens sundhedsmetrikker](#brokerens-sundhedsmetrikker): Efterslæb, lag og dead letters fra din broker, system for system.
@@ -213,6 +215,10 @@ builder.Services.AddOpenTelemetry()
 En broker ved, hvad ingen applikation kan se: hvor mange beskeder der venter, hvor langt hver consumergruppe er bagud, hvad der endte i en dead-letter-kø. Hver sektion nedenfor har collector-konfigurationen til ét system: en komplet OpenTelemetry Collector-konfiguration, der slutter med den OTLP-exporter, der sender til OneUptime. Sæt en telemetri-indtagelsesnøgle (**Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**) i `x-oneuptime-token`, erstat `https://oneuptime.com` med din egen vært, hvis du selvhoster, og kør den med `otel/opentelemetry-collector-contrib` 0.161.0 eller senere (hver konfiguration her er valideret mod 0.161.0). Nyere collectorer logger, at `otlphttp` er forældet til fordel for `otlp_http`; begge navne er den samme exporter. Flet deres receivere sammen i én collector for at indsamle flere systemer.
 
 Hver køs sektion **Brokersundhed** viser de metrikker, der er angivet for dens system (en gauge som dens værdi, et antal pr. periode summeret pr. interval, en tæller som rate pr. sekund), og kombinerer en køs serier, som hver metrik kræver (en RabbitMQ-køs klare og ubekræftede beskeder lægges sammen; den consumergruppe, der er længst bagud, er lag'et). Alt, hvad collectoren sender, findes også i stifinderen **Metrikker**. Så længe ingen angivet metrik er ankommet for en kø, viser sektionen, hvor det systems metrikker kommer fra, med et link til dets sektion her.
+
+Hvor ingen applikation med tracing udgiver til eller forbruger fra en kø, læser køens felter **Udgivet**, **Forbrugt** og **Fejl** og dens diagram **Beskeder** i stedet brokerens egne tællinger (beskeder ind, beskeder ud og dens fejl lagt sammen, med begrænsede anmodninger talt for sig under **Fejl**), og hver af dem siger det under sit tal. En kø med spans beholder dem, da de siger, hvilken tjeneste der gjorde hvad. Feltet **p95 processing time** kommer kun fra consumernes traces, fordi ingen broker måler, hvor længe en consumer er om en besked: uden dem står der **Kræver spor fra forbrugere**.
+
+Kortet **Brokermetrikker** øverst i sektionen viser hver metrik, der vises i diagrammer for køens system: om den er ankommet for køen i det valgte interval, hvornår den sidst gjorde det, og hvorfor hver af de andre ikke gjorde. Et antal kan have intet at melde (ingen begrænsede anmodninger er godt nyt); et niveau, som brokeren melder hele tiden, og som aldrig ankommer, er et, collectoren ikke beder om, og kortet giver de linjer, dens konfiguration skal have; en metrik kan også holde op med at ankomme. For en Service Bus- eller Event Hubs-kø, hvor ingen af metrikkerne ankommer, læser kortet også, hvad dens namespace sender i stedet (se [Brokersundheden forbliver tom](#brokersundheden-forbliver-tom)).
 
 ### Amazon SNS
 
@@ -617,6 +623,7 @@ receivers:
         UserErrors: [Total]
         QuotaExceededErrors: [Total]
         ThrottledRequests: [Total]
+        Size: [Average]
 
 processors:
   batch: {}
@@ -648,6 +655,7 @@ Azure Monitor har ingen consumer-lag-metrik for Event Hubs: dens `ConsumerLag` f
 | `azure_usererrors_total` | Brugerfejl | Antal pr. periode |
 | `azure_quotaexceedederrors_total` | Fejl ved overskredet kvote | Antal pr. periode |
 | `azure_throttledrequests_total` | Begrænsede anmodninger | Antal pr. periode |
+| `azure_size_average` | Størrelse | Gauge |
 
 ### Azure Service Bus
 
@@ -677,6 +685,8 @@ receivers:
       "Microsoft.ServiceBus/namespaces":
         ActiveMessages: [Average]
         DeadletteredMessages: [Average]
+        ScheduledMessages: [Average]
+        Size: [Average]
         IncomingMessages: [Total]
         OutgoingMessages: [Total]
         CompleteMessage: [Total]
@@ -684,6 +694,7 @@ receivers:
         ServerErrors: [Total]
         UserErrors: [Total]
         ThrottledRequests: [Total]
+        ServerSendLatency: [Average]
 
 processors:
   batch: {}
@@ -706,13 +717,17 @@ service:
 - Metrikkerne finder deres kø eller topic via namespacet (`name`) og enheden (`EntityName`); SDK'ernes spans nævner det samme namespace som `<namespace>.servicebus.windows.net`. Et span på `orders/Subscriptions/billing` eller `orders/$DeadLetterQueue` hører til `orders`, ligesom metrikkerne.
 - `maximum_number_of_records_per_resource` er, hvor mange serier Azure returnerer pr. metrik og namespace, 10, medmindre du hæver det: hold det over dit antal køer og topics (fejlmetrikkerne deler desuden hver enhed op efter resultat), ellers bliver resten ikke rapporteret.
 - Azure Monitor deler ikke op efter topic-abonnement: et topics tællinger dækker alle dets abonnementer.
-- Listen `metrics` indsamler præcis det, køsiden viser, hver med den ene aggregering, den viser; tilføj en metrik (`ScheduledMessages`, `Size`, …) for også at indsamle den.
+- Listen `metrics` indsamler præcis det, køsiden viser, hver med den ene aggregering, den viser; tilføj en metrik (`IncomingRequests`, `Messages`, …) for også at indsamle den. En collector, hvis liste er ældre end `ScheduledMessages`, `Size` eller `ServerSendLatency`, sender ingen af dem: køens kort **Brokermetrikker** nævner de linjer, der skal tilføjes.
+- Kun denne receiver deler metrikkerne op efter kø og topic. Et [forbundet Azure-abonnement](/docs/telemetry/cloud-accounts) og en diagnosticeringsindstilling, der eksporterer metrikker, sender begge namespacets totaler uden `EntityName`, så ingen af dem når en kø: namespacets egen side under **Cloud → Alle ressourcer** har abonnementets, og en køs kort **Brokermetrikker** siger, hvorfor køens egne mangler.
+- Ingen af disse metrikker afhænger af namespacets niveau. `ServerSendLatency` rapporteres pr. afsendelse, så en kø, der ikke er sendt noget til i intervallet, har ingen.
 - Receiveren lister dine namespaces én gang om dagen, så et nyt namespace kan tage op til 24 timer om at dukke op.
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
 | `azure_activemessages_average` | Aktive beskeder | Gauge |
 | `azure_deadletteredmessages_average` | Beskeder i dead-letter | Gauge |
+| `azure_scheduledmessages_average` | Planlagte beskeder | Gauge |
+| `azure_size_average` | Størrelse | Gauge |
 | `azure_incomingmessages_total` | Indgående beskeder | Antal pr. periode |
 | `azure_outgoingmessages_total` | Udgående beskeder | Antal pr. periode |
 | `azure_completemessage_total` | Fuldførte beskeder | Antal pr. periode |
@@ -720,6 +735,7 @@ service:
 | `azure_servererrors_total` | Serverfejl | Antal pr. periode |
 | `azure_usererrors_total` | Brugerfejl | Antal pr. periode |
 | `azure_throttledrequests_total` | Begrænsede anmodninger | Antal pr. periode |
+| `azure_serversendlatency_average` | Serverens afsendelseslatens | Gauge |
 
 ### BullMQ
 
@@ -1046,6 +1062,10 @@ Når dens spans faktisk nævner den, så opret den manuelt med samme system og d
 - Receiveren rapporterer den ikke. Kafka rapporterer kun en consumergruppes lag, efter at gruppen har committet et offset; RabbitMQ rapporterer kun køerne i de virtuelle værter, som dens bruger har adgang til, og logger ingen fejl for resten (se [RabbitMQ](#rabbitmq)); RabbitMQs tællere dukker op ved den første aktivitet; Azure Monitor returnerer 10 køer pr. metrik og namespace, medmindre `maximum_number_of_records_per_resource` hæves; Cloud Monitoring læser kun typerne i `metrics_list`.
 - Den er forsinket. `aws_cloudwatch` venter `delay` (10 minutter) på, at CloudWatch offentliggør, så dens punkter ankommer 11 til 17 minutter forsinket, og Pub/Sub's metrikker ankommer minutter forsinket.
 - Systemet har ingen metrikker i diagrammer: Azure Event Grid, NATS, andre JMS-brokere end ActiveMQ og BullMQ (se deres sektioner). Deres metrikker findes i stifinderen **Metrikker**.
+- Åbn køens kort **Brokermetrikker**: det viser, hvilke metrikker der ankommer, og hvorfor de andre ikke gør. For en Service Bus- eller Event Hubs-kø, hvor ingen af metrikkerne ankommer, siger det også, hvad namespacet sender i stedet, en af tre ting.
+- **Intet fra namespacet**: ingen collector læser det, eller hver læsning mislykkes. Giv receiverens tjenesteprincipal rollen **Monitoring Reader**, og søg i collectorens log efter `AuthorizationFailed` eller `401`: en udløbet klienthemmelighed stopper hver læsning.
+- **Kun totaler**: et [forbundet Azure-abonnement](/docs/telemetry/cloud-accounts) eller en diagnosticeringsindstilling sender namespacets metrikker for namespacet som helhed, uden nogen kø eller topic i dem. Læs også namespacet med receiveren `azure_monitor`, som deler dem op efter `EntityName`.
+- **Kun andre køer**: der ankommer metrikker for andre køer og topics i namespacet, men ikke for denne. Receiverens `maximum_number_of_records_per_resource` (10, medmindre du hæver det) udelod den: hæv det over antallet af køer og topics i namespacet.
 
 ### To køer for én destination
 

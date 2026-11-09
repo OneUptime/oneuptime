@@ -66,7 +66,7 @@ Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Enhete
 
 | Avsnitt | Sidor |
 | --- | --- |
-| **Topologi** | **Enhetstopologi**, **Slutpunkter**, **Latensmatris**, **Platslänkar**, **Enhetslänkar** |
+| **Topologi** | **Enhetstopologi**, **Upptäckta enheter**, **Latensmatris**, **Platslänkar**, **Enhetslänkar** |
 | **Regler** | **Regler för automatisk import**, **Regler för platstilldelning**, **Ägarregler**, **Etikettregler**, **Länkregler** |
 | **Inställningar** | **Larmpolicyer**, **SNMP-autentiseringsuppgifter**, **Enhetsroller**, **Platstyper**, **Adressnamn**, **Mallar för OID-insamling** |
 | **Avancerad** | **SNMP-walk**, **Arkiverade enheter** |
@@ -974,7 +974,18 @@ För att kartan ska fyllas i:
 - Slå på LLDP, eller CDP på Cisco-enheter, på enheterna själva.
 - Anslut instrumentpanelen på ett Meraki-nätverk. En [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) ritar kablarna som Meraki känner till, även de till en MX som bara svarar på ping.
 
-Klicka på en ohanterad peer så registrerar **Add to Monitoring** den som en sondavsökt enhet. Den tar den sond som dess grannar är överens om, så den pingas från sin första avsökning, och du kan lägga till autentiseringsuppgifter senare om den visar sig ha SNMP.
+Klicka på en ohanterad peer så registrerar **Lägg till i övervakning** den som en sondavsökt enhet. Den tar den sond som dess grannar är överens om, så den pingas från sin första avsökning, och du kan lägga till autentiseringsuppgifter senare om den visar sig ha SNMP.
+
+### Upptäckta enheter
+
+**Nätverk → Topologi → Upptäckta enheter** visar varje enhet som dina switchar, routrar och nätverkskontroller har sett, övervakad eller inte. Listan öppnas på **Inte övervakad**, de enheter som ännu inte är bestämda; **Övervakad**, **Dold på kartan** och **Alla** visar resten. Kartans knapp **Upptäckta enheter** öppnar den och säger hur många enheter som inte övervakas; på en plats karta öppnar den platsens lista. En enhets **Namn** är klassificeringen du gav den med **Redigera klassificering**, annars dess värdnamn, IP-adress eller MAC-adress, aldrig dess tillverkare. Bredvid står **IP-adress**, **MAC-adress**, **Leverantör**, **Sedd på** (switchen, dess port och VLAN:et), **Senast sedd** och **Tillstånd**: **Övervakad**, med en länk till enheten, **Endast upptäckt**, **Dold på kartan** eller **Inte sedd nyligen**. Sökningen hittar en enhet på dess namn, IP-adress, leverantör eller MAC-adress, med eller utan avgränsare. Inget försvinner av sig självt från listan: **Senast sedd** säger när en enhet senast fanns där.
+
+Välj enheter, eller varje enhet som matchar sökningen, och sedan:
+
+- **Lägg till i övervakning** importerar dem så som värdarna från en skanning importeras (se [Import av det en skanning hittade](#import-av-det-en-skanning-hittade)), med samma val: hur ofta de kontrolleras och om var och en får en monitor från en monitormall. En **Enhetsroll** säger vad de är, och en **SNMP-autentiseringsprofil** avsöker dem; utan profil pingas en enhet och avsöks med platsens standardprofil när platsen har en. Varje enhet hamnar på platsen där den sågs, behåller MAC-adressen den sågs med och avsöks av sonden för switchen som såg den. Enheter som redan övervakas lämnas utanför, och likaså en enhet som ännu inte har någon IP-adress, tills en routers ARP-tabell eller en nätverkskontroller rapporterar en: fönstret nämner båda, med skälet. Inget läggs till två gånger: en enhet vars MAC-adress redan tillhör en enhet i projektet, eller vars IP-adress redan tillhör en enhet på dess plats, visar **Redan tillagd**. Importen körs på servern, så du kan stänga fönstret: listan visar importen tills den är klar.
+- **Dölj på kartan** tar bort dem från topologikartan för alla i projektet när du har bekräftat. Inget raderas, och en övervakad enhet döljs aldrig: kartan ritar den som den enhet den är, och dess övervakning ändras inte. **Visa på kartan** sätter tillbaka dem, och **Visa dem** vid kartans antal dolda noder visar alla dolda noder i projektet igen på en gång.
+
+En rads egna knappar gör samma sak för en enhet. På kartan står en nods IP-adress under dess namn, och sökningen hittar också en nod på dess IP-adress eller MAC-adress, hur en switch än skrev den. Klicka på en upptäckt enhet på kartan, så erbjuder dess panel **Lägg till i övervakning**, som lägger till den på samma sätt, och **Dölj på kartan**.
 
 ### Välj layouten som kartan öppnas med
 
@@ -1018,7 +1029,7 @@ För det måste kartan veta vilken inlärd MAC som är enhetens. Det finns två 
 
 Switchen som enheten hänger på behöver också **Collect Connected Endpoints** påslaget: det är därifrån porten kommer. Adresser matchas inom enhetens plats, eftersom varje filial har en `10.0.0.5`; en MAC matchar oavsett plats.
 
-En [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) gör allt detta utan att något behöver slås på. Merakis klientlista visar vilken switch och port varje klient är på, så en enhet placeras så snart den switchen är en nätverksenhet här, på samma plats. Listan ger också enheten dess MAC-adress, och det Meraki kallar en klient visas i kolumnen **Värdnamn** under **Slutpunkter**. Den läses varannan timme, så en ny enhet kan ta så lång tid på sig att dyka upp. Så länge Meraki rapporterar en klient går dess port före en genomgången vidarebefordringstabell, eftersom Meraki kan skilja en accessport från en upplänk. En Wi-Fi-klient placeras på sin accesspunkt bara när den är en enhet här: telefonerna på ett gästnätverk hålls utanför kartan.
+En [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) gör allt detta utan att något behöver slås på. Merakis klientlista visar vilken switch och port varje klient är på, så en enhet placeras så snart den switchen är en nätverksenhet här, på samma plats. Listan ger också enheten dess MAC-adress, och det Meraki kallar en klient är enhetens namn under **Upptäckta enheter** och på kartan, om du inte ger den en egen klassificering. Den läses varannan timme, så en ny enhet kan ta så lång tid på sig att dyka upp. Så länge Meraki rapporterar en klient går dess port före en genomgången vidarebefordringstabell, eftersom Meraki kan skilja en accessport från en upplänk. En Wi-Fi-klient placeras på sin accesspunkt bara när den är en enhet här: telefonerna på ett gästnätverk hålls utanför kartan.
 
 Enhetens översikt har ett kort **Ansluten till** som namnger switchen, porten och VLAN:et. En switch, router eller brandvägg som rapporterar sina grannar via LLDP eller CDP visar dem där i stället: sin egen port, grannen (en länk när den är en enhet här) och porten i andra änden, med **Öppna kartan** bredvid. På kartan visar enhetens panel samma sak under **Ansluten till**, och länkens panel säger att den lärdes in från switchens vidarebefordringstabell. Parent-Child-vyn ritar enheten under dess switch. En länk som du har ritat för hand under **Enhetslänkar** för samma par slås ihop med den inlärda i stället för att dubbleras: den inlärda porten ersätter en felskriven, och en förälder som du har satt på den handritade länken behålls.
 

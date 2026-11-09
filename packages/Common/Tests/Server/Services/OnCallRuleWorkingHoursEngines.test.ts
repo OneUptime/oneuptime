@@ -111,10 +111,15 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(IncidentFeedService, "createIncidentFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
-      return IncidentOnCallRuleEngineService.applyRulesToIncident(
-        record as Incident,
-      );
+    apply: async (
+      record: BaseModel,
+    ): Promise<Map<string, OnCallRulePagingHold>> => {
+      // What the rules page: the holds, here (OnCallRulesPaging).
+      return (
+        await IncidentOnCallRuleEngineService.applyRulesToIncident(
+          record as Incident,
+        )
+      ).holds;
     },
     pagingNow: (
       record: BaseModel,
@@ -141,8 +146,13 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(AlertFeedService, "createAlertFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
-      return AlertOnCallRuleEngineService.applyRulesToAlert(record as Alert);
+    apply: async (
+      record: BaseModel,
+    ): Promise<Map<string, OnCallRulePagingHold>> => {
+      // What the rules page: the holds, here (OnCallRulesPaging).
+      return (
+        await AlertOnCallRuleEngineService.applyRulesToAlert(record as Alert)
+      ).holds;
     },
     pagingNow: (
       record: BaseModel,
@@ -169,10 +179,15 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(IncidentEpisodeFeedService, "createIncidentEpisodeFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
-      return IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode(
-        record as IncidentEpisode,
-      );
+    apply: async (
+      record: BaseModel,
+    ): Promise<Map<string, OnCallRulePagingHold>> => {
+      // What the rules page: the holds, here (OnCallRulesPaging).
+      return (
+        await IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode(
+          record as IncidentEpisode,
+        )
+      ).holds;
     },
     pagingNow: (
       record: BaseModel,
@@ -199,10 +214,15 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(AlertEpisodeFeedService, "createAlertEpisodeFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
-      return AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode(
-        record as AlertEpisode,
-      );
+    apply: async (
+      record: BaseModel,
+    ): Promise<Map<string, OnCallRulePagingHold>> => {
+      // What the rules page: the holds, here (OnCallRulesPaging).
+      return (
+        await AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode(
+          record as AlertEpisode,
+        )
+      ).holds;
     },
     pagingNow: (
       record: BaseModel,

@@ -71,6 +71,16 @@ import CommonAPI from "./CommonAPI";
  * imports, the role setup is the first step of making one, and a stream
  * key writes into the project.
  */
+/*
+ * A connection a streaming route acts on: the caller's project's, of a cloud
+ * the route is for - and who the caller is, whose change it is.
+ */
+interface StreamConnectionTarget {
+  connectionId: ObjectID;
+  projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}
+
 export default class CloudConnectionAPI extends BaseAPI<
   CloudConnection,
   CloudConnectionServiceClass
@@ -219,7 +229,7 @@ export default class CloudConnectionAPI extends BaseAPI<
       UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const target: { connectionId: ObjectID; projectId: ObjectID } =
+          const target: StreamConnectionTarget =
             await this.readStreamConnection(req, [
               CloudProvider.AWS,
               CloudProvider.GCP,
@@ -233,6 +243,7 @@ export default class CloudConnectionAPI extends BaseAPI<
           } = await CloudConnectionService.createStreamKey({
             connectionId: target.connectionId,
             now: new Date(),
+            props: target.props,
           });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -255,7 +266,7 @@ export default class CloudConnectionAPI extends BaseAPI<
       UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const target: { connectionId: ObjectID; projectId: ObjectID } =
+          const target: StreamConnectionTarget =
             await this.readStreamConnection(req, [CloudProvider.Azure]);
           const hostSubscriptionId: unknown = (
             req.body as JSONObject | undefined
@@ -272,6 +283,7 @@ export default class CloudConnectionAPI extends BaseAPI<
               connectionId: target.connectionId,
               hostSubscriptionId,
               now: new Date(),
+              props: target.props,
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -289,14 +301,17 @@ export default class CloudConnectionAPI extends BaseAPI<
       UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const target: { connectionId: ObjectID; projectId: ObjectID } =
+          const target: StreamConnectionTarget =
             await this.readStreamConnection(req, [
               CloudProvider.AWS,
               CloudProvider.Azure,
               CloudProvider.GCP,
             ]);
 
-          await CloudConnectionService.stopStreaming(target.connectionId);
+          await CloudConnectionService.stopStreaming(
+            target.connectionId,
+            target.props,
+          );
 
           return Response.sendJsonObjectResponse(req, res, { stopped: true });
         } catch (error) {
@@ -342,7 +357,7 @@ export default class CloudConnectionAPI extends BaseAPI<
   private async readStreamConnection(
     req: ExpressRequest,
     providers: Array<CloudProvider>,
-  ): Promise<{ connectionId: ObjectID; projectId: ObjectID }> {
+  ): Promise<StreamConnectionTarget> {
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
     const projectId: ObjectID =
@@ -373,7 +388,7 @@ export default class CloudConnectionAPI extends BaseAPI<
       );
     }
 
-    return { connectionId: new ObjectID(connectionId), projectId };
+    return { connectionId: new ObjectID(connectionId), projectId, props };
   }
 
   private assertCanOperate(props: DatabaseCommonInteractionProps): void {

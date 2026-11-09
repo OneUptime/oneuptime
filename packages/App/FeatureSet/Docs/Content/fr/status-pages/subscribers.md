@@ -329,6 +329,14 @@ Via l'API, envoyez le choix à côté des champs que vous modifiez, dans `miscDa
 
 comme corps de `PUT /api/status-page-announcement/<announcement-id>` (ou `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Omettez `miscDataProps` et la modification reste silencieuse, comme avant.
 
+### Notes publiques en attente d'approbation
+
+Un projet peut faire approuver ses notes publiques avant leur publication : voir [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques). Une note qui attend ne prévient aucun abonné. Sa notification est envoyée quand elle est publiée, comme pour une note postée à ce moment-là, et seulement si son choix **Notifier les abonnés de la page de statut** le prévoit ; une note rejetée n'est jamais envoyée. D'ici là, elle n'a aucune notification à réessayer ou à renvoyer.
+
+La modification d'une note publiée attend aussi. Si **Notifier les abonnés de cette mise à jour** était coché, sa mise à jour est envoyée une fois la modification approuvée, et jamais si la modification est rejetée ou retirée.
+
+Un changement d'état envoyé avec une note publique qui attend une approbation n'est pas porté par la note : le changement d'état prévient lui-même les abonnés, comme il le ferait sans note, et la note suit une fois publiée.
+
 ## La langue des messages aux abonnés
 
 Chaque abonné reçoit ses messages dans sa propre langue : l'e-mail ou le SMS qui confirme l'abonnement, le message de bienvenue et le lien pour le gérer, chaque notification sur un incident, un épisode d'incident, un événement de maintenance planifiée ou une annonce, par e-mail, SMS, Slack et Microsoft Teams, et le rapport par e-mail.

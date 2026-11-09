@@ -1728,6 +1728,8 @@ describe("Forms docs: templates, hidden questions and Duplicate Form", () => {
       "**Custom Domains**",
       "**Submissions**",
       "**Duplicate Form**",
+      // Who changed the form, its domains and its submissions.
+      "**Audit Logs**",
       "**Delete Form**",
     ]);
   });

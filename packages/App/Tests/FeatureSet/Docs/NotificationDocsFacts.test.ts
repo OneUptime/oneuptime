@@ -1726,7 +1726,7 @@ describe("personal on-call rules", () => {
     );
     // In the person's language (OnCallPageWords): English reads as it did.
     expect(ruleService).toContain(
-      "${this.escapeTelegramHtml(getOnCallPageTapToAcknowledge(translator))}</a>",
+      "${this.escapeTelegramHtml(getOnCallPageTapToAcknowledge(data.translator))}</a>",
     );
     expect(getOnCallPageTapToAcknowledge(getEnglishPageTranslator())).toBe(
       "Tap to acknowledge",
@@ -1759,8 +1759,9 @@ describe("personal on-call rules", () => {
     expect(getOnCallPageCallPassOnPrompt()).toBe(
       `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`,
     );
+    // Telegram's links, one place for every record a page is about.
     expect(ruleService).toContain(
-      '`⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${this.escapeTelegramHtml(getOnCallPageCantTakeItEscalate(translator))}</a>`',
+      '`⬆️ <a href="${this.escapeTelegramHtml(data.passOnUrl.toString())}">${this.escapeTelegramHtml(getOnCallPageCantTakeItEscalate(data.translator))}</a>`',
     );
     expect(ruleService).toContain(
       "mdText`⬆️ [${getOnCallPageCantTakeItEscalate(data.translator)}](${data.passOnUrl.toString()})`",
@@ -2107,8 +2108,9 @@ describe("notification settings", () => {
     }
 
     /*
-     * The two shift reminders, the five security case events and a hunt's
-     * finds start on by push too, and they alone.
+     * The two shift reminders, the five security case events, a hunt's
+     * finds and a public note waiting for the person's approval start on by
+     * push too, and they alone.
      */
     const byPush: Array<string> = Array.from(push).map(
       (type: string): string => {
@@ -2126,6 +2128,7 @@ describe("notification settings", () => {
         "Security case response target",
         "Security case task assigned to me",
         "Hunt found security events",
+        "Public note waiting for my approval",
       ].sort(),
     );
     expect(settings).toContain(

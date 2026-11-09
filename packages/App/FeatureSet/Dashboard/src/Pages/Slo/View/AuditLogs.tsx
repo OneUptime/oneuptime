@@ -6,8 +6,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /**
  * Everything that rolls up to this SLO: edits to the SLO itself and to its
- * burn-rate rules, monitor rules and owners, each of which points its audit
- * entries at the SLO (EnableAuditLogOn.rootResource). That is why the table
+ * burn-rate rules, error budget policy tiers, monitor rules and owners, each
+ * of which points its audit entries at the SLO (EnableAuditLogOn.rootResource). That is why the table
  * filters on rootResourceId alone - a resourceType or resourceId filter would
  * match the SLO's own entries and drop its children's.
  *
@@ -23,7 +23,7 @@ const SloAuditLogs: FunctionComponent<
   return (
     <AuditLogsTable
       title="SLO Audit Logs"
-      description="Changes people made to this SLO, its burn-rate rules, monitor rules and owners. Automatic evaluation updates are not recorded."
+      description="Changes people made to this SLO, its burn-rate rules, error budget policy, monitor rules and owners. Automatic evaluation updates are not recorded."
       rootResourceId={modelId}
     />
   );

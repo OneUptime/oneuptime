@@ -763,6 +763,26 @@ describe("accessibleLabelForNode — roles", () => {
     );
   });
 
+  test("a device announces the address drawn under its name (#5775)", () => {
+    expect(accessibleLabelForNode(deviceNode({ ipAddress: "10.0.0.1" }))).toBe(
+      "core-1, managed device, 10.0.0.1, status up",
+    );
+  });
+
+  test("an endpoint called by its address announces it once", () => {
+    expect(
+      accessibleLabelForNode({
+        id: "endpoint:e2",
+        name: "10.0.0.6",
+        isManaged: false,
+        status: "unknown",
+        kind: "endpoint",
+        role: "host",
+        ipAddress: "10.0.0.6",
+      }),
+    ).toBe("10.0.0.6, endpoint");
+  });
+
   test("a plain endpoint host does not say 'host, endpoint'", () => {
     expect(
       accessibleLabelForNode({
@@ -896,5 +916,77 @@ describe("buildTopologyLegend", () => {
       deviceNode({ role: "router" }),
     ]);
     expect(labelsOf(legend, "Type")).toEqual(["Router"]);
+  });
+});
+
+/*
+ * Issue #5775: a device on the map is found by everything it can be told
+ * by - its IP, its MAC however a switch printed it, and the name a person
+ * or its controller gave it - not only by its name and maker.
+ */
+describe("nodeMatchesSearch — by address, MAC and given names", () => {
+  const register: NetworkTopologyNode = {
+    id: "endpoint:e-1",
+    name: "10.240.0.21",
+    isManaged: false,
+    status: "up",
+    kind: "endpoint",
+    ipAddress: "10.240.0.21",
+    macAddress: "00:1a:2b:3c:4d:5e",
+    vendor: "Verifone",
+  };
+
+  test("an IP address, whole or in part", () => {
+    expect(nodeMatchesSearch(register, "10.240.0.21")).toBe(true);
+    expect(nodeMatchesSearch(register, "10.240")).toBe(true);
+    expect(nodeMatchesSearch(register, "10.241")).toBe(false);
+  });
+
+  test("a managed device by the address it is polled at, under another name", () => {
+    const device: NetworkTopologyNode = {
+      id: "d-1",
+      name: "core-switch-01",
+      isManaged: true,
+      status: "up",
+      kind: "device",
+      ipAddress: "10.0.0.1",
+    };
+    expect(nodeMatchesSearch(device, "10.0.0.1")).toBe(true);
+  });
+
+  test("a MAC in each of the ways a switch prints one", () => {
+    for (const search of [
+      "00:1a:2b:3c:4d:5e",
+      "00-1A-2B-3C-4D-5E",
+      "001a.2b3c.4d5e",
+      "001A2B3C4D5E",
+      "2b:3c",
+      "3C-4D",
+      "2b3c.4d",
+    ]) {
+      expect(nodeMatchesSearch(register, search)).toBe(true);
+    }
+    expect(nodeMatchesSearch(register, "aa:bb:cc")).toBe(false);
+  });
+
+  test("digits alone are an address, not a run of a MAC", () => {
+    // "1a2b" has letters and reads as hex; "0012" does not.
+    expect(nodeMatchesSearch(register, "1a2b")).toBe(true);
+    expect(nodeMatchesSearch(register, "0012")).toBe(false);
+  });
+
+  test("the name its controller gives it, and a person's classification", () => {
+    const named: NetworkTopologyNode = {
+      ...register,
+      name: "Front register",
+      hostname: "reg-front-01",
+      classification: "Front register",
+    };
+    expect(nodeMatchesSearch(named, "reg-front")).toBe(true);
+    expect(nodeMatchesSearch({ ...named, name: "x" }, "front")).toBe(true);
+  });
+
+  test("its maker still finds it", () => {
+    expect(nodeMatchesSearch(register, "verifone")).toBe(true);
   });
 });

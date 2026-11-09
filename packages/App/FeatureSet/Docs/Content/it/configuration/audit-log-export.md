@@ -118,13 +118,17 @@ La **Credenziale**, come `Bearer <token>`, viene inviata nell'intestazione che s
 
 ### Syslog
 
-Ogni voce è un messaggio RFC 5424 inviato all'**Host** e alla **Porta**, via TLS sulla porta `6514` a meno che **Protocollo** non indichi TCP, con facility 13 (log audit) e severity 6 (informational):
+Ogni voce è un messaggio RFC 5424 inviato all'**Host** e alla **Porta**, via TLS sulla porta `6514` a meno che **Protocollo** non indichi TCP o UDP, con facility 13 (log audit) e severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-I messaggi sono delimitati dal conteggio degli ottetti (RFC 5425), a meno che **Delimitazione** non indichi un messaggio per riga. Un ricevitore il cui certificato è firmato da una CA privata ha bisogno del certificato di quella CA in **Certificato della CA**. Entrambi aspettano in **Altri campi**.
+Su TLS e TCP, i messaggi sono delimitati dal conteggio degli ottetti (RFC 5425), a meno che **Delimitazione** non indichi un messaggio per riga. Un ricevitore il cui certificato è firmato da una CA privata ha bisogno del certificato di quella CA in **Certificato della CA**. Entrambi aspettano in **Altri campi**.
+
+Su UDP, **Porta** parte da `514`, e ogni messaggio è un datagramma a sé (RFC 5426), quindi nessuno viene delimitato. UDP invia il registro di audit in chiaro, e niente conferma che un messaggio sia arrivato: quando l'host del ricevitore risponde che la sua porta è chiusa, il lotto fallisce e viene ritentato, ma un messaggio perso per strada non viene inviato di nuovo. Dopo un test su UDP, controlla che la voce di test sia arrivata. Quando ogni voce deve arrivare, scegli TLS o TCP.
+
+Su UDP, un messaggio è lungo al massimo quanto **Dimensione massima dei messaggi**, in byte: `8192`, a meno che tu non la cambi in **Altri campi**, da `1024` a `65507`. Una voce più lunga viene accorciata per rientrarci e resta un unico oggetto JSON: prima vengono tagliati i suoi valori, come li taglia il registro di audit, ad esempio `[… 1,234 more characters]` o `[12.3 KB of JSON]`, poi le modifiche che ancora non rientrano vengono contate in una sola, ad esempio `[… 12 more changes]`.
 
 ## Cosa viene inviato
 
@@ -132,7 +136,7 @@ Ogni voce è un oggetto JSON, con le chiavi sempre in quest'ordine:
 
 | Chiave | Cosa contiene |
 | --- | --- |
-| `schemaVersion` | `1`. Una modifica allo schema arriva con una nuova versione. |
+| `schemaVersion` | `2` per una nuova esportazione, `1` per una salvata prima della versione 2. Una versione aggiunge solo chiavi. |
 | `id` | L'id della voce. La stessa voce inviata due volte ha lo stesso id. |
 | `createdAt` | Quando è stata registrata la modifica, in UTC. |
 | `projectId` | Il progetto in cui è stata fatta la modifica. |
@@ -143,11 +147,22 @@ Ogni voce è un oggetto JSON, con le chiavi sempre in quest'ordine:
 | `apiKeyId`, `apiKeyName` | La chiave API con cui è stata fatta, se c'è. |
 | `mcpOAuthGrantId`, `mcpClientName` | Il client MCP tramite cui è stata fatta, se c'è. |
 | `workflowId`, `workflowName` | Il workflow che l'ha fatta, se c'è. |
-| `changes` | Ogni campo modificato: `field`, con `oldValue` e `newValue`. |
+| `changes` | Ogni campo modificato: `field`, con `oldValue` e `newValue`, e nella versione 2 `summary`. |
 
 Un file contiene una voce per riga, compresso con gzip, ed è archiviato sotto l'ora della sua prima voce: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
+Ogni `oldValue` e `newValue` è il valore del campo: testo, un numero, `true` o `false`, oppure JSON per un'impostazione fatta di più parti. Un numero di telefono, un indirizzo email o un URL è il suo testo, ad esempio `+14155550100`, e una porta è il suo numero.
+
 Chiavi, token e password non escono mai: vengono registrati come `[REDACTED]`, e i campi che nessuno può leggere sono esclusi da ogni voce.
+
+## Versioni del record
+
+| Versione | Cosa invia |
+| --- | --- |
+| `2` | Ogni modifica porta anche `summary`: cosa è cambiato, nelle righe che mostra il registro di audit, come `Added "Send Email" (send-email-1)` per un passaggio di un workflow o il percorso cambiato nel JSON, altrimenti `null`. Le righe nominano impostazioni e percorsi, mai valori. |
+| `1` | La voce com'era inviata all'inizio, senza `summary`. I passaggi di un workflow escono come la loro dimensione prima e dopo, come `3 steps and 2 connections`. |
+
+Una nuova esportazione invia la versione 2. Un'esportazione salvata prima della versione 2 continua a inviare la versione 1, quindi ciò che la legge non deve cambiare nulla: quando è pronto per `summary`, fai clic su **Modifica** sull'esportazione e scegli la versione 2 in **Versione del record**, sotto **Altri campi**. La versione vale per le voci inviate da quel momento, e ogni voce indica la propria in `schemaVersion`.
 
 ## Quando vengono inviate le voci
 
@@ -177,7 +192,7 @@ L'esportazione di un progetto su OneUptime Cloud non può raggiungere un indiriz
 :::
 
 :::details Non arriva nulla
-Controlla che la registrazione di audit sia attiva nel progetto, e che qualcuno abbia cambiato qualcosa dopo il salvataggio dell'esportazione. Uno storage riceve un file solo quando un lotto è pieno o ha cinque minuti.
+Controlla che la registrazione di audit sia attiva nel progetto, e che qualcuno abbia cambiato qualcosa dopo il salvataggio dell'esportazione. Uno storage riceve un file solo quando un lotto è pieno o ha cinque minuti. Su UDP, un firewall scarta i messaggi senza dirlo: controlla che UDP possa raggiungere la porta del ricevitore.
 :::
 
 ## Passi successivi

@@ -1,6 +1,6 @@
 # Solução de problemas de RUM
 
-Quando uma aplicação RUM está faltando, está vazia ou mostra **Desconectado**, siga esta página em ordem. Cada verificação descarta uma parte do caminho entre o seu aplicativo e o OneUptime, na ordem em que esses problemas costumam acontecer.
+Quando uma aplicação RUM está faltando ou vazia, ou mostra **Sem tráfego recente** enquanto as pessoas a usam, siga esta página em ordem. Cada verificação descarta uma parte do caminho entre o seu aplicativo e o OneUptime, na ordem em que esses problemas costumam acontecer.
 
 :::cards
 - [Verificar a chave](#verificar-a-chave): A verificação mais rápida, e todo o resto depende dela.
@@ -109,6 +109,33 @@ A aplicação existe, mas as páginas dela não mostram nada.
 - **Espere alguns minutos.** A ingestão passa por uma fila, e **Visto pela última vez** é atualizado a cada poucos minutos em vez de a cada lote.
 - **Verifique o projeto.** Uma chave grava no seu próprio projeto, então a telemetria enviada com a chave de outro projeto está lá, não aqui.
 
+## As exceções ou os registros estão vazios
+
+Os carregamentos de página e as requisições chegam, mas **Exceções** ou **Registros** continuam vazios. O SDK do OpenTelemetry para navegador envia sozinho os traços dos carregamentos de página e das requisições, mas nenhuma exceção e nenhum registro, então uma aplicação pode parecer conectada enquanto esses dois continuam vazios para sempre.
+
+O gráfico vazio na **Visão geral** da aplicação diz qual é o caso, e a **Verificação da configuração** na página **Documentação** dela lista cada tipo de telemetria com o momento em que chegou o mais recente:
+
+| O gráfico diz | O que significa |
+| --- | --- |
+| **As exceções não estão configuradas** ou **Os registros não estão configurados** | Nenhum chegou desta aplicação até hoje. **Configurar as exceções** ou **Configurar os registros** mostra o código que os envia, com a sua URL e a sua chave já preenchidas. |
+| **Nenhuma exceção neste intervalo de tempo** ou **Nenhum registro neste intervalo de tempo** | Alguns chegaram antes, e o gráfico diz quando chegou o último. Escolha o intervalo mais longo que ele oferece. |
+| **Nada chegou deste app ainda** | Não chega telemetria de nenhum tipo: comece por [Verificar a chave](#verificar-a-chave). |
+| **O SDK do OpenTelemetry não está enviando dados** | Só a reprodução de sessões envia dados desta aplicação: configure o SDK como em [Configuração para navegadores](/docs/rum/browser-setup). |
+
+As exceções precisam de um manipulador de erros, porque o SDK não captura erros não tratados: [Relatar erros não tratados](/docs/rum/browser-setup#relatar-erros-não-tratados) tem o código. Um erro que um error boundary ou um `try`/`catch` trata nunca chega à janela, então registre-o onde você o trata, com `span.recordException`.
+
+Os registros precisam de um pipeline de registros e de código que escreva entradas de registro, porque um `LoggerProvider` sozinho não envia nada: [Adicionar registros e métricas](/docs/rum/browser-setup#adicionar-registros-e-métricas) tem os dois. Monte o pipeline com o mesmo `resource` dos seus traços, ou os registros são arquivados sob um serviço de backend.
+
+Quando os carregamentos de página chegam, a chave, as origens permitidas dela e a sua Content Security Policy também deixam passar as exceções e os registros, desde que o exportador de registros use a mesma chave e o mesmo host. Um manipulador de erros que ainda não capturou nada não envia nada, exatamente como um que nunca foi adicionado, então lance um erro de teste no console do navegador para diferenciar os dois:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Em até um minuto, ele aparece na **Visão geral** da aplicação, em **Exceções**.
+
 ## A página Clientes está vazia
 
 A página **Clientes** lista `browser.platform` na web e `device.model.identifier` no móvel. Dois motivos para ela ficar vazia mesmo quando todo o resto funciona:
@@ -120,15 +147,15 @@ A página **Clientes** lista `browser.platform` na web e `device.model.identifie
 
 O cartão só se preenche com as métricas que o seu aplicativo envia, então traços sozinhos nunca o preenchem. Verifique se você exporta métricas, se os nomes delas estão entre os que o OneUptime lê e se elas aparecem na página **Métricas** da aplicação. [O cartão diz «No web vitals reported yet»](/docs/rum/web-vitals#solução-de-problemas) passa por cada verificação, incluindo os valores perdidos quando um visitante fecha a aba antes da próxima exportação.
 
-## O status diz Desconectado enquanto as pessoas usam o aplicativo
+## O status diz Sem tráfego recente enquanto as pessoas usam o aplicativo
 
-Uma aplicação passa para **Desconectado** após 15 minutos sem telemetria. Se há pessoas usando o aplicativo:
+Uma aplicação passa para **Sem tráfego recente** após 15 minutos sem telemetria. Se há pessoas usando o aplicativo:
 
 - **Um amostrador pode estar descartando tudo.** Verifique se você não definiu um amostrador sempre desligado, nem uma proporção muito baixa.
 - **O aplicativo pode enviar telemetria só em algumas interações**, e ninguém as usou nesse período.
 - **A chave pode ter sido revogada ou desativada** depois do deploy: execute de novo a [verificação da chave](#verificar-a-chave).
 
-Um aplicativo interno ou de pouco tráfego sem visitantes à noite está realmente desconectado. Não é uma falha.
+Um aplicativo interno ou de pouco tráfego sem visitantes à noite também mostra **Sem tráfego recente**. Isso é normal, não uma falha.
 
 ## Problemas de reprodução de sessões
 

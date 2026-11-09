@@ -1882,6 +1882,7 @@ describe("MonitorOverviewPresentationUtil sections", () => {
       sideCard: "probes",
       responseTimeMetric: MonitorMetricType.ResponseTime,
       telemetryPreview: null,
+      showMetricCharts: false,
       stepCount: 1,
     });
 
@@ -1931,6 +1932,50 @@ describe("MonitorOverviewPresentationUtil sections", () => {
     );
     expect(build(running(MonitorType.Server)).sections.connection).toBe(
       MonitorOverviewSetupKind.ServerAgent,
+    );
+  });
+
+  /*
+   * Issue #5759: a metric-backed monitor charts what it checks first - the
+   * Metrics monitor and every infrastructure one, whose overview used to
+   * chart nothing - even before its first data, when the card says what to
+   * check.
+   */
+  it("a metric-backed monitor charts its metrics, once it has a step", () => {
+    for (const monitorType of [
+      MonitorType.Metrics,
+      MonitorType.Proxmox,
+      MonitorType.Kubernetes,
+      MonitorType.Host,
+    ]) {
+      const sections: MonitorOverviewPresentation["sections"] = build(
+        running(monitorType),
+      ).sections;
+
+      expect(sections.showMetricCharts).toBe(true);
+      expect(sections.telemetryPreview).toBeNull();
+    }
+
+    // Waiting for its first data: the card says what to check.
+    const awaiting: MonitorOverviewPresentation = build(
+      running(MonitorType.Kubernetes, {
+        createdAt: secondsAgo(120),
+        telemetry: {},
+        latestEvaluationAt: undefined,
+      }),
+    );
+    expect(awaiting.runState).toBe(MonitorOverviewRunState.AwaitingFirstData);
+    expect(awaiting.sections.showMetricCharts).toBe(true);
+
+    expect(
+      build(running(MonitorType.Metrics, { monitorSteps: NO_STEPS })).sections
+        .showMetricCharts,
+    ).toBe(false);
+    expect(build(running(MonitorType.Logs)).sections.showMetricCharts).toBe(
+      false,
+    );
+    expect(build(running(MonitorType.API)).sections.showMetricCharts).toBe(
+      false,
     );
   });
 
@@ -3170,6 +3215,7 @@ describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
       sideCard: null,
       responseTimeMetric: null,
       telemetryPreview: null,
+      showMetricCharts: false,
       stepCount: 1,
     });
   });

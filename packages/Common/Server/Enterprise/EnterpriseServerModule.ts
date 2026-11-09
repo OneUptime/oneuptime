@@ -42,12 +42,20 @@ export interface AuditLogRecorder {
     props: DatabaseCommonInteractionProps;
   }): Promise<void>;
 
+  /*
+   * `includeColumns`: what a write OneUptime makes for a person, round
+   * DatabaseService's hooks, records although the model's audit
+   * configuration leaves it out as OneUptime's own bookkeeping - the
+   * exception an exception was merged into. AuditLogService.recordUpdate
+   * says more.
+   */
   recordUpdate<TModel extends BaseModel>(data: {
     model: TModel;
     before: TModel;
     updatedFields: JSONObject;
     itemId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    includeColumns?: Array<string> | undefined;
   }): Promise<void>;
 
   recordDelete<TModel extends BaseModel>(data: {

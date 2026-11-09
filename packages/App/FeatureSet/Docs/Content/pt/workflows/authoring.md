@@ -13,7 +13,7 @@ Clique em um modelo para ver o que ele faz: o gatilho, os blocos que o compõem 
 
 Os workflows são criados desligados, então o gatilho deles não os inicia até você ligá-los. Um novo workflow abre no **Construtor**, o canvas onde você o projeta.
 
-Você também pode descrever um workflow ao Ask AI e deixar que ele o crie para você. Ele encontra o gatilho e as etapas, configura-os e conecta-os, e pede sua aprovação antes de salvar o workflow. Um novo workflow começa desativado: leia-o no Builder, preencha senhas, tokens ou URLs de webhook que ele deixou para você, pois o Ask AI nunca os pede na conversa, e então ative-o você mesmo. O Ask AI pode alterar um workflow da mesma forma. Na página de um workflow, "este workflow" significa aquele. Ele salva em seu nome, então só pode fazer o que você pode fazer no Builder, e o Builder mostra as alterações assim que são salvas.
+Você também pode descrever um workflow ao Ask AI e deixar que ele o crie para você. Ele encontra o gatilho e as etapas, configura-os e conecta-os, e pede sua aprovação antes de salvar o workflow. Um novo workflow começa desativado: leia-o no Builder, preencha senhas, tokens ou URLs de webhook que ele deixou para você, pois o Ask AI nunca os pede na conversa, e então ative-o você mesmo. O Ask AI pode alterar um workflow da mesma forma. Na página de um workflow, "este workflow" significa aquele. Ele salva em seu nome, então só pode fazer o que você pode fazer no Builder, e o Builder mostra as alterações assim que são salvas. Se o workflow for salvo enquanto uma alteração do Ask AI aguarda sua aprovação, por você no Builder ou por outra pessoa, aprová-la mantém o que foi salvo. Quando as duas alterações são em etapas diferentes, o Ask AI faz a alteração dele sobre o que foi salvo e avisa. Quando elas mexem na mesma etapa, nada é alterado: o Ask AI diz que o workflow mudou e propõe a alteração de novo sobre o workflow como ele está agora. O Ask AI escreve uma alteração a partir do workflow como o leu pela última vez. Se o workflow foi salvo depois disso, e a alteração desfaria parte do que foi salvo, o cartão diz isso antes que você aprove e cita as etapas, por exemplo "Esta alteração desfaz o que foi salvo depois que a IA leu o workflow: Send Message to Slack." Para manter o que foi salvo, pule a alteração e peça ao Ask AI que leia o workflow de novo. Mover cartões nunca conta, nem uma configuração alterada em uma etapa que a alteração do Ask AI deixa como está. Se o Ask AI nunca leu as etapas do workflow, o cartão também diz isso. Em Execução automática, em que ninguém aprova as ações, o Ask AI não faz uma alteração assim: ele lê o workflow de novo e faz a alteração sobre o workflow como ele está agora.
 
 ## O canvas
 
@@ -21,7 +21,9 @@ Um workflow criado do zero abre com um único bloco tracejado escrito **Escolha 
 
 Todo workflow tem exatamente um **gatilho** no topo. Todo o resto é um **componente** que faz alguma coisa. Para trocar o gatilho, exclua-o: o espaço reservado tracejado volta ao lugar dele, e clicar nele permite escolher outro. Excluir um bloco também exclui as linhas dele, então ligue de novo o novo gatilho ao primeiro bloco.
 
-As alterações são salvas automaticamente. Um selo na barra de ferramentas acompanha isso: **Salvando…** enquanto a alteração está a caminho, depois **Salvo**, ou **Não foi possível salvar** se não deu certo. O canvas não tem botão de salvar nem uma etapa de publicação separada.
+As alterações são salvas automaticamente, um instante depois de você fazê-las. Um selo na barra de ferramentas acompanha isso: **Salvando…** enquanto a alteração está a caminho, depois **Salvo**. Se uma alteração não puder ser salva, o selo mostra **Não foi possível salvar**, com o motivo quando você passa o mouse por cima, e **Tentar novamente** ao lado. Enquanto isso, as suas alterações continuam no canvas, e a próxima alteração que você fizer tenta de novo. Se você sair da página antes de uma alteração ser salva, precisa confirmar antes. O canvas não tem botão de salvar nem uma etapa de publicação separada. Um erro também é salvo, por isso o Construtor guarda cada alteração para que você possa desfazê-la: veja [Desfazer, refazer e histórico de versões](#desfazer-refazer-e-histórico-de-versões).
+
+Duas pessoas podem ter o mesmo fluxo de trabalho aberto. Se outra pessoa o salvar depois que você o abriu, em outro Construtor ou pela API, o Construtor não salva a sua alteração por cima da dela: o selo mostra **Não salva**, e uma caixa de diálogo lista o que foi alterado. **Mostrar as alterações deles** coloca a versão deles no canvas, e **Desfazer** traz a sua de volta. **Manter a minha** salva a sua versão, e a deles continua no histórico de versões. Nada se perde, seja qual for a sua escolha.
 
 ## Adicionar blocos
 
@@ -169,6 +171,26 @@ Para pausar um workflow sem excluí-lo, desligue **Habilitado**. O gatilho dele 
 - Para excluir um bloco, clique nele e use **Excluir** no rodapé da caixa de diálogo de configurações. Selecionar um bloco ou uma linha e pressionar Backspace também o remove.
 - Não há como duplicar um único bloco. **Duplicar: Fluxo de trabalho** na página **Configurações** do workflow copia tudo. O nome da cópia vem preenchido, numerado a partir dos workflows do projeto ("Nightly Sync" é copiado como "Nightly Sync 2"), e a cópia se abre, desabilitada.
 - Empilhe os blocos de cima para baixo para que eles sejam lidos na direção em que rodam — as entradas ficam na borda de cima e as saídas na de baixo, então o fluxo desce naturalmente.
+
+## Desfazer, refazer e histórico de versões
+
+Toda alteração que você faz no canvas pode ser desfeita, mesmo que já tenha sido salva na hora.
+
+- **Desfazer** e **Refazer** ficam no início da barra de ferramentas. Passe o mouse sobre um deles para ver o que ele desfaria ou refaria, e em qual bloco. Cada alteração é um passo: adicionar, excluir ou mover um bloco, ligar dois blocos ou remover a ligação entre eles, e salvar as configurações de um bloco. Arrastar um bloco é um passo só, por mais longe que você o arraste.
+- O teclado também funciona: ⌘Z no Mac, ou Ctrl+Z, desfaz, e ⇧⌘Z, Ctrl+Shift+Z ou Ctrl+Y refaz. Enquanto você digita em um campo ou em um editor de código, as mesmas teclas desfazem o que você digitou.
+- O que você desfaz é salvo como qualquer outra alteração. Desfazer só volta até o momento em que você abriu o Construtor; o histórico de versões vai mais longe.
+
+**Histórico de versões**, na barra de ferramentas, lista cada versão salva do workflow, da mais recente para a mais antiga: quem a salvou, quando e o que ela alterou, como `Added "Send Email" (send-email-1)`. As alterações que você salva com menos de 10 minutos de intervalo entre elas formam uma única versão, então uma versão é um trecho de trabalho, e não cada clique. As alterações feitas pela API também são versões, e cada alteração que o Ask AI faz é uma versão própria, que diz que o Ask AI a fez por você. Restaurar a versão anterior desfaz exatamente o que o Ask AI fez. Quando a alteração do Ask AI foi feita sobre uma alteração que você ainda não tinha visto, o Builder as mostra como duas etapas: Desfazer desfaz só a alteração do Ask AI, e a alteração salva antes dela é a etapa anterior.
+
+Para voltar a uma versão anterior:
+
+:::steps
+1. Clique em **Histórico de versões** na barra de ferramentas.
+2. Clique em **Pré-visualização** na versão. A pré-visualização lista o que a restauração mudaria e mostra a versão em um canvas próprio. Clique em um bloco desse canvas para ler as configurações dele.
+3. Clique em **Restaurar esta versão**. A versão volta para o canvas e é salva na hora.
+:::
+
+A restauração é uma alteração como qualquer outra. Ela é salva como uma nova versão que indica qual versão foi restaurada, então você pode desfazê-la ou restaurar a versão que tinha antes. Qualquer pessoa que possa abrir o workflow pode ver o histórico dele; restaurar uma versão exige permissão para editar o workflow. As 100 versões mais recentes de cada workflow são mantidas.
 
 ## Próximos passos
 

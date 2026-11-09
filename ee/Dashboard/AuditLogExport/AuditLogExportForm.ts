@@ -2,11 +2,20 @@ import { AuditLogExportCopy, AuditLogExportHealth } from "./AuditLogExportCopy";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import {
+  AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION,
+  AUDIT_LOG_EXPORT_SCHEMA_VERSION,
+  AUDIT_LOG_EXPORT_SCHEMA_VERSIONS,
+  AuditLogExportSchemaVersion,
+  isAuditLogExportSchemaVersion,
+  readAuditLogExportSchemaVersion,
+} from "Common/Types/AuditLog/Export/AuditLogExportRecord";
+import {
   AUDIT_LOG_EXPORT_DEFAULT_FOLDER,
   AuditLogExportDestinationDefinition,
   AuditLogExportDestinationField,
   AuditLogExportDestinationKind,
   getAuditLogExportDestinationDefinition,
+  getAuditLogExportFieldDefault,
   isAuditLogExportFieldShown,
   readAuditLogExportConfigValue,
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
@@ -60,6 +69,11 @@ export interface AuditLogExportFormSubmission {
   secrets: JSONObject;
   // Only when one was picked: empty on create means from now on.
   startsAt: Date | null;
+  /*
+   * The record version picked: null when the field holds none, which on
+   * create means the newest and on edit keeps the saved one.
+   */
+  schemaVersion: AuditLogExportSchemaVersion | null;
 }
 
 function readText(value: JSONValue | undefined): string {
@@ -122,6 +136,111 @@ function readStartsAt(value: JSONValue | undefined): Date | null {
     value instanceof Date ? value : new Date(readText(value) || "");
 
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/*
+ * The record versions the form offers, newest first, each by its name:
+ * the newest, which a new export starts on, and the original. A version
+ * with neither name has none to show, and is not offered.
+ */
+export function getAuditLogExportSchemaVersionOptions(): Array<{
+  label: string;
+  value: string;
+}> {
+  const labels: Partial<Record<AuditLogExportSchemaVersion, string>> = {
+    [AUDIT_LOG_EXPORT_SCHEMA_VERSION]:
+      AuditLogExportCopy.schemaVersionNewestOption,
+    [AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION]:
+      AuditLogExportCopy.schemaVersionFirstOption,
+  };
+
+  return [...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS]
+    .reverse()
+    .filter((version: AuditLogExportSchemaVersion): boolean => {
+      return Boolean(labels[version]);
+    })
+    .map((version: AuditLogExportSchemaVersion) => {
+      return { label: labels[version]!, value: String(version) };
+    });
+}
+
+// The record version the form holds (a dropdown's value, or its text), or none.
+function readSchemaVersion(
+  value: JSONValue | undefined,
+): AuditLogExportSchemaVersion | null {
+  const version: number = Number(readText(value) || NaN);
+
+  return isAuditLogExportSchemaVersion(version) ? version : null;
+}
+
+/*
+ * The fields whose default follows a choice of this config field (syslog's
+ * port follows its protocol): what a form moves along when it changes.
+ */
+export function getAuditLogExportFollowingFields(
+  definition: AuditLogExportDestinationDefinition,
+  key: string,
+): Array<AuditLogExportDestinationField> {
+  return definition.configFields.filter(
+    (field: AuditLogExportDestinationField): boolean => {
+      return field.defaultFollows?.key === key;
+    },
+  );
+}
+
+/*
+ * The form's values once a config field takes a new choice: each field
+ * whose default follows that choice, and that holds nobody's value -
+ * nothing, or the default of a choice - takes the new choice's default, so
+ * picking UDP moves a port of 6514 to 514 and picking TLS moves it back. A
+ * port someone typed stays. Null when nothing moves.
+ */
+export function followAuditLogExportDefaults(data: {
+  definition: AuditLogExportDestinationDefinition;
+  key: string;
+  choice: JSONValue | undefined;
+  values: JSONObject;
+}): JSONObject | null {
+  let moved: JSONObject | null = null;
+
+  for (const field of getAuditLogExportFollowingFields(
+    data.definition,
+    data.key,
+  )) {
+    const fieldName: string = exportConfigFieldName(
+      data.definition.type,
+      field.key,
+    );
+    const held: string = readText(
+      data.values[fieldName] as JSONValue | undefined,
+    );
+    const untouched: Array<string> = [
+      "",
+      ...(field.defaultValue === undefined ? [] : [String(field.defaultValue)]),
+      ...Object.values(field.defaultFollows?.values || {}).map(
+        (value: string | number): string => {
+          return String(value);
+        },
+      ),
+    ];
+
+    if (!untouched.includes(held)) {
+      continue;
+    }
+
+    const followed: JSONValue | undefined = getAuditLogExportFieldDefault(
+      { [data.key]: readText(data.choice) },
+      field,
+    );
+    const next: string =
+      followed === undefined || followed === null ? "" : String(followed);
+
+    if (next !== held) {
+      moved = { ...(moved || data.values), [fieldName]: next };
+    }
+  }
+
+  return moved;
 }
 
 // The destination the form is for: the one an edit keeps, or the one picked.
@@ -217,6 +336,9 @@ export function readAuditLogExportForm(
     config,
     secrets: readSecrets(definition, values, config),
     startsAt: readStartsAt(values["startsAt"] as JSONValue | undefined),
+    schemaVersion: readSchemaVersion(
+      values["schemaVersion"] as JSONValue | undefined,
+    ),
   };
 }
 
@@ -234,11 +356,27 @@ export function auditLogExportTestBody(data: {
     data.auditLogExport?.destinationType,
   );
 
+  /*
+   * The test arrives in the version picked, else the saved export's - and
+   * an edit whose saved version the form could not read leaves it to the
+   * server, rather than test in the field's default.
+   */
+  const isSavedVersionUnread: boolean = Boolean(
+    data.auditLogExport?.id &&
+      (data.auditLogExport.schemaVersion === undefined ||
+        data.auditLogExport.schemaVersion === null),
+  );
+  const version: JSONObject =
+    submission.schemaVersion !== null && !isSavedVersionUnread
+      ? { schemaVersion: submission.schemaVersion }
+      : {};
+
   if (data.auditLogExport?.id) {
     return {
       exportId: data.auditLogExport.id.toString(),
       config: submission.config,
       secrets: submission.secrets,
+      ...version,
     };
   }
 
@@ -246,13 +384,16 @@ export function auditLogExportTestBody(data: {
     destinationType: submission.destinationType,
     config: submission.config,
     secrets: submission.secrets,
+    ...version,
   };
 }
 
 /*
  * The edit: a blank credential keeps the stored one, so it is left out, and
  * Export From is sent only when it moved - sending it starts the export
- * again from there.
+ * again from there. The record version is sent only when it changed, and
+ * only for an export whose saved version the form read: one it could not
+ * show is never written over with the field's default.
  */
 export function auditLogExportUpdatePayload(data: {
   submission: AuditLogExportFormSubmission;
@@ -269,6 +410,14 @@ export function auditLogExportUpdatePayload(data: {
     data.submission.startsAt &&
       (!stored || toSecond(stored) !== toSecond(data.submission.startsAt)),
   );
+  const isVersionKnown: boolean =
+    data.auditLogExport.schemaVersion !== undefined &&
+    data.auditLogExport.schemaVersion !== null;
+  const versionChanged: boolean =
+    isVersionKnown &&
+    data.submission.schemaVersion !== null &&
+    data.submission.schemaVersion !==
+      readAuditLogExportSchemaVersion(data.auditLogExport.schemaVersion);
 
   return {
     name: data.submission.name,
@@ -279,6 +428,7 @@ export function auditLogExportUpdatePayload(data: {
     ...(startsAtMoved && data.submission.startsAt
       ? { startsAt: data.submission.startsAt.toISOString() }
       : {}),
+    ...(versionChanged ? { schemaVersion: data.submission.schemaVersion } : {}),
   };
 }
 
@@ -369,6 +519,20 @@ export function getAuditLogExportInitialValues(
     values["startsAt"] = new Date(auditLogExport.startsAt).toISOString();
   }
 
+  /*
+   * The version the export sends - 1 for one saved before there was a
+   * choice. A new export starts on the field's default, the newest.
+   */
+  if (
+    auditLogExport &&
+    auditLogExport.schemaVersion !== undefined &&
+    auditLogExport.schemaVersion !== null
+  ) {
+    values["schemaVersion"] = String(
+      readAuditLogExportSchemaVersion(auditLogExport.schemaVersion),
+    );
+  }
+
   if (auditLogExport && definition) {
     const config: JSONObject = auditLogExport.config || {};
 
@@ -380,6 +544,21 @@ export function getAuditLogExportInitialValues(
       if (value !== undefined && value !== null && value !== "") {
         values[exportConfigFieldName(definition.type, field.key)] =
           typeof value === "number" ? String(value) : value;
+        continue;
+      }
+
+      /*
+       * A default that follows a choice is the one the export sends with -
+       * 514 for a UDP export saved without a port - not the field's own,
+       * which a save would then write over it.
+       */
+      const followed: JSONValue | undefined = field.defaultFollows
+        ? getAuditLogExportFieldDefault(config, field)
+        : undefined;
+
+      if (followed !== undefined && followed !== null) {
+        values[exportConfigFieldName(definition.type, field.key)] =
+          String(followed);
       }
     }
   }

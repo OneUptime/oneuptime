@@ -14,6 +14,11 @@ import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResou
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import NoMonitorsStatus from "./NoMonitorsStatus";
+import MonitorGroupDisabledStatus from "./MonitorGroupDisabledStatus";
+import { fetchMonitorGroupMonitoringSummary } from "./MonitorGroupMonitoringAPI";
+import MonitorGroupMonitoring, {
+  MonitorGroupMonitoringSummary,
+} from "Common/Utils/Monitor/MonitorGroupMonitoring";
 
 export interface ComponentProps {
   monitorGroupId: ObjectID;
@@ -37,30 +42,47 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
    */
   const [monitorCount, setMonitorCount] = React.useState<number | null>(null);
 
+  /*
+   * How many of its monitors have monitoring turned off (issue #6401): when
+   * every one has, the group reads Disabled, as on its Overview. Null when
+   * it could not be read: the status is then shown as the server gives it.
+   */
+  const [monitoringSummary, setMonitoringSummary] =
+    React.useState<MonitorGroupMonitoringSummary | null>(null);
+
   const loadCurrentStatus: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
 
     try {
-      const [currentStatus, count]: [MonitorStatus | null, number | null] =
-        await Promise.all([
-          ModelAPI.post<MonitorStatus>({
-            modelType: MonitorStatus,
-            apiUrl: URL.fromString(APP_API_URL.toString())
-              .addRoute(new MonitorGroup().getCrudApiPath()!)
-              .addRoute("/current-status/")
-              .addRoute(`/${props.monitorGroupId.toString()}`),
-          }),
-          ModelAPI.count<MonitorGroupResource>({
-            modelType: MonitorGroupResource,
-            query: {
-              monitorGroupId: props.monitorGroupId,
-            },
-          }).catch((): null => {
+      const [currentStatus, count, summary]: [
+        MonitorStatus | null,
+        number | null,
+        MonitorGroupMonitoringSummary | null,
+      ] = await Promise.all([
+        ModelAPI.post<MonitorStatus>({
+          modelType: MonitorStatus,
+          apiUrl: URL.fromString(APP_API_URL.toString())
+            .addRoute(new MonitorGroup().getCrudApiPath()!)
+            .addRoute("/current-status/")
+            .addRoute(`/${props.monitorGroupId.toString()}`),
+        }),
+        ModelAPI.count<MonitorGroupResource>({
+          modelType: MonitorGroupResource,
+          query: {
+            monitorGroupId: props.monitorGroupId,
+          },
+        }).catch((): null => {
+          return null;
+        }),
+        fetchMonitorGroupMonitoringSummary(props.monitorGroupId).catch(
+          (): null => {
             return null;
-          }),
-        ]);
+          },
+        ),
+      ]);
 
       setMonitorCount(count);
+      setMonitoringSummary(summary);
       setCurrentGroupStatus(currentStatus);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -83,6 +105,12 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
 
   if (monitorCount === 0) {
     return <NoMonitorsStatus />;
+  }
+
+  if (
+    MonitorGroupMonitoring.isMonitoringOffForEveryMonitor(monitoringSummary)
+  ) {
+    return <MonitorGroupDisabledStatus />;
   }
 
   if (!currentGroupStatus) {

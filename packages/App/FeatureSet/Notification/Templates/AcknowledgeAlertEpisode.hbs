@@ -9,6 +9,9 @@
 {{else}}
 {{> InfoBlock plainInfo=(tt "A new alert episode has been created in the project - {{projectName}}" projectName=projectName)}}
 {{/if}}
+{{#if observerPageInfo}}
+{{> InfoBlock plainInfo=observerPageInfo}}
+{{/if}}
 
 {{> InfoBlock info=(tHtml "Here are the details:")}}
 
@@ -53,6 +56,13 @@
 <!-- /Alerts List Container -->
 {{/if}}
 
+{{#if observerPageInfo}}
+{{> InfoBlock info=(tHtml "Seen it? Let the people responding know. This does not acknowledge the alert episode.")}}
+
+{{> ButtonBlock buttonUrl=acknowledgeAlertEpisodeLink buttonText=(t "I've seen it")}}
+
+{{> LinkBlock linkUrl=acknowledgeAlertEpisodeLink linkLabel=(t "You can also copy and paste this link:")}}
+{{else}}
 {{> InfoBlock info=(tHtml "ACTION REQUIRED: Please acknowledge this alert episode by clicking on the button below.")}}
 
 {{> ButtonBlock buttonUrl=acknowledgeAlertEpisodeLink buttonText=(t "Acknowledge Alert Episode")}}
@@ -64,11 +74,16 @@
 
 {{> ButtonBlock buttonUrl=passOnLink buttonText=(t "Escalate") secondary=true}}
 {{/if}}
+{{/if}}
 
 {{> InfoBlock info=(tHtml "You will be notified when the status of this alert episode changes.")}}
 
 {{> TitleBlock title=(tHtml "Why am I receiving this email?")}}
+{{#if observerPageWhy}}
+{{> InfoBlock plainInfo=observerPageWhy}}
+{{else}}
 {{> InfoBlock info=(tHtml "You are receiving this email because you are a member of the team that is responsible for this alert episode or you are currently on-call.")}}
+{{/if}}
 
 {{> Footer this }}
 

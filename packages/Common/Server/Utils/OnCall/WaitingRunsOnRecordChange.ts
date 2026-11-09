@@ -68,6 +68,7 @@ const WAITING_RUN_SELECT: {
   onCallPolicyExecutionRepeatCount: true;
   aiHoldOutcome: true;
   createdAt: true;
+  isObserverPage: true;
   onCallDutyPolicy: { isArchived: true };
 } = {
   _id: true,
@@ -83,6 +84,8 @@ const WAITING_RUN_SELECT: {
   onCallPolicyExecutionRepeatCount: true,
   aiHoldOutcome: true,
   createdAt: true,
+  // Its feed entry says it pages as observers (OnCallObserverPage).
+  isObserverPage: true,
   onCallDutyPolicy: { isArchived: true },
 };
 

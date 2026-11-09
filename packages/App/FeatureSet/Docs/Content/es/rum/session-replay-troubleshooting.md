@@ -402,11 +402,11 @@ Abre las herramientas de desarrollo de tu navegador en la pestaña del panel (F1
 
 Las grabaciones de un portal hechas antes de que OneUptime cargara estos archivos durante la reproducción, las que mostraban la barra sin conexión en cada reproducción, ahora también se reproducen con ella oculta, siempre que la hoja de estilos que nombran se siga sirviendo: no hay que cambiar nada en una grabación.
 
-## La aplicación RUM dice «Desconectado»
+## La aplicación RUM dice «Sin tráfico reciente»
 
-La etiqueta de estado y **Visto por última vez** en la página de la aplicación informan de cuándo llegó por última vez telemetría para esa aplicación. La reproducción de sesiones cuenta: tanto un grabador que obtiene su política como un fragmento aceptado los actualizan, así que una aplicación instrumentada solo con el fragmento de código de reproducción se mantiene Conectado. En versiones anteriores solo lo hacía la telemetría RUM de OpenTelemetry, así que una aplicación solo con reproducción mostraba «Desconectado» con un Visto por última vez de hacía días mientras sus grabadores funcionaban perfectamente.
+La etiqueta de estado y **Visto por última vez** en la página de la aplicación informan de cuándo llegó por última vez telemetría para esa aplicación. La reproducción de sesiones cuenta: tanto un grabador que obtiene su política como un fragmento aceptado los actualizan, así que una aplicación instrumentada solo con el fragmento de código de reproducción muestra **Recibiendo datos** mientras la gente usa el sitio. En versiones anteriores solo lo hacía la telemetría RUM de OpenTelemetry, así que una aplicación solo con reproducción parecía inactiva, con un Visto por última vez de hacía días, mientras sus grabadores funcionaban perfectamente.
 
-Por tanto, «Conectado» significa que *algo* está informando — no que todo lo esté. Las páginas vistas, la tasa de errores, la duración p95 y los clientes vienen del SDK de OpenTelemetry para navegador, que se instala aparte; cuando marcan cero mientras llegan grabaciones, la página Vista general de la aplicación lo dice directamente.
+Por tanto, **Recibiendo datos** significa que *algo* está informando — no que todo lo esté. Las páginas vistas, la tasa de errores, la duración p95 y los clientes vienen del SDK de OpenTelemetry para navegador, que se instala aparte; cuando marcan cero mientras llegan grabaciones, la página Vista general de la aplicación lo dice directamente.
 
 ## La telemetría RUM va aparte
 

@@ -482,7 +482,8 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
       '<div className="min-w-0 xl:col-span-2">',
       `<EventWhatHappenedCard<${page.model}>`,
       "<InvestigationPanel",
-      "<TelemetryCompanionSignalTabs",
+      // The logs, traces or exceptions card (a metrics one comes just before).
+      "<TelemetrySnapshotPanel",
       "<MonitorSummarySnapshotCard",
       page.affectedResourcesElement,
       "<EntityRunbooks",

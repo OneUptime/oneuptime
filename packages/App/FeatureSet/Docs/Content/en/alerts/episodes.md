@@ -177,6 +177,8 @@ An episode you create has no grouping rule, so the list shows its **Grouping Rul
 
 **Developer** and **Advanced** start folded. On the **Overview**, the header names the episode's **Owners**, teams first, and the first tile says when the episode was **Created** — **Automatically**, when a grouping rule opened it. **What happened** leads the page — the episode's description and **Root cause** — then **Alerts in this episode** and the **Episode Feed**, beside the **Episode Details** card: its number, state, severity, alert count, grouping rule and on-call policies. Its header has **Acknowledge** and **Resolve**, and **Move episode to** in the **⋯** menu.
 
+The **Root Cause** page charts the metrics behind the episode beside its root cause: those of its first alert, the earliest created, as the telemetry card on its **Overview** charts them, around when the episode started and with its moments marked, so you can read them over any time range around it while you write down why it happened. When that alert kept no snapshot of a metric check (one created by hand on a metrics monitor, say), the page charts that monitor's metrics as the monitor reads them now, and says so.
+
 **Alerts → Active Episodes** lists the episodes that are not resolved yet, and the badge beside it counts them.
 
 ## Troubleshooting

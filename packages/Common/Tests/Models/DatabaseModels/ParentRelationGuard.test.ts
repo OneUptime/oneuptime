@@ -101,6 +101,14 @@ describe("records with no labels of their own", () => {
     expect(anyKind).toEqual({
       AutoRemediationSuggestion: ["resourceId"],
       InventoryItem: ["resourceId"],
+      /*
+       * The public note a request to approve was about - an incident's, an
+       * episode's or a scheduled maintenance event's, which kind its note
+       * column says - so the unique index holds each request once. Only
+       * OneUptime reads the table (every access list is empty, and it has
+       * no API), so no read of it runs under a block.
+       */
+      PublicNoteApprovalRequest: ["noteId"],
       RecommendationDismissal: ["resourceId"],
       ResourceAiAgent: ["resourceId"],
       RunnerJob: ["assignedAgentId", "resourceId"],
@@ -112,6 +120,14 @@ describe("records with no labels of their own", () => {
        * weigh the record against every model that carries labels.
        */
       ToolImportRecord: ["recordId"],
+      /*
+       * The incident, episode or scheduled maintenance event the note a
+       * kept approval message asks about is on - which kind, its note
+       * column says - read to replace the message once the record is
+       * deleted. Only OneUptime reads the table (every access list is
+       * empty, and it has no API), so no read of it runs under a block.
+       */
+      WorkspacePublicNoteApprovalMessage: ["recordId"],
     });
   });
 

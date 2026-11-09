@@ -54,6 +54,7 @@ function detailQuery(
     key: { kind: LlmConversationKeyKind.Conversation, value: "conv-1" },
     startTime: new Date("2026-10-09T08:00:00.000Z"),
     endTime: new Date("2026-10-11T09:00:00.000Z"),
+    logScope: null,
     ...overrides,
   };
 }

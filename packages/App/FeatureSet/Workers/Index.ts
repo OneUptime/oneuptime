@@ -427,6 +427,16 @@ import "./Jobs/Rum/ProcessSessionErasureRequests";
 import "./Jobs/Rum/PublishSessionReplayBudgetMetrics";
 
 /*
+ * Telemetry usage on every install: counted where billing is off (billing
+ * counts it where it is on), and deleted past the instance's usage
+ * retention either way.
+ */
+import "./Jobs/TelemetryUsage/MeterTelemetryUsage";
+import "./Jobs/TelemetryUsage/DeleteOldTelemetryUsage";
+// Telemetry ingestion budgets as metrics, and the owners' warning emails.
+import "./Jobs/TelemetryIngestionBudget/PublishTelemetryIngestionBudgetMetrics";
+
+/*
  * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry
  * copy. The V3 cut is forward-only (decision 2026-06-11): V3 tables start
  * fresh, history ages in over the retention window, and operators who

@@ -38,6 +38,33 @@ import NoteComposer, { NoteComposerValues, NotifyOption } from "./NoteComposer";
 import NoteNotificationBadge, {
   NoteResendConfirmation,
 } from "./NoteNotificationBadge";
+import { PublicNoteApprovalState } from "Common/Types/StatusPage/PublicNoteApproval";
+import NoteApprovalPanel from "./PublicNoteApproval/NoteApprovalPanel";
+import {
+  PublicNoteApprovalBadge,
+  PublicNoteApprovalCopy,
+  PublicNoteApprovalNoteSummary,
+  getApprovalBadge,
+  isNotePublished,
+} from "./PublicNoteApproval/PublicNoteApprovalUtil";
+
+/*
+ * A public note's approval (Common/Types/StatusPage/PublicNoteApproval):
+ * where it stands, and what the reader can do about it.
+ */
+export interface NoteCardApproval {
+  state: PublicNoteApprovalState;
+  summary?: PublicNoteApprovalNoteSummary | undefined;
+  // The project asks for this kind of note to be approved now.
+  isRequired: boolean;
+  // An edit of this note waits for approval: it is published, and approval is asked for.
+  isEditHeld: boolean;
+  canEdit: boolean;
+  onApprove: () => Promise<void>;
+  onReject: (reason: string) => Promise<void>;
+  onResubmit: () => Promise<void>;
+  onWithdrawEdit: () => Promise<void>;
+}
 
 /*
  * How an edit or delete affordance is offered: `isShown: false` hides it (the
@@ -75,6 +102,8 @@ export interface ComponentProps {
   postedNotificationResendConfirmation?: NoteResendConfirmation | undefined;
   isPostedAtEditable: boolean;
   updateNotifyOption?: NotifyOption | undefined;
+  // A public note's approval, where its project can ask for one.
+  approval?: NoteCardApproval | undefined;
 }
 
 const NoteCard: FunctionComponent<ComponentProps> = (
@@ -110,10 +139,24 @@ const NoteCard: FunctionComponent<ComponentProps> = (
     "idle",
   );
 
+  const approvalState: PublicNoteApprovalState =
+    props.approval?.state || PublicNoteApprovalState.Published;
+  const hasWaitingEdit: boolean =
+    approvalState === PublicNoteApprovalState.EditWaitingForApproval ||
+    approvalState === PublicNoteApprovalState.EditRejected;
+  // Waiting, or rejected: on no status page, and told to no subscriber yet.
+  const isPublished: boolean = isNotePublished(approvalState);
+  const approvalBadge: PublicNoteApprovalBadge | null = props.approval
+    ? getApprovalBadge(approvalState, props.approval.summary)
+    : null;
+
   const startEdit: () => void = (): void => {
     setEditError("");
     setEditValues({
-      note: props.note.note || "",
+      // An edit waiting for approval is what is edited, not the note as published.
+      note:
+        (hasWaitingEdit ? props.note.pendingNote : undefined) ??
+        (props.note.note || ""),
       attachments: (props.note.attachments || []).map((file: FileModel) => {
         const stripped: FileModel = new FileModel();
         stripped._id = (file._id || file.id?.toString()) as string;
@@ -182,7 +225,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
   };
 
   const postedSummary: NoteNotificationSummary | null =
-    props.visibility === "public"
+    props.visibility === "public" && isPublished
       ? getPostedNotificationSummary(
           props.note.subscriberNotificationStatusOnNoteCreated,
           props.note.subscriberNotificationStatusMessage,
@@ -195,7 +238,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
       : null;
 
   const updateSummary: NoteNotificationSummary | null =
-    props.visibility === "public"
+    props.visibility === "public" && isPublished
       ? getUpdateNotificationSummary(
           props.note.subscriberNotificationStatusOnNoteUpdated,
           props.note.subscriberNotificationStatusMessageOnNoteUpdated,
@@ -296,13 +339,30 @@ const NoteCard: FunctionComponent<ComponentProps> = (
             values={editValues!}
             onChange={setEditValues}
             editorKey={`edit-${noteId}`}
-            isAttachmentsEnabled={Boolean(props.attachmentApiPath)}
+            isAttachmentsEnabled={
+              Boolean(props.attachmentApiPath) && !props.approval?.isEditHeld
+            }
             notifyOption={props.updateNotifyOption}
             isPostedAtEditable={props.isPostedAtEditable}
             isSubmitting={isSaving}
             error={editError}
             isAutoFocused={true}
-            submitLabel={tx("Save changes")}
+            notice={
+              props.approval?.isEditHeld ? (
+                <p data-testid="note-edit-approval-notice">
+                  {tx(PublicNoteApprovalCopy.editNotice)}
+                  {props.attachmentApiPath &&
+                  (props.note.attachments || []).length > 0
+                    ? ` ${tx(PublicNoteApprovalCopy.editFilesLocked)}`
+                    : ""}
+                </p>
+              ) : undefined
+            }
+            submitLabel={
+              props.approval?.isEditHeld
+                ? tx(PublicNoteApprovalCopy.editSubmit)
+                : tx("Save changes")
+            }
             dataTestId="note-edit-composer"
             onSubmit={() => {
               saveEdit();
@@ -366,6 +426,31 @@ const NoteCard: FunctionComponent<ComponentProps> = (
               )}
 
               <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+                {approvalBadge && (
+                  <span
+                    data-testid="note-approval-badge"
+                    data-tone={approvalBadge.tone}
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                      approvalBadge.tone === "rejected"
+                        ? "bg-red-50 text-red-700 ring-red-200"
+                        : approvalBadge.tone === "approved"
+                          ? "bg-green-50 text-green-700 ring-green-200"
+                          : "bg-amber-50 text-amber-800 ring-amber-200"
+                    }`}
+                  >
+                    <Icon
+                      icon={
+                        approvalBadge.tone === "rejected"
+                          ? IconProp.XCircle
+                          : approvalBadge.tone === "approved"
+                            ? IconProp.ShieldCheck
+                            : IconProp.Clock
+                      }
+                      className="h-3 w-3"
+                    />
+                    {tx(approvalBadge.label)}
+                  </span>
+                )}
                 {postedSummary && (
                   <NoteNotificationBadge
                     summary={postedSummary}
@@ -427,6 +512,22 @@ const NoteCard: FunctionComponent<ComponentProps> = (
                   />
                 </div>
               )}
+
+            {props.approval && (
+              <NoteApprovalPanel
+                state={approvalState}
+                summary={props.approval.summary}
+                pendingNote={
+                  hasWaitingEdit ? props.note.pendingNote || "" : undefined
+                }
+                isRequired={props.approval.isRequired}
+                canEdit={props.approval.canEdit}
+                onApprove={props.approval.onApprove}
+                onReject={props.approval.onReject}
+                onResubmit={props.approval.onResubmit}
+                onWithdrawEdit={props.approval.onWithdrawEdit}
+              />
+            )}
           </>
         )}
       </article>

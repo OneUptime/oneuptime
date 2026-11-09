@@ -61,11 +61,12 @@ export interface ComponentProps {
    */
   onHideNode?: ((node: NetworkTopologyNode) => void) | undefined;
   /*
-   * Turn this unmanaged neighbour into a monitored NetworkDevice. Optional
-   * for the same reason as onHideNode — a viewer without create permission
-   * is shown the panel without the action rather than an action that fails
-   * — and the caller decides adoptability, so the panel does not have to
-   * know which node kinds qualify.
+   * Turn this unmanaged neighbour - or this discovered endpoint (issue
+   * #5775) - into a monitored NetworkDevice. Optional for the same reason as
+   * onHideNode — a viewer without create permission is shown the panel
+   * without the action rather than an action that fails — and the caller
+   * decides adoptability, so the panel does not have to know which node
+   * kinds qualify.
    */
   onAddToMonitoring?: ((node: NetworkTopologyNode) => void) | undefined;
   /*
@@ -76,6 +77,27 @@ export interface ComponentProps {
    * latency trend under the same heading is read-only and shows regardless.
    */
   canRunDiagnostics?: boolean | undefined;
+}
+
+/*
+ * What the drawer's subtitle says: the kind of node, and its IP address
+ * beside it when its name is something else (issue #5775) - the map names a
+ * device by what it is called, and the address is what an operator types
+ * into a terminal. The address is isolated (FSI ... PDI) so a right-to-left
+ * sentence keeps it whole.
+ */
+export function getNodeSubtitle(data: {
+  kindText: string;
+  name: string;
+  ipAddress?: string | undefined;
+}): string {
+  const ipAddress: string = (data.ipAddress || "").trim();
+
+  if (!ipAddress || ipAddress === data.name.trim()) {
+    return data.kindText;
+  }
+
+  return `${data.kindText} · \u2068${ipAddress}\u2069`;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -180,16 +202,20 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
     });
   }
 
+  const kindText: string = isEndpoint
+    ? translateString("Discovered endpoint") || "Discovered endpoint"
+    : node.isManaged
+      ? translateString("Network device") || "Network device"
+      : translateString("Unmanaged neighbor") || "Unmanaged neighbor";
+
   return (
     <SideOver
       title={node.name}
-      description={
-        isEndpoint
-          ? translateString("Discovered endpoint") || "Discovered endpoint"
-          : node.isManaged
-            ? translateString("Network device") || "Network device"
-            : translateString("Unmanaged neighbor") || "Unmanaged neighbor"
-      }
+      description={getNodeSubtitle({
+        kindText: kindText,
+        name: node.name,
+        ipAddress: node.ipAddress,
+      })}
       onClose={props.onClose}
       size={SideOverSize.Small}
     >
@@ -472,28 +498,45 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
            * until now the only thing an operator could do about it was hide
            * it from the map (issue #3435).
            */
-          <div>
+          <div data-testid="network-topology-not-monitored">
             <h3 className="text-sm font-semibold text-gray-900">
               {translateString("Not monitored") || "Not monitored"}
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {translateString(
-                "This device was discovered by its neighbours. Add it to bring it into monitoring, pre-filled with what the map already knows.",
-              ) ||
-                "This device was discovered by its neighbours. Add it to bring it into monitoring, pre-filled with what the map already knows."}
+              {isEndpoint
+                ? translateString(
+                    "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering.",
+                  ) ||
+                  "OneUptime does not monitor this device yet. Add it to check it on a schedule, and pick who hears when it stops answering."
+                : translateString(
+                    "This device was discovered by its neighbours. Add it to bring it into monitoring, pre-filled with what the map already knows.",
+                  ) ||
+                  "This device was discovered by its neighbours. Add it to bring it into monitoring, pre-filled with what the map already knows."}
             </p>
-            <Button
-              title={
-                translateString("Add to Monitoring") || "Add to Monitoring"
-              }
-              icon={IconProp.Add}
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.PRIMARY}
-              dataTestId="network-topology-add-to-monitoring"
-              onClick={() => {
-                props.onAddToMonitoring?.(node);
-              }}
-            />
+            {/*
+             * Under the sentence, at its start: a button keeps a dialog
+             * footer's left margin (md:ml-3) unless told otherwise. A
+             * discovered device's opens the Discovered Devices list's own
+             * dialog, and is named as that dialog is.
+             */}
+            <div className="mt-3 [&>button]:ml-0 [&>button]:md:ml-0">
+              <Button
+                title={
+                  isEndpoint
+                    ? translateString("Add to monitoring") ||
+                      "Add to monitoring"
+                    : translateString("Add to Monitoring") ||
+                      "Add to Monitoring"
+                }
+                icon={IconProp.Add}
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                dataTestId="network-topology-add-to-monitoring"
+                onClick={() => {
+                  props.onAddToMonitoring?.(node);
+                }}
+              />
+            </div>
           </div>
         ) : (
           <></>

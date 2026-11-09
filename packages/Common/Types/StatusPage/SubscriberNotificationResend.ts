@@ -44,6 +44,10 @@ export default class SubscriberNotificationResend {
   public static readonly notePostedWithoutNotifyingMessage: string =
     "This note was posted without notifying subscribers, so there is nothing to resend. Post a new note with Notify Status Page Subscribers ticked to tell them.";
 
+  // A public note waiting for approval, or rejected (PublicNoteApproval).
+  public static readonly notPublishedMessage: string =
+    "Subscribers are told about this public note once it is published. It is waiting for approval.";
+
   public static readonly beingSentMessage: string =
     "This notification is being sent right now. Wait until it has finished, then send it again.";
 

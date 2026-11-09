@@ -404,6 +404,21 @@ metrics.setGlobalMeterProvider(
 
 آن‌ها را با همان شیء `resource` بسازید. خط لوله لاگ یا متریکی که منبعش `browser.*` ندارد، به‌عنوان سرویس بک‌اندی جداگانه ثبت می‌شود.
 
+خط لوله لاگ فقط رکوردهایی را می‌فرستد که کدتان می‌نویسد، پس هر جا چیزی رخ می‌دهد که ارزش دانستن دارد، یکی بنویسید:
+
+```ts
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+
+const logger = logs.getLogger("app");
+
+logger.emit({
+  severityNumber: SeverityNumber.WARN,
+  severityText: "WARN",
+  body: "Payment was declined",
+  attributes: { "checkout.step": "payment" },
+});
+```
+
 ## مرجع نقطه‌های پایانی
 
 | سیگنال | نقطه پایانی | سرآیند |

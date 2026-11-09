@@ -54,6 +54,9 @@ import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRan
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricViewTimeRange from "./Utils/MetricViewTimeRange";
+import { MetricChartThreshold } from "./Utils/MetricChartThresholds";
+import MetricViewChartQueries from "./Utils/MetricViewChartQueries";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import {
   getMetricResultsState,
   MetricResultsState,
@@ -166,6 +169,21 @@ const getAlignedWindowForData: (data: MetricViewData) => {
 
 interface MetricViewBodyProps {
   data: MetricViewData;
+  /*
+   * The queries the charts fetch and draw, in place of data.queryConfigs,
+   * one for each of them in the same order: the query editor still edits
+   * data.queryConfigs, and onChange still hands those back. A monitor step
+   * form passes its queries as the monitor reads them
+   * (MonitorStepMetricQueries.getReadQueryConfigs), narrowed to the
+   * cluster, host or fleet the monitor watches and its resource filters, so
+   * the chart shows what the monitor will read while that narrowing, which
+   * the worker adds before each check, is never saved into the queries
+   * (issue #6264). A change the charts make to their queries (a Top-N,
+   * "Filter to this series") reaches onChange on the editor's queries
+   * (MetricViewChartQueries). A list that does not line up with
+   * data.queryConfigs is not used.
+   */
+  chartQueryConfigs?: Array<MetricQueryConfigData> | undefined;
   hideQueryElements?: boolean;
   hideStartAndEndDate?: boolean;
   onChange: (data: MetricViewData) => void;
@@ -178,6 +196,12 @@ interface MetricViewBodyProps {
    * the value the rule compares with, sets it.
    */
   thresholdLinesExtendAxis?: boolean | undefined;
+  /*
+   * Lines for values that are not the queries' own, such as a monitor's
+   * criteria thresholds, each on its query's or formula's chart
+   * (MetricCharts). Drawn only: never handed back through onChange.
+   */
+  thresholds?: Array<MetricChartThreshold> | undefined;
   /*
    * Cache-bypass nonce. Bumping it forces a refetch (and a fresh network
    * fetch past the aggregate result cache) even when the fetch-relevant
@@ -408,14 +432,48 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
   const fetchSeqRef: React.MutableRefObject<number> = React.useRef<number>(0);
 
   /*
+   * The chart's queries, kept while they read the same: a host works them
+   * out again on every render (a step form does, from the step).
+   */
+  const chartQueryConfigsRef: React.MutableRefObject<
+    Array<MetricQueryConfigData> | undefined
+  > = React.useRef<Array<MetricQueryConfigData> | undefined>(
+    props.chartQueryConfigs,
+  );
+
+  if (
+    chartQueryConfigsRef.current !== props.chartQueryConfigs &&
+    !JSONFunctions.deepEqual(
+      chartQueryConfigsRef.current,
+      props.chartQueryConfigs,
+    )
+  ) {
+    chartQueryConfigsRef.current = props.chartQueryConfigs;
+  }
+
+  const chartQueryConfigs: Array<MetricQueryConfigData> | undefined =
+    chartQueryConfigsRef.current;
+
+  /*
+   * What the charts fetch and draw: the host's data, with its chart queries
+   * in place of the editor's when it has them (see chartQueryConfigs).
+   */
+  const chartData: MetricViewData = React.useMemo(() => {
+    return MetricViewChartQueries.getChartData({
+      data: props.data,
+      chartQueryConfigs: chartQueryConfigs,
+    });
+  }, [props.data, chartQueryConfigs]);
+
+  /*
    * The window used for the query and the chart is aligned to the bucket
    * grid (see getAlignedWindowForData); the raw props.data is still used for
    * the query/time editors so the user sees their exact selected range.
-   * Memoized on props.data so a stable window doesn't churn the fetch.
+   * Memoized on the chart's data so a stable window doesn't churn the fetch.
    */
   const { effectiveData, aggregationInterval } = React.useMemo(() => {
-    return getAlignedWindowForData(props.data);
-  }, [props.data]);
+    return getAlignedWindowForData(chartData);
+  }, [chartData]);
 
   const metricViewDataRef: React.MutableRefObject<MetricViewData> =
     React.useRef(props.data);
@@ -1056,6 +1114,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                     {};
                   const defaultShowAdvancedFilters: boolean =
                     Object.keys(configuredAttributes).length > 0 ||
+                    MetricQueryServices.getServiceIds(queryConfig).length > 0 ||
                     (queryConfig.metricQueryData?.groupByAttributeKeys || [])
                       .length > 0;
 
@@ -1562,6 +1621,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                     aggregationInterval={aggregationInterval}
                     chartCssClass={props.chartCssClass}
                     thresholdLinesExtendAxis={props.thresholdLinesExtendAxis}
+                    thresholds={props.thresholds}
                     enableSeriesActions={props.enableSeriesActions}
                     metricResultsPrevious={
                       props.compareWithPreviousPeriod && metricResultsPrevious
@@ -1586,7 +1646,17 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                        */
                       props.onChange({
                         ...props.data,
-                        queryConfigs: queryConfigs,
+                        /*
+                         * The charts change their own copies of the queries;
+                         * the host gets the editor's, with that change and
+                         * without what the charts were narrowed to.
+                         */
+                        queryConfigs:
+                          MetricViewChartQueries.toEditorQueryConfigs({
+                            editorQueryConfigs: props.data.queryConfigs,
+                            chartQueryConfigs: effectiveData.queryConfigs,
+                            changedQueryConfigs: queryConfigs,
+                          }),
                       });
                     }}
                     onTimeRangeSelect={

@@ -33,6 +33,10 @@ import {
 import WidgetBuilder from "./WidgetBuilder";
 import { getMetricReadPermissions } from "../../Telemetry/MetricReadPermissions";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  getRumApplicationStatus,
+  getRumApplicationStatusWords,
+} from "../../../../Types/Rum/RumApplicationStatus";
 
 function getApplicationId(args: JSONObject): ObjectID | undefined {
   if (args["rumApplicationId"] === undefined) {
@@ -60,7 +64,7 @@ function applicationTarget(id?: ObjectID): AIChatCitationTarget {
 export const QueryRumApplicationsTool: ObservabilityTool = {
   name: "query_rum_applications",
   description:
-    "Discover Real User Monitoring (RUM) applications in this project, including their IDs, browser/mobile client type and connection status. Resolve application names here before querying their web vitals, metrics, traces or logs. Pass rumApplicationId for one application. Does not access session recordings or end-user identities.",
+    "Discover Real User Monitoring (RUM) applications in this project, including their IDs, browser/mobile client type, status and when data last arrived. Status is one of: Receiving data (data arrived in the last 15 minutes); No recent traffic (nothing for 15 minutes: an application sends data only while people use it, so this is normal when nobody is, and is not a fault or a broken connection on its own); Waiting for data (nothing has ever arrived: not set up yet). Resolve application names here before querying their web vitals, metrics, traces or logs. Pass rumApplicationId for one application. Does not access session recordings or end-user identities.",
   inputSchema: {
     type: "object",
     properties: {
@@ -133,12 +137,22 @@ export const QueryRumApplicationsTool: ObservabilityTool = {
       });
     const rows: Array<JSONObject> = applications.map(
       (application: RumApplication) => {
+        /*
+         * In the Dashboard's words, not the stored "disconnected": read
+         * raw, the model told people their app had lost its connection
+         * when nobody had visited it for a while (issue #6191).
+         */
         return {
           id: application.id?.toString(),
           name: application.name,
           clientType: application.clientType,
           sdkLanguage: application.sdkLanguage,
-          connectionStatus: application.otelCollectorStatus,
+          status: getRumApplicationStatusWords(
+            getRumApplicationStatus({
+              otelCollectorStatus: application.otelCollectorStatus,
+              lastSeenAt: application.lastSeenAt,
+            }),
+          ).label,
           lastSeenAt: application.lastSeenAt,
         };
       },
@@ -174,8 +188,8 @@ export const QueryRumApplicationsTool: ObservabilityTool = {
                   type: "text",
                 },
                 {
-                  key: "connectionStatus",
-                  title: translationKey("Connection"),
+                  key: "status",
+                  title: translationKey("Status"),
                   type: "text",
                 },
               ],

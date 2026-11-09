@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import Host from "../../Models/DatabaseModels/Host";
@@ -98,6 +100,7 @@ class HostLabelRuleEngineServiceClass
       return await this.applyRules({
         host: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running host label rules: ${error}`, {
@@ -113,6 +116,8 @@ class HostLabelRuleEngineServiceClass
   private async applyRules(data: {
     host: Host;
     rules: Array<HostLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { host, rules } = data;
 
@@ -195,11 +200,12 @@ class HostLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await HostService.getRepository()
-      .createQueryBuilder()
-      .relation(Host, "labels")
-      .of(host.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: HostService,
+      resourceId: host.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     /*
      * Sync in-memory host.labels so a downstream owner-rule engine in

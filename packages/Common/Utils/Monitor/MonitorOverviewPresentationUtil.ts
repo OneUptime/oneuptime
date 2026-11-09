@@ -192,6 +192,8 @@ export interface MonitorOverviewSections {
   sideCard: MonitorOverviewSideCard | null;
   responseTimeMetric: MonitorMetricType | null;
   telemetryPreview: MonitorOverviewTelemetryPreview | null;
+  // The metrics the monitor checks, charted first (MonitorOverviewLayout).
+  showMetricCharts: boolean;
   stepCount: number;
 }
 
@@ -2603,6 +2605,11 @@ export default class MonitorOverviewPresentationUtil {
         layout.sideCard === "connection" && isAwaiting ? null : layout.sideCard,
       responseTimeMetric: isAwaiting ? null : layout.responseTimeMetric,
       telemetryPreview: context.stepCount > 0 ? layout.telemetryPreview : null,
+      /*
+       * Whether data has come yet or not: with none, the card says what to
+       * check, which is what a monitor waiting for its first data needs.
+       */
+      showMetricCharts: context.stepCount > 0 && layout.metricCharts,
       stepCount: context.stepCount,
     };
   }

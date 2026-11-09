@@ -34,7 +34,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import OwnerRulePlanBuilder, {
@@ -150,6 +152,7 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
         episode: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running incident episode owner rules: ${error}`, {
@@ -230,6 +233,8 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
     episode: IncidentEpisode;
     rules: Array<IncidentEpisodeOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { episode, rules } = data;
 
@@ -317,6 +322,7 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
           teamIds: teamIds.map((id: string) => {
             return new ObjectID(id);
           }),
+          props: RuleRunWriteProps.get(data.props),
         });
       } else {
         await this.addOwnersSilently({
@@ -324,6 +330,7 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
           projectId: episode.projectId,
           userIds: userIds,
           teamIds: teamIds,
+          props: data.props,
         });
       }
 
@@ -367,6 +374,8 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
     projectId: ObjectID;
     userIds: Array<string>;
     teamIds: Array<string>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
     for (const userId of data.userIds) {
       const owner: IncidentEpisodeOwnerUser = new IncidentEpisodeOwnerUser();
@@ -377,7 +386,7 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
       await OwnerRuleAssignment.createOwner({
         ownerService: IncidentEpisodeOwnerUserService,
         owner: owner,
-        props: { isRoot: true },
+        props: RuleRunWriteProps.get(data.props),
       });
     }
 
@@ -390,7 +399,7 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
       await OwnerRuleAssignment.createOwner({
         ownerService: IncidentEpisodeOwnerTeamService,
         owner: owner,
-        props: { isRoot: true },
+        props: RuleRunWriteProps.get(data.props),
       });
     }
   }

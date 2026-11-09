@@ -167,6 +167,8 @@ const KINDS_NEEDING_SETUP_GUIDE: Array<string> = [
 const NOT_DRAWN: Record<string, string> = {
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/RumInstrumentation.ts":
     "Reads the SDK version only to tell whether the RUM SDK ever reported; it draws nothing.",
+  "packages/App/FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumSignalFacts.ts":
+    "Selects the SDK version only for RumInstrumentation's replay-only check, which tells the setup check whether only Session Replay reports; it draws nothing.",
   "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index.tsx":
     "Reads a global Runner's release only to tell whether it takes AI code fixes (Common/Types/Runner/RunnerCodeFixes); it draws why it takes none, not the version.",
 };

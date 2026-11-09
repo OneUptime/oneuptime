@@ -22,7 +22,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -112,6 +114,7 @@ class RumApplicationOwnerRuleEngineServiceClass
         rumApplication: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running RUM application owner rules: ${error}`, {
@@ -128,6 +131,8 @@ class RumApplicationOwnerRuleEngineServiceClass
     rumApplication: RumApplication;
     rules: Array<RumApplicationOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { rumApplication, rules } = data;
 
@@ -242,7 +247,7 @@ class RumApplicationOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: RumApplicationOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -259,7 +264,7 @@ class RumApplicationOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: RumApplicationOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

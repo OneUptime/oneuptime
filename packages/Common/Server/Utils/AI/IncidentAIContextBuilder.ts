@@ -181,6 +181,12 @@ export default class IncidentAIContextBuilder {
           return IncidentPublicNoteService.findBy({
             query: {
               incidentId: data.incidentId,
+              /*
+               * What subscribers were told: a note waiting for approval, or
+               * rejected, was told to nobody, and must not reappear in a
+               * note drafted from this.
+               */
+              isPublished: true,
             },
             select: {
               _id: true,

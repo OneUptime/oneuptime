@@ -30,7 +30,10 @@ import {
  * charged per metric and statistic) and the period. A metric is read for
  * every resource of the namespace that reported it in the last three
  * hours (ListMetrics, RecentlyActive), on exactly the dimensions
- * CloudWatch lists it with - the resource's own aggregate.
+ * CloudWatch lists it with - the resource's own aggregate. A namespace
+ * whose metrics are published a few times a day is listed whatever its
+ * last point's age instead (isListedWhenQuiet): three hours after one,
+ * the listing would not know it most of the day.
  */
 
 export type AwsStatistic = "Average" | "Sum" | "Maximum" | "Minimum";
@@ -41,8 +44,11 @@ export interface AwsKeyMetric {
   // CloudWatch's unit, as written on the stored metric.
   unit: string;
   /*
-   * Seconds per datapoint. 300 for most (CloudWatch's basic monitoring),
-   * 86400 for the storage metrics CloudWatch publishes once a day.
+   * Seconds per datapoint, and how often the read asks for it
+   * (CloudMetricWindows: each period has a cursor of its own). 300 for most
+   * (CloudWatch's basic monitoring); 3600 for a metric published a few
+   * times a day, read once an hour (ACM's DaysToExpiry, twice a day); 86400
+   * for the storage metrics CloudWatch publishes once a day.
    */
   periodSeconds: number;
 }
@@ -55,9 +61,21 @@ export interface AwsNamespaceKeyMetrics {
    * to us-east-1 whatever the resource's own Region).
    */
   onlyRegion?: string | undefined;
+  /*
+   * Listed without RecentlyActive: every series that reported in the last
+   * two weeks, as ListMetrics lists by default, not only the last three
+   * hours'. For a namespace whose metrics a service publishes a few times a
+   * day (ACM's DaysToExpiry, twice), which the last three hours' listing
+   * would hold for a few hours after each point and lose for the rest of
+   * the day - and with them the resource's readings, on the read's own
+   * hourly cadence. A series that stops (a certificate that expired) stays
+   * listed for those two weeks, and reads as no data.
+   */
+  isListedWhenQuiet?: boolean | undefined;
 }
 
 export const AWS_DEFAULT_PERIOD_SECONDS: number = 300;
+export const HOURLY_PERIOD_SECONDS: number = 3600;
 export const DAILY_PERIOD_SECONDS: number = 86400;
 
 function aws(
@@ -289,6 +307,19 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
   {
     namespace: "AWS/Kafka",
     metrics: [aws("ActiveControllerCount", "Maximum", "Count")],
+  },
+  {
+    /*
+     * The days a certificate has left. ACM publishes it twice a day for
+     * every certificate until it expires, then stops: read once an hour,
+     * and listed whatever its last point's age (isListedWhenQuiet). Its
+     * Minimum is the period's one point. The key metrics' stream leaves it
+     * to this read (CloudStreamTemplate): an hour sooner is nothing to a
+     * count of days.
+     */
+    namespace: "AWS/CertificateManager",
+    isListedWhenQuiet: true,
+    metrics: [aws("DaysToExpiry", "Minimum", "None", HOURLY_PERIOD_SECONDS)],
   },
 ];
 

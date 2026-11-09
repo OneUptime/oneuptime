@@ -1,6 +1,6 @@
 # Cuentas de proveedores de IA
 
-Mira lo que han usado tus cuentas de proveedores de IA y lo que han costado, sin cambiar tus aplicaciones. Conecta una cuenta de OpenAI, Anthropic, Azure OpenAI y Microsoft Foundry, Amazon Bedrock o Google Vertex AI con una credencial que solo puede leer, y OneUptime lee su uso cada 15 minutos en **Uso**, **Presupuestos** y métricas sobre las que puedes alertar.
+Mira lo que han usado tus cuentas de proveedores de IA y lo que han costado, sin cambiar tus aplicaciones. Conecta una cuenta de OpenAI, Anthropic, Azure OpenAI y Microsoft Foundry, Amazon Bedrock o Google Vertex AI con una credencial que solo puede leer, y OneUptime lee su uso cada 15 minutos en **Uso**, **Presupuestos** y métricas sobre las que puedes alertar. Un equipo de Cursor se conecta igual, con su clave de API de administrador, y se lee cada hora.
 
 :::cards
 - [Conectar una cuenta](#conectar-una-cuenta): Elige el proveedor, pega la credencial, pruébala y conecta.
@@ -11,7 +11,7 @@ Mira lo que han usado tus cuentas de proveedores de IA y lo que han costado, sin
 
 ## Cómo funciona
 
-Cada 15 minutos, OneUptime pide a cada cuenta conectada su uso por día UTC y lo guarda como tres métricas del servicio propio de la conexión. Cada lectura toma los días desde la última lectura, y de nuevo los últimos 3 días, hoy incluido, porque los proveedores siguen añadiendo a hoy y corrigen los días recién pasados.
+Cada 15 minutos, OneUptime pide a cada cuenta conectada su uso por día UTC y lo guarda como tres métricas del servicio propio de la conexión. Cada lectura toma los días desde la última lectura, y de nuevo los últimos 3 días, hoy incluido, porque los proveedores siguen añadiendo a hoy y corrigen los días recién pasados. Un equipo de Cursor se lee cada hora en su lugar, hora a hora: consulta [Cursor](#cursor).
 
 ```mermaid title="De una cuenta de proveedor a Uso y Presupuestos"
 flowchart TB
@@ -49,7 +49,7 @@ En **Probar**, haz clic en **Probar conexión**. OneUptime lee el uso de los úl
 Haz clic en **Conectar**. La primera lectura empieza en menos de un minuto y trae los últimos 30 días.
 :::
 
-Las cuentas conectadas aparecen bajo los mosaicos, con su **Estado** y su **Última lectura**. **Leer ahora** lee al momento, **Probar** vuelve a comprobar los ajustes guardados, **Desactivar** deja de leer y conserva lo leído, y **Editar** cambia los ajustes: un secreto dejado en blanco conserva el guardado. **Ver error** muestra por qué falló una lectura, sin ningún secreto.
+Las cuentas conectadas aparecen bajo los mosaicos, con su **Estado** y su **Última lectura**. **Leer ahora** lee al momento, **Probar** vuelve a comprobar los ajustes guardados, **Desactivar** deja de leer y conserva lo leído, y **Editar** cambia los ajustes: un secreto dejado en blanco conserva el guardado. **Ver error** muestra por qué falló una lectura, sin ningún secreto. El estado de una cuenta que funciona nombra el último día con uso o, cuando sus lecturas no encontraron ninguno, el primer día leído; una conexión de Azure que no encuentra ningún recurso lo dice.
 
 ## Qué da cada proveedor
 
@@ -60,10 +60,11 @@ Las cuentas conectadas aparecen bajo los mosaicos, con su **Estado** y su **Últ
 | Azure OpenAI y Microsoft Foundry | Estimado a partir de los tokens | Recurso y modelo | Una aplicación con Monitoring Reader |
 | Amazon Bedrock | Estimado a partir de los tokens | Región y modelo | Una clave de acceso que lee CloudWatch |
 | Google Vertex AI | Estimado a partir de los tokens | Región y modelo | Una cuenta de servicio con Monitoring Viewer |
+| Cursor | Lo que informa Cursor | Persona, modelo y cuenta de servicio, por hora | La clave de API de administrador de un equipo |
 
 Todos los proveedores menos Anthropic cuentan también las solicitudes: el informe de uso de Anthropic no tiene. Un coste estimado usa la lista de precios de [Lo que cuesta una llamada](/docs/telemetry/ai-llm-observability#lo-que-cuesta-una-llamada) y tus propios precios de **Precios**, y se marca como estimación. Un modelo que la lista de precios no conoce no tiene coste hasta que le pones precio allí.
 
-Ninguna de estas credenciales puede llamar a un modelo: cada una lee uso, coste o métricas, y nada más.
+Ninguna de estas credenciales puede llamar a un modelo: cada una lee uso, coste o métricas, y nada más. La clave de API de administrador de Cursor es la excepción: también puede cambiar algunos ajustes del equipo, como los límites de gasto, y OneUptime solo lee con ella.
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ En el proyecto, crea una cuenta de servicio con el rol Monitoring Viewer y una c
 Rellena **ID del proyecto** y pega el archivo de clave entero como **Clave de la cuenta de servicio (JSON)**.
 :::
 
+## Cursor
+
+OneUptime lee tu equipo de Cursor con una clave de API de administrador: cada solicitud de sus miembros, con su modelo, sus tokens y lo que Cursor cobró por ella, sumada por hora, persona, modelo y cuenta de servicio, y cuántos de los miembros usaron Cursor en los últimos 7 días. Una solicitud hecha con una cuenta de servicio aparece con el nombre de la cuenta como su clave de API. No contiene prompts, código ni respuestas: la Admin API de Cursor no los tiene.
+
+:::steps
+### Crea una clave de API de administrador de Cursor
+
+En el panel de Cursor, abre Settings, Cursor Admin API Keys y crea una clave. Solo un administrador del equipo puede hacerlo, y la clave viene con los planes Teams y Enterprise. Empieza por `crsr_`.
+
+### Conecta Cursor
+
+Pega la clave en **Clave de API de administrador**. La prueba también muestra los **Miembros** del equipo y, como **Personas**, cuántos de ellos usaron Cursor.
+:::
+
+Cursor suma su uso por horas y pide que se le lea como mucho una vez por hora, así que OneUptime lee un equipo de Cursor cada hora y guarda su uso por hora. Cada lectura toma las horas desde la anterior y vuelve a leer las 3 horas previas, porque Cursor añade solicitudes con retraso, y vuelve a leer un día entero cuando han pasado 6 horas del siguiente. La primera lectura retrocede 30 días, de lo más reciente a lo más antiguo, un día cada vez: un equipo con mucho uso necesita varias lecturas, con un minuto entre ellas, y su fila muestra **Todavía leyendo el uso anterior** hasta que terminan.
+
+En el plan Enterprise, Cursor también puede enviar su uso a medida que ocurre, con su OpenTelemetry Export: consulta [Cursor](/docs/telemetry/cursor). Los dos se mantienen separados: esta cuenta aparece en **Cuentas de proveedor**, la exportación en **Tus llamadas de IA**, nunca sumados, y un presupuesto cuenta uno de los dos.
+
 ## Ver el uso
 
 Abre **Uso** y elige **Cuentas de proveedor**. Muestra el coste, los tokens y las solicitudes que tus cuentas informaron para el periodo, ordenados por **Modelo**, **Persona**, **Proveedor**, **Proyecto o recurso**, **Clave de API** o **Conexión**. El periodo empieza a la medianoche UTC de su primer día, porque los proveedores informan de días completos.
@@ -157,7 +176,7 @@ El uso de cada cuenta se guarda como tres métricas, que puedes representar en u
 | `oneuptime.llm.provider.tokens` | Los tokens de un día, por `gen_ai.token.type`: `input` (tokens en caché incluidos), `output`, `cache_read` y `cache_write` |
 | `oneuptime.llm.provider.requests` | Las solicitudes de un día |
 
-Cada punto lleva la marca de tiempo del inicio de su día UTC. Lleva `oneuptime.llm.connection.id` y `oneuptime.llm.connection.name`, y lo que nombra el proveedor: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` y `oneuptime.llm.provider.api_key`. Un coste estimado lleva `oneuptime.llm.cost.estimated`.
+Cada punto lleva la marca de tiempo del inicio de su día UTC. Lleva `oneuptime.llm.connection.id` y `oneuptime.llm.connection.name`, y lo que nombra el proveedor: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` y `oneuptime.llm.provider.api_key`. Un coste estimado lleva `oneuptime.llm.cost.estimated`. Los puntos de un equipo de Cursor contienen cada uno el uso de una hora, con la marca de tiempo del inicio de su hora UTC.
 
 ## Cuándo se lee
 
@@ -168,6 +187,9 @@ Cada punto lleva la marca de tiempo del inicio de su día UTC. Lleva `oneuptime.
 | Tras rechazar una clave o un permiso | 60 minutos después |
 | Tras cualquier otro fallo | 15 minutos después |
 | Apagada | Ninguna hasta que se enciende |
+| Las siguientes de un equipo de Cursor | Cada hora |
+| Una lectura de Cursor que se detuvo a medias | Un minuto después |
+| Un equipo de Cursor, tras cualquier fallo | 60 minutos después |
 
 Un plan sin funciones de telemetría no lee nada. Quitar una conexión detiene sus lecturas y conserva lo que leyó hasta que la retención del servicio lo elimina.
 
@@ -185,8 +207,24 @@ Comprueba que la copiaste entera, que no se ha revocado y que es del tipo que pi
 Dale el rol que esta página nombra para el proveedor: Monitoring Reader en la suscripción de Azure, las dos acciones de CloudWatch en AWS, Monitoring Viewer en el proyecto de Google Cloud.
 :::
 
+:::details Cursor aceptó la clave, pero no puede leer el uso del equipo
+Usa una clave de API de administrador de un equipo del plan Teams o Enterprise: un administrador del equipo la crea en el panel de Cursor, en Settings, Cursor Admin API Keys. Después vuelve a probar.
+:::
+
+:::details Cursor pidió a OneUptime que fuera más despacio
+La Admin API de Cursor acepta 20 solicitudes por minuto de un equipo, 60 para los eventos de uso, compartidas con todas las herramientas que la leen. OneUptime espera un minuto una vez y sigue. Si Cursor sigue rechazándolas, la lectura conserva lo que leyó completo y sigue un minuto después; una lectura que no obtuvo nada lo vuelve a intentar una hora después.
+:::
+
 :::details La prueba pasa, pero no aparece nada de hoy
 Los proveedores informan del uso de un día minutos u horas después y lo corrigen durante un día o dos. Las siguientes lecturas lo traen.
+:::
+
+:::details La cuenta funciona, pero su estado no indica uso
+Sus lecturas no encontraron ninguno desde el día indicado. Los informes de OpenAI cuentan las llamadas a la API hechas con las claves de esa organización, no Azure OpenAI ni ChatGPT. Una conexión de Azure solo lee los recursos que su aplicación puede ver: dale a la aplicación Monitoring Reader donde estén.
+:::
+
+:::details Hay cuentas conectadas, pero Conversaciones y Llamadas están vacías
+Una cuenta trae uso y coste por día, nunca una llamada ni una conversación: esas vienen de tus aplicaciones. Consulta [Comprueba lo que llega](/docs/telemetry/ai-llm-observability#comprueba-lo-que-llega).
 :::
 
 :::details El coste no coincide con la factura

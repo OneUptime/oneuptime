@@ -86,7 +86,7 @@ OneUptime hittar applikationen utifrån `service.name`, utan hänsyn till skiftl
 
 Siffrorna kommer från de spans som din instrumentering skickar. **Sidladdningar** räknar det `documentLoad`-span som instrumenteringen för sidladdning registrerar vid varje fullständig laddning, så ett routebyte i en ensidesapp är ingen sidladdning.
 
-En applikation visar **Ansluten** så länge telemetri kommer in och **Frånkopplad** efter 15 minuter utan. Tid då OneUptime självt var nere eller betade av sin intagningskö räknas inte in i de 15 minuterna.
+En applikation visar **Tar emot data** så länge telemetri kommer in och **Ingen trafik nyligen** efter 15 minuter utan, vilket är normalt medan ingen använder appen. En applikation som lagts till för hand visar **Väntar på data** tills dess första data kommer. Tid då OneUptime självt var nere eller betade av sin intagningskö räknas inte in i de 15 minuterna.
 
 ## Kom igång
 

@@ -63,7 +63,7 @@ import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import URL from "../../Types/API/URL";
 import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import CallRequest from "../../Types/Call/CallRequest";
+import CallRequest, { GatherInput, Say } from "../../Types/Call/CallRequest";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -171,6 +171,21 @@ import {
   getOnCallPersonPageWhyLine,
   isOnCallPersonPage,
 } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import {
+  ON_CALL_OBSERVER_PAGE_CALL_ANSWERED,
+  OnCallObserverPageRecordKind,
+  getOnCallObserverPageAcknowledgeLabel,
+  getOnCallObserverPageCallPrompt,
+  getOnCallObserverPageCallSentence,
+  getOnCallObserverPageEmailSubject,
+  getOnCallObserverPageEmailWhy,
+  getOnCallObserverPageLead,
+  getOnCallObserverPageNotice,
+  getOnCallObserverPageSmsAction,
+  getOnCallObserverPageSmsLead,
+  getOnCallObserverPageSpokenNotice,
+  isOnCallObserverPage,
+} from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
@@ -207,7 +222,7 @@ import {
   OnCallPageSmsLanguage,
 } from "../../Utils/Sms/OnCallPageSms";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
-import { ON_CALL_PAGE_PUSH_CATEGORY } from "../../Types/PushNotification/PushNotificationCategory";
+import { getOnCallPagePushCategory } from "../../Types/PushNotification/PushNotificationCategory";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -1350,6 +1365,15 @@ export class Service extends ProjectReferencesService<Model> {
       await UserLanguage.getLanguage(notificationRuleItem.userId),
     );
 
+    /*
+     * An observer's page (OnCallObserverPage) says so in every message: the
+     * person is kept informed while others respond, and answering only says
+     * they have seen it - nothing to escalate. A page again never is one.
+     */
+    const isObserverPage: boolean = pageAgain
+      ? false
+      : await this.readIsObserverPage(options);
+
     if (
       notificationRuleItem.userEmail?.email &&
       notificationRuleItem.userEmail?.isVerified
@@ -1382,6 +1406,7 @@ export class Service extends ProjectReferencesService<Model> {
             updatedLog.id!,
             pageAgain,
             personPage,
+            isObserverPage,
             translator,
           );
 
@@ -1439,6 +1464,7 @@ export class Service extends ProjectReferencesService<Model> {
             updatedLog.id!,
             pageAgain,
             personPage,
+            isObserverPage,
             translator,
           );
 
@@ -1494,6 +1520,7 @@ export class Service extends ProjectReferencesService<Model> {
             alertEpisode,
             updatedLog.id!,
             pageAgain,
+            isObserverPage,
             translator,
           );
 
@@ -1547,6 +1574,7 @@ export class Service extends ProjectReferencesService<Model> {
             incidentEpisode,
             updatedLog.id!,
             pageAgain,
+            isObserverPage,
             translator,
           );
 
@@ -1628,6 +1656,7 @@ export class Service extends ProjectReferencesService<Model> {
           updatedLog.id!,
           pageAgain,
           personPage,
+          isObserverPage,
           translator,
         );
 
@@ -1686,6 +1715,7 @@ export class Service extends ProjectReferencesService<Model> {
             updatedLog.id!,
             pageAgain,
             personPage,
+            isObserverPage,
             translator,
           );
 
@@ -1742,6 +1772,7 @@ export class Service extends ProjectReferencesService<Model> {
             alertEpisode,
             updatedLog.id!,
             pageAgain,
+            isObserverPage,
             translator,
           );
 
@@ -1796,6 +1827,7 @@ export class Service extends ProjectReferencesService<Model> {
             incidentEpisode,
             updatedLog.id!,
             pageAgain,
+            isObserverPage,
             translator,
           );
 
@@ -2101,6 +2133,7 @@ export class Service extends ProjectReferencesService<Model> {
             updatedLog.id!,
             pageAgain,
             personPage,
+            isObserverPage,
             translator,
           ),
           parseMode: "HTML",
@@ -2157,6 +2190,7 @@ export class Service extends ProjectReferencesService<Model> {
             updatedLog.id!,
             pageAgain,
             personPage,
+            isObserverPage,
             translator,
           ),
           parseMode: "HTML",
@@ -2212,6 +2246,7 @@ export class Service extends ProjectReferencesService<Model> {
             alertEpisode,
             updatedLog.id!,
             pageAgain,
+            isObserverPage,
             translator,
           ),
           parseMode: "HTML",
@@ -2267,6 +2302,7 @@ export class Service extends ProjectReferencesService<Model> {
             incidentEpisode,
             updatedLog.id!,
             pageAgain,
+            isObserverPage,
             translator,
           ),
           parseMode: "HTML",
@@ -2337,6 +2373,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentEpisode: incidentEpisode,
           pageAgain: pageAgain,
           personPage: personPage,
+          isObserverPage: isObserverPage,
           translator: translator,
         });
 
@@ -2379,6 +2416,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentEpisode: incidentEpisode,
           pageAgain: pageAgain,
           personPage: personPage,
+          isObserverPage: isObserverPage,
           translator: translator,
         });
 
@@ -2421,6 +2459,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentEpisode: incidentEpisode,
           pageAgain: pageAgain,
           personPage: personPage,
+          isObserverPage: isObserverPage,
           translator: translator,
         });
 
@@ -2673,6 +2712,7 @@ export class Service extends ProjectReferencesService<Model> {
             updatedLog.id!,
             pageAgain,
             personPage,
+            isObserverPage,
           );
 
         // send call.
@@ -2729,6 +2769,7 @@ export class Service extends ProjectReferencesService<Model> {
             updatedLog.id!,
             pageAgain,
             personPage,
+            isObserverPage,
           );
 
         // send call.
@@ -2784,6 +2825,7 @@ export class Service extends ProjectReferencesService<Model> {
             alertEpisode,
             updatedLog.id!,
             pageAgain,
+            isObserverPage,
           );
 
         CallService.makeCall(callRequest, {
@@ -2837,6 +2879,7 @@ export class Service extends ProjectReferencesService<Model> {
             incidentEpisode,
             updatedLog.id!,
             pageAgain,
+            isObserverPage,
           );
 
         /*
@@ -2895,6 +2938,7 @@ export class Service extends ProjectReferencesService<Model> {
         alertEpisode: alertEpisode,
         incidentEpisode: incidentEpisode,
         pageAgain: pageAgain,
+        isObserverPage: isObserverPage,
       });
 
       deliveryAttempted = deliveryAttempted || attempted;
@@ -2990,6 +3034,8 @@ export class Service extends ProjectReferencesService<Model> {
             pageAgain: pageAgain,
             // A person's page says who paged, and why you.
             personPage: personPage,
+            // An observer's page says they are kept informed.
+            isObserverPage: isObserverPage,
             // In the language of the person it pages.
             translator: translator,
           });
@@ -2999,8 +3045,15 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
-        // Acknowledge and Escalate under the page (PushNotificationCategory).
-        pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
+        /*
+         * Acknowledge and Escalate under a responder's page, and "I've seen
+         * it" under an observer's (PushNotificationCategory): the app's
+         * Acknowledge acknowledges the record itself, which is not an
+         * observer's to.
+         */
+        pushMessage.categoryId = getOnCallPagePushCategory({
+          isObserverPage: isObserverPage,
+        });
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -3088,6 +3141,8 @@ export class Service extends ProjectReferencesService<Model> {
             pageAgain: pageAgain,
             // A person's page says who paged, and why you.
             personPage: personPage,
+            // An observer's page says they are kept informed.
+            isObserverPage: isObserverPage,
             // In the language of the person it pages.
             translator: translator,
           });
@@ -3097,8 +3152,15 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
-        // Acknowledge and Escalate under the page (PushNotificationCategory).
-        pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
+        /*
+         * Acknowledge and Escalate under a responder's page, and "I've seen
+         * it" under an observer's (PushNotificationCategory): the app's
+         * Acknowledge acknowledges the record itself, which is not an
+         * observer's to.
+         */
+        pushMessage.categoryId = getOnCallPagePushCategory({
+          isObserverPage: isObserverPage,
+        });
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -3184,6 +3246,8 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: alertEpisode.projectId!.toString(),
             // A page again says it is still not resolved.
             pageAgain: pageAgain,
+            // An observer's page says they are kept informed.
+            isObserverPage: isObserverPage,
             // In the language of the person it pages.
             translator: translator,
           });
@@ -3193,8 +3257,15 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
-        // Acknowledge and Escalate under the page (PushNotificationCategory).
-        pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
+        /*
+         * Acknowledge and Escalate under a responder's page, and "I've seen
+         * it" under an observer's (PushNotificationCategory): the app's
+         * Acknowledge acknowledges the record itself, which is not an
+         * observer's to.
+         */
+        pushMessage.categoryId = getOnCallPagePushCategory({
+          isObserverPage: isObserverPage,
+        });
 
         PushNotificationService.sendPushNotification(
           {
@@ -3279,6 +3350,8 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: incidentEpisode.projectId!.toString(),
             // A page again says it is still not resolved.
             pageAgain: pageAgain,
+            // An observer's page says they are kept informed.
+            isObserverPage: isObserverPage,
             // In the language of the person it pages.
             translator: translator,
           });
@@ -3288,8 +3361,15 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
-        // Acknowledge and Escalate under the page (PushNotificationCategory).
-        pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
+        /*
+         * Acknowledge and Escalate under a responder's page, and "I've seen
+         * it" under an observer's (PushNotificationCategory): the app's
+         * Acknowledge acknowledges the record itself, which is not an
+         * observer's to.
+         */
+        pushMessage.categoryId = getOnCallPagePushCategory({
+          isObserverPage: isObserverPage,
+        });
 
         PushNotificationService.sendPushNotification(
           {
@@ -3420,6 +3500,8 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined;
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined;
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined;
     // The language of the person it pages (OnCallPageWords).
     translator: Translator;
   }): Promise<boolean> {
@@ -3454,9 +3536,11 @@ export class Service extends ProjectReferencesService<Model> {
       incidentId = incident.id!;
       messageSummary = data.pageAgain
         ? `On-call notification: incident still not resolved.`
-        : data.personPage
-          ? `${getOnCallPersonPageLead(data.personPage)} about an incident.`
-          : `On-call notification: incident created.`;
+        : data.isObserverPage
+          ? `${getOnCallObserverPageLead(data.personPage)} about an incident.`
+          : data.personPage
+            ? `${getOnCallPersonPageLead(data.personPage)} about an incident.`
+            : `On-call notification: incident created.`;
       generateBlocks = (
         timelineId: ObjectID,
       ): Promise<Array<WorkspaceMessageBlock>> => {
@@ -3465,6 +3549,7 @@ export class Service extends ProjectReferencesService<Model> {
           timelineId,
           data.pageAgain,
           data.personPage,
+          data.isObserverPage,
           data.translator,
         );
       };
@@ -3480,9 +3565,11 @@ export class Service extends ProjectReferencesService<Model> {
       alertId = alert.id!;
       messageSummary = data.pageAgain
         ? `On-call notification: alert still not resolved.`
-        : data.personPage
-          ? `${getOnCallPersonPageLead(data.personPage)} about an alert.`
-          : `On-call notification: alert created.`;
+        : data.isObserverPage
+          ? `${getOnCallObserverPageLead(data.personPage)} about an alert.`
+          : data.personPage
+            ? `${getOnCallPersonPageLead(data.personPage)} about an alert.`
+            : `On-call notification: alert created.`;
       generateBlocks = (
         timelineId: ObjectID,
       ): Promise<Array<WorkspaceMessageBlock>> => {
@@ -3491,6 +3578,7 @@ export class Service extends ProjectReferencesService<Model> {
           timelineId,
           data.pageAgain,
           data.personPage,
+          data.isObserverPage,
           data.translator,
         );
       };
@@ -3506,7 +3594,9 @@ export class Service extends ProjectReferencesService<Model> {
       alertEpisodeId = alertEpisode.id!;
       messageSummary = data.pageAgain
         ? `On-call notification: alert episode still not resolved.`
-        : `On-call notification: alert episode created.`;
+        : data.isObserverPage
+          ? `${getOnCallObserverPageLead()} about an alert episode.`
+          : `On-call notification: alert episode created.`;
       generateBlocks = (
         timelineId: ObjectID,
       ): Promise<Array<WorkspaceMessageBlock>> => {
@@ -3514,6 +3604,7 @@ export class Service extends ProjectReferencesService<Model> {
           alertEpisode,
           timelineId,
           data.pageAgain,
+          data.isObserverPage,
           data.translator,
         );
       };
@@ -3529,7 +3620,9 @@ export class Service extends ProjectReferencesService<Model> {
       incidentEpisodeId = incidentEpisode.id!;
       messageSummary = data.pageAgain
         ? `On-call notification: incident episode still not resolved.`
-        : `On-call notification: incident episode created.`;
+        : data.isObserverPage
+          ? `${getOnCallObserverPageLead()} about an incident episode.`
+          : `On-call notification: incident episode created.`;
       generateBlocks = (
         timelineId: ObjectID,
       ): Promise<Array<WorkspaceMessageBlock>> => {
@@ -3537,6 +3630,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentEpisode,
           timelineId,
           data.pageAgain,
+          data.isObserverPage,
           data.translator,
         );
       };
@@ -3644,6 +3738,8 @@ export class Service extends ProjectReferencesService<Model> {
     alertEpisode: AlertEpisode | null;
     incidentEpisode: IncidentEpisode | null;
     pageAgain: OnCallPageAgainNotice | undefined;
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined;
   }): Promise<boolean> {
     const { notificationRuleItem, options } = data;
 
@@ -3708,6 +3804,7 @@ export class Service extends ProjectReferencesService<Model> {
       onCallPolicy: references.onCallPolicy,
       escalationRule: references.escalationRule,
       isPageAgain: Boolean(data.pageAgain),
+      isObserverPage: Boolean(data.isObserverPage),
       actions: await CustomChannelActionToken.getActionLinks(updatedLog.id!),
     });
 
@@ -3741,6 +3838,8 @@ export class Service extends ProjectReferencesService<Model> {
     alertEpisode: AlertEpisode | null;
     incidentEpisode: IncidentEpisode | null;
     pageAgain: OnCallPageAgainNotice | undefined;
+    // An observer's page (OnCallObserverPage): worded for their information.
+    isObserverPage?: boolean | undefined;
   }): Promise<CustomChannelPagedRecord | null> {
     const eventType: UserNotificationEventType =
       data.options.userNotificationEventType;
@@ -3772,6 +3871,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentId: incident.id!.toString(),
           projectId: incident.projectId!.toString(),
           pageAgain: data.pageAgain,
+          isObserverPage: data.isObserverPage,
         });
 
       return {
@@ -3813,6 +3913,7 @@ export class Service extends ProjectReferencesService<Model> {
           alertId: alert.id!.toString(),
           projectId: alert.projectId!.toString(),
           pageAgain: data.pageAgain,
+          isObserverPage: data.isObserverPage,
         });
 
       return {
@@ -3860,6 +3961,7 @@ export class Service extends ProjectReferencesService<Model> {
           alertEpisodeId: alertEpisode.id!.toString(),
           projectId: alertEpisode.projectId!.toString(),
           pageAgain: data.pageAgain,
+          isObserverPage: data.isObserverPage,
         });
 
       return {
@@ -3909,6 +4011,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentEpisodeId: incidentEpisode.id!.toString(),
           projectId: incidentEpisode.projectId!.toString(),
           pageAgain: data.pageAgain,
+          isObserverPage: data.isObserverPage,
         });
 
       return {
@@ -4642,6 +4745,8 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
   ): Promise<CallRequest> {
     const alertIdentifier: string =
       alert.alertNumber !== undefined
@@ -4693,7 +4798,14 @@ export class Service extends ProjectReferencesService<Model> {
       ],
     };
 
-    return callRequest;
+    return isObserverPage
+      ? this.toObserverCallRequest({
+          callRequest: callRequest,
+          recordNoun: "alert",
+          kind: "alert",
+          personPage: personPage,
+        })
+      : callRequest;
   }
 
   @CaptureSpan()
@@ -4705,6 +4817,8 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
   ): Promise<CallRequest> {
     const incidentIdentifier: string =
       incident.incidentNumber !== undefined
@@ -4756,7 +4870,14 @@ export class Service extends ProjectReferencesService<Model> {
       ],
     };
 
-    return callRequest;
+    return isObserverPage
+      ? this.toObserverCallRequest({
+          callRequest: callRequest,
+          recordNoun: "incident",
+          kind: "incident",
+          personPage: personPage,
+        })
+      : callRequest;
   }
 
   @CaptureSpan()
@@ -4766,6 +4887,8 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
   ): Promise<CallRequest> {
     const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
       ? `Alert episode ${alertEpisode.episodeNumberWithPrefix}, ${alertEpisode.title || "Alert Episode"}`
@@ -4811,7 +4934,13 @@ export class Service extends ProjectReferencesService<Model> {
       ],
     };
 
-    return callRequest;
+    return isObserverPage
+      ? this.toObserverCallRequest({
+          callRequest: callRequest,
+          recordNoun: "alert episode",
+          kind: "alert episode",
+        })
+      : callRequest;
   }
 
   @CaptureSpan()
@@ -4821,6 +4950,8 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
   ): Promise<CallRequest> {
     const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
       ? `Incident episode ${incidentEpisode.episodeNumberWithPrefix}, ${incidentEpisode.title || "Incident Episode"}`
@@ -4867,7 +4998,13 @@ export class Service extends ProjectReferencesService<Model> {
       ],
     };
 
-    return callRequest;
+    return isObserverPage
+      ? this.toObserverCallRequest({
+          callRequest: callRequest,
+          recordNoun: "incident episode",
+          kind: "incident episode",
+        })
+      : callRequest;
   }
 
   @CaptureSpan()
@@ -4879,6 +5016,8 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<SMS> {
@@ -4886,8 +5025,11 @@ export class Service extends ProjectReferencesService<Model> {
       to,
       message: this.buildOnCallPageSmsText({
         isPageAgain: Boolean(pageAgain),
+        isObserverPage: Boolean(isObserverPage),
         lead: personPage
-          ? getOnCallPersonPageLead(personPage, translator)
+          ? isObserverPage
+            ? getOnCallObserverPageLead(personPage, translator)
+            : getOnCallPersonPageLead(personPage, translator)
           : undefined,
         kind: OnCallPageSmsKind.Alert,
         severityName: getOnCallPageStateName(
@@ -4917,6 +5059,8 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<SMS> {
@@ -4924,8 +5068,11 @@ export class Service extends ProjectReferencesService<Model> {
       to,
       message: this.buildOnCallPageSmsText({
         isPageAgain: Boolean(pageAgain),
+        isObserverPage: Boolean(isObserverPage),
         lead: personPage
-          ? getOnCallPersonPageLead(personPage, translator)
+          ? isObserverPage
+            ? getOnCallObserverPageLead(personPage, translator)
+            : getOnCallPersonPageLead(personPage, translator)
           : undefined,
         kind: OnCallPageSmsKind.Incident,
         severityName: getOnCallPageStateName(
@@ -4952,6 +5099,8 @@ export class Service extends ProjectReferencesService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
     pageAgain?: OnCallPageAgainNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<SMS> {
@@ -4959,6 +5108,7 @@ export class Service extends ProjectReferencesService<Model> {
       to,
       message: this.buildOnCallPageSmsText({
         isPageAgain: Boolean(pageAgain),
+        isObserverPage: Boolean(isObserverPage),
         kind: OnCallPageSmsKind.AlertEpisode,
         severityName: getOnCallPageStateName(
           translator,
@@ -4984,6 +5134,8 @@ export class Service extends ProjectReferencesService<Model> {
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
     pageAgain?: OnCallPageAgainNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<SMS> {
@@ -4991,6 +5143,7 @@ export class Service extends ProjectReferencesService<Model> {
       to,
       message: this.buildOnCallPageSmsText({
         isPageAgain: Boolean(pageAgain),
+        isObserverPage: Boolean(isObserverPage),
         kind: OnCallPageSmsKind.IncidentEpisode,
         severityName: getOnCallPageStateName(
           translator,
@@ -5033,6 +5186,8 @@ export class Service extends ProjectReferencesService<Model> {
     isPageAgain: boolean;
     // A person's page: who paged whom, after the product.
     lead?: string | undefined;
+    // An observer's page (OnCallObserverPage): for their information.
+    isObserverPage?: boolean | undefined;
     // The language of the person it pages; English without one.
     translator?: Translator | undefined;
   }): string {
@@ -5040,6 +5195,7 @@ export class Service extends ProjectReferencesService<Model> {
       kind: data.kind,
       isPageAgain: data.isPageAgain,
       lead: data.lead,
+      isObserverPage: data.isObserverPage === true,
       productName: ONEUPTIME_PRODUCT_NAME,
       severityName: data.severityName,
       number: data.number,
@@ -5081,6 +5237,8 @@ export class Service extends ProjectReferencesService<Model> {
       },
       head: words.head,
       action: words.action,
+      observerLead: getOnCallObserverPageSmsLead(translator),
+      observerAction: getOnCallObserverPageSmsAction(translator),
     };
   }
 
@@ -5180,11 +5338,17 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A person's page: who paged whom (OnCallPersonPage).
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): the kind of record it is about.
+    observerKind?: OnCallObserverPageRecordKind | undefined,
     // The language of the person it pages (OnCallPageWords).
     translator: Translator = getEnglishPageTranslator(),
   ): string {
     if (pageAgain) {
       return getOnCallPageAgainHeadline(kind, translator);
+    }
+
+    if (observerKind) {
+      return getOnCallObserverPageLead(personPage, translator);
     }
 
     return personPage
@@ -5197,6 +5361,11 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A person's page: why this person - a team, a schedule, by name.
     personPage?: OnCallPersonPageNotice | undefined,
+    /*
+     * An observer's page (OnCallObserverPage): the kind of record it is
+     * about. It says they are kept informed, and what answering does.
+     */
+    observerKind?: OnCallObserverPageRecordKind | undefined,
     // The language of the person it pages (OnCallPageWords).
     translator: Translator = getEnglishPageTranslator(),
   ): string {
@@ -5204,9 +5373,154 @@ export class Service extends ProjectReferencesService<Model> {
       return getOnCallPageAgainWhyLine(pageAgain, translator);
     }
 
+    if (observerKind) {
+      const notice: string = getOnCallObserverPageNotice(
+        observerKind,
+        translator,
+      );
+
+      // Two sentences, as the language puts one after another.
+      return personPage
+        ? translator.translateTemplate("{{first}} {{second}}", {
+            first: getOnCallPersonPageWhyLine(personPage, translator),
+            second: notice,
+          })
+        : notice;
+    }
+
     return personPage
       ? getOnCallPersonPageWhyLine(personPage, translator)
       : getOnCallPageOnCallWhyLine(translator);
+  }
+
+  /*
+   * A Telegram message's links to answer the page: acknowledge it, or
+   * escalate it - or, for an observer's page (OnCallObserverPage), only say
+   * they have seen it: there is nothing to escalate.
+   */
+  private getTelegramAnswerLines(data: {
+    ackUrl: URL;
+    passOnUrl: URL;
+    isObserverPage: boolean;
+    // The language of the person it pages (OnCallPageWords).
+    translator: Translator;
+  }): Array<string> {
+    if (data.isObserverPage) {
+      return [
+        "",
+        `✅ <a href="${this.escapeTelegramHtml(data.ackUrl.toString())}">${this.escapeTelegramHtml(getOnCallObserverPageAcknowledgeLabel(data.translator))}</a>`,
+      ];
+    }
+
+    return [
+      "",
+      `✅ <a href="${this.escapeTelegramHtml(data.ackUrl.toString())}">${this.escapeTelegramHtml(getOnCallPageTapToAcknowledge(data.translator))}</a>`,
+      "",
+      `⬆️ <a href="${this.escapeTelegramHtml(data.passOnUrl.toString())}">${this.escapeTelegramHtml(getOnCallPageCantTakeItEscalate(data.translator))}</a>`,
+    ];
+  }
+
+  /*
+   * A call of an observer's page (OnCallObserverPage), from the call a
+   * responder's page makes: it says they are paged as an observer and kept
+   * informed, asks them to press 1 to say they have heard it - which
+   * acknowledges nothing else - and offers no escalation.
+   */
+  private toObserverCallRequest(data: {
+    callRequest: CallRequest;
+    recordNoun: string;
+    kind: OnCallObserverPageRecordKind;
+    personPage?: OnCallPersonPageNotice | undefined;
+  }): CallRequest {
+    const items: CallRequest["data"] = [...data.callRequest.data];
+
+    // What the call says first, after who calls.
+    if (items[1] && typeof items[1] === "object" && "sayMessage" in items[1]) {
+      const sentence: Say = {
+        sayMessage: getOnCallObserverPageCallSentence({
+          recordNoun: data.recordNoun,
+          personPage: data.personPage,
+        }),
+      };
+
+      items[1] = sentence;
+    }
+
+    const promptIndex: number = items.findIndex(
+      (item: CallRequest["data"][number]): boolean => {
+        return (
+          typeof item === "object" && item !== null && "introMessage" in item
+        );
+      },
+    );
+
+    if (promptIndex >= 0) {
+      const prompt: GatherInput = items[promptIndex] as GatherInput;
+
+      const observerPrompt: GatherInput = {
+        ...prompt,
+        introMessage: getOnCallObserverPageCallPrompt(data.kind),
+        onInputCallRequest: {
+          ...prompt.onInputCallRequest,
+          "1": {
+            sayMessage: ON_CALL_OBSERVER_PAGE_CALL_ANSWERED,
+          },
+        },
+      };
+
+      // Before the prompt: who stays on it.
+      const notice: Say = {
+        sayMessage: getOnCallObserverPageSpokenNotice(data.kind),
+      };
+
+      items.splice(promptIndex, 1, notice, observerPrompt);
+    }
+
+    return {
+      ...data.callRequest,
+      data: items,
+    };
+  }
+
+  /*
+   * Whether a delivery is part of an observer's page (OnCallObserverPage).
+   * Best effort: a run that cannot be read is worded as a responder's page,
+   * and the page still goes out.
+   */
+  private async readIsObserverPage(
+    options: ExecuteNotificationRuleOptions,
+  ): Promise<boolean> {
+    return await this.isObserverRun(options.onCallPolicyExecutionLogId);
+  }
+
+  // Whether a run pages its people as observers (OnCallObserverPage).
+  private async isObserverRun(
+    executionLogId: ObjectID | null | undefined,
+  ): Promise<boolean> {
+    if (!executionLogId) {
+      return false;
+    }
+
+    try {
+      const run: OnCallDutyPolicyExecutionLog | null =
+        await OnCallDutyPolicyExecutionLogService.findOneById({
+          id: executionLogId,
+          select: {
+            isObserverPage: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      return isOnCallObserverPage(run);
+    } catch (err) {
+      logger.debug(
+        `Could not read whether on-call execution log ${executionLogId.toString()} pages observers; worded as a responder's page.`,
+      );
+      logger.debug(err as Error);
+      return false;
+    }
   }
 
   /*
@@ -5221,23 +5535,6 @@ export class Service extends ProjectReferencesService<Model> {
       : "";
 
     return said ? [{ sayMessage: said }] : [];
-  }
-
-  /*
-   * The two links every page's Telegram message ends with: acknowledge it,
-   * or escalate it - in the language of the person it pages.
-   */
-  private getTelegramPageLinks(
-    ackUrl: URL,
-    passOnUrl: URL,
-    translator: Translator,
-  ): Array<string> {
-    return [
-      "",
-      `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">${this.escapeTelegramHtml(getOnCallPageTapToAcknowledge(translator))}</a>`,
-      "",
-      `⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${this.escapeTelegramHtml(getOnCallPageCantTakeItEscalate(translator))}</a>`,
-    ];
   }
 
   /*
@@ -5366,9 +5663,13 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<string> {
+    const observerKind: OnCallObserverPageRecordKind | undefined =
+      isObserverPage ? "alert" : undefined;
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
@@ -5388,12 +5689,12 @@ export class Service extends ProjectReferencesService<Model> {
         : alert.title || kindLabel;
 
     const lines: Array<string> = [
-      `🚨 <b>${this.escapeTelegramHtml(this.getPageHeadline(OnCallPageKind.Alert, pageAgain, personPage, translator))}</b>`,
+      `🚨 <b>${this.escapeTelegramHtml(this.getPageHeadline(OnCallPageKind.Alert, pageAgain, personPage, observerKind, translator))}</b>`,
       "",
       `📋 <b>${this.escapeTelegramHtml(alertIdentifier)}</b>`,
       ...this.getTelegramPersonPageMessage(personPage),
       "",
-      `👤 ${this.escapeTelegramHtml(this.getPageWhyLine(pageAgain, personPage, translator))}`,
+      `👤 ${this.escapeTelegramHtml(this.getPageWhyLine(pageAgain, personPage, observerKind, translator))}`,
     ];
 
     if (alert.projectId && alert.id) {
@@ -5407,7 +5708,14 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    lines.push(...this.getTelegramPageLinks(ackUrl, passOnUrl, translator));
+    lines.push(
+      ...this.getTelegramAnswerLines({
+        ackUrl: ackUrl,
+        passOnUrl: passOnUrl,
+        isObserverPage: Boolean(isObserverPage),
+        translator: translator,
+      }),
+    );
 
     return lines.join("\n");
   }
@@ -5420,9 +5728,13 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<string> {
+    const observerKind: OnCallObserverPageRecordKind | undefined =
+      isObserverPage ? "incident" : undefined;
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
@@ -5442,12 +5754,12 @@ export class Service extends ProjectReferencesService<Model> {
         : incident.title || kindLabel;
 
     const lines: Array<string> = [
-      `🔥 <b>${this.escapeTelegramHtml(this.getPageHeadline(OnCallPageKind.Incident, pageAgain, personPage, translator))}</b>`,
+      `🔥 <b>${this.escapeTelegramHtml(this.getPageHeadline(OnCallPageKind.Incident, pageAgain, personPage, observerKind, translator))}</b>`,
       "",
       `📋 <b>${this.escapeTelegramHtml(incidentIdentifier)}</b>`,
       ...this.getTelegramPersonPageMessage(personPage),
       "",
-      `👤 ${this.escapeTelegramHtml(this.getPageWhyLine(pageAgain, personPage, translator))}`,
+      `👤 ${this.escapeTelegramHtml(this.getPageWhyLine(pageAgain, personPage, observerKind, translator))}`,
     ];
 
     if (incident.projectId && incident.id) {
@@ -5462,7 +5774,14 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    lines.push(...this.getTelegramPageLinks(ackUrl, passOnUrl, translator));
+    lines.push(
+      ...this.getTelegramAnswerLines({
+        ackUrl: ackUrl,
+        passOnUrl: passOnUrl,
+        isObserverPage: Boolean(isObserverPage),
+        translator: translator,
+      }),
+    );
 
     return lines.join("\n");
   }
@@ -5473,9 +5792,13 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<string> {
+    const observerKind: OnCallObserverPageRecordKind | undefined =
+      isObserverPage ? "alert episode" : undefined;
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
@@ -5496,11 +5819,11 @@ export class Service extends ProjectReferencesService<Model> {
         : alertEpisode.title || kindLabel;
 
     const lines: Array<string> = [
-      `🔔 <b>${this.escapeTelegramHtml(this.getPageHeadline(OnCallPageKind.AlertEpisode, pageAgain, undefined, translator))}</b>`,
+      `🔔 <b>${this.escapeTelegramHtml(this.getPageHeadline(OnCallPageKind.AlertEpisode, pageAgain, undefined, observerKind, translator))}</b>`,
       "",
       `📋 <b>${this.escapeTelegramHtml(episodeIdentifier)}</b>`,
       "",
-      `👤 ${this.escapeTelegramHtml(this.getPageWhyLine(pageAgain, undefined, translator))}`,
+      `👤 ${this.escapeTelegramHtml(this.getPageWhyLine(pageAgain, undefined, observerKind, translator))}`,
     ];
 
     if (alertEpisode.projectId && alertEpisode.id) {
@@ -5515,7 +5838,14 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    lines.push(...this.getTelegramPageLinks(ackUrl, passOnUrl, translator));
+    lines.push(
+      ...this.getTelegramAnswerLines({
+        ackUrl: ackUrl,
+        passOnUrl: passOnUrl,
+        isObserverPage: Boolean(isObserverPage),
+        translator: translator,
+      }),
+    );
 
     return lines.join("\n");
   }
@@ -5526,9 +5856,13 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<string> {
+    const observerKind: OnCallObserverPageRecordKind | undefined =
+      isObserverPage ? "incident episode" : undefined;
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
@@ -5549,11 +5883,11 @@ export class Service extends ProjectReferencesService<Model> {
         : incidentEpisode.title || kindLabel;
 
     const lines: Array<string> = [
-      `🔥 <b>${this.escapeTelegramHtml(this.getPageHeadline(OnCallPageKind.IncidentEpisode, pageAgain, undefined, translator))}</b>`,
+      `🔥 <b>${this.escapeTelegramHtml(this.getPageHeadline(OnCallPageKind.IncidentEpisode, pageAgain, undefined, observerKind, translator))}</b>`,
       "",
       `📋 <b>${this.escapeTelegramHtml(episodeIdentifier)}</b>`,
       "",
-      `👤 ${this.escapeTelegramHtml(this.getPageWhyLine(pageAgain, undefined, translator))}`,
+      `👤 ${this.escapeTelegramHtml(this.getPageWhyLine(pageAgain, undefined, observerKind, translator))}`,
     ];
 
     if (incidentEpisode.projectId && incidentEpisode.id) {
@@ -5568,7 +5902,14 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    lines.push(...this.getTelegramPageLinks(ackUrl, passOnUrl, translator));
+    lines.push(
+      ...this.getTelegramAnswerLines({
+        ackUrl: ackUrl,
+        passOnUrl: passOnUrl,
+        isObserverPage: Boolean(isObserverPage),
+        translator: translator,
+      }),
+    );
 
     return lines.join("\n");
   }
@@ -5598,6 +5939,12 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined;
     // A page a person asked for (OnCallPersonPage): who paged, and why you.
     personPage?: OnCallPersonPageNotice | undefined;
+    /*
+     * An observer's page (OnCallObserverPage): the kind of record it is
+     * about. It says they are kept informed, and its only link says they
+     * have seen it.
+     */
+    observerKind?: OnCallObserverPageRecordKind | undefined;
     // The language of the person it pages (OnCallPageWords).
     translator: Translator;
   }): Array<WorkspaceMessageBlock> {
@@ -5620,7 +5967,12 @@ export class Service extends ProjectReferencesService<Model> {
         ? ["", mdText`💬 “${personPageMessage}”`.toString()]
         : []),
       "",
-      mdText`👤 ${this.getPageWhyLine(pageAgain, data.personPage, data.translator)}`.toString(),
+      mdText`👤 ${this.getPageWhyLine(
+        pageAgain,
+        data.personPage,
+        data.observerKind,
+        data.translator,
+      )}`.toString(),
     ];
 
     if (data.dashboardUrl) {
@@ -5630,12 +5982,20 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    lines.push(
-      "",
-      mdText`✅ [${getOnCallPageAcknowledge(data.translator)}](${data.ackUrl.toString()})`.toString(),
-      "",
-      mdText`⬆️ [${getOnCallPageCantTakeItEscalate(data.translator)}](${data.passOnUrl.toString()})`.toString(),
-    );
+    if (data.observerKind) {
+      // Nothing to escalate: only that they have seen it.
+      lines.push(
+        "",
+        mdText`✅ [${getOnCallObserverPageAcknowledgeLabel(data.translator)}](${data.ackUrl.toString()})`.toString(),
+      );
+    } else {
+      lines.push(
+        "",
+        mdText`✅ [${getOnCallPageAcknowledge(data.translator)}](${data.ackUrl.toString()})`.toString(),
+        "",
+        mdText`⬆️ [${getOnCallPageCantTakeItEscalate(data.translator)}](${data.passOnUrl.toString()})`.toString(),
+      );
+    }
 
     const markdownBlock: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
@@ -5653,9 +6013,13 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<Array<WorkspaceMessageBlock>> {
+    const observerKind: OnCallObserverPageRecordKind | undefined =
+      isObserverPage ? "alert" : undefined;
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
@@ -5688,8 +6052,10 @@ export class Service extends ProjectReferencesService<Model> {
         OnCallPageKind.Alert,
         pageAgain,
         personPage,
+        observerKind,
         translator,
       ),
+      observerKind: observerKind,
       pageAgain: pageAgain,
       personPage: personPage,
       identifier: alertIdentifier,
@@ -5712,9 +6078,13 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<Array<WorkspaceMessageBlock>> {
+    const observerKind: OnCallObserverPageRecordKind | undefined =
+      isObserverPage ? "incident" : undefined;
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
@@ -5747,8 +6117,10 @@ export class Service extends ProjectReferencesService<Model> {
         OnCallPageKind.Incident,
         pageAgain,
         personPage,
+        observerKind,
         translator,
       ),
+      observerKind: observerKind,
       pageAgain: pageAgain,
       personPage: personPage,
       identifier: incidentIdentifier,
@@ -5769,9 +6141,13 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<Array<WorkspaceMessageBlock>> {
+    const observerKind: OnCallObserverPageRecordKind | undefined =
+      isObserverPage ? "alert episode" : undefined;
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
@@ -5805,8 +6181,10 @@ export class Service extends ProjectReferencesService<Model> {
         OnCallPageKind.AlertEpisode,
         pageAgain,
         undefined,
+        observerKind,
         translator,
       ),
+      observerKind: observerKind,
       pageAgain: pageAgain,
       identifier: episodeIdentifier,
       dashboardUrl: dashboardUrl,
@@ -5826,9 +6204,13 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<Array<WorkspaceMessageBlock>> {
+    const observerKind: OnCallObserverPageRecordKind | undefined =
+      isObserverPage ? "incident episode" : undefined;
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
@@ -5862,8 +6244,10 @@ export class Service extends ProjectReferencesService<Model> {
         OnCallPageKind.IncidentEpisode,
         pageAgain,
         undefined,
+        observerKind,
         translator,
       ),
+      observerKind: observerKind,
       pageAgain: pageAgain,
       identifier: episodeIdentifier,
       dashboardUrl: dashboardUrl,
@@ -6102,6 +6486,8 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<EmailMessage> {
@@ -6193,12 +6579,38 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    /*
+     * An observer's page (OnCallObserverPage) says they are kept informed,
+     * asks only whether they have seen it, and offers no escalation.
+     */
+    if (isObserverPage) {
+      vars["observerPageInfo"] = getOnCallObserverPageNotice(
+        "alert",
+        translator,
+      );
+      vars["observerPageWhy"] = getOnCallObserverPageEmailWhy(
+        "alert",
+        translator,
+      );
+      delete vars["passOnLink"];
+    }
+
     const emailMessage: EmailMessage = {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeAlert,
       vars: vars,
-      subject:
-        personPage && !pageAgain
+      subject: isObserverPage
+        ? getOnCallObserverPageEmailSubject({
+            recordLabel: getOnCallPageRecordLabel(
+              translator,
+              OnCallPageKind.Alert,
+              alertNumber,
+            ),
+            recordTitle: alert.title || "",
+            personPage: personPage,
+            translator: translator,
+          })
+        : personPage && !pageAgain
           ? getOnCallPersonPageEmailSubject({
               recordLabel: getOnCallPageRecordLabel(
                 translator,
@@ -6231,6 +6643,8 @@ export class Service extends ProjectReferencesService<Model> {
     pageAgain?: OnCallPageAgainNotice | undefined,
     // A page a person asked for (OnCallPersonPage): says who paged, and why.
     personPage?: OnCallPersonPageNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<EmailMessage> {
@@ -6318,12 +6732,38 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    /*
+     * An observer's page (OnCallObserverPage) says they are kept informed,
+     * asks only whether they have seen it, and offers no escalation.
+     */
+    if (isObserverPage) {
+      vars["observerPageInfo"] = getOnCallObserverPageNotice(
+        "incident",
+        translator,
+      );
+      vars["observerPageWhy"] = getOnCallObserverPageEmailWhy(
+        "incident",
+        translator,
+      );
+      delete vars["passOnLink"];
+    }
+
     const emailMessage: EmailMessage = {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeIncident,
       vars: vars,
-      subject:
-        personPage && !pageAgain
+      subject: isObserverPage
+        ? getOnCallObserverPageEmailSubject({
+            recordLabel: getOnCallPageRecordLabel(
+              translator,
+              OnCallPageKind.Incident,
+              incidentNumber,
+            ),
+            recordTitle: incident.title || "",
+            personPage: personPage,
+            translator: translator,
+          })
+        : personPage && !pageAgain
           ? getOnCallPersonPageEmailSubject({
               recordLabel: getOnCallPageRecordLabel(
                 translator,
@@ -6367,6 +6807,8 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<EmailMessage> {
@@ -6528,16 +6970,42 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    /*
+     * An observer's page (OnCallObserverPage) says they are kept informed,
+     * asks only whether they have seen it, and offers no escalation.
+     */
+    if (isObserverPage) {
+      vars["observerPageInfo"] = getOnCallObserverPageNotice(
+        "alert episode",
+        translator,
+      );
+      vars["observerPageWhy"] = getOnCallObserverPageEmailWhy(
+        "alert episode",
+        translator,
+      );
+      delete vars["passOnLink"];
+    }
+
     const emailMessage: EmailMessage = {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeAlertEpisode,
       vars: vars,
-      subject: getOnCallPageEmailSubject(translator, {
-        kind: OnCallPageKind.AlertEpisode,
-        number: episodeNumber,
-        title: alertEpisode.title!,
-        isPageAgain: Boolean(pageAgain),
-      }),
+      subject: isObserverPage
+        ? getOnCallObserverPageEmailSubject({
+            recordLabel: getOnCallPageRecordLabel(
+              translator,
+              OnCallPageKind.AlertEpisode,
+              episodeNumber,
+            ),
+            recordTitle: alertEpisode.title || "",
+            translator: translator,
+          })
+        : getOnCallPageEmailSubject(translator, {
+            kind: OnCallPageKind.AlertEpisode,
+            number: episodeNumber,
+            title: alertEpisode.title!,
+            isPageAgain: Boolean(pageAgain),
+          }),
       isSubjectLiteral: true,
       ...this.getEmailLanguage(translator),
     };
@@ -6552,6 +7020,8 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined,
+    // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
+    isObserverPage?: boolean | undefined,
     // The language of the person it pages (OnCallPageWords); English without one.
     translator: Translator = getEnglishPageTranslator(),
   ): Promise<EmailMessage> {
@@ -6722,16 +7192,42 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    /*
+     * An observer's page (OnCallObserverPage) says they are kept informed,
+     * asks only whether they have seen it, and offers no escalation.
+     */
+    if (isObserverPage) {
+      vars["observerPageInfo"] = getOnCallObserverPageNotice(
+        "incident episode",
+        translator,
+      );
+      vars["observerPageWhy"] = getOnCallObserverPageEmailWhy(
+        "incident episode",
+        translator,
+      );
+      delete vars["passOnLink"];
+    }
+
     const emailMessage: EmailMessage = {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeIncidentEpisode,
       vars: vars,
-      subject: getOnCallPageEmailSubject(translator, {
-        kind: OnCallPageKind.IncidentEpisode,
-        number: episodeNumber,
-        title: incidentEpisode.title!,
-        isPageAgain: Boolean(pageAgain),
-      }),
+      subject: isObserverPage
+        ? getOnCallObserverPageEmailSubject({
+            recordLabel: getOnCallPageRecordLabel(
+              translator,
+              OnCallPageKind.IncidentEpisode,
+              episodeNumber,
+            ),
+            recordTitle: incidentEpisode.title || "",
+            translator: translator,
+          })
+        : getOnCallPageEmailSubject(translator, {
+            kind: OnCallPageKind.IncidentEpisode,
+            number: episodeNumber,
+            title: incidentEpisode.title!,
+            isPageAgain: Boolean(pageAgain),
+          }),
       isSubjectLiteral: true,
       ...this.getEmailLanguage(translator),
     };
@@ -6836,6 +7332,16 @@ export class Service extends ProjectReferencesService<Model> {
       !options.triggeredByIncidentEpisodeId &&
       !options.triggeredByAlertEpisodeId
     ) {
+      return;
+    }
+
+    /*
+     * Somebody paged as an observer (OnCallObserverPage) is kept informed,
+     * not pulled into the response: a rule that adds on-call responders to
+     * the record's channel does not add them. A rule that names their team
+     * or them still does, as it always has.
+     */
+    if (await this.isObserverRun(options.onCallPolicyExecutionLogId)) {
       return;
     }
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45951,
-    "untranslated": 3352
+    "keys": 47062,
+    "untranslated": 3472
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -796,6 +796,8 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} SLO",
+    "{{count}} SLOs",
     "{{count}} VM",
     "{{count}} VMs",
     "{{count}} s",

@@ -83,7 +83,7 @@ Su un punto dati di una metrica l'elenco è più corto e inizia dall'email, perc
 
 | Colonna | Chiavi, dalla preferita |
 | --- | --- |
-| Dipendente | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| Dipendente | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | Team / centro di costo | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | Modello | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime legge anche i token da `gen_ai.client.token.usage`, `gen_ai.client.tok
 Due cose da sapere prima di leggere i numeri:
 
 - **`gemini_cli.token.usage` è escluso di proposito.** Gemini CLI invia i suoi token due volte, come metrica propria e come `gen_ai.client.token.usage`, e leggerle entrambe li raddoppierebbe. I suoi token vengono contati una volta, tramite `gen_ai.client.token.usage`. Gemini CLI non invia alcuna metrica di costo: attiva le sue tracce perché ogni chiamata abbia un prezzo.
-- **Vengono contati solo i token di input e di output.** Il tipo di token viene letto da `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` o `token_type`, e contano solo `input` e `output` (o i vecchi `prompt` e `completion`). Letture e scritture della cache, il `total` di Codex (che ripete gli altri) e `reasoning_output` (parte di `output`) restano fuori, quindi un totale ricavato dalle metriche è più piccolo della somma di tutto ciò che uno strumento invia.
+- **Vengono contati solo i token di input e di output.** Il tipo di token viene letto da `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` o `token_type`, e contano solo `input` e `output` (o i vecchi `prompt` e `completion`), con `cacheRead` e `cacheCreation` di Claude Code come input, perché il suo `input` li esclude. Le altre letture e scritture della cache, il `total` di Codex (che ripete gli altri) e `reasoning_output` (parte di `output`) restano fuori, quindi un totale ricavato dalle metriche è più piccolo della somma di tutto ciò che uno strumento invia.
 
 ## La scheda Utilizzo
 
@@ -188,7 +188,7 @@ Codex invia anche le sue metriche a OpenAI per impostazione predefinita: vedi [O
 
 ## Cosa OneUptime non fa ancora
 
-- **Nessun connettore di amministrazione per gli strumenti di programmazione.** OneUptime legge gli account OpenAI, Anthropic, Azure, Bedrock e Vertex AI dietro gli strumenti ([Account dei provider di IA](/docs/telemetry/ai-provider-accounts)), ma non l'Admin API di Cursor, la fatturazione di Copilot di GitHub, né le API di Windsurf o di JetBrains.
+- **Nessun connettore di amministrazione per gli strumenti di programmazione, tranne quello di Cursor.** OneUptime legge gli account OpenAI, Anthropic, Azure, Bedrock e Vertex AI dietro gli strumenti, e l'Admin API di un team Cursor ([Account dei provider di IA](/docs/telemetry/ai-provider-accounts)), ma non la fatturazione di Copilot di GitHub, né le API di Windsurf o di JetBrains.
 - **Il costo è una stima, a meno che uno strumento non lo riporti.** Un costo riportato viene usato così com'è; altrimenti OneUptime calcola il prezzo dei token con i prezzi di listino. Lo stesso `cursor.cost.usage` di Cursor è una stima.
 - **L'identità sui record di log non viene letta.** Lo `user.email` di Codex, che invia solo nei log, non viene collegato alla spesa.
 - **Il `cursor.user.email` di Cursor non viene ancora letto**, quindi gli utenti di Cursor compaiono con il loro intero `cursor.user.id`.
@@ -201,7 +201,7 @@ Procedi in quest'ordine; ogni passaggio è utile da solo. Usa un progetto che no
 
 1. **Gemini CLI**, se qualcuno lo usa. Invia `user.email` senza configurazione, quindi mostra l'attribuzione funzionante da capo a fondo. Attiva anche le sue tracce: non invia alcuna metrica di costo.
 2. **Claude Code**: un file di impostazioni gestite per la flotta, `user.email` gratis, una vera metrica di costo, e tasso di accettazione, commit, pull request e righe di codice per sviluppatore.
-3. **Cursor**, con il piano Enterprise: una schermata nella dashboard di Cursor, nessuna macchina degli sviluppatori toccata, anche se le persone arrivano come interi.
+3. **Cursor**, con il piano Enterprise: una schermata nella dashboard di Cursor, nessuna macchina degli sviluppatori toccata, anche se le persone arrivano come interi. Con il piano Teams, o per quanto Cursor ha addebitato per persona, collega la sua chiave API di amministrazione come [account del provider](/docs/telemetry/ai-provider-accounts#cursor), con o senza l'export.
 4. **Copilot e Codex**, che richiedono entrambi un'identità impostata su ogni macchina. Fallo quando prepari le macchine: le chiamate arrivate senza identità non possono essere attribuite dopo.
 5. **Un gateway LiteLLM** per tutto il resto, con una chiave virtuale per dipendente.
 

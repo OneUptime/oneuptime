@@ -1,6 +1,8 @@
 import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
-import MonitorType from "../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../Types/Monitor/MonitorType";
 import MonitorMetricTypeUtil from "./MonitorMetricType";
 import { translationKey } from "../../Types/Translator";
 
@@ -39,9 +41,13 @@ export enum MonitorOverviewSetupKind {
 
 export type MonitorOverviewSideCard = "probes" | "connection" | "manual";
 
+/*
+ * The card that previews what a log, trace or security events monitor's
+ * filter matches. A metric-backed monitor's metrics are charted on a card
+ * of their own instead (metricCharts).
+ */
 export type MonitorOverviewTelemetryPreview =
   | "Logs"
-  | "Metrics"
   | "Traces"
   | "SecurityEvents";
 
@@ -56,6 +62,12 @@ export interface MonitorOverviewLayout {
   family: MonitorOverviewFamily;
   responseTimeMetric: MonitorMetricType | null;
   telemetryPreview: MonitorOverviewTelemetryPreview | null;
+  /*
+   * The metrics the monitor checks, charted with the values its criteria
+   * alert at, first on the page: every metric-backed type, the Metrics
+   * monitor and every infrastructure monitor alike (issue #5759).
+   */
+  metricCharts: boolean;
   evaluationPolicy: MonitorOverviewEvaluationPolicy;
   setupKind: MonitorOverviewSetupKind | null;
   sideCard: MonitorOverviewSideCard | null;
@@ -150,6 +162,7 @@ export default class MonitorOverviewFamilyUtil {
       ),
       telemetryPreview:
         MonitorOverviewFamilyUtil.getTelemetryPreview(monitorType),
+      metricCharts: MonitorTypeHelper.isMetricBackedMonitor(monitorType),
       evaluationPolicy: MonitorOverviewFamilyUtil.getEvaluationPolicy(family),
       setupKind: MonitorOverviewFamilyUtil.getSetupKind(monitorType),
       sideCard: MonitorOverviewFamilyUtil.getSideCard(family),
@@ -194,8 +207,6 @@ export default class MonitorOverviewFamilyUtil {
     switch (monitorType) {
       case MonitorType.Logs:
         return "Logs";
-      case MonitorType.Metrics:
-        return "Metrics";
       case MonitorType.Traces:
         return "Traces";
       case MonitorType.SecurityEvents:

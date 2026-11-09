@@ -13,8 +13,7 @@ const AlertEpisodeAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Alert Episode Audit Logs"
       description="All changes made to this alert episode."
-      resourceType="Alert Episode"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

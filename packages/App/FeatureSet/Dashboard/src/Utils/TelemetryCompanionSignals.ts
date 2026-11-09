@@ -15,6 +15,7 @@ import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import SessionReplayBudgetMetricTypeUtil from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
+import TelemetryIngestionBudgetMetricTypeUtil from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import {
   COMPANION_SCOPE_NOTES,
   MetricCrossSignalScopeResult,
@@ -653,8 +654,17 @@ export const excludeReservedCompanionMetricNames: ExcludeReservedCompanionMetric
   (metricNames: Array<string>): Array<string> => {
     return (metricNames || []).filter((metricName: string): boolean => {
       // Trimmed first: the chart plan charts a name by its trimmed spelling.
-      return !SessionReplayBudgetMetricTypeUtil.isReservedMetricName(
-        typeof metricName === "string" ? metricName.trim() : metricName,
+      const name: string =
+        typeof metricName === "string" ? metricName.trim() : metricName;
+
+      /*
+       * The ingestion budget readings are keyed to the project, not to any
+       * service an incident is about, so they never chart as a companion
+       * either.
+       */
+      return (
+        !SessionReplayBudgetMetricTypeUtil.isReservedMetricName(name) &&
+        !TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(name)
       );
     });
   };

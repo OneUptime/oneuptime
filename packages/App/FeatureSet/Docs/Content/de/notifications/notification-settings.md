@@ -50,7 +50,7 @@ Wenn Sie einem Projekt beitreten, sind diese Ereignisse per E-Mail eingeschaltet
 | **Vorfälle** | **Vorfall erstellt**, **Vorfallsstatus geändert**, **Vorfallserinnerung**, **SLA eines Vorfalls verletzt**, **Vorfallsepisode erstellt**, **Status der Vorfallsepisode geändert**, **Vorfall zur Vorfallsepisode hinzugefügt** | **Vorfallsnotiz veröffentlicht**, **Als Eigentümer des Vorfalls hinzugefügt**, **Einem Vorfall zugewiesen**, **Notiz zur Vorfallsepisode veröffentlicht**, **Als Eigentümer der Vorfall-Episode hinzugefügt** |
 | **Warnungen** | **Warnung erstellt**, **Warnungsstatus geändert**, **Warnungserinnerung**, **Warnungs-Episode erstellt**, **Status der Warnungs-Episode geändert**, **Warnung zur Warnungs-Episode hinzugefügt** | **Warnungsnotiz veröffentlicht**, **Als Eigentümer der Warnung hinzugefügt**, **Notiz zur Warnungs-Episode veröffentlicht**, **Als Eigentümer der Warnungs-Episode hinzugefügt** |
 | **Überwachung** | **Sondenstatus für Ihre Überwachung geändert**, **Überwachung hat keine aktiven Sonden**, **SLO-Status geändert**, **Als SLO-Eigentümer hinzugefügt**, **Mir zugewiesene Ausnahme**, **Sondenstatus geändert**, **Als Eigentümer der Sonde hinzugefügt** | **Überwachung erstellt**, **Überwachungsstatus geändert**, **Als Eigentümer der Überwachung hinzugefügt**, **Status des KI-Agenten geändert**, **Als Eigentümer des KI-Agenten hinzugefügt** |
-| **Statusseiten** | Keine | **Statusseite erstellt**, **Statusseiten-Ankündigung veröffentlicht**, **Als Eigentümer der Statusseite hinzugefügt** |
+| **Statusseiten** | **Meine öffentliche Notiz genehmigt oder abgelehnt**, und zusätzlich per Push: **Öffentliche Notiz wartet auf meine Genehmigung** | **Statusseite erstellt**, **Statusseiten-Ankündigung veröffentlicht**, **Als Eigentümer der Statusseite hinzugefügt** |
 | **Geplante Wartung** | **Wartungserinnerung** | **Wartungsereignis erstellt**, **Wartungsstatus geändert**, **Wartungsnotiz veröffentlicht**, **Als Eigentümer der Wartung hinzugefügt** |
 | **Bereitschaft** | **Ihr Bereitschaftsdienst beginnt**, **Sie sind als Nächstes im Bereitschaftsdienst**, **Ihr Bereitschaftsdienst endet**, **Zur Bereitschaftsdienst-Richtlinie hinzugefügt**, **Aus Bereitschaftsrichtlinie entfernt**, **Verpasster Anruf**, und zusätzlich per Push: **Bevor meine Bereitschaftsschicht beginnt**, **Meine bevorstehende Bereitschaftsschicht wird neu zugewiesen** | Keine |
 | **Sicherheit** | Zusätzlich per Push: **Neuer Sicherheitsfall** (Fälle mit Priorität Hoch und Kritisch), **Mir zugewiesener Sicherheitsfall**, **Playbook-Schritt wartet auf meine Genehmigung**, **Reaktionsziel eines Sicherheitsfalls**, **Mir zugewiesene Aufgabe eines Sicherheitsfalls**, **Bedrohungssuche hat Sicherheitsereignisse gefunden** | Keine |
@@ -76,6 +76,15 @@ Der Tab **Sicherheit** handelt von den Sicherheitsfällen, die Sie sehen können
 - **Playbook-Schritt wartet auf meine Genehmigung** bittet Sie, einen Playbook-Schritt an einem Fall zu genehmigen oder abzulehnen, bei dem Sie genehmigen dürfen.
 
 Siehe [Sicherheitsfälle](/docs/telemetry/security-cases#benachrichtigungen).
+
+## Genehmigung öffentlicher Notizen
+
+Die Karte **Genehmigung öffentlicher Notizen** auf dem Tab **Statusseiten** betrifft öffentliche Notizen, die vor ihrer Veröffentlichung auf eine Genehmigung warten, in einem Projekt, das das verlangt:
+
+- **Öffentliche Notiz wartet auf meine Genehmigung** sagt Ihnen, dass eine öffentliche Notiz oder ihre Bearbeitung auf einen Schritt wartet, den Sie genehmigen, namentlich oder über ein Team. Sie werden nicht zu einer Notiz gefragt, die Sie gesendet haben, und nicht zu einem Schritt nach einem, den Sie genehmigt haben. Zu jedem Schritt werden Sie einmal gefragt: wenn die Notiz ihn erreicht, oder wenn Sie zu seinen Genehmigenden werden, während die Notiz wartet, weil sich die Genehmigungsschritte geändert haben oder Sie einem Team beigetreten sind, das ein Schritt nennt. Sie ist anfangs per E-Mail und per Push eingeschaltet, und **E-Mail-Zusammenfassung** hält sie nie zurück: Die Kunden, für die die Notiz geschrieben ist, warten auf sie.
+- **Meine öffentliche Notiz genehmigt oder abgelehnt** sagt Ihnen, dass eine Notiz, die Sie zur Genehmigung gesendet haben, genehmigt und veröffentlicht oder abgelehnt wurde, mit dem Grund. Sie ist anfangs per E-Mail eingeschaltet.
+
+Siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen).
 
 ## Weniger E-Mails
 

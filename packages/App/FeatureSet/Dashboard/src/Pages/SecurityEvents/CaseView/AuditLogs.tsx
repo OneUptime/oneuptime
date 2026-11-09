@@ -19,8 +19,7 @@ const SecurityCaseAuditLogsPage: FunctionComponent<
     <AuditLogsTable
       title="Case Audit Logs"
       description="All changes made to this case."
-      resourceType="Security Case"
-      resourceId={view.caseId}
+      rootResourceId={view.caseId}
     />
   );
 };

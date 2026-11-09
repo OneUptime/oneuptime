@@ -51,6 +51,7 @@ import FilterCondition from "Common/Types/Filter/FilterCondition";
 import ObjectID from "Common/Types/ObjectID";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -1213,12 +1214,18 @@ describe("Home Page & Shortcuts", () => {
     ).toEqual(["not-operational-monitors", "slos-needing-attention"]);
   });
 
-  it("counts what the numbers count: archived monitors left out, turned-on SLOs at risk or out of budget", () => {
+  it("counts what the numbers count: archived monitors and monitors with monitoring off left out, turned-on SLOs at risk or out of budget", () => {
     const counting: string = oneLine(OVERVIEW_DATA_SOURCE);
 
+    // The Not Operational list's own query (#6400).
     expect(counting).toContain(
-      "isArchived: false, currentMonitorStatus: { isOperationalState: false",
+      "projectId: projectId, ...NotOperationalMonitorQuery.getQuery(),",
     );
+    expect(NotOperationalMonitorQuery.getQuery()).toEqual({
+      isArchived: false,
+      disableActiveMonitoring: false,
+      currentMonitorStatus: { isOperationalState: false },
+    });
     expect(counting).toContain("isEnabled: true, isArchived: false");
     expect(counting).toContain("SloStatus.AtRisk");
     expect(counting).toContain("SloStatus.BudgetExhausted");
@@ -1228,7 +1235,7 @@ describe("Home Page & Shortcuts", () => {
     );
 
     expect((rows[2] as Array<string>)[1]).toBe(
-      "Monitors whose status is not an operational one. Archived monitors are left out.",
+      "Monitors whose status is not an operational one. Archived monitors, and monitors with monitoring turned off, are left out.",
     );
     expect((rows[4] as Array<string>)[1]).toBe(
       "Turned-on SLOs that are at risk or have used up their error budget",

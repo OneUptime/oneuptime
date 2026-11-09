@@ -14,6 +14,7 @@ import CodeRepositoryService from "../../../../Server/Services/CodeRepositorySer
 import TelemetryExceptionService from "../../../../Server/Services/TelemetryExceptionService";
 import GitHubUtil from "../../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryModel from "../../../../Models/DatabaseModels/CodeRepository";
+import CodeRepositoryConnection from "../../../../Models/DatabaseModels/CodeRepositoryConnection";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import {
@@ -22,7 +23,16 @@ import {
   NO_CODE_REPOSITORY,
 } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import ObjectID from "../../../../Types/ObjectID";
+import OneUptimeURL from "../../../../Types/API/URL";
 import GitHubInstallationBinding from "../../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
+import {
+  CONNECTED_REPOSITORY_ID,
+  CONNECTED_TOKEN,
+  ConnectedRepository,
+  connectRepository,
+  disconnectRepository,
+} from "../CodeRepository/CodeHost/ConnectedRepository";
+import { FakeAnswer, FakeRoute } from "../CodeRepository/CodeHost/FakeCodeHost";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -182,7 +192,7 @@ describe("list_code_repositories", () => {
 
     expect(result.rowCount).toBe(0);
     expect(result.dataForLlm).toBe(
-      "(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo and Gitea repositories are read)",
+      "(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories are read)",
     );
   });
 });
@@ -217,7 +227,7 @@ describe("read_code_file — repository targeting", () => {
     await expect(
       ReadCodeFileTool.execute({ filePath: "src/index.ts" }, ctx),
     ).rejects.toThrow(
-      "This project has no connected code repository whose source OneUptime can read. Connect one in Code: GitHub, GitLab, Forgejo and Gitea repositories are read (a plain Git repository's files are not).",
+      "This project has no connected code repository whose source OneUptime can read. Connect one in Code: GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories are read (another Git server's files are not).",
     );
   });
 
@@ -764,7 +774,7 @@ describe("a run held to the code repositories its rules name", () => {
 
     expect(result.rowCount).toBe(0);
     expect(result.dataForLlm).toBe(
-      "(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo and Gitea repositories are read)",
+      "(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories are read)",
     );
   });
 
@@ -871,54 +881,58 @@ describe("a run held to the code repositories its rules name", () => {
  * why. It is now named as a repository whose code cannot be opened, with
  * what still works in it - and never as readable.
  */
-describe("a plain Git repository", () => {
-  const AZURE_DEVOPS_ID: ObjectID = new ObjectID(
-    "a3333333-3333-4333-8333-333333333333",
-  );
-  const BITBUCKET_ID: ObjectID = new ObjectID(
-    "a4444444-4444-4444-8444-444444444444",
-  );
+// The repositories as the database reads them, by id when one is named.
+function mockStoredRepositories(
+  repositories: Array<CodeRepositoryModel>,
+): void {
+  jest.spyOn(CodeRepositoryService, "findBy").mockImplementation((async (args: {
+    query: { _id?: unknown };
+  }): Promise<Array<CodeRepositoryModel>> => {
+    const id: string | undefined =
+      typeof args.query._id === "string" ? args.query._id : undefined;
 
-  function plainGitRepository(
-    id: ObjectID = AZURE_DEVOPS_ID,
-    name: string = "instant-access-reporter",
-  ): CodeRepositoryModel {
-    const repository: CodeRepositoryModel = buildRepository({
-      id,
-      name,
-      hostedAt: CodeRepositoryType.Git,
-      installationId: "",
+    return repositories.filter((repository: CodeRepositoryModel): boolean => {
+      return !id || repository.id?.toString() === id;
     });
-    repository.organizationName =
-      id === AZURE_DEVOPS_ID ? "DefaultCollection/ScriptVault/_git" : "team";
-    repository.repositoryName =
-      id === AZURE_DEVOPS_ID ? "InstantAccessReporter" : name;
-    return repository;
-  }
+  }) as never);
+}
 
-  // The repositories as the database reads them, by id when one is named.
-  function mockStoredRepositories(
-    repositories: Array<CodeRepositoryModel>,
-  ): void {
-    jest
-      .spyOn(CodeRepositoryService, "findBy")
-      .mockImplementation((async (args: {
-        query: { _id?: unknown };
-      }): Promise<Array<CodeRepositoryModel>> => {
-        const id: string | undefined =
-          typeof args.query._id === "string" ? args.query._id : undefined;
+/*
+ * A Git repository on a Git server that is not Azure DevOps: connected for
+ * Code's tasks, but its files have no API to be read through.
+ */
+const PLAIN_GIT_ID: ObjectID = new ObjectID(
+  "a3333333-3333-4333-8333-333333333333",
+);
+const BITBUCKET_ID: ObjectID = new ObjectID(
+  "a4444444-4444-4444-8444-444444444444",
+);
 
-        return repositories.filter(
-          (repository: CodeRepositoryModel): boolean => {
-            return !id || repository.id?.toString() === id;
-          },
-        );
-      }) as never);
-  }
+function plainGitRepository(
+  id: ObjectID = PLAIN_GIT_ID,
+  name: string = "instant-access-reporter",
+): CodeRepositoryModel {
+  const repository: CodeRepositoryModel = buildRepository({
+    id,
+    name,
+    hostedAt: CodeRepositoryType.Git,
+    installationId: "",
+  });
+  repository.organizationName = id === PLAIN_GIT_ID ? "scripts" : "team";
+  repository.repositoryName =
+    id === PLAIN_GIT_ID ? "InstantAccessReporter" : name;
+  repository.repositoryUrl = OneUptimeURL.fromString(
+    id === PLAIN_GIT_ID
+      ? "https://git.example.com/scripts/InstantAccessReporter.git"
+      : `https://bitbucket.org/team/${name}.git`,
+  );
+  return repository;
+}
 
-  const AZURE_DEVOPS_SENTENCE: string =
-    "instant-access-reporter (DefaultCollection/ScriptVault/_git/InstantAccessReporter) is a plain Git repository: OneUptime reads its branches, not its files, so search_code and read_code_file cannot open it. A task in Code still works in it - a Runner clones it - and AI pushes its change on a branch.";
+const PLAIN_GIT_SENTENCE: string =
+  "instant-access-reporter (scripts/InstantAccessReporter) is a plain Git repository: OneUptime reads its branches, not its files, so search_code and read_code_file cannot open it. A task in Code still works in it - a Runner clones it - and AI pushes its change on a branch.";
 
+describe("a plain Git repository", () => {
   test("list_code_repositories names it as one whose code cannot be opened, after the readable ones", async () => {
     const summaries: jest.SpyInstance = jest.spyOn(
       CodeHostAccess,
@@ -938,8 +952,8 @@ describe("a plain Git repository", () => {
     // Only the readable repository is a row the model can pass on.
     expect(result.rowCount).toBe(1);
     expect(result.dataForLlm).toContain(REPO_ID.toString());
-    expect(result.dataForLlm).not.toContain(AZURE_DEVOPS_ID.toString());
-    expect(result.dataForLlm).toContain(`\n\n${AZURE_DEVOPS_SENTENCE}`);
+    expect(result.dataForLlm).not.toContain(PLAIN_GIT_ID.toString());
+    expect(result.dataForLlm).toContain(`\n\n${PLAIN_GIT_SENTENCE}`);
     expect(
       result.dataForLlm.indexOf("checkout") <
         result.dataForLlm.indexOf("instant-access-reporter"),
@@ -959,7 +973,7 @@ describe("a plain Git repository", () => {
 
     expect(result.rowCount).toBe(0);
     expect(result.dataForLlm).toBe(
-      `(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo and Gitea repositories are read)\n\n${AZURE_DEVOPS_SENTENCE}`,
+      `(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories are read)\n\n${PLAIN_GIT_SENTENCE}`,
     );
     expect(result.dataForLlm).not.toContain("GitHub-connected");
   });
@@ -976,7 +990,7 @@ describe("a plain Git repository", () => {
     );
 
     expect(result.dataForLlm).toContain(
-      "instant-access-reporter (DefaultCollection/ScriptVault/_git/InstantAccessReporter), billing (team/billing) are plain Git repositories: OneUptime reads their branches, not their files, so search_code and read_code_file cannot open them. A task in Code still works in them - a Runner clones them - and AI pushes its change on a branch.",
+      "instant-access-reporter (scripts/InstantAccessReporter), billing (team/billing) are plain Git repositories: OneUptime reads their branches, not their files, so search_code and read_code_file cannot open them. A task in Code still works in them - a Runner clones them - and AI pushes its change on a branch.",
     );
   });
 
@@ -990,7 +1004,7 @@ describe("a plain Git repository", () => {
     await expect(
       SearchCodeTool.execute({ query: "reporter" }, ctx),
     ).rejects.toThrow(
-      `This project has no connected code repository whose source OneUptime can read: GitHub, GitLab, Forgejo and Gitea repositories are read. ${AZURE_DEVOPS_SENTENCE}`,
+      `This project has no connected code repository whose source OneUptime can read: GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories are read. ${PLAIN_GIT_SENTENCE}`,
     );
     expect(tree).not.toHaveBeenCalled();
   });
@@ -1008,7 +1022,7 @@ describe("a plain Git repository", () => {
       await ReadCodeFileTool.execute(
         {
           filePath: "src/Reporter.cs",
-          repositoryId: AZURE_DEVOPS_ID.toString(),
+          repositoryId: PLAIN_GIT_ID.toString(),
         },
         ctx,
       );
@@ -1017,7 +1031,7 @@ describe("a plain Git repository", () => {
     }
 
     expect(caught?.message).toBe(
-      `OneUptime cannot read the code of this repository. ${AZURE_DEVOPS_SENTENCE}`,
+      `OneUptime cannot read the code of this repository. ${PLAIN_GIT_SENTENCE}`,
     );
     expect(caught?.message).not.toContain("No readable repository");
     expect(file).not.toHaveBeenCalled();
@@ -1076,12 +1090,271 @@ describe("a plain Git repository", () => {
     );
 
     expect(result.dataForLlm).not.toContain("uninstalled");
-    expect(result.dataForLlm).toContain(AZURE_DEVOPS_SENTENCE);
+    expect(result.dataForLlm).toContain(PLAIN_GIT_SENTENCE);
   });
 
   test("describePlainGitRepositories is what the tools say", () => {
     expect(describePlainGitRepositories([plainGitRepository()])).toBe(
-      AZURE_DEVOPS_SENTENCE,
+      PLAIN_GIT_SENTENCE,
     );
+  });
+});
+
+/*
+ * A Git repository on Azure DevOps is read as a GitLab one is: its tree and
+ * its files, through Azure DevOps' file API with the credentials Git signs
+ * in with. Issue #6144's repository - on an Azure DevOps Server, connected
+ * as Git - goes the whole real way here: its row and its connection as the
+ * server reads them, its reader (CodeHostAccess), and the server's API
+ * faked at the transport.
+ */
+describe("a Git repository on Azure DevOps", () => {
+  const AZURE_DEVOPS_URL: string =
+    "https://tfs.example.com/DefaultCollection/ScriptVault/_git/InstantAccessReporter";
+  const ITEMS_PATH: string =
+    "/DefaultCollection/ScriptVault/_apis/git/repositories/InstantAccessReporter/items";
+
+  // Azure DevOps' Items API for the repository: its tree, or one file of it.
+  function azureDevOpsItems(files: Record<string, string>): FakeRoute {
+    return {
+      method: "GET",
+      path: "/items",
+      answer: (_request: unknown, url: URL): FakeAnswer => {
+        const path: string | null = url.searchParams.get("path");
+
+        if (path !== null) {
+          return files[path] === undefined
+            ? {
+                status: 404,
+                json: {
+                  message: `TF401174: The item '${path}' could not be found in the repository 'InstantAccessReporter'.`,
+                },
+              }
+            : {
+                json: {
+                  gitObjectType: "blob",
+                  path,
+                  content: files[path],
+                  contentMetadata: { isBinary: false },
+                },
+              };
+        }
+
+        return {
+          json: {
+            count: Object.keys(files).length + 1,
+            value: [
+              { gitObjectType: "tree", path: "/", isFolder: true },
+              ...Object.keys(files).map((file: string) => {
+                return { gitObjectType: "blob", path: file };
+              }),
+            ],
+          },
+        };
+      },
+    };
+  }
+
+  function connectAzureDevOps(data: {
+    routes: Array<FakeRoute>;
+    connection?: Partial<CodeRepositoryConnection> | undefined;
+    others?: Array<CodeRepositoryModel> | undefined;
+  }): ConnectedRepository {
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.Git,
+      repository: {
+        name: "instant-access-reporter",
+        organizationName: "DefaultCollection/ScriptVault/_git",
+        repositoryName: "InstantAccessReporter",
+        repositoryUrl: OneUptimeURL.fromString(AZURE_DEVOPS_URL),
+      },
+      connection: { hostUrl: "https://tfs.example.com", ...data.connection },
+      routes: data.routes,
+    });
+
+    // The caller's read and the server's own read of the rows.
+    mockStoredRepositories([connected.repository, ...(data.others || [])]);
+
+    return connected;
+  }
+
+  const FILES: Record<string, string> = {
+    "/src/Reporter.cs":
+      "namespace InstantAccessReporter;\n\npublic class Reporter\n{\n    public void Run() { }\n}\n",
+    "/src/ReporterJob.cs": "namespace InstantAccessReporter;\n",
+    "/src/Program.cs": "Reporter.Run();\n",
+    "/README.md": "# Instant access reporter\n",
+  };
+
+  afterEach(() => {
+    disconnectRepository();
+  });
+
+  test("list_code_repositories lists it as one whose code is read - not as a plain Git repository", async () => {
+    connectAzureDevOps({ routes: [azureDevOpsItems(FILES)] });
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain(CONNECTED_REPOSITORY_ID.toString());
+    expect(result.dataForLlm).toContain(
+      "DefaultCollection/ScriptVault/_git/InstantAccessReporter",
+    );
+    expect(result.dataForLlm).not.toContain("plain Git");
+  });
+
+  test("search_code searches its tree, read from the server's file API with the repository's own credentials", async () => {
+    const connected: ConnectedRepository = connectAzureDevOps({
+      routes: [azureDevOpsItems(FILES)],
+    });
+
+    const result: ToolExecutionResult = await SearchCodeTool.execute(
+      { query: "reporter" },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toBe("- src/Reporter.cs\n- src/ReporterJob.cs");
+
+    const request: URL = new URL(connected.host.requests[0]!.url);
+
+    expect(request.origin).toBe("https://tfs.example.com");
+    expect(request.pathname).toBe(ITEMS_PATH);
+    expect(request.searchParams.get("scopePath")).toBe("/");
+    expect(request.searchParams.get("versionDescriptor.version")).toBe("main");
+    expect(request.searchParams.get("api-version")).toBe("5.0");
+    expect(connected.host.requests[0]!.headers["Authorization"]).toBe(
+      `Basic ${Buffer.from(`oneuptime-bot:${CONNECTED_TOKEN}`).toString("base64")}`,
+    );
+  });
+
+  test("read_code_file reads a file of it at its main branch, with line numbers", async () => {
+    connectAzureDevOps({ routes: [azureDevOpsItems(FILES)] });
+
+    const result: ToolExecutionResult = await ReadCodeFileTool.execute(
+      { filePath: "src/Reporter.cs", startLine: 3, endLine: 5 },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("file: src/Reporter.cs");
+    expect(result.dataForLlm).toContain(
+      "repository: DefaultCollection/ScriptVault/_git/InstantAccessReporter@main",
+    );
+    expect(result.dataForLlm).toContain("showing lines 3-5 of 6");
+    expect(result.dataForLlm).toContain("3| public class Reporter");
+    expect(result.dataForLlm).not.toContain("namespace InstantAccessReporter");
+  });
+
+  test("read_code_file says a file that is not there is not there", async () => {
+    connectAzureDevOps({ routes: [azureDevOpsItems(FILES)] });
+
+    await expect(
+      ReadCodeFileTool.execute({ filePath: "src/Missing.cs" }, ctx),
+    ).rejects.toThrow(/No readable file at "src\/Missing.cs" on branch main/);
+  });
+
+  test("find_code_for_exception maps a .NET stack trace onto its files", async () => {
+    connectAzureDevOps({ routes: [azureDevOpsItems(FILES)] });
+
+    const exception: TelemetryException = new TelemetryException();
+    exception._id = ObjectID.generate().toString();
+    exception.message = "Object reference not set to an instance of an object.";
+    exception.exceptionType = "System.NullReferenceException";
+    exception.occuranceCount = 3;
+    exception.stackTrace = [
+      "System.NullReferenceException: Object reference not set to an instance of an object.",
+      "   at InstantAccessReporter.Reporter.Run() in /app/src/Reporter.cs:line 5",
+      "   at InstantAccessReporter.Program.Main(String[] args) in /app/src/Program.cs:line 1",
+    ].join("\n");
+
+    jest
+      .spyOn(TelemetryExceptionService, "findOneById")
+      .mockResolvedValue(exception as never);
+    jest
+      .spyOn(CodeRepositoryService, "resolveRepositoryForException")
+      .mockResolvedValue({
+        codeRepositoryId: CONNECTED_REPOSITORY_ID.toString(),
+        organizationName: "DefaultCollection/ScriptVault/_git",
+        repositoryName: "InstantAccessReporter",
+        servicePathInRepository: null,
+        method: "stack-trace",
+        evidence: "Matched src/Reporter.cs",
+      });
+
+    const result: ToolExecutionResult = await FindCodeForExceptionTool.execute(
+      { exceptionId: exception._id },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain(
+      `repositoryId: ${CONNECTED_REPOSITORY_ID.toString()}`,
+    );
+    expect(result.dataForLlm).toContain("src/Reporter.cs");
+    expect(result.dataForLlm).toContain(
+      `Use read_code_file with repositoryId=${CONNECTED_REPOSITORY_ID.toString()}`,
+    );
+  });
+
+  test("one whose token was refused, or whose server only a project Runner reaches, is not read - and is no plain Git repository either", async () => {
+    for (const connection of [
+      { refusedAt: new Date() },
+      { isReachableFromServer: false },
+    ] as Array<Partial<CodeRepositoryConnection>>) {
+      const connected: ConnectedRepository = connectAzureDevOps({
+        routes: [azureDevOpsItems(FILES)],
+        connection,
+      });
+
+      const result: ToolExecutionResult =
+        await ListCodeRepositoriesTool.execute({}, ctx);
+
+      expect(result.rowCount).toBe(0);
+      expect(result.dataForLlm).toBe(
+        "(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories are read)",
+      );
+      expect(connected.host.requests).toHaveLength(0);
+
+      disconnectRepository();
+    }
+  });
+
+  test("beside a plain Git repository, it is read, and the other is named as one whose files are not", async () => {
+    connectAzureDevOps({
+      routes: [azureDevOpsItems(FILES)],
+      others: [plainGitRepository()],
+    });
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain(CONNECTED_REPOSITORY_ID.toString());
+    expect(result.dataForLlm).not.toContain(PLAIN_GIT_ID.toString());
+    expect(result.dataForLlm).toContain(`\n\n${PLAIN_GIT_SENTENCE}`);
+  });
+
+  test("Azure DevOps refusing a read says so, and leaves the repository connected for Code's tasks", async () => {
+    const connected: ConnectedRepository = connectAzureDevOps({
+      routes: [
+        {
+          method: "GET",
+          path: "/items",
+          answer: (): FakeAnswer => {
+            return { status: 401, text: "" };
+          },
+        },
+      ],
+    });
+
+    await expect(
+      ReadCodeFileTool.execute({ filePath: "src/Reporter.cs" }, ctx),
+    ).rejects.toThrow(
+      "Azure DevOps Server refused the access token. It may have expired or been revoked: create a new token and use it instead.",
+    );
+    expect(connected.refused()).toBe(0);
   });
 });

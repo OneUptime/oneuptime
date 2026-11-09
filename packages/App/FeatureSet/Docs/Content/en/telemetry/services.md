@@ -67,6 +67,8 @@ A service's side menu has five sections:
 | **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |
 | **Advanced** | **Settings**, **Audit Logs** and **Delete Service**. **Advanced** starts collapsed: expand it first. |
 
+Beside its name, a service's **Overview** says whether its telemetry is arriving: **Receiving data** while something has arrived in the last 30 minutes, **No recent data** once nothing has, and **Waiting for data** before its first telemetry. A service that sends spans only while it handles requests shows **No recent data** whenever nobody calls it, so that alone is not a fault.
+
 Owners matter beyond the page: a role whose scope is Owned reads the telemetry of the services you or your teams own. See [Telemetry](/docs/permissions/index#telemetry).
 
 ## Change a service
@@ -110,6 +112,10 @@ Check that its telemetry carries a `service.name`. Telemetry from a browser or a
 
 :::details Last Seen is behind
 **Last Seen** is updated about once a minute, not on every batch, so it can trail live telemetry by a minute or so.
+:::
+
+:::details A service shows No recent data
+Nothing has arrived for it in the last 30 minutes. That is expected for a service that sends telemetry only while it handles requests, when nobody calls it. If it should be busy, check that it is running, that its OpenTelemetry exporter can reach OneUptime, and that it still reports the same `service.name`: a new name starts a new service.
 :::
 
 ## Next steps

@@ -79,6 +79,7 @@ Jeder Alarm ist eine `POST`-Anfrage mit einem JSON-Body:
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ Jeder Alarm ist eine `POST`-Anfrage mit einem JSON-Body:
 | `recordType`, `record` | Worum es im Alarm geht: ein `incident`, `alert`, `incidentEpisode` oder `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | Die Richtlinie und die Stufe, die die Person alarmiert haben |
 | `isPageAgain` | `true`, wenn der Datensatz vor einer Weile bestätigt wurde und noch immer nicht behoben ist |
+| `isObserverPage` | `true`, wenn die Person als Beobachter alarmiert wird: Sie wird auf dem Laufenden gehalten, während andere reagieren. Bestätigt sie ihre Alarmierung, heißt das nur, dass sie sie gesehen hat |
 | `actions` | Die Links, die Ihr Dienst aufruft, um [auf den Alarm zu reagieren](#auf-einen-alarm-reagieren) |
 
 Ein Alarm an mehrere Personen ist eine Anfrage pro Person, jede mit den eigenen Links dieser Person, damit OneUptime weiß, wer geantwortet hat. Titel, Nachricht und Beschreibung sind zusammen auf 16.384 Zeichen begrenzt; eine längere Beschreibung wird gekürzt und endet mit „… (truncated — see OneUptime for the full text)“.
@@ -170,6 +172,7 @@ Eine Benachrichtigung geht an jeden eingeschalteten Kanal, als eine Anfrage pro 
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

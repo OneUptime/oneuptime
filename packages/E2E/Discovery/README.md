@@ -37,6 +37,19 @@ and records where each came from (`discoveredName`, `discoveredNameSource` on th
 fixture's recorded creates), the Start New Scan form's "Look up Windows names (NetBIOS)"
 switch and naming order, and the dialog on a 390px screen.
 
+`DiscoveredDevices.spec.ts` covers Network > Topology > Discovered Devices (issue #5775) on
+the real page, in the Network pages' own layout and side menu, against the synthetic rows of
+`DiscoveredDevicesFixture.js` (two offices' switches, a router and a network controller; no
+customer data): the Show choices and their counts, every column, the server's search (a MAC
+address without separators, a vendor, an address), Add to monitoring for a selection through
+the import (`ImportFixture.js`, which records each `start-from-discovered-devices` body on
+`window.__discoveryFixture.discoveredImportStarts`) with a role and SNMP credentials picked,
+devices with no address left out, Hide from map and Show on map behind a confirmation that
+deletes nothing, selecting all 320 devices of `?devices=many` in one request, and a 390px
+screen. Its last test takes the list at 1280, 1024, 768 and 390px, dark, and in German and
+Persian (`?lang=de`, `?lang=fa`: the fixture server serves the Dashboard's locale files and
+`TailwindReadingDirection.js`, as index.ejs does), with Inter, and fails on any sideways scroll.
+
 Screenshots are written to `output/playwright/discovery/`. The screenshots in
 `packages/E2E/Discovery/screenshots/` document the reviewed UI for issue #3672 and use the
 same visibly labelled synthetic data.

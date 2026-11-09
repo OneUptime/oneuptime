@@ -11,6 +11,10 @@ import {
 import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkController/NetworkControllerProvider";
 import { DEVICE_ROLES_IN_LEGEND_ORDER } from "Common/Utils/Monitor/NetworkDeviceRoleUtil";
 import {
+  getMacSearchHex,
+  macMatchesSearchHex,
+} from "Common/Utils/NetworkDevice/DiscoveredDeviceIdentity";
+import {
   TopologyNodeShape,
   isUnclassifiedNode,
   roleDisplayLabelForNode,
@@ -141,10 +145,13 @@ export function edgeKeyForEdge(edge: NetworkTopologyEdge): string {
 /**
  * True when the node matches the search text.
  *
- * Name, sysName and vendor are the identity fields; the ROLE is matched
- * too, so typing "firewall" lights up every firewall on the map even
- * though no device is called one. An unclassified node deliberately does
- * not answer to "unknown type" — that would make a search for a role
+ * Name, sysName and vendor are the identity fields, and so are a node's
+ * addresses (issue #5775): its IP, its MAC - in whichever of the four ways
+ * a switch prints one ("AA-BB-CC", "aabb.cc", ...), compared without the
+ * separators - and the name its controller or a person gave it. The ROLE
+ * is matched too, so typing "firewall" lights up every firewall on the map
+ * even though no device is called one. An unclassified node deliberately
+ * does not answer to "unknown type" — that would make a search for a role
  * highlight everything we failed to classify.
  */
 export function nodeMatchesSearch(
@@ -163,10 +170,21 @@ export function nodeMatchesSearch(
   const roleText: string | undefined = isUnclassifiedNode(node)
     ? undefined
     : roleDisplayLabelForNode(node);
-  return [node.name, node.sysName, node.vendor, roleText].some(
-    (value: string | undefined) => {
-      return Boolean(value && value.toLowerCase().includes(lower));
-    },
+  const isTextMatch: boolean = [
+    node.name,
+    node.sysName,
+    node.vendor,
+    node.hostname,
+    node.classification,
+    node.ipAddress,
+    node.macAddress,
+    roleText,
+  ].some((value: string | undefined) => {
+    return Boolean(value && value.toLowerCase().includes(lower));
+  });
+
+  return (
+    isTextMatch || macMatchesSearchHex(node.macAddress, getMacSearchHex(lower))
   );
 }
 
@@ -489,7 +507,8 @@ export function accessibleLabelForNode(node: NetworkTopologyNode): string {
   }
   if (node.kind === "endpoint") {
     parts.push("endpoint");
-    if (node.ipAddress) {
+    // Once: a device nothing named is called by its address already.
+    if (node.ipAddress && node.ipAddress !== node.name) {
       parts.push(node.ipAddress);
     }
     if (typeof node.vlanId === "number") {
@@ -497,6 +516,9 @@ export function accessibleLabelForNode(node: NetworkTopologyNode): string {
     }
   } else {
     parts.push(node.isManaged ? "managed device" : "unmanaged peer");
+    if (node.ipAddress && node.ipAddress !== node.name) {
+      parts.push(node.ipAddress);
+    }
     parts.push(`status ${node.status}`);
     if (node.vendor) {
       parts.push(node.vendor);

@@ -71,49 +71,39 @@ A change to these settings applies within a minute.
 
 Filter by **Resource Type**, **Resource Name**, **Action**, **User Email** or **Time**. An update lists only the fields that changed, before and after, and a save that changes nothing adds no entry.
 
+A resource with no name of its own is named by what names it in OneUptime: an exception by its type and the start of its message, with ids, addresses and anything that looks like a secret masked, a runbook run by its runbook, an incoming call policy's phone number by the number, and a template or a domain by its own name.
+
 Monitors, incidents, alerts, status pages, SLOs and many other resources also have an **Audit Logs** page of their own, in a folded section of their side menu such as **Advanced**. It lists only that resource's entries, with those of what belongs to it: an SLO's page shows its rules and owners too.
 
 ## What is recorded
 
-| Resource | **Resource Type** in the log |
+Everything people create, change or delete in a project is recorded: monitors, incidents, alerts, status pages, workflows and their steps, queues, dashboards, on-call policies, teams and who is on them, API keys and every setting. **Resource Type** says what an entry is about, such as `Monitor`, `Workflow` or `Queue`.
+
+| Not recorded | Why |
 | --- | --- |
-| Monitors | `Monitor` |
-| Incidents | `Incident` |
-| Alerts | `Alert` |
-| Status pages | `Status Page` |
-| Scheduled maintenance events | `Scheduled Maintenance Event` |
-| On-call policies | `On-Call Policy` |
-| SLOs | `Service Level Objective` |
-| An SLO's rules and owners | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Teams | `Team` |
-| Custom roles, and the teams and API keys given one | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Labels | `Label` |
-| Incident states and severities | `Incident State`, `Incident Severity` |
-| Alert states and severities | `Alert State`, `Alert Severity` |
-| Monitor statuses | `Monitor Status` |
-| Scheduled maintenance states | `Scheduled Maintenance State` |
-| Incident roles | `Incident Role` |
-| Postmortem statuses | `Postmortem Status` |
-| API keys | `API Key` |
-| MCP clients people connect | `MCP Client Authorization` |
-| Inventory items | `Inventory Item` |
-| Collector Configs | `Collector Config` |
-| vCenters | `vCenter` |
-| OpenStack clouds, and the checks that run against them | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Packet captures, and their downloads | `Packet Capture` |
-| Security cases and their priorities and statuses, playbooks and their runs, protected entities, entity criticality, and an entity's risk when someone resets it | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Rule exceptions | `Rule Exception` |
-| Watchlists | `Watchlist` |
-| Watchlist values | `Watchlist Value` |
-| Hunts | `Hunt` |
-| Security case tasks and evidence | `Security Case Task`, `Security Case Evidence` |
-| Data stores and their findings, and Data Security's issues, settings, check settings, custom data types and residency rules | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Data Observability settings | `Data Observability Setting` |
-| Audit log exports | `Audit Log Export` |
+| Logs of messages | Each is already the record of an email, SMS, call, push notification or chat message OneUptime sent or received. |
+| Records of runs | Each is already the record of a workflow run, an on-call escalation, a scan, an import or an AI run. |
+| What agents and telemetry report | Discovered resources, readings and usage change with every report, not because anybody changed them. |
+| Activity feeds | A feed lists changes the audit log already records. |
+| OneUptime's working state | Sessions, queued jobs and other state OneUptime keeps while it works. |
+| A person's own notification setup | Each person's addresses, numbers and personal on-call rules are theirs alone. |
 
 An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.
 
-Other records are not in the audit log, such as who is on a team, or a permission added to a team on its own. Fields nobody may read are left out of every entry, and keys, tokens and passwords are recorded as `[REDACTED]`: the entry shows they changed, never their value.
+Fields only OneUptime writes, such as when a host was last seen, are left out of every entry, and so are fields nobody may read. When OneUptime writes one because someone asked it to, such as merging an exception into another or resetting a webhook URL, the entry records it as their change. Keys, tokens and passwords are recorded as `[REDACTED]`: the entry shows they changed, never their value. A workflow's steps are recorded as what changed, naming a step's settings but never what was typed into them, and moving a step on the canvas is not recorded.
+
+What OneUptime does because someone asked it to is recorded as their change too, whether or not the project stores system events:
+
+- Starting, approving, completing, skipping and cancelling a runbook run. Its steps are recorded as what was done to each, such as `Approved "Restart the API" (step 3)`, never with what a step printed.
+- What a rule changes when someone runs it: the labels and owners it adds, the records a privacy rule makes private, the devices a site assignment rule moves, the devices and monitors an auto import rule creates, and what a status page or SLO monitor rule changes on its page or SLO.
+- Buying, attaching and releasing an incoming call policy's phone number.
+- Resolving a data alert someone marks as expected or not an issue.
+- Resetting a calendar feed's link.
+- The teams someone joins when they sign in with SSO.
+
+What a rule does by itself is OneUptime's own change, recorded with **Store System Events** on: the labels and owners a rule adds as a record is created, and a record it makes private then; the devices and monitors an auto import rule creates from new scan results; and what a status page or SLO monitor rule changes when a rule, a monitor or a label is saved.
+
+Resetting the AI agent of a host, a cluster or a cloud account is recorded on that resource's own **Audit Logs** page, as the change of `aiAgentResetAt` by whoever reset it: who, and when. So is making a key for a cloud account's AI agent: the keys show as changed, never with a key or a hash. What an agent reports as it connects and checks in is left out, as before.
 
 ## How long entries are kept
 

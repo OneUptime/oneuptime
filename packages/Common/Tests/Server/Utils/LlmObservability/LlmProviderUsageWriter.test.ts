@@ -1,6 +1,7 @@
 // The writer first: it loads the services in the order they expect.
 import LlmProviderUsageWriter, {
   LlmProviderSeriesPoint,
+  LlmProviderUsageTotals,
   LlmProviderUsageWriteResult,
   LlmProviderUsageWriteTarget,
 } from "../../../../Server/Utils/LlmObservability/LlmProviderUsageWriter";
@@ -89,6 +90,9 @@ function record(overrides: Partial<LlmUsageRecord> = {}): LlmUsageRecord {
   };
 }
 
+const HOUR_MS: number = 60 * 60 * 1000;
+const DAY_MS: number = 24 * HOUR_MS;
+
 function parseClickhouseTime(value: unknown): Date {
   return new Date(`${String(value).replace(" ", "T")}Z`);
 }
@@ -112,7 +116,12 @@ class FakeMetricStore {
       statement: Statement,
     ) => {
       this.statements.push(statement);
-      const data: Array<JSONObject> = this.storedSums();
+      const data: Array<JSONObject> = statement.query.includes("AS tokenType")
+        ? this.totals()
+        : this.storedSums(
+            // Summed by the hour or the day, as the statement groups them.
+            statement.query.includes("toStartOfHour(") ? HOUR_MS : DAY_MS,
+          );
       return {
         json: async () => {
           return { data };
@@ -139,26 +148,64 @@ class FakeMetricStore {
     }) as never);
   }
 
-  private storedSums(): Array<JSONObject> {
-    const groups: Map<string, JSONObject> = new Map();
-
-    for (const row of this.rows) {
+  // The connection's rows in the window.
+  private rowsInWindow(): Array<JSONObject> {
+    return this.rows.filter((row: JSONObject): boolean => {
       const attributes: Dictionary<string> = row[
         "attributes"
       ] as Dictionary<string>;
       const time: Date = parseClickhouseTime(row["time"]);
 
-      if (
-        row["projectId"] !== PROJECT.toString() ||
-        row["primaryEntityId"] !== SERVICE.toString() ||
-        !LlmProviderUsageMetricNames.includes(row["name"] as string) ||
-        attributes[LLM_CONNECTION_ID_ATTRIBUTE] !==
-          this.connectionId.toString() ||
-        time.getTime() < this.window.startDay.getTime() ||
-        time.getTime() >= this.window.endDay.getTime()
-      ) {
-        continue;
-      }
+      return (
+        row["projectId"] === PROJECT.toString() &&
+        row["primaryEntityId"] === SERVICE.toString() &&
+        LlmProviderUsageMetricNames.includes(row["name"] as string) &&
+        attributes[LLM_CONNECTION_ID_ATTRIBUTE] ===
+          this.connectionId.toString() &&
+        time.getTime() >= this.window.startDay.getTime() &&
+        time.getTime() < this.window.endDay.getTime()
+      );
+    });
+  }
+
+  // The totals read: by metric, token type and UTC day.
+  private totals(): Array<JSONObject> {
+    const groups: Map<string, JSONObject> = new Map();
+
+    for (const row of this.rowsInWindow()) {
+      const attributes: Dictionary<string> = row[
+        "attributes"
+      ] as Dictionary<string>;
+      const day: number =
+        Math.floor(parseClickhouseTime(row["time"]).getTime() / DAY_MS) *
+        DAY_MS;
+      const tokenType: string =
+        attributes[LLM_PROVIDER_TOKEN_TYPE_ATTRIBUTE] || "";
+      const key: string = JSON.stringify([row["name"], tokenType, day]);
+      const group: JSONObject = groups.get(key) || {
+        metricName: row["name"] as string,
+        tokenType,
+        daySeconds: String(day / 1000),
+        total: 0,
+      };
+      group["total"] = (group["total"] as number) + (row["value"] as number);
+      groups.set(key, group);
+    }
+
+    return Array.from(groups.values());
+  }
+
+  private storedSums(bucketMs: number): Array<JSONObject> {
+    const groups: Map<string, JSONObject> = new Map();
+
+    for (const row of this.rowsInWindow()) {
+      const attributes: Dictionary<string> = row[
+        "attributes"
+      ] as Dictionary<string>;
+      const time: Date = new Date(
+        Math.floor(parseClickhouseTime(row["time"]).getTime() / bucketMs) *
+          bucketMs,
+      );
 
       const values: Array<string> = LlmProviderSeriesAttributeKeys.map(
         (key: string) => {
@@ -681,5 +728,266 @@ describe("LlmProviderUsageWriter.write keeps storage equal to the provider", () 
     expect(Object.keys(call.metricNameServiceNameMap).sort()).toEqual(
       [...LlmProviderUsageMetricNames].sort(),
     );
+  });
+});
+
+/*
+ * A provider read by the hour (Cursor): its points sit at the start of their
+ * hour and the stored sums are compared hour by hour, so a read of a few
+ * hours leaves the day's other hours as they are; what its connection says
+ * it used is read back from the stored points.
+ */
+describe("LlmProviderUsageWriter - a provider read by the hour", () => {
+  const H13: Date = new Date("2026-10-19T13:00:00Z");
+  const H14: Date = new Date("2026-10-19T14:00:00Z");
+  const H15: Date = new Date("2026-10-19T15:00:00Z");
+  const CURSOR_TARGET: LlmProviderUsageWriteTarget = {
+    ...TARGET,
+    connectionName: "Cursor",
+    genAiProviderName: "cursor",
+    serviceName: "Cursor",
+  };
+
+  async function writeHours(
+    records: Array<LlmUsageRecord>,
+    window: LlmUsageWindow,
+  ): Promise<LlmProviderUsageWriteResult> {
+    store.window = window;
+    return await LlmProviderUsageWriter.write({
+      target: CURSOR_TARGET,
+      window,
+      records,
+      now: NOW,
+      bucket: "hour",
+    });
+  }
+
+  test("the stored sums are summed by the hour for it, and by the day for the others", () => {
+    const hourly: Statement = LlmProviderUsageWriter.buildStoredSumsStatement({
+      projectId: PROJECT,
+      serviceId: SERVICE,
+      connectionId: CONNECTION,
+      window: WINDOW,
+      bucket: "hour",
+    });
+    const daily: Statement = LlmProviderUsageWriter.buildStoredSumsStatement({
+      projectId: PROJECT,
+      serviceId: SERVICE,
+      connectionId: CONNECTION,
+      window: WINDOW,
+    });
+
+    expect(hourly.query).toContain("toStartOfHour(time, 'UTC')");
+    expect(hourly.query).not.toContain("toStartOfDay(");
+    expect(daily.query).toContain("toStartOfDay(time, 'UTC')");
+  });
+
+  test("points sit at the start of their hour; two hours of one day are one day with usage", async () => {
+    const result: LlmProviderUsageWriteResult = await writeHours(
+      [record({ day: H13 }), record({ day: H14, person: "bob@example.com" })],
+      { startDay: H13, endDay: H15 },
+    );
+
+    expect(result.daysWithUsage).toBe(1);
+    expect(
+      Array.from(
+        new Set(
+          store.rows.map((row: JSONObject) => {
+            return row["time"];
+          }),
+        ),
+      ).sort(),
+    ).toEqual(["2026-10-19 13:00:00", "2026-10-19 14:00:00"]);
+    expect(
+      (store.rows[0]!["attributes"] as Dictionary<string>)[
+        LLM_PROVIDER_NAME_ATTRIBUTE
+      ],
+    ).toBe("cursor");
+  });
+
+  test("an hour read again changes that hour only; the day's other hours stay", async () => {
+    await writeHours(
+      [
+        record({ day: H13, requests: 12 }),
+        record({ day: H14, requests: 5, costUsd: 0.5 }),
+      ],
+      { startDay: H13, endDay: H15 },
+    );
+
+    // Cursor's late events: the 14:00 hour read again, alone.
+    const again: LlmProviderUsageWriteResult = await writeHours(
+      [record({ day: H14, requests: 7, costUsd: 0.6 })],
+      { startDay: H14, endDay: H15 },
+    );
+
+    // Requests and cost changed; the tokens did not.
+    expect(again.pointsWritten).toBe(2);
+    expect(
+      store.sumOf({ day: H13, metricName: LLM_PROVIDER_REQUESTS_METRIC_NAME }),
+    ).toBe(12);
+    expect(
+      store.sumOf({ day: H14, metricName: LLM_PROVIDER_REQUESTS_METRIC_NAME }),
+    ).toBe(7);
+    expect(
+      store.sumOf({ day: H14, metricName: LLM_PROVIDER_COST_METRIC_NAME }),
+    ).toBeCloseTo(0.6, 10);
+
+    // And the same hour read once more, unchanged: nothing.
+    const same: LlmProviderUsageWriteResult = await writeHours(
+      [record({ day: H14, requests: 7, costUsd: 0.6 })],
+      { startDay: H14, endDay: H15 },
+    );
+    expect(same.pointsWritten).toBe(0);
+  });
+
+  test("someone gone from an hour read again is cancelled for that hour only", async () => {
+    await writeHours(
+      [
+        record({ day: H13, person: "ana@example.com" }),
+        record({ day: H14, person: "ana@example.com" }),
+        record({ day: H14, person: "bob@example.com" }),
+      ],
+      { startDay: H13, endDay: H15 },
+    );
+    await writeHours([record({ day: H14, person: "ana@example.com" })], {
+      startDay: H14,
+      endDay: H15,
+    });
+
+    expect(
+      store.sumOf({
+        day: H14,
+        metricName: LLM_PROVIDER_REQUESTS_METRIC_NAME,
+        person: "bob@example.com",
+      }),
+    ).toBe(0);
+    expect(
+      store.sumOf({
+        day: H13,
+        metricName: LLM_PROVIDER_REQUESTS_METRIC_NAME,
+        person: "ana@example.com",
+      }),
+    ).toBe(12);
+  });
+
+  test("what the connection's points add up to over the past days, read back", async () => {
+    await writeHours(
+      [
+        record({ day: new Date("2026-10-18T10:00:00Z"), costUsd: 0.25 }),
+        record({ day: H13, inputTokens: 500, outputTokens: 50, requests: 3 }),
+      ],
+      { startDay: new Date("2026-10-18T00:00:00Z"), endDay: H15 },
+    );
+
+    store.window = {
+      startDay: new Date("2026-10-13T00:00:00Z"),
+      endDay: new Date(NOW.getTime() + 1),
+    };
+    const totals: LlmProviderUsageTotals =
+      await LlmProviderUsageWriter.readUsageTotals({
+        target: CURSOR_TARGET,
+        startTime: store.window.startDay,
+        endTime: store.window.endDay,
+      });
+
+    expect(totals).toEqual({
+      inputTokens: 1500,
+      outputTokens: 250,
+      requests: 15,
+      costUsd: 0.75,
+      daysWithUsage: 2,
+    });
+  });
+
+  test("the totals are read for one project, service and connection over a range, every value a parameter", () => {
+    const statement: Statement = LlmProviderUsageWriter.buildTotalsStatement({
+      projectId: PROJECT,
+      serviceId: SERVICE,
+      connectionId: CONNECTION,
+      startTime: new Date("2026-10-13T00:00:00Z"),
+      endTime: NOW,
+    });
+
+    expect(statement.query).toContain(`FROM ${AnalyticsTableName.Metric}`);
+    expect(statement.query).toContain("sum(value) AS total");
+    expect(statement.query).toContain(
+      "GROUP BY metricName, tokenType, daySeconds",
+    );
+
+    for (const id of [PROJECT, SERVICE, CONNECTION]) {
+      expect(statement.query).not.toContain(id.toString());
+    }
+
+    expect(Object.values(statement.query_params)).toEqual(
+      expect.arrayContaining([
+        PROJECT.toString(),
+        SERVICE.toString(),
+        CONNECTION.toString(),
+        LLM_CONNECTION_ID_ATTRIBUTE,
+        LLM_PROVIDER_TOKEN_TYPE_ATTRIBUTE,
+        LlmProviderUsageMetricNames,
+      ]),
+    );
+  });
+
+  test("total rows add up; a day counts only with usage; anything else is left out", () => {
+    const day2: string = String(DAY_2.getTime() / 1000);
+    const day3: string = String(DAY_3.getTime() / 1000);
+
+    expect(
+      LlmProviderUsageWriter.readTotals([
+        {
+          metricName: LLM_PROVIDER_TOKENS_METRIC_NAME,
+          tokenType: "input",
+          daySeconds: day2,
+          total: 1000,
+        },
+        {
+          metricName: LLM_PROVIDER_TOKENS_METRIC_NAME,
+          tokenType: "output",
+          daySeconds: day2,
+          total: "200",
+        },
+        {
+          metricName: LLM_PROVIDER_REQUESTS_METRIC_NAME,
+          tokenType: "",
+          daySeconds: day3,
+          total: 12,
+        },
+        {
+          metricName: LLM_PROVIDER_COST_METRIC_NAME,
+          tokenType: "",
+          daySeconds: day3,
+          total: 0.3333333333,
+        },
+        // A day corrected down to nothing.
+        {
+          metricName: LLM_PROVIDER_COST_METRIC_NAME,
+          tokenType: "",
+          daySeconds: String(DAY_1.getTime() / 1000),
+          total: 0,
+        },
+        { metricName: "http.server.duration", daySeconds: day3, total: 5 },
+        {
+          metricName: LLM_PROVIDER_COST_METRIC_NAME,
+          daySeconds: day3,
+          total: "lots",
+        },
+      ]),
+    ).toEqual({
+      inputTokens: 1000,
+      outputTokens: 200,
+      requests: 12,
+      costUsd: 0.333333,
+      daysWithUsage: 2,
+    });
+
+    expect(LlmProviderUsageWriter.readTotals([])).toEqual({
+      inputTokens: 0,
+      outputTokens: 0,
+      requests: 0,
+      costUsd: 0,
+      daysWithUsage: 0,
+    });
   });
 });

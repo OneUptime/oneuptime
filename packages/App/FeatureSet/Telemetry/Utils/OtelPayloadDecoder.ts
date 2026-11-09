@@ -149,6 +149,12 @@ export const MAX_DECOMPRESSED_OTLP_BODY_BYTES: number = 64 * 1024 * 1024;
  */
 export const MAX_ZSTD_WINDOW_LOG: number = 24;
 
+export interface OtelDecodedPayload {
+  body: JSONObject;
+  // The body's size with its content coding undone; null when it was gone.
+  decodedBytes: number | null;
+}
+
 export enum OtelPayloadFormat {
   Protobuf = "protobuf",
   Json = "json",
@@ -257,6 +263,25 @@ export default class OtelPayloadDecoder {
     encoding: OtelPayloadEncoding;
     bodyKey: string;
   }): Promise<JSONObject> {
+    const decoded: OtelDecodedPayload =
+      await OtelPayloadDecoder.decodeFromQueueMeasured(input);
+
+    return decoded.body;
+  }
+
+  /*
+   * decodeFromQueue, with the size of the body once its content coding is
+   * undone: what an ingestion budget counts, so the worker can settle a
+   * compressed body that was counted on arrival at an estimate
+   * (TelemetryIngestionBudget.reconcile). decodedBytes is null when the body
+   * was gone (its TTL elapsed): nothing was stored, so nothing is settled.
+   */
+  public static async decodeFromQueueMeasured(input: {
+    productType: ProductType;
+    format: OtelPayloadFormat;
+    encoding: OtelPayloadEncoding;
+    bodyKey: string;
+  }): Promise<OtelDecodedPayload> {
     if (!input.bodyKey) {
       throw new Error("OtelPayloadDecoder: bodyKey is required");
     }
@@ -266,13 +291,31 @@ export default class OtelPayloadDecoder {
     );
     if (!stored) {
       // Body expired (TTL) before the worker got to it — nothing to decode.
-      return {} as JSONObject;
+      return { body: {} as JSONObject, decodedBytes: null };
     }
 
     const raw: Buffer = await OtelPayloadDecoder.decompress(
       stored,
       input.encoding,
     );
+
+    return {
+      body: OtelPayloadDecoder.parseDecompressed({
+        raw: raw,
+        format: input.format,
+        productType: input.productType,
+      }),
+      decodedBytes: raw.length,
+    };
+  }
+
+  // Parse a body whose content coding is undone: JSON, or the signal's protobuf.
+  private static parseDecompressed(input: {
+    raw: Buffer;
+    format: OtelPayloadFormat;
+    productType: ProductType;
+  }): JSONObject {
+    const raw: Buffer = input.raw;
 
     if (input.format === OtelPayloadFormat.Json) {
       return JSON.parse(raw.toString("utf-8")) as JSONObject;

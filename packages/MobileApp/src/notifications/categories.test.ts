@@ -2,12 +2,17 @@ import { describe, expect, test } from "@jest/globals";
 import {
   ACKNOWLEDGE_PAGE_ACTION,
   ESCALATE_PAGE_ACTION,
+  MARK_PAGE_SEEN_ACTION,
+  NOTIFICATION_CATEGORIES,
+  ON_CALL_OBSERVER_PAGE_ACTIONS,
+  ON_CALL_OBSERVER_PAGE_CATEGORY,
   ON_CALL_PAGE_ACTIONS,
   ON_CALL_PAGE_CATEGORY,
   RETIRED_CATEGORIES,
   getPushPageActionKind,
 } from "./categories";
 import { PASS_ON_TEXT } from "../oncall/passOn";
+import { OBSERVER_PAGE_TEXT } from "../oncall/observerPage";
 
 /*
  * The actions under a page's push: the category the server names
@@ -55,10 +60,68 @@ describe("the category a page's push names", () => {
   });
 });
 
+/*
+ * An observer's page (oncall/observerPage.ts): the reader is kept informed
+ * while others respond, and answering only says they have seen it. Its push
+ * names a category of its own, whose one action never acknowledges the
+ * record - a responder's Acknowledge would.
+ */
+describe("the category an observer's page names", () => {
+  test("is the server's id, and is not the responder's", () => {
+    expect(ON_CALL_OBSERVER_PAGE_CATEGORY).toBe("ON_CALL_OBSERVER_PAGE");
+    expect(ON_CALL_OBSERVER_PAGE_CATEGORY).not.toBe(ON_CALL_PAGE_CATEGORY);
+    expect(RETIRED_CATEGORIES).not.toContain(ON_CALL_OBSERVER_PAGE_CATEGORY);
+  });
+
+  test("carries one action, I've seen it - no Acknowledge, no Escalate", () => {
+    expect(
+      ON_CALL_OBSERVER_PAGE_ACTIONS.map(
+        (action: { identifier: string; buttonTitle: string }) => {
+          return [action.identifier, action.buttonTitle];
+        },
+      ),
+    ).toEqual([[MARK_PAGE_SEEN_ACTION, "I've seen it"]]);
+    expect(OBSERVER_PAGE_TEXT.seenButton).toBe("I've seen it");
+
+    for (const action of ON_CALL_OBSERVER_PAGE_ACTIONS) {
+      expect([ACKNOWLEDGE_PAGE_ACTION, ESCALATE_PAGE_ACTION]).not.toContain(
+        action.identifier,
+      );
+    }
+  });
+
+  test("it opens the app, once the phone is unlocked, like the responder's - and is not drawn as destructive", () => {
+    for (const action of ON_CALL_OBSERVER_PAGE_ACTIONS) {
+      expect(action.options).toEqual({
+        opensAppToForeground: true,
+        isAuthenticationRequired: true,
+      });
+      expect(action.options?.isDestructive).toBeUndefined();
+    }
+  });
+
+  test("the app registers both: the responder's, then the observer's, each with its own actions", () => {
+    expect(
+      NOTIFICATION_CATEGORIES.map(
+        (category: { identifier: string; actions: ReadonlyArray<unknown> }) => {
+          return [category.identifier, category.actions];
+        },
+      ),
+    ).toEqual([
+      [ON_CALL_PAGE_CATEGORY, ON_CALL_PAGE_ACTIONS],
+      [ON_CALL_OBSERVER_PAGE_CATEGORY, ON_CALL_OBSERVER_PAGE_ACTIONS],
+    ]);
+  });
+});
+
 describe("what a tapped action asks for", () => {
   test("Acknowledge and Escalate, by their ids", () => {
     expect(getPushPageActionKind(ACKNOWLEDGE_PAGE_ACTION)).toBe("acknowledge");
     expect(getPushPageActionKind(ESCALATE_PAGE_ACTION)).toBe("escalate");
+  });
+
+  test("I've seen it asks for its page to be marked seen - never for an acknowledgement", () => {
+    expect(getPushPageActionKind(MARK_PAGE_SEEN_ACTION)).toBe("seen");
   });
 
   test("a tap on the notification itself, or an action this build does not know, asks for nothing", () => {
@@ -67,6 +130,8 @@ describe("what a tapped action asks for", () => {
       "ACKNOWLEDGE",
       "VIEW",
       "acknowledge_page",
+      "mark_page_seen",
+      "SEEN",
       "",
       null,
       undefined,

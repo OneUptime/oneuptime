@@ -259,6 +259,22 @@ import FlameGraph, {
   FLAME_GRAPH_INSTRUCTIONS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/FlameGraph";
 import LlmSpanPanel from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/LlmSpanPanel";
+import {
+  LLM_LOG_EVENTS_FAILED,
+  LLM_LOG_EVENTS_LOADING,
+  LLM_LOG_EVENTS_NOT_ALLOWED,
+  LLM_LOG_EVENTS_SOURCE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationCopy";
+import Log from "../../../Models/AnalyticsModels/Log";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { LlmLogEventRecord } from "../../../Utils/Telemetry/LlmLogEvents";
+import {
+  GenAiLogEventFixture,
+  StoredGenAiSpan,
+  loadGenAiLogEventFixture,
+  toStoredLogRecords,
+  toStoredSpans,
+} from "../../Helpers/GenAiLogEventFixtures";
 import TraceExplorer from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer";
 import TraceTimelineMinimap, {
   TRACE_MINIMAP_LABEL,
@@ -586,7 +602,45 @@ const LLM_WORDS: Array<string> = [
   "Completion",
   "message",
   "(no text content)",
+  // A call whose prompt and answer came as GenAI log events.
+  LLM_LOG_EVENTS_LOADING,
+  LLM_LOG_EVENTS_SOURCE,
+  LLM_LOG_EVENTS_NOT_ALLOWED,
+  LLM_LOG_EVENTS_FAILED,
+  "Try again",
 ];
+
+/*
+ * A call of an app instrumented with the OpenTelemetry Java agent: its span
+ * holds no prompt or answer, its log records do (Tests/Fixtures).
+ */
+const LOG_EVENT_SPAN: StoredGenAiSpan = toStoredSpans(
+  loadGenAiLogEventFixture(GenAiLogEventFixture.JavaContent),
+)[0]!;
+
+const LOG_EVENT_LOGS: Array<Log> = toStoredLogRecords(
+  loadGenAiLogEventFixture(GenAiLogEventFixture.JavaContent),
+  { arrivedAtNano: "1794199999000000000" },
+)
+  .filter((record: LlmLogEventRecord): boolean => {
+    return record.spanId === LOG_EVENT_SPAN.spanId;
+  })
+  .map((record: LlmLogEventRecord): Log => {
+    const log: Log = new Log();
+    log.traceId = record.traceId || "";
+    log.spanId = record.spanId || "";
+    log.timeUnixNano = record.timeUnixNano as unknown as number;
+    log.observedTimeUnixNano = record.observedTimeUnixNano as unknown as number;
+    log.attributes = record.attributes as JSONObject;
+    log.body = record.body as string;
+    return log;
+  });
+
+const LOG_EVENT_SPAN_ATTRIBUTES: JSONObject = {
+  "gen_ai.system": "openai",
+  "gen_ai.operation.name": "chat",
+  "gen_ai.request.model": "gpt-4o-mini",
+};
 
 const TRACE_VIEW_WORDS: Array<string> = Array.from(
   new Set<string>([
@@ -2515,6 +2569,68 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
     ).toBeInTheDocument();
     // The role the call recorded, as written.
     expect(screen.getByText("assistant")).toBeInTheDocument();
+  });
+
+  test("the LLM call panel says where a prompt and answer sent as log events came from, or why they are not shown", async () => {
+    const renderLogEventPanel: () => void = (): void => {
+      render(
+        inLanguage(
+          language,
+          <LlmSpanPanel
+            attributes={LOG_EVENT_SPAN_ATTRIBUTES}
+            traceId={LOG_EVENT_SPAN.traceId}
+            spanId={LOG_EVENT_SPAN.spanId}
+            startTimeUnixNano={LOG_EVENT_SPAN.startTimeUnixNano}
+            endTimeUnixNano={LOG_EVENT_SPAN.endTimeUnixNano}
+          />,
+        ),
+      );
+    };
+
+    // Read: the messages, and where they came from.
+    getListMock.mockImplementation(async (args: ListArgs) => {
+      expect(args.modelType).toBe(Log);
+      return {
+        data: LOG_EVENT_LOGS,
+        count: LOG_EVENT_LOGS.length,
+        skip: 0,
+        limit: LOG_EVENT_LOGS.length,
+      };
+    });
+    renderLogEventPanel();
+
+    expect(screen.getByTestId("llm-span-log-events-loading")).toHaveTextContent(
+      word(language, LLM_LOG_EVENTS_LOADING),
+    );
+    expect(
+      await screen.findByTestId("llm-span-log-events-source"),
+    ).toHaveTextContent(word(language, LLM_LOG_EVENTS_SOURCE));
+    expect(screen.getByText("Say this is a test.")).toBeInTheDocument();
+    cleanup();
+
+    // Refused: why they are not shown.
+    getListMock.mockImplementation(async () => {
+      throw new HTTPErrorResponse(403, {}, {});
+    });
+    renderLogEventPanel();
+
+    expect(
+      await screen.findByTestId("llm-span-log-events-note"),
+    ).toHaveTextContent(word(language, LLM_LOG_EVENTS_NOT_ALLOWED));
+    cleanup();
+
+    // Failed: says so, with a way to try again.
+    getListMock.mockImplementation(async () => {
+      throw new Error("Network Error");
+    });
+    renderLogEventPanel();
+
+    expect(
+      await screen.findByTestId("llm-span-log-events-note"),
+    ).toHaveTextContent(word(language, LLM_LOG_EVENTS_FAILED));
+    expect(screen.getByTestId("llm-span-log-events-retry")).toHaveTextContent(
+      word(language, "Try again"),
+    );
   });
 });
 

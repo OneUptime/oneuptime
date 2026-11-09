@@ -84,7 +84,7 @@ Tout ce qui détermine la façon dont le SLO mesure part d'une valeur par défau
 | Statuts d'indisponibilité | Tous les statuts non opérationnels du projet | **Paramètres** → **Calcul de l'indisponibilité** |
 | Mode multi-moniteurs | **Un moniteur hors service** | **Paramètres** → **Calcul de l'indisponibilité** |
 | Évaluation | Activée | **Paramètres** → **Évaluation** |
-| Règles de taux de consommation | Une règle **Fast burn** et une règle **Slow burn**, adaptées à la fenêtre | **Règles de taux de consommation** |
+| Règles de taux de consommation | Une règle **Fast burn**, une règle **Slow burn** et une règle **Slow leak**, adaptées à la fenêtre | **Règles de taux de consommation** |
 
 ## De quoi est fait un SLO
 
@@ -141,7 +141,7 @@ Un SLO désactivé ou archivé n'est pas évalué, son statut reste donc tel que
 La page **SLOs** liste chaque SLO non archivé, avec son statut, son SLI, le budget restant, le taux de consommation, l'objectif, la fenêtre, les moniteurs, les étiquettes et les propriétaires.
 
 - Les tuiles au-dessus de la liste comptent les SLO par statut : **Sain**, **À risque**, **Budget épuisé**, **Mal configuré**, **En pause** et **Désactivé**. Elles s'affichent dès qu'il existe un SLO non archivé. Cliquez sur une tuile pour n'afficher que ces SLO, puis de nouveau pour tous les revoir.
-- Sélectionnez des SLO pour ajouter ou retirer des étiquettes et des propriétaires, les activer ou les désactiver, les archiver ou les supprimer, tous en même temps.
+- Sélectionnez des SLO pour ajouter ou retirer des étiquettes et des propriétaires, les activer ou les désactiver, leur donner les [règles de taux de consommation recommandées](/docs/slo/burn-rate-alerts#les-ajouter-à-plusieurs-slo-à-la-fois) qui leur manquent, les archiver ou les supprimer, tous en même temps.
 - La section **Paramètres** du menu latéral contient **Règles d'étiquettes** et **Règles de propriétaire**, qui étiquettent les nouveaux SLO et leur donnent des propriétaires : voir [Règles d'étiquettes et de propriétaires](/docs/slo/label-and-owner-rules).
 - La section **Avancé** du menu latéral contient **Archivé**, la liste des SLO archivés.
 
@@ -153,18 +153,19 @@ Ouvrez un SLO pour voir ses pages dans le menu latéral :
 | --- | --- |
 | **Vue d'ensemble** | Le statut, les chiffres clés, la consommation du budget d'erreur, l'activité récente, les alertes et incidents ouverts et les règles de taux de consommation. |
 | **Métriques** | Les métriques `oneuptime.slo.*` du SLO, l'historique à long terme de son budget d'erreur, et les métriques des incidents et des alertes qui le concernent. Voir [Métriques et tableaux de bord des SLO](/docs/slo/metrics). |
-| **Incidents** | Les incidents que ses règles de taux de consommation ont déclarés. Le badge compte ceux qui sont ouverts. |
-| **Alertes** | Les alertes que ses règles de taux de consommation ont déclenchées. Le badge compte celles qui sont ouvertes. |
+| **Incidents** | Les incidents que ses règles de taux de consommation et sa politique de budget d'erreur ont déclarés. Le badge compte ceux qui sont ouverts. |
+| **Alertes** | Les alertes que ses règles de taux de consommation et sa politique de budget d'erreur ont déclenchées. Le badge compte celles qui sont ouvertes. |
 | **Fil d'activité** | Ce qui est arrivé au SLO, sous forme de chronologie. Voir [Fil d'activité et journaux d'audit des SLO](/docs/slo/feed-and-audit-logs). |
 | **Moniteurs** | Les moniteurs qu'il mesure, et si c'est une personne ou une règle qui a rattaché chacun d'eux. |
 | **Règles de moniteurs** | Les règles qui rattachent les moniteurs correspondants. |
 | **Règles de taux de consommation** | Les règles qui déclenchent des alertes et déclarent des incidents quand le budget se consomme trop vite. |
+| **Politique de budget d'erreur** | Ce que l'équipe s'est engagée à faire à mesure que le budget d'erreur diminue, et les alertes et incidents que déclenche chaque palier de la politique. Voir [Politique de budget d'erreur](/docs/slo/error-budget-policy). |
 | **Propriétaires** | Les utilisateurs et les équipes informés de ses changements de statut. |
 | **Paramètres** | L'objectif, la période de conformité, le calcul de l'indisponibilité, l'interrupteur d'évaluation et la carte d'archivage. |
 | **Journaux d'audit** | Qui a modifié le SLO, ses règles et ses propriétaires, et quand. |
 | **Supprimer le SLO** | Supprime définitivement le SLO et résout les alertes et incidents de taux de consommation qu'il avait ouverts. |
 
-**Moniteurs** se trouve dans une section **Configuration**, **Règles de moniteurs** et **Règles de taux de consommation** dans une section **Règles**, et **Propriétaires**, **Paramètres**, **Journaux d'audit** et **Supprimer le SLO** dans une section **Gestion**. Les trois sont repliées au départ, tout comme une section **Développeurs** pour gérer le SLO par le code : cliquez sur le titre d'une section pour l'ouvrir.
+**Moniteurs** se trouve dans une section **Configuration**, **Règles de moniteurs**, **Règles de taux de consommation** et **Politique de budget d'erreur** dans une section **Règles**, et **Propriétaires**, **Paramètres**, **Journaux d'audit** et **Supprimer le SLO** dans une section **Gestion**. Les trois sont repliées au départ, tout comme une section **Développeurs** pour gérer le SLO par le code : cliquez sur le titre d'une section pour l'ouvrir.
 
 Quand quelque chose empêche un SLO de mesurer, un bandeau en haut de chacune de ses pages dit ce qui ne va pas et renvoie vers la page qui permet de le corriger : voir [Dépannage](#dépannage).
 
@@ -176,13 +177,15 @@ La **Vue d'ensemble** répond à « sommes-nous dans le budget ? », de haut en 
 - **Les chiffres clés** :
   - **SLI** : la part de bon temps dans la fenêtre, et à quelle distance au-dessus ou en dessous de l'objectif elle se trouve.
   - **Budget d'erreur restant** : un pourcentage, une durée comme "12m 30s left of 43m 12s", et une barre avec un repère au seuil à risque. Une fois le budget dépassé, la tuile affiche **Budget exceeded** et de combien.
-  - **Taux de consommation** : la vitesse à laquelle le budget se consomme sur les 60 dernières minutes, la période qu'utilise la règle de consommation rapide par défaut. Il passe à l'orange au-dessus de 1× et au rouge, avec **Seuil de la règle atteint**, au plus bas seuil des règles de taux de consommation activées du SLO.
+  - **Taux de consommation** : la vitesse à laquelle le budget se consomme sur les 60 dernières minutes, la période qu'utilise la règle de consommation rapide par défaut. Il passe à l'orange au-dessus de 1× et au rouge, avec **Seuil de la règle atteint**, au plus bas seuil des règles de taux de consommation activées du SLO dont la période est de 6 heures ou moins. Une heure en dit peu sur une règle dont la période se compte en jours, comme **Slow leak**, il n'est donc pas comparé à une telle règle.
   - **Autonomie du budget** : combien de temps le budget tient à ce rythme. Voir [Budgets d'erreur](/docs/slo/error-budget#autonomie-du-budget).
 - **Consommation du budget d'erreur** : le budget restant sur la fenêtre actuelle. Voir [Budgets d'erreur](/docs/slo/error-budget#consommation-du-budget-derreur).
 - **Activité récente** : les derniers éléments du fil d'activité du SLO.
 - **Détails du SLO** : le nom, la description et les étiquettes, les seuls réglages modifiés dans la vue d'ensemble.
 - **Alertes et incidents ouverts** : ce que les règles de taux de consommation ont d'ouvert en ce moment.
-- **Règles de taux de consommation** : le seuil de chaque règle activée à côté du taux de consommation actuel, et ce que déclare la règle.
+- **Règles de taux de consommation** : le seuil de chaque règle activée à côté du taux de consommation actuel, pour les règles dont la période est de 6 heures ou moins, et ce que déclare la règle.
+
+Quand le SLO est dans un palier de sa politique de budget d'erreur, la **Vue d'ensemble** affiche aussi ce palier et ce que l'équipe s'est engagée à y faire : voir [Politique de budget d'erreur](/docs/slo/error-budget-policy).
 
 ### Paramètres
 

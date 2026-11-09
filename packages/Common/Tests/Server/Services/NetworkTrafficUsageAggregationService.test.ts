@@ -612,7 +612,7 @@ describe("what the reads answer", () => {
   });
 
   test("totals, chart and tables, rounded to whole bytes; the project's bucket names no device", async () => {
-    answers.set("AS totalFlows FROM", [
+    answers.set("AS totalFlows, uniqExact(controllerNetworkId)", [
       { totalSent: "1536.4", totalReceived: 4096.6, totalFlows: "12.2" },
     ]);
     answers.set("AS bucketStartMs", [

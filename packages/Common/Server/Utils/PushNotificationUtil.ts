@@ -14,6 +14,11 @@ import {
   OnCallPagePushWords,
 } from "../../Types/OnCallDutyPolicy/OnCallPageWords";
 import { Translator } from "../../Types/Translator";
+import {
+  OnCallObserverPageRecordKind,
+  getOnCallObserverPagePushBody,
+  getOnCallObserverPagePushTitle,
+} from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 
 export default class PushNotificationUtil {
   public static readonly DEFAULT_ICON =
@@ -71,6 +76,48 @@ export default class PushNotificationUtil {
       data: data.data,
     });
   }
+  /*
+   * The push of an observer's page (OnCallObserverPage): "FYI: Incident
+   * INC-42: <title>", and that they are kept informed while the people
+   * responding stay on it - with who paged them, for a person's page.
+   * Tapped, it opens the record, and it carries the record's own type and
+   * data, as any page's push does. The service names the observer's
+   * category (PushNotificationCategory): its one action, "I've seen it",
+   * only says they have seen it - a responder's Acknowledge would
+   * acknowledge the record itself.
+   */
+  private static getObserverPageNotification(data: {
+    recordLabel: string;
+    recordTitle: string;
+    projectName: string;
+    kind: OnCallObserverPageRecordKind;
+    personPage?: OnCallPersonPageNotice | undefined;
+    viewLink: string;
+    tag: string;
+    data: { [key: string]: unknown };
+    // The language of the person it pages (OnCallPageWords).
+    translator: Translator;
+  }): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: getOnCallObserverPagePushTitle({
+        recordLabel: data.recordLabel,
+        recordTitle: data.recordTitle,
+        translator: data.translator,
+      }),
+      body: getOnCallObserverPagePushBody({
+        kind: data.kind,
+        projectName: data.projectName,
+        personPage: data.personPage,
+        translator: data.translator,
+      }),
+      clickAction: data.viewLink,
+      url: data.viewLink,
+      tag: data.tag,
+      requireInteraction: true,
+      data: data.data,
+    });
+  }
+
   public static createIncidentCreatedNotification(params: {
     incidentTitle: string;
     projectName: string;
@@ -86,6 +133,11 @@ export default class PushNotificationUtil {
      * the message they wrote, instead of "A new incident has been created".
      */
     personPage?: OnCallPersonPageNotice | undefined;
+    /*
+     * An observer's page (OnCallObserverPage): says they are kept informed
+     * while the people responding stay on it.
+     */
+    isObserverPage?: boolean | undefined;
     // The language of the person it pages (OnCallPageWords); English without one.
     translator?: Translator | undefined;
   }): PushNotificationMessage {
@@ -102,6 +154,32 @@ export default class PushNotificationUtil {
       params.translator || getEnglishPageTranslator();
     const displayNumber: string =
       incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
+
+    if (params.isObserverPage) {
+      return PushNotificationUtil.getObserverPageNotification({
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.Incident,
+          displayNumber,
+        ),
+        recordTitle: incidentTitle,
+        projectName: projectName,
+        kind: "incident",
+        personPage: params.personPage,
+        viewLink: incidentViewLink,
+        tag: "incident-created",
+        translator: translator,
+        data: {
+          type: "incident-created",
+          entityType: "incident",
+          entityId: incidentId,
+          projectId: projectId,
+          incidentTitle: incidentTitle,
+          projectName: projectName,
+          url: incidentViewLink,
+        },
+      });
+    }
 
     if (params.personPage) {
       return PushNotificationUtil.getPersonPageNotification({
@@ -267,6 +345,11 @@ export default class PushNotificationUtil {
      * the message they wrote, instead of "A new alert has been created".
      */
     personPage?: OnCallPersonPageNotice | undefined;
+    /*
+     * An observer's page (OnCallObserverPage): says they are kept informed
+     * while the people responding stay on it.
+     */
+    isObserverPage?: boolean | undefined;
     // The language of the person it pages (OnCallPageWords); English without one.
     translator?: Translator | undefined;
   }): PushNotificationMessage {
@@ -283,6 +366,32 @@ export default class PushNotificationUtil {
       params.translator || getEnglishPageTranslator();
     const displayNumber: string =
       alertNumberWithPrefix || (alertNumber ? `#${alertNumber}` : "");
+
+    if (params.isObserverPage) {
+      return PushNotificationUtil.getObserverPageNotification({
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.Alert,
+          displayNumber,
+        ),
+        recordTitle: alertTitle,
+        projectName: projectName,
+        kind: "alert",
+        personPage: params.personPage,
+        viewLink: alertViewLink,
+        tag: "alert-created",
+        translator: translator,
+        data: {
+          type: "alert-created",
+          entityType: "alert",
+          entityId: alertId,
+          projectId: projectId,
+          alertTitle: alertTitle,
+          projectName: projectName,
+          url: alertViewLink,
+        },
+      });
+    }
 
     if (params.personPage) {
       return PushNotificationUtil.getPersonPageNotification({
@@ -346,6 +455,11 @@ export default class PushNotificationUtil {
     projectId?: string;
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined;
+    /*
+     * An observer's page (OnCallObserverPage): says they are kept informed
+     * while the people responding stay on it.
+     */
+    isObserverPage?: boolean | undefined;
     // The language of the person it pages (OnCallPageWords); English without one.
     translator?: Translator | undefined;
   }): PushNotificationMessage {
@@ -360,16 +474,42 @@ export default class PushNotificationUtil {
     } = params;
     const displayNumber: string =
       episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
-    const words: OnCallPagePushWords = getOnCallPagePushWords(
-      params.translator || getEnglishPageTranslator(),
-      {
-        kind: OnCallPageKind.AlertEpisode,
-        number: displayNumber,
-        title: alertEpisodeTitle,
+    const translator: Translator =
+      params.translator || getEnglishPageTranslator();
+
+    if (params.isObserverPage) {
+      return PushNotificationUtil.getObserverPageNotification({
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.AlertEpisode,
+          displayNumber,
+        ),
+        recordTitle: alertEpisodeTitle,
         projectName: projectName,
-        pageAgain: params.pageAgain,
-      },
-    );
+        kind: "alert episode",
+        viewLink: alertEpisodeViewLink,
+        tag: "alert-episode-created",
+        translator: translator,
+        data: {
+          type: "alert-episode-created",
+          entityType: "alert-episode",
+          entityId: alertEpisodeId,
+          projectId: projectId,
+          alertEpisodeTitle: alertEpisodeTitle,
+          projectName: projectName,
+          url: alertEpisodeViewLink,
+        },
+      });
+    }
+
+    const words: OnCallPagePushWords = getOnCallPagePushWords(translator, {
+      kind: OnCallPageKind.AlertEpisode,
+      number: displayNumber,
+      title: alertEpisodeTitle,
+      projectName: projectName,
+      pageAgain: params.pageAgain,
+    });
+
     return PushNotificationUtil.applyDefaults({
       title: words.title,
       body: words.body,
@@ -399,6 +539,11 @@ export default class PushNotificationUtil {
     projectId?: string;
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined;
+    /*
+     * An observer's page (OnCallObserverPage): says they are kept informed
+     * while the people responding stay on it.
+     */
+    isObserverPage?: boolean | undefined;
     // The language of the person it pages (OnCallPageWords); English without one.
     translator?: Translator | undefined;
   }): PushNotificationMessage {
@@ -413,16 +558,42 @@ export default class PushNotificationUtil {
     } = params;
     const displayNumber: string =
       episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
-    const words: OnCallPagePushWords = getOnCallPagePushWords(
-      params.translator || getEnglishPageTranslator(),
-      {
-        kind: OnCallPageKind.IncidentEpisode,
-        number: displayNumber,
-        title: incidentEpisodeTitle,
+    const translator: Translator =
+      params.translator || getEnglishPageTranslator();
+
+    if (params.isObserverPage) {
+      return PushNotificationUtil.getObserverPageNotification({
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.IncidentEpisode,
+          displayNumber,
+        ),
+        recordTitle: incidentEpisodeTitle,
         projectName: projectName,
-        pageAgain: params.pageAgain,
-      },
-    );
+        kind: "incident episode",
+        viewLink: incidentEpisodeViewLink,
+        tag: "incident-episode-created",
+        translator: translator,
+        data: {
+          type: "incident-episode-created",
+          entityType: "incident-episode",
+          entityId: incidentEpisodeId,
+          projectId: projectId,
+          incidentEpisodeTitle: incidentEpisodeTitle,
+          projectName: projectName,
+          url: incidentEpisodeViewLink,
+        },
+      });
+    }
+
+    const words: OnCallPagePushWords = getOnCallPagePushWords(translator, {
+      kind: OnCallPageKind.IncidentEpisode,
+      number: displayNumber,
+      title: incidentEpisodeTitle,
+      projectName: projectName,
+      pageAgain: params.pageAgain,
+    });
+
     return PushNotificationUtil.applyDefaults({
       title: words.title,
       body: words.body,

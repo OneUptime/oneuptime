@@ -2058,6 +2058,12 @@ enum Permission {
   EditWorkspaceNotificationRule = "EditWorkspaceNotificationRule",
   ReadWorkspaceNotificationRule = "ReadWorkspaceNotificationRule",
 
+  // Workspace Notification Rule Owning Team Permissions
+  CreateWorkspaceNotificationRuleOwningTeam = "CreateWorkspaceNotificationRuleOwningTeam",
+  DeleteWorkspaceNotificationRuleOwningTeam = "DeleteWorkspaceNotificationRuleOwningTeam",
+  EditWorkspaceNotificationRuleOwningTeam = "EditWorkspaceNotificationRuleOwningTeam",
+  ReadWorkspaceNotificationRuleOwningTeam = "ReadWorkspaceNotificationRuleOwningTeam",
+
   CreateVideoCallConnection = "CreateVideoCallConnection",
   DeleteVideoCallConnection = "DeleteVideoCallConnection",
   EditVideoCallConnection = "EditVideoCallConnection",
@@ -2098,6 +2104,12 @@ enum Permission {
   EditAlertOnCallRule = "EditAlertOnCallRule",
   ReadAlertOnCallRule = "ReadAlertOnCallRule",
 
+  // Alert On-Call Rule Owning Team Permissions
+  CreateAlertOnCallRuleOwningTeam = "CreateAlertOnCallRuleOwningTeam",
+  DeleteAlertOnCallRuleOwningTeam = "DeleteAlertOnCallRuleOwningTeam",
+  EditAlertOnCallRuleOwningTeam = "EditAlertOnCallRuleOwningTeam",
+  ReadAlertOnCallRuleOwningTeam = "ReadAlertOnCallRuleOwningTeam",
+
   // Alert Incident Rule Permissions
   CreateAlertIncidentRule = "CreateAlertIncidentRule",
   DeleteAlertIncidentRule = "DeleteAlertIncidentRule",
@@ -2120,6 +2132,12 @@ enum Permission {
   DeleteAlertEpisodeOnCallRule = "DeleteAlertEpisodeOnCallRule",
   EditAlertEpisodeOnCallRule = "EditAlertEpisodeOnCallRule",
   ReadAlertEpisodeOnCallRule = "ReadAlertEpisodeOnCallRule",
+
+  // Alert Episode On-Call Rule Owning Team Permissions
+  CreateAlertEpisodeOnCallRuleOwningTeam = "CreateAlertEpisodeOnCallRuleOwningTeam",
+  DeleteAlertEpisodeOnCallRuleOwningTeam = "DeleteAlertEpisodeOnCallRuleOwningTeam",
+  EditAlertEpisodeOnCallRuleOwningTeam = "EditAlertEpisodeOnCallRuleOwningTeam",
+  ReadAlertEpisodeOnCallRuleOwningTeam = "ReadAlertEpisodeOnCallRuleOwningTeam",
 
   // Alert Episode Owner Rule Permissions
   CreateAlertEpisodeOwnerRule = "CreateAlertEpisodeOwnerRule",
@@ -2264,11 +2282,23 @@ enum Permission {
   EditIncidentOnCallRule = "EditIncidentOnCallRule",
   ReadIncidentOnCallRule = "ReadIncidentOnCallRule",
 
+  // Incident On-Call Rule Owning Team Permissions
+  CreateIncidentOnCallRuleOwningTeam = "CreateIncidentOnCallRuleOwningTeam",
+  DeleteIncidentOnCallRuleOwningTeam = "DeleteIncidentOnCallRuleOwningTeam",
+  EditIncidentOnCallRuleOwningTeam = "EditIncidentOnCallRuleOwningTeam",
+  ReadIncidentOnCallRuleOwningTeam = "ReadIncidentOnCallRuleOwningTeam",
+
   // Incident Owner Rule Permissions
   CreateIncidentOwnerRule = "CreateIncidentOwnerRule",
   DeleteIncidentOwnerRule = "DeleteIncidentOwnerRule",
   EditIncidentOwnerRule = "EditIncidentOwnerRule",
   ReadIncidentOwnerRule = "ReadIncidentOwnerRule",
+
+  // Incident Owner Rule Owning Team Permissions
+  CreateIncidentOwnerRuleOwningTeam = "CreateIncidentOwnerRuleOwningTeam",
+  DeleteIncidentOwnerRuleOwningTeam = "DeleteIncidentOwnerRuleOwningTeam",
+  EditIncidentOwnerRuleOwningTeam = "EditIncidentOwnerRuleOwningTeam",
+  ReadIncidentOwnerRuleOwningTeam = "ReadIncidentOwnerRuleOwningTeam",
 
   CreateIncidentPrivacyRule = "CreateIncidentPrivacyRule",
   DeleteIncidentPrivacyRule = "DeleteIncidentPrivacyRule",
@@ -2280,6 +2310,12 @@ enum Permission {
   DeleteIncidentEpisodeOnCallRule = "DeleteIncidentEpisodeOnCallRule",
   EditIncidentEpisodeOnCallRule = "EditIncidentEpisodeOnCallRule",
   ReadIncidentEpisodeOnCallRule = "ReadIncidentEpisodeOnCallRule",
+
+  // Incident Episode On-Call Rule Owning Team Permissions
+  CreateIncidentEpisodeOnCallRuleOwningTeam = "CreateIncidentEpisodeOnCallRuleOwningTeam",
+  DeleteIncidentEpisodeOnCallRuleOwningTeam = "DeleteIncidentEpisodeOnCallRuleOwningTeam",
+  EditIncidentEpisodeOnCallRuleOwningTeam = "EditIncidentEpisodeOnCallRuleOwningTeam",
+  ReadIncidentEpisodeOnCallRuleOwningTeam = "ReadIncidentEpisodeOnCallRuleOwningTeam",
 
   // Incident Episode Owner Rule Permissions
   CreateIncidentEpisodeOwnerRule = "CreateIncidentEpisodeOwnerRule",
@@ -2360,6 +2396,12 @@ enum Permission {
   DeleteServiceLevelObjectiveBurnRateRule = "DeleteServiceLevelObjectiveBurnRateRule",
   EditServiceLevelObjectiveBurnRateRule = "EditServiceLevelObjectiveBurnRateRule",
   ReadServiceLevelObjectiveBurnRateRule = "ReadServiceLevelObjectiveBurnRateRule",
+
+  // Service Level Objective Error Budget Policy Tier Permissions
+  CreateServiceLevelObjectiveErrorBudgetPolicyTier = "CreateServiceLevelObjectiveErrorBudgetPolicyTier",
+  DeleteServiceLevelObjectiveErrorBudgetPolicyTier = "DeleteServiceLevelObjectiveErrorBudgetPolicyTier",
+  EditServiceLevelObjectiveErrorBudgetPolicyTier = "EditServiceLevelObjectiveErrorBudgetPolicyTier",
+  ReadServiceLevelObjectiveErrorBudgetPolicyTier = "ReadServiceLevelObjectiveErrorBudgetPolicyTier",
 
   // Service Level Objective Monitor Rule Permissions
   CreateServiceLevelObjectiveMonitorRule = "CreateServiceLevelObjectiveMonitorRule",
@@ -3783,6 +3825,46 @@ export class PermissionHelper {
         permission: Permission.ReadWorkspaceNotificationRule,
         title: "Read Workspace Notification Rule",
         description: "This permission can read alert states of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.CreateWorkspaceNotificationRuleOwningTeam,
+        title: "Create Workspace Notification Rule Owning Team",
+        description:
+          "This permission can make teams owners of Workspace Notification Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteWorkspaceNotificationRuleOwningTeam,
+        title: "Delete Workspace Notification Rule Owning Team",
+        description:
+          "This permission can remove owning teams from Workspace Notification Rules of this project. A rule with no owning teams can be changed by everyone who may change Workspace Notification Rules.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditWorkspaceNotificationRuleOwningTeam,
+        title: "Edit Workspace Notification Rule Owning Team",
+        description:
+          "This permission can edit the owning teams of Workspace Notification Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadWorkspaceNotificationRuleOwningTeam,
+        title: "Read Workspace Notification Rule Owning Team",
+        description:
+          "This permission can read which teams own Workspace Notification Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17291,6 +17373,46 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Alert,
       },
+      {
+        permission: Permission.CreateAlertOnCallRuleOwningTeam,
+        title: "Create Alert On-Call Rule Owning Team",
+        description:
+          "This permission can make teams owners of Alert On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertOnCallRuleOwningTeam,
+        title: "Delete Alert On-Call Rule Owning Team",
+        description:
+          "This permission can remove owning teams from Alert On-Call Rules of this project. A rule with no owning teams can be changed by everyone who may change Alert On-Call Rules.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertOnCallRuleOwningTeam,
+        title: "Edit Alert On-Call Rule Owning Team",
+        description:
+          "This permission can edit the owning teams of Alert On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertOnCallRuleOwningTeam,
+        title: "Read Alert On-Call Rule Owning Team",
+        description:
+          "This permission can read which teams own Alert On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
 
       // Alert Incident Rule Permissions
       {
@@ -17454,6 +17576,46 @@ export class PermissionHelper {
         title: "Read Alert Episode On-Call Rule",
         description:
           "This permission can read Alert Episode On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.CreateAlertEpisodeOnCallRuleOwningTeam,
+        title: "Create Alert Episode On-Call Rule Owning Team",
+        description:
+          "This permission can make teams owners of Alert Episode On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertEpisodeOnCallRuleOwningTeam,
+        title: "Delete Alert Episode On-Call Rule Owning Team",
+        description:
+          "This permission can remove owning teams from Alert Episode On-Call Rules of this project. A rule with no owning teams can be changed by everyone who may change Alert Episode On-Call Rules.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertEpisodeOnCallRuleOwningTeam,
+        title: "Edit Alert Episode On-Call Rule Owning Team",
+        description:
+          "This permission can edit the owning teams of Alert Episode On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertEpisodeOnCallRuleOwningTeam,
+        title: "Read Alert Episode On-Call Rule Owning Team",
+        description:
+          "This permission can read which teams own Alert Episode On-Call Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -18384,6 +18546,46 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Incident,
       },
+      {
+        permission: Permission.CreateIncidentOnCallRuleOwningTeam,
+        title: "Create Incident On-Call Rule Owning Team",
+        description:
+          "This permission can make teams owners of Incident On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentOnCallRuleOwningTeam,
+        title: "Delete Incident On-Call Rule Owning Team",
+        description:
+          "This permission can remove owning teams from Incident On-Call Rules of this project. A rule with no owning teams can be changed by everyone who may change Incident On-Call Rules.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentOnCallRuleOwningTeam,
+        title: "Edit Incident On-Call Rule Owning Team",
+        description:
+          "This permission can edit the owning teams of Incident On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentOnCallRuleOwningTeam,
+        title: "Read Incident On-Call Rule Owning Team",
+        description:
+          "This permission can read which teams own Incident On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
 
       // Incident Owner Rule Permissions
       {
@@ -18421,6 +18623,46 @@ export class PermissionHelper {
         title: "Read Incident Owner Rule",
         description:
           "This permission can read Incident Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.CreateIncidentOwnerRuleOwningTeam,
+        title: "Create Incident Owner Rule Owning Team",
+        description:
+          "This permission can make teams owners of Incident Owner Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentOwnerRuleOwningTeam,
+        title: "Delete Incident Owner Rule Owning Team",
+        description:
+          "This permission can remove owning teams from Incident Owner Rules of this project. A rule with no owning teams can be changed by everyone who may change Incident Owner Rules.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentOwnerRuleOwningTeam,
+        title: "Edit Incident Owner Rule Owning Team",
+        description:
+          "This permission can edit the owning teams of Incident Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentOwnerRuleOwningTeam,
+        title: "Read Incident Owner Rule Owning Team",
+        description:
+          "This permission can read which teams own Incident Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -18505,6 +18747,46 @@ export class PermissionHelper {
         title: "Read Incident Episode On-Call Rule",
         description:
           "This permission can read Incident Episode On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.CreateIncidentEpisodeOnCallRuleOwningTeam,
+        title: "Create Incident Episode On-Call Rule Owning Team",
+        description:
+          "This permission can make teams owners of Incident Episode On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodeOnCallRuleOwningTeam,
+        title: "Delete Incident Episode On-Call Rule Owning Team",
+        description:
+          "This permission can remove owning teams from Incident Episode On-Call Rules of this project. A rule with no owning teams can be changed by everyone who may change Incident Episode On-Call Rules.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeOnCallRuleOwningTeam,
+        title: "Edit Incident Episode On-Call Rule Owning Team",
+        description:
+          "This permission can edit the owning teams of Incident Episode On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeOnCallRuleOwningTeam,
+        title: "Read Incident Episode On-Call Rule Owning Team",
+        description:
+          "This permission can read which teams own Incident Episode On-Call Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -19043,6 +19325,48 @@ export class PermissionHelper {
         permission: Permission.ReadServiceLevelObjectiveBurnRateRule,
         title: "Read SLO Burn Rate Rule",
         description: "Permission to read SLO Burn Rate Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Error Budget Policy Tier Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveErrorBudgetPolicyTier,
+        title: "Create SLO Error Budget Policy Tier",
+        description:
+          "Permission to create SLO Error Budget Policy Tiers, which record what the team does as an SLO's error budget runs down, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveErrorBudgetPolicyTier,
+        title: "Delete SLO Error Budget Policy Tier",
+        description:
+          "Permission to delete SLO Error Budget Policy Tiers of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveErrorBudgetPolicyTier,
+        title: "Edit SLO Error Budget Policy Tier",
+        description:
+          "Permission to edit SLO Error Budget Policy Tiers of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveErrorBudgetPolicyTier,
+        title: "Read SLO Error Budget Policy Tier",
+        description:
+          "Permission to read SLO Error Budget Policy Tiers of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

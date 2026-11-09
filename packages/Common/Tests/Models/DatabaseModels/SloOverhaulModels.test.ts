@@ -446,6 +446,13 @@ describe("ServiceLevelObjectiveFeed", () => {
         "OwnerTeamRemoved",
         "LabelRuleExecuted",
         "OwnerRuleExecuted",
+        "ErrorBudgetPolicyTierChanged",
+        "ErrorBudgetPolicyAlertRaised",
+        "ErrorBudgetPolicyAlertResolved",
+        "ErrorBudgetPolicyIncidentDeclared",
+        "ErrorBudgetPolicyIncidentResolved",
+        "ErrorBudgetPolicyDeploymentsFrozen",
+        "ErrorBudgetPolicyDeploymentsAllowed",
       ].sort(),
     );
 

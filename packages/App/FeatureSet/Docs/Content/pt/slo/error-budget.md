@@ -75,6 +75,7 @@ A autonomia é uma projeção em linha reta. Em uma janela móvel, a indisponibi
 O gráfico **Burn-down do orçamento de erros** da **Visão geral** traça o orçamento restante, em porcentagem, ao longo da janela de conformidade atual:
 
 - Uma linha em 0% marca onde o orçamento acaba, e uma linha tracejada marca o limite de risco do SLO.
+- Quando o SLO tem uma política de orçamento de erros, uma linha com rótulo também marca o limite de cada nível: veja [Política de orçamento de erros](/docs/slo/error-budget-policy).
 - Para SLOs de mês do calendário, uma linha suave desce de forma constante de um orçamento cheio no início do mês até um vazio no reinício. Abaixo dessa linha, o mês está gastando o orçamento rápido demais.
 - Um ponto é registrado a cada avaliação, a cada 5 minutos, então o gráfico de um SLO novo fica vazio até a primeira avaliação.
 - Arraste no gráfico para ampliar uma parte da janela. Clique duas vezes, ou clique em **Redefinir zoom**, para voltar a ver a janela inteira.
@@ -126,6 +127,8 @@ stateDiagram-v2
 
 Com o limite padrão de 20%, um SLO em risco volta a íntegro com 25% de orçamento restante, e um SLO com orçamento esgotado volta a em risco com 2%. Cada mudança de status aparece no **Feed** do SLO, com o SLI, o orçamento e a taxa de consumo que a explicam.
 
+Um status diz quanto orçamento resta, não o que sua equipe faz a respeito. Para deixar isso escrito para cada nível de orçamento restante, por exemplo no limite de risco ou quando o orçamento se esgota, dê ao SLO uma [política de orçamento de erros](/docs/slo/error-budget-policy).
+
 ## Notificações aos proprietários
 
 Quando um SLO passa para **Em risco** ou **Orçamento esgotado**, o OneUptime avisa os proprietários dele:
@@ -143,6 +146,7 @@ Para que um SLO perto de um limite não fique avisando sem parar, os proprietár
 
 :::cards
 - [Alertas e incidentes de taxa de consumo](/docs/slo/burn-rate-alerts): Avise sua equipe quando o orçamento é consumido rápido demais.
+- [Política de orçamento de erros](/docs/slo/error-budget-policy): Deixe escrito o que a equipe faz à medida que o orçamento acaba.
 - [Métricas e painéis de SLO](/docs/slo/metrics): Coloque o orçamento em gráficos ao longo do tempo.
 - [Visão geral dos SLOs](/docs/slo/introduction): Metas, janelas e status de indisponibilidade.
 :::

@@ -13,8 +13,7 @@ const MonitorGroupAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Monitor Group Audit Logs"
       description="All changes made to this monitor group."
-      resourceType="Monitor Group"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

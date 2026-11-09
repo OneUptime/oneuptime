@@ -16,6 +16,7 @@ import ServerlessFunctionTraces from "../Pages/Serverless/View/Traces";
 import ServerlessFunctionInstances from "../Pages/Serverless/View/Instances";
 import ServerlessFunctionDocumentation from "../Pages/Serverless/View/Documentation";
 import ServerlessFunctionDelete from "../Pages/Serverless/View/Delete";
+import ServerlessFunctionAuditLogs from "../Pages/Serverless/View/AuditLogs";
 import ServerlessLabelRules from "../Pages/Serverless/Settings/LabelRules";
 import ServerlessOwnerRules from "../Pages/Serverless/Settings/OwnerRules";
 import ServerlessArchived from "../Pages/Serverless/Archived";
@@ -209,6 +210,20 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION
                 ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <ServerlessFunctionAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

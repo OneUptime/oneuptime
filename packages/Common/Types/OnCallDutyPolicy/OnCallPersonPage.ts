@@ -141,9 +141,12 @@ function pager(notice: OnCallPersonPageNotice): string {
 
 /*
  * The name of who paged as a sentence's value: their name as written, or
- * "Someone" in the sentence's language.
+ * "Someone" in the sentence's language. An observer's page words its own
+ * sentences around it (OnCallObserverPage).
  */
-function pagerValue(notice: OnCallPersonPageNotice): string | TranslatableTerm {
+export function getOnCallPersonPagePager(
+  notice: OnCallPersonPageNotice,
+): string | TranslatableTerm {
   const name: string = notice.pagedByName.trim();
 
   return name || translatableTerm(translationKey("Someone"));
@@ -164,7 +167,7 @@ export function getOnCallPersonPageLead(
 
   if (teamName) {
     return translator.translateTemplate("{{pager}} paged {{team}}", {
-      pager: pagerValue(notice),
+      pager: getOnCallPersonPagePager(notice),
       team: teamName,
     });
   }
@@ -175,14 +178,14 @@ export function getOnCallPersonPageLead(
     return translator.translateTemplate(
       "{{pager}} paged whoever is on call in {{schedule}}",
       {
-        pager: pagerValue(notice),
+        pager: getOnCallPersonPagePager(notice),
         schedule: scheduleName,
       },
     );
   }
 
   return translator.translateTemplate("{{pager}} paged you", {
-    pager: pagerValue(notice),
+    pager: getOnCallPersonPagePager(notice),
   });
 }
 
@@ -216,7 +219,7 @@ export function getOnCallPersonPageWhyLine(
 
   return translator.translateTemplate(
     "You're getting this because {{pager}} paged you by name.",
-    { pager: pagerValue(notice) },
+    { pager: getOnCallPersonPagePager(notice) },
   );
 }
 
@@ -408,7 +411,7 @@ export function getOnCallPersonPageEmailMessageLine(
 
   return message
     ? translator.translateTemplate("{{pager}} wrote: “{{message}}”", {
-        pager: pagerValue(notice),
+        pager: getOnCallPersonPagePager(notice),
         message: message,
       })
     : "";

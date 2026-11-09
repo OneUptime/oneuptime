@@ -1,6 +1,7 @@
 import { JSONObject, JSONValue, ObjectType } from "../../JSON";
 import ObjectID from "../../ObjectID";
 import { parseTemplateExpressions } from "../TemplateSyntax";
+import OnCallPageAs from "../../OnCallDutyPolicy/OnCallPageAs";
 
 /*
  * HOW A PAGE STEP'S SETTINGS ARE STORED AND READ.
@@ -37,6 +38,7 @@ export const PAGE_ARGUMENT_IDS: {
   readonly alertSeverity: string;
   readonly incidentId: string;
   readonly alertId: string;
+  readonly pageAs: string;
 } = {
   users: "users",
   teams: "teams",
@@ -48,6 +50,7 @@ export const PAGE_ARGUMENT_IDS: {
   alertSeverity: "alert-severity",
   incidentId: "incident-id",
   alertId: "alert-id",
+  pageAs: "page-as",
 };
 
 // The stored ids of what a Page step returns.
@@ -106,6 +109,35 @@ export function readPageAbout(value: unknown): PageAbout | null {
   return (
     Object.values(PageAbout).find((about: PageAbout): boolean => {
       return about === normalized;
+    }) || null
+  );
+}
+
+/*
+ * What a Page As setting holds (OnCallPageAs): Responders while it is empty,
+ * as every page step was before it had the setting, or null for a value
+ * that is neither (a workflow edited by hand, a reference that resolved to
+ * something else). Observers are kept informed while somebody else
+ * responds (OnCallObserverPage).
+ */
+export function readPageAs(value: unknown): OnCallPageAs | null {
+  if (value === undefined || value === null) {
+    return OnCallPageAs.Responders;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized: string = value.trim().toLowerCase();
+
+  if (normalized === "") {
+    return OnCallPageAs.Responders;
+  }
+
+  return (
+    Object.values(OnCallPageAs).find((pageAs: OnCallPageAs): boolean => {
+      return pageAs.toLowerCase() === normalized;
     }) || null
   );
 }

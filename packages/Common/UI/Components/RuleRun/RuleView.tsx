@@ -23,6 +23,7 @@ import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
 import ModelDelete from "../ModelDelete/ModelDelete";
 import CardModelDetail from "../ModelDetail/CardModelDetail";
+import Field from "../ModelDetail/Field";
 import FieldType from "../Types/FieldType";
 import {
   doesRuleAddNothing,
@@ -55,6 +56,30 @@ export interface RuleWording<TBaseModel extends BaseModel> {
     | undefined;
 }
 
+/*
+ * WHO MAY CHANGE A RULE TEAMS CAN OWN, ON ITS OWN PAGE
+ * (Types/TeamOwnedRule/TeamOwnedRuleKinds): a rule some teams own is
+ * changed and deleted only with the permissions of those teams, and by the
+ * project's owners and admins. Its page reads which teams own it, as its
+ * list does for its row, and hands RuleView this: its Edit and Delete
+ * locked as its row's are, saying which teams own it, and its details
+ * naming them, as the list's column does.
+ */
+export interface RuleOwnership<TBaseModel extends BaseModel> {
+  /*
+   * The locks of its Edit and Delete beyond the permissions of its kind
+   * (PermissionGate.checkTeamOwnedRule): allowed, or refused with the
+   * reason its row gives, or - while who owns it is read - refused with
+   * nothing to say yet, which holds them back for that moment.
+   */
+  editLock: PermissionGateResult;
+  deleteLock: PermissionGateResult;
+  // The teams that own it, last among its details.
+  owningTeamsField?: Field<TBaseModel> | undefined;
+  // Its Edit saved, which may have changed who owns it: read them again.
+  onRuleSaved?: (() => void) | undefined;
+}
+
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
   ruleId: ObjectID;
@@ -76,11 +101,18 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   ruleCriteriaSubject?: RuleCriteriaSubject | undefined;
   ruleRunNouns?: RuleRunResourceNouns | undefined;
   ruleWording?: RuleWording<TBaseModel> | undefined;
+  // The Edit form's fields that are no columns, filled in (ModelForm's onItemFetched).
+  onEditFormItemFetched?:
+    | ((item: TBaseModel) => Promise<TBaseModel>)
+    | undefined;
+  // Who may change it, for a rule of a kind teams can own (RuleOwnership).
+  ownership?: RuleOwnership<TBaseModel> | undefined;
 }
 
 /*
  * A rule's own page: its details (editable with the same form as the table),
- * "Run Now", and delete.
+ * "Run Now", and delete - Edit and Delete locked, on a rule teams own, for
+ * whoever those teams' permissions do not let change it (RuleOwnership).
  */
 const RuleView: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -188,6 +220,11 @@ const RuleView: <TBaseModel extends BaseModel>(
         formFields={props.formFields}
         createEditModalWidth={props.createEditModalWidth}
         modelAPI={props.modelAPI}
+        onEditFormItemFetched={props.onEditFormItemFetched}
+        editLock={props.ownership?.editLock}
+        onSaveSuccess={() => {
+          props.ownership?.onRuleSaved?.();
+        }}
         modelDetailProps={{
           modelType: props.modelType,
           id: "rule-view-detail",
@@ -210,6 +247,9 @@ const RuleView: <TBaseModel extends BaseModel>(
               fieldType: FieldType.ObjectID,
             },
             ...detail.fields,
+            ...(props.ownership?.owningTeamsField
+              ? [props.ownership.owningTeamsField]
+              : []),
           ],
         }}
       />
@@ -244,6 +284,7 @@ const RuleView: <TBaseModel extends BaseModel>(
         modelId={props.ruleId}
         modelAPI={props.modelAPI}
         singularName={props.singularName}
+        deleteLock={props.ownership?.deleteLock}
         onDeleteSuccess={() => {
           Navigation.navigate(props.listRoute);
         }}

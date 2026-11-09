@@ -342,6 +342,8 @@ Ein Vorfall oder eine Warnung bekommt eine einzige KI-Korrekturspur. Ist er oder
 
 Einige riskantere Änderungen **brauchen immer einen Menschen**, in jedem Modus, Genehmigung umgehen eingeschlossen, und kein Eintrag der Zulassungsliste ändert das – sie sind in den Tabellen unten entsprechend gekennzeichnet.
 
+Ein Projekt kann außerdem verlangen, dass zwei Personen eine Korrektur genehmigen, die eine riskantere Änderung enthält: siehe [Zwei Personen genehmigen eine riskantere Korrektur](/docs/ai/ai-sre#zwei-personen-genehmigen-eine-riskantere-korrektur).
+
 ### Korrekturen auf Docker- und Podman-Hosts
 
 | | Befehle |

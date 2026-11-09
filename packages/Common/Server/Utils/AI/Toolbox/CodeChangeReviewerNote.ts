@@ -1,0 +1,83 @@
+import {
+  CodeFileUnseen,
+  CodeFileUnseenFinding,
+} from "../../../../Types/CodeRepository/CodeFileSeen";
+import { CodeFilePlaceholderWritten } from "../../../../Types/CodeRepository/CodeFileValuesHidden";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
+import { describeLineRanges } from "./CodeFilesSeen";
+
+type ReviewerNoteFunction = (data: {
+  // The branch the pull request starts from.
+  baseBranchName: string;
+  // What its card said the change writes over unseen (CodeFilesSeen).
+  findings: ReadonlyArray<CodeFileUnseenFinding>;
+}) => string | null;
+
+/*
+ * WHAT A PULL REQUEST APPROVED ANYWAY TELLS WHOEVER REVIEWS IT (issue #6313).
+ *
+ * The card of an Ask AI pull request said it writes over what Ask AI never
+ * read - a file changed on the base branch after Ask AI read it, read on
+ * another branch only, never read, read only in part (issue #6330), or not
+ * checked - and the person approved it anyway. Whoever reviews it on
+ * GitHub, GitLab, Forgejo or Gitea may never have seen the card, so the
+ * pull request's description says it too, as Markdown: each file in a
+ * code span, so its name reads as written (src/__init__.py,
+ * pages/[slug].tsx), and for a file read in part, the lines AI never saw,
+ * where its diff may drop code - and for a file whose version writes
+ * placeholders in place of values hidden from AI (issue #6364), each
+ * placeholder and its lines, where the real values belong. Null when the
+ * card said nothing.
+ */
+export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
+  baseBranchName: string;
+  findings: ReadonlyArray<CodeFileUnseenFinding>;
+}): string | null => {
+  if (data.findings.length === 0) {
+    return null;
+  }
+
+  const base: MarkdownText = FeedMarkdown.code(data.baseBranchName);
+
+  const items: Array<MarkdownText> = data.findings.map(
+    (finding: CodeFileUnseenFinding): MarkdownText => {
+      const file: MarkdownText = FeedMarkdown.code(finding.filePath);
+
+      switch (finding.unseen) {
+        case CodeFileUnseen.ChangedSinceRead:
+          return mdText`${file}: changed on ${base} after AI read it.`;
+        case CodeFileUnseen.ReadOnAnotherBranch:
+          return finding.readOnBranch
+            ? mdText`${file}: AI read it on ${FeedMarkdown.code(finding.readOnBranch)}, and it is different on ${base}.`
+            : mdText`${file}: AI read it on another branch, and it is different on ${base}.`;
+        case CodeFileUnseen.NotRead:
+          return mdText`${file}: AI did not read it before writing it.`;
+        case CodeFileUnseen.ReadInPart:
+          return finding.lineCount !== undefined && finding.linesNotRead
+            ? mdText`${file}: AI did not read ${describeLineRanges(finding.linesNotRead)} of its ${String(finding.lineCount)} ${finding.lineCount === 1 ? "line" : "lines"} before writing the whole file.`
+            : mdText`${file}: AI read only part of it before writing the whole file.`;
+        case CodeFileUnseen.ValuesHidden:
+          return finding.placeholdersWritten &&
+            finding.placeholdersWritten.length > 0
+            ? mdText`${file}: AI's version writes ${FeedMarkdown.join(
+                finding.placeholdersWritten.map(
+                  (written: CodeFilePlaceholderWritten): MarkdownText => {
+                    return mdText`${FeedMarkdown.code(written.placeholder)} on ${describeLineRanges(written.lines)}`;
+                  },
+                ),
+                "; ",
+              )}, placeholders for values hidden from AI, where the real values belong.`
+            : mdText`${file}: AI's version writes placeholders for values hidden from AI, where the real values belong.`;
+        case CodeFileUnseen.NotChecked:
+        default:
+          return mdText`${file}: OneUptime could not check it against what AI read.`;
+      }
+    },
+  );
+
+  return mdText`**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:
+${FeedMarkdown.bulletList(items)}`.toString();
+};

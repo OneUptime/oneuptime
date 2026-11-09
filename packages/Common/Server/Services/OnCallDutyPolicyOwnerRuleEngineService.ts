@@ -22,7 +22,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -107,6 +109,7 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass
         onCallDutyPolicy: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running on-call duty policy owner rules: ${error}`, {
@@ -123,6 +126,8 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass
     onCallDutyPolicy: OnCallDutyPolicy;
     rules: Array<OnCallDutyPolicyOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { onCallDutyPolicy, rules } = data;
 
@@ -254,7 +259,7 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: OnCallDutyPolicyOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -272,7 +277,7 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: OnCallDutyPolicyOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

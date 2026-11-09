@@ -177,7 +177,7 @@ export default class CustomCodeMonitoringCriteria {
    * resolved value is undefined. Object keys with a literal dot are not
    * addressable - only "[index]" reaches into arrays.
    */
-  private static resolveValueAtPath(
+  public static resolveValueAtPath(
     result: CustomCodeMonitorResult | undefined,
     path: string | undefined,
   ): CustomCodeMonitorResult | undefined {

@@ -154,11 +154,27 @@
  *            three teams and three people, more than its header names.
  *   ?commander= none: nobody holds Incident Commander on Incident #1042
  *            or Incident Episode #12 (Maya Chen does by default).
- *   ?what=   default | empty | long
+ *   ?what=   default | empty | long | monitor
  *            What Incident #1042 says happened. "empty": no description and
  *            no root cause. "long": a description and a root cause in
  *            markdown, each longer than the What happened card shows before
- *            Show more, whatever the state.
+ *            Show more, whatever the state. "monitor": the root cause the
+ *            monitor wrote when it declared the incident, as the server
+ *            writes it (MonitorCriteriaEvaluator), whatever the state.
+ *   ?evaluation= default | many | long | off | offline | logs | none
+ *            What the monitor's evaluation said when it opened Incident
+ *            #1042 and Alert #311 (Incident.evaluationDetails,
+ *            Alert.evaluationDetails), under the What happened card's root
+ *            cause. By default an API check: two filters that both matched,
+ *            the JSON path and a redacted excerpt. "many": a criteria of
+ *            Any with four filters, one that did not match, a JavaScript
+ *            expression's values and a header's. "long": long values - a URL,
+ *            a JSON path, an excerpt, a sentence. "off": a monitor that keeps
+ *            no response content. "offline": a Website check that could not
+ *            connect - Is Online False, and the probe's account of why.
+ *            "logs": a Logs monitor's criteria, whose filter only the
+ *            evaluation's sentence describes (#1042 only).
+ *            "none": no details, as an incident from before they were kept.
  *   ?lang=   one of the Dashboard's languages (de, fr, ja, ...): the page
  *            reads that language's words, fetched from the Dashboard's own
  *            locale files (server.js serves them).
@@ -331,6 +347,16 @@
  *            (approvedFrom), verified fixed. Dismiss fix dismisses the
  *            runbook; ?fail=dismiss refuses it, as the server refuses
  *            someone who may not start runbook executions.
+ *   ?approvals= on | first | mine: with ?fixes=many, the project asks two
+ *            people to approve a riskier fix (requireTwoApprovalsForRiskier
+ *            Fixes, #6148's follow-ups), and the kubectl fix holds one (its
+ *            scale is RiskyWrite). on: nobody has approved it yet, and
+ *            Maya's Approve records the first approval and runs nothing;
+ *            first: Jordan Patel approved it first, from its Slack message,
+ *            and Maya's Approve & Run runs it; mine: Maya approved it
+ *            first, so it waits for someone else's, and a press of hers
+ *            again is refused with the server's words
+ *            (RemediationApproval.approve).
  *   Try again (POST /auto-remediation/try-again) decides again for an open
  *            record, as AutoRemediationRuleEngineService.tryAgain does:
  *            the record's decision is written afresh - OneUptime AI started
@@ -394,6 +420,7 @@ import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
+import { ALREADY_APPROVED_FIRST_MESSAGE } from "Common/Types/AutoRemediation/RemediationApprovals";
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import DataAlert from "Common/Models/DatabaseModels/DataAlert";
@@ -741,6 +768,15 @@ const FIXES_MODES = ["many", "rolled-back", "runbook"];
 const fixesMode = FIXES_MODES.includes(params.get("fixes"))
   ? params.get("fixes")
   : "";
+/*
+ * ?approvals=: the project asks two people to approve a riskier fix, and
+ * how far ?fixes=many's kubectl fix has come: nobody has approved it (on),
+ * someone else approved it first (first), or the reader did (mine).
+ */
+const APPROVALS_MODES = ["on", "first", "mine"];
+const approvalsMode = APPROVALS_MODES.includes(params.get("approvals"))
+  ? params.get("approvals")
+  : "";
 // Enable AI is off now only for off-project while the switches stay off.
 const isProjectAiOff = aiMode === "off-project" && switchesMode !== "on";
 const resourcesMode = ["many", "none"].includes(params.get("resources"))
@@ -869,8 +905,13 @@ const ownersMode = OWNERS_MODES.includes(params.get("owners"))
   : "default";
 // ?commander=none: nobody holds Incident Commander on #1042 or episode #12.
 const commanderMode = params.get("commander") === "none" ? "none" : "default";
+// ?evaluation=: what the monitor's evaluation said (see the header).
+const EVALUATION_MODES = ["many", "long", "off", "offline", "logs", "none"];
+const evaluationMode = EVALUATION_MODES.includes(params.get("evaluation"))
+  ? params.get("evaluation")
+  : "default";
 // ?what=: what incident #1042 says happened, for the What happened card.
-const WHAT_MODES = ["empty", "long"];
+const WHAT_MODES = ["empty", "long", "monitor"];
 const whatMode = WHAT_MODES.includes(params.get("what"))
   ? params.get("what")
   : "default";
@@ -1208,6 +1249,8 @@ table(Project).push({
   _id: PROJECT_ID,
   name: "Acme Commerce",
   ...PROJECT_AI_SWITCHES,
+  // ?approvals=: two people approve a riskier fix (useTwoApprovalsRule).
+  requireTwoApprovalsForRiskierFixes: Boolean(approvalsMode),
 });
 
 const team = insert(Team, {
@@ -1653,6 +1696,9 @@ function defineIncident(spec) {
     isPrivate: isPrivateMode && spec.number === 1042,
     isVisibleOnStatusPage: !(isPrivateMode && spec.number === 1042),
     rootCause: spec.rootCause,
+    ...(spec.evaluationDetails
+      ? { evaluationDetails: spec.evaluationDetails }
+      : {}),
     remediationNotes: spec.remediationNotes,
     incidentEpisode: spec.episode,
     incidentEpisodeId: spec.episode?.id,
@@ -1828,6 +1874,297 @@ defineIncident({
   episode: incidentEpisodeRecord,
 });
 
+/*
+ * ---------------------------------------------------------------------------
+ * Evaluation details (?evaluation=)
+ * ---------------------------------------------------------------------------
+ * What MonitorEvaluationDetailsBuilder stores on an incident or alert a
+ * monitor opened, already redacted, as its jsonb column reads back: the
+ * evaluation time as ISO text.
+ */
+const MASKED = "[REDACTED]";
+
+function incidentEvaluationDetails() {
+  if (evaluationMode === "none") {
+    return undefined;
+  }
+
+  const base = {
+    version: 1,
+    monitorType: "API",
+    evaluatedAt: at("18:01").toISOString(),
+    probeName: "eu-west-1 probe",
+    criteriaId: "criteria-checkout-slow",
+    criteriaName: "Checkout is slow",
+    filterCondition: "All",
+    request: {
+      method: "POST",
+      url: `https://api.acme-commerce.example/api/checkout/health?region=eu&api_key=${MASKED}`,
+    },
+    response: { statusCode: 200, responseTimeInMs: 2412, isOnline: true },
+  };
+
+  const slow = {
+    checkOn: "Response Time (in ms)",
+    filterType: "Greater Than",
+    value: 2000,
+    met: true,
+    message:
+      "All values of Response Time (in ms) over the last 5 minutes ranged from 2,180 ms to 2,412 ms across all 3 readings, above the 2000 threshold.",
+    actual: "2412 ms",
+    actualNumber: 2412,
+    actualUnit: "ms",
+    windowMinutes: 5,
+    windowType: "All Values",
+  };
+
+  const degraded = {
+    checkOn: "Response Body",
+    filterType: "Contains",
+    value: "degraded",
+    met: true,
+    message: "Response body contains degraded.",
+    field: "dependencies[0].status",
+    excerpt: {
+      before: `{"service":"checkout-api","owner":"${MASKED}","dependencies":[{"name":"orders-db","status":"`,
+      match: "degraded",
+      after: `","pool":{"inUse":10,"max":10,"waiting":37}},{"name":"payments","status":"ok"}],"session":${MASKED}}`,
+      isCutAtStart: false,
+      isCutAtEnd: true,
+    },
+  };
+
+  /*
+   * The check could not connect: the most common reason a monitor opens an
+   * incident. Is Online False matched, and the probe said why.
+   */
+  if (evaluationMode === "offline") {
+    return {
+      version: 1,
+      monitorType: "Website",
+      evaluatedAt: at("18:01").toISOString(),
+      probeName: "eu-west-1 probe",
+      criteriaId: "criteria-checkout-offline",
+      criteriaName: "Checkout is offline",
+      filterCondition: "Any",
+      request: { url: "https://shop.acme-commerce.example/checkout" },
+      response: {
+        responseTimeInMs: 10004,
+        isOnline: false,
+        isTimeout: true,
+        failureCause:
+          "Request timed out after 10 seconds: no response from shop.acme-commerce.example:443.",
+      },
+      filters: [
+        {
+          checkOn: "Is Online",
+          filterType: "False",
+          met: true,
+          message: "Monitor reported offline status at 14/09/2026 18:01:04.",
+          actual: "false",
+        },
+        {
+          checkOn: "Response Status Code",
+          filterType: "Greater Than",
+          value: 499,
+          met: false,
+          message:
+            "Response Status Code was not reported, so the condition could not be checked.",
+        },
+      ],
+    };
+  }
+
+  /*
+   * A Logs monitor: no request, no response, and nothing the section reads
+   * from a body - the filter's own sentence says what it found.
+   */
+  if (evaluationMode === "logs") {
+    return {
+      version: 1,
+      monitorType: "Logs",
+      evaluatedAt: at("18:01").toISOString(),
+      criteriaId: "criteria-checkout-errors",
+      criteriaName: "Checkout logs errors",
+      filterCondition: "All",
+      filters: [
+        {
+          checkOn: "Log Count",
+          filterType: "Greater Than",
+          value: 100,
+          met: true,
+          message:
+            "Log Count was 412 in the last 5 minutes, above the 100 threshold.",
+        },
+      ],
+    };
+  }
+
+  if (evaluationMode === "off") {
+    return {
+      ...base,
+      areResponseExcerptsOff: true,
+      filters: [
+        slow,
+        {
+          checkOn: "Response Body",
+          filterType: "Contains",
+          value: "degraded",
+          met: true,
+          message: "Response body contains degraded.",
+          excerptOmission: "response-excerpts-off",
+        },
+      ],
+    };
+  }
+
+  if (evaluationMode === "many") {
+    return {
+      ...base,
+      criteriaName: "Checkout is degraded",
+      filterCondition: "Any",
+      filters: [
+        {
+          checkOn: "Response Status Code",
+          filterType: "Greater Than",
+          value: 499,
+          met: false,
+          message:
+            "Response Status Code was 200 (expected to be greater than 499).",
+        },
+        slow,
+        {
+          checkOn: "JavaScript Expression",
+          filterType: "Evaluates To True",
+          value:
+            "{{responseBody.dependencies[0].pool.inUse}} >= {{responseBody.dependencies[0].pool.max}} && '{{responseHeaders.set-cookie}}' !== ''",
+          met: true,
+          message:
+            "JavaScript Expression - {{responseBody.dependencies[0].pool.inUse}} >= {{responseBody.dependencies[0].pool.max}} && '{{responseHeaders.set-cookie}}' !== '' - evaluated to true. Values: responseBody.dependencies[0].pool.inUse = 10, responseBody.dependencies[0].pool.max = 10, responseHeaders.set-cookie = [REDACTED].",
+          actual: "true",
+          fieldValues: [
+            { path: "responseBody.dependencies[0].pool.inUse", value: "10" },
+            { path: "responseBody.dependencies[0].pool.max", value: "10" },
+            {
+              path: "responseHeaders.set-cookie",
+              value: MASKED,
+              isRedacted: true,
+            },
+            {
+              path: "responseBody.dependencies[0].pool.queue",
+              isMissing: true,
+            },
+          ],
+        },
+        {
+          checkOn: "Response Header Value",
+          filterType: "Contains",
+          value: "miss",
+          met: true,
+          message: "Response header value contains miss.",
+          field: "x-cache",
+          actual: "MISS",
+        },
+      ],
+    };
+  }
+
+  if (evaluationMode === "long") {
+    return {
+      ...base,
+      criteriaName:
+        "Checkout health endpoint reports a degraded dependency for the EU storefront during evening peak",
+      stepNumber: 2,
+      stepCount: 3,
+      request: {
+        method: "POST",
+        url: `https://api.acme-commerce.example/api/v2/storefronts/eu-central/checkout/health/dependencies/orders-database-primary-replica-set?region=eu-central-1&include=pool,replication,locks,slow-queries&api_key=${MASKED}&trace=${"a1b2c3".repeat(8)}`,
+      },
+      response: {
+        statusCode: 200,
+        responseTimeInMs: 2412,
+        isOnline: true,
+        failureCause:
+          "The response arrived after 2,412 ms; the first byte took 2,390 ms while orders-db waited for a free connection in its pool.",
+      },
+      filters: [
+        {
+          ...degraded,
+          field:
+            'storefronts["eu-central"].checkout.dependencies[0].replicaSet.members[2].health.connectionPool.status',
+          excerpt: {
+            before: `"members":[{"host":"orders-db-0.eu-central.internal","role":"primary"},{"host":"orders-db-1.eu-central.internal","role":"replica","health":{"connectionPool":{"inUse":40,"max":40,"status":"`,
+            match: "degraded",
+            after: `","waiting":137,"oldestWaitMs":2390,"token":${MASKED},"note":"pool exhausted since 17:52 after release 2026.09.14-2 started with DB_POOL_MAX=10"}}}]`,
+            isCutAtStart: true,
+            isCutAtEnd: true,
+          },
+          message: "Response body contains degraded.",
+        },
+        slow,
+      ],
+    };
+  }
+
+  return { ...base, filters: [slow, degraded] };
+}
+
+function alertEvaluationDetails() {
+  if (evaluationMode === "none") {
+    return undefined;
+  }
+
+  return {
+    version: 1,
+    monitorType: "API",
+    evaluatedAt: at("18:06").toISOString(),
+    probeName: "eu-west-1 probe",
+    criteriaId: "criteria-webhook-errors",
+    criteriaName: "Webhook returns server errors",
+    filterCondition: "All",
+    request: {
+      method: "POST",
+      url: "https://payments.acme-commerce.example/webhooks/provider/health",
+    },
+    response: { statusCode: 502, responseTimeInMs: 318, isOnline: true },
+    ...(evaluationMode === "off" ? { areResponseExcerptsOff: true } : {}),
+    filters: [
+      {
+        checkOn: "Response Status Code",
+        filterType: "Greater Than",
+        value: 499,
+        met: true,
+        message: "Response Status Code was 502, above the 499 threshold.",
+        actual: "502",
+      },
+      evaluationMode === "off"
+        ? {
+            checkOn: "Response Body",
+            filterType: "Contains",
+            value: "ledger-api",
+            met: true,
+            message: "Response body contains ledger-api.",
+            excerptOmission: "response-excerpts-off",
+          }
+        : {
+            checkOn: "Response Body",
+            filterType: "Contains",
+            value: "ledger-api",
+            met: true,
+            message: "Response body contains ledger-api.",
+            field: "error.upstream",
+            excerpt: {
+              before: '{"error":{"code":502,"upstream":"',
+              match: "ledger-api",
+              after: '","detail":"upstream timed out after 1000 ms"}}',
+              isCutAtStart: false,
+              isCutAtEnd: false,
+            },
+          },
+    ],
+  };
+}
+
 // The incident under test.
 const INCIDENT_NUMBER = 1042;
 /*
@@ -1841,14 +2178,38 @@ const MAIN_INCIDENT_DESCRIPTION =
     : whatMode === "long"
       ? "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe, and the synthetic checkout journey began timing out a minute later.\n\nWhat customers saw:\n\n- Checkout spun for up to 30 seconds before the payment step loaded.\n- About 4% of orders were abandoned at the payment step between 17:58 and 18:12.\n- Order confirmation emails were delayed by up to 6 minutes.\n\nSupport received 41 tickets about slow checkout in the same window, most of them from the EU storefront."
       : "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.";
+/*
+ * The root cause the monitor wrote when it declared #1042, as
+ * MonitorCriteriaEvaluator writes one for an API monitor's criteria: its
+ * name, each filter's sentence, the request and what came back.
+ */
+const MONITOR_WRITTEN_ROOT_CAUSE = [
+  "**Created because the following criteria was met**:",
+  "",
+  "**Criteria Name**: Checkout is slow",
+  "",
+  "**Filter Conditions Met**: All filters met.",
+  "- All values of Response Time (in ms) over the last 5 minutes ranged from 2,180 ms to 2,412 ms across all 3 readings, above the 2000 threshold.",
+  "- Response body contains degraded.",
+  "",
+  "**Request Details**",
+  "- Destination: https://api.acme-commerce.example/api/checkout/health?region=eu&api_key=[REDACTED]",
+  "- Request Method: POST",
+  "",
+  "**Response Snapshot**",
+  "- Response Status Code: 200",
+  "- Response Time: 2412 ms",
+].join("\n");
 const MAIN_INCIDENT_ROOT_CAUSE =
   whatMode === "empty"
     ? undefined
-    : whatMode === "long"
-      ? "Release 2026.09.14-2 of checkout-api started at 17:52 with `DB_POOL_MAX=10` instead of 40: the value came from a staging override that the release pipeline copied into the production manifest.\n\nUnder the evening load, checkout requests queued for a connection to orders-db and p95 latency passed 2s. The same pool exhaustion caused #1017, #1029 and #1036.\n\nContributing factors:\n\n1. The release check compares image tags, not environment values.\n2. The pool size alert fires only at 100% use, after requests already wait.\n3. Rolling back took 12 minutes because the previous image had been pruned."
-      : isResolved
-        ? "checkout-api 2026.09.14-2 started with DB_POOL_MAX=10 (was 40). Rolled back at 18:10."
-        : undefined;
+    : whatMode === "monitor"
+      ? MONITOR_WRITTEN_ROOT_CAUSE
+      : whatMode === "long"
+        ? "Release 2026.09.14-2 of checkout-api started at 17:52 with `DB_POOL_MAX=10` instead of 40: the value came from a staging override that the release pipeline copied into the production manifest.\n\nUnder the evening load, checkout requests queued for a connection to orders-db and p95 latency passed 2s. The same pool exhaustion caused #1017, #1029 and #1036.\n\nContributing factors:\n\n1. The release check compares image tags, not environment values.\n2. The pool size alert fires only at 100% use, after requests already wait.\n3. Rolling back took 12 minutes because the previous image had been pruned."
+        : isResolved
+          ? "checkout-api 2026.09.14-2 started with DB_POOL_MAX=10 (was 40). Rolled back at 18:10."
+          : undefined;
 const mainIncident = defineIncident({
   number: INCIDENT_NUMBER,
   numbering: numberedAs("incident", INCIDENT_NUMBER),
@@ -1869,6 +2230,7 @@ const mainIncident = defineIncident({
   episode: incidentEpisodeRecord,
   notificationFailed: failures.has("resend"),
   rootCause: MAIN_INCIDENT_ROOT_CAUSE,
+  evaluationDetails: incidentEvaluationDetails(),
 });
 insert(IncidentFeed, {
   incidentId: mainIncident.id,
@@ -2037,6 +2399,9 @@ function defineAlert(spec) {
     alertEpisode: spec.episode,
     alertEpisodeId: spec.episode?.id,
     rootCause: spec.rootCause,
+    ...(spec.evaluationDetails
+      ? { evaluationDetails: spec.evaluationDetails }
+      : {}),
     customFields: {},
   };
   table(Alert).push(record);
@@ -2180,6 +2545,7 @@ const mainAlert = defineAlert({
   monitor: monitors.webhookErrors,
   services: [services.payments],
   episode: alertEpisodeRecord,
+  evaluationDetails: alertEvaluationDetails(),
 });
 
 /*
@@ -4935,6 +5301,14 @@ if (fixesMode === "many") {
       "The pool exhaustion follows the 17:52 restart. Restarting the deployment brings the configured pool back.",
     commandPlan: kubectlFixPlan(false),
     createdAt: at("18:04", 10),
+    // ?approvals=first|mine: who approved it first, where and when.
+    ...(approvalsMode === "first" || approvalsMode === "mine"
+      ? firstApproval(
+          approvalsMode === "first" ? people.jordan : people.maya,
+          approvalsMode === "first" ? "Slack" : "Dashboard",
+          at("18:06", 20),
+        )
+      : {}),
   });
   insert(AutoRemediationSuggestion, {
     _id: MCP_FIX_SUGGESTION_ID,
@@ -5151,6 +5525,20 @@ if (fixesMode === "runbook") {
   });
 }
 
+/*
+ * The first of two approvals, as the server records it
+ * (AutoRemediationSuggestionService.attemptFirstApproval): who, from where
+ * and when.
+ */
+function firstApproval(user, from, when) {
+  return {
+    firstApprovedByUser: user,
+    firstApprovedByUserId: user.id,
+    firstApprovedFrom: from,
+    firstApprovedAt: when,
+  };
+}
+
 // Approve & Run (POST /auto-remediation/approve) on a fix that waits.
 function approveFix(suggestionId) {
   const record = table(AutoRemediationSuggestion).find((row) => {
@@ -5165,6 +5553,29 @@ function approveFix(suggestionId) {
   if (!record || record.status !== "Suggested") {
     throw fail(400, "Only suggested remediations can be approved.");
   }
+  /*
+   * ?approvals=: the kubectl fix holds a riskier change and the project
+   * asks two people to approve one, as RemediationApproval.approve
+   * decides: the first approval is recorded and runs nothing, the first
+   * approver's own press again is refused, and someone else's runs it.
+   */
+  if (approvalsMode && String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
+    if (!record.firstApprovedByUserId) {
+      Object.assign(
+        record,
+        firstApproval(people.maya, "Dashboard", new Date()),
+      );
+      return {
+        suggestionId: String(record._id),
+        status: "Suggested",
+        suggestionType: "CommandPlan",
+        isWaitingForSecondApproval: true,
+      };
+    }
+    if (String(record.firstApprovedByUserId) === String(people.maya.id)) {
+      throw fail(400, ALREADY_APPROVED_FIRST_MESSAGE);
+    }
+  }
   record.status = "Approved";
   // Who approved it and when, as the server stamps them.
   record.approvedAt = new Date();
@@ -5173,6 +5584,11 @@ function approveFix(suggestionId) {
   if (String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
     record.commandPlan = kubectlFixPlan(true);
   }
+  return {
+    suggestionId: String(record._id),
+    status: "Approved",
+    suggestionType: record.suggestionType,
+  };
 }
 
 // Dismiss (POST /auto-remediation/dismiss) on a fix that waits.
@@ -8509,8 +8925,7 @@ async function handleApi(method, options) {
 
   // Approve & Run and Dismiss on a fix that waits (?fixes=many).
   if (method === "POST" && url.endsWith("/auto-remediation/approve")) {
-    approveFix(body.suggestionId);
-    return ok({});
+    return ok(approveFix(body.suggestionId));
   }
 
   if (method === "POST" && url.endsWith("/auto-remediation/dismiss")) {

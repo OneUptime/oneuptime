@@ -103,6 +103,7 @@ import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
 } from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import { TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryUsage";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
   IDENTITY_REGISTRATION_SURFACES,
@@ -549,7 +550,11 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "Telemetry & APM",
     );
 
-    expect(telemetry.items).toEqual(["Ingestion Keys", "Data Retention"]);
+    expect(telemetry.items).toEqual([
+      "Ingestion Keys",
+      "Data Retention",
+      "Usage",
+    ]);
     expect(startsCollapsed(SETTINGS_MENU, "Telemetry & APM")).toBe(true);
     expect(page).toContain(
       "Go to **Project Settings → Telemetry & APM → Ingestion Keys**. **Telemetry & APM** starts collapsed in the side menu: click it to open it.",
@@ -1443,6 +1448,9 @@ describe("Data Retention (telemetry/data-retention)", () => {
 
     expect(admin).toContain("Leave empty for 1 day.");
     expect(admin).toContain("Leave empty for 30 days.");
+    expect(admin).toContain(
+      `Leave empty for ${TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS} days.`,
+    );
 
     for (const label of ADMIN_DASHBOARD_LABELS[DATA_RETENTION] || []) {
       expect(admin).toContain(`title: "${label}",`);
@@ -1459,6 +1467,7 @@ describe("Data Retention (telemetry/data-retention)", () => {
       `${DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS} days unless changed`,
       "1 day unless changed",
       "30 days unless changed",
+      `${TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS} days unless changed`,
     ]);
   });
 
@@ -1483,11 +1492,12 @@ describe("Data Retention (telemetry/data-retention)", () => {
 
     expect(usage).toContain('title: "Telemetry Usage History",');
     expect(usage).toContain('title: "Data Retention (in Days)",');
+    // The Usage page is a telemetry setting, on every install (issue #5916).
     expect(
-      sectionByTitle(menuSections(SETTINGS_MENU), "Billing and Invoices").items,
-    ).toContain("Usage History");
+      sectionByTitle(menuSections(SETTINGS_MENU), "Telemetry & APM").items,
+    ).toContain("Usage");
     expect(page).toContain(
-      "telemetry is billed per GB ingested, and the per-GB price includes 15 days of retention. Longer retention costs proportionally more: 30 days costs twice as much per GB as 15. Shorter retention costs proportionally less, but retention under 7 days is billed as 7 days. **Project Settings → Billing and Invoices → Usage History**",
+      "telemetry is billed per GB ingested, and the per-GB price includes 15 days of retention. Longer retention costs proportionally more: 30 days costs twice as much per GB as 15. Shorter retention costs proportionally less, but retention under 7 days is billed as 7 days. **Project Settings → Telemetry & APM → Usage**",
     );
   });
 
@@ -1501,7 +1511,7 @@ describe("Data Retention (telemetry/data-retention)", () => {
     expect(meteredPlan).toContain(
       "return Math.max(retentionInDays, this.minimumBillableRetentionInDays);",
     );
-    // The row keeps the days the telemetry is kept: Usage History shows them.
+    // The row keeps the days the telemetry is kept: the Usage page shows them.
     expect(
       readCommonSource("Server/Services/TelemetryUsageBillingService.ts"),
     ).toContain("retainTelemetryDataForDays: data.retentionInDays,");
@@ -2667,7 +2677,7 @@ describe("the four pages together", () => {
       [INGESTION_KEYS]: ["Project Settings → Telemetry & APM → Ingestion Keys"],
       [DATA_RETENTION]: [
         "Project Settings → Telemetry & APM → Data Retention",
-        "Project Settings → Billing and Invoices → Usage History",
+        "Project Settings → Telemetry & APM → Usage",
       ],
       [DROP_FILTERS_AND_SCRUB_RULES]: [
         "Logs → Settings → Drop Filters",

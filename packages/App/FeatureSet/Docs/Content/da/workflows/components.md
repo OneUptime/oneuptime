@@ -235,6 +235,7 @@ Når du opretter et workflow, har skabelonerne under **Vagt** dette klar, og et,
 | **Page About** | Hvad tilkaldet handler om: **A new alert**, **An incident** eller **An alert**. At kvittere for tilkaldet kvitterer også for det. |
 | **Title** og **Message** | Til en ny advarsel. OneUptime opretter en advarsel ud fra dem, og den bliver blandt dine advarsler som enhver anden. |
 | **Incident ID** eller **Alert ID** | Til en hændelse eller en advarsel, der allerede findes, som regel den, workflowet startede på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Page As** | Til en hændelse eller en advarsel, der allerede findes, under **Flere felter**. **Responders** tager sig af den. **Observers** holdes orienteret, mens andre håndterer den: når de kvitterer for deres tilkaldelse, siger det kun, at de har set den, og hændelsen eller advarslen bliver ikke kvitteret. |
 | **Severity** | Til en ny advarsel, under **Flere felter**. Den afgør, hvilke af hver persons vagtregler der tilkalder personen. Står den tom, er det projektets mest alvorlige. |
 
 En blok, der føjes til et workflow, som starter på en hændelse eller en advarsel, er allerede sat til at tilkalde om den post, så den kun spørger, hvem der skal tilkaldes.

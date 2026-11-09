@@ -43,18 +43,28 @@ import AIConversationMessage from "../../../Models/DatabaseModels/AIConversation
 import {
   AI_ACTION_CARD_KINDS,
   AI_ACTION_CARD_LINES,
+  AI_ACTION_CODE_FILE,
+  AI_ACTION_LINES,
+  AI_ACTION_PLURAL_LINES,
+  AI_ACTION_TITLES,
+  aiActionList,
+  aiActionPluralSentence,
+  aiActionResourceByName,
   aiActionSentence,
   aiActionTerm,
 } from "../../../Types/AI/AIActionWords";
 import AIChatMessageRole from "../../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../../Types/AI/AIChatMessageStatus";
 import {
+  AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME,
   AIChatToolAction,
   AIChatToolActionStatus,
   AIChatWidget,
   AIChatWidgetType,
 } from "../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../Types/JSON";
+import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../../../Types/Workflow/WorkflowDraftProposedOnKey";
+import { CODE_CHANGE_PROPOSED_ON_KEY } from "../../../Types/CodeRepository/CodeChangeProposedOnKey";
 import ObjectID from "../../../Types/ObjectID";
 import {
   DASHBOARD_LANGUAGES,
@@ -335,5 +345,227 @@ describe("the approval card's line of arguments, in the reader's words", () => {
         }).toEqual({ language, label, worded: true });
       }
     }
+  });
+});
+
+/*
+ * Issue #6274: what an Ask AI change to a workflow was proposed on - its
+ * graph revision and its steps' fingerprints - is kept in the action's
+ * arguments by OneUptime, for the approval to be checked against. It is
+ * nothing a person decides by, and the card never draws it.
+ */
+describe("what OneUptime keeps in an action for itself", () => {
+  const PROPOSED_ON: JSONObject = {
+    graphRevision: 7,
+    steps: [{ id: "log-1", fingerprint: "0123456789abcdef" }],
+  };
+
+  test("is no argument of the card's line, whatever else the line leaves out", () => {
+    const parts: Array<ActionArgumentPart> = getActionArgumentParts(
+      {
+        workflowId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        name: "Tickets",
+        [AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME[0]!]: PROPOSED_ON,
+      },
+      {},
+      dashboardTranslator("en"),
+    );
+
+    expect(
+      parts.map((part: ActionArgumentPart): string => {
+        return part.key;
+      }),
+    ).toEqual(["workflowId", "name"]);
+  });
+
+  test("a workflow change with no line under its title still never shows it", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action({
+            toolName: "update_workflow",
+            title: "Update workflow Tickets",
+            arguments: {
+              steps: [{ id: "webhook-1", componentId: "webhook" }],
+              connections: [],
+              [AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME[0]!]: PROPOSED_ON,
+            },
+            status: AIChatToolActionStatus.Pending,
+          }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={(): void => {}}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
+
+    expect(line).toHaveTextContent("steps");
+    expect(line).not.toHaveTextContent("proposedOn");
+    expect(line).not.toHaveTextContent("graphRevision");
+    expect(line).not.toHaveTextContent("0123456789abcdef");
+  });
+
+  test("names only what update_workflow and the code changes write for themselves", () => {
+    expect([...AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME]).toEqual([
+      WORKFLOW_DRAFT_PROPOSED_ON_KEY,
+      CODE_CHANGE_PROPOSED_ON_KEY,
+    ]);
+  });
+
+  /*
+   * Issue #6313: the files an Ask AI code change writes, as the branch had
+   * them when its card was shown - keyed fingerprints its approval is held
+   * to - are OneUptime's too, and never drawn.
+   */
+  test("a commit's card never shows the files it was proposed on", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action({
+            toolName: "commit_code_to_branch",
+            title: "Commit 1 file to fix/login",
+            arguments: {
+              branchName: "fix/login",
+              commitMessage: "fix: charge",
+              changes: [{ filePath: "src/a.ts", content: "x" }],
+              [CODE_CHANGE_PROPOSED_ON_KEY]: {
+                branchName: "fix/login",
+                files: [
+                  { filePath: "src/a.ts", fingerprint: "fedcba9876543210" },
+                ],
+                unseen: [],
+              },
+            },
+            status: AIChatToolActionStatus.Pending,
+          }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={(): void => {}}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
+
+    expect(line).toHaveTextContent("fix: charge");
+    expect(line).not.toHaveTextContent(CODE_CHANGE_PROPOSED_ON_KEY);
+    expect(line).not.toHaveTextContent("fedcba9876543210");
+  });
+});
+
+/*
+ * Issue #6331: a card with a line under its title left out every list
+ * argument - the rule for the resources a new incident links, which the
+ * line names - so a pull request whose card said which files it would
+ * write over unseen showed no "Files: 3". The code change's lines name
+ * some of its files, never how many it writes: the row stays.
+ */
+describe("a code change's card keeps its Files row beside its line", () => {
+  const CHANGES: Array<JSONObject> = [
+    { filePath: "src/a.ts", content: "a" },
+    { filePath: "src/b.ts", content: "b" },
+    { filePath: "src/c.ts", content: "c" },
+  ];
+
+  const labelsOf: (line: HTMLElement) => Array<string> = (
+    line: HTMLElement,
+  ): Array<string> => {
+    return within(line)
+      .getAllByTestId("tool-approval-argument-label")
+      .map((label: HTMLElement): string => {
+        return label.textContent || "";
+      });
+  };
+
+  test("a pull request that would write over a file changed since the read: Files: 3 is still drawn", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action({
+            toolName: "open_code_pull_request",
+            title: "Open pull request: Fix charge",
+            description:
+              "This file changed on main after Ask AI read it, and Ask AI's version undoes that change: src/a.ts.",
+            words: {
+              title: aiActionSentence(AI_ACTION_TITLES.openPullRequest, {
+                title: "Fix charge",
+              }),
+              description: [
+                aiActionPluralSentence(
+                  AI_ACTION_PLURAL_LINES.codeFilesChangedSinceRead,
+                  1,
+                  {
+                    branch: "main",
+                    files: aiActionList([
+                      aiActionSentence(AI_ACTION_CODE_FILE, {
+                        file: "src/a.ts",
+                      }),
+                    ]),
+                  },
+                ),
+              ],
+            },
+            arguments: {
+              title: "Fix charge",
+              description: "The charge was off by one.",
+              changes: CHANGES,
+            },
+            status: AIChatToolActionStatus.Pending,
+          }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={(): void => {}}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
+
+    expect(labelsOf(line)).toEqual(["Description:", "Files:"]);
+    expect(line).toHaveTextContent("3");
+    expect(line).not.toHaveTextContent("filePath");
+  });
+
+  test("a new alert's line names the resources it links: its list is still left out", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action({
+            toolName: "create_alert",
+            title: "Create alert: High memory",
+            description: 'Linked to host "test01".',
+            words: {
+              title: aiActionSentence(AI_ACTION_TITLES.createAlert, {
+                title: "High memory",
+              }),
+              description: [
+                aiActionSentence(AI_ACTION_LINES.linkedTo, {
+                  resources: aiActionList([
+                    aiActionResourceByName({ noun: "host", name: "test01" }),
+                  ]),
+                }),
+              ],
+            },
+            arguments: {
+              title: "High memory",
+              note: "Memory above 90%.",
+              hostIds: ["cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
+            },
+            status: AIChatToolActionStatus.Pending,
+          }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={(): void => {}}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
+
+    expect(line).not.toHaveTextContent("hostIds");
+    expect(line).not.toHaveTextContent("cccccccc");
+    expect(labelsOf(line)).toEqual(["Note:"]);
   });
 });

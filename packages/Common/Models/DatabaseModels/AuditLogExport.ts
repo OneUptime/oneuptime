@@ -283,6 +283,37 @@ export default class AuditLogExport extends BaseModel {
   })
   public startsAt?: Date = undefined;
 
+  /*
+   * WHICH VERSION OF THE RECORD THE EXPORT SENDS (AuditLogExportRecord):
+   * 2 also says what changed in a workflow's steps and in JSON
+   * (changes[].summary); 1 is the record as it was first sent. An export
+   * saved before version 2 existed keeps 1 - the column's default, which
+   * the migration gave every such row - so nothing that reads it has to
+   * change. A new export sends the newest version unless it asks for an
+   * older one (AuditLogExportService). A change applies to the entries sent
+   * from then on, each of which says its version.
+   */
+  @ColumnAccessControl({
+    create: adminPermissions,
+    read: adminPermissions,
+    update: adminPermissions,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Record Version",
+    description:
+      "Which version of the record each entry is sent as: 2 also says what changed in a workflow's steps and in JSON, 1 is the record as it was first sent. A new export sends 2 unless it asks for 1; an export saved before version 2 keeps 1.",
+    example: 2,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.Number,
+    default: 1,
+  })
+  public schemaVersion?: number = undefined;
+
   @ColumnAccessControl({ create: [], read: adminPermissions, update: [] })
   @TableColumn({
     type: TableColumnType.Date,

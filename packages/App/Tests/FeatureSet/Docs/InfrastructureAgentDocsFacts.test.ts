@@ -1461,13 +1461,6 @@ const DISCONNECTS: Array<Disconnect> = [
     method: "markDisconnectedArrays",
     job: "StorageArray",
   },
-  {
-    page: SERVERLESS_PAGE,
-    noun: "function",
-    service: "ServerlessFunctionService",
-    method: "markDisconnectedFunctions",
-    job: "Serverless",
-  },
 ];
 
 describe("when a task 22 page says a resource turns Disconnected", () => {
@@ -1496,6 +1489,46 @@ describe("when a task 22 page says a resource turns Disconnected", () => {
       );
     },
   );
+
+  /*
+   * Issue #6269: a function sends telemetry only while it runs, so the
+   * same sweep turns it "No recent invocations" in the Dashboard - never
+   * Disconnected - and its page says so in those words. The minutes come
+   * from the status module the words are written in, which the sweep reads.
+   */
+  it(`${SERVERLESS_PAGE}: No recent invocations after the status module's 15 minutes of receiving time, checked every 5 minutes`, () => {
+    const service: string = repoFile(
+      "packages/Common/Server/Services/ServerlessFunctionService.ts",
+    );
+    const start: number = service.indexOf(
+      "public async markDisconnectedFunctions()",
+    );
+    expect(start).toBeGreaterThan(-1);
+    const method: string = service.slice(start, start + 1500);
+    expect(method).toContain("ReceivingCoverage.getSilenceCutoff({");
+    expect(method).toContain(
+      "silenceInMinutes: SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES,",
+    );
+    expect(
+      repoFile("packages/Common/Types/Serverless/ServerlessFunctionStatus.ts"),
+    ).toContain(
+      "export const SERVERLESS_FUNCTION_NO_RECENT_INVOCATIONS_AFTER_MINUTES: number = 15;",
+    );
+
+    const job: string = repoFile(
+      "packages/App/FeatureSet/Workers/Jobs/Serverless/CleanupStaleResources.ts",
+    );
+    expect(job).toContain("schedule: EVERY_FIVE_MINUTE");
+    expect(job).toContain(
+      "ServerlessFunctionService.markDisconnectedFunctions()",
+    );
+
+    lineWith(
+      SERVERLESS_PAGE,
+      "A function shows **No recent invocations** when OneUptime has received nothing from it for 15 minutes; OneUptime checks every 5 minutes, and time it was not receiving data itself does not count.",
+    );
+    expect(english(SERVERLESS_PAGE)).not.toMatch(/\bDisconnected\b/);
+  });
 });
 
 interface SystemdUnit {

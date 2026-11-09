@@ -1,3 +1,5 @@
+import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import CloudResource from "../../Models/DatabaseModels/CloudResource";
@@ -108,6 +110,7 @@ class CloudResourceLabelRuleEngineServiceClass
       return await this.applyRules({
         cloudResource: data.resource,
         rules: data.rules,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running cloud resource label rules: ${error}`, {
@@ -123,6 +126,8 @@ class CloudResourceLabelRuleEngineServiceClass
   private async applyRules(data: {
     cloudResource: CloudResource;
     rules: Array<CloudResourceLabelRule>;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { cloudResource, rules } = data;
 
@@ -208,11 +213,12 @@ class CloudResourceLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    await CloudResourceService.getRepository()
-      .createQueryBuilder()
-      .relation(CloudResource, "labels")
-      .of(cloudResource.id.toString())
-      .add(newLabelIds);
+    await RuleAddedLabels.add({
+      service: CloudResourceService,
+      resourceId: cloudResource.id,
+      labelIds: newLabelIds,
+      props: data.props,
+    });
 
     const mergedLabelIds: Set<string> = new Set([
       ...existingLabelIds,

@@ -1,23 +1,57 @@
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Query from "Common/Types/BaseDatabase/Query";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Card from "Common/UI/Components/Card/Card";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { TimeRangeZoom } from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import DashboardLogsViewer from "../Logs/LogsViewer";
 import ExceptionsViewer from "../Exceptions/ExceptionsViewer";
-import MetricView from "../Metrics/MetricView";
 import TracesViewer from "../Traces/TracesViewer";
+import MetricInvestigationTime, {
+  MetricInvestigationTimePreset,
+} from "../Metrics/Investigation/MetricInvestigationTime";
+import useInvestigationTimeRange, {
+  InvestigationTimeRangeState,
+} from "../Metrics/Investigation/UseInvestigationTimeRange";
 import TelemetryCompanionSignalTabs from "./TelemetryCompanionSignalTabs";
-import useTelemetrySnapshotZoom, {
-  TelemetrySnapshotBadge,
-  TelemetrySnapshotZoom,
-} from "./TelemetrySnapshotZoom";
+import EventMetricInvestigationPanel from "./EventMetricInvestigationPanel";
+import EventTimeRangeControls from "./EventTimeRangeControls";
+import {
+  EventMetricSubject,
+  EventMetricWords,
+  EventMomentState,
+  EventMomentTimelineEntry,
+  getEventMetricWords,
+} from "../../Utils/EventMetricInvestigation";
+import {
+  EVENT_EVALUATED_SELECTION,
+  EVENT_RELATIVE_TIME_RANGES,
+  getEventTimePresets,
+} from "../../Utils/EventTimePresets";
+import {
+  getExplorerZoom,
+  getSnapshotCompanionWindow,
+  getSnapshotExplorerQuery,
+} from "../../Utils/EventSnapshotTimeRange";
+
+/*
+ * Where an event page keeps the time range of its logs, traces or
+ * exceptions card in its URL ("telemetryTime=hour-before"). A metrics
+ * monitor's card keeps its own under "metrics"; a page shows one or the
+ * other.
+ */
+export const EVENT_TELEMETRY_TIME_URL_PREFIX: string = "telemetry";
 
 export interface ComponentProps {
   telemetryQuery: TelemetryQuery;
@@ -29,53 +63,214 @@ export interface ComponentProps {
    */
   seriesSummary: string;
   eventNoun: "incident" | "alert";
+  /*
+   * What the card is about, for the time ranges it offers around it ("Around
+   * this incident") and a metric snapshot's moments: the incident or alert
+   * on its own page, the episode on an episode's. Left out, an episode of
+   * the event noun's kind.
+   */
+  subject?: EventMetricSubject | undefined;
+  // When it started and, while it is resolved, when it was.
+  startedAt?: Date | undefined;
+  endedAt?: Date | undefined;
+  /*
+   * For a metrics monitor's snapshot, which is a metric investigation
+   * (EventMetricInvestigationPanel): the state timeline with the project's
+   * states, for the moments its charts mark.
+   */
+  stateTimeline?: Array<EventMomentTimelineEntry> | undefined;
+  states?: Array<EventMomentState> | undefined;
+  /*
+   * The member event whose telemetry this is: a metric snapshot's charts
+   * draw the rule its monitor opened it with (issue #6250).
+   */
+  metricRuleEventId?: string | undefined;
 }
 
 /**
- * The telemetry snapshot block of an incident/alert/episode page: the
+ * The telemetry snapshot block of an incident, alert or episode page: the
  * primary signal (logs / traces / metrics / exceptions, whichever the
- * monitor evaluated) pinned to the evaluation window, wrapped in the
- * companion-signal tabs that add the other pillars scoped the same way.
+ * monitor evaluated), wrapped in the companion-signal tabs that add the
+ * other pillars scoped the same way.
  *
- * Extracted from Pages/Incidents/View so the EPISODE pages can mount the
- * identical experience for their first member event without copying a
- * hundred lines of branching JSX.
+ * One component for the incident, alert and both episode pages, so they
+ * cannot drift. A metrics monitor's snapshot is a metric investigation
+ * (EventMetricInvestigationPanel); a logs, traces or exceptions snapshot
+ * lists what the monitor's query finds over a time range the reader picks
+ * (issue #6251; see ExplorerSnapshotPanel below).
  */
 const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { telemetryQuery, snapshotWindow, seriesSummary, eventNoun } = props;
+  const subject: EventMetricSubject =
+    props.subject ||
+    (props.eventNoun === "alert"
+      ? EventMetricSubject.AlertEpisode
+      : EventMetricSubject.IncidentEpisode);
 
-  /*
-   * A drag on the primary signal's chart (the metric chart, or a logs,
-   * traces or exceptions explorer's histogram) zooms the whole snapshot,
-   * every tab of it; see TelemetrySnapshotZoom. Held here, above the tabs,
-   * so it outlives a switch to another tab and back. The episode page
-   * unmounts this panel while it loads another episode, so the zoom never
-   * follows the reader there.
-   */
-  const snapshotZoom: TelemetrySnapshotZoom = useTelemetrySnapshotZoom({
-    snapshotWindow: snapshotWindow,
-    metricViewData: telemetryQuery.metricViewData,
-    telemetryType: telemetryQuery.telemetryType,
-    explorerQuery: telemetryQuery.telemetryQuery,
+  if (props.telemetryQuery.telemetryType === TelemetryType.Metric) {
+    return (
+      <EventMetricInvestigationPanel
+        telemetryQuery={props.telemetryQuery}
+        evaluationWindow={props.snapshotWindow}
+        seriesSummary={props.seriesSummary}
+        subject={subject}
+        startedAt={props.startedAt}
+        endedAt={props.endedAt}
+        stateTimeline={props.stateTimeline || []}
+        states={props.states || []}
+        ruleEventId={props.metricRuleEventId}
+      />
+    );
+  }
+
+  return (
+    <ExplorerSnapshotPanel
+      telemetryQuery={props.telemetryQuery}
+      snapshotWindow={props.snapshotWindow}
+      eventNoun={props.eventNoun}
+      subject={subject}
+      startedAt={props.startedAt}
+      endedAt={props.endedAt}
+    />
+  );
+};
+
+interface ExplorerSnapshotPanelProps {
+  telemetryQuery: TelemetryQuery;
+  snapshotWindow: InBetween<Date> | null;
+  eventNoun: "incident" | "alert";
+  subject: EventMetricSubject;
+  startedAt?: Date | undefined;
+  endedAt?: Date | undefined;
+}
+
+/**
+ * A logs, traces or exceptions snapshot (issue #6251): what the monitor's
+ * query finds, over a time range the reader picks, on every tab of the card.
+ *
+ * - Untouched, it shows exactly what it always did: the window the monitor
+ *   evaluated ("What the monitor saw"), the stored query handed to the
+ *   explorer as it is.
+ * - The picker on every tab's card offers the ranges around the event that
+ *   an event's metrics offer (Around the start, the hour or the day before
+ *   it started, start to now or to resolution), then ranges relative to
+ *   now and a custom range. A pick moves the explorer and every other tab.
+ * - A drag on the explorer's chart zooms the whole card, every tab of it;
+ *   a double-click or Reset zoom beside the picker goes back to the range
+ *   picked before.
+ * - What the reader picked is kept in the page's URL under "telemetry", so
+ *   a reload keeps it and Copy link shares it; Reset goes back to what the
+ *   monitor saw.
+ *
+ * Held here, above the tabs (which mount only the one open), so it
+ * outlives a switch to another tab and back, and the page's background
+ * refresh. The pages show their skeleton while they load another event,
+ * which unmounts this: the next event starts from what its monitor saw.
+ *
+ * A snapshot that kept no window (an older event, a log monitor read with
+ * no time limit) has nothing to anchor on: it shows what it always showed,
+ * with no picker.
+ */
+const ExplorerSnapshotPanel: FunctionComponent<ExplorerSnapshotPanelProps> = (
+  props: ExplorerSnapshotPanelProps,
+): ReactElement => {
+  const { telemetryQuery, eventNoun } = props;
+  const words: EventMetricWords = getEventMetricWords(props.subject);
+
+  // A stored window can still hold ISO strings: real Dates from here on.
+  const snapshotWindow: InBetween<Date> | null =
+    MetricInvestigationTime.toUsableWindow(
+      TelemetryQueryTimeRange.toDateWindow(props.snapshotWindow),
+    );
+
+  const time: InvestigationTimeRangeState = useInvestigationTimeRange({
+    getPresets: (now: Date): Array<MetricInvestigationTimePreset> => {
+      return getEventTimePresets(
+        {
+          startedAt: props.startedAt,
+          endedAt: props.endedAt,
+          evaluationWindow: snapshotWindow,
+        },
+        now,
+      );
+    },
+    defaultSelection: EVENT_EVALUATED_SELECTION,
+    // With no window there is no range to keep: the URL is left alone.
+    urlParamPrefix: snapshotWindow
+      ? EVENT_TELEMETRY_TIME_URL_PREFIX
+      : undefined,
   });
 
+  const hasWindow: boolean = snapshotWindow !== null;
+  const snapshotStartMs: number = snapshotWindow
+    ? snapshotWindow.startValue.getTime()
+    : Number.NaN;
+  const snapshotEndMs: number = snapshotWindow
+    ? snapshotWindow.endValue.getTime()
+    : Number.NaN;
+
   /*
-   * Deliberately `undefined`, not an empty fragment — Card lays out
-   * rightElement from presence.
+   * The explorer lists the stored query on the window the card shows: the
+   * stored query itself while that is what the monitor saw.
    */
-  const snapshotWindowAlert: ReactElement | undefined = snapshotWindow ? (
-    <TelemetrySnapshotBadge window={snapshotWindow} zoom={snapshotZoom.zoom} />
+  const explorerQuery: TelemetryQuery["telemetryQuery"] =
+    useMemo((): TelemetryQuery["telemetryQuery"] => {
+      if (!hasWindow) {
+        return telemetryQuery.telemetryQuery;
+      }
+
+      return getSnapshotExplorerQuery({
+        telemetryType: telemetryQuery.telemetryType,
+        storedQuery: telemetryQuery.telemetryQuery,
+        snapshotWindow: new InBetween<Date>(
+          new Date(snapshotStartMs),
+          new Date(snapshotEndMs),
+        ),
+        window: time.window,
+      });
+    }, [
+      hasWindow,
+      telemetryQuery.telemetryQuery,
+      telemetryQuery.telemetryType,
+      snapshotStartMs,
+      snapshotEndMs,
+      time.window,
+    ]);
+
+  /*
+   * The card's zoom, offered to the explorer over the window it lists, so a
+   * drag on its chart zooms every tab and its way back is the card's. None
+   * without a window: nothing to zoom, and no zoom further up reaches it.
+   */
+  const explorerZoom: TimeRangeZoom | null =
+    useMemo((): TimeRangeZoom | null => {
+      return hasWindow ? getExplorerZoom(time.zoom, time.window) : null;
+    }, [hasWindow, time.zoom, time.window]);
+
+  /*
+   * On the right of every card of the snapshot, the other tabs' included,
+   * so the range can be picked, shared or reset from any of them.
+   * Deliberately `undefined` without a window, not an empty fragment: Card
+   * lays out rightElement from its presence.
+   */
+  const timeRangeControls: ReactElement | undefined = hasWindow ? (
+    <EventTimeRangeControls
+      time={time}
+      presetsHeading={words.presetsHeading}
+      relativeRanges={EVENT_RELATIVE_TIME_RANGES}
+    />
   ) : undefined;
+
+  const isAlert: boolean = eventNoun === "alert";
 
   return (
     <TelemetryCompanionSignalTabs
       telemetryQuery={telemetryQuery}
-      // The companion tabs follow the zoom: they show the slice too.
-      snapshotWindow={snapshotZoom.window}
-      isSnapshotZoomed={snapshotZoom.isZoomed}
-      snapshotWindowAlert={snapshotWindowAlert}
+      // The other tabs follow the time range, a zoom included.
+      snapshotWindow={hasWindow ? time.window : props.snapshotWindow}
+      companionWindow={hasWindow ? getSnapshotCompanionWindow(time) : undefined}
+      snapshotWindowAlert={timeRangeControls}
       eventNoun={eventNoun}
       primarySignalElement={
         <Fragment>
@@ -84,20 +279,21 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
               <div>
                 <Card
                   title={"Logs"}
-                  description={`Logs for this ${eventNoun}.`}
-                  rightElement={snapshotWindowAlert}
+                  description={
+                    isAlert ? "Logs for this alert." : "Logs for this incident."
+                  }
+                  rightElement={timeRangeControls}
                 >
                   {/*
-                   * On the window the snapshot shows and inside its zoom,
-                   * which the explorer follows: a drag on the log volume
-                   * chart zooms every tab, and a double-click or the
-                   * badge's Reset zoom returns them all. See
-                   * TelemetrySnapshotZoom.
+                   * On the window the card shows and inside its zoom, which
+                   * the explorer follows: a drag on the log volume chart
+                   * zooms every tab, and a double-click or Reset zoom
+                   * returns them all.
                    */}
-                  <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                  <TimeRangeZoomProvider zoom={explorerZoom}>
                     <DashboardLogsViewer
                       id="logs-preview"
-                      logQuery={snapshotZoom.explorerQuery as Query<Log>}
+                      logQuery={explorerQuery as Query<Log>}
                       limit={10}
                       noLogsMessage="No logs found"
                     />
@@ -111,16 +307,20 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
               <div>
                 <Card
                   title={"Spans"}
-                  description={`Spans for this ${eventNoun}.`}
-                  rightElement={snapshotWindowAlert}
+                  description={
+                    isAlert
+                      ? "Spans for this alert."
+                      : "Spans for this incident."
+                  }
+                  rightElement={timeRangeControls}
                 >
                   {/*
-                   * On the window the snapshot shows and inside its zoom,
-                   * which the explorer follows; see the logs above.
+                   * On the window the card shows and inside its zoom, which
+                   * the explorer follows; see the logs above.
                    */}
-                  <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                  <TimeRangeZoomProvider zoom={explorerZoom}>
                     <TracesViewer
-                      spanQuery={snapshotZoom.explorerQuery as Query<Span>}
+                      spanQuery={explorerQuery as Query<Span>}
                       limit={10}
                       /*
                        * Pinned to the snapshot: the host page owns the URL, so the
@@ -134,55 +334,25 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
               </div>
             )}
 
-          {telemetryQuery.telemetryType === TelemetryType.Metric &&
-            snapshotZoom.metricViewData && (
-              <Card
-                title={"Metrics"}
-                description={
-                  seriesSummary
-                    ? `Metrics related to this ${eventNoun}, scoped to the affected series (${seriesSummary}).`
-                    : `Metrics related to this ${eventNoun}.`
-                }
-                rightElement={snapshotWindowAlert}
-              >
-                <MetricView
-                  data={snapshotZoom.metricViewData}
-                  hideQueryElements={true}
-                  chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-                  hideStartAndEndDate={true}
-                  /*
-                   * A drag zooms the whole snapshot, and a double-click (or
-                   * Reset zoom beside the badge) returns it to the snapshot
-                   * window. The window itself is a record, nobody's to
-                   * change (onChange is a no-op). A snapshot that stored no
-                   * window has nothing to hand the other tabs: its chart
-                   * zooms itself alone.
-                   */
-                  onTimeRangeSelect={snapshotZoom.onTimeRangeSelect}
-                  onTimeRangeReset={snapshotZoom.onTimeRangeReset}
-                  localChartZoom={true}
-                  onChange={(_data: MetricViewData) => {
-                    // do nothing!
-                  }}
-                />
-              </Card>
-            )}
-
           {telemetryQuery.telemetryType === TelemetryType.Exception &&
             telemetryQuery.telemetryQuery && (
               <Card
                 title={"Exceptions"}
-                description={`Exceptions related to this ${eventNoun}.`}
-                rightElement={snapshotWindowAlert}
+                description={
+                  isAlert
+                    ? "Exceptions for this alert."
+                    : "Exceptions related to this incident."
+                }
+                rightElement={timeRangeControls}
               >
                 {/*
-                 * On the window the snapshot shows and inside its zoom,
-                 * which the explorer follows; see the logs above.
+                 * On the window the card shows and inside its zoom, which
+                 * the explorer follows; see the logs above.
                  */}
-                <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                <TimeRangeZoomProvider zoom={explorerZoom}>
                   <ExceptionsViewer
                     exceptionInstanceQuery={
-                      snapshotZoom.explorerQuery as Query<ExceptionInstance>
+                      explorerQuery as Query<ExceptionInstance>
                     }
                     /*
                      * An event shows the exceptions it fired on, whoever has since

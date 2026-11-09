@@ -653,3 +653,295 @@ describe("the toolbar's counts and filters", () => {
     expect(found("no such thing")).toEqual([]);
   });
 });
+
+/*
+ * An account's Recommendations count the newer cloud templates like any
+ * other: Connections Near the Limit on the RDS instances whose limit their
+ * inventory gives (each at 90% of its own), and Certificate Expiring on the
+ * account's ACM certificates.
+ */
+describe("Connections Near the Limit and Certificate Expiring on an account's Recommendations", () => {
+  const CONNECTIONS: string = "cloud-aws-rds-connections-near-limit";
+  const EXPIRING: string = "cloud-aws-acm-certificate-expiring";
+
+  function rdsInstance(
+    id: number,
+    name: string,
+    properties: Record<string, unknown>,
+  ): CloudAccountRecommendationResource {
+    return resource({
+      id: id,
+      name: name,
+      type: "AWS::RDS::DBInstance",
+      attributes: attributes("AWS/RDS", { DBInstanceIdentifier: name }),
+      properties: properties,
+    });
+  }
+
+  function certificate(
+    id: number,
+    name: string,
+  ): CloudAccountRecommendationResource {
+    return resource({
+      id: id,
+      name: name,
+      type: "AWS::CertificateManager::Certificate",
+      attributes: attributes("AWS/CertificateManager", {
+        CertificateArn: `arn:aws:acm:us-east-1:${AWS_ACCOUNT}:certificate/${uuid(id)}`,
+      }),
+    });
+  }
+
+  const ORDERS: CloudAccountRecommendationResource = rdsInstance(
+    21,
+    "orders-db",
+    {
+      DBInstanceClass: "db.r6g.large",
+      Engine: "postgres",
+      AllocatedStorage: 200,
+      DBParameterGroupName: "default.postgres16",
+    },
+  );
+  const SESSIONS: CloudAccountRecommendationResource = rdsInstance(
+    22,
+    "sessions-db",
+    {
+      DBInstanceClass: "db.t3.micro",
+      Engine: "mysql",
+      AllocatedStorage: 20,
+      DBParameterGroupName: "sessions-mysql8",
+    },
+  );
+  const LEDGER: CloudAccountRecommendationResource = rdsInstance(
+    23,
+    "ledger-db",
+    {
+      DBInstanceClass: "db.m5.large",
+      Engine: "sqlserver-se",
+      AllocatedStorage: 100,
+    },
+  );
+  const FRESH: CloudAccountRecommendationResource = rdsInstance(
+    24,
+    "fresh-db",
+    {},
+  );
+  const WWW: CloudAccountRecommendationResource = certificate(
+    31,
+    "www.example.com",
+  );
+  const API: CloudAccountRecommendationResource = certificate(
+    32,
+    "api.example.com",
+  );
+
+  const ACCOUNT: Array<CloudAccountRecommendationResource> = [
+    ORDERS,
+    SESSIONS,
+    LEDGER,
+    FRESH,
+    WWW,
+    API,
+  ];
+
+  function accountGroups(
+    data: {
+      monitors?: Array<{
+        monitorId: ObjectID;
+        monitorSteps: Array<MonitorStep>;
+      }>;
+      dismissals?: Array<RecommendationDismissal>;
+    } = {},
+  ): Array<CloudAccountRecommendationGroup> {
+    return CloudAccountRecommendationPlan.buildGroups({
+      resources: ACCOUNT,
+      existingMonitors: data.monitors || [],
+      dismissals: data.dismissals || [],
+    });
+  }
+
+  function lineOf(target: CloudAccountRecommendationTarget): number {
+    const step: MonitorStep = target.recommendation.getMonitorStep(
+      getCloudAccountRecommendationArgs({
+        resource: target.resource,
+        defaults: {
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+        },
+      }),
+    );
+
+    return Number(
+      step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!.data!
+        .filters[0]!.value,
+    );
+  }
+
+  test("the certificates have a group of their own, by the name the product gives them", () => {
+    expect(
+      accountGroups().map((group: CloudAccountRecommendationGroup): string => {
+        return group.label;
+      }),
+    ).toEqual(["ACM Certificate", "RDS DB Instance"]);
+  });
+
+  test("Connections Near the Limit is offered to the instances whose limit is known, each at 90% of its own", () => {
+    const rds: CloudAccountRecommendationGroup = groupOf(
+      accountGroups(),
+      "aws|aws::rds::dbinstance",
+    );
+
+    expect(
+      rds.rows.map((row: CloudAccountRecommendationRow): string => {
+        return row.name;
+      }),
+    ).toEqual(["High CPU", "Low Free Storage", "Connections Near the Limit"]);
+
+    const row: CloudAccountRecommendationRow = rowOf(rds, CONNECTIONS);
+
+    // Not the SQL Server instance, nor the one the inventory has not listed.
+    expect(namesOf(row.targets)).toEqual(["orders-db", "sessions-db"]);
+    expect(row.severity).toBe("Warning");
+    expect(row.counts).toEqual({
+      total: 2,
+      available: 2,
+      created: 0,
+      dismissed: 0,
+    });
+
+    // A db.r6g.large on PostgreSQL alerts at 1,521; a db.t3.micro on MySQL at 54.
+    expect(
+      row.targets.map((target: CloudAccountRecommendationTarget) => {
+        return `${target.resource.resourceName}: ${lineOf(target)}`;
+      }),
+    ).toEqual(["orders-db: 1521", "sessions-db: 54"]);
+  });
+
+  test("Certificate Expiring is offered to every certificate whose days have arrived", () => {
+    const acm: CloudAccountRecommendationGroup = groupOf(
+      accountGroups(),
+      "aws|aws::certificatemanager::certificate",
+    );
+
+    expect(acm.rows).toHaveLength(1);
+
+    const row: CloudAccountRecommendationRow = rowOf(acm, EXPIRING);
+
+    expect(row.name).toBe("Certificate Expiring");
+    expect(row.summary).toBe("The certificate expires in 30 days or fewer.");
+    expect(row.category).toBe("Availability");
+    expect(namesOf(row.targets)).toEqual([
+      "api.example.com",
+      "www.example.com",
+    ]);
+  });
+
+  test("both are counted - on the page's tiles and in the menu's number - and a made one is counted as made", () => {
+    const before: Array<CloudAccountRecommendationGroup> = accountGroups();
+
+    // High CPU on four instances, Low Free Storage on three, connections on two, two certificates.
+    expect(CloudAccountRecommendationPlan.getCounts(before)).toEqual({
+      total: 11,
+      available: 11,
+      created: 0,
+      dismissed: 0,
+    });
+    expect(CloudAccountRecommendationPlan.getToolbarCounts(before)).toEqual({
+      total: 11,
+      available: 11,
+      created: 0,
+      dismissed: 0,
+      availableCritical: 0,
+      availableWarning: 11,
+    });
+
+    const after: Array<CloudAccountRecommendationGroup> = accountGroups({
+      monitors: [monitorOf(ORDERS, CONNECTIONS), monitorOf(WWW, EXPIRING)],
+      dismissals: [dismissalOf(API, EXPIRING)],
+    });
+
+    expect(CloudAccountRecommendationPlan.getCounts(after)).toEqual({
+      total: 11,
+      available: 8,
+      created: 2,
+      dismissed: 1,
+    });
+    expect(
+      rowOf(
+        groupOf(after, "aws|aws::rds::dbinstance"),
+        CONNECTIONS,
+      ).targets.map((target: CloudAccountRecommendationTarget): string => {
+        return `${target.resource.resourceName}: ${target.status}`;
+      }),
+    ).toEqual([
+      `orders-db: ${RecommendationStatus.Created}`,
+      `sessions-db: ${RecommendationStatus.Available}`,
+    ]);
+  });
+
+  test("a monitor made before the instance was resized no longer covers it: its line was the old class's", () => {
+    const resized: CloudAccountRecommendationResource = rdsInstance(
+      21,
+      "orders-db",
+      {
+        DBInstanceClass: "db.r6g.xlarge",
+        Engine: "postgres",
+        AllocatedStorage: 200,
+      },
+    );
+    const groups: Array<CloudAccountRecommendationGroup> =
+      CloudAccountRecommendationPlan.buildGroups({
+        resources: [resized],
+        existingMonitors: [monitorOf(ORDERS, CONNECTIONS)],
+        dismissals: [],
+      });
+
+    expect(
+      rowOf(groupOf(groups, "aws|aws::rds::dbinstance"), CONNECTIONS).counts,
+    ).toEqual({ total: 1, available: 1, created: 0, dismissed: 0 });
+  });
+
+  test("none of them is a gap: every one is offered something", () => {
+    expect(
+      CloudAccountRecommendationPlan.getGaps({
+        resources: ACCOUNT,
+        groups: accountGroups(),
+      }).gaps,
+    ).toEqual([]);
+  });
+
+  test("Add to every certificate makes one monitor each, read once an hour", () => {
+    const acm: CloudAccountRecommendationGroup = groupOf(
+      accountGroups(),
+      "aws|aws::certificatemanager::certificate",
+    );
+    const plan: Array<CloudAccountRecommendationPlanItem> =
+      CloudAccountRecommendationPlan.buildCreatePlan({
+        targets: rowOf(acm, EXPIRING).targets,
+        defaults: {
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+        },
+        notificationSettings: {
+          notificationMode: MonitorRecommendationNotificationMode.Alert,
+        },
+      });
+
+    expect(
+      plan.map((item: CloudAccountRecommendationPlanItem): string => {
+        return `${item.monitor.name} @ ${item.monitor.monitoringInterval}`;
+      }),
+    ).toEqual([
+      "api.example.com - Certificate Expiring @ 0 * * * *",
+      "www.example.com - Certificate Expiring @ 0 * * * *",
+    ]);
+    expect(plan[0]!.monitor.monitorType).toBe(MonitorType.Metrics);
+    expect(CLOUD_ALERT_MONITORING_INTERVAL).not.toBe("0 * * * *");
+  });
+});

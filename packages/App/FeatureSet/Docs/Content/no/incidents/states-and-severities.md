@@ -115,14 +115,20 @@ Du kan ikke sette de tre flaggene fra dette skjemaet — de hører til de forhå
 
 ## Rekkefølgen er en reell begrensning, ikke en visningspreferanse
 
-Rekkefølgen håndheves når en tilstandsendring skrives, ikke bare når listen tegnes:
+Rekkefølgen håndheves når en tilstandsendring skrives, ikke bare når listen tegnes. Én regel gjelder for hver tilstandsendring av en hendelse, et varsel, en hendelses- eller varselepisode og en planlagt vedlikeholdshendelse, uansett hvem som gjør den — dashbordet, Slack, Microsoft Teams, API-et, Terraform, en arbeidsflyt eller OneUptime selv — og uansett om den sendes som en rad på postens tilstandstidslinje eller som en oppdatering av den gjeldende tilstanden:
 
-- **Overganger bakover avvises.** Å flytte en hendelse til en tilstand som står tidligere i rekkefølgen enn den nåværende, feiler med en feil som nevner begge tilstandene.
+- **Overganger bakover avvises.** Å flytte en hendelse til en tilstand som står tidligere i rekkefølgen enn den nåværende, feiler med en feil som nevner begge tilstandene: "Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states." En episode er bundet av den samme regelen som hendelsene den grupperer, med sin egen feilmelding ("Episode cannot transition to …"), så en løst episode flyttes ikke tilbake til en tidligere tilstand — og heller ikke, gjennom den, hendelsene dens. En oppdatering som ville flyttet en post tilbake, avvises før noe lagres.
 - **Å velge den gjeldende tilstanden på nytt avvises.** Å sette en hendelse i tilstanden den allerede er i, feiler med "Incident state cannot be same as previous state."
 - **En tilbakedatert rad kan ikke gjenta naboen.** Å sette inn en tidslinjerad der tilstanden er den samme som raden etter, avvises også.
-- **Knappene i overskriften følger plasseringen til de flaggede tilstandene i rekkefølgen.** **Bekreft** og **Løs** tilbys ut fra hvor den gjeldende tilstanden står i den sorterte listen. En egen tilstand som er plassert *etter* den løste tilstanden, viser aldri en knapp **Løs**, fordi en hendelse i den allerede teller som løst.
+- **Knappene i overskriften følger plasseringen til de flaggede tilstandene i rekkefølgen.** **Bekreft** og **Løs** tilbys ut fra hvor den gjeldende tilstanden står i den sorterte listen. En egen tilstand som er plassert *etter* den løste tilstanden, viser aldri en knapp **Løs**, fordi en hendelse i den allerede teller som løst. Overskriftens tilstandsmeny og skjemaet for tilstandsendring i Slack og Microsoft Teams tilbyr bare tilstandene etter den gjeldende; for en post i listens siste tilstand sier Slack og Teams "There is no later state to move this incident to." i stedet for å åpne et tomt skjema.
 
 Så når du legger til en tilstand, plasser den der en hendelse faktisk ville passert den. Å ordne den feil ser ikke bare rart ut — det gjør overganger umulige. Å flytte en tilstand lenger ned endrer hva hendelsene som allerede er i den, teller som, i det øyeblikket du slipper den.
+
+En episode flytter bare hendelsene sine dit de kan gå. Når en episode endrer tilstand, flyttes hver av hendelsene dens bare med hvis hendelsens egen rekkefølge tillater endringen: En hendelse som allerede er i den tilstanden, eller forbi den — løst på egen hånd, eller i en egen tilstand etter den løste tilstanden — blir der den er.
+
+Én endring går opp i listen igjen: en grupperingsregels gjenåpning. En regel som er satt til å gjenåpne nylig løste episoder, gjenåpner en løst episode når en samsvarende hendelse kommer innenfor tidsvinduet dens, og flytter episoden tilbake til opprettelsestilstanden din. Det er OneUptimes egen endring — ingenting du sender, kan be om den — og den gjenåpner ikke episodens hendelser.
+
+For å rette opp en tilstand som er satt ved en feil, sletter du raden dens på siden med postens tilstandstidslinje (se [Tilstandstidslinjen](#tilstandstidslinjen)). Posten går tilbake til tilstanden i den siste gjenværende raden; en episode der du sletter raden som løste den, er åpen igjen, og løsningstidspunktet dens tømmes.
 
 Via API-et og Terraform er rekkefølgen kolonnen `order`: lavere tall kommer først. En tilstand som opprettes uten, havner rett over den løste tilstanden; en som opprettes eller oppdateres med et tall, tar den plassen, og tilstandene i veien flytter én plass ned. Tall ingen andre har, beholdes slik de er skrevet, så en tilstand som styres av Terraform, leser tilbake tallet den fikk.
 

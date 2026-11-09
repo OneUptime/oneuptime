@@ -176,8 +176,68 @@ describe("SLO feed icons", () => {
     [ServiceLevelObjectiveFeedEventType.MonitorRuleRemoved, IconProp.Filter],
     [ServiceLevelObjectiveFeedEventType.MonitorsAttached, IconProp.Link],
     [ServiceLevelObjectiveFeedEventType.MonitorsDetached, IconProp.LinkSlash],
+    // The Error Budget Policy page's own icon, as its side menu draws it.
+    [
+      ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyTierChanged,
+      IconProp.Scale,
+    ],
+    // What a tier raises reads like what a burn rate rule raises.
+    [
+      ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised,
+      IconProp.ExclaimationCircle,
+    ],
+    [
+      ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentDeclared,
+      IconProp.Alert,
+    ],
+    [
+      ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertResolved,
+      IconProp.CheckCircle,
+    ],
+    [
+      ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentResolved,
+      IconProp.CheckCircle,
+    ],
+    // The deploy gate: shut while frozen, open once allowed again.
+    [
+      ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+      IconProp.Lock,
+    ],
+    [
+      ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed,
+      IconProp.LockOpen,
+    ],
   ])("%s is drawn as %s", (eventType: string, icon: IconProp) => {
     expect(getSloFeedEventIcon(eventType)).toBe(icon);
+  });
+
+  /*
+   * Every event the SLO's feed posts has a kind of its own or is left to the
+   * shared rules on purpose: one listed in neither table above is an event
+   * someone added without deciding how it looks.
+   */
+  test("every event type is either drawn as its own kind or left to the shared rules", () => {
+    const sharedEventTypes: Array<string> = [
+      ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveCreated,
+      ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveUpdated,
+      ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveArchived,
+      ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveRestored,
+      ServiceLevelObjectiveFeedEventType.OwnerUserAdded,
+      ServiceLevelObjectiveFeedEventType.OwnerTeamAdded,
+      ServiceLevelObjectiveFeedEventType.OwnerUserRemoved,
+      ServiceLevelObjectiveFeedEventType.OwnerTeamRemoved,
+      ServiceLevelObjectiveFeedEventType.LabelRuleExecuted,
+      ServiceLevelObjectiveFeedEventType.OwnerRuleExecuted,
+    ];
+
+    for (const eventType of ALL_EVENT_TYPES) {
+      expect({
+        eventType,
+        decided:
+          getSloFeedEventKind(eventType) !== undefined ||
+          sharedEventTypes.includes(eventType),
+      }).toEqual({ eventType, decided: true });
+    }
   });
 
   test.each([
@@ -236,6 +296,36 @@ describe("SLO feed icons", () => {
       [
         ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised,
         ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
+      ],
+      [
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised,
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertResolved,
+      ],
+      [
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentDeclared,
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentResolved,
+      ],
+      [
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised,
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyIncidentDeclared,
+      ],
+      // A tier change is not what the tier raised.
+      [
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyTierChanged,
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised,
+      ],
+      [
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsAllowed,
+      ],
+      // Deployments frozen is not a tier change, nor an alert.
+      [
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyTierChanged,
+      ],
+      [
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyDeploymentsFrozen,
+        ServiceLevelObjectiveFeedEventType.ErrorBudgetPolicyAlertRaised,
       ],
     ];
 

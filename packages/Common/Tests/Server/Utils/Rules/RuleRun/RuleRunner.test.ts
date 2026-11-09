@@ -402,6 +402,43 @@ describe("RuleRunner.runPass", () => {
       }
     });
 
+    /*
+     * Who ran the rule reaches every resource's application, so what the
+     * run changes is theirs in the audit log (issue #6284).
+     */
+    it("hands every resource who ran the rule, and none when nobody is named", async () => {
+      const fake: FakeRegistryEntry = fakeDefinition({
+        rule: labelRule(),
+        resources: resources(2),
+      });
+      const props: { tenantId: ObjectID; userId: ObjectID } = {
+        tenantId: PROJECT_ID,
+        userId: new ObjectID("33333333-3333-4333-8333-333333333333"),
+      };
+
+      await RuleRunner.runPass({
+        ruleType: RuleRunType.MonitorLabelRule,
+        ruleId: RULE_ID,
+        projectId: PROJECT_ID,
+        cursor: null,
+        allowOwnerNotification: false,
+        props,
+      });
+
+      expect(fake.apply).toHaveBeenCalledTimes(2);
+
+      for (const call of fake.apply.mock.calls) {
+        expect((call[0] as { props: unknown }).props).toBe(props);
+      }
+
+      fake.apply.mockClear();
+      await runPass();
+
+      for (const call of fake.apply.mock.calls) {
+        expect((call[0] as { props: unknown }).props).toBeUndefined();
+      }
+    });
+
     it("counts matches, updates, additions and failures separately", async () => {
       const outcomes: Array<RuleApplicationResult> = [
         RuleApplicationResultUtil.updated(2),
@@ -546,6 +583,46 @@ describe("RuleRunner.runPass", () => {
       ).toBe(RULE_ID.toString());
     });
 
+    /*
+     * The resources the sync adds, moves and removes are theirs in the
+     * audit log (issue #6324). The rule is still read as root, in the
+     * project: who may run it was asked at the route.
+     */
+    it("hands the sync who ran the rule, and nobody when nobody is named", async () => {
+      const mocks: {
+        findOneBy: jest.SpyInstance;
+        sync: jest.SpyInstance;
+      } = mockStatusPageRule({ isEnabled: true });
+      const props: { tenantId: ObjectID; userId: ObjectID } = {
+        tenantId: PROJECT_ID,
+        userId: new ObjectID("33333333-3333-4333-8333-333333333333"),
+      };
+
+      await RuleRunner.runPass({
+        ruleType: RuleRunType.StatusPageMonitorRule,
+        ruleId: RULE_ID,
+        projectId: PROJECT_ID,
+        cursor: null,
+        allowOwnerNotification: false,
+        props,
+      });
+
+      expect(mocks.sync).toHaveBeenCalledTimes(1);
+      expect((mocks.sync.mock.calls[0]![0] as { props: unknown }).props).toBe(
+        props,
+      );
+      expect(
+        (mocks.findOneBy.mock.calls[0]![0] as { props: unknown }).props,
+      ).toEqual({ isRoot: true });
+
+      mocks.sync.mockClear();
+      await runPass({ ruleType: RuleRunType.StatusPageMonitorRule });
+
+      expect(
+        (mocks.sync.mock.calls[0]![0] as { props: unknown }).props,
+      ).toBeUndefined();
+    });
+
     it("refuses a status page monitor rule from another project or switched off", async () => {
       const missing: {
         findOneBy: jest.SpyInstance;
@@ -671,6 +748,58 @@ describe("RuleRunner.runPass", () => {
       // Neither the resource walk nor the status page engine is involved.
       expect(mocks.getDefinition).not.toHaveBeenCalled();
       expect(mocks.statusPageSync).not.toHaveBeenCalled();
+    });
+
+    // The SLO's monitors it changes are theirs in the audit log (issue #6324).
+    it("hands the SLO's sync who ran the rule, and nobody when nobody is named", async () => {
+      const mocks: SloRuleMocks = mockSloRule({
+        isEnabled: true,
+        serviceLevelObjectiveId: SLO_ID,
+      });
+      const props: { tenantId: ObjectID; userId: ObjectID } = {
+        tenantId: PROJECT_ID,
+        userId: new ObjectID("33333333-3333-4333-8333-333333333333"),
+      };
+
+      await RuleRunner.runPass({
+        ruleType: RuleRunType.ServiceLevelObjectiveMonitorRule,
+        ruleId: RULE_ID,
+        projectId: PROJECT_ID,
+        cursor: null,
+        allowOwnerNotification: false,
+        props,
+      });
+
+      expect(mocks.sync).toHaveBeenCalledTimes(1);
+      expect((mocks.sync.mock.calls[0]![0] as { props: unknown }).props).toBe(
+        props,
+      );
+
+      mocks.sync.mockClear();
+      await runPass({ ruleType: RuleRunType.ServiceLevelObjectiveMonitorRule });
+
+      expect(
+        (mocks.sync.mock.calls[0]![0] as { props: unknown }).props,
+      ).toBeUndefined();
+    });
+
+    it("refuses before the sync, so a refused run hands nobody's props on", async () => {
+      const mocks: SloRuleMocks = mockSloRule({
+        isEnabled: false,
+        serviceLevelObjectiveId: SLO_ID,
+      });
+
+      await expect(
+        RuleRunner.runPass({
+          ruleType: RuleRunType.ServiceLevelObjectiveMonitorRule,
+          ruleId: RULE_ID,
+          projectId: PROJECT_ID,
+          cursor: null,
+          allowOwnerNotification: false,
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow("This rule is disabled.");
+      expect(mocks.sync).not.toHaveBeenCalled();
     });
 
     it("reports an SLO already in step as a pass that changed nothing", async () => {

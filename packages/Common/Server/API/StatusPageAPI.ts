@@ -2900,6 +2900,8 @@ export default class StatusPageAPI extends BaseAPI<
               scheduledMaintenanceEventsOnStatusPage,
             ),
             projectId: statusPage.projectId!,
+            // Published notes only: one waiting for approval is shown nowhere.
+            isPublished: true,
           },
           select: {
             postedAt: true,
@@ -4803,6 +4805,8 @@ export default class StatusPageAPI extends BaseAPI<
         query: {
           incidentId: QueryHelper.any(incidentsOnStatusPage),
           projectId: statusPage.projectId!,
+          // Published notes only: one waiting for approval is shown nowhere.
+          isPublished: true,
         },
         select: {
           postedAt: true,
@@ -5315,6 +5319,8 @@ export default class StatusPageAPI extends BaseAPI<
         query: {
           incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
           projectId: statusPage.projectId!,
+          // Published notes only: one waiting for approval is shown nowhere.
+          isPublished: true,
         },
         select: {
           postedAt: true,
@@ -5984,6 +5990,8 @@ export default class StatusPageAPI extends BaseAPI<
         query: {
           incidentId: QueryHelper.any(incidentsOnStatusPage),
           projectId: statusPage.projectId!,
+          // Published notes only: one waiting for approval is shown nowhere.
+          isPublished: true,
         },
         select: {
           note: true,
@@ -6342,6 +6350,8 @@ export default class StatusPageAPI extends BaseAPI<
               query: {
                 incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
                 projectId: statusPage.projectId!,
+                // Published notes only: one waiting for approval is shown nowhere.
+                isPublished: true,
               },
               select: {
                 postedAt: true,
@@ -6578,6 +6588,8 @@ export default class StatusPageAPI extends BaseAPI<
               scheduledMaintenanceEventsOnStatusPage,
             ),
             projectId: statusPage.projectId!,
+            // Published notes only: one waiting for approval is shown nowhere.
+            isPublished: true,
           },
           select: {
             postedAt: true,
@@ -7130,6 +7142,8 @@ export default class StatusPageAPI extends BaseAPI<
           _id: noteId.toString(),
           scheduledMaintenanceId: scheduledMaintenanceId.toString(),
           projectId: statusPage.projectId!,
+          // Published notes only: one waiting for approval is shown nowhere.
+          isPublished: true,
         },
         select: {
           attachments: {
@@ -7370,6 +7384,8 @@ export default class StatusPageAPI extends BaseAPI<
           _id: noteId.toString(),
           incidentId: incidentId.toString(),
           projectId: statusPage.projectId!,
+          // Published notes only: one waiting for approval is shown nowhere.
+          isPublished: true,
         },
         select: {
           attachments: {
@@ -7550,6 +7566,8 @@ export default class StatusPageAPI extends BaseAPI<
           _id: noteId.toString(),
           incidentEpisodeId: episodeId.toString(),
           projectId: statusPage.projectId!,
+          // Published notes only: one waiting for approval is shown nowhere.
+          isPublished: true,
         },
         select: {
           attachments: {

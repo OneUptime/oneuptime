@@ -71,49 +71,39 @@ flowchart TB
 
 依**資源類型**、**資源名稱**、**操作**、**使用者電子郵件**或**時間**篩選。變更只顯示被變更的欄位及其前後值，未做任何變更的儲存不會新增項目。
 
+沒有自身名稱的資源，會以 OneUptime 中指稱它的內容命名：例外以其類型和訊息的開頭命名，其中的 ID、位址以及任何看起來像機密的內容都會被遮蓋；Runbook 的執行以其 Runbook 命名；來電原則的電話號碼以該號碼命名；範本或網域以其自身的名稱命名。
+
 監測器、事件、警示、狀態頁面、SLO 以及許多其他資源，在其側邊選單的收合區段（如**進階**）中也有自己的**稽核日誌**頁面。它只顯示該資源的項目，以及屬於它的內容的項目：SLO 的頁面還會顯示其規則和擁有者。
 
 ## 記錄哪些內容
 
-| 資源 | 日誌中的**資源類型** |
+人們在專案中建立、變更或刪除的一切都會被記錄：監視器、事件、警示、狀態頁、工作流程及其步驟、佇列、儀表板、待命政策、團隊及其成員、API 金鑰以及每一項設定。**資源類型** 說明項目所涉及的內容，例如 `Monitor`、`Workflow` 或 `Queue`。
+
+| 不記錄的內容 | 原因 |
 | --- | --- |
-| 監測器 | `Monitor` |
-| 事件 | `Incident` |
-| 警示 | `Alert` |
-| 狀態頁面 | `Status Page` |
-| 排定維護事件 | `Scheduled Maintenance Event` |
-| 待命策略 | `On-Call Policy` |
-| 服務等級目標（SLO） | `Service Level Objective` |
-| SLO 的規則和擁有者 | `SLO Burn Rate Rule`、`SLO Monitor Rule`、`Service Level Objective User Owner`、`Service Level Objective Team Owner` |
-| 團隊 | `Team` |
-| 自訂角色，以及獲得角色的團隊和 API 金鑰 | `Custom Role`、`Team Custom Role`、`API Key Custom Role` |
-| 標籤 | `Label` |
-| 事件狀態和嚴重性 | `Incident State`、`Incident Severity` |
-| 警示狀態和嚴重性 | `Alert State`、`Alert Severity` |
-| 監測器狀態 | `Monitor Status` |
-| 排定維護狀態 | `Scheduled Maintenance State` |
-| 事件角色 | `Incident Role` |
-| 事後分析狀態 | `Postmortem Status` |
-| API 金鑰 | `API Key` |
-| 人們連接的 MCP 用戶端 | `MCP Client Authorization` |
-| 資產清單項目 | `Inventory Item` |
-| 收集器設定 | `Collector Config` |
-| vCenter 伺服器 | `vCenter` |
-| OpenStack 雲端，以及對它們執行的檢查 | `OpenStack Cloud`、`OpenStack Cloud Check` |
-| 封包擷取及其下載 | `Packet Capture` |
-| 安全案件及其優先順序與狀態、劇本及其執行、受保護的實體、實體重要性，以及被重設的實體風險 | `Security Case`、`Security Case Priority`、`Security Case Status`、`Security Playbook`、`Security Playbook Run`、`Protected Entity`、`Entity Criticality`、`Entity Risk` |
-| 規則例外 | `Rule Exception` |
-| 監看清單 | `Watchlist` |
-| 監看清單值 | `Watchlist Value` |
-| 獵捕 | `Hunt` |
-| 安全案件的任務和證據 | `Security Case Task`、`Security Case Evidence` |
-| 資料儲存區及其發現，以及資料安全的問題、設定、檢查設定、自訂資料類型和資料落地規則 | `Data Store`、`Data Store Finding`、`Data Security Issue`、`Data Security Setting`、`Check Setting`、`Custom Data Type`、`Residency Rule` |
-| 資料可觀測性設定 | `Data Observability Setting` |
-| 稽核日誌匯出 | `Audit Log Export` |
+| 訊息日誌 | 每一筆本身就是 OneUptime 傳送或接收的電子郵件、簡訊、電話、推播通知或聊天訊息的紀錄。 |
+| 執行紀錄 | 每一筆本身就是一次工作流程執行、待命升級、掃描、匯入或 AI 執行的紀錄。 |
+| 代理程式和遙測回報的內容 | 發現的資源、讀數和用量隨每次回報而變化，並不是因為有人變更了它們。 |
+| 活動動態 | 動態顯示的是稽核日誌已經記錄的變更。 |
+| OneUptime 的工作狀態 | 工作階段、排隊的作業以及 OneUptime 在工作時保留的其他狀態。 |
+| 個人自己的通知設定 | 每個人的地址、號碼和個人待命規則只屬於其本人。 |
 
 當管理員在他人的帳戶上新增或移除通知方式或個人待命規則時，也會記錄，但不包含地址或號碼本身。
 
-其他資料不在稽核日誌中，例如誰在某個團隊中，或單獨新增給團隊的權限。任何人都無權讀取的欄位會從所有項目中省略，金鑰、權杖和密碼記錄為 `[REDACTED]`：項目只顯示它們已變更，絕不顯示其值。
+只有 OneUptime 寫入的欄位（例如主機最後一次被看到的時間）會從所有項目中省略，任何人都無權讀取的欄位也是如此。當 OneUptime 應某人的請求寫入這類欄位時（例如把一個例外合併到另一個例外，或重設 Webhook URL），項目會將其記錄為此人的變更。金鑰、權杖和密碼記錄為 `[REDACTED]`：項目只顯示它們已變更，絕不顯示其值。工作流程的步驟會依照所發生的變更來記錄，寫出步驟設定的名稱，但絕不記錄其中輸入的內容，在畫布上移動步驟不會被記錄。
+
+OneUptime 因為有人要求而做的以下事情，也會記錄為該人的變更，無論專案是否儲存系統事件：
+
+- 啟動、核准、完成、略過和取消 Runbook 的執行。其步驟會記錄為對每個步驟所做的操作，例如 `Approved "Restart the API" (step 3)`，絕不會帶上步驟輸出的內容。
+- 有人執行規則時規則所做的變更：它新增的標籤和擁有者、隱私規則設為私人的記錄、站點指派規則移動的裝置、自動匯入規則建立的裝置和監測器，以及狀態頁面或 SLO 的監測器規則在其頁面或 SLO 上做的變更。
+- 購買、連結和釋出來電原則的電話號碼。
+- 解決有人標記為預期之中或不是問題的資料警示。
+- 重設行事曆訂閱的連結。
+- 某人透過 SSO 登入時加入的團隊。
+
+規則自行做的事屬於 OneUptime 自身的變更，在開啟 **儲存系統事件** 時記錄：規則在建立記錄時新增的標籤和擁有者，以及當時設為私人的記錄；自動匯入規則根據新的掃描結果建立的裝置和監測器；以及在儲存規則、監測器或標籤時，狀態頁面或 SLO 的監測器規則所做的變更。
+
+重設主機、叢集或雲端帳戶的 AI 代理程式，會記錄在該資源自己的 **稽核日誌** 頁面上，作為重設者對 `aiAgentResetAt` 的變更：誰重設的，以及何時。為雲端帳戶的 AI 代理程式建立金鑰也是如此：金鑰會顯示為已變更，絕不會帶上金鑰或雜湊值。代理程式在連線和回報時上報的內容，仍和以前一樣不會記錄。
 
 ## 項目保留多久
 

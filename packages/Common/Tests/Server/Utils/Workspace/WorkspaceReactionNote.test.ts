@@ -35,6 +35,9 @@ import WorkspaceReactionNote, {
   WorkspaceNoteSaveResult,
 } from "../../../../Server/Utils/Workspace/WorkspaceReactionNote";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
+import PublicNoteApprovalEngine from "../../../../Server/Utils/Notes/PublicNoteApprovalEngine";
+import { PublicNoteApprovalWaitingFor } from "../../../../Server/Utils/Notes/PublicNoteApprovalFeed";
+import { PublicNoteApprovalEventType } from "../../../../Types/StatusPage/PublicNoteApproval";
 import { WorkspaceEventType } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import SavedChatMessage from "../../../../Types/Workspace/SavedChatMessage";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
@@ -1348,5 +1351,300 @@ describe("WorkspaceReactionNote.getConfirmationMessage, on a private incident", 
       "The incident is private, so public notes cannot be added to it.",
     );
     expect(text).not.toContain("status page");
+  });
+});
+
+/*
+ * A MESSAGE SAVED AS A PUBLIC NOTE THAT WAITS FOR APPROVAL (#6254).
+ *
+ * While a project asks for public notes to be approved, a message pinned
+ * as a public note is held: on no status page until it is approved. Its
+ * confirmation in the thread used to say "It is shown on the status page";
+ * now it says the note was sent for approval, is shown once approved, and
+ * who it waits for.
+ */
+describe("WorkspaceReactionNote: a public note that waits for approval", () => {
+  const WAITING_FOR: PublicNoteApprovalWaitingFor = {
+    position: {
+      step: {
+        id: "s1",
+        name: "Support",
+        order: 1,
+        userIds: ["u1"],
+        teamIds: [],
+      },
+      number: 1,
+      count: 2,
+      isFinal: false,
+      isAskedAgain: false,
+    },
+    approverNames: ["Bob"],
+  };
+
+  function created(isPublished: boolean): IncidentPublicNote {
+    const note: IncidentPublicNote = new IncidentPublicNote();
+    note.isPublished = isPublished;
+    return note;
+  }
+
+  test.each([
+    ["incident", WorkspaceNoteResourceType.Incident, IncidentPublicNoteService],
+    [
+      "scheduled maintenance event",
+      WorkspaceNoteResourceType.ScheduledMaintenance,
+      ScheduledMaintenancePublicNoteService,
+    ],
+  ])(
+    "a held public note on an %s is saved for approval, a published one is saved",
+    async (
+      _noun: string,
+      resourceType: WorkspaceNoteResourceType,
+      service:
+        | typeof IncidentPublicNoteService
+        | typeof ScheduledMaintenancePublicNoteService,
+    ) => {
+      jest.spyOn(service, "hasNoteFromSlackMessage").mockResolvedValue(false);
+      const addSpy: AnySpy = jest.spyOn(service, "addNote") as AnySpy;
+
+      for (const [isPublished, expected] of [
+        [false, WorkspaceNoteSaveResult.SavedForApproval],
+        [true, WorkspaceNoteSaveResult.Saved],
+      ] as Array<[boolean, WorkspaceNoteSaveResult]>) {
+        addSpy.mockResolvedValueOnce(created(isPublished) as never);
+
+        await expect(
+          WorkspaceReactionNote.saveNote({
+            resource: {
+              resourceType: resourceType,
+              resourceId: ObjectID.generate(),
+              projectId: projectId,
+            },
+            noteType: WorkspaceNoteType.Public,
+            props: memberProps,
+            note: "We are rolling back the deploy.",
+            sourceMessageKey: "C1:1.2",
+          }),
+        ).resolves.toBe(expected);
+      }
+    },
+  );
+
+  test("a private note is saved as before: approval is for public notes", async () => {
+    jest
+      .spyOn(IncidentInternalNoteService, "hasNoteFromSlackMessage")
+      .mockResolvedValue(false);
+    jest
+      .spyOn(IncidentInternalNoteService, "addNote")
+      .mockResolvedValue(new IncidentInternalNote() as never);
+
+    await expect(
+      WorkspaceReactionNote.saveNote({
+        resource: {
+          resourceType: WorkspaceNoteResourceType.Incident,
+          resourceId: ObjectID.generate(),
+          projectId: projectId,
+        },
+        noteType: WorkspaceNoteType.Private,
+        props: memberProps,
+        note: "Restarted the database",
+        sourceMessageKey: "C1:1.2",
+      }),
+    ).resolves.toBe(WorkspaceNoteSaveResult.Saved);
+  });
+
+  test.each([
+    [
+      WorkspaceNoteResourceType.Incident,
+      IncidentPublicNoteService,
+      "incidentId",
+      PublicNoteApprovalEventType.Incident,
+    ],
+    [
+      WorkspaceNoteResourceType.ScheduledMaintenance,
+      ScheduledMaintenancePublicNoteService,
+      "scheduledMaintenanceId",
+      PublicNoteApprovalEventType.ScheduledMaintenance,
+    ],
+  ])(
+    "who the public note saved from a message on a %s waits for is read by the message",
+    async (
+      resourceType: WorkspaceNoteResourceType,
+      service:
+        | typeof IncidentPublicNoteService
+        | typeof ScheduledMaintenancePublicNoteService,
+      idKey: string,
+      eventType: PublicNoteApprovalEventType,
+    ) => {
+      const resourceId: ObjectID = ObjectID.generate();
+      const saved: IncidentPublicNote = created(false);
+      const findSpy: AnySpy = jest
+        .spyOn(service, "findOneBy")
+        .mockResolvedValue(saved as never) as AnySpy;
+      const waitingSpy: AnySpy = jest
+        .spyOn(PublicNoteApprovalEngine, "getWaitingForNote")
+        .mockResolvedValue(WAITING_FOR) as AnySpy;
+
+      await expect(
+        WorkspaceReactionNote.getApprovalWaitingFor({
+          resource: {
+            resourceType: resourceType,
+            resourceId: resourceId,
+            projectId: projectId,
+          },
+          sourceMessageKey: "C1:1.2",
+        }),
+      ).resolves.toEqual(WAITING_FOR);
+
+      expect(findSpy).toHaveBeenCalledWith({
+        query: {
+          [idKey]: resourceId,
+          postedFromSlackMessageId: "C1:1.2",
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          isPublished: true,
+          approvalStatus: true,
+          approval: true,
+        },
+        props: { isRoot: true },
+      });
+      expect(waitingSpy).toHaveBeenCalledWith({
+        eventType: eventType,
+        note: saved,
+      });
+    },
+  );
+
+  test("a read that fails says nobody: the note is saved, and its confirmation is still sent", async () => {
+    jest
+      .spyOn(IncidentPublicNoteService, "findOneBy")
+      .mockRejectedValue(new Error("database is down"));
+
+    await expect(
+      WorkspaceReactionNote.getApprovalWaitingFor({
+        resource: {
+          resourceType: WorkspaceNoteResourceType.Incident,
+          resourceId: ObjectID.generate(),
+          projectId: projectId,
+        },
+        sourceMessageKey: "C1:1.2",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("records with no public notes wait for nobody, and nothing is read", async () => {
+    const waitingSpy: AnySpy = jest.spyOn(
+      PublicNoteApprovalEngine,
+      "getWaitingForNote",
+    ) as AnySpy;
+
+    for (const resourceType of [
+      WorkspaceNoteResourceType.Alert,
+      WorkspaceNoteResourceType.IncidentEpisode,
+      WorkspaceNoteResourceType.AlertEpisode,
+    ]) {
+      await expect(
+        WorkspaceReactionNote.getApprovalWaitingFor({
+          resource: {
+            resourceType: resourceType,
+            resourceId: ObjectID.generate(),
+            projectId: projectId,
+          },
+          sourceMessageKey: "C1:1.2",
+        }),
+      ).resolves.toBeNull();
+    }
+
+    expect(waitingSpy).not.toHaveBeenCalled();
+  });
+
+  test("its confirmation says it was sent for approval, is shown once approved, and who it waits for", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Public,
+        resourceLabel: "Incident #7",
+        resourceLink: "https://x/7",
+        isHeldForApproval: true,
+        waitingFor: WAITING_FOR,
+      }).toString(),
+    ).toBe(
+      "⏳ Saved as a **public note** on [Incident #7](https://x/7) and sent for approval: it is shown on the status page once it is approved. It waits for step 1 of 2 (Support): Bob.",
+    );
+  });
+
+  test("who it waits for is left out when it could not be read", () => {
+    for (const waitingFor of [null, undefined]) {
+      expect(
+        WorkspaceReactionNote.getConfirmationMessage({
+          noteType: WorkspaceNoteType.Public,
+          resourceLabel: "Incident #7",
+          resourceLink: "https://x/7",
+          isHeldForApproval: true,
+          waitingFor: waitingFor,
+        }).toString(),
+      ).toBe(
+        "⏳ Saved as a **public note** on [Incident #7](https://x/7) and sent for approval: it is shown on the status page once it is approved.",
+      );
+    }
+  });
+
+  test("it never says a held note is shown on the status page", () => {
+    const markdown: string = WorkspaceReactionNote.getConfirmationMessage({
+      noteType: WorkspaceNoteType.Public,
+      resourceLabel: "Incident #7",
+      resourceLink: "https://x/7",
+      isHeldForApproval: true,
+      waitingFor: WAITING_FOR,
+    }).toString();
+
+    expect(markdown).not.toContain("It is shown on the status page.");
+  });
+
+  test("a private note is never held: its confirmation is as before", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        resourceLabel: "Alert #3",
+        resourceLink: "https://x/3",
+        isHeldForApproval: true,
+      }).toString(),
+    ).toBe("✅ Saved as a **private note** on [Alert #3](https://x/3).");
+  });
+
+  test("Slack posts it as mrkdwn, the label in the link and the approver a name", () => {
+    const text: string = SlackUtil.slackify(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Public,
+        resourceLabel: "Incident #7",
+        resourceLink: "https://x/7",
+        isHeldForApproval: true,
+        waitingFor: {
+          ...WAITING_FOR,
+          approverNames: ["[Bob](https://evil.example)"],
+        },
+      }).toString(),
+    ).trim();
+
+    expect(text).toContain("*public note*");
+    expect(text).toContain("<https://x/7|Incident #7>");
+    expect(text).not.toContain("<https://evil.example");
+  });
+
+  test("as a notification's plain text", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationText({
+        noteType: WorkspaceNoteType.Public,
+        resourceLabel: "Incident #7",
+        isHeldForApproval: true,
+      }),
+    ).toBe("Saved as a public note on Incident #7 and sent for approval");
+    expect(
+      WorkspaceReactionNote.getConfirmationText({
+        noteType: WorkspaceNoteType.Private,
+        resourceLabel: "Incident #7",
+        isHeldForApproval: true,
+      }),
+    ).toBe("Saved as a private note on Incident #7");
   });
 });

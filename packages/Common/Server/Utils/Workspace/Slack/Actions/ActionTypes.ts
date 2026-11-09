@@ -166,6 +166,19 @@ enum SlackActionType {
   ViewApproveRemediation = "ViewApproveRemediation",
   SubmitApproveRemediation = "SubmitApproveRemediation",
   DismissRemediation = "DismissRemediation",
+
+  /*
+   * A public note that waits for approval, in the direct message its
+   * step's approvers get when they chose chat for it
+   * (WorkspacePublicNoteApproval): Approve decides at once; Reject opens a
+   * form that asks why, whose submission rejects it. Each carries the note
+   * and what the message asked about it, signed, so a note that changed
+   * since is never decided from it. Microsoft Teams' card and Mattermost's
+   * post of the same message press them by the same ids.
+   */
+  ApprovePublicNote = "ApprovePublicNote",
+  ViewRejectPublicNote = "ViewRejectPublicNote",
+  SubmitRejectPublicNote = "SubmitRejectPublicNote",
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)

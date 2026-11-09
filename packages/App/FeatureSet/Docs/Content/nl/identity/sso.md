@@ -261,7 +261,7 @@ Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google
 
 ## Rollen en teams voor SSO-gebruikers
 
-OneUptime neemt geen rollen of groepen over van uw identiteitsprovider. Wat iemand mag, volgt uit de teams waarin de persoon zit: een provider voegt nieuwkomers toe aan zijn **Teams**, en u beheert teams en hun machtigingen in OneUptime, zoals [Gebruikers, teams en machtigingen](/docs/permissions/index) beschrijft. Gebruik [SCIM](/docs/identity/scim) om het teamlidmaatschap gelijk te houden met uw identiteitsprovider.
+OneUptime neemt geen rollen of groepen over van uw identiteitsprovider. Wat iemand mag, volgt uit de teams waarin de persoon zit: een provider voegt nieuwkomers toe aan zijn **Teams**, en u beheert teams en hun machtigingen in OneUptime, zoals [Gebruikers, teams en machtigingen](/docs/permissions/index) beschrijft. Gebruik [SCIM](/docs/identity/scim) om het teamlidmaatschap gelijk te houden met uw identiteitsprovider. Elk team waar iemand bij het aanmelden lid van wordt, wordt vastgelegd op de pagina **Auditlogboeken** van dat team, als een wijziging van de persoon die zich aanmeldde.
 
 De teams van een provider bepalen wat mensen die zich ermee aanmelden mogen, daarom wordt een provider alleen opgeslagen met teams waarvoor degene die hem opslaat iemand zou kunnen uitnodigen. Elke keer opslaan controleert ze opnieuw: een provider waarvan de teams meer toegang geven dan u hebt, kan alleen worden gewijzigd door iemand wiens toegang ze dekt, zoals een projecteigenaar. Providers die vóór deze controle zijn opgeslagen, blijven mensen in hun teams aanmelden. Wie een provider mag bewerken, kan hem altijd uitzetten, zodat hij meteen kan worden gestopt.
 

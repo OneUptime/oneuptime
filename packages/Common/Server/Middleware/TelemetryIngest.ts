@@ -33,6 +33,18 @@ import TelemetryIngestionKeyRateLimiter, {
   TelemetryIngestionKeyLimitDecision,
   TelemetryIngestionKeyLimitOutcome,
 } from "../Utils/Telemetry/TelemetryIngestionKeyRateLimiter";
+import TelemetryIngestionBudget, {
+  TelemetryIngestionBudgetAdmission,
+  TelemetryIngestionBudgetAdmissionMode,
+  TelemetryIngestionBudgetCharge,
+} from "../Utils/Telemetry/TelemetryIngestionBudget";
+import {
+  DEFERRED_BODY_SURFACES,
+  getTelemetryIngestionBudgetSignalForSurface,
+  measureTelemetryIngestRequest,
+  sendTelemetryIngestionBudgetRefusal,
+} from "../Utils/Telemetry/TelemetryIngestionBudgetHttp";
+import { TelemetryIngestionBudgetSignal } from "../../Types/Telemetry/TelemetryIngestionBudget";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID
@@ -64,6 +76,16 @@ export interface TelemetryRequest extends ExpressRequest {
    * the worker's clock (issue #2825).
    */
   receivedAt?: Date | string | undefined;
+
+  /*
+   * What the ingestion budget gate counted for this request
+   * (TelemetryIngestionBudget), set by whichever producer admitted it so the
+   * queue counts it once - pending when the gate could not size the body yet,
+   * so the queue counts it with the size it stores. null when a gate ran and
+   * counted nothing (no budget in force, or the counters were unavailable);
+   * undefined when no gate ran, and the queue decides.
+   */
+  telemetryIngestionBudgetCharge?: TelemetryIngestionBudgetCharge | null;
 }
 
 /*
@@ -607,6 +629,52 @@ export default class TelemetryIngest {
             );
           }
         }
+      }
+
+      /*
+       * Ingestion budgets: the project's daily budget and per-second rate for
+       * this surface's signal, and the key's own. Nothing is read from Redis
+       * - or measured - unless one is in force (TelemetryIngestionBudget), so
+       * a project without a budget pays two in-process lookups here.
+       */
+      const budgetSignal: TelemetryIngestionBudgetSignal | null =
+        getTelemetryIngestionBudgetSignalForSurface(surface);
+
+      if (budgetSignal && surface) {
+        const admission: TelemetryIngestionBudgetAdmission =
+          await TelemetryIngestionBudget.admit({
+            projectId: policy.projectId,
+            signal: budgetSignal,
+            ingestionKeyPolicy: policy,
+            mode: DEFERRED_BODY_SURFACES.has(surface)
+              ? TelemetryIngestionBudgetAdmissionMode.Check
+              : TelemetryIngestionBudgetAdmissionMode.Refuse,
+            measure: () => {
+              return measureTelemetryIngestRequest({
+                req: req,
+                surface: surface,
+              });
+            },
+          });
+
+        if (admission.refusal) {
+          SpanUtil.addAttributesToCurrentSpan({
+            projectId: policy.projectId.toString(),
+            telemetryIngestionBudgetRefusal: admission.refusal.kind,
+            telemetryIngestionBudgetScope: admission.refusal.scope,
+          });
+
+          return sendTelemetryIngestionBudgetRefusal({
+            req: req,
+            res: res,
+            refusal: admission.refusal,
+            surface: surface,
+          });
+        }
+
+        // Even null: the queue then knows this request was already decided.
+        (req as TelemetryRequest).telemetryIngestionBudgetCharge =
+          admission.charge;
       }
 
       (req as TelemetryRequest).projectId = policy.projectId;

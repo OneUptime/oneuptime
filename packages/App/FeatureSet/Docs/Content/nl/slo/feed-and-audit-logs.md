@@ -7,7 +7,7 @@ Een SLO houdt twee verslagen van zijn geschiedenis bij, en ze beantwoorden versc
 | | **Feed** | **Auditlogboeken** |
 | --- | --- | --- |
 | Beantwoordt | Wat er met de SLO is gebeurd | Wie wat heeft gewijzigd, en wanneer |
-| Legt vast | Statuswijzigingen, waarschuwingen en incidenten voor verbruikssnelheid, en wijzigingen aan de SLO, zijn regels, monitoren en eigenaren | Elke wijziging die mensen aan de SLO, zijn regels voor verbruikssnelheid, monitorregels en eigenaren hebben gedaan, met de oude en de nieuwe waarde |
+| Legt vast | Statuswijzigingen, wijzigingen van het niveau van het foutbudgetbeleid, de waarschuwingen en incidenten van regels voor verbruikssnelheid en van beleidsniveaus, en wijzigingen aan de SLO, zijn regels, monitoren en eigenaren | Elke wijziging die mensen aan de SLO, zijn regels voor verbruikssnelheid, monitorregels, niveaus van het foutbudgetbeleid en eigenaren hebben gedaan, met de oude en de nieuwe waarde |
 | Bevat het werk van OneUptime zelf | Ja: evaluaties en monitorregels die monitoren koppelen | Alleen met **Systeemgebeurtenissen opslaan** aan |
 | Abonnementen | Elk abonnement | Het Enterprise-abonnement op OneUptime Cloud, of de Enterprise Edition op een zelfgehoste installatie |
 | Bewaard | Drie jaar op OneUptime Cloud | Standaard 7 dagen, tot 180 |
@@ -32,9 +32,14 @@ De feed staat op de pagina **Feed** van de SLO, en de nieuwste items onder **Rec
 | SLO ingeschakeld of uitgeschakeld | De evaluatie wordt aan- of uitgezet. |
 | SLO gearchiveerd of hersteld | De SLO wordt gearchiveerd of uit het archief gehaald. |
 | Status gewijzigd | Een evaluatie brengt de SLO naar een nieuwe status. Toont de SLI, het foutbudget, de verbruikssnelheid en de risicodrempel die haar verklaren, en de reden bij **Gepauzeerd** of **Verkeerd geconfigureerd**. |
+| Niveau van het foutbudgetbeleid gewijzigd | Een evaluatie brengt de SLO in een niveau van zijn foutbudgetbeleid, naar een ander niveau of uit elk niveau. Toont het niveau dat hij verliet en het niveau waarin hij kwam, het resterende budget en wat het team in het nieuwe niveau heeft afgesproken, en zegt wanneer de wijziging implementaties bevroor of weer toestond. Zie [Foutbudgetbeleid](/docs/slo/error-budget-policy). |
+| Implementaties bevroren of weer toegestaan | Iemand heeft **Implementaties bevriezen** aan- of uitgezet voor het niveau waarin de SLO zit, en de volgende evaluatie heeft implementaties bevroren of weer toegestaan. Doet een niveauwijziging dat, dan staat het in plaats daarvan in het eigen item van die wijziging. Zie [Implementatiepoort](/docs/slo/error-budget-policy#implementatiepoort). |
 | Waarschuwing voor verbruikssnelheid gegeven | Een regel voor verbruikssnelheid maakt een waarschuwing aan. Linkt ernaar en toont de verbruikssnelheden die haar deden afgaan. |
 | Incident voor verbruikssnelheid gemeld | Een regel voor verbruikssnelheid meldt een incident. Linkt ernaar en toont de verbruikssnelheden die het deden afgaan. |
 | Waarschuwing of incident voor verbruikssnelheid opgelost | De waarschuwing of het incident van een regel wordt gesloten: automatisch opgelost, of met de hand terwijl automatisch oplossen uit stond. |
+| Waarschuwing van het foutbudgetbeleid gegeven | Een niveau van het foutbudgetbeleid maakt een waarschuwing aan. Linkt ernaar. |
+| Incident van het foutbudgetbeleid gemeld | Een niveau van het foutbudgetbeleid meldt een incident. Linkt ernaar. |
+| Waarschuwing of incident van het foutbudgetbeleid opgelost | De waarschuwing of het incident van een niveau sluit: vervangen door een ernstiger niveau, automatisch opgelost, of met de hand terwijl automatisch oplossen uit stond. |
 | Regel voor verbruikssnelheid toegevoegd, gewijzigd of verwijderd | Iemand maakt een regel voor verbruikssnelheid aan, bewerkt of verwijdert hem. De standaardregels van een nieuwe SLO staan in plaats daarvan in zijn item "SLO aangemaakt". |
 | Monitorregel toegevoegd, gewijzigd of verwijderd | Iemand maakt een monitorregel aan, bewerkt of verwijdert hem. Een opslag die niets wezenlijks verandert, wordt niet gepubliceerd. |
 | Monitoren gekoppeld of ontkoppeld | Monitoren worden aan de SLO toegevoegd of eruit verwijderd, met de hand of door een monitorregel. Lange lijsten noemen de eerste monitoren "en nog N". |
@@ -55,6 +60,7 @@ De pagina **Auditlogboeken** van de SLO toont wijzigingen aan:
 
 - de SLO zelf: zijn gegevens, instellingen, labels, monitoren en archivering;
 - zijn regels voor verbruikssnelheid;
+- zijn niveaus van het foutbudgetbeleid;
 - zijn monitorregels;
 - zijn eigenaarsgebruikers en eigenaarsteams.
 
@@ -62,7 +68,7 @@ Wijzigingen aan regels en eigenaren worden vastgelegd bij de regel of de eigenaa
 
 Twee dingen blijven erbuiten:
 
-- **Evaluatieresultaten.** De SLI, het foutbudget, de verbruikssnelheid, de status en de evaluatietijden veranderen om de paar minuten. Hun geschiedenis staat op het **Overzicht**, de pagina **Metrieken** en de **Feed**.
+- **Evaluatieresultaten.** De SLI, het foutbudget, de verbruikssnelheid, de status en de evaluatietijden veranderen om de paar minuten. Hun geschiedenis staat op het **Overzicht**, de pagina **Metrieken** en de **Feed**. Het niveau van het foutbudgetbeleid waarin de SLO zit, en of zijn implementaties zijn toegestaan, vormen de uitzondering: een wijziging van een van beide wordt vastgelegd als een wijziging die OneUptime zelf heeft gedaan.
 - **Wijzigingen die OneUptime zelf doet**, zoals een monitorregel die een monitor koppelt of ontkoppelt, tenzij **Systeemgebeurtenissen opslaan** voor het project aan staat. De **Feed** legt het koppelen en ontkoppelen van monitoren hoe dan ook vast.
 
 ### Auditlogboeken aanzetten

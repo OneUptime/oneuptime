@@ -83,7 +83,7 @@ OneUptime は、テレメトリが届いた時点で、呼び出しを行った�
 
 | 列 | キー (優先順) |
 | --- | --- |
-| 従業員 | `user.email`、`user.id`、`user.account_uuid`、`user.account_id`、`cursor.user.id` |
+| 従業員 | `user.email`、`cursor.user.email`、`user.id`、`user.account_uuid`、`user.account_id`、`cursor.user.id` |
 | チーム / コストセンター | `team.id`、`team`、`cost_center`、`department`、`cursor.team.id` |
 | モデル | `gen_ai.request.model`、`model`、`cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime は、トークンを `gen_ai.client.token.usage`、`gen_ai.client.tok
 数値を読む前に知っておくべきことが 2 つあります。
 
 - **`gemini_cli.token.usage` は意図的に除外しています。** Gemini CLI はトークンを独自のメトリクスと `gen_ai.client.token.usage` の 2 回送るため、両方を読むと 2 倍になります。トークンは `gen_ai.client.token.usage` から 1 回だけ数えます。Gemini CLI はコストのメトリクスを送らないため、各呼び出しに料金を付けるにはトレースを有効にしてください。
-- **数えるのは入力と出力のトークンだけです。** トークンの種類は `gen_ai.token.type`、`llm.token.type`、`type`、`cursor.token.type`、`token_type` から読み取り、`input` と `output` (または古い `prompt` と `completion`) だけを数えます。キャッシュの読み書き、Codex の `total` (ほかの値の繰り返し)、`reasoning_output` (`output` の一部) は除外するため、メトリクスから得た合計は、ツールが送るすべての値の和より小さくなります。
+- **数えるのは入力と出力のトークンだけです。** トークンの種類は `gen_ai.token.type`、`llm.token.type`、`type`、`cursor.token.type`、`token_type` から読み取り、`input` と `output` (または古い `prompt` と `completion`) だけを数えます。ただし Claude Code の `cacheRead` と `cacheCreation` は、その `input` に含まれないため入力として数えます。そのほかのキャッシュの読み書き、Codex の `total` (ほかの値の繰り返し)、`reasoning_output` (`output` の一部) は除外するため、メトリクスから得た合計は、ツールが送るすべての値の和より小さくなります。
 
 ## 使用量タブ
 
@@ -188,7 +188,7 @@ Codex は既定でメトリクスを OpenAI にも送ります。[OpenAI Codex](
 
 ## OneUptime がまだ行わないこと
 
-- **コーディングツールの管理 API とのコネクターはありません。** OneUptime はツールの背後にある OpenAI、Anthropic、Azure、Bedrock、Vertex AI のアカウントを読み取りますが ([AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts))、Cursor の Admin API、GitHub の Copilot の請求、Windsurf や JetBrains の API は読み取りません。
+- **コーディングツールの管理 API とのコネクターは Cursor のものだけです。** OneUptime はツールの背後にある OpenAI、Anthropic、Azure、Bedrock、Vertex AI のアカウントと、Cursor のチームの Admin API を読み取りますが ([AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts))、GitHub の Copilot の請求、Windsurf や JetBrains の API は読み取りません。
 - **ツールが報告しない限り、コストは見積もりです。** 報告されたコストはそのまま使い、それ以外は OneUptime が定価でトークンの料金を算出します。Cursor の `cursor.cost.usage` 自体も見積もりです。
 - **ログレコード上の ID は読み取りません。** Codex がログにだけ送る `user.email` は、支出に結び付けられません。
 - **Cursor の `cursor.user.email` はまだ読み取りません。** そのため Cursor のユーザーは整数の `cursor.user.id` で表示されます。
@@ -201,7 +201,7 @@ Codex は既定でメトリクスを OpenAI にも送ります。[OpenAI Codex](
 
 1. **Gemini CLI** (使っている人がいる場合)。設定なしで `user.email` を送るため、帰属がエンドツーエンドで動くことを確認できます。コストのメトリクスを送らないため、トレースも有効にしてください。
 2. **Claude Code**: フリート全体に 1 つの管理設定ファイル、手間なしの `user.email`、本物のコストのメトリクス、そして開発者ごとの承認率、コミット、プルリクエスト、コード行数。
-3. **Cursor** (Enterprise プラン): Cursor のダッシュボードの 1 画面で済み、開発者のマシンには触れません。ただし人は整数で届きます。
+3. **Cursor** (Enterprise プラン): Cursor のダッシュボードの 1 画面で済み、開発者のマシンには触れません。ただし人は整数で届きます。Teams プランの場合や、Cursor がユーザーごとに請求した額が必要な場合は、エクスポートの有無にかかわらず、管理者 API キーを [プロバイダーアカウント](/docs/telemetry/ai-provider-accounts#cursor) として接続します。
 4. **Copilot と Codex**: どちらも各マシンで ID を設定する必要があります。マシンのプロビジョニング時に設定してください。ID なしで届いた呼び出しは、後から帰属させられません。
 5. **LiteLLM ゲートウェイ** (それ以外のすべて向け)。従業員ごとに 1 つの仮想キーを使います。
 

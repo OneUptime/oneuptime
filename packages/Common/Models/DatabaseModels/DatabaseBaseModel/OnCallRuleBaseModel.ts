@@ -4,6 +4,7 @@ import ColumnType from "../../../Types/Database/ColumnType";
 import TableColumn from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
+import OnCallPageAs from "../../../Types/OnCallDutyPolicy/OnCallPageAs";
 import OnCallRuleWhenToPage from "../../../Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
 import RestrictionTimes from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
 import Timezone from "../../../Types/Timezone";
@@ -21,9 +22,14 @@ import RuleBaseModel from "./RuleBaseModel";
  * An alert or incident rule can instead let OneUptime AI respond first, for
  * at most its hold time (OnCallPolicyAiHold).
  *
+ * And what the people its policies page are asked to do (OnCallPageAs):
+ * respond, as rules always have, or only be kept informed - paged as
+ * observers (OnCallObserverPage), whose answer acknowledges nothing.
+ *
  * The columns are the same on the four rules, so they are declared once,
  * here. Like the criteria column, they take the concrete rule's table
- * permissions: whoever may write the rule may say when it pages.
+ * permissions: whoever may write the rule may say when it pages, and as
+ * what.
  */
 export default class OnCallRuleBaseModel extends RuleBaseModel {
   @TableColumn({
@@ -93,6 +99,32 @@ export default class OnCallRuleBaseModel extends RuleBaseModel {
   })
   public aiHoldTimeInMinutes?: number = undefined;
 
+  /*
+   * WHAT THE PEOPLE THE RULE'S POLICIES PAGE ARE ASKED TO DO (OnCallPageAs):
+   * take the record on, as rules always have, or only be kept informed while
+   * somebody else responds (OnCallObserverPage). A record that two rules
+   * page the same policy for pages it as responders when either rule does:
+   * being asked to respond is never turned into being told.
+   */
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(OnCallPageAs),
+    title: "Page As",
+    description:
+      "What the people this rule's on-call policies page are asked to do: Responders take the record on - acknowledging their page acknowledges it and stops every other page about it; Observers are kept informed while somebody else responds - acknowledging their page only says they have seen it, and the record is not acknowledged.",
+    defaultValue: OnCallPageAs.Responders,
+    isDefaultValueColumn: true,
+    example: OnCallPageAs.Responders,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: OnCallPageAs.Responders,
+  })
+  public pageAs?: OnCallPageAs = undefined;
+
   public override getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
     const dictionary: Dictionary<ColumnAccessControl> = {
       ...super.getColumnAccessControlForAllColumns(),
@@ -103,6 +135,7 @@ export default class OnCallRuleBaseModel extends RuleBaseModel {
       "workingHours",
       "workingHoursTimezone",
       "aiHoldTimeInMinutes",
+      "pageAs",
     ]) {
       dictionary[column] = {
         create: this.createRecordPermissions,

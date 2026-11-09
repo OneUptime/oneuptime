@@ -101,10 +101,15 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(IncidentFeedService, "createIncidentFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
-      return IncidentOnCallRuleEngineService.applyRulesToIncident(
-        record as Incident,
-      );
+    apply: async (
+      record: BaseModel,
+    ): Promise<Map<string, OnCallRulePagingHold>> => {
+      // What the rules page: the holds, here (OnCallRulesPaging).
+      return (
+        await IncidentOnCallRuleEngineService.applyRulesToIncident(
+          record as Incident,
+        )
+      ).holds;
     },
   },
   {
@@ -122,8 +127,13 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(AlertFeedService, "createAlertFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
-      return AlertOnCallRuleEngineService.applyRulesToAlert(record as Alert);
+    apply: async (
+      record: BaseModel,
+    ): Promise<Map<string, OnCallRulePagingHold>> => {
+      // What the rules page: the holds, here (OnCallRulesPaging).
+      return (
+        await AlertOnCallRuleEngineService.applyRulesToAlert(record as Alert)
+      ).holds;
     },
   },
   {
@@ -141,10 +151,15 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(IncidentEpisodeFeedService, "createIncidentEpisodeFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
-      return IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode(
-        record as IncidentEpisode,
-      );
+    apply: async (
+      record: BaseModel,
+    ): Promise<Map<string, OnCallRulePagingHold>> => {
+      // What the rules page: the holds, here (OnCallRulesPaging).
+      return (
+        await IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode(
+          record as IncidentEpisode,
+        )
+      ).holds;
     },
   },
   {
@@ -162,10 +177,15 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(AlertEpisodeFeedService, "createAlertEpisodeFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
-      return AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode(
-        record as AlertEpisode,
-      );
+    apply: async (
+      record: BaseModel,
+    ): Promise<Map<string, OnCallRulePagingHold>> => {
+      // What the rules page: the holds, here (OnCallRulesPaging).
+      return (
+        await AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode(
+          record as AlertEpisode,
+        )
+      ).holds;
     },
   },
 ];
@@ -218,8 +238,12 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
               return {
                 of: () => {
                   return {
-                    add: async (ids: Array<unknown>): Promise<void> => {
-                      persisted.push(...ids);
+                    /*
+                     * One id at a time (the incident engine claims each
+                     * policy as it attaches it), or a list.
+                     */
+                    add: async (ids: unknown): Promise<void> => {
+                      persisted.push(...(Array.isArray(ids) ? ids : [ids]));
                     },
                   };
                 },

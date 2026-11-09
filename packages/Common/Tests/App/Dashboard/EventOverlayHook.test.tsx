@@ -372,3 +372,124 @@ describe("useEventTimeReferenceLines", () => {
     expect(analyticsGetListMock).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * The incident or alert a page is about is marked by the page itself (its
+ * declared, acknowledged and resolved moments: issue #5954), so the hook
+ * leaves it off the markers it reads, and keeps every other one.
+ */
+describe("useEventTimeReferenceLines: leaving out the page's own event", () => {
+  const THIS_INCIDENT_ID: string = "11111111-0000-4000-8000-000000000001";
+  const OTHER_INCIDENT_ID: string = "33333333-0000-4000-8000-000000000003";
+  const THIS_ALERT_ID: string = "22222222-0000-4000-8000-000000000002";
+
+  function ExcludingProbe(props: {
+    excludedIncidentIds?: Array<string> | undefined;
+    excludedAlertIds?: Array<string> | undefined;
+  }): React.ReactElement {
+    const { lines }: EventTimeReferenceLines = useEventTimeReferenceLines({
+      enabled: true,
+      window: WINDOW,
+      excludedIncidentIds: props.excludedIncidentIds,
+      excludedAlertIds: props.excludedAlertIds,
+    });
+
+    return (
+      <div data-testid="excluding-probe" data-count={lines.length}>
+        {lines.map((line: ChartTimeReferenceLineProps, index: number) => {
+          return (
+            <div key={index} data-testid="excluding-marker">
+              {line.label}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  beforeEach(() => {
+    getListMock.mockImplementation((args: { modelType: { name: string } }) => {
+      if (args.modelType.name === "Incident") {
+        return Promise.resolve({
+          data: [
+            {
+              id: new ObjectID(THIS_INCIDENT_ID),
+              createdAt: "2026-08-20T10:10:00.000Z",
+              title: "This incident",
+            },
+            {
+              id: new ObjectID(OTHER_INCIDENT_ID),
+              createdAt: "2026-08-20T10:30:00.000Z",
+              title: "Another incident",
+            },
+          ],
+        });
+      }
+      return Promise.resolve({
+        data: [
+          {
+            id: new ObjectID(THIS_ALERT_ID),
+            createdAt: "2026-08-20T10:20:00.000Z",
+            title: "This alert",
+          },
+        ],
+      });
+    });
+    analyticsGetListMock.mockResolvedValue({ data: [] });
+  });
+
+  async function markerLabels(): Promise<Array<string>> {
+    await waitFor(() => {
+      expect(
+        Number(
+          screen.getByTestId("excluding-probe").getAttribute("data-count"),
+        ),
+      ).toBeGreaterThan(0);
+    });
+
+    return screen
+      .getAllByTestId("excluding-marker")
+      .map((marker: HTMLElement): string => {
+        return marker.textContent || "";
+      })
+      .sort();
+  }
+
+  test("nothing left out reads every event, as before", async () => {
+    render(<ExcludingProbe />);
+
+    expect(await markerLabels()).toEqual([
+      "Alert: This alert",
+      "Incident: Another incident",
+      "Incident: This incident",
+    ]);
+  });
+
+  test("an incident's page leaves its incident off, and keeps the others", async () => {
+    render(<ExcludingProbe excludedIncidentIds={[THIS_INCIDENT_ID]} />);
+
+    expect(await markerLabels()).toEqual([
+      "Alert: This alert",
+      "Incident: Another incident",
+    ]);
+  });
+
+  test("an alert's page leaves its alert off", async () => {
+    render(<ExcludingProbe excludedAlertIds={[THIS_ALERT_ID]} />);
+
+    expect(await markerLabels()).toEqual([
+      "Incident: Another incident",
+      "Incident: This incident",
+    ]);
+  });
+
+  test("an id of one kind never leaves out an event of the other", async () => {
+    render(<ExcludingProbe excludedAlertIds={[THIS_INCIDENT_ID]} />);
+
+    expect(await markerLabels()).toEqual([
+      "Alert: This alert",
+      "Incident: Another incident",
+      "Incident: This incident",
+    ]);
+  });
+});

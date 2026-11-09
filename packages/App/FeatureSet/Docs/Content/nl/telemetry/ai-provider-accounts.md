@@ -1,6 +1,6 @@
 # Accounts bij AI-providers
 
-Zie wat je accounts bij AI-providers hebben verbruikt en wat dat kostte, zonder je apps te veranderen. Koppel een account bij OpenAI, Anthropic, Azure OpenAI en Microsoft Foundry, Amazon Bedrock of Google Vertex AI met inloggegevens die alleen kunnen lezen, en OneUptime leest het gebruik ervan elke 15 minuten in **Gebruik**, **Budgetten** en metrieken waarop je kunt alarmeren.
+Zie wat je accounts bij AI-providers hebben verbruikt en wat dat kostte, zonder je apps te veranderen. Koppel een account bij OpenAI, Anthropic, Azure OpenAI en Microsoft Foundry, Amazon Bedrock of Google Vertex AI met inloggegevens die alleen kunnen lezen, en OneUptime leest het gebruik ervan elke 15 minuten in **Gebruik**, **Budgetten** en metrieken waarop je kunt alarmeren. Een Cursor-team wordt op dezelfde manier gekoppeld, met zijn beheerders-API-sleutel, en elk uur gelezen.
 
 :::cards
 - [Een account koppelen](#een-account-koppelen): Kies de provider, plak de inloggegevens, test ze en koppel.
@@ -11,7 +11,7 @@ Zie wat je accounts bij AI-providers hebben verbruikt en wat dat kostte, zonder 
 
 ## Hoe het werkt
 
-Elke 15 minuten vraagt OneUptime elk gekoppeld account om zijn gebruik per UTC-dag en bewaart het als drie metrieken van de eigen service van de verbinding. Elke leesronde haalt de dagen sinds de vorige leesronde op, en opnieuw de laatste 3 dagen, vandaag inbegrepen, omdat providers vandaag blijven aanvullen en de net voorbije dagen corrigeren.
+Elke 15 minuten vraagt OneUptime elk gekoppeld account om zijn gebruik per UTC-dag en bewaart het als drie metrieken van de eigen service van de verbinding. Elke leesronde haalt de dagen sinds de vorige leesronde op, en opnieuw de laatste 3 dagen, vandaag inbegrepen, omdat providers vandaag blijven aanvullen en de net voorbije dagen corrigeren. Een Cursor-team wordt in plaats daarvan elk uur gelezen, per uur: zie [Cursor](#cursor).
 
 ```mermaid title="Van een provideraccount naar Gebruik en Budgetten"
 flowchart TB
@@ -49,7 +49,7 @@ Klik bij **Testen** op **Verbinding testen**. OneUptime leest het gebruik van de
 Klik op **Koppelen**. De eerste leesronde start binnen een minuut en haalt de laatste 30 dagen op.
 :::
 
-Gekoppelde accounts staan onder de tegels, met hun **Status** en **Laatst gelezen**. **Nu lezen** leest meteen, **Testen** controleert de opgeslagen instellingen opnieuw, **Uitzetten** stopt met lezen en houdt wat gelezen is, en **Bewerken** wijzigt de instellingen: een leeg gelaten geheim houdt het opgeslagen geheim. **Fout bekijken** toont waarom een leesronde mislukte, zonder enig geheim.
+Gekoppelde accounts staan onder de tegels, met hun **Status** en **Laatst gelezen**. **Nu lezen** leest meteen, **Testen** controleert de opgeslagen instellingen opnieuw, **Uitzetten** stopt met lezen en houdt wat gelezen is, en **Bewerken** wijzigt de instellingen: een leeg gelaten geheim houdt het opgeslagen geheim. **Fout bekijken** toont waarom een leesronde mislukte, zonder enig geheim. De status van een werkend account noemt de laatste dag met gebruik of, als zijn leesrondes er geen vonden, de eerste gelezen dag; een Azure-koppeling die geen resource vindt, zegt dat.
 
 ## Wat elke provider levert
 
@@ -60,10 +60,11 @@ Gekoppelde accounts staan onder de tegels, met hun **Status** en **Laatst geleze
 | Azure OpenAI en Microsoft Foundry | Geschat op basis van tokens | Resource en model | Een app met Monitoring Reader |
 | Amazon Bedrock | Geschat op basis van tokens | Regio en model | Een toegangssleutel die CloudWatch leest |
 | Google Vertex AI | Geschat op basis van tokens | Regio en model | Een serviceaccount met Monitoring Viewer |
+| Cursor | Wat Cursor rapporteert | Persoon, model en serviceaccount, per uur | De beheerders-API-sleutel van een team |
 
 Elke provider behalve Anthropic telt ook verzoeken: het gebruiksrapport van Anthropic heeft er geen. Geschatte kosten gebruiken de prijslijst uit [Wat een aanroep kost](/docs/telemetry/ai-llm-observability#wat-een-aanroep-kost) en je eigen prijzen uit **Prijzen**, en zijn als schatting gemarkeerd. Een model dat de prijslijst niet kent, heeft geen kosten tot je het daar een prijs geeft.
 
-Geen van deze inloggegevens kan een model aanroepen: elk leest gebruik, kosten of metrieken, en verder niets.
+Geen van deze inloggegevens kan een model aanroepen: elk leest gebruik, kosten of metrieken, en verder niets. De beheerders-API-sleutel van Cursor is de uitzondering: hij kan ook enkele teaminstellingen wijzigen, zoals bestedingslimieten, en OneUptime leest er alleen mee.
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ Maak in het project een serviceaccount met de rol Monitoring Viewer, en een JSON
 Vul **Project-ID** in en plak het hele sleutelbestand als **Serviceaccountsleutel (JSON)**.
 :::
 
+## Cursor
+
+OneUptime leest je Cursor-team met een beheerders-API-sleutel: elk verzoek van zijn leden, met het model, de tokens en wat Cursor ervoor in rekening bracht, opgeteld per uur, persoon, model en serviceaccount, en hoeveel leden Cursor de afgelopen 7 dagen gebruikten. Een verzoek met een serviceaccount staat onder de naam van het account als zijn API-sleutel. Het bevat geen prompts, code of antwoorden: de Admin API van Cursor heeft die niet.
+
+:::steps
+### Een beheerders-API-sleutel van Cursor maken
+
+Open in het dashboard van Cursor Settings, Cursor Admin API Keys en maak een sleutel. Alleen een teambeheerder kan dat, en de sleutel hoort bij de abonnementen Teams en Enterprise. Hij begint met `crsr_`.
+
+### Cursor koppelen
+
+Plak de sleutel bij **Beheerders-API-sleutel**. De test toont ook de **Leden** van het team, en als **Personen** hoeveel van hen Cursor gebruikten.
+:::
+
+Cursor telt zijn gebruik per uur op en vraagt om hoogstens één keer per uur gelezen te worden, dus OneUptime leest een Cursor-team elk uur en bewaart zijn gebruik per uur. Elke leesronde neemt de uren sinds de vorige en leest de 3 uren daarvoor opnieuw, omdat Cursor verzoeken laat toevoegt, en leest een dag opnieuw volledig zodra 6 uur van de volgende voorbij zijn. De eerste leesronde gaat 30 dagen terug, de nieuwste eerst, een dag per keer: een druk team heeft een paar leesrondes nodig, een minuut na elkaar, en zijn regel toont **Eerder gebruik wordt nog gelezen** tot ze klaar zijn.
+
+Met het Enterprise-abonnement kan Cursor zijn gebruik ook doorsturen terwijl het gebeurt, met zijn OpenTelemetry Export: zie [Cursor](/docs/telemetry/cursor). De twee blijven gescheiden: dit account staat onder **Provideraccounts**, de export onder **Je AI-aanroepen**, nooit opgeteld, en een budget telt een van beide.
+
 ## Het gebruik bekijken
 
 Open **Gebruik** en kies **Provideraccounts**. Je ziet er de kosten, tokens en verzoeken die je accounts voor de periode rapporteerden, gerangschikt per **Model**, **Persoon**, **Provider**, **Project of resource**, **API-sleutel** of **Verbinding**. De periode begint om middernacht UTC van de eerste dag, omdat providers hele dagen rapporteren.
@@ -157,7 +176,7 @@ Het gebruik van elk account wordt bewaard als drie metrieken, die je in een [das
 | `oneuptime.llm.provider.tokens` | De tokens van een dag, per `gen_ai.token.type`: `input` (cachetokens inbegrepen), `output`, `cache_read` en `cache_write` |
 | `oneuptime.llm.provider.requests` | De verzoeken van een dag |
 
-Elk punt krijgt als tijdstempel het begin van zijn UTC-dag. Het draagt `oneuptime.llm.connection.id` en `oneuptime.llm.connection.name`, en wat de provider noemt: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` en `oneuptime.llm.provider.api_key`. Geschatte kosten dragen `oneuptime.llm.cost.estimated`.
+Elk punt krijgt als tijdstempel het begin van zijn UTC-dag. Het draagt `oneuptime.llm.connection.id` en `oneuptime.llm.connection.name`, en wat de provider noemt: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` en `oneuptime.llm.provider.api_key`. Geschatte kosten dragen `oneuptime.llm.cost.estimated`. De punten van een Cursor-team bevatten elk het gebruik van een uur, met als tijdstempel het begin van hun UTC-uur.
 
 ## Wanneer er gelezen wordt
 
@@ -168,6 +187,9 @@ Elk punt krijgt als tijdstempel het begin van zijn UTC-dag. Het draagt `oneuptim
 | Nadat een sleutel of machtiging is geweigerd | 60 minuten later |
 | Na elke andere fout | 15 minuten later |
 | Uitgeschakeld | Geen, tot ze weer aan staat |
+| De volgende van een Cursor-team | Elk uur |
+| Een Cursor-leesronde die halverwege stopte | Een minuut later |
+| Die van een Cursor-team, na elke fout | 60 minuten later |
 
 Een abonnement zonder telemetriefuncties leest niets. Een verbinding verwijderen stopt haar leesrondes en houdt wat ze las tot de bewaring van de service het verwijdert.
 
@@ -185,8 +207,24 @@ Controleer of je alles hebt gekopieerd, of hij niet is ingetrokken en of het de 
 Geef ze de rol die deze pagina voor de provider noemt: Monitoring Reader op het Azure-abonnement, de twee CloudWatch-acties in AWS, Monitoring Viewer op het Google Cloud-project.
 :::
 
+:::details Cursor accepteerde de sleutel, maar hij mag het gebruik van het team niet lezen
+Gebruik een beheerders-API-sleutel van een team met het abonnement Teams of Enterprise: een teambeheerder maakt hem in het dashboard van Cursor, onder Settings, Cursor Admin API Keys. Test daarna opnieuw.
+:::
+
+:::details Cursor vroeg OneUptime om het rustiger aan te doen
+De Admin API van Cursor neemt 20 verzoeken per minuut van een team aan, 60 voor gebruiksgebeurtenissen, gedeeld met elke tool die hem leest. OneUptime wacht één keer een minuut en gaat verder. Weigert Cursor nog steeds, dan houdt de leesronde wat ze volledig las en gaat ze een minuut later verder; een leesronde die niets kreeg, probeert het een uur later opnieuw.
+:::
+
 :::details De test slaagt, maar voor vandaag verschijnt niets
 Providers rapporteren het gebruik van een dag minuten tot uren later en corrigeren het nog een dag of twee. De volgende leesrondes halen het op.
+:::
+
+:::details Het account werkt, maar zijn status meldt geen gebruik
+Zijn leesrondes vonden er geen sinds de genoemde dag. De rapporten van OpenAI tellen de API-aanroepen met de sleutels van die organisatie, niet Azure OpenAI of ChatGPT. Een Azure-koppeling leest alleen de resources die zijn app kan zien: geef de app Monitoring Reader waar ze staan.
+:::
+
+:::details Accounts zijn gekoppeld, maar Gesprekken en Aanroepen zijn leeg
+Een account brengt gebruik en kosten per dag, nooit een aanroep of een gesprek: die komen uit je apps. Zie [Controleer wat er binnenkomt](/docs/telemetry/ai-llm-observability#controleer-wat-er-binnenkomt).
 :::
 
 :::details De kosten wijken af van de factuur

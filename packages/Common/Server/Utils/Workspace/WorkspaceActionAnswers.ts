@@ -186,6 +186,9 @@ export default class WorkspaceActionAnswers {
         })} as a ${
           data.noteSavedAs === WorkspaceNoteType.Private ? "private" : "public"
         } note on this ${noun}`;
+      // A public note's approval message (WorkspacePublicNoteApprovalActions).
+      case WorkspacePendingActionKind.ApprovePublicNote:
+        return "approve this public note";
     }
   }
 
@@ -601,6 +604,8 @@ export default class WorkspaceActionAnswers {
       case WorkspacePendingActionKind.SavePrivateNote:
       case WorkspacePendingActionKind.SavePublicNote:
         return "saves it";
+      case WorkspacePendingActionKind.ApprovePublicNote:
+        return "approves it";
     }
   }
 
@@ -619,6 +624,8 @@ export default class WorkspaceActionAnswers {
         return "saved the message as a private note on";
       case WorkspacePendingActionKind.SavePublicNote:
         return "saved the message as a public note on";
+      case WorkspacePendingActionKind.ApprovePublicNote:
+        return "approved a public note on";
     }
   }
 

@@ -25,7 +25,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
@@ -115,6 +117,7 @@ class CephClusterOwnerRuleEngineServiceClass
         cephCluster: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running Ceph cluster owner rules: ${error}`, {
@@ -131,6 +134,8 @@ class CephClusterOwnerRuleEngineServiceClass
     cephCluster: CephCluster;
     rules: Array<CephClusterOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { cephCluster, rules } = data;
 
@@ -257,7 +262,7 @@ class CephClusterOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: CephClusterOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -274,7 +279,7 @@ class CephClusterOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: CephClusterOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

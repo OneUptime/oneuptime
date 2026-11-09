@@ -16,6 +16,10 @@ import ObjectID from "../../Types/ObjectID";
 import MonitorGroup from "../../Models/DatabaseModels/MonitorGroup";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
+import MonitorGroupMonitoring, {
+  MonitorGroupMonitoringChange,
+  MonitorGroupMonitoringSummary,
+} from "../../Utils/Monitor/MonitorGroupMonitoring";
 
 export default class MonitorGroupAPI extends BaseAPI<
   MonitorGroup,
@@ -91,5 +95,77 @@ export default class MonitorGroupAPI extends BaseAPI<
         }
       },
     );
+
+    /*
+     * Monitoring for every monitor in the group (issue #6401): how many of
+     * its monitors are checked, and turning monitoring off or on for all of
+     * them at once. See MonitorGroupService.setMonitoringForMonitorsInGroup:
+     * the switch is the caller's own update of the monitors.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/monitoring-summary/:monitorGroupId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const summary: MonitorGroupMonitoringSummary =
+            await this.service.getMonitoringSummary(
+              MonitorGroupAPI.getMonitorGroupId(req),
+              await CommonAPI.getDatabaseCommonInteractionProps(req),
+            );
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            MonitorGroupMonitoring.toJSON(summary),
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    for (const route of [
+      { path: "turn-monitoring-off", isMonitoringOn: false },
+      { path: "turn-monitoring-on", isMonitoringOn: true },
+    ]) {
+      this.router.post(
+        `${new this.entityType()
+          .getCrudApiPath()
+          ?.toString()}/${route.path}/:monitorGroupId`,
+        UserMiddleware.getUserMiddleware,
+        async (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => {
+          try {
+            const change: MonitorGroupMonitoringChange =
+              await this.service.setMonitoringForMonitorsInGroup({
+                monitorGroupId: MonitorGroupAPI.getMonitorGroupId(req),
+                isMonitoringOn: route.isMonitoringOn,
+                props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+              });
+
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              MonitorGroupMonitoring.toJSON(change),
+            );
+          } catch (err) {
+            next(err);
+          }
+        },
+      );
+    }
+  }
+
+  private static getMonitorGroupId(req: ExpressRequest): ObjectID {
+    if (!req.params["monitorGroupId"]) {
+      throw new BadDataException("Monitor group id is required.");
+    }
+
+    return new ObjectID(req.params["monitorGroupId"].toString());
   }
 }
