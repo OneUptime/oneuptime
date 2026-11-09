@@ -110,6 +110,15 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_FRUSTRATION_SIGNALS,
+      [
+        "Project",
+        "Real User Monitoring",
+        "View Application",
+        "Frustration Signals",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
       [
         "Project",
