@@ -342,11 +342,9 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
       "Unattributed is usage that doesn't say who made it, for example sent without user.email.",
     );
     await expect(
-      page
-        .getByTestId("llm-usage-unattributed-note")
-        .getByRole("link", {
-          name: "How to attribute AI coding assistant usage",
-        }),
+      page.getByTestId("llm-usage-unattributed-note").getByRole("link", {
+        name: "How to attribute AI coding assistant usage",
+      }),
     ).toHaveAttribute("href", "/docs/telemetry/ai-coding-assistants");
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "usage-metrics-only");
