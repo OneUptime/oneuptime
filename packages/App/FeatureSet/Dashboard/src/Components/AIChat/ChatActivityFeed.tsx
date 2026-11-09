@@ -56,6 +56,19 @@ import {
   AiContextViewButton,
 } from "../AI/AiContextActivityView";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import AIRun from "Common/Models/DatabaseModels/AIRun";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  AIRunAttemptEnd,
+  AIRunAttemptOutcome,
+  parseAIRunAttemptEnd,
+} from "Common/Types/AI/AIRunAttempt";
+import {
+  describeAttemptEnd,
+  formatAiRunTime,
+} from "../AI/AiRunFailureWords";
+import OneUptimeDate from "Common/Types/Date";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
@@ -253,18 +266,83 @@ export interface ComponentProps {
    * heading. Defaults to false, so the chat panel is unchanged.
    */
   hideChrome?: boolean | undefined;
+  /*
+   * The run the events belong to (issue #6437). Its status says whether a
+   * step can still be running: a run that is over, or that waits in the
+   * queue, has none, whatever its events left open - an older run's last
+   * "Thinking" spun forever. Its times head the feed (when it started, how
+   * long it took). Omitted, as in Ask AI's answers, the events alone say.
+   */
+  run?: ActivityFeedRun | undefined;
+  /*
+   * Each step's time of day, its full date and time on hover, in the
+   * reader's language and time zone. Defaults to false.
+   */
+  showStepTimes?: boolean | undefined;
 }
+
+// What the feed reads of the run its events belong to.
+export interface ActivityFeedRun {
+  status?: AIRunStatus | undefined;
+  createdAt?: Date | undefined;
+  startedAt?: Date | undefined;
+  completedAt?: Date | undefined;
+  // When a run waiting between attempts tries again.
+  retryAt?: Date | undefined;
+}
+
+// A run's status and times, as the API sends a run (JSON), for the feed.
+export function readActivityFeedRun(runJson: JSONObject): ActivityFeedRun {
+  const run: AIRun = AIRun.fromJSONObject(runJson, AIRun);
+
+  return {
+    status: run.status,
+    createdAt: run.createdAt,
+    startedAt: run.startedAt,
+    completedAt: run.completedAt,
+    retryAt: run.retryAt,
+  };
+}
+
+/*
+ * A step can be running only while its run is: Running (or waiting for an
+ * approval). A queued run - waiting for a worker, or between attempts -
+ * and a run that is over have no step running.
+ */
+export function canRunHaveRunningSteps(run: ActivityFeedRun | undefined): boolean {
+  if (!run || !run.status) {
+    return true;
+  }
+
+  return (
+    run.status === AIRunStatus.Running ||
+    run.status === AIRunStatus.WaitingForApproval
+  );
+}
+
+type ActivityStepStatus = "running" | "done" | "failed" | "stopped";
 
 interface ActivityStep {
   key: string;
   text: string;
   detail?: string | undefined;
-  status: "running" | "done" | "failed";
   /*
-   * Distinguishes plain steps from executor log lines (ProgressLog) and
-   * executed actions (ActionExecuted) so they can render differently.
+   * "stopped": the step was open when its attempt or its run ended - it
+   * neither finished nor failed (issue #6437).
    */
-  kind?: "log" | "action" | undefined;
+  status: ActivityStepStatus;
+  /*
+   * Distinguishes plain steps from executor log lines (ProgressLog),
+   * executed actions (ActionExecuted) and how an attempt of the run ended
+   * (AttemptEnded, RunFailed), so they can render differently.
+   */
+  kind?: "log" | "action" | "attemptEnd" | undefined;
+  // When the step started: its first event's time.
+  at?: Date | undefined;
+  // The attempt of the run it belongs to, counted from 1.
+  attempt?: number | undefined;
+  // kind "attemptEnd": how the attempt ended.
+  attemptEnd?: AIRunAttemptEnd | undefined;
   // Log severity for ProgressLog steps (Info/Warning/Error/…).
   severity?: string | undefined;
   /*
@@ -802,6 +880,38 @@ function buildSteps(
 ): Array<ActivityStep> {
   const steps: Array<ActivityStep> = [];
   const thinking: string = translator.translateText("Thinking") as string;
+  // The attempt the events belong to: each RunStarted after the first starts one.
+  let attempt: number = 1;
+  let hasRunStarted: boolean = false;
+
+  /*
+   * The steps an attempt left open when it ended - it failed, its server
+   * stopped, or the run finished - end with it: they never ran on.
+   */
+  const settleOpenSteps: (status: ActivityStepStatus) => void = (
+    status: ActivityStepStatus,
+  ): void => {
+    for (const step of steps) {
+      if (step.status === "running") {
+        step.status = status;
+      }
+    }
+  };
+
+  /*
+   * A model call that answered is not a step of its own: the steps it
+   * chose follow it, each with its time. Only a call still thinking, or
+   * one that failed, is drawn.
+   */
+  const removeLastThinking: () => void = (): void => {
+    for (let i: number = steps.length - 1; i >= 0; i--) {
+      const step: ActivityStep = steps[i]!;
+      if (step.status === "running" && step.text === thinking) {
+        steps.splice(i, 1);
+        return;
+      }
+    }
+  };
 
   const completeLastRunning: (
     text: string | undefined,
@@ -824,9 +934,17 @@ function buildSteps(
 
   for (const event of events) {
     const key: string = event.id?.toString() || `${steps.length}`;
+    const stepCountBefore: number = steps.length;
 
     switch (event.eventType) {
       case AIRunEventType.RunStarted:
+        // Another attempt: what the last one left open ended with it.
+        if (hasRunStarted) {
+          settleOpenSteps("stopped");
+          attempt++;
+        }
+
+        hasRunStarted = true;
         steps.push({
           key,
           text: translator.translateText("Starting investigation") as string,
@@ -837,7 +955,42 @@ function buildSteps(
         steps.push({ key, text: thinking, status: "running" });
         break;
       case AIRunEventType.LlmCallCompleted:
-        completeLastRunning(thinking, undefined, false);
+        removeLastThinking();
+        break;
+      // The model call failed for good: its Thinking stops thinking.
+      case AIRunEventType.LlmCallFailed:
+        completeLastRunning(
+          thinking,
+          translator.translateText("failed") as string,
+          true,
+        );
+        break;
+      /*
+       * An attempt ended without the run's answer: its open steps end with
+       * it, and a line says how and when the next attempt starts.
+       */
+      case AIRunEventType.AttemptEnded:
+      case AIRunEventType.RunFailed: {
+        settleOpenSteps("stopped");
+
+        const attemptEnd: AIRunAttemptEnd | null = parseAIRunAttemptEnd(
+          event.resultSummary?.attemptEnd,
+        );
+
+        if (attemptEnd) {
+          steps.push({
+            key,
+            text: describeAttemptEnd(attemptEnd, translator),
+            status:
+              event.eventType === AIRunEventType.RunFailed ? "failed" : "done",
+            kind: "attemptEnd",
+            attemptEnd,
+          });
+        }
+        break;
+      }
+      case AIRunEventType.RunCompleted:
+        settleOpenSteps("done");
         break;
       case AIRunEventType.ToolCallStarted:
         steps.push({
@@ -1061,9 +1214,29 @@ function buildSteps(
       default:
         break;
     }
+
+    // When each new step started, and the attempt it belongs to.
+    const at: Date | undefined = toDate(event.createdAt);
+
+    for (let index: number = stepCountBefore; index < steps.length; index++) {
+      const step: ActivityStep = steps[index]!;
+      step.at = step.at || at;
+      step.attempt = attempt;
+    }
   }
 
   return steps;
+}
+
+// A time the server sent, as a Date: undefined for none, or for no time.
+function toDate(value: Date | string | undefined): Date | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const date: Date = value instanceof Date ? value : new Date(value);
+
+  return isNaN(date.getTime()) ? undefined : date;
 }
 
 /*
@@ -1119,8 +1292,143 @@ export function describeLiveActivity(
 }
 
 /*
+ * One row of the feed: a step, or the same step done several times in a
+ * row ("Searching code", twelve times over) drawn as one row that opens
+ * into each of them (issue #6437).
+ */
+type ActivityRow =
+  | { type: "step"; key: string; step: ActivityStep }
+  | { type: "repeat"; key: string; steps: Array<ActivityStep> };
+
+// Three or more of the same finished step in a row fold into one row.
+export const MIN_REPEATED_STEPS: number = 3;
+
+function isRepeatableStep(step: ActivityStep): boolean {
+  return (
+    (step.status === "done" || step.status === "failed") &&
+    !step.kind &&
+    !step.aiContext
+  );
+}
+
+function groupRepeatedSteps(steps: Array<ActivityStep>): Array<ActivityRow> {
+  const rows: Array<ActivityRow> = [];
+  let index: number = 0;
+
+  while (index < steps.length) {
+    const step: ActivityStep = steps[index]!;
+    let end: number = index + 1;
+
+    if (isRepeatableStep(step)) {
+      while (
+        end < steps.length &&
+        isRepeatableStep(steps[end]!) &&
+        steps[end]!.text === step.text &&
+        steps[end]!.status === step.status
+      ) {
+        end++;
+      }
+    }
+
+    if (end - index >= MIN_REPEATED_STEPS) {
+      rows.push({
+        type: "repeat",
+        key: `repeat-${step.key}`,
+        steps: steps.slice(index, end),
+      });
+    } else {
+      for (let i: number = index; i < end; i++) {
+        rows.push({ type: "step", key: steps[i]!.key, step: steps[i]! });
+      }
+    }
+
+    index = end;
+  }
+
+  return rows;
+}
+
+// The steps of one attempt of the run, and how it ended when it did.
+interface ActivityAttempt {
+  number: number;
+  steps: Array<ActivityStep>;
+  end?: AIRunAttemptEnd | undefined;
+}
+
+function groupAttempts(steps: Array<ActivityStep>): Array<ActivityAttempt> {
+  const attempts: Array<ActivityAttempt> = [];
+
+  for (const step of steps) {
+    const number: number = step.attempt || 1;
+    let attempt: ActivityAttempt | undefined = attempts[attempts.length - 1];
+
+    if (!attempt || attempt.number !== number) {
+      attempt = { number, steps: [] };
+      attempts.push(attempt);
+    }
+
+    attempt.steps.push(step);
+
+    if (step.kind === "attemptEnd" && step.attemptEnd) {
+      attempt.end = step.attemptEnd;
+    }
+  }
+
+  return attempts;
+}
+
+// How long something took, in the reader's language: "40 seconds", "6 minutes".
+export function describeElapsedTime(
+  milliseconds: number,
+  translator: Translator,
+): string {
+  const seconds: number = Math.max(0, Math.round(milliseconds / 1000));
+
+  if (seconds < 60) {
+    return translator.translatePlural(
+      { one: "{{count}} second", other: "{{count}} seconds" },
+      seconds,
+    );
+  }
+
+  const minutes: number = Math.round(seconds / 60);
+
+  if (minutes < 60) {
+    return translator.translatePlural(
+      { one: "{{count}} minute", other: "{{count}} minutes" },
+      minutes,
+    );
+  }
+
+  return translator.translatePlural(
+    { one: "{{count}} hour", other: "{{count}} hours" },
+    Math.round(minutes / 60),
+  );
+}
+
+// A step's time of day, and its full date and time for the hover.
+function describeStepTime(date: Date): { short: string; full: string } {
+  return {
+    short: OneUptimeDate.getLocalTimeString(date, {
+      includeSeconds: true,
+      use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+    }),
+    full: OneUptimeDate.getDateAsLocalShortDateTimeString(date, {
+      includeSeconds: true,
+    }),
+  };
+}
+
+/*
  * The live "investigating…" feed: renders the run's real tool activity so
  * the user watches actual queries execute instead of a generic spinner.
+ *
+ * A long run reads as a story, not a wall (issue #6437): each step says
+ * when it happened (showStepTimes), the same step done many times in a row
+ * is one row that opens, only the latest steps show until "Show earlier
+ * steps" is pressed, and a run tried more than once shows each attempt as
+ * a group - the earlier ones folded, with how they ended. Nothing spins
+ * once its run is over (run).
  */
 const ChatActivityFeed: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -1135,11 +1443,48 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
    */
   const [viewedAiContext, setViewedAiContext] =
     useState<AiContextActivity | null>(null);
-  const steps: Array<ActivityStep> = buildSteps(props.events, translator);
-  const maxVisibleSteps: number = props.maxVisibleSteps ?? 7;
-  const hiddenStepCount: number = Math.max(0, steps.length - maxVisibleSteps);
-  const visibleSteps: Array<ActivityStep> = steps.slice(-1 * maxVisibleSteps);
+  /*
+   * What the reader opened: earlier attempts, rows of a repeated step, and
+   * the attempts whose earlier steps they asked to see.
+   */
+  const [openAttempts, setOpenAttempts] = useState<Array<number>>([]);
+  const [openRepeats, setOpenRepeats] = useState<Array<string>>([]);
+  const [attemptsShowingAll, setAttemptsShowingAll] = useState<
+    Array<number>
+  >([]);
+
+  const canStepsRun: boolean = canRunHaveRunningSteps(props.run);
+  const steps: Array<ActivityStep> = buildSteps(props.events, translator).map(
+    (step: ActivityStep): ActivityStep => {
+      // A run that is over, or waits in the queue, has no step running.
+      return step.status === "running" && !canStepsRun
+        ? { ...step, status: "stopped" }
+        : step;
+    },
+  );
+  const maxVisibleSteps: number = Math.max(props.maxVisibleSteps ?? 7, 1);
   const showLiveIndicator: boolean = props.showLiveIndicator ?? true;
+  const attempts: Array<ActivityAttempt> = groupAttempts(steps);
+  const maxAttempts: number = Math.max(
+    attempts.length,
+    ...attempts.map((attempt: ActivityAttempt): number => {
+      return attempt.end?.maxAttempts || 0;
+    }),
+  );
+
+  const toggle: (
+    list: Array<number | string>,
+    value: number | string,
+  ) => Array<number | string> = (
+    list: Array<number | string>,
+    value: number | string,
+  ): Array<number | string> => {
+    return list.includes(value)
+      ? list.filter((item: number | string): boolean => {
+          return item !== value;
+        })
+      : [...list, value];
+  };
 
   type RenderStepIconFunction = (step: ActivityStep) => ReactElement;
 
@@ -1149,6 +1494,35 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     if (step.status === "running") {
       return (
         <span className="h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-gray-200 border-t-gray-600"></span>
+      );
+    }
+
+    // A step its attempt or its run ended under: neither done nor failed.
+    if (step.status === "stopped") {
+      return (
+        <Icon
+          icon={IconProp.MinusCircle}
+          className="h-3 w-3 flex-shrink-0 text-gray-400"
+        />
+      );
+    }
+
+    // How an attempt ended: tried again, picked up again, or given up.
+    if (step.kind === "attemptEnd") {
+      if (step.status === "failed") {
+        return (
+          <Icon
+            icon={IconProp.Alert}
+            className="h-3 w-3 flex-shrink-0 text-red-500"
+          />
+        );
+      }
+
+      return (
+        <Icon
+          icon={IconProp.ArrowPath}
+          className="h-3 w-3 flex-shrink-0 text-amber-500"
+        />
       );
     }
 
@@ -1239,6 +1613,19 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
   const renderStepText: RenderStepTextFunction = (
     step: ActivityStep,
   ): ReactElement => {
+    if (step.kind === "attemptEnd") {
+      return (
+        <span
+          data-testid="activity-attempt-end"
+          className={`break-words ${
+            step.status === "failed" ? "text-red-600" : "text-amber-700"
+          }`}
+        >
+          {step.text}
+        </span>
+      );
+    }
+
     if (step.kind === "action") {
       // A line that carries an address is its link (an opened pull request).
       const link: string | null = getActionStepLink(step.text);
@@ -1287,7 +1674,9 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
         className={
           step.status === "running"
             ? "font-medium text-gray-700"
-            : "text-gray-500"
+            : step.status === "stopped"
+              ? "text-gray-400"
+              : "text-gray-500"
         }
       >
         {step.text}
@@ -1296,75 +1685,398 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const stepList: ReactElement =
-    visibleSteps.length > 0 ? (
+  // A step's time of day, its full date and time on hover.
+  const renderStepTime: (step: ActivityStep) => ReactElement = (
+    step: ActivityStep,
+  ): ReactElement => {
+    if (!props.showStepTimes || !step.at) {
+      return <></>;
+    }
+
+    const time: { short: string; full: string } = describeStepTime(step.at);
+
+    return (
+      <time
+        dateTime={step.at.toISOString()}
+        title={time.full}
+        data-testid="activity-step-time"
+        className="ms-auto flex-shrink-0 ps-3 tabular-nums text-gray-400"
+      >
+        {time.short}
+      </time>
+    );
+  };
+
+  const renderStepRow: (
+    step: ActivityStep,
+    extraDetail?: ReactElement,
+  ) => ReactElement = (
+    step: ActivityStep,
+    extraDetail?: ReactElement,
+  ): ReactElement => {
+    const aiContext: AiContextActivity | undefined = step.aiContext;
+    // The line's words, which its View is read with.
+    const lineId: string = `${lineIdPrefix}-${step.key}`;
+    // A step that ended under its attempt says so, unless it says more.
+    const detail: string | undefined =
+      step.detail ||
+      (step.status === "stopped"
+        ? (translator.translateText("did not finish") as string)
+        : undefined);
+
+    return (
+      <div key={step.key} className="flex items-start gap-2 text-xs leading-4">
+        {renderStepMark(step)}
+        {/*
+          The words and their detail ("· 3 rows · 0.4s") flow as one
+          line of text: a long step wraps, and its detail follows its
+          last word - whole, or on the next line when it does not fit
+          - instead of standing in a narrow column of its own.
+        */}
+        <div
+          className="min-w-0"
+          data-testid="activity-step-text"
+          {...(aiContext ? { "data-ai-context": "true" } : {})}
+        >
+          {aiContext ? (
+            <span id={lineId}>{renderStepText(step)}</span>
+          ) : (
+            renderStepText(step)
+          )}
+          {detail && (
+            <>
+              {" "}
+              <span className="inline-block max-w-full text-gray-400">
+                · {detail}
+              </span>
+            </>
+          )}
+          {extraDetail || <></>}
+          {aiContext ? (
+            <>
+              {" "}
+              <span className="inline-block text-gray-400">
+                <InlineSeparator markOnly />{" "}
+                <AiContextViewButton
+                  describedById={lineId}
+                  onClick={() => {
+                    setViewedAiContext(aiContext);
+                  }}
+                />
+              </span>
+            </>
+          ) : (
+            <></>
+          )}
+        </div>
+        {renderStepTime(step)}
+      </div>
+    );
+  };
+
+  /*
+   * The same step done several times in a row: its first time, how many
+   * times, and a toggle that opens each of them under it.
+   */
+  const renderRepeatRow: (
+    row: { key: string; steps: Array<ActivityStep> },
+  ) => ReactElement = (row: {
+    key: string;
+    steps: Array<ActivityStep>;
+  }): ReactElement => {
+    const isOpen: boolean = openRepeats.includes(row.key);
+    const listId: string = `${lineIdPrefix}-${row.key}`;
+    const first: ActivityStep = row.steps[0]!;
+
+    return (
+      <div key={row.key} data-testid="activity-step-repeat">
+        {renderStepRow(
+          { ...first, detail: undefined, key: `${row.key}-first` },
+          <>
+            {" "}
+            <button
+              type="button"
+              data-testid="activity-step-repeat-toggle"
+              aria-expanded={isOpen}
+              aria-controls={listId}
+              className="inline-flex items-center gap-0.5 rounded text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              onClick={() => {
+                setOpenRepeats(
+                  toggle(openRepeats, row.key) as Array<string>,
+                );
+              }}
+            >
+              {translator.translatePlural(
+                { one: "· {{count}} time", other: "· {{count}} times" },
+                row.steps.length,
+              )}
+              <Icon
+                icon={isOpen ? IconProp.ChevronDown : IconProp.ChevronRight}
+                className="h-3 w-3 flex-shrink-0"
+              />
+            </button>
+          </>,
+        )}
+        <div
+          id={listId}
+          hidden={!isOpen}
+          className="mt-1.5 space-y-1.5 ps-5"
+          data-testid="activity-step-repeat-list"
+        >
+          {isOpen ? (
+            row.steps.map((step: ActivityStep): ReactElement => {
+              return renderStepRow(step);
+            })
+          ) : (
+            <></>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  /*
+   * An attempt's steps: the latest ones, and "Show 40 earlier steps" for
+   * the rest until the reader asks for them.
+   */
+  const renderAttemptSteps: (attempt: ActivityAttempt) => ReactElement = (
+    attempt: ActivityAttempt,
+  ): ReactElement => {
+    const rows: Array<ActivityRow> = groupRepeatedSteps(attempt.steps);
+    const isShowingAll: boolean = attemptsShowingAll.includes(attempt.number);
+    const hiddenRowCount: number = isShowingAll
+      ? 0
+      : Math.max(0, rows.length - maxVisibleSteps);
+    const hiddenStepCount: number = rows
+      .slice(0, hiddenRowCount)
+      .reduce((count: number, row: ActivityRow): number => {
+        return count + (row.type === "repeat" ? row.steps.length : 1);
+      }, 0);
+
+    return (
       <div className="space-y-1.5">
-        {hiddenStepCount > 0 && (
-          <div className="text-[11px] text-gray-400">
+        {hiddenStepCount > 0 ? (
+          <button
+            type="button"
+            data-testid="activity-show-earlier"
+            className="rounded text-[11px] font-medium text-gray-500 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            onClick={() => {
+              setAttemptsShowingAll([...attemptsShowingAll, attempt.number]);
+            }}
+          >
             {translator.translatePlural(
               {
-                one: "+ {{count}} earlier step",
-                other: "+ {{count}} earlier steps",
+                one: "Show {{count}} earlier step",
+                other: "Show {{count}} earlier steps",
               },
               hiddenStepCount,
             )}
-          </div>
+          </button>
+        ) : (
+          <></>
         )}
-        {visibleSteps.map((step: ActivityStep) => {
-          const aiContext: AiContextActivity | undefined = step.aiContext;
-          // The line's words, which its View is read with.
-          const lineId: string = `${lineIdPrefix}-${step.key}`;
-
-          return (
-            <div
-              key={step.key}
-              className="flex items-start gap-2 text-xs leading-4"
-            >
-              {renderStepMark(step)}
-              {/*
-                The words and their detail ("· 3 rows · 0.4s") flow as one
-                line of text: a long step wraps, and its detail follows its
-                last word - whole, or on the next line when it does not fit
-                - instead of standing in a narrow column of its own.
-              */}
-              <div
-                className="min-w-0"
-                data-testid="activity-step-text"
-                {...(aiContext ? { "data-ai-context": "true" } : {})}
-              >
-                {aiContext ? (
-                  <span id={lineId}>{renderStepText(step)}</span>
-                ) : (
-                  renderStepText(step)
-                )}
-                {step.detail && (
-                  <>
-                    {" "}
-                    <span className="inline-block max-w-full text-gray-400">
-                      · {step.detail}
-                    </span>
-                  </>
-                )}
-                {aiContext ? (
-                  <>
-                    {" "}
-                    <span className="inline-block text-gray-400">
-                      <InlineSeparator markOnly />{" "}
-                      <AiContextViewButton
-                        describedById={lineId}
-                        onClick={() => {
-                          setViewedAiContext(aiContext);
-                        }}
-                      />
-                    </span>
-                  </>
-                ) : (
-                  <></>
-                )}
-              </div>
-            </div>
-          );
+        {rows.slice(hiddenRowCount).map((row: ActivityRow): ReactElement => {
+          return row.type === "repeat"
+            ? renderRepeatRow(row)
+            : renderStepRow(row.step);
         })}
+      </div>
+    );
+  };
+
+  // "Attempt 2 of 3", or "Attempt 2" when how many it gets is not known.
+  const describeAttemptNumber: (number: number) => string = (
+    number: number,
+  ): string => {
+    return maxAttempts >= number && maxAttempts > 1
+      ? translator.translateTemplate("Attempt {{number}} of {{count}}", {
+          number: String(number),
+          count: String(maxAttempts),
+        })
+      : translator.translateTemplate("Attempt {{number}}", {
+          number: String(number),
+        });
+  };
+
+  // How an earlier attempt ended, in a word or two after its number.
+  const describeAttemptOutcome: (attempt: ActivityAttempt) => string = (
+    attempt: ActivityAttempt,
+  ): string => {
+    if (attempt.end?.outcome === AIRunAttemptOutcome.HandedBack) {
+      return translator.translateText("paused when its server stopped") as string;
+    }
+
+    if (attempt.end?.outcome === AIRunAttemptOutcome.Stalled) {
+      return translator.translateText("stopped answering") as string;
+    }
+
+    return translator.translateText("did not finish") as string;
+  };
+
+  // An earlier attempt: one row that opens into its steps.
+  const renderEarlierAttempt: (attempt: ActivityAttempt) => ReactElement = (
+    attempt: ActivityAttempt,
+  ): ReactElement => {
+    const isOpen: boolean = openAttempts.includes(attempt.number);
+    const listId: string = `${lineIdPrefix}-attempt-${attempt.number}`;
+    const startedAt: Date | undefined = attempt.steps[0]?.at;
+
+    return (
+      <div
+        key={`attempt-${attempt.number}`}
+        data-testid="activity-attempt"
+        data-attempt={attempt.number}
+      >
+        <button
+          type="button"
+          data-testid="activity-attempt-toggle"
+          aria-expanded={isOpen}
+          aria-controls={listId}
+          className="flex w-full items-start gap-2 rounded text-start text-xs leading-4 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          onClick={() => {
+            setOpenAttempts(
+              toggle(openAttempts, attempt.number) as Array<number>,
+            );
+          }}
+        >
+          <span className="flex h-4 flex-shrink-0 items-center">
+            <Icon
+              icon={isOpen ? IconProp.ChevronDown : IconProp.ChevronRight}
+              className="h-3 w-3 flex-shrink-0"
+            />
+          </span>
+          <span className="min-w-0">
+            <span className="font-medium text-gray-600">
+              {describeAttemptNumber(attempt.number)}
+            </span>{" "}
+            <span className="text-gray-400">
+              · {describeAttemptOutcome(attempt)} ·{" "}
+              {translator.translatePlural(
+                { one: "{{count}} step", other: "{{count}} steps" },
+                attempt.steps.length,
+              )}
+            </span>
+          </span>
+          {props.showStepTimes && startedAt ? (
+            <time
+              dateTime={startedAt.toISOString()}
+              title={describeStepTime(startedAt).full}
+              className="ms-auto flex-shrink-0 ps-3 tabular-nums text-gray-400"
+            >
+              {describeStepTime(startedAt).short}
+            </time>
+          ) : (
+            <></>
+          )}
+        </button>
+        <div id={listId} hidden={!isOpen} className="mt-1.5 ps-5">
+          {isOpen ? renderAttemptSteps(attempt) : <></>}
+        </div>
+      </div>
+    );
+  };
+
+  /*
+   * When the run started and how long it ran, or has been running: the
+   * line that answers "when did this happen?" before any step does.
+   */
+  const renderRunSummary: () => ReactElement = (): ReactElement => {
+    if (!props.run || !props.showStepTimes) {
+      return <></>;
+    }
+
+    const startedAt: Date | undefined =
+      toDate(props.run.startedAt) ||
+      steps[0]?.at ||
+      toDate(props.run.createdAt);
+
+    if (!startedAt) {
+      return <></>;
+    }
+
+    const isToday: boolean = OneUptimeDate.areOnTheSameLocalDay(
+      startedAt,
+      OneUptimeDate.getCurrentDate(),
+    );
+    const started: string = isToday
+      ? formatAiRunTime(startedAt)
+      : OneUptimeDate.getDateAsLocalShortDateTimeString(startedAt);
+    const completedAt: Date | undefined = toDate(props.run.completedAt);
+    const parts: Array<string> = [
+      translator.translateTemplate("Started {{time}}", { time: started }),
+    ];
+
+    if (completedAt) {
+      parts.push(
+        translator.translateTemplate("took {{duration}}", {
+          duration: describeElapsedTime(
+            completedAt.getTime() - startedAt.getTime(),
+            translator,
+          ),
+        }),
+      );
+    } else if (props.run.status === AIRunStatus.Running) {
+      parts.push(
+        translator.translateTemplate("running for {{duration}}", {
+          duration: describeElapsedTime(
+            OneUptimeDate.getCurrentDate().getTime() - startedAt.getTime(),
+            translator,
+          ),
+        }),
+      );
+    }
+
+    parts.push(
+      translator.translatePlural(
+        { one: "{{count}} step", other: "{{count}} steps" },
+        steps.length,
+      ),
+    );
+
+    return (
+      <p
+        data-testid="activity-run-summary"
+        className="text-[11px] text-gray-400"
+      >
+        <time dateTime={startedAt.toISOString()}>{parts[0]}</time>
+        {parts.slice(1).map((part: string, index: number): ReactElement => {
+          return <span key={index}> · {part}</span>;
+        })}
+      </p>
+    );
+  };
+
+  const latestAttempt: ActivityAttempt | undefined =
+    attempts[attempts.length - 1];
+
+  const stepList: ReactElement =
+    steps.length > 0 && latestAttempt ? (
+      <div className="space-y-2">
+        {renderRunSummary()}
+        {attempts.length > 1 ? (
+          <>
+            {attempts.slice(0, -1).map(
+              (attempt: ActivityAttempt): ReactElement => {
+                return renderEarlierAttempt(attempt);
+              },
+            )}
+            <div
+              data-testid="activity-attempt"
+              data-attempt={latestAttempt.number}
+              className="space-y-1.5"
+            >
+              <p
+                data-testid="activity-attempt-title"
+                className="text-xs font-medium leading-4 text-gray-600"
+              >
+                {describeAttemptNumber(latestAttempt.number)}
+              </p>
+              {renderAttemptSteps(latestAttempt)}
+            </div>
+          </>
+        ) : (
+          renderAttemptSteps(latestAttempt)
+        )}
       </div>
     ) : (
       <></>
@@ -1414,7 +2126,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
               </span>
             </div>
 
-            {visibleSteps.length > 0 && (
+            {steps.length > 0 && (
               <div className="mt-3 border-t border-gray-200/70 pt-3">
                 {stepList}
               </div>

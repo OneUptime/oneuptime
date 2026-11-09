@@ -14,6 +14,12 @@ import InvestigationEvidenceList, {
   LoadEvidenceRows,
 } from "./InvestigationEvidenceList";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
+import AIRunStatus from "Common/Types/AI/AIRunStatus";
+
+// The details are a finished run's: no step of it is still running.
+const FINISHED_RUN: { status: AIRunStatus } = {
+  status: AIRunStatus.Completed,
+};
 import { InvestigationEvidenceItem } from "Common/Types/AI/InvestigationEvidence";
 import IconProp from "Common/Types/Icon/IconProp";
 import { InvestigationEvidenceCheckedEntry } from "Common/Utils/AI/InvestigationReport";
@@ -716,13 +722,17 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
       >
         {/*
           A finished run is short (the engine caps its tool calls), so the
-          whole trail is shown rather than the live panel's recent tail.
+          whole trail is shown rather than the live panel's recent tail -
+          with the time of each step, and nothing still spinning: the run
+          is over (issue #6437).
         */}
         <ChatActivityFeed
           events={props.events}
           hideChrome={true}
           showLiveIndicator={false}
           maxVisibleSteps={Math.max(stepCount, 1)}
+          run={FINISHED_RUN}
+          showStepTimes={true}
         />
       </div>
     );

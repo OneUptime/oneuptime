@@ -37,7 +37,7 @@ import AIService, {
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
-import AIInvestigationQueue from "./InvestigationQueue";
+import AIInvestigationQueue, { FailedAttemptResult } from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import InvestigationLogStallCheck from "./InvestigationLogStallCheck";
 import {
@@ -150,10 +150,39 @@ const STEP_EVENT_TYPE: Record<ObservabilityAssistantStepType, AIRunEventType> =
   {
     llm_started: AIRunEventType.LlmCallStarted,
     llm_completed: AIRunEventType.LlmCallCompleted,
+    llm_failed: AIRunEventType.LlmCallFailed,
     tool_started: AIRunEventType.ToolCallStarted,
     tool_completed: AIRunEventType.ToolCallCompleted,
     tool_failed: AIRunEventType.ToolCallFailed,
   };
+
+/*
+ * Each attempt of a run numbers its events in a block of its own, above
+ * every event before it (issue #6437): attempt events used to continue
+ * from the run's event count, so an attempt the stale sweep had given up
+ * on, still writing, drew its steps in among the next attempt's. A block
+ * holds a million events, more than any attempt writes; the sequence
+ * column holds two thousand blocks, and a run that ever outgrew that goes
+ * on after its last event instead.
+ */
+export const AI_RUN_ATTEMPT_SEQUENCE_STRIDE: number = 1000000;
+const MAX_ATTEMPT_SEQUENCE_BASE: number = 2000000000;
+
+/*
+ * How often a running attempt says it is alive, between its steps too: a
+ * slow provider's single call can take longer than the stale sweep waits
+ * (twelve minutes) once its retries are counted, and the sweep then
+ * requeued a run that was still working.
+ */
+export const AI_RUN_HEARTBEAT_INTERVAL_IN_MS: number = 60 * 1000;
+
+/*
+ * What an attempt that no longer owns its run stops with: the stale sweep,
+ * a shutdown's hand-back or a cancel moved the run on, so another attempt
+ * - or nobody - works on it now.
+ */
+export const AI_RUN_ATTEMPT_SUPERSEDED_MESSAGE: string =
+  "This attempt stopped: the run was handed to another attempt or ended while it was working.";
 
 // The heading of every report but a runner's own (reportHeading).
 export const AI_ROOT_CAUSE_REPORT_HEADING: string =
@@ -629,20 +658,18 @@ export default class AIInvestigationEngine {
     const { aiRunId, projectId, request } = data;
 
     /*
-     * Retried runs already have events from earlier attempts; continue the
-     * sequence so the glass-box trail stays ordered and shows every attempt.
+     * Retried runs already have events from earlier attempts: this attempt
+     * numbers its own in the next block (AI_RUN_ATTEMPT_SEQUENCE_STRIDE),
+     * so the glass-box trail shows every attempt, each in one piece.
      */
     let sequence: number = 0;
     try {
-      sequence = (
-        await AIRunEventService.countBy({
-          query: { aiRunId },
-          props: { isRoot: true },
-        })
-      ).toNumber();
+      sequence = this.getAttemptSequenceBase(
+        await AIRunEventService.getSequenceAfterLastEvent(aiRunId),
+      );
     } catch (error) {
       logger.error(
-        `AI: failed to read event count for run ${aiRunId.toString()}; starting sequence at 0: ${error}`,
+        `AI: failed to read the last event of run ${aiRunId.toString()}; starting sequence at 0: ${error}`,
       );
     }
 
@@ -764,6 +791,34 @@ export default class AIInvestigationEngine {
     let infrastructureToolCallCount: number = 0;
 
     /*
+     * Whether this attempt still owns its run: the heartbeat moves only a
+     * run that is Running at this attempt, so a heartbeat that moves
+     * nothing means the stale sweep, a shutdown's hand-back or a cancel
+     * moved the run on. The attempt then stops at its next model or tool
+     * call (getStopReason) and writes nothing more, instead of drawing its
+     * steps in among the next attempt's.
+     */
+    let isAttemptSuperseded: boolean = false;
+
+    const keepAlive: () => Promise<void> = async (): Promise<void> => {
+      if (isAttemptSuperseded) {
+        return;
+      }
+
+      const isOwned: boolean | null = await this.touchHeartbeat(
+        aiRunId,
+        data.attemptCount,
+      );
+
+      if (isOwned === false) {
+        isAttemptSuperseded = true;
+        logger.warn(
+          `AI: attempt ${data.attemptCount} of run ${aiRunId.toString()} no longer owns the run; it stops at its next step.`,
+        );
+      }
+    };
+
+    /*
      * Live narration: persist each LLM/tool step as an AIRunEvent so the UI can
      * "watch it think" by polling the run's events. Best-effort, ordered.
      */
@@ -782,6 +837,11 @@ export default class AIInvestigationEngine {
         isInfrastructureToolName(step.toolName)
       ) {
         infrastructureToolCallCount++;
+      }
+
+      // An attempt that lost its run writes nothing more to it.
+      if (isAttemptSuperseded) {
+        return;
       }
 
       /*
@@ -825,8 +885,9 @@ export default class AIInvestigationEngine {
        * EVERY step — a slow self-hosted LLM call can approach the sweeper's
        * timeout, so the heartbeat must be as frequent as we can make it.
        */
-      await this.touchHeartbeat(aiRunId, data.attemptCount);
+      await keepAlive();
     };
+
 
     /*
      * Whether THIS attempt won the Running -> Completed transition. Once it
@@ -835,6 +896,13 @@ export default class AIInvestigationEngine {
      * so the settlement callback must still fire from the catch block.
      */
     let settledAsCompleted: boolean = false;
+
+    // Alive between steps too: one slow model call can outlast the sweep.
+    const heartbeatTimer: ReturnType<typeof setInterval> = setInterval(() => {
+      keepAlive().catch((error: unknown) => {
+        logger.error(`AI: heartbeat failed: ${error}`);
+      });
+    }, AI_RUN_HEARTBEAT_INTERVAL_IN_MS);
 
     try {
       const result: ObservabilityAssistantResult =
@@ -871,6 +939,11 @@ export default class AIInvestigationEngine {
           maxWallClockMs: request.maxWallClockMs ?? null,
           maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
+          getStopReason: (): string | null => {
+            return isAttemptSuperseded
+              ? AI_RUN_ATTEMPT_SUPERSEDED_MESSAGE
+              : null;
+          },
           extraTools: request.extraTools,
           onToolResult: request.onToolResult,
           ...(request.codeRepositoryAllowance
@@ -1182,13 +1255,33 @@ export default class AIInvestigationEngine {
        * Only configuration/budget gating — which a retry cannot change
        * within the run's usefulness window — counts as permanent.
        */
-      const outcome: "requeued" | "finalized" | "noop" =
-        await AIInvestigationQueue.failOrRequeue({
+      const failed: FailedAttemptResult =
+        await AIInvestigationQueue.failOrRequeueWithDetails({
           aiRunId,
           attemptCount: data.attemptCount,
           errorMessage: message,
           isPermanent: isPermanentInvestigationFailure(message),
+          error,
         });
+      const outcome: "requeued" | "finalized" | "noop" = failed.outcome;
+
+      /*
+       * A requeued attempt ends here, and says so: the steps it had open
+       * end with it, and the run's activity says why and when the next
+       * attempt starts (issue #6437).
+       */
+      if (outcome === "requeued") {
+        await this.emitEvent({
+          projectId,
+          aiRunId,
+          sequence: sequence++,
+          eventType: AIRunEventType.AttemptEnded,
+          resultSummary: {
+            attemptEnd: failed.attemptEnd,
+            errorMessage: message.substring(0, 400),
+          },
+        });
+      }
 
       /*
        * Settle-once discipline: fire the settlement callback when this
@@ -1213,6 +1306,19 @@ export default class AIInvestigationEngine {
           aiRunId,
           sequence: sequence++,
           eventType: AIRunEventType.RunFailed,
+          /*
+           * Why, and how many times it was tried: what the dashboard says
+           * in the reader's language. A run that failed after it completed
+           * (settledAsCompleted) has no attempt end to tell.
+           */
+          ...(outcome === "finalized"
+            ? {
+                resultSummary: {
+                  attemptEnd: failed.attemptEnd,
+                  errorMessage: message.substring(0, 400),
+                },
+              }
+            : {}),
         });
 
         await this.invokeOnSettled(request, aiRunId);
@@ -1221,7 +1327,30 @@ export default class AIInvestigationEngine {
       logger.error(
         `AI: investigation attempt ${data.attemptCount} failed (run ${aiRunId.toString()}): ${message}`,
       );
+    } finally {
+      clearInterval(heartbeatTimer);
     }
+  }
+
+  /*
+   * Where an attempt starts numbering its events: the block after the one
+   * the run's last event is in (AI_RUN_ATTEMPT_SEQUENCE_STRIDE), 0 for a
+   * run with none - or right after the last event, for a run that would
+   * outgrow the sequence column.
+   */
+  public static getAttemptSequenceBase(sequenceAfterLastEvent: number): number {
+    if (sequenceAfterLastEvent <= 0) {
+      return 0;
+    }
+
+    const lastSequence: number = sequenceAfterLastEvent - 1;
+    const nextBlock: number =
+      (Math.floor(lastSequence / AI_RUN_ATTEMPT_SEQUENCE_STRIDE) + 1) *
+      AI_RUN_ATTEMPT_SEQUENCE_STRIDE;
+
+    return nextBlock > MAX_ATTEMPT_SEQUENCE_BASE
+      ? sequenceAfterLastEvent
+      : nextBlock;
   }
 
   /*
@@ -1559,13 +1688,18 @@ export default class AIInvestigationEngine {
     return null;
   }
 
-  // Refresh lastHeartbeatAt so a long-running investigation isn't swept as stale.
+  /*
+   * Refresh lastHeartbeatAt so a long-running investigation isn't swept as
+   * stale. Whether the attempt still owns the run: true when the heartbeat
+   * moved it (Running at this attempt), false when it moved nothing - the
+   * run moved on - and null when the update failed, which says neither.
+   */
   private static async touchHeartbeat(
     aiRunId: ObjectID,
     attemptCount: number,
-  ): Promise<void> {
+  ): Promise<boolean | null> {
     try {
-      await AIRunService.attemptStatusTransition({
+      const touched: number = await AIRunService.attemptStatusTransition({
         aiRunId,
         fromStatus: AIRunStatus.Running,
         expectedAttemptCount: attemptCount,
@@ -1574,8 +1708,11 @@ export default class AIInvestigationEngine {
           lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
         },
       });
+
+      return typeof touched === "number" ? touched > 0 : null;
     } catch (error) {
       logger.error(`AI: heartbeat update failed: ${error}`);
+      return null;
     }
   }
 

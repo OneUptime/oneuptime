@@ -263,6 +263,8 @@ export class Service extends DatabaseService<AIInsight> {
         toolCallCount: true,
         totalTokens: true,
         createdAt: true,
+        // When a run waiting between attempts tries again (issue #6438).
+        retryAt: true,
       },
       props: { isRoot: true },
     });
@@ -271,21 +273,29 @@ export class Service extends DatabaseService<AIInsight> {
       return { run: null, events: [] };
     }
 
-    const events: Array<AIRunEvent> = await AIRunEventService.findBy({
-      query: { aiRunId: run.id },
-      select: {
-        _id: true,
-        sequence: true,
-        eventType: true,
-        toolName: true,
-        resultSummary: true,
-        createdAt: true,
-      },
-      sort: { sequence: SortOrder.Ascending },
-      limit: MAX_TRIAGE_RUN_EVENTS,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    /*
+     * The newest events, in order: a long run's latest steps - and how it
+     * ended - are what its card must show. Reading the oldest ones left
+     * the end of a run past the cap out, and its last steps open forever
+     * (issue #6437).
+     */
+    const events: Array<AIRunEvent> = (
+      await AIRunEventService.findBy({
+        query: { aiRunId: run.id },
+        select: {
+          _id: true,
+          sequence: true,
+          eventType: true,
+          toolName: true,
+          resultSummary: true,
+          createdAt: true,
+        },
+        sort: { sequence: SortOrder.Descending },
+        limit: MAX_TRIAGE_RUN_EVENTS,
+        skip: 0,
+        props: { isRoot: true },
+      })
+    ).reverse();
 
     return { run, events };
   }

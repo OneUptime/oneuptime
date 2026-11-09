@@ -49,6 +49,8 @@ export interface AIRunTransitionSet {
   handedBackCount?: number | undefined;
   startedAt?: Date | undefined;
   lastHeartbeatAt?: Date | undefined;
+  // When a run sent back to the queue is due (AIRunRetryPolicy).
+  retryAt?: Date | undefined;
   completedAt?: Date | undefined;
   errorMessage?: string | undefined;
   llmCallCount?: number | undefined;

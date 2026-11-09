@@ -388,6 +388,7 @@ export const LlmProviderFormCopy: {
   readonly baseUrlNoKeys: string;
   readonly defaultDescription: string;
   readonly additionalParametersDescription: string;
+  readonly responseTimeoutDescription: string;
 } = {
   providerStepTitle: translationKey("Provider"),
   connectionStepTitle: translationKey("Connection"),
@@ -415,5 +416,13 @@ export const LlmProviderFormCopy: {
   ),
   additionalParametersDescription: translationKey(
     'Extra JSON parameters sent to the provider with every request, such as {"temperature": 0.2}. Leave empty unless your model needs them.',
+  ),
+  /*
+   * Under Response Timeout (issue #6438): a slow or self-hosted model can
+   * take longer than the default to answer an investigation's long
+   * requests, and every request then runs out of time.
+   */
+  responseTimeoutDescription: translationKey(
+    "How long to wait for the provider to answer one request, in seconds. Leave empty for the default: 120 seconds, or 300 for Ollama. Raise it for a slow or self-hosted model.",
   ),
 };

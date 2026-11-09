@@ -18,6 +18,8 @@ import {
   getTelemetryAiLaneOfInsightType,
 } from "../../../../../Types/AI/TelemetryAi";
 import TelemetryAiRules from "../../TelemetryAi/TelemetryAiRules";
+import AIRun from "../../../../../Models/DatabaseModels/AIRun";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
 
 /*
  * Per-insight LLM triage enqueue: a budgeted, read-only Investigation AIRun
@@ -42,9 +44,50 @@ import TelemetryAiRules from "../../TelemetryAi/TelemetryAiRules";
  * switch is on: while it is off, AI Insights' own switch counts, as always.
  */
 
+// Why no triage run was enqueued for an insight.
+export enum InsightTriageNotEnqueuedReason {
+  // The insight, or its project, is gone.
+  NotFound = "NotFound",
+  // AI is switched off for the project.
+  AiOff = "AiOff",
+  // AI Insights (or the insight's telemetry product's AI) is switched off.
+  SwitchOff = "SwitchOff",
+  // The project has no LLM provider to use.
+  NoProvider = "NoProvider",
+  // A triage run of the insight is queued or running already.
+  AlreadyRunning = "AlreadyRunning",
+  // The AI budget had no headroom, or the run could not be created.
+  NotQueued = "NotQueued",
+}
+
+/*
+ * What the person who pressed Try again reads when no triage could start,
+ * by reason (InsightTriage.tryAgain). English: the dashboard shows the
+ * server's words as it shows every refusal.
+ */
+export const INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES: Record<
+  InsightTriageNotEnqueuedReason,
+  string
+> = {
+  [InsightTriageNotEnqueuedReason.NotFound]:
+    "This AI insight no longer exists.",
+  [InsightTriageNotEnqueuedReason.AiOff]:
+    "OneUptime AI is switched off for this project. Turn it on in Project Settings > AI, then try again.",
+  [InsightTriageNotEnqueuedReason.SwitchOff]:
+    "AI triage is switched off for this kind of insight. Turn it on in Project Settings > AI, then try again.",
+  [InsightTriageNotEnqueuedReason.NoProvider]:
+    "This project has no AI provider to triage with. Add one in Project Settings > AI > LLM Providers, then try again.",
+  [InsightTriageNotEnqueuedReason.AlreadyRunning]:
+    "This insight is being triaged already.",
+  [InsightTriageNotEnqueuedReason.NotQueued]:
+    "The triage could not start: the project's AI budget for today may be used up. Try again later.",
+};
+
 export interface InsightTriageResult {
   // Set when a triage run was enqueued for the insight.
   triageAiRunId?: ObjectID | undefined;
+  // Set when none was: why.
+  notEnqueuedReason?: InsightTriageNotEnqueuedReason | undefined;
 }
 
 export default class InsightTriage {
@@ -66,7 +109,7 @@ export default class InsightTriage {
 
     try {
       if (!insight.id || !insight.projectId) {
-        return {};
+        return { notEnqueuedReason: InsightTriageNotEnqueuedReason.NotFound };
       }
 
       const projectId: ObjectID = insight.projectId;
@@ -89,14 +132,14 @@ export default class InsightTriage {
         logger.debug(
           `AI insights: not enqueueing triage for insight ${insight.id.toString()} — project not found.`,
         );
-        return {};
+        return { notEnqueuedReason: InsightTriageNotEnqueuedReason.NotFound };
       }
 
       if (project.enableAi === false) {
         logger.debug(
           `AI insights: not enqueueing triage for insight ${insight.id.toString()} — AI is disabled for the project.`,
         );
-        return {};
+        return { notEnqueuedReason: InsightTriageNotEnqueuedReason.AiOff };
       }
 
       /*
@@ -116,7 +159,7 @@ export default class InsightTriage {
         logger.debug(
           `AI insights: not enqueueing triage for insight ${insight.id.toString()} — project has not opted in to ${workingLane ? `${workingLane} AI` : "AI insights"}.`,
         );
-        return {};
+        return { notEnqueuedReason: InsightTriageNotEnqueuedReason.SwitchOff };
       }
 
       /*
@@ -132,7 +175,7 @@ export default class InsightTriage {
         logger.debug(
           `AI insights: not enqueueing triage for insight ${insight.id.toString()} — no LLM provider configured.`,
         );
-        return {};
+        return { notEnqueuedReason: InsightTriageNotEnqueuedReason.NoProvider };
       }
 
       /*
@@ -155,7 +198,9 @@ export default class InsightTriage {
         logger.debug(
           `AI insights: not enqueueing triage for insight ${insight.id.toString()} — a non-terminal triage run already exists.`,
         );
-        return {};
+        return {
+          notEnqueuedReason: InsightTriageNotEnqueuedReason.AlreadyRunning,
+        };
       }
 
       /*
@@ -175,7 +220,7 @@ export default class InsightTriage {
       );
 
       if (!triageAiRunId) {
-        return {};
+        return { notEnqueuedReason: InsightTriageNotEnqueuedReason.NotQueued };
       }
 
       // Link the insight to its triage run for the dashboard's live panel.
@@ -192,7 +237,84 @@ export default class InsightTriage {
       logger.error(
         `AI insights: failed to enqueue triage for insight ${insight.id?.toString()}: ${error}`,
       );
-      return {};
+      return { notEnqueuedReason: InsightTriageNotEnqueuedReason.NotQueued };
     }
+  }
+
+  /*
+   * Try again (issue #6438): triage the insight again after its last
+   * triage did not finish - it failed, stopped reporting, or expired in the
+   * queue. A new triage run, through the same gates as the scanner's (the
+   * AI switches, an LLM provider, the budget, one run at a time), with the
+   * LLM provider the last run used, so a rule's pick still holds. The
+   * insight links to the new run, and its card shows it from the next read.
+   *
+   * The caller checked that the person may act on the insight (the AI
+   * insight routes' read check: Project Owner, Admin or Member). Throws a
+   * BadDataException that says why when no triage could start.
+   */
+  @CaptureSpan()
+  public static async tryAgain(data: {
+    insightId: ObjectID;
+  }): Promise<ObjectID> {
+    const insight: AIInsight | null = await AIInsightService.findOneById({
+      id: data.insightId,
+      select: {
+        _id: true,
+        projectId: true,
+        insightType: true,
+        triageAiRunId: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!insight || !insight.id) {
+      throw new BadDataException(
+        INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[
+          InsightTriageNotEnqueuedReason.NotFound
+        ],
+      );
+    }
+
+    const lastRun: AIRun | null = insight.triageAiRunId
+      ? await AIRunService.findOneById({
+          id: insight.triageAiRunId,
+          select: { _id: true, status: true, llmProviderId: true },
+          props: { isRoot: true },
+        })
+      : null;
+
+    if (lastRun && !AIRunStatusHelper.isTerminalStatus(lastRun.status!)) {
+      throw new BadDataException(
+        INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[
+          InsightTriageNotEnqueuedReason.AlreadyRunning
+        ],
+      );
+    }
+
+    if (!lastRun || !AIRunStatusHelper.didNotFinish(lastRun.status)) {
+      throw new BadDataException(
+        "Only a triage that did not finish can be tried again.",
+      );
+    }
+
+    const result: InsightTriageResult = await this.enqueueInsightTriage({
+      insight,
+      llmProviderId: lastRun.llmProviderId?.toString(),
+    });
+
+    if (!result.triageAiRunId) {
+      throw new BadDataException(
+        INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[
+          result.notEnqueuedReason || InsightTriageNotEnqueuedReason.NotQueued
+        ],
+      );
+    }
+
+    logger.info(
+      `AI insights: triage of insight ${insight.id.toString()} tried again as run ${result.triageAiRunId.toString()}.`,
+    );
+
+    return result.triageAiRunId;
   }
 }
