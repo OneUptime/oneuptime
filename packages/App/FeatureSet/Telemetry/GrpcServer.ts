@@ -19,7 +19,18 @@ import TracesQueueService from "./Services/Queue/TracesQueueService";
 import LogsQueueService from "./Services/Queue/LogsQueueService";
 import MetricsQueueService from "./Services/Queue/MetricsQueueService";
 import ProfilesQueueService from "./Services/Queue/ProfilesQueueService";
-import { pickWorkerConsumedRequestHeaders } from "./Services/Queue/TelemetryQueueService";
+import {
+  binaryToBase64Replacer,
+  pickWorkerConsumedRequestHeaders,
+} from "./Services/Queue/TelemetryQueueService";
+import TelemetryIngestionBudget, {
+  TelemetryIngestionBudgetAdmission,
+  TelemetryIngestionBudgetAdmissionMode,
+  TelemetryIngestionBudgetRefusal,
+  TelemetryIngestionBudgetRefusalKind,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionBudget";
+import { encodeGoogleRpcStatus } from "Common/Server/Utils/Telemetry/GoogleRpcStatus";
+import { isTelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 
 const GRPC_PORT: number = 4317;
 
@@ -73,6 +84,65 @@ export interface GrpcCredentialRefusal {
 export type GrpcAuthenticationResult =
   | { projectId: ObjectID }
   | { refusal: GrpcCredentialRefusal };
+
+/*
+ * authenticateGrpcRequest's answer with the key's policy beside the project:
+ * handleExport needs the key's own ingestion budgets as well as its project.
+ */
+export type GrpcPolicyAuthenticationResult =
+  | { projectId: ObjectID; policy: TelemetryIngestionKeyPolicy }
+  | { refusal: GrpcCredentialRefusal };
+
+/*
+ * How big each decoded Export request was before grpc-js decoded it - the
+ * protobuf message, already decompressed from its grpc-encoding - recorded
+ * by the services' deserializers (recordMessageSizes) and read by
+ * handleExport, so an ingestion budget counts a gRPC export at the size an
+ * OTLP/HTTP protobuf export of the same telemetry is counted at. A WeakMap
+ * on the decoded object rather than a property on it: everything on the
+ * request object is serialized into the queue job.
+ */
+const exportMessageSizes: WeakMap<
+  Record<string, unknown>,
+  number
+> = new WeakMap<Record<string, unknown>, number>();
+
+// Exported for tests.
+export function getExportMessageSize(request: unknown): number | undefined {
+  return request && typeof request === "object"
+    ? exportMessageSizes.get(request as Record<string, unknown>)
+    : undefined;
+}
+
+/*
+ * Wrap a service definition's request deserializers so every decoded
+ * message remembers its size. Exported for tests.
+ */
+export function recordMessageSizes(
+  definition: grpc.ServiceDefinition,
+): grpc.ServiceDefinition {
+  for (const methodName of Object.keys(definition)) {
+    const method: grpc.MethodDefinition<unknown, unknown> = definition[
+      methodName
+    ] as grpc.MethodDefinition<unknown, unknown>;
+    const deserialize: grpc.deserialize<unknown> = method.requestDeserialize;
+
+    method.requestDeserialize = (bytes: Buffer): unknown => {
+      const decoded: unknown = deserialize(bytes);
+
+      if (decoded && typeof decoded === "object") {
+        exportMessageSizes.set(
+          decoded as Record<string, unknown>,
+          bytes.length,
+        );
+      }
+
+      return decoded;
+    };
+  }
+
+  return definition;
+}
 
 /*
  * TelemetryIngest's missing-token and invalid-token sentences, word for word.
@@ -133,6 +203,18 @@ const buildServiceError: BuildServiceErrorFunction = (
 export async function authenticateGrpcRequest(
   metadata: grpc.Metadata,
 ): Promise<GrpcAuthenticationResult> {
+  const authentication: GrpcPolicyAuthenticationResult =
+    await authenticateGrpcRequestWithPolicy(metadata);
+
+  return "refusal" in authentication
+    ? { refusal: authentication.refusal }
+    : { projectId: authentication.projectId };
+}
+
+// Exported for tests.
+export async function authenticateGrpcRequestWithPolicy(
+  metadata: grpc.Metadata,
+): Promise<GrpcPolicyAuthenticationResult> {
   const tokenValues: grpc.MetadataValue[] = metadata.get("x-oneuptime-token");
 
   let oneuptimeToken: string | undefined = tokenValues[0]?.toString();
@@ -238,7 +320,44 @@ export async function authenticateGrpcRequest(
     };
   }
 
-  return { projectId: policy.projectId };
+  return { projectId: policy.projectId, policy: policy };
+}
+
+/*
+ * The status an ingestion budget refusal is answered with. RESOURCE_EXHAUSTED
+ * either way, which the OTLP/gRPC specification makes retryable only when
+ * the status details carry a RetryInfo:
+ *
+ *   - over a per-second rate, it carries one, with the delay to come back
+ *     after, so the exporter retries the batch then;
+ *   - over a used-up daily budget, it carries none, so the exporter drops
+ *     the batch and logs the message rather than retrying until the reset.
+ *
+ * Exported for tests.
+ */
+export function buildIngestionBudgetServiceError(
+  refusal: TelemetryIngestionBudgetRefusal,
+): grpc.ServiceError {
+  const metadata: grpc.Metadata = new grpc.Metadata();
+  const isRateLimited: boolean =
+    refusal.kind === TelemetryIngestionBudgetRefusalKind.RateLimited;
+
+  if (isRateLimited && refusal.retryAfterSeconds) {
+    metadata.set(
+      "grpc-status-details-bin",
+      encodeGoogleRpcStatus({
+        code: grpc.status.RESOURCE_EXHAUSTED,
+        message: refusal.message,
+        retryDelaySeconds: refusal.retryAfterSeconds,
+      }),
+    );
+  }
+
+  return Object.assign(new Error(refusal.message), {
+    code: grpc.status.RESOURCE_EXHAUSTED,
+    details: refusal.message,
+    metadata: metadata,
+  });
 }
 
 /*
@@ -312,8 +431,8 @@ export async function handleExport(
       return;
     }
 
-    const authentication: GrpcAuthenticationResult =
-      await authenticateGrpcRequest(call.metadata);
+    const authentication: GrpcPolicyAuthenticationResult =
+      await authenticateGrpcRequestWithPolicy(call.metadata);
 
     if ("refusal" in authentication) {
       /*
@@ -342,6 +461,47 @@ export async function handleExport(
       projectId,
       productType,
     );
+
+    /*
+     * Ingestion budgets: the project's and the key's, for this signal,
+     * counted at the export's protobuf size. Nothing is read from Redis unless
+     * a budget or a rate is in force.
+     */
+    if (isTelemetryIngestionBudgetSignal(productType)) {
+      const admission: TelemetryIngestionBudgetAdmission =
+        await TelemetryIngestionBudget.admit({
+          projectId: projectId,
+          signal: productType,
+          ingestionKeyPolicy: authentication.policy,
+          mode: TelemetryIngestionBudgetAdmissionMode.Refuse,
+          measure: () => {
+            const size: number | undefined = getExportMessageSize(call.request);
+
+            return {
+              bytes:
+                size !== undefined
+                  ? size
+                  : Buffer.byteLength(
+                      JSON.stringify(body, binaryToBase64Replacer) || "",
+                    ),
+              isExact: true,
+            };
+          },
+        });
+
+      if (admission.refusal) {
+        callback(buildIngestionBudgetServiceError(admission.refusal));
+        return;
+      }
+
+      /*
+       * The charge, not the policy, rides on the request: the queue reads
+       * the charge so the export is counted once, and attaching the policy
+       * would also start pinning service.name on this port, which it has
+       * never done.
+       */
+      req.telemetryIngestionBudgetCharge = admission.charge;
+    }
 
     /*
      * Acknowledge only after queue admission. A success returned for a batch
@@ -549,7 +709,7 @@ export function startGrpcServer(): void {
     "grpc.max_receive_message_length": 50 * 1024 * 1024, // 50MB
   });
 
-  server.addService(traceServiceDefinition, {
+  server.addService(recordMessageSizes(traceServiceDefinition), {
     Export: (call: GrpcCall, callback: GrpcCallback): void => {
       handleExport(
         call,
@@ -560,7 +720,7 @@ export function startGrpcServer(): void {
     },
   });
 
-  server.addService(logsServiceDefinition, {
+  server.addService(recordMessageSizes(logsServiceDefinition), {
     Export: (call: GrpcCall, callback: GrpcCallback): void => {
       handleExport(
         call,
@@ -571,7 +731,7 @@ export function startGrpcServer(): void {
     },
   });
 
-  server.addService(metricsServiceDefinition, {
+  server.addService(recordMessageSizes(metricsServiceDefinition), {
     Export: (call: GrpcCall, callback: GrpcCallback): void => {
       handleExport(
         call,
@@ -582,7 +742,7 @@ export function startGrpcServer(): void {
     },
   });
 
-  server.addService(profilesServiceDefinition, {
+  server.addService(recordMessageSizes(profilesServiceDefinition), {
     Export: (call: GrpcCall, callback: GrpcCallback): void => {
       handleExport(
         call,

@@ -40,6 +40,10 @@ import CallAndSmsProviders, {
 } from "../../Types/CallAndSMS/CallAndSmsProvider";
 import SSRFProtection from "../Utils/SSRFProtection";
 import URL from "../../Types/API/URL";
+import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngestionBudgetSettings";
+import TelemetryIngestionBudgetValidation, {
+  isTelemetryIngestionBudgetInstanceSettingTouched,
+} from "../Utils/Telemetry/TelemetryIngestionBudgetValidation";
 import crypto from "crypto";
 
 /*
@@ -323,6 +327,20 @@ export class Service extends DatabaseService<Model> {
   public forgetPushNotificationsTurnedOff(): void {
     this.pushNotificationsTurnedOffGeneration++;
     this.pushNotificationsTurnedOffCache.clear();
+  }
+
+  /*
+   * The default ingestion budgets every project gets, and the warning and
+   * reset beside them: valid values only, normalized as they are shown. A
+   * default of 0 is refused - leaving it empty is how "no limit" is said.
+   */
+  public static applyTelemetryIngestionBudgetRules(
+    data: Record<string, unknown>,
+  ): void {
+    TelemetryIngestionBudgetValidation.applyBudgetColumnRules(data, {
+      allowZero: false,
+    });
+    TelemetryIngestionBudgetValidation.applyInstanceSettingRules(data);
   }
 
   /*
@@ -999,6 +1017,9 @@ export class Service extends DatabaseService<Model> {
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
     Service.assertSessionLengthsAreValid(createBy.data);
+    Service.applyTelemetryIngestionBudgetRules(
+      createBy.data as unknown as Record<string, unknown>,
+    );
     await this.prepareCallAndSmsGatewayForCreate(createBy);
 
     return {
@@ -1022,6 +1043,9 @@ export class Service extends DatabaseService<Model> {
     await this.assertTwilioNumbersKeptForUse(updateBy);
     this.assertCallAndSmsProviderIsValid(updateBy.data);
     Service.assertSessionLengthsAreValid(updateBy.data);
+    Service.applyTelemetryIngestionBudgetRules(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
     await this.prepareCallAndSmsGateway(updateBy);
 
     if (updateBy.data.telegramWebhookSecretToken !== undefined) {
@@ -1246,6 +1270,19 @@ export class Service extends DatabaseService<Model> {
         .requireSsoForLogin !== undefined
     ) {
       this.forgetRequireSsoForLogin();
+    }
+
+    /*
+     * A default budget, the warning threshold or the reset changed: this
+     * server's ingest reads them again at once, every other server within
+     * TelemetryIngestionBudgetSettings' minute.
+     */
+    if (
+      isTelemetryIngestionBudgetInstanceSettingTouched(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      )
+    ) {
+      TelemetryIngestionBudgetSettings.clearInstanceCache();
     }
 
     // Turned on or off: this server's next push reads the switch again.

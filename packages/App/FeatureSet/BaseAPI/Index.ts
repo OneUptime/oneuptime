@@ -2065,6 +2065,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
+import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
@@ -6478,6 +6479,12 @@ const BaseAPIFeatureSet: FeatureSet = {
      * their own, with the other models'.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryUsageAPI);
+
+    /*
+     * Telemetry ingestion budgets, read: a project's for the Usage page and
+     * the explorers' banner, any project's for the Admin Dashboard.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryIngestionBudgetAPI);
 
     /*
      * Import from another tool (Project Settings > Advanced > Import from

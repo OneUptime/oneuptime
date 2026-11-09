@@ -27,6 +27,7 @@ flowchart TB
 - **Traces enthalten ihre Ausnahmen und Profile ihre Samples.**
 - **Die eigene Telemetrie von OneUptime wird nicht gezählt.** Messwerte von Monitoren, Warnungen, Vorfällen und SLOs, Messwerte von Data Observability und die Budgetmetriken der Sitzungswiedergabe schreibt OneUptime selbst.
 - **In OneUptime Cloud wird Telemetrie nach diesen Zeilen abgerechnet.** Auf einer Installation ohne Abrechnung wird die Nutzung kostenlos gezählt, und es wird nichts dafür berechnet, auch wenn die Abrechnung später eingeschaltet wird.
+- **Ein Budget wird getrennt von der Nutzung gezählt.** Ein [Ingestion-Budget](/docs/telemetry/ingestion-budgets) zählt Telemetrie beim Eintreffen, dekomprimiert, und kann daher die Telemetrie eines Tages noch am selben Tag stoppen. Solange eines festgelegt ist, öffnet diese Seite mit den heutigen Budgets.
 
 ## Bevor Sie beginnen
 
@@ -134,4 +135,5 @@ Die Ressource wurde gelöscht, nachdem sie die Telemetrie gesendet hat, oder Ihr
 - [Datenaufbewahrung](/docs/telemetry/data-retention): Telemetrie so lange aufbewahren, wie Sie sie brauchen, und nicht länger.
 - [Abrechnung & Nutzung](/docs/configuration/billing): Was Telemetrie in OneUptime Cloud kostet.
 - [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys): Telemetrie in Ihr Projekt senden.
+- [Ingestion-Budgets](/docs/telemetry/ingestion-budgets): Begrenzen, wie viel ein Projekt von jedem Signal an einem Tag sendet.
 :::

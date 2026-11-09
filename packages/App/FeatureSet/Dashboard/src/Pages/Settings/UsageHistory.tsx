@@ -24,6 +24,8 @@ import {
   getTelemetryUsageResourceRoute,
 } from "../../Components/TelemetryUsage/ProjectTelemetryUsage";
 import ModelTableColumn from "Common/UI/Components/ModelTable/Column";
+import TelemetryIngestionBudgetStatusCard from "Common/UI/Components/TelemetryIngestionBudget/TelemetryIngestionBudgetStatusCard";
+import { fetchProjectTelemetryIngestionBudgetStatus } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 
 export type ComponentProps = PageComponentProps;
 
@@ -48,6 +50,16 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
+      {/*
+       * Today's ingestion budgets, first: they are counted as telemetry
+       * arrives, while the usage below is counted once a day has ended.
+       * Nothing at all on a project with no budget, which is most of them.
+       */}
+      <TelemetryIngestionBudgetStatusCard
+        fetchStatus={fetchProjectTelemetryIngestionBudgetStatus}
+        hideWhenUnbudgeted={true}
+      />
+
       <TelemetryUsageOverview
         projectId={ProjectUtil.getCurrentProjectId()!.toString()}
         fetchUsage={fetchProjectTelemetryUsage}
