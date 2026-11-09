@@ -47,12 +47,15 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 let mockCanvasProps: CanvasProps | null = null;
+// Whether the canvas was drawn in a view (WorkflowViewOnlyContext).
+let mockCanvasIsInView: boolean | null = null;
 
 jest.mock("../../../../UI/Components/Workflow/Workflow", () => {
   return {
     __esModule: true,
     default: (props: CanvasProps): React.ReactElement => {
       mockCanvasProps = props;
+      mockCanvasIsInView = React.useContext(WorkflowViewOnlyContext);
 
       return (
         <div data-testid="preview-canvas">
@@ -83,6 +86,8 @@ jest.mock("../../../../UI/Components/Workflow/Workflow", () => {
 });
 
 import WorkflowVersionHistory from "../../../../UI/Components/Workflow/WorkflowVersionHistory";
+import WorkflowVersionPreview from "../../../../UI/Components/Workflow/WorkflowVersionPreview";
+import { WorkflowViewOnlyContext } from "../../../../UI/Components/Workflow/WorkflowViewOnly";
 import { WorkflowVersionCopy } from "../../../../UI/Components/Workflow/WorkflowVersionPresentation";
 import WorkflowVersion from "../../../../Models/DatabaseModels/WorkflowVersion";
 import { JSONObject } from "../../../../Types/JSON";
@@ -245,6 +250,7 @@ beforeEach(() => {
   mockGetList.mockReset();
   mockGetItem.mockReset();
   mockCanvasProps = null;
+  mockCanvasIsInView = null;
   mockGetItem.mockImplementation(async () => {
     const model: WorkflowVersion = new WorkflowVersion();
     model.graph = VERSION_2_GRAPH;
@@ -643,6 +649,58 @@ describe("the preview", () => {
       screen.queryByRole("button", { name: "Restore this version" }),
     ).toBeNull();
     expect(screen.getByTestId("preview-canvas")).toBeInTheDocument();
+  });
+
+  test("for someone who may not change the workflow the history is a view, and so is the preview it opens", async () => {
+    serve(VERSIONS);
+    renderPanel({
+      restoreDisabledReason:
+        "Changing this workflow takes permission to edit it.",
+    });
+    await openPreviewOf(2);
+
+    expect(mockCanvasIsInView).toBe(true);
+
+    cleanup();
+    mockCanvasIsInView = null;
+
+    // For whoever may change it, no view: the preview restores.
+    serve(VERSIONS);
+    renderPanel();
+    await openPreviewOf(2);
+
+    expect(mockCanvasIsInView).toBe(false);
+    expect(
+      screen.getByRole("button", { name: "Restore this version" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a preview drawn in a view offers no Restore, even with no reason handed to it", async () => {
+    const onRestore: MockFunction = getJestMockFunction();
+
+    render(
+      <WorkflowViewOnlyContext.Provider value={true}>
+        <WorkflowVersionPreview
+          workflowId={WORKFLOW_ID}
+          versionId={new ObjectID("0198c8ec-2a1d-7f0c-9e75-384194161190")}
+          versionNumber={2}
+          description="Saved by Sam"
+          currentGraph={CURRENT}
+          components={COMPONENTS}
+          onRestore={onRestore as never}
+          onClose={getJestMockFunction() as never}
+        />
+      </WorkflowViewOnlyContext.Provider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workflow-version-preview")).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "Restore this version" }),
+    ).toBeNull();
+    expect(onRestore).not.toHaveBeenCalled();
   });
 
   test("a version with a step OneUptime no longer has cannot be drawn or restored", async () => {

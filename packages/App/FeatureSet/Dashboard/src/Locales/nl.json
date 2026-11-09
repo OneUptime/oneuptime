@@ -46565,6 +46565,8 @@
   "Error Budget Policy Alert Resolved": "Waarschuwing van het foutbudgetbeleid opgelost",
   "Error Budget Policy Incident Declared": "Incident van het foutbudgetbeleid gemeld",
   "Error Budget Policy Incident Resolved": "Incident van het foutbudgetbeleid opgelost",
+  "Error Budget Policy Deployments Frozen": "Implementaties bevroren door het foutbudgetbeleid",
+  "Error Budget Policy Deployments Allowed": "Implementaties toegestaan door het foutbudgetbeleid",
   "another branch": "een andere branch",
   "{{amount}} USD": "{{amount}} USD",
   "{{count}} more file": "nog {{count}} bestand",

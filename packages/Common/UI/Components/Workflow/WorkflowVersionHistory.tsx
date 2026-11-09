@@ -1,4 +1,5 @@
 import WorkflowVersionPreview from "./WorkflowVersionPreview";
+import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
 import {
   WORKFLOW_VERSIONS_PER_PAGE,
   WorkflowVersionCopy,
@@ -63,7 +64,10 @@ export interface ComponentProps {
   // The graph on the canvas, as it is saved.
   currentGraph: SavedWorkflowGraph;
   components: Array<ComponentMetadata>;
-  // Why the reader may not restore a version (the builder's edit gate), if not.
+  /*
+   * Why the reader may not restore a version (the builder's edit gate), if
+   * not: the history is then a view (WorkflowViewOnly).
+   */
   restoreDisabledReason?: string | undefined;
   onRestore: (data: { versionNumber: number; graph: JSONObject }) => void;
   onClose: () => void;
@@ -295,6 +299,14 @@ const WorkflowVersionHistory: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * Anyone who may open the workflow may read its history. For someone who
+   * may not change it, the builder hands the edit gate's reason, and the
+   * history is a view, as the canvas is with the same reason: the preview a
+   * row opens is there to be read, and offers no Restore.
+   */
+  const isViewOnly: boolean = Boolean(props.restoreDisabledReason);
   const [versions, setVersions] = useState<Array<WorkflowVersion>>([]);
   const [total, setTotal] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -467,25 +479,27 @@ const WorkflowVersionHistory: FunctionComponent<ComponentProps> = (
       </SideOver>
 
       {previewed && previewed.id ? (
-        <WorkflowVersionPreview
-          workflowId={props.workflowId}
-          versionId={previewed.id}
-          versionNumber={previewed.versionNumber || 0}
-          description={describeSavedByAndWhen(previewed, translator)}
-          currentGraph={props.currentGraph}
-          components={props.components}
-          restoreDisabledReason={props.restoreDisabledReason}
-          onRestore={(graph: JSONObject) => {
-            props.onRestore({
-              versionNumber: previewed.versionNumber || 0,
-              graph,
-            });
-            setPreviewed(null);
-          }}
-          onClose={() => {
-            setPreviewed(null);
-          }}
-        />
+        <WorkflowViewOnlyContext.Provider value={isViewOnly}>
+          <WorkflowVersionPreview
+            workflowId={props.workflowId}
+            versionId={previewed.id}
+            versionNumber={previewed.versionNumber || 0}
+            description={describeSavedByAndWhen(previewed, translator)}
+            currentGraph={props.currentGraph}
+            components={props.components}
+            restoreDisabledReason={props.restoreDisabledReason}
+            onRestore={(graph: JSONObject) => {
+              props.onRestore({
+                versionNumber: previewed.versionNumber || 0,
+                graph,
+              });
+              setPreviewed(null);
+            }}
+            onClose={() => {
+              setPreviewed(null);
+            }}
+          />
+        </WorkflowViewOnlyContext.Provider>
       ) : (
         <></>
       )}

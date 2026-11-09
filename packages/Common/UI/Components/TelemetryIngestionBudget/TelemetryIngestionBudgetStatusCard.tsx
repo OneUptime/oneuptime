@@ -16,6 +16,11 @@ import Card from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Pill from "../Pill/Pill";
+import { ColumnWidthKind } from "../Table/ColumnResize/ColumnWidths";
+import ResizableHeaderCell from "../Table/ColumnResize/ResizableHeaderCell";
+import useResizableColumns, {
+  ResizableColumns,
+} from "../Table/ColumnResize/useResizableColumns";
 import { getTableHeaderButtons } from "../Table/TableHeaderControls";
 import TableEmptyState, { TableEmptyStateKind } from "../Table/TableEmptyState";
 import { getTelemetryUsageSignalTitle } from "../TelemetryUsage/TelemetryUsageWords";
@@ -181,7 +186,7 @@ export const SignalRows: FunctionComponent<{
                   <></>
                 )}
               </td>
-              <td className="hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
+              <td className="max-md:hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
                 <span className="tabular-nums">
                   {signal.rateLimitBytesPerSecond === null
                     ? "—"
@@ -191,7 +196,7 @@ export const SignalRows: FunctionComponent<{
                       )}
                 </span>
               </td>
-              <td className="hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
+              <td className="max-md:hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
                 <span className="tabular-nums">
                   {signal.droppedBytes
                     ? formatTelemetryIngestionBudgetBytes(
@@ -201,7 +206,7 @@ export const SignalRows: FunctionComponent<{
                     : "—"}
                 </span>
               </td>
-              <td className="hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
+              <td className="max-md:hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
                 <span className="tabular-nums">
                   {signal.throttledRequests
                     ? translator.translatePlural(
@@ -239,39 +244,113 @@ export const SignalTable: FunctionComponent<{
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
+  /*
+   * The columns as wide as a person makes them (Table/ColumnResize), each
+   * table's remembered under its own name: a key's name and a signal give
+   * way, the amounts and the state never. A row's cells are in this order
+   * (SignalRows), the key's name first where the table lists keys.
+   */
+  const cellOffset: number = props.showKeyName ? 1 : 0;
+  const columns: ResizableColumns = useResizableColumns({
+    tableKey: props.dataTestId,
+    columns: [
+      ...(props.showKeyName ? [{ id: "ingestionKey", cellNumber: 1 }] : []),
+      { id: "signal", cellNumber: cellOffset + 1 },
+      { id: "usedToday", cellNumber: cellOffset + 2 },
+      { id: "dailyBudget", cellNumber: cellOffset + 3 },
+      { id: "rateLimit", cellNumber: cellOffset + 4 },
+      { id: "dropped", cellNumber: cellOffset + 5 },
+      { id: "throttled", cellNumber: cellOffset + 6 },
+      { id: "status", cellNumber: cellOffset + 7 },
+    ],
+  });
+
+  // A header cell that sizes its column, named as the header says it.
+  const headerCell: (data: {
+    id: string;
+    title: string;
+    kind: ColumnWidthKind;
+    className: string;
+  }) => ReactElement = (data: {
+    id: string;
+    title: string;
+    kind: ColumnWidthKind;
+    className: string;
+  }): ReactElement => {
+    return (
+      <ResizableHeaderCell
+        key={data.id}
+        className={data.className}
+        resize={columns.getResize(data.id, data.title, data.kind)}
+      >
+        {data.title}
+      </ResizableHeaderCell>
+    );
+  };
+
   return (
     <div className="overflow-x-auto" data-testid={props.dataTestId}>
-      <table className="min-w-full text-left">
+      {columns.styles}
+      <table
+        className={`${columns.getTableWidthClassName("min-w-full")} text-left`}
+        {...columns.tableAttributes}
+      >
         <thead>
           <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
             {props.showKeyName ? (
-              <th className="pb-2 pr-4 font-medium">
-                {translator.translateText("Ingestion Key")}
-              </th>
+              headerCell({
+                id: "ingestionKey",
+                title: translator.translateText("Ingestion Key"),
+                kind: ColumnWidthKind.Name,
+                className: "pb-2 pr-4 font-medium",
+              })
             ) : (
               <></>
             )}
-            <th className="pb-2 pr-4 font-medium">
-              {translator.translateText("Signal")}
-            </th>
-            <th className="pb-2 pr-4 font-medium">
-              {translator.translateText("Used Today")}
-            </th>
-            <th className="pb-2 pr-4 font-medium">
-              {translator.translateText("Daily Budget")}
-            </th>
-            <th className="hidden pb-2 pr-4 font-medium md:table-cell">
-              {translator.translateText("Rate Limit")}
-            </th>
-            <th className="hidden pb-2 pr-4 font-medium md:table-cell">
-              {translator.translateText("Dropped")}
-            </th>
-            <th className="hidden pb-2 pr-4 font-medium md:table-cell">
-              {translator.translateText("Throttled")}
-            </th>
-            <th className="pb-2 font-medium">
-              {translator.translateText("Status")}
-            </th>
+            {headerCell({
+              id: "signal",
+              title: translator.translateText("Signal"),
+              kind: props.showKeyName
+                ? ColumnWidthKind.Text
+                : ColumnWidthKind.Name,
+              className: "pb-2 pr-4 font-medium",
+            })}
+            {headerCell({
+              id: "usedToday",
+              title: translator.translateText("Used Today"),
+              kind: ColumnWidthKind.Whole,
+              className: "pb-2 pr-4 font-medium",
+            })}
+            {headerCell({
+              id: "dailyBudget",
+              title: translator.translateText("Daily Budget"),
+              kind: ColumnWidthKind.Whole,
+              className: "pb-2 pr-4 font-medium",
+            })}
+            {headerCell({
+              id: "rateLimit",
+              title: translator.translateText("Rate Limit"),
+              kind: ColumnWidthKind.Whole,
+              className: "max-md:hidden pb-2 pr-4 font-medium md:table-cell",
+            })}
+            {headerCell({
+              id: "dropped",
+              title: translator.translateText("Dropped"),
+              kind: ColumnWidthKind.Whole,
+              className: "max-md:hidden pb-2 pr-4 font-medium md:table-cell",
+            })}
+            {headerCell({
+              id: "throttled",
+              title: translator.translateText("Throttled"),
+              kind: ColumnWidthKind.Whole,
+              className: "max-md:hidden pb-2 pr-4 font-medium md:table-cell",
+            })}
+            {headerCell({
+              id: "status",
+              title: translator.translateText("Status"),
+              kind: ColumnWidthKind.Whole,
+              className: "pb-2 font-medium",
+            })}
           </tr>
         </thead>
         <tbody>

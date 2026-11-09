@@ -26,6 +26,7 @@ import {
   EventMomentLabel,
   EventMomentState,
   EventMomentTimelineEntry,
+  getEventMetricStateList,
   getEventMetricWords,
   getEventMomentColor,
   getEventMomentLabel,
@@ -173,6 +174,7 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
     impactStartedAt: props.impactStartedAt,
     timeline: props.stateTimeline,
     states: props.states,
+    stateList: getEventMetricStateList(props.subject),
   });
 
   // Rebuilt only when a moment really moved, not on every render of the page.

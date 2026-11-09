@@ -479,8 +479,11 @@ describe("who joins the channel a rule creates", () => {
       boxes[1]!.compareDocumentPosition(boxes[2]!) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    // Paged to respond: people paged only to be kept informed are not pulled in.
     expect(
-      screen.getByText("Everyone paged by an on-call policy."),
+      screen.getByText(
+        "Everyone paged by an on-call policy to respond. People paged as observers are not added.",
+      ),
     ).toBeVisible();
     expect(
       screen.getByText(

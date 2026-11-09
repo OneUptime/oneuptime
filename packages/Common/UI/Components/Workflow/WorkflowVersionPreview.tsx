@@ -4,6 +4,7 @@ import {
   toWorkflowCanvasGraph,
 } from "./WorkflowCanvasGraph";
 import { WorkflowVersionCopy } from "./WorkflowVersionPresentation";
+import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Modal, { ModalWidth } from "../Modal/Modal";
@@ -24,6 +25,7 @@ import { SavedWorkflowGraph } from "../../../Utils/Workflow/WorkflowGraphSnapsho
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useEffect,
   useMemo,
   useState,
@@ -70,6 +72,15 @@ const WorkflowVersionPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * In a view (WorkflowViewOnly, which the version history provides) the
+   * version is there to be read: the dialog has no Restore, as it has none
+   * while the builder says why the reader may not restore it.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
+  const isRestoreLocked: boolean =
+    isViewOnly || Boolean(props.restoreDisabledReason);
   const [graph, setGraph] = useState<JSONObject | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -162,7 +173,7 @@ const WorkflowVersionPreview: FunctionComponent<ComponentProps> = (
     graph &&
       canvasGraph &&
       !isSameAsNow &&
-      !props.restoreDisabledReason &&
+      !isRestoreLocked &&
       !isLoading,
   );
 
@@ -262,13 +273,11 @@ const WorkflowVersionPreview: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       closeButtonText={WorkflowVersionPreviewCopy.close}
       submitButtonText={
-        props.restoreDisabledReason
-          ? undefined
-          : WorkflowVersionCopy.restoreButton
+        isRestoreLocked ? undefined : WorkflowVersionCopy.restoreButton
       }
       disableSubmitButton={!canRestore}
       onSubmit={
-        props.restoreDisabledReason
+        isRestoreLocked
           ? undefined
           : () => {
               if (graph && canRestore) {

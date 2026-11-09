@@ -704,7 +704,15 @@ describe("a hand-off row", () => {
   });
 
   test("an override in force names its window the same way", async () => {
-    answerReads({ overrides: [anOverride()], attachedPolicyIds: [POLICY_ID] });
+    /*
+     * The override the preview reads, made once: its window is two days
+     * from the clock's reading, so a second one made after the preview has
+     * drawn - seconds later on a loaded runner - can start a minute later,
+     * and its start would not read as the one shown.
+     */
+    const override: OnCallDutyPolicyUserOverride = anOverride();
+
+    answerReads({ overrides: [override], attachedPolicyIds: [POLICY_ID] });
 
     renderPreview();
     await waitForPreview();
@@ -712,7 +720,6 @@ describe("a hand-off row", () => {
 
     const moments: Array<HTMLElement> =
       screen.getAllByTestId("hand-off-moment");
-    const override: OnCallDutyPolicyUserOverride = anOverride();
     const now: Date = OneUptimeDate.getCurrentDate();
 
     expect(

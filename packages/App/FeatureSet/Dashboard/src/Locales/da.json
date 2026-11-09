@@ -46565,6 +46565,8 @@
   "Error Budget Policy Alert Resolved": "Advarsel fra fejlbudgetpolitik løst",
   "Error Budget Policy Incident Declared": "Hændelse fra fejlbudgetpolitik erklæret",
   "Error Budget Policy Incident Resolved": "Hændelse fra fejlbudgetpolitik løst",
+  "Error Budget Policy Deployments Frozen": "Udrulninger frosset af fejlbudgetpolitikken",
+  "Error Budget Policy Deployments Allowed": "Udrulninger tilladt af fejlbudgetpolitikken",
   "another branch": "en anden gren",
   "{{amount}} USD": "{{amount}} USD",
   "{{count}} more file": "{{count}} fil mere",

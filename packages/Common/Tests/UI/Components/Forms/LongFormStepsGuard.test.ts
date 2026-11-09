@@ -421,6 +421,39 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
     reason:
       "The arguments a workflow's manual trigger declares, built from its metadata: one question per argument the workflow author added.",
   },
+  /*
+   * Added 2026-11-09: the Admin Dashboard's ingestion budget cards (#6385),
+   * whose fields are made one per signal from the list of signals
+   * (Utils/IngestionBudgetFormFields: TELEMETRY_INGESTION_BUDGET_SIGNALS).
+   */
+  ...[
+    [
+      "Pages/Settings/IngestionBudgets/Index.tsx",
+      "Default Daily Ingestion Budgets",
+    ],
+    [
+      "Pages/Projects/View/IngestionBudgets.tsx",
+      "Project Daily Ingestion Budgets",
+    ],
+  ].map(([file, card]: Array<string>): ListedForm => {
+    return {
+      file: `packages/App/FeatureSet/AdminDashboard/src/${file}`,
+      form: `CardModelDetail: ${card}`,
+      reason:
+        "One question asked of each telemetry signal (getDailyBudgetFormFields): how many GB of logs, traces, metrics, profiles and security events may arrive in a day: five optional numbers, where empty is no budget on the instance and the instance's default on a project. A step per signal would put a Next between numbers that are set together.",
+    };
+  }),
+  ...[
+    ["Pages/Settings/IngestionBudgets/Index.tsx", "Default Ingestion Rate Limits"],
+    ["Pages/Projects/View/IngestionBudgets.tsx", "Project Ingestion Rate Limits"],
+  ].map(([file, card]: Array<string>): ListedForm => {
+    return {
+      file: `packages/App/FeatureSet/AdminDashboard/src/${file}`,
+      form: `CardModelDetail: ${card}`,
+      reason:
+        "One question asked of each telemetry signal (getRateLimitFormFields): how many MB a second each of the five signals may arrive at: five optional numbers, where empty is no limit on the instance and the instance's default on a project. A step per signal would put a Next between numbers that are set together.",
+    };
+  }),
 ];
 
 /*

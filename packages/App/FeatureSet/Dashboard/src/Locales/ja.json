@@ -46565,6 +46565,8 @@
   "Error Budget Policy Alert Resolved": "エラーバジェットポリシーのアラート解決済み",
   "Error Budget Policy Incident Declared": "エラーバジェットポリシーのインシデント宣言済み",
   "Error Budget Policy Incident Resolved": "エラーバジェットポリシーのインシデント解決済み",
+  "Error Budget Policy Deployments Frozen": "エラーバジェットポリシーによる Deployment 凍結",
+  "Error Budget Policy Deployments Allowed": "エラーバジェットポリシーによる Deployment 許可",
   "another branch": "別のブランチ",
   "{{amount}} USD": "{{amount}} USD",
   "{{count}} more file": "ほか {{count}} 個のファイル",

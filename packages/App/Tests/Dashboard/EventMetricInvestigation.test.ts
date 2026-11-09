@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import ChartEventKind from "Common/UI/Components/Charts/Types/ChartEventKind";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   ALERT_STARTED_COLOR,
   EVENT_MOMENT_COLORS,
@@ -8,6 +9,7 @@ import {
   EventMoment,
   EventMomentRole,
   EventMomentState,
+  getEventMetricStateList,
   getEventMetricWords,
   getEventMomentColor,
   getEventMomentLabel,
@@ -53,6 +55,7 @@ describe("the moments of an event", () => {
         { stateId: "resolved", startsAt: at("2026-11-05T07:02:00.000Z") },
       ],
       states: STATES,
+      stateList: StateListType.IncidentState,
     });
 
     expect(rolesOf(moments)).toEqual([
@@ -72,6 +75,7 @@ describe("the moments of an event", () => {
         { stateId: "identified", startsAt: at("2026-11-05T05:44:00.000Z") },
       ],
       states: STATES,
+      stateList: StateListType.IncidentState,
     });
 
     expect(rolesOf(moments)).toEqual([
@@ -87,6 +91,7 @@ describe("the moments of an event", () => {
       impactStartedAt: at("2026-11-05T05:20:00.000Z"),
       timeline: [],
       states: STATES,
+      stateList: StateListType.IncidentState,
     });
 
     expect(rolesOf(moments)).toEqual([
@@ -107,6 +112,7 @@ describe("the moments of an event", () => {
             impactStartedAt,
             timeline: [],
             states: STATES,
+            stateList: StateListType.IncidentState,
           }),
         ),
       ).toEqual(["started:@2026-11-05T05:44:00.000Z"]);
@@ -120,6 +126,7 @@ describe("the moments of an event", () => {
           impactStartedAt: at("2026-11-05T05:20:00.000Z"),
           timeline: [],
           states: [],
+          stateList: StateListType.IncidentState,
         }),
       ),
     ).toEqual(["impact-started:@2026-11-05T05:20:00.000Z"]);
@@ -136,6 +143,7 @@ describe("the moments of an event", () => {
         { stateId: "resolved", startsAt: new Date("nonsense") },
       ],
       states: STATES,
+      stateList: StateListType.IncidentState,
     });
 
     expect(rolesOf(moments)).toEqual([
@@ -146,8 +154,147 @@ describe("the moments of an event", () => {
   });
 
   test("nothing known is nothing marked", () => {
-    expect(getEventMoments({ timeline: [], states: [] })).toEqual([]);
+    expect(
+      getEventMoments({
+        timeline: [],
+        states: [],
+        stateList: StateListType.IncidentState,
+      }),
+    ).toEqual([]);
   });
+});
+
+/*
+ * A project's states in their places, as the pages read them (with order):
+ * a state of its own between Acknowledged and Resolved, and one after
+ * Resolved that carries no flag.
+ */
+const PLACED_STATES: Array<EventMomentState> = [
+  { _id: "identified", name: "Identified", order: 1 },
+  {
+    _id: "acknowledged",
+    name: "Acknowledged",
+    order: 2,
+    isAcknowledgedState: true,
+  },
+  { _id: "investigating", name: "Investigating", order: 3 },
+  { _id: "resolved", name: "Resolved", order: 4, isResolvedState: true },
+  { _id: "closed", name: "Closed", order: 5 },
+];
+
+describe("acknowledged and resolved by the one rule (Common/Utils/ResolvedState)", () => {
+  test.each([StateListType.IncidentState, StateListType.AlertState])(
+    "a state placed after Resolved resolves an event moved into it from an open one (%s)",
+    (stateList: StateListType.IncidentState | StateListType.AlertState) => {
+      expect(
+        rolesOf(
+          getEventMoments({
+            startedAt: STARTED_AT,
+            timeline: [
+              {
+                stateId: "identified",
+                startsAt: at("2026-11-05T05:44:00.000Z"),
+              },
+              { stateId: "closed", startsAt: at("2026-11-05T06:30:00.000Z") },
+            ],
+            states: PLACED_STATES,
+            stateList: stateList,
+          }),
+        ),
+      ).toEqual([
+        "started:@2026-11-05T05:44:00.000Z",
+        "resolved:Closed@2026-11-05T06:30:00.000Z",
+      ]);
+    },
+  );
+
+  test("a state placed after Acknowledged acknowledges an event moved into it from an unacknowledged one", () => {
+    expect(
+      rolesOf(
+        getEventMoments({
+          startedAt: STARTED_AT,
+          timeline: [
+            { stateId: "identified", startsAt: at("2026-11-05T05:44:00.000Z") },
+            {
+              stateId: "investigating",
+              startsAt: at("2026-11-05T05:50:00.000Z"),
+            },
+          ],
+          states: PLACED_STATES,
+          stateList: StateListType.IncidentState,
+        }),
+      ),
+    ).toEqual([
+      "started:@2026-11-05T05:44:00.000Z",
+      "acknowledged:Investigating@2026-11-05T05:50:00.000Z",
+    ]);
+  });
+
+  test("moving on from Acknowledged to a state after it, or from Resolved to Closed, is a change of state", () => {
+    expect(
+      rolesOf(
+        getEventMoments({
+          startedAt: STARTED_AT,
+          timeline: [
+            { stateId: "identified", startsAt: at("2026-11-05T05:44:00.000Z") },
+            {
+              stateId: "acknowledged",
+              startsAt: at("2026-11-05T05:50:00.000Z"),
+            },
+            {
+              stateId: "investigating",
+              startsAt: at("2026-11-05T06:10:00.000Z"),
+            },
+            { stateId: "resolved", startsAt: at("2026-11-05T07:02:00.000Z") },
+            { stateId: "closed", startsAt: at("2026-11-05T07:30:00.000Z") },
+          ],
+          states: PLACED_STATES,
+          stateList: StateListType.IncidentState,
+        }),
+      ),
+    ).toEqual([
+      "started:@2026-11-05T05:44:00.000Z",
+      "acknowledged:Acknowledged@2026-11-05T05:50:00.000Z",
+      "state-changed:Investigating@2026-11-05T06:10:00.000Z",
+      "resolved:Resolved@2026-11-05T07:02:00.000Z",
+      "state-changed:Closed@2026-11-05T07:30:00.000Z",
+    ]);
+  });
+
+  test("an event reopened and resolved again is resolved twice", () => {
+    expect(
+      rolesOf(
+        getEventMoments({
+          startedAt: STARTED_AT,
+          timeline: [
+            { stateId: "identified", startsAt: at("2026-11-05T05:44:00.000Z") },
+            { stateId: "closed", startsAt: at("2026-11-05T06:00:00.000Z") },
+            { stateId: "identified", startsAt: at("2026-11-05T06:20:00.000Z") },
+            { stateId: "resolved", startsAt: at("2026-11-05T06:40:00.000Z") },
+          ],
+          states: PLACED_STATES,
+          stateList: StateListType.IncidentState,
+        }),
+      ),
+    ).toEqual([
+      "started:@2026-11-05T05:44:00.000Z",
+      "resolved:Closed@2026-11-05T06:00:00.000Z",
+      "state-changed:Identified@2026-11-05T06:20:00.000Z",
+      "resolved:Resolved@2026-11-05T06:40:00.000Z",
+    ]);
+  });
+
+  test.each([
+    [EventMetricSubject.Incident, StateListType.IncidentState],
+    [EventMetricSubject.IncidentEpisode, StateListType.IncidentState],
+    [EventMetricSubject.Alert, StateListType.AlertState],
+    [EventMetricSubject.AlertEpisode, StateListType.AlertState],
+  ])(
+    "the %s page's moments walk the %s list",
+    (subject: EventMetricSubject, stateList: StateListType) => {
+      expect(getEventMetricStateList(subject)).toBe(stateList);
+    },
+  );
 });
 
 describe("the words for each kind of page", () => {

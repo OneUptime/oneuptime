@@ -60,6 +60,24 @@ const RULES_PAGES_UNDER_RULES: ReadonlyArray<string> = [
 
 const RULES_SECTION_TITLE: string = "Rules";
 
+/*
+ * Rules pages whose title does not end in "Rules", and why each is one.
+ * Added 2026-11-09: #6332 put an SLO's Error Budget Policy under Rules,
+ * beside its Burn Rate Rules, and the SLO docs say it is there.
+ */
+const RULES_PAGES_BY_ANOTHER_NAME: Record<string, string> = {
+  "Error Budget Policy":
+    "An SLO's tiers of budget left: each a rule that runs on the SLO, saying what the team does once the budget left falls to the tier's threshold, raising an alert or declaring an incident, and freezing deployments.",
+};
+
+// Whether a page belongs in a Rules section: a rules page, by its title.
+const isRulesPage: (title: string) => boolean = (title: string): boolean => {
+  return (
+    title.endsWith(" Rules") ||
+    Object.prototype.hasOwnProperty.call(RULES_PAGES_BY_ANOTHER_NAME, title)
+  );
+};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
@@ -396,13 +414,35 @@ describe("rules pages sit in a Rules section", () => {
       const rules: SectionReading | undefined = rulesSectionOf(reading);
 
       for (const link of rules?.links || []) {
-        if (!link.title.endsWith(" Rules")) {
+        if (!isRulesPage(link.title)) {
           strays.push({ menu: reading.menu, page: link.title });
         }
       }
     }
 
     expect(strays).toEqual([]);
+  });
+
+  test("each rules page by another name is in a Rules section, with why it is a rules page", async () => {
+    const underRules: Set<string> = new Set<string>();
+
+    for (const reading of await allMenuReadings()) {
+      for (const link of rulesSectionOf(reading)?.links || []) {
+        underRules.add(link.title);
+      }
+    }
+
+    for (const [page, why] of Object.entries(RULES_PAGES_BY_ANOTHER_NAME)) {
+      // One that no menu keeps under Rules any more comes off the list.
+      expect([page, underRules.has(page)]).toEqual([page, true]);
+      expect(why.length).toBeGreaterThan(40);
+    }
+
+    // The test reads titles as written: a page titled "... Policy" is not one.
+    expect(isRulesPage("Error Budget Policy")).toBe(true);
+    expect(isRulesPage("Burn Rate Rules")).toBe(true);
+    expect(isRulesPage("Escalation Policy")).toBe(false);
+    expect(isRulesPage("Overview")).toBe(false);
   });
 });
 

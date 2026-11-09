@@ -2560,10 +2560,26 @@ describe("hasMessagingTrigger", () => {
     expect(hasMessagingTrigger({ [key]: value })).toBe(true);
   });
 
+  /*
+   * A value as a test's name shows it: as %j writes it, or - a string too
+   * long for a log line - its start and its length. Written whole, the
+   * 100,000 characters below made the reporter print a line that long, and
+   * `gh run view --log-failed` stops reading a job's log at such a line:
+   * Common Test's shard 3 showed no FAIL line for the suites that failed
+   * after it (2026-11-09, run 42582941108).
+   */
+  const shownValue: (value: unknown) => string = (value: unknown): string => {
+    if (typeof value === "string" && value.length > 1000) {
+      return `${JSON.stringify(value.trim().slice(0, 40))} (${value.length} characters)`;
+    }
+
+    return JSON.stringify(value);
+  };
+
   test.each(
     AZURE_PROVIDER_KEYS.flatMap(
-      (key: string): Array<[string, unknown, boolean]> => {
-        return [
+      (key: string): Array<[string, string, boolean, unknown]> => {
+        const rows: Array<[string, unknown, boolean]> = [
           [key, "Microsoft.ServiceBus", true],
           [key, "Microsoft.EventHub", true],
           [key, " microsoft.eventhub ", true],
@@ -2586,11 +2602,21 @@ describe("hasMessagingTrigger", () => {
           [key, ["Microsoft.ServiceBus"], false],
           [key, "m".repeat(100_000), false],
         ];
+
+        return rows.map(
+          ([
+            rowKey,
+            value,
+            expected,
+          ]: [string, unknown, boolean]): [string, string, boolean, unknown] => {
+            return [rowKey, shownValue(value), expected, value];
+          },
+        );
       },
     ),
   )(
-    "the Azure provider key %s with %j is a trigger: %s",
-    (key: string, value: unknown, expected: boolean) => {
+    "the Azure provider key %s with %s is a trigger: %s",
+    (key: string, _shown: string, expected: boolean, value: unknown) => {
       expect(hasMessagingTrigger({ [key]: value })).toBe(expected);
     },
   );

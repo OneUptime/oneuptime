@@ -1,5 +1,10 @@
 import ChartEventKind from "Common/UI/Components/Charts/Types/ChartEventKind";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import ResolvedStateUtil, {
+  ResolvedStateList,
+} from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 
 /*
  * What a metric investigation on an incident, alert or episode page is
@@ -112,6 +117,25 @@ export function getEventMetricWords(
   }
 }
 
+/*
+ * Whose states the subject's timeline moves through: an incident's, whose
+ * an incident episode's first member is, or an alert's, whose an alert
+ * episode's first member is.
+ */
+export function getEventMetricStateList(
+  subject: EventMetricSubject,
+): ResolvedStateList {
+  switch (subject) {
+    case EventMetricSubject.Alert:
+    case EventMetricSubject.AlertEpisode:
+      return StateListType.AlertState;
+    case EventMetricSubject.Incident:
+    case EventMetricSubject.IncidentEpisode:
+    default:
+      return StateListType.IncidentState;
+  }
+}
+
 // The colour the shaded window the monitor evaluated is drawn in.
 export const EVALUATED_REGION_COLOR: string = "#6366f1"; // indigo-500
 
@@ -150,10 +174,15 @@ export interface EventMomentTimelineEntry {
   startsAt?: Date | undefined;
 }
 
-// What the moments read of the project's states.
+/*
+ * What the moments read of the project's states: each one's name, and its
+ * place in the list and its flags, which decide the states that count as
+ * acknowledged and resolved (Common/Utils/AcknowledgedState, ResolvedState).
+ */
 export interface EventMomentState {
   _id?: string | undefined;
   name?: string | undefined;
+  order?: number | undefined;
   isAcknowledgedState?: boolean | undefined;
   isResolvedState?: boolean | undefined;
 }
@@ -166,12 +195,22 @@ export interface EventMomentState {
  * - every change of its state after the one it was opened in, which the
  *   start already marks: acknowledged, resolved, reopened, or a state of the
  *   project's own such as Monitoring.
+ *
+ * Acknowledged and resolved are the moves the event became so with, by the
+ * one rule (Common/Utils/AcknowledgedState, ResolvedState): into the
+ * project's acknowledged or resolved state or one it placed after it, from
+ * a state that was not. So a state placed after Resolved ("Closed") marks a
+ * resolve when the event moved into it from an open one, flagged or not,
+ * and moving on from Resolved to Closed, or from Acknowledged to a state
+ * after it, is a change of state.
  */
 export function getEventMoments(input: {
   startedAt?: Date | null | undefined;
   impactStartedAt?: Date | null | undefined;
   timeline: Array<EventMomentTimelineEntry>;
   states: Array<EventMomentState>;
+  // Whose states they are (getEventMetricStateList).
+  stateList: ResolvedStateList;
 }): Array<EventMoment> {
   const moments: Array<EventMoment> = [];
   const startedMs: number = toMs(input.startedAt);
@@ -197,7 +236,7 @@ export function getEventMoments(input: {
     });
   }
 
-  const changes: Array<EventMomentTimelineEntry> = input.timeline
+  const dated: Array<EventMomentTimelineEntry> = input.timeline
     .filter((entry: EventMomentTimelineEntry): boolean => {
       return Number.isFinite(toMs(entry.startsAt));
     })
@@ -208,11 +247,27 @@ export function getEventMoments(input: {
       ): number => {
         return toMs(first.startsAt) - toMs(second.startsAt);
       },
-    )
-    // The state it was opened in: the start marks that moment already.
-    .slice(1);
+    );
 
-  for (const change of changes) {
+  const resolutions: Set<EventMomentTimelineEntry> =
+    new Set<EventMomentTimelineEntry>(
+      ResolvedStateUtil.getResolutionRows({
+        list: input.stateList,
+        states: input.states,
+        timeline: dated,
+      }),
+    );
+  const acknowledgements: Set<EventMomentTimelineEntry> =
+    new Set<EventMomentTimelineEntry>(
+      AcknowledgedStateUtil.getAcknowledgementRows({
+        list: input.stateList,
+        states: input.states,
+        timeline: dated,
+      }),
+    );
+
+  // The state it was opened in: the start marks that moment already.
+  for (const change of dated.slice(1)) {
     const state: EventMomentState | undefined = input.states.find(
       (candidate: EventMomentState): boolean => {
         return Boolean(change.stateId) && candidate._id === change.stateId;
@@ -221,9 +276,9 @@ export function getEventMoments(input: {
 
     moments.push({
       date: new Date(toMs(change.startsAt)),
-      role: state?.isResolvedState
+      role: resolutions.has(change)
         ? EventMomentRole.Resolved
-        : state?.isAcknowledgedState
+        : acknowledgements.has(change)
           ? EventMomentRole.Acknowledged
           : EventMomentRole.StateChanged,
       stateName: state?.name?.trim() || "",

@@ -26,6 +26,9 @@ import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../../App/FeatureSet/Da
 import { AI_RULE_AI_CONTEXT_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiContextCopy";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import IncidentEpisodePublicNote from "../../../Models/DatabaseModels/IncidentEpisodePublicNote";
+import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
+import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 
 /*
@@ -174,7 +177,6 @@ const RETIRED: Array<string> = [
   "Auto Remediation Rules",
   "Incident Auto Remediation Rules",
   "Alert Auto Remediation Rules",
-  "Approval",
   "OneUptime AI works out each fix. Choose whether it waits for someone to approve it.",
   "Investigate production incidents",
   "Investigate production alerts",
@@ -210,6 +212,29 @@ const RETIRED: Array<string> = [
   "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the alerts that match one, to wait, or to choose how each is fixed.",
   "None of the {{count}} AI rules set up match this {{signal}}, so it was not fixed. With rules set up, only what a rule that fixes matches is fixed.",
 ];
+
+/*
+ * Words of the two kinds of rule that another screen says again, so every
+ * locale holds them for that screen. A locale file cannot tell the two
+ * apart, so the AI rules' own copy and components are read instead: none of
+ * them may look such a word up.
+ *
+ * "Approval" (2026-11-09): the title of the auto remediation rule's
+ * Approval card, which the Fix question replaced (AutoRemediationRuleCopy).
+ * #6252 titles a public note's approval column "Approval" - an incident's,
+ * an episode's and a scheduled maintenance event's notes, held for approval
+ * before a status page shows them - and the word is in every locale again
+ * for that.
+ */
+const SAID_AGAIN_ELSEWHERE: Array<string> = ["Approval"];
+
+// Where the AI rules' table, form and copy are written.
+const AI_RULE_SOURCE_DIRECTORIES: Array<string> = [
+  "../../../../App/FeatureSet/Dashboard/src/Components/AISettings",
+  "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation",
+].map((directory: string): string => {
+  return path.resolve(__dirname, directory);
+});
 
 /*
  * The placeholders a sentence fills, each once: a language may name the
@@ -258,6 +283,66 @@ describe("English holds every sentence under its own words", () => {
     expect(
       SUGGESTION.getTableColumnMetadata("autoRemediationRuleId").title,
     ).toBe("AI Rule ID");
+  });
+});
+
+describe("the words another screen says again", () => {
+  test("are said there: the public notes' approval column is titled Approval", () => {
+    for (const note of [
+      new IncidentPublicNote(),
+      new IncidentEpisodePublicNote(),
+      new ScheduledMaintenancePublicNote(),
+    ]) {
+      expect([
+        note.constructor.name,
+        note.getTableColumnMetadata("approval").title,
+      ]).toEqual([note.constructor.name, "Approval"]);
+    }
+
+    expect(ENGLISH["Approval"]).toBe("Approval");
+  });
+
+  test("no AI rule copy or component looks them up", () => {
+    const files: Array<string> = AI_RULE_SOURCE_DIRECTORIES.flatMap(
+      (directory: string): Array<string> => {
+        return fs
+          .readdirSync(directory)
+          .filter((name: string): boolean => {
+            return /\.tsx?$/.test(name);
+          })
+          .map((name: string): string => {
+            return path.join(directory, name);
+          });
+      },
+    );
+
+    // The rules' copy, table and fields are among them.
+    expect(
+      files.map((file: string): string => {
+        return path.basename(file);
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "AiRuleCopy.ts",
+        "AiRulesTable.tsx",
+        "AutoRemediationRuleCopy.ts",
+        "AutoRemediationRuleFields.tsx",
+      ]),
+    );
+
+    const saying: Array<string> = files.flatMap(
+      (file: string): Array<string> => {
+        const source: string = fs.readFileSync(file, "utf8");
+
+        return SAID_AGAIN_ELSEWHERE.filter((word: string): boolean => {
+          return source.includes(JSON.stringify(word));
+        }).map((word: string): string => {
+          return `${path.basename(file)}: ${word}`;
+        });
+      },
+    );
+
+    expect(saying).toEqual([]);
   });
 });
 

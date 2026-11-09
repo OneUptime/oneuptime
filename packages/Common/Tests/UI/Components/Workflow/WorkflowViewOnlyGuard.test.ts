@@ -83,10 +83,23 @@ const OUTSIDE_THE_VIEW: Record<string, string> = {
   "WorkflowIssuesModal.tsx":
     "What the Builder's checks found: a row opens its step, which a view opens to be read.",
   "WorkflowRunExportActions.tsx": "Copies or downloads a run's log.",
+  /*
+   * Added 2026-11-09: the Undo and Redo (#6256) and save conflict (#6273)
+   * controls, which the Builder page draws beside the canvas, outside the
+   * WorkflowViewOnlyContext the canvas provides, and never in a view, by the
+   * same edit gate (getWorkflowEditGate: isViewOnly). The Version history
+   * is part of a view and reads it (WorkflowVersionHistory provides it to
+   * WorkflowVersionPreview): listed here, it would take the canvas its
+   * preview draws out of the view with it.
+   */
+  "WorkflowSaveConflictModal.tsx":
+    "Asks whose version to keep when this builder's save met a newer one (WorkflowSaveState.Conflict). A view saves nothing - the Builder page's autosave is off there (isEnabled: !isViewOnly) - so a view never shows it.",
   "WorkflowStatusBar.tsx":
     "The Builder's status: View only in a view (readOnlyReason), and the run log and checks it opens change nothing.",
   "WorkflowTurnedOffNotice.tsx":
     "The note a turned-off workflow shows; the Builder page offers its Turn on only to who may turn the workflow on.",
+  "WorkflowUndoRedoButtons.tsx":
+    "Undo and Redo: the Builder page draws them only for whoever may change the workflow (!isViewOnly), so a view has neither.",
 };
 
 /*
