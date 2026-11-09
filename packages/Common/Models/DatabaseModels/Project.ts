@@ -2135,6 +2135,134 @@ export default class Project extends TenantModel {
   public aiDailySpendLimitInUSD?: number = undefined;
 
   /*
+   * The project's own limits on each OneUptime AI run (issue #6440): see
+   * Types/AI/ProjectAiRunLimits. One setting for every kind of run. All four
+   * are unset until someone sets one: no cap on model calls, tool calls or
+   * tokens, and the default time limit (Types/AI/AIAgentRunLimits). Like the
+   * daily limits, only a project owner or someone with Manage Billing may
+   * set them, since they decide what a run may cost.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Model Calls per AI Run",
+    description:
+      "The most model (LLM) calls one OneUptime AI run may make: an investigation, an Ask AI answer, a Slack or Microsoft Teams answer, a triage, a remediation or a code task. The run answers with what it found when it gets there. Unset means no limit.",
+    example: 50,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiRunMaxModelCalls?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Tool Calls per AI Run",
+    description:
+      "The most tool calls (queries, commands, file reads and edits) one OneUptime AI run may make. The run answers with what it found when it gets there. Unset means no limit.",
+    example: 200,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiRunMaxToolCalls?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Tokens per AI Run",
+    description:
+      "The most tokens one OneUptime AI run may use, counted as the AI Logs count them. The run stops when it gets there and says so. Unset means no limit.",
+    example: 500000,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiRunMaxTokens?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "AI Run Time Limit (Minutes)",
+    description:
+      "How long one OneUptime AI run may take before it answers with what it found. An incident or alert investigation uses its own lane's time limit when that is set. Unset means the default, 120 minutes.",
+    example: 60,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiRunTimeLimitInMinutes?: number = undefined;
+
+  /*
    * When each of the two limits above last stopped OneUptime AI: the first
    * time it did on the latest UTC day it did (Types/AI/ProjectAiDailyLimits,
    * PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS). The conditional UPDATE that

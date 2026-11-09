@@ -1,6 +1,6 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
-import { KeepEditedDiscoveredDevices1809071320000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809071320000-KeepEditedDiscoveredDevices";
+import { KeepEditedDiscoveredDevices1809080263892 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080263892-KeepEditedDiscoveredDevices";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
 import NetworkSiteService from "../../../../Server/Services/NetworkSiteService";
@@ -823,9 +823,9 @@ describePostgres("removing discovered devices nothing sees, on Postgres", () => 
     const runner: QueryRunner = database.createQueryRunner();
 
     try {
-      await new KeepEditedDiscoveredDevices1809071320000().up(runner);
+      await new KeepEditedDiscoveredDevices1809080263892().up(runner);
       // Run again, it changes nothing.
-      await new KeepEditedDiscoveredDevices1809071320000().up(runner);
+      await new KeepEditedDiscoveredDevices1809080263892().up(runner);
     } finally {
       await runner.release();
     }

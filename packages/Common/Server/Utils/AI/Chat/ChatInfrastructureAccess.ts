@@ -66,14 +66,15 @@ import logger from "../../Logger";
  */
 
 /*
- * The most commands one Ask AI answer may send through each kind of agent
- * (resources' AI agents, clusters' Kubernetes AI agents). Every command an
- * AI run sends counts toward the project's hourly limit of investigation
- * commands, which automatic investigations share, so neither one answer
- * nor text in a tool result that talks the model into a loop can spend it.
- * The incident's shared thread keeps the investigation's runaway guard.
+ * An Ask AI answer sends as many commands through each kind of agent
+ * (resources' AI agents, clusters' Kubernetes AI agents) as its question
+ * needs, as an investigation does (issue #6440): what holds it is the run's
+ * own limits - the project's tool calls per run, loop detection and the time
+ * limit (Types/AI/AIAgentRunLimits) - and every command still counts toward
+ * the project's hourly limit of investigation commands (RunnerJobService),
+ * which keeps one answer, or text in a tool result that talks the model into
+ * a loop, from holding a Runner.
  */
-export const MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER: number = 30;
 
 // The heading of what would let a personal conversation run commands.
 export const WITHOUT_ACCESS_SECTION_HEADING: string =
@@ -433,8 +434,8 @@ export default class ChatInfrastructureAccess {
     // Where the tools are offered, for the log: "the incident thread".
     offeredIn: string;
     /*
-     * The most commands the turn may send through each kind of agent;
-     * absent, the investigation's runaway guard.
+     * The most commands the turn may send through each kind of agent, when
+     * a caller sets a cap; none by default (the run's own limits hold it).
      */
     maxCommands?: number | undefined;
   }): Promise<ChatInfrastructureTools> {
@@ -599,7 +600,7 @@ export default class ChatInfrastructureAccess {
         `- You can run read-only commands on the infrastructure this conversation is about, the way an on-call engineer opens a terminal on it: ${ways.join(
           ", and ",
         )}. When the user asks you to run a command or to check something on it live (for example "run uptime on this host"), run the command and show what it returned, cited [C#] - never answer from telemetry instead, and never say you have no tool for it.`,
-        `- One command per call: a program followed by its arguments, never a shell line (no pipes, redirects, ;, &&, $( ) or sudo). For several commands, make several calls - at most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} through each kind of agent for one answer, so run the ones that answer the question.`,
+        `- One command per call: a program followed by its arguments, never a shell line (no pipes, redirects, ;, &&, $( ) or sudo). For several commands, make several calls, and run the ones that answer the question.`,
         "- These commands only read: a change (restart or stop a service, kill a process, scale, roll back, …) cannot be made with them. When the answer is a change, give the exact command and what it would change, and say that a person can run it, or that OneUptime AI applies such fixes when it remediates an incident or alert on this resource with fixes turned on. Never claim a command changed the infrastructure.",
         `- When a tool output is long you see its first page; read the rest with ${READ_TOOL_OUTPUT_TOOL_NAME} whenever the part you need is further down. Never say something was not in an output you did not fully read.`,
       );
@@ -652,7 +653,6 @@ export default class ChatInfrastructureAccess {
         props: data.props,
         statuses,
         offeredIn: "an Ask AI conversation",
-        maxCommands: MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER,
       });
 
       if (tools.contextSections.length === 0) {

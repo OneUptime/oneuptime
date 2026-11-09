@@ -12,9 +12,9 @@ import NetworkEndpoint from "../../../../Models/DatabaseModels/NetworkEndpoint";
 import Project from "../../../../Models/DatabaseModels/Project";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddDiscoveredDeviceRetention1809071300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809071300000-AddDiscoveredDeviceRetention";
-import { AddNetworkEndpointLastSeenIndex1809071310000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809071310000-AddNetworkEndpointLastSeenIndex";
-import { KeepEditedDiscoveredDevices1809071320000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809071320000-KeepEditedDiscoveredDevices";
+import { AddDiscoveredDeviceRetention1809080263890 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080263890-AddDiscoveredDeviceRetention";
+import { AddNetworkEndpointLastSeenIndex1809080263891 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080263891-AddNetworkEndpointLastSeenIndex";
+import { KeepEditedDiscoveredDevices1809080263892 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080263892-KeepEditedDiscoveredDevices";
 import { DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS } from "../../../../Types/NetworkDevice/DiscoveredDeviceRetention";
 
 /*
@@ -46,19 +46,19 @@ const MIGRATIONS: Array<{
   migration: MigrationInterface;
 }> = [
   {
-    timestamp: "1809071300000",
+    timestamp: "1809080263890",
     baseName: "AddDiscoveredDeviceRetention",
-    migration: new AddDiscoveredDeviceRetention1809071300000(),
+    migration: new AddDiscoveredDeviceRetention1809080263890(),
   },
   {
-    timestamp: "1809071310000",
+    timestamp: "1809080263891",
     baseName: "AddNetworkEndpointLastSeenIndex",
-    migration: new AddNetworkEndpointLastSeenIndex1809071310000(),
+    migration: new AddNetworkEndpointLastSeenIndex1809080263891(),
   },
   {
-    timestamp: "1809071320000",
+    timestamp: "1809080263892",
     baseName: "KeepEditedDiscoveredDevices",
-    migration: new KeepEditedDiscoveredDevices1809071320000(),
+    migration: new KeepEditedDiscoveredDevices1809080263892(),
   },
 ];
 
@@ -101,9 +101,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AddDiscoveredDeviceRetention1809071300000", () => {
+describe("AddDiscoveredDeviceRetention1809080263890", () => {
   const migration: MigrationInterface =
-    new AddDiscoveredDeviceRetention1809071300000();
+    new AddDiscoveredDeviceRetention1809080263890();
 
   test("adds the project's setting at 30 days for every project, and the endpoint's editedAt", async () => {
     expect(await statementsOf(migration, "up")).toEqual([
@@ -140,9 +140,9 @@ describe("AddDiscoveredDeviceRetention1809071300000", () => {
   });
 });
 
-describe("AddNetworkEndpointLastSeenIndex1809071310000", () => {
-  const migration: AddNetworkEndpointLastSeenIndex1809071310000 =
-    new AddNetworkEndpointLastSeenIndex1809071310000();
+describe("AddNetworkEndpointLastSeenIndex1809080263891", () => {
+  const migration: AddNetworkEndpointLastSeenIndex1809080263891 =
+    new AddNetworkEndpointLastSeenIndex1809080263891();
 
   test("runs outside a transaction, so the index is built online", () => {
     expect(migration.transaction).toBe(false);
@@ -187,9 +187,9 @@ describe("AddNetworkEndpointLastSeenIndex1809071310000", () => {
   });
 });
 
-describe("KeepEditedDiscoveredDevices1809071320000", () => {
+describe("KeepEditedDiscoveredDevices1809080263892", () => {
   const migration: MigrationInterface =
-    new KeepEditedDiscoveredDevices1809071320000();
+    new KeepEditedDiscoveredDevices1809080263892();
 
   test("marks the live devices the API wrote as edited, when they were last changed", async () => {
     expect(await statementsOf(migration, "up")).toEqual([
@@ -246,7 +246,7 @@ describe("the three, registered", () => {
     );
 
     expect(positions[0]).toBeGreaterThan(
-      names.indexOf("AddTelemetryIngestionKeyRefusals1809071100000"),
+      names.indexOf("AddProjectAiRunLimits1809080210000"),
     );
     expect(positions[1]).toBe(positions[0]! + 1);
     expect(positions[2]).toBe(positions[1]! + 1);

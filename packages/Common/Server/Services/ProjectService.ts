@@ -108,6 +108,10 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitColumn,
   ProjectAiDailyLimitReachedAtColumn,
 } from "../../Types/AI/ProjectAiDailyLimits";
+import ProjectAiRunLimits, {
+  PROJECT_AI_RUN_LIMIT_COLUMNS,
+  ProjectAiRunLimitColumn,
+} from "../../Types/AI/ProjectAiRunLimits";
 import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
 import {
   getDiscoveredDeviceRetentionProblem,
@@ -640,6 +644,44 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Runs on every create and update, before the write, for each of the
+   * project's own limits on one AI run the data carries (Types/AI/
+   * ProjectAiRunLimits): a blank one is stored as null - no cap, or the
+   * default time limit, which is what clearing the field in the dashboard
+   * means - a typed "50" as the number it is, and a limit must otherwise be
+   * a whole number within its bounds.
+   */
+  public applyAiRunLimitRules(
+    data: Partial<Record<ProjectAiRunLimitColumn, unknown>>,
+  ): void {
+    const values: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const column of PROJECT_AI_RUN_LIMIT_COLUMNS) {
+      if (values[column] === undefined) {
+        continue;
+      }
+
+      if (
+        typeof values[column] === "string" &&
+        (values[column] as string).trim().length === 0
+      ) {
+        values[column] = null;
+      }
+
+      values[column] = coerceNumericColumnValue(values[column]);
+
+      const error: string | null = ProjectAiRunLimits.getWriteError(
+        column,
+        values[column],
+      );
+
+      if (error) {
+        throw new BadDataException(error);
+      }
+    }
+  }
+
+  /*
    * Runs on every create and update that writes the project's AI context
    * (Types/AI/AiContext): text, or nothing, and no more than
    * PROJECT_AI_CONTEXT_MAX_CHARACTERS - the limit the settings card counts
@@ -789,6 +831,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNumberPrefixRules(data.data);
     this.applyNextNumberRules(data.data);
     this.applyAiDailyLimitRules(data.data);
+    this.applyAiRunLimitRules(data.data);
     this.applyAiContextRules(data.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       data.data as { securityRiskCaseThreshold?: unknown },
@@ -1476,6 +1519,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNumberPrefixRules(updateBy.data);
     this.applyNextNumberRules(updateBy.data);
     this.applyAiDailyLimitRules(updateBy.data);
+    this.applyAiRunLimitRules(updateBy.data);
 
     /*
      * The project's ingestion budgets, which only a master admin writes (the

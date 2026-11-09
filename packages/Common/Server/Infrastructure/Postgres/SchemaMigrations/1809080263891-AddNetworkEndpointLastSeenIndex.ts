@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddDiscoveredDeviceRetention1809071300000, and moved into a migration of
+ * AddDiscoveredDeviceRetention1809080263890, and moved into a migration of
  * its own: "NetworkEndpoint" holds every device a project's switches,
  * routers and network controllers have seen, and their walks write to it
  * every few minutes, so its new index is built online, without blocking
@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *     whether a project has any due, the oldest first, and the switches that
  *     saw anything lately.
  */
-export class AddNetworkEndpointLastSeenIndex1809071310000
+export class AddNetworkEndpointLastSeenIndex1809080263891
   implements MigrationInterface
 {
-  public name: string = "AddNetworkEndpointLastSeenIndex1809071310000";
+  public name: string = "AddNetworkEndpointLastSeenIndex1809080263891";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

@@ -62,6 +62,10 @@ import {
 } from "Common/Types/MessageQueue/MessageQueueCloudConnectionMetrics";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
+  AzureTypeKeyMetrics,
+  getAzureKeyMetrics,
+} from "Common/Types/Cloud/CloudKeyMetrics";
+import {
   CloudConnectionDefinition,
   getCloudConnectionDefinition,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
@@ -1289,17 +1293,37 @@ describe("Queues docs", (): void => {
         return doesCloudConnectionReadQueueMetric(metric) === true;
       }).length;
 
-      expect(
-        lineWith(
-          systemSection(
-            getMessagingSystemDescriptor(
-              "servicebus",
-            ) as MessagingSystemDescriptor,
-          ),
-          "- A [connected Azure subscription](/docs/telemetry/cloud-accounts) splits",
+      const receiverNote: string = lineWith(
+        systemSection(
+          getMessagingSystemDescriptor(
+            "servicebus",
+          ) as MessagingSystemDescriptor,
         ),
-      ).toContain(
+        "- A [connected Azure subscription](/docs/telemetry/cloud-accounts) splits",
+      );
+
+      expect(receiverNote).toContain(
         `splits its ${COUNT_WORDS[serviceBusRead]} metrics by queue and topic as this receiver does`,
+      );
+
+      /*
+       * While the subscription streams, it still reads a namespace: a
+       * diagnostic setting sends only the namespace's totals, and not
+       * the metrics CloudKeyMetrics marks it cannot export.
+       */
+      const serviceBusKeyMetrics: AzureTypeKeyMetrics = getAzureKeyMetrics(
+        "Microsoft.ServiceBus/namespaces",
+      )!;
+
+      expect(serviceBusKeyMetrics.metrics).toHaveLength(serviceBusRead);
+      expect(receiverNote).toContain(
+        "While the subscription [streams its metrics](/docs/telemetry/cloud-streaming-azure), it keeps reading a namespace's",
+      );
+      expect(receiverNote).toContain(
+        `a diagnostic setting sends only the namespace's totals, with no \`EntityName\`, and ${COUNT_WORDS[serviceBusKeyMetrics.notExportedByDiagnosticSettings!.length]} of the ${COUNT_WORDS[serviceBusRead]} not at all`,
+      );
+      expect(receiverNote).toContain(
+        "the subscription's series reach only their queues, so no message is counted twice",
       );
       expect(isCloudConnectionPerQueueSystem("rabbitmq")).toBe(false);
     });

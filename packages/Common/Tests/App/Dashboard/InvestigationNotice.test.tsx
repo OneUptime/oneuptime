@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import InvestigationNotice, {
+  NOTICE_LINK_CLASS_NAME,
   noticeDoneIcon,
   noticeFailedIcon,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotice";
@@ -181,6 +182,50 @@ describe("InvestigationNotice", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  /*
+   * A notice's ways forward - Try again (a bordered button), a link to the
+   * settings the fix is made on, Details - share one row, and wrap on a
+   * phone. A button that wraps keeps a gap from the line above it, and the
+   * links stand on the same line as the button's words.
+   */
+  test("its ways forward share a row that wraps, apart enough for a bordered button", () => {
+    render(
+      <InvestigationNotice
+        testId="notice"
+        indicator={noticeFailedIcon}
+        title="Triage did not finish"
+        actionsTestId="notice-actions"
+        actions={
+          <>
+            <button type="button">Try again</button>
+            <a href="/settings" className={NOTICE_LINK_CLASS_NAME}>
+              Open LLM Providers
+            </a>
+          </>
+        }
+      />,
+    );
+
+    const row: HTMLElement = screen.getByTestId("notice-actions");
+    expect(row).toHaveClass(
+      "flex",
+      "flex-wrap",
+      "items-center",
+      "gap-x-5",
+      "gap-y-2",
+    );
+    // A row of its own, never inside the line's paragraph.
+    expect(row.closest("p")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Open LLM Providers" }),
+    ).toHaveClass(
+      "text-sm",
+      "leading-6",
+      "break-words",
+      "focus-visible:ring-2",
+    );
   });
 
   describe("a notice the reader can put away", () => {

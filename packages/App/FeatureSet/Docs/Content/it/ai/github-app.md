@@ -31,7 +31,7 @@ flowchart TB
     R --> O["Lo stesso commento,<br/>riscritto con<br/>l'esito"]
 ```
 
-È lo stesso agente e lo stesso Runner di [Codice](/docs/ai/ai-agent), con gli stessi budget; cambia solo il trigger.
+È lo stesso agente e lo stesso Runner di [Codice](/docs/ai/ai-agent), con gli stessi limiti; cambia solo il trigger.
 
 ## Prima di iniziare
 
@@ -122,7 +122,7 @@ Ignora anche ogni commento scritto da un bot, compresi i propri, e le menzioni d
 
 ## Quanto costa e come limitarlo
 
-Ogni comando che avvia lavoro è un'esecuzione completa dell'agente: un clone, fino a 40 chiamate al LLM e 100.000 token di output, più, su un Runner tuo, le verifiche di build e di test descritte dall'`AGENTS.md` del tuo repository. Le query sulla produzione di una review, al massimo 12, rientrano nelle stesse 40 chiamate.
+Ogni comando che avvia lavoro è un'esecuzione completa dell'agente: un clone, tutte le chiamate al LLM di cui il lavoro ha bisogno entro il limite di tempo dell'esecuzione (120 minuti, a meno che il progetto non ne imposti uno proprio), più, su un Runner tuo, le verifiche di build e di test descritte dall'`AGENTS.md` del tuo repository. Le query sulla produzione di una review contano come chiamate agli strumenti nei limiti per esecuzione del progetto.
 
 I comandi GitHub sono lavoro di IA al di fuori di incidenti e avvisi, quindi a loro non si applica alcun limite giornaliero di attività di correzione; si applicano i limiti giornalieri di IA del progetto, quando il progetto li imposta. L'unico altro limite è quello che già governa le attività di [Codice](/docs/ai/ai-agent):
 

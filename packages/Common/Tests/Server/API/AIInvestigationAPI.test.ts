@@ -47,6 +47,7 @@ import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../Types/AI/AIChatTypes";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
@@ -264,7 +265,13 @@ async function callIncidentRoute(data?: {
   jest
     .spyOn(PostedRootCause, "getForInvestigation")
     .mockResolvedValue(data?.analysisMarkdown ?? null);
-  jest.spyOn(AIRunEventService, "findBy").mockResolvedValue(data?.events || []);
+  /*
+   * The route reads a run's newest events first, so a long run shows its
+   * latest steps and how it ended (issue #6437): the read answers so.
+   */
+  jest
+    .spyOn(AIRunEventService, "findBy")
+    .mockResolvedValue([...(data?.events || [])].reverse());
 
   const req: ExpressRequest = requestFor({
     incidentId: INCIDENT_ID.toString(),
@@ -324,6 +331,8 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
       clusterAccess: [],
       // Nothing waits (issue #5074): the reason stands.
       waitingInvestigation: null,
+      // No run, so nothing to try again (issue #6438).
+      mayTryAgain: false,
     });
     expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
   });
@@ -883,6 +892,32 @@ describe("AIInvestigationAPI latest-investigation evidence and references", () =
     );
   });
 
+  it("reads the newest events, and sends them in the order they happened", async () => {
+    await callIncidentRoute({
+      run: completedRun(),
+      events: trailEvents(),
+      analysisMarkdown: REPORT,
+    });
+
+    expect(AIRunEventService.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort: { sequence: SortOrder.Descending },
+      }),
+    );
+    expect(
+      (sentPayload()["events"] as Array<JSONObject>).map(
+        (event: JSONObject): unknown => {
+          return event["eventType"];
+        },
+      ),
+    ).toEqual([
+      AIRunEventType.RunStarted,
+      AIRunEventType.ToolCallStarted,
+      AIRunEventType.ToolCallCompleted,
+      AIRunEventType.RunCompleted,
+    ]);
+  });
+
   it("selects citation ids and tool arguments to build evidence", async () => {
     await callIncidentRoute({
       run: completedRun(),
@@ -1282,6 +1317,7 @@ describe("AIInvestigationAPI latest-investigation tenant pinning", () => {
         "events",
         "evidence",
         "isAnalysisPending",
+        "mayTryAgain",
         "notInvestigatedReason",
         "references",
         "run",

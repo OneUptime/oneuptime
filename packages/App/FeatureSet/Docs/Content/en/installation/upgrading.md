@@ -2028,6 +2028,26 @@ addresses moved from `…/settings/ai` and `…/settings/auto-remediation-rules`
 `…/ai/settings` and `…/ai/auto-remediation-rules`. The old addresses open the
 new pages, so bookmarks keep working.
 
+### AI runs are held only to a time limit
+
+A OneUptime AI run used to stop at fixed counts, such as 100 model calls and 300
+tool calls for an investigation, and 40 model calls and 100,000 output tokens
+for a code task. They are gone: a run now makes as many calls as its work needs,
+for up to 120 minutes. An investigation whose time limit is unset, which used to
+have none, now stops at 120 minutes too. Loop detection still stops an
+investigation or an answer that goes in circles, and you can stop any run.
+
+For an existing project, a hard question can now take more calls than before,
+and so more tokens and, on OneUptime Cloud, more AI credits; the project's daily
+limits still cap the day. To hold every run to less, set **Model Calls per
+Run**, **Tool Calls per Run**, **Tokens per Run** or **Time Limit per Run
+(Minutes)** on **Project Settings → AI → AI Features**, under **More settings**.
+A run that reaches one answers with what it found and says which limit stopped
+it. Nothing is migrated: no project had these settings before.
+
+A Runner from before this release still stops a code task at 40 model calls and
+100,000 output tokens; upgrade it to lift them.
+
 ### The AI Logs get an index for the daily AI limits
 
 A project's daily AI limits (**Project Settings → AI → AI Features → More
