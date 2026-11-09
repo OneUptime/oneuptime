@@ -48,7 +48,7 @@ Jede Zahl zählt etwas, sagt, ob das Ihre Aufmerksamkeit braucht, und öffnet di
 | --- | --- | --- |
 | **Aktive Vorfälle** | Vorfälle, die nicht behoben sind | **Alles in Ordnung** |
 | **Aktive Warnungen** | Warnungen, die nicht behoben sind | **Alles in Ordnung** |
-| **Nicht betriebsbereite Monitore** | Monitore, deren Status kein betriebsbereiter ist. Archivierte Monitore zählen nicht mit. | **Alle betriebsbereit** |
+| **Nicht betriebsbereite Monitore** | Monitore, deren Status kein betriebsbereiter ist. Archivierte Monitore und Monitore mit ausgeschalteter Überwachung zählen nicht mit. | **Alle betriebsbereit** |
 | **Laufende Wartung** | Geplante Wartungsereignisse, die gerade laufen | **Keine laufenden** |
 | **Gefährdete SLOs** | Eingeschaltete SLOs, die gefährdet sind oder ihr Fehlerbudget aufgebraucht haben | **Budgets in Ordnung** |
 

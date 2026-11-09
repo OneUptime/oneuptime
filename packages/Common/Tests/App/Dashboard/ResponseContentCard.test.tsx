@@ -22,10 +22,10 @@ import { getJestSpyOn } from "../../Spy";
 /*
  * "Response content", on a Website, API or Incoming Request monitor's
  * Settings page: one switch that saves when flipped. On by default, the
- * monitor's incidents and alerts keep the part of the response that matched
- * and the response body, masked; off, none of it. The card says which, in
- * the words of the monitor's kind of check, and is not there for monitor
- * types whose checks carry no body.
+ * monitor's Monitoring Logs, incidents and alerts keep the part of the
+ * response that matched and the response body, masked; off, none of it
+ * (#5774, #6341). The card says which, in the words of the monitor's kind
+ * of check, and is not there for monitor types whose checks carry no body.
  */
 
 const getItemMock: MockFunction = getJestMockFunction();
@@ -123,7 +123,7 @@ async function renderCard(monitorType: MonitorType): Promise<void> {
 
 describe("the card on a Website or API monitor", () => {
   test.each([MonitorType.Website, MonitorType.API])(
-    "%s: one switch, on by default, saying what incidents and alerts keep",
+    "%s: one switch, on by default, saying what its logs, incidents and alerts keep",
     async (monitorType: MonitorType) => {
       await renderCard(monitorType);
 
@@ -268,15 +268,30 @@ describe("the words", () => {
       "Turn this off for a monitor whose requests are sensitive.",
     );
 
+    // The switch covers the monitor's own logs as well (#6341).
+    expect(RESPONSE_CONTENT_SWITCH_COPY.switchTitle).toBe(
+      "Keep response content",
+    );
+    expect(REQUEST_CONTENT_SWITCH_COPY.switchTitle).toBe(
+      "Keep request content",
+    );
+
     for (const copy of [
       RESPONSE_CONTENT_SWITCH_COPY,
       REQUEST_CONTENT_SWITCH_COPY,
     ]) {
       expect(
+        copy.onDescription.startsWith(
+          "Monitoring logs, incidents and alerts show ",
+        ),
+      ).toBe(true);
+      expect(
         copy.onDescription.endsWith("with secrets and personal data masked."),
       ).toBe(true);
       expect(
-        copy.offDescription.startsWith("Incidents and alerts keep no "),
+        copy.offDescription.startsWith(
+          "Monitoring logs, incidents and alerts keep no ",
+        ),
       ).toBe(true);
     }
   });

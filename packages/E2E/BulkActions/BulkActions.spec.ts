@@ -62,7 +62,7 @@ const WORKFLOW_DISABLED: string =
 const WORKFLOW_ENABLED: string =
   "An enabled workflow runs every time its trigger fires.";
 const MONITOR_DISABLED: string =
-  "A disabled monitor is not checked, and opens no incidents or alerts, until it is enabled again.";
+  "A disabled monitor is not checked, and opens no incidents or alerts, until it is enabled again. Its open incidents and alerts that are set to auto-resolve are resolved.";
 const SUBSCRIBERS_UNSUBSCRIBED: string =
   "Unsubscribed subscribers get no more updates from this status page. They stay in the list, and each can be subscribed again from its Edit form.";
 

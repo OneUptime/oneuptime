@@ -16,6 +16,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
 
 /*
  * Everything Home's health card, stat strip and "Needs attention" list show,
@@ -205,9 +206,10 @@ export const fetchActiveAlerts: (
 
 /*
  * Monitors whose current status is not operational, such as Degraded or
- * Offline. Archived monitors are left out of this list and of the total:
- * they are not checked, so a frozen "Offline" is not a problem, and they are
- * gone from the Monitors list these numbers open.
+ * Offline. Archived monitors and monitors with monitoring turned off are
+ * left out of this list and of the total: they are not checked, so a frozen
+ * "Offline" is not a problem, and the Not Operational list these numbers
+ * open leaves them out too (NotOperationalMonitorQuery).
  */
 export const fetchNotOperationalMonitors: (
   projectId: ObjectID,
@@ -219,10 +221,7 @@ export const fetchNotOperationalMonitors: (
       modelType: Monitor,
       query: {
         projectId: projectId,
-        isArchived: false,
-        currentMonitorStatus: {
-          isOperationalState: false,
-        },
+        ...NotOperationalMonitorQuery.getQuery(),
       },
       select: {
         _id: true,

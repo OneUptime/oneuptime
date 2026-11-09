@@ -12,13 +12,14 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 /*
  * RESPONSE CONTENT, ON A MONITOR'S SETTINGS PAGE (issue #5774).
  *
- * A Website or API monitor's incidents and alerts keep the check that
- * opened them - the part of the response that matched, and the response
- * body - with secrets and personal data masked. One switch, on by default,
- * keeps none of it for a monitor whose responses are sensitive
- * (Components/Monitor/ResponseContentCard, Monitor.keepResponseContent). An
- * Incoming Request monitor has the same switch for the requests it
- * receives; a monitor whose checks carry no body has none.
+ * A Website or API monitor's Monitoring Logs keep each check, and its
+ * incidents and alerts the check that opened them - the part of the
+ * response that matched, and the response body - with secrets and personal
+ * data masked. One switch, on by default, keeps none of it for a monitor
+ * whose responses are sensitive (Components/Monitor/ResponseContentCard,
+ * Monitor.keepResponseContent; #5774, #6341). An Incoming Request monitor
+ * has the same switch for the requests it receives; a monitor whose checks
+ * carry no body has none.
  *
  * The production Settings page (Pages/Monitor/View/Settings) under the
  * Monitor Overview fixture's ?settings=1, with the same guards as
@@ -37,7 +38,7 @@ const MONITORS: Record<"api" | "ssl" | "incoming-request", string> = {
   "incoming-request": "70000000-0000-4000-8000-000000000004",
 };
 
-const SWITCH_NAME: string = "Keep response content on incidents and alerts";
+const SWITCH_NAME: string = "Keep response content";
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -182,7 +183,7 @@ test.describe("a Website or API monitor's Settings page", () => {
     });
     await expect(control).toHaveAttribute("aria-checked", "true");
     await expect(card).toContainText(
-      "Incidents and alerts show the part of the response that matched, and the response body, with secrets and personal data masked.",
+      "Monitoring logs, incidents and alerts show the part of the response that matched, and the response body, with secrets and personal data masked.",
     );
 
     await screenshotCard(card, "on-1440");
@@ -205,7 +206,7 @@ test.describe("a Website or API monitor's Settings page", () => {
     await expect(control).toHaveAttribute("aria-checked", "false");
     await expect(card.getByRole("status")).toContainText("Saved");
     await expect(card).toContainText(
-      "Incidents and alerts keep no part of the response: only which filters matched, the status code and the response time.",
+      "Monitoring logs, incidents and alerts keep no part of the response: only which filters matched, the status code and the response time.",
     );
 
     // One write, of the one column, on this monitor.
@@ -262,7 +263,7 @@ test.describe("a Website or API monitor's Settings page", () => {
     const card: Locator = responseCard(page, "Antwortinhalt");
     await expect(
       card.getByRole("switch", {
-        name: "Antwortinhalt bei Vorfällen und Warnungen behalten",
+        name: "Antwortinhalt behalten",
         exact: true,
       }),
     ).toBeVisible();
@@ -292,7 +293,7 @@ test.describe("other monitors", () => {
     );
     await expect(
       card.getByRole("switch", {
-        name: "Keep request content on incidents and alerts",
+        name: "Keep request content",
         exact: true,
       }),
     ).toHaveAttribute("aria-checked", "true");
