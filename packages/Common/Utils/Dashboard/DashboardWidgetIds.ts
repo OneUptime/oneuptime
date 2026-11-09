@@ -40,11 +40,15 @@ export const DASHBOARD_WIDGET_ID_LIST_SETTINGS: ReadonlyArray<string> = [
   "storageArrayIds",
 ];
 
-// The settings that hold one id: of an SLO, or of a dashboard variable.
+/*
+ * The settings that hold one id: of an SLO, of a dashboard variable, or of
+ * the service (or host, cluster, ...) a profile widget reads.
+ */
 export const DASHBOARD_WIDGET_ID_SETTINGS: ReadonlyArray<string> = [
   "serviceLevelObjectiveId",
   "serviceLevelObjectiveVariableId",
   "labelVariableId",
+  "serviceId",
 ];
 
 export default class DashboardWidgetIds {

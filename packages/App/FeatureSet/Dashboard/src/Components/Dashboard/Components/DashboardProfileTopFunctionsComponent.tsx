@@ -60,7 +60,6 @@ import {
 import {
   PROFILE_WIDGET_ALL_SERVICES,
   PROFILE_WIDGET_INVALID_RANGE,
-  PROFILE_WIDGET_NOT_ON_PUBLIC_DASHBOARDS,
   PROFILE_WIDGET_OPEN_FUNCTION,
   PROFILE_WIDGET_THIS_SERVICE,
   PROFILE_WIDGET_TOP_FUNCTIONS_TITLE,
@@ -188,9 +187,14 @@ const DashboardProfileTopFunctionsComponentElement: FunctionComponent<
           <></>
         )}
         <div className="min-h-0 flex-1">
+          {/*
+           * A public dashboard reads no profiles: a profile names the code
+           * it ran - functions, files, lines - which a page anyone with the
+           * link can open must not show.
+           */}
           <WidgetPlaceholder
             icon={IconProp.Fire}
-            message={PROFILE_WIDGET_NOT_ON_PUBLIC_DASHBOARDS}
+            message="Profile widgets are not available on public dashboards."
           />
         </div>
       </div>
@@ -326,7 +330,7 @@ const DashboardProfileTopFunctionsComponentElement: FunctionComponent<
           return (
             <li
               key={`${row.functionName}\u0000${row.fileName}`}
-              className="flex items-start gap-2 px-1 py-1.5"
+              className="flex items-start gap-2 px-1 py-1"
               data-testid={`${PROFILE_TOP_FUNCTIONS_TEST_ID}-row`}
             >
               <span className="mt-0.5 w-5 flex-none text-right font-mono text-[11px] text-gray-400">

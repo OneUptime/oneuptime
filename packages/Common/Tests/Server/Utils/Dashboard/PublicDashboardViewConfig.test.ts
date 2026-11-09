@@ -2356,6 +2356,9 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
       ],
       [DashboardComponentType.SecurityEventsList]: ["messageContains"],
       [DashboardComponentType.SecurityEventsFlow]: ["severityFilters"],
+      // Whose profiles, what in them, and how a widget ranks them.
+      [DashboardComponentType.ProfileFlameGraph]: ["serviceId", "profileKind"],
+      [DashboardComponentType.ProfileTopFunctions]: ["serviceId", "rankBy"],
     };
 
     interface ExpectedWidget {

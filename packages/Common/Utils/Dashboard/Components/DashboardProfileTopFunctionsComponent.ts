@@ -33,12 +33,13 @@ export default class DashboardProfileTopFunctionsComponentUtil extends Dashboard
       _type: ObjectType.DashboardComponent,
       componentType: DashboardComponentType.ProfileTopFunctions,
       /*
-       * Ten functions, one line each, with the header above them: half the
-       * board's width keeps a long function name whole beside its share,
-       * and it pairs with a chart of the same service on the other half.
+       * Ten functions under the header, each its name, its file and its
+       * share's bar: half the board's width keeps a long function name
+       * whole beside its share, and pairs it with a chart of the same
+       * service on the other half.
        */
       widthInDashboardUnits: 6,
-      heightInDashboardUnits: 5,
+      heightInDashboardUnits: 6,
       topInDashboardUnits: 0,
       leftInDashboardUnits: 0,
       componentId: ObjectID.generate(),

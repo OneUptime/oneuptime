@@ -53,6 +53,8 @@ import DashboardTextComponentUtil from "../../../../Utils/Dashboard/Components/D
 import DashboardTraceChartComponentUtil from "../../../../Utils/Dashboard/Components/DashboardTraceChartComponent";
 import DashboardTraceListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardTraceListComponent";
 import DashboardTraceTableComponentUtil from "../../../../Utils/Dashboard/Components/DashboardTraceTableComponent";
+import DashboardProfileFlameGraphComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProfileFlameGraphComponent";
+import DashboardProfileTopFunctionsComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProfileTopFunctionsComponent";
 import DashboardValueComponentUtil from "../../../../Utils/Dashboard/Components/DashboardValueComponent";
 import DashboardVMwareHostListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardVMwareHostListComponent";
 import DashboardVMwareVirtualMachineListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardVMwareVirtualMachineListComponent";
@@ -107,6 +109,10 @@ const TYPE_TO_UTIL: Record<DashboardComponentType, ComponentUtil> = {
   [DashboardComponentType.TraceList]: DashboardTraceListComponentUtil,
   [DashboardComponentType.TraceChart]: DashboardTraceChartComponentUtil,
   [DashboardComponentType.TraceTable]: DashboardTraceTableComponentUtil,
+  [DashboardComponentType.ProfileFlameGraph]:
+    DashboardProfileFlameGraphComponentUtil,
+  [DashboardComponentType.ProfileTopFunctions]:
+    DashboardProfileTopFunctionsComponentUtil,
   [DashboardComponentType.IncidentList]: DashboardIncidentListComponentUtil,
   [DashboardComponentType.AlertList]: DashboardAlertListComponentUtil,
   [DashboardComponentType.MonitorList]: DashboardMonitorListComponentUtil,

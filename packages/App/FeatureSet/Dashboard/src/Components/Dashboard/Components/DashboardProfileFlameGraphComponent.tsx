@@ -37,7 +37,6 @@ import { getProfileWidgetProfilerRoute } from "./ProfileWidgetData";
 import {
   PROFILE_WIDGET_ALL_SERVICES,
   PROFILE_WIDGET_INVALID_RANGE,
-  PROFILE_WIDGET_NOT_ON_PUBLIC_DASHBOARDS,
   PROFILE_WIDGET_THIS_SERVICE,
 } from "./ProfileWidgetCopy";
 import ProfileWidgetHeader from "./ProfileWidgetHeader";
@@ -145,9 +144,14 @@ const DashboardProfileFlameGraphComponentElement: FunctionComponent<
           <></>
         )}
         <div className="min-h-0 flex-1">
+          {/*
+           * A public dashboard reads no profiles: a profile names the code
+           * it ran - functions, files, lines - which a page anyone with the
+           * link can open must not show.
+           */}
           <WidgetPlaceholder
             icon={IconProp.Fire}
-            message={PROFILE_WIDGET_NOT_ON_PUBLIC_DASHBOARDS}
+            message="Profile widgets are not available on public dashboards."
           />
         </div>
       </div>

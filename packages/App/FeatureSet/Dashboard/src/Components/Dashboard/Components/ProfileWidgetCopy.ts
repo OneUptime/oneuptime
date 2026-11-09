@@ -35,18 +35,6 @@ export const PROFILE_WIDGET_OPEN_FUNCTION: string = translationKey(
   "Open {{function}} in the Profiler",
 );
 
-// The column of function names in Top Functions.
-export const PROFILE_WIDGET_FUNCTION_COLUMN: string =
-  translationKey("Function");
-
 export const PROFILE_WIDGET_INVALID_RANGE: string = translationKey(
   "Please select a valid start and end date.",
-);
-
-/*
- * A public dashboard reads no profiles: a profile names the code it ran,
- * which a page anyone with the link can open must not show.
- */
-export const PROFILE_WIDGET_NOT_ON_PUBLIC_DASHBOARDS: string = translationKey(
-  "Profile widgets are not available on public dashboards.",
 );

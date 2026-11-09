@@ -242,10 +242,12 @@ describe("every widget type's settings are decided: served or withheld", () => {
 });
 
 describe("the widgets a public dashboard cannot draw", () => {
-  test("are the log, trace and security event widgets, each a type this version draws, and no Data Source widget", () => {
+  test("are the log, trace, profile and security event widgets, each a type this version draws, and no Data Source widget", () => {
     expect([...PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES].sort()).toEqual(
       [
         DashboardComponentType.LogChart,
+        DashboardComponentType.ProfileFlameGraph,
+        DashboardComponentType.ProfileTopFunctions,
         DashboardComponentType.SecurityEventsFlow,
         DashboardComponentType.SecurityEventsList,
         DashboardComponentType.TraceChart,
