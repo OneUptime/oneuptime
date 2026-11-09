@@ -150,11 +150,11 @@ SLO की **एरर बजट नीति** खोलें, स्तर �
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-`jq -e` केवल तब 0 के साथ बाहर निकलता है जब जवाब `true` हो। फ़्रीज़ SLO, बिना उस फ़ील्ड वाला जवाब (कुंजी SLO नहीं पढ़ सकती, या ID गलत है) और कोई जवाब न मिलना, इनमें से हर एक चरण को रोक देता है, इसलिए पाइपलाइन कभी ऐसे जवाब पर रिलीज़ नहीं करती जो उसे मिला ही नहीं। GitLab CI में जॉब test स्टेज में चलता है, इसलिए फ़्रीज़ SLO उसके बाद वाले deploy स्टेज को रोक देता है; `ONEUPTIME_API_KEY` को मास्क किए हुए CI/CD वेरिएबल के रूप में जोड़ें। सेल्फ़-होस्टेड इंस्टॉलेशन पर oneuptime.com की जगह उसका अपना पता इस्तेमाल करें।
+जाँच केवल तब पास होती है जब जवाब `true` हो। फ़्रीज़ SLO, बिना उस फ़ील्ड वाला जवाब (कुंजी SLO नहीं पढ़ सकती, या ID गलत है) और कोई जवाब न मिलना, इनमें से हर एक चरण को रोक देता है, इसलिए पाइपलाइन कभी ऐसे जवाब पर रिलीज़ नहीं करती जो उसे मिला ही नहीं। GitLab CI में जॉब test स्टेज में चलता है, इसलिए फ़्रीज़ SLO उसके बाद वाले deploy स्टेज को रोक देता है; `ONEUPTIME_API_KEY` को मास्क किए हुए CI/CD वेरिएबल के रूप में जोड़ें। सेल्फ़-होस्टेड इंस्टॉलेशन पर oneuptime.com की जगह उसका अपना पता इस्तेमाल करें।
 
 SLO दो फ़ील्ड के साथ जवाब देता है, जिन्हें SLO की अपनी पढ़ने की अनुमति से पढ़ा जाता है:
 

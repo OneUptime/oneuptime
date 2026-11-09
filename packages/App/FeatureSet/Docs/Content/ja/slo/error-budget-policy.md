@@ -150,11 +150,11 @@ SLO を読み取れるプロジェクトの [API キー](/docs/api-reference/api
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-`jq -e` は、応答が `true` のときだけ 0 で終了します。凍結中の SLO、この項目のない応答 (キーが SLO を読み取れない、または ID が間違っている場合)、応答がまったくない場合は、いずれもステップを止めます。そのため、パイプラインが受け取っていない応答をもとにリリースすることはありません。GitLab CI では、ジョブが test ステージで実行されるので、SLO が凍結中なら後続の deploy ステージが止まります。`ONEUPTIME_API_KEY` はマスクされた CI/CD 変数として追加してください。セルフホストのインストールでは、oneuptime.com の代わりにそのインストール自身のアドレスを使います。
+チェックが通るのは、応答が `true` のときだけです。凍結中の SLO、この項目のない応答 (キーが SLO を読み取れない、または ID が間違っている場合)、応答がまったくない場合は、いずれもステップを止めます。そのため、パイプラインが受け取っていない応答をもとにリリースすることはありません。GitLab CI では、ジョブが test ステージで実行されるので、SLO が凍結中なら後続の deploy ステージが止まります。`ONEUPTIME_API_KEY` はマスクされた CI/CD 変数として追加してください。セルフホストのインストールでは、oneuptime.com の代わりにそのインストール自身のアドレスを使います。
 
 SLO は 2 つの項目で応答します。どちらも SLO 自体の読み取り権限で読み取れます。
 

@@ -2884,12 +2884,17 @@ describe("Deployment gate, against the policy, the worker and the API", () => {
       expect(JSON.parse(select)["deploymentsAllowed"]).toBe(true);
     }
 
-    // Each one exits non-zero unless the answer is true.
-    expect(
-      gate.split("jq -e '.deploymentsAllowed == true'").length - 1,
-    ).toBe(3);
+    /*
+     * Each one prints the answer and compares it with "true", so it fails
+     * closed whatever jq's version: jq 1.6 exits 0 on an empty input, which
+     * an unreachable OneUptime or a proxy's empty answer would hand it, so a
+     * `jq -e` pipeline would have released on no answer at all.
+     */
+    expect(gate.split("jq -r '.deploymentsAllowed'").length - 1).toBe(3);
+    expect(gate.split('= "true"').length - 1).toBe(3);
+    expect(gate).not.toContain("jq -e");
     expect(gate).toContain(
-      "`jq -e` exits with 0 only when the answer is `true`.",
+      "The check passes only when the answer is `true`.",
     );
   });
 

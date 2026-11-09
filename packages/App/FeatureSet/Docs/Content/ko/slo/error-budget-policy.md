@@ -150,11 +150,11 @@ SLO를 읽을 수 있는 프로젝트의 [API 키](/docs/api-reference/api-refer
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-`jq -e` 는 응답이 `true` 일 때만 0으로 종료합니다. 동결된 SLO, 필드가 없는 응답(키가 SLO를 읽을 수 없거나 ID가 잘못된 경우), 응답이 아예 없는 경우는 모두 스텝을 멈추므로, 파이프라인은 받지 못한 응답으로 릴리스하는 일이 없습니다. GitLab CI에서는 작업이 test 스테이지에서 실행되므로, 동결된 SLO는 그 뒤의 deploy 스테이지를 멈춥니다. `ONEUPTIME_API_KEY` 는 마스킹된 CI/CD 변수로 추가하세요. 자체 호스팅 설치에서는 oneuptime.com 대신 그 설치의 주소를 사용하세요.
+검사는 응답이 `true` 일 때만 통과합니다. 동결된 SLO, 필드가 없는 응답(키가 SLO를 읽을 수 없거나 ID가 잘못된 경우), 응답이 아예 없는 경우는 모두 스텝을 멈추므로, 파이프라인은 받지 못한 응답으로 릴리스하는 일이 없습니다. GitLab CI에서는 작업이 test 스테이지에서 실행되므로, 동결된 SLO는 그 뒤의 deploy 스테이지를 멈춥니다. `ONEUPTIME_API_KEY` 는 마스킹된 CI/CD 변수로 추가하세요. 자체 호스팅 설치에서는 oneuptime.com 대신 그 설치의 주소를 사용하세요.
 
 SLO는 두 필드로 응답하며, 이 필드들은 SLO 자체의 읽기 권한으로 읽습니다.
 

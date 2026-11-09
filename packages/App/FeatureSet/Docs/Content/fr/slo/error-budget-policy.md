@@ -150,11 +150,11 @@ Ajoutez la vérification ci-dessous comme étape avant celle qui déploie, avec 
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-`jq -e` ne se termine avec le code 0 que si la réponse est `true`. Un SLO gelé, une réponse sans le champ (la clé ne peut pas lire le SLO, ou l'ID est faux) et l'absence de toute réponse arrêtent chacun l'étape : un pipeline ne met donc jamais en production sur la foi d'une réponse qu'il n'a pas reçue. Dans GitLab CI, le job s'exécute dans le stage test, si bien qu'un SLO gelé arrête le stage deploy qui le suit ; ajoutez `ONEUPTIME_API_KEY` comme variable CI/CD masquée. Sur une installation auto-hébergée, utilisez sa propre adresse au lieu de oneuptime.com.
+La vérification ne réussit que si la réponse est `true`. Un SLO gelé, une réponse sans le champ (la clé ne peut pas lire le SLO, ou l'ID est faux) et l'absence de toute réponse arrêtent chacun l'étape : un pipeline ne met donc jamais en production sur la foi d'une réponse qu'il n'a pas reçue. Dans GitLab CI, le job s'exécute dans le stage test, si bien qu'un SLO gelé arrête le stage deploy qui le suit ; ajoutez `ONEUPTIME_API_KEY` comme variable CI/CD masquée. Sur une installation auto-hébergée, utilisez sa propre adresse au lieu de oneuptime.com.
 
 Le SLO répond avec deux champs, qui se lisent avec l'autorisation de lecture du SLO lui-même :
 

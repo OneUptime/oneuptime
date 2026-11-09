@@ -150,11 +150,11 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-只有當答覆為 `true` 時，`jq -e` 才會以 0 結束。被凍結的 SLO、不含該欄位的答覆（金鑰無法讀取該 SLO，或 ID 錯誤）以及完全沒有答覆，都會讓該步驟停止，因此管線絕不會依據它沒有取得的答覆進行發布。在 GitLab CI 中，該工作在 test 階段執行，因此被凍結的 SLO 會讓其後的 deploy 階段停止；請把 `ONEUPTIME_API_KEY` 新增為已遮罩的 CI/CD 變數。在自行託管的安裝上，請改用它自己的位址，而不是 oneuptime.com。
+只有當答覆為 `true` 時，檢查才會通過。被凍結的 SLO、不含該欄位的答覆（金鑰無法讀取該 SLO，或 ID 錯誤）以及完全沒有答覆，都會讓該步驟停止，因此管線絕不會依據它沒有取得的答覆進行發布。在 GitLab CI 中，該工作在 test 階段執行，因此被凍結的 SLO 會讓其後的 deploy 階段停止；請把 `ONEUPTIME_API_KEY` 新增為已遮罩的 CI/CD 變數。在自行託管的安裝上，請改用它自己的位址，而不是 oneuptime.com。
 
 SLO 以兩個欄位作答，使用 SLO 自身的讀取權限讀取：
 

@@ -150,11 +150,11 @@ Add the check below as a step before the one that deploys, with the SLO's ID in 
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-`jq -e` exits with 0 only when the answer is `true`. A frozen SLO, an answer without the field (the key cannot read the SLO, or the ID is wrong) and no answer at all each stop the step, so a pipeline never releases on an answer it did not get. In GitLab CI, the job runs in the test stage, so a frozen SLO stops the deploy stage after it; add `ONEUPTIME_API_KEY` as a masked CI/CD variable. On a self-hosted installation, use its own address instead of oneuptime.com.
+The check passes only when the answer is `true`. A frozen SLO, an answer without the field (the key cannot read the SLO, or the ID is wrong) and no answer at all each stop the step, so a pipeline never releases on an answer it did not get. In GitLab CI, the job runs in the test stage, so a frozen SLO stops the deploy stage after it; add `ONEUPTIME_API_KEY` as a masked CI/CD variable. On a self-hosted installation, use its own address instead of oneuptime.com.
 
 The SLO answers with two fields, read with the SLO's own read permission:
 

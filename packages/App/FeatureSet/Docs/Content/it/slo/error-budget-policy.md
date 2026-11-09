@@ -150,11 +150,11 @@ Aggiungi il controllo qui sotto come passo prima di quello che esegue la distrib
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-`jq -e` esce con codice 0 solo quando la risposta è `true`. Uno SLO congelato, una risposta senza il campo (la chiave non può leggere lo SLO, o l'ID è sbagliato) e l'assenza di qualsiasi risposta fermano ciascuno il passo, quindi una pipeline non rilascia mai sulla base di una risposta che non ha ricevuto. In GitLab CI il job gira nello stage test, quindi uno SLO congelato ferma lo stage deploy che lo segue; aggiungi `ONEUPTIME_API_KEY` come variabile CI/CD mascherata. Su un'installazione self-hosted, usa il suo indirizzo invece di oneuptime.com.
+Il controllo passa solo quando la risposta è `true`. Uno SLO congelato, una risposta senza il campo (la chiave non può leggere lo SLO, o l'ID è sbagliato) e l'assenza di qualsiasi risposta fermano ciascuno il passo, quindi una pipeline non rilascia mai sulla base di una risposta che non ha ricevuto. In GitLab CI il job gira nello stage test, quindi uno SLO congelato ferma lo stage deploy che lo segue; aggiungi `ONEUPTIME_API_KEY` come variabile CI/CD mascherata. Su un'installazione self-hosted, usa il suo indirizzo invece di oneuptime.com.
 
 Lo SLO risponde con due campi, letti con l'autorizzazione di lettura dello SLO stesso:
 

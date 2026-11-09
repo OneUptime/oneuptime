@@ -340,6 +340,7 @@ test("the Overview says since when deployments are frozen while the SLO is in a 
 
   // At a phone's width the badge stays inside the card.
   await page.setViewportSize({ width: 390, height: 844 });
+  await badge.scrollIntoViewIfNeeded();
 
   const cardBox: { x: number; width: number } | null = await card.boundingBox();
   const badgeBox: { x: number; width: number } | null =

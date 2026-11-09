@@ -150,11 +150,11 @@ Fügen Sie die Prüfung unten als Schritt vor dem Schritt ein, der das Deploymen
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-`jq -e` endet nur dann mit dem Exit-Code 0, wenn die Antwort `true` ist. Ein eingefrorenes SLO, eine Antwort ohne das Feld (der Schlüssel kann das SLO nicht lesen, oder die ID ist falsch) und gar keine Antwort brechen den Schritt jeweils ab, sodass eine Pipeline nie auf eine Antwort hin ausliefert, die sie nicht bekommen hat. In GitLab CI läuft der Job in der Stage test, sodass ein eingefrorenes SLO die darauf folgende Stage deploy anhält; legen Sie `ONEUPTIME_API_KEY` als maskierte CI/CD-Variable an. Auf einer selbst gehosteten Installation verwenden Sie statt oneuptime.com deren eigene Adresse.
+Die Prüfung gelingt nur, wenn die Antwort `true` ist. Ein eingefrorenes SLO, eine Antwort ohne das Feld (der Schlüssel kann das SLO nicht lesen, oder die ID ist falsch) und gar keine Antwort brechen den Schritt jeweils ab, sodass eine Pipeline nie auf eine Antwort hin ausliefert, die sie nicht bekommen hat. In GitLab CI läuft der Job in der Stage test, sodass ein eingefrorenes SLO die darauf folgende Stage deploy anhält; legen Sie `ONEUPTIME_API_KEY` als maskierte CI/CD-Variable an. Auf einer selbst gehosteten Installation verwenden Sie statt oneuptime.com deren eigene Adresse.
 
 Das SLO antwortet mit zwei Feldern, die mit der eigenen Leseberechtigung des SLO gelesen werden:
 

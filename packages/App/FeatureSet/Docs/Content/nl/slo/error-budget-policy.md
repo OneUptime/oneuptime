@@ -150,11 +150,11 @@ Voeg de controle hieronder toe als stap vóór de stap die implementeert, met de
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-`jq -e` eindigt alleen met exitcode 0 als het antwoord `true` is. Een bevroren SLO, een antwoord zonder het veld (de sleutel kan de SLO niet lezen, of de ID klopt niet) en helemaal geen antwoord stoppen elk de stap, zodat een pipeline nooit een release uitbrengt op een antwoord dat hij niet heeft gekregen. In GitLab CI draait de job in de fase test, dus een bevroren SLO houdt de fase deploy daarna tegen; voeg `ONEUPTIME_API_KEY` toe als gemaskeerde CI/CD-variabele. Gebruik op een zelfgehoste installatie het eigen adres van die installatie in plaats van oneuptime.com.
+De controle slaagt alleen als het antwoord `true` is. Een bevroren SLO, een antwoord zonder het veld (de sleutel kan de SLO niet lezen, of de ID klopt niet) en helemaal geen antwoord stoppen elk de stap, zodat een pipeline nooit een release uitbrengt op een antwoord dat hij niet heeft gekregen. In GitLab CI draait de job in de fase test, dus een bevroren SLO houdt de fase deploy daarna tegen; voeg `ONEUPTIME_API_KEY` toe als gemaskeerde CI/CD-variabele. Gebruik op een zelfgehoste installatie het eigen adres van die installatie in plaats van oneuptime.com.
 
 De SLO antwoordt met twee velden, gelezen met de eigen leestoestemming van de SLO:
 

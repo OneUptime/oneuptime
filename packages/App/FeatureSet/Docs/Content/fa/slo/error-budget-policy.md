@@ -150,11 +150,11 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-دستور `jq -e` فقط وقتی پاسخ `true` باشد با ۰ خارج می‌شود. یک SLO فریز شده، پاسخی بدون این فیلد (کلید نمی‌تواند SLO را بخواند، یا شناسه نادرست است) و نرسیدن هیچ پاسخی، هر کدام گام را متوقف می‌کنند، پس پایپ‌لاین هرگز بر پایه پاسخی که نگرفته است منتشر نمی‌کند. در GitLab CI، این job در مرحله test اجرا می‌شود، پس یک SLO فریز شده مرحله deploy پس از آن را متوقف می‌کند؛ `ONEUPTIME_API_KEY` را به‌عنوان یک متغیر CI/CD پوشیده (masked) اضافه کنید. روی نصب خودمیزبان، به‌جای oneuptime.com نشانی خود آن نصب را به کار ببرید.
+این بررسی فقط وقتی پاسخ `true` باشد موفق می‌شود. یک SLO فریز شده، پاسخی بدون این فیلد (کلید نمی‌تواند SLO را بخواند، یا شناسه نادرست است) و نرسیدن هیچ پاسخی، هر کدام گام را متوقف می‌کنند، پس پایپ‌لاین هرگز بر پایه پاسخی که نگرفته است منتشر نمی‌کند. در GitLab CI، این job در مرحله test اجرا می‌شود، پس یک SLO فریز شده مرحله deploy پس از آن را متوقف می‌کند؛ `ONEUPTIME_API_KEY` را به‌عنوان یک متغیر CI/CD پوشیده (masked) اضافه کنید. روی نصب خودمیزبان، به‌جای oneuptime.com نشانی خود آن نصب را به کار ببرید.
 
 SLO با دو فیلد پاسخ می‌دهد که با مجوز خواندن خود SLO خوانده می‌شوند:
 

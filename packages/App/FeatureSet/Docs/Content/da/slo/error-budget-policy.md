@@ -150,11 +150,11 @@ Tilføj tjekket nedenfor som et trin før det trin, der udruller, med SLO'ets ID
 :::tabs
 @tab Shell
 ```bash
-curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
+ALLOWED=$(curl -sS -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-item' \
   -H "ApiKey: $ONEUPTIME_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{ "select": { "deploymentsAllowed": true } }' \
-  | jq -e '.deploymentsAllowed == true'
+  -d '{ "select": { "deploymentsAllowed": true } }' | jq -r '.deploymentsAllowed')
+[ "$ALLOWED" = "true" ]
 ```
 @tab GitHub Actions
 ```yaml title=".github/workflows/deploy.yml"
@@ -177,7 +177,7 @@ jobs:
             -H "ApiKey: $ONEUPTIME_API_KEY" \
             -H 'Content-Type: application/json' \
             -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
-          if ! echo "$SLO" | jq -e '.deploymentsAllowed == true' > /dev/null; then
+          if [ "$(echo "$SLO" | jq -r '.deploymentsAllowed')" != "true" ]; then
             echo "Not deploying: $SLO"
             exit 1
           fi
@@ -200,11 +200,11 @@ error-budget-gate:
       -H 'Content-Type: application/json'
       -d '{ "select": { "deploymentsAllowed": true, "currentErrorBudgetPolicyTierName": true } }')
     - echo "$SLO"
-    - echo "$SLO" | jq -e '.deploymentsAllowed == true'
+    - test "$(echo "$SLO" | jq -r '.deploymentsAllowed')" = "true"
 ```
 :::
 
-`jq -e` afslutter kun med exitkode 0, når svaret er `true`. Et frosset SLO, et svar uden feltet (nøglen kan ikke læse SLO'et, eller ID'et er forkert) og slet intet svar stopper hver især trinnet, så en pipeline aldrig udgiver på et svar, den ikke fik. I GitLab CI kører jobbet i fasen test, så et frosset SLO stopper fasen deploy efter den; tilføj `ONEUPTIME_API_KEY` som en maskeret CI/CD-variabel. På en selvhostet installation skal du bruge installationens egen adresse i stedet for oneuptime.com.
+Tjekket lykkes kun, når svaret er `true`. Et frosset SLO, et svar uden feltet (nøglen kan ikke læse SLO'et, eller ID'et er forkert) og slet intet svar stopper hver især trinnet, så en pipeline aldrig udgiver på et svar, den ikke fik. I GitLab CI kører jobbet i fasen test, så et frosset SLO stopper fasen deploy efter den; tilføj `ONEUPTIME_API_KEY` som en maskeret CI/CD-variabel. På en selvhostet installation skal du bruge installationens egen adresse i stedet for oneuptime.com.
 
 SLO'et svarer med to felter, der læses med SLO'ets egen læsetilladelse:
 
