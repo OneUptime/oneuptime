@@ -898,6 +898,17 @@ describe("Code", () => {
       expect(copy).toContain(`label: translationKey("${state}"),`);
     }
 
+    /*
+     * A turn queued for an attempt AI makes by itself says Retrying, as its
+     * list row and an insight's card do (CodeTaskStateBadge).
+     */
+    expect(dashboardSource("Components/Code/CodeTaskStatusCopy.ts")).toContain(
+      'label: translationKey("Retrying"),',
+    );
+    expect(
+      dashboardSource("Components/Code/CodeTaskStateBadge.tsx"),
+    ).toContain("CODE_TASK_STAGE_COPY[CodeTaskStage.Retrying]");
+
     expect(
       states.map((row: Array<string>): string => {
         return row[0] as string;
@@ -905,12 +916,16 @@ describe("Code", () => {
     ).toEqual(
       [
         "Queued",
+        "Retrying",
         "Working…",
         "Waiting for you",
         "Done",
         "Failed",
         "Stopped",
       ].map(bold),
+    );
+    expect(rowStartingWith(states, bold("Queued"))[1]).toBe(
+      "It waits for a Runner to pick it up.",
     );
     expect(conversation).toContain('translator.translateText("Stop")');
     expect(turn).toContain('translator.translateText("Try again")');
@@ -1357,9 +1372,9 @@ describe("Code", () => {
     // What may pass, and what would happen again, is the shared classifier's.
     expect(retry).toContain("TransientAIFailure.classify(data.failure)");
 
-    // A queued turn says which attempt comes next, and may start now.
+    // A Retrying turn says which attempt comes next, and may start now.
     expect(conversation).toContain(
-      `A turn AI tries again by itself says which attempt comes next and when; ${bold("Retry now")} starts it at once.`,
+      `${bold("Retrying")} | A turn AI tries again by itself says which attempt comes next and when; ${bold("Retry now")} starts it at once.`,
     );
     expect(dashboardSource("Components/Code/CodeTaskStatusCopy.ts")).toContain(
       'CODE_TASK_RETRY_NOW: string = translationKey("Retry now")',

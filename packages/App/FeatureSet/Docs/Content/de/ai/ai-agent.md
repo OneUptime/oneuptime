@@ -61,7 +61,8 @@ Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kon
 
 | Status | Was er bedeutet |
 | --- | --- |
-| **In der Warteschlange** | Sie wartet darauf, dass ein Runner sie übernimmt. Ein Durchgang, den die KI von selbst erneut versucht, sagt, welcher Versuch als Nächstes kommt und wann; **Jetzt erneut versuchen** startet ihn sofort. |
+| **In der Warteschlange** | Sie wartet darauf, dass ein Runner sie übernimmt. |
+| **Wird wiederholt** | Ein Durchgang, den die KI von selbst erneut versucht, sagt, welcher Versuch als Nächstes kommt und wann; **Jetzt erneut versuchen** startet ihn sofort. |
 | **Wird bearbeitet…** | Die KI arbeitet daran. **Stoppen** stoppt sie; was sie gepusht hat, bleibt im Branch. |
 | **Wartet auf Sie** | Die KI hat eine Frage gestellt. Beantworten Sie sie im Feld unten. |
 | **Fertig** | Die KI ist fertig: ihre Antwort und der Pull Request, wenn sie Code geändert hat. |

@@ -61,7 +61,8 @@ Siden til en oppgave er en samtale: hva det ble spurt om og konteksten som ble l
 
 | Tilstand | Hva det betyr |
 | --- | --- |
-| **I kø** | Den venter på at en Runner tar den. En tur som AI prøver på nytt av seg selv, sier hvilket forsøk som kommer neste gang, og når; **Prøv igjen nå** starter den med en gang. |
+| **I kø** | Den venter på at en Runner tar den. |
+| **Prøver på nytt** | En tur som AI prøver på nytt av seg selv, sier hvilket forsøk som kommer neste gang, og når; **Prøv igjen nå** starter den med en gang. |
 | **Jobber…** | AI jobber med den. **Stopp** stopper den; det den har pushet, blir liggende på branchen. |
 | **Venter på deg** | AI har stilt et spørsmål. Svar på det i feltet nedenfor. |
 | **Ferdig** | AI er ferdig: svaret, og pull requesten når den endret kode. |

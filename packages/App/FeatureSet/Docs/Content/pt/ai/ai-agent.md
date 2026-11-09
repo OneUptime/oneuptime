@@ -61,7 +61,8 @@ A página de uma tarefa é uma conversa: o que foi pedido e o contexto adicionad
 
 | Estado | O que significa |
 | --- | --- |
-| **Na fila** | Espera que um Runner a assuma. Se a IA tenta a vez de novo sozinha, a página diz qual tentativa vem a seguir e quando; **Tentar novamente agora** a inicia na hora. |
+| **Na fila** | Espera que um Runner a assuma. |
+| **Tentando novamente** | Se a IA tenta a vez de novo sozinha, a página diz qual tentativa vem a seguir e quando; **Tentar novamente agora** a inicia na hora. |
 | **Trabalhando…** | A IA está trabalhando nela. **Parar** a interrompe; o que ela enviou continua no branch. |
 | **Aguardando você** | A IA fez uma pergunta. Responda na caixa abaixo. |
 | **Concluído** | A IA terminou: a resposta dela, e o pull request quando alterou código. |

@@ -61,7 +61,8 @@ En opgaves side er en samtale: hvad der blev spurgt om, og den tilføjede kontek
 
 | Tilstand | Hvad det betyder |
 | --- | --- |
-| **I kø** | Den venter på, at en Runner tager den. En tur, som AI prøver igen af sig selv, siger, hvilket forsøg der kommer næste gang, og hvornår; **Prøv igen nu** starter den med det samme. |
+| **I kø** | Den venter på, at en Runner tager den. |
+| **Prøver igen** | En tur, som AI prøver igen af sig selv, siger, hvilket forsøg der kommer næste gang, og hvornår; **Prøv igen nu** starter den med det samme. |
 | **Arbejder…** | AI arbejder på den. **Stands** stopper den; det, den har pushet, bliver på branchen. |
 | **Venter på dig** | AI har stillet et spørgsmål. Svar på det i feltet nedenfor. |
 | **Færdig** | AI er færdig: dens svar og pull requesten, når den ændrede kode. |

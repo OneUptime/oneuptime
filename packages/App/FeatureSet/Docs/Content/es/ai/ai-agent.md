@@ -61,7 +61,8 @@ La página de una tarea es una conversación: lo que se pidió y el contexto añ
 
 | Estado | Qué significa |
 | --- | --- |
-| **En cola** | Espera a que un Runner la tome. Un turno que la IA vuelve a intentar por sí sola dice qué intento viene ahora y cuándo; **Reintentar ahora** lo inicia al momento. |
+| **En cola** | Espera a que un Runner la tome. |
+| **Reintentando** | Un turno que la IA vuelve a intentar por sí sola dice qué intento viene ahora y cuándo; **Reintentar ahora** lo inicia al momento. |
 | **Trabajando…** | La IA está en ello. **Detener** la detiene; lo que subió se queda en la rama. |
 | **Esperándote** | La IA hizo una pregunta. Respóndela en el cuadro de abajo. |
 | **Hecho** | La IA terminó: su respuesta, y el pull request si cambió código. |

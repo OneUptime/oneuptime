@@ -61,7 +61,8 @@ A task's page is a conversation: what was asked and the context added, then AI's
 
 | State | What it means |
 | --- | --- |
-| **Queued** | It waits for a Runner to pick it up. A turn AI tries again by itself says which attempt comes next and when; **Retry now** starts it at once. |
+| **Queued** | It waits for a Runner to pick it up. |
+| **Retrying** | A turn AI tries again by itself says which attempt comes next and when; **Retry now** starts it at once. |
 | **Working…** | AI is on it. **Stop** stops it; what it pushed stays on the branch. |
 | **Waiting for you** | AI asked a question. Answer it in the box below. |
 | **Done** | AI finished: its reply, and the pull request when it changed code. |

@@ -61,7 +61,8 @@ De pagina van een taak is een gesprek: wat er gevraagd is en de toegevoegde cont
 
 | Status | Wat het betekent |
 | --- | --- |
-| **In de wachtrij** | Hij wacht tot een Runner hem oppakt. Een beurt die AI vanzelf opnieuw probeert, zegt welke poging de volgende is en wanneer; **Nu opnieuw proberen** start hem meteen. |
+| **In de wachtrij** | Hij wacht tot een Runner hem oppakt. |
+| **Nieuwe poging** | Een beurt die AI vanzelf opnieuw probeert, zegt welke poging de volgende is en wanneer; **Nu opnieuw proberen** start hem meteen. |
 | **Bezig…** | AI is ermee bezig. **Stoppen** stopt hem; wat AI al pushte, blijft op de branch. |
 | **Wacht op u** | AI heeft een vraag gesteld. Beantwoord die in het vak hieronder. |
 | **Klaar** | AI is klaar: zijn antwoord, en de pull request als het code wijzigde. |

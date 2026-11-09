@@ -61,7 +61,8 @@ En uppgifts sida är en konversation: vad som efterfrågades och kontexten som l
 
 | Tillstånd | Vad det betyder |
 | --- | --- |
-| **I kö** | Den väntar på att en Runner ska ta den. En tur som AI själv försöker igen med säger vilket försök som är nästa och när; **Försök igen nu** startar den direkt. |
+| **I kö** | Den väntar på att en Runner ska ta den. |
+| **Försöker igen** | En tur som AI själv försöker igen med säger vilket försök som är nästa och när; **Försök igen nu** startar den direkt. |
 | **Arbetar…** | AI arbetar med den. **Stoppa** stoppar den; det den har pushat ligger kvar på branchen. |
 | **Väntar på dig** | AI har ställt en fråga. Svara på den i rutan nedanför. |
 | **Klar** | AI är klar: dess svar, och pull requesten när den ändrade kod. |

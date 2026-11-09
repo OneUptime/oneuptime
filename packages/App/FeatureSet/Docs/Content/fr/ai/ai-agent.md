@@ -61,7 +61,8 @@ La page d'une tâche est une conversation : ce qui a été demandé et le contex
 
 | État | Ce que cela signifie |
 | --- | --- |
-| **En file d'attente** | Elle attend qu'un Runner la prenne. Un tour que l'IA réessaie d'elle-même indique quelle tentative vient ensuite et quand ; **Réessayer maintenant** la lance tout de suite. |
+| **En file d'attente** | Elle attend qu'un Runner la prenne. |
+| **Nouvelle tentative** | Un tour que l'IA réessaie d'elle-même indique quelle tentative vient ensuite et quand ; **Réessayer maintenant** la lance tout de suite. |
 | **En cours…** | L'IA y travaille. **Arrêter** l'arrête ; ce qu'elle a poussé reste sur la branche. |
 | **En attente de votre part** | L'IA a posé une question. Répondez-y dans la zone en dessous. |
 | **Terminé** | L'IA a fini : sa réponse, et la pull request si elle a modifié du code. |

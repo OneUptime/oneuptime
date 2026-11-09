@@ -61,7 +61,8 @@ La pagina di un'attività è una conversazione: cosa è stato chiesto e il conte
 
 | Stato | Cosa significa |
 | --- | --- |
-| **In coda** | Aspetta che un Runner la prenda. Un turno che l'IA riprova da sola dice quale tentativo viene dopo e quando; **Riprova ora** lo avvia subito. |
+| **In coda** | Aspetta che un Runner la prenda. |
+| **Nuovo tentativo** | Un turno che l'IA riprova da sola dice quale tentativo viene dopo e quando; **Riprova ora** lo avvia subito. |
 | **In corso…** | L'IA ci sta lavorando. **Ferma** la ferma; ciò che ha già inviato con il push resta sul branch. |
 | **In attesa di te** | L'IA ha fatto una domanda. Rispondi nella casella qui sotto. |
 | **Fatto** | L'IA ha finito: la sua risposta, e la pull request se ha modificato il codice. |
