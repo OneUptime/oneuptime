@@ -7,6 +7,7 @@ import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "../../../UI/Utils/Dropdown";
 import MonitorType from "../../Monitor/MonitorType";
@@ -15,6 +16,9 @@ import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatu
 import SecurityDetectionSource from "../../SecurityCase/SecurityDetectionSource";
 import SecurityCasePriorities from "../../../Utils/SecurityCase/SecurityCasePriorities";
 import SecurityCaseStatuses from "../../../Utils/SecurityCase/SecurityCaseStatuses";
+import SloErrorBudgetPolicyChange, {
+  SLO_ERROR_BUDGET_POLICY_CHANGES,
+} from "../../ServiceLevelObjective/SloErrorBudgetPolicyChange";
 import WorkspaceType, { getWorkspaceTypeDisplayName } from "../WorkspaceType";
 import NotificationRuleEventType from "./EventType";
 import IncidentNotificationRule from "./NotificationRuleTypes/IncidentNotificationRule";
@@ -65,6 +69,16 @@ export enum NotificationRuleConditionCheckOn {
 
   // Security Hunt: the hunt whose scheduled run found events.
   SecurityHuntName = "Security Hunt Name",
+
+  /*
+   * Service Level Objective: the SLO whose error budget policy moved - by
+   * its name, by the SLO itself, by its labels - and what moved
+   * (SloErrorBudgetPolicyChange).
+   */
+  SloName = "SLO Name",
+  Slos = "SLOs",
+  SloLabels = "SLO Labels",
+  SloErrorBudgetPolicyChange = "Error Budget Policy Change",
 }
 
 export enum ConditionType {
@@ -186,13 +200,14 @@ export class NotificationRuleConditionUtil {
     }
 
     /*
-     * A security case and a hunt have no channel of their own, so their
-     * rules post somewhere that exists: a channel, or (Microsoft Teams) a
-     * chat.
+     * A security case, a hunt and an SLO have no channel of their own, so
+     * their rules post somewhere that exists: a channel, or (Microsoft
+     * Teams) a chat.
      */
     if (
       eventType === NotificationRuleEventType.SecurityCase ||
-      eventType === NotificationRuleEventType.SecurityHunt
+      eventType === NotificationRuleEventType.SecurityHunt ||
+      eventType === NotificationRuleEventType.ServiceLevelObjective
     ) {
       const workspaceDisplayName: string =
         getWorkspaceTypeDisplayName(workspaceType);
@@ -316,6 +331,9 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.SecurityCaseStatus:
       case NotificationRuleConditionCheckOn.SecurityCaseSource:
       case NotificationRuleConditionCheckOn.SecurityCaseLabels:
+      case NotificationRuleConditionCheckOn.Slos:
+      case NotificationRuleConditionCheckOn.SloLabels:
+      case NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange:
         return true;
       default:
         return false;
@@ -339,6 +357,8 @@ export class NotificationRuleConditionUtil {
     // The project's own case priorities and statuses, in their order.
     securityCasePriorities?: Array<SecurityCasePriority> | undefined;
     securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
+    // The project's SLOs, for an SLO rule's SLOs condition.
+    serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
     checkOn: NotificationRuleConditionCheckOn;
   }): Array<DropdownOption> {
     type ToOptionsFunction = (rows: Array<BaseModel>) => Array<DropdownOption>;
@@ -398,9 +418,36 @@ export class NotificationRuleConditionUtil {
         NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels ||
       data.checkOn ===
         NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels ||
-      data.checkOn === NotificationRuleConditionCheckOn.SecurityCaseLabels
+      data.checkOn === NotificationRuleConditionCheckOn.SecurityCaseLabels ||
+      data.checkOn === NotificationRuleConditionCheckOn.SloLabels
     ) {
       return toOptions(data.labels);
+    }
+
+    // An SLO's name is the team's own, drawn as written in every language.
+    if (data.checkOn === NotificationRuleConditionCheckOn.Slos) {
+      return toOptions(data.serviceLevelObjectives || []).map(
+        (option: DropdownOption): DropdownOption => {
+          return { ...option, isUserContent: true };
+        },
+      );
+    }
+
+    /*
+     * What moved in the SLO's error budget policy: a fixed list, in the
+     * order a tier change reads - entered, recovered, left - then the deploy
+     * gate. Each is shown as it is stored, in the reader's language where
+     * the condition is drawn.
+     */
+    if (
+      data.checkOn ===
+      NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange
+    ) {
+      return SLO_ERROR_BUDGET_POLICY_CHANGES.map(
+        (change: SloErrorBudgetPolicyChange): DropdownOption => {
+          return { label: change, value: change };
+        },
+      );
     }
 
     if (data.checkOn === NotificationRuleConditionCheckOn.Monitors) {
@@ -528,6 +575,20 @@ export class NotificationRuleConditionUtil {
        */
       case NotificationRuleEventType.SecurityHunt:
         return [NotificationRuleConditionCheckOn.SecurityHuntName];
+      /*
+       * Which SLOs a rule posts the error budget policy of - by name, by
+       * picking them, or by their labels - and which of the policy's
+       * changes (entered a tier, recovered, left every tier, deployments
+       * frozen or allowed again). A rule with no condition posts every
+       * change of every SLO.
+       */
+      case NotificationRuleEventType.ServiceLevelObjective:
+        return [
+          NotificationRuleConditionCheckOn.SloName,
+          NotificationRuleConditionCheckOn.Slos,
+          NotificationRuleConditionCheckOn.SloLabels,
+          NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+        ];
       default:
         return [];
     }
@@ -553,6 +614,7 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.SecurityCaseTitle:
       case NotificationRuleConditionCheckOn.SecurityCaseDescription:
       case NotificationRuleConditionCheckOn.SecurityHuntName:
+      case NotificationRuleConditionCheckOn.SloName:
         return [
           ConditionType.EqualTo,
           ConditionType.NotEqualTo,
@@ -577,6 +639,10 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.SecurityCasePriority:
       case NotificationRuleConditionCheckOn.SecurityCaseStatus:
       case NotificationRuleConditionCheckOn.SecurityCaseSource:
+      case NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange:
+        return [ConditionType.ContainsAny, ConditionType.NotContains];
+      // An SLO's rule names the SLOs it is for, by id, as a monitor's names monitors.
+      case NotificationRuleConditionCheckOn.Slos:
         return [ConditionType.ContainsAny, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.AlertLabels:
       case NotificationRuleConditionCheckOn.AlertEpisodeLabels:
@@ -586,6 +652,7 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
       case NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels:
       case NotificationRuleConditionCheckOn.SecurityCaseLabels:
+      case NotificationRuleConditionCheckOn.SloLabels:
         return [
           ConditionType.ContainsAny,
           ConditionType.NotContains,

@@ -78,9 +78,13 @@ export default class NotificationRuleInvites {
       case NotificationRuleEventType.Monitor:
       case NotificationRuleEventType.OnCallDutyPolicy:
         return [NotificationRuleInvitee.Owners];
-      // A security case or a hunt has no owners and no channel of its own to add anybody to.
+      /*
+       * A security case, a hunt and an SLO's error budget policy get no
+       * channel of their own to add anybody to.
+       */
       case NotificationRuleEventType.SecurityCase:
       case NotificationRuleEventType.SecurityHunt:
+      case NotificationRuleEventType.ServiceLevelObjective:
         return [];
       default:
         return [];

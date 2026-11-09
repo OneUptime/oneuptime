@@ -51,6 +51,50 @@ export interface SloFeedMarkdown {
 }
 
 /*
+ * An item's two parts, as Markdown: its line, and the details its More
+ * Information lists, a paragraph each. The feed stores them as text
+ * (toSloFeedMarkdown); a Slack, Microsoft Teams or Mattermost message posts
+ * the same parts as one message (getSloFeedChatMarkdown), so the feed and a
+ * channel say a change in the same words.
+ */
+export interface SloFeedMarkdownParts {
+  feedInfo: MarkdownText;
+  details: Array<MarkdownText>;
+}
+
+export type ToSloFeedMarkdownFunction = (
+  parts: SloFeedMarkdownParts,
+) => SloFeedMarkdown;
+
+export const toSloFeedMarkdown: ToSloFeedMarkdownFunction = (
+  parts: SloFeedMarkdownParts,
+): SloFeedMarkdown => {
+  return {
+    feedInfoInMarkdown: parts.feedInfo.toString(),
+    moreInformationInMarkdown: FeedMarkdown.join(
+      parts.details,
+      "\n\n",
+    ).toString(),
+  };
+};
+
+export type GetSloFeedChatMarkdownFunction = (
+  parts: SloFeedMarkdownParts,
+) => MarkdownText;
+
+/*
+ * An item as one chat message: its line, then each of its details, as the
+ * feed draws the item with its More Information open. What is in it is the
+ * item's own Markdown - every value placed as text, a team's agreement as the
+ * Markdown it was written in - so nothing is escaped twice.
+ */
+export const getSloFeedChatMarkdown: GetSloFeedChatMarkdownFunction = (
+  parts: SloFeedMarkdownParts,
+): MarkdownText => {
+  return FeedMarkdown.join([parts.feedInfo, ...parts.details], "\n\n");
+};
+
+/*
  * ---------------------------------------------------------------------------
  * Numbers and durations
  * ---------------------------------------------------------------------------
@@ -1596,7 +1640,8 @@ const getDeploymentGateDetail: (
   return deployments.isAllowed ? null : DEPLOYMENTS_STILL_FROZEN_DETAIL;
 };
 
-export type GetSloPolicyTierChangedFeedMarkdownFunction = (data: {
+// What a tier change's item is written from.
+export interface SloFeedPolicyTierChange {
   sloMarkdownLink: MarkdownText;
   // The tier the SLO was in, by the name it was recorded under; unset for none.
   previousTierName: string | undefined | null;
@@ -1608,7 +1653,15 @@ export type GetSloPolicyTierChangedFeedMarkdownFunction = (data: {
   errorBudgetRemainingSeconds: number;
   // The deploy gate after the change; unset when it plays no part.
   deployments?: SloFeedDeploymentGate | undefined;
-}) => SloFeedMarkdown;
+}
+
+export type GetSloPolicyTierChangedFeedMarkdownFunction = (
+  data: SloFeedPolicyTierChange,
+) => SloFeedMarkdown;
+
+export type GetSloPolicyTierChangedFeedPartsFunction = (
+  data: SloFeedPolicyTierChange,
+) => SloFeedMarkdownParts;
 
 /*
  * ErrorBudgetPolicyTierChanged: the SLO entered a tier, moved between tiers
@@ -1617,18 +1670,11 @@ export type GetSloPolicyTierChangedFeedMarkdownFunction = (data: {
  * in the feed when the tier changes. When the change froze deployments, or
  * allowed them again, the item's first line says so, and its details say
  * how the gate moved - or that it stayed frozen, between two tiers that
- * both freeze.
+ * both freeze. As its parts here, for the feed and a chat message of the
+ * change alike.
  */
-export const getSloPolicyTierChangedFeedMarkdown: GetSloPolicyTierChangedFeedMarkdownFunction =
-  (data: {
-    sloMarkdownLink: MarkdownText;
-    previousTierName: string | undefined | null;
-    newTier: SloFeedPolicyTier | null;
-    isEscalation: boolean;
-    errorBudgetRemainingPercentage: number;
-    errorBudgetRemainingSeconds: number;
-    deployments?: SloFeedDeploymentGate | undefined;
-  }): SloFeedMarkdown => {
+export const getSloPolicyTierChangedFeedParts: GetSloPolicyTierChangedFeedPartsFunction =
+  (data: SloFeedPolicyTierChange): SloFeedMarkdownParts => {
     const previousTierName: string = data.previousTierName?.trim() || "";
     const newTierName: string = data.newTier?.name?.trim() || "";
 
@@ -1694,12 +1740,19 @@ export const getSloPolicyTierChangedFeedMarkdown: GetSloPolicyTierChangedFeedMar
     }
 
     return {
-      feedInfoInMarkdown: feedInfo.toString(),
-      moreInformationInMarkdown: FeedMarkdown.join(details, "\n\n").toString(),
+      feedInfo: feedInfo,
+      details: details,
     };
   };
 
-export type GetSloDeploymentGateChangedFeedMarkdownFunction = (data: {
+// The item as the feed stores it.
+export const getSloPolicyTierChangedFeedMarkdown: GetSloPolicyTierChangedFeedMarkdownFunction =
+  (data: SloFeedPolicyTierChange): SloFeedMarkdown => {
+    return toSloFeedMarkdown(getSloPolicyTierChangedFeedParts(data));
+  };
+
+// What a deploy gate flip's item is written from.
+export interface SloFeedDeploymentGateChange {
   sloMarkdownLink: MarkdownText;
   // The tier the SLO is in, by name; unset or empty for none.
   tierName: string | undefined | null;
@@ -1707,7 +1760,15 @@ export type GetSloDeploymentGateChangedFeedMarkdownFunction = (data: {
   isAllowed: boolean;
   errorBudgetRemainingPercentage: number;
   errorBudgetRemainingSeconds: number;
-}) => SloFeedMarkdown;
+}
+
+export type GetSloDeploymentGateChangedFeedMarkdownFunction = (
+  data: SloFeedDeploymentGateChange,
+) => SloFeedMarkdown;
+
+export type GetSloDeploymentGateChangedFeedPartsFunction = (
+  data: SloFeedDeploymentGateChange,
+) => SloFeedMarkdownParts;
 
 /*
  * ErrorBudgetPolicyDeploymentsFrozen / ...DeploymentsAllowed: deployments
@@ -1715,15 +1776,10 @@ export type GetSloDeploymentGateChangedFeedMarkdownFunction = (data: {
  * switched Freeze Deployments on or off for the tier it is in. (A tier
  * change that moves the gate says so in its own item instead.) No "what we
  * do": the agreement did not change, only whether CI/CD holds releases back.
+ * As its parts here, for the feed and a chat message of the flip alike.
  */
-export const getSloDeploymentGateChangedFeedMarkdown: GetSloDeploymentGateChangedFeedMarkdownFunction =
-  (data: {
-    sloMarkdownLink: MarkdownText;
-    tierName: string | undefined | null;
-    isAllowed: boolean;
-    errorBudgetRemainingPercentage: number;
-    errorBudgetRemainingSeconds: number;
-  }): SloFeedMarkdown => {
+export const getSloDeploymentGateChangedFeedParts: GetSloDeploymentGateChangedFeedPartsFunction =
+  (data: SloFeedDeploymentGateChange): SloFeedMarkdownParts => {
     const tierName: string = data.tierName?.trim() || "";
 
     let feedInfo: MarkdownText;
@@ -1751,7 +1807,13 @@ export const getSloDeploymentGateChangedFeedMarkdown: GetSloDeploymentGateChange
     ];
 
     return {
-      feedInfoInMarkdown: feedInfo.toString(),
-      moreInformationInMarkdown: FeedMarkdown.join(details, "\n\n").toString(),
+      feedInfo: feedInfo,
+      details: details,
     };
+  };
+
+// The item as the feed stores it.
+export const getSloDeploymentGateChangedFeedMarkdown: GetSloDeploymentGateChangedFeedMarkdownFunction =
+  (data: SloFeedDeploymentGateChange): SloFeedMarkdown => {
+    return toSloFeedMarkdown(getSloDeploymentGateChangedFeedParts(data));
   };
