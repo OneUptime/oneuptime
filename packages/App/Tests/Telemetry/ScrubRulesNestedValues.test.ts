@@ -486,10 +486,17 @@ describe.each(ENGINES)(
     });
 
     test("Sensitive Attribute Keys hides a held value whole when it names a secret anywhere, and keeps one that names none", () => {
+      // The keys name no secret themselves: only the text held under one does.
+      expect(
+        scrubAttributes(
+          { deepNotes: "x", deepPlain: "y", arrivedAsText: "z" },
+          [SENSITIVE_KEYS],
+        ),
+      ).toEqual({ deepNotes: "x", deepPlain: "y", arrivedAsText: "z" });
       expect(
         scrubAttributes(
           {
-            deepSecret: nest(
+            deepNotes: nest(
               { password: "pw" },
               SCRUB_MAX_VALUE_DEPTH + 2,
             ) as JSONObject,
@@ -502,7 +509,7 @@ describe.each(ENGINES)(
           [SENSITIVE_KEYS],
         ),
       ).toEqual({
-        deepSecret: "[REDACTED]",
+        deepNotes: "[REDACTED]",
         deepPlain: JSON.stringify(
           nest({ user: "u" }, SCRUB_MAX_VALUE_DEPTH + 2),
         ),
