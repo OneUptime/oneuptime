@@ -26,6 +26,7 @@ flowchart TB
 
 - **La clave decide el proyecto.** Nunca envía un ID de proyecto: los datos enviados con una clave llegan al proyecto al que pertenece la clave.
 - **Los cambios llegan a todos los servidores en un minuto.** Desactivar una clave, restablecer su secreto o cambiar sus orígenes, su caducidad o su límite surte efecto en un minuto aproximadamente.
+- **Una clave puede tener presupuestos propios.** Un presupuesto diario y un límite de frecuencia por segundo para cada señal, dentro de los de su proyecto: consulte [Presupuestos de ingesta](/docs/telemetry/ingestion-budgets).
 - **Una clave de servidor es una contraseña.** Quien la tenga puede enviar telemetría a su proyecto. Guárdela en los secretos de sus servidores, nunca en el control de versiones ni en una página web.
 
 ## Servidor o navegador
@@ -155,4 +156,5 @@ Nada ha enviado datos con esta clave desde que OneUptime empezó a registrar su 
 - [Catálogo de servicios](/docs/telemetry/services): Vea los servicios bajo los que se archiva su telemetría.
 - [Retención de datos](/docs/telemetry/data-retention): Decida cuánto tiempo se conservan los datos.
 - [Filtros de descarte y reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules): Descarte o enmascare datos antes de que se guarden.
+- [Presupuestos de ingesta](/docs/telemetry/ingestion-budgets): Limite cuánto puede enviar cada clave en un día.
 :::

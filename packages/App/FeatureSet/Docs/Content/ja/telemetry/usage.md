@@ -27,6 +27,7 @@ flowchart TB
 - **トレースには例外が、プロファイルにはサンプルが含まれます。**
 - **OneUptime 自身のテレメトリは集計されません。** モニター、アラート、インシデント、SLO の測定値、データオブザーバビリティの測定値、セッションリプレイの予算メトリクスは、OneUptime 自身が書き込むものです。
 - **OneUptime Cloud では、これらの行に基づいてテレメトリが課金されます。** 課金のないインストールでは、使用量は無料で集計され、後から課金を有効にしても、その使用量が請求されることはありません。
+- **予算は使用量とは別に集計されます。** [取り込み予算](/docs/telemetry/ingestion-budgets) はテレメトリを到着時に展開後のサイズで集計するため、その日のうちにその日のテレメトリを止められます。予算が設定されている間、このページの最初には今日の予算が表示されます。
 
 ## 始める前に
 
@@ -134,4 +135,5 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
 - [データ保持](/docs/telemetry/data-retention): テレメトリを必要な期間だけ保持します。
 - [請求と使用量](/docs/configuration/billing): OneUptime Cloud でのテレメトリの料金。
 - [取り込みキー](/docs/telemetry/ingestion-keys): プロジェクトにテレメトリを送ります。
+- [取り込み予算](/docs/telemetry/ingestion-budgets): プロジェクトが 1 日に送信する各シグナルの量に上限を設けます。
 :::

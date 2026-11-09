@@ -433,6 +433,8 @@ import "./Jobs/Rum/PublishSessionReplayBudgetMetrics";
  */
 import "./Jobs/TelemetryUsage/MeterTelemetryUsage";
 import "./Jobs/TelemetryUsage/DeleteOldTelemetryUsage";
+// Telemetry ingestion budgets as metrics, and the owners' warning emails.
+import "./Jobs/TelemetryIngestionBudget/PublishTelemetryIngestionBudgetMetrics";
 
 /*
  * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry

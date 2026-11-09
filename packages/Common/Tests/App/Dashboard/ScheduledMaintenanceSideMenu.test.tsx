@@ -324,6 +324,13 @@ describe("Scheduled maintenance side menu", () => {
             PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES,
           ),
         },
+        // Who approves public notes before they are published (#5720).
+        {
+          title: "Public Note Approval",
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL,
+          ),
+        },
         {
           title: "Custom Fields",
           href: routeFor(

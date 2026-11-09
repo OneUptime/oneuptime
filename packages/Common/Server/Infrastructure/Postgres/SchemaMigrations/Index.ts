@@ -933,7 +933,9 @@ import { AddTelemetryUsageCreatedAtIndex1808997415916 } from "./1808997415916-Ad
 import { AddWorkspacePublicNoteApprovalMessage1809063170000 } from "./1809063170000-AddWorkspacePublicNoteApprovalMessage";
 import { AddSloDeploymentGate1809063206333 } from "./1809063206333-AddSloDeploymentGate";
 import { AddRumSignalArrivals1809063215770 } from "./1809063215770-AddRumSignalArrivals";
-import { AllowDiscoveryImportWithoutScan1809063215775 } from "./1809063215775-AllowDiscoveryImportWithoutScan";
+import { AddPublicNoteApprovalRequest1809063230000 } from "./1809063230000-AddPublicNoteApprovalRequest";
+import { AddTelemetryIngestionBudgets1809063245917 } from "./1809063245917-AddTelemetryIngestionBudgets";
+import { AllowDiscoveryImportWithoutScan1809063255775 } from "./1809063255775-AllowDiscoveryImportWithoutScan";
 
 export default [
   InitialMigration,
@@ -1871,5 +1873,7 @@ export default [
   AddWorkspacePublicNoteApprovalMessage1809063170000,
   AddSloDeploymentGate1809063206333,
   AddRumSignalArrivals1809063215770,
-  AllowDiscoveryImportWithoutScan1809063215775,
+  AddPublicNoteApprovalRequest1809063230000,
+  AddTelemetryIngestionBudgets1809063245917,
+  AllowDiscoveryImportWithoutScan1809063255775,
 ];

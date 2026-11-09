@@ -16,6 +16,7 @@ import CodeHostWriters, {
 import {
   CodeHostBranch,
   CodeHostCommitMade,
+  CodeHostFileContent,
   CodeHostFileExpected,
   CodeHostFileWrite,
   CodeHostOpenedPullRequest,
@@ -44,7 +45,7 @@ import {
   aiActionSentence,
   aiActionTerm,
 } from "../../../../Types/AI/AIActionWords";
-import { resolveTargetRepository } from "./CodeTools";
+import { readRepositoryFile, resolveTargetRepository } from "./CodeTools";
 import PromptText from "../../../../Utils/AI/PromptText";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import {
@@ -62,11 +63,15 @@ import {
   CodeChangeKind,
   CodeFileNow,
   CodeFilesReadNow,
+  CodeFileTextNow,
   UnseenCodeChange,
   describeChangedSinceProposed,
+  findCodeFilesValuesHidden,
   findUnseenCodeChange,
   getCodeChangeProposedOn,
+  getCodeChangesHoldingPlaceholders,
   getCodeFilesSeenFromWrite,
+  readCodeFileTextsNow,
   readCodeFileVersionsNow,
   readCodeFilesNow,
 } from "./CodeFilesSeen";
@@ -412,6 +417,13 @@ function describeChanges(changes: Array<CodeHostFileWrite>): string {
  *     whatever the model sent there: approved after a file changed again,
  *     the change is not made (holdToWhatTheCardShowed).
  *
+ * And held to what it writes (issue #6364): the model was shown what looks
+ * like a secret or personal data as a placeholder ("[redacted-ip]"), so a
+ * file it writes with more of a placeholder than the branch's file has
+ * writes the placeholder where the value was. Only such a file's text is
+ * read, beside the versions; the card says so, and in Auto-run the change
+ * is not made - reading again never shows the model the value.
+ *
  * Reads only, and never throws for the model's mistakes or the host's:
  * running the change says why it cannot be made. A caller that keeps no
  * record of what the model saw gets the card as it always was.
@@ -465,13 +477,32 @@ async function prepareCodeChange(data: {
       return { arguments: prepared };
     }
 
-    const files: Array<CodeFileNow> = await readCodeFilesNow({
-      writer,
-      branchName,
-      filePaths: changes.map((change: CodeHostFileWrite): string => {
-        return change.filePath;
-      }),
-    });
+    const readOnBranchName: string = branchName;
+
+    // The versions of every file, and the text of each written with a placeholder in it, read at once.
+    const [files, texts]: [Array<CodeFileNow>, Map<string, CodeFileTextNow>] =
+      await Promise.all([
+        readCodeFilesNow({
+          writer,
+          branchName,
+          filePaths: changes.map((change: CodeHostFileWrite): string => {
+            return change.filePath;
+          }),
+        }),
+        readCodeFileTextsNow({
+          filePaths: getCodeChangesHoldingPlaceholders(changes),
+          read: async (filePath: string): Promise<string | null> => {
+            const file: CodeHostFileContent | null = await readRepositoryFile({
+              ctx: data.ctx,
+              repository,
+              branchName: readOnBranchName,
+              filePath,
+            });
+
+            return file ? file.content : null;
+          },
+        }),
+      ]);
 
     const unseen: UnseenCodeChange | null = findUnseenCodeChange({
       change: data.change,
@@ -479,6 +510,7 @@ async function prepareCodeChange(data: {
       repositoryId: repository.id.toString(),
       branchName,
       files,
+      valuesHidden: findCodeFilesValuesHidden({ changes, texts }),
     });
 
     prepared[CODE_CHANGE_PROPOSED_ON_KEY] = getCodeChangeProposedOn({

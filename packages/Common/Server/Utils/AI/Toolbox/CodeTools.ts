@@ -46,7 +46,11 @@ import {
   getCodeFileLinesShown,
   normalizeCodeBranchName,
 } from "../../../../Types/CodeRepository/CodeFileSeen";
-import { getCodeFileSeenFromRead } from "./CodeFilesSeen";
+import {
+  describeValuesHiddenOnRead,
+  findLinesWithValuesHidden,
+  getCodeFileSeenFromRead,
+} from "./CodeFilesSeen";
 
 /*
  * Tools that let the chat agent read the project's linked source code and
@@ -1322,8 +1326,30 @@ export const ReadCodeFileTool: ObservabilityTool = {
       ? `\n… [stopped at line ${actualEndLine}; call again with startLine=${actualEndLine + 1} to read on]`
       : "";
 
+    /*
+     * The lines whose values were hidden (issue #6364), said before the
+     * model writes anything from them: a commit writes the file whole, and
+     * a placeholder written back lands where the value was. Read from the
+     * lines it showed whole; the redaction itself is the serializer's,
+     * exactly as it was.
+     */
+    const wholeLinesShown: string = serialized.isTruncated
+      ? serialized.text.slice(0, Math.max(0, serialized.text.lastIndexOf("\n")))
+      : serialized.text;
+    const valuesHidden: string | null = describeValuesHiddenOnRead(
+      findLinesWithValuesHidden({
+        numberedLines: numbered.split("\n"),
+        firstLine: startLine,
+        // formatWithLineNumbers' "NNN| ": the last line's number, padded, and "| ".
+        prefixLength: String(startLine + selected.length - 1).length + 2,
+        shown: wholeLinesShown,
+      }),
+    );
+
     return {
-      dataForLlm: `${header}\n\n${serialized.text}${footer}`,
+      dataForLlm: `${header}\n\n${serialized.text}${footer}${
+        valuesHidden ? `\n${valuesHidden}` : ""
+      }`,
       rowCount: selected.length,
       citationLabel: `${filePath}:${startLine}-${actualEndLine} (${repository.organizationName}/${repository.repositoryName})`,
       redactionCount: serialized.redactionCount,

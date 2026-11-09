@@ -26,6 +26,7 @@ flowchart TB
 
 - **Nøglen bestemmer projektet.** Du sender aldrig et projekt-ID: data, der sendes med en nøgle, havner i det projekt, nøglen tilhører.
 - **Ændringer når ud til alle servere inden for et minut.** At slå en nøgle fra, nulstille dens hemmelighed eller ændre dens origins, udløb eller grænse træder i kraft inden for cirka et minut.
+- **En nøgle kan have sine egne budgetter.** Et dagligt budget og en hastighed pr. sekund for hvert signal, inden for dens projekts: se [Indtagelsesbudgetter](/docs/telemetry/ingestion-budgets).
 - **En servernøgle er en adgangskode.** Alle, der har den, kan sende telemetri til dit projekt. Opbevar den i dine serveres hemmeligheder, aldrig i versionsstyring eller på en webside.
 
 ## Server eller Browser
@@ -155,4 +156,5 @@ Intet har sendt data med denne nøgle, siden OneUptime begyndte at registrere br
 - [Tjenestekatalog](/docs/telemetry/services): Se de tjenester, din telemetri lægges under.
 - [Dataopbevaring](/docs/telemetry/data-retention): Bestem, hvor længe dataene opbevares.
 - [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Kassér eller maskér data, før de gemmes.
+- [Indtagelsesbudgetter](/docs/telemetry/ingestion-budgets): Begræns, hvor meget hver nøgle må sende på en dag.
 :::

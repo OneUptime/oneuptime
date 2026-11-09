@@ -91,6 +91,8 @@ export interface FakeGitRepository {
   pullRequests: Array<FakePullRequest>;
   // Paths whose version cannot be read on any branch, and why.
   unreadable: Map<string, string>;
+  // Paths whose text cannot be read on any branch (GitHub), and why: the read throws (issue #6364).
+  textUnreadable: Map<string, string>;
   // Every read of versions, as asked: a branch, and its paths (GitHub).
   blobReads: Array<{ branchName: string; filePaths: Array<string> }>;
   // Every read of a file's text for the model.
@@ -186,6 +188,7 @@ export function makeRepository(data: {
     replaced: [],
     pullRequests: [],
     unreadable: new Map(),
+    textUnreadable: new Map(),
     blobReads: [],
     contentReads: [],
     hostCalls: [],
@@ -626,6 +629,14 @@ export function serveOnGitHub(
           branchName: data.branchName,
           filePath: data.filePath,
         });
+
+        const failure: string | undefined = repository.textUnreadable.get(
+          data.filePath,
+        );
+
+        if (failure) {
+          throw new Error(failure);
+        }
 
         const content: string | undefined = repository.branches
           .get(data.branchName)

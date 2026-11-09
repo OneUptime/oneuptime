@@ -27,6 +27,7 @@ flowchart TB
 - **Le tracce includono le loro eccezioni, e i profili i loro campioni.**
 - **La telemetria propria di OneUptime non viene conteggiata.** Le letture di monitor, avvisi, incidenti e SLO, le letture di Osservabilità dei dati e le metriche del budget delle riproduzioni delle sessioni sono scritte da OneUptime stesso.
 - **Su OneUptime Cloud, la telemetria si paga in base a queste righe.** Su un'installazione senza fatturazione, l'utilizzo viene conteggiato senza costi, e non viene addebitato nulla, nemmeno se la fatturazione viene attivata in seguito.
+- **Un budget viene conteggiato a parte rispetto all'utilizzo.** Un [budget di acquisizione](/docs/telemetry/ingestion-budgets) conteggia la telemetria man mano che arriva, decompressa, quindi può fermare la telemetria di un giorno il giorno stesso. Finché ne è impostato uno, questa pagina si apre con i budget di oggi.
 
 ## Prima di iniziare
 
@@ -134,4 +135,5 @@ La risorsa è stata eliminata dopo aver inviato la telemetria, oppure il vostro 
 - [Conservazione dei dati](/docs/telemetry/data-retention): Conservate la telemetria per tutto il tempo che vi serve, e non di più.
 - [Fatturazione e utilizzo](/docs/configuration/billing): Quanto costa la telemetria su OneUptime Cloud.
 - [Chiavi di acquisizione](/docs/telemetry/ingestion-keys): Inviate telemetria al vostro progetto.
+- [Budget di acquisizione](/docs/telemetry/ingestion-budgets): Limitate quanto di ogni segnale un progetto invia in un giorno.
 :::

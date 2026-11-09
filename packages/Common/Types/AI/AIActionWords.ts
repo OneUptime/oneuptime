@@ -306,7 +306,8 @@ export const AI_ACTION_LINES: {
  * read_code_file showed it, so a commit - on a branch, or a pull request's
  * - would undo what was pushed to a file since, or replace a file Ask AI
  * read on another branch, or never read, or read only part of (issue
- * #6330). Each names the files, as {{files}}: a list of
+ * #6330) - or write placeholders where values were hidden from Ask AI
+ * (issue #6364). Each names the files, as {{files}}: a list of
  * AI_ACTION_CODE_FILE, the first few written out and the rest counted
  * (moreFiles). {{count}} is how many files it names.
  */
@@ -316,6 +317,7 @@ export const AI_ACTION_PLURAL_LINES: {
   codeFilesNotRead: PluralTemplate;
   codeFilesReadInPart: PluralTemplate;
   codeFilesNotChecked: PluralTemplate;
+  codeFilesValuesHidden: PluralTemplate;
   moreFiles: PluralTemplate;
 } = {
   // Pushed to, deleted or renamed away on the branch after Ask AI read it there.
@@ -371,6 +373,21 @@ export const AI_ACTION_PLURAL_LINES: {
       "OneUptime could not check these {{count}} files on {{branch}} against what Ask AI read: {{files}}.",
     ),
   },
+  /*
+   * Ask AI is shown what looks like a secret or personal data - an IP
+   * address, an email address, a key - as a placeholder ("[redacted-ip]"),
+   * and its version of the file holds more of a placeholder than the file
+   * on the branch does: the change writes the placeholder where the value
+   * was, or where one belongs.
+   */
+  codeFilesValuesHidden: {
+    one: translationKey(
+      "Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: {{files}}.",
+    ),
+    other: translationKey(
+      "Values that look like secrets or personal data were hidden from Ask AI, and its versions of these {{count}} files write placeholders in their place: {{files}}.",
+    ),
+  },
   // The files a line counts rather than names, last in its list.
   moreFiles: {
     one: translationKey("{{count}} more file"),
@@ -390,6 +407,7 @@ export const AI_ACTION_CODE_CHANGE_LINES: ReadonlyArray<string> = [
   AI_ACTION_PLURAL_LINES.codeFilesNotRead.other,
   AI_ACTION_PLURAL_LINES.codeFilesReadInPart.other,
   AI_ACTION_PLURAL_LINES.codeFilesNotChecked.other,
+  AI_ACTION_PLURAL_LINES.codeFilesValuesHidden.other,
 ];
 
 /*

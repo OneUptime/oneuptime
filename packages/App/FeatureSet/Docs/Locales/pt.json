@@ -287,6 +287,7 @@
     "Drop Filters & Scrub Rules": "Filtros de descarte e regras de mascaramento",
     "Data Retention": "Retenção de dados",
     "Telemetry Usage": "Uso de telemetria",
+    "Ingestion Budgets": "Orçamentos de ingestão",
     "Serilog (.NET)": "Serilog (.NET)",
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",
