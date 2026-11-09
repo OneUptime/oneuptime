@@ -118,13 +118,17 @@ La **Credencial**, como `Bearer <token>`, se envía en el encabezado que elija e
 
 ### Syslog
 
-Cada entrada es un mensaje RFC 5424 al **Host** y al **Puerto**, por TLS en el puerto `6514` salvo que **Protocolo** indique TCP, con facility 13 (log audit) y severity 6 (informational):
+Cada entrada es un mensaje RFC 5424 al **Host** y al **Puerto**, por TLS en el puerto `6514` salvo que **Protocolo** indique TCP o UDP, con facility 13 (log audit) y severity 6 (informational):
 
 ```text
 <110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-Los mensajes se delimitan por conteo de octetos (RFC 5425), salvo que **Delimitación** indique un mensaje por línea. Un receptor cuyo certificado firmó una CA privada necesita el certificado de esa CA en **Certificado de la CA**. Ambos esperan en **Más campos**.
+Por TLS y TCP, los mensajes se delimitan por conteo de octetos (RFC 5425), salvo que **Delimitación** indique un mensaje por línea. Un receptor cuyo certificado firmó una CA privada necesita el certificado de esa CA en **Certificado de la CA**. Ambos esperan en **Más campos**.
+
+Por UDP, **Puerto** empieza en `514`, y cada mensaje es un datagrama propio (RFC 5426), así que ninguno se delimita. UDP envía el registro de auditoría como texto sin cifrar, y nada confirma que un mensaje haya llegado: cuando el host del receptor responde que su puerto está cerrado, el lote falla y se vuelve a intentar, pero un mensaje perdido por el camino no se vuelve a enviar. Después de una prueba por UDP, compruebe que la entrada de prueba llegó. Cuando cada entrada deba llegar, elija TLS o TCP.
+
+Por UDP, un mensaje ocupa como máximo el **Tamaño máximo de mensaje**, en bytes: `8192`, salvo que lo cambie en **Más campos**, de `1024` a `65507`. Una entrada más larga se acorta para que quepa y sigue siendo un solo objeto JSON: primero se recortan sus valores, como los recorta el registro de auditoría, por ejemplo `[… 1,234 more characters]` o `[12.3 KB of JSON]`, y luego los cambios que aún no caben se cuentan en uno, por ejemplo `[… 12 more changes]`.
 
 ## Qué se envía
 
@@ -188,7 +192,7 @@ La exportación de un proyecto en OneUptime Cloud no puede llegar a una direcci�
 :::
 
 :::details No llega nada
-Compruebe que el registro de auditoría está activado en el proyecto y que alguien cambió algo después de guardar la exportación. Un almacenamiento recibe un archivo solo cuando un lote está lleno o tiene cinco minutos.
+Compruebe que el registro de auditoría está activado en el proyecto y que alguien cambió algo después de guardar la exportación. Un almacenamiento recibe un archivo solo cuando un lote está lleno o tiene cinco minutos. Por UDP, un cortafuegos descarta los mensajes sin avisar: compruebe que UDP puede llegar al puerto del receptor.
 :::
 
 ## Próximos pasos
