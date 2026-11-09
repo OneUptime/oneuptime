@@ -30,6 +30,7 @@ import {
   withCustomSignal,
   withoutCustomSignal,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/FrustrationSignals/FrustrationSignalsCopy";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 
 /*
  * What the Frustration Signals page says and decides, without React
@@ -303,6 +304,37 @@ describe("the rule editor's numbers", () => {
       reloadCount: "3",
       windowSeconds: "60",
     });
+  });
+
+  /*
+   * A label is a translation key, and a key another screen already holds
+   * is translated as that screen means it: "Within" is a forecast's horizon
+   * in the locales ("Prognosezeitraum"), so the reload window would have
+   * read as one in German. Every label must be a key the locales translate
+   * as the number it names.
+   */
+  test("labels the reload window a Time window, never a forecast's Within, and every number in words the locales have", () => {
+    const german: Record<string, unknown> = germanLocale as Record<
+      string,
+      unknown
+    >;
+    const labels: Array<string> = BUILT_IN_SIGNAL_KEYS.flatMap(
+      (key: BuiltInSignalKey): Array<string> => {
+        return RULE_NUMBER_FIELDS[key].flatMap(
+          (ruleField: RuleNumberField): Array<string> => {
+            return [ruleField.label, ruleField.unitLabel];
+          },
+        );
+      },
+    );
+
+    expect(field("refreshRage", "windowSeconds").label).toBe("Time window");
+    expect(german["Time window"]).toBe("Zeitfenster");
+    expect(labels).not.toContain("Within");
+
+    for (const label of labels) {
+      expect([label, typeof german[label]]).toEqual([label, "string"]);
+    }
   });
 });
 

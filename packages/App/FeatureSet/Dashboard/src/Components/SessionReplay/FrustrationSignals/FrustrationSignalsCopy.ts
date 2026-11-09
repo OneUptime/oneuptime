@@ -408,7 +408,11 @@ export const RULE_NUMBER_FIELDS: Record<
     },
     {
       id: "windowSeconds",
-      label: translationKey("Within"),
+      /*
+       * Not "Within": the locales already hold that key as a forecast's
+       * horizon ("Prognosezeitraum"), which is not what this number is.
+       */
+      label: translationKey("Time window"),
       unitLabel: translationKey("seconds"),
       unit: "seconds",
       limit: LIMITS.refreshRageWindowSeconds,
