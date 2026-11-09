@@ -112,6 +112,7 @@ import BackfillNetworkSiteTypeParents from "./BackfillNetworkSiteTypeParents";
 import BackfillMonitorBackedDeviceReachability from "./BackfillMonitorBackedDeviceReachability";
 import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMonitoringMethod";
 import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
+import AddSessionReplayCustomSignalColumns from "./AddSessionReplayCustomSignalColumns";
 import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
 import EncryptProjectCallSMSConfigTwilioAuthToken from "./EncryptProjectCallSMSConfigTwilioAuthToken";
@@ -1000,6 +1001,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
+  /*
+   * Frustration signals a RUM application defines itself (issue #6443):
+   * adds customSignalCount, customSignalFrustrationCount and
+   * customSignalNames to the session and chunk tables. Metadata-only and
+   * idempotent; sessions recorded before it read as "no signals of the
+   * application's own". Before the slot AddAuditLogMcpClientColumns keeps
+   * for itself.
+   */
+  new AddSessionReplayCustomSignalColumns(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

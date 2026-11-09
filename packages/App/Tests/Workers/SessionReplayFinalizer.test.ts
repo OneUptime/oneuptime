@@ -400,6 +400,9 @@ interface RawChunkRow {
   routeCount: number;
   clickCount: number;
   customEventCount: number;
+  customSignalCount: number;
+  customSignalFrustrationCount: number;
+  customSignalNames: Array<string>;
   url: string;
   routes: Array<string>;
   sessionStartUnixMs: number;
@@ -427,6 +430,9 @@ function makeChunkRow(data: {
   routeCount?: number;
   clickCount?: number;
   customEventCount?: number;
+  customSignalCount?: number;
+  customSignalFrustrationCount?: number;
+  customSignalNames?: Array<string>;
   url?: string;
   routes?: Array<string>;
   /*
@@ -462,6 +468,9 @@ function makeChunkRow(data: {
     routeCount: data.routeCount ?? 0,
     clickCount: data.clickCount ?? 0,
     customEventCount: data.customEventCount ?? 0,
+    customSignalCount: data.customSignalCount ?? 0,
+    customSignalFrustrationCount: data.customSignalFrustrationCount ?? 0,
+    customSignalNames: data.customSignalNames ?? [],
     /*
      * Empty by default so the pre-existing fixtures keep exercising the
      * "chunks written before the url/routes columns existed" path, where
@@ -691,6 +700,22 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
       customEventCount: sum((row: RawChunkRow): number => {
         return row.customEventCount;
       }),
+      customSignalCount: sum((row: RawChunkRow): number => {
+        return row.customSignalCount;
+      }),
+      customSignalFrustrationCount: sum((row: RawChunkRow): number => {
+        return row.customSignalFrustrationCount;
+      }),
+      /* arraySlice(arraySort(arrayDistinct(arrayFlatten(groupArray(...)))), 1, 50) */
+      customSignalNames: Array.from(
+        new Set<string>(
+          tabRows.flatMap((row: RawChunkRow): Array<string> => {
+            return row.customSignalNames;
+          }),
+        ),
+      )
+        .sort()
+        .slice(0, 50),
       /* countIf(errorCount > 0) and minIf(chunkStartOffsetMs, errorCount > 0). */
       erroredChunkCount: tabRows.filter((row: RawChunkRow): boolean => {
         return row.errorCount > 0;
@@ -852,6 +877,9 @@ function makeProvisionalHeader(
     deadClickCount: 0,
     errorClickCount: 0,
     refreshRageCount: 0,
+    customSignalCount: 0,
+    customSignalFrustrationCount: 0,
+    customSignalNames: [],
     pageCount: 0,
     entryUrl: "https://shop.example.com/checkout",
     exitUrl: "https://shop.example.com/checkout/failed",
@@ -889,6 +917,55 @@ function makeProvisionalHeader(
 }
 
 describe("Rum:FinalizeSessions aggregate derivation", () => {
+  /*
+   * Issue #6443: the application's own signals, from the chunk rows. A
+   * re-delivered chunk must not count twice, and the names must come out
+   * the same however the chunks and tabs arrived.
+   */
+  test("the application's own signals are summed once per chunk and named in order", () => {
+    const rows: Array<RawChunkRow> = [
+      makeChunkRow({
+        chunkIndex: 1,
+        tabId: "tab-b",
+        customSignalCount: 2,
+        customSignalFrustrationCount: 2,
+        customSignalNames: ["Payment failed"],
+      }),
+      makeChunkRow({
+        chunkIndex: 0,
+        customSignalCount: 3,
+        customSignalFrustrationCount: 1,
+        customSignalNames: ["Help opened", "Checkout error"],
+      }),
+      makeChunkRow({ chunkIndex: 0, tabId: "tab-b" }),
+      makeChunkRow({ chunkIndex: 1 }),
+    ];
+    /* Redelivery of tab-b's chunk 1: same identity, later version. */
+    rows.push(
+      makeChunkRow({
+        chunkIndex: 1,
+        tabId: "tab-b",
+        version: 1_800_000_000_000,
+        customSignalCount: 2,
+        customSignalFrustrationCount: 2,
+        customSignalNames: ["Payment failed"],
+      }),
+    );
+
+    const aggregate: SessionChunkAggregate = aggregateOf(rows);
+
+    expect(aggregate.customSignalCount).toBe(5);
+    expect(aggregate.customSignalFrustrationCount).toBe(3);
+    expect(aggregate.customSignalNames).toEqual([
+      "Checkout error",
+      "Help opened",
+      "Payment failed",
+    ]);
+    expect(aggregateOf(rows.slice().reverse()).customSignalNames).toEqual(
+      aggregate.customSignalNames,
+    );
+  });
+
   test("chunks 0..9 delivered out of order with a duplicate produce exact aggregates", () => {
     /*
      * The scenario the finalizer exists for: at ingest concurrency chunks
@@ -2709,6 +2786,9 @@ describe("recording-lost seal", () => {
       pageCount: 0,
       clickCount: 0,
       customEventCount: 0,
+      customSignalCount: 0,
+      customSignalFrustrationCount: 0,
+      customSignalNames: [],
       firstErrorOffsetMs: 0,
       activeMs: 0,
       firstUrl: "",
@@ -3404,7 +3484,14 @@ describe("Rum:SweepNeverFinalizedSessions loop", () => {
     const { inserted } = stubClickhouse({
       sweepRows: [sweepRow],
       tabRows: [],
-      headerRows: [headerRowOf({ errorCount: 2 })],
+      headerRows: [
+        headerRowOf({
+          errorCount: 2,
+          customSignalCount: 3,
+          customSignalFrustrationCount: 1,
+          customSignalNames: ["Checkout error"],
+        }),
+      ],
     });
 
     const summary: { finalized: number; sealedLost: number; failed: number } =
@@ -3416,6 +3503,10 @@ describe("Rum:SweepNeverFinalizedSessions loop", () => {
     );
     /* Chunk 0's evidence survives the seal. */
     expect(inserted[0]!["errorCount"]).toBe(2);
+    /* The application's own signals with it (issue #6443). */
+    expect(inserted[0]!["customSignalCount"]).toBe(3);
+    expect(inserted[0]!["customSignalFrustrationCount"]).toBe(1);
+    expect(inserted[0]!["customSignalNames"]).toEqual(["Checkout error"]);
     /*
      * And so does the visitor link: the chunks are gone, the header is not,
      * and a sealed row that dropped it would vanish from its visitor's
