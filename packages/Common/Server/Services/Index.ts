@@ -521,6 +521,7 @@ import ServiceLevelObjectiveLabelRuleService from "./ServiceLevelObjectiveLabelR
 import SloHistoryService from "./SloHistoryService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
 import PublicNoteApprovalStepService from "./PublicNoteApprovalStepService";
+import PublicNoteApprovalRequestService from "./PublicNoteApprovalRequestService";
 import AlertReminderRuleService from "./AlertReminderRuleService";
 import ScheduledMaintenanceReminderRuleService from "./ScheduledMaintenanceReminderRuleService";
 
@@ -1111,6 +1112,7 @@ const services: Array<BaseService> = [
   ServiceLevelObjectiveLabelRuleService,
   IncidentReminderRuleService,
   PublicNoteApprovalStepService,
+  PublicNoteApprovalRequestService,
   AlertReminderRuleService,
   ScheduledMaintenanceReminderRuleService,
 

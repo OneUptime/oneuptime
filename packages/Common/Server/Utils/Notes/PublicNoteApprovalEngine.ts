@@ -52,6 +52,9 @@ import PublicNoteApprovalNotifications, {
   PublicNoteApprovalMessageFacts,
 } from "./PublicNoteApprovalNotifications";
 import PublicNoteApprovalPolicy from "./PublicNoteApprovalPolicy";
+import PublicNoteApprovalRequests, {
+  PublicNoteApprovalRequestKey,
+} from "./PublicNoteApprovalRequests";
 import PublicNoteApprovalWrites, {
   PUBLIC_NOTE_APPROVAL_COLUMNS,
   PublicNoteApprovalWrite,
@@ -1215,6 +1218,142 @@ export default class PublicNoteApprovalEngine {
     };
   }
 
+  // ---------- when who approves changes ----------
+
+  /*
+   * A note, once who approves its kind of note changed while it may wait:
+   * its project's approval steps, or the members of a team a step names
+   * (PublicNoteApproverChanges). While it waits, for the step it waits for
+   * now, in the steps' order now:
+   *
+   *  - its chat copies that no longer ask what is true say what happened
+   *    instead, and so do those of the people the step no longer asks
+   *    (WorkspacePublicNoteApprovalMessages.replaceOver);
+   *  - the people the step asks now are asked, as askApprovers asks - each
+   *    only by what they were not asked by about this step of this round yet
+   *    (PublicNoteApprovalRequests).
+   *
+   * A note that no longer waits - published, rejected, gone - is left as it
+   * is, and so is its record's feed: who approves changed, not the note.
+   * Returns the people asked.
+   */
+  @CaptureSpan()
+  public static async followUp<TNote extends BaseModel>(data: {
+    host: PublicNoteApprovalHost<TNote>;
+    noteId: ObjectID;
+  }): Promise<Array<ObjectID>> {
+    const note: NoteFields | null = await this.readNote(data.host, data.noteId);
+
+    if (!note || !note.projectId) {
+      return [];
+    }
+
+    const round: PublicNoteApprovalRound | null = PublicNoteApproval.readRound(
+      note.approval,
+    );
+
+    // Who was asked is recorded by the round: a note with none is left as it was.
+    if (
+      !PublicNoteApproval.isWaiting(PublicNoteApproval.getState(note)) ||
+      !round
+    ) {
+      return [];
+    }
+
+    const steps: Array<PublicNoteApprovalStepRule> =
+      await PublicNoteApprovalPolicy.getSteps({
+        projectId: note.projectId,
+        eventType: data.host.eventType,
+      });
+    const position: PublicNoteApprovalPosition = PublicNoteApproval.getPosition(
+      round,
+      steps,
+    );
+    const people: Array<string> = await this.getPeopleToAsk({
+      projectId: note.projectId,
+      round,
+      position,
+    });
+
+    try {
+      await PublicNoteApprovalNotifications.getChatMessages().replaceOver({
+        kind: data.host.kind,
+        projectId: note.projectId,
+        noteId: data.noteId,
+        askedUserIds: people,
+      });
+    } catch (error) {
+      logger.error(
+        "Public note approval: could not replace the chat messages of a public note whose approvers changed.",
+        { projectId: note.projectId.toString() },
+      );
+      logger.error(error, { projectId: note.projectId.toString() });
+    }
+
+    return await this.askApprovers({
+      host: data.host,
+      note,
+      round,
+      position,
+      isEdit: note.isPublished !== false,
+      isFollowUp: true,
+      people,
+    });
+  }
+
+  /*
+   * A note that waited before OneUptime kept whom it asked
+   * (PublicNoteApprovalRequests): the people the step it waits for asks
+   * now are taken as asked about it - as they were when the note reached
+   * the step - without asking them, so the first change of who approves it
+   * asks only those who are new. How many requests were recorded.
+   */
+  @CaptureSpan()
+  public static async recordAsAsked<TNote extends BaseModel>(data: {
+    host: PublicNoteApprovalKind<TNote>;
+    noteId: ObjectID;
+  }): Promise<number> {
+    const note: NoteFields | null = await this.readNote(data.host, data.noteId);
+
+    if (!note || !note.projectId) {
+      return 0;
+    }
+
+    const round: PublicNoteApprovalRound | null = PublicNoteApproval.readRound(
+      note.approval,
+    );
+
+    if (
+      !PublicNoteApproval.isWaiting(PublicNoteApproval.getState(note)) ||
+      !round
+    ) {
+      return 0;
+    }
+
+    const position: PublicNoteApprovalPosition = PublicNoteApproval.getPosition(
+      round,
+      await PublicNoteApprovalPolicy.getSteps({
+        projectId: note.projectId,
+        eventType: data.host.eventType,
+      }),
+    );
+    const request: PublicNoteApprovalRequestKey | undefined =
+      this.getRequestKey({ host: data.host, note, round, position });
+
+    if (!request) {
+      return 0;
+    }
+
+    return await PublicNoteApprovalRequests.record({
+      key: request,
+      userIds: await this.getPeopleToAsk({
+        projectId: note.projectId,
+        round,
+        position,
+      }),
+    });
+  }
+
   // ---------- what a held note may not start ----------
 
   /*
@@ -1819,24 +1958,25 @@ export default class PublicNoteApprovalEngine {
     round: PublicNoteApprovalRound | null;
     position: PublicNoteApprovalPosition;
     isEdit: boolean;
-  }): Promise<void> {
+    /*
+     * Who approves changed while the note waits (followUp): only those the
+     * step did not ask yet are asked. With them, who the step asks, read
+     * already.
+     */
+    isFollowUp?: boolean | undefined;
+    people?: Array<string> | undefined;
+  }): Promise<Array<ObjectID>> {
     if (!data.position.step || !data.note.projectId) {
-      return;
+      return [];
     }
 
-    const teamMembers: Record<
-      string,
-      Array<string>
-    > = await PublicNoteApprovalPolicy.getTeamMemberIds({
-      projectId: data.note.projectId,
-      teamIds: data.position.step.teamIds,
-    });
-
-    const people: Array<string> = PublicNoteApproval.getPeopleToAsk({
-      step: data.position.step,
-      teamMembers,
-      round: data.round,
-    });
+    const people: Array<string> =
+      data.people ||
+      (await this.getPeopleToAsk({
+        projectId: data.note.projectId,
+        round: data.round,
+        position: data.position,
+      }));
 
     const facts: PublicNoteApprovalMessageFacts | null = await this.getFacts(
       data.host,
@@ -1845,10 +1985,10 @@ export default class PublicNoteApprovalEngine {
     );
 
     if (!facts || people.length === 0) {
-      return;
+      return [];
     }
 
-    await PublicNoteApprovalNotifications.askApprovers({
+    return await PublicNoteApprovalNotifications.askApprovers({
       facts,
       userIds: people,
       namedUserIds: data.position.step.userIds,
@@ -1866,7 +2006,76 @@ export default class PublicNoteApprovalEngine {
         round: data.round,
         position: data.position,
       }),
+      request: this.getRequestKey({
+        host: data.host,
+        note: data.note,
+        round: data.round,
+        position: data.position,
+      }),
+      isFollowUp: Boolean(data.isFollowUp),
     });
+  }
+
+  /*
+   * The people the step a note waits for asks: those it names, and the
+   * members of the teams it names now, less whoever sent the note and
+   * whoever approved it already (PublicNoteApproval.getPeopleToAsk).
+   */
+  private static async getPeopleToAsk(data: {
+    projectId: ObjectID;
+    round: PublicNoteApprovalRound | null;
+    position: PublicNoteApprovalPosition;
+  }): Promise<Array<string>> {
+    if (!data.position.step) {
+      return [];
+    }
+
+    const teamMembers: Record<
+      string,
+      Array<string>
+    > = await PublicNoteApprovalPolicy.getTeamMemberIds({
+      projectId: data.projectId,
+      teamIds: data.position.step.teamIds,
+    });
+
+    return PublicNoteApproval.getPeopleToAsk({
+      step: data.position.step,
+      teamMembers,
+      round: data.round,
+    });
+  }
+
+  /*
+   * The step of the note's round an ask is about, for the record of whom it
+   * asked (PublicNoteApprovalRequests); undefined for a note with no round
+   * to name, whose approvers are asked as they always were.
+   */
+  private static getRequestKey<TNote extends BaseModel>(data: {
+    host: PublicNoteApprovalKind<TNote>;
+    note: NoteFields;
+    round: PublicNoteApprovalRound | null;
+    position: PublicNoteApprovalPosition;
+  }): PublicNoteApprovalRequestKey | undefined {
+    const noteId: string | null = this.idOf(data.note as unknown as BaseModel);
+
+    if (
+      !noteId ||
+      !data.note.projectId ||
+      !data.round?.submittedAt ||
+      !data.position.step
+    ) {
+      return undefined;
+    }
+
+    return {
+      kind: data.host.kind,
+      projectId: data.note.projectId,
+      noteId: new ObjectID(noteId),
+      submittedAt: data.round.submittedAt,
+      stepId: data.position.step.id,
+      isFinal: data.position.isFinal,
+      isAskedAgain: data.position.isAskedAgain,
+    };
   }
 
   /*

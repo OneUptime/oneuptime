@@ -559,6 +559,7 @@ import IncidentReminderRule from "./IncidentReminderRule";
 import AlertReminderRule from "./AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "./ScheduledMaintenanceReminderRule";
 import PublicNoteApprovalStep from "./PublicNoteApprovalStep";
+import PublicNoteApprovalRequest from "./PublicNoteApprovalRequest";
 import MonitorOwnerRule from "./MonitorOwnerRule";
 import MonitorLabelRule from "./MonitorLabelRule";
 import StatusPageOwnerRule from "./StatusPageOwnerRule";
@@ -882,6 +883,7 @@ const AllModelTypes: Array<{
   AlertReminderRule,
   ScheduledMaintenanceReminderRule,
   PublicNoteApprovalStep,
+  PublicNoteApprovalRequest,
 
   MonitorOwnerRule,
   MonitorLabelRule,

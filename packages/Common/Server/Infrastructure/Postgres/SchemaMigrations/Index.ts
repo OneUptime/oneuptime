@@ -933,6 +933,7 @@ import { AddTelemetryUsageCreatedAtIndex1808997415916 } from "./1808997415916-Ad
 import { AddWorkspacePublicNoteApprovalMessage1809063170000 } from "./1809063170000-AddWorkspacePublicNoteApprovalMessage";
 import { AddSloDeploymentGate1809063206333 } from "./1809063206333-AddSloDeploymentGate";
 import { AddRumSignalArrivals1809063215770 } from "./1809063215770-AddRumSignalArrivals";
+import { AddPublicNoteApprovalRequest1809063230000 } from "./1809063230000-AddPublicNoteApprovalRequest";
 
 export default [
   InitialMigration,
@@ -1870,4 +1871,5 @@ export default [
   AddWorkspacePublicNoteApprovalMessage1809063170000,
   AddSloDeploymentGate1809063206333,
   AddRumSignalArrivals1809063215770,
+  AddPublicNoteApprovalRequest1809063230000,
 ];
